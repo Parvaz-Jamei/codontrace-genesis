@@ -1,0 +1,21 @@
+try:
+    from ._path_bootstrap import ensure_src_path
+except ImportError:  # direct script or runpy execution outside the examples package
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _EXAMPLES_DIR = _Path(__file__).resolve().parent
+    if str(_EXAMPLES_DIR) not in _sys.path:
+        _sys.path.insert(0, str(_EXAMPLES_DIR))
+    from _path_bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from codontrace import __version__
+from codontrace.genesis import ScientificEvidencePack, score_evidence_completeness
+
+pack = ScientificEvidencePack(
+    "demo-pack", __version__, claim_audit_digest="claim", limitation_ids=("lim",)
+)
+score = score_evidence_completeness(pack, "mature_alpha")
+print({"score": round(score.score_0_to_1, 3), "missing": list(score.missing_items)})

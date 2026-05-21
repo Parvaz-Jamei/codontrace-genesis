@@ -1,0 +1,21 @@
+{
+  "paths": [],
+  "patterns": [
+    {
+      "label": "positive_not_run",
+      "path": "tests/**"
+    },
+    {
+      "label": "fake_lineage_path",
+      "path": "tests/**"
+    },
+    {
+      "label": "file",
+      "path": "docs/**"
+    },
+    {
+      "label": "old_artifact_key",
+      "path": "tests/**"
+    }
+  ]
+}

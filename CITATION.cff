@@ -1,11 +1,11 @@
 cff-version: 1.2.0
-message: "If you use CodonTrace, please cite the versioned software release."
+message: "If you use CodonTrace Genesis, please cite the versioned software release."
 title: "CodonTrace Genesis"
 version: "0.3.0a1"
 authors:
   - family-names: "Jamei"
     given-names: "Parvaz"
-license: "MIT"
+license: "AGPL-3.0-or-later"
 repository-code: "https://github.com/Parvaz-Jamei/codontrace-genesis"
 abstract: "CodonTrace Genesis is a deterministic, library-first research-alpha toolkit for digital-evolution experiments, causal mechanism auditing, capsule-mediated transfer, skill-compression inheritance, role and collective-behavior instrumentation, and replayable evidence artifacts."
 keywords:

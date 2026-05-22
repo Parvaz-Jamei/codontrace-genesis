@@ -9,7 +9,7 @@ from codontrace.genesis.ribosome import Ribosome
 
 
 def test_release_identity_is_a25_unified_runtime() -> None:
-    assert codontrace.__version__ == "0.3.0a1"
+    assert codontrace.__version__ == "0.3.0a2"
 
 
 def test_manifest_hashes_use_real_codon_table_and_genome_spec() -> None:

@@ -9,7 +9,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20336665.svg)](https://doi.org/10.5281/zenodo.20336665)
-[![License](https://img.shields.io/github/license/Parvaz-Jamei/codontrace-genesis.svg)](LICENSE)
+[![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
 
 **CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital evolution experiments with deterministic evidence trails.
 
@@ -454,7 +454,13 @@ A `CITATION.cff` file is included for citation-aware tools.
 
 ## License
 
-See [`LICENSE`](LICENSE).
+CodonTrace Genesis is licensed under the **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`).
+
+This license is intentionally selected to keep modified, redistributed, and network-deployed versions open, attributable, and scientifically inspectable.
+
+Commercial/proprietary use cases that cannot comply with `AGPL-3.0-or-later` may contact the author for a separate commercial license.
+
+See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 ---
 

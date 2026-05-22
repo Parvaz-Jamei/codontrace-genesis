@@ -1,139 +1,121 @@
 <div align="center">
 
-# CodonTrace Genesis 🧬
+# 🧬 CodonTrace Genesis
 
-**A deterministic research engine for digital evolution, causal mechanism auditing, replayable evidence, and white-box agent experiments.**
+### Deterministic research software for digital evolution, causal mechanism auditing, replayable ALife experiments, and evidence-gated AI/evolution studies.
 
-[![PyPI version](https://img.shields.io/pypi/v/codontrace.svg)](https://pypi.org/project/codontrace/)
-[![Python](https://img.shields.io/pypi/pyversions/codontrace.svg)](https://pypi.org/project/codontrace/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status: Research Alpha](https://img.shields.io/badge/status-research--alpha-orange.svg)](#scientific-claim-policy)
-[![Deterministic Replay](https://img.shields.io/badge/replay-digest--backed-blue.svg)](#why-codontrace-genesis)
-[![Library-as-Tool](https://img.shields.io/badge/design-library--as--tool-purple.svg)](#scientific-claim-policy)
+[![PyPI](https://img.shields.io/pypi/v/codontrace.svg?label=PyPI&color=blue)](https://pypi.org/project/codontrace/)
+[![Python](https://img.shields.io/badge/Python-3.13%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions)
+[![License](https://img.shields.io/github/license/Parvaz-Jamei/codontrace-genesis.svg)](LICENSE)
+[![Research Software](https://img.shields.io/badge/research%20software-replayable%20%7C%20evidence--gated-purple)](#scientific-claim-policy)
+[![Status](https://img.shields.io/badge/status-alpha%20research%20release-orange)](#release-status)
+
+**CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital evolution experiments with deterministic evidence trails.
 
 </div>
 
 ---
 
-## What is CodonTrace Genesis?
+## Overview
 
-**CodonTrace Genesis** is a Python research library for building and auditing deterministic digital-evolution experiments. It focuses on transparent mechanisms: semantic genomes, white-box agent execution, capsule-mediated information transfer, skill-compression inheritance, role and collective-behavior instrumentation, causal ablations, replay digests, evidence manifests, and claim-gated scientific artifacts.
+Digital evolution, artificial life, and evolutionary AI experiments often face the same problem: interesting behaviors appear during a run, but the evidence can be hard to replay, hard to audit, and hard to separate from runner-specific assumptions.
 
-It is designed for researchers, engineers, and advanced experimenters who want a **library-first engine**, not a black-box simulator and not a runner that hard-codes success.
+**CodonTrace Genesis** is designed as a **library-as-tool** for controlled experiments in digital evolution, causal mechanism analysis, capsule-mediated information transfer, skill compression, role emergence, collective behavior, and open-endedness.
 
-> **Release status:** `0.3.0a1` is a research-alpha software release. It provides engine primitives, public APIs, tests, examples, and evidence surfaces. It is not a claim of AGI, consciousness, autonomous open-ended discovery, artificial life equivalence, or causal certainty.
+The project focuses on:
+
+- deterministic replay and digest-backed artifacts,
+- explicit evidence manifests,
+- mutation, birth, death, reproduction, lineage, memory, capsule/signaling, role, and open-endedness primitives,
+- ablation and counterfactual-style mechanisms,
+- strict claim gating for scientific honesty,
+- reproducible research software workflows.
+
+CodonTrace Genesis does **not** hard-code intelligence or force a successful outcome. It provides the experimental substrate, mechanisms, records, and audit surfaces needed to test claims with replayable evidence.
 
 ---
 
-## Why CodonTrace Genesis?
+## Why this project exists
 
-| Need | How CodonTrace Genesis approaches it |
+Most experimental engines can produce outputs. Fewer engines make it easy to answer:
+
+- Did the behavior actually emerge from the runtime?
+- Can the result be replayed deterministically?
+- Was the useful signal really causal, or just correlated?
+- Did memory change later action?
+- Did skill compression improve offspring outcome?
+- Did a role matter when ablated?
+- Did a group outperform individuals under heldout conditions?
+- Is an open-endedness claim supported by novelty, persistence, learnability, and controls?
+
+CodonTrace Genesis is built around those questions.
+
+---
+
+## Key capabilities
+
+| Area | Capability |
 |---|---|
-| Deterministic experiments | Seeded execution, stable digests, replay bundles, and manifest-level runtime hashes. |
-| Mechanism-level AI research | Explicit primitives for genomes, actions, memory, capsules, roles, reproduction, selection, QD, OEE, and causal interventions. |
-| Stronger social/collective evidence | Role mechanics, heldout partner evaluation, collective task graphs, role ablations, contribution ledgers, and ClaimGate-compatible records. |
-| Safer scientific claims | Evidence manifests, negative controls, ablations, blocked reasons, and explicit claim downgrades. |
-| Extensible research software | Library APIs first; runners and examples are consumers of the engine, not hidden sources of success. |
-
----
-
-## Core capabilities
-
-### Evolution and runtime
-
-- Semantic genome translation and codon-to-action execution.
-- ATP-constrained white-box agent runtime.
-- Reproduction, mutation, lineage, birth/death diagnostics, and runtime maturity records.
-- Configurable `GenesisExperimentSpec` and `GenesisEngine` execution.
-
-### Causal mechanisms and replayable evidence
-
-- `CapsuleAblationPolicy` for capsule/packet-style transfer controls.
-- `CapsuleOutcomeWindow` for delayed capsule outcome tracking.
-- `SignalMemoryCausalLinkRecord` for `signal/capsule → memory → action → outcome` audits.
-- `SkillCompressionAblationPolicy` and `ChildOutcomeAuditRecord` for inheritance and compression controls.
-- `CounterfactualReplayProtocol` for digest-backed intervention design.
-
-### Social, role, and collective behavior
-
-- `RoleMechanicsPolicy` for role persistence and soft role-bias mechanics.
-- `TerritoryMechanicsConfig` and territory-defense records.
-- `CollectiveTaskGraph`, role dependency edges, and joint-task progress records.
-- `RoleAblationProtocol` and `HeldoutPartnerEvaluationProtocol`.
-- `MultiAgentContributionLedger` and source-reputation memory surfaces.
-
-### Scientific instrumentation
-
-- Quality Diversity and Pareto/QD evidence surfaces.
-- Discovery, D0/shadow-baseline, ablation, and generalization schemas.
-- Extended open-endedness metrics through `OEEExtendedMetrics`.
-- Evidence lineage, release evidence packs, statistical protocol checks, and ClaimGate integration.
+| Digital evolution | Genome, mutation, birth, death, reproduction gates, lineage, selection, survival diagnostics |
+| Replayability | Deterministic digests, runtime hashes, replay manifests, artifact indexes |
+| Evidence integrity | Claim manifests, negative evidence, blocked reasons, record digests, release evidence surfaces |
+| Causal mechanisms | Capsule ablations, signal-memory-action traces, delayed outcome windows, counterfactual replay protocols |
+| Learning and memory | Memory records, signal-memory causal links, memory reuse and delayed reward paths |
+| Capsule communication | Capsule transfer, source-fitness controls, utility scoring, misleading/expired/low-confidence cases |
+| Skill compression | Compression policies, negative controls, child outcome audits, inherited-skill evidence |
+| Role and social behavior | Role mechanics, role persistence, role ablation, heldout partner evaluation |
+| Collective tasks | Multi-agent task graphs, role dependency edges, joint progress records |
+| Open-endedness | Novelty accumulation, complexity growth, adaptive success, lineage persistence, behavior-space expansion |
+| Research release | CI, examples, tests, citation metadata, PyPI-ready packaging, GitHub release readiness |
 
 ---
 
 ## Installation
 
-From PyPI after publication:
+### From PyPI
 
 ```bash
-python -m pip install codontrace==0.3.0a1
+pip install codontrace
 ```
 
-For a local source checkout:
+### From source
 
 ```bash
-python -m pip install -e ".[dev]"
-python -m pytest
+git clone https://github.com/Parvaz-Jamei/codontrace-genesis.git
+cd codontrace-genesis
+python -m pip install -e .
 ```
 
-Optional research extras:
+### Development install
 
 ```bash
-python -m pip install "codontrace[research]"
+python -m pip install -e .[dev]
+python -m pytest tests
 ```
+
+Current alpha target: **Python 3.13 / 3.14**.
 
 ---
 
 ## Quick start
 
-### Compact beginner API
-
-```python
-from codontrace import WhiteBoxAgent, World2D
-
-world = World2D(width=4, height=4)
-agent = WhiteBoxAgent.from_world(world, genome="000")
-result = agent.run_trial(world, steps=3, explain=True)
-
-print(result.explanation)
-```
-
-### Genesis runtime API
-
-```python
-from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
-
-spec = GenesisExperimentSpec(seed=7, tick_count=3)
-result = GenesisEngine.from_spec(spec).run_ticks()
-
-print(result.replay_bundle.digest())
-print(result.manifest.digest())
-print(result.manifest.runtime_hashes)
-```
-
-### Causal mechanism configuration
-
 ```python
 from codontrace.genesis import (
+    GenesisExperimentSpec,
+    GenesisEngineConfig,
     CapsuleAblationPolicy,
     CapsuleOutcomeWindow,
-    GenesisExperimentSpec,
     SkillCompressionAblationPolicy,
+    RoleMechanicsPolicy,
+    OEEExtendedMetrics,
 )
 
 spec = GenesisExperimentSpec(
-    seed=11,
-    tick_count=5,
+    seed=42,
+    ticks=32,
+    population_size=8,
+    engine_config=GenesisEngineConfig(),
     capsule_ablation_policy=CapsuleAblationPolicy(
         enable_capsule_transfer=True,
         enable_capsule_utility_scoring=True,
@@ -141,99 +123,341 @@ spec = GenesisExperimentSpec(
         enable_signal_memory_link=True,
         enable_capsule_behavior_update=True,
     ),
-    capsule_outcome_window=CapsuleOutcomeWindow(window_ticks=5),
+    capsule_outcome_window=CapsuleOutcomeWindow(
+        window_ticks=5,
+        track_survival=True,
+        track_fitness_delta=True,
+        track_reproduction_delta=True,
+        track_memory_reuse=True,
+        track_role_change=True,
+    ),
     skill_compression_ablation_policy=SkillCompressionAblationPolicy(
-        mode="full_compression"
+        enabled=True,
+        mode="full_compression",
+        child_outcome_window_ticks=10,
+        compare_against_uncompressed_sibling=True,
+    ),
+    role_mechanics_policy=RoleMechanicsPolicy(
+        enable_role_bias=True,
+        enable_role_persistence=True,
+        enable_role_switch_cost=True,
+        enable_role_task_bonus=False,
+        role_inheritance_mode="weak_bias",
+    ),
+    oee_extended_metrics=OEEExtendedMetrics(
+        novelty_accumulation=True,
+        complexity_growth=True,
+        adaptive_success_accumulation=True,
+        lineage_persistence=True,
+        behavior_space_expansion=True,
+        learnability=True,
     ),
 )
-```
 
-`PacketAblationPolicy` and `PacketOutcomeWindow` are compatibility aliases for the canonical `Capsule*` APIs. They do **not** create a second packet runtime.
+print(spec.deterministic_digest())
+```
 
 ---
 
-## Architecture at a glance
+## Architecture
 
 ```text
 GenesisExperimentSpec
-        ↓
-GenesisEngine / population / runtime modules
-        ↓
-Agent events, capsules, memory, roles, reproduction, QD, OEE, interventions
-        ↓
+        │
+        ▼
+Engine / population / runtime modules
+        │
+        ▼
 GenesisRunResult
-        ↓
-ReplayBundle · EvidenceManifest · Runtime hashes · ClaimGate records
-        ↓
-Auditable scientific artifacts and controlled claim surfaces
+        │
+        ├── runtime records
+        ├── artifact digest map
+        ├── replay policy records
+        ├── evidence manifests
+        ├── causal mechanism reports
+        └── claim-gated scientific summaries
 ```
 
-The engine is intentionally structured so that new mechanisms must pass through runtime configuration, execution, records, digests, manifests, replay policy, and claim gating. This keeps CodonTrace Genesis extensible without turning experiments into hidden hard-coded success paths.
+CodonTrace Genesis keeps runtime mechanisms and evidence surfaces connected. A feature is treated as mature only when it can be represented through configuration, runtime behavior, records, digests, manifests, tests, and claim gates.
+
+---
+
+## Research mechanisms
+
+### Digital evolution substrate
+
+CodonTrace Genesis includes primitives for mutation, birth, death, reproduction gates, lineage tracking, population dynamics, energy/ATP diagnostics, and deterministic replay.
+
+```python
+from codontrace.genesis import MutationOperatorAuditRecord, BirthGateRecord, DeathRecord
+```
+
+These records are designed to explain not only what happened, but why something did not happen.
+
+---
+
+### Capsule-mediated signaling
+
+Capsules are the canonical information-transfer primitive in CodonTrace Genesis. They can represent local signals, transferable behavioral hints, social messages, or experimental communication packets.
+
+```python
+from codontrace.genesis import CapsuleAblationPolicy, CapsuleOutcomeWindow
+```
+
+| Control | Purpose |
+|---|---|
+| `enable_capsule_transfer` | Allows or disables capsule transfer |
+| `enable_capsule_utility_scoring` | Separates transfer from measured utility |
+| `enable_source_fitness_weighting` | Controls whether receiver sees sender success evidence |
+| `enable_signal_memory_link` | Controls capsule-to-memory causality |
+| `enable_capsule_behavior_update` | Controls whether received capsules can influence behavior |
+
+Compatibility aliases may use `Packet*` naming, but the canonical engine concept is **Capsule**.
+
+---
+
+### Signal → memory → action auditing
+
+CodonTrace Genesis can represent whether a signal was seen, written to memory, read later, followed by an action change, and associated with reward, fitness, or selection deltas.
+
+```python
+from codontrace.genesis import SignalMemoryCausalLinkRecord
+```
+
+This helps avoid weak claims such as “messages were exchanged” when the real question is whether information changed later behavior.
+
+---
+
+### Skill compression and child outcome audits
+
+The library includes skill-compression and inheritance-related evidence records, including negative controls and child outcome audits.
+
+```python
+from codontrace.genesis import SkillCompressionAblationPolicy, ChildOutcomeAuditRecord
+```
+
+| Mode | Meaning |
+|---|---|
+| `full_compression` | Full skill-compression path |
+| `disabled` | Compression disabled |
+| `capacity_only` | Capacity transferred without learned content |
+| `shuffle_compressed_skill` | Negative control with shuffled compressed skill |
+| `null_compression` | Placebo/control record without real effect |
+
+The goal is not merely to show that a child inherited something, but to test whether inherited compression changes survival, memory reuse, fitness, or reproduction outcomes.
+
+---
+
+### Role mechanics and collective task evidence
+
+CodonTrace Genesis supports role-related records and policies for studying whether roles emerge, persist, switch, and contribute to collective tasks.
+
+```python
+from codontrace.genesis import (
+    RoleMechanicsPolicy,
+    CollectiveTaskGraph,
+    RoleAblationProtocol,
+    HeldoutPartnerEvaluationProtocol,
+)
+```
+
+| Evidence path | Why it matters |
+|---|---|
+| Role persistence | Checks whether roles last beyond labels |
+| Role switch cost | Prevents role labels from being arbitrary |
+| Role ablation | Tests whether removing a role reduces group performance |
+| Heldout partner evaluation | Tests familiar vs unfamiliar partner behavior |
+| Collective task graph | Tests multi-agent dependency rather than isolated fitness |
+
+---
+
+### Open-endedness metrics
+
+Open-endedness evidence should not rely on novelty alone. CodonTrace Genesis exposes extended metrics for novelty accumulation, complexity growth, adaptive success, lineage persistence, behavior-space expansion, and learnability.
+
+```python
+from codontrace.genesis import OEEExtendedMetrics
+```
+
+These metrics can support descriptive or candidate evidence depending on seed count, controls, persistence, and replayable artifacts.
 
 ---
 
 ## Scientific claim policy
 
-CodonTrace Genesis is a **Library-as-Tool**. It provides primitives, policies, records, digests, controls, and audit surfaces. It does not automatically turn configured mechanisms into positive scientific claims.
+CodonTrace Genesis is intentionally strict about claims.
 
-A claim becomes stronger only when the relevant records are:
+| Claim type | Requirement |
+|---|---|
+| Descriptive observation | A recorded event or metric exists |
+| Candidate evidence | Deterministic records, digests, and minimum protocol evidence exist |
+| Causal support | Intervention, ablation, or counterfactual-style evidence is required |
+| Collective/swarm evidence | Multi-agent progress, role complementarity, heldout partners, and ablation evidence are required |
+| Open-endedness evidence | Novelty, persistence, learnability, transfer, and controls are required |
 
-1. produced by an explicit experiment or configured protocol,
-2. deterministic and digest-backed,
-3. visible in the manifest or evidence bundle,
-4. linked to controls, ablations, heldout evaluation, or negative controls when required,
-5. compatible with replay policy, and
-6. accepted by ClaimGate for the specific claim level.
+CodonTrace Genesis does **not** treat placeholder data, empty digests, fake evidence, `not_run:*`, NaN, or Infinity as positive scientific evidence.
 
-This means a successful smoke run is useful engineering evidence, but it is not treated as a strong scientific claim by itself.
+---
+
+## Release status
+
+This is an **alpha research software release**.
+
+It is suitable for:
+
+- exploring the CodonTrace Genesis API,
+- running deterministic examples,
+- reviewing scientific evidence schemas,
+- building controlled ALife and digital evolution experiments,
+- extending mechanism-level tests.
+
+It is not yet a final scientific benchmark claim or a peer-reviewed result package.
+
+---
+
+## Repository layout
+
+```text
+codontrace-genesis/
+├── src/codontrace/             # Library source
+├── tests/                      # Unit, integration, release, and science-gate tests
+├── examples/                   # Example experiments and validation smoke runs
+├── docs/                       # Documentation and release notes
+├── .github/workflows/          # CI and publishing workflows
+├── README.md                   # Project overview
+├── pyproject.toml              # Packaging metadata
+├── CITATION.cff                # Citation metadata
+├── CHANGELOG.md                # Release history
+└── LICENSE                     # License
+```
+
+---
+
+## Examples
+
+Run a quick validation smoke:
+
+```bash
+python examples/genesis_phase3_validation_smoke.py
+```
+
+Run a toolchain pilot:
+
+```bash
+python examples/genesis_toolchain_pilot.py --out artifacts/pilots/toolchain
+```
+
+Run a capsule utility pilot:
+
+```bash
+python examples/genesis_capsule_utility_pilot.py --out artifacts/pilots/capsule_utility
+```
+
+Run a QD selection pilot:
+
+```bash
+python examples/genesis_qd_selection_pilot.py --out artifacts/pilots/qd_selection
+```
+
+---
+
+## Testing
+
+```bash
+python -m compileall -q src tests examples tools
+python -m pytest tests/genesis_gates -q
+python -m pytest tests/science_gates -q
+python -m pytest tests -q
+```
+
+The public alpha CI focuses on Python 3.13 and 3.14.
 
 ---
 
 ## Documentation map
 
-| Topic | Document |
+| Document | Purpose |
 |---|---|
-| Runtime contract | `docs/GENESIS_RUNTIME_CONTRACT.md` |
-| Claim policy | `docs/CLAIM_GATE_POLICY.md` |
-| Replay and artifacts | `docs/REPLAY_AND_ARTIFACTS.md` |
-| Causal validation | `docs/CAUSAL_VALIDATION_PROTOCOL.md` |
-| Capsule transfer validation | `docs/CAPSULE_TRANSFER_VALIDATION.md` |
-| Quality Diversity | `docs/QD_SEARCH_LOOP.md` |
-| Open-endedness protocol | `docs/OEE_LONG_HORIZON_PROTOCOL.md` |
-| Scientific limits | `docs/SCIENTIFIC_LIMITS.md` |
-| Publishing notes | `docs/publishing.md` |
+| `README.md` | Public project overview |
+| `CHANGELOG.md` | Release history |
+| `RELEASE_EVIDENCE.md` | Release evidence and claim boundaries |
+| `docs/` | Technical notes and extended documentation |
+| `examples/` | Runnable experiment examples |
+| `tests/` | Regression, science-gate, integration, and release tests |
 
 ---
 
-## Project status
+## Publication roadmap
 
-`0.3.0a1` is intended for:
+CodonTrace Genesis is prepared for staged public research release:
 
-- research-alpha evaluation,
-- reproducible local experiments,
-- review by collaborators,
-- citation-ready archival releases,
-- controlled benchmark design,
-- and development of stronger experimental campaigns.
+1. **GitHub public alpha release**
+2. **PyPI alpha package**
+3. **Zenodo DOI archival**
+4. **Technical whitepaper**
+5. **Expanded benchmark report**
+6. **JOSS-style research software paper preparation**
+7. **Heavier multi-seed scientific campaigns**
 
-It is not intended to be marketed as a finished autonomous intelligence system.
+The whitepaper and benchmark reports are planned as separate research artifacts, not as overclaims inside the README.
+
+---
+
+## Topics and discoverability
+
+Recommended GitHub topics:
+
+```text
+artificial-life
+digital-evolution
+open-endedness
+evolutionary-computation
+quality-diversity
+causal-inference
+replayable-research
+research-software
+python
+alife
+genesis
+codontrace
+```
 
 ---
 
 ## Citation
 
-See [`CITATION.cff`](CITATION.cff). If you archive a GitHub release through Zenodo, cite the resulting DOI together with the versioned release tag.
+If you use CodonTrace Genesis in research, prototypes, technical evaluation, or derivative work, please cite the repository release.
+
+A `CITATION.cff` file is included for citation-aware tools.
+
+```bibtex
+@software{codontrace_genesis_2026,
+  title = {CodonTrace Genesis},
+  author = {Jamei, Parvaz},
+  version = {0.3.0a1},
+  url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
+}
+```
 
 ---
 
 ## License
 
-MIT License. See [`LICENSE`](LICENSE).
+See [`LICENSE`](LICENSE).
+
+---
+
+## Author
+
+**Parvaz Jamei**  
+Embedded / Industrial IoT / Edge AI / Digital Evolution Research Software  
+GitHub: [@Parvaz-Jamei](https://github.com/Parvaz-Jamei)
 
 ---
 
 <div align="center">
 
-**CodonTrace Genesis** — deterministic digital evolution with replayable evidence and claim-gated mechanisms.
+**CodonTrace Genesis**  
+Deterministic evidence for digital evolution, causal mechanisms, and replayable ALife research.
 
 </div>

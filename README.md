@@ -7,6 +7,7 @@
 [![PyPI](https://img.shields.io/pypi/v/codontrace.svg?label=PyPI&color=blue)](https://pypi.org/project/codontrace/)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20336665.svg)](https://doi.org/10.5281/zenodo.20336665)
 [![License](https://img.shields.io/github/license/Parvaz-Jamei/codontrace-genesis.svg)](LICENSE)
 [![Research Software](https://img.shields.io/badge/research%20software-replayable%20%7C%20evidence--gated-purple)](#scientific-claim-policy)
 [![Status](https://img.shields.io/badge/status-alpha%20research%20release-orange)](#release-status)

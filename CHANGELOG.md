@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0a2 — AGPL metadata correction alpha release
+
+### Changed
+
+- Updated release identity from `0.3.0a1` to `0.3.0a2`.
+- Updated package, citation, and runtime version metadata for the AGPL public alpha line.
+- Removed deprecated license classifier from `pyproject.toml` to comply with modern Python packaging license-expression behavior.
+- Kept `AGPL-3.0-or-later` as the package license expression.
+
+### Notes
+
+This release is a metadata/legal-packaging correction release. It does not change the scientific claim boundary: CodonTrace Genesis remains alpha research software and does not claim final peer-reviewed benchmark results, AGI, consciousness, or proven collective intelligence.
+
 ## 0.3.0a1 — Alpha research release
 
 This release prepares CodonTrace Genesis for public alpha distribution as a deterministic research-software library.

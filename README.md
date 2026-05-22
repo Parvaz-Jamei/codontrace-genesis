@@ -4,13 +4,12 @@
 
 ### Deterministic research software for digital evolution, causal mechanism auditing, replayable ALife experiments, and evidence-gated AI/evolution studies.
 
-[![PyPI](https://img.shields.io/pypi/v/codontrace.svg?label=PyPI&color=blue)](https://pypi.org/project/codontrace/)
+[![PyPI version](https://img.shields.io/pypi/v/codontrace?label=PyPI)](https://pypi.org/project/codontrace/)
+[![PyPI publish](https://img.shields.io/badge/PyPI-published-success)](https://pypi.org/project/codontrace/)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions)
+[![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20336665.svg)](https://doi.org/10.5281/zenodo.20336665)
 [![License](https://img.shields.io/github/license/Parvaz-Jamei/codontrace-genesis.svg)](LICENSE)
-[![Research Software](https://img.shields.io/badge/research%20software-replayable%20%7C%20evidence--gated-purple)](#scientific-claim-policy)
-[![Status](https://img.shields.io/badge/status-alpha%20research%20release-orange)](#release-status)
 
 **CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital evolution experiments with deterministic evidence trails.
 
@@ -125,8 +124,8 @@ from codontrace.genesis import (
 
 spec = GenesisExperimentSpec(
     seed=42,
-    ticks=32,
-    population_size=8,
+    tick_count=32,
+    population_max=8,
     engine_config=GenesisEngineConfig(),
     capsule_ablation_policy=CapsuleAblationPolicy(
         enable_capsule_transfer=True,
@@ -157,16 +156,16 @@ spec = GenesisExperimentSpec(
         role_inheritance_mode="weak_bias",
     ),
     oee_extended_metrics=OEEExtendedMetrics(
-        novelty_accumulation=True,
-        complexity_growth=True,
-        adaptive_success_accumulation=True,
-        lineage_persistence=True,
-        behavior_space_expansion=True,
-        learnability=True,
+        novelty_accumulation=0.0,
+        complexity_growth=0.0,
+        adaptive_success_accumulation=0.0,
+        lineage_persistence=0.0,
+        behavior_space_expansion=0.0,
+        learnability=0.0,
     ),
 )
 
-print(spec.deterministic_digest())
+print(spec.digest()[:24])
 ```
 
 ---

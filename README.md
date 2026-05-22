@@ -8,7 +8,7 @@
 [![PyPI publish](https://img.shields.io/badge/PyPI-published-success)](https://pypi.org/project/codontrace/)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20336665.svg)](https://doi.org/10.5281/zenodo.20336665)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg)](https://doi.org/10.5281/zenodo.20337435)
 [![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
 
 **CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital evolution experiments with deterministic evidence trails.
@@ -445,7 +445,8 @@ A `CITATION.cff` file is included for citation-aware tools.
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0a1},
+  version = {0.3.0a2},
+  doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
 }
 ```

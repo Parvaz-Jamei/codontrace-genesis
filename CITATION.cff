@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use CodonTrace Genesis, please cite the versioned software release."
 title: "CodonTrace Genesis"
-version: "0.3.0a1"
+version: "0.3.0a2"
 authors:
   - family-names: "Jamei"
     given-names: "Parvaz"

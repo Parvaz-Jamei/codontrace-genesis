@@ -7,6 +7,8 @@ authors:
     given-names: "Parvaz"
 license: "AGPL-3.0-or-later"
 repository-code: "https://github.com/Parvaz-Jamei/codontrace-genesis"
+doi: "10.5281/zenodo.20337435"
+date-released: "2026-05-22"
 abstract: "CodonTrace Genesis is a deterministic, library-first research-alpha toolkit for digital-evolution experiments, causal mechanism auditing, capsule-mediated transfer, skill-compression inheritance, role and collective-behavior instrumentation, and replayable evidence artifacts."
 keywords:
   - digital evolution

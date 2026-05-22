@@ -6,7 +6,7 @@ authors:
   - family-names: "Jamei"
     given-names: "Parvaz"
 license: "MIT"
-repository-code: "https://github.com/parvaz-jamei/codontrace"
+repository-code: "https://github.com/Parvaz-Jamei/codontrace-genesis"
 abstract: "CodonTrace Genesis is a deterministic, library-first research-alpha toolkit for digital-evolution experiments, causal mechanism auditing, capsule-mediated transfer, skill-compression inheritance, role and collective-behavior instrumentation, and replayable evidence artifacts."
 keywords:
   - digital evolution

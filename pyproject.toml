@@ -12,7 +12,7 @@ name = "codontrace"
 version = "0.3.0a1"
 description = "CodonTrace Genesis: deterministic research-alpha engine for digital evolution, causal mechanism auditing, capsule-mediated transfer, skill compression, role emergence, and replayable evidence artifacts."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
@@ -35,6 +35,8 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
@@ -88,7 +90,7 @@ addopts = "-q --disable-plugin-autoload --import-mode=importlib"
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
@@ -102,7 +104,7 @@ ignore = []
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.11"
 strict = true
 packages = ["codontrace"]
 

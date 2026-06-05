@@ -9,7 +9,7 @@ from codontrace.genesis.final_release_manifest import ReleaseEvidencePack
 from codontrace.genesis.open_endedness import LearnabilityReport, NoveltyTrajectory, OEEArtifactSequence
 from codontrace.genesis.replay_integrity import audit_replay_digest_policy_registry
 
-CURRENT_ARTIFACT_NAME = "codontrace-0.3.0a1-release-bundle.zip"
+CURRENT_ARTIFACT_NAME = "codontrace-0.3.0b1-release-bundle.zip"
 
 
 def D(name: str) -> str:

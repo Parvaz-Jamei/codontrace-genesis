@@ -446,7 +446,7 @@ class Phase3CampaignSpec:
     control_plan: Phase3ControlPlan
     scenarios: tuple[Phase3ScenarioSpec, ...]
     preregistered_metrics: tuple[Phase3MetricSpec, ...]
-    library_version: str = "0.3.0a1"
+    library_version: str = "0.3.0b1"
     schema_version: str = "phase3_campaign_spec_v1"
     def __post_init__(self) -> None:
         if not self.campaign_id or not self.release_label:

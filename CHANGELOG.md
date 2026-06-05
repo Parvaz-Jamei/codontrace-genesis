@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0b1 — Studio-readiness beta release
+
+### Changed
+
+- Promoted current package identity from `0.3.0a2` alpha to `0.3.0b1` beta.
+- Updated package metadata, runtime `codontrace.__version__`, citation metadata, release evidence, README install pins, and current release artifact identity.
+- Kept historical `added_in`/compatibility provenance fields intact where they describe APIs introduced during the alpha line.
+
+### Added
+
+- Added `docs/STUDIO_PHASE1_EXECUTION_SPEC.html` as the repo-ready Phase 1 Studio execution handoff.
+- Added `docs/STUDIO_BOUNDARY.md` to lock the library/UI boundary before Studio work begins.
+- Added `docs/PERFORMANCE_PHASE1.md` as a safe profiling and optimization plan for live execution without changing scientific semantics.
+
+### Notes
+
+This beta promotion does not make CodonTrace a UI product and does not loosen the claim boundary. The core remains a dependency-free research library; Studio/API/Desktop work belongs in a separate consumer repository.
+
 ## 0.3.0a2 — AGPL metadata correction alpha release
 
 ### Changed

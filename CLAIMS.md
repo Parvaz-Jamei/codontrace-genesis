@@ -1,11 +1,11 @@
 # CodonTrace Genesis Claim Policy
 
-Version target: `0.3.0a2`  
-Release DOI: `10.5281/zenodo.20337435`  
-License: `AGPL-3.0-or-later`  
-Status: Public alpha research software  
-Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`  
-Package: `codontrace==0.3.0a2`
+Version target: `0.3.0b1`
+Release DOI: `10.5281/zenodo.20337435`
+License: `AGPL-3.0-or-later`
+Status: Public beta research software
+Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
+Package: `codontrace==0.3.0b1`
 
 This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release.
 
@@ -76,12 +76,12 @@ Use instead:
 
 ## 3. Stable software claims allowed now
 
-These claims are allowed for the current public alpha release because they describe implemented software scope, packaging, metadata, and instrumentation intent rather than final scientific discoveries.
+These claims are allowed for the current public beta release because they describe implemented software scope, packaging, metadata, and instrumentation intent rather than final scientific discoveries.
 
 | Area | Allowed claim | Required wording discipline |
 |---|---|---|
-| Research software | CodonTrace Genesis is public alpha research software for digital evolution, causal mechanism auditing, replayable ALife experiments, and evidence-gated AI/evolution studies. | Say “research software” or “research library,” not “proven intelligence system.” |
-| Packaging | CodonTrace Genesis is published as a Python package and can be installed from PyPI as `codontrace==0.3.0a2`. | Tie install claims to the exact version. |
+| Research software | CodonTrace Genesis is public beta research software for digital evolution, causal mechanism auditing, replayable ALife experiments, and evidence-gated AI/evolution studies. | Say “research software” or “research library,” not “proven intelligence system.” |
+| Packaging | CodonTrace Genesis is published as a Python package and can be installed from PyPI as `codontrace==0.3.0b1`. | Tie install claims to the exact version. |
 | Citation | The release has a Zenodo DOI and citation metadata. | Cite the exact DOI/version used. |
 | License | The public release uses `AGPL-3.0-or-later`. | Keep commercial/proprietary exceptions separate from the open license. |
 | Determinism | The library is designed around deterministic experiment specifications, digests, replay records, and artifact manifests. | Do not claim every user experiment is automatically deterministic unless seeds/configs/artifacts are preserved. |
@@ -99,25 +99,25 @@ These claims are allowed for the current public alpha release because they descr
 
 This section records the strongest evidence observed in the currently inspected runner output package. It is useful as development evidence and as a guide for the next public benchmark.
 
-It should **not** be used as a publication-grade claim until the run is repeated on the current public release (`0.3.0a2` or newer), archived with its configuration/artifacts, and reported with enough seeds and controls.
+It should **not** be used as a publication-grade claim until the run is repeated on the current public release (`0.3.0b1` or newer), archived with its configuration/artifacts, and reported with enough seeds and controls.
 
-Inspected artifact: `collective_heavy_outputs.zip`  
-Runner: `codontrace_collective_intelligence_heavy_runner`  
-Runner schema: `collective_heavy_runner_v1.2.0_incremental_checkpointing`  
-Observed engine/package version: `0.2.0a25`  
-Profile: `quick`  
-Seed count: `2`  
-Ticks/generations: `8`  
-Population: `6`  
-Workers: `1`  
-Runs planned/completed/failed: `40 / 40 / 0`  
+Inspected artifact: `collective_heavy_outputs.zip`
+Runner: `codontrace_collective_intelligence_heavy_runner`
+Runner schema: `collective_heavy_runner_v1.2.0_incremental_checkpointing`
+Observed engine/package version: `0.2.0a25`
+Profile: `quick`
+Seed count: `2`
+Ticks/generations: `8`
+Population: `6`
+Workers: `1`
+Runs planned/completed/failed: `40 / 40 / 0`
 Unique result digests: `40`
 
 Important provenance warning:
 
-- The inspected output was generated from an older `0.2.0a25` development/release artifact, not the current public `0.3.0a2` PyPI release.
+- The inspected output was generated from an older `0.2.0a25` development/release artifact, not the current public `0.3.0b1` PyPI release.
 - The inspected summary includes a release-identity/provenance warning around the tested zip name.
-- Therefore this snapshot is valid as **development evidence** and **instrumentation evidence**, but not as a final public benchmark for `0.3.0a2`.
+- Therefore this snapshot is valid as **development evidence** and **instrumentation evidence**, but not as a final public benchmark for `0.3.0b1`.
 
 ### 4.1 Evidence categories observed
 
@@ -255,7 +255,7 @@ These require a stronger public benchmark:
 
 ## 7. Explicitly blocked claims for the current release
 
-The following claims must not be made for `0.3.0a2` unless a future paper/benchmark explicitly satisfies the required evidence level.
+The following claims must not be made for `0.3.0b1` unless a future paper/benchmark explicitly satisfies the required evidence level.
 
 - CodonTrace has proven artificial general intelligence.
 - CodonTrace has proven consciousness or subjective experience.
@@ -383,7 +383,7 @@ Suggested citation target:
 
 - Software DOI: `10.5281/zenodo.20337435`
 - Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-- Package: `codontrace==0.3.0a2`
+- Package: `codontrace==0.3.0b1`
 
 ---
 
@@ -412,7 +412,7 @@ This file should be updated whenever a new public benchmark, JOSS paper, arXiv p
 
 Recommended update triggers:
 
-- a benchmark is rerun on `0.3.0a2` or newer,
+- a benchmark is rerun on `0.3.0b1` or newer,
 - a new Zenodo artifact is created,
 - an external user cites or uses the library,
 - a JOSS/arXiv/paper artifact is prepared,

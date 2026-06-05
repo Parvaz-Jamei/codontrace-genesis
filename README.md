@@ -19,8 +19,8 @@ It is built for researchers and developers who want to test ALife and evolutiona
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public alpha | `0.3.0a2` |
-| Python | `3.11–3.14` |
+| Public beta | `0.3.0b1` |
+| Python | `3.11–3.14` verified; latest stable checked for this beta line: `3.14.5` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
 | Main focus | Digital evolution, causal audit, replayable ALife experiments, benchmark protocols, claim-gated evidence |
@@ -80,7 +80,10 @@ CodonTrace keeps the most important scientific boundaries in separate reviewable
 
 | Document | Purpose |
 |---|---|
-| [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims for the current public-alpha release |
+| [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims for the current public-beta release |
+| [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |
+| [`docs/STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md) | Boundary policy preventing UI/server drift into core |
+| [`docs/PERFORMANCE_PHASE1.md`](docs/PERFORMANCE_PHASE1.md) | Safe live-performance plan without changing scientific semantics |
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Installation, validation tiers, benchmark execution, artifact preservation, and version discipline |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols, runner commands, smoke result interpretation, artifact policy, and claim boundaries |
 
@@ -108,18 +111,25 @@ These documents are part of the research-software design, not just documentation
 
 ## Installation
 
+> Compatibility note: this beta line is verified for Python `3.11`, `3.12`, `3.13`, and `3.14` on OS-independent core code. Python `3.14.5` is the latest stable Python release checked for this handoff; Python `3.15+` must be added only after CI verification.
+
+
+### GitHub Actions compatibility
+
+The release CI uses a real cross-OS smoke matrix for `ubuntu-latest`, `windows-latest`, and `macos-latest` across Python `3.11`, `3.12`, `3.13`, and `3.14`. The workflows intentionally use current official action majors checked for this beta handoff: `actions/checkout@v6`, `actions/setup-python@v6`, `actions/upload-artifact@v7`, and `actions/download-artifact@v8`.
+
 ### From PyPI
 
 ```bash
-pip install codontrace==0.3.0a2
+pip install codontrace==0.3.0b1
 ```
 
 ### Optional research extras
 
 ```bash
-pip install "codontrace[research]==0.3.0a2"
-pip install "codontrace[causal]==0.3.0a2"
-pip install "codontrace[qd]==0.3.0a2"
+pip install "codontrace[research]==0.3.0b1"
+pip install "codontrace[causal]==0.3.0b1"
+pip install "codontrace[qd]==0.3.0b1"
 ```
 
 ### From source
@@ -139,68 +149,45 @@ python -c "import codontrace; print(codontrace.__version__)"
 Expected:
 
 ```text
-0.3.0a2
+0.3.0b1
 ```
 
 ---
 
 ## Quick start
 
+Use the beginner API first. It keeps setup small and returns the agent, world, trace, and optional explanation without manually creating low-level runtime objects.
+
 ```python
-from codontrace.genesis import (
-    GenesisExperimentSpec,
-    GenesisEngineConfig,
-    CapsuleAblationPolicy,
-    CapsuleOutcomeWindow,
-    SkillCompressionAblationPolicy,
-    RoleMechanicsPolicy,
-    OEEExtendedMetrics,
-)
+from codontrace import WhiteBoxAgent, World2D
 
-spec = GenesisExperimentSpec(
-    seed=42,
-    tick_count=32,
-    population_max=8,
-    engine_config=GenesisEngineConfig(),
-    capsule_ablation_policy=CapsuleAblationPolicy(
-        enable_capsule_transfer=True,
-        enable_capsule_utility_scoring=True,
-        enable_source_fitness_weighting=True,
-        enable_signal_memory_link=True,
-        enable_capsule_behavior_update=True,
-    ),
-    capsule_outcome_window=CapsuleOutcomeWindow(
-        window_ticks=5,
-        track_survival=True,
-        track_fitness_delta=True,
-        track_reproduction_delta=True,
-        track_memory_reuse=True,
-        track_role_change=True,
-    ),
-    skill_compression_ablation_policy=SkillCompressionAblationPolicy(
-        enabled=True,
-        mode="full_compression",
-        child_outcome_window_ticks=10,
-        compare_against_uncompressed_sibling=True,
-    ),
-    role_mechanics_policy=RoleMechanicsPolicy(
-        enable_role_bias=True,
-        enable_role_persistence=True,
-        enable_role_switch_cost=True,
-        enable_role_task_bonus=False,
-        role_inheritance_mode="weak_bias",
-    ),
-    oee_extended_metrics=OEEExtendedMetrics(
-        novelty_accumulation=0.0,
-        complexity_growth=0.0,
-        adaptive_success_accumulation=0.0,
-        lineage_persistence=0.0,
-        behavior_space_expansion=0.0,
-        learnability=0.0,
-    ),
-)
+world = World2D.from_ascii("""
+....
+.A*.
+....
+""")
 
-print(spec.digest()[:24])
+agent = WhiteBoxAgent.from_world(world, genome="101111000", initial_atp=5.0)
+result = agent.run_trial(world, steps=3, explain=True)
+
+print(result.agent.position)
+print(result.explanation.summary if result.explanation else "no explanation")
+```
+
+---
+
+## Core API
+
+For Genesis-level research runs, use the explicit experiment spec and engine APIs.
+
+```python
+from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
+
+spec = GenesisExperimentSpec(seed=42, tick_count=32, population_max=8)
+result = GenesisEngine.from_spec(spec).run_ticks()
+
+print(result.digest()[:24])
+print(len(result.engine_frames))
 ```
 
 ---
@@ -375,7 +362,7 @@ For validation tiers and heavier manual runs, see [`REPRODUCIBILITY.md`](REPRODU
 
 CodonTrace Genesis is being prepared through staged research-software maturity:
 
-1. public GitHub alpha,
+1. public GitHub beta,
 2. PyPI package,
 3. Zenodo DOI archival,
 4. claim/reproducibility/benchmark documentation,
@@ -397,7 +384,7 @@ If you use CodonTrace Genesis in research, prototypes, technical evaluation, ben
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0a2},
+  version = {0.3.0b1},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
 }
@@ -423,12 +410,12 @@ See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 ## Author
 
-**Parvaz Jamei**  
+**Parvaz Jamei**
 Embedded / Industrial IoT / Edge AI / Digital Evolution Research Software
 
 GitHub: [@Parvaz-Jamei](https://github.com/Parvaz-Jamei)
 
 ---
 
-**CodonTrace Genesis**  
+**CodonTrace Genesis**
 Replayable evidence for digital evolution, causal mechanisms, and ALife research.

@@ -58,19 +58,19 @@ def test_no_app_drift_and_citation_validation(tmp_path: Path) -> None:
     (root / "src" / "codontrace").mkdir(parents=True)
     (root / "src" / "codontrace" / "py.typed").write_text("", encoding="utf-8")
     (root / "pyproject.toml").write_text(
-        '[project]\nname="codontrace"\nversion="0.3.0a1"\ndependencies=[]\n',
+        '[project]\nname="codontrace"\nversion="0.3.0b1"\ndependencies=[]\n',
         encoding="utf-8",
     )
     (root / "CITATION.cff").write_text(
         'cff-version: "1.2.0"\ntitle: "CodonTrace"\nmessage: "Cite this software."\n'
-        'version: "0.3.0a1"\nauthors:\n'
+        'version: "0.3.0b1"\nauthors:\n'
         '  - family-names: "Jamei"\nlicense: "MIT"\nrepository-code: "https://example.test"\n',
         encoding="utf-8",
     )
     assert validate_no_app_drift_project_metadata(root).succeeded
     assert validate_citation_metadata(root).succeeded
     (root / "pyproject.toml").write_text(
-        '[project]\nname="codontrace"\nversion="0.3.0a1"\ndependencies=["fastapi"]\n'
+        '[project]\nname="codontrace"\nversion="0.3.0b1"\ndependencies=["fastapi"]\n'
         '[project.scripts]\nct="codontrace:main"\n',
         encoding="utf-8",
     )

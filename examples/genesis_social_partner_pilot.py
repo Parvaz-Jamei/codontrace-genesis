@@ -75,7 +75,7 @@ def run(output_dir: str | Path = "genesis_social_partner_pilot_out") -> dict[str
     manifest = {
         "schema_version": "pilot_manifest_v1",
         "producer_version": RELEASE_LABEL,
-        "library_version": getattr(familiar.manifest, "library_version", "0.3.0a1"),
+        "library_version": getattr(familiar.manifest, "library_version", "unknown"),
         "pilot_name": "genesis_social_partner_pilot",
         "pilot_status": "runtime_effective_social_interaction_pilot" if social_interaction_allowed else "claim_denied_no_non_capsule_social_events",
         "seed": 1,

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CodonTrace Studio — Phase 1 Core-Safe Execution Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#05070d;--panel:#0f172a;--panel2:#111827;--ink:#eef6ff;--muted:#b8c7dc;--line:#2a3b57;
+      --cyan:#22d3ee;--green:#34d399;--lime:#a3e635;--violet:#a78bfa;--gold:#facc15;--red:#fb7185;--orange:#fb923c;--blue:#60a5fa;
+      --card:rgba(15,23,42,.88);--soft:rgba(2,6,23,.48);--radius:22px;--shadow:0 22px 80px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);font-family:"Vazirmatn",Tahoma,Arial,sans-serif;line-height:1.95;background:
+      radial-gradient(circle at 10% 0%, rgba(34,211,238,.16), transparent 30%),
+      radial-gradient(circle at 86% 8%, rgba(167,139,250,.16), transparent 28%),
+      radial-gradient(circle at 55% 100%, rgba(52,211,153,.10), transparent 34%),var(--bg)}
+    a{color:#7dd3fc;text-decoration:none} a:hover{text-decoration:underline}
+    .wrap{max-width:1240px;margin:auto;padding:28px 22px 72px}
+    .hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:32px;padding:42px 34px;background:linear-gradient(135deg,rgba(15,23,42,.96),rgba(2,6,23,.86));box-shadow:var(--shadow)}
+    .hero:before{content:"";position:absolute;inset:-20%;background:conic-gradient(from 120deg, transparent, rgba(34,211,238,.20), transparent, rgba(52,211,153,.16), transparent);filter:blur(18px);opacity:.8;z-index:0;pointer-events:none}.hero>*{position:relative;z-index:1}
+    .kicker{display:inline-flex;gap:9px;align-items:center;padding:8px 13px;border:1px solid rgba(34,211,238,.38);border-radius:999px;color:#a5f3fc;background:rgba(8,47,73,.32);font-weight:800;font-size:13px}
+    h1{font-size:clamp(31px,5.2vw,62px);line-height:1.18;margin:22px 0 14px;font-weight:900;letter-spacing:-.03em}
+    h2{font-size:clamp(23px,3vw,34px);margin:54px 0 17px;line-height:1.35;color:#e0f2fe}
+    h3{font-size:21px;margin:30px 0 12px;color:#dbeafe}
+    p{margin:10px 0;color:var(--muted)}
+    .lead{font-size:19px;max-width:1010px;color:#dbeafe}
+    .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.pill{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(15,23,42,.68);color:#dbeafe;font-size:13px;font-weight:700}
+    .toc{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 10px}.toc a{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:rgba(15,23,42,.72);font-weight:800;color:#dff7ff}.toc a:hover{background:rgba(34,211,238,.12);text-decoration:none}
+    .grid{display:grid;gap:14px}.two{grid-template-columns:repeat(2,1fr)}.three{grid-template-columns:repeat(3,1fr)}.four{grid-template-columns:repeat(4,1fr)}
+    .card{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);padding:20px;box-shadow:0 12px 42px rgba(0,0,0,.20)}
+    .card strong{color:#fff}.badge{display:inline-block;margin:2px 3px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:800;background:rgba(2,6,23,.35)}
+    .ok{color:var(--green)}.warn{color:var(--gold)}.bad{color:var(--red)}.info{color:var(--cyan)}.violet{color:var(--violet)}.orange{color:var(--orange)}
+    table{width:100%;border-collapse:separate;border-spacing:0;margin:16px 0;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:rgba(15,23,42,.72)}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}th{background:rgba(30,41,59,.98);text-align:right;color:#e0f2fe;font-weight:900}tr:last-child td{border-bottom:0}td{color:#d7e6fa}
+    code,pre{direction:ltr;text-align:left;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+    code{background:rgba(15,23,42,.94);border:1px solid rgba(148,163,184,.20);border-radius:8px;padding:2px 6px;color:#bae6fd}
+    pre{white-space:pre-wrap;overflow:auto;border:1px solid var(--line);border-radius:18px;background:#020617;color:#e5f4ff;padding:18px;line-height:1.65;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+    .diagram{direction:ltr;text-align:left;white-space:pre;overflow:auto;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,rgba(2,6,23,.96),rgba(15,23,42,.92));color:#ccfbf1;padding:18px;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.55}
+    .callout{border-radius:20px;border:1px solid rgba(250,204,21,.35);background:rgba(113,63,18,.25);padding:18px;margin:18px 0}.callout.red{border-color:rgba(251,113,133,.42);background:rgba(127,29,29,.22)}.callout.green{border-color:rgba(52,211,153,.38);background:rgba(6,78,59,.22)}.callout.blue{border-color:rgba(34,211,238,.38);background:rgba(8,47,73,.23)}.callout.violet{border-color:rgba(167,139,250,.42);background:rgba(76,29,149,.20)}
+    .section{margin-top:36px}.small{font-size:13px;color:#9fb2ca}.ltr{direction:ltr;text-align:left}.phase{border-right:5px solid var(--cyan)}
+    .source-list li{margin:8px 0;color:#cbd5e1}.footer{margin-top:42px;color:#92a4bb;font-size:13px;border-top:1px solid var(--line);padding-top:18px}
+    @media(max-width:900px){.toc,.two,.three,.four{grid-template-columns:1fr}.wrap{padding:18px 12px 50px}.hero{padding:28px 18px;border-radius:24px}table{font-size:14px}th,td{padding:10px}.diagram{font-size:12px}.meta{gap:7px}}
+    @media print{body{background:white;color:#111}.wrap{max-width:none;padding:0}.hero,.card,.callout,table,pre,.diagram{box-shadow:none;background:white!important;color:#111!important;border-color:#bbb}.toc,.meta{display:none}p,td,li{color:#111}h1,h2,h3,th{color:#000}a{color:#000;text-decoration:underline}code{background:#f5f5f5!important;color:#000!important;border-color:#ccc}pre,.diagram{white-space:pre-wrap;page-break-inside:avoid}section{page-break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <span class="kicker">🧬 CodonTrace Studio · Phase 1 Core-Safe Execution Spec</span>
+      <h1>سند اجرایی فاز ۱ برای ساخت Studio بدون تبدیل کتابخانه به UI</h1>
+      <p class="lead">این نسخه مخصوص برنامه‌نویس است و با ریپوی واقعی <code>codontrace-genesis-main.zip</code> تطبیق داده شده: Core باید research library مستقل، deterministic و dependency-free بماند؛ تمام UI، installer، WebSocket، Local API، Doctor و Code Import فقط در اپ جدا یعنی <code>codontrace-studio</code> ساخته می‌شوند.</p>
+      <div class="meta">
+        <span class="pill">Repo checked: codontrace-genesis-main.zip</span>
+        <span class="pill">Core version: 0.3.0b1</span>
+        <span class="pill">Python: 3.11–3.14 verified</span>
+        <span class="pill">Latest stable checked: 3.14.5</span>
+        <span class="pill">Core runtime deps: none</span>
+        <span class="pill">License: AGPL-3.0-or-later</span>
+        <span class="pill">Target: Windows + Linux + macOS</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="فهرست سند">
+      <a href="#repo-facts">۰. واقعیت ریپو</a>
+      <a href="#boundary">۱. مرز ممنوعه Core</a>
+      <a href="#phase-goal">۲. هدف فاز ۱</a>
+      <a href="#architecture">۳. معماری اجرایی</a>
+      <a href="#core-prs">۴. PRهای Core-safe</a>
+      <a href="#studio-prs">۵. PRهای Studio</a>
+      <a href="#installer">۶. نصب سه‌سیستمی</a>
+      <a href="#streaming">۷. Live protocol</a>
+      <a href="#performance">۸. افزایش سرعت</a>
+      <a href="#ci">۹. CI و تست</a>
+      <a href="#security-license">۱۰. امنیت و لایسنس</a>
+      <a href="#acceptance">۱۱. معیار پذیرش</a>
+      <a href="#handoff">۱۲. تحویل به برنامه‌نویس</a>
+      <a href="#sources">۱۳. منابع</a>
+    </nav>
+
+    <section id="repo-facts" class="section">
+      <h2>۰) واقعیت‌های تأییدشده از ریپوی فعلی 🔍</h2>
+      <table>
+        <thead><tr><th>مورد</th><th>وضعیت واقعی</th><th>اثر روی فاز ۱</th></tr></thead>
+        <tbody>
+          <tr><td>نسخه public beta</td><td><code>0.3.0b1</code> در <code>pyproject.toml</code></td><td>تمام manifestها، تست‌ها و docs جدید باید همین نسخه را هدف بگیرند.</td></tr>
+          <tr><td>لایسنس</td><td><code>AGPL-3.0-or-later</code></td><td>قبل از محصول closed-source یا SaaS باید license strategy مشخص شود.</td></tr>
+          <tr><td>وابستگی runtime core</td><td><code>dependencies = []</code></td><td>این وضعیت باید حفظ شود؛ FastAPI/Tauri/React/uvicorn وارد core نشوند.</td></tr>
+          <tr><td>UI/server/CLI در core</td><td>در <code>BACKLOG.md</code> و docs صراحتاً non-goal است.</td><td>Studio باید repo/app جدا باشد. Core فقط API خالص Python بدهد.</td></tr>
+          <tr><td>Frame contract</td><td><code>EngineFrame</code>، <code>AgentFrame</code>، <code>WorldFrame</code> و <code>engine_frame_from_generation()</code> وجود دارد.</td><td>فاز ۱ frame schema را از صفر نسازد؛ همین contract را به Local API وصل کند.</td></tr>
+          <tr><td>Engine result</td><td><code>GenesisRunResult.engine_frames</code> سطح public دارد.</td><td>برای replay/batch مناسب است؛ برای live سریع باید primitive incremental اضافه شود یا fallback کندتر داشته باشیم.</td></tr>
+          <tr><td>WebSocket/FastAPI</td><td>در core وجود ندارد.</td><td>نباید اضافه شود؛ فقط <code>codontrace-studio</code> Local API آن را می‌سازد.</td></tr>
+          <tr><td>CLI entry point</td><td>در <code>pyproject.toml</code> وجود ندارد.</td><td>Doctor/Bootstrapper/Installer CLI باید در Studio باشد، نه core.</td></tr>
+          <tr><td>Version drift</td><td>هویت release جاری باید فقط <code>0.3.0b1</code> باشد؛ ارجاع‌های alpha فقط اگر historical/provenance fixture باشند مجازند.</td><td>تست‌های release identity و docs checklist باید current beta را هدف بگیرند.</td></tr>
+          <tr><td>Python support</td><td><code>>=3.11,&lt;3.15</code>؛ latest stable بررسی‌شده <code>3.14.5</code></td><td>CI روی <code>3.11</code>، <code>3.12</code>، <code>3.13</code> و <code>3.14</code> برای Windows/Linux/macOS smoke شود.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout blue"><strong>نتیجه مدیریتی:</strong> این فاز نباید UI را وارد کتابخانه کند. Core فقط برای مصرف علمی بهتر، primitiveهای عمومی، deterministic و dependency-free می‌گیرد. تمام تجربه کاربری، نصب، گرافیک و live server در ریپوی جدا ساخته می‌شود.</div>
+    </section>
+
+    <section id="boundary" class="section">
+      <h2>۱) مرز ممنوعه Core؛ جلوگیری از UI drift 🚫🧬</h2>
+      <div class="callout red"><strong>قانون غیرقابل مذاکره:</strong> هیچ dependency، endpoint، event loop، WebSocket، dashboard، installer، static asset، Tauri command، CLI product یا Code Import در <code>src/codontrace</code> اضافه نشود. اگر چیزی برای کاربر نهایی یا UI لازم است، جای آن <code>codontrace-studio</code> است.</div>
+      <table>
+        <thead><tr><th>چیزی که ممنوع است</th><th>چرا ممنوع است؟</th><th>جای درست</th></tr></thead>
+        <tbody>
+          <tr><td><code>fastapi</code>, <code>uvicorn</code>, <code>starlette</code></td><td>Core را از research library به web app نزدیک می‌کند.</td><td><code>apps/studio-api</code></td></tr>
+          <tr><td>WebSocket/SSE/HTTP route</td><td>stream transport محصول UI است، نه engine scientific.</td><td><code>studio-api</code></td></tr>
+          <tr><td>React/Vite/Tauri/static HTML/CSS/JS</td><td>وابستگی UI و build frontend وارد library می‌شود.</td><td><code>apps/studio-web</code> و <code>apps/studio-desktop</code></td></tr>
+          <tr><td><code>console_scripts</code> برای core</td><td>ریپو قبلاً CLI product را non-goal کرده است.</td><td><code>codontrace-studio</code> CLI/launcher</td></tr>
+          <tr><td>File workflow اجباری در core</td><td>Core API فعلی object-first است؛ I/O باید با caller باشد.</td><td>Studio run store / artifact store</td></tr>
+          <tr><td>Code Import داخل core</td><td>ریسک امنیتی و تغییر مسیر محصولی دارد.</td><td>Studio sandbox/dry-run</td></tr>
+        </tbody>
+      </table>
+      <h3>Core-boundary gate در CI؛ با AST نه جست‌وجوی متن خام</h3>
+      <pre><code># باید در CI ریپوی core پاس شود.
+# این چک با ast importها را بررسی می‌کند و با mention داخل docstring/comment اشتباه نمی‌گیرد.
+python tools/check_core_boundary.py
+python -m compileall -q src tests examples tools
+python -c "import codontrace; assert codontrace.__version__ == '0.3.0b1'"</code></pre>
+    </section>
+
+    <section id="phase-goal" class="section">
+      <h2>۲) هدف دقیق فاز ۱ 🎯</h2>
+      <div class="grid three">
+        <div class="card"><h3>🧬 Core-safe</h3><p>کتابخانه همان research engine بماند: dependency-free، deterministic، evidence-first، بدون dashboard/server/CLI product.</p></div>
+        <div class="card"><h3>🖥️ Studio-ready</h3><p>اپ جدا بتواند engine را نصب کند، health check بگیرد، run بسازد، frame بگیرد، replay/evidence را بخواند و test-pack اجرا کند.</p></div>
+        <div class="card"><h3>⚡ Faster live path</h3><p>برای خروجی زنده، هر tick نباید evidence bundle/source digest کامل را rebuild کند. اما این بهینه‌سازی باید semantic و digest نهایی را تغییر ندهد.</p></div>
+      </div>
+      <table>
+        <thead><tr><th>خروجی</th><th>مسیر پیشنهادی</th><th>توضیح</th></tr></thead>
+        <tbody>
+          <tr><td>Core patch set</td><td><code>codontrace-genesis</code></td><td>version cleanup، boundary docs، observability contract، primitive incremental، performance report، cross-OS smoke.</td></tr>
+          <tr><td>Studio skeleton</td><td><code>codontrace-studio</code></td><td>Local API + Web UI shell + Tauri shell + Engine Manager.</td></tr>
+          <tr><td>Installer MVP</td><td><code>apps/studio-desktop</code></td><td>Windows/Linux/macOS build targets، online engine install، doctor.</td></tr>
+          <tr><td>Test-pack MVP</td><td><code>packages/test-packs</code></td><td>Smoke profiles که از public API استفاده می‌کنند، نه private internals.</td></tr>
+          <tr><td>Performance report</td><td><code>docs/PERFORMANCE_PHASE1.md</code></td><td>قبل/بعد با <code>cProfile</code> و benchmark کوچک deterministic.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="architecture" class="section">
+      <h2>۳) معماری اجرایی فاز ۱ 🏗️</h2>
+      <div class="diagram">codontrace-genesis  [Core research library]
+  ├─ dependencies = []
+  ├─ GenesisEngine / GenesisExperimentSpec
+  ├─ EngineFrame / ReplayBundle / EvidencePack
+  ├─ pure runtime/observability contract
+  └─ NO UI, NO web server, NO installer
+              │
+              │ version-locked dependency, object API only
+              ▼
+codontrace-studio  [separate product repo]
+  ├─ apps/studio-api      FastAPI local sidecar, WebSocket, REST
+  ├─ apps/studio-web      React + Vite UI shell
+  ├─ apps/studio-desktop  Tauri v2 shell + installer
+  ├─ packages/contracts   OpenAPI + JSON schema + TS types
+  ├─ packages/engine-manager  uv/venv/install/doctor
+  └─ packages/test-packs  no-code smoke tests and demo runs</div>
+      <table>
+        <thead><tr><th>اصل معماری</th><th>قانون اجرایی</th></tr></thead>
+        <tbody>
+          <tr><td>Core علمی بماند</td><td>هیچ dependency مربوط به UI/API/installer وارد <code>project.dependencies</code> اصلی نشود.</td></tr>
+          <tr><td>Studio مصرف‌کننده باشد</td><td>Studio فقط از public API و artifactهای رسمی استفاده کند؛ private attribute فقط در fallback موقت و با ticket حذف مجاز است.</td></tr>
+          <tr><td>Live transport جدا باشد</td><td>Core فقط frame/result object بدهد؛ WebSocket در <code>studio-api</code> ساخته شود.</td></tr>
+          <tr><td>تکرارپذیری حفظ شود</td><td>هر run با engine version، schema version، seed، manifest و digest ذخیره شود.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="core-prs" class="section">
+      <h2>۴) PRهای لازم در ریپوی Core، فقط Core-safe 🧬</h2>
+      <div class="callout green"><strong>اصل مهم:</strong> این PRها محصول UI نمی‌سازند. فقط library را برای مصرف علمی، replay، profiling و observability بهتر آماده می‌کنند.</div>
+
+      <h3>Core PR-1 — Documentation, version drift, and boundary policy</h3>
+      <table>
+        <thead><tr><th>کار</th><th>شرح</th><th>قبولی</th></tr></thead>
+        <tbody>
+          <tr><td>پاکسازی release identity</td><td>هر ارجاع فعال به alpha در docs release/publishing حذف شود؛ alpha فقط در history و fixtureهای explicit مجاز است.</td><td>تست نسخه و docs smoke با <code>0.3.0b1</code> align شود.</td></tr>
+          <tr><td>افزودن <code>tools/check_core_boundary.py</code></td><td>boundary با <code>ast</code> بررسی شود، نه raw text search؛ import واقعی FastAPI/Tauri/WebSocket ممنوع است ولی توضیح متنی مجاز می‌ماند.</td><td><code>tests/release/test_core_boundary_ast_guard.py</code> هم false-positive و هم import واقعی را تست کند.</td></tr>
+          <tr><td>افزودن <code>docs/STUDIO_BOUNDARY.md</code></td><td>مرز رسمی: no UI/server/CLI in core، no private internals، no dynamic code execution in core.</td><td>PR checklist و CI gate داشته باشد.</td></tr>
+          <tr><td>گسترش <code>GENESIS_API_FOR_UI.md</code></td><td>این فایل فقط contract مصرف‌کننده را توضیح دهد؛ هیچ UI framework پیشنهاد نکند.</td><td>نمونه کدها importable و dependency-free باشند.</td></tr>
+          <tr><td>افزودن <code>docs/PERFORMANCE_PHASE1.md</code></td><td>baseline profiling، hotspots، و نتایج before/after.</td><td>بدون claim اغراق‌آمیز؛ فقط عدد و روش.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Core PR-2 — Incremental execution primitive، نه UI hook</h3>
+      <p>در core فعلی <code>run_ticks()</code> بعد از اجرای tickها <code>_build_result()</code> را صدا می‌زند. اگر Studio برای live demo هر بار <code>run_ticks(1)</code> بزند، هر tick evidence/replay/source digest کامل rebuild می‌شود. راه درست، یک primitive عمومی و UI-agnostic است؛ نه callback، نه WebSocket، نه async server.</p>
+      <pre><code># API پیشنهادی؛ نام نهایی با maintainer تعیین شود.
+# این API برای execution/replay است، نه UI.
+class GenesisEngine:
+    def step_tick(self) -> GenesisTickResult:
+        """Advance exactly one deterministic generation/tick without final artifact build."""
+
+    def latest_engine_frame(self) -> EngineFrame:
+        """Return EngineFrame for the last completed tick only."""
+
+    def iter_engine_frames(self, ticks: int) -> Iterator[EngineFrame]:
+        """Yield frames by repeatedly stepping the engine; no transport, no WebSocket."""
+        for _ in range(ticks):
+            self.step_tick()
+            yield self.latest_engine_frame()
+
+    def finalize_run(self) -> GenesisRunResult:
+        """Build evidence/replay/manifest once, preserving run_ticks() semantics."""
+
+    def run_ticks(self, ticks: int | None = None) -> GenesisRunResult:
+        # Backward compatible: internally may use step_tick + finalize_run.
+        ...</code></pre>
+      <table>
+        <thead><tr><th>محافظت</th><th>الزام</th></tr></thead>
+        <tbody>
+          <tr><td>Backward compatible</td><td><code>run_ticks(n)</code> خروجی قبلی را حفظ کند.</td></tr>
+          <tr><td>Dependency-free</td><td>هیچ FastAPI/WebSocket/asyncio مخصوص UI در core اضافه نشود.</td></tr>
+          <tr><td>Determinism</td><td>digest نهایی <code>run_ticks(n)</code> و <code>step_tick()</code> تکرارشده + <code>finalize_run()</code> باید برابر باشد.</td></tr>
+          <tr><td>Scope control</td><td>اگر این PR ریسک بالا داشت، فاز ۱ Studio با مسیر کندتر <code>run_ticks()</code> + <code>engine_frames</code> شروع کند و این PR جداگانه بماند.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Core PR-3 — Performance-safe artifact build</h3>
+      <table>
+        <thead><tr><th>بهینه‌سازی</th><th>چرایی</th><th>قاعده ایمنی</th></tr></thead>
+        <tbody>
+          <tr><td>جداکردن step از finalization</td><td>برای live/replay سریع، ساخت manifest/evidence نباید در هر frame تکرار شود.</td><td>final artifact دقیقاً همان schema/digest قبلی را بدهد.</td></tr>
+          <tr><td>محاسبه <code>compute_source_digest()</code> فقط هنگام finalization</td><td>این تابع روی فایل‌ها پیمایش می‌کند؛ تکرار آن در loop کند است.</td><td>cache فقط برای همان root/process و با test digest؛ در dev mode امکان disable cache بماند.</td></tr>
+          <tr><td>Frame آخر به‌جای result کامل</td><td><code>result.engine_frames</code> برای batch خوب است، ولی UI زنده frame آخر می‌خواهد.</td><td><code>EngineFrame.to_dict()</code> و digest بدون تغییر بماند.</td></tr>
+          <tr><td>جلوگیری از recompute propertyهای سنگین</td><td>برخی result properties روی همه ticks پیمایش می‌کنند.</td><td>فقط final result aggregate بسازد؛ frame live aggregate سنگین نگیرد.</td></tr>
+          <tr><td>Benchmark guard</td><td>refactor نباید سرعت batch را خراب کند.</td><td>absolute time hard-fail نباشد؛ گزارش نسبت live-naive/live-fast ثبت شود.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Core PR-4 — Cross-platform library support</h3>
+      <p>خود کتابخانه طبق <code>pyproject.toml</code> باید OS Independent بماند. فاز ۱ باید smoke test نصب و اجرای core را روی Windows، Linux و macOS اضافه کند.</p>
+      <pre><code># GitHub Actions matrix پیشنهادی برای core
+strategy:
+  matrix:
+    os: [ubuntu-latest, windows-latest, macos-latest]
+    python-version: ['3.11', '3.12', '3.13', '3.14']
+steps:
+  - uses: actions/checkout@v6
+  - uses: actions/setup-python@v6
+    with:
+      python-version: ${{ matrix.python-version }}
+  - run: python -m pip install -e .
+  - run: python -m compileall -q src tests examples tools
+  - run: python tools/check_core_boundary.py
+  - run: python - <<'PY'
+from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
+r = GenesisEngine.from_spec(GenesisExperimentSpec(tick_count=1)).run_ticks()
+assert r.digest()
+print('core-smoke-ok')
+PY</code></pre>
+    </section>
+
+    <section id="studio-prs" class="section">
+      <h2>۵) PRهای لازم در ریپوی جدا <code>codontrace-studio</code> 🎮</h2>
+      <div class="diagram">codontrace-studio/
+├─ apps/
+│  ├─ studio-api/           # FastAPI local API + WebSocket adapter
+│  ├─ studio-web/           # React + Vite + TypeScript UI shell
+│  └─ studio-desktop/       # Tauri v2 desktop shell
+├─ packages/
+│  ├─ contracts/            # OpenAPI, JSON schema, generated TS types
+│  ├─ engine-manager/       # uv, venv, install, doctor, version lock
+│  ├─ test-packs/           # no-code smoke tests and demo scenarios
+│  └─ run-store/            # local artifacts, manifests, replay bundles
+├─ fixtures/
+│  ├─ demo-runs/
+│  └─ demo-projects/
+└─ docs/
+   ├─ PHASE1_EXECUTION.md
+   ├─ INSTALLER_DESIGN.md
+   └─ ENGINE_COMPATIBILITY.md</div>
+      <table>
+        <thead><tr><th>Studio PR</th><th>وظیفه</th><th>قبولی</th></tr></thead>
+        <tbody>
+          <tr><td>Studio PR-1</td><td>Repo skeleton + package manager + lint/test base</td><td>Web/API/Desktop skeleton روی سه OS build شود.</td></tr>
+          <tr><td>Studio PR-2</td><td>Engine Manager با <code>uv</code>: install, lock, doctor, version info</td><td>کاربر بدون کدنویسی engine را نصب و health green بگیرد.</td></tr>
+          <tr><td>Studio PR-3</td><td>Local API: health، runs، frames، manifest، replay، claims</td><td>همه endpointها از public codontrace API استفاده کنند.</td></tr>
+          <tr><td>Studio PR-4</td><td>WebSocket adapter و live protocol</td><td>run کوچک frame/event/metric stream بدهد؛ replay artifact کامل حفظ شود.</td></tr>
+          <tr><td>Studio PR-5</td><td>UI shell: Mission Control، Console، Live Frames Log، Doctor، Test Runner</td><td>UI هنوز ساده باشد ولی بدون کدنویسی run بگیرد.</td></tr>
+          <tr><td>Studio PR-6</td><td>Tauri shell + sidecar lifecycle</td><td>backend start/stop/crash recovery روی Windows/Linux/macOS تست شود.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="installer" class="section">
+      <h2>۶) Installer-first برای Windows + Linux + macOS 📦</h2>
+      <div class="callout blue"><strong>تصمیم نصب:</strong> مسیر اصلی <code>uv + isolated venv + locked wheels</code> است. دانلود خام ZIP از GitHub ممنوع است. <code>source_repo</code> فقط metadata/attribution است، نه install source.</div>
+      <table>
+        <thead><tr><th>سیستم‌عامل</th><th>خروجی فاز ۱</th><th>توضیح</th></tr></thead>
+        <tbody>
+          <tr><td>Windows</td><td><code>NSIS</code> first، بعداً <code>MSI/MSIX</code></td><td>نصب ساده برای کاربر عادی؛ enterprise بعداً.</td></tr>
+          <tr><td>Linux</td><td><code>AppImage</code> first، بعداً <code>.deb</code>/<code>.rpm</code></td><td>AppImage ساده‌ترین مسیر اجرای cross-distro است؛ deb/rpm برای package-managed install بعداً.</td></tr>
+          <tr><td>macOS</td><td><code>.app</code> + <code>.dmg</code></td><td>فاز ۱ local/dev signed؛ notarization برای release عمومی.</td></tr>
+        </tbody>
+      </table>
+      <h3>Engine install manifest</h3>
+      <pre><code>{
+  "schema_version": "codontrace_studio_install_manifest_v1",
+  "install_channel": "pypi|private-mirror|offline-wheelhouse|local-dev",
+  "package_name": "codontrace",
+  "version_pin": "0.3.0b1",
+  "python_requires": ">=3.11,<3.15",
+  "venv_strategy": "uv-managed-isolated-venv",
+  "lockfile": "uv.lock",
+  "package_source": {
+    "type": "pypi",
+    "index_url": "https://pypi.org/simple"
+  },
+  "source_repo": "https://github.com/Parvaz-Jamei/codontrace-genesis",
+  "source_repo_role": "metadata-only",
+  "offline_wheelhouse": {
+    "enabled": true,
+    "path": "resources/wheelhouse/",
+    "requires_hash_check": true
+  },
+  "doctor_checks": [
+    "python_found",
+    "uv_found_or_bundled",
+    "venv_created",
+    "codontrace_import_ok",
+    "engine_version_ok",
+    "smoke_run_ok"
+  ]
+}</code></pre>
+      <h3>Sidecar lifecycle</h3>
+      <table>
+        <thead><tr><th>رخداد</th><th>رفتار Studio</th></tr></thead>
+        <tbody>
+          <tr><td>App start</td><td>Tauri workspace و engine manifest را بررسی کند، سپس FastAPI sidecar را روی <code>127.0.0.1</code> با random port بالا بیاورد.</td></tr>
+          <tr><td>Backend ready</td><td>port/token از Tauri bridge به UI داده شود؛ UI هیچ port hardcode نداشته باشد.</td></tr>
+          <tr><td>Backend crash</td><td>UI حالت <code>Backend disconnected</code> نشان دهد و restart امن بزند؛ run ناقص recoverable ثبت شود.</td></tr>
+          <tr><td>App close</td><td>Tauri child process را terminate کند و lockهای engine manager را آزاد کند.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="streaming" class="section">
+      <h2>۷) Live protocol و خروجی تحلیلی؛ فقط در Studio API ⚡📊</h2>
+      <p>چون core WebSocket ندارد و نباید داشته باشد، <code>studio-api</code> باید adapter بسازد. اگر Core PR-2 آماده نبود، فاز ۱ می‌تواند برای demo از <code>run_ticks()</code> و <code>engine_frames</code> استفاده کند؛ مسیر سریع‌تر بعد از اضافه‌شدن primitive incremental فعال شود.</p>
+      <pre><code>{
+  "type": "frame",
+  "schema_version": "studio_stream_v1",
+  "run_id": "genesis-run-...",
+  "seq": 42,
+  "tick": 42,
+  "mode": "live",
+  "payload_digest": "sha256:...",
+  "payload": {
+    "engine_frame": {},
+    "metrics": {
+      "population": 4,
+      "events": 12,
+      "mean_runtime_atp": 83.2
+    }
+  }
+}</code></pre>
+      <table>
+        <thead><tr><th>Message type</th><th>Payload</th><th>قاعده</th></tr></thead>
+        <tbody>
+          <tr><td><code>hello</code></td><td>engine_version، schema_version، capabilities</td><td>اول اتصال</td></tr>
+          <tr><td><code>frame</code></td><td>World/Agents/Capsules/Events</td><td>قابل drop/coalesce برای UI</td></tr>
+          <tr><td><code>event_batch</code></td><td>چند event در یک batch</td><td>حفظ ordering با <code>seq</code></td></tr>
+          <tr><td><code>metric_sample</code></td><td>ATP، fitness، population، QD/OEE summary</td><td>قابل downsample</td></tr>
+          <tr><td><code>claim_update</code></td><td>ClaimGate/evidence status</td><td>فقط consume از core، نه reinterpret در UI</td></tr>
+          <tr><td><code>test_update</code></td><td>Doctor/Test Runner progress</td><td>no-code feedback</td></tr>
+          <tr><td><code>heartbeat</code></td><td>timestamp، run state</td><td>reconnect/recovery</td></tr>
+          <tr><td><code>error</code></td><td>code، recoverable، message</td><td>بدون crash خام UI</td></tr>
+          <tr><td><code>done</code></td><td>manifest/replay/evidence location</td><td>پایان run</td></tr>
+        </tbody>
+      </table>
+      <div class="callout red"><strong>Backpressure:</strong> WebSocket معمولی backpressure خودکار ندارد. پس اگر simulation سریع‌تر از UI بود، فریم‌های تصویری coalesce/drop می‌شوند، metrics downsample می‌شود، ولی replay/evidence کامل روی دیسک ذخیره می‌ماند.</div>
+      <div class="callout blue"><strong>Worker ownership:</strong> در FastAPI، path operationهای معمولی <code>def</code> در external threadpool اجرا می‌شوند. بنابراین run طولانی <code>GenesisEngine</code> نباید مالکیتش به threadpool request handler سپرده شود؛ Studio API باید یک worker/queue مشخص برای run داشته باشد و REST/WebSocket فقط adapter وضعیت آن باشند.</div>
+    </section>
+
+    <section id="performance" class="section">
+      <h2>۸) برنامه افزایش سرعت بدون تغییر امکانات 🚀</h2>
+      <div class="callout violet"><strong>قانون سرعت:</strong> هیچ claim علمی، digest نهایی، semantics، RNG schedule، evidence schema یا behavior خروجی نباید برای سریع‌تر شدن تغییر کند. فقط مسیر اجرای live و تکرار محاسبات کم شود.</div>
+      <h3>Benchmark baseline الزامی</h3>
+      <pre><code># tools/profile_phase1.py در core یا scripts/benchmark_phase1.py
+import cProfile, pstats
+from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
+
+def batch_run():
+    GenesisEngine.from_spec(GenesisExperimentSpec(tick_count=50, seed=7)).run_ticks()
+
+def naive_live_loop():
+    engine = GenesisEngine.from_spec(GenesisExperimentSpec(tick_count=50, seed=7))
+    for _ in range(50):
+        engine.run_ticks(1)  # fallback کند: هر بار final result ساخته می‌شود
+
+with cProfile.Profile() as pr:
+    batch_run()
+stats = pstats.Stats(pr).sort_stats("cumtime")
+stats.print_stats(30)</code></pre>
+      <table>
+        <thead><tr><th>تغییر</th><th>اثر سرعت</th><th>ریسک</th><th>محافظ تست</th></tr></thead>
+        <tbody>
+          <tr><td>افزودن <code>step_tick()</code>/<code>latest_engine_frame()</code></td><td>زیاد برای live</td><td>متوسط</td><td>equivalence test با <code>run_ticks(n)</code></td></tr>
+          <tr><td><code>finalize_run()</code> یک‌بار در پایان</td><td>زیاد</td><td>متوسط</td><td>digest/replay/manifest برابر با batch</td></tr>
+          <tr><td>cache کنترل‌شده برای source digest</td><td>متوسط</td><td>کم تا متوسط</td><td>cache-disable env و digest tests</td></tr>
+          <tr><td>عدم تبدیل کامل <code>to_dict()</code> در هر frame</td><td>متوسط</td><td>کم</td><td>schema tests برای frame نهایی</td></tr>
+          <tr><td>Local var و جلوگیری از پیمایش‌های تکراری در frame export</td><td>کم تا متوسط</td><td>کم</td><td>unit tests روی <code>EngineFrame.digest()</code></td></tr>
+          <tr><td>عدم استفاده از multiprocessing برای live فاز ۱</td><td>حفظ determinism</td><td>کم</td><td>RNG/replay equivalence</td></tr>
+        </tbody>
+      </table>
+      <h3>Performance acceptance</h3>
+      <ul>
+        <li>گزارش cProfile قبل/بعد داخل <code>docs/PERFORMANCE_PHASE1.md</code> ثبت شود.</li>
+        <li>اگر نتیجه سرعت در یک ماشین خاص ناپایدار بود، CI فقط report تولید کند؛ hard fail فقط برای regression شدید و واضح باشد.</li>
+        <li>هیچ dependency خارجی برای performance وارد runtime core نشود.</li>
+      </ul>
+    </section>
+
+    <section id="ci" class="section">
+      <h2>۹) CI و تست‌های لازم 🧪</h2>
+      <h3>Core CI</h3>
+      <table>
+        <thead><tr><th>Job</th><th>OS</th><th>هدف</th></tr></thead>
+        <tbody>
+          <tr><td><code>core-boundary</code></td><td>Ubuntu</td><td>ممنوعیت UI/server deps در core.</td></tr>
+          <tr><td><code>core-smoke-cross-os</code></td><td>Windows, Ubuntu, macOS</td><td>install + import + Genesis smoke.</td></tr>
+          <tr><td><code>core-determinism</code></td><td>Ubuntu</td><td>batch vs incremental equivalence.</td></tr>
+          <tr><td><code>core-performance-report</code></td><td>Ubuntu</td><td>cProfile report artifact، نه hard fail شکننده.</td></tr>
+        </tbody>
+      </table>
+      <h3>Studio CI</h3>
+      <table>
+        <thead><tr><th>Job</th><th>ابزار</th><th>هدف</th></tr></thead>
+        <tbody>
+          <tr><td><code>api-tests</code></td><td>pytest</td><td>Local API با fake/real small engine.</td></tr>
+          <tr><td><code>web-tests</code></td><td>Vitest</td><td>UI state، contracts، render بدون backend واقعی.</td></tr>
+          <tr><td><code>desktop-build-smoke</code></td><td>Tauri</td><td>build روی Windows/Linux/macOS.</td></tr>
+          <tr><td><code>installer-doctor</code></td><td>uv + pytest</td><td>venv/install/import/smoke run.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="security-license" class="section">
+      <h2>۱۰) امنیت، Code Import و License Gate ⚖️🔐</h2>
+      <table>
+        <thead><tr><th>موضوع</th><th>تصمیم فاز ۱</th></tr></thead>
+        <tbody>
+          <tr><td>AGPL</td><td>برای closed-source commercial/SaaS باید مسیر حقوقی قبل از release مشخص شود: open-source Studio، dual license، یا commercial exception.</td></tr>
+          <tr><td>Local API</td><td>فقط روی <code>127.0.0.1</code>، random port، token per session، CORS محدود؛ runهای طولانی در worker/queue اختصاصی، نه threadpool ضمنی FastAPI.</td></tr>
+          <tr><td>Code Import</td><td>فقط در Studio sandbox/dry-run؛ core هیچ eval/exec یا dynamic import workflow نگیرد.</td></tr>
+          <tr><td>Offline installer</td><td>wheelhouse با hash check؛ عدم دانلود ZIP خام از GitHub.</td></tr>
+          <tr><td>Core boundary</td><td>هیچ endpoint، server، dashboard یا file workflow در core اضافه نشود.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="acceptance" class="section">
+      <h2>۱۱) معیار پذیرش فاز ۱ ✅</h2>
+      <table>
+        <thead><tr><th>حوزه</th><th>معیار</th><th>تست/اثبات</th></tr></thead>
+        <tbody>
+          <tr><td>Core</td><td>وابستگی runtime اصلی صفر بماند.</td><td><code>dependencies = []</code></td></tr>
+          <tr><td>Core</td><td>هیچ import واقعی UI/server در <code>src/codontrace</code> نباشد.</td><td><code>tools/check_core_boundary.py</code> با AST.</td></tr>
+          <tr><td>Core</td><td><code>run_ticks()</code> رفتار قبلی را حفظ کند.</td><td>tests قدیمی + equivalence tests پاس شوند.</td></tr>
+          <tr><td>Core</td><td>cross-OS smoke پاس شود.</td><td>Windows/Linux/macOS CI.</td></tr>
+          <tr><td>Studio</td><td>engine از installer/doctor نصب و تست شود.</td><td>کاربر بدون کدنویسی doctor green بگیرد.</td></tr>
+          <tr><td>Studio</td><td>run کوچک live شود.</td><td>World/Agent/Event/Metric frame در UI یا log test دیده شود.</td></tr>
+          <tr><td>Studio</td><td>Linux و macOS فقط شعار نباشند.</td><td>AppImage build smoke و macOS app/dmg smoke.</td></tr>
+          <tr><td>Performance</td><td>live path نسبت به loop naive بهتر باشد یا fallback محدود اعلام شود.</td><td>گزارش cProfile قبل/بعد.</td></tr>
+          <tr><td>License</td><td>AGPL gate در release checklist باشد.</td><td>تصمیم حقوقی مستند قبل از public commercial release.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="handoff" class="section">
+      <h2>۱۲) دستور تحویل مستقیم به برنامه‌نویس 🧑‍💻</h2>
+      <div class="callout green"><strong>اولویت اجرای PRها:</strong> اول boundary و version cleanup، بعد primitive incremental در core، بعد Studio API skeleton، بعد installer. اگر UI زودتر از contract ساخته شود، دوباره شکننده می‌شود.</div>
+      <pre><code>PHASE 1 IMPLEMENTATION ORDER
+
+A) codontrace-genesis core-safe PRs
+   1. Add docs/STUDIO_BOUNDARY.md
+   2. Clean current release identity around 0.3.0b1; keep old alpha only as explicit historical provenance
+   3. Expand docs/GENESIS_API_FOR_UI.md as a pure object contract
+   4. Add AST-based core-boundary CI gate: no real FastAPI/Tauri/UI/server imports in src/codontrace
+   5. Add cross-OS smoke CI for Windows/Linux/macOS across Python 3.11, 3.12, 3.13, and 3.14
+   6. Add incremental execution primitive if equivalence tests prove safety:
+      - step_tick()
+      - latest_engine_frame()
+      - iter_engine_frames()
+      - finalize_run()
+   7. Add docs/PERFORMANCE_PHASE1.md with cProfile baseline and before/after
+
+B) codontrace-studio separate repo PRs
+   1. Create monorepo skeleton: studio-api, studio-web, studio-desktop, contracts, engine-manager
+   2. Implement uv-managed engine installation with lockfile and manifest
+   3. Implement doctor checks: Python, uv, venv, codontrace import, version, smoke run
+   4. Implement FastAPI local sidecar only in Studio; own GenesisEngine runs through a dedicated worker/queue, not implicit request-handler threadpool
+   5. Implement WebSocket stream adapter with backpressure strategy
+   6. Implement minimal UI shell: Mission Control, Console, Live Frames Log, Doctor, Test Runner
+   7. Implement Tauri lifecycle: spawn sidecar, health check, crash recovery, terminate on exit
+   8. Add installers/build smoke for Windows, Linux AppImage, macOS app/dmg
+
+DO NOT:
+   - add FastAPI, uvicorn, React, Vite, Tauri, WebSocket server, CLI product, or installer code to codontrace core
+   - add code import/eval/exec workflow to core
+   - consume private engine internals from Studio except temporary fallback with TODO and removal ticket
+   - claim commercial closed-source readiness before AGPL strategy is resolved</code></pre>
+    </section>
+
+    <section id="sources" class="section">
+      <h2>۱۳) منابع و مبنای تصمیم‌ها 📚</h2>
+      <ul class="source-list">
+        <li><strong>Repo source:</strong> بررسی روی فایل آپلودشده <code>codontrace-genesis-main.zip</code> انجام شد.</li>
+        <li><strong>Python latest stable:</strong> طبق صفحه downloads پایتون، آخرین نسخه پایدار بررسی‌شده برای این سند <code>Python 3.14.5</code> است.</li>
+        <li><strong>Python supported range:</strong> فاز ۱ روی <code>3.11</code> تا <code>3.14</code> بسته می‌شود؛ <code>3.15+</code> بعد از release پایدار و CI جدا اضافه شود.</li>
+        <li><strong>GitHub:</strong> <a href="https://github.com/Parvaz-Jamei/codontrace-genesis">github.com/Parvaz-Jamei/codontrace-genesis</a></li>
+        <li><strong>Tauri bundle targets:</strong> Tauri targetهایی مثل <code>deb</code>، <code>rpm</code>، <code>appimage</code>، <code>nsis</code>، <code>msi</code>، <code>app</code>، <code>dmg</code> را در config پشتیبانی می‌کند. <a href="https://v2.tauri.app/reference/config/">v2.tauri.app/reference/config</a></li>
+        <li><strong>Tauri sidecar:</strong> external binaries/sidecar برای اجرای backend جدا در اپ desktop. <a href="https://v2.tauri.app/develop/sidecar/">v2.tauri.app/develop/sidecar</a></li>
+        <li><strong>uv:</strong> lock/sync برای نصب reproducible و مدیریت محیط Python. <a href="https://docs.astral.sh/uv/concepts/projects/sync/">docs.astral.sh/uv/concepts/projects/sync</a></li>
+        <li><strong>FastAPI WebSocket:</strong> FastAPI از WebSocket و <code>WebSocketDisconnect</code> پشتیبانی می‌کند. <a href="https://fastapi.tiangolo.com/advanced/websockets/">fastapi.tiangolo.com/advanced/websockets</a></li>
+        <li><strong>WebSocket backpressure:</strong> MDN هشدار می‌دهد WebSocket API معمولی backpressure ندارد. <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">developer.mozilla.org/Web/API/WebSocket</a></li>
+        <li><strong>Python profiling:</strong> <code>cProfile</code> و <code>pstats</code> برای deterministic profiling. <a href="https://docs.python.org/3/library/profile.html">docs.python.org/3/library/profile.html</a></li>
+        <li><strong>functools cache:</strong> cache کنترل‌شده باید با دقت و test انجام شود. <a href="https://docs.python.org/3/library/functools.html">docs.python.org/3/library/functools.html</a></li>
+        <li><strong>Python entry points:</strong> console scripts باید در پکیج Studio باشند، نه core. <a href="https://packaging.python.org/specifications/entry-points/">packaging.python.org/specifications/entry-points</a></li>
+        <li><strong>AGPL:</strong> برای استفاده شبکه‌ای از modified version، موضوع source availability مهم است. <a href="https://www.gnu.org/licenses/agpl-3.0.en.html">gnu.org/licenses/agpl-3.0</a></li>
+      </ul>
+      <div class="footer">نسخه: Phase 1 Core-Safe Execution Spec · تمرکز: حفظ مسیر علمی کتابخانه + ساخت محصول Studio جداگانه · آماده تحویل به برنامه‌نویس</div>
+    </section>
+  </div>
+</body>
+</html>

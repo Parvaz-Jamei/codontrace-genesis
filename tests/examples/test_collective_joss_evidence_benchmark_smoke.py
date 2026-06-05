@@ -54,6 +54,8 @@ def test_collective_joss_evidence_benchmark_smoke_execution(tmp_path: Path) -> N
     This test intentionally does not try to prove collective intelligence.
     It checks that the runner can execute a small controlled scenario set and
     emit the evidence artifacts expected by the reproducibility and benchmark docs.
+    It uses the runner's no-isolate mode so CI does not depend on nested
+    subprocess capture behavior.
     """
     out_dir = tmp_path / "joss_evidence_smoke"
 
@@ -83,6 +85,7 @@ def test_collective_joss_evidence_benchmark_smoke_execution(tmp_path: Path) -> N
         "6",
         "--per-run-timeout",
         "90",
+        "--no-isolate-runs",
     ]
 
     completed = subprocess.run(
@@ -113,7 +116,7 @@ def test_collective_joss_evidence_benchmark_smoke_execution(tmp_path: Path) -> N
 
     run_config = json.loads((out_dir / "run_config.json").read_text(encoding="utf-8"))
     assert run_config["runner"] == "collective_joss_evidence_benchmark"
-    assert run_config["target_public_version"] == "0.3.0a2"
+    assert run_config["target_public_version"] == "0.3.0b1"
     assert run_config["release_doi"] == "10.5281/zenodo.20337435"
     assert "not a proof of collective intelligence" in run_config["claim_boundary"]
 

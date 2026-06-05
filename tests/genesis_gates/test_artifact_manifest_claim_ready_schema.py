@@ -8,7 +8,7 @@ def test_evidence_manifest_has_claim_ready_schema_and_stable_aggregate_digest():
     left = EvidenceManifest(
         schema_version="evidence_manifest_v2",
         producer_version="phase1",
-        library_version="0.3.0a1",
+        library_version="0.3.0b1",
         config_digest="cfg",
         source_digest="src",
         protocol_digest="proto",
@@ -19,7 +19,7 @@ def test_evidence_manifest_has_claim_ready_schema_and_stable_aggregate_digest():
     right = EvidenceManifest(
         schema_version="evidence_manifest_v2",
         producer_version="phase1",
-        library_version="0.3.0a1",
+        library_version="0.3.0b1",
         config_digest="cfg",
         source_digest="src",
         protocol_digest="proto",

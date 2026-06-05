@@ -1,6 +1,6 @@
 name: CI
 
-on:
+"on":
   push:
   pull_request:
 
@@ -12,17 +12,18 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
-  test:
-    name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+  core-smoke-cross-os:
+    name: Core smoke (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -38,15 +39,8 @@ jobs:
       - name: Compile package, tests, examples, and tools
         run: python -m compileall -q src tests examples tools
 
+      - name: Enforce core boundary with AST import guard
+        run: python tools/check_core_boundary.py
+
       - name: Run release-critical tests
-        run: |
-          python -m pytest \
-            tests/test_export_import.py \
-            tests/test_api_signature.py \
-            tests/test_genesis_causal_mechanism_hardening.py \
-            tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py \
-            tests/test_genesis_integration_public_api_unification.py \
-            tests/test_genesis_integration_runtime_wiring.py \
-            tests/release \
-            tests/genesis_gates \
-            --disable-plugin-autoload
+        run: python -m pytest tests/test_export_import.py tests/test_api_signature.py tests/test_genesis_causal_mechanism_hardening.py tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py tests/test_genesis_integration_public_api_unification.py tests/test_genesis_integration_runtime_wiring.py tests/release tests/genesis_gates --disable-plugin-autoload

@@ -169,7 +169,7 @@ def test_final_objects_roundtrip_digest() -> None:
         (FinalExamplesMatrix("ex.py", "mature_alpha", smoke_status="PASS"),)
     )
     assert examples.passed_examples == 1
-    statement = FinalNonClaimStatement.mature_alpha("0.3.0a1")
+    statement = FinalNonClaimStatement.mature_alpha("unknown")
     assert "AGI" in statement.prohibited_claims
 
 

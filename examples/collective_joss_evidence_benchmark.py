@@ -3,7 +3,7 @@
 CodonTrace Genesis — JOSS Evidence Benchmark Runner
 ====================================================================
 
-This runner targets CodonTrace Genesis public alpha `0.3.0a2` while remaining
+This runner targets CodonTrace Genesis public beta `0.3.0b1` while remaining
 compatible with nearby development builds for local validation. It is a JOSS-safe,
 feature-discovery and behavior-observability runner. It is not a
 success-forcing app. It uses public CodonTrace/GENESIS APIs where possible, builds
@@ -19,7 +19,7 @@ Design basis:
   competition/cooperation, and generalization signals rather than mean fitness.
 - Open-endedness should track novelty, diversity, activity, survival, and collapse.
 
-Recommended quick command from a source checkout of the current public-alpha branch:
+Recommended quick command from a source checkout of the current public-beta branch:
     PYTHONPATH=src python examples/collective_joss_evidence_benchmark.py \
       --out outputs/joss_evidence_quick --profile quick --seed-count 3 --ticks 10 --population 8
 
@@ -66,8 +66,8 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 RUNNER_NAME = "collective_joss_evidence_benchmark"
-RUNNER_SCHEMA_VERSION = "collective_joss_evidence_benchmark_v1.1.0_public_alpha_a2"
-TARGET_PUBLIC_CODONTRACE_VERSION = "0.3.0a2"
+RUNNER_SCHEMA_VERSION = "collective_joss_evidence_benchmark_v1.1.0_public_beta_b1"
+TARGET_PUBLIC_CODONTRACE_VERSION = "0.3.0b1"
 TARGET_RELEASE_DOI = "10.5281/zenodo.20337435"
 
 GENOME_LIBRARY = {

@@ -1,6 +1,6 @@
-# GENESIS Compatibility Matrix — v0.3.0a1 unified-runtime
+# GENESIS Compatibility Matrix — v0.3.0b1 beta unified-runtime
 
-CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-ended autonomous discovery. It is a GENESIS-aligned research-alpha foundation engine.
+CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-ended autonomous discovery. It is a GENESIS-aligned research-beta foundation engine.
 
 | GENESIS Concept | Current API | Status | Operational Level | Missing / Limitation | Evidence / Tests | Claim Allowed? |
 |---|---|---:|---|---|---|---|
@@ -46,7 +46,7 @@ CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-en
 |---|---|---:|---|
 | Causal validation | `codontrace.genesis.causal_validation` | scaffold/implemented | Separates temporal precedence, association, conditional association, intervention, and ground-truth recovery; never claims true causality by graph alone. |
 | ADF macro validation | `adf_runtime`, `adf_validation` | scaffold/implemented | ADF decode and macro expansion are operational; language emergence is not claimed without null models and ablation. |
-| Active QD search loop | `qd_search` | scaffold/implemented | Archive can feed parent selection/emission; still research-alpha, not full OEE proof. |
+| Active QD search loop | `qd_search` | scaffold/implemented | Archive can feed parent selection/emission; still research-beta, not full OEE proof. |
 | Capsule transfer validation | `capsule_validation` | scaffold/implemented | Adoption counters alone are not transfer proof; ON/OFF or before/after effect needed. |
 | Discovery experiment protocol | `discovery_protocol` | scaffold/implemented | D0/shadow/persistence/ablation/multiseed/replay gates downgrade unsupported claims. |
 | Scientific manifest strictness | `validate_scientific_manifest` | scaffold/implemented | Flags missing or placeholder hashes for paper-grade runs. |

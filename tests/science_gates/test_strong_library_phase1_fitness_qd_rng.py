@@ -46,7 +46,7 @@ def test_core_imports_without_optional_dependency_modules_loaded() -> None:
     import codontrace
     import codontrace.genesis
 
-    assert codontrace.__version__ == "0.3.0a1"
+    assert codontrace.__version__ == "0.3.0b1"
     # Core import must not import optional scientific backends as a side effect.
     assert "ribs" not in sys.modules
 

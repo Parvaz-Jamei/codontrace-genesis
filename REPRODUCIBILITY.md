@@ -1,12 +1,12 @@
 # Reproducibility Guide
 
-Version target: `0.3.0a2`  
-Release DOI: `10.5281/zenodo.20337435`  
-License: `AGPL-3.0-or-later`  
-Status: Public alpha research software  
-Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`  
-Package: `codontrace==0.3.0a2`  
-Primary benchmark runner: `examples/collective_joss_evidence_benchmark.py`  
+Version target: `0.3.0b1`
+Release DOI: `10.5281/zenodo.20337435`
+License: `AGPL-3.0-or-later`
+Status: Public beta research software
+Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
+Package: `codontrace==0.3.0b1`
+Primary benchmark runner: `examples/collective_joss_evidence_benchmark.py`
 Primary benchmark smoke test: `tests/examples/test_collective_joss_evidence_benchmark_smoke.py`
 
 This guide explains how to reproduce CodonTrace Genesis runs, validate the public package, preserve artifacts, and interpret outputs without converting exploratory observations into unsupported scientific claims.
@@ -60,28 +60,28 @@ python -m pip install --upgrade pip setuptools wheel
 
 ## 3. Install from PyPI
 
-Use the exact public release version for reproducible public-alpha work:
+Use the exact public release version for reproducible public-beta work:
 
 ```bash
-python -m pip install codontrace==0.3.0a2
+python -m pip install codontrace==0.3.0b1
 ```
 
 For research extras:
 
 ```bash
-python -m pip install "codontrace[research]==0.3.0a2"
+python -m pip install "codontrace[research]==0.3.0b1"
 ```
 
 For causal-analysis extras:
 
 ```bash
-python -m pip install "codontrace[causal]==0.3.0a2"
+python -m pip install "codontrace[causal]==0.3.0b1"
 ```
 
 For quality-diversity extras:
 
 ```bash
-python -m pip install "codontrace[qd]==0.3.0a2"
+python -m pip install "codontrace[qd]==0.3.0b1"
 ```
 
 Verify the installed version:
@@ -93,7 +93,7 @@ python -c "import codontrace; print(codontrace.__version__)"
 Expected output:
 
 ```text
-0.3.0a2
+0.3.0b1
 ```
 
 ---
@@ -274,7 +274,7 @@ Tier 4 is not required for ordinary CI or JOSS software review. It is for paper-
 Every experiment report should include:
 
 ```yaml
-codontrace_version: "0.3.0a2"
+codontrace_version: "0.3.0b1"
 release_doi: "10.5281/zenodo.20337435"
 python_version: "<recorded Python version>"
 platform: "<OS / environment>"
@@ -347,9 +347,9 @@ A descriptive record means something was observed. It does not automatically mea
 
 ## 12. Version discipline
 
-Use `codontrace==0.3.0a2` for public-alpha reproducibility work.
+Use `codontrace==0.3.0b1` for public-beta reproducibility work.
 
-Older development outputs may be useful as development evidence, but should not be presented as release evidence for `0.3.0a2` unless they are rerun on the public release.
+Older development outputs may be useful as development evidence, but should not be presented as release evidence for `0.3.0b1` unless they are rerun on the public release.
 
 When comparing outputs across versions, explicitly state:
 
@@ -390,9 +390,9 @@ Use this wording in reports, README sections, JOSS-style papers, or supplementar
 
 > All CodonTrace Genesis runs should record the exact package version, seed list, configuration, command line, environment, and generated artifact manifest. Outputs are interpreted through the project claim policy: failed, skipped, placeholder, fake, incomplete, NaN, Infinity, or `not_run:*` artifacts are not counted as positive scientific evidence.
 
-For the current public alpha:
+For the current public beta:
 
-> Public-alpha reproducibility should target `codontrace==0.3.0a2` and DOI `10.5281/zenodo.20337435`.
+> Public-beta reproducibility should target `codontrace==0.3.0b1` and DOI `10.5281/zenodo.20337435`.
 
 ---
 

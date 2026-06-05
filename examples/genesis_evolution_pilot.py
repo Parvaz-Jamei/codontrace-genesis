@@ -118,7 +118,7 @@ def run(output_dir: str | Path = "genesis_evolution_pilot_out", *, seed: int = 1
     manifest = {
         "schema_version": "pilot_manifest_v1",
         "producer_version": RELEASE_LABEL,
-        "library_version": getattr(result.manifest, "library_version", "0.3.0a1"),
+        "library_version": getattr(result.manifest, "library_version", "unknown"),
         "pilot_name": "genesis_evolution_pilot",
         "pilot_status": pilot_status,
         "seed": seed,

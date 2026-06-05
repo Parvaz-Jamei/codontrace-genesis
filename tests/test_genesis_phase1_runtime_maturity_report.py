@@ -50,7 +50,7 @@ def test_phase1_report_can_be_attached_to_evidence_manifest_without_mutation() -
     manifest = EvidenceManifest(
         schema_version="test_manifest_v1",
         producer_version="pytest",
-        library_version="0.3.0a1",
+        library_version="0.3.0b1",
         config_digest="config",
         source_digest="source",
         protocol_digest="protocol",

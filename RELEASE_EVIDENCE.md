@@ -1,9 +1,9 @@
 # Release Evidence
 
 Package: `codontrace`
-Version: `0.3.0a2`
-Status: alpha research-software release candidate
-Release bundle: `codontrace-0.3.0a2-release-bundle.zip`
+Version: `0.3.0b1`
+Status: beta research-software release candidate
+Release bundle: `codontrace-0.3.0b1-release-bundle.zip`
 
 ## Scope
 

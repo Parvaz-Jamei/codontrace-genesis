@@ -1,11 +1,11 @@
 # Benchmark Protocols
 
-Version target: `0.3.0a2`  
-Release DOI: `10.5281/zenodo.20337435`  
-License: `AGPL-3.0-or-later`  
-Status: Public alpha research software  
-Primary runner: `examples/collective_joss_evidence_benchmark.py`  
-Primary smoke test: `tests/examples/test_collective_joss_evidence_benchmark_smoke.py`  
+Version target: `0.3.0b1`
+Release DOI: `10.5281/zenodo.20337435`
+License: `AGPL-3.0-or-later`
+Status: Public beta research software
+Primary runner: `examples/collective_joss_evidence_benchmark.py`
+Primary smoke test: `tests/examples/test_collective_joss_evidence_benchmark_smoke.py`
 Reference artifact inspected: `joss_evidence_smoke_20260522_182358.zip`
 
 This document defines the benchmark protocol for CodonTrace Genesis as deterministic, replay/audit-first research software for digital evolution, ALife experiments, causal mechanism auditing, and claim-gated evidence generation.
@@ -73,7 +73,7 @@ JOSS-safe benchmark wording:
 examples/collective_joss_evidence_benchmark.py
 ```
 
-The runner is the user-facing benchmark entry point. It produces CSV/JSON/HTML artifacts and is designed to stay compatible with the public-alpha `0.3.0a2` branch.
+The runner is the user-facing benchmark entry point. It produces CSV/JSON/HTML artifacts and is designed to stay compatible with the public-beta `0.3.0b1` branch.
 
 ### Smoke test
 
@@ -146,10 +146,10 @@ The inspected smoke artifact reports:
 | Field | Value |
 |---|---:|
 | Runner | `collective_joss_evidence_benchmark` |
-| Runner schema | `collective_joss_evidence_benchmark_v1.1.0_public_alpha_a2` |
-| CodonTrace version | `0.3.0a2` |
-| Target public version | `0.3.0a2` |
-| Expected version | `0.3.0a2` |
+| Runner schema | `collective_joss_evidence_benchmark_v1.1.0_public_beta_b1` |
+| CodonTrace version | `0.3.0b1` |
+| Target public version | `0.3.0b1` |
+| Expected version | `0.3.0b1` |
 | Release DOI | `10.5281/zenodo.20337435` |
 | Profile | `smoke` |
 | Seed start | `1` |
@@ -293,32 +293,22 @@ Interpretation:
 
 ---
 
-## 9. Known provenance note
+## 9. Provenance label check
 
-The inspected smoke `summary.json` includes:
-
-```text
-release_artifact_name: codontrace-0.3.0a1-release-bundle.zip
-```
-
-while the run configuration and actual CodonTrace version report:
+For the `0.3.0b1` beta release, benchmark provenance should report a single aligned release identity:
 
 ```text
-codontrace_version: 0.3.0a2
-target_public_version: 0.3.0a2
-expected_version: 0.3.0a2
+release_artifact_name: codontrace-0.3.0b1-release-bundle.zip
+codontrace_version: 0.3.0b1
+target_public_version: 0.3.0b1
+expected_version: 0.3.0b1
 ```
 
 Interpretation:
 
-- This is not a smoke-run failure.
-- The benchmark executed with `0.3.0a2`.
-- The stale `release_artifact_name` should be cleaned before the next formal release so provenance text does not confuse reviewers.
-- Until cleaned, benchmark reports should treat this as a minor provenance-label issue, not as evidence that the run used `0.3.0a1`.
-
-Recommended fix before the next release:
-
-> Update any static release-artifact label or default metadata that still mentions `0.3.0a1`.
+- A benchmark report that claims to target this beta line must not use stale alpha artifact labels.
+- Historical alpha labels may remain only in lineage/history tests and archival notes.
+- Release-facing benchmark outputs should use the runtime package version or `RELEASE_ARTIFACT_NAME` rather than hard-coded legacy strings.
 
 ---
 
@@ -756,7 +746,7 @@ The smoke zip does not need to be uploaded into the repository immediately.
 
 The current smoke benchmark supports:
 
-- runner execution on `0.3.0a2`,
+- runner execution on `0.3.0b1`,
 - generation of structured artifacts,
 - artifact-manifest creation,
 - environment recording,

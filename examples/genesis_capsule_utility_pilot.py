@@ -62,7 +62,7 @@ def run(output_dir: str | Path = "genesis_capsule_utility_pilot_out") -> dict[st
     manifest = {
         "schema_version": "pilot_manifest_v1",
         "producer_version": RELEASE_LABEL,
-        "library_version": getattr(result.manifest, "library_version", "0.3.0a1"),
+        "library_version": getattr(result.manifest, "library_version", "unknown"),
         "pilot_name": "genesis_capsule_utility_pilot",
         "pilot_status": summary["pilot_status"],
         "seed": 1,

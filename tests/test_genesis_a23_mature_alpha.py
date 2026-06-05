@@ -131,9 +131,9 @@ def test_docs_consistency_allows_changelog_history_and_flags_current_scope() -> 
         "CHANGELOG.md": "v0.2.0a20 historical entry.",
         "README.md": "Current v0.3.0a1 release notes.",
     }
-    result = evaluate_docs_consistency(docs, config=DocsConsistencyConfig("0.3.0a1"))
+    result = evaluate_docs_consistency(docs, config=DocsConsistencyConfig("unknown"))
     assert result.passed
-    stale = evaluate_docs_consistency({"README.md": "Current v0.2.0a20."}, "0.3.0a1")
+    stale = evaluate_docs_consistency({"README.md": "Current v0.2.0a20."}, "unknown")
     assert not stale.passed
 
 

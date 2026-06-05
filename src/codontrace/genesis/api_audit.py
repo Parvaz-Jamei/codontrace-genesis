@@ -75,7 +75,7 @@ class PublicAPISymbol:
             module=_str(data, "module"),
             kind=_str(data, "kind"),
             stability=_str(data, "stability", APIStabilityLevel.ALPHA.value),
-            added_in=_str(data, "added_in", "0.3.0a1"),
+            added_in=_str(data, "added_in", "unknown"),
             notes=_str(data, "notes", ""),
             module_path=_str(data, "module_path", ""),
             object_qualname=_str(data, "object_qualname", ""),

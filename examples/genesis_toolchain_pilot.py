@@ -71,7 +71,7 @@ def run(output_dir: str | Path = "genesis_toolchain_pilot_out") -> dict[str, str
     manifest = {
         "schema_version": "pilot_manifest_v1",
         "producer_version": RELEASE_LABEL,
-        "library_version": getattr(result.manifest, "library_version", "0.3.0a1"),
+        "library_version": getattr(result.manifest, "library_version", "unknown"),
         "pilot_name": "genesis_toolchain_pilot",
         "pilot_status": summary["pilot_status"],
         "seed": 1,

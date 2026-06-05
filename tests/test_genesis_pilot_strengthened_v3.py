@@ -144,10 +144,10 @@ def test_social_events_exclude_environment_target_from_social_metrics() -> None:
     assert all(getattr(item, "target_organism_id", "") != "environment" for item in result.partner_interaction_records)
 
 
-def test_release_docs_reference_current_phase3_artifact_and_phase1_base() -> None:
+def test_release_docs_reference_current_beta_artifact_and_phase1_base() -> None:
     evidence = Path("RELEASE_EVIDENCE.md").read_text(encoding="utf-8")
     matrix = Path("docs/FEATURE_WIRING_MATRIX.md").read_text(encoding="utf-8")
-    assert "codontrace-0.3.0a1-release-bundle.zip" in evidence
+    assert "codontrace-0.3.0b1-release-bundle.zip" in evidence
     assert "phase1-strong-core" not in evidence
     assert "deadcode-wiring" not in evidence
     assert "Toolchain" in matrix and "chain_success=True" in matrix

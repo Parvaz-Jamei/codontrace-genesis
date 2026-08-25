@@ -9,7 +9,7 @@ where = ["src"]
 
 [project]
 name = "codontrace"
-version = "0.3.0b1"
+version = "0.3.0b2"
 description = "CodonTrace Genesis: deterministic research-beta engine for digital evolution, causal mechanism auditing, capsule-mediated transfer, skill compression, role emergence, and replayable evidence artifacts."
 readme = "README.md"
 requires-python = ">=3.11,<3.15"

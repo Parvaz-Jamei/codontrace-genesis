@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
+
+### Added
+
+- `codontrace.genesis.capsule_utility`: pure outcome-based capsule utility evaluator (`capsule_outcome_utility_v2`). Utility is measured selection-fitness delta only; synthetic fixed rewards (e.g. `task_delta = 1.0`) are forbidden. `claim_eligible` requires adoption + measured positive delta + trusted source status (`measured` / `last_known`).
+- `codontrace.genesis.memory_evidence`: pure delayed-reward evidence classifier. Write→later reward without read is `temporal_correlation` only. Causal claim requires read-linked evidence plus ablation `control_digest`.
+- Science unit tests:
+  - `tests/test_capsule_utility_science.py`
+  - `tests/test_memory_delayed_evidence_science.py`
+  - `tests/test_generalization_protocol_science.py`
+
+### Changed
+
+- `engine.capsule_utility_records` now delegates to the pure evaluator (single source of truth).
+- `engine.memory_use_records` classifies delayed-reward chains via the evidence ladder (`observed_write` → `temporal_correlation` → `read_linked` → `causal_support`).
+- `engine.generalization_records` no longer emits first/last-tick digest proxies. Without a real heldout protocol, status is `protocol_not_run` with digests `not_run:*` and `claim_eligible=False`.
+- `SignalActionLink` / `MemoryUseEvidence` schema → v2 evidence fields (`evidence_status`, `causal_status`, `control_digest`, `claim_eligible`).
+- `GeneralizationResult` schema → v2 with hard gate against `protocol_not_run` and identical train/heldout digests.
+- Package identity: `0.3.0b1` → `0.3.0b2` (`pyproject.toml`, `codontrace.__version__`, `CITATION.cff`).
+
+### Claim policy
+
+No loosening of scientific claims. Changes tighten evidence surfaces so ClaimGate cannot treat correlation or synthetic rewards as causal success. GENESIS remains research-beta software; it does not claim AGI, consciousness, proven collective intelligence, or peer-reviewed superiority.
+
 ## 0.3.0b1 — Studio-readiness beta release
 
 ### Changed

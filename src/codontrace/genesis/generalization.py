@@ -67,15 +67,45 @@ class HeldoutWorldSpec:
 
 @dataclass(frozen=True, slots=True)
 class GeneralizationResult:
+    """Heldout generalization evaluation record.
+
+    Status ladder (claim-strict):
+    - protocol_not_run: no explicit heldout protocol executed
+    - provisional: partial protocol without leakage-clean heldout
+    - measured: real train/heldout digests from an explicit protocol
+    - unavailable: cannot evaluate
+
+    First-vs-last tick proxies are forbidden. claim_eligible requires
+    measured status, distinct digests, and a non-not_run heldout digest.
+    """
+
     evaluation_id: str
     train_digest: str
     heldout_digest: str
     score: float
     claim_eligible: bool = False
-    status: str = "measured"
+    status: str = "protocol_not_run"
+    schema_version: str = "generalization_result_v2"
+
+    def __post_init__(self) -> None:
+        allowed = {"protocol_not_run", "provisional", "measured", "unavailable"}
+        if self.status not in allowed:
+            raise ValueError(f"invalid generalization status: {self.status}")
+        # Hard gate: never claim-eligible on not_run digests or non-measured status.
+        if (
+            self.claim_eligible
+            and (
+                self.status != "measured"
+                or str(self.train_digest).startswith("not_run")
+                or str(self.heldout_digest).startswith("not_run")
+                or self.train_digest == self.heldout_digest
+            )
+        ):
+            object.__setattr__(self, "claim_eligible", False)
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
+            "schema_version": self.schema_version,
             "evaluation_id": self.evaluation_id,
             "train_digest": self.train_digest,
             "heldout_digest": self.heldout_digest,

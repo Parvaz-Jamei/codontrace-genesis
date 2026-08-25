@@ -1323,57 +1323,37 @@ class GenesisRunResult:
                 "value",
                 str(getattr(cap_record, "source_fitness_status", "unavailable")),
             )
-            # Utility records are evidence for the paired micro-evaluation protocol,
-            # not merely a copy of the capsule emission-time status. If a capsule
-            # was emitted from a provisional trace but the controlled protocol can
-            # evaluate the source/target pair deterministically, upgrade the utility
-            # record status to measured while retaining the original capsule status
-            # for audit. This keeps ClaimGate strict: positive usefulness requires
-            # a measured/last_known source status in the utility evidence row.
-            status = raw_source_status
-            state_changed = (
-                target_behavior_before is not None
-                and target_behavior_after is not None
-                and target_behavior_before != target_behavior_after
-            )
+            # Outcome-based capsule utility via pure scientific evaluator.
+            # Single source of truth: codontrace.genesis.capsule_utility
+            from codontrace.genesis.capsule_utility import evaluate_capsule_utility
+
             adoption_success = bool(getattr(cap_record, "adoption_success", False))
-            measured_by_protocol = (
-                raw_source_status in {"measured", "last_known", "provisional"}
-                and adoption_success
-                and state_changed
+            evaluation = evaluate_capsule_utility(
+                raw_source_status=raw_source_status,
+                adoption_success=adoption_success,
+                target_behavior_before=target_behavior_before,
+                target_behavior_after=target_behavior_after,
+                selection_delta=selection_delta,
             )
-            if measured_by_protocol and raw_source_status == "provisional":
-                status = "measured"
-            allowed_source = status in {"measured", "last_known"}
-            # Deterministic paired micro-evaluation: a successful adoption that changes
-            # the target causal/policy digest yields a task-score improvement in the
-            # fixed capsule utility protocol. This is evidence for the controlled
-            # pilot only, not a blanket social/intelligence claim.
-            task_delta = 1.0 if adoption_success and state_changed and allowed_source else 0.0
-            raw_delta = task_delta
-            utility_delta = task_delta if task_delta else selection_delta
-            protocol_payload = {
-                "protocol": "capsule_behavioral_adoption_paired_micro_eval_v1",
-                "capsule_id": str(capsule_id),
-                "target_organism_id": str(target),
-                "behavior_digest_before": target_behavior_before,
-                "behavior_digest_after": target_behavior_after,
-                "source_fitness_status": status,
-            }
-            protocol_digest = _digest(protocol_payload) if state_changed else None
-            utility_status = (
-                "positive_utility_observed"
-                if task_delta > 0.0
-                else ("zero_utility_observed" if adoption_success else "blocked")
+            status = evaluation.source_fitness_status
+            state_changed = evaluation.state_changed
+            allowed_source = evaluation.allowed_source
+            selection_delta_measured = evaluation.selection_delta_measured
+            utility_selection_delta = evaluation.utility_selection_delta
+            utility_raw_fitness_delta = evaluation.utility_raw_fitness_delta
+            utility_task_delta = evaluation.utility_task_delta
+            utility_delta = evaluation.utility_delta
+            utility_status = evaluation.utility_status
+            claim_eligible = evaluation.claim_eligible
+            protocol_payload = evaluation.protocol_payload(
+                capsule_id=str(capsule_id),
+                target_organism_id=str(target),
+                behavior_digest_before=target_behavior_before,
+                behavior_digest_after=target_behavior_after,
+                selection_fitness_before=target_fitness_before,
+                selection_fitness_after=target_fitness_after,
             )
-            claim_eligible = bool(
-                adoption_success
-                and state_changed
-                and utility_delta is not None
-                and utility_delta > 0.0
-                and allowed_source
-                and protocol_digest
-            )
+            protocol_digest = _digest(protocol_payload)
             rows.append(
                 CapsuleUtilityRecord(
                     capsule_id=str(capsule_id),
@@ -1389,13 +1369,13 @@ class GenesisRunResult:
                     adoption_success=adoption_success,
                     blocked_reason=getattr(cap_record, "blocked_reason", None),
                     target_fitness_before=target_fitness_before,
-                    target_fitness_after=(None if target_fitness_before is None else round(target_fitness_before + raw_delta, 10)) if task_delta else target_fitness_after,
+                    target_fitness_after=target_fitness_after,
                     target_selection_fitness_before=target_fitness_before,
-                    target_selection_fitness_after=(None if target_fitness_before is None else round(target_fitness_before + task_delta, 10)) if task_delta else target_fitness_after,
+                    target_selection_fitness_after=target_fitness_after,
                     utility_delta=utility_delta,
-                    utility_selection_delta=task_delta if task_delta else selection_delta,
-                    utility_raw_fitness_delta=raw_delta if task_delta else selection_delta,
-                    utility_task_delta=task_delta,
+                    utility_selection_delta=utility_selection_delta,
+                    utility_raw_fitness_delta=utility_raw_fitness_delta,
+                    utility_task_delta=utility_task_delta,
                     target_behavior_digest_before=target_behavior_before,
                     target_behavior_digest_after=target_behavior_after,
                     state_changed=state_changed,
@@ -1523,11 +1503,66 @@ class GenesisRunResult:
 
     @property
     def memory_use_records(self) -> tuple[MemoryUseEvidence, ...]:
+        """Instrument memory write/read/reward chains without inventing causality.
+
+        Scientific policy (CLAIMS.md + ALife delayed-reward practice):
+        - Write then later reward is *temporal correlation*, not causal success.
+        - ``correct_delayed_action`` requires an explicit memory_read (or trusted
+          runtime flag with a read) before the rewarded decision.
+        - ``claim_eligible`` requires a control/ablation digest; the engine never
+          fabricates one from correlation alone.
+        """
+
+        from codontrace.genesis.memory_evidence import classify_memory_delayed_evidence
+
         rows: list[MemoryUseEvidence] = []
+
+        def _append_evidence(
+            *,
+            signal_seen_tick: int,
+            memory_written_tick: int | None,
+            memory_read_tick: int | None,
+            decision_tick: int,
+            reward_tick: int | None,
+            memory_required: bool,
+            memory_key: str | None,
+            action_after_memory: str | None,
+            reward_after_action: float | None,
+            runtime_correct_flag: bool,
+            control_digest: str | None = None,
+        ) -> None:
+            classification = classify_memory_delayed_evidence(
+                memory_written=memory_written_tick is not None,
+                memory_read=memory_read_tick is not None,
+                reward_observed=reward_tick is not None and reward_after_action is not None,
+                runtime_correct_flag=runtime_correct_flag,
+                control_digest=control_digest,
+                memory_enabled=True,
+            )
+            rows.append(
+                MemoryUseEvidence(
+                    signal_seen_tick=signal_seen_tick,
+                    memory_written_tick=memory_written_tick,
+                    memory_read_tick=memory_read_tick,
+                    decision_tick=decision_tick,
+                    reward_tick=reward_tick,
+                    correct_delayed_action=classification.correct_delayed_action,
+                    memory_enabled=True,
+                    memory_required=memory_required,
+                    memory_key=memory_key,
+                    action_after_memory=action_after_memory,
+                    reward_after_action=reward_after_action,
+                    evidence_status=classification.evidence_status,
+                    causal_status=classification.causal_status,
+                    control_digest=control_digest,
+                    claim_eligible=classification.claim_eligible,
+                )
+            )
+
         for tick in self.ticks:
             for trace in tick.generation_result.traces:
                 events = tuple(trace.events)
-                for index, event in enumerate(events):
+                for event in events:
                     write_flag = (
                         event.world_delta.get("memory_write") is True
                         or event.world_delta.get("memory_write_succeeded") is True
@@ -1535,34 +1570,55 @@ class GenesisRunResult:
                     read_flag = event.world_delta.get("memory_read") is True
                     correct_flag = event.world_delta.get("correct_delayed_action") is True
                     if write_flag or read_flag:
-                        rows.append(
-                            MemoryUseEvidence(
-                                signal_seen_tick=event.step,
-                                memory_written_tick=event.step if write_flag else None,
-                                memory_read_tick=event.step if read_flag else None,
-                                decision_tick=event.step,
-                                reward_tick=event.step if correct_flag else None,
-                                correct_delayed_action=correct_flag,
-                                memory_enabled=True,
-                                memory_required=event.world_delta.get("memory_required") is True,
-                                memory_key=str(event.world_delta.get("memory_key", "runtime_signal")),
-                                action_after_memory=event.action if read_flag else None,
-                                reward_after_action=float(event.world_delta.get("resource_credit", 0.0) or event.world_delta.get("lumen_consumed", 0.0) or 0.0) if correct_flag else None,
+                        reward_value = None
+                        reward_tick = None
+                        if correct_flag:
+                            reward_tick = event.step
+                            reward_value = float(
+                                event.world_delta.get("resource_credit", 0.0)
+                                or event.world_delta.get("lumen_consumed", 0.0)
+                                or 0.0
                             )
+                        _append_evidence(
+                            signal_seen_tick=event.step,
+                            memory_written_tick=event.step if write_flag else None,
+                            memory_read_tick=event.step if read_flag else None,
+                            decision_tick=event.step,
+                            reward_tick=reward_tick,
+                            memory_required=event.world_delta.get("memory_required") is True,
+                            memory_key=str(event.world_delta.get("memory_key", "runtime_signal")),
+                            action_after_memory=event.action if read_flag else None,
+                            reward_after_action=reward_value,
+                            runtime_correct_flag=correct_flag,
+                            control_digest=(
+                                str(event.world_delta["memory_control_digest"])
+                                if isinstance(event.world_delta.get("memory_control_digest"), str)
+                                else None
+                            ),
                         )
-                # Official delayed-memory pilot evidence: a real memory write followed by
-                # a later resource reward in the same trace.  This is derived from actual
-                # runtime events; it is not used for default claims unless the pilot asks for it.
+                # Temporal correlation pilot: write followed by later resource reward.
+                # Classified as temporal_correlation unless an explicit memory_read
+                # sits between write and reward. Never invents correct_delayed_action.
                 first_write = next(
                     (event for event in events if event.world_delta.get("memory_write_succeeded") is True),
+                    None,
+                )
+                if first_write is None:
+                    continue
+                explicit_read = next(
+                    (
+                        event
+                        for event in events
+                        if event.step > first_write.step
+                        and event.world_delta.get("memory_read") is True
+                    ),
                     None,
                 )
                 reward_event = next(
                     (
                         event
                         for event in events
-                        if first_write is not None
-                        and event.step > first_write.step
+                        if event.step > first_write.step
                         and event.action in {"EAT_LUMEN", "COLLECT_RESOURCE"}
                         and (
                             event.world_delta.get("lumen_interaction") is True
@@ -1571,22 +1627,32 @@ class GenesisRunResult:
                     ),
                     None,
                 )
-                if first_write is not None and reward_event is not None:
-                    rows.append(
-                        MemoryUseEvidence(
-                            signal_seen_tick=first_write.step,
-                            memory_written_tick=first_write.step,
-                            memory_read_tick=reward_event.step,
-                            decision_tick=reward_event.step,
-                            reward_tick=reward_event.step,
-                            correct_delayed_action=True,
-                            memory_enabled=True,
-                            memory_required=True,
-                            memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
-                            action_after_memory=reward_event.action,
-                            reward_after_action=float(reward_event.world_delta.get("resource_credit", 0.0) or reward_event.world_delta.get("lumen_consumed", 0.0) or 0.0),
-                        )
+                if reward_event is not None:
+                    read_tick = explicit_read.step if explicit_read is not None else None
+                    if explicit_read is not None and explicit_read.step > reward_event.step:
+                        read_tick = None
+                    _append_evidence(
+                        signal_seen_tick=first_write.step,
+                        memory_written_tick=first_write.step,
+                        memory_read_tick=read_tick,
+                        decision_tick=reward_event.step,
+                        reward_tick=reward_event.step,
+                        memory_required=True,
+                        memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
+                        action_after_memory=reward_event.action,
+                        reward_after_action=float(
+                            reward_event.world_delta.get("resource_credit", 0.0)
+                            or reward_event.world_delta.get("lumen_consumed", 0.0)
+                            or 0.0
+                        ),
+                        runtime_correct_flag=False,
+                        control_digest=(
+                            str(reward_event.world_delta["memory_control_digest"])
+                            if isinstance(reward_event.world_delta.get("memory_control_digest"), str)
+                            else None
+                        ),
                     )
+        # Cross-tick agent timeline: same classification rules, no invented success.
         events_by_agent: dict[str, list[object]] = {}
         for tick in self.ticks:
             for trace in tick.generation_result.traces:
@@ -1598,12 +1664,22 @@ class GenesisRunResult:
                 (event for event in ordered if event.world_delta.get("memory_write_succeeded") is True),
                 None,
             )
+            if first_write is None:
+                continue
+            explicit_read = next(
+                (
+                    event
+                    for event in ordered
+                    if event.step > first_write.step
+                    and event.world_delta.get("memory_read") is True
+                ),
+                None,
+            )
             reward_event = next(
                 (
                     event
                     for event in ordered
-                    if first_write is not None
-                    and event.step > first_write.step
+                    if event.step > first_write.step
                     and event.action in {"EAT_LUMEN", "COLLECT_RESOURCE"}
                     and (
                         event.world_delta.get("lumen_interaction") is True
@@ -1612,29 +1688,51 @@ class GenesisRunResult:
                 ),
                 None,
             )
-            if first_write is not None and reward_event is not None:
-                candidate = MemoryUseEvidence(
-                    signal_seen_tick=first_write.step,
-                    memory_written_tick=first_write.step,
-                    memory_read_tick=reward_event.step,
-                    decision_tick=reward_event.step,
-                    reward_tick=reward_event.step,
-                    correct_delayed_action=True,
-                    memory_enabled=True,
-                    memory_required=True,
-                    memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
-                    action_after_memory=reward_event.action,
-                    reward_after_action=float(reward_event.world_delta.get("resource_credit", 0.0) or reward_event.world_delta.get("lumen_consumed", 0.0) or 0.0),
-                )
-                if all(existing.digest() != candidate.digest() for existing in rows):
-                    rows.append(candidate)
+            if reward_event is None:
+                continue
+            read_tick = explicit_read.step if explicit_read is not None else None
+            if explicit_read is not None and explicit_read.step > reward_event.step:
+                read_tick = None
+            candidate_kwargs = dict(
+                signal_seen_tick=first_write.step,
+                memory_written_tick=first_write.step,
+                memory_read_tick=read_tick,
+                decision_tick=reward_event.step,
+                reward_tick=reward_event.step,
+                memory_required=True,
+                memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
+                action_after_memory=reward_event.action,
+                reward_after_action=float(
+                    reward_event.world_delta.get("resource_credit", 0.0)
+                    or reward_event.world_delta.get("lumen_consumed", 0.0)
+                    or 0.0
+                ),
+                runtime_correct_flag=False,
+                control_digest=(
+                    str(reward_event.world_delta["memory_control_digest"])
+                    if isinstance(reward_event.world_delta.get("memory_control_digest"), str)
+                    else None
+                ),
+            )
+            before = len(rows)
+            _append_evidence(**candidate_kwargs)
+            if len(rows) > before:
+                # Drop duplicate digests introduced by per-trace + cross-tick paths.
+                if any(existing.digest() == rows[-1].digest() for existing in rows[:-1]):
+                    rows.pop()
         return tuple(rows)
 
     @property
     def delayed_reward_records(self) -> tuple[DelayedRewardTrace, ...]:
+        """Delayed-reward surface derived from classified memory evidence.
+
+        Includes temporal_correlation rows for instrumentation, but only
+        read_linked/causal_support rows can carry correct_delayed_action=True.
+        """
+
         rows: list[DelayedRewardTrace] = []
         for item in self.memory_use_records:
-            if item.correct_delayed_action or item.memory_required:
+            if item.correct_delayed_action or item.memory_required or item.reward_tick is not None:
                 rows.append(
                     DelayedRewardTrace(
                         signal_seen_tick=item.signal_seen_tick,
@@ -1648,6 +1746,10 @@ class GenesisRunResult:
                         memory_key=item.memory_key,
                         action_after_memory=item.action_after_memory,
                         reward_after_action=item.reward_after_action,
+                        evidence_status=getattr(item, "evidence_status", "not_classified"),
+                        causal_status=getattr(item, "causal_status", "correlational_only"),
+                        control_digest=getattr(item, "control_digest", None),
+                        claim_eligible=getattr(item, "claim_eligible", False),
                     )
                 )
         return tuple(rows)
@@ -1672,25 +1774,41 @@ class GenesisRunResult:
 
     @property
     def generalization_records(self) -> tuple[object, ...]:
-        if not self.ticks:
-            return ()
+        """Emit heldout generalization evidence only from real protocols.
+
+        Scientific policy (CLAIMS.md + QD/heldout practice):
+        - First-vs-last tick digests are *not* a heldout evaluation.
+        - Without an explicit heldout partner/world protocol, status is
+          ``protocol_not_run`` and claim_eligible is always false.
+        - When real heldout partner evaluation records exist on the run, they
+          are forwarded as measured generalization evidence.
+        """
+
         from codontrace.genesis.generalization import GeneralizationResult
 
-        train_digest = self.ticks[0].generation_result.digest()
-        heldout_digest = self.ticks[-1].generation_result.digest()
-        claim_eligible = len(self.ticks) > 1 and train_digest != heldout_digest
-        score_values = [
-            getattr(item, "selection_score", 0.0) for item in self.selection_fitness_records
-        ]
-        score = round(sum(float(v) for v in score_values) / max(1, len(score_values)), 10)
+        if not self.ticks:
+            return ()
+
+        measured: list[object] = []
+        # Prefer explicit heldout partner evaluation records when present.
+        for tick in self.ticks:
+            gen_result = tick.generation_result
+            for attr in ("heldout_partner_evaluation_records", "heldout_evaluation_records"):
+                for item in getattr(gen_result, attr, ()) or ():
+                    measured.append(item)
+        if measured:
+            return tuple(measured)
+
+        # No real heldout protocol was run. Do not invent a proxy score from
+        # first/last tick digests or average fitness.
         return (
             GeneralizationResult(
-                evaluation_id=f"engine_internal_heldout_proxy_{self.run.run_id}",
-                train_digest=train_digest,
-                heldout_digest=heldout_digest,
-                score=score,
+                evaluation_id=f"engine_heldout_protocol_not_run_{self.run.run_id}",
+                train_digest="not_run:train",
+                heldout_digest="not_run:heldout",
+                score=0.0,
                 claim_eligible=False,
-                status="provisional" if claim_eligible else "unavailable",
+                status="protocol_not_run",
             ),
         )
 

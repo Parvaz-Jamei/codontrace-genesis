@@ -26,4 +26,7 @@ division-of-labor *metrics*, and group-vs-individual deltas are
 Phase F campaign gap flags (`heldout_partner_status`,
 `communication_ablation_status`, `multilevel_selection_experiment`) stay
 `not_run` / `scaffold_only` unless a researcher actually runs those
-experiments. See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).
+experiments. Phase H makes communication ablation *runnable* as
+`measured_runtime_observation` without setting ClaimGate `ablation_result`.
+See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) and
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md).

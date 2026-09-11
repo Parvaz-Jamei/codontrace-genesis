@@ -86,6 +86,8 @@ CodonTrace Genesis keeps the most important scientific boundaries in separate re
 | [`docs/PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md) | Phase E capsule / memory / role / deme / plasticity literature checklist |
 | [`docs/PHASE_G_MATERIALS_LITERATURE.md`](docs/PHASE_G_MATERIALS_LITERATURE.md) | Phase G named-materials / chemistry-effect literature checklist (Avida metabolism, chemostat, ACE; not wet-lab) |
 | [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; CodonTrace Genesis is not close to AGI |
+| [`docs/PHASE_H_CI_AI_PATH.md`](docs/PHASE_H_CI_AI_PATH.md) | Phase H CI/AI pathway: RAG + runnable ablation/effect-size harnesses; ClaimGate stays blocked |
+| [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus + retriever (measurement design, not intelligence evidence) |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | 2026 eval-bugfix → literature mapping (MODES, Channon Tokyo Type 1 *measurement only*, Avida 2.14.0, plasticity protocol). Not intelligence/OEE proof |
 | [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |
 | [`docs/STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md) | Boundary policy preventing UI/server drift into core |
@@ -283,7 +285,10 @@ plasticity, collective intelligence, or an Avida replacement. Opt-in
 and deme-replication ledgers at `runtime_observation` only. Phase F adds
 `run_collective_deme_payoff_campaign` (multi-seed ranking + division-of-labor
 *metrics* + group-vs-individual contrast); heldout/ablation stay `not_run`.
-`collective_intelligence` stays blocked.
+Phase H adds a literature RAG, a **runnable** communication-ablation harness,
+group-vs-individual effect sizes (research default 12 seeds), and a Goldsby
+2012 task-switching cost hook. Those measurements remain
+`runtime_observation`. `collective_intelligence` stays blocked.
 
 Phase G adds an opt-in **named-materials / chemistry-effect** overlay
 (`MaterialSpec` energy yield, toxicity, permeability, viscosity, signaling,

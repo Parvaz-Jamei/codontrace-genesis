@@ -7,6 +7,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"codontrace.genesis.rag" = ["corpus/*.jsonl", "corpus/*.md"]
+
 [project]
 name = "codontrace"
 version = "0.3.0b3"

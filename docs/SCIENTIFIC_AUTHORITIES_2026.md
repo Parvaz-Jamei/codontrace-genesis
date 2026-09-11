@@ -23,6 +23,7 @@ Cross-links: [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) (MODES / Bedau),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md) (plasticity / demes / capsules),
 [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) (literature vs
 CodonTrace Genesis reality; not close to AGI),
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) (Phase H RAG + CI pathway),
 [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
@@ -59,7 +60,7 @@ objects are opt-in library APIs.
 |---|---|---|---|
 | Clune 2007; Lalejini & Ofria 2016 | Phenotypic plasticity in digital evolution / fluctuating environments | Phase C fluctuating env + Phase E `sense-react` / `read_environment_cue` | **partial** (substrate + protocol, not evolved-plasticity proof) |
 | Frontiers 2021 Adaptive Phenotypic Plasticity | Four Ghalambor conditions as experimental-design checklist | `PlasticityProtocolSpec` / `GHALAMBOR_CLUNE_CONDITIONS` | **landed** as checklist object |
-| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign (ranking, DoL *metrics*, group-vs-individual contrast) | **partial** (group fitness / `runtime_observation`; heldout/ablation `not_run`; MLS `scaffold_only`; `collective_intelligence` blocked) |
+| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign (ranking, DoL *metrics*, group-vs-individual contrast) + Phase H communication-ablation / effect-size harnesses | **partial** (group fitness / `runtime_observation`; Phase F heldout `not_run`; Phase H ablation is measurement-only and does not set ClaimGate `ablation_result`; MLS `scaffold_only`; `collective_intelligence` blocked) |
 | GECCO 2008 digital germlines | Cooperative networks / germline replication | Role / propagule-eligibility tags; germline copy on deme replicate when enabled | **partial** (gates + recorded payoff, not evolved division of labor) |
 | Am Nat 2020 associative learning | Learning in Avida | Capsule/memory slots with **real** subsequent action/ATP/task effects; opt-in `LearningCausalPayoffPack` (cue→action→ATP, ablation, ≥2 seeds) | **partial** (protocol instrumentation; `instinct_improved` stays gated; not proved learning) |
 | PLOS One odometry case study | Navigation / odometry in digital organisms | Same capsule/memory mapping via the learning-payoff protocol | **partial** (hooks vs proved learning) |

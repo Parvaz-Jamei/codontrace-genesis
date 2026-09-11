@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase A Darwinian life-loop
+
+### Added
+
+- `GenesisRuntimeProfile.life_loop_world()`: explicit ecology / life-loop preset with food, deterministic resource respawn, adjacent offspring placement, AliveGate + ATP reproduction gates, fitness-proportional capacity selection, and asexual parent→mutate→child inheritance.
+- `LifeLoopObservation` / `summarize_life_loop_observation()`: Phase D hook for runtime counts only (not instinct/intelligence claims).
+- `examples/genesis_life_loop.py` and `tests/test_genesis_phase_a_life_loop.py` for the eat → survive → reproduce loop, respawn, and fixed-seed replay digest stability.
+- Restored `codontrace.genesis.engine` as a re-export of the core engine implementation so the public Genesis import path works.
+
+### Notes
+
+Phase B (sexual crossover), Phase C (fluctuating/seasonal environments), and Phase D (multi-generation instinct claim metrics) are intentionally deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop preset. Claim language remains software capability / runtime observation only.
+
 ## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
 
 ### Added

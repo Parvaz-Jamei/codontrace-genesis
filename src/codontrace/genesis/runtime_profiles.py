@@ -6,15 +6,37 @@ configs, codon tables, and evidence statuses so callers can run honest pilots.
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
+from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
-from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
+from codontrace.genesis.birth import InheritancePolicy
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferConfig
-from codontrace.genesis.population import MutationConfig, PopulationConfigs, ReproductionConfig, RuntimeResourcePolicy
+from codontrace.genesis.death import DeathMonitoringConfig
+from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
+from codontrace.genesis.liveness import AliveGateConfig
+from codontrace.genesis.population import (
+    FitnessConfig,
+    MutationConfig,
+    OffspringPlacementPolicy,
+    PopulationConfigs,
+    ReproductionConfig,
+    RuntimeResourcePolicy,
+)
 from codontrace.genesis.selection import EvolutionConfig
 from codontrace.genesis.substrate import world2d_to_element_grid
 from codontrace.world import World2D, WorldObject
+
+# EAT_LUMEN, COPY_SELF, WAIT — eat first so runtime ATP can cross the reproduction gate.
+LIFE_LOOP_EATER_GENOME = "101111000"
+# WAIT only — control genome that cannot collect food or attempt COPY_SELF.
+LIFE_LOOP_WAITER_GENOME = "000000000"
+# COPY_SELF spends 8.0 ATP during the organism step before can_reproduce()
+# inspects the ledger. After that debit, eaters must still clear min_runtime_atp;
+# waiters / no-food COPY attempts must not.
+LIFE_LOOP_INITIAL_RUNTIME_ATP = 12.0
+LIFE_LOOP_MIN_RUNTIME_ATP = 11.0
+LIFE_LOOP_RESOURCE_AMOUNT = 8.0
 
 
 class GenesisRuntimeProfile:
@@ -259,3 +281,274 @@ class GenesisRuntimeProfile:
                 "claim_allowed_for_strong_memory": False,
             },
         )
+
+    @staticmethod
+    def life_loop_world(
+        *,
+        seed: int = 1,
+        tick_count: int = 16,
+        population: int = 6,
+        offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
+    ) -> GenesisExperimentSpec:
+        """Assemble the Phase A ecology / Darwinian life-loop preset.
+
+        This is an explicit research preset. It does not change global
+        ``ReproductionConfig`` / ``ResourceConfig`` defaults. SAME_CELL placement
+        remains available by passing ``offspring_placement=OffspringPlacementPolicy.SAME_CELL``.
+
+        Observed software capability only: food is present and can respawn,
+        eating credits runtime ATP, starvation/low energy can remove organisms,
+        survivors that clear AliveGate and ATP gates can COPY_SELF, and children
+        inherit a mutated copy of the parent genome. This is not a proof of
+        life, intelligence, instinct evolution, or Avida-replacement status.
+        """
+
+        if population <= 0:
+            raise ValueError("life_loop_world population must be > 0.")
+        world = World2D(6, 4)
+        food_cells = ((0, 0), (1, 0), (2, 1), (3, 2), (4, 1), (5, 3))
+        for pos in food_cells:
+            world.place_resource(pos, LIFE_LOOP_RESOURCE_AMOUNT)
+        waiter_count = 0 if population < 3 else max(1, population // 3)
+        eater_count = population - waiter_count
+        genomes = tuple(
+            [LIFE_LOOP_EATER_GENOME] * eater_count + [LIFE_LOOP_WAITER_GENOME] * waiter_count
+        )
+        capacity = max(population, 8)
+        selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
+        configs = PopulationConfigs(
+            reproduction=ReproductionConfig(
+                max_population=capacity,
+                min_runtime_atp=LIFE_LOOP_MIN_RUNTIME_ATP,
+                parent_atp_cost=1.0,
+                offspring_atp_fraction=0.25,
+                require_alive_result=True,
+                inheritance_policy=InheritancePolicy.DARWINIAN_GENETIC_ONLY,
+                offspring_placement=offspring_placement,
+            ),
+            mutation=MutationConfig(bit_flip_rate=0.05),
+            fitness=FitnessConfig(),
+            alive_gate=AliveGateConfig(
+                min_ticks=1,
+                min_executed_actions=1,
+                max_blocked_ratio=0.95,
+                require_positive_runtime_atp=True,
+                require_lumen_interaction=False,
+                require_reproduction_capability=False,
+            ),
+            death_monitoring=DeathMonitoringConfig(remove_on_runtime_atp_lte=0.0),
+            evolution=EvolutionConfig(
+                max_population=selection_capacity,
+                selection_policy="fitness_proportional",
+                qd_mode="disabled",
+            ),
+            qd_mode="disabled",
+            runtime_resource_policy=RuntimeResourcePolicy(
+                respawn_enabled=True,
+                respawn_rate=1.0,
+                max_resources=10,
+                amount=LIFE_LOOP_RESOURCE_AMOUNT,
+                status="runtime_effective_default_on",
+            ),
+        )
+        return GenesisExperimentSpec(
+            genome_bits=genomes,
+            seed=seed,
+            tick_count=tick_count,
+            world_width=world.width,
+            world_height=world.height,
+            initial_runtime_atp=LIFE_LOOP_INITIAL_RUNTIME_ATP,
+            population_max=capacity,
+            element_grid=world2d_to_element_grid(world),
+            substrate_bridge_mode="element_grid_source",
+            population_configs=configs,
+            reproduction_config=configs.reproduction,
+            mutation_config=configs.mutation,
+            evolution_config=configs.evolution,
+            engine_config=GenesisEngineConfig(
+                enable_qd=False,
+                qd_mode="disabled",
+                claim_level="experimental_engine",
+            ),
+            metadata={
+                "runtime_profile": "life_loop_world",
+                "ecology_profile": "phase_a_life_loop",
+                "resource_runtime_status": "runtime_effective_default_on",
+                "profile_has_resources": True,
+                "profile_has_resource_respawn": True,
+                "profile_has_mutation": True,
+                "profile_has_birth_action": True,
+                "profile_has_spatial_offspring_placement": (
+                    offspring_placement is not OffspringPlacementPolicy.SAME_CELL
+                ),
+                "offspring_placement": offspring_placement.value,
+                "same_cell_available_as_explicit_policy": True,
+                "inheritance_mode": InheritancePolicy.DARWINIAN_GENETIC_ONLY.value,
+                "selection_policy": "fitness_proportional",
+                "claim_allowed_for_evolution": False,
+                "claim_allowed_for_life": False,
+                "claim_allowed_for_intelligence": False,
+                "claim_ceiling": "runtime_observation",
+                "claim_language": (
+                    "software_capability_and_runtime_observation_only_"
+                    "not_life_intelligence_or_cooperation_proof"
+                ),
+                "phase_b_sexual_crossover": "deferred",
+                "phase_c_fluctuating_environment": "deferred",
+                "phase_d_instinct_claim_metrics": "hooks_only_not_implemented",
+            },
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class LifeLoopObservation:
+    """Phase A/D hook: descriptive counts from one life-loop run.
+
+    This is a runtime observation record. It is not an instinct, intelligence,
+    cooperation, or ALife-proof metric.
+    """
+
+    lumen_eaten_events: int
+    reproduction_attempts: int
+    births: int
+    deaths: int
+    resource_respawn_events: int
+    parent_child_pairs: int
+    heritable_asexual_pairs: int
+    mutated_child_pairs: int
+    adjacent_or_displaced_births: int
+    same_cell_births: int
+    eater_births: int
+    waiter_births: int
+    replay_digest: str
+    claim_ceiling: str = "runtime_observation"
+    genesis_alive_full: bool = False
+    phase_d_instinct_metrics: str = "hooks_only_not_implemented"
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "lumen_eaten_events": self.lumen_eaten_events,
+            "reproduction_attempts": self.reproduction_attempts,
+            "births": self.births,
+            "deaths": self.deaths,
+            "resource_respawn_events": self.resource_respawn_events,
+            "parent_child_pairs": self.parent_child_pairs,
+            "heritable_asexual_pairs": self.heritable_asexual_pairs,
+            "mutated_child_pairs": self.mutated_child_pairs,
+            "adjacent_or_displaced_births": self.adjacent_or_displaced_births,
+            "same_cell_births": self.same_cell_births,
+            "eater_births": self.eater_births,
+            "waiter_births": self.waiter_births,
+            "replay_digest": self.replay_digest,
+            "claim_ceiling": self.claim_ceiling,
+            "genesis_alive_full": self.genesis_alive_full,
+            "phase_d_instinct_metrics": self.phase_d_instinct_metrics,
+        }
+
+
+def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
+    """Extract eat/survive/reproduce observation counts from an engine result.
+
+    Phase D may later attach multi-generation instinct metrics to this hook.
+    The current helper only reports runtime counts and asexual parent→child
+    relatedness. It does not evaluate intelligence or cooperation.
+    """
+
+    ticks = getattr(result, "ticks", ())
+    lumen_eaten = 0
+    attempts = 0
+    births = 0
+    deaths = 0
+    respawns = 0
+    bits_by_id: dict[str, str] = {}
+    position_by_id: dict[str, tuple[int, int]] = {}
+    seen_lineage: dict[tuple[str, str, int], object] = {}
+    for tick in ticks:
+        generation = getattr(tick, "generation_result", None)
+        if generation is None:
+            continue
+        births += int(getattr(generation, "births", 0) or 0)
+        deaths += int(getattr(generation, "deaths", 0) or 0)
+        attempts += int(getattr(generation, "reproduction_attempts", 0) or 0)
+        for event in getattr(generation, "resource_policy_records", ()):
+            if getattr(event, "event_type", "") == "resource_regenerated":
+                respawns += 1
+        for trace in getattr(generation, "traces", ()):
+            for event in getattr(trace, "events", ()):
+                if event.action == "EAT_LUMEN" and (
+                    event.world_delta.get("lumen_interaction") is True
+                    or isinstance(event.world_delta.get("lumen_consumed"), (int, float))
+                    or event.reason == "lumen_consumed"
+                ):
+                    lumen_eaten += 1
+        population = getattr(generation, "population", None)
+        if population is None:
+            continue
+        for organism in getattr(population, "organisms", ()):
+            bits_by_id[organism.id] = organism.genome.to_compact()
+            position_by_id[organism.id] = organism.position
+        for lineage in getattr(population, "lineage", ()):
+            parent_id = getattr(lineage, "parent_id", None)
+            child_id = getattr(lineage, "organism_id", None)
+            birth_tick = int(getattr(lineage, "birth_tick", 0) or 0)
+            if not parent_id or not child_id:
+                continue
+            seen_lineage[(str(parent_id), str(child_id), birth_tick)] = lineage
+
+    heritable_pairs = 0
+    mutated_pairs = 0
+    displaced_births = 0
+    same_cell_births = 0
+    eater_births = 0
+    waiter_births = 0
+    for (parent_id, child_id, _birth_tick), lineage in seen_lineage.items():
+        parent_bits = bits_by_id.get(parent_id, "")
+        child_bits = bits_by_id.get(child_id, "")
+        if parent_bits and child_bits and _asexual_related(parent_bits, child_bits):
+            heritable_pairs += 1
+        mutation_count = int(getattr(lineage, "mutation_count", 0) or 0)
+        if (parent_bits and child_bits and parent_bits != child_bits) or mutation_count > 0:
+            mutated_pairs += 1
+        parent_pos = position_by_id.get(parent_id)
+        child_pos = position_by_id.get(child_id)
+        if parent_pos is not None and child_pos is not None:
+            if parent_pos != child_pos:
+                displaced_births += 1
+            else:
+                same_cell_births += 1
+        if parent_bits.startswith("101"):
+            eater_births += 1
+        elif parent_bits.startswith("000"):
+            waiter_births += 1
+    digest = result.digest() if hasattr(result, "digest") else ""
+    return LifeLoopObservation(
+        lumen_eaten_events=lumen_eaten,
+        reproduction_attempts=attempts,
+        births=births,
+        deaths=deaths,
+        resource_respawn_events=respawns,
+        parent_child_pairs=len(seen_lineage),
+        heritable_asexual_pairs=heritable_pairs,
+        mutated_child_pairs=mutated_pairs,
+        adjacent_or_displaced_births=displaced_births,
+        same_cell_births=same_cell_births,
+        eater_births=eater_births,
+        waiter_births=waiter_births,
+        replay_digest=str(digest),
+    )
+
+
+def _asexual_related(parent_bits: str, child_bits: str) -> bool:
+    """Return True when child bits look like a mutated copy of the parent."""
+
+    if not parent_bits or not child_bits:
+        return False
+    if parent_bits == child_bits:
+        return True
+    if abs(len(parent_bits) - len(child_bits)) > 3:
+        return False
+    width = max(len(parent_bits), len(child_bits))
+    left = parent_bits.ljust(width, "0")
+    right = child_bits.ljust(width, "0")
+    distance = sum(a != b for a, b in zip(left, right, strict=True))
+    return distance <= max(1, width // 3)

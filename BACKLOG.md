@@ -5,6 +5,9 @@
 1. `v0.3.0a1`: Release Candidate hardening around hosted CI evidence, pip-audit, TestPyPI/PyPI gate decisions, citation validation, and supply-chain evidence.
 2. `v0.3.0a1`: Scientific Evidence Pack planning for owner-side empirical validation, with no proof claims and no heavy runner inside core.
 3. Later: optional heavy experiment runners, validation notebooks, and reports outside the dependency-free core, if needed.
+4. Phase B (deferred): sexual crossover / `RECOMBINE_*` as a real inheritance path, not enum-only.
+5. Phase C (deferred): fluctuating or seasonal environments on top of the Phase A ecology preset.
+6. Phase D (deferred): multi-generation instinct/behavior claim metrics beyond the current `LifeLoopObservation` hook.
 
 ## Non-goals that remain active
 

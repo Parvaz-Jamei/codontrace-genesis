@@ -362,7 +362,13 @@ from codontrace.genesis.population import (
     step_population,
 )
 from codontrace.genesis.population_runner import PopulationRunner
-from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+from codontrace.genesis.runtime_profiles import (
+    LIFE_LOOP_EATER_GENOME,
+    LIFE_LOOP_WAITER_GENOME,
+    GenesisRuntimeProfile,
+    LifeLoopObservation,
+    summarize_life_loop_observation,
+)
 from codontrace.genesis.quality_diversity import (
     BehaviorBin,
     BehaviorDescriptorSchema,
@@ -954,6 +960,10 @@ __all__ = [
     "RuntimeResourceEvent",
     "RuntimeResourcePolicy",
     "GenesisRuntimeProfile",
+    "LifeLoopObservation",
+    "LIFE_LOOP_EATER_GENOME",
+    "LIFE_LOOP_WAITER_GENOME",
+    "summarize_life_loop_observation",
     "PopulationRunner",
     "PopulationState",
     "ReproductionConfig",

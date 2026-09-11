@@ -190,6 +190,30 @@ print(result.digest()[:24])
 print(len(result.engine_frames))
 ```
 
+### Phase A life-loop / ecology preset
+
+Short eat → survive → reproduce experiments should use the explicit
+`GenesisRuntimeProfile.life_loop_world()` preset instead of relying on empty
+research defaults (`ResourceConfig.density=0`, `ReproductionConfig` SAME_CELL).
+
+The preset places food, enables deterministic resource respawn, uses adjacent
+empty-cell offspring placement (SAME_CELL remains an explicit policy), and
+gates COPY_SELF on AliveGate plus runtime ATP so organisms that eat can
+reproduce while starved controls cannot. Inheritance stays asexual
+parent→mutate→child. Sexual crossover, seasonal environments, and multi-generation
+instinct claims are deferred.
+
+This is a **software capability / runtime observation** surface. It does not
+prove life, intelligence, cooperation, or instinct evolution.
+
+```python
+from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
+
+spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
+result = GenesisEngine.from_spec(spec).run_ticks()
+print(result.digest()[:24])
+```
+
 ---
 
 ## Benchmark smoke

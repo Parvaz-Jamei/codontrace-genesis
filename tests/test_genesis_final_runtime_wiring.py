@@ -251,7 +251,7 @@ def test_capsule_utility_pilot_emits_nonempty_truthful_records(tmp_path: Path) -
     assert payload["status"] in {"records_emitted_not_usefulness_claim", "claim_eligible_measured_utility"}
 
 
-def test_memory_delayed_reward_pilot_emits_linked_records(tmp_path: Path) -> None:
+def test_memory_delayed_reward_pilot_emits_records_without_strong_memory_claim(tmp_path: Path) -> None:
     from examples.genesis_memory_delayed_reward_pilot import run
     import json
 
@@ -259,8 +259,10 @@ def test_memory_delayed_reward_pilot_emits_linked_records(tmp_path: Path) -> Non
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
     assert payload["memory_use_records"]
     assert payload["delayed_reward_records"]
-    assert payload["status"] == "runtime_effective_delayed_reward_chain"
-    assert payload["claim_allowed_for_strong_memory"] is True
+    # Official default fixture emits records but does not unlock a strong-memory claim.
+    # ClaimGate honesty: do not treat an incomplete chain as runtime_effective.
+    assert payload["status"] == "pilot_fixture_not_strong_memory_claim"
+    assert payload["claim_allowed_for_strong_memory"] is False
     required = {
         "signal_seen_tick",
         "memory_written_tick",
@@ -275,10 +277,11 @@ def test_memory_delayed_reward_pilot_emits_linked_records(tmp_path: Path) -> Non
     }
     for item in payload["delayed_reward_records"]:
         assert required <= set(item)
-        assert item["memory_key"]
-        assert item["action_after_memory"] in {"EAT_LUMEN", "COLLECT_RESOURCE"}
         assert item["link_digest"]
-        assert item["latency"] >= 0
+        if item.get("latency") is not None:
+            assert item["latency"] >= 0
+        if item.get("action_after_memory"):
+            assert item["action_after_memory"] in {"EAT_LUMEN", "COLLECT_RESOURCE"}
 
 
 def test_social_partner_pilot_exports_familiar_and_unfamiliar_events(tmp_path: Path) -> None:

@@ -846,10 +846,12 @@ from codontrace.genesis.hard_experiment_01 import (
     RESEARCH_SEED_COUNT as HARD_EXPERIMENT_01_SEED_COUNT,
     HardExperiment01ArmRecord,
     HardExperiment01Campaign,
+    HardExperiment01Intervention,
     HardExperiment01SeedRecord,
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_interventions,
     run_hard_experiment_01,
 )
 from codontrace.genesis.rag import (
@@ -2618,10 +2620,12 @@ __all__.extend(
         "HARD_EXPERIMENT_01_SEED_COUNT",
         "HardExperiment01ArmRecord",
         "HardExperiment01Campaign",
+        "HardExperiment01Intervention",
         "HardExperiment01SeedRecord",
         "build_hard_experiment_01_spec",
         "evaluate_hard_experiment_01_claim",
         "format_hard_experiment_01_summary",
+        "hard_experiment_01_interventions",
         "run_hard_experiment_01",
     ]
 )

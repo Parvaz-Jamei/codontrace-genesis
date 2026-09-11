@@ -8,11 +8,15 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg)](https://doi.org/10.5281/zenodo.20337435)
 [![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
 
-**CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital-evolution experiments with deterministic evidence trails, mechanism-level records, controlled ablations, and explicit claim gates.
+CodonTrace Genesis is a Python library for running small digital-evolution
+experiments that you can replay later. You start a tiny world, let simple
+agents eat, survive, and reproduce, and the library writes down what happened
+as checkable records. Use it when you want to test an evolutionary idea with
+evidence instead of a screenshot. It is research software. It does **not**
+claim that the agents are intelligent.
 
-The PyPI / import package remains `codontrace`. Always name the product **CodonTrace Genesis**.
-
-It is built for researchers who want to test ALife and evolutionary-AI hypotheses with **replayable evidence** rather than final-outcome screenshots or unverifiable claims.
+The installable package is `codontrace`. Product naming for contributors
+lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
 ---
 
@@ -263,6 +267,7 @@ boundaries.
 | [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
 | [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
 | [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`STYLE.md`](STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
 | [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |

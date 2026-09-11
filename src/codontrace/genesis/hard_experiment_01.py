@@ -61,6 +61,66 @@ _QUESTION = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class HardExperiment01Intervention:
+    """Named knob change for one arm. Observation only, not a claim unlock."""
+
+    arm: ArmName
+    role: str
+    target_mechanism: str
+    action: str
+    knob: str
+    applied_value: str
+    compared_to: str
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "arm": self.arm,
+            "role": self.role,
+            "target_mechanism": self.target_mechanism,
+            "action": self.action,
+            "knob": self.knob,
+            "applied_value": self.applied_value,
+            "compared_to": self.compared_to,
+            "claim_ceiling": CLAIM_CEILING,
+            "collective_intelligence": False,
+        }
+
+
+def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ...]:
+    """Map each arm to one explicit CapsuleTransferConfig intervention."""
+
+    return (
+        HardExperiment01Intervention(
+            arm="source_bias_on",
+            role="treatment",
+            target_mechanism="capsule_source_fitness_bias",
+            action="enable_source_fitness_weighted_capsule_transfer",
+            knob="CapsuleTransferConfig.min_source_fitness+adoption_policy",
+            applied_value="min_source_fitness=2.0,FITNESS_WEIGHTED",
+            compared_to="life_loop_world default capsules-off overlay",
+        ),
+        HardExperiment01Intervention(
+            arm="source_bias_off",
+            role="mechanism_ablation",
+            target_mechanism="capsule_source_fitness_bias",
+            action="disable_source_fitness_gating_keep_capsule_channel",
+            knob="CapsuleTransferConfig.min_source_fitness+adoption_policy",
+            applied_value="min_source_fitness=0.0,THRESHOLD",
+            compared_to="source_bias_on",
+        ),
+        HardExperiment01Intervention(
+            arm="capsules_off",
+            role="channel_off",
+            target_mechanism="capsule_transfer_channel",
+            action="disable_capsule_transfer",
+            knob="CapsuleTransferConfig.enabled",
+            applied_value="enabled=False",
+            compared_to="source_bias_on",
+        ),
+    )
+
+
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
     """Deterministic seed tuple. Research default is 12."""
 
@@ -312,6 +372,7 @@ class HardExperiment01Campaign:
     replay_spec_digest: str
     replay_result_digest: str
     replay_matched: bool
+    interventions: tuple[HardExperiment01Intervention, ...] = ()
     question: str = _QUESTION
     claim_ceiling: str = CLAIM_CEILING
     schema_version: str = SCHEMA_VERSION
@@ -325,6 +386,11 @@ class HardExperiment01Campaign:
             raise ConfigurationError("hard experiment 01 ceiling must stay runtime_observation.")
         if not self.replay_matched:
             raise ConfigurationError("hard experiment 01 requires a matching replay digest.")
+        if not self.interventions:
+            object.__setattr__(self, "interventions", hard_experiment_01_interventions())
+        expected_arms = {item.arm for item in self.interventions}
+        if expected_arms != set(ARMS):
+            raise ConfigurationError("hard experiment 01 interventions must cover every arm.")
         object.__setattr__(
             self,
             "mean_delta_vs_source_bias_off",
@@ -357,6 +423,7 @@ class HardExperiment01Campaign:
             "replay_spec_digest": self.replay_spec_digest,
             "replay_result_digest": self.replay_result_digest,
             "replay_matched": self.replay_matched,
+            "interventions": [item.to_dict() for item in self.interventions],
             "claim_ceiling": self.claim_ceiling,
             "collective_intelligence": False,
             "intelligence": False,

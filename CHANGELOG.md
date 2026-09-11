@@ -35,6 +35,10 @@ pins stay stable.
 - Working-tree identity is `0.3.0b4.dev0` (`pyproject.toml`,
   `codontrace.__version__`, `CITATION.cff`, release-label aliases). The
   public PyPI tip remains `0.3.0b3`.
+- Contributor naming lives in `CONTRIBUTING.md` / `STYLE.md`. README opens
+  with a plain 30-second intro instead of an internal naming-order note.
+- Hard experiment 01 maps each arm to an explicit
+  `CapsuleTransferConfig` intervention (`hard_experiment_01_interventions`).
 
 ### Phase L — Avida ORGANISM_MESSAGING / DEME_GROUP fidelity
 

@@ -32,6 +32,20 @@ source-fitness gating ablated and (b) capsules off?
 policy object and is **not** the runtime gate. This experiment uses the
 wired `CapsuleTransferConfig` knobs (`min_source_fitness`, adoption policy).
 
+## Interventions
+
+Each arm is one explicit intervention. The treatment keeps source-fitness
+bias on. The first ablation turns that bias off and leaves the capsule
+channel. The second ablation turns the channel off.
+
+| Arm | Role | Knob | Applied value |
+|---|---|---|---|
+| `source_bias_on` | treatment | `min_source_fitness` + `adoption_policy` | `2.0` / `FITNESS_WEIGHTED` |
+| `source_bias_off` | mechanism ablation | same knobs | `0.0` / `THRESHOLD` |
+| `capsules_off` | channel off | `CapsuleTransferConfig.enabled` | `False` |
+
+See `hard_experiment_01_interventions()`. A null or small effect is valid.
+
 ## How to run
 
 ```python

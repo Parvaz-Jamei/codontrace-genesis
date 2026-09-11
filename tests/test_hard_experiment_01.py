@@ -16,6 +16,7 @@ from codontrace.genesis.hard_experiment_01 import (
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_interventions,
     run_hard_experiment_01,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
@@ -41,6 +42,18 @@ def test_hard_experiment_01_overlay_does_not_alias_default_life_loop_digest() ->
     assert pinned.digest() == LIFE_LOOP_SPEC_DIGEST
 
 
+def test_hard_experiment_01_interventions_map_each_arm() -> None:
+    mapped = hard_experiment_01_interventions()
+    assert {item.arm for item in mapped} == {"source_bias_on", "source_bias_off", "capsules_off"}
+    by_arm = {item.arm: item for item in mapped}
+    assert by_arm["source_bias_on"].role == "treatment"
+    assert by_arm["source_bias_off"].role == "mechanism_ablation"
+    assert by_arm["capsules_off"].role == "channel_off"
+    assert "min_source_fitness" in by_arm["source_bias_off"].knob
+    assert by_arm["capsules_off"].knob == "CapsuleTransferConfig.enabled"
+    assert all(item.to_dict()["collective_intelligence"] is False for item in mapped)
+
+
 def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert RESEARCH_SEED_COUNT == 12
     campaign = run_hard_experiment_01()
@@ -58,6 +71,13 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert campaign.to_dict()["tokyo_type1_passed"] is False
     assert campaign.to_dict()["avida_replacement"] is False
     assert campaign.to_dict()["claim_gate_flags_auto_set"] is False
+    assert len(campaign.interventions) == 3
+    assert {item.arm for item in campaign.interventions} == {
+        "source_bias_on",
+        "source_bias_off",
+        "capsules_off",
+    }
+    assert campaign.to_dict()["interventions"][1]["role"] == "mechanism_ablation"
     assert all(item.source_bias_on.spec_digest != item.capsules_off.spec_digest for item in campaign.seed_records)
     assert all(
         item.source_bias_on.spec_digest != item.source_bias_off.spec_digest for item in campaign.seed_records
@@ -83,11 +103,20 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
     assert (root / "docs" / "ENGINE_REPLAY_CONTRACT.md").is_file()
     assert (root / "docs" / "PHASE_INDEX.md").is_file()
+    assert (root / "STYLE.md").is_file()
+    assert (root / "CONTRIBUTING.md").is_file()
     assert (root / "examples" / "genesis_hard_experiment_01.py").is_file()
     text = (root / "docs" / "HARD_EXPERIMENT_01.md").read_text(encoding="utf-8")
     assert "runtime_observation" in text
     assert "collective_intelligence" in text
+    assert "mechanism ablation" in text
     assert not text.lstrip().startswith("# Phase")
+    style = (root / "STYLE.md").read_text(encoding="utf-8")
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "CodonTrace Genesis" in style
+    assert "naming-order" in style
+    assert "Always name the product" not in readme
+    assert "eat, survive, and reproduce" in readme
 
 
 def test_probe_junk_is_not_in_the_tree() -> None:

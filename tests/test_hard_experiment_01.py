@@ -125,11 +125,14 @@ def test_probe_junk_is_not_in_the_tree() -> None:
         path
         for path in root.rglob("*")
         if path.is_file()
+        and ".git" not in path.parts
         and (
             path.name.startswith(".grok_write_probe")
             or (path.name.startswith(".size_test_") and path.suffix == ".txt")
+            or "_FULL_RESTORE" in path.name
+            or "_backup" in path.name
+            or path.suffix == ".orig"
         )
-        and ".git" not in path.parts
     ]
     assert junk == []
     gitignore = (root / ".gitignore").read_text(encoding="utf-8")

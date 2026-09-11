@@ -45,14 +45,28 @@ jobs:
       - name: Reject probe leftovers in the checkout
         run: |
           python - <<'PY'
+          import fnmatch
           from pathlib import Path
-          junk = sorted(
-              p for p in Path(".").rglob("*")
-              if p.is_file()
-              and (
-                  p.name.startswith(".grok_write_probe")
-                  or (p.name.startswith(".size_test_") and p.suffix == ".txt")
+
+          skip_parts = {".git", ".venv", "venv", "__pycache__"}
+
+          def is_leftover(path: Path) -> bool:
+              name = path.name
+              if name.startswith(".grok_write_probe"):
+                  return True
+              if name.startswith(".size_test_") and path.suffix == ".txt":
+                  return True
+              return any(
+                  fnmatch.fnmatch(name, pattern)
+                  for pattern in ("*_FULL_RESTORE*", "*_backup*", "*.orig")
               )
+
+          junk = sorted(
+              p
+              for p in Path(".").rglob("*")
+              if p.is_file()
+              and skip_parts.isdisjoint(p.parts)
+              and is_leftover(p)
           )
           if junk:
               raise SystemExit("probe leftovers must not ship: " + ", ".join(map(str, junk)))

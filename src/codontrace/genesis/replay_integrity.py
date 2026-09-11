@@ -927,8 +927,8 @@ _SCIENTIFIC_GAPS_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "ledger_digest",
     ),
     "codontrace.genesis.collective_deme.GroupVsIndividualContrast": (
-        "digest",
         "ledger_digest",
+        "digest",
     ),
     "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign": ("digest",),
     "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint": (

@@ -216,7 +216,8 @@ selects Phase B two-parent positional crossover. Seasonal / fluctuating
 environments are opt-in via `dynamic_environment_world()` or
 `life_loop_world(environment=...)`. Multi-generation instinct/behavior
 *measurement* is opt-in via `build_multi_generation_evidence_pack` and does
-not change these presets.
+not change these presets. Phase E capsule/memory/role/deme substrate effects
+are opt-in via `phase_e_substrate_world()` and do not change A–D defaults.
 
 Phase B adds an optional sexual recombination substrate grounded in
 Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
@@ -248,6 +249,16 @@ external analyze-mode dump. Metric deltas are **runtime observations**.
 ClaimGate keeps `instinct_improved` below publication grade without multi-seed
 protocol objects and blocks open-ended intelligence.
 
+Phase E adds an opt-in substrate for **real** organism-local or lineage
+capsule/memory effects (subsequent action choice, ATP, or task eligibility),
+Avida-inspired role / propagule-eligibility gates, deme containers with a
+Goldsby-style messaging buffer (`send_message` / `retrieve_message` /
+`broadcast_message` / `block_propagation`), a phenotypic-plasticity
+experimental-design object over Phase C `sense-react` cues, OntoAvida-style
+phenotype/transcriptome evidence export, and an `AvidaParityProtocolSpec`
+head-to-head recipe. Defaults stay off. This is not proved learning, evolved
+plasticity, collective intelligence, or an Avida replacement.
+
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, instinct evolution, or OEE.
 
@@ -268,12 +279,18 @@ from codontrace.genesis import build_multi_generation_evidence_pack
 
 pack = build_multi_generation_evidence_pack(result, spec=spec)
 print(pack.claim_ceiling, pack.digest[:24])
+
+from codontrace.genesis import GenesisRuntimeProfile as Profile
+
+phase_e = Profile.phase_e_substrate_world(seed=7, tick_count=8, population=4)
+print(phase_e.metadata["runtime_profile"])
 ```
 
 Print-only smokes: `examples/genesis_life_loop.py`,
 `examples/genesis_sexual_recombination.py`,
 `examples/genesis_dynamic_environment.py`,
-`examples/genesis_multi_generation_evidence.py`.
+`examples/genesis_multi_generation_evidence.py`,
+`examples/genesis_phase_e_substrate.py`.
 
 ---
 

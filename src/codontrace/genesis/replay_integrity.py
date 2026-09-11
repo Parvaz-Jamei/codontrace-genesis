@@ -51,6 +51,10 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.scientific_evidence.ScientificEvidencePack",
     "codontrace.genesis.statistical_protocol.OEEMetricsReport",
     "codontrace.genesis.multi_generation.MultiGenerationEvidencePack",
+    "codontrace.genesis.phase_e.AvidaParityProtocolSpec",
+    "codontrace.genesis.phase_e.PhaseEEvidencePack",
+    "codontrace.genesis.phase_e.PhenotypeTranscriptomeEvidence",
+    "codontrace.genesis.phase_e.PlasticityProtocolSpec",
     "codontrace.genesis.structural_mutation.GenomeProgram",
     "codontrace.genesis.structural_mutation.StructuralMutationRecord",
     "codontrace.genesis.translation_profile.SemanticProxyReport",
@@ -867,6 +871,22 @@ for _path, _fields in _PHASE_D_MULTIGEN_DIGEST_FIELDS.items():
 
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_PHASE_D_MULTIGEN_DIGEST_FIELDS))
+)
+
+# Phase E capsule/memory/role/deme/plasticity protocol surfaces. Digests identify
+# runtime observations; they do not grant collective-intelligence or plasticity claims.
+_PHASE_E_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.phase_e.AvidaParityProtocolSpec": ("digest",),
+    "codontrace.genesis.phase_e.PhaseEEvidencePack": ("run_digest", "digest"),
+    "codontrace.genesis.phase_e.PhaseEObservation": ("replay_digest",),
+    "codontrace.genesis.phase_e.PhenotypeTranscriptomeEvidence": ("capsule_digest", "digest"),
+    "codontrace.genesis.phase_e.PlasticityProtocolSpec": ("digest",),
+}
+for _path, _fields in _PHASE_E_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, "codontrace.genesis.phase_e.PhaseEObservation"))
 )
 
 

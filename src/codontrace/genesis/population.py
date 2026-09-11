@@ -77,6 +77,18 @@ from codontrace.genesis.environment import (
     local_resource_consumed,
     step_environment,
 )
+from codontrace.genesis.phase_e import (
+    DemeMessage,
+    DemeState,
+    PhaseESubstrateConfig,
+    apply_deme_messaging_after_event,
+    attach_phase_e_to_organisms,
+    build_deme_state,
+    copy_phase_e_state,
+    inherit_phase_e_state,
+    maybe_replicate_demes,
+    refresh_phase_e_sensory,
+)
 from codontrace.genesis.fitness import (
     FitnessBreakdown,
     FitnessSignalRegistry,
@@ -705,6 +717,7 @@ class PopulationState:
     fitness: tuple[FitnessResult, ...]
     birth_chamber: BirthChamberState = field(default_factory=BirthChamberState)
     environment: EnvironmentState | None = None
+    deme: DemeState | None = None
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -727,6 +740,8 @@ class PopulationState:
             payload["birth_chamber"] = self.birth_chamber.to_dict()
         if self.environment is not None:
             payload["environment"] = self.environment.to_dict()
+        if self.deme is not None:
+            payload["deme"] = self.deme.to_dict()
         return payload
 
     @classmethod
@@ -752,6 +767,9 @@ class PopulationState:
             else BirthChamberState(),
             environment=EnvironmentState.from_dict(env_raw)
             if isinstance((env_raw := data.get("environment")), Mapping)
+            else None,
+            deme=DemeState.from_dict(deme_raw)
+            if isinstance((deme_raw := data.get("deme")), Mapping)
             else None,
         )
 
@@ -1174,6 +1192,8 @@ class GenerationResult:
     environment_records: tuple[EnvironmentEvent, ...] = ()
     environment_snapshot: EnvironmentSnapshot | None = None
     environment_world_events: tuple[WorldEvent, ...] = ()
+    phase_e_messages: tuple[DemeMessage, ...] = ()
+    deme_state: DemeState | None = None
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1217,6 +1237,10 @@ class GenerationResult:
             payload["environment_world_events"] = [
                 item.to_dict() for item in self.environment_world_events
             ]
+        if self.phase_e_messages:
+            payload["phase_e_messages"] = [item.to_dict() for item in self.phase_e_messages]
+        if self.deme_state is not None:
+            payload["deme_state"] = self.deme_state.to_dict()
         return payload
 
     @classmethod
@@ -1295,6 +1319,14 @@ class GenerationResult:
                 for item in _list(data, "environment_world_events")
                 if isinstance(item, Mapping)
             ),
+            phase_e_messages=tuple(
+                DemeMessage.from_dict(item)
+                for item in _list(data, "phase_e_messages")
+                if isinstance(item, Mapping)
+            ),
+            deme_state=DemeState.from_dict(deme_state_raw)
+            if isinstance((deme_state_raw := data.get("deme_state")), Mapping)
+            else None,
         )
 
     def digest(self) -> str:
@@ -1329,6 +1361,7 @@ class PopulationConfigs:
         default_factory=SexualRecombinationConfig
     )
     environment: EnvironmentConfig = field(default_factory=EnvironmentConfig)
+    phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1397,6 +1430,8 @@ class PopulationConfigs:
             payload["sexual_recombination"] = self.effective_sexual_config.to_dict()
         if self.environment.enabled:
             payload["environment"] = self.environment.to_dict()
+        if self.phase_e.enabled:
+            payload["phase_e"] = self.phase_e.to_dict()
         return payload
 
     @classmethod
@@ -1413,6 +1448,7 @@ class PopulationConfigs:
         metabolism_raw = data.get("metabolism")
         sexual_raw = data.get("sexual_recombination")
         environment_raw = data.get("environment")
+        phase_e_raw = data.get("phase_e")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1463,6 +1499,9 @@ class PopulationConfigs:
             environment=EnvironmentConfig.from_dict(environment_raw)
             if isinstance(environment_raw, Mapping)
             else EnvironmentConfig(),
+            phase_e=PhaseESubstrateConfig.from_dict(phase_e_raw)
+            if isinstance(phase_e_raw, Mapping)
+            else PhaseESubstrateConfig(),
         )
 
 
@@ -1707,6 +1746,13 @@ def can_reproduce(
         reasons.append("parent_atp_cost_not_payable")
     if organism.vitae_store < config.min_vitae_store:
         reasons.append("min_vitae_store_not_met")
+    phase_e_state = getattr(organism, "phase_e_state", None)
+    if (
+        phase_e_state is not None
+        and getattr(phase_e_state, "gate_reproduction", False)
+        and not getattr(getattr(phase_e_state, "role", None), "propagule_eligible", True)
+    ):
+        reasons.append("not_propagule_eligible")
     return ReproductionDecision(allowed=not reasons, reasons=tuple(reasons))
 
 
@@ -2269,6 +2315,9 @@ def reproduce(
             parent.translation_profile, child_profile_id=f"{resolved_child_id}:translation_profile"
         ),
         translation_policy=parent.translation_policy,
+        phase_e_state=inherit_phase_e_state(
+            getattr(parent, "phase_e_state", None), child_id=resolved_child_id
+        ),
     )
     event_id = _reproduction_event_id(parent.id, resolved_child_id, birth_tick, mutation.digest())
     lineage = LineageRecord(
@@ -2496,6 +2545,16 @@ def step_population(
     lineage_by_id = {record.organism_id: record for record in lineage}
     last_known_fitness_by_id = {record.organism_id: record.score for record in population.fitness}
     organism_clones = [_clone_organism(organism) for organism in population.organisms]
+    if configs.phase_e.enabled:
+        organism_clones = list(attach_phase_e_to_organisms(organism_clones, configs.phase_e))
+    working_deme_state = (
+        DemeState.from_dict(population.deme.to_dict())
+        if population.deme is not None
+        else (build_deme_state(organism_clones) if configs.phase_e.enabled and configs.phase_e.demes.enabled else None)
+    )
+    if working_deme_state is not None and not working_deme_state.demes and configs.phase_e.demes.enabled:
+        working_deme_state = build_deme_state(organism_clones)
+    phase_e_messages: list[DemeMessage] = []
     live_positions: dict[str, tuple[int, int]] = {
         item.id: item.position for item in organism_clones
     }
@@ -2704,8 +2763,25 @@ def step_population(
             blocked_positions = tuple(
                 sorted(position for oid, position in live_positions.items() if oid != organism.id)
             )
+            if configs.phase_e.enabled:
+                refresh_phase_e_sensory(
+                    organism,
+                    world=working_world,
+                    environment=env_state,
+                    tick=current_tick,
+                )
             event = organism.step(working_world, trace, blocked_positions=blocked_positions)
             live_positions[organism.id] = organism.position
+            if configs.phase_e.enabled and working_deme_state is not None:
+                phase_e_messages.extend(
+                    apply_deme_messaging_after_event(
+                        organism,
+                        event,
+                        working_deme_state,
+                        configs.phase_e.demes,
+                        tick=current_tick,
+                    )
+                )
             if (
                 working_nexus_layer is not None
                 and stigmergy_enabled
@@ -3384,6 +3460,24 @@ def step_population(
             rng=respawn_rng,
             occupied_positions={item.position for item in next_organisms},
         )
+    if configs.phase_e.enabled and working_deme_state is not None:
+        fitness_by_id = {item.organism_id: item.score for item in fitness_results}
+        working_deme_state, _repl = maybe_replicate_demes(
+            working_deme_state,
+            next_organisms,
+            fitness_by_id,
+            configs.phase_e.demes,
+            tick=current_tick,
+        )
+        refreshed = build_deme_state(next_organisms)
+        generation_by_id = {item.deme_id: item.generation for item in working_deme_state.demes}
+        refreshed.demes = tuple(
+            replace(item, generation=generation_by_id.get(item.deme_id, item.generation))
+            for item in refreshed.demes
+        )
+        refreshed.inbox = working_deme_state.inbox
+        refreshed.replication_events = working_deme_state.replication_events
+        working_deme_state = refreshed
     next_population = PopulationState(
         generation=population.generation + 1,
         tick=current_tick,
@@ -3392,6 +3486,7 @@ def step_population(
         fitness=tuple(sorted(fitness_results, key=lambda item: item.organism_id)),
         birth_chamber=BirthChamberState(waiting=tuple(waiting)),
         environment=env_state if env_cfg.enabled else None,
+        deme=working_deme_state if configs.phase_e.enabled and configs.phase_e.demes.enabled else None,
     )
     working_world.agent_position = None
     world_after_digest = working_world.digest()
@@ -3427,6 +3522,10 @@ def step_population(
         environment_records=environment_records,
         environment_snapshot=environment_snapshot,
         environment_world_events=environment_world_events,
+        phase_e_messages=tuple(phase_e_messages),
+        deme_state=working_deme_state
+        if configs.phase_e.enabled and configs.phase_e.demes.enabled
+        else None,
     )
 
 
@@ -3738,6 +3837,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         adf_execution_policy=organism.adf_execution_policy,
         translation_profile=organism.translation_profile,
         translation_policy=organism.translation_policy,
+        phase_e_state=copy_phase_e_state(getattr(organism, "phase_e_state", None)),
     )
     clone._cursor = organism._cursor
     clone._step_index = organism._step_index
@@ -3886,7 +3986,7 @@ def _with_reproduction_delta(
 
 
 def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
-    return {
+    payload: dict[str, JsonValue] = {
         "id": organism.id,
         "genome": organism.genome.to_compact(),
         "genome_digest": organism.genome.digest(),
@@ -3904,6 +4004,10 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         "memory_config": organism.memory_config.to_dict(),
         "learning_config": organism.learning_config.to_dict(),
     }
+    phase_e_state = getattr(organism, "phase_e_state", None)
+    if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
+        payload["phase_e_state"] = phase_e_state.to_dict()
+    return payload
 
 
 def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
@@ -3940,6 +4044,11 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     )
     organism._cursor = _int(data, "cursor", 0)
     organism._step_index = _int(data, "step_index", 0)
+    phase_e_raw = data.get("phase_e_state")
+    if isinstance(phase_e_raw, Mapping):
+        from codontrace.genesis.phase_e import PhaseEOrganismState
+
+        organism.phase_e_state = PhaseEOrganismState.from_dict(phase_e_raw)
     return organism
 
 

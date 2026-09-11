@@ -63,6 +63,7 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.phase_e.PhaseEEvidencePack",
     "codontrace.genesis.phase_e.PhenotypeTranscriptomeEvidence",
     "codontrace.genesis.phase_e.PlasticityProtocolSpec",
+    "codontrace.genesis.materials.MaterialsEvidencePack",
     "codontrace.genesis.structural_mutation.GenomeProgram",
     "codontrace.genesis.structural_mutation.StructuralMutationRecord",
     "codontrace.genesis.translation_profile.SemanticProxyReport",
@@ -957,6 +958,33 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
             "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord",
             "codontrace.genesis.collective_deme.GroupVsIndividualContrast",
             "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint",
+        )
+    )
+)
+
+# Phase G named-materials / chemistry-effect surfaces. Digests identify runtime
+# observations; they do not grant realistic-chemistry or wet-lab claims.
+_PHASE_G_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.materials.MaterialsEvidencePack": ("run_digest", "digest"),
+    "codontrace.genesis.materials.MaterialsObservation": (
+        "materials_config_digest",
+        "trajectory_digest",
+        "replay_digest",
+    ),
+    "codontrace.genesis.materials.MaterialsReplayVerification": (
+        "expected_digest",
+        "observed_digest",
+    ),
+}
+for _path, _fields in _PHASE_G_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys(
+        (
+            *NON_REPLAY_CRITICAL_DIGEST_CLASSES,
+            "codontrace.genesis.materials.MaterialsObservation",
+            "codontrace.genesis.materials.MaterialsReplayVerification",
         )
     )
 )

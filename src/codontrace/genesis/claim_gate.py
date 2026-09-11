@@ -216,6 +216,17 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "channon_tokyo_type1_passed",
     "tokyo_type1_proved",
     "channon_2024_passed",
+    # Phase G materials / chemistry-effect substrate: software knobs only.
+    "realistic_chemistry_proved",
+    "realistic_chemistry",
+    "wet_lab_equivalent",
+    "wet_lab_equivalent_proved",
+    "kegg_solver_equivalent",
+    "bigg_gem_equivalent",
+    "molecular_dynamics_equivalent",
+    "earth_chemistry_simulator",
+    "biological_accuracy_proved",
+    "chebi_binding_proved",
 )
 
 # Channon 2024 Artif Life: Bedau activity + shadow normalization as *measurement

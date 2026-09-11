@@ -66,8 +66,45 @@ ClaimGate is unchanged in the strict direction.
   `tokyo_type1_measurement_only` (measurement steps / campaigns recorded).
 - Blocked: `tokyo_type1_passed`, AGI, `avida_replacement`,
   `associative_learning_proved`, `collective_intelligence`,
-  `open_ended_intelligence` (unchanged).
+  `open_ended_intelligence`, `realistic_chemistry_proved`,
+  `wet_lab_equivalent` (unchanged / Phase G).
 - JaxLife NN agents and ASAL CLIP remain docs-only comparators, not ports.
+
+### Phase G — named materials / chemistry-effect substrate
+
+Opt-in `MaterialsWorld` overlay so later experiments can bind real substance
+tables. This is **not** an Earth chemistry simulator, KEGG/BiGG GEM solver,
+molecular-dynamics engine, or wet-lab equivalent. Phase A–E default spec
+digest pins stay stable.
+
+#### Added
+
+- `MaterialSpec` / `MaterialState` / `MaterialsConfig`: named materials with
+  energy yield, toxicity, viscosity/diffusion, permeability, signaling potency,
+  scarcity; optional `external_ontology_id` (ChEBI/KEGG/BiGG schema hook),
+  `units`, and `effect_coefficients`. `biological_accuracy_claimed` is always
+  false.
+- World pools and optional spatial grids: consume / transform / excrete;
+  simple stoichiometric CRN subset; chemostat inflow/outflow on named materials
+  (Novick & Szilard 1950; Phase C `apply_chemostat_step`); diffusion/decay
+  hooks (viscosity reduces diffusion).
+- Organism–material coupling: eat/absorb → ATP + recorded merit coefficient;
+  toxins → ATP drain / lethal threshold; catalysts enable reactions; membrane
+  permeability (cellularity knob) gates uptake.
+- `GenesisRuntimeProfile.materials_world()` and
+  `life_loop_world(materials=...)`; digest-backed trajectory replay.
+- Optional 2–3 material autocatalytic cycle demo (`A + B → 2A`) with spatial
+  coexistence *measurement* (npj Complexity 2025 ACE cited as design note only).
+- `MaterialBindingSchema` export for a future real-substance table bind. GEM
+  and MD flags are hardcoded false.
+- ClaimGate blocked aliases: `realistic_chemistry_proved`, `wet_lab_equivalent`,
+  `kegg_solver_equivalent`, `bigg_gem_equivalent`,
+  `molecular_dynamics_equivalent`, `earth_chemistry_simulator`,
+  `biological_accuracy_proved`. Ceiling remains `runtime_observation`.
+- `examples/genesis_materials_world.py`, `tests/test_genesis_phase_g_materials.py`,
+  and `docs/PHASE_G_MATERIALS_LITERATURE.md`.
+- ClaimGate keeps chemistry aliases blocked **and** `collective_intelligence`
+  blocked.
 
 ### Fixed
 

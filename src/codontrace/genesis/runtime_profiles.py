@@ -20,6 +20,7 @@ from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferCon
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
 from codontrace.genesis.environment import EnvironmentConfig
+from codontrace.genesis.materials import MaterialsConfig
 from codontrace.genesis.liveness import AliveGateConfig
 from codontrace.genesis.phase_e import (
     CapsuleMemoryConfig,
@@ -338,6 +339,7 @@ class GenesisRuntimeProfile:
         two_fold_cost_sex: bool = False,
         diploid_meiosis: bool = False,
         same_length_only: bool = False,
+        materials: MaterialsConfig | None = None,
     ) -> GenesisExperimentSpec:
         """Assemble the Phase A ecology / Darwinian life-loop preset.
 
@@ -353,6 +355,9 @@ class GenesisRuntimeProfile:
         Pass ``environment=EnvironmentConfig(...)`` (or use
         ``dynamic_environment_world()``) for Phase C chemostat / periodic /
         fluctuating regimes. Default stays the Phase A limited-patch ecology.
+        Pass ``materials=MaterialsConfig(...)`` (or use ``materials_world()``)
+        for Phase G named-material / chemistry-effect overlay. Default stays
+        off so A–E spec digests remain stable.
         Phase D multi-generation instinct/behavior *measurement* is a post-hoc
         library API (``build_multi_generation_evidence_pack``); this preset's
         default metadata stays ``hooks_only_not_implemented`` so A/B/C spec
@@ -423,6 +428,7 @@ class GenesisRuntimeProfile:
         selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
         sexual = reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
         env_cfg = environment if environment is not None else EnvironmentConfig()
+        mat_cfg = materials if materials is not None else MaterialsConfig()
         configs = PopulationConfigs(
             reproduction=ReproductionConfig(
                 max_population=capacity,
@@ -476,6 +482,7 @@ class GenesisRuntimeProfile:
             if sexual
             else SexualRecombinationConfig(),
             environment=env_cfg,
+            materials=mat_cfg,
         )
         return GenesisExperimentSpec(
             genome_bits=genomes,
@@ -587,6 +594,27 @@ class GenesisRuntimeProfile:
                     if env_cfg.enabled
                     else {}
                 ),
+                **(
+                    {
+                        "runtime_profile": "materials_world",
+                        "phase_g_materials": "enabled",
+                        "resource_mode": "named_materials_chemostat_overlay",
+                        "materials_spatial_mode": mat_cfg.spatial_mode,
+                        "materials_config_digest": mat_cfg.digest(),
+                        "materials": [item.name for item in mat_cfg.materials],
+                        "literature_grounding_materials": (
+                            "avida_resource_reaction_chemostat_novick_szilard_"
+                            "artificial_chemistry_cellularity_not_wet_lab"
+                        ),
+                        "profile_has_named_materials": True,
+                        "profile_has_material_reactions": bool(mat_cfg.reactions),
+                        "claim_allowed_for_realistic_chemistry": False,
+                        "claim_allowed_for_wet_lab_equivalent": False,
+                        "biological_accuracy_claimed": False,
+                    }
+                    if mat_cfg.enabled
+                    else {}
+                ),
             },
         )
 
@@ -636,6 +664,49 @@ class GenesisRuntimeProfile:
             offspring_placement=offspring_placement,
             reproduction_mode=reproduction_mode,
             environment=environment,
+        )
+
+    @staticmethod
+    def materials_world(
+        *,
+        seed: int = 7,
+        tick_count: int = 12,
+        population: int = 6,
+        autocatalytic: bool = False,
+        membrane_permeability: float = 0.75,
+        reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
+        offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
+        environment: EnvironmentConfig | None = None,
+    ) -> GenesisExperimentSpec:
+        """Phase G opt-in: life-loop ecology plus named-material overlay.
+
+        Default life-loop / sexual / dynamic-env / Phase E presets are unchanged.
+        This helper enables MaterialSpec effect coefficients (energy yield,
+        toxicity, permeability), named-material chemostat pools, optional
+        stoichiometric reactions, and a cellularity (membrane) uptake gate.
+        Claim ceiling remains runtime_observation. This does not claim
+        realistic chemistry, wet-lab equivalence, or a KEGG/BiGG solver.
+        """
+
+        materials = (
+            MaterialsConfig.autocatalytic_cycle(
+                patch_cells=(*LIFE_LOOP_FOOD_CELLS, (2, 0)),
+                membrane_permeability=membrane_permeability,
+            )
+            if autocatalytic
+            else MaterialsConfig.research_defaults(
+                patch_cells=LIFE_LOOP_FOOD_CELLS,
+                membrane_permeability=membrane_permeability,
+            )
+        )
+        return GenesisRuntimeProfile.life_loop_world(
+            seed=seed,
+            tick_count=tick_count,
+            population=population,
+            offspring_placement=offspring_placement,
+            reproduction_mode=reproduction_mode,
+            environment=environment,
+            materials=materials,
         )
 
     @staticmethod

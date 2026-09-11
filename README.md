@@ -84,6 +84,8 @@ CodonTrace Genesis keeps the most important scientific boundaries in separate re
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × Avida / MODES / Channon 2024 / JaxLife / Aevol matrix (landed / partial / deferred); no OEE/Avida-replacement claims |
 | [`docs/PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md) | Phase D multi-generation evidence literature checklist (MODES / Bedau / OEE hallmarks) |
 | [`docs/PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md) | Phase E capsule / memory / role / deme / plasticity literature checklist |
+| [`docs/PHASE_G_MATERIALS_LITERATURE.md`](docs/PHASE_G_MATERIALS_LITERATURE.md) | Phase G named-materials / chemistry-effect literature checklist (Avida metabolism, chemostat, ACE; not wet-lab) |
+| [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; CodonTrace Genesis is not close to AGI |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | 2026 eval-bugfix → literature mapping (MODES, Channon Tokyo Type 1 *measurement only*, Avida 2.14.0, plasticity protocol). Not intelligence/OEE proof |
 | [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |
 | [`docs/STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md) | Boundary policy preventing UI/server drift into core |
@@ -283,6 +285,13 @@ and deme-replication ledgers at `runtime_observation` only. Phase F adds
 *metrics* + group-vs-individual contrast); heldout/ablation stay `not_run`.
 `collective_intelligence` stays blocked.
 
+Phase G adds an opt-in **named-materials / chemistry-effect** overlay
+(`MaterialSpec` energy yield, toxicity, permeability, viscosity, signaling,
+scarcity; named-material chemostat; simple stoichiometric reactions;
+membrane-gated uptake). Ontology ids are schema hooks for a later ChEBI/KEGG
+table. Defaults stay off. This is not realistic chemistry, wet-lab
+equivalence, a GEM/MD solver, or an Avida replacement.
+
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, instinct evolution, or OEE.
 CodonTrace Genesis is **not close to AGI**. See
@@ -315,6 +324,9 @@ from codontrace.genesis import GenesisRuntimeProfile as Profile
 
 phase_e = Profile.phase_e_substrate_world(seed=7, tick_count=8, population=4)
 print(phase_e.metadata["runtime_profile"])
+
+materials = Profile.materials_world(seed=7, tick_count=8, population=6)
+print(materials.metadata["runtime_profile"])
 ```
 
 Print-only smokes: `examples/genesis_life_loop.py`,
@@ -323,7 +335,8 @@ Print-only smokes: `examples/genesis_life_loop.py`,
 `examples/genesis_multi_generation_evidence.py`,
 `examples/genesis_tokyo_type1_measurement.py`,
 `examples/genesis_scientific_gaps_2026.py`,
-`examples/genesis_phase_e_substrate.py`.
+`examples/genesis_phase_e_substrate.py`,
+`examples/genesis_materials_world.py`.
 
 ---
 

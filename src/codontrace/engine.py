@@ -2356,6 +2356,10 @@ class GenesisEngine:
             organisms = list(attach_phase_e_to_organisms(organisms, configs.phase_e))
             if configs.phase_e.demes.enabled:
                 initial_deme = build_deme_state(organisms)
+        if configs.materials.enabled:
+            from codontrace.genesis.materials import attach_materials_to_organisms
+
+            organisms = list(attach_materials_to_organisms(organisms, configs.materials))
         population = PopulationState(
             generation=0,
             tick=0,

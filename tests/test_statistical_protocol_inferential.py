@@ -34,8 +34,12 @@ def test_exact_sign_flip_monte_carlo_is_seed_deterministic() -> None:
     first = exact_sign_flip_permutation_p(deltas, seed=7)
     second = exact_sign_flip_permutation_p(deltas, seed=7)
     other = exact_sign_flip_permutation_p(deltas, seed=8)
-    assert first == second == pytest.approx(0.0778)
-    assert other == pytest.approx(0.0799)
+    assert first == second == pytest.approx(0.07784610769461527)
+    assert other == pytest.approx(0.079946002699865)
+    # Finite Monte Carlo cannot report p=0 (adds the observed draw).
+    extreme = exact_sign_flip_permutation_p([1.0] * 21, seed=1)
+    assert extreme == pytest.approx(1.0 / 20001.0)
+    assert extreme > 0.0
 
 
 def test_holm_correction_known_values() -> None:
@@ -61,6 +65,16 @@ def test_norm_ppf_known_quantiles() -> None:
     assert _norm_cdf(0.0) == pytest.approx(0.5)
     assert _norm_ppf(_norm_cdf(1.0)) == pytest.approx(1.0, abs=1e-6)
     assert _norm_ppf(0.975) == pytest.approx(1.959963984540, abs=1e-6)
+
+
+def test_bca_undefined_edges_fall_back_honestly() -> None:
+    # n=1: jackknife acceleration is undefined; report the point.
+    assert bootstrap_ci_paired([3.0], method="bca") == (3.0, 3.0)
+    # Zero variance: BCa cloud has no interior, so the interval is the point.
+    assert bootstrap_ci_paired([2.0, 2.0, 2.0], method="bca", resamples=50) == (
+        2.0,
+        2.0,
+    )
 
 
 def test_percentile_bootstrap_ci_known_values() -> None:

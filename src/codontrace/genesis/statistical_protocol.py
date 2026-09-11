@@ -148,7 +148,10 @@ def estimate_effect_size_lite(
 
 
 def paired_effect_size(deltas: Sequence[float]) -> float:
-    """Cohen's dz = mean(Δ) / s_Δ using the sample SD (ddof=1)."""
+    """Cohen's dz = mean(Δ) / s_Δ using the sample SD (ddof=1).
+
+    Zero variance with a non-zero mean is undefined (not a zero effect).
+    """
 
     if any(isinstance(value, bool) or not isinstance(value, int | float) for value in deltas):
         msg = "deltas must be numeric."
@@ -160,7 +163,11 @@ def paired_effect_size(deltas: Sequence[float]) -> float:
     mean_delta = sum(values) / len(values)
     sample_sd = math.sqrt(sum((value - mean_delta) ** 2 for value in values) / (len(values) - 1))
     if sample_sd == 0.0:
-        return 0.0
+        if mean_delta == 0.0:
+            return 0.0
+        raise ConfigurationError(
+            "paired_effect_size is undefined when s_delta is 0 and mean(delta) is not 0."
+        )
     return mean_delta / sample_sd
 
 
@@ -676,8 +683,9 @@ def exact_sign_flip_permutation_p(
     """Two-sided sign-flip permutation p-value for paired deltas.
 
     Exhaustive over all 2^n sign patterns when n≤20. Larger n uses a
-    20000-draw Monte Carlo with a fixed seed. This is a measurement, not a
-    claim unlock.
+    20000-draw Monte Carlo with a fixed seed. Monte Carlo p-values use
+    (1 + extreme) / (1 + draws) so a finite draw cannot report p=0.
+    This is a measurement, not a claim unlock.
     """
 
     values = _require_numeric_sequence("deltas", deltas)
@@ -702,7 +710,7 @@ def exact_sign_flip_permutation_p(
             total += value if rng.randrange(2) == 0 else -value
         if abs(total) + 1e-15 >= observed:
             count += 1
-    return count / float(_MONTE_CARLO_SIGN_FLIPS)
+    return (1 + count) / (1 + _MONTE_CARLO_SIGN_FLIPS)
 
 
 def _percentile(sorted_values: Sequence[float], quantile: float) -> float:
@@ -757,7 +765,12 @@ def bootstrap_ci_paired(
     seed: int = _DEFAULT_INFERENTIAL_SEED,
     confidence: float = 0.95,
 ) -> tuple[float, float]:
-    """Paired-delta CI for the mean. ``method`` is ``bca`` or ``percentile``."""
+    """Paired-delta CI for the mean. ``method`` is ``bca`` or ``percentile``.
+
+    Resamples the paired differences (not the two arms independently).
+    n=1 and zero-width bootstrap clouds fall back to a point / percentile
+    interval because BCa jackknife acceleration is undefined there.
+    """
 
     values = _require_numeric_sequence("deltas", deltas)
     if not values:

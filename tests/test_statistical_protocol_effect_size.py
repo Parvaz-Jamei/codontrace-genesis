@@ -25,6 +25,8 @@ def test_pooled_std_is_classical_two_group_formula() -> None:
     # between-group variance and yield sqrt(5.5/6) ≈ 0.957 — that is wrong.
     assert _pooled_std(baseline, treatment) == pytest.approx(1.0)
     assert _pooled_std(baseline, treatment) != pytest.approx(math.sqrt(5.5 / 6.0))
+    # n1=n2=1 leaves 0 degrees of freedom; pooled SD is undefined.
+    assert _pooled_std([1.0], [2.0]) == 0.0
 
 
 def test_estimate_effect_size_lite_uses_classical_pooled_sd() -> None:
@@ -37,7 +39,13 @@ def test_estimate_effect_size_lite_uses_classical_pooled_sd() -> None:
 def test_paired_effect_size_is_mean_over_sample_sd() -> None:
     # mean(Δ)=2, s_Δ=1 (ddof=1) → dz=2
     assert paired_effect_size([1.0, 2.0, 3.0]) == pytest.approx(2.0)
-    assert paired_effect_size([2.0, 2.0, 2.0]) == pytest.approx(0.0)
+    # Zero mean and zero SD is a true null, not an undefined ratio.
+    assert paired_effect_size([0.0, 0.0, 0.0]) == pytest.approx(0.0)
+
+
+def test_paired_effect_size_rejects_undefined_zero_variance() -> None:
+    with pytest.raises(ConfigurationError, match="undefined"):
+        paired_effect_size([2.0, 2.0, 2.0])
 
 
 def test_paired_effect_size_rejects_too_few_or_non_numeric() -> None:

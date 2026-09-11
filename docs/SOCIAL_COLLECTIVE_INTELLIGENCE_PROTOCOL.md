@@ -28,5 +28,8 @@ Phase F campaign gap flags (`heldout_partner_status`,
 `not_run` / `scaffold_only` unless a researcher actually runs those
 experiments. Phase H makes communication ablation *runnable* as
 `measured_runtime_observation` without setting ClaimGate `ablation_result`.
-See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) and
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md).
+Phase I makes heldout unfamiliar-partner generalization, evolved (not
+assigned) DoL, and MLS evolutionary *outcome* runnable; smoke never earns
+ClaimGate flags. See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md), and
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).

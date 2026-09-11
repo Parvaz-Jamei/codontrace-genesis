@@ -16,6 +16,7 @@ ClaimGate flag set is actually present. Phase H printers list missing flags
 and **do not set them**.
 
 Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I evidence harnesses),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
@@ -127,3 +128,14 @@ Forbidden after Phase H harnesses and RAG retrieval: `agi`, `intelligence`,
 `open_ended_intelligence`.
 
 Name the project **CodonTrace Genesis**. Package remains `codontrace`.
+
+---
+
+## 5. Phase I continues the evidence path
+
+Phase I ([`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md)) makes heldout
+unfamiliar-partner generalization, evolved (not assigned) DoL, and MLS
+*outcome* (not only a fitness delta) runnable, plus an export-of-fitness
+scaffold that keeps `major_transition_in_individuality=False`. ClaimGate
+flags can be *earned* from research-scale evidence objects and are **never**
+auto-set from smokes. `collective_intelligence` stays blocked.

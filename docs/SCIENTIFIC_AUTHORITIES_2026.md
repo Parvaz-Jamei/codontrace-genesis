@@ -24,6 +24,7 @@ Cross-links: [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) (MODES / Bedau),
 [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) (literature vs
 CodonTrace Genesis reality; not close to AGI),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) (Phase H RAG + CI pathway),
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I CI evidence harnesses),
 [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
@@ -60,7 +61,7 @@ objects are opt-in library APIs.
 |---|---|---|---|
 | Clune 2007; Lalejini & Ofria 2016 | Phenotypic plasticity in digital evolution / fluctuating environments | Phase C fluctuating env + Phase E `sense-react` / `read_environment_cue` | **partial** (substrate + protocol, not evolved-plasticity proof) |
 | Frontiers 2021 Adaptive Phenotypic Plasticity | Four Ghalambor conditions as experimental-design checklist | `PlasticityProtocolSpec` / `GHALAMBOR_CLUNE_CONDITIONS` | **landed** as checklist object |
-| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign (ranking, DoL *metrics*, group-vs-individual contrast) + Phase H communication-ablation / effect-size harnesses | **partial** (group fitness / `runtime_observation`; Phase F heldout `not_run`; Phase H ablation is measurement-only and does not set ClaimGate `ablation_result`; MLS `scaffold_only`; `collective_intelligence` blocked) |
+| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign + Phase H communication-ablation / effect-size harnesses + Phase I heldout-partner / evolved-DoL / MLS-outcome analogs | **partial** (group fitness / `runtime_observation`; Phase F heldout `not_run`; Phase I heldout/DoL/MLS harnesses are measurement-only and do not auto-set ClaimGate flags from smoke; `collective_intelligence` blocked) |
 | GECCO 2008 digital germlines | Cooperative networks / germline replication | Role / propagule-eligibility tags; germline copy on deme replicate when enabled | **partial** (gates + recorded payoff, not evolved division of labor) |
 | Am Nat 2020 associative learning | Learning in Avida | Capsule/memory slots with **real** subsequent action/ATP/task effects; opt-in `LearningCausalPayoffPack` (cue→action→ATP, ablation, ≥2 seeds) | **partial** (protocol instrumentation; `instinct_improved` stays gated; not proved learning) |
 | PLOS One odometry case study | Navigation / odometry in digital organisms | Same capsule/memory mapping via the learning-payoff protocol | **partial** (hooks vs proved learning) |
@@ -247,6 +248,10 @@ stable. ClaimGate is not weakened.
 | `build_learning_causal_payoff_pack` | Am Nat 2020; PLOS One odometry; Clune/Lalejini/Frontiers 2021 | **landed** cue→action→ATP + ablation + multi-seed | `runtime_observation` | associative learning proved; `instinct_improved` stays gated |
 | `build_collective_deme_payoff_pack` | Avida `DEME_GROUP` / GERMLINE; Goldsby messaging / DoL; GECCO 2008 germlines; Michod / Szathmáry major transitions | **landed** replicate-on-mean-fitness + contribution ledger | `runtime_observation` | `collective_intelligence` |
 | `run_collective_deme_payoff_campaign` | Goldsby; `DEME_GROUP` multilevel selection; GECCO 2008; Michod / Szathmáry | **landed** ≥2-seed ranking + DoL metrics + group-vs-individual contrast; heldout/ablation `not_run`; MLS `scaffold_only` | `runtime_observation` | `collective_intelligence` / `proved_collective_intelligence` |
+| `run_heldout_unfamiliar_partner_experiment` | Goldsby heldout / familiar vs unfamiliar; ClaimGate partner protocol | **landed** Phase I two-task analog; research-scale can earn heldout flags; smoke never earns | `runtime_observation` | `collective_intelligence` |
+| `run_evolved_division_of_labor_experiment` | Goldsby 2012; Gorelick 2004 NMI | **landed** evolved preference + ablation; not assigned tags; not 50-replicate PNAS | `runtime_observation` | `collective_intelligence` |
+| `run_mls_evolutionary_outcome_experiment` | Okasha 2006 MLS2; `DEME_GROUP` | **landed** majority-strategy contrast vs organism-only; not a rank table | `runtime_observation` | `collective_intelligence`; major transition |
+| `build_export_of_fitness_observation` | Michod 2007 PNAS; Szathmáry & Maynard Smith | **landed** scaffold; isolation collapse marked as payoff construction; `major_transition_in_individuality=False` | `runtime_observation` | major transition; `collective_intelligence` |
 | `run_channon_avida_modes_shadow_suite` | Channon 2024; MODES `persistence_window_t`; Empirical shadow | **landed** window sweep + MODES digest + Tokyo JSON | `tokyo_type1_measurement_only` | Type 1 passed |
 | `SexualRecombinationConfig.diploid_meiosis` | avida.cfg `RECOMBINATION_GROUP` / `TWO_FOLD_COST_SEX`; Aevol-style homolog reduction | **landed** opt-in; default off | `runtime_observation` | Aevol-grade meiosis; biological diploidy |
 | `build_multi_generation_evidence_pack` hygiene | measurement integrity | **landed** `TypeError` on `None`/garbage; `reproduction_mode=None` coerces to asexual | error / software capability | silent zero metrics |
@@ -300,5 +305,6 @@ Use this on the completeness PR. All items must stay **honest**.
 - CLIP / foundation-model open-endedness scoring is **not** implemented.
 
 See `CLAIMS.md`, `docs/PHASE_D_LITERATURE.md`, `docs/PHASE_E_LITERATURE.md`,
-`docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
+`docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/PHASE_H_CI_AI_PATH.md`,
+`docs/PHASE_I_CI_EVIDENCE.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
 and `ScientificClaimGate`.

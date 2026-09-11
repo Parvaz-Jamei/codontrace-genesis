@@ -2,9 +2,9 @@
 
 This note maps **world-authority literature** onto **what CodonTrace Genesis
 actually implements**. It is an honesty document for Phase A–G plus Phase H
-RAG and CI-pathway scaffolding. It does **not** argue that the project is
-close to AGI, consciousness, proved open-ended evolution, Tokyo Type 1
-*passed*, or literature-grade collective intelligence.
+RAG and CI-pathway scaffolding and Phase I evidence harnesses. It does **not**
+argue that the project is close to AGI, consciousness, proved open-ended
+evolution, Tokyo Type 1 *passed*, or literature-grade collective intelligence.
 
 **Claim ceiling:** software capability / `runtime_observation` /
 `oee_measurement_only` / `tokyo_type1_measurement_only` /
@@ -15,7 +15,7 @@ close to AGI, consciousness, proved open-ended evolution, Tokyo Type 1
 `proved_collective_intelligence`, `avida_replacement`, and related aliases.
 
 ClaimGate remains the authority. Do not cite this file as evidence that
-CodonTrace Genesis is “almost” intelligent. Phase H continues as
+CodonTrace Genesis is “almost” intelligent. Phase H/I continue as
 **measurement, literature RAG, and substrate engineering**, not as an
 intelligence countdown.
 
@@ -24,6 +24,7 @@ Cross-links: [`CLAIMS.md`](../CLAIMS.md),
 [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md).
 
@@ -238,14 +239,15 @@ embodiment result. ASAL / CLIP foundation-model open-ended search
 
 ---
 
-## 8. Collective intelligence — first-class scientific gap (Phase F/H)
+## 8. Collective intelligence — first-class scientific gap (Phase F/H/I)
 
-This is the gap CodonTrace Genesis treats as **first-class** for Phase F/H
+This is the gap CodonTrace Genesis treats as **first-class** for Phase F/H/I
 engineering, still without promoting it to a proved result. Group fitness,
 messaging counts, and role shares are allowed as `runtime_observation`.
 Proved `collective_intelligence` stays **BLOCKED**. Phase H adds runnable
-ablation and effect-size harnesses plus a literature RAG; it does not set
-ClaimGate flags.
+ablation and effect-size harnesses plus a literature RAG; Phase I adds
+heldout-partner, evolved-DoL, and MLS-outcome harnesses. Neither phase
+auto-sets ClaimGate flags from smokes.
 
 ### 8.1 Literature
 
@@ -305,27 +307,28 @@ protocols, `ablation_result`, `collective_report_digest`,
 
 ### 8.4 What is still missing for literature-grade collective intelligence evidence
 
-| Missing experiment | Why it matters | Phase F/H status |
+| Missing experiment | Why it matters | Phase F/H/I status |
 |---|---|---|
-| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` multilevel selection is an experiment, not a rank table | Phase F `multilevel_selection_experiment=scaffold_only`; Phase H effect-size campaign records Cohen's *d* on group fitness — still not MLS-as-evolution |
-| Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | Phase F campaign stays `not_run`; Phase H harness is **runnable** (`measured_runtime_observation`) and does **not** set ClaimGate `ablation_result` |
-| Heldout partner generalization (unfamiliar partners) | ClaimGate `heldout_protocol` / familiar vs unfamiliar | `heldout_partner_status=not_run` |
-| Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby task-switching / DoL | Phase H cost hook reweights metrics; roles remain assigned |
-| Non-capsule cooperation beating single-agent and no-communication baselines | social protocol / swarm candidate flags | not a campaign output |
-| Export-of-fitness / transition in individuality | Michod; Szathmáry & Maynard Smith: a new level that reproduces as a unit because lower-level conflict was suppressed | `major_transition_in_individuality=False` |
+| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` / Okasha MLS2: which strategy wins, not a rank table | Phase F `scaffold_only`; Phase H fitness Cohen's *d*; Phase I `run_mls_evolutionary_outcome_experiment` is **runnable** (two-task analog; `measured_runtime_observation`) |
+| Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | Phase F campaign stays `not_run`; Phase H harness is **runnable** and does **not** set ClaimGate `ablation_result` from smoke |
+| Heldout partner generalization (unfamiliar partners) | ClaimGate `heldout_protocol` / familiar vs unfamiliar | Phase F `not_run`; Phase I `run_heldout_unfamiliar_partner_experiment` is **runnable**; smoke does not earn flags |
+| Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby / Gorelick NMI | Phase H cost hook on assigned tags; Phase I evolved preference analog + ablation is **runnable** |
+| Non-capsule cooperation beating single-agent and no-communication baselines | social protocol / swarm candidate flags | Phase I toy has no capsules; still not Avida instruction cooperation |
+| Export-of-fitness / transition in individuality | Michod; Szathmáry & Maynard Smith | Phase I `ExportOfFitnessObservation` scaffold; isolation collapse is payoff construction; `major_transition_in_individuality=False` |
 | Literature-scale cooperative-network evolution (GECCO 2008 germlines as a *result*) | soma/germline eligibility must be discovered, not assigned | tags remain gates |
 
-Phase H continues on those missing pieces as **engineering**. ClaimGate
+Phase I continues on those missing pieces as **engineering**. ClaimGate
 still rejects `collective_intelligence` and `proved_collective_intelligence`
 when a researcher only has messaging counts, a ledger digest, a rank table,
-a group-vs-individual delta, or a RAG hit list. See
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md).
+a group-vs-individual delta, a RAG hit list, or a Phase I smoke. See
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) and
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).
 
 ---
 
-## 9. Phase H continues — not an intelligence countdown
+## 9. Phase H/I continue — not an intelligence countdown
 
-Phase H is the next **library** increment after Phase F/G:
+Phase H/I are the next **library** increments after Phase F/G:
 
 - Keep A–E default digest pins stable.
 - Ship a literature RAG substrate (citable digests + TF-IDF retriever).
@@ -336,7 +339,12 @@ Phase H is the next **library** increment after Phase F/G:
 - Keep JaxLife NN agents and ASAL CLIP out of core.
 - Keep Tokyo Type 1 as measurement-only.
 
-Phase H is **not** “the AGI phase.” There is no evidence in this repository
+Phase I adds heldout unfamiliar-partner generalization, evolved (not
+assigned) DoL, MLS evolutionary-outcome contrast, and an export-of-fitness
+scaffold. Smoke never earns ClaimGate flags. See
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).
+
+Phase H/I are **not** “the AGI phase.” There is no evidence in this repository
 that CodonTrace Genesis is close to AGI, and this document forbids that
 reading.
 
@@ -354,7 +362,7 @@ Allowed now (when evidence objects actually exist):
   complementarity, heldout familiar/unfamiliar, ablation, replay). Smoke
   campaigns do not set those flags.
 
-Still forbidden, including after Phase H instrumentation and RAG retrieval:
+Still forbidden, including after Phase H/I instrumentation and RAG retrieval:
 
 - `agi`, `consciousness`
 - `tokyo_type1_passed`, `channon_2024_passed`, `proved_open_endedness`
@@ -391,6 +399,14 @@ If a sentence in a PR, README, or paper cannot be mapped to a row in
   ecology.
 - Goldsby, H. J. et al. Avida messaging / GermlineReplication / division of
   labor (see `devosoft/avida` wiki and related digital-evolution papers).
+- Gorelick, R. et al. (2004). Normalized mutual entropy in biology:
+  quantifying diversity and division of labor. *Integrative and Comparative
+  Biology* 44:345–352. doi:10.1093/icb/44.5.345.
+- Okasha, S. (2006). *Evolution and the Levels of Selection*. Oxford
+  University Press.
+- Michod, R. E. (2007). Evolution of individuality during the transition
+  from unicellular to multicellular life. *PNAS* 104:8613–8618.
+  doi:10.1073/pnas.0701482104.
 - GECCO 2008 digital germlines / cooperative networks.
 - `devosoft/avida` demes introduction; `avida.cfg` `DEME_GROUP` /
   `GERMLINE` (VERSION_ID 2.14.0).
@@ -401,6 +417,7 @@ If a sentence in a PR, README, or paper cannot be mapped to a row in
 - Dolson, E. et al. (2019). MODES. *Artificial Life*.
 - Ofria, C. & Wilke, C. O. (2004). Avida. *Artificial Life*.
 
-Print-only reminder: `examples/genesis_scientific_gaps_2026.py` and
-`examples/genesis_rag_query.py` print `agi_allowed False` and
+Print-only reminder: `examples/genesis_scientific_gaps_2026.py`,
+`examples/genesis_rag_query.py`, and
+`examples/genesis_phase_i_ci_evidence.py` print `agi_allowed False` and
 collective-intelligence allowed False.

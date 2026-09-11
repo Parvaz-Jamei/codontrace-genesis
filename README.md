@@ -77,7 +77,7 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b3` (Phases A–G). GitHub `main` may be ahead (H–L) while still reporting that same version string. Install from source if you need the post–Phase G pathway code.
+The published wheel is `codontrace==0.3.0b3` (Phases A–G). This branch reports development identity `0.3.0b4.dev0` (H–L plus hygiene / hard experiment 01). Install from source if you need the post–Phase G pathway code.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
@@ -107,7 +107,7 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the current tip should print `0.3.0b3`. A `main` checkout currently prints the same string even when H–L are present — do not treat the version tuple as a phase fence.
+A PyPI install of the current tip should print `0.3.0b3`. This checkout prints `0.3.0b4.dev0`. Do not treat the version tuple as a phase fence.
 
 ---
 

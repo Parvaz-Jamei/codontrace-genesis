@@ -2138,7 +2138,7 @@ class GenesisRunResult:
         return EvidenceManifest(
             schema_version="genesis_evidence_manifest_v2",
             producer_version="GenesisRunResult.properties",
-            library_version="0.3.0b3",
+            library_version="0.3.0b4.dev0",
             config_digest=self.run.spec_digest,
             source_digest=self.manifest.source_digest or "",
             protocol_digest=self.manifest.digest(),

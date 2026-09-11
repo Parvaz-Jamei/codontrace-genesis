@@ -32,6 +32,9 @@ pins stay stable.
   `print_collective_intelligence_candidate_checklist` (examples may
   print the rendered checklist). These tests were never in the old CI
   subset.
+- Working-tree identity is `0.3.0b4.dev0` (`pyproject.toml`,
+  `codontrace.__version__`, `CITATION.cff`, release-label aliases). The
+  public PyPI tip remains `0.3.0b3`.
 
 ### Phase L — Avida ORGANISM_MESSAGING / DEME_GROUP fidelity
 

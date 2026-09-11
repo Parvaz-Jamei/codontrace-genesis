@@ -1171,7 +1171,7 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
 for _path in _CAUSAL_MECHANISM_POLICY_ONLY_CLASSES:
     _DIGEST_FIELDS_BY_CLASS.pop(_path, None)
 
-# Phase H–K measurement objects, literature RAG, and hard experiment 01.
+# Phase H–L measurement objects, literature RAG, and hard experiment 01.
 # Digests identify runtime observations / corpus rows. They do not grant
 # intelligence, collective_intelligence, AGI, tokyo_type1_passed, or
 # avida_replacement claims.
@@ -1210,6 +1210,12 @@ _MEASUREMENT_PAPER_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.phase_k.GoldsbyCpuDelayCampaign": ("digest",),
     "codontrace.genesis.phase_k.MultiGenerationPriceCampaign": ("digest",),
     "codontrace.genesis.phase_k.MultiGenerationPricePartition": ("digest",),
+    "codontrace.genesis.phase_l.CoordinationAblationEvidence": (
+        "source_digest",
+        "digest",
+    ),
+    "codontrace.genesis.phase_l.GoldsbyAlignedSpecialistCampaign": ("digest",),
+    "codontrace.genesis.phase_l.OrganismMessagingFidelityCampaign": ("digest",),
     "codontrace.genesis.rag.retriever.ResearchDocument": ("digest",),
     "codontrace.genesis.rag.retriever.SearchResult": ("corpus_digest", "digest"),
 }

@@ -21,6 +21,58 @@
 
 Phase A life-loop literature items (basal metabolism, starvation reason, limited depletable resources, spatial capacity, differential reproductive-success observation) are implemented on the ecology preset only.
 
+## Wave 0 lint-type (CI `continue-on-error`)
+
+Job `lint-type` (Ubuntu / Python 3.12) runs `ruff check src tests` and
+`mypy --strict src`. It is **not blocking** until these inventories are
+cleared. Recorded 2026-09-11 on `0.3.0b4.dev0` after PR #19.
+
+### Ruff (`ruff check src tests`) — 1273 errors
+
+| Code | Count | Rule |
+|---|---:|---|
+| E501 | 955 | line-too-long |
+| I001 | 87 | unsorted-imports |
+| F811 | 48 | redefined-while-unused |
+| UP042 | 37 | replace-str-enum |
+| F401 | 33 | unused-import |
+| B017 | 27 | assert-raises-exception |
+| E402 | 21 | module-import-not-at-top-of-file |
+| UP037 | 12 | quoted-annotation |
+| B009 | 11 | get-attr-with-constant |
+| E701 | 6 | multiple-statements-on-one-line-colon |
+| F841 | 6 | unused-variable |
+| B023 | 5 | function-uses-loop-variable |
+| E702 | 5 | multiple-statements-on-one-line-semicolon |
+| SIM102 | 4 | collapsible-if |
+| SIM114 | 3 | if-with-same-arms |
+| other | 13 | UP017, SIM113, SIM401, SIM108, SIM210, F402, SIM118, SIM103, SIM105, F821, UP012, SIM300, B905 (1 each) |
+
+About 160 are auto-fixable with `ruff check --fix`.
+
+### Mypy (`mypy --strict src`) — 263 errors in 37 files
+
+| Code | Count |
+|---|---:|
+| arg-type | 83 |
+| attr-defined | 38 |
+| dict-item | 29 |
+| assignment | 29 |
+| misc | 26 |
+| union-attr | 24 |
+| operator | 17 |
+| unused-ignore | 5 |
+| var-annotated | 3 |
+| type-var | 3 |
+| call-arg | 2 |
+| no-untyped-def, no-redef, no-any-return, name-defined | 1 each |
+
+Heaviest files: `genesis/__init__.py` (37), `engine.py` (35),
+`genesis/population.py` (25), `actions.py` (20), `genesis/fitness.py` (14),
+`genesis/birth.py` (13), `genesis/logic9.py` (12).
+
+Do not treat a green `continue-on-error` job as a type-safe release gate.
+
 ## Non-goals that remain active
 
 - No UI, dashboard, CLI product, report writer, database, web server, cloud service, or config-file framework in core.

@@ -32,12 +32,16 @@ from codontrace.genesis.birth import (
     InheritancePolicy,
     LearningInheritanceRecord,
     MutationAuditResult,
+    MutationOperator,
     MutationPlan,
+    RecombinationRecord,
     ReproductionGateResult,
+    ReproductionMode,
     SkillCompressionRecord,
     SkillInheritanceMode,
     build_mutation_plan,
     make_policy_digest,
+    recombine_positional_segment,
 )
 from codontrace.genesis.capsule import (
     CapsuleAdoptionBlockedReason,
@@ -127,6 +131,7 @@ class ReproductionConfig:
     enable_lamarckian_learning_inheritance: bool = False
     enable_ai_birth_intervention: bool = False
     offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.SAME_CELL
+    reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL
 
     def __post_init__(self) -> None:
         _validate_probability(self.offspring_atp_fraction, "offspring_atp_fraction")
@@ -141,7 +146,7 @@ class ReproductionConfig:
             _validate_non_negative(value, name)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "min_runtime_atp": self.min_runtime_atp,
             "min_vitae_store": self.min_vitae_store,
@@ -162,6 +167,13 @@ class ReproductionConfig:
             "enable_ai_birth_intervention": self.enable_ai_birth_intervention,
             "offspring_placement": self.offspring_placement.value,
         }
+        if self.reproduction_mode is not ReproductionMode.ASEXUAL:
+            payload["reproduction_mode"] = self.reproduction_mode.value
+        return payload
+
+    @property
+    def is_sexual(self) -> bool:
+        return self.reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> ReproductionConfig:
@@ -187,6 +199,7 @@ class ReproductionConfig:
             ),
             enable_ai_birth_intervention=_bool(data, "enable_ai_birth_intervention", False),
             offspring_placement=_placement_policy(data.get("offspring_placement")),
+            reproduction_mode=_reproduction_mode(data.get("reproduction_mode")),
         )
 
 
@@ -401,6 +414,7 @@ class LineageRecord:
     birth_tick: int
     death_tick: int | None
     reproduction_event_id: str | None
+    second_parent_id: str | None = None
 
     @property
     def id(self) -> str | None:
@@ -408,8 +422,18 @@ class LineageRecord:
 
         return self.reproduction_event_id
 
+    @property
+    def parent_ids(self) -> tuple[str, ...]:
+        """Named genetic parents. Asexual records keep a single parent_id."""
+
+        if self.parent_id is None:
+            return ()
+        if self.second_parent_id:
+            return (self.parent_id, self.second_parent_id)
+        return (self.parent_id,)
+
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "organism_id": self.organism_id,
             "parent_id": self.parent_id,
             "generation": self.generation,
@@ -419,6 +443,10 @@ class LineageRecord:
             "death_tick": self.death_tick,
             "reproduction_event_id": self.reproduction_event_id,
         }
+        if self.second_parent_id:
+            payload["second_parent_id"] = self.second_parent_id
+            payload["parent_ids"] = list(self.parent_ids)
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> LineageRecord:
@@ -432,6 +460,7 @@ class LineageRecord:
             birth_tick=_int(data, "birth_tick", 0),
             death_tick=None if raw_death is None else _int(data, "death_tick", 0),
             reproduction_event_id=_optional_str(data, "reproduction_event_id"),
+            second_parent_id=_optional_str(data, "second_parent_id"),
         )
 
 
@@ -516,9 +545,10 @@ class ReproductionResult:
     parent_build_cost_charged: bool = False
     offspring_transfer_charged: bool = False
     reproduction_cost_policy: str = "stage_separated"
+    recombination_record: RecombinationRecord | None = None
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "attempted": self.attempted,
             "succeeded": self.succeeded,
             "parent_before_id": self.parent_before_id,
@@ -562,6 +592,9 @@ class ReproductionResult:
                 record.to_dict() for record in self.ai_birth_intervention_records
             ],
         }
+        if self.recombination_record is not None:
+            payload["recombination_record"] = self.recombination_record.to_dict()
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> ReproductionResult:
@@ -620,6 +653,9 @@ class ReproductionResult:
             ),
             ai_birth_intervention_records=_ai_birth_records_from_optional(
                 data.get("ai_birth_intervention_records")
+            ),
+            recombination_record=_recombination_record_from_optional(
+                data.get("recombination_record")
             ),
         )
 
@@ -1689,6 +1725,7 @@ def reproduce(
     structural_mutation_config: StructuralMutationConfig | None = None,
     world: World2D | None = None,
     live_positions: Mapping[str, tuple[int, int]] | None = None,
+    mate: GenesisOrganism | None = None,
 ) -> ReproductionResult:
     """Create a controlled offspring with ATP debit, mutation, and lineage metadata.
 
@@ -1780,6 +1817,18 @@ def reproduce(
             reason=decision.reasons[0] if decision.reasons else "reproduction_blocked",
             capacity_available=True,
         )
+    if config.is_sexual:
+        mate_reason = _sexual_mate_block_reason(parent, mate, config)
+        if mate_reason is not None:
+            return _blocked_reproduction_result(
+                parent=parent,
+                config=config,
+                alive_result=alive_result,
+                birth_tick=birth_tick,
+                generation=generation,
+                reason=mate_reason,
+                capacity_available=True,
+            )
     precomputed_placement: tuple[int, int] | None = None
     if config.offspring_placement is not OffspringPlacementPolicy.SAME_CELL:
         if world is None or live_positions is None:
@@ -1853,19 +1902,68 @@ def reproduce(
         )
         if transfer_id is not None:
             ledger_ids.append(transfer_id)
+    recombination: RecombinationRecord | None = None
+    source_genome = parent.genome
+    if config.is_sexual:
+        if mate is None:
+            return _blocked_reproduction_result(
+                parent=parent,
+                config=config,
+                alive_result=alive_result,
+                birth_tick=birth_tick,
+                generation=generation,
+                reason="no_viable_mate",
+                capacity_available=True,
+            )
+        try:
+            recombination = recombine_positional_segment(
+                parent_a_id=parent.id,
+                parent_b_id=mate.id,
+                parent_a_bits=parent.genome.to_compact(),
+                parent_b_bits=mate.genome.to_compact(),
+                parent_a_genome_digest=parent.genome.digest(),
+                parent_b_genome_digest=mate.genome.digest(),
+                rng=stream.fork("recombination"),
+                codon_width=parent.genome.spec.codon_width,
+                spec=parent.genome.spec,
+            )
+        except ValueError:
+            return _blocked_reproduction_result(
+                parent=parent,
+                config=config,
+                alive_result=alive_result,
+                birth_tick=birth_tick,
+                generation=generation,
+                reason="recombination_no_overlapping_codon",
+                capacity_available=True,
+            )
+        source_genome = SemanticGenome.from_compact(
+            recombination.child_genome_bits, spec=parent.genome.spec
+        )
     mutation_plan = build_mutation_plan(
         plan_id=_reproduction_event_id(
             parent.id, "mutation_plan", birth_tick, stream.state_digest()
         ),
-        parent_genome_digest=parent.genome.digest(),
+        parent_genome_digest=source_genome.digest(),
         bit_flip_rate=mutation_config.bit_flip_rate,
         insertion_rate=mutation_config.insertion_rate,
         deletion_rate=mutation_config.deletion_rate,
         rng_state_digest_before=stream.state_digest(),
     )
+    if recombination is not None:
+        mutation_plan = replace(
+            mutation_plan,
+            operator_sequence=(
+                MutationOperator.RECOMBINE_WITH_PARTNER.value,
+                *mutation_plan.operator_sequence,
+            ),
+            mutation_budget=max(
+                mutation_plan.mutation_budget, len(mutation_plan.operator_sequence) + 1
+            ),
+        )
     if structural_mutation_config is not None:
         program = build_genome_program(
-            parent.genome.to_compact(),
+            source_genome.to_compact(),
             codon_width=parent.genome.spec.codon_width,
             macro_registry_digest=None
             if parent.adf_macro_registry is None
@@ -1961,14 +2059,14 @@ def reproduce(
             )
         mutated_genome = SemanticGenome.from_compact(child_program.bits, spec=parent.genome.spec)
         mutation = MutationResult(
-            original_genome=parent.genome,
+            original_genome=source_genome,
             mutated_genome=mutated_genome,
             mutation_count=1,
             operations=(f"structural:{structural_record.kind}:{structural_record.digest}",),
             rng_digest=structural_record.rng_state_digest_after,
         )
     else:
-        mutation = mutate_genome(parent.genome, mutation_config, rng=stream.fork("mutation"))
+        mutation = mutate_genome(source_genome, mutation_config, rng=stream.fork("mutation"))
     mutation_audit = MutationAuditResult(
         plan_id=mutation_plan.plan_id,
         child_genome_digest=mutation.mutated_genome.digest(),
@@ -2034,6 +2132,7 @@ def reproduce(
         birth_tick=birth_tick,
         death_tick=None,
         reproduction_event_id=event_id,
+        second_parent_id=None if recombination is None else recombination.parent_b_id,
     )
     child_genome_result = ChildGenomeResult(
         child_id=resolved_child_id,
@@ -2043,6 +2142,11 @@ def reproduce(
         mutation_digest=mutation.digest(),
         mutation_count=mutation.mutation_count,
         genome_bits=child.genome.to_compact(),
+        second_parent_id=None if recombination is None else recombination.parent_b_id,
+        second_parent_genome_digest=(
+            None if recombination is None else recombination.parent_b_genome_digest
+        ),
+        recombination_digest=None if recombination is None else recombination.digest(),
     )
     child_admission = ChildAdmissionResult(
         child_id=resolved_child_id,
@@ -2172,6 +2276,7 @@ def reproduce(
         birth_policy_digest=birth_policy_digest,
         reproduction_gate_digest=reproduction_gate_result.digest(),
         child_created=True,
+        second_parent_id=None if recombination is None else recombination.parent_b_id,
     )
     return ReproductionResult(
         attempted=True,
@@ -2199,6 +2304,7 @@ def reproduce(
         parent_build_cost_charged=config.parent_atp_cost > 0,
         offspring_transfer_charged=config.offspring_atp_fraction > 0,
         action_cost_charged=False,
+        recombination_record=recombination,
     )
 
 
@@ -2505,6 +2611,44 @@ def step_population(
                 )
             if event.action == "COPY_SELF":
                 attempts += 1
+                mate = None
+                if configs.reproduction.is_sexual:
+                    mate = _select_viable_mate(
+                        parent=organism,
+                        candidates=_live_mate_candidates(
+                            parent_id=organism.id,
+                            stepped=survivors,
+                            pending=organism_clones,
+                            children=children,
+                            live_positions=live_positions,
+                        ),
+                        min_runtime_atp=configs.reproduction.min_runtime_atp,
+                    )
+                    if mate is None:
+                        blocked_reproduction += 1
+                        reproduction_result = _blocked_reproduction_result(
+                            parent=organism,
+                            config=configs.reproduction,
+                            alive_result=alive_result,
+                            birth_tick=current_tick,
+                            generation=population.generation,
+                            reason="no_viable_mate",
+                            capacity_available=True,
+                        )
+                        _replace_last_event(
+                            trace,
+                            _with_reproduction_delta(
+                                event,
+                                parent_after=organism,
+                                reproduction_result=reproduction_result,
+                                succeeded=False,
+                                reason="no_viable_mate",
+                                parent_id=organism.id,
+                                child_id=None,
+                                event_id=reproduction_result.event_id,
+                            ),
+                        )
+                        continue
                 if len(live_positions) >= configs.reproduction.max_population:
                     blocked_reproduction += 1
                     reproduction_result = _blocked_reproduction_result(
@@ -2541,6 +2685,7 @@ def step_population(
                     structural_mutation_config=configs.structural_mutation,
                     world=working_world,
                     live_positions=live_positions,
+                    mate=mate,
                 )
                 if reproduction_result.succeeded and reproduction_result.child is not None:
                     births += 1
@@ -3408,6 +3553,16 @@ def _with_reproduction_delta(
             "child_genome_digest": child_genome_digest,
         }
     )
+    if (
+        reproduction_result is not None
+        and reproduction_result.recombination_record is not None
+    ):
+        record = reproduction_result.recombination_record
+        delta["second_parent_id"] = record.parent_b_id
+        delta["parent_ids"] = list(record.parent_ids)
+        delta["recombination_digest"] = record.digest()
+        delta["recombination_start_index"] = record.start_index
+        delta["recombination_end_index"] = record.end_index
     return TraceEvent(
         step=event.step,
         agent_id=event.agent_id,
@@ -3614,6 +3769,9 @@ def _child_genome_result_from_optional(value: JsonValue | None) -> ChildGenomeRe
         mutation_count=_int(value, "mutation_count", 0),
         genome_bits=_str(value, "genome_bits"),
         validity_status=_str(value, "validity_status", "valid"),
+        second_parent_id=_optional_str(value, "second_parent_id"),
+        second_parent_genome_digest=_optional_str(value, "second_parent_genome_digest"),
+        recombination_digest=_optional_str(value, "recombination_digest"),
     )
 
 
@@ -3666,6 +3824,7 @@ def _birth_event_from_optional(value: JsonValue | None) -> BirthEvent | None:
         reproduction_attempted=_bool(value, "reproduction_attempted", True),
         child_created=_bool(value, "child_created", False),
         blocked_reason=_optional_str(value, "blocked_reason"),
+        second_parent_id=_optional_str(value, "second_parent_id"),
     )
 
 
@@ -3804,6 +3963,97 @@ def _death_classification_consistency_status(
     if fitness_level is None:
         return "missing_fitness_level"
     return "matched" if top_level.to_dict() == fitness_level.to_dict() else "mismatch"
+
+
+def _reproduction_mode(value: JsonValue | None) -> ReproductionMode:
+    if value is None:
+        return ReproductionMode.ASEXUAL
+    if not isinstance(value, str):
+        msg = "reproduction_mode must be a string."
+        raise ConfigurationError(msg)
+    try:
+        return ReproductionMode(value)
+    except ValueError as exc:
+        msg = f"Unsupported reproduction_mode {value!r}."
+        raise ConfigurationError(msg) from exc
+
+
+def _sexual_mate_block_reason(
+    parent: GenesisOrganism,
+    mate: GenesisOrganism | None,
+    config: ReproductionConfig,
+) -> str | None:
+    if mate is None:
+        return "no_viable_mate"
+    if mate.id == parent.id:
+        return "mate_is_self"
+    if mate.atp_state.runtime_available < config.min_runtime_atp:
+        return "mate_min_runtime_atp_not_met"
+    return None
+
+
+def _live_mate_candidates(
+    *,
+    parent_id: str,
+    stepped: Sequence[GenesisOrganism],
+    pending: Sequence[GenesisOrganism],
+    children: Sequence[GenesisOrganism],
+    live_positions: Mapping[str, tuple[int, int]],
+) -> tuple[GenesisOrganism, ...]:
+    by_id: dict[str, GenesisOrganism] = {}
+    for organism in (*pending, *stepped, *children):
+        if organism.id == parent_id or organism.id not in live_positions:
+            continue
+        by_id[organism.id] = organism
+    return tuple(by_id.values())
+
+
+def _select_viable_mate(
+    *,
+    parent: GenesisOrganism,
+    candidates: Sequence[GenesisOrganism],
+    min_runtime_atp: float,
+) -> GenesisOrganism | None:
+    """Pick the nearest live mate; ties break by organism id (no extra RNG)."""
+
+    viable: list[tuple[int, str, GenesisOrganism]] = []
+    for other in candidates:
+        if other.id == parent.id:
+            continue
+        if other.atp_state.runtime_available < min_runtime_atp:
+            continue
+        distance = abs(other.position[0] - parent.position[0]) + abs(
+            other.position[1] - parent.position[1]
+        )
+        viable.append((distance, other.id, other))
+    if not viable:
+        return None
+    viable.sort(key=lambda item: (item[0], item[1]))
+    return viable[0][2]
+
+
+def _recombination_record_from_optional(
+    value: JsonValue | None,
+) -> RecombinationRecord | None:
+    if not isinstance(value, Mapping):
+        return None
+    return RecombinationRecord(
+        parent_a_id=_str(value, "parent_a_id"),
+        parent_b_id=_str(value, "parent_b_id"),
+        parent_a_genome_digest=_str(value, "parent_a_genome_digest"),
+        parent_b_genome_digest=_str(value, "parent_b_genome_digest"),
+        parent_a_bits=_str(value, "parent_a_bits"),
+        parent_b_bits=_str(value, "parent_b_bits"),
+        child_genome_bits=_str(value, "child_genome_bits"),
+        child_genome_digest=_str(value, "child_genome_digest"),
+        start_index=_int(value, "start_index", 0),
+        end_index=_int(value, "end_index", 0),
+        codon_width=_int(value, "codon_width", 3),
+        rng_digest=_str(value, "rng_digest"),
+        operator=_str(value, "operator", MutationOperator.RECOMBINE_WITH_PARTNER.value),
+        mechanism=_str(value, "mechanism", "positional_segment_swap"),
+        schema_version=_str(value, "schema_version", "recombination_record_v1"),
+    )
 
 
 def _placement_policy(value: JsonValue | None) -> OffspringPlacementPolicy:

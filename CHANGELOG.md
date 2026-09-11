@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Phase B sexual recombination substrate
+
+### Added
+
+- Optional `ReproductionMode.SEXUAL_CROSSOVER` on `ReproductionConfig` (omitted from default serialization so asexual research digests stay stable).
+- Avida-style positional segment swap (`recombine_positional_segment`, `RecombinationRecord`) with a dedicated deterministic RNG fork (`genesis/reproduction/<parent>/recombination`).
+- Two-parent lineage / birth / child-genome fields (`second_parent_id`, `parent_ids`) that appear only on sexual births.
+- `GenesisRuntimeProfile.life_loop_world(reproduction_mode=...)` opt-in; default life-loop remains asexual COPY_SELF → mutate → child.
+- Sexual path reuses Phase A AliveGate, ATP, capacity, and placement gates; missing or inviable mates block with explicit reasons (`no_viable_mate`, `mate_min_runtime_atp_not_met`).
+- `tests/test_genesis_phase_b_sexual_recombination.py` and `examples/genesis_sexual_recombination.py`.
+
+### Notes
+
+Phase B is a recombination *substrate*, not an Avida replacement and not a claim of sexual selection or intelligence. Phase C (fluctuating/seasonal environments) and Phase D (multi-generation instinct claim metrics) remain deferred. Claim language stays software capability / runtime observation only.
+
 ## Unreleased — Phase A Darwinian life-loop
 
 ### Added

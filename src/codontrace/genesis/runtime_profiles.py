@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
-from codontrace.genesis.birth import InheritancePolicy
+from codontrace.genesis.birth import InheritancePolicy, ReproductionMode
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferConfig
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
@@ -30,6 +30,9 @@ from codontrace.world import World2D, WorldObject
 
 # EAT_LUMEN, COPY_SELF, WAIT — eat first so runtime ATP can cross the reproduction gate.
 LIFE_LOOP_EATER_GENOME = "101111000"
+# EAT_LUMEN, WAIT, COPY_SELF — second sexual parent haplotype used only when
+# life_loop_world(reproduction_mode=sexual_crossover) is selected.
+LIFE_LOOP_EATER_B_GENOME = "101000111"
 # WAIT only — control genome that cannot collect food or attempt COPY_SELF.
 LIFE_LOOP_WAITER_GENOME = "000000000"
 # COPY_SELF spends 8.0 ATP during the organism step before can_reproduce()
@@ -294,6 +297,7 @@ class GenesisRuntimeProfile:
         tick_count: int = 16,
         population: int = 6,
         offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
+        reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
     ) -> GenesisExperimentSpec:
         """Assemble the Phase A ecology / Darwinian life-loop preset.
 
@@ -301,7 +305,9 @@ class GenesisRuntimeProfile:
         ``ReproductionConfig`` / ``ResourceConfig`` defaults. SAME_CELL placement
         remains available by passing ``offspring_placement=OffspringPlacementPolicy.SAME_CELL``.
         ``REPLACE_OCCUPIED`` is an optional Avida-like overwrite policy and is
-        not the life-loop default.
+        not the life-loop default. Asexual COPY_SELF remains the default
+        inheritance path; pass ``reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER``
+        to enable Phase B two-parent positional recombination.
 
         Literature grounding (software-capability only, not an Avida
         replacement): limited, depletable resources with partial inflow
@@ -317,8 +323,9 @@ class GenesisRuntimeProfile:
         eating credits runtime ATP, starvation at the configured floor records
         an explicit death reason, survivors that clear AliveGate and ATP gates
         can COPY_SELF, and children inherit a mutated copy of the parent
-        genome. This is not a proof of life, intelligence, instinct evolution,
-        or Avida-replacement status.
+        genome unless sexual crossover is explicitly enabled. This is not a
+        proof of life, intelligence, instinct evolution, or Avida-replacement
+        status.
         """
 
         if population <= 0:
@@ -328,9 +335,16 @@ class GenesisRuntimeProfile:
             world.place_resource(pos, LIFE_LOOP_RESOURCE_AMOUNT)
         waiter_count = 0 if population < 3 else max(1, population // 3)
         eater_count = population - waiter_count
-        genomes = tuple(
-            [LIFE_LOOP_EATER_GENOME] * eater_count + [LIFE_LOOP_WAITER_GENOME] * waiter_count
-        )
+        if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER and eater_count >= 2:
+            eater_b_count = eater_count // 2
+            eater_a_count = eater_count - eater_b_count
+            eater_genomes = (
+                [LIFE_LOOP_EATER_GENOME] * eater_a_count
+                + [LIFE_LOOP_EATER_B_GENOME] * eater_b_count
+            )
+        else:
+            eater_genomes = [LIFE_LOOP_EATER_GENOME] * eater_count
+        genomes = tuple(eater_genomes + [LIFE_LOOP_WAITER_GENOME] * waiter_count)
         capacity = max(population, 8)
         selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
         configs = PopulationConfigs(
@@ -342,6 +356,7 @@ class GenesisRuntimeProfile:
                 require_alive_result=True,
                 inheritance_policy=InheritancePolicy.DARWINIAN_GENETIC_ONLY,
                 offspring_placement=offspring_placement,
+                reproduction_mode=reproduction_mode,
             ),
             mutation=MutationConfig(bit_flip_rate=0.05),
             fitness=FitnessConfig(),
@@ -438,9 +453,21 @@ class GenesisRuntimeProfile:
                     "software_capability_and_runtime_observation_only_"
                     "not_life_intelligence_or_cooperation_proof"
                 ),
-                "phase_b_sexual_crossover": "deferred",
+                "phase_b_sexual_crossover": (
+                    "enabled"
+                    if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
+                    else "deferred"
+                ),
                 "phase_c_fluctuating_environment": "deferred",
                 "phase_d_instinct_claim_metrics": "hooks_only_not_implemented",
+                **(
+                    {
+                        "reproduction_mode": reproduction_mode.value,
+                        "inheritance_path": "two_parent_positional_crossover",
+                    }
+                    if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
+                    else {}
+                ),
             },
         )
 
@@ -470,6 +497,9 @@ class LifeLoopObservation:
     surviving_waiter_lineages: int
     remaining_resource_cells: int
     replay_digest: str
+    heritable_sexual_pairs: int = 0
+    recombinant_child_pairs: int = 0
+    two_parent_lineage_records: int = 0
     claim_ceiling: str = "runtime_observation"
     genesis_alive_full: bool = False
     phase_d_instinct_metrics: str = "hooks_only_not_implemented"
@@ -493,6 +523,9 @@ class LifeLoopObservation:
             "surviving_waiter_lineages": self.surviving_waiter_lineages,
             "remaining_resource_cells": self.remaining_resource_cells,
             "replay_digest": self.replay_digest,
+            "heritable_sexual_pairs": self.heritable_sexual_pairs,
+            "recombinant_child_pairs": self.recombinant_child_pairs,
+            "two_parent_lineage_records": self.two_parent_lineage_records,
             "claim_ceiling": self.claim_ceiling,
             "genesis_alive_full": self.genesis_alive_full,
             "phase_d_instinct_metrics": self.phase_d_instinct_metrics,
@@ -503,8 +536,10 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     """Extract eat/survive/reproduce observation counts from an engine result.
 
     Phase D may later attach multi-generation instinct metrics to this hook.
-    The current helper only reports runtime counts and asexual parent→child
-    relatedness. It does not evaluate intelligence or cooperation.
+    The current helper only reports runtime counts, asexual parent→child
+    relatedness, and optional two-parent recombination counts when sexual
+    lineage records are present. It does not evaluate intelligence or
+    cooperation.
     """
 
     ticks = getattr(result, "ticks", ())
@@ -572,10 +607,21 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     same_cell_births = 0
     eater_births = 0
     waiter_births = 0
+    sexual_pairs = 0
+    recombinant_pairs = 0
+    two_parent_records = 0
     for (parent_id, child_id, _birth_tick), lineage in seen_lineage.items():
         parent_bits = bits_by_id.get(parent_id, "")
         child_bits = bits_by_id.get(child_id, "")
-        if parent_bits and child_bits and _asexual_related(parent_bits, child_bits):
+        second_parent_id = getattr(lineage, "second_parent_id", None)
+        if second_parent_id:
+            two_parent_records += 1
+            mate_bits = bits_by_id.get(str(second_parent_id), "")
+            if parent_bits and mate_bits and child_bits:
+                sexual_pairs += 1
+                if child_bits != parent_bits and child_bits != mate_bits:
+                    recombinant_pairs += 1
+        elif parent_bits and child_bits and _asexual_related(parent_bits, child_bits):
             heritable_pairs += 1
         mutation_count = int(getattr(lineage, "mutation_count", 0) or 0)
         if (parent_bits and child_bits and parent_bits != child_bits) or mutation_count > 0:
@@ -612,6 +658,9 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         surviving_waiter_lineages=surviving_waiters,
         remaining_resource_cells=remaining_resource_cells,
         replay_digest=str(digest),
+        heritable_sexual_pairs=sexual_pairs,
+        recombinant_child_pairs=recombinant_pairs,
+        two_parent_lineage_records=two_parent_records,
     )
 
 

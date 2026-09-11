@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Phase J — replay-verified CI candidate packs
+
+CodonTrace Genesis measurement-first follow-on after Phase I (PR #14 @
+`6a0fe1a`). **Does not** claim intelligence, collective intelligence, Tokyo
+Type 1 passed, or Avida replacement. ClaimGate unchanged in the strict
+direction. No version bump. Phase A–E default digest pins stay stable.
+
+- Replay-verified CI candidate pack
+  (`build_replay_verified_ci_candidate_pack`): runs Phase I research-scale
+  earnable campaigns, independently re-executes them, and earns
+  `replay_verification` only when campaign digests match. Same-object
+  “replay” is rejected. Smoke never earns flags.
+- When every candidate flag is honestly earned at research scale,
+  ClaimGate **allows** `collective_intelligence_candidate`. Bare
+  `collective_intelligence` / proved CI stay forbidden.
+- Price-equation / Okasha covariance scaffold
+  (`run_price_equation_covariance_scaffold`): last-generation MLS1
+  between/within partition on the two-task analog; transmission term not
+  estimated; `major_transition_in_individuality=False`.
+- RAG corpus: Price 1970 Nature; Okasha 2006 digest updated.
+- Docs: `docs/PHASE_J_REPLAY_CI.md`.
+- Example: `examples/genesis_phase_j_replay_ci.py`.
+
 ### Phase I — collective-intelligence evidence harnesses
 
 CodonTrace Genesis measurement-first follow-on after Phase H (PR #13).

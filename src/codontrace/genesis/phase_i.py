@@ -20,6 +20,7 @@ import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -147,9 +148,17 @@ EARNABLE_FLAG_SOURCES: tuple[tuple[str, str], ...] = (
     ),
     (
         "replay_verification",
-        "Not earnable from Phase I harnesses; requires a real replay bundle",
+        "Independent digest re-execution (Phase J DigestReplayVerification) at "
+        "research scale when captured vs replayed campaign digests match. Never "
+        "from Phase I harnesses alone, never from smoke, never faked.",
     ),
 )
+
+
+class ReplayVerificationLike(Protocol):
+    """Duck type for Phase J ``DigestReplayVerification``. Avoids a circular import."""
+
+    def earns_replay_verification(self) -> bool: ...
 
 
 def _resolve_group_count(n_groups: int | None, *, smoke: bool) -> int:
@@ -1337,6 +1346,47 @@ def _scale_ok(
     return True, "research_scale"
 
 
+def _earn_replay_verification(
+    replay: ReplayVerificationLike | None,
+    *,
+    smoke: bool,
+    criteria: CandidateFlagEarnCriteria,
+) -> tuple[bool, str]:
+    """Honest replay flag: independent digest match at research scale, never smoke."""
+
+    if replay is None:
+        return False, "not_earnable_without_independent_digest_replay"
+    earns_fn = getattr(replay, "earns_replay_verification", None)
+    if not callable(earns_fn) or not bool(earns_fn()):
+        issues = tuple(getattr(replay, "issues", ()) or ())
+        if issues:
+            return False, str(issues[0])
+        if not bool(getattr(replay, "re_executed", False)):
+            return False, "replay_was_not_independently_re_executed"
+        if not bool(getattr(replay, "matched", False)):
+            return False, "replay_digests_did_not_match"
+        return False, "replay_verification_object_did_not_pass"
+    captures = tuple(getattr(replay, "captures", ()) or ())
+    if not captures:
+        return False, "replay_verification_missing_captures"
+    for capture in captures:
+        spec = getattr(capture, "spec", None)
+        if spec is None:
+            return False, "replay_capture_missing_spec"
+        seeds = tuple(getattr(spec, "seeds", ()) or ())
+        generations = int(getattr(spec, "generations", 0) or 0)
+        capture_smoke = bool(getattr(spec, "smoke", False))
+        ok, why = _scale_ok(
+            seed_count=len(seeds),
+            generations=generations,
+            smoke=smoke or capture_smoke,
+            criteria=criteria,
+        )
+        if not ok:
+            return False, why
+    return True, "earned_from_independent_digest_replay"
+
+
 def earn_collective_intelligence_candidate_flags(
     *,
     heldout: HeldoutUnfamiliarPartnerCampaign | None = None,
@@ -1344,20 +1394,26 @@ def earn_collective_intelligence_candidate_flags(
     mls: MlsEvolutionaryOutcomeCampaign | None = None,
     export_of_fitness: ExportOfFitnessObservation | None = None,
     communication_ablation: CommunicationAblationCampaign | None = None,
+    replay: ReplayVerificationLike | None = None,
     smoke: bool = False,
     criteria: CandidateFlagEarnCriteria | None = None,
 ) -> EarnedCandidateFlags:
     """Return flags that *may* be passed into ClaimGate. Never mutates the gate.
 
     Smoke and sub-research scale return all False. ``replay_verification`` is
-    never earned from Phase I harnesses. ``collective_intelligence`` stays
-    forbidden even if every candidate flag is later supplied by a researcher.
+    earned only from an independent digest re-execution object whose captured
+    and replayed campaign digests match at research scale. Phase I harnesses
+    alone never set it. ``collective_intelligence`` stays forbidden even if
+    every candidate flag is later supplied by a researcher.
     """
 
     resolved = criteria or CandidateFlagEarnCriteria()
     flags = {name: False for name in _CANDIDATE_FLAGS}
     reasons = {name: "not_earned" for name in _CANDIDATE_FLAGS}
-    reasons["replay_verification"] = "not_earnable_from_phase_i_requires_replay_bundle"
+    replay_ok, replay_why = _earn_replay_verification(replay, smoke=smoke, criteria=resolved)
+    reasons["replay_verification"] = replay_why
+    if replay_ok:
+        flags["replay_verification"] = True
 
     def _consider(seed_count: int, generations: int) -> tuple[bool, str]:
         return _scale_ok(
@@ -1494,6 +1550,7 @@ def phase_i_candidate_checklist(
     mls: MlsEvolutionaryOutcomeCampaign | None = None,
     export_of_fitness: ExportOfFitnessObservation | None = None,
     communication_ablation: CommunicationAblationCampaign | None = None,
+    replay: ReplayVerificationLike | None = None,
     smoke: bool = False,
 ) -> CollectiveIntelligenceCandidateChecklist:
     """Checklist over earned flags. Does not set ClaimGate state."""
@@ -1504,6 +1561,7 @@ def phase_i_candidate_checklist(
         mls=mls,
         export_of_fitness=export_of_fitness,
         communication_ablation=communication_ablation,
+        replay=replay,
         smoke=smoke,
     )
     checklist = collective_intelligence_candidate_checklist(earned.as_mapping())

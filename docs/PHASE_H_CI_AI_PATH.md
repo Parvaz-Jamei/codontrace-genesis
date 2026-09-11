@@ -17,6 +17,7 @@ and **do not set them**.
 
 Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I evidence harnesses),
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
@@ -139,3 +140,15 @@ unfamiliar-partner generalization, evolved (not assigned) DoL, and MLS
 scaffold that keeps `major_transition_in_individuality=False`. ClaimGate
 flags can be *earned* from research-scale evidence objects and are **never**
 auto-set from smokes. `collective_intelligence` stays blocked.
+
+---
+
+## 6. Phase J continues the evidence path
+
+Phase J ([`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md)) makes
+`replay_verification` earnable from independent campaign digest
+re-execution (never faked; smoke never earns) and adds a Price-equation /
+Okasha MLS1 covariance **snapshot**. When every candidate flag is honestly
+present at research scale, ClaimGate may allow
+`collective_intelligence_candidate`. Bare `collective_intelligence` stays
+forbidden.

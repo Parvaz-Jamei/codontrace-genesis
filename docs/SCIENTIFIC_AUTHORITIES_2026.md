@@ -25,6 +25,7 @@ Cross-links: [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) (MODES / Bedau),
 CodonTrace Genesis reality; not close to AGI),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) (Phase H RAG + CI pathway),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I CI evidence harnesses),
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
 [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
@@ -252,6 +253,8 @@ stable. ClaimGate is not weakened.
 | `run_evolved_division_of_labor_experiment` | Goldsby 2012; Gorelick 2004 NMI | **landed** evolved preference + ablation; not assigned tags; not 50-replicate PNAS | `runtime_observation` | `collective_intelligence` |
 | `run_mls_evolutionary_outcome_experiment` | Okasha 2006 MLS2; `DEME_GROUP` | **landed** majority-strategy contrast vs organism-only; not a rank table | `runtime_observation` | `collective_intelligence`; major transition |
 | `build_export_of_fitness_observation` | Michod 2007 PNAS; Szathmáry & Maynard Smith | **landed** scaffold; isolation collapse marked as payoff construction; `major_transition_in_individuality=False` | `runtime_observation` | major transition; `collective_intelligence` |
+| `build_replay_verified_ci_candidate_pack` | ClaimGate `replay_verification`; independent digest re-execution | **landed** Phase J; smoke never earns; same-object replay rejected | `runtime_observation`; `collective_intelligence_candidate` only with full earned flags | `collective_intelligence` |
+| `run_price_equation_covariance_scaffold` | Price 1970; Okasha 2006 MLS1 | **landed** last-generation between/within snapshot; no transmission term | `runtime_observation` | full Price paper; major transition; `collective_intelligence` |
 | `run_channon_avida_modes_shadow_suite` | Channon 2024; MODES `persistence_window_t`; Empirical shadow | **landed** window sweep + MODES digest + Tokyo JSON | `tokyo_type1_measurement_only` | Type 1 passed |
 | `SexualRecombinationConfig.diploid_meiosis` | avida.cfg `RECOMBINATION_GROUP` / `TWO_FOLD_COST_SEX`; Aevol-style homolog reduction | **landed** opt-in; default off | `runtime_observation` | Aevol-grade meiosis; biological diploidy |
 | `build_multi_generation_evidence_pack` hygiene | measurement integrity | **landed** `TypeError` on `None`/garbage; `reproduction_mode=None` coerces to asexual | error / software capability | silent zero metrics |
@@ -306,5 +309,5 @@ Use this on the completeness PR. All items must stay **honest**.
 
 See `CLAIMS.md`, `docs/PHASE_D_LITERATURE.md`, `docs/PHASE_E_LITERATURE.md`,
 `docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/PHASE_H_CI_AI_PATH.md`,
-`docs/PHASE_I_CI_EVIDENCE.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
+`docs/PHASE_I_CI_EVIDENCE.md`, `docs/PHASE_J_REPLAY_CI.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
 and `ScientificClaimGate`.

@@ -88,6 +88,7 @@ CodonTrace Genesis keeps the most important scientific boundaries in separate re
 | [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; CodonTrace Genesis is not close to AGI |
 | [`docs/PHASE_H_CI_AI_PATH.md`](docs/PHASE_H_CI_AI_PATH.md) | Phase H CI/AI pathway: RAG + runnable ablation/effect-size harnesses; ClaimGate stays blocked |
 | [`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) | Phase I CI evidence: heldout partners, evolved DoL, MLS outcome, export-of-fitness scaffold; flags earned never auto-set |
+| [`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay so `replay_verification` can be earned; Price-equation scaffold; candidate only, never proved CI |
 | [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus + retriever (measurement design, not intelligence evidence) |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | 2026 eval-bugfix → literature mapping (MODES, Channon Tokyo Type 1 *measurement only*, Avida 2.14.0, plasticity protocol). Not intelligence/OEE proof |
 | [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |

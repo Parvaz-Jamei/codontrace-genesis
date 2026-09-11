@@ -60,6 +60,24 @@ def test_hard_experiment_01_interventions_map_each_arm() -> None:
     assert all(item.to_dict()["collective_intelligence"] is False for item in mapped)
 
 
+def test_hard_experiment_01_replays_all_arms_for_endpoint_seeds() -> None:
+    campaign = run_hard_experiment_01(seed_count=2)
+    assert campaign.seeds[0] != campaign.seeds[-1]
+    assert campaign.replay_verified_seeds == (campaign.seeds[0], campaign.seeds[-1])
+    expected = {
+        (campaign.seeds[0], "source_bias_on"),
+        (campaign.seeds[0], "source_bias_off"),
+        (campaign.seeds[0], "capsules_off"),
+        (campaign.seeds[-1], "source_bias_on"),
+        (campaign.seeds[-1], "source_bias_off"),
+        (campaign.seeds[-1], "capsules_off"),
+    }
+    observed = {(item.seed, item.arm) for item in campaign.replay_records}
+    assert observed == expected
+    assert all(item.matched for item in campaign.replay_records)
+    assert campaign.replay_matched is True
+
+
 def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert RESEARCH_SEED_COUNT == 12
     campaign = run_hard_experiment_01()
@@ -69,6 +87,23 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert len(campaign.seeds) == 12
     assert campaign.claim_ceiling == CLAIM_CEILING
     assert campaign.replay_matched is True
+    assert campaign.replay_verified_seeds == (campaign.seeds[0], campaign.seeds[-1])
+    assert {item.arm for item in campaign.replay_records} == {
+        "source_bias_on",
+        "source_bias_off",
+        "capsules_off",
+    }
+    assert {item.seed for item in campaign.replay_records} == {
+        campaign.seeds[0],
+        campaign.seeds[-1],
+    }
+    assert len(campaign.replay_records) == 6
+    assert all(item.matched for item in campaign.replay_records)
+    last = campaign.seed_records[-1]
+    last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
+    last_replay_result = GenesisEngine.from_spec(last_replay_spec).run_ticks()
+    assert last_replay_spec.digest() == last.capsules_off.spec_digest
+    assert last_replay_result.digest() == last.capsules_off.result_digest
     assert replay_spec.digest() == first.spec_digest
     assert replay_result.digest() == first.result_digest
     assert campaign.to_dict()["collective_intelligence"] is False

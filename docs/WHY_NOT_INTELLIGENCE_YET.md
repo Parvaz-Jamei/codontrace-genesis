@@ -242,7 +242,7 @@ embodiment result. ASAL / CLIP foundation-model open-ended search
 
 ---
 
-## 8. Collective intelligence — first-class scientific gap (Phase F/H/I/J/K)
+## 8. Collective intelligence — first-class scientific gap (Phase F/H/I/J/K/L)
 
 This is the gap CodonTrace Genesis treats as **first-class** for Phase F/H/I
 engineering, still without promoting it to a proved result. Group fitness,
@@ -315,11 +315,14 @@ still never earns.
 | Phase K `run_goldsby_cpu_delay_specialist_campaign` | 0/25/50-cycle analog treatments; research default 50 replicates; isolation hooks | Goldsby 2012 PNAS | Not the PNAS experiment; isolation failure ≠ evolved autonomy loss |
 | Phase K `run_multi_generation_price_analysis` | multi-generation Price with transmission term | Price 1970/1972 | Estimated transmission; `price_equation_complete=False` |
 | Phase K `build_conflict_suppression_observation` | within-group variance, cheater, revertant hooks | Michod 2007 / Conlin 2023 | Endogenous flags stay False |
+| Phase L `evaluate_organism_messaging_group` | per-organism FIFO, faced-neighbor send, `block_propagation`, optional `maybe_replicate_demes` | ORGANISM_MESSAGING / `DEME_GROUP` | Analog, not Avida C++; ring facing ≠ grid |
+| Phase L `run_goldsby_aligned_specialist_campaign` | behavioral vs genotypic specialists, clonal DoL, colony-quota analog, isolation delta | Goldsby 2012 PNAS | Not the PNAS experiment; autonomy-loss flag stays False |
+| Phase L `feed_phase_k_coordination_ablation_evidence` | optional Phase K ablation → evidence object | Goldsby: communication must pay | Does **not** auto-set ClaimGate flags |
 | `CollectiveIntelligenceEvidenceReport` / heldout-partner objects | protocol scaffolds | social CI protocol | Do not auto-fill from a life-loop smoke |
 
 ### 8.4 What is still missing for literature-grade collective intelligence evidence
 
-| Missing experiment | Why it matters | Phase F/H/I/J/K status |
+| Missing experiment | Why it matters | Phase F/H/I/J/K/L status |
 |---|---|---|
 | Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` / Okasha MLS2: which strategy wins, not a rank table | Phase F `scaffold_only`; Phase H fitness Cohen's *d*; Phase I `run_mls_evolutionary_outcome_experiment` is **runnable** (two-task analog; `measured_runtime_observation`); Phase J Price snapshot is MLS1 bookkeeping, not MLS2 |
 | Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | Phase H harness **runnable**; Phase K evolved send/retrieve/broadcast analog can pay; ClaimGate `ablation_result` **not** set from smoke |
@@ -329,20 +332,21 @@ still never earns.
 | Export-of-fitness / transition in individuality | Michod; Szathmáry & Maynard Smith | Phase I scaffold; Phase K conflict/revertant **hooks**; endogenous flags stay False; `major_transition_in_individuality=False` |
 | Literature-scale cooperative-network evolution (GECCO 2008 germlines as a *result*) | soma/germline eligibility must be discovered, not assigned | tags remain gates |
 
-Phase K continues on those missing pieces as **engineering**. ClaimGate
+Phase L continues on those missing pieces as **engineering**. ClaimGate
 still rejects `collective_intelligence` and `proved_collective_intelligence`
 when a researcher only has messaging counts, a ledger digest, a rank table,
-a group-vs-individual delta, a RAG hit list, or a Phase I/J/K smoke. See
+a group-vs-individual delta, a RAG hit list, or a Phase I/J/K/L smoke. See
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md),
-[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md), and
-[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md).
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
+[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md), and
+[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md).
 
 ---
 
-## 9. Phase H/I/J/K continue — not an intelligence countdown
+## 9. Phase H/I/J/K/L continue — not an intelligence countdown
 
-Phase H/I/J/K are the next **library** increments after Phase F/G:
+Phase H/I/J/K/L are the next **library** increments after Phase F/G:
 
 - Keep A–E default digest pins stable.
 - Ship a literature RAG substrate (citable digests + TF-IDF retriever).
@@ -369,7 +373,13 @@ harness, multi-generation Price with a transmission term, and Michod/Conlin
 conflict-suppression hooks. Smoke never earns. See
 [`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md).
 
-Phase H/I/J/K are **not** “the AGI phase.” There is no evidence in this repository
+Phase L adds closer Avida ORGANISM_MESSAGING / `DEME_GROUP` analogs (still
+not a C++ port), Goldsby 2012-aligned specialist measurement (still not
+the PNAS experiment), and an optional Phase K ablation evidence feed that
+does not auto-set ClaimGate flags. Smoke never earns. See
+[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md).
+
+Phase H/I/J/K/L are **not** “the AGI phase.” There is no evidence in this repository
 that CodonTrace Genesis is close to AGI, and this document forbids that
 reading.
 
@@ -387,7 +397,7 @@ Allowed now (when evidence objects actually exist):
   complementarity, heldout familiar/unfamiliar, ablation, replay). Smoke
   campaigns do not set those flags.
 
-Still forbidden, including after Phase H/I/J/K instrumentation and RAG retrieval:
+Still forbidden, including after Phase H/I/J/K/L instrumentation and RAG retrieval:
 
 - `agi`, `consciousness`
 - `tokyo_type1_passed`, `channon_2024_passed`, `proved_open_endedness`

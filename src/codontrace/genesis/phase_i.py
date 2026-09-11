@@ -139,8 +139,10 @@ EARNABLE_FLAG_SOURCES: tuple[tuple[str, str], ...] = (
     ),
     (
         "ablation_result",
-        "EvolvedDivisionOfLaborCampaign or research-scale "
-        "CommunicationAblationCampaign with a measured payoff drop; never from smoke",
+        "EvolvedDivisionOfLaborCampaign, research-scale "
+        "CommunicationAblationCampaign, or research-scale Phase K "
+        "EvolvedCoordinationCampaign (Phase L evidence feed) with a measured "
+        "payoff drop; never from smoke; never auto-set",
     ),
     (
         "collective_report_digest",
@@ -159,6 +161,14 @@ class ReplayVerificationLike(Protocol):
     """Duck type for Phase J ``DigestReplayVerification``. Avoids a circular import."""
 
     def earns_replay_verification(self) -> bool: ...
+
+
+class CoordinationAblationLike(Protocol):
+    """Duck type for Phase K ``EvolvedCoordinationCampaign``. Avoids a circular import."""
+
+    seeds: Sequence[int]
+    generations: int
+    mean_ablation_drop: float
 
 
 def _resolve_group_count(n_groups: int | None, *, smoke: bool) -> int:
@@ -1394,6 +1404,7 @@ def earn_collective_intelligence_candidate_flags(
     mls: MlsEvolutionaryOutcomeCampaign | None = None,
     export_of_fitness: ExportOfFitnessObservation | None = None,
     communication_ablation: CommunicationAblationCampaign | None = None,
+    coordination: CoordinationAblationLike | None = None,
     replay: ReplayVerificationLike | None = None,
     smoke: bool = False,
     criteria: CandidateFlagEarnCriteria | None = None,
@@ -1509,6 +1520,24 @@ def earn_collective_intelligence_candidate_flags(
         else:
             reasons["ablation_result"] = "communication_ablation_did_not_show_payoff_drop"
 
+    if coordination is not None and not flags["ablation_result"]:
+        ok, why = _consider(len(tuple(coordination.seeds)), int(coordination.generations))
+        pays = float(coordination.mean_ablation_drop) > ABLATION_DROP_EPSILON
+        successful = sum(
+            int(getattr(item, "successful_retrieve", 0) or 0)
+            for item in tuple(getattr(coordination, "seed_records", ()) or ())
+        )
+        if ok and pays and successful > 0:
+            flags["ablation_result"] = True
+            reasons["ablation_result"] = (
+                "earned_from_research_scale_phase_k_coordination_ablation"
+            )
+        elif not ok:
+            if reasons["ablation_result"] == "not_earned":
+                reasons["ablation_result"] = why
+        else:
+            reasons["ablation_result"] = "coordination_ablation_did_not_show_payoff_drop"
+
     if mls is not None:
         ok, why = _consider(len(mls.seeds), mls.generations)
         research_scale = research_scale or ok
@@ -1550,6 +1579,7 @@ def phase_i_candidate_checklist(
     mls: MlsEvolutionaryOutcomeCampaign | None = None,
     export_of_fitness: ExportOfFitnessObservation | None = None,
     communication_ablation: CommunicationAblationCampaign | None = None,
+    coordination: CoordinationAblationLike | None = None,
     replay: ReplayVerificationLike | None = None,
     smoke: bool = False,
 ) -> CollectiveIntelligenceCandidateChecklist:
@@ -1561,6 +1591,7 @@ def phase_i_candidate_checklist(
         mls=mls,
         export_of_fitness=export_of_fitness,
         communication_ablation=communication_ablation,
+        coordination=coordination,
         replay=replay,
         smoke=smoke,
     )

@@ -21,6 +21,7 @@ Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
+[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md) (Phase L Avida-fidelity analogs),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
@@ -157,9 +158,11 @@ Print-only smoke: `examples/genesis_phase_k_ci_depth.py`.
 ## 7. What is still missing for literature-grade CI
 
 1. Avida C++ ORGANISM_MESSAGING / `DEME_GROUP` at literature scale (Phase K
-   is a discrete analog ISA).
+   is a discrete analog ISA; Phase L adds FIFO / facing / block / deme
+   replicate analogs — still not a C++ port).
 2. The actual Goldsby 2012 PNAS experiment (Avida CPU, clonal groups,
-   colony quota, 50× hardware).
+   colony quota, 50× hardware). Phase L records aligned *measurements*
+   (`is_goldsby_2012_pnas_experiment=False`).
 3. A published multi-generation Price paper; Avida `DEME_GROUP` MLS2.
 4. Endogenous conflict suppression, germline sequestration, and Conlin
    revertants that are not payoff construction.

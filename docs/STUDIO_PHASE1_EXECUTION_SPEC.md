@@ -1,6 +1,6 @@
 # CodonTrace Genesis Studio — Phase 1 Core-Safe Execution Spec
 
-Status: public beta handoff for `codontrace` `0.3.0b2`.
+Status: public beta handoff for `codontrace` `0.3.0b3`.
 
 This document is the Markdown companion to `docs/STUDIO_PHASE1_EXECUTION_SPEC.html`. Keep the HTML file for the designed handoff view and use this Markdown file for GitHub review, diffs, and PR discussion.
 
@@ -12,7 +12,7 @@ All Studio product work belongs in a separate `codontrace-studio` repository or 
 
 ## 2. Version and Python support
 
-The beta release identity is `0.3.0b2` and must stay aligned across:
+The beta release identity is `0.3.0b3` and must stay aligned across:
 
 - `pyproject.toml`
 - `src/codontrace/__init__.py`
@@ -87,7 +87,7 @@ Avoid confusing examples with a zero-tick run in official handoff docs.
 - `python tools/check_core_boundary.py` passes.
 - `python -m compileall -q src tests examples tools` passes.
 - Release tests and Genesis gates pass.
-- Wheel metadata reports `Version: 0.3.0b2`.
+- Wheel metadata reports `Version: 0.3.0b3`.
 - Clean wheel install can import `codontrace` and run a tiny `GenesisEngine` smoke test.
 - GitHub Actions validates Ubuntu, Windows, and macOS across Python `3.11`–`3.14`.
 

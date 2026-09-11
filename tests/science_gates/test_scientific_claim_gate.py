@@ -1,6 +1,20 @@
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 
 
+def test_intelligence_and_collective_intelligence_remain_blocked():
+    gate = ScientificClaimGate()
+    intelligence = gate.decide(ClaimRequest("intelligence", {}))
+    collective = gate.decide(ClaimRequest("collective_intelligence", {}))
+
+    assert intelligence.allowed is False
+    assert intelligence.decision == "rejected_unknown_claim"
+    assert "unknown_claim_not_whitelisted" in intelligence.failed_reasons
+
+    assert collective.allowed is False
+    assert collective.decision == "rejected_overclaim_alias"
+    assert "overclaim_alias_forbidden" in collective.failed_reasons
+
+
 def test_scientific_claim_gate_allows_only_light_claims_from_smoke():
     gate = ScientificClaimGate()
     foundation = gate.decide(ClaimRequest("foundation_engine", {}))

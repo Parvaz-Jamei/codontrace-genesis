@@ -1,4 +1,4 @@
-# GENESIS Compatibility Matrix — v0.3.0b2 beta unified-runtime
+# GENESIS Compatibility Matrix — v0.3.0b3 beta unified-runtime
 
 CodonTrace Genesis is not yet a proof of artificial life, AGI, consciousness, or open-ended autonomous discovery. It is a GENESIS-aligned research-beta foundation engine.
 

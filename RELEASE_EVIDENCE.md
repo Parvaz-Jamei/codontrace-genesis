@@ -1,15 +1,15 @@
 # Release Evidence
 
 Package: `codontrace`
-Version: `0.3.0b2`
+Version: `0.3.0b3`
 Status: beta research-software release candidate
-Release bundle: `codontrace-0.3.0b2-release-bundle.zip`
+Release bundle: `codontrace-0.3.0b3-release-bundle.zip`
 
 ## Scope
 
 This release packages the CodonTrace Genesis library as a deterministic, replay-aware research toolkit for digital-evolution and causal-mechanism experiments. It includes source code, tests, examples, docs, citation metadata, security/contribution policies, and CI/publish workflow templates.
 
-`0.3.0b2` ships science-gate hardening plus Phase A–E library surfaces, with later opt-in Phase F measurement completeness and Phase G named-materials overlay. Phase A–C and Phase E are opt-in substrates (life-loop ecology; sexual recombination; dynamic/fluctuating environment; capsule/memory/role/deme). Phase D is an opt-in measurement API. Phase G does not mutate legacy `World2D.resources`. Defaults stay off unless a caller selects those presets.
+`0.3.0b3` ships Phase F scientific-gap measurement, Phase G named-materials substrate, and post-F/G ClaimGate honesty hygiene on top of the `0.3.0b2` Phase A–E library. Phase A–C and Phase E are opt-in substrates (life-loop ecology; sexual recombination; dynamic/fluctuating environment; capsule/memory/role/deme). Phase D is an opt-in measurement API. Phase G does not mutate legacy `World2D.resources`. Defaults stay off unless a caller selects those presets. No intelligence, collective-intelligence, or chemistry-proved claims.
 
 ## Evidence gates expected before publishing
 

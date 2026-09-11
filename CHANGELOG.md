@@ -2,11 +2,25 @@
 
 ## Unreleased
 
+## 0.3.0b3 — Phase F scientific gaps, Phase G materials, ClaimGate honesty (2026-09-11)
+
+Public beta bump from `0.3.0b2`. Includes Phase F+#9 scientific-gap measurement, Phase G+#10 named-materials substrate, and post-F/G suite ClaimGate honesty hygiene (#11 @ `0a5ce17`). Product name **CodonTrace Genesis**. Package/import remains `codontrace`. License `AGPL-3.0-or-later`. This is not an Avida replacement and does not prove intelligence, collective intelligence, AGI, OEE, Tokyo Type 1, realistic chemistry, or wet-lab equivalence.
+
+### Release identity
+
+- Package version `0.3.0b3` (`pyproject.toml`, `codontrace.__version__`, `CITATION.cff`).
+- Aligned `RELEASE_LABEL` / `RELEASE_ARTIFACT_NAME` (and aliases), README / CLAIMS / RELEASE_EVIDENCE / BibTeX pins with that identity.
+
+### Notes (claim policy)
+
+- ClaimGate is unchanged in the strict direction. Bare `intelligence` is unknown/not whitelisted; `collective_intelligence` remains a forbidden overclaim alias.
+- Phase F/G are opt-in measurement/substrate layers. Research defaults stay unchanged unless a caller selects those presets.
+- No intelligence, collective-intelligence, or chemistry-proved claims.
+
 ### Docs / tests — honest claim ceilings after Phase F+#9 and Phase G+#10
 
 CodonTrace Genesis full-suite drift after those merges: tests expected strong
-pilot claims that runtime correctly denies. ClaimGate is unchanged. No version
-bump, tag, or PyPI publish.
+pilot claims that runtime correctly denies. ClaimGate is unchanged.
 
 - Official default memory delayed-reward and capsule-usefulness pilots still
   emit records, but tests now expect `pilot_fixture_not_strong_memory_claim`

@@ -56,7 +56,7 @@
       <p class="lead">این نسخه مخصوص برنامه‌نویس است و با ریپوی واقعی <code>codontrace-genesis-main.zip</code> تطبیق داده شده: Core باید research library مستقل، deterministic و dependency-free بماند؛ تمام UI، installer، WebSocket، Local API، Doctor و Code Import فقط در اپ جدا یعنی <code>codontrace-studio</code> ساخته می‌شوند.</p>
       <div class="meta">
         <span class="pill">Repo checked: codontrace-genesis-main.zip</span>
-        <span class="pill">Core version: 0.3.0b2</span>
+        <span class="pill">Core version: 0.3.0b3</span>
         <span class="pill">Python: 3.11–3.14 verified</span>
         <span class="pill">Latest stable checked: 3.14.5</span>
         <span class="pill">Core runtime deps: none</span>
@@ -87,7 +87,7 @@
       <table>
         <thead><tr><th>مورد</th><th>وضعیت واقعی</th><th>اثر روی فاز ۱</th></tr></thead>
         <tbody>
-          <tr><td>نسخه public beta</td><td><code>0.3.0b2</code> در <code>pyproject.toml</code></td><td>تمام manifestها، تست‌ها و docs جدید باید همین نسخه را هدف بگیرند.</td></tr>
+          <tr><td>نسخه public beta</td><td><code>0.3.0b3</code> در <code>pyproject.toml</code></td><td>تمام manifestها، تست‌ها و docs جدید باید همین نسخه را هدف بگیرند.</td></tr>
           <tr><td>لایسنس</td><td><code>AGPL-3.0-or-later</code></td><td>قبل از محصول closed-source یا SaaS باید license strategy مشخص شود.</td></tr>
           <tr><td>وابستگی runtime core</td><td><code>dependencies = []</code></td><td>این وضعیت باید حفظ شود؛ FastAPI/Tauri/React/uvicorn وارد core نشوند.</td></tr>
           <tr><td>UI/server/CLI در core</td><td>در <code>BACKLOG.md</code> و docs صراحتاً non-goal است.</td><td>Studio باید repo/app جدا باشد. Core فقط API خالص Python بدهد.</td></tr>
@@ -95,7 +95,7 @@
           <tr><td>Engine result</td><td><code>GenesisRunResult.engine_frames</code> سطح public دارد.</td><td>برای replay/batch مناسب است؛ برای live سریع باید primitive incremental اضافه شود یا fallback کندتر داشته باشیم.</td></tr>
           <tr><td>WebSocket/FastAPI</td><td>در core وجود ندارد.</td><td>نباید اضافه شود؛ فقط <code>codontrace-studio</code> Local API آن را می‌سازد.</td></tr>
           <tr><td>CLI entry point</td><td>در <code>pyproject.toml</code> وجود ندارد.</td><td>Doctor/Bootstrapper/Installer CLI باید در Studio باشد، نه core.</td></tr>
-          <tr><td>Version drift</td><td>هویت release جاری باید فقط <code>0.3.0b2</code> باشد؛ ارجاع‌های alpha فقط اگر historical/provenance fixture باشند مجازند.</td><td>تست‌های release identity و docs checklist باید current beta را هدف بگیرند.</td></tr>
+          <tr><td>Version drift</td><td>هویت release جاری باید فقط <code>0.3.0b3</code> باشد؛ ارجاع‌های alpha فقط اگر historical/provenance fixture باشند مجازند.</td><td>تست‌های release identity و docs checklist باید current beta را هدف بگیرند.</td></tr>
           <tr><td>Python support</td><td><code>>=3.11,&lt;3.15</code>؛ latest stable بررسی‌شده <code>3.14.5</code></td><td>CI روی <code>3.11</code>، <code>3.12</code>، <code>3.13</code> و <code>3.14</code> برای Windows/Linux/macOS smoke شود.</td></tr>
         </tbody>
       </table>
@@ -121,7 +121,7 @@
 # این چک با ast importها را بررسی می‌کند و با mention داخل docstring/comment اشتباه نمی‌گیرد.
 python tools/check_core_boundary.py
 python -m compileall -q src tests examples tools
-python -c "import codontrace; assert codontrace.__version__ == '0.3.0b2'"</code></pre>
+python -c "import codontrace; assert codontrace.__version__ == '0.3.0b3'"</code></pre>
     </section>
 
     <section id="phase-goal" class="section">
@@ -180,7 +180,7 @@ codontrace-studio  [separate product repo]
       <table>
         <thead><tr><th>کار</th><th>شرح</th><th>قبولی</th></tr></thead>
         <tbody>
-          <tr><td>پاکسازی release identity</td><td>هر ارجاع فعال به alpha در docs release/publishing حذف شود؛ alpha فقط در history و fixtureهای explicit مجاز است.</td><td>تست نسخه و docs smoke با <code>0.3.0b2</code> align شود.</td></tr>
+          <tr><td>پاکسازی release identity</td><td>هر ارجاع فعال به alpha در docs release/publishing حذف شود؛ alpha فقط در history و fixtureهای explicit مجاز است.</td><td>تست نسخه و docs smoke با <code>0.3.0b3</code> align شود.</td></tr>
           <tr><td>افزودن <code>tools/check_core_boundary.py</code></td><td>boundary با <code>ast</code> بررسی شود، نه raw text search؛ import واقعی FastAPI/Tauri/WebSocket ممنوع است ولی توضیح متنی مجاز می‌ماند.</td><td><code>tests/release/test_core_boundary_ast_guard.py</code> هم false-positive و هم import واقعی را تست کند.</td></tr>
           <tr><td>افزودن <code>docs/STUDIO_BOUNDARY.md</code></td><td>مرز رسمی: no UI/server/CLI in core، no private internals، no dynamic code execution in core.</td><td>PR checklist و CI gate داشته باشد.</td></tr>
           <tr><td>گسترش <code>GENESIS_API_FOR_UI.md</code></td><td>این فایل فقط contract مصرف‌کننده را توضیح دهد؛ هیچ UI framework پیشنهاد نکند.</td><td>نمونه کدها importable و dependency-free باشند.</td></tr>
@@ -304,7 +304,7 @@ PY</code></pre>
   "schema_version": "codontrace_studio_install_manifest_v1",
   "install_channel": "pypi|private-mirror|offline-wheelhouse|local-dev",
   "package_name": "codontrace",
-  "version_pin": "0.3.0b2",
+  "version_pin": "0.3.0b3",
   "python_requires": ">=3.11,<3.15",
   "venv_strategy": "uv-managed-isolated-venv",
   "lockfile": "uv.lock",
@@ -480,7 +480,7 @@ stats.print_stats(30)</code></pre>
 
 A) codontrace-genesis core-safe PRs
    1. Add docs/STUDIO_BOUNDARY.md
-   2. Clean current release identity around 0.3.0b2; keep old alpha only as explicit historical provenance
+   2. Clean current release identity around 0.3.0b3; keep old alpha only as explicit historical provenance
    3. Expand docs/GENESIS_API_FOR_UI.md as a pure object contract
    4. Add AST-based core-boundary CI gate: no real FastAPI/Tauri/UI/server imports in src/codontrace
    5. Add cross-OS smoke CI for Windows/Linux/macOS across Python 3.11, 3.12, 3.13, and 3.14

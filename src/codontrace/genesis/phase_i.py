@@ -178,7 +178,7 @@ def _resolve_group_count(n_groups: int | None, *, smoke: bool) -> int:
 
 
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
-    """Deterministic seed tuple. Research default is 12; smoke may pass 2."""
+    """Deterministic seed tuple. 12 is exploratory; research-grade n is 30; smoke may pass 2."""
 
     count = int(seed_count)
     if count < 2:

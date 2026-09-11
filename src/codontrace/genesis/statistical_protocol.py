@@ -453,6 +453,12 @@ from codontrace.genesis.canonical import (
 
 @dataclass(frozen=True, slots=True)
 class StatisticalTestPolicy:
+    """Seed-count tiers for descriptive vs research-grade language.
+
+    n=12 is ``exploratory_only`` (smoke / exploratory). Research-grade
+    language requires ``n >= min_research_grade_n`` (default 30).
+    """
+
     paired: bool = True
     ci_method: str = "bca_bootstrap"
     test_name: str = "paired_permutation"

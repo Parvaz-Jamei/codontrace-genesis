@@ -47,7 +47,7 @@ accepts a `DigestReplayVerification` object. The flag is True only when
    (or received a **different object** produced by a separate run).
 2. Every captured campaign digest equals the corresponding replay digest.
 3. Digests are real SHA-256 evidence digests (not `fake` / `placeholder`).
-4. The captured specs are research-scale (`seed_count>=12`,
+4. The captured specs are at least exploratory-scale (`seed_count>=12`,
    `generations>=20`) and `smoke=False`.
 
 Passing the same Python object as both capture and replay is **not**
@@ -74,7 +74,8 @@ It does **not** allow:
 
 Smoke (`seed_count=2`, `generations=6`) never reaches this bar.
 
-Research defaults remain `seed_count=12`, `generations=20`.
+Library default `seed_count=12` is exploratory; research-grade n is 30.
+`generations=20` stays the library default.
 
 ---
 

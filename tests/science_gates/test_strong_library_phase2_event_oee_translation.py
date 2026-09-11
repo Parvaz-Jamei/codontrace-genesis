@@ -76,6 +76,8 @@ def test_statistical_policy_paired_rules_and_required_claim_inputs():
     policy = StatisticalTestPolicy()
     assert policy.ci_method == "bca_bootstrap"
     assert policy.tier_for_n(7) == "descriptive_only"
+    assert policy.tier_for_n(12) == "exploratory_only"
+    assert policy.tier_for_n(30) == "research_grade_benchmark_candidate"
     assert choose_paired_test(policy, paired=True) == "paired_permutation"
     assert not validate_statistical_claim_inputs(
         p_value=0.01,

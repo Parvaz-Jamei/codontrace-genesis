@@ -9,7 +9,9 @@ One measurement question, not a new Phase letter. Three paired arms:
 - ``capsules_off``: transfer disabled (ablation of the capsule channel)
 
 Outcome: last-tick mean organism fitness after a life-loop that can birth.
-Research default is 12 paired seeds. Claim ceiling is ``runtime_observation``.
+Default seed_count=12 is smoke / exploratory
+(``StatisticalTestPolicy.tier_for_n(12) == "exploratory_only"``).
+Research-grade n is 30. Claim ceiling is ``runtime_observation``.
 ``ScientificClaimGate`` still blocks intelligence / collective_intelligence /
 AGI / tokyo_type1_passed / avida_replacement.
 
@@ -122,7 +124,7 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
 
 
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
-    """Deterministic seed tuple. Research default is 12."""
+    """Deterministic seed tuple. 12 is smoke/exploratory; research-grade n is 30."""
 
     count = int(seed_count)
     if count < 2:
@@ -654,7 +656,7 @@ def run_hard_experiment_01(
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
 ) -> HardExperiment01Campaign:
-    """Paired 12-seed source-bias campaign. Research default seed_count=12."""
+    """Paired source-bias campaign. Default seed_count=12 is exploratory; research n=30."""
 
     seed_tuple = _resolve_seeds(seeds, seed_count, default_count=RESEARCH_SEED_COUNT)
     records: list[HardExperiment01SeedRecord] = []

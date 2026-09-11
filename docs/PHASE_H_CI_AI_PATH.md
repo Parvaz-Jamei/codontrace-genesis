@@ -27,7 +27,7 @@ Phase L: [`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md).
 |---|---|---|
 | Literature RAG (`codontrace.genesis.rag`) | Ingest + keyword/TF-IDF/hash search over citable digests | Retrieving a paper is not evidence |
 | Communication ablation harness | Messaging on vs off, multi-seed, Cohen's *d* | Status `measured_runtime_observation`; does **not** set `ablation_result` |
-| Group-vs-individual effect-size campaign | Configurable `seed_count` (research default **12**, smoke **2**) | Delta is group fitness, not intelligence |
+| Group-vs-individual effect-size campaign | Configurable `seed_count` (library default **12** = smoke/exploratory; research-grade **30**; tiny smoke **2**) | Delta is group fitness, not intelligence |
 | Task-switching cost hook | Goldsby 2012 analog reweights DoL fitness shares | Not a 50-replicate PNAS experiment; not evolved DoL |
 | Candidate checklist printer | Lists missing ClaimGate flags | Printing ≠ unlocking |
 
@@ -83,7 +83,7 @@ measurements*; they remain insufficient for `collective_intelligence`.
    Still missing: literature-scale *N*, evolved instructions (not a buffer).
 2. **Group-over-individual evolutionary outcome** — deme-level selection
    changes lineage outcome vs organism-only, ≥12 seeds, effect size.
-   Harness: `run_group_vs_individual_effect_size_campaign` (research default 12).
+   Harness: `run_group_vs_individual_effect_size_campaign` (library default 12 = exploratory; research-grade 30).
    Still missing: true MLS treatment vs ranking; heldout partners.
 3. **Task-switching costs drive DoL** — Goldsby 2012 sweep. Hook:
    `apply_task_switching_cost_to_dol`. Still missing: evolved specialists and

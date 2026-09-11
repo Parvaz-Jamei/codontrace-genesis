@@ -52,7 +52,8 @@ reverse) pays extra. Ablation sets `can_message=False` on the same genomes.
 This is how communication *pays* in the analog. It is still not Avida
 hardware, not evolved language, and not `collective_intelligence`.
 
-Research defaults remain `seed_count=12`, `generations=20`. Smoke: `2` seeds,
+Library default `seed_count=12` is exploratory; research-grade n is 30.
+`generations=20` stays the library default. Smoke: `2` seeds,
 `6` generations.
 
 ---

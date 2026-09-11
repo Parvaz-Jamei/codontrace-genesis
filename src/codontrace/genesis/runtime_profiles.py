@@ -550,6 +550,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     respawns = 0
     starvation_deaths = 0
     remaining_resource_cells = 0
+    recombination_proof = 0
     bits_by_id: dict[str, str] = {}
     position_by_id: dict[str, tuple[int, int]] = {}
     seen_lineage: dict[tuple[str, str, int], object] = {}
@@ -577,6 +578,26 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
             )
             if reason in {"starvation", "insufficient_atp"}:
                 starvation_deaths += 1
+        for record in getattr(generation, "organism_records", ()):
+            reproduction = getattr(record, "reproduction_result", None)
+            recombination = None if reproduction is None else getattr(
+                reproduction, "recombination_record", None
+            )
+            if recombination is None:
+                continue
+            start = int(getattr(recombination, "start_index", 0) or 0)
+            end = int(getattr(recombination, "end_index", 0) or 0)
+            parent_a_bits = getattr(recombination, "parent_a_bits", "") or ""
+            parent_b_bits = getattr(recombination, "parent_b_bits", "") or ""
+            child_pre = getattr(recombination, "child_genome_bits", "") or ""
+            if (
+                parent_a_bits
+                and parent_b_bits
+                and child_pre
+                and parent_a_bits[start:end] != parent_b_bits[start:end]
+                and child_pre[start:end] == parent_b_bits[start:end]
+            ):
+                recombination_proof += 1
         for trace in getattr(generation, "traces", ()):
             for event in getattr(trace, "events", ()):
                 if event.action == "EAT_LUMEN" and (
@@ -608,7 +629,6 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     eater_births = 0
     waiter_births = 0
     sexual_pairs = 0
-    recombinant_pairs = 0
     two_parent_records = 0
     for (parent_id, child_id, _birth_tick), lineage in seen_lineage.items():
         parent_bits = bits_by_id.get(parent_id, "")
@@ -616,11 +636,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         second_parent_id = getattr(lineage, "second_parent_id", None)
         if second_parent_id:
             two_parent_records += 1
-            mate_bits = bits_by_id.get(str(second_parent_id), "")
-            if parent_bits and mate_bits and child_bits:
-                sexual_pairs += 1
-                if child_bits != parent_bits and child_bits != mate_bits:
-                    recombinant_pairs += 1
+            sexual_pairs += 1
         elif parent_bits and child_bits and _asexual_related(parent_bits, child_bits):
             heritable_pairs += 1
         mutation_count = int(getattr(lineage, "mutation_count", 0) or 0)
@@ -659,7 +675,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         remaining_resource_cells=remaining_resource_cells,
         replay_digest=str(digest),
         heritable_sexual_pairs=sexual_pairs,
-        recombinant_child_pairs=recombinant_pairs,
+        recombinant_child_pairs=recombination_proof,
         two_parent_lineage_records=two_parent_records,
     )
 

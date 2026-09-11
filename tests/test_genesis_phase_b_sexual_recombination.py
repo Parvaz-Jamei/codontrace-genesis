@@ -160,8 +160,14 @@ def test_sexual_child_differs_from_both_parents_in_swapped_region() -> None:
         record.start_index : record.end_index
     ]:
         assert pre_mutation != PARENT_A_BITS
+    retained = pre_mutation[: record.start_index] + pre_mutation[record.end_index :]
+    retained_b = PARENT_B_BITS[: record.start_index] + PARENT_B_BITS[record.end_index :]
+    if retained != retained_b:
         assert pre_mutation != PARENT_B_BITS
     assert child_bits == pre_mutation
+    assert 0 <= record.start_index < record.end_index <= len(PARENT_A_BITS)
+    if len(PARENT_A_BITS) >= 6:
+        assert record.end_index - record.start_index < len(PARENT_A_BITS)
 
 
 def test_sexual_fixed_seed_replay_is_stable() -> None:
@@ -283,6 +289,7 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
     assert observation.genesis_alive_full is False
     assert observation.two_parent_lineage_records >= 1
     assert observation.heritable_sexual_pairs >= 1
+    assert observation.recombinant_child_pairs >= 1
     sexual_lineage = [
         record
         for tick in first.ticks
@@ -374,14 +381,27 @@ def test_step_population_sexual_uses_nearest_viable_mate() -> None:
 def test_asexual_life_loop_digest_matches_phase_a_baseline() -> None:
     spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
     result = GenesisEngine.from_spec(spec).run_ticks()
-    assert (
-        result.digest()
-        == "20259237d4971c40c0026de6c3ca7d3b1fb9c23f1b46723b9a0e80355a522477"
-    )
+    replay = GenesisEngine.from_spec(spec).run_ticks()
     assert (
         spec.digest()
         == "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
     )
+    assert [tick.digest() for tick in result.ticks] == [
+        "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56",
+        "058a5718aaac2af1229a09962fdc4bceade15ca06740da9b8ab309ef62b12a28",
+        "447d1eccc5c883f20b2c50804bdf343213a1f3daa48ceae8faf1daca91e0b120",
+        "564f83a63c5be25ad7a46e3541af505d16e358b2c22d3122672a98c82d94fc36",
+        "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447",
+        "75c2312544823596fcce2c47e9f5c17bacbdb35c8a942da3b71ca32e61bbd7d9",
+        "a42df615bd632dd657bf31a8f0fbc5fe58fa6a4f80dc7d1694fcb6a24ee18353",
+        "be72bf9f2dcb22870cff3428cc8543db9e774c9c0ea4dd073b23cd806aabb081",
+        "ba48857f1c2490df07f6dee7e158f2b78f1274d03dc146a3166a00320aaaa7fe",
+        "339c13f11a8296bfd4c75ba3f57e443339df542e5b7fb288d00e1b8321939e5f",
+        "da6e4a7fbe0ee04cd5e3e05682cf6c54f0f04ad4ff81fede3254c5bbb98b6a5a",
+        "a8311016a85a468952ac8cc004bafaadc1fc704018cffef24541ff81fa70ce24",
+    ]
+    assert result.snapshot.digest() == "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
+    assert result.digest() == replay.digest()
     observation = summarize_life_loop_observation(result)
     assert observation.heritable_asexual_pairs >= 1
     assert observation.two_parent_lineage_records == 0

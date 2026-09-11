@@ -1080,8 +1080,15 @@ def choose_positional_crossover_window(
     aligned = overlap_bits - (overlap_bits % codon_width)
     _require(aligned >= codon_width, "recombination requires at least one overlapping codon.")
     codon_count = aligned // codon_width
+    if codon_count == 1:
+        return 0, codon_width
+    # Leave at least one codon from the initiating parent so a two-codon-or-longer
+    # overlap yields a mosaic rather than a full copy of the mate.
     start_codon = rng.randrange(codon_count)
-    length_codons = rng.randrange(1, codon_count - start_codon + 1)
+    max_len = codon_count - start_codon
+    if start_codon == 0:
+        max_len -= 1
+    length_codons = rng.randrange(1, max_len + 1)
     start_index = start_codon * codon_width
     end_index = (start_codon + length_codons) * codon_width
     return start_index, end_index

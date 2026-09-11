@@ -27,6 +27,7 @@ CodonTrace Genesis reality; not close to AGI),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I CI evidence harnesses),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
 [`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md) (Phase K CI-depth measurements),
+[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md) (Phase L Avida-fidelity analogs),
 [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
@@ -63,7 +64,7 @@ objects are opt-in library APIs.
 |---|---|---|---|
 | Clune 2007; Lalejini & Ofria 2016 | Phenotypic plasticity in digital evolution / fluctuating environments | Phase C fluctuating env + Phase E `sense-react` / `read_environment_cue` | **partial** (substrate + protocol, not evolved-plasticity proof) |
 | Frontiers 2021 Adaptive Phenotypic Plasticity | Four Ghalambor conditions as experimental-design checklist | `PlasticityProtocolSpec` / `GHALAMBOR_CLUNE_CONDITIONS` | **landed** as checklist object |
-| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign + Phase H communication-ablation / effect-size harnesses + Phase I heldout-partner / evolved-DoL / MLS-outcome analogs | **partial** (group fitness / `runtime_observation`; Phase F heldout `not_run`; Phase I heldout/DoL/MLS harnesses are measurement-only and do not auto-set ClaimGate flags from smoke; `collective_intelligence` blocked) |
+| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign + Phase H communication-ablation / effect-size harnesses + Phase I heldout-partner / evolved-DoL / MLS-outcome analogs + Phase K instruction analog + Phase L FIFO/facing/block/`DEME_GROUP` analog | **partial** (group fitness / `runtime_observation`; Phase F heldout `not_run`; Phase I–L harnesses are measurement-only and do not auto-set ClaimGate flags from smoke; analog ≠ Avida C++; `collective_intelligence` blocked) |
 | GECCO 2008 digital germlines | Cooperative networks / germline replication | Role / propagule-eligibility tags; germline copy on deme replicate when enabled | **partial** (gates + recorded payoff, not evolved division of labor) |
 | Am Nat 2020 associative learning | Learning in Avida | Capsule/memory slots with **real** subsequent action/ATP/task effects; opt-in `LearningCausalPayoffPack` (cue→action→ATP, ablation, ≥2 seeds) | **partial** (protocol instrumentation; `instinct_improved` stays gated; not proved learning) |
 | PLOS One odometry case study | Navigation / odometry in digital organisms | Same capsule/memory mapping via the learning-payoff protocol | **partial** (hooks vs proved learning) |
@@ -89,8 +90,8 @@ Authoritative live tree: [`devosoft/avida`](https://github.com/devosoft/avida)
 | `REPRODUCTION` / `BIRTH_METHOD` / `PREFER_EMPTY` | How offspring are placed; prefer empty cells | **landed** (life-loop default `ADJACENT_FREE`; `SAME_CELL` and `REPLACE_OCCUPIED` explicit) | `OffspringPlacementPolicy`, `ReproductionConfig` |
 | World / `POPULATION_CAP` > founders | Room to birth (grid not filled at t=0; do not set `POPULATION_CAP` equal to current *N*) | **landed** (pop&lt;8 keeps historical `capacity=8` on 6×4; `population >= 8` uses `max(pop*2, 16)` and a widened world) | `GenesisRuntimeProfile.life_loop_world` |
 | `RECOMBINATION_GROUP` (`RECOMBINATION_PROB`, `SAME_LENGTH_SEX`, `TWO_FOLD_COST_SEX`, `MAX_BIRTH_WAIT_TIME`) | Sexual recombination / birth chamber | **landed** (opt-in) | `ReproductionMode.SEXUAL_CROSSOVER`, `SexualRecombinationConfig` |
-| `DEME_GROUP` / `GERMLINE` / GermlineReplication | Group/deme replication; germline vs soma | **partial** | Phase E `DemeConfig`, `RoleKind`, deme-replication event |
-| `ORGANISM_MESSAGING` | Send/retrieve/broadcast/block | **partial** | Phase E Goldsby-style buffer |
+| `DEME_GROUP` / `GERMLINE` / GermlineReplication | Group/deme replication; germline vs soma | **partial** | Phase E `DemeConfig`, `RoleKind`, deme-replication event; Phase L `maybe_replicate_demes` analog from the messaging campaign |
+| `ORGANISM_MESSAGING` | Send/retrieve/broadcast/block | **partial** | Phase E Goldsby-style buffer; Phase L per-organism FIFO / facing send / `block_propagation` analog (not Avida C++) |
 | `ENERGY` | Energy/ATP metabolism | **partial** | Dual ATP + basal drain on life-loop preset |
 | `SENSING` | Environmental cues | **partial** | Phase C snapshots + Phase E `read_environment_cue` |
 | `RESOURCE` chemostat (`initial` / `inflow` / `outflow`) | Limited resources; Avida-ED chemostat/periodic literature | **landed** (opt-in Phase C); named-material extension **landed** (opt-in Phase G) | `ResourceSpec`, `EnvironmentConfig`; `MaterialSpec` / `MaterialsConfig` |
@@ -310,5 +311,5 @@ Use this on the completeness PR. All items must stay **honest**.
 
 See `CLAIMS.md`, `docs/PHASE_D_LITERATURE.md`, `docs/PHASE_E_LITERATURE.md`,
 `docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/PHASE_H_CI_AI_PATH.md`,
-`docs/PHASE_I_CI_EVIDENCE.md`, `docs/PHASE_J_REPLAY_CI.md`, `docs/PHASE_K_CI_DEPTH.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
+`docs/PHASE_I_CI_EVIDENCE.md`, `docs/PHASE_J_REPLAY_CI.md`, `docs/PHASE_K_CI_DEPTH.md`, `docs/PHASE_L_AVIDA_FIDELITY.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
 and `ScientificClaimGate`.

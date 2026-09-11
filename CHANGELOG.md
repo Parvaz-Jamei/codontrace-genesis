@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Phase L — Avida ORGANISM_MESSAGING / DEME_GROUP fidelity
+
+CodonTrace Genesis measurement-first follow-on after Phase K (`2614ec4`).
+**Does not** claim intelligence, collective intelligence, Tokyo Type 1
+passed, or Avida replacement. ClaimGate unchanged in the strict
+direction. No version bump. Phase A–E default digest pins stay stable.
+
+- ORGANISM_MESSAGING analog
+  (`evaluate_organism_messaging_group` /
+  `run_organism_messaging_fidelity_experiment`): per-organism FIFO
+  retrieve, faced-neighbor send, `rotate_cw`, `block_propagation`, Phase E
+  `DemeState` audit. Analog ISA, not Avida C++.
+- `DEME_GROUP` analog: optional `maybe_replicate_demes` with extra target
+  deme / germline copy recorded. Not avida.cfg hardware.
+- Goldsby 2012-aligned specialist measurement
+  (`run_goldsby_aligned_specialist_campaign`): behavioral vs genotypic
+  specialists, clonal-group DoL, colony-quota analog, ancestral vs evolved
+  isolation, delay dose-response. `is_goldsby_2012_pnas_experiment=False`.
+- Optional Phase K coordination-ablation evidence feed
+  (`feed_phase_k_coordination_ablation_evidence`): never auto-sets
+  ClaimGate flags; smoke never earns.
+- RAG corpus: `avida_cfg_organism_messaging`, `avida_cfg_deme_group`;
+  Goldsby messaging / 2012 digests updated.
+- Docs: `docs/PHASE_L_AVIDA_FIDELITY.md`.
+- Example: `examples/genesis_phase_l_avida_fidelity.py`.
+
 ### Phase K — literature-grade CI depth
 
 CodonTrace Genesis measurement-first follow-on after Phase J (`899addc`).

@@ -23,14 +23,14 @@ The Goldsby/Ofria Avida line treats communication and germline/soma architecture
 
 ## What CodonTrace Genesis has
 
-Messaging buffer; role gates; Phase H communication-ablation harness; Phase I heldout/MLS analogs; Phase K evolved send/retrieve/broadcast instruction genomes on the Phase E buffer with ablation that can drop coordination payoff.
+Messaging buffer; role gates; Phase H communication-ablation harness; Phase I heldout/MLS analogs; Phase K evolved send/retrieve/broadcast instruction genomes on the Phase E buffer; Phase L per-organism FIFO / faced-neighbor send / `block_propagation` / `DEME_GROUP` analog via `maybe_replicate_demes`.
 
 ## What CodonTrace Genesis lacks
 
-Avida C++ ORGANISM_MESSAGING / DEME_GROUP; evolved language; evolved germline/soma networks.
+Avida C++ ORGANISM_MESSAGING / DEME_GROUP; grid neighborhoods; evolved language; evolved germline/soma networks.
 
 ## Next experiment
 
-How to get collective intelligence evidence: Phase K `run_evolved_coordination_instruction_experiment` at research scale; never set ClaimGate flags from smoke.
+How to get collective intelligence evidence: Phase L `run_organism_messaging_fidelity_experiment` at research scale; never set ClaimGate flags from smoke.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

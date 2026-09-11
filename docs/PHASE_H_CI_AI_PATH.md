@@ -19,6 +19,7 @@ Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I evidence harnesses),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
 [`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md) (Phase K CI-depth measurements),
+[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md) (Phase L Avida-fidelity analogs),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
@@ -59,8 +60,10 @@ Print-only smoke: `examples/genesis_rag_query.py`.
 | `doc_id` | Authority | CodonTrace Genesis has | Lacks / next |
 |---|---|---|---|
 | `miikkulainen_forrest_2021_nature_mi` | Nature MI 2021 EC vs biology | Life-loop, QD, measurement | Biological-scale *N*, weak selection, evolved G→P, major transitions |
-| `goldsby_2012_pnas_task_switching` | PNAS 2012 task-switching → DoL | Cost hook + DoL *metrics* | 50-replicate evolved specialists; isolation-vs-group competence |
-| `goldsby_ofria_avida_messaging_germline` | Messaging / GermlineReplication / GECCO 2008 | Buffer + gates + ablation **harness** | Evolved coordination that pays; evolved germline networks |
+| `goldsby_2012_pnas_task_switching` | PNAS 2012 task-switching → DoL | Phase K/L analog harness + aligned specialist *measurement* | The PNAS experiment itself; evolved autonomy loss |
+| `goldsby_ofria_avida_messaging_germline` | Messaging / GermlineReplication / GECCO 2008 | Buffer + Phase K/L instruction analog + ablation | Avida C++; evolved germline networks |
+| `avida_cfg_organism_messaging` | Avida ORGANISM_MESSAGING inst-set | Phase L FIFO / facing / block analog | C++ hardware; grid neighborhood |
+| `avida_cfg_deme_group` | avida.cfg `DEME_GROUP` / wiki Deme-introduction | Phase L `maybe_replicate_demes` analog | C++ deme hardware; MLS2 |
 | `channon_2024_tokyo_type1` | Channon 2024 procedure | Measurement steps | Type 1 **pass** |
 | `soros_stanley_2014_chromaria` | Chromaria OEE conditions | AliveGate / spatial / Phase C | Four-condition knock-out; unbounded phenotype |
 | `stanley_2017_open_endedness_creative_intelligence` | Open-endedness as creative-intelligence component | MODES/Bedau/QD instruments | Creative intelligence as a result |

@@ -204,7 +204,7 @@ def test_checklist_documents_earnable_flag_sources() -> None:
         "replay_verification",
     }
     replay = dict(EARNABLE_FLAG_SOURCES)["replay_verification"]
-    assert "Not earnable from Phase I" in replay
+    assert "Never from Phase I harnesses alone" in replay
 
 
 def test_phase_i_public_api_bindings() -> None:
@@ -221,6 +221,7 @@ def test_phase_i_public_api_bindings() -> None:
         "MlsEvolutionaryOutcomeCampaign",
         "ExportOfFitnessObservation",
         "EarnedCandidateFlags",
+        "ReplayVerificationLike",
     ):
         assert hasattr(g, name)
         assert name in g.__all__

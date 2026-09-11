@@ -2,7 +2,8 @@
 
 This note maps **world-authority literature** onto **what CodonTrace Genesis
 actually implements**. It is an honesty document for Phase A–G plus Phase H
-RAG and CI-pathway scaffolding and Phase I evidence harnesses. It does **not**
+RAG and CI-pathway scaffolding, Phase I evidence harnesses, and Phase J
+replay-verified candidate packs. It does **not**
 argue that the project is close to AGI, consciousness, proved open-ended
 evolution, Tokyo Type 1 *passed*, or literature-grade collective intelligence.
 
@@ -15,7 +16,7 @@ evolution, Tokyo Type 1 *passed*, or literature-grade collective intelligence.
 `proved_collective_intelligence`, `avida_replacement`, and related aliases.
 
 ClaimGate remains the authority. Do not cite this file as evidence that
-CodonTrace Genesis is “almost” intelligent. Phase H/I continue as
+CodonTrace Genesis is “almost” intelligent. Phase H/I/J continue as
 **measurement, literature RAG, and substrate engineering**, not as an
 intelligence countdown.
 
@@ -25,6 +26,7 @@ Cross-links: [`CLAIMS.md`](../CLAIMS.md),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md),
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md).
 
@@ -285,6 +287,9 @@ the full flag set: `real_partner_event`, `non_capsule_cooperation`,
 `role_complementarity`, `collective_coordination`, heldout familiar/unfamiliar
 protocols, `ablation_result`, `collective_report_digest`,
 `replay_verification`. The Phase F campaign **does not set those flags**.
+Phase J can earn `replay_verification` from independent digest re-execution
+at research scale when captured and replayed campaign digests match. Smoke
+still never earns.
 
 ### 8.3 What CodonTrace Genesis has (substrate + metrics)
 
@@ -303,13 +308,15 @@ protocols, `ablation_result`, `collective_report_digest`,
 | Phase H `run_group_vs_individual_effect_size_campaign` | configurable `seed_count` (default 12; smoke 2) + effect-size fields | group-vs-individual payoff | Delta is still group fitness |
 | Phase H `TaskSwitchingCostConfig` | reweights DoL fitness shares by action-switch counts | Goldsby 2012 analog | Not evolved DoL; not 50 replicates |
 | Literature RAG (`search_corpus`) | citable digests + deterministic TF-IDF | experiment design map | Retrieval is not evidence |
+| Phase J `verify_digest_replay` / `build_replay_verified_ci_candidate_pack` | independent campaign digest re-execution | replay_verification honesty | Smoke never earns; same-object replay rejected |
+| Phase J `run_price_equation_covariance_scaffold` | last-generation MLS1 between/within covariance | Price 1970 / Okasha MLS1 | Snapshot; no transmission term; not a full Price paper |
 | `CollectiveIntelligenceEvidenceReport` / heldout-partner objects | protocol scaffolds | social CI protocol | Do not auto-fill from a life-loop smoke |
 
 ### 8.4 What is still missing for literature-grade collective intelligence evidence
 
 | Missing experiment | Why it matters | Phase F/H/I status |
 |---|---|---|
-| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` / Okasha MLS2: which strategy wins, not a rank table | Phase F `scaffold_only`; Phase H fitness Cohen's *d*; Phase I `run_mls_evolutionary_outcome_experiment` is **runnable** (two-task analog; `measured_runtime_observation`) |
+| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` / Okasha MLS2: which strategy wins, not a rank table | Phase F `scaffold_only`; Phase H fitness Cohen's *d*; Phase I `run_mls_evolutionary_outcome_experiment` is **runnable** (two-task analog; `measured_runtime_observation`); Phase J Price snapshot is MLS1 bookkeeping, not MLS2 |
 | Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | Phase F campaign stays `not_run`; Phase H harness is **runnable** and does **not** set ClaimGate `ablation_result` from smoke |
 | Heldout partner generalization (unfamiliar partners) | ClaimGate `heldout_protocol` / familiar vs unfamiliar | Phase F `not_run`; Phase I `run_heldout_unfamiliar_partner_experiment` is **runnable**; smoke does not earn flags |
 | Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby / Gorelick NMI | Phase H cost hook on assigned tags; Phase I evolved preference analog + ablation is **runnable** |
@@ -321,14 +328,15 @@ Phase I continues on those missing pieces as **engineering**. ClaimGate
 still rejects `collective_intelligence` and `proved_collective_intelligence`
 when a researcher only has messaging counts, a ledger digest, a rank table,
 a group-vs-individual delta, a RAG hit list, or a Phase I smoke. See
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) and
-[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md), and
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md).
 
 ---
 
-## 9. Phase H/I continue — not an intelligence countdown
+## 9. Phase H/I/J continue — not an intelligence countdown
 
-Phase H/I are the next **library** increments after Phase F/G:
+Phase H/I/J are the next **library** increments after Phase F/G:
 
 - Keep A–E default digest pins stable.
 - Ship a literature RAG substrate (citable digests + TF-IDF retriever).
@@ -344,7 +352,13 @@ assigned) DoL, MLS evolutionary-outcome contrast, and an export-of-fitness
 scaffold. Smoke never earns ClaimGate flags. See
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).
 
-Phase H/I are **not** “the AGI phase.” There is no evidence in this repository
+Phase J adds independent digest re-execution so `replay_verification` can
+be earned honestly when campaign digests match, plus a Price-equation
+covariance snapshot. Research-scale full flags may allow
+`collective_intelligence_candidate`. Smoke never earns. See
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md).
+
+Phase H/I/J are **not** “the AGI phase.” There is no evidence in this repository
 that CodonTrace Genesis is close to AGI, and this document forbids that
 reading.
 
@@ -362,7 +376,7 @@ Allowed now (when evidence objects actually exist):
   complementarity, heldout familiar/unfamiliar, ablation, replay). Smoke
   campaigns do not set those flags.
 
-Still forbidden, including after Phase H/I instrumentation and RAG retrieval:
+Still forbidden, including after Phase H/I/J instrumentation and RAG retrieval:
 
 - `agi`, `consciousness`
 - `tokyo_type1_passed`, `channon_2024_passed`, `proved_open_endedness`

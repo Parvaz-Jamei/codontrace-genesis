@@ -15,14 +15,18 @@ documentation / measurement design.
 `collective_intelligence_candidate` remains allowed **only** when the full
 ClaimGate flag set is actually present. Phase I can *earn* some of those
 flags from research-scale evidence objects. Smoke runs **never** earn flags.
-`replay_verification` is **not** earnable from these harnesses.
+`replay_verification` is **not** earnable from these harnesses alone.
+Phase J ([`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md)) attaches an
+independent digest re-execution object so that flag can be earned honestly
+when captured and replayed campaign digests match.
 
 Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
-[`../CLAIMS.md`](../CLAIMS.md).
+[`../CLAIMS.md`](../CLAIMS.md),
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md).
 
 ---
 
@@ -67,11 +71,12 @@ counts) returns all `False`.
 | `non_capsule_cooperation` | same (no capsules in the analog) | never |
 | `ablation_result` | evolved-DoL ablation drop, or research-scale communication ablation that pays | never |
 | `collective_report_digest` | Phase I campaign digest at research scale | never |
-| `replay_verification` | **not earnable from Phase I** (needs a real replay bundle) | never |
+| `replay_verification` | Phase J independent digest re-execution at research scale when captured vs replayed digests match; **not** from Phase I harnesses alone | never |
 
 Even when every earnable flag is True, `collective_intelligence` stays
-forbidden and `collective_intelligence_candidate` still needs
-`replay_verification`.
+forbidden. `collective_intelligence_candidate` still needs
+`replay_verification` from Phase J (or an equivalent independent digest
+match).
 
 Research defaults: `seed_count=12`, `generations=20`. Smoke: `2` seeds,
 `6` generations.
@@ -120,9 +125,12 @@ Print-only smoke: `examples/genesis_phase_i_ci_evidence.py`.
 1. Avida-scale evolved coordination *instructions* (not a preference gene).
 2. Goldsby 2012 ~50-replicate CPU-delay specialists + isolation failure that
    is evolved autonomy loss rather than payoff construction.
-3. Okasha-grade Price-equation covariance terms; Avida `DEME_GROUP` MLS2.
+3. Okasha-grade Price-equation covariance terms with a **transmission**
+   term and Avida `DEME_GROUP` MLS2. Phase J records a last-generation
+   snapshot partition only.
 4. Michod/Conlin endogenous conflict suppression and revertant assays.
-5. Replay-verified candidate packs at campaign scale.
+5. Replay-verified candidate packs — **Phase J** makes independent digest
+   re-execution runnable; literature-scale Avida/Goldsby campaigns remain.
 6. Chromaria knock-outs / Channon 2024 Type 1 **pass** / vocabulary+verifier
    gap closure — still later, still blocked as claims.
 

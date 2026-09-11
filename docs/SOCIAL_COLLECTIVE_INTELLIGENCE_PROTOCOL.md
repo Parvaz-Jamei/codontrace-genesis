@@ -30,6 +30,8 @@ experiments. Phase H makes communication ablation *runnable* as
 `measured_runtime_observation` without setting ClaimGate `ablation_result`.
 Phase I makes heldout unfamiliar-partner generalization, evolved (not
 assigned) DoL, and MLS evolutionary *outcome* runnable; smoke never earns
-ClaimGate flags. See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md), and
-[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md).
+ClaimGate flags. Phase J makes `replay_verification` earnable from
+independent digest re-execution at research scale. See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
+[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md), and
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md).

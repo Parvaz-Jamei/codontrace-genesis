@@ -12,7 +12,7 @@
 
 ## Digest
 
-Okasha (2006) distinguishes MLS1 (group fitness as mean particle fitness; often a fitness-accounting / Price partition) from MLS2 (the group as a Darwinian individual whose evolutionary *outcome* can differ from particle-only selection). A rank table of deme mean fitness, or a group-vs-individual fitness delta, can be MLS1 bookkeeping without showing that a different strategy or lineage wins. CodonTrace Genesis Phase F ranking is observational. Phase H effect-size campaigns record Cohen's d on group fitness. Phase I run_mls_evolutionary_outcome_experiment compares majority strategy under group replacement vs organism-only selection. That is still a two-task analog, not a full Price-equation paper and not collective intelligence.
+Okasha (2006) distinguishes MLS1 (group fitness as mean particle fitness; often a fitness-accounting / Price partition) from MLS2 (the group as a Darwinian individual whose evolutionary *outcome* can differ from particle-only selection). A rank table of deme mean fitness, or a group-vs-individual fitness delta, can be MLS1 bookkeeping without showing that a different strategy or lineage wins. CodonTrace Genesis Phase F ranking is observational. Phase H effect-size campaigns record Cohen's d on group fitness. Phase I run_mls_evolutionary_outcome_experiment compares majority strategy under group replacement vs organism-only selection. Phase J run_price_equation_covariance_scaffold records last-generation between/within covariance terms on that analog. That is still not a full Price-equation paper and not collective intelligence.
 
 ## Key claims
 
@@ -22,14 +22,14 @@ Okasha (2006) distinguishes MLS1 (group fitness as mean particle fitness; often 
 
 ## What CodonTrace Genesis has
 
-Phase I MLS vs organism-only outcome labels (majority strategy) plus fitness deltas; Phase F/H ranking and effect sizes retained as MLS1-style bookkeeping.
+Phase I MLS vs organism-only outcome labels (majority strategy) plus fitness deltas; Phase J Price snapshot partition (between/within covariance, MLS1 identity) on the two-task analog; Phase F/H ranking and effect sizes retained as MLS1-style bookkeeping.
 
 ## What CodonTrace Genesis lacks
 
-Full Price-equation partition with published covariance terms; Avida DEME_GROUP MLS2 at literature scale.
+Full multi-generation Price paper with a transmission term; Avida DEME_GROUP MLS2 at literature scale.
 
 ## Next experiment
 
-How to get collective intelligence evidence: require outcome_changed under MLS vs organism-only at research seed/generation counts, then still do not auto-set ClaimGate flags from smoke.
+How to get collective intelligence evidence: keep Price terms as bookkeeping; require Phase J independent digest replay at research scale for replay_verification; never auto-set flags from smoke.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

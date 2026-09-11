@@ -289,8 +289,12 @@ fitness, contribution ledgers, division-of-labor *metrics*, and
 group-vs-individual deltas remain `runtime_observation`; they are not
 `collective_intelligence` or `proved_collective_intelligence`. Phase I
 heldout / evolved-DoL / MLS-outcome harnesses are the same ceiling: smoke
-never auto-sets ClaimGate candidate flags. See
-[`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md).
+never auto-sets ClaimGate candidate flags. Phase J can earn
+`replay_verification` from independent digest re-execution at research
+scale; `collective_intelligence_candidate` may then be allowed, while
+`collective_intelligence` stays forbidden. See
+[`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) and
+[`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md).
 
 ---
 

@@ -3,7 +3,7 @@
 CodonTrace Genesis — JOSS Evidence Benchmark Runner
 ====================================================================
 
-This runner targets CodonTrace Genesis public beta `0.3.0b1` while remaining
+This runner targets CodonTrace Genesis public beta `0.3.0b2` while remaining
 compatible with nearby development builds for local validation. It is a JOSS-safe,
 feature-discovery and behavior-observability runner. It is not a
 success-forcing app. It uses public CodonTrace/GENESIS APIs where possible, builds
@@ -67,7 +67,7 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 
 RUNNER_NAME = "collective_joss_evidence_benchmark"
 RUNNER_SCHEMA_VERSION = "collective_joss_evidence_benchmark_v1.1.0_public_beta_b1"
-TARGET_PUBLIC_CODONTRACE_VERSION = "0.3.0b1"
+TARGET_PUBLIC_CODONTRACE_VERSION = "0.3.0b2"
 TARGET_RELEASE_DOI = "10.5281/zenodo.20337435"
 
 GENOME_LIBRARY = {

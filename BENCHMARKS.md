@@ -1,6 +1,6 @@
 # Benchmark Protocols
 
-Version target: `0.3.0b1`
+Version target: `0.3.0b2`
 Release DOI: `10.5281/zenodo.20337435`
 License: `AGPL-3.0-or-later`
 Status: Public beta research software
@@ -73,7 +73,7 @@ JOSS-safe benchmark wording:
 examples/collective_joss_evidence_benchmark.py
 ```
 
-The runner is the user-facing benchmark entry point. It produces CSV/JSON/HTML artifacts and is designed to stay compatible with the public-beta `0.3.0b1` branch.
+The runner is the user-facing benchmark entry point. It produces CSV/JSON/HTML artifacts and is designed to stay compatible with the public-beta `0.3.0b2` branch.
 
 ### Smoke test
 
@@ -147,9 +147,9 @@ The inspected smoke artifact reports:
 |---|---:|
 | Runner | `collective_joss_evidence_benchmark` |
 | Runner schema | `collective_joss_evidence_benchmark_v1.1.0_public_beta_b1` |
-| CodonTrace version | `0.3.0b1` |
-| Target public version | `0.3.0b1` |
-| Expected version | `0.3.0b1` |
+| CodonTrace version | `0.3.0b2` |
+| Target public version | `0.3.0b2` |
+| Expected version | `0.3.0b2` |
 | Release DOI | `10.5281/zenodo.20337435` |
 | Profile | `smoke` |
 | Seed start | `1` |
@@ -295,13 +295,13 @@ Interpretation:
 
 ## 9. Provenance label check
 
-For the `0.3.0b1` beta release, benchmark provenance should report a single aligned release identity:
+For the `0.3.0b2` beta release, benchmark provenance should report a single aligned release identity:
 
 ```text
-release_artifact_name: codontrace-0.3.0b1-release-bundle.zip
-codontrace_version: 0.3.0b1
-target_public_version: 0.3.0b1
-expected_version: 0.3.0b1
+release_artifact_name: codontrace-0.3.0b2-release-bundle.zip
+codontrace_version: 0.3.0b2
+target_public_version: 0.3.0b2
+expected_version: 0.3.0b2
 ```
 
 Interpretation:
@@ -746,7 +746,7 @@ The smoke zip does not need to be uploaded into the repository immediately.
 
 The current smoke benchmark supports:
 
-- runner execution on `0.3.0b1`,
+- runner execution on `0.3.0b2`,
 - generation of structured artifacts,
 - artifact-manifest creation,
 - environment recording,

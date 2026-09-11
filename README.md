@@ -19,7 +19,7 @@ It is built for researchers and developers who want to test ALife and evolutiona
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public beta | `0.3.0b1` |
+| Public beta | `0.3.0b2` |
 | Python | `3.11–3.14` verified; latest stable checked for this beta line: `3.14.5` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
@@ -122,15 +122,15 @@ The release CI uses a real cross-OS smoke matrix for `ubuntu-latest`, `windows-l
 ### From PyPI
 
 ```bash
-pip install codontrace==0.3.0b1
+pip install codontrace==0.3.0b2
 ```
 
 ### Optional research extras
 
 ```bash
-pip install "codontrace[research]==0.3.0b1"
-pip install "codontrace[causal]==0.3.0b1"
-pip install "codontrace[qd]==0.3.0b1"
+pip install "codontrace[research]==0.3.0b2"
+pip install "codontrace[causal]==0.3.0b2"
+pip install "codontrace[qd]==0.3.0b2"
 ```
 
 ### From source
@@ -150,7 +150,7 @@ python -c "import codontrace; print(codontrace.__version__)"
 Expected:
 
 ```text
-0.3.0b1
+0.3.0b2
 ```
 
 ---
@@ -486,7 +486,7 @@ If you use CodonTrace Genesis in research, prototypes, technical evaluation, ben
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b1},
+  version = {0.3.0b2},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
 }

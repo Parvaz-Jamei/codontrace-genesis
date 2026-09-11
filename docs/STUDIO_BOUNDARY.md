@@ -1,6 +1,6 @@
 # CodonTrace Studio Boundary Policy
 
-Status: **required for `0.3.0b1` beta and later**.
+Status: **required for `0.3.0b2` beta and later**.
 
 This repository is the **CodonTrace Genesis core research library**. It must remain deterministic, dependency-free at runtime, object-first, and suitable for scientific replay/audit workflows.
 
@@ -15,7 +15,7 @@ The following must **not** be added under `src/codontrace`:
 - Mandatory file-writing workflows for ordinary engine execution.
 - Database/cloud/session services.
 
-Studio work belongs in a separate consumer repository, for example `codontrace-studio`, which may depend on `codontrace==0.3.0b1` and adapt the public Python object API into local REST/WebSocket/UI flows.
+Studio work belongs in a separate consumer repository, for example `codontrace-studio`, which may depend on `codontrace==0.3.0b2` and adapt the public Python object API into local REST/WebSocket/UI flows.
 
 ## Allowed in core
 

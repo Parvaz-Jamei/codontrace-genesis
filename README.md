@@ -278,10 +278,14 @@ phenotype/transcriptome evidence export, and an `AvidaParityProtocolSpec`
 head-to-head recipe. Defaults stay off. This is not proved learning, evolved
 plasticity, collective intelligence, or an Avida replacement. Opt-in
 `LearningCausalPayoffPack` and `CollectiveDemePayoffPack` record cue→payoff
-and deme-replication ledgers at `runtime_observation` only.
+and deme-replication ledgers at `runtime_observation` only. Phase F adds
+`run_collective_deme_payoff_campaign` (multi-seed ranking + division-of-labor
+*metrics*); `collective_intelligence` stays blocked.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, instinct evolution, or OEE.
+CodonTrace Genesis is **not close to AGI**. See
+`docs/WHY_NOT_INTELLIGENCE_YET.md`.
 
 ```python
 from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile

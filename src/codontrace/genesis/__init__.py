@@ -686,10 +686,16 @@ from codontrace.genesis.learning_payoff import (
     instinct_improved_remains_gated,
 )
 from codontrace.genesis.collective_deme import (
+    CollectiveDemePayoffCampaign,
     CollectiveDemePayoffPack,
+    DemeDivisionOfLaborObservation,
     DemePayoffRecord,
     build_collective_deme_payoff_pack,
+    build_deme_division_of_labor_observation,
+    evaluate_collective_deme_payoff_campaign_claim,
     evaluate_collective_deme_payoff_claim,
+    rank_demes_by_mean_fitness,
+    run_collective_deme_payoff_campaign,
 )
 from codontrace.genesis.toolchain import ToolChainState, evaluate_tool_chain_state
 from codontrace.genesis.validation import (
@@ -1199,10 +1205,16 @@ __all__ = [
     "build_learning_causal_payoff_pack",
     "evaluate_learning_causal_payoff_claim",
     "instinct_improved_remains_gated",
+    "CollectiveDemePayoffCampaign",
     "CollectiveDemePayoffPack",
+    "DemeDivisionOfLaborObservation",
     "DemePayoffRecord",
     "build_collective_deme_payoff_pack",
+    "build_deme_division_of_labor_observation",
+    "evaluate_collective_deme_payoff_campaign_claim",
     "evaluate_collective_deme_payoff_claim",
+    "rank_demes_by_mean_fitness",
+    "run_collective_deme_payoff_campaign",
     "PHASE_E_LITERATURE_CHECKLIST",
     "AvidaParityProtocolSpec",
     "CapsuleMemoryConfig",

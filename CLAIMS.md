@@ -263,9 +263,9 @@ These require a stronger public benchmark:
 
 The following claims must not be made for `0.3.0b2` unless a future paper/benchmark explicitly satisfies the required evidence level.
 
-- CodonTrace has proven artificial general intelligence.
-- CodonTrace has proven consciousness or subjective experience.
-- CodonTrace has proven collective intelligence.
+- CodonTrace Genesis has proven collective intelligence.
+- CodonTrace Genesis has proven consciousness or subjective experience.
+- CodonTrace Genesis has proven artificial general intelligence.
 - CodonTrace has proven evolved phenotypic plasticity.
 - CodonTrace is an Avida replacement.
 - CodonTrace has proven open-ended intelligence as a settled scientific result.
@@ -278,7 +278,14 @@ The following claims must not be made for `0.3.0b2` unless a future paper/benchm
 - CodonTrace proves social intelligence merely because partner or social interaction records exist.
 - CodonTrace proves role specialization merely because role records exist.
 - CodonTrace proves QD/open-endedness merely because behavior diversity or novelty metrics exist.
-- CodonTrace proves intelligence merely because behavior appears complex.
+- CodonTrace Genesis proves intelligence merely because behavior appears complex.
+
+See [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) for the
+literature-vs-reality barrier map (Nature MI 2021; Chromaria; Stanley;
+Channon 2024; arXiv 2607.09560; JaxLife; Goldsby / demes / major transitions).
+That note does **not** claim CodonTrace Genesis is close to AGI. Deme mean
+fitness and contribution ledgers remain `runtime_observation`; they are not
+`collective_intelligence`.
 
 ---
 

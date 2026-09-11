@@ -20,6 +20,8 @@ an intelligence result, or a comparator-superiority claim.
 
 Cross-links: [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) (MODES / Bedau),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md) (plasticity / demes / capsules),
+[`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) (literature vs
+CodonTrace Genesis reality; not close to AGI),
 [`../CLAIMS.md`](../CLAIMS.md).
 
 Phase A–E default preset **spec digest pins stay stable**. New measurement
@@ -272,7 +274,7 @@ Use this on the completeness PR. All items must stay **honest**.
 - [x] ClaimGate stronger, not weaker: union of forbidden Tokyo Type 1 pass aliases; pack alias does not unlock a pass.
 - [x] Example smoke prints blocked pass claim.
 - [x] No intelligence / AGI / OEE-proved / Avida-replacement / Tokyo-Type-1-passed language.
-- [x] JaxLife NN agents and ASAL CLIP are **not** ported into core.
+- [x] `docs/WHY_NOT_INTELLIGENCE_YET.md` maps Nature MI 2021 / Chromaria / Stanley / Channon 2024 / arXiv 2607.09560 / JaxLife / Goldsby–demes–major-transitions onto CodonTrace Genesis has-vs-lacks; does **not** claim the project is close to AGI.
 
 ---
 

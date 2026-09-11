@@ -161,6 +161,8 @@ def test_scientific_authorities_2026_doc_maps_each_fix() -> None:
         "Logic-9",
         "build_empirical_systematics_shadow",
         "TWO_FOLD_COST_SEX",
+        "WHY_NOT_INTELLIGENCE_YET",
+        "not close to AGI",
     ):
         assert needle in text, needle
 

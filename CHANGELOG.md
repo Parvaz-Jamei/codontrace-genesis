@@ -35,6 +35,16 @@ ClaimGate is unchanged in the strict direction.
   MODES digest + Tokyo JSON. Type 1 remains unpassed.
 - Opt-in `SexualRecombinationConfig.diploid_meiosis` homolog-reduction analog
   (Avida `TWO_FOLD_COST_SEX` already placed one recombinant product).
+- `docs/WHY_NOT_INTELLIGENCE_YET.md`: literature-vs-reality barrier map
+  (Nature MI 2021 Miikkulainen & Forrest / Banzhaf computational-evolution
+  agenda; Soros & Stanley Chromaria; Stanley open-endedness as a creative-
+  intelligence component; Channon 2024 measurement ≠ pass; arXiv 2607.09560
+  vocabulary+verifier gaps; JaxLife complementary ecology vs NN culture;
+  Goldsby / GECCO 2008 / demes / Michod–Szathmáry major transitions). Does
+  **not** claim CodonTrace Genesis is close to AGI.
+- Phase F `run_collective_deme_payoff_campaign`: ≥2-seed deme ranking +
+  division-of-labor *metrics* + contribution ledger. Group fitness remains
+  `runtime_observation`; `collective_intelligence` blocked.
 - `examples/genesis_scientific_gaps_2026.py` prints blocked pass/intelligence
   claims.
 

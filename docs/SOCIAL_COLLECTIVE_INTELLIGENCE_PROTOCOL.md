@@ -19,3 +19,7 @@ Familiar and unfamiliar partner profiles must be behaviorally distinct. If event
 ## Collective and swarm claims
 
 `collective_intelligence_candidate` requires multi-agent task dependency, non-capsule cooperation, role complementarity, familiar/unfamiliar partner evidence, ablation, and replay digest. `swarm_coordination_candidate` requires distributed task coverage, decentralized coordination, shuffled-agent control, single-agent baseline, no-communication baseline, and replay digest.
+
+Deme mean fitness, replication events, and contribution ledgers are
+`runtime_observation` only. They are **not** `collective_intelligence`.
+See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).

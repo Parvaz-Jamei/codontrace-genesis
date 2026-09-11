@@ -38,7 +38,9 @@ and birth records because the substrate actually changes subsequent behavior.
   `evolved_plasticity`, `avida_replacement`, `associative_learning_proved`,
   AGI, open-ended intelligence, Tokyo Type 1 passed
 
-See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md).
+See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md) and
+[`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) (CodonTrace Genesis
+is not close to AGI; group fitness is not collective intelligence).
 JaxLife, Aevol_4b, and ASAL/CLIP OE are documentation comparators or future
 measurement options — not implemented in the 2026 eval bugfix.
 

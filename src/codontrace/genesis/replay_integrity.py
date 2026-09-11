@@ -57,6 +57,7 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.logic9.Logic9ReactionPack",
     "codontrace.genesis.learning_payoff.LearningCausalPayoffPack",
     "codontrace.genesis.collective_deme.CollectiveDemePayoffPack",
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign",
     "codontrace.genesis.benchmark_suite.ChannonAvidaModesShadowSuite",
     "codontrace.genesis.phase_e.AvidaParityProtocolSpec",
     "codontrace.genesis.phase_e.PhaseEEvidencePack",
@@ -920,6 +921,9 @@ _SCIENTIFIC_GAPS_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.learning_payoff.LearningCausalPayoffPack": ("digest",),
     "codontrace.genesis.collective_deme.DemePayoffRecord": ("contribution_digest",),
     "codontrace.genesis.collective_deme.CollectiveDemePayoffPack": ("digest",),
+    "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation": ("digest",),
+    "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord": ("pack_digest",),
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign": ("digest",),
     "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint": (
         "modes_digest",
         "tokyo_protocol_digest",
@@ -942,6 +946,8 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
             "codontrace.genesis.logic9.Logic9ReactionEvent",
             "codontrace.genesis.learning_payoff.CueActionPayoffRecord",
             "codontrace.genesis.collective_deme.DemePayoffRecord",
+            "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation",
+            "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord",
             "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint",
         )
     )

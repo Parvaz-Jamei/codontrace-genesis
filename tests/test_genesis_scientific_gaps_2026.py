@@ -375,6 +375,7 @@ def test_scientific_gaps_public_api_and_claimgate() -> None:
         "build_logic9_reaction_pack",
         "build_learning_causal_payoff_pack",
         "build_collective_deme_payoff_pack",
+        "run_collective_deme_payoff_campaign",
         "run_channon_avida_modes_shadow_suite",
         "LOGIC9_TASKS",
     ):
@@ -390,3 +391,60 @@ def test_scientific_gaps_public_api_and_claimgate() -> None:
         "open_ended_intelligence",
     ):
         assert gate.decide(ClaimRequest(label, {})).allowed is False
+
+
+def test_phase_f_collective_deme_campaign_stays_runtime_observation() -> None:
+    from codontrace.genesis.collective_deme import (
+        evaluate_collective_deme_payoff_campaign_claim,
+        run_collective_deme_payoff_campaign,
+    )
+
+    with pytest.raises(ConfigurationError, match="at least two seeds"):
+        run_collective_deme_payoff_campaign(seeds=(3,))
+    campaign = run_collective_deme_payoff_campaign(
+        seeds=(3, 7), tick_count=4, population=4
+    )
+    assert len(campaign.seeds) >= 2
+    assert campaign.claim_ceiling == "runtime_observation"
+    assert campaign.to_dict()["collective_intelligence"] is False
+    assert campaign.to_dict()["major_transition_in_individuality"] is False
+    assert evaluate_collective_deme_payoff_campaign_claim(campaign).final_claim == (
+        "runtime_observation"
+    )
+    assert ScientificClaimGate().decide(ClaimRequest("collective_intelligence", {})).allowed is False
+    assert ScientificClaimGate().decide(
+        ClaimRequest("proved_collective_intelligence", {})
+    ).allowed is False
+
+
+def test_why_not_intelligence_yet_doc_is_honest() -> None:
+    from pathlib import Path
+
+    text = Path("docs/WHY_NOT_INTELLIGENCE_YET.md").read_text(encoding="utf-8")
+    assert "CodonTrace Genesis" in text
+    assert "not close to AGI" in text
+    for needle in (
+        "Miikkulainen",
+        "Nature Machine Intelligence",
+        "Chromaria",
+        "Soros",
+        "Stanley",
+        "Channon 2024",
+        "tokyo_type1_passed",
+        "2607.09560",
+        "Vocabulary gap",
+        "Verifier gap",
+        "JaxLife",
+        "Goldsby",
+        "GECCO 2008",
+        "Michod",
+        "Szathmáry",
+        "collective_intelligence",
+        "ScientificClaimGate",
+        "Phase F",
+    ):
+        assert needle in text, needle
+    assert "close to AGI" in text
+    lowered = text.lower()
+    assert "we are close to agi" not in lowered
+    assert "almost agi" not in lowered

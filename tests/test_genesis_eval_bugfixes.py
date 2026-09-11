@@ -1,19 +1,29 @@
 """Regression tests for codontrace==0.3.0b2 eval bugs.
 
 These tests document software capability and runtime observation only. They do
-not claim intelligence, instinct evolution, OEE, or that CodonTrace replaces
-Avida.
+not claim intelligence, instinct evolution, OEE, Tokyo Type 1 passed, or that
+CodonTrace replaces Avida.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, coerce_reproduction_mode
-from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
+from codontrace.genesis.claim_gate import (
+    TOKYO_TYPE1_MEASUREMENT_CLAIM,
+    ClaimRequest,
+    ScientificClaimGate,
+)
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.environment import summarize_dynamic_environment_observation
+from codontrace.genesis.multi_generation import (
+    build_multi_generation_evidence_pack,
+    evaluate_tokyo_type1_measurement_claim,
+)
 from codontrace.genesis.phase_e import build_phase_e_evidence_pack, summarize_phase_e_observation
 from codontrace.genesis.population import ReproductionConfig
 from codontrace.genesis.runtime_profiles import (
@@ -118,3 +128,68 @@ def test_summarize_helpers_reject_garbage_input() -> None:
 def test_offspring_placement_rejects_invalid_string() -> None:
     with pytest.raises(ConfigurationError, match="Unsupported offspring_placement"):
         ReproductionConfig(offspring_placement="not_a_policy")  # type: ignore[arg-type]
+
+
+def test_scientific_authorities_2026_doc_maps_each_fix() -> None:
+    path = Path("docs/SCIENTIFIC_AUTHORITIES_2026.md")
+    text = path.read_text(encoding="utf-8")
+    for needle in (
+        "sexual_birth_placement_metrics",
+        "reproduction_mode_validation",
+        "phase_e_capsule_wiring",
+        "life_loop_capacity_footgun",
+        "summarize_garbage_input",
+        "tokyo_type1_measurement_hook",
+        "Dolson",
+        "Channon 2024",
+        "tokyo_type1_measurement_only",
+        "Ofria & Wilke 2004",
+        "VERSION_ID",
+        "2.14.0",
+        "POPULATION_CAP",
+        "PREFER_EMPTY",
+        "RECOMBINATION_GROUP",
+        "Clune 2007",
+        "Ghalambor",
+        "JaxLife",
+        "Aevol_4b",
+        "OntoAvida",
+        "2412.17799",
+        "CLIP",
+        "Type 1 not passed",
+    ):
+        assert needle in text, needle
+
+
+def test_tokyo_type1_measurement_only_aliases_and_type1_passed_is_forbidden() -> None:
+    gate = ScientificClaimGate()
+    assert TOKYO_TYPE1_MEASUREMENT_CLAIM == "tokyo_type1_measurement_only"
+    mapped = gate.decide(
+        ClaimRequest(TOKYO_TYPE1_MEASUREMENT_CLAIM, {"oee_metrics": True})
+    )
+    assert mapped.allowed is True
+    assert mapped.final_claim == "oee_measurement_only"
+    for label in (
+        "tokyo_type1_passed",
+        "tokyo_type_1_passed",
+        "tokyo_type1_oee_proved",
+        "open_ended_intelligence",
+    ):
+        blocked = gate.decide(ClaimRequest(label, {"oee_metrics": True}))
+        assert blocked.allowed is False
+        assert blocked.decision == "rejected_overclaim_alias"
+
+
+def test_evaluate_tokyo_type1_measurement_claim_never_says_type1_passed() -> None:
+    spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=8, population=6)
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    pack = build_multi_generation_evidence_pack(result, spec=spec)
+    decision = evaluate_tokyo_type1_measurement_claim(pack)
+    assert decision.requested_claim == TOKYO_TYPE1_MEASUREMENT_CLAIM
+    assert decision.final_claim == "oee_measurement_only"
+    assert decision.final_claim != "tokyo_type1_passed"
+    assert "passed" not in decision.final_claim
+    import codontrace.genesis as g
+
+    assert "evaluate_tokyo_type1_measurement_claim" in g.__all__
+    assert "TOKYO_TYPE1_MEASUREMENT_CLAIM" in g.__all__

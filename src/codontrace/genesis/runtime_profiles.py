@@ -353,10 +353,15 @@ class GenesisRuntimeProfile:
         an explicit death reason, survivors that clear AliveGate and ATP gates
         can COPY_SELF, and children inherit a mutated copy of the parent
         genome unless sexual crossover is explicitly enabled. Population
-        capacity is strictly greater than the initial count (``max(pop, 8)``
-        for the historical pop<8 presets; ``max(pop*2, 16)`` when pop>=8) so
-        the default life-loop can birth. This is not a proof of life,
-        intelligence, instinct evolution, or Avida-replacement status.
+        capacity must exceed initial *N* so Darwinian births can occupy
+        empty/replace cells (Avida ``BIRTH_METHOD`` / ``PREFER_EMPTY``;
+        do not set ``POPULATION_CAP`` equal to current population — Ofria
+        & Wilke 2004; ``avida.cfg`` 2.14.0). Historical pop<8 presets keep
+        ``capacity = max(pop, 8)`` on a 6×4 world (pinned Phase A–E
+        spec/snapshot/tick digests). For ``population >= 8``, capacity is
+        ``max(pop*2, 16)`` and the world is widened. This is not a proof
+        of life, intelligence, instinct evolution, or Avida-replacement
+        status.
         """
 
         if population <= 0:

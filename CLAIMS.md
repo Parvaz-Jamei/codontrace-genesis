@@ -95,7 +95,7 @@ These claims are allowed for the current public beta release because they descri
 | Capsule signaling | The library supports capsule/packet-style information-transfer policies, adoption records, utility scoring, source-fitness controls, and ablation settings. | “Supports testing capsule-mediated transfer” is allowed; “proves communication intelligence” is not. |
 | Memory and learning | The library includes memory-use records, learning/inheritance records, skill-compression records, and delayed-outcome surfaces. | “Can instrument memory/learning paths” is allowed; “proves learning” requires benchmarks. |
 | Role/social instrumentation | The library includes role records, role contribution records, partner interaction records, and social interaction records. | “Can study role/social behavior” is allowed; “proves collective intelligence” is blocked unless higher evidence levels pass. |
-| QD/OEE instrumentation | The library includes quality-diversity and open-endedness-oriented metrics/records, including Phase D `OEEMetricsReport` wiring at `oee_measurement_only`. | “Supports descriptive and candidate OEE analysis” is allowed; “proves open-ended intelligence” is blocked. |
+| QD/OEE instrumentation | The library includes quality-diversity and open-endedness-oriented metrics/records, including Phase D `OEEMetricsReport` wiring at `oee_measurement_only`. `tokyo_type1_measurement_only` is a ClaimGate alias of that ceiling (Channon 2024 Tokyo Type 1 *vocabulary*). CLIP/ASAL foundation-model OE is not implemented. | “Supports descriptive OEE measurement hooks” is allowed; “Tokyo Type 1 passed”, “proves open-ended intelligence”, and CLIP-OE claims are blocked. |
 | Claim gating | CodonTrace does not treat placeholder, fake, `not_run:*`, NaN, Infinity, empty digest, failed, incomplete, or skipped artifacts as positive scientific evidence. | This is a strong positive feature and should be emphasized. |
 
 ---
@@ -268,6 +268,7 @@ The following claims must not be made for `0.3.0b2` unless a future paper/benchm
 - CodonTrace has proven evolved phenotypic plasticity.
 - CodonTrace is an Avida replacement.
 - CodonTrace has proven open-ended intelligence as a settled scientific result.
+- CodonTrace has passed Channon 2024 Tokyo Type 1 OEE testing. `tokyo_type1_measurement_only` is a measurement-hook alias only.
 - CodonTrace has proven that instincts or behavior improved across generations as a publication-grade scientific result.
 - CodonTrace is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
 - CodonTrace reproduces biological evolution in a biologically faithful sense.
@@ -401,6 +402,8 @@ This claim policy is written with the following research-software context in min
 
 - JOSS publishes research software and expects clear research application, open-source licensing, documentation, tests, and software-focused papers rather than papers focused on new results produced by the software.
 - Avida is a classic digital-evolution platform for experiments with self-replicating/evolving digital organisms.
+- MODES (Dolson et al. 2019) and Channon 2024 Tokyo Type 1 procedures are **measurement design** references. CodonTrace exposes `oee_measurement_only` / `tokyo_type1_measurement_only` hooks; it does not claim Type 1 OEE passed.
+- JaxLife, Aevol_4b, OntoAvida/avidaR, and ASAL are comparators or future measurement options, not superiority claims.
 - MABE is a modular framework for constructing and comparing digital-evolution experiments.
 - DEAP is a general Python evolutionary-computation framework designed around explicit algorithms and transparent data structures.
 

@@ -82,6 +82,8 @@ CodonTrace keeps the most important scientific boundaries in separate reviewable
 |---|---|
 | [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims for the current public-beta release |
 | [`docs/PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md) | Phase D multi-generation evidence literature checklist (MODES / Bedau / OEE hallmarks) |
+| [`docs/PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md) | Phase E capsule / memory / role / deme / plasticity literature checklist |
+| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | 2026 eval-bugfix → literature mapping (MODES, Channon Tokyo Type 1 *measurement only*, Avida 2.14.0, plasticity protocol). Not intelligence/OEE proof |
 | [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |
 | [`docs/STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md) | Boundary policy preventing UI/server drift into core |
 | [`docs/PERFORMANCE_PHASE1.md`](docs/PERFORMANCE_PHASE1.md) | Safe live-performance plan without changing scientific semantics |

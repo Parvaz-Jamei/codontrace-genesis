@@ -128,6 +128,8 @@ _ALLOWED_CLAIMS: tuple[str, ...] = (
     "ground_truth_recovered",
     "oee_measurement_only",
     "oee_candidate",
+    "runtime_observation",
+    "instinct_improved",
     "adaptive_gp_map_proxy",
     "genetic_birth_claim",
     "digital_evolution_claim",
@@ -157,6 +159,12 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "solved_semantic_closure",
     "symbol_matter_solved",
     "proved_open_endedness",
+    "open_ended_intelligence",
+    "open_ended_intelligence_proved",
+    "proved_open_ended_intelligence",
+    "proved_instinct_evolution",
+    "instinct_evolution_proved",
+    "instinct_proved",
     "unbounded_open_endedness",
     "unbounded_open_endedness_proved",
     "proved_unbounded_oee",
@@ -243,6 +251,14 @@ _DEFAULT_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     ),
     "ground_truth_recovered": ("ground_truth_world", "recovery_report", "protocol_executed"),
     "oee_measurement_only": ("oee_metrics",),
+    "runtime_observation": (),
+    "instinct_improved": (
+        "metric_delta_observed",
+        "same_env_seed_paired_comparison",
+        "multi_seed_protocol",
+        "ablation_or_control_present",
+        "persistence_filter_applied",
+    ),
     "oee_candidate": (
         "oee_report_artifact",
         "oee_report_digest",
@@ -669,6 +685,8 @@ class ScientificClaimGate:
             return "event_association_only"
         if canonical == "oee_candidate":
             return "oee_measurement_only"
+        if canonical == "instinct_improved":
+            return "runtime_observation"
         if canonical == "adaptive_gp_map_proxy":
             return "experimental_engine"
         return "experimental_engine" if canonical != "foundation_engine" else "foundation_engine"

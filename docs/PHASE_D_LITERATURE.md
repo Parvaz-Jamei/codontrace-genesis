@@ -1,0 +1,54 @@
+# Phase D multi-generation evidence — literature checklist
+
+Phase D adds a **measurement layer** for multi-generation fitness and
+instinct/behavior trajectories. It does not prove open-ended evolution,
+intelligence, or instinct evolution.
+
+CodonTrace already had `LifeLoopObservation`, `OEEMetricsReport`, QD
+archives, lineage records, and ClaimGate. Phase D wires those into
+first-class library APIs that are more complete than a typical Avida
+post-hoc analyze-mode dump: callers get a Python
+`MultiGenerationEvidencePack` with JSON + digest export.
+
+## Checklist (must remain honest in docs, tests, and ClaimGate)
+
+| Source | What Phase D implements | What Phase D does **not** claim |
+|---|---|---|
+| MODES toolbox — Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* | Change, novelty, complexity, ecological potential **after a persistence filter**: only lineages with descendants alive after `t` generations count | Not a bit-identical C++ MODES port; not proof of open-endedness |
+| Bedau evolutionary activity | Library objects for novelty (first appearances), diversity (currently present components), and cumulative activity from genotype/behavior presence | Not a proof that evolutionary activity is unbounded |
+| ALife OEE encyclopedia hallmarks | Descriptive flags: ongoing novelty / complexity / activity metrics were observed | Hallmarks observed as metrics ≠ OEE demonstrated |
+| ISAL 2024 MODES assessment (Bohm / Zhang / Dolson) | Report the four MODES axes with persistence filtering and explicit limitations | Not a publication-grade OEE assessment by itself |
+| User philosophy | Survivors reproduce; measure whether next-gen fitness/behavior **metrics** move | Metric deltas are runtime observations, not instinct/intelligence proof |
+| Existing CodonTrace surfaces | `LifeLoopObservation` hook unchanged by default; `OEEMetricsReport` filled as `measurement_only`; lineage + behavior descriptors consumed; ClaimGate remains the authority | Default Phase A/B/C presets and digests stay stable |
+
+## ClaimGate
+
+- Default pack ceiling: `runtime_observation`
+- `instinct_improved` requires metric delta + same-seed paired comparison + **multi-seed protocol** + ablation/control + persistence filter. Missing any of those downgrades to `runtime_observation`.
+- OEE ceiling: `oee_measurement_only`. `oee_candidate` still needs the existing research-grade thresholds (seeds, shadow, CIs, …).
+- Blocked: `open_ended_intelligence`, `proved_instinct_evolution`, `proved_open_endedness`, AGI, collective intelligence.
+
+## API entry points
+
+```python
+from codontrace.genesis import (
+    GenesisEngine,
+    GenesisRuntimeProfile,
+    build_multi_generation_evidence_pack,
+    evaluate_instinct_improvement_claim,
+    evaluate_oee_measurement_claim,
+)
+
+spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
+result = GenesisEngine.from_spec(spec).run_ticks()
+pack = build_multi_generation_evidence_pack(result, spec=spec)
+print(pack.digest)
+print(evaluate_instinct_improvement_claim(pack).final_claim)
+print(evaluate_oee_measurement_claim(pack).final_claim)
+```
+
+Optional: `life_loop_world(reproduction_mode=SEXUAL_CROSSOVER)` and
+`dynamic_environment_world()` remain substrate opt-ins. Phase D reads
+their records; it does not change their defaults.
+
+Print-only smoke: `examples/genesis_multi_generation_evidence.py`.

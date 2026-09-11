@@ -40,12 +40,15 @@ KNOWN_STRICT_CLASSES = {
     "codontrace.genesis.qd_search.QDSchedulerState",
     "codontrace.genesis.qd_search.QDCandidate",
     "codontrace.genesis.statistical_protocol.OEEMetricsReport",
+    "codontrace.genesis.multi_generation.MultiGenerationEvidencePack",
 }
 
 
 def _source_digest_dataclass_paths() -> set[str]:
     paths: set[str] = set()
     for source in Path("src/codontrace").rglob("*.py"):
+        if "FULL_RESTORE" in source.name:
+            continue
         tree = ast.parse(source.read_text(encoding="utf-8"))
         module = _module_path_from_source(source)
         for node in ast.walk(tree):

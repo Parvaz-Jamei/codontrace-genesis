@@ -65,4 +65,5 @@ CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-en
 | Predictive probe | `PredictiveProbeResult` | scaffold | lagged/conditional predictive evidence | not intervention evidence | `lagged_predictive_support` |
 | Intervention result | `InterventionResult` | scaffold | paired-seed effect object | full causal runner still benchmark-dependent | `intervention_supported` if ClaimGate passes |
 | OEE measurement | `OEEMetricsReport` | scaffold | metrics/thresholds/shadow requirement | never proof of open-endedness | `oee_measurement_only`, `oee_candidate` |
+| Multi-generation evidence | `MultiGenerationEvidencePack`, `ModesAssessment`, `BedauActivitySurface` | implemented | post-hoc fitness/behavior/MODES/Bedau series from life-loop records | not publication-grade without multi-seed protocol; not OEE proof | `runtime_observation`; `instinct_improved` only with ClaimGate flags |
 | Translation profile | `TranslationProfile` | experimental | adaptive GP-map proxy | not semantic closure | `adaptive_gp_map_proxy` |

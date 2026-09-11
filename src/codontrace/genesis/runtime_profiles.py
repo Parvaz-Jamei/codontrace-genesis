@@ -315,6 +315,10 @@ class GenesisRuntimeProfile:
         Pass ``environment=EnvironmentConfig(...)`` (or use
         ``dynamic_environment_world()``) for Phase C chemostat / periodic /
         fluctuating regimes. Default stays the Phase A limited-patch ecology.
+        Phase D multi-generation instinct/behavior *measurement* is a post-hoc
+        library API (``build_multi_generation_evidence_pack``); this preset's
+        default metadata stays ``hooks_only_not_implemented`` so A/B/C spec
+        digests remain stable.
 
         Literature grounding (software-capability only, not an Avida
         replacement): limited, depletable resources with partial inflow
@@ -578,7 +582,9 @@ class LifeLoopObservation:
     """Phase A/D hook: descriptive counts from one life-loop run.
 
     This is a runtime observation record. It is not an instinct, intelligence,
-    cooperation, or ALife-proof metric.
+    cooperation, or ALife-proof metric. Multi-generation evidence lives on
+    ``MultiGenerationEvidencePack`` and does not change this hook's default
+    fields (Phase A/B/C digest stability).
     """
 
     lumen_eaten_events: int
@@ -636,11 +642,11 @@ class LifeLoopObservation:
 def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     """Extract eat/survive/reproduce observation counts from an engine result.
 
-    Phase D may later attach multi-generation instinct metrics to this hook.
-    The current helper only reports runtime counts, asexual parent→child
-    relatedness, and optional two-parent recombination counts when sexual
-    lineage records are present. It does not evaluate intelligence or
-    cooperation.
+    Multi-generation instinct/behavior metrics are a separate opt-in API
+    (``build_multi_generation_evidence_pack``). This helper only reports
+    runtime counts, asexual parent→child relatedness, and optional two-parent
+    recombination counts when sexual lineage records are present. It does not
+    evaluate intelligence or cooperation.
     """
 
     ticks = getattr(result, "ticks", ())

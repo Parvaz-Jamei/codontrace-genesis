@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — Phase C dynamic / fluctuating environment
+
+### Added
+
+- Opt-in `EnvironmentConfig` / `EnvironmentSchedule` / `ResourceSpec` (omitted from default serialization so asexual and sexual research digests stay stable).
+- Avida `RESOURCE` chemostat parity: per-resource `initial`, `inflow` per tick, `outflow` fraction of unused resource (Ofria & Wilke 2004; Cooper/Ofria ~1% outflow).
+- Periodic / seasonal schedules (Avida-ED periodic; period < 1 is non-periodic) and seeded regime-switch ticks.
+- Two selectable fluctuating regimes (high-food vs low-food, or two niche reward maps) as a substrate for later plasticity studies — not a claim that plasticity evolved.
+- Spatial options: global pool, local patches, or both, with deterministic von Neumann diffusion/decay hooks aligned with ElementGrid neighbor geometry.
+- Digest-backed `EnvironmentState`, per-tick `EnvironmentSnapshot`, `EnvironmentEvent` log, and `WorldEvent` records (`environment_inflow` / `outflow` / `regime_switch` / `periodic_toggle` / `hazard_changed`).
+- `EnvironmentSchedule` object API plus `verify_environment_trajectory_replay()` for env trajectory digests.
+- `GenesisRuntimeProfile.dynamic_environment_world()` and `life_loop_world(environment=...)`; organisms still eat/starve/reproduce while food availability follows the schedule.
+- `tests/test_genesis_phase_c_dynamic_environment.py` and `examples/genesis_dynamic_environment.py`.
+
+### Deferred
+
+- Phase D multi-generation instinct / OEE claim metrics.
+- Evolved phenotypic plasticity measurement (environment substrate only).
+- Avida reaction/task-resource coupling (logic tasks as metabolic reactions).
+
+### Notes
+
+Phase C is a time-varying environment *substrate*, not an Avida replacement and not a claim of evolved plasticity or intelligence. Claim language stays software capability / runtime observation only. Grounded in Ofria & Wilke 2004, Cooper/Ofria limited-resource ecosystems, Avida-ED resource modes, and Avida fluctuating-environment / plasticity literature used only as experimental design context.
+
 ## Unreleased — Phase B sexual recombination substrate
 
 ### Added
@@ -20,7 +44,7 @@
 - Diploid meiosis / selfing (Aevol Eukaryote) as Phase B.1.
 - Full `MATING_TYPES` / `LEKKING` (config stubs only).
 - Modular random-region swap when `CONT_REC_REGS=0` (Phase B ships continuous corresponding regions).
-- Phase C fluctuating environments and Phase D instinct claim metrics.
+- Phase D instinct claim metrics.
 
 ### Notes
 
@@ -40,7 +64,7 @@ Phase B is a recombination *substrate*, not an Avida replacement and not a claim
 
 ### Notes
 
-Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover), Phase C (fluctuating/seasonal environments), and Phase D (multi-generation instinct claim metrics) are intentionally deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop preset. Claim language remains software capability / runtime observation only.
+Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover) and Phase C (fluctuating/seasonal environments) are opt-in substrates. Phase D (multi-generation instinct claim metrics) remains deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop or dynamic-environment preset. Claim language remains software capability / runtime observation only.
 
 ## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
 

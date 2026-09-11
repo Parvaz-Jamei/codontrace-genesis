@@ -14,6 +14,7 @@ from codontrace.genesis.birth import InheritancePolicy, ReproductionMode, Sexual
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferConfig
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
+from codontrace.genesis.environment import EnvironmentConfig
 from codontrace.genesis.liveness import AliveGateConfig
 from codontrace.genesis.population import (
     FitnessConfig,
@@ -298,6 +299,7 @@ class GenesisRuntimeProfile:
         population: int = 6,
         offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
         reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
+        environment: EnvironmentConfig | None = None,
     ) -> GenesisExperimentSpec:
         """Assemble the Phase A ecology / Darwinian life-loop preset.
 
@@ -310,6 +312,9 @@ class GenesisRuntimeProfile:
         to enable Phase B Avida-parity sexual recombination (birth chamber +
         positional continuous corresponding crossover). Direct
         ``reproduce(..., mate=...)`` remains a one-child library API.
+        Pass ``environment=EnvironmentConfig(...)`` (or use
+        ``dynamic_environment_world()``) for Phase C chemostat / periodic /
+        fluctuating regimes. Default stays the Phase A limited-patch ecology.
 
         Literature grounding (software-capability only, not an Avida
         replacement): limited, depletable resources with partial inflow
@@ -355,6 +360,7 @@ class GenesisRuntimeProfile:
         capacity = max(population, 8)
         selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
         sexual = reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
+        env_cfg = environment if environment is not None else EnvironmentConfig()
         configs = PopulationConfigs(
             reproduction=ReproductionConfig(
                 max_population=capacity,
@@ -402,6 +408,7 @@ class GenesisRuntimeProfile:
             sexual_recombination=SexualRecombinationConfig(enabled=True)
             if sexual
             else SexualRecombinationConfig(),
+            environment=env_cfg,
         )
         return GenesisExperimentSpec(
             genome_bits=genomes,
@@ -469,7 +476,9 @@ class GenesisRuntimeProfile:
                     if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
                     else "deferred"
                 ),
-                "phase_c_fluctuating_environment": "deferred",
+                "phase_c_fluctuating_environment": (
+                    "enabled" if env_cfg.enabled else "deferred"
+                ),
                 "phase_d_instinct_claim_metrics": "hooks_only_not_implemented",
                 **(
                     {
@@ -489,7 +498,78 @@ class GenesisRuntimeProfile:
                     if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
                     else {}
                 ),
+                **(
+                    {
+                        "runtime_profile": "dynamic_environment_world",
+                        "resource_mode": "chemostat_periodic_or_seeded",
+                        "environment_spatial_mode": env_cfg.spatial_mode,
+                        "environment_schedule_kind": env_cfg.schedule.kind,
+                        "environment_period_ticks": env_cfg.schedule.period_ticks,
+                        "environment_config_digest": env_cfg.digest(),
+                        "environment_regimes": [regime.name for regime in env_cfg.schedule.regimes],
+                        "literature_grounding_environment": (
+                            "ofria_wilke_2004_avida_resource_line_"
+                            "cooper_ofria_chemostat_avida_ed_periodic_"
+                            "not_avida_replacement_not_plasticity_claim"
+                        ),
+                        "profile_has_chemostat": True,
+                        "profile_has_periodic_or_seeded_schedule": (
+                            env_cfg.schedule.kind != "static"
+                        ),
+                        "claim_allowed_for_plasticity": False,
+                    }
+                    if env_cfg.enabled
+                    else {}
+                ),
             },
+        )
+
+    @staticmethod
+    def dynamic_environment_world(
+        *,
+        seed: int = 1,
+        tick_count: int = 16,
+        population: int = 6,
+        period_ticks: int = 4,
+        schedule_kind: str = "periodic",
+        spatial_mode: str = "global_and_local",
+        niche_maps: bool = False,
+        switch_ticks: tuple[int, ...] = (),
+        diffusion_rate: float = 0.0,
+        decay_rate: float = 0.0,
+        reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
+        offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
+    ) -> GenesisExperimentSpec:
+        """Phase C opt-in: life-loop ecology plus chemostat / fluctuating env.
+
+        Default life-loop and sexual presets are unchanged. This helper enables
+        an Avida ``RESOURCE`` chemostat (initial/inflow/outflow=0.01) with two
+        regimes (high-food vs low-food, or two niche maps) on a periodic or
+        seeded schedule. Claim ceiling remains runtime_observation; this does
+        not claim that phenotypic plasticity evolved.
+        """
+
+        environment = EnvironmentConfig.fluctuating_chemostat(
+            initial=LIFE_LOOP_RESOURCE_AMOUNT * len(LIFE_LOOP_FOOD_CELLS),
+            inflow=2.0,
+            outflow=0.01,
+            period_ticks=period_ticks,
+            patch_cells=LIFE_LOOP_FOOD_CELLS,
+            spatial_mode=spatial_mode,
+            schedule_kind=schedule_kind,
+            switch_ticks=switch_ticks,
+            cell_inflow=LIFE_LOOP_RESOURCE_AMOUNT,
+            diffusion_rate=diffusion_rate,
+            decay_rate=decay_rate,
+            niche_maps=niche_maps,
+        )
+        return GenesisRuntimeProfile.life_loop_world(
+            seed=seed,
+            tick_count=tick_count,
+            population=population,
+            offspring_placement=offspring_placement,
+            reproduction_mode=reproduction_mode,
+            environment=environment,
         )
 
 

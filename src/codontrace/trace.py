@@ -25,6 +25,11 @@ WORLD_EVENT_AGENT_MOVED = "agent_moved"
 WORLD_EVENT_AGENT_REMOVED = "agent_removed"
 WORLD_EVENT_EXTERNAL_REPLENISHMENT = "external_replenishment"
 WORLD_EVENT_SNAPSHOT_MARKER = "snapshot_marker"
+WORLD_EVENT_ENVIRONMENT_INFLOW = "environment_inflow"
+WORLD_EVENT_ENVIRONMENT_OUTFLOW = "environment_outflow"
+WORLD_EVENT_ENVIRONMENT_REGIME_SWITCH = "environment_regime_switch"
+WORLD_EVENT_ENVIRONMENT_PERIODIC_TOGGLE = "environment_periodic_toggle"
+WORLD_EVENT_ENVIRONMENT_HAZARD_CHANGED = "environment_hazard_changed"
 
 
 @dataclass(frozen=True, slots=True)

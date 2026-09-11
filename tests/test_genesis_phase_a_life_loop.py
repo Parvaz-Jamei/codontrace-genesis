@@ -403,6 +403,7 @@ def test_default_configs_omit_opt_in_life_loop_keys() -> None:
     assert ReproductionConfig().offspring_placement is OffspringPlacementPolicy.SAME_CELL
     assert "reproduction_mode" not in ReproductionConfig().to_dict()
     assert "sexual_recombination" not in PopulationConfigs().to_dict()
+    assert "environment" not in PopulationConfigs().to_dict()
     pilot = GenesisRuntimeProfile.evolution_pilot_world()
     assert pilot.population_configs is not None
     assert "metabolism" not in pilot.population_configs.to_dict()

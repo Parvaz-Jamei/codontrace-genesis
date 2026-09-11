@@ -13,6 +13,11 @@ from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
     CLAIM_CEILING,
     RESEARCH_SEED_COUNT,
+    HardExperiment01ArmRecord,
+    HardExperiment01SeedRecord,
+    _complete_pair_values,
+    _mean_last_tick_fitness,
+    _missing_outcomes_per_arm,
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
@@ -71,6 +76,16 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert campaign.to_dict()["tokyo_type1_passed"] is False
     assert campaign.to_dict()["avida_replacement"] is False
     assert campaign.to_dict()["claim_gate_flags_auto_set"] is False
+    assert dict(campaign.missing_outcomes_per_arm) == {
+        "source_bias_on": 0,
+        "source_bias_off": 0,
+        "capsules_off": 0,
+    }
+    assert all(
+        arm.outcome_missing is False
+        for item in campaign.seed_records
+        for arm in (item.source_bias_on, item.source_bias_off, item.capsules_off)
+    )
     assert len(campaign.interventions) == 3
     assert {item.arm for item in campaign.interventions} == {
         "source_bias_on",
@@ -96,6 +111,101 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     summary = format_hard_experiment_01_summary(campaign)
     assert "claim_ceiling runtime_observation" in summary
     assert "collective_intelligence False" in summary
+
+
+def test_mean_last_tick_fitness_is_none_when_tick_missing() -> None:
+    class _EmptyResult:
+        ticks = ()
+
+    class _TickWithoutGeneration:
+        generation_result = None
+
+    class _ResultWithoutGeneration:
+        ticks = (_TickWithoutGeneration(),)
+
+    class _EmptyFitness:
+        fitness = ()
+
+    class _GenerationWithoutScores:
+        selection_mean_fitness = None
+        population = _EmptyFitness()
+
+    class _ResultWithoutScores:
+        ticks = (type("Tick", (), {"generation_result": _GenerationWithoutScores()})(),)
+
+    assert _mean_last_tick_fitness(_EmptyResult()) is None
+    assert _mean_last_tick_fitness(_ResultWithoutGeneration()) is None
+    assert _mean_last_tick_fitness(_ResultWithoutScores()) is None
+
+
+def test_arm_record_marks_missing_outcome_without_zero_fill() -> None:
+    record = HardExperiment01ArmRecord(
+        seed=11,
+        arm="capsules_off",
+        terminal_mean_fitness=None,
+        births=0,
+        capsule_emissions=0,
+        capsule_adoptions=0,
+        spec_digest="a" * 64,
+        result_digest="b" * 64,
+        next_generation_observed=False,
+        outcome_missing=True,
+    )
+    assert record.outcome_missing is True
+    assert record.terminal_mean_fitness is None
+    assert record.to_dict()["outcome_missing"] is True
+
+
+def _arm(
+    seed: int,
+    arm: str,
+    fitness: float | None,
+    *,
+    missing: bool,
+) -> HardExperiment01ArmRecord:
+    return HardExperiment01ArmRecord(
+        seed=seed,
+        arm=arm,  # type: ignore[arg-type]
+        terminal_mean_fitness=fitness,
+        births=0,
+        capsule_emissions=0,
+        capsule_adoptions=0,
+        spec_digest="a" * 64,
+        result_digest="b" * 64,
+        next_generation_observed=False,
+        outcome_missing=missing,
+    )
+
+
+def test_missing_arm_is_dropped_from_paired_analysis() -> None:
+    complete = HardExperiment01SeedRecord(
+        seed=11,
+        source_bias_on=_arm(11, "source_bias_on", 2.0, missing=False),
+        source_bias_off=_arm(11, "source_bias_off", 1.0, missing=False),
+        capsules_off=_arm(11, "capsules_off", 0.5, missing=False),
+        delta_vs_source_bias_off=1.0,
+        delta_vs_capsules_off=1.5,
+    )
+    incomplete = HardExperiment01SeedRecord(
+        seed=12,
+        source_bias_on=_arm(12, "source_bias_on", None, missing=True),
+        source_bias_off=_arm(12, "source_bias_off", 1.0, missing=False),
+        capsules_off=_arm(12, "capsules_off", 0.5, missing=False),
+        delta_vs_source_bias_off=None,
+        delta_vs_capsules_off=None,
+    )
+    baseline, treatment = _complete_pair_values(
+        (complete, incomplete),
+        treatment_arm="source_bias_on",
+        baseline_arm="source_bias_off",
+    )
+    assert baseline == [1.0]
+    assert treatment == [2.0]
+    assert _missing_outcomes_per_arm((complete, incomplete)) == (
+        ("source_bias_on", 1),
+        ("source_bias_off", 0),
+        ("capsules_off", 0),
+    )
 
 
 def test_hard_experiment_01_docs_and_example_exist() -> None:

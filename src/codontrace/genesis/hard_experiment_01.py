@@ -228,13 +228,19 @@ def build_hard_experiment_01_spec(
     )
 
 
-def _mean_last_tick_fitness(result: object) -> float:
+def _mean_last_tick_fitness(result: object) -> float | None:
+    """Last-tick mean fitness, or None when the tick/generation is missing.
+
+    A missing outcome must not be coerced to 0.0 — that would bias paired
+    deltas toward zero. Callers drop the pair from the analysis.
+    """
+
     ticks = tuple(getattr(result, "ticks", ()) or ())
     if not ticks:
-        return 0.0
+        return None
     generation = getattr(ticks[-1], "generation_result", None)
     if generation is None:
-        return 0.0
+        return None
     selection = getattr(generation, "selection_mean_fitness", None)
     if isinstance(selection, (int, float)) and not isinstance(selection, bool):
         return round(float(selection), 10)
@@ -244,7 +250,7 @@ def _mean_last_tick_fitness(result: object) -> float:
         for item in getattr(population, "fitness", ()) or ()
     ]
     if not scores:
-        return 0.0
+        return None
     return round(sum(scores) / len(scores), 10)
 
 
@@ -284,20 +290,26 @@ class HardExperiment01ArmRecord:
 
     seed: int
     arm: ArmName
-    terminal_mean_fitness: float
+    terminal_mean_fitness: float | None
     births: int
     capsule_emissions: int
     capsule_adoptions: int
     spec_digest: str
     result_digest: str
     next_generation_observed: bool
+    outcome_missing: bool = False
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "terminal_mean_fitness",
-            require_finite_float("terminal_mean_fitness", self.terminal_mean_fitness),
-        )
+        if self.outcome_missing:
+            object.__setattr__(self, "terminal_mean_fitness", None)
+        elif self.terminal_mean_fitness is None:
+            raise ConfigurationError("terminal_mean_fitness is required when outcome_missing is false.")
+        else:
+            object.__setattr__(
+                self,
+                "terminal_mean_fitness",
+                require_finite_float("terminal_mean_fitness", self.terminal_mean_fitness),
+            )
         if self.arm not in ARMS:
             raise ConfigurationError(f"unknown arm: {self.arm!r}")
         if self.births < 0 or self.capsule_emissions < 0 or self.capsule_adoptions < 0:
@@ -316,6 +328,7 @@ class HardExperiment01ArmRecord:
             "spec_digest": self.spec_digest,
             "result_digest": self.result_digest,
             "next_generation_observed": self.next_generation_observed,
+            "outcome_missing": self.outcome_missing,
             "claim_ceiling": CLAIM_CEILING,
         }
 
@@ -328,24 +341,26 @@ class HardExperiment01SeedRecord:
     source_bias_on: HardExperiment01ArmRecord
     source_bias_off: HardExperiment01ArmRecord
     capsules_off: HardExperiment01ArmRecord
-    delta_vs_source_bias_off: float
-    delta_vs_capsules_off: float
+    delta_vs_source_bias_off: float | None
+    delta_vs_capsules_off: float | None
 
     def __post_init__(self) -> None:
         if self.source_bias_on.seed != self.seed or self.source_bias_off.seed != self.seed:
             raise ConfigurationError("seed records must share one seed.")
         if self.capsules_off.seed != self.seed:
             raise ConfigurationError("seed records must share one seed.")
-        object.__setattr__(
-            self,
-            "delta_vs_source_bias_off",
-            require_finite_float("delta_vs_source_bias_off", self.delta_vs_source_bias_off),
-        )
-        object.__setattr__(
-            self,
-            "delta_vs_capsules_off",
-            require_finite_float("delta_vs_capsules_off", self.delta_vs_capsules_off),
-        )
+        if self.delta_vs_source_bias_off is not None:
+            object.__setattr__(
+                self,
+                "delta_vs_source_bias_off",
+                require_finite_float("delta_vs_source_bias_off", self.delta_vs_source_bias_off),
+            )
+        if self.delta_vs_capsules_off is not None:
+            object.__setattr__(
+                self,
+                "delta_vs_capsules_off",
+                require_finite_float("delta_vs_capsules_off", self.delta_vs_capsules_off),
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -372,6 +387,7 @@ class HardExperiment01Campaign:
     replay_spec_digest: str
     replay_result_digest: str
     replay_matched: bool
+    missing_outcomes_per_arm: tuple[tuple[str, int], ...] = ()
     interventions: tuple[HardExperiment01Intervention, ...] = ()
     question: str = _QUESTION
     claim_ceiling: str = CLAIM_CEILING
@@ -388,6 +404,17 @@ class HardExperiment01Campaign:
             raise ConfigurationError("hard experiment 01 requires a matching replay digest.")
         if not self.interventions:
             object.__setattr__(self, "interventions", hard_experiment_01_interventions())
+        if not self.missing_outcomes_per_arm:
+            object.__setattr__(
+                self,
+                "missing_outcomes_per_arm",
+                tuple((arm, 0) for arm in ARMS),
+            )
+        missing_arms = {item[0] for item in self.missing_outcomes_per_arm}
+        if missing_arms != set(ARMS):
+            raise ConfigurationError("missing_outcomes_per_arm must cover every arm.")
+        if any(count < 0 for _, count in self.missing_outcomes_per_arm):
+            raise ConfigurationError("missing outcome counts must be >= 0.")
         expected_arms = {item.arm for item in self.interventions}
         if expected_arms != set(ARMS):
             raise ConfigurationError("hard experiment 01 interventions must cover every arm.")
@@ -423,6 +450,9 @@ class HardExperiment01Campaign:
             "replay_spec_digest": self.replay_spec_digest,
             "replay_result_digest": self.replay_result_digest,
             "replay_matched": self.replay_matched,
+            "missing_outcomes_per_arm": {
+                arm: count for arm, count in self.missing_outcomes_per_arm
+            },
             "interventions": [item.to_dict() for item in self.interventions],
             "claim_ceiling": self.claim_ceiling,
             "collective_intelligence": False,
@@ -435,6 +465,7 @@ class HardExperiment01Campaign:
                 "life_loop_overlay_not_avida_isa",
                 "source_bias_is_min_source_fitness_plus_fitness_weighted_adoption",
                 "terminal_mean_fitness_is_last_tick_observation",
+                "missing_last_tick_outcomes_are_dropped_not_zero_filled",
                 "null_or_small_effect_is_a_valid_finding",
                 "not_knowledge_transfer_proof",
             ],
@@ -456,16 +487,18 @@ def _arm_record(
     )
     births = _birth_count(result)
     emissions, adoptions = _capsule_counts(result)
+    fitness = _mean_last_tick_fitness(result)
     return HardExperiment01ArmRecord(
         seed=seed,
         arm=arm,
-        terminal_mean_fitness=_mean_last_tick_fitness(result),
+        terminal_mean_fitness=fitness,
         births=births,
         capsule_emissions=emissions,
         capsule_adoptions=adoptions,
         spec_digest=spec.digest(),
         result_digest=str(result.digest()),
         next_generation_observed=births > 0,
+        outcome_missing=fitness is None,
     )
 
 
@@ -473,6 +506,59 @@ def _mean(values: Sequence[float]) -> float:
     if not values:
         return 0.0
     return round(sum(values) / len(values), 10)
+
+
+def _optional_delta(left: float | None, right: float | None) -> float | None:
+    if left is None or right is None:
+        return None
+    return round(left - right, 10)
+
+
+def _complete_pair_values(
+    records: Sequence[HardExperiment01SeedRecord],
+    *,
+    treatment_arm: ArmName,
+    baseline_arm: ArmName,
+) -> tuple[list[float], list[float]]:
+    treatment: list[float] = []
+    baseline: list[float] = []
+    for record in records:
+        treat = getattr(record, treatment_arm)
+        base = getattr(record, baseline_arm)
+        if treat.outcome_missing or base.outcome_missing:
+            continue
+        if treat.terminal_mean_fitness is None or base.terminal_mean_fitness is None:
+            continue
+        treatment.append(treat.terminal_mean_fitness)
+        baseline.append(base.terminal_mean_fitness)
+    return baseline, treatment
+
+
+def _effect_or_insufficient(
+    metric_name: str, baseline: Sequence[float], treatment: Sequence[float]
+) -> EffectSizeResult:
+    if not baseline or not treatment:
+        return EffectSizeResult(
+            metric_name=metric_name,
+            baseline_mean=0.0,
+            treatment_mean=0.0,
+            mean_delta=0.0,
+            standardized_delta_lite=0.0,
+            sample_count=0,
+            interpretation="insufficient_paired_outcomes",
+        )
+    return estimate_effect_size_lite(metric_name, baseline, treatment)
+
+
+def _missing_outcomes_per_arm(
+    records: Sequence[HardExperiment01SeedRecord],
+) -> tuple[tuple[str, int], ...]:
+    counts = {arm: 0 for arm in ARMS}
+    for record in records:
+        for arm in ARMS:
+            if getattr(record, arm).outcome_missing:
+                counts[arm] += 1
+    return tuple((arm, counts[arm]) for arm in ARMS)
 
 
 def run_hard_experiment_01(
@@ -486,9 +572,6 @@ def run_hard_experiment_01(
 
     seed_tuple = _resolve_seeds(seeds, seed_count, default_count=RESEARCH_SEED_COUNT)
     records: list[HardExperiment01SeedRecord] = []
-    on_fits: list[float] = []
-    off_fits: list[float] = []
-    none_fits: list[float] = []
     for seed in seed_tuple:
         on_rec = _arm_record(
             seed=seed, arm="source_bias_on", tick_count=tick_count, population=population
@@ -499,23 +582,26 @@ def run_hard_experiment_01(
         none_rec = _arm_record(
             seed=seed, arm="capsules_off", tick_count=tick_count, population=population
         )
-        on_fits.append(on_rec.terminal_mean_fitness)
-        off_fits.append(off_rec.terminal_mean_fitness)
-        none_fits.append(none_rec.terminal_mean_fitness)
         records.append(
             HardExperiment01SeedRecord(
                 seed=seed,
                 source_bias_on=on_rec,
                 source_bias_off=off_rec,
                 capsules_off=none_rec,
-                delta_vs_source_bias_off=round(
-                    on_rec.terminal_mean_fitness - off_rec.terminal_mean_fitness, 10
+                delta_vs_source_bias_off=_optional_delta(
+                    on_rec.terminal_mean_fitness, off_rec.terminal_mean_fitness
                 ),
-                delta_vs_capsules_off=round(
-                    on_rec.terminal_mean_fitness - none_rec.terminal_mean_fitness, 10
+                delta_vs_capsules_off=_optional_delta(
+                    on_rec.terminal_mean_fitness, none_rec.terminal_mean_fitness
                 ),
             )
         )
+    off_fits, on_vs_off = _complete_pair_values(
+        records, treatment_arm="source_bias_on", baseline_arm="source_bias_off"
+    )
+    none_fits, on_vs_none = _complete_pair_values(
+        records, treatment_arm="source_bias_on", baseline_arm="capsules_off"
+    )
     replay_seed = seed_tuple[0]
     replay_spec, replay_result = _run_arm(
         seed=replay_seed,
@@ -531,18 +617,23 @@ def run_hard_experiment_01(
     campaign = HardExperiment01Campaign(
         seeds=seed_tuple,
         seed_records=tuple(records),
-        mean_delta_vs_source_bias_off=_mean([item.delta_vs_source_bias_off for item in records]),
-        mean_delta_vs_capsules_off=_mean([item.delta_vs_capsules_off for item in records]),
-        effect_vs_source_bias_off=estimate_effect_size_lite(
-            "terminal_mean_fitness", off_fits, on_fits
+        mean_delta_vs_source_bias_off=_mean(
+            [item.delta_vs_source_bias_off for item in records if item.delta_vs_source_bias_off is not None]
         ),
-        effect_vs_capsules_off=estimate_effect_size_lite(
-            "terminal_mean_fitness", none_fits, on_fits
+        mean_delta_vs_capsules_off=_mean(
+            [item.delta_vs_capsules_off for item in records if item.delta_vs_capsules_off is not None]
+        ),
+        effect_vs_source_bias_off=_effect_or_insufficient(
+            "terminal_mean_fitness", off_fits, on_vs_off
+        ),
+        effect_vs_capsules_off=_effect_or_insufficient(
+            "terminal_mean_fitness", none_fits, on_vs_none
         ),
         replay_verified_seed=replay_seed,
         replay_spec_digest=replay_spec.digest(),
         replay_result_digest=str(replay_result.digest()),
         replay_matched=replay_matched,
+        missing_outcomes_per_arm=_missing_outcomes_per_arm(records),
     )
     _assert_blocked(campaign.to_dict(), ScientificClaimGate())
     return campaign

@@ -310,6 +310,11 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
     assert observation.genesis_alive_full is False
     assert observation.two_parent_lineage_records >= 1
     assert observation.heritable_sexual_pairs >= 1
+    assert observation.births >= 1
+    assert (
+        observation.adjacent_or_displaced_births + observation.same_cell_births
+        >= observation.births
+    )
     sexual_lineage = [
         record
         for tick in first.ticks

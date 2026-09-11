@@ -296,7 +296,9 @@ class CapsuleSlot:
             return cue.has_local_food
         if self.cue_regime:
             return self.cue_regime == cue.regime_name
-        return cue.has_local_food or bool(cue.regime_name) or cue.nearby_resource
+        # Unconstrained slot (seed prior / message write with empty regime)
+        # matches any cue so WAIT genomes can substitute under a seeded action.
+        return True
 
 
 @dataclass(slots=True)
@@ -1634,24 +1636,39 @@ class PhaseEObservation:
 
 
 def summarize_phase_e_observation(result: object) -> PhaseEObservation:
+    if result is None:
+        raise TypeError("summarize_phase_e_observation requires a run result, not None.")
+    if not hasattr(result, "ticks"):
+        raise TypeError("summarize_phase_e_observation expected an object with a ticks collection.")
     substitutions = 0
     writes = 0
     reads = 0
     atp_bonus = 0.0
     sensory_reads = 0
     gated_blocks = 0
-    organisms = ()
     last_pop = None
-    ticks = getattr(result, "ticks", ())
+    ticks = getattr(result, "ticks")
     messages_sent = 0
     messages_retrieved = 0
     messages_blocked = 0
     deme_replications = 0
+    last_capsule: dict[str, tuple[int, int, int, float, bool]] = {}
     for tick in ticks:
         generation = getattr(tick, "generation_result", None)
         if generation is None:
             continue
         last_pop = getattr(generation, "population", last_pop)
+        for organism in getattr(last_pop, "organisms", ()) or ():
+            state = getattr(organism, "phase_e_state", None)
+            if state is None:
+                continue
+            last_capsule[str(organism.id)] = (
+                int(state.capsule.substitutions),
+                int(state.capsule.write_count),
+                int(state.capsule.read_count),
+                float(state.capsule.atp_bonus_applied),
+                state.sensory.source != "unspecified",
+            )
         for message in getattr(generation, "phase_e_messages", ()) or ():
             kind = getattr(message, "kind", None)
             kind_value = kind.value if hasattr(kind, "value") else str(kind)
@@ -1672,17 +1689,12 @@ def summarize_phase_e_observation(result: object) -> PhaseEObservation:
             reasons = getattr(decision, "reasons", ()) if decision is not None else ()
             if "not_propagule_eligible" in reasons:
                 gated_blocks += 1
-    if last_pop is not None:
-        organisms = getattr(last_pop, "organisms", ()) or ()
-    for organism in organisms:
-        state = getattr(organism, "phase_e_state", None)
-        if state is None:
-            continue
-        substitutions += int(state.capsule.substitutions)
-        writes += int(state.capsule.write_count)
-        reads += int(state.capsule.read_count)
-        atp_bonus += float(state.capsule.atp_bonus_applied)
-        if state.sensory.source != "unspecified":
+    for subs, write_count, read_count, bonus, sensed in last_capsule.values():
+        substitutions += subs
+        writes += write_count
+        reads += read_count
+        atp_bonus += bonus
+        if sensed:
             sensory_reads += 1
     replay = ""
     digest_fn = getattr(result, "digest", None)

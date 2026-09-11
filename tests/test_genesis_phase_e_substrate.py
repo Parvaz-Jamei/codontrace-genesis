@@ -114,6 +114,32 @@ def test_capsule_memory_changes_action_and_ablation_digest() -> None:
     assert eat_on > eat_off
 
 
+def test_default_phase_e_substrate_world_records_capsule_activity_and_ablation_differs() -> None:
+    on_spec = GenesisRuntimeProfile.phase_e_substrate_world(
+        seed=7, tick_count=8, population=6, enable_capsule_memory=True
+    )
+    off_spec = GenesisRuntimeProfile.phase_e_substrate_world(
+        seed=7,
+        tick_count=8,
+        population=6,
+        enable_capsule_memory=False,
+        seed_preferred_action="",
+    )
+    on_result = GenesisEngine.from_spec(on_spec).run_ticks()
+    off_result = GenesisEngine.from_spec(off_spec).run_ticks()
+    on_pack = build_phase_e_evidence_pack(on_result)
+    off_pack = build_phase_e_evidence_pack(off_result)
+    assert on_result.digest() != off_result.digest()
+    assert on_pack.observation.capsule_writes > 0
+    assert on_pack.observation.capsule_reads > 0
+    assert on_pack.observation.capsule_substitutions > 0
+    assert off_pack.observation.capsule_writes == 0
+    assert off_pack.observation.capsule_reads == 0
+    assert off_pack.observation.capsule_substitutions == 0
+    assert on_pack.claim_ceiling == "runtime_observation"
+    assert on_pack.to_dict()["collective_intelligence_proved"] is False
+
+
 def test_lineage_capsule_inheritance_flag_roundtrips() -> None:
     config = PhaseESubstrateConfig.capsule_memory_preset(inherit_lineage=True)
     assert config.capsule_memory.inherit_lineage is True

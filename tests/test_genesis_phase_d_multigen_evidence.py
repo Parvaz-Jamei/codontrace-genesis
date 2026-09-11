@@ -25,6 +25,7 @@ from codontrace.genesis.multi_generation import (
     compare_descendant_cohorts,
     evaluate_instinct_improvement_claim,
     evaluate_oee_measurement_claim,
+    evaluate_tokyo_type1_measurement_claim,
     export_multi_generation_evidence_pack,
     filter_persistent_lineages,
     run_mutation_ablation_control,
@@ -99,6 +100,8 @@ def test_phase_d_public_api_symbols_are_exported() -> None:
         "BedauActivitySurface",
         "evaluate_instinct_improvement_claim",
         "evaluate_oee_measurement_claim",
+        "evaluate_tokyo_type1_measurement_claim",
+        "TOKYO_TYPE1_MEASUREMENT_CLAIM",
         "export_multi_generation_evidence_pack",
     ):
         assert hasattr(g, name)
@@ -201,6 +204,9 @@ def test_evidence_pack_json_export_and_claim_gate_honesty() -> None:
     assert instinct.final_claim == "runtime_observation"
     oee = evaluate_oee_measurement_claim(pack)
     assert oee.final_claim == "oee_measurement_only"
+    tokyo = evaluate_tokyo_type1_measurement_claim(pack)
+    assert tokyo.final_claim == "oee_measurement_only"
+    assert tokyo.requested_claim == "tokyo_type1_measurement_only"
     blocked = ScientificClaimGate().decide(ClaimRequest("open_ended_intelligence", {}))
     assert blocked.allowed is False
     proved = ScientificClaimGate().decide(ClaimRequest("proved_instinct_evolution", {}))

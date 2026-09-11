@@ -23,7 +23,9 @@ instinct evolution proved.
 Claim ceiling: ``runtime_observation`` by default. ``instinct_improved`` is a
 ClaimGate label for metric deltas only and is never publication-grade without
 multi-seed protocol objects. ``oee_measurement_only`` is the OEE ceiling;
-open-ended intelligence remains blocked.
+``tokyo_type1_measurement_only`` is a Channon 2024 vocabulary alias of that
+ceiling (Type 1 is never passed). Open-ended intelligence remains blocked.
+CLIP / ASAL foundation-model OE is not implemented here.
 """
 
 from __future__ import annotations
@@ -37,7 +39,12 @@ from dataclasses import dataclass, replace
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
-from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
+from codontrace.genesis.claim_gate import (
+    TOKYO_TYPE1_MEASUREMENT_CLAIM,
+    ClaimDecision,
+    ClaimRequest,
+    ScientificClaimGate,
+)
 from codontrace.genesis.statistical_protocol import (
     EffectSizeResult,
     OEEMetricsReport,
@@ -1330,7 +1337,62 @@ def evaluate_oee_measurement_claim(
 ) -> ClaimDecision:
     """OEE ceiling for this pack is measurement_only unless stronger flags exist."""
 
-    flags = {
+    resolved = gate or ScientificClaimGate()
+    flags = _oee_measurement_flags(pack)
+    decision = resolved.decide(
+        ClaimRequest("oee_measurement_only", flags, evidence_digests=(pack.digest,)),
+    )
+    blocked = resolved.decide(
+        ClaimRequest("open_ended_intelligence", flags, evidence_digests=(pack.digest,))
+    )
+    if blocked.allowed:
+        raise ConfigurationError("open_ended_intelligence must remain blocked.")
+    return decision
+
+
+def evaluate_tokyo_type1_measurement_claim(
+    pack: MultiGenerationEvidencePack,
+    gate: ScientificClaimGate | None = None,
+) -> ClaimDecision:
+    """Channon 2024 Tokyo Type 1 *vocabulary* only — never Type 1 passed.
+
+    ``tokyo_type1_measurement_only`` aliases to ``oee_measurement_only``.
+    This does not run a Type 1 protocol, does not implement CLIP/ASAL
+    foundation-model open-endedness (arXiv 2412.17799), and must never
+    return a Type-1-passed label.
+    """
+
+    resolved = gate or ScientificClaimGate()
+    evaluate_oee_measurement_claim(pack, gate=resolved)
+    flags = _oee_measurement_flags(pack)
+    decision = resolved.decide(
+        ClaimRequest(
+            TOKYO_TYPE1_MEASUREMENT_CLAIM,
+            flags,
+            evidence_digests=(pack.digest,),
+        )
+    )
+    if decision.final_claim not in {"oee_measurement_only", "experimental_engine"}:
+        raise ConfigurationError(
+            "tokyo_type1_measurement_only must alias to oee_measurement_only "
+            "(Type 1 is not passed)."
+        )
+    for blocked_label in (
+        "tokyo_type1_passed",
+        "tokyo_type_1_passed",
+        "tokyo_type1_oee_proved",
+        "open_ended_intelligence",
+    ):
+        blocked = resolved.decide(
+            ClaimRequest(blocked_label, flags, evidence_digests=(pack.digest,))
+        )
+        if blocked.allowed:
+            raise ConfigurationError(f"{blocked_label} must remain blocked.")
+    return decision
+
+
+def _oee_measurement_flags(pack: MultiGenerationEvidencePack) -> dict[str, bool]:
+    return {
         "oee_metrics": pack.oee_metrics_report is not None,
         "oee_report_artifact": pack.oee_metrics_report is not None,
         "oee_report_digest": bool(pack.oee_metrics_report and pack.oee_metrics_report.digest),
@@ -1348,15 +1410,6 @@ def evaluate_oee_measurement_claim(
         "stagnation_diversity_status_recorded": pack.oee_metrics_report is not None,
         "claim_gate_decision_digest": False,
     }
-    decision = (gate or ScientificClaimGate()).decide(
-        ClaimRequest("oee_measurement_only", flags, evidence_digests=(pack.digest,)),
-    )
-    blocked = (gate or ScientificClaimGate()).decide(
-        ClaimRequest("open_ended_intelligence", flags, evidence_digests=(pack.digest,))
-    )
-    if blocked.allowed:
-        raise ConfigurationError("open_ended_intelligence must remain blocked.")
-    return decision
 
 
 def genomes_from_census(census: GenerationCensus) -> tuple[str, ...]:

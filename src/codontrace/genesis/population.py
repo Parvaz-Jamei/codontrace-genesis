@@ -40,6 +40,7 @@ from codontrace.genesis.birth import (
     ReproductionGateResult,
     ReproductionMode,
     SexualRecombinationConfig,
+    coerce_reproduction_mode,
     SkillCompressionRecord,
     SkillInheritanceMode,
     build_mutation_plan,
@@ -170,6 +171,13 @@ class ReproductionConfig:
             (self.parent_atp_cost, "parent_atp_cost"),
         ):
             _validate_non_negative(value, name)
+        try:
+            object.__setattr__(self, "reproduction_mode", coerce_reproduction_mode(self.reproduction_mode))
+        except ValueError as exc:
+            raise ConfigurationError(str(exc)) from exc
+        except TypeError as exc:
+            raise ConfigurationError(str(exc)) from exc
+        object.__setattr__(self, "offspring_placement", _placement_policy(self.offspring_placement))
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -508,6 +516,50 @@ class LineageRecord:
             recombination_digest=_optional_str(data, "recombination_digest"),
             recombination_window_differed=_optional_bool(data, "recombination_window_differed"),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class BirthPlacementRecord:
+    """Birth-time parent/child cells. Observation-only; not an intelligence metric."""
+
+    parent_id: str
+    child_id: str
+    parent_position: tuple[int, int]
+    placement_cell: tuple[int, int]
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "parent_id": self.parent_id,
+            "child_id": self.child_id,
+            "parent_position": [self.parent_position[0], self.parent_position[1]],
+            "placement_cell": [self.placement_cell[0], self.placement_cell[1]],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> BirthPlacementRecord:
+        parent_raw = data.get("parent_position", [0, 0])
+        child_raw = data.get("placement_cell", [0, 0])
+        if not isinstance(parent_raw, list) or len(parent_raw) != 2:
+            raise ConfigurationError("BirthPlacementRecord.parent_position must be an [x, y] pair.")
+        if not isinstance(child_raw, list) or len(child_raw) != 2:
+            raise ConfigurationError("BirthPlacementRecord.placement_cell must be an [x, y] pair.")
+        return cls(
+            parent_id=_str(data, "parent_id"),
+            child_id=_str(data, "child_id"),
+            parent_position=(int(parent_raw[0]), int(parent_raw[1])),
+            placement_cell=(int(child_raw[0]), int(child_raw[1])),
+        )
+
+
+def _birth_placement_record(
+    parent: GenesisOrganism, child: GenesisOrganism
+) -> BirthPlacementRecord:
+    return BirthPlacementRecord(
+        parent_id=parent.id,
+        child_id=child.id,
+        parent_position=parent.position,
+        placement_cell=child.position,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1194,6 +1246,7 @@ class GenerationResult:
     environment_world_events: tuple[WorldEvent, ...] = ()
     phase_e_messages: tuple[DemeMessage, ...] = ()
     deme_state: DemeState | None = None
+    birth_placement_records: tuple[BirthPlacementRecord, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1241,6 +1294,10 @@ class GenerationResult:
             payload["phase_e_messages"] = [item.to_dict() for item in self.phase_e_messages]
         if self.deme_state is not None:
             payload["deme_state"] = self.deme_state.to_dict()
+        if self.birth_placement_records:
+            payload["birth_placement_records"] = [
+                item.to_dict() for item in self.birth_placement_records
+            ]
         return payload
 
     @classmethod
@@ -1327,6 +1384,11 @@ class GenerationResult:
             deme_state=DemeState.from_dict(deme_state_raw)
             if isinstance((deme_state_raw := data.get("deme_state")), Mapping)
             else None,
+            birth_placement_records=tuple(
+                BirthPlacementRecord.from_dict(item)
+                for item in _list(data, "birth_placement_records")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -2570,6 +2632,7 @@ def step_population(
     current_tick = population.tick
     sexual_cfg = configs.effective_sexual_config
     waiting: list[IncipientOffspring] = list(population.birth_chamber.waiting)
+    birth_placements: list[BirthPlacementRecord] = []
     chamber_rng = stream.fork("birth_chamber") if sexual_cfg.uses_birth_chamber else None
     if sexual_cfg.uses_birth_chamber and chamber_rng is not None:
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
@@ -2589,6 +2652,7 @@ def step_population(
             current_tick=current_tick,
             current_organism=None,
             alive_result=None,
+            placements=birth_placements,
         )
     stigmergy_enabled = configs.enable_nexus_stigmergy or (
         configs.capsule_transfer is not None and configs.capsule_transfer.enabled
@@ -2916,6 +2980,7 @@ def step_population(
                         births=births,
                         deaths=deaths,
                         blocked_reproduction=blocked_reproduction,
+                        placements=birth_placements,
                     )
                     _replace_last_event(trace, queued_event)
                     continue
@@ -3293,6 +3358,7 @@ def step_population(
             deaths=deaths,
             blocked_reproduction=blocked_reproduction,
             current_tick=current_tick,
+            placements=birth_placements,
         )
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
             waiting=waiting,
@@ -3311,6 +3377,7 @@ def step_population(
             current_tick=current_tick,
             current_organism=None,
             alive_result=None,
+            placements=birth_placements,
         )
 
     reproduction_capacity = configs.reproduction.max_population
@@ -3526,6 +3593,7 @@ def step_population(
         deme_state=working_deme_state
         if configs.phase_e.enabled and configs.phase_e.demes.enabled
         else None,
+        birth_placement_records=tuple(birth_placements),
     )
 
 
@@ -4459,6 +4527,7 @@ def _commit_newborn(
     lineage: tuple[LineageRecord, ...],
     deaths: int,
     current_tick: int,
+    placements: list[BirthPlacementRecord],
 ) -> tuple[bool, ReproductionResult, tuple[LineageRecord, ...], int]:
     if not reproduction_result.succeeded or reproduction_result.child is None:
         return False, reproduction_result, lineage, deaths
@@ -4502,6 +4571,7 @@ def _commit_newborn(
         raise RuntimeError("finalized reproduction unexpectedly lost child")
     children.append(child)
     live_positions[child.id] = child.position
+    placements.append(_birth_placement_record(parent, child))
     if reproduction_result.lineage is not None:
         lineage += (reproduction_result.lineage,)
     return True, reproduction_result, lineage, deaths
@@ -4525,6 +4595,7 @@ def _drain_chamber_pairs(
     current_tick: int,
     current_organism: GenesisOrganism | None,
     alive_result: AliveGateResult | None,
+    placements: list[BirthPlacementRecord],
 ) -> tuple[list[IncipientOffspring], tuple[LineageRecord, ...], int, int, ReproductionResult | None, list[str]]:
     last_result: ReproductionResult | None = None
     placed_ids: list[str] = []
@@ -4631,6 +4702,7 @@ def _drain_chamber_pairs(
                 lineage=lineage,
                 deaths=deaths,
                 current_tick=current_tick,
+                placements=placements,
             )
             if not admitted or result.child is None:
                 waiting.insert(0, slot)
@@ -4665,6 +4737,7 @@ def _expire_chamber_waiters(
     deaths: int,
     blocked_reproduction: int,
     current_tick: int,
+    placements: list[BirthPlacementRecord],
 ) -> tuple[list[IncipientOffspring], tuple[LineageRecord, ...], int, int, int]:
     timeout_indexes = timed_out_chamber_slots(
         waiting,
@@ -4732,6 +4805,7 @@ def _expire_chamber_waiters(
             lineage=lineage,
             deaths=deaths,
             current_tick=current_tick,
+            placements=placements,
         )
         if admitted:
             births += 1
@@ -4762,6 +4836,7 @@ def _handle_chamber_copy_self(
     births: int,
     deaths: int,
     blocked_reproduction: int,
+    placements: list[BirthPlacementRecord],
 ) -> tuple[
     GenesisOrganism,
     ReproductionResult | None,
@@ -4928,6 +5003,7 @@ def _handle_chamber_copy_self(
         current_tick=birth_tick,
         current_organism=organism,
         alive_result=alive_result,
+        placements=placements,
     )
     extra: dict[str, JsonValue] = {
         "birth_chamber_queued": True,
@@ -4992,16 +5068,10 @@ def _handle_chamber_copy_self(
 
 
 def _reproduction_mode(value: JsonValue | None) -> ReproductionMode:
-    if value is None:
-        return ReproductionMode.ASEXUAL
-    if not isinstance(value, str):
-        msg = "reproduction_mode must be a string."
-        raise ConfigurationError(msg)
     try:
-        return ReproductionMode(value)
-    except ValueError as exc:
-        msg = f"Unsupported reproduction_mode {value!r}."
-        raise ConfigurationError(msg) from exc
+        return coerce_reproduction_mode(value)  # type: ignore[arg-type]
+    except (ValueError, TypeError) as exc:
+        raise ConfigurationError(str(exc)) from exc
 
 
 def _sexual_mate_block_reason(
@@ -5082,9 +5152,11 @@ def _recombination_record_from_optional(
     )
 
 
-def _placement_policy(value: JsonValue | None) -> OffspringPlacementPolicy:
+def _placement_policy(value: JsonValue | OffspringPlacementPolicy | None) -> OffspringPlacementPolicy:
     if value is None:
         return OffspringPlacementPolicy.SAME_CELL
+    if isinstance(value, OffspringPlacementPolicy):
+        return value
     if not isinstance(value, str):
         msg = "offspring_placement must be a string."
         raise ConfigurationError(msg)

@@ -28,9 +28,18 @@ and birth records because the substrate actually changes subsequent behavior.
 
 - Default pack ceiling: `runtime_observation`
 - OEE ceiling remains `oee_measurement_only` on the Phase D layer
+  (`tokyo_type1_measurement_only` is a measurement-only alias; Type 1 is
+  **not** passed)
+- Capsule wiring must produce a **subsequent-action** effect under a sensory
+  cue, with capsules-off ablation (Clune 2007; Lalejini & Ofria 2016;
+  Frontiers 2021 Adaptive Phenotypic Plasticity / Ghalambor four conditions)
 - Blocked: `collective_intelligence`, `proved_collective_intelligence`,
   `evolved_plasticity`, `avida_replacement`, `associative_learning_proved`,
-  AGI, open-ended intelligence
+  AGI, open-ended intelligence, Tokyo Type 1 passed
+
+See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md).
+JaxLife, Aevol_4b, and ASAL/CLIP OE are documentation comparators or future
+measurement options — not implemented in the 2026 eval bugfix.
 
 ## API entry points
 

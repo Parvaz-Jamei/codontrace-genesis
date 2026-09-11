@@ -438,6 +438,7 @@ from codontrace.genesis.multi_generation import (
     compare_descendant_cohorts,
     evaluate_instinct_improvement_claim,
     evaluate_oee_measurement_claim,
+    evaluate_tokyo_type1_measurement_claim,
     export_multi_generation_evidence_pack,
     filter_persistent_lineages,
     genomes_from_census,
@@ -1110,6 +1111,7 @@ __all__ = [
     "compare_descendant_cohorts",
     "evaluate_instinct_improvement_claim",
     "evaluate_oee_measurement_claim",
+    "evaluate_tokyo_type1_measurement_claim",
     "export_multi_generation_evidence_pack",
     "filter_persistent_lineages",
     "genomes_from_census",
@@ -1222,6 +1224,7 @@ from codontrace.genesis.claim_gate import (
     EvidenceRequirement,
     ScientificClaimGate,
     StrongClaimLadderResult,
+    TOKYO_TYPE1_MEASUREMENT_CLAIM,
     default_claim_gate_policy,
     evaluate_strong_claim_ladder,
     normalize_claim_label,
@@ -1346,6 +1349,7 @@ __all__.extend(
         "ScientificClaimGate",
         "default_claim_gate_policy",
         "normalize_claim_label",
+        "TOKYO_TYPE1_MEASUREMENT_CLAIM",
     ]
 )
 

@@ -26,7 +26,10 @@ post-hoc analyze-mode dump: callers get a Python
 - Default pack ceiling: `runtime_observation`
 - `instinct_improved` requires metric delta + same-seed paired comparison + **multi-seed protocol** + ablation/control + persistence filter. Missing any of those downgrades to `runtime_observation`.
 - OEE ceiling: `oee_measurement_only`. `oee_candidate` still needs the existing research-grade thresholds (seeds, shadow, CIs, …).
-- Blocked: `open_ended_intelligence`, `proved_instinct_evolution`, `proved_open_endedness`, AGI, collective intelligence.
+- Channon 2024 Tokyo Type 1 vocabulary: `tokyo_type1_measurement_only` is a ClaimGate **alias** of `oee_measurement_only` (`evaluate_tokyo_type1_measurement_claim`). This is a measurement hook, **not** a Type 1 pass. `tokyo_type1_passed` remains forbidden. CLIP / ASAL foundation-model OE (arXiv 2412.17799) is **not** implemented.
+- Blocked: `open_ended_intelligence`, `proved_instinct_evolution`, `proved_open_endedness`, AGI, collective intelligence, Tokyo Type 1 passed.
+
+See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md) for the 2026 bugfix → literature mapping. Pack `LITERATURE_CHECKLIST` keys are unchanged so Phase D pack payloads stay stable.
 
 ## API entry points
 
@@ -37,6 +40,7 @@ from codontrace.genesis import (
     build_multi_generation_evidence_pack,
     evaluate_instinct_improvement_claim,
     evaluate_oee_measurement_claim,
+    evaluate_tokyo_type1_measurement_claim,
 )
 
 spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
@@ -45,6 +49,7 @@ pack = build_multi_generation_evidence_pack(result, spec=spec)
 print(pack.digest)
 print(evaluate_instinct_improvement_claim(pack).final_claim)
 print(evaluate_oee_measurement_claim(pack).final_claim)
+print(evaluate_tokyo_type1_measurement_claim(pack).final_claim)  # oee_measurement_only; Type 1 not passed
 ```
 
 Optional: `life_loop_world(reproduction_mode=SEXUAL_CROSSOVER)` and

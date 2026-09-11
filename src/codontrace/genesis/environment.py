@@ -955,7 +955,13 @@ def summarize_dynamic_environment_observation(
 ) -> DynamicEnvironmentObservation:
     """Summarize per-tick pools, patches, regimes, and env events from a run."""
 
-    ticks = getattr(result, "ticks", ())
+    if result is None:
+        raise TypeError("summarize_dynamic_environment_observation requires a run result, not None.")
+    if not hasattr(result, "ticks"):
+        raise TypeError(
+            "summarize_dynamic_environment_observation expected an object with a ticks collection."
+        )
+    ticks = getattr(result, "ticks")
     snapshots = snapshots_from_generation_results(ticks)
     events: list[EnvironmentEvent] = []
     for tick in ticks:

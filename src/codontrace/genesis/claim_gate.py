@@ -206,7 +206,19 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "associative_learning_proved",
     "odometry_proved",
     "deme_intelligence_proved",
+    # Channon 2024 Tokyo Type 1 vocabulary is measurement-only. Never pass Type 1.
+    "tokyo_type1_passed",
+    "tokyo_type_1_passed",
+    "tokyo_type1_oee_proved",
+    "tokyo_type_1_oee_proved",
+    "tokyo_type1_oee_passed",
+    "channon_tokyo_type1_passed",
 )
+
+# Channon 2024 Artif Life: Bedau activity + shadow normalization as *measurement
+# hooks*. Canonical ceiling stays oee_measurement_only. CLIP/ASAL OE is not
+# implemented here.
+TOKYO_TYPE1_MEASUREMENT_CLAIM = "tokyo_type1_measurement_only"
 
 _LEGACY_ALIAS_MAP: tuple[tuple[str, str], ...] = (
     ("research_alpha_foundation_engine", "foundation_engine"),
@@ -223,6 +235,7 @@ _LEGACY_ALIAS_MAP: tuple[tuple[str, str], ...] = (
     ("supported_discovery_candidate", "experimental_engine"),
     ("open_ended_evolution_candidate", "oee_candidate"),
     ("artificial_life_candidate", "artificial_life"),
+    (TOKYO_TYPE1_MEASUREMENT_CLAIM, "oee_measurement_only"),
 )
 
 _DEFAULT_REQUIREMENTS: dict[str, tuple[str, ...]] = {

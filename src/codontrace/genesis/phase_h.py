@@ -799,11 +799,13 @@ def format_collective_intelligence_candidate_checklist(
 def print_collective_intelligence_candidate_checklist(
     evidence_flags: Mapping[str, bool] | None = None,
 ) -> CollectiveIntelligenceCandidateChecklist:
-    """Print missing flags. Does not set them."""
+    """Return the checklist. Does not set ClaimGate flags.
 
-    checklist = collective_intelligence_candidate_checklist(evidence_flags)
-    print(checklist.render())
-    return checklist
+    Core must not call ``print`` (library-as-tool). Examples and CLIs may
+    print ``checklist.render()`` or ``format_collective_intelligence_candidate_checklist()``.
+    """
+
+    return collective_intelligence_candidate_checklist(evidence_flags)
 
 
 def evaluate_phase_h_claim(payload: Mapping[str, JsonValue] | object) -> ClaimDecision:

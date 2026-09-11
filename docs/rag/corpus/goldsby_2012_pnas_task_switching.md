@@ -23,14 +23,14 @@ Goldsby, Dornhaus, Kerr, and Ofria used Avida to ask whether the cost of switchi
 
 ## What CodonTrace Genesis has
 
-Phase H TaskSwitchingCostConfig hook; Phase I evolved (not assigned) two-task preference DoL analog with Gorelick-style NMI and ablation; Phase E/F role tags and DoL metrics; deme replicate-on-mean-fitness analog; messaging buffer.
+Phase H TaskSwitchingCostConfig hook; Phase I evolved preference DoL analog; Phase K `run_goldsby_cpu_delay_specialist_campaign` (research default 50 replicates, 0/25/50-cycle analog treatments, isolation vs group dual-task hooks). `is_goldsby_2012_pnas_experiment` stays False.
 
 ## What CodonTrace Genesis lacks
 
-Avida CPU-delay specialists at ~50 replicates; isolation-vs-group competence as evolved autonomy loss (Phase I isolation collapse is partly payoff construction); instruction-level coordination.
+Avida C++ CPU-delay specialists and colony quota; isolation failure that is evolved autonomy loss rather than missing work instructions or analog delay; the PNAS 2012 experiment itself.
 
 ## Next experiment
 
-How to get collective intelligence evidence: Phase I run_evolved_division_of_labor_experiment at research seed/generation counts, then still require ClaimGate flags from earn_collective_intelligence_candidate_flags — never from smoke.
+How to get collective intelligence evidence: run the Phase K Goldsby harness at research `replicate_count=50`; keep ClaimGate blocked; do not label the analog the PNAS paper.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

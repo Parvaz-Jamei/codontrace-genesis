@@ -293,8 +293,9 @@ never auto-sets ClaimGate candidate flags. Phase J can earn
 `replay_verification` from independent digest re-execution at research
 scale; `collective_intelligence_candidate` may then be allowed, while
 `collective_intelligence` stays forbidden. See
-[`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) and
-[`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md).
+[`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md),
+[`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md), and
+[`docs/PHASE_K_CI_DEPTH.md`](docs/PHASE_K_CI_DEPTH.md).
 
 ---
 

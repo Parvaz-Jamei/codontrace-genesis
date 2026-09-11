@@ -24,7 +24,8 @@ Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
-[`../CLAIMS.md`](../CLAIMS.md).
+[`../CLAIMS.md`](../CLAIMS.md),
+[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md).
 
 ---
 
@@ -125,12 +126,16 @@ Print-only smoke: `examples/genesis_phase_j_replay_ci.py`.
 
 ## 6. What is still missing for literature-grade CI
 
-1. Avida-scale evolved coordination *instructions* (not a preference gene).
+1. Avida-scale evolved coordination *instructions* (not a preference gene)
+   — Phase K analog ISA; not Avida C++.
 2. Goldsby 2012 ~50-replicate CPU-delay specialists + isolation failure that
-   is evolved autonomy loss rather than payoff construction.
+   is evolved autonomy loss rather than payoff construction — Phase K
+   harness (research default 50); not the PNAS experiment.
 3. Full multi-generation Price analysis with a transmission term; Avida
-   `DEME_GROUP` MLS2.
-4. Michod/Conlin endogenous conflict suppression and revertant assays.
+   `DEME_GROUP` MLS2 — Phase K estimates transmission; `price_equation_complete`
+   stays False.
+4. Michod/Conlin endogenous conflict suppression and revertant assays —
+   Phase K hooks only; endogenous flags stay False.
 5. Chromaria knock-outs / Channon 2024 Type 1 **pass** / vocabulary+verifier
    gap closure — still later, still blocked as claims.
 

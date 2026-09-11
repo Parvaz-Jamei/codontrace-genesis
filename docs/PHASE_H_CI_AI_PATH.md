@@ -18,6 +18,7 @@ and **do not set them**.
 Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I evidence harnesses),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
+[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md) (Phase K CI-depth measurements),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
@@ -152,3 +153,14 @@ Okasha MLS1 covariance **snapshot**. When every candidate flag is honestly
 present at research scale, ClaimGate may allow
 `collective_intelligence_candidate`. Bare `collective_intelligence` stays
 forbidden.
+
+---
+
+## 7. Phase K continues the evidence path
+
+Phase K ([`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md)) adds evolved
+send/retrieve/broadcast instruction genomes that can *pay* under ablation,
+a Goldsby-scale CPU-delay specialist harness (research default 50
+replicates), multi-generation Price with a transmission term, and
+Michod/Conlin conflict-suppression hooks. Smoke never earns flags. Bare
+`collective_intelligence` stays forbidden.

@@ -22,14 +22,14 @@ Conlin, Goldsby, Libby, Skocelas, Ratcliff, Ofria, and Kerr (bioRxiv 2023.03.15.
 
 ## What CodonTrace Genesis has
 
-Role/germline/soma tags; deme replication analog; DoL metrics; task-switching cost hook; honesty flag major_transition_in_individuality=False.
+Role/germline/soma tags; DoL metrics; Phase K revertant isolation assay hook (`entrenchment_of_multicellularity=False`; isolation collapse in the preference analog remains payoff construction).
 
 ## What CodonTrace Genesis lacks
 
-Tissue accretion vs propagule production; unicell revertant fitness assays; entrenchment-over-time curves; endogenous germ-soma DoL.
+Tissue accretion vs propagule production; unicell revertant fitness assays that are not payoff construction; entrenchment-over-time curves; endogenous germ-soma DoL.
 
 ## Next experiment
 
-How to get collective intelligence evidence: optional propagule-vs-accretion substrate plus a revertant control: force unicell mode and measure fitness collapse. Still not a major-transition claim without endogenous differentiation.
+How to get collective intelligence evidence: keep Phase K revertant hooks honest; still not a major-transition claim without endogenous differentiation.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

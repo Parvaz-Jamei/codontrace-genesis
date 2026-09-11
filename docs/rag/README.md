@@ -1,4 +1,4 @@
-# CodonTrace Genesis literature RAG (Phase H/I/J)
+# CodonTrace Genesis literature RAG (Phase H/I/J/K)
 
 Dependency-light research corpus + retriever for **CodonTrace Genesis**.
 No vector database. No forced ML dependencies. Retrieving a paper does
@@ -22,7 +22,8 @@ for cite in cite_sources(hits):
 auto-set). `examples/genesis_phase_i_ci_evidence.py` prints Phase I harness
 status and earnable-flag sources. `examples/genesis_phase_j_replay_ci.py`
 prints smoke-scale replay-verified packs (digests may match; flags stay
-unearned).
+unearned). `examples/genesis_phase_k_ci_depth.py` prints Phase K
+coordination / Goldsby / Price-transmission / conflict-hook smokes.
 
 Public API: `ingest_document`, `search_corpus(query, k)`, `cite_sources`.
 Search ranking is deterministic for a fixed corpus (TF-IDF + feature-hash +
@@ -32,7 +33,8 @@ keyword overlap). Each `SearchResult` has a replay digest.
 
 See [`PHASE_H_CI_AI_PATH.md`](../PHASE_H_CI_AI_PATH.md) and
 [`PHASE_I_CI_EVIDENCE.md`](../PHASE_I_CI_EVIDENCE.md), and
-[`PHASE_J_REPLAY_CI.md`](../PHASE_J_REPLAY_CI.md) for the has / lacks /
+[`PHASE_J_REPLAY_CI.md`](../PHASE_J_REPLAY_CI.md), and
+[`PHASE_K_CI_DEPTH.md`](../PHASE_K_CI_DEPTH.md) for the has / lacks /
 next-experiment map. Seed `doc_id`s:
 
 - `miikkulainen_forrest_2021_nature_mi`
@@ -50,6 +52,7 @@ next-experiment map. Seed `doc_id`s:
 - `okasha_2006_levels_of_selection` (Phase I)
 - `michod_2007_pnas_export_of_fitness` (Phase I)
 - `price_1970_selection_and_covariance` (Phase J)
+- `price_1972_extension_covariance_selection` (Phase K)
 
 ## Claim ceiling
 

@@ -42,7 +42,7 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 |---|---|
 | Package | `codontrace` |
 | Public PyPI tip | `0.3.0b3` — Phase A–G (life-loop + materials). Confirm on [PyPI](https://pypi.org/project/codontrace/). |
-| GitHub `main` | Ahead of that wheel: Phases H–L (RAG + CI evidence pathway) are on `main` with **no version bump**. `codontrace.__version__` still prints `0.3.0b3`. |
+| GitHub `main` / this PR | Development identity `0.3.0b4.dev0` (Phases H–L plus hygiene / hard experiment 01). |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
@@ -259,7 +259,10 @@ boundaries.
 | [`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) | Phase I: heldout / evolved DoL / MLS / export-of-fitness |
 | [`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay + Price scaffold |
 | [`docs/PHASE_K_CI_DEPTH.md`](docs/PHASE_K_CI_DEPTH.md) | Phase K: coordination, Goldsby-scale harness, Price transmission |
+| [`docs/PHASE_INDEX.md`](docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
 | [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
+| [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
+| [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
 | [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |

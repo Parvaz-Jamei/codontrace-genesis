@@ -20,15 +20,9 @@ Phase J ([`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md)) attaches an
 independent digest re-execution object so that flag can be earned honestly
 when captured and replayed campaign digests match.
 
-Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
-[`rag/README.md`](rag/README.md),
-[`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
-[`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
-[`../CLAIMS.md`](../CLAIMS.md),
-[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
-[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md),
-[`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md).
+Index: [`PHASE_INDEX.md`](PHASE_INDEX.md). Honesty:
+[`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).
+Phase L: [`PHASE_L_AVIDA_FIDELITY.md`](PHASE_L_AVIDA_FIDELITY.md).
 
 ---
 

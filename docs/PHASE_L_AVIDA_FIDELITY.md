@@ -19,6 +19,9 @@ The optional Phase K coordination-ablation **feed** never auto-sets
 ClaimGate flags. Digests are never faked. Default Phase A–E digest pins
 are unchanged.
 
+Index: [`PHASE_INDEX.md`](PHASE_INDEX.md). Honesty:
+[`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).
+
 Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),

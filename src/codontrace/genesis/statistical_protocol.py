@@ -146,12 +146,37 @@ def estimate_effect_size_lite(
     )
 
 
-def _pooled_std(a: Sequence[float], b: Sequence[float]) -> float:
-    values = list(a) + list(b)
+def paired_effect_size(deltas: Sequence[float]) -> float:
+    """Cohen's dz = mean(Δ) / s_Δ using the sample SD (ddof=1)."""
+
+    if any(isinstance(value, bool) or not isinstance(value, int | float) for value in deltas):
+        msg = "deltas must be numeric."
+        raise ConfigurationError(msg)
+    values = [float(value) for value in deltas]
     if len(values) < 2:
+        msg = "paired_effect_size requires at least two deltas."
+        raise ConfigurationError(msg)
+    mean_delta = sum(values) / len(values)
+    sample_sd = math.sqrt(sum((value - mean_delta) ** 2 for value in values) / (len(values) - 1))
+    if sample_sd == 0.0:
         return 0.0
+    return mean_delta / sample_sd
+
+
+def _sample_sum_of_squares(values: Sequence[float]) -> float:
     mean = sum(values) / len(values)
-    return math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+    return sum((value - mean) ** 2 for value in values)
+
+
+def _pooled_std(a: Sequence[float], b: Sequence[float]) -> float:
+    """Classical pooled SD: sqrt(((n1-1)s1² + (n2-1)s2²) / (n1+n2-2))."""
+
+    n1 = len(a)
+    n2 = len(b)
+    degrees = n1 + n2 - 2
+    if n1 < 1 or n2 < 1 or degrees <= 0:
+        return 0.0
+    return math.sqrt((_sample_sum_of_squares(a) + _sample_sum_of_squares(b)) / degrees)
 
 
 def _digest(payload: Mapping[str, JsonValue]) -> str:

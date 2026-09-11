@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### Phase K — literature-grade CI depth
+
+CodonTrace Genesis measurement-first follow-on after Phase J (`899addc`).
+**Does not** claim intelligence, collective intelligence, Tokyo Type 1
+passed, or Avida replacement. ClaimGate unchanged in the strict
+direction. No version bump. Phase A–E default digest pins stay stable.
+
+- Evolved coordination instructions
+  (`run_evolved_coordination_instruction_experiment`): discrete
+  send/retrieve/broadcast/work genomes on the Phase E buffer; messaging
+  ablation can drop coordination payoff. Analog ISA, not Avida C++.
+- Goldsby-scale CPU-delay specialist harness
+  (`run_goldsby_cpu_delay_specialist_campaign`): 0/25/50-cycle analog
+  treatments; research default **50** replicates; isolation vs group
+  dual-task hooks. `is_goldsby_2012_pnas_experiment=False`.
+- Multi-generation Price analysis
+  (`run_multi_generation_price_analysis`): transmission term from
+  realized parent–offspring Δz; `price_equation_complete=False`.
+- Michod/Conlin conflict-suppression hooks
+  (`build_conflict_suppression_observation`): within-group variance,
+  cheater invasion, revertant isolation. Endogenous / transition flags
+  stay False.
+- RAG corpus: Price 1972 transmission digest; Goldsby / Michod / Conlin
+  / Okasha / Price 1970 updated.
+- Docs: `docs/PHASE_K_CI_DEPTH.md`.
+- Example: `examples/genesis_phase_k_ci_depth.py`.
+
 ### Phase J — replay-verified CI candidate packs
 
 CodonTrace Genesis measurement-first follow-on after Phase I (PR #14 @

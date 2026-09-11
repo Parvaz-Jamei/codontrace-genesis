@@ -22,11 +22,11 @@ Okasha (2006) distinguishes MLS1 (group fitness as mean particle fitness; often 
 
 ## What CodonTrace Genesis has
 
-Phase I MLS vs organism-only outcome labels (majority strategy) plus fitness deltas; Phase J Price snapshot partition (between/within covariance, MLS1 identity) on the two-task analog; Phase F/H ranking and effect sizes retained as MLS1-style bookkeeping.
+Phase I MLS vs organism-only outcome labels; Phase J Price snapshot; Phase K multi-generation Price with a transmission term on the two-task analog.
 
 ## What CodonTrace Genesis lacks
 
-Full multi-generation Price paper with a transmission term; Avida DEME_GROUP MLS2 at literature scale.
+A published Price paper; Avida DEME_GROUP MLS2 at literature scale.
 
 ## Next experiment
 

@@ -12,7 +12,7 @@
 
 ## Digest
 
-Price (1970, Nature doi:10.1038/227520a0) showed that selection on a trait is a covariance between that trait and fitness. Okasha (2006) uses the hierarchical (between-group + within-group) form as MLS1 bookkeeping. A covariance snapshot is not MLS2 evolutionary outcome, not a major transition, and not collective intelligence. CodonTrace Genesis Phase J `run_price_equation_covariance_scaffold` records last-generation between/within/total covariance on the two-task analog, checks the MLS1 partition identity, and leaves the transmission term unestimated. `major_transition_in_individuality` stays False.
+Price (1970, Nature doi:10.1038/227520a0) showed that selection on a trait is a covariance between that trait and fitness. Okasha (2006) uses the hierarchical (between-group + within-group) form as MLS1 bookkeeping. A covariance snapshot is not MLS2 evolutionary outcome, not a major transition, and not collective intelligence. CodonTrace Genesis Phase J `run_price_equation_covariance_scaffold` records last-generation between/within/total covariance on the two-task analog, checks the MLS1 partition identity, and leaves the transmission term unestimated. Phase K estimates a transmission term from realized parent–offspring preference change after mutation and still sets `price_equation_complete=False`. `major_transition_in_individuality` stays False.
 
 ## Key claims
 
@@ -22,14 +22,14 @@ Price (1970, Nature doi:10.1038/227520a0) showed that selection on a trait is a 
 
 ## What CodonTrace Genesis has
 
-Phase J Price snapshot partition (MLS1 identity on equal-sized groups) plus Phase I MLS outcome labels.
+Phase J Price snapshot partition (MLS1 identity) plus Phase K `run_multi_generation_price_analysis` with a realized parent–offspring transmission term. `price_equation_complete` stays False.
 
 ## What CodonTrace Genesis lacks
 
-A full multi-generation Price analysis with a transmission term; published empirical covariance tables; Avida `DEME_GROUP` MLS2.
+A published multi-generation Price paper; Avida `DEME_GROUP` MLS2; empirical covariance tables.
 
 ## Next experiment
 
-How to get collective intelligence evidence: keep Price terms as measurement; attach independent digest replay at research scale so `replay_verification` can be earned honestly. Claim ceiling `runtime_observation`.
+How to get collective intelligence evidence: keep Price terms as measurement; do not set `price_equation_complete` from an analog residual. Claim ceiling `runtime_observation`.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

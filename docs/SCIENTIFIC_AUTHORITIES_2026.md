@@ -26,6 +26,7 @@ CodonTrace Genesis reality; not close to AGI),
 [`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md) (Phase H RAG + CI pathway),
 [`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md) (Phase I CI evidence harnesses),
 [`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md) (Phase J honest replay + Price scaffold),
+[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md) (Phase K CI-depth measurements),
 [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
@@ -309,5 +310,5 @@ Use this on the completeness PR. All items must stay **honest**.
 
 See `CLAIMS.md`, `docs/PHASE_D_LITERATURE.md`, `docs/PHASE_E_LITERATURE.md`,
 `docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/PHASE_H_CI_AI_PATH.md`,
-`docs/PHASE_I_CI_EVIDENCE.md`, `docs/PHASE_J_REPLAY_CI.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
+`docs/PHASE_I_CI_EVIDENCE.md`, `docs/PHASE_J_REPLAY_CI.md`, `docs/PHASE_K_CI_DEPTH.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
 and `ScientificClaimGate`.

@@ -26,7 +26,8 @@ Cross-links: [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
 [`../CLAIMS.md`](../CLAIMS.md),
-[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md).
+[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
+[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md).
 
 ---
 
@@ -122,13 +123,18 @@ Print-only smoke: `examples/genesis_phase_i_ci_evidence.py`.
 
 ## 4. What is still missing for literature-grade CI
 
-1. Avida-scale evolved coordination *instructions* (not a preference gene).
+1. Avida-scale evolved coordination *instructions* (not a preference gene)
+   — Phase K adds a discrete analog ISA on the Phase E buffer; not Avida C++.
 2. Goldsby 2012 ~50-replicate CPU-delay specialists + isolation failure that
-   is evolved autonomy loss rather than payoff construction.
+   is evolved autonomy loss rather than payoff construction — Phase K adds
+   the 50-replicate harness; isolation failure is still not automatically
+   evolved autonomy loss.
 3. Okasha-grade Price-equation covariance terms with a **transmission**
    term and Avida `DEME_GROUP` MLS2. Phase J records a last-generation
-   snapshot partition only.
-4. Michod/Conlin endogenous conflict suppression and revertant assays.
+   snapshot; Phase K estimates a transmission term and keeps
+   `price_equation_complete=False`.
+4. Michod/Conlin endogenous conflict suppression and revertant assays —
+   Phase K adds hooks; endogenous flags stay False.
 5. Replay-verified candidate packs — **Phase J** makes independent digest
    re-execution runnable; literature-scale Avida/Goldsby campaigns remain.
 6. Chromaria knock-outs / Channon 2024 Type 1 **pass** / vocabulary+verifier

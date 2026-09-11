@@ -155,6 +155,7 @@ class GenesisOrganism:
     translation_policy: TranslationPolicy = field(default_factory=TranslationPolicy)
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
+    _low_energy_ticks: int = field(default=0, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if not self.id:

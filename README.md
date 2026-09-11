@@ -190,6 +190,40 @@ print(result.digest()[:24])
 print(len(result.engine_frames))
 ```
 
+### Phase A life-loop / ecology preset
+
+Short eat → survive → reproduce experiments should use the explicit
+`GenesisRuntimeProfile.life_loop_world()` preset instead of relying on empty
+research defaults (`ResourceConfig.density=0`, `ReproductionConfig` SAME_CELL).
+
+The preset is a Darwinian life-loop *substrate* grounded in digital-evolution
+practice (Avida limited-resource ecology; energy-budget ALife such as JaxLife /
+EEDx-style maintenance costs). It is not an Avida replacement and does not
+claim benchmark superiority.
+
+It places a **small, depletable** food pool (two patches, `max_resources=3`)
+with **partial** respawn (`respawn_rate=0.4`), so eat reduces local/global
+availability and two foragers can compete. Organisms pay an opt-in **basal
+ATP drain** every tick and die with an explicit `starvation` reason when
+runtime ATP stays at or below the configured floor. Adjacent empty-cell
+placement is the preset default (SAME_CELL remains the research default;
+`REPLACE_OCCUPIED` is an explicit overwrite option only). COPY_SELF is gated
+on AliveGate plus runtime ATP so eat-capable lineages can out-reproduce
+WAIT/starved controls. Inheritance stays asexual parent→mutate→child.
+Sexual crossover, seasonal environments, and multi-generation instinct
+claims are deferred.
+
+This is a **software capability / runtime observation** surface. It does not
+prove life, intelligence, cooperation, or instinct evolution.
+
+```python
+from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
+
+spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
+result = GenesisEngine.from_spec(spec).run_ticks()
+print(result.digest()[:24])
+```
+
 ---
 
 ## Benchmark smoke

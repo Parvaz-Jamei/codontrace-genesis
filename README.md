@@ -280,7 +280,8 @@ plasticity, collective intelligence, or an Avida replacement. Opt-in
 `LearningCausalPayoffPack` and `CollectiveDemePayoffPack` record cue→payoff
 and deme-replication ledgers at `runtime_observation` only. Phase F adds
 `run_collective_deme_payoff_campaign` (multi-seed ranking + division-of-labor
-*metrics*); `collective_intelligence` stays blocked.
+*metrics* + group-vs-individual contrast); heldout/ablation stay `not_run`.
+`collective_intelligence` stays blocked.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, instinct evolution, or OEE.

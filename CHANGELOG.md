@@ -43,8 +43,12 @@ ClaimGate is unchanged in the strict direction.
   Goldsby / GECCO 2008 / demes / Michod–Szathmáry major transitions). Does
   **not** claim CodonTrace Genesis is close to AGI.
 - Phase F `run_collective_deme_payoff_campaign`: ≥2-seed deme ranking +
-  division-of-labor *metrics* + contribution ledger. Group fitness remains
-  `runtime_observation`; `collective_intelligence` blocked.
+  division-of-labor *metrics* + contribution ledger + paired
+  group-vs-individual contrast. Gap flags stay explicit
+  (`heldout_partner_status=not_run`, `communication_ablation_status=not_run`,
+  `multilevel_selection_experiment=scaffold_only`). Group fitness remains
+  `runtime_observation`; `collective_intelligence` /
+  `proved_collective_intelligence` blocked.
 - `examples/genesis_scientific_gaps_2026.py` prints blocked pass/intelligence
   claims.
 

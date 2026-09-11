@@ -42,14 +42,16 @@ _FORBIDDEN = frozenset(
 LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
     (
         "avida_demes_germline_replication",
-        "devosoft/avida DEMES_* / GermlineReplication: replicate a deme when "
-        "mean fitness clears a threshold; copy a germline/propagule.",
+        "devosoft/avida wiki Deme-introduction and avida.cfg DEME_GROUP / "
+        "GERMLINE: multilevel selection via deme replicate-on-mean-fitness and "
+        "optional germline/propagule copy. Analog, not a C++ port.",
     ),
     (
-        "goldsby_messaging",
-        "Goldsby et al. coordination instructions (send/retrieve/broadcast/"
-        "block_propagation) remain the messaging subset; this pack attributes "
-        "payoff, not language.",
+        "goldsby_messaging_division_of_labor",
+        "Goldsby et al. Avida coordination instructions (send/retrieve/broadcast/"
+        "block_propagation), division-of-labor / task-switching, and "
+        "GermlineReplication. Messaging and role tags here are gates, not evolved "
+        "DoL or language.",
     ),
     (
         "gecco_2008_digital_germlines",
@@ -296,6 +298,85 @@ class DemeDivisionOfLaborObservation:
         return {**self._payload(), "digest": self.digest}
 
 
+_GAP_NOT_RUN = "not_run"
+
+
+def _mean_organism_fitness(result: object) -> float:
+    totals: list[float] = []
+    ticks = getattr(result, "ticks", ()) or ()
+    for tick in ticks:
+        generation = getattr(tick, "generation_result", None)
+        population = getattr(generation, "population", None) if generation is not None else None
+        for item in getattr(population, "fitness", ()) if population is not None else ():
+            totals.append(float(getattr(item, "score", 0.0) or 0.0))
+    if not totals:
+        return 0.0
+    return round(sum(totals) / len(totals), 10)
+
+
+def _message_count(result: object) -> int:
+    count = 0
+    ticks = getattr(result, "ticks", ()) or ()
+    for tick in ticks:
+        generation = getattr(tick, "generation_result", None)
+        state = getattr(generation, "deme_state", None) if generation is not None else None
+        inbox = getattr(state, "inbox", ()) if state is not None else ()
+        count = max(count, len(tuple(inbox or ())))
+    return int(count)
+
+
+@dataclass(frozen=True, slots=True)
+class GroupVsIndividualContrast:
+    """Paired deme-on vs organism-only fitness. Group fitness, not intelligence."""
+
+    seed: int
+    deme_enabled_mean_fitness: float
+    organism_only_mean_fitness: float
+    delta: float
+    selected_deme_mean_fitness: float
+    unselected_deme_mean_fitness: float
+    message_count: int
+    ledger_digest: str = ""
+    heldout_partner_status: str = _GAP_NOT_RUN
+    communication_ablation_status: str = _GAP_NOT_RUN
+    digest: str = ""
+
+    def __post_init__(self) -> None:
+        for name in (
+            "deme_enabled_mean_fitness",
+            "organism_only_mean_fitness",
+            "delta",
+            "selected_deme_mean_fitness",
+            "unselected_deme_mean_fitness",
+        ):
+            object.__setattr__(self, name, require_finite_float(name, getattr(self, name)))
+        if self.message_count < 0:
+            raise ConfigurationError("message_count must be >= 0.")
+        computed = canonical_digest(self._payload())
+        if self.digest and self.digest != computed:
+            raise ConfigurationError("GroupVsIndividualContrast digest mismatch.")
+        object.__setattr__(self, "digest", computed)
+
+    def _payload(self) -> dict[str, JsonValue]:
+        return {
+            "seed": self.seed,
+            "deme_enabled_mean_fitness": self.deme_enabled_mean_fitness,
+            "organism_only_mean_fitness": self.organism_only_mean_fitness,
+            "delta": self.delta,
+            "selected_deme_mean_fitness": self.selected_deme_mean_fitness,
+            "unselected_deme_mean_fitness": self.unselected_deme_mean_fitness,
+            "message_count": self.message_count,
+            "ledger_digest": self.ledger_digest,
+            "heldout_partner_status": self.heldout_partner_status,
+            "communication_ablation_status": self.communication_ablation_status,
+            "group_fitness_is_not_collective_intelligence": True,
+            "collective_intelligence": False,
+        }
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {**self._payload(), "digest": self.digest}
+
+
 @dataclass(frozen=True, slots=True)
 class CollectiveDemeSeedRecord:
     """One seed in a Phase F deme-payoff campaign."""
@@ -304,6 +385,12 @@ class CollectiveDemeSeedRecord:
     pack_digest: str
     replication_count: int
     deme_count: int
+    message_count: int = 0
+    ledger_digest: str = ""
+
+    def __post_init__(self) -> None:
+        if self.message_count < 0:
+            raise ConfigurationError("message_count must be >= 0.")
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -311,7 +398,13 @@ class CollectiveDemeSeedRecord:
             "pack_digest": self.pack_digest,
             "replication_count": self.replication_count,
             "deme_count": self.deme_count,
+            "message_count": self.message_count,
+            "ledger_digest": self.ledger_digest,
+            "collective_intelligence": False,
         }
+
+
+_MULTILEVEL_SCAFFOLD = "scaffold_only"
 
 
 @dataclass(frozen=True, slots=True)
@@ -323,6 +416,10 @@ class CollectiveDemePayoffCampaign:
     ranks: tuple[DemeMeanFitnessRank, ...]
     division_of_labor: tuple[DemeDivisionOfLaborObservation, ...]
     replication_count: int
+    contrasts: tuple[GroupVsIndividualContrast, ...] = ()
+    heldout_partner_status: str = _GAP_NOT_RUN
+    communication_ablation_status: str = _GAP_NOT_RUN
+    multilevel_selection_experiment: str = _MULTILEVEL_SCAFFOLD
     literature_checklist: tuple[tuple[str, str], ...] = LITERATURE_CHECKLIST
     claim_ceiling: str = _CLAIM_CEILING
     schema_version: str = "collective_deme_payoff_campaign_v1"
@@ -331,6 +428,8 @@ class CollectiveDemePayoffCampaign:
     def __post_init__(self) -> None:
         if len(self.seeds) < 2:
             raise ConfigurationError("CollectiveDemePayoffCampaign requires seed_count >= 2.")
+        if self.contrasts and len(self.contrasts) != len(self.seeds):
+            raise ConfigurationError("CollectiveDemePayoffCampaign contrasts must match seeds.")
         if self.claim_ceiling in _FORBIDDEN or self.claim_ceiling != _CLAIM_CEILING:
             raise ConfigurationError(
                 "CollectiveDemePayoffCampaign claim_ceiling must stay runtime_observation."
@@ -347,17 +446,25 @@ class CollectiveDemePayoffCampaign:
             "seed_records": [item.to_dict() for item in self.seed_records],
             "ranks": [item.to_dict() for item in self.ranks],
             "division_of_labor": [item.to_dict() for item in self.division_of_labor],
+            "contrasts": [item.to_dict() for item in self.contrasts],
             "replication_count": self.replication_count,
+            "heldout_partner_status": self.heldout_partner_status,
+            "communication_ablation_status": self.communication_ablation_status,
+            "multilevel_selection_experiment": self.multilevel_selection_experiment,
             "literature_checklist": [[key, text] for key, text in self.literature_checklist],
             "claim_ceiling": self.claim_ceiling,
             "collective_intelligence": False,
             "proved_collective_intelligence": False,
             "major_transition_in_individuality": False,
+            "group_fitness_is_not_collective_intelligence": True,
             "limitations": [
                 "group_fitness_is_not_collective_intelligence",
                 "role_tags_are_not_evolved_division_of_labor",
                 "ranking_is_not_multilevel_selection_experiment",
                 "michod_szathmary_transition_not_demonstrated",
+                "heldout_partner_generalization_not_run",
+                "communication_ablation_not_run",
+                "multilevel_selection_experiment_is_scaffold_only",
             ],
         }
 
@@ -466,6 +573,48 @@ def build_deme_division_of_labor_observation(
     return tuple(observations)
 
 
+def _combined_ledger_digest(pack: CollectiveDemePayoffPack) -> str:
+    digests = [str(item.digest) for item in pack.ledgers]
+    if not digests:
+        return ""
+    if len(digests) == 1:
+        return digests[0]
+    return canonical_digest(digests)
+
+
+def _rank_split_means(ranks: Sequence[DemeMeanFitnessRank]) -> tuple[float, float]:
+    selected = [item.mean_fitness for item in ranks if item.selected_for_replication]
+    unselected = [item.mean_fitness for item in ranks if not item.selected_for_replication]
+    selected_mean = round(sum(selected) / len(selected), 10) if selected else 0.0
+    unselected_mean = round(sum(unselected) / len(unselected), 10) if unselected else 0.0
+    return selected_mean, unselected_mean
+
+
+def build_group_vs_individual_contrast(
+    *,
+    seed: int,
+    deme_result: object,
+    organism_result: object,
+    pack: CollectiveDemePayoffPack,
+    ranks: Sequence[DemeMeanFitnessRank],
+) -> GroupVsIndividualContrast:
+    """Paired deme-on vs organism-only fitness. Group fitness, not intelligence."""
+
+    deme_fit = _mean_organism_fitness(deme_result)
+    organism_fit = _mean_organism_fitness(organism_result)
+    selected, unselected = _rank_split_means(ranks)
+    return GroupVsIndividualContrast(
+        seed=seed,
+        deme_enabled_mean_fitness=deme_fit,
+        organism_only_mean_fitness=organism_fit,
+        delta=round(deme_fit - organism_fit, 10),
+        selected_deme_mean_fitness=selected,
+        unselected_deme_mean_fitness=unselected,
+        message_count=_message_count(deme_result),
+        ledger_digest=_combined_ledger_digest(pack),
+    )
+
+
 def run_collective_deme_payoff_campaign(
     seeds: tuple[int, ...] | list[int] = (3, 7),
     *,
@@ -475,8 +624,12 @@ def run_collective_deme_payoff_campaign(
 ) -> CollectiveDemePayoffCampaign:
     """Run ≥2 seeds of the Phase E deme substrate and aggregate payoff metrics.
 
-    Still forbids ``collective_intelligence``. This is a Phase F measurement
-    campaign, not a major-transition experiment.
+    Pairs each deme-enabled seed with an organism-only control of the same
+    seed/ticks/population. Ranking is observational (``top_k`` selected).
+    Heldout-partner generalization and communication ablation stay ``not_run``.
+    Multilevel selection stays ``scaffold_only``. Still forbids
+    ``collective_intelligence``. This is a Phase F measurement campaign, not a
+    major-transition experiment.
     """
 
     seed_tuple = tuple(int(item) for item in seeds)
@@ -490,6 +643,7 @@ def run_collective_deme_payoff_campaign(
     seed_records: list[CollectiveDemeSeedRecord] = []
     all_ranks: list[DemeMeanFitnessRank] = []
     all_dol: list[DemeDivisionOfLaborObservation] = []
+    contrasts: list[GroupVsIndividualContrast] = []
     replications = 0
     for seed in seed_tuple:
         spec = GenesisRuntimeProfile.phase_e_substrate_world(
@@ -501,18 +655,36 @@ def run_collective_deme_payoff_campaign(
             replicate_on_mean_fitness=0.0,
         )
         result = GenesisEngine.from_spec(spec).run_ticks()
+        organism_spec = GenesisRuntimeProfile.phase_e_substrate_world(
+            seed=seed,
+            tick_count=tick_count,
+            population=population,
+            enable_demes=False,
+            enable_roles=False,
+        )
+        organism_result = GenesisEngine.from_spec(organism_spec).run_ticks()
         pack = build_collective_deme_payoff_pack(result)
         ranks = rank_demes_by_mean_fitness(result, top_k=top_k)
         dol = build_deme_division_of_labor_observation(result)
+        contrast = build_group_vs_individual_contrast(
+            seed=seed,
+            deme_result=result,
+            organism_result=organism_result,
+            pack=pack,
+            ranks=ranks,
+        )
         replications += pack.replication_count
         all_ranks.extend(ranks)
         all_dol.extend(dol)
+        contrasts.append(contrast)
         seed_records.append(
             CollectiveDemeSeedRecord(
                 seed=seed,
                 pack_digest=pack.digest,
                 replication_count=pack.replication_count,
                 deme_count=len(ranks),
+                message_count=contrast.message_count,
+                ledger_digest=contrast.ledger_digest,
             )
         )
     campaign = CollectiveDemePayoffCampaign(
@@ -521,11 +693,15 @@ def run_collective_deme_payoff_campaign(
         ranks=tuple(all_ranks),
         division_of_labor=tuple(all_dol),
         replication_count=replications,
+        contrasts=tuple(contrasts),
+        heldout_partner_status=_GAP_NOT_RUN,
+        communication_ablation_status=_GAP_NOT_RUN,
+        multilevel_selection_experiment=_MULTILEVEL_SCAFFOLD,
     )
     gate = ScientificClaimGate()
-    if gate.decide(ClaimRequest("collective_intelligence", {})).allowed:
+    if gate.decide(ClaimRequest("collective_intelligence", campaign.to_dict())).allowed:
         raise ConfigurationError("collective_intelligence must remain blocked.")
-    if gate.decide(ClaimRequest("proved_collective_intelligence", {})).allowed:
+    if gate.decide(ClaimRequest("proved_collective_intelligence", campaign.to_dict())).allowed:
         raise ConfigurationError("proved_collective_intelligence must remain blocked.")
     return campaign
 
@@ -537,11 +713,12 @@ def evaluate_collective_deme_payoff_campaign_claim(
     """Runtime observation only. proved collective intelligence stays blocked."""
 
     resolved = gate or ScientificClaimGate()
+    payload = campaign.to_dict()
     decision = resolved.decide(
-        ClaimRequest(_CLAIM_CEILING, {}, evidence_digests=(campaign.digest,))
+        ClaimRequest(_CLAIM_CEILING, payload, evidence_digests=(campaign.digest,))
     )
     for label in ("collective_intelligence", "proved_collective_intelligence"):
-        blocked = resolved.decide(ClaimRequest(label, {}))
+        blocked = resolved.decide(ClaimRequest(label, payload))
         if blocked.allowed:
             raise ConfigurationError(f"{label} must remain blocked.")
     return decision

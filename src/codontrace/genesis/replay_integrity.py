@@ -922,7 +922,14 @@ _SCIENTIFIC_GAPS_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.collective_deme.DemePayoffRecord": ("contribution_digest",),
     "codontrace.genesis.collective_deme.CollectiveDemePayoffPack": ("digest",),
     "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation": ("digest",),
-    "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord": ("pack_digest",),
+    "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord": (
+        "pack_digest",
+        "ledger_digest",
+    ),
+    "codontrace.genesis.collective_deme.GroupVsIndividualContrast": (
+        "digest",
+        "ledger_digest",
+    ),
     "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign": ("digest",),
     "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint": (
         "modes_digest",
@@ -948,6 +955,7 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
             "codontrace.genesis.collective_deme.DemePayoffRecord",
             "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation",
             "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord",
+            "codontrace.genesis.collective_deme.GroupVsIndividualContrast",
             "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint",
         )
     )

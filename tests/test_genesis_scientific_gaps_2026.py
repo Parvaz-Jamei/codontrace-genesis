@@ -376,6 +376,8 @@ def test_scientific_gaps_public_api_and_claimgate() -> None:
         "build_learning_causal_payoff_pack",
         "build_collective_deme_payoff_pack",
         "run_collective_deme_payoff_campaign",
+        "build_group_vs_individual_contrast",
+        "GroupVsIndividualContrast",
         "run_channon_avida_modes_shadow_suite",
         "LOGIC9_TASKS",
     ):
@@ -404,17 +406,34 @@ def test_phase_f_collective_deme_campaign_stays_runtime_observation() -> None:
     campaign = run_collective_deme_payoff_campaign(
         seeds=(3, 7), tick_count=4, population=4
     )
+    payload = campaign.to_dict()
     assert len(campaign.seeds) >= 2
+    assert len(campaign.contrasts) == len(campaign.seeds)
     assert campaign.claim_ceiling == "runtime_observation"
-    assert campaign.to_dict()["collective_intelligence"] is False
-    assert campaign.to_dict()["major_transition_in_individuality"] is False
+    assert payload["collective_intelligence"] is False
+    assert payload["proved_collective_intelligence"] is False
+    assert payload["major_transition_in_individuality"] is False
+    assert payload["group_fitness_is_not_collective_intelligence"] is True
+    assert payload["heldout_partner_status"] == "not_run"
+    assert payload["communication_ablation_status"] == "not_run"
+    assert payload["multilevel_selection_experiment"] == "scaffold_only"
+    assert "heldout_partner_generalization_not_run" in payload["limitations"]
+    for contrast in campaign.contrasts:
+        row = contrast.to_dict()
+        assert row["collective_intelligence"] is False
+        assert row["group_fitness_is_not_collective_intelligence"] is True
+        assert row["heldout_partner_status"] == "not_run"
+        assert row["communication_ablation_status"] == "not_run"
+    for record in campaign.seed_records:
+        assert "ledger_digest" in record.to_dict()
+        assert record.message_count >= 0
     assert evaluate_collective_deme_payoff_campaign_claim(campaign).final_claim == (
         "runtime_observation"
     )
-    assert ScientificClaimGate().decide(ClaimRequest("collective_intelligence", {})).allowed is False
-    assert ScientificClaimGate().decide(
-        ClaimRequest("proved_collective_intelligence", {})
-    ).allowed is False
+    gate = ScientificClaimGate()
+    assert gate.decide(ClaimRequest("collective_intelligence", payload)).allowed is False
+    assert gate.decide(ClaimRequest("proved_collective_intelligence", payload)).allowed is False
+    assert gate.decide(ClaimRequest("collective_intelligence_candidate", payload)).allowed is False
 
 
 def test_why_not_intelligence_yet_doc_is_honest() -> None:
@@ -437,8 +456,13 @@ def test_why_not_intelligence_yet_doc_is_honest() -> None:
         "JaxLife",
         "Goldsby",
         "GECCO 2008",
+        "DEME_GROUP",
         "Michod",
         "Szathmáry",
+        "heldout partner",
+        "communication ablation",
+        "multilevel selection",
+        "group fitness",
         "collective_intelligence",
         "ScientificClaimGate",
         "Phase F",

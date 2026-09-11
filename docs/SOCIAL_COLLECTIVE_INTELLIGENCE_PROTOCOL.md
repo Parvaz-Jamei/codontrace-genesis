@@ -20,6 +20,10 @@ Familiar and unfamiliar partner profiles must be behaviorally distinct. If event
 
 `collective_intelligence_candidate` requires multi-agent task dependency, non-capsule cooperation, role complementarity, familiar/unfamiliar partner evidence, ablation, and replay digest. `swarm_coordination_candidate` requires distributed task coverage, decentralized coordination, shuffled-agent control, single-agent baseline, no-communication baseline, and replay digest.
 
-Deme mean fitness, replication events, and contribution ledgers are
+Deme mean fitness, replication events, contribution ledgers,
+division-of-labor *metrics*, and group-vs-individual deltas are
 `runtime_observation` only. They are **not** `collective_intelligence`.
-See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).
+Phase F campaign gap flags (`heldout_partner_status`,
+`communication_ablation_status`, `multilevel_selection_experiment`) stay
+`not_run` / `scaffold_only` unless a researcher actually runs those
+experiments. See [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md).

@@ -40,8 +40,9 @@ The honest sentence is:
 > library for Avida-like ecology experiments. It is **not close to AGI**.
 > Measuring a barrier is not crossing it.
 
-Phase F work (collective/deme payoff campaigns, division-of-labor
-*metrics*, multi-deme ranking) continues under that sentence.
+Phase F work (collective/deme payoff campaigns, group-vs-individual
+contrasts, division-of-labor *metrics*, multi-deme ranking) continues under
+that sentence. Those measurements remain group fitness, not intelligence.
 
 ---
 
@@ -233,60 +234,78 @@ embodiment result. ASAL / CLIP foundation-model open-ended search
 ## 8. Collective intelligence — first-class scientific gap (Phase F)
 
 This is the gap CodonTrace Genesis treats as **first-class** for Phase F
-engineering, still without promoting it to a proved result.
+engineering, still without promoting it to a proved result. Group fitness,
+messaging counts, and role shares are allowed as `runtime_observation`.
+Proved `collective_intelligence` stays **BLOCKED**.
 
 ### 8.1 Literature
 
 - **Goldsby et al.** — coordination instructions in Avida
   (`send_message` / `retrieve_message` / `broadcast_message` /
-  `block_propagation`); division-of-labor and GermlineReplication experiments.
-- **GECCO 2008 digital germlines** — cooperative networks; soma vs germline
-  eligibility; propagules, not “the group thought.”
+  `block_propagation`); division-of-labor / task-switching experiments; and
+  GermlineReplication (deme-level copy of a germline/propagule when mean
+  fitness clears a threshold). Messaging here is a buffer + gate, not those
+  evolved coordination instructions paying off.
+- **GECCO 2008 digital germlines / cooperative networks** — soma vs germline
+  eligibility; cooperative networks that export fitness through a germline.
+  Role tags here are eligibility gates, not evolved cooperative networks.
 - **`devosoft/avida` demes wiki / `avida.cfg` `DEME_GROUP`** — multilevel
-  selection; deme replicate-on-mean-fitness; germline copy.
-- **Major transitions in individuality** — Szathmáry & Maynard Smith lineage;
-  Michod’s export-of-fitness / evolutionary transitions. A new Darwinian
-  individual is not a tagged role.
+  selection (`DEMES_GROUP_REPLICATE`, germline copy, `GERMLINE`). Phase E
+  `DemeConfig.replicate_on_mean_fitness` is an analog, not a C++ port.
+- **Major transitions in individuality** — Szathmáry & Maynard Smith 1995
+  lineage; Michod’s export-of-fitness / evolutionary transitions in
+  individuality. A new Darwinian individual is not a tagged deme.
 
 ### 8.2 Distinguish two ceilings
 
 | Observation | Allowed label | Forbidden label |
 |---|---|---|
-| Deme mean fitness, replication events, contribution shares, role counts | `runtime_observation` | `collective_intelligence` |
-| Group-over-individual improvement with communication ablation, role complementarity, heldout unfamiliar partners, multi-seed effect size, replay | `collective_intelligence_candidate` (only if ClaimGate flags are complete) | `collective_intelligence`, `proved_collective_intelligence` |
+| Deme mean fitness, replication events, contribution shares, role counts, group-vs-individual *delta*, message counts | `runtime_observation` | `collective_intelligence` |
+| Group-over-individual improvement **with** communication ablation, role complementarity, heldout unfamiliar partners, multi-seed effect size, replay | `collective_intelligence_candidate` (only if ClaimGate flags are complete) | `collective_intelligence`, `proved_collective_intelligence` |
 
 Mean fitness of a deme is **group fitness**, not collective intelligence.
 A contribution ledger is **attribution**, not causal proof of cooperation.
+A rank table with `top_k` selected is **not** a multilevel-selection
+experiment. A positive group-vs-individual delta in the Phase F smoke still
+leaves `collective_intelligence` **BLOCKED**.
 
-### 8.3 What CodonTrace Genesis has today
+`ScientificClaimGate` for `collective_intelligence_candidate` still requires
+the full flag set: `real_partner_event`, `non_capsule_cooperation`,
+`role_complementarity`, `collective_coordination`, heldout familiar/unfamiliar
+protocols, `ablation_result`, `collective_report_digest`,
+`replay_verification`. The Phase F campaign **does not set those flags**.
 
-- Goldsby-style deme messaging buffer and role/propagule *gates* (Phase E).
-- `DemeConfig.replicate_on_mean_fitness` + optional germline copy; extra
-  target demes preserved after refresh.
-- `CollectiveDemePayoffPack` + contribution ledger.
-- Phase F: `run_collective_deme_payoff_campaign` (≥2 seeds),
-  `rank_demes_by_mean_fitness` (multi-deme ranking / selection *record*),
-  `build_deme_division_of_labor_observation` (role×fitness shares).
-- Existing `CollectiveIntelligenceEvidenceReport` / heldout-partner protocol
-  objects — **scaffolds**. They do not auto-fill from a life-loop smoke.
+### 8.3 What CodonTrace Genesis has (substrate + metrics)
 
-### 8.4 What is still missing for literature-grade evidence
+| Surface | What it records | Literature analog | Honesty |
+|---|---|---|---|
+| Deme messaging buffer | send / retrieve / broadcast / block_propagation events | Goldsby coordination instructions | Gate + inbox, not evolved language |
+| Role / germline / soma tags | eligibility for copy or messaging | GECCO 2008 digital germlines | Assigned or round-robin, not evolved DoL |
+| Deme containers + `replicate_on_mean_fitness` | extra target deme preserved after refresh; replication events | `DEME_GROUP` / GermlineReplication | Analog; not Avida C++ |
+| Contribution ledger | member fitness shares on replication | multi-agent credit / germline contribution | Attribution estimate, not causal proof |
+| `CollectiveDemePayoffPack` | replicate-on-mean-fitness + ledger digest | deme payoff bookkeeping | `runtime_observation` |
+| `rank_demes_by_mean_fitness` | observational ranking; `top_k` marked selected | multi-deme selection *record* | Ranking ≠ MLS experiment |
+| `build_deme_division_of_labor_observation` | role counts × fitness shares | Goldsby DoL metrics | Assigned tags, not evolved DoL |
+| `GroupVsIndividualContrast` | paired deme-on vs organism-only mean fitness, selected vs unselected deme means, message count, ledger digest | group-vs-individual payoff coupling *hook* | Delta is group fitness, not intelligence |
+| `run_collective_deme_payoff_campaign` | ≥2 seeds of the above | multi-replicate measurement | Gap flags stay `not_run` / `scaffold_only` |
+| `CollectiveIntelligenceEvidenceReport` / heldout-partner objects | protocol scaffolds | social CI protocol | Do not auto-fill from a life-loop smoke |
 
-- Multilevel selection *experiments* in which deme-level selection changes
-  evolutionary outcome relative to organism-only selection (controls, ≥12
-  seeds, effect size) — not just a rank table.
-- Division of labor that is **evolved** (not round-robin tags) and whose
-  ablation drops group payoff.
-- Heldout / unfamiliar partner generalization as a default campaign output.
-- Export-of-fitness / transition-in-individuality (Michod; Szathmáry &
-  Maynard Smith): a new level that reproduces as a unit because lower-level
-  conflict was actually suppressed.
-- Non-capsule cooperation that outperforms single-agent and no-communication
-  baselines under the social protocol.
+### 8.4 What is still missing for literature-grade collective intelligence evidence
+
+| Missing experiment | Why it matters | Phase F status |
+|---|---|---|
+| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` multilevel selection is an experiment, not a rank table | `multilevel_selection_experiment=scaffold_only` |
+| Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | `communication_ablation_status=not_run` |
+| Heldout partner generalization (unfamiliar partners) | ClaimGate `heldout_protocol` / familiar vs unfamiliar | `heldout_partner_status=not_run` |
+| Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby task-switching / DoL | role×fitness shares only |
+| Non-capsule cooperation beating single-agent and no-communication baselines | social protocol / swarm candidate flags | not a campaign output |
+| Export-of-fitness / transition in individuality | Michod; Szathmáry & Maynard Smith: a new level that reproduces as a unit because lower-level conflict was suppressed | `major_transition_in_individuality=False` |
+| Literature-scale cooperative-network evolution (GECCO 2008 germlines as a *result*) | soma/germline eligibility must be discovered, not assigned | tags remain gates |
 
 Phase F continues on those missing pieces as **engineering**. ClaimGate
-still rejects `collective_intelligence` when a researcher only has messaging
-counts or a ledger digest.
+still rejects `collective_intelligence` and `proved_collective_intelligence`
+when a researcher only has messaging counts, a ledger digest, a rank table,
+or a group-vs-individual delta.
 
 ---
 
@@ -295,8 +314,9 @@ counts or a ledger digest.
 Phase F is the next **library** increment after Phase E:
 
 - Keep A–E default digest pins stable.
-- Deepen collective/deme measurement (campaigns, DoL metrics, multi-deme
-  ranking) without unlocking forbidden claims.
+- Deepen collective/deme measurement (campaigns, group-vs-individual
+  contrasts, DoL metrics, multi-deme ranking, explicit `not_run` gap
+  flags) without unlocking forbidden claims.
 - Keep JaxLife NN agents and ASAL CLIP out of core.
 - Keep Tokyo Type 1 as measurement-only.
 

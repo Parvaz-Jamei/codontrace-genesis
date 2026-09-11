@@ -32,6 +32,7 @@ _STABLE_SYMBOLS: tuple[tuple[str, str, str, bool], ...] = (
     ("LearningCausalPayoffPack", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
     ("CollectiveDemePayoffPack", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
     ("CollectiveDemePayoffCampaign", "codontrace.genesis", "0.3.0b2-phaseF", False),
+    ("GroupVsIndividualContrast", "codontrace.genesis", "0.3.0b2-phaseF", False),
     ("ChannonAvidaModesShadowSuite", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
     ("Phase1RuntimeMaturityReport", "codontrace.genesis", "0.3.0a1-phase1", True),
     ("PhaseBScientificMaturityReport", "codontrace.genesis", "0.3.0a1-phaseB", True),

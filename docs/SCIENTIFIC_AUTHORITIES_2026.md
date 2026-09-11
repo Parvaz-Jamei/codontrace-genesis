@@ -57,7 +57,7 @@ objects are opt-in library APIs.
 |---|---|---|---|
 | Clune 2007; Lalejini & Ofria 2016 | Phenotypic plasticity in digital evolution / fluctuating environments | Phase C fluctuating env + Phase E `sense-react` / `read_environment_cue` | **partial** (substrate + protocol, not evolved-plasticity proof) |
 | Frontiers 2021 Adaptive Phenotypic Plasticity | Four Ghalambor conditions as experimental-design checklist | `PlasticityProtocolSpec` / `GHALAMBOR_CLUNE_CONDITIONS` | **landed** as checklist object |
-| Goldsby messaging / GermlineReplication / demes wiki | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` (replicate-on-mean-fitness + contribution ledger) | **partial** (payoff/ledger analog; `collective_intelligence` blocked) |
+| Goldsby messaging / GermlineReplication / `DEME_GROUP` | `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`; soma vs germline; deme replicate-on-mean-fitness | Phase E deme messaging + role gates + opt-in `CollectiveDemePayoffPack` + Phase F campaign (ranking, DoL *metrics*, group-vs-individual contrast) | **partial** (group fitness / `runtime_observation`; heldout/ablation `not_run`; MLS `scaffold_only`; `collective_intelligence` blocked) |
 | GECCO 2008 digital germlines | Cooperative networks / germline replication | Role / propagule-eligibility tags; germline copy on deme replicate when enabled | **partial** (gates + recorded payoff, not evolved division of labor) |
 | Am Nat 2020 associative learning | Learning in Avida | Capsule/memory slots with **real** subsequent action/ATP/task effects; opt-in `LearningCausalPayoffPack` (cue→action→ATP, ablation, ≥2 seeds) | **partial** (protocol instrumentation; `instinct_improved` stays gated; not proved learning) |
 | PLOS One odometry case study | Navigation / odometry in digital organisms | Same capsule/memory mapping via the learning-payoff protocol | **partial** (hooks vs proved learning) |
@@ -240,7 +240,8 @@ stable. ClaimGate is not weakened.
 | `run_multi_seed_tokyo_measurement_campaign` | Channon 2024 multi-replicate decision procedure; Bedau; MODES | **landed** `seed_count≥2` | `tokyo_type1_measurement_only` | `tokyo_type1_passed` |
 | `Logic9ReactionConfig` / `build_logic9_reaction_pack` | Ofria & Wilke 2004; avida.cfg 2.14.0 RESOURCE/LOGIC; BMC Evol Biol 2021 axes | **landed** semantic analog; default off | `runtime_observation` | Avida replacement; metabolic intelligence |
 | `build_learning_causal_payoff_pack` | Am Nat 2020; PLOS One odometry; Clune/Lalejini/Frontiers 2021 | **landed** cue→action→ATP + ablation + multi-seed | `runtime_observation` | associative learning proved; `instinct_improved` stays gated |
-| `build_collective_deme_payoff_pack` | Avida DEMES/GERMLINE; Goldsby messaging; GECCO 2008 germlines | **landed** replicate-on-mean-fitness + contribution ledger | `runtime_observation` | `collective_intelligence` |
+| `build_collective_deme_payoff_pack` | Avida `DEME_GROUP` / GERMLINE; Goldsby messaging / DoL; GECCO 2008 germlines; Michod / Szathmáry major transitions | **landed** replicate-on-mean-fitness + contribution ledger | `runtime_observation` | `collective_intelligence` |
+| `run_collective_deme_payoff_campaign` | Goldsby; `DEME_GROUP` multilevel selection; GECCO 2008; Michod / Szathmáry | **landed** ≥2-seed ranking + DoL metrics + group-vs-individual contrast; heldout/ablation `not_run`; MLS `scaffold_only` | `runtime_observation` | `collective_intelligence` / `proved_collective_intelligence` |
 | `run_channon_avida_modes_shadow_suite` | Channon 2024; MODES `persistence_window_t`; Empirical shadow | **landed** window sweep + MODES digest + Tokyo JSON | `tokyo_type1_measurement_only` | Type 1 passed |
 | `SexualRecombinationConfig.diploid_meiosis` | avida.cfg `RECOMBINATION_GROUP` / `TWO_FOLD_COST_SEX`; Aevol-style homolog reduction | **landed** opt-in; default off | `runtime_observation` | Aevol-grade meiosis; biological diploidy |
 | `build_multi_generation_evidence_pack` hygiene | measurement integrity | **landed** `TypeError` on `None`/garbage; `reproduction_mode=None` coerces to asexual | error / software capability | silent zero metrics |
@@ -264,7 +265,7 @@ Use this on the completeness PR. All items must stay **honest**.
 - [x] Opt-in Empirical systematics shadow adapter produces a real `shadow_digest` for Tokyo step_4; default off.
 - [x] Opt-in Logic-9 reaction→resource→merit coupling (digest-backed); `avida_replacement` blocked.
 - [x] Opt-in learning causal payoff with ablation + multi-seed; `instinct_improved` stays gated.
-- [x] Opt-in collective deme payoff + contribution ledger; `collective_intelligence` blocked.
+- [x] Opt-in collective deme payoff + contribution ledger; Phase F campaign with group-vs-individual contrast, DoL metrics, multi-deme ranking; `collective_intelligence` blocked.
 - [x] `run_channon_avida_modes_shadow_suite` pins `persistence_window_t` sweeps + MODES + Tokyo JSON.
 - [x] `build_multi_generation_evidence_pack` raises `TypeError` on garbage; `reproduction_mode=None` is consistently asexual.
 - [x] Opt-in `diploid_meiosis` + existing `TWO_FOLD_COST_SEX`; default sexual digest pins unchanged.

@@ -30,7 +30,7 @@ from codontrace.genesis.empirical_systematics import (
 from codontrace.genesis.logic9 import Logic9ReactionConfig, build_logic9_reaction_pack
 from codontrace.genesis.multi_generation import build_multi_generation_evidence_pack
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
-from codontrace.genesis.collective_deme import build_collective_deme_payoff_pack
+from codontrace.genesis.collective_deme import run_collective_deme_payoff_campaign
 from codontrace.genesis.learning_payoff import build_learning_causal_payoff_pack
 from codontrace.genesis.tokyo_type1 import (
     build_tokyo_type1_measurement_protocol,
@@ -58,10 +58,9 @@ def main() -> None:
     )
     logic9 = build_logic9_reaction_pack(result, Logic9ReactionConfig(enabled=True))
     learning = build_learning_causal_payoff_pack(seeds=(7, 11), tick_count=4, population=3)
-    phase_e = GenesisRuntimeProfile.phase_e_substrate_world(
-        seed=3, tick_count=4, population=4, enable_demes=True
+    collective = run_collective_deme_payoff_campaign(
+        seeds=(3, 7), tick_count=4, population=4
     )
-    collective = build_collective_deme_payoff_pack(GenesisEngine.from_spec(phase_e).run_ticks())
     gate = ScientificClaimGate()
 
     print("life_loop_digest_prefix", spec.digest()[:16])
@@ -76,9 +75,16 @@ def main() -> None:
     print("learning_ceiling", learning.claim_ceiling)
     print("learning_instinct_status", learning.instinct_improved_status)
     print("collective_ceiling", collective.claim_ceiling)
+    print("collective_heldout", collective.heldout_partner_status)
+    print("collective_ablation", collective.communication_ablation_status)
+    print("collective_mls", collective.multilevel_selection_experiment)
+    print("collective_intelligence_flag", collective.to_dict()["collective_intelligence"])
     print("pass_allowed", evaluate_tokyo_type1_pass_claim(protocol).allowed)
     print("agi_allowed", gate.decide(ClaimRequest("agi", {})).allowed)
-    print("collective_allowed", gate.decide(ClaimRequest("collective_intelligence", {})).allowed)
+    print(
+        "collective_allowed",
+        gate.decide(ClaimRequest("collective_intelligence", collective.to_dict())).allowed,
+    )
     print("avida_replacement_allowed", gate.decide(ClaimRequest("avida_replacement", {})).allowed)
 
 

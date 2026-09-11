@@ -1,6 +1,6 @@
 # Phase 1 Performance Plan
 
-Status: **beta planning document for `0.3.0b2`**.
+Status: **beta planning document for `0.3.0b3`**.
 
 The goal is to improve live/interactive execution speed without changing features, scientific semantics, replay digests, RNG behavior, evidence schemas, or claim boundaries.
 

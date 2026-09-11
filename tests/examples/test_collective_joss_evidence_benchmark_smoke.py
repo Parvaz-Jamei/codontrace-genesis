@@ -116,7 +116,7 @@ def test_collective_joss_evidence_benchmark_smoke_execution(tmp_path: Path) -> N
 
     run_config = json.loads((out_dir / "run_config.json").read_text(encoding="utf-8"))
     assert run_config["runner"] == "collective_joss_evidence_benchmark"
-    assert run_config["target_public_version"] == "0.3.0b2"
+    assert run_config["target_public_version"] == "0.3.0b3"
     assert run_config["release_doi"] == "10.5281/zenodo.20337435"
     assert "not a proof of collective intelligence" in run_config["claim_boundary"]
 

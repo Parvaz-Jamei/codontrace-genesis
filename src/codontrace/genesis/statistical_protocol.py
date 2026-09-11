@@ -8,13 +8,13 @@ experiments, write reports, or prove scientific claims.
 from __future__ import annotations
 
 import math
-import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.rng import RNGManager
 
 
 @dataclass(frozen=True, slots=True)
@@ -694,12 +694,12 @@ def exact_sign_flip_permutation_p(
             if abs(total) + 1e-15 >= observed:
                 count += 1
         return count / float(1 << n)
-    rng = random.Random(int(seed))
+    rng = RNGManager(seed=int(seed), namespace="sign_flip_permutation")
     count = 0
     for _ in range(_MONTE_CARLO_SIGN_FLIPS):
         total = 0.0
         for value in values:
-            total += value if rng.random() < 0.5 else -value
+            total += value if rng.randrange(2) == 0 else -value
         if abs(total) + 1e-15 >= observed:
             count += 1
     return count / float(_MONTE_CARLO_SIGN_FLIPS)
@@ -727,7 +727,7 @@ def _bootstrap_means(
     resamples: int,
     seed: int,
 ) -> list[float]:
-    rng = random.Random(int(seed))
+    rng = RNGManager(seed=int(seed), namespace="bootstrap_paired")
     n = len(values)
     means: list[float] = []
     for _ in range(resamples):

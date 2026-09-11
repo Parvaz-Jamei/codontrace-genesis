@@ -34,8 +34,8 @@ def test_exact_sign_flip_monte_carlo_is_seed_deterministic() -> None:
     first = exact_sign_flip_permutation_p(deltas, seed=7)
     second = exact_sign_flip_permutation_p(deltas, seed=7)
     other = exact_sign_flip_permutation_p(deltas, seed=8)
-    assert first == second == pytest.approx(0.0774)
-    assert other == pytest.approx(0.0761)
+    assert first == second == pytest.approx(0.0778)
+    assert other == pytest.approx(0.0799)
 
 
 def test_holm_correction_known_values() -> None:
@@ -71,11 +71,11 @@ def test_percentile_bootstrap_ci_known_values() -> None:
     )
     # With seed=1, n=2, B=4 the resampled means of [0, 10] are fully enumerated
     # by the RNG path; both bounds must sit on {0, 5, 10} and low ≤ high.
-    # Bootstrap means for seed=1, B=4 are [0, 5, 10, 10]. Linear 0.25/0.75
-    # percentiles of that sample are 3.75 and 10.
+    # RNGManager seed=1, B=4 resampled means of [0, 10] are [10, 5, 10, 10].
+    # Linear 0.25/0.75 percentiles of the sorted sample are 8.75 and 10.
     assert bootstrap_ci_paired(
         [0.0, 10.0], method="percentile", resamples=4, seed=1, confidence=0.5
-    ) == (3.75, 10.0)
+    ) == (8.75, 10.0)
 
 
 def test_bca_bootstrap_matches_hand_calculation() -> None:
@@ -83,10 +83,10 @@ def test_bca_bootstrap_matches_hand_calculation() -> None:
     # Fixed seed / B so the interval is a regression pin, not a claim.
     assert bootstrap_ci_paired(
         deltas, method="bca", resamples=200, seed=11, confidence=0.8
-    ) == pytest.approx((1.0, 3.0))
+    ) == pytest.approx((4.0 / 3.0, 3.0))
     assert bootstrap_ci_paired(
         deltas, method="percentile", resamples=200, seed=11, confidence=0.8
-    ) == pytest.approx((4.0 / 3.0, 10.0 / 3.0))
+    ) == pytest.approx((4.0 / 3.0, 3.0333333333333314))
 
 
 def test_bootstrap_ci_rejects_bad_inputs() -> None:

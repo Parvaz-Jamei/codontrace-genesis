@@ -1,10 +1,11 @@
 """Phase A Darwinian life-loop smoke.
 
 This example runs the explicit ``life_loop_world`` ecology preset and prints
-runtime observations only: eat, survive, asexual COPY_SELF, parent→child
-relatedness, optional resource respawn, and a replay digest. It does not write
-files, start a UI, or claim life, intelligence, cooperation, or instinct
-evolution.
+runtime observations only: basal metabolism, eat, starvation deaths, asexual
+COPY_SELF, parent→child relatedness, limited depletable food with partial
+respawn, and a replay digest. It does not write files, start a UI, or claim
+life, intelligence, cooperation, instinct evolution, or Avida-replacement
+status.
 """
 
 from __future__ import annotations
@@ -42,6 +43,12 @@ def main() -> None:
     print("lumen_eaten_events", observation.lumen_eaten_events)
     print("births", observation.births)
     print("deaths", observation.deaths)
+    print("starvation_deaths", observation.starvation_deaths)
+    print("eater_births", observation.eater_births)
+    print("waiter_births", observation.waiter_births)
+    print("surviving_eater_lineages", observation.surviving_eater_lineages)
+    print("surviving_waiter_lineages", observation.surviving_waiter_lineages)
+    print("remaining_resource_cells", observation.remaining_resource_cells)
     print("resource_respawn_events", observation.resource_respawn_events)
     print("parent_child_pairs", observation.parent_child_pairs)
     print("heritable_asexual_pairs", observation.heritable_asexual_pairs)

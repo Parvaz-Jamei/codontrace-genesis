@@ -9,6 +9,8 @@
 5. Phase C (deferred): fluctuating or seasonal environments on top of the Phase A ecology preset.
 6. Phase D (deferred): multi-generation instinct/behavior claim metrics beyond the current `LifeLoopObservation` hook.
 
+Phase A life-loop literature items (basal metabolism, starvation reason, limited depletable resources, spatial capacity, differential reproductive-success observation) are implemented on the ecology preset only.
+
 ## Non-goals that remain active
 
 - No UI, dashboard, CLI product, report writer, database, web server, cloud service, or config-file framework in core.

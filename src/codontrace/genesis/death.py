@@ -139,6 +139,9 @@ class DeathMonitoringConfig:
     emit_record_for_every_organism_tick: bool = True
     emit_energy_link_records: bool = True
     schema_version: str = "death_monitoring_config_v1"
+    starvation_floor: float | None = None
+    starvation_consecutive_ticks: int = 1
+    starvation_reason: str = "starvation"
 
     def __post_init__(self) -> None:
         _require_bool(self.enabled, "enabled")
@@ -167,9 +170,17 @@ class DeathMonitoringConfig:
             raise ValueError("enable_max_age_death requires max_age_ticks.")
         if not isinstance(self.schema_version, str) or not self.schema_version:
             raise ValueError("schema_version must be a non-empty string.")
+        if self.starvation_floor is not None:
+            floor = _require_float_or_none(self.starvation_floor, "starvation_floor")
+            if floor is not None and floor < 0:
+                raise ValueError("starvation_floor must be non-negative when provided.")
+        if self.starvation_consecutive_ticks <= 0:
+            raise ValueError("starvation_consecutive_ticks must be > 0.")
+        if not isinstance(self.starvation_reason, str) or not self.starvation_reason:
+            raise ValueError("starvation_reason must be a non-empty string.")
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "schema_version": self.schema_version,
             "enabled": self.enabled,
             "remove_on_runtime_atp_lte": self.remove_on_runtime_atp_lte,
@@ -184,6 +195,11 @@ class DeathMonitoringConfig:
             "emit_record_for_every_organism_tick": self.emit_record_for_every_organism_tick,
             "emit_energy_link_records": self.emit_energy_link_records,
         }
+        if self.starvation_floor is not None:
+            payload["starvation_floor"] = self.starvation_floor
+            payload["starvation_consecutive_ticks"] = self.starvation_consecutive_ticks
+            payload["starvation_reason"] = self.starvation_reason
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, JsonValue]) -> "DeathMonitoringConfig":
@@ -256,6 +272,12 @@ class DeathMonitoringConfig:
             ),
             emit_energy_link_records=_strict_bool("emit_energy_link_records", True),
             schema_version=schema,
+            starvation_floor=_strict_float_or_none("starvation_floor", None),
+            starvation_consecutive_ticks=_strict_int_or_none("starvation_consecutive_ticks", 1)
+            or 1,
+            starvation_reason=str(data["starvation_reason"])
+            if isinstance(data.get("starvation_reason"), str) and data.get("starvation_reason")
+            else "starvation",
         )
 
     def digest(self) -> str:
@@ -481,6 +503,7 @@ def classify_death(
     birth_tick: int | None,
     config: DeathMonitoringConfig,
     blocked_action_reasons: tuple[str, ...] = (),
+    low_energy_ticks: int = 0,
 ) -> DeathClassificationRecord:
     """Classify actual population death versus non-fatal risk telemetry."""
 
@@ -514,7 +537,14 @@ def classify_death(
 
     if config.enabled:
         if (
-            config.remove_on_runtime_atp_lte is not None
+            config.starvation_floor is not None
+            and runtime_atp_after <= config.starvation_floor
+            and low_energy_ticks >= config.starvation_consecutive_ticks
+        ):
+            fatal_policy_reason = config.starvation_reason
+        if (
+            fatal_policy_reason is None
+            and config.remove_on_runtime_atp_lte is not None
             and runtime_atp_after <= config.remove_on_runtime_atp_lte
         ):
             fatal_policy_reason = "runtime_atp_lte_threshold"

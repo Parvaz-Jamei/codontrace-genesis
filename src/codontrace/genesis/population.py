@@ -103,6 +103,7 @@ class OffspringPlacementPolicy(str, Enum):
     SAME_CELL = "same_cell"
     ADJACENT_FREE = "adjacent_free"
     BLOCKED_IF_NO_SPACE = "blocked_if_no_space"
+    REPLACE_OCCUPIED = "replace_occupied"
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +187,46 @@ class ReproductionConfig:
             ),
             enable_ai_birth_intervention=_bool(data, "enable_ai_birth_intervention", False),
             offspring_placement=_placement_policy(data.get("offspring_placement")),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class MetabolicConfig:
+    """Opt-in basal / maintenance energy drain.
+
+    Default is disabled so existing research presets and their digests stay
+    unchanged. Life-loop ecology enables this explicitly (JaxLife / EEDx-style
+    energy budgets): organisms pay ATP every tick for remaining alive, not only
+    for executed actions.
+    """
+
+    enabled: bool = False
+    basal_runtime_atp_cost: float = 0.0
+    action_name: str = "BASAL_METABOLISM"
+    reason: str = "basal_metabolism"
+
+    def __post_init__(self) -> None:
+        _validate_non_negative(self.basal_runtime_atp_cost, "basal_runtime_atp_cost")
+        if not self.action_name:
+            raise ConfigurationError("MetabolicConfig.action_name must not be empty.")
+        if not self.reason:
+            raise ConfigurationError("MetabolicConfig.reason must not be empty.")
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "enabled": self.enabled,
+            "basal_runtime_atp_cost": self.basal_runtime_atp_cost,
+            "action_name": self.action_name,
+            "reason": self.reason,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> MetabolicConfig:
+        return cls(
+            enabled=_bool(data, "enabled", False),
+            basal_runtime_atp_cost=_float(data, "basal_runtime_atp_cost", 0.0),
+            action_name=_str(data, "action_name", "BASAL_METABOLISM"),
+            reason=_str(data, "reason", "basal_metabolism"),
         )
 
 
@@ -1174,6 +1215,7 @@ class PopulationConfigs:
     qd_mode: str = "archive_only"
     runtime_resource_policy: RuntimeResourcePolicy = field(default_factory=RuntimeResourcePolicy)
     newborn_protection_policy: str = "none"
+    metabolism: MetabolicConfig = field(default_factory=MetabolicConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1204,7 +1246,7 @@ class PopulationConfigs:
             )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "reproduction": self.reproduction.to_dict(),
             "mutation": self.mutation.to_dict(),
             "structural_mutation": None
@@ -1226,6 +1268,9 @@ class PopulationConfigs:
             "runtime_resource_policy": self.runtime_resource_policy.to_dict(),
             "newborn_protection_policy": self.newborn_protection_policy,
         }
+        if self.metabolism.enabled or self.metabolism.basal_runtime_atp_cost > 0:
+            payload["metabolism"] = self.metabolism.to_dict()
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> PopulationConfigs:
@@ -1238,6 +1283,7 @@ class PopulationConfigs:
         death_monitoring_raw = data.get("death_monitoring")
         evolution_raw = data.get("evolution")
         resource_policy_raw = data.get("runtime_resource_policy")
+        metabolism_raw = data.get("metabolism")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1279,6 +1325,9 @@ class PopulationConfigs:
             if isinstance(resource_policy_raw, Mapping)
             else RuntimeResourcePolicy(),
             newborn_protection_policy=_str(data, "newborn_protection_policy", "none"),
+            metabolism=MetabolicConfig.from_dict(metabolism_raw)
+            if isinstance(metabolism_raw, Mapping)
+            else MetabolicConfig(),
         )
 
 
@@ -2244,6 +2293,20 @@ def step_population(
             None if working_nexus_layer is None else working_nexus_layer.digest()
         )
         for _ in range(configs.ticks_per_generation):
+            if configs.metabolism.enabled and configs.metabolism.basal_runtime_atp_cost > 0:
+                payable = min(
+                    organism.atp_state.runtime_available,
+                    configs.metabolism.basal_runtime_atp_cost,
+                )
+                if payable > 0:
+                    organism.atp_state.debit_runtime(
+                        payable,
+                        tick=current_tick,
+                        organism_id=organism.id,
+                        codon="000",
+                        action=configs.metabolism.action_name,
+                        reason=configs.metabolism.reason,
+                    )
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
                 if configs.capsule_transfer is not None and configs.capsule_transfer.enabled:
@@ -2514,6 +2577,23 @@ def step_population(
                         )
                         continue
                     child.position = placement
+                    if (
+                        configs.reproduction.offspring_placement
+                        is OffspringPlacementPolicy.REPLACE_OCCUPIED
+                    ):
+                        occupant_id = next(
+                            (
+                                oid
+                                for oid, pos in live_positions.items()
+                                if pos == placement and oid not in {organism.id, child.id}
+                            ),
+                            None,
+                        )
+                        if occupant_id is not None:
+                            live_positions.pop(occupant_id, None)
+                            survivors[:] = [item for item in survivors if item.id != occupant_id]
+                            deaths += 1
+                            lineage = _mark_death(lineage, occupant_id, current_tick)
                     reproduction_result = _finalize_reproduction_placement(
                         reproduction_result,
                         placement=placement,
@@ -2659,6 +2739,14 @@ def step_population(
             event.reason or "unknown" for event in trace.events if event.status == "blocked"
         )
         lineage_record = lineage_by_id.get(organism.id)
+        starvation_floor = configs.death_monitoring.starvation_floor
+        if (
+            starvation_floor is not None
+            and organism.atp_state.runtime_available <= starvation_floor
+        ):
+            organism._low_energy_ticks += 1
+        else:
+            organism._low_energy_ticks = 0
         death_classification = classify_death(
             organism_id=organism.id,
             tick=current_tick,
@@ -2668,6 +2756,7 @@ def step_population(
             birth_tick=None if lineage_record is None else lineage_record.birth_tick,
             config=configs.death_monitoring,
             blocked_action_reasons=blocked_action_reasons,
+            low_energy_ticks=organism._low_energy_ticks,
         )
         step_record = OrganismStepRecord(
             organism_id=organism.id,
@@ -3209,6 +3298,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
     )
     clone._cursor = organism._cursor
     clone._step_index = organism._step_index
+    clone._low_energy_ticks = organism._low_energy_ticks
     return clone
 
 
@@ -3851,6 +3941,15 @@ def _resolve_offspring_position(
     for position in adjacent:
         if world.in_bounds(position) and not world.is_wall(position) and position not in occupied:
             return position
+    if policy is OffspringPlacementPolicy.REPLACE_OCCUPIED:
+        for position in adjacent:
+            if (
+                world.in_bounds(position)
+                and not world.is_wall(position)
+                and position != parent_position
+                and position in occupied
+            ):
+                return position
     return None
 
 

@@ -196,12 +196,22 @@ Short eat → survive → reproduce experiments should use the explicit
 `GenesisRuntimeProfile.life_loop_world()` preset instead of relying on empty
 research defaults (`ResourceConfig.density=0`, `ReproductionConfig` SAME_CELL).
 
-The preset places food, enables deterministic resource respawn, uses adjacent
-empty-cell offspring placement (SAME_CELL remains an explicit policy), and
-gates COPY_SELF on AliveGate plus runtime ATP so organisms that eat can
-reproduce while starved controls cannot. Inheritance stays asexual
-parent→mutate→child. Sexual crossover, seasonal environments, and multi-generation
-instinct claims are deferred.
+The preset is a Darwinian life-loop *substrate* grounded in digital-evolution
+practice (Avida limited-resource ecology; energy-budget ALife such as JaxLife /
+EEDx-style maintenance costs). It is not an Avida replacement and does not
+claim benchmark superiority.
+
+It places a **small, depletable** food pool (two patches, `max_resources=3`)
+with **partial** respawn (`respawn_rate=0.4`), so eat reduces local/global
+availability and two foragers can compete. Organisms pay an opt-in **basal
+ATP drain** every tick and die with an explicit `starvation` reason when
+runtime ATP stays at or below the configured floor. Adjacent empty-cell
+placement is the preset default (SAME_CELL remains the research default;
+`REPLACE_OCCUPIED` is an explicit overwrite option only). COPY_SELF is gated
+on AliveGate plus runtime ATP so eat-capable lineages can out-reproduce
+WAIT/starved controls. Inheritance stays asexual parent→mutate→child.
+Sexual crossover, seasonal environments, and multi-generation instinct
+claims are deferred.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, or instinct evolution.

@@ -4,14 +4,17 @@
 
 ### Added
 
-- `GenesisRuntimeProfile.life_loop_world()`: explicit ecology / life-loop preset with food, deterministic resource respawn, adjacent offspring placement, AliveGate + ATP reproduction gates, fitness-proportional capacity selection, and asexual parent→mutate→child inheritance.
-- `LifeLoopObservation` / `summarize_life_loop_observation()`: Phase D hook for runtime counts only (not instinct/intelligence claims).
-- `examples/genesis_life_loop.py` and `tests/test_genesis_phase_a_life_loop.py` for the eat → survive → reproduce loop, respawn, and fixed-seed replay digest stability.
+- `GenesisRuntimeProfile.life_loop_world()`: explicit ecology / life-loop preset with limited depletable food, partial deterministic respawn, basal metabolism, starvation death records, adjacent offspring placement, AliveGate + ATP reproduction gates, fitness-proportional capacity selection, and asexual parent→mutate→child inheritance.
+- Opt-in `MetabolicConfig` basal ATP drain (default off so existing research presets/digests stay stable).
+- `DeathMonitoringConfig` starvation floor + consecutive-tick threshold with explicit `starvation` removal reason (omitted from default config serialization).
+- `OffspringPlacementPolicy.REPLACE_OCCUPIED`: optional Avida-like overwrite-neighbor policy; not the research or life-loop default.
+- `LifeLoopObservation` / `summarize_life_loop_observation()`: Phase D hook for runtime counts only, including eater/waiter births, starvation deaths, and remaining resource cells (not instinct/intelligence claims).
+- `examples/genesis_life_loop.py` and `tests/test_genesis_phase_a_life_loop.py` for the eat → survive → reproduce loop, depletable resources, spatial capacity, differential reproductive success, and fixed-seed replay digest stability.
 - Restored `codontrace.genesis.engine` as a re-export of the core engine implementation so the public Genesis import path works.
 
 ### Notes
 
-Phase B (sexual crossover), Phase C (fluctuating/seasonal environments), and Phase D (multi-generation instinct claim metrics) are intentionally deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop preset. Claim language remains software capability / runtime observation only.
+Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover), Phase C (fluctuating/seasonal environments), and Phase D (multi-generation instinct claim metrics) are intentionally deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop preset. Claim language remains software capability / runtime observation only.
 
 ## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
 

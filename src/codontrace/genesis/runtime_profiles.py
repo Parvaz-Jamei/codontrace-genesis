@@ -17,6 +17,7 @@ from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
 from codontrace.genesis.liveness import AliveGateConfig
 from codontrace.genesis.population import (
     FitnessConfig,
+    MetabolicConfig,
     MutationConfig,
     OffspringPlacementPolicy,
     PopulationConfigs,
@@ -33,10 +34,14 @@ LIFE_LOOP_EATER_GENOME = "101111000"
 LIFE_LOOP_WAITER_GENOME = "000000000"
 # COPY_SELF spends 8.0 ATP during the organism step before can_reproduce()
 # inspects the ledger. After that debit, eaters must still clear min_runtime_atp;
-# waiters / no-food COPY attempts must not.
-LIFE_LOOP_INITIAL_RUNTIME_ATP = 12.0
-LIFE_LOOP_MIN_RUNTIME_ATP = 11.0
-LIFE_LOOP_RESOURCE_AMOUNT = 8.0
+# waiters / no-food COPY attempts must not. Basal drain is profile-only.
+LIFE_LOOP_INITIAL_RUNTIME_ATP = 14.0
+LIFE_LOOP_MIN_RUNTIME_ATP = 8.0
+LIFE_LOOP_RESOURCE_AMOUNT = 6.0
+LIFE_LOOP_BASAL_COST = 1.2
+LIFE_LOOP_FOOD_CELLS = ((0, 0), (1, 0))
+LIFE_LOOP_MAX_RESOURCES = 3
+LIFE_LOOP_RESPAWN_RATE = 0.4
 
 
 class GenesisRuntimeProfile:
@@ -295,19 +300,31 @@ class GenesisRuntimeProfile:
         This is an explicit research preset. It does not change global
         ``ReproductionConfig`` / ``ResourceConfig`` defaults. SAME_CELL placement
         remains available by passing ``offspring_placement=OffspringPlacementPolicy.SAME_CELL``.
+        ``REPLACE_OCCUPIED`` is an optional Avida-like overwrite policy and is
+        not the life-loop default.
 
-        Observed software capability only: food is present and can respawn,
-        eating credits runtime ATP, starvation/low energy can remove organisms,
-        survivors that clear AliveGate and ATP gates can COPY_SELF, and children
-        inherit a mutated copy of the parent genome. This is not a proof of
-        life, intelligence, instinct evolution, or Avida-replacement status.
+        Literature grounding (software-capability only, not an Avida
+        replacement): limited, depletable resources with partial inflow
+        (Avida ecology / Cooper–Ofria; Frontiers digital-evolution review 2021)
+        plus a basal energy-budget drain (JaxLife 2024, EEDx-style ISAL).
+
+        Parameters that keep food scarce rather than infinite:
+        ``LIFE_LOOP_FOOD_CELLS`` (2 patches), ``LIFE_LOOP_MAX_RESOURCES`` (3),
+        ``LIFE_LOOP_RESPAWN_RATE`` (0.4). Eat removes the local patch;
+        respawn may restore at most one empty cell per tick when below cap.
+
+        Observed software capability only: organisms pay basal ATP every tick,
+        eating credits runtime ATP, starvation at the configured floor records
+        an explicit death reason, survivors that clear AliveGate and ATP gates
+        can COPY_SELF, and children inherit a mutated copy of the parent
+        genome. This is not a proof of life, intelligence, instinct evolution,
+        or Avida-replacement status.
         """
 
         if population <= 0:
             raise ValueError("life_loop_world population must be > 0.")
         world = World2D(6, 4)
-        food_cells = ((0, 0), (1, 0), (2, 1), (3, 2), (4, 1), (5, 3))
-        for pos in food_cells:
+        for pos in LIFE_LOOP_FOOD_CELLS:
             world.place_resource(pos, LIFE_LOOP_RESOURCE_AMOUNT)
         waiter_count = 0 if population < 3 else max(1, population // 3)
         eater_count = population - waiter_count
@@ -336,7 +353,12 @@ class GenesisRuntimeProfile:
                 require_lumen_interaction=False,
                 require_reproduction_capability=False,
             ),
-            death_monitoring=DeathMonitoringConfig(remove_on_runtime_atp_lte=0.0),
+            death_monitoring=DeathMonitoringConfig(
+                remove_on_runtime_atp_lte=0.0,
+                starvation_floor=0.0,
+                starvation_consecutive_ticks=1,
+                starvation_reason="starvation",
+            ),
             evolution=EvolutionConfig(
                 max_population=selection_capacity,
                 selection_policy="fitness_proportional",
@@ -345,10 +367,14 @@ class GenesisRuntimeProfile:
             qd_mode="disabled",
             runtime_resource_policy=RuntimeResourcePolicy(
                 respawn_enabled=True,
-                respawn_rate=1.0,
-                max_resources=10,
+                respawn_rate=LIFE_LOOP_RESPAWN_RATE,
+                max_resources=LIFE_LOOP_MAX_RESOURCES,
                 amount=LIFE_LOOP_RESOURCE_AMOUNT,
                 status="runtime_effective_default_on",
+            ),
+            metabolism=MetabolicConfig(
+                enabled=True,
+                basal_runtime_atp_cost=LIFE_LOOP_BASAL_COST,
             ),
         )
         return GenesisExperimentSpec(
@@ -376,6 +402,9 @@ class GenesisRuntimeProfile:
                 "resource_runtime_status": "runtime_effective_default_on",
                 "profile_has_resources": True,
                 "profile_has_resource_respawn": True,
+                "profile_has_limited_depletable_resources": True,
+                "profile_has_basal_metabolism": True,
+                "profile_has_starvation_death": True,
                 "profile_has_mutation": True,
                 "profile_has_birth_action": True,
                 "profile_has_spatial_offspring_placement": (
@@ -383,8 +412,24 @@ class GenesisRuntimeProfile:
                 ),
                 "offspring_placement": offspring_placement.value,
                 "same_cell_available_as_explicit_policy": True,
+                "replace_occupied_available_as_explicit_policy": True,
+                "offspring_overwrite_is_not_research_default": True,
                 "inheritance_mode": InheritancePolicy.DARWINIAN_GENETIC_ONLY.value,
                 "selection_policy": "fitness_proportional",
+                "basal_runtime_atp_cost": LIFE_LOOP_BASAL_COST,
+                "starvation_floor": 0.0,
+                "starvation_consecutive_ticks": 1,
+                "starvation_reason": "starvation",
+                "food_cells": [list(pos) for pos in LIFE_LOOP_FOOD_CELLS],
+                "initial_food_patches": len(LIFE_LOOP_FOOD_CELLS),
+                "max_resources": LIFE_LOOP_MAX_RESOURCES,
+                "respawn_rate": LIFE_LOOP_RESPAWN_RATE,
+                "resource_amount": LIFE_LOOP_RESOURCE_AMOUNT,
+                "resource_mode": "limited_depletable_with_partial_respawn",
+                "literature_grounding": (
+                    "avida_limited_resources_plus_energy_budget_alife_"
+                    "not_avida_replacement"
+                ),
                 "claim_allowed_for_evolution": False,
                 "claim_allowed_for_life": False,
                 "claim_allowed_for_intelligence": False,
@@ -420,6 +465,10 @@ class LifeLoopObservation:
     same_cell_births: int
     eater_births: int
     waiter_births: int
+    starvation_deaths: int
+    surviving_eater_lineages: int
+    surviving_waiter_lineages: int
+    remaining_resource_cells: int
     replay_digest: str
     claim_ceiling: str = "runtime_observation"
     genesis_alive_full: bool = False
@@ -439,6 +488,10 @@ class LifeLoopObservation:
             "same_cell_births": self.same_cell_births,
             "eater_births": self.eater_births,
             "waiter_births": self.waiter_births,
+            "starvation_deaths": self.starvation_deaths,
+            "surviving_eater_lineages": self.surviving_eater_lineages,
+            "surviving_waiter_lineages": self.surviving_waiter_lineages,
+            "remaining_resource_cells": self.remaining_resource_cells,
             "replay_digest": self.replay_digest,
             "claim_ceiling": self.claim_ceiling,
             "genesis_alive_full": self.genesis_alive_full,
@@ -460,9 +513,12 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     births = 0
     deaths = 0
     respawns = 0
+    starvation_deaths = 0
+    remaining_resource_cells = 0
     bits_by_id: dict[str, str] = {}
     position_by_id: dict[str, tuple[int, int]] = {}
     seen_lineage: dict[tuple[str, str, int], object] = {}
+    final_bits: dict[str, str] = {}
     for tick in ticks:
         generation = getattr(tick, "generation_result", None)
         if generation is None:
@@ -470,9 +526,22 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         births += int(getattr(generation, "births", 0) or 0)
         deaths += int(getattr(generation, "deaths", 0) or 0)
         attempts += int(getattr(generation, "reproduction_attempts", 0) or 0)
+        world_after = getattr(generation, "world_after", None)
+        resources = getattr(world_after, "resources", None)
+        if isinstance(resources, dict):
+            remaining_resource_cells = len(resources)
         for event in getattr(generation, "resource_policy_records", ()):
             if getattr(event, "event_type", "") == "resource_regenerated":
                 respawns += 1
+        for record in getattr(generation, "organism_records", ()):
+            death = getattr(record, "death_classification", None)
+            if death is None or not getattr(death, "actual_death_removed_from_population", False):
+                continue
+            reason = getattr(death, "fatal_policy_reason", None) or getattr(
+                death, "removal_reason", None
+            )
+            if reason in {"starvation", "insufficient_atp"}:
+                starvation_deaths += 1
         for trace in getattr(generation, "traces", ()):
             for event in getattr(trace, "events", ()):
                 if event.action == "EAT_LUMEN" and (
@@ -484,9 +553,11 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         population = getattr(generation, "population", None)
         if population is None:
             continue
+        final_bits = {}
         for organism in getattr(population, "organisms", ()):
             bits_by_id[organism.id] = organism.genome.to_compact()
             position_by_id[organism.id] = organism.position
+            final_bits[organism.id] = organism.genome.to_compact()
         for lineage in getattr(population, "lineage", ()):
             parent_id = getattr(lineage, "parent_id", None)
             child_id = getattr(lineage, "organism_id", None)
@@ -520,6 +591,8 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
             eater_births += 1
         elif parent_bits.startswith("000"):
             waiter_births += 1
+    surviving_eaters = sum(1 for bits in final_bits.values() if bits.startswith("101"))
+    surviving_waiters = sum(1 for bits in final_bits.values() if bits.startswith("000"))
     digest = result.digest() if hasattr(result, "digest") else ""
     return LifeLoopObservation(
         lumen_eaten_events=lumen_eaten,
@@ -534,6 +607,10 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         same_cell_births=same_cell_births,
         eater_births=eater_births,
         waiter_births=waiter_births,
+        starvation_deaths=starvation_deaths,
+        surviving_eater_lineages=surviving_eaters,
+        surviving_waiter_lineages=surviving_waiters,
+        remaining_resource_cells=remaining_resource_cells,
         replay_digest=str(digest),
     )
 

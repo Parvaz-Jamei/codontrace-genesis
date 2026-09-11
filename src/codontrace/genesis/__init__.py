@@ -4,9 +4,9 @@
 # BASE_RELEASE_LABEL preserves the compatibility lineage;
 # RELEASE_LABEL names the current public beta package identity.
 BASE_RELEASE_LABEL = "codontrace-0.3.0a1-base-lineage"
-RELEASE_LABEL = "codontrace-0.3.0b1-phase3-causal-mechanism-beta"
+RELEASE_LABEL = "codontrace-0.3.0b2-phase3-causal-mechanism-beta"
 CURRENT_PACKAGE_LABEL = RELEASE_LABEL
-RELEASE_ARTIFACT_NAME = "codontrace-0.3.0b1-release-bundle.zip"
+RELEASE_ARTIFACT_NAME = "codontrace-0.3.0b2-release-bundle.zip"
 CURRENT_PACKAGE_ARTIFACT_NAME = RELEASE_ARTIFACT_NAME
 
 from codontrace.genesis.ablation import (

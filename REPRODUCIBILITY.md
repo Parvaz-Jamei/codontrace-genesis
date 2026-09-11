@@ -1,11 +1,11 @@
 # Reproducibility Guide
 
-Version target: `0.3.0b1`
+Version target: `0.3.0b2`
 Release DOI: `10.5281/zenodo.20337435`
 License: `AGPL-3.0-or-later`
 Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-Package: `codontrace==0.3.0b1`
+Package: `codontrace==0.3.0b2`
 Primary benchmark runner: `examples/collective_joss_evidence_benchmark.py`
 Primary benchmark smoke test: `tests/examples/test_collective_joss_evidence_benchmark_smoke.py`
 
@@ -63,25 +63,25 @@ python -m pip install --upgrade pip setuptools wheel
 Use the exact public release version for reproducible public-beta work:
 
 ```bash
-python -m pip install codontrace==0.3.0b1
+python -m pip install codontrace==0.3.0b2
 ```
 
 For research extras:
 
 ```bash
-python -m pip install "codontrace[research]==0.3.0b1"
+python -m pip install "codontrace[research]==0.3.0b2"
 ```
 
 For causal-analysis extras:
 
 ```bash
-python -m pip install "codontrace[causal]==0.3.0b1"
+python -m pip install "codontrace[causal]==0.3.0b2"
 ```
 
 For quality-diversity extras:
 
 ```bash
-python -m pip install "codontrace[qd]==0.3.0b1"
+python -m pip install "codontrace[qd]==0.3.0b2"
 ```
 
 Verify the installed version:
@@ -93,7 +93,7 @@ python -c "import codontrace; print(codontrace.__version__)"
 Expected output:
 
 ```text
-0.3.0b1
+0.3.0b2
 ```
 
 ---
@@ -274,7 +274,7 @@ Tier 4 is not required for ordinary CI or JOSS software review. It is for paper-
 Every experiment report should include:
 
 ```yaml
-codontrace_version: "0.3.0b1"
+codontrace_version: "0.3.0b2"
 release_doi: "10.5281/zenodo.20337435"
 python_version: "<recorded Python version>"
 platform: "<OS / environment>"
@@ -347,9 +347,9 @@ A descriptive record means something was observed. It does not automatically mea
 
 ## 12. Version discipline
 
-Use `codontrace==0.3.0b1` for public-beta reproducibility work.
+Use `codontrace==0.3.0b2` for public-beta reproducibility work.
 
-Older development outputs may be useful as development evidence, but should not be presented as release evidence for `0.3.0b1` unless they are rerun on the public release.
+Older development outputs may be useful as development evidence, but should not be presented as release evidence for `0.3.0b2` unless they are rerun on the public release.
 
 When comparing outputs across versions, explicitly state:
 
@@ -392,7 +392,7 @@ Use this wording in reports, README sections, JOSS-style papers, or supplementar
 
 For the current public beta:
 
-> Public-beta reproducibility should target `codontrace==0.3.0b1` and DOI `10.5281/zenodo.20337435`.
+> Public-beta reproducibility should target `codontrace==0.3.0b2` and DOI `10.5281/zenodo.20337435`.
 
 ---
 

@@ -1,11 +1,11 @@
 # CodonTrace Genesis Claim Policy
 
-Version target: `0.3.0b1`
+Version target: `0.3.0b2`
 Release DOI: `10.5281/zenodo.20337435`
 License: `AGPL-3.0-or-later`
 Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-Package: `codontrace==0.3.0b1`
+Package: `codontrace==0.3.0b2`
 
 This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release.
 
@@ -81,7 +81,7 @@ These claims are allowed for the current public beta release because they descri
 | Area | Allowed claim | Required wording discipline |
 |---|---|---|
 | Research software | CodonTrace Genesis is public beta research software for digital evolution, causal mechanism auditing, replayable ALife experiments, and evidence-gated AI/evolution studies. | Say “research software” or “research library,” not “proven intelligence system.” |
-| Packaging | CodonTrace Genesis is published as a Python package and can be installed from PyPI as `codontrace==0.3.0b1`. | Tie install claims to the exact version. |
+| Packaging | CodonTrace Genesis is published as a Python package and can be installed from PyPI as `codontrace==0.3.0b2`. | Tie install claims to the exact version. |
 | Citation | The release has a Zenodo DOI and citation metadata. | Cite the exact DOI/version used. |
 | License | The public release uses `AGPL-3.0-or-later`. | Keep commercial/proprietary exceptions separate from the open license. |
 | Determinism | The library is designed around deterministic experiment specifications, digests, replay records, and artifact manifests. | Do not claim every user experiment is automatically deterministic unless seeds/configs/artifacts are preserved. |
@@ -104,7 +104,7 @@ These claims are allowed for the current public beta release because they descri
 
 This section records the strongest evidence observed in the currently inspected runner output package. It is useful as development evidence and as a guide for the next public benchmark.
 
-It should **not** be used as a publication-grade claim until the run is repeated on the current public release (`0.3.0b1` or newer), archived with its configuration/artifacts, and reported with enough seeds and controls.
+It should **not** be used as a publication-grade claim until the run is repeated on the current public release (`0.3.0b2` or newer), archived with its configuration/artifacts, and reported with enough seeds and controls.
 
 Inspected artifact: `collective_heavy_outputs.zip`
 Runner: `codontrace_collective_intelligence_heavy_runner`
@@ -120,9 +120,9 @@ Unique result digests: `40`
 
 Important provenance warning:
 
-- The inspected output was generated from an older `0.2.0a25` development/release artifact, not the current public `0.3.0b1` PyPI release.
+- The inspected output was generated from an older `0.2.0a25` development/release artifact, not the current public `0.3.0b2` PyPI release.
 - The inspected summary includes a release-identity/provenance warning around the tested zip name.
-- Therefore this snapshot is valid as **development evidence** and **instrumentation evidence**, but not as a final public benchmark for `0.3.0b1`.
+- Therefore this snapshot is valid as **development evidence** and **instrumentation evidence**, but not as a final public benchmark for `0.3.0b2`.
 
 ### 4.1 Evidence categories observed
 
@@ -260,11 +260,13 @@ These require a stronger public benchmark:
 
 ## 7. Explicitly blocked claims for the current release
 
-The following claims must not be made for `0.3.0b1` unless a future paper/benchmark explicitly satisfies the required evidence level.
+The following claims must not be made for `0.3.0b2` unless a future paper/benchmark explicitly satisfies the required evidence level.
 
 - CodonTrace has proven artificial general intelligence.
 - CodonTrace has proven consciousness or subjective experience.
 - CodonTrace has proven collective intelligence.
+- CodonTrace has proven evolved phenotypic plasticity.
+- CodonTrace is an Avida replacement.
 - CodonTrace has proven open-ended intelligence as a settled scientific result.
 - CodonTrace has proven that instincts or behavior improved across generations as a publication-grade scientific result.
 - CodonTrace is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
@@ -389,7 +391,7 @@ Suggested citation target:
 
 - Software DOI: `10.5281/zenodo.20337435`
 - Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-- Package: `codontrace==0.3.0b1`
+- Package: `codontrace==0.3.0b2`
 
 ---
 
@@ -418,7 +420,7 @@ This file should be updated whenever a new public benchmark, JOSS paper, arXiv p
 
 Recommended update triggers:
 
-- a benchmark is rerun on `0.3.0b1` or newer,
+- a benchmark is rerun on `0.3.0b2` or newer,
 - a new Zenodo artifact is created,
 - an external user cites or uses the library,
 - a JOSS/arXiv/paper artifact is prepared,

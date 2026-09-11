@@ -1,8 +1,28 @@
 # Changelog
 
-## Unreleased — Phase E capsule/memory/role/collective substrate
+## Unreleased
 
-### Added
+Subsequent library work after `0.3.0b2` belongs here.
+
+## 0.3.0b2 — Science-gate hardening and Phase A–E substrates (2026-09-11)
+
+Public beta identity for science-gate hardening plus the Phase A–E library surfaces that landed on `main` after `0.3.0b1`. Package version remains `0.3.0b2` (not bumped to b3). This is not an Avida replacement and does not prove OEE, instinct evolution, AGI, collective intelligence, evolved plasticity, or phenotypic plasticity.
+
+### Release identity
+
+- Kept package version `0.3.0b2` (`pyproject.toml`, `codontrace.__version__`, `CITATION.cff`).
+- Aligned `RELEASE_LABEL` / `RELEASE_ARTIFACT_NAME` (and aliases), README / CLAIMS / RELEASE_EVIDENCE / BibTeX pins, and citation `date-released` with that same identity.
+
+### Notes (claim policy)
+
+- Phase A–C and Phase E are **opt-in substrates** (life-loop ecology; sexual recombination; dynamic/fluctuating environment; capsule/memory/role/deme). Research defaults stay unchanged unless a caller selects those presets.
+- Phase D is an **opt-in measurement** layer (`MultiGenerationEvidencePack`). Metric deltas are runtime observations. `instinct_improved` is ClaimGate-gated; OEE stays `oee_measurement_only` unless existing research-grade thresholds are met.
+- ClaimGate keeps `collective_intelligence`, `evolved_plasticity`, and `avida_replacement` blocked. Do not claim OEE proof, instinct/intelligence proof, or AGI.
+- No loosening of scientific claims from the science-gate hardening below. GENESIS remains research-beta software.
+
+### Phase E — capsule/memory/role/collective substrate
+
+#### Added
 
 - Opt-in `PhaseESubstrateConfig` (omitted from default serialization so Phase A–D presets and pinned digests stay stable).
 - Organism-local / lineage capsule memory with **real** subsequent effects: action substitution, ATP bonus, and COPY_SELF task gating under a matching sensory cue (Am Nat 2020 / odometry mapping). Ablation with capsules disabled yields a different replay digest.
@@ -13,13 +33,13 @@
 - `GenesisRuntimeProfile.phase_e_substrate_world()`, `build_phase_e_evidence_pack`, `examples/genesis_phase_e_substrate.py`, `tests/test_genesis_phase_e_substrate.py`, and `docs/PHASE_E_LITERATURE.md`.
 - ClaimGate blocked aliases for `proved_collective_intelligence`, `evolved_plasticity`, `avida_replacement`, and `associative_learning_proved`. Ceiling remains `runtime_observation`.
 
-### Notes
+#### Notes
 
-Phase E is opt-in. Default life-loop, sexual, dynamic-environment, and Phase D measurement APIs keep their pinned digests. Phase D MODES/Bedau packs can observe Phase E when it is enabled because action/ATP/birth records actually change. This is not proof of learning, collective intelligence, evolved plasticity, OEE, or Avida-replacement status.
+Phase E is an opt-in **substrate**. Default life-loop, sexual, dynamic-environment, and Phase D measurement APIs keep their pinned digests. Phase D MODES/Bedau packs can observe Phase E when it is enabled because action/ATP/birth records actually change. This is not proof of learning, collective intelligence, evolved plasticity, OEE, or Avida-replacement status.
 
-## Unreleased — Phase D multi-generation instinct/behavior evidence
+### Phase D — multi-generation instinct/behavior evidence
 
-### Added
+#### Added
 
 - First-class `MultiGenerationEvidencePack` (JSON + digest) measuring multi-generation fitness, survival, births, ATP, and resource intake from existing life-loop records.
 - Descriptive instinct/behavior trajectories (genome→action phenotype summaries) plus same-seed ancestor vs descendant cohort comparison and optional mutation-off ablation/control hooks.
@@ -27,13 +47,13 @@ Phase E is opt-in. Default life-loop, sexual, dynamic-environment, and Phase D m
 - ClaimGate labels `runtime_observation` / `instinct_improved` (downgrades without multi-seed + ablation) and blocked `open_ended_intelligence` / instinct-evolution-proved aliases. OEE remains `oee_measurement_only` unless existing research-grade thresholds are met.
 - `examples/genesis_multi_generation_evidence.py`, `tests/test_genesis_phase_d_multigen_evidence.py`, and `docs/PHASE_D_LITERATURE.md`.
 
-### Notes
+#### Notes
 
 Phase D is an opt-in **measurement** layer. Phase A/B/C default presets, research defaults, and pinned spec/run digests stay stable (`phase_d_instinct_claim_metrics` metadata remains `hooks_only_not_implemented` on those specs). Metric deltas are runtime observations. This is not proof of OEE, AGI, collective intelligence, or instinct evolution, and not an Avida replacement.
 
-## Unreleased — Phase C dynamic / fluctuating environment
+### Phase C — dynamic / fluctuating environment
 
-### Added
+#### Added
 
 - Opt-in `EnvironmentConfig` / `EnvironmentSchedule` / `ResourceSpec` (omitted from default serialization so asexual and sexual research digests stay stable).
 - Avida `RESOURCE` chemostat parity: per-resource `initial`, `inflow` per tick, `outflow` fraction of unused resource (Ofria & Wilke 2004; Cooper/Ofria ~1% outflow).
@@ -45,18 +65,18 @@ Phase D is an opt-in **measurement** layer. Phase A/B/C default presets, researc
 - `GenesisRuntimeProfile.dynamic_environment_world()` and `life_loop_world(environment=...)`; organisms still eat/starve/reproduce while food availability follows the schedule.
 - `tests/test_genesis_phase_c_dynamic_environment.py` and `examples/genesis_dynamic_environment.py`.
 
-### Deferred
+#### Deferred
 
 - Evolved phenotypic plasticity measurement (environment substrate only).
 - Avida reaction/task-resource coupling (logic tasks as metabolic reactions).
 
-### Notes
+#### Notes
 
 Phase C is a time-varying environment *substrate*, not an Avida replacement and not a claim of evolved plasticity or intelligence. Claim language stays software capability / runtime observation only. Grounded in Ofria & Wilke 2004, Cooper/Ofria limited-resource ecosystems, Avida-ED resource modes, and Avida fluctuating-environment / plasticity literature used only as experimental design context.
 
-## Unreleased — Phase B sexual recombination substrate
+### Phase B — sexual recombination substrate
 
-### Added
+#### Added
 
 - Optional `ReproductionMode.SEXUAL_CROSSOVER` on `ReproductionConfig` (omitted from default serialization so asexual research digests stay stable).
 - `SexualRecombinationConfig` mirroring Avida `avida.cfg` `RECOMBINATION_GROUP`: `recombination_prob`, `same_length_only`, `two_fold_cost_sex`, `max_birth_wait_ticks`, `chamber_capacity`, timeout policy, plus stubs for mating types / lekking.
@@ -69,19 +89,19 @@ Phase C is a time-varying environment *substrate*, not an Avida replacement and 
 - Sexual path reuses Phase A AliveGate, ATP, capacity, and placement gates.
 - `tests/test_genesis_phase_b_sexual_recombination.py` and `examples/genesis_sexual_recombination.py`.
 
-### Deferred
+#### Deferred
 
 - Diploid meiosis / selfing (Aevol Eukaryote) as Phase B.1.
 - Full `MATING_TYPES` / `LEKKING` (config stubs only).
 - Modular random-region swap when `CONT_REC_REGS=0` (Phase B ships continuous corresponding regions).
 
-### Notes
+#### Notes
 
 Phase B is a recombination *substrate*, not an Avida replacement and not a claim of sexual selection or intelligence. Claim language stays software capability / runtime observation only. Grounded in Misevic, Ofria, Lenski 2006 Proc B and `devosoft/avida` `avida.cfg` `RECOMBINATION_GROUP`.
 
-## Unreleased — Phase A Darwinian life-loop
+### Phase A — Darwinian life-loop
 
-### Added
+#### Added
 
 - `GenesisRuntimeProfile.life_loop_world()`: explicit ecology / life-loop preset with limited depletable food, partial deterministic respawn, basal metabolism, starvation death records, adjacent offspring placement, AliveGate + ATP reproduction gates, fitness-proportional capacity selection, and asexual parent→mutate→child inheritance.
 - Opt-in `MetabolicConfig` basal ATP drain (default off so existing research presets/digests stay stable).
@@ -91,13 +111,13 @@ Phase B is a recombination *substrate*, not an Avida replacement and not a claim
 - `examples/genesis_life_loop.py` and `tests/test_genesis_phase_a_life_loop.py` for the eat → survive → reproduce loop, depletable resources, spatial capacity, differential reproductive success, and fixed-seed replay digest stability.
 - Restored `codontrace.genesis.engine` as a re-export of the core engine implementation so the public Genesis import path works.
 
-### Notes
+#### Notes
 
 Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover) and Phase C (fluctuating/seasonal environments) are opt-in substrates. Phase D (multi-generation evidence metrics) is an opt-in post-hoc measurement API that does not change these presets. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop or dynamic-environment preset. Claim language remains software capability / runtime observation only.
 
-## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
+### Scientific evidence-gate hardening (capsule / memory / generalization)
 
-### Added
+#### Added
 
 - `codontrace.genesis.capsule_utility`: pure outcome-based capsule utility evaluator (`capsule_outcome_utility_v2`). Utility is measured selection-fitness delta only; synthetic fixed rewards (e.g. `task_delta = 1.0`) are forbidden. `claim_eligible` requires adoption + measured positive delta + trusted source status (`measured` / `last_known`).
 - `codontrace.genesis.memory_evidence`: pure delayed-reward evidence classifier. Write→later reward without read is `temporal_correlation` only. Causal claim requires read-linked evidence plus ablation `control_digest`.
@@ -106,16 +126,15 @@ Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limit
   - `tests/test_memory_delayed_evidence_science.py`
   - `tests/test_generalization_protocol_science.py`
 
-### Changed
+#### Changed
 
 - `engine.capsule_utility_records` now delegates to the pure evaluator (single source of truth).
 - `engine.memory_use_records` classifies delayed-reward chains via the evidence ladder (`observed_write` → `temporal_correlation` → `read_linked` → `causal_support`).
 - `engine.generalization_records` no longer emits first/last-tick digest proxies. Without a real heldout protocol, status is `protocol_not_run` with digests `not_run:*` and `claim_eligible=False`.
 - `SignalActionLink` / `MemoryUseEvidence` schema → v2 evidence fields (`evidence_status`, `causal_status`, `control_digest`, `claim_eligible`).
 - `GeneralizationResult` schema → v2 with hard gate against `protocol_not_run` and identical train/heldout digests.
-- Package identity: `0.3.0b1` → `0.3.0b2` (`pyproject.toml`, `codontrace.__version__`, `CITATION.cff`).
 
-### Claim policy
+#### Claim policy
 
 No loosening of scientific claims. Changes tighten evidence surfaces so ClaimGate cannot treat correlation or synthetic rewards as causal success. GENESIS remains research-beta software; it does not claim AGI, consciousness, proven collective intelligence, or peer-reviewed superiority.
 

@@ -12,9 +12,9 @@ import pytest
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.statistical_protocol import (
+    _pooled_std,
     estimate_effect_size_lite,
     paired_effect_size,
-    _pooled_std,
 )
 
 

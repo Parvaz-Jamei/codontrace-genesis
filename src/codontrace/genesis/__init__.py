@@ -1954,8 +1954,11 @@ from codontrace.genesis.statistical_protocol import (
     OEEClaimThresholds,
     OEEMetricsReport,
     StatisticalTestPolicy,
+    bootstrap_ci_paired,
     build_oee_metrics_report,
     choose_paired_test,
+    exact_sign_flip_permutation_p,
+    holm_correction,
     validate_statistical_claim_inputs,
 )
 from codontrace.genesis.structural_mutation import (
@@ -2028,6 +2031,9 @@ __all__.extend(
         "build_oee_metrics_report",
         "validate_statistical_claim_inputs",
         "choose_paired_test",
+        "exact_sign_flip_permutation_p",
+        "bootstrap_ci_paired",
+        "holm_correction",
         "TranslationWeight",
         "TranslationProfile",
         "TranslationPolicy",

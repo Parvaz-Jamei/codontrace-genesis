@@ -69,6 +69,14 @@ from codontrace.genesis.death import (
     DeathMonitoringConfig,
     classify_death,
 )
+from codontrace.genesis.environment import (
+    EnvironmentConfig,
+    EnvironmentEvent,
+    EnvironmentSnapshot,
+    EnvironmentState,
+    local_resource_consumed,
+    step_environment,
+)
 from codontrace.genesis.fitness import (
     FitnessBreakdown,
     FitnessSignalRegistry,
@@ -103,7 +111,7 @@ from codontrace.genesis.toolchain import evaluate_tool_chain_state
 from codontrace.genesis.translation_profile import inherit_translation_profile
 from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
-from codontrace.trace import Trace, TraceEvent
+from codontrace.trace import Trace, TraceEvent, WorldEvent
 from codontrace.world import World2D
 
 
@@ -696,6 +704,7 @@ class PopulationState:
     lineage: tuple[LineageRecord, ...]
     fitness: tuple[FitnessResult, ...]
     birth_chamber: BirthChamberState = field(default_factory=BirthChamberState)
+    environment: EnvironmentState | None = None
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -716,6 +725,8 @@ class PopulationState:
         }
         if not self.birth_chamber.is_empty:
             payload["birth_chamber"] = self.birth_chamber.to_dict()
+        if self.environment is not None:
+            payload["environment"] = self.environment.to_dict()
         return payload
 
     @classmethod
@@ -739,6 +750,9 @@ class PopulationState:
             birth_chamber=BirthChamberState.from_dict(chamber_raw)
             if isinstance(chamber_raw, Mapping)
             else BirthChamberState(),
+            environment=EnvironmentState.from_dict(env_raw)
+            if isinstance((env_raw := data.get("environment")), Mapping)
+            else None,
         )
 
     def digest(self) -> str:
@@ -1157,9 +1171,12 @@ class GenerationResult:
     best_fitness_alias: str = "raw_best_fitness"
     resource_policy_records: tuple[RuntimeResourceEvent, ...] = ()
     newborn_protection_records: tuple[dict[str, JsonValue], ...] = ()
+    environment_records: tuple[EnvironmentEvent, ...] = ()
+    environment_snapshot: EnvironmentSnapshot | None = None
+    environment_world_events: tuple[WorldEvent, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "before_count": self.before_count,
             "after_count": self.after_count,
             "births": self.births,
@@ -1192,6 +1209,15 @@ class GenerationResult:
             if self.selection_result is None
             else self.selection_result.to_dict(),
         }
+        if self.environment_records:
+            payload["environment_records"] = [item.to_dict() for item in self.environment_records]
+        if self.environment_snapshot is not None:
+            payload["environment_snapshot"] = self.environment_snapshot.to_dict()
+        if self.environment_world_events:
+            payload["environment_world_events"] = [
+                item.to_dict() for item in self.environment_world_events
+            ]
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> GenerationResult:
@@ -1256,6 +1282,19 @@ class GenerationResult:
                 for item in _list(data, "newborn_protection_records")
                 if isinstance(item, Mapping)
             ),
+            environment_records=tuple(
+                EnvironmentEvent.from_dict(item)
+                for item in _list(data, "environment_records")
+                if isinstance(item, Mapping)
+            ),
+            environment_snapshot=EnvironmentSnapshot.from_dict(snapshot_raw)
+            if isinstance((snapshot_raw := data.get("environment_snapshot")), Mapping)
+            else None,
+            environment_world_events=tuple(
+                WorldEvent.from_dict(cast(dict[str, JsonValue], dict(item)))
+                for item in _list(data, "environment_world_events")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -1289,6 +1328,7 @@ class PopulationConfigs:
     sexual_recombination: SexualRecombinationConfig = field(
         default_factory=SexualRecombinationConfig
     )
+    environment: EnvironmentConfig = field(default_factory=EnvironmentConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1355,6 +1395,8 @@ class PopulationConfigs:
             payload["metabolism"] = self.metabolism.to_dict()
         if self.sexual_recombination.enabled or self.reproduction.is_sexual:
             payload["sexual_recombination"] = self.effective_sexual_config.to_dict()
+        if self.environment.enabled:
+            payload["environment"] = self.environment.to_dict()
         return payload
 
     @classmethod
@@ -1370,6 +1412,7 @@ class PopulationConfigs:
         resource_policy_raw = data.get("runtime_resource_policy")
         metabolism_raw = data.get("metabolism")
         sexual_raw = data.get("sexual_recombination")
+        environment_raw = data.get("environment")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1417,6 +1460,9 @@ class PopulationConfigs:
             sexual_recombination=SexualRecombinationConfig.from_dict(sexual_raw)
             if isinstance(sexual_raw, Mapping)
             else SexualRecombinationConfig(),
+            environment=EnvironmentConfig.from_dict(environment_raw)
+            if isinstance(environment_raw, Mapping)
+            else EnvironmentConfig(),
         )
 
 
@@ -2436,6 +2482,15 @@ def step_population(
     stream = _resolve_rng(seed=seed, rng=rng, namespace="genesis/population")
     working_world = world.clone()
     world_before_digest = world.digest()
+    resources_before = dict(working_world.resources)
+    env_cfg = configs.environment
+    env_tick = population.generation
+    env_state = population.environment
+    if env_cfg.enabled and env_state is None:
+        env_state = EnvironmentState.initialize(env_cfg, tick=env_tick)
+    hazard_cost = 0.0
+    if env_cfg.enabled and env_state is not None and env_cfg.hazard_atp_scale > 0:
+        hazard_cost = round(env_cfg.hazard_atp_scale * env_state.hazard_intensity, 10)
     before_count = len(population.organisms)
     lineage = _ensure_lineage(population)
     lineage_by_id = {record.organism_id: record for record in lineage}
@@ -2545,6 +2600,17 @@ def step_population(
                         codon="000",
                         action=configs.metabolism.action_name,
                         reason=configs.metabolism.reason,
+                    )
+            if hazard_cost > 0:
+                payable_hazard = min(organism.atp_state.runtime_available, hazard_cost)
+                if payable_hazard > 0:
+                    organism.atp_state.debit_runtime(
+                        payable_hazard,
+                        tick=current_tick,
+                        organism_id=organism.id,
+                        codon="000",
+                        action="ENVIRONMENT_HAZARD",
+                        reason="environment_hazard",
                     )
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
@@ -3285,14 +3351,39 @@ def step_population(
     mean_fitness = raw_mean_fitness
     best_fitness = raw_best_fitness
     resource_events: tuple[RuntimeResourceEvent, ...] = ()
-    respawn_rng = stream.fork(f"{configs.runtime_resource_policy.seed_namespace}/tick-{current_tick}")
-    working_world, resource_events = _apply_runtime_resource_policy(
-        working_world,
-        configs.runtime_resource_policy,
-        tick=current_tick,
-        rng=respawn_rng,
-        occupied_positions={item.position for item in next_organisms},
-    )
+    environment_records: tuple[EnvironmentEvent, ...] = ()
+    environment_snapshot: EnvironmentSnapshot | None = None
+    environment_world_events: tuple[WorldEvent, ...] = ()
+    if env_cfg.enabled:
+        consumed_total = local_resource_consumed(resources_before, working_world.resources)
+        primary = env_cfg.resources[0].name if env_cfg.resources else "lumen"
+        env_result = step_environment(
+            working_world,
+            env_state or EnvironmentState.initialize(env_cfg, tick=env_tick),
+            env_cfg,
+            tick=env_tick,
+            consumed={primary: consumed_total},
+            occupied_positions={item.position for item in next_organisms},
+        )
+        working_world = env_result.world
+        env_state = env_result.state
+        environment_records = env_result.events
+        environment_snapshot = env_result.snapshot
+        environment_world_events = env_result.world_events
+        if traces:
+            for event in environment_world_events:
+                traces[0].append_world_event(replace(event, sequence=traces[0].next_sequence()))
+    skip_legacy = env_cfg.enabled and env_cfg.skip_legacy_respawn
+    if not skip_legacy:
+        respawn_ns = configs.runtime_resource_policy.seed_namespace
+        respawn_rng = stream.fork(f"{respawn_ns}/tick-{current_tick}")
+        working_world, resource_events = _apply_runtime_resource_policy(
+            working_world,
+            configs.runtime_resource_policy,
+            tick=current_tick,
+            rng=respawn_rng,
+            occupied_positions={item.position for item in next_organisms},
+        )
     next_population = PopulationState(
         generation=population.generation + 1,
         tick=current_tick,
@@ -3300,6 +3391,7 @@ def step_population(
         lineage=lineage,
         fitness=tuple(sorted(fitness_results, key=lambda item: item.organism_id)),
         birth_chamber=BirthChamberState(waiting=tuple(waiting)),
+        environment=env_state if env_cfg.enabled else None,
     )
     working_world.agent_position = None
     world_after_digest = working_world.digest()
@@ -3332,6 +3424,9 @@ def step_population(
         selection_zero_score_reasons=selection_zero_score_reasons,
         resource_policy_records=resource_events,
         newborn_protection_records=tuple(newborn_protection_records),
+        environment_records=environment_records,
+        environment_snapshot=environment_snapshot,
+        environment_world_events=environment_world_events,
     )
 
 

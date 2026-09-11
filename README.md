@@ -211,8 +211,10 @@ placement is the preset default (SAME_CELL remains the research default;
 on AliveGate plus runtime ATP so eat-capable lineages can out-reproduce
 WAIT/starved controls. Inheritance stays asexual parent→mutate→child
 unless an explicit `reproduction_mode` / `life_loop_world(reproduction_mode=...)`
-selects Phase B two-parent positional crossover. Seasonal environments
-and multi-generation instinct claims remain deferred.
+selects Phase B two-parent positional crossover. Seasonal / fluctuating
+environments are opt-in via `dynamic_environment_world()` or
+`life_loop_world(environment=...)`. Multi-generation instinct claims remain
+deferred.
 
 Phase B adds an optional sexual recombination substrate grounded in
 Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
@@ -224,6 +226,17 @@ capacity). Research presets and the default life-loop run stay asexual so
 existing replay digests remain stable. This is not an Avida replacement.
 Diploid meiosis (Aevol Eukaryote) is deferred.
 
+Phase C adds an optional dynamic environment substrate grounded in Avida
+`environment.cfg` `RESOURCE` lines (Ofria & Wilke 2004; Cooper/Ofria
+chemostat ecosystems) and Avida-ED unlimited / limited / chemostat /
+periodic modes: per-resource `initial` / `inflow` / `outflow` pools,
+deterministic periodic or seeded regime switches (high-food vs low-food,
+or two niche maps), global and/or local patches with optional diffusion
+and decay hooks, digest-backed env events, and replay verification of
+environment trajectory digests. Default life-loop and sexual presets stay
+static. This is not a claim that phenotypic plasticity evolved, and not an
+Avida replacement.
+
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, or instinct evolution.
 
@@ -233,7 +246,17 @@ from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
 spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
 result = GenesisEngine.from_spec(spec).run_ticks()
 print(result.digest()[:24])
+
+spec = GenesisRuntimeProfile.dynamic_environment_world(
+    seed=7, tick_count=12, population=6
+)
+result = GenesisEngine.from_spec(spec).run_ticks()
+print(result.digest()[:24])
 ```
+
+Print-only smokes: `examples/genesis_life_loop.py`,
+`examples/genesis_sexual_recombination.py`,
+`examples/genesis_dynamic_environment.py`.
 
 ---
 

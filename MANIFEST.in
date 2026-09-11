@@ -7,6 +7,8 @@ include RELEASE_EVIDENCE.md
 include CITATION.cff
 include pyproject.toml
 recursive-include docs *.md
+recursive-include src/codontrace/genesis/rag/corpus *.jsonl
+recursive-include src/codontrace/genesis/rag/corpus *.md
 recursive-include examples *.py
 recursive-include tests *.py
 recursive-include tools *.py

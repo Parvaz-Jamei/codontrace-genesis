@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### Phase H — literature RAG + collective-intelligence pathway scaffolding
+
+CodonTrace Genesis measurement-first kickoff toward CI then broader AI/OEE.
+**Does not** claim intelligence, collective intelligence, Tokyo Type 1 passed,
+or Avida replacement. ClaimGate unchanged in the strict direction. No version
+bump. Phase A–E default digest pins stay stable.
+
+- Literature RAG substrate (`codontrace.genesis.rag`): JSONL+markdown corpus
+  of citable digests (Nature MI 2021; Goldsby PNAS 2012; Goldsby/Ofria
+  messaging/germline; Channon 2024; Chromaria; Stanley open-endedness;
+  Szathmáry/Michod; JaxLife; arXiv 2607.09560; arXiv 2604.00810; bioRxiv
+  2023.03.15.532780) with has/lacks/next-experiment maps. Retriever:
+  `ingest_document`, `search_corpus(query, k)`, `cite_sources`. Deterministic
+  TF-IDF + feature-hash; replay digest. Example:
+  `examples/genesis_rag_query.py`.
+- Communication ablation harness (`run_communication_ablation_experiment`):
+  messaging on vs off, multi-seed, Cohen's *d*. Status
+  `measured_runtime_observation`. Does **not** set ClaimGate `ablation_result`.
+- Group-vs-individual effect-size campaign (research default `seed_count=12`,
+  smoke 2) with explicit `mean_delta` / `cohens_d` fields.
+- Goldsby 2012 task-switching cost hook on DoL metrics
+  (`TaskSwitchingCostConfig`, `apply_task_switching_cost_to_dol`).
+- `collective_intelligence_candidate` checklist printer lists missing flags
+  and never auto-sets them.
+- Docs: `docs/PHASE_H_CI_AI_PATH.md`, `docs/rag/`, honesty updates to
+  `docs/WHY_NOT_INTELLIGENCE_YET.md`.
+
 ## 0.3.0b3 — Phase F scientific gaps, Phase G materials, ClaimGate honesty (2026-09-11)
 
 Public beta bump from `0.3.0b2`. Includes Phase F+#9 scientific-gap measurement, Phase G+#10 named-materials substrate, and post-F/G suite ClaimGate honesty hygiene (#11 @ `0a5ce17`). Product name **CodonTrace Genesis**. Package/import remains `codontrace`. License `AGPL-3.0-or-later`. This is not an Avida replacement and does not prove intelligence, collective intelligence, AGI, OEE, Tokyo Type 1, realistic chemistry, or wet-lab equivalence.

@@ -12,6 +12,7 @@
 8. Phase G (implemented, opt-in substrate): named `MaterialSpec` chemistry-effect overlay (energy yield, toxicity, viscosity/diffusion, permeability, signaling, scarcity), named-material chemostat, simple stoichiometric CRN, cellularity/membrane uptake gate, ChEBI/KEGG schema hooks without a GEM/MD solver. Defaults off. Realistic-chemistry / wet-lab-equivalent claims remain blocked.
 9. Scientific authorities 2026 map (`docs/SCIENTIFIC_AUTHORITIES_2026.md`) plus honesty note `docs/WHY_NOT_INTELLIGENCE_YET.md`: literature vs CodonTrace Genesis reality. Completeness of *measurement and documentation*, not a claim that CodonTrace Genesis replaces those systems or is close to AGI. JaxLife NN and ASAL CLIP stay docs-only.
 10. Phase F (implemented, opt-in measurement): multi-seed collective deme payoff campaigns, deme mean-fitness ranking, division-of-labor *metrics*. Still ClaimGate-blocks `collective_intelligence` / `proved_collective_intelligence`. Not a major transition in individuality.
+11. Phase H (implemented, opt-in measurement + literature RAG): research corpus/retriever; communication ablation harness; group-vs-individual effect sizes (`seed_count` default 12); Goldsby 2012 task-switching cost hook; candidate checklist printer. ClaimGate still blocks `collective_intelligence` / `intelligence` / AGI. Library-complete beta is not “done.”
 
 Phase A life-loop literature items (basal metabolism, starvation reason, limited depletable resources, spatial capacity, differential reproductive-success observation) are implemented on the ecology preset only.
 

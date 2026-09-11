@@ -1,10 +1,10 @@
 # Why CodonTrace Genesis is not intelligence yet
 
 This note maps **world-authority literature** onto **what CodonTrace Genesis
-actually implements**. It is an honesty document for Phase A–E plus continuing
-Phase F work. It does **not** argue that the project is close to AGI,
-consciousness, proved open-ended evolution, Tokyo Type 1 *passed*, or
-literature-grade collective intelligence.
+actually implements**. It is an honesty document for Phase A–G plus Phase H
+RAG and CI-pathway scaffolding. It does **not** argue that the project is
+close to AGI, consciousness, proved open-ended evolution, Tokyo Type 1
+*passed*, or literature-grade collective intelligence.
 
 **Claim ceiling:** software capability / `runtime_observation` /
 `oee_measurement_only` / `tokyo_type1_measurement_only` /
@@ -15,13 +15,16 @@ literature-grade collective intelligence.
 `proved_collective_intelligence`, `avida_replacement`, and related aliases.
 
 ClaimGate remains the authority. Do not cite this file as evidence that
-CodonTrace Genesis is “almost” intelligent. Phase F continues as
-**measurement and substrate engineering**, not as an intelligence countdown.
+CodonTrace Genesis is “almost” intelligent. Phase H continues as
+**measurement, literature RAG, and substrate engineering**, not as an
+intelligence countdown.
 
 Cross-links: [`CLAIMS.md`](../CLAIMS.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
 [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md),
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
+[`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md).
 
 ---
@@ -40,9 +43,10 @@ The honest sentence is:
 > library for Avida-like ecology experiments. It is **not close to AGI**.
 > Measuring a barrier is not crossing it.
 
-Phase F work (collective/deme payoff campaigns, group-vs-individual
-contrasts, division-of-labor *metrics*, multi-deme ranking) continues under
-that sentence. Those measurements remain group fitness, not intelligence.
+Phase F/H work (collective/deme payoff campaigns, group-vs-individual
+contrasts and effect sizes, division-of-labor *metrics*, communication
+ablation *harnesses*, literature RAG) continues under that sentence. Those
+measurements remain group fitness, not intelligence.
 
 Name the project **CodonTrace Genesis** in docs, PRs, and papers. Do not
 drop the Genesis qualifier. The PyPI/import package remains `codontrace`.
@@ -66,7 +70,7 @@ forbids the corresponding claim.
 | Vocabulary gap (arXiv 2607.09560) | Invent and *stabilize* new representational primitives that change the search space | ADF/macro *proposals*, codon-table extensions as auditable metadata | Endogenous vocabulary that alters the search frame and is reused because it pays | Not open-ended intelligence |
 | Verifier gap (arXiv 2607.09560) | Evaluate new primitives when payoff is only visible after future reuse; verifier may need to co-evolve | ClaimGate, contribution ledger, delayed-reward traces, instinct ablation hooks | A self-extending evaluator; future-reuse credit that is not an attribution estimate | Ledger is **not** causal proof |
 | Culture/tech vs ecology (JaxLife 2024) | Embodied NN agents accumulating culture/tech while abstracting physics/chemistry | Avida-like instruction ecology + audit/replay/ClaimGate | JaxLife NN agents, culture/tech accumulation, CLIP/ASAL OE search | Complementary; **not** a port; `avida_replacement` **blocked** |
-| Collective intelligence (Goldsby; GECCO 2008; demes; major transitions) | Division of labor, multilevel selection, group-over-individual payoff, heldout partners, communication ablation | Messaging buffer, role gates, deme payoff + ledger, Phase F campaign metrics | Literature-grade multilevel experiments and heldout generalization as default evidence | Group fitness = `runtime_observation`; `collective_intelligence` **blocked** |
+| Collective intelligence (Goldsby; GECCO 2008; demes; major transitions) | Division of labor, multilevel selection, group-over-individual payoff, heldout partners, communication ablation | Messaging buffer, role gates, deme payoff + ledger, Phase F campaign metrics, Phase H ablation/effect-size *harnesses* + RAG corpus | Literature-grade multilevel experiments and heldout generalization as default evidence | Group fitness = `runtime_observation`; `collective_intelligence` **blocked** |
 
 None of these rows is a claim that CodonTrace Genesis is close to crossing
 the barrier. Phase F adds **more honest instrumentation**, not a pass.
@@ -234,12 +238,14 @@ embodiment result. ASAL / CLIP foundation-model open-ended search
 
 ---
 
-## 8. Collective intelligence — first-class scientific gap (Phase F)
+## 8. Collective intelligence — first-class scientific gap (Phase F/H)
 
-This is the gap CodonTrace Genesis treats as **first-class** for Phase F
+This is the gap CodonTrace Genesis treats as **first-class** for Phase F/H
 engineering, still without promoting it to a proved result. Group fitness,
 messaging counts, and role shares are allowed as `runtime_observation`.
-Proved `collective_intelligence` stays **BLOCKED**.
+Proved `collective_intelligence` stays **BLOCKED**. Phase H adds runnable
+ablation and effect-size harnesses plus a literature RAG; it does not set
+ClaimGate flags.
 
 ### 8.1 Literature
 
@@ -291,39 +297,46 @@ protocols, `ablation_result`, `collective_report_digest`,
 | `build_deme_division_of_labor_observation` | role counts × fitness shares | Goldsby DoL metrics | Assigned tags, not evolved DoL |
 | `GroupVsIndividualContrast` | paired deme-on vs organism-only mean fitness, selected vs unselected deme means, message count, ledger digest | group-vs-individual payoff coupling *hook* | Delta is group fitness, not intelligence |
 | `run_collective_deme_payoff_campaign` | ≥2 seeds of the above | multi-replicate measurement | Gap flags stay `not_run` / `scaffold_only` |
+| Phase H `run_communication_ablation_experiment` | messaging on vs off, multi-seed, Cohen's *d* | Goldsby: communication must pay | `measured_runtime_observation`; ClaimGate `ablation_result` **not** set |
+| Phase H `run_group_vs_individual_effect_size_campaign` | configurable `seed_count` (default 12; smoke 2) + effect-size fields | group-vs-individual payoff | Delta is still group fitness |
+| Phase H `TaskSwitchingCostConfig` | reweights DoL fitness shares by action-switch counts | Goldsby 2012 analog | Not evolved DoL; not 50 replicates |
+| Literature RAG (`search_corpus`) | citable digests + deterministic TF-IDF | experiment design map | Retrieval is not evidence |
 | `CollectiveIntelligenceEvidenceReport` / heldout-partner objects | protocol scaffolds | social CI protocol | Do not auto-fill from a life-loop smoke |
 
 ### 8.4 What is still missing for literature-grade collective intelligence evidence
 
-| Missing experiment | Why it matters | Phase F status |
+| Missing experiment | Why it matters | Phase F/H status |
 |---|---|---|
-| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` multilevel selection is an experiment, not a rank table | `multilevel_selection_experiment=scaffold_only` |
-| Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | `communication_ablation_status=not_run` |
+| Payoff coupling that *changes evolutionary outcome* under deme-level selection vs organism-only selection (controls, ≥12 seeds, effect size) | Goldsby / `DEME_GROUP` multilevel selection is an experiment, not a rank table | Phase F `multilevel_selection_experiment=scaffold_only`; Phase H effect-size campaign records Cohen's *d* on group fitness — still not MLS-as-evolution |
+| Communication ablation (messaging on vs off) that drops group payoff | Goldsby: coordination instructions must *pay* | Phase F campaign stays `not_run`; Phase H harness is **runnable** (`measured_runtime_observation`) and does **not** set ClaimGate `ablation_result` |
 | Heldout partner generalization (unfamiliar partners) | ClaimGate `heldout_protocol` / familiar vs unfamiliar | `heldout_partner_status=not_run` |
-| Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby task-switching / DoL | role×fitness shares only |
+| Evolved division of labor (not round-robin tags) whose ablation drops group payoff | Goldsby task-switching / DoL | Phase H cost hook reweights metrics; roles remain assigned |
 | Non-capsule cooperation beating single-agent and no-communication baselines | social protocol / swarm candidate flags | not a campaign output |
 | Export-of-fitness / transition in individuality | Michod; Szathmáry & Maynard Smith: a new level that reproduces as a unit because lower-level conflict was suppressed | `major_transition_in_individuality=False` |
 | Literature-scale cooperative-network evolution (GECCO 2008 germlines as a *result*) | soma/germline eligibility must be discovered, not assigned | tags remain gates |
 
-Phase F continues on those missing pieces as **engineering**. ClaimGate
+Phase H continues on those missing pieces as **engineering**. ClaimGate
 still rejects `collective_intelligence` and `proved_collective_intelligence`
 when a researcher only has messaging counts, a ledger digest, a rank table,
-or a group-vs-individual delta.
+a group-vs-individual delta, or a RAG hit list. See
+[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md).
 
 ---
 
-## 9. Phase F continues — not an intelligence countdown
+## 9. Phase H continues — not an intelligence countdown
 
-Phase F is the next **library** increment after Phase E:
+Phase H is the next **library** increment after Phase F/G:
 
 - Keep A–E default digest pins stable.
-- Deepen collective/deme measurement (campaigns, group-vs-individual
-  contrasts, DoL metrics, multi-deme ranking, explicit `not_run` gap
-  flags) without unlocking forbidden claims.
+- Ship a literature RAG substrate (citable digests + TF-IDF retriever).
+- Make communication ablation and group-vs-individual effect sizes
+  *runnable* without auto-promoting ClaimGate flags.
+- Add a Goldsby 2012 task-switching cost hook on DoL metrics.
+- Print `collective_intelligence_candidate` missing flags; never set them.
 - Keep JaxLife NN agents and ASAL CLIP out of core.
 - Keep Tokyo Type 1 as measurement-only.
 
-Phase F is **not** “the AGI phase.” There is no evidence in this repository
+Phase H is **not** “the AGI phase.” There is no evidence in this repository
 that CodonTrace Genesis is close to AGI, and this document forbids that
 reading.
 
@@ -341,7 +354,7 @@ Allowed now (when evidence objects actually exist):
   complementarity, heldout familiar/unfamiliar, ablation, replay). Smoke
   campaigns do not set those flags.
 
-Still forbidden, including after Phase F instrumentation:
+Still forbidden, including after Phase H instrumentation and RAG retrieval:
 
 - `agi`, `consciousness`
 - `tokyo_type1_passed`, `channon_2024_passed`, `proved_open_endedness`
@@ -388,5 +401,6 @@ If a sentence in a PR, README, or paper cannot be mapped to a row in
 - Dolson, E. et al. (2019). MODES. *Artificial Life*.
 - Ofria, C. & Wilke, C. O. (2004). Avida. *Artificial Life*.
 
-Print-only reminder: `examples/genesis_scientific_gaps_2026.py` prints
-`agi_allowed False` and `collective_allowed False`.
+Print-only reminder: `examples/genesis_scientific_gaps_2026.py` and
+`examples/genesis_rag_query.py` print `agi_allowed False` and
+collective-intelligence allowed False.

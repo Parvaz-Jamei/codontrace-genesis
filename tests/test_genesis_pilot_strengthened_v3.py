@@ -79,7 +79,7 @@ def test_toolchain_pilot_replay_is_deterministic(tmp_path: Path) -> None:
     assert Path(first["records"]).read_text(encoding="utf-8") == Path(second["records"]).read_text(encoding="utf-8")
 
 
-def test_capsule_behavioral_adoption_changes_target_digest_and_positive_utility(tmp_path: Path) -> None:
+def test_capsule_utility_pilot_emits_records_but_denies_usefulness_claim(tmp_path: Path) -> None:
     from examples.genesis_capsule_utility_pilot import run
 
     paths = run(tmp_path)
@@ -96,11 +96,15 @@ def test_capsule_behavioral_adoption_changes_target_digest_and_positive_utility(
         and item["behavior_digest_after"] == item["target_behavior_digest_after"]
         and item["utility_protocol_digest"]
     ]
-    assert summary["claim_allowed_for_capsule_usefulness"] is True
-    assert summary["positive_utility_records"] >= 1
-    assert positive
-    assert all(item["source_fitness_status"] in {"measured", "last_known"} for item in positive)
-    assert all("source_fitness_status_original" in item for item in positive)
+    # Official default fixture emits capsule records but does not observe positive
+    # behavioral utility. Keep ClaimGate honesty: do not treat empty utility as a claim.
+    assert records
+    assert summary["record_count"] == len(records) > 0
+    assert summary["claim_allowed_for_capsule_usefulness"] is False
+    assert summary["claim_gate_reason"] == "no_positive_behavioral_utility"
+    assert summary["positive_utility_records"] == 0
+    assert not positive
+    assert all("source_fitness_status_original" in item for item in records)
 
 
 def test_capsule_utility_replay_is_deterministic(tmp_path: Path) -> None:

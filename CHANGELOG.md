@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Docs / tests — honest claim ceilings after Phase F+#9 and Phase G+#10
+
+CodonTrace Genesis full-suite drift after those merges: tests expected strong
+pilot claims that runtime correctly denies. ClaimGate is unchanged. No version
+bump, tag, or PyPI publish.
+
+- Official default memory delayed-reward and capsule-usefulness pilots still
+  emit records, but tests now expect `pilot_fixture_not_strong_memory_claim`
+  / `no_positive_behavioral_utility` instead of fabricated strong claims.
+- `RELEASE_EVIDENCE.md` lists example-generated official pilot JSON names
+  without committing fake pilot payloads.
+- Restored the legacy `World2D.resources` amount-only semantics note. License
+  metadata tests match `AGPL-3.0-or-later`.
+
 ### Scientific gaps 2026 (opt-in measurement/engineering completeness)
 
 Honest completeness pass for remaining scientific/engineering gaps after

@@ -65,6 +65,7 @@ Scenario-level runs via `Scenario.run()` or `ScenarioFactory.run()` propagate `S
 
 ### Scenario config metadata vs runtime behavior
 
+`ResourceConfig.kind` is preserved scenario metadata. Generated `World2D.resources` remain amount-only; kind is not represented per resource cell. Use `WorldObject.kind` when a typed object is required. Phase G named materials are a separate overlay and do not mutate these legacy amount-only cells.
 
 `ObstacleConfig.block_movement` and `block_sight` are also preserved metadata in `v0.3.0a1`. They do not change default movement or sensing behavior yet: default movement still treats `World2D.walls` as blocking cells, and this alpha does not implement line-of-sight physics or raycasting.
 

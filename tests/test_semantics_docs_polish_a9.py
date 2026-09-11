@@ -103,6 +103,6 @@ def test_pyproject_uses_modern_license_metadata_without_legacy_license_classifie
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = data["project"]
 
-    assert project["license"] == "MIT"
+    assert project["license"] == "AGPL-3.0-or-later"
     assert project["license-files"] == ["LICENSE"]
     assert "License :: OSI Approved :: MIT License" not in project["classifiers"]

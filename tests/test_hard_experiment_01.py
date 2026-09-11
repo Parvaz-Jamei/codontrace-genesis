@@ -15,6 +15,7 @@ from codontrace.genesis.hard_experiment_01 import (
     RESEARCH_SEED_COUNT,
     HardExperiment01ArmRecord,
     HardExperiment01SeedRecord,
+    _capsule_counts,
     _complete_pair_values,
     _mean_last_tick_fitness,
     _missing_outcomes_per_arm,
@@ -86,6 +87,14 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         for item in campaign.seed_records
         for arm in (item.source_bias_on, item.source_bias_off, item.capsules_off)
     )
+    sample_arm = campaign.seed_records[0].source_bias_on.to_dict()
+    assert "capsule_emissions" not in sample_arm
+    assert {
+        "capsule_source_count",
+        "capsule_utility_count",
+        "capsule_transfer_count",
+        "capsule_adoptions",
+    } <= set(sample_arm)
     assert len(campaign.interventions) == 3
     assert {item.arm for item in campaign.interventions} == {
         "source_bias_on",
@@ -111,6 +120,20 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     summary = format_hard_experiment_01_summary(campaign)
     assert "claim_ceiling runtime_observation" in summary
     assert "collective_intelligence False" in summary
+
+
+def test_capsule_counts_are_recorded_separately() -> None:
+    class _Result:
+        capsule_source_fitness_records = (object(), object())
+        capsule_utility_records = (object(),)
+        capsule_transfer_metrics = (object(), object(), object())
+        capsule_adoption_records = (object(), object(), object(), object())
+
+    sources, utilities, transfers, adoptions = _capsule_counts(_Result())
+    assert (sources, utilities, transfers, adoptions) == (2, 1, 3, 4)
+    # The old helper used max(sources, utilities, transfers) as "emissions".
+    assert sources != utilities
+    assert max(sources, utilities, transfers) == 3
 
 
 def test_mean_last_tick_fitness_is_none_when_tick_missing() -> None:
@@ -144,7 +167,9 @@ def test_arm_record_marks_missing_outcome_without_zero_fill() -> None:
         arm="capsules_off",
         terminal_mean_fitness=None,
         births=0,
-        capsule_emissions=0,
+        capsule_source_count=0,
+        capsule_utility_count=0,
+        capsule_transfer_count=0,
         capsule_adoptions=0,
         spec_digest="a" * 64,
         result_digest="b" * 64,
@@ -168,7 +193,9 @@ def _arm(
         arm=arm,  # type: ignore[arg-type]
         terminal_mean_fitness=fitness,
         births=0,
-        capsule_emissions=0,
+        capsule_source_count=0,
+        capsule_utility_count=0,
+        capsule_transfer_count=0,
         capsule_adoptions=0,
         spec_digest="a" * 64,
         result_digest="b" * 64,

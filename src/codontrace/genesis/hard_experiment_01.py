@@ -262,12 +262,18 @@ def _birth_count(result: object) -> int:
     return total
 
 
-def _capsule_counts(result: object) -> tuple[int, int]:
-    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
+def _capsule_counts(result: object) -> tuple[int, int, int, int]:
+    """Count source, utility, transfer, and adoption records separately.
+
+    These surfaces are not interchangeable. A max() across them would hide
+    which channel actually fired.
+    """
+
     sources = len(tuple(getattr(result, "capsule_source_fitness_records", ()) or ()))
     utilities = len(tuple(getattr(result, "capsule_utility_records", ()) or ()))
     transfers = len(tuple(getattr(result, "capsule_transfer_metrics", ()) or ()))
-    return max(sources, utilities, transfers), adoptions
+    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
+    return sources, utilities, transfers, adoptions
 
 
 def _run_arm(
@@ -292,7 +298,9 @@ class HardExperiment01ArmRecord:
     arm: ArmName
     terminal_mean_fitness: float | None
     births: int
-    capsule_emissions: int
+    capsule_source_count: int
+    capsule_utility_count: int
+    capsule_transfer_count: int
     capsule_adoptions: int
     spec_digest: str
     result_digest: str
@@ -312,7 +320,13 @@ class HardExperiment01ArmRecord:
             )
         if self.arm not in ARMS:
             raise ConfigurationError(f"unknown arm: {self.arm!r}")
-        if self.births < 0 or self.capsule_emissions < 0 or self.capsule_adoptions < 0:
+        if min(
+            self.births,
+            self.capsule_source_count,
+            self.capsule_utility_count,
+            self.capsule_transfer_count,
+            self.capsule_adoptions,
+        ) < 0:
             raise ConfigurationError("counts must be >= 0.")
         if len(self.spec_digest) != 64 or len(self.result_digest) != 64:
             raise ConfigurationError("arm records require 64-hex spec/result digests.")
@@ -323,7 +337,9 @@ class HardExperiment01ArmRecord:
             "arm": self.arm,
             "terminal_mean_fitness": self.terminal_mean_fitness,
             "births": self.births,
-            "capsule_emissions": self.capsule_emissions,
+            "capsule_source_count": self.capsule_source_count,
+            "capsule_utility_count": self.capsule_utility_count,
+            "capsule_transfer_count": self.capsule_transfer_count,
             "capsule_adoptions": self.capsule_adoptions,
             "spec_digest": self.spec_digest,
             "result_digest": self.result_digest,
@@ -486,14 +502,16 @@ def _arm_record(
         seed=seed, arm=arm, tick_count=tick_count, population=population
     )
     births = _birth_count(result)
-    emissions, adoptions = _capsule_counts(result)
+    sources, utilities, transfers, adoptions = _capsule_counts(result)
     fitness = _mean_last_tick_fitness(result)
     return HardExperiment01ArmRecord(
         seed=seed,
         arm=arm,
         terminal_mean_fitness=fitness,
         births=births,
-        capsule_emissions=emissions,
+        capsule_source_count=sources,
+        capsule_utility_count=utilities,
+        capsule_transfer_count=transfers,
         capsule_adoptions=adoptions,
         spec_digest=spec.digest(),
         result_digest=str(result.digest()),

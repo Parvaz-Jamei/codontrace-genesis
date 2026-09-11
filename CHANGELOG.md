@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — Phase E capsule/memory/role/collective substrate
+
+### Added
+
+- Opt-in `PhaseESubstrateConfig` (omitted from default serialization so Phase A–D presets and pinned digests stay stable).
+- Organism-local / lineage capsule memory with **real** subsequent effects: action substitution, ATP bonus, and COPY_SELF task gating under a matching sensory cue (Am Nat 2020 / odometry mapping). Ablation with capsules disabled yields a different replay digest.
+- Role / differentiation tags (`soma` / `germline` / `messenger`) that can gate reproduction or messaging (Avida GermlineReplication / GECCO 2008 analog).
+- Deme/group containers, Goldsby-style messaging buffer (`send_message`, `retrieve_message`, `broadcast_message`, `block_propagation`), and a minimal mean-fitness deme-replication trigger with recorded events (`DEMES_*` analog).
+- `PlasticityProtocolSpec` plus `read_environment_cue()` over Phase C regimes/local patches, including the Ghalambor/Clune four-condition experimental-design checklist (not evolved-plasticity proof).
+- OntoAvida-inspired `PhenotypeTranscriptomeEvidence` export and `AvidaParityProtocolSpec` head-to-head recipe (software capability only).
+- `GenesisRuntimeProfile.phase_e_substrate_world()`, `build_phase_e_evidence_pack`, `examples/genesis_phase_e_substrate.py`, `tests/test_genesis_phase_e_substrate.py`, and `docs/PHASE_E_LITERATURE.md`.
+- ClaimGate blocked aliases for `proved_collective_intelligence`, `evolved_plasticity`, `avida_replacement`, and `associative_learning_proved`. Ceiling remains `runtime_observation`.
+
+### Notes
+
+Phase E is opt-in. Default life-loop, sexual, dynamic-environment, and Phase D measurement APIs keep their pinned digests. Phase D MODES/Bedau packs can observe Phase E when it is enabled because action/ATP/birth records actually change. This is not proof of learning, collective intelligence, evolved plasticity, OEE, or Avida-replacement status.
+
 ## Unreleased — Phase D multi-generation instinct/behavior evidence
 
 ### Added

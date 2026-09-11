@@ -197,6 +197,15 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "collective_intelligence",
     "real_collective_intelligence",
     "true_social_intelligence",
+    "proved_collective_intelligence",
+    "collective_intelligence_proved",
+    "evolved_plasticity",
+    "evolved_plasticity_proved",
+    "phenotypic_plasticity_evolved",
+    "avida_replacement",
+    "associative_learning_proved",
+    "odometry_proved",
+    "deme_intelligence_proved",
 )
 
 _LEGACY_ALIAS_MAP: tuple[tuple[str, str], ...] = (

@@ -8,6 +8,7 @@
 4. Phase B (implemented, opt-in): Avida-parity sexual crossover — birth chamber + positional continuous corresponding recombination, digest-backed dual-parent records. Research defaults stay asexual. Diploid meiosis / mating types deferred (Phase B.1).
 5. Phase C (implemented, opt-in): chemostat / periodic / fluctuating environments on top of the Phase A ecology preset. Avida `RESOURCE` initial/inflow/outflow, Avida-ED periodic or seeded regimes, global and/or local patches, digest-backed env trajectory replay. Default life-loop stays static. Plasticity-evolved claims deferred.
 6. Phase D (implemented, opt-in measurement): multi-generation fitness/behavior evidence pack, persistence-filtered MODES-style axes, Bedau activity surfaces, same-seed cohort comparison, and ClaimGate-honest `instinct_improved` / `oee_measurement_only` labels. Default A/B/C presets unchanged. OEE/intelligence proof remains blocked.
+7. Phase E (implemented, opt-in substrate): capsule/memory with real subsequent action/ATP/task-eligibility effects, role/propagule gates, deme messaging (Goldsby subset) plus a minimal deme-replication trigger, plasticity protocol object over Phase C cues, OntoAvida-style phenotype export, and `AvidaParityProtocolSpec`. Defaults off. Collective intelligence / evolved-plasticity / Avida-replacement claims remain blocked.
 
 Phase A life-loop literature items (basal metabolism, starvation reason, limited depletable resources, spatial capacity, differential reproductive-success observation) are implemented on the ecology preset only.
 

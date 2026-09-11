@@ -153,6 +153,7 @@ class GenesisOrganism:
     adf_execution_policy: ADFExecutionPolicy = field(default_factory=ADFExecutionPolicy)
     translation_profile: TranslationProfile | None = None
     translation_policy: TranslationPolicy = field(default_factory=TranslationPolicy)
+    phase_e_state: object | None = None
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)
@@ -273,6 +274,13 @@ class GenesisOrganism:
             self.translation_policy,
         )
         action_name = resolved_action or base_action
+        phase_e_delta: dict[str, JsonValue] = {}
+        if self.phase_e_state is not None:
+            from codontrace.genesis.phase_e import apply_phase_e_action_choice
+
+            action_name, phase_e_delta = apply_phase_e_action_choice(
+                self, action_name, world=world
+            )
         action_sequence: tuple[str, ...] = (action_name,)
         source_override = token.source
         adf_expansion_digest: str | None = None
@@ -315,6 +323,8 @@ class GenesisOrganism:
             "causal_prediction_graph_digest": prediction.graph_digest,
             "causal_prediction_reason": prediction.reason,
         }
+        if phase_e_delta:
+            world_delta.update(phase_e_delta)
         source_token = CompiledToken(
             bits=token.bits,
             action=action_name,
@@ -576,6 +586,10 @@ class GenesisOrganism:
             trace._events[-1] = event
         event = self._maybe_update_causal_graph(event, prediction, memory_result)
         trace._events[-1] = event
+        if self.phase_e_state is not None:
+            from codontrace.genesis.phase_e import record_phase_e_after_event
+
+            record_phase_e_after_event(self, event)
         return event
 
     def step_brain_tick(

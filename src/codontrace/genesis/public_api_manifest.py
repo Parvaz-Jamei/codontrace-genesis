@@ -23,6 +23,8 @@ _STABLE_SYMBOLS: tuple[tuple[str, str, str, bool], ...] = (
     ("GenesisExperimentSpec", "codontrace.genesis", "0.3.0a1", True),
     ("GenesisRunResult", "codontrace.genesis", "0.3.0a1", True),
     ("MultiGenerationEvidencePack", "codontrace.genesis", "0.3.0b2-phaseD", False),
+    ("PhaseEEvidencePack", "codontrace.genesis", "0.3.0b2-phaseE", False),
+    ("AvidaParityProtocolSpec", "codontrace.genesis", "0.3.0b2-phaseE", False),
     ("Phase1RuntimeMaturityReport", "codontrace.genesis", "0.3.0a1-phase1", True),
     ("PhaseBScientificMaturityReport", "codontrace.genesis", "0.3.0a1-phaseB", True),
     ("ReleaseEvidencePackSample", "codontrace.genesis", "0.3.0a1-phaseB", True),

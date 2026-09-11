@@ -16,6 +16,14 @@ from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
 from codontrace.genesis.environment import EnvironmentConfig
 from codontrace.genesis.liveness import AliveGateConfig
+from codontrace.genesis.phase_e import (
+    CapsuleMemoryConfig,
+    DemeConfig,
+    PhaseESubstrateConfig,
+    PlasticityConfig,
+    PlasticityProtocolSpec,
+    RoleDifferentiationConfig,
+)
 from codontrace.genesis.population import (
     FitnessConfig,
     MetabolicConfig,
@@ -575,6 +583,91 @@ class GenesisRuntimeProfile:
             reproduction_mode=reproduction_mode,
             environment=environment,
         )
+
+    @staticmethod
+    def phase_e_substrate_world(
+        *,
+        seed: int = 7,
+        tick_count: int = 8,
+        population: int = 6,
+        enable_capsule_memory: bool = True,
+        enable_roles: bool = False,
+        enable_demes: bool = False,
+        enable_plasticity: bool = False,
+        inherit_lineage_capsule: bool = False,
+        seed_preferred_action: str = "EAT_LUMEN",
+        gate_reproduction: bool = False,
+        gate_messaging: bool = False,
+        deme_size: int = 2,
+        replicate_on_mean_fitness: float | None = None,
+        environment: EnvironmentConfig | None = None,
+        reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
+    ) -> GenesisExperimentSpec:
+        """Phase E opt-in: life-loop plus capsule/memory/role/deme substrate.
+
+        Default life-loop / sexual / dynamic-env / multi-gen measurement APIs
+        are unchanged. This helper enables real capsule-memory action/ATP
+        effects, optional germline-style role gates, and optional deme
+        messaging. Claim ceiling remains runtime_observation.
+        """
+
+        spec = GenesisRuntimeProfile.life_loop_world(
+            seed=seed,
+            tick_count=tick_count,
+            population=population,
+            reproduction_mode=reproduction_mode,
+            environment=environment,
+        )
+        phase_e = PhaseESubstrateConfig(
+            enabled=True,
+            capsule_memory=CapsuleMemoryConfig(
+                enabled=enable_capsule_memory,
+                inherit_lineage=inherit_lineage_capsule,
+                seed_preferred_action=seed_preferred_action if enable_capsule_memory else "",
+            ),
+            roles=RoleDifferentiationConfig(
+                enabled=enable_roles,
+                assignment="round_robin",
+                gate_reproduction=gate_reproduction,
+                gate_messaging=gate_messaging,
+            ),
+            demes=DemeConfig(
+                enabled=enable_demes,
+                deme_size=deme_size,
+                messaging_enabled=enable_demes,
+                replicate_on_mean_fitness=replicate_on_mean_fitness,
+                replicate_copy_germline=replicate_on_mean_fitness is not None,
+            ),
+            plasticity=PlasticityConfig(
+                enabled=enable_plasticity,
+                spec=PlasticityProtocolSpec(
+                    sense_react_enabled=enable_plasticity,
+                    sensory_read_enabled=True,
+                ),
+            ),
+        )
+        configs = spec.population_configs
+        if configs is None:
+            raise ValueError("phase_e_substrate_world requires life-loop population configs.")
+        configs = replace(configs, phase_e=phase_e)
+        metadata = {
+            **spec.metadata,
+            "runtime_profile": "phase_e_substrate_world",
+            "phase_e_capsule_memory_collective": "enabled",
+            "profile_has_capsule_memory_effect": enable_capsule_memory,
+            "profile_has_role_gates": enable_roles and (gate_reproduction or gate_messaging),
+            "profile_has_deme_messaging": enable_demes,
+            "profile_has_plasticity_protocol": enable_plasticity,
+            "literature_grounding_phase_e": (
+                "avida_demes_goldsby_messages_clune_plasticity_"
+                "amnat_2020_learning_ontoavida_export_"
+                "not_avida_replacement_not_collective_intelligence"
+            ),
+            "claim_allowed_for_collective_intelligence": False,
+            "claim_allowed_for_plasticity": False,
+            "claim_ceiling": "runtime_observation",
+        }
+        return replace(spec, population_configs=configs, metadata=metadata)
 
 
 @dataclass(frozen=True, slots=True)

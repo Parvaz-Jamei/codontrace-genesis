@@ -2327,9 +2327,6 @@ class GenesisEngine:
             if spec.engine_config.enable_memory:
                 organism.episodic_memory = EpisodicMemory(memory_config)
             organisms.append(organism)
-        population = PopulationState(
-            generation=0, tick=0, organisms=tuple(organisms), lineage=(), fitness=()
-        )
         capsule_config = (
             spec.capsule_transfer_config
             if spec.capsule_transfer_config is not None
@@ -2352,6 +2349,21 @@ class GenesisEngine:
                 evolution=_effective_evolution_config(spec),
                 qd_mode=spec.engine_config.qd_mode if spec.engine_config.enable_qd else "disabled",
             )
+        initial_deme = None
+        if configs.phase_e.enabled:
+            from codontrace.genesis.phase_e import attach_phase_e_to_organisms, build_deme_state
+
+            organisms = list(attach_phase_e_to_organisms(organisms, configs.phase_e))
+            if configs.phase_e.demes.enabled:
+                initial_deme = build_deme_state(organisms)
+        population = PopulationState(
+            generation=0,
+            tick=0,
+            organisms=tuple(organisms),
+            lineage=(),
+            fitness=(),
+            deme=initial_deme,
+        )
         runner = PopulationRunner(
             population=population,
             world=cast(Any, world),

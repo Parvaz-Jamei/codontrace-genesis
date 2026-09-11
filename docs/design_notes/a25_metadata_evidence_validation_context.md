@@ -1,6 +1,6 @@
 # A25 Metadata/Evidence Validation Context
 
-CodonTrace treats `GenesisExperimentSpec.metadata` as annotation and artifact-pointer data only. Metadata keys such as `validated_intervention_result_digest`, `validated_oee_report_digest`, `baseline_digest`, `effect_size`, or `claim_gate_decision_digest` are not accepted as validated scientific evidence by themselves.
+CodonTrace Genesis treats `GenesisExperimentSpec.metadata` as annotation and artifact-pointer data only. Metadata keys such as `validated_intervention_result_digest`, `validated_oee_report_digest`, `baseline_digest`, `effect_size`, or `claim_gate_decision_digest` are not accepted as validated scientific evidence by themselves.
 
 
 

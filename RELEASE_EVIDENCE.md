@@ -26,7 +26,7 @@ For limited environments, run tests in documented chunks and record the command 
 
 ## Claim boundaries
 
-CodonTrace is a Library-as-Tool. It exposes auditable primitives, protocol records, deterministic digests, and ClaimGate-compatible evidence. It does not hard-code success and does not make positive high-level claims without experiment-specific controls, heldout evaluation, replay digests, and ClaimGate acceptance.
+CodonTrace Genesis is a Library-as-Tool. It exposes auditable primitives, protocol records, deterministic digests, and ClaimGate-compatible evidence. It does not hard-code success and does not make positive high-level claims without experiment-specific controls, heldout evaluation, replay digests, and ClaimGate acceptance.
 
 Phase E remains `runtime_observation` only. ClaimGate keeps `collective_intelligence`, `evolved_plasticity`, and `avida_replacement` blocked.
 

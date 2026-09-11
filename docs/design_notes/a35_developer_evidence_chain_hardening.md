@@ -4,7 +4,7 @@ Status: developer patch on top of `codontrace-v0.3.0a1-phase3-recheck-followup-f
 
 ## Goal
 
-Strengthen CodonTrace / GENESIS as a high-power scientific library without turning it into an app or success-forcer. This patch targets cross-module evidence wiring: every public export envelope that a runner can use for claim/report decisions must also be present in the evidence manifest, and the result payload must carry the claim-ready evidence surfaces directly.
+Strengthen CodonTrace Genesis / GENESIS as a high-power scientific library without turning it into an app or success-forcer. This patch targets cross-module evidence wiring: every public export envelope that a runner can use for claim/report decisions must also be present in the evidence manifest, and the result payload must carry the claim-ready evidence surfaces directly.
 
 ## Scientific rationale
 

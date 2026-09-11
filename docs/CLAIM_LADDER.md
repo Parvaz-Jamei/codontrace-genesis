@@ -1,6 +1,6 @@
 # GENESIS Claim Ladder
 
-CodonTrace / GENESIS is a scientific AI, digital-evolution, causal-discovery, and multi-agent intelligence library. The library supports ambitious claims only through deterministic evidence chains, not through claim text or placeholder metadata.
+CodonTrace Genesis / GENESIS is a scientific AI, digital-evolution, causal-discovery, and multi-agent intelligence library. The library supports ambitious claims only through deterministic evidence chains, not through claim text or placeholder metadata.
 
 ## Standard evidence chain
 

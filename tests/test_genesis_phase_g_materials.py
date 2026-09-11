@@ -1,8 +1,8 @@
-"""Phase G named-materials / chemistry-effect substrate tests.
+"""CodonTrace Genesis Phase G named-materials / chemistry-effect substrate tests.
 
 These tests document software capability and runtime observation only. They do
 not claim realistic chemistry, wet-lab equivalence, GEM/MD solving,
-intelligence, or that CodonTrace replaces Avida.
+intelligence, or that CodonTrace Genesis replaces Avida.
 """
 
 from __future__ import annotations

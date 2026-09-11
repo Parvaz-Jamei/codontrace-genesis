@@ -1,6 +1,6 @@
 # QD Descriptor Guide
 
-Quality-Diversity in CodonTrace uses explicit descriptor schemas. Descriptors are experiment-defined measures, not universal life metrics.
+Quality-Diversity in CodonTrace Genesis uses explicit descriptor schemas. Descriptors are experiment-defined measures, not universal life metrics.
 
 ## What it implements
 

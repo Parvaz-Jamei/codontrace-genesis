@@ -1,6 +1,6 @@
 # Discovery Gate Protocol
 
-Discovery in CodonTrace is a review-needed evidence pipeline. It is never a proof of open-ended evolution or artificial life.
+Discovery in CodonTrace Genesis is a review-needed evidence pipeline. It is never a proof of open-ended evolution or artificial life.
 
 ## What it implements
 

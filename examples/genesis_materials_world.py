@@ -1,4 +1,4 @@
-"""Phase G named-materials / chemistry-effect substrate smoke.
+"""CodonTrace Genesis Phase G named-materials / chemistry-effect substrate smoke.
 
 This example enables the opt-in MaterialsWorld overlay on the life-loop
 preset and prints runtime observations only: named-material chemostat

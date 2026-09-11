@@ -1,4 +1,4 @@
-"""Phase G real-materials / chemistry-effect substrate.
+"""CodonTrace Genesis Phase G real-materials / chemistry-effect substrate.
 
 Opt-in named materials with organism-facing effect coefficients (energy yield,
 toxicity, viscosity/diffusion, permeability, signaling potency, scarcity) plus

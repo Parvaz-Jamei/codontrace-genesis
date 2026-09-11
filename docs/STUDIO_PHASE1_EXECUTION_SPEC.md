@@ -1,4 +1,4 @@
-# CodonTrace Studio — Phase 1 Core-Safe Execution Spec
+# CodonTrace Genesis Studio — Phase 1 Core-Safe Execution Spec
 
 Status: public beta handoff for `codontrace` `0.3.0b2`.
 

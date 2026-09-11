@@ -1,10 +1,10 @@
 # Non-goals and claim control
 
-CodonTrace is a library-first foundation kernel aligned with selected early GENESIS Engine phases. It is not the full GENESIS Engine.
+CodonTrace Genesis is a library-first foundation kernel aligned with selected early GENESIS Engine phases. It is not the full GENESIS Engine.
 
 ## Not implemented or not claimed
 
-CodonTrace does not claim or implement:
+CodonTrace Genesis does not claim or implement:
 
 - general-intelligence, subjective-awareness, or autonomous-general-intelligence product claims.
 - life-like outcome validation.
@@ -43,7 +43,7 @@ CodonTrace does not claim or implement:
 
 ## Causal Capsule + Nexus Stigmergy Foundation
 
-CodonTrace provides an in-memory Causal Capsule + Nexus Stigmergy foundation for controlled GENESIS-style experiments. It implements CausalCapsule lifecycle objects, CapsuleStore, NexusStigmergyLayer, ATP-gated capsule emission/read/adoption, environment-mediated capsule transfer, capsule transfer audit metrics, and typed D0/Discovery hooks for future phases.
+CodonTrace Genesis provides an in-memory Causal Capsule + Nexus Stigmergy foundation for controlled GENESIS-style experiments. It implements CausalCapsule lifecycle objects, CapsuleStore, NexusStigmergyLayer, ATP-gated capsule emission/read/adoption, environment-mediated capsule transfer, capsule transfer audit metrics, and typed D0/Discovery hooks for future phases.
 
 This is not proof of knowledge transfer, not proof of causal learning, not a D0-calibrated discovery claim, not a Discovery Witness archive, not Quality-Diversity/MAP-Elites, and not open-ended discovery. Stigmergy is represented as in-memory environment-mediated signals: target organisms read from a Nexus layer/store rather than receiving direct source-to-target messages.
 
@@ -57,7 +57,7 @@ D0 Baseline, Discovery Witness, QD archive, ablation, and statistical protocol o
 
 ## v0.3.0a1 Release Candidate Hardening + Scientific Evidence Pack
 
-CodonTrace v0.3.0a1 focuses on API hardening, validation objects, compatibility snapshots, example-smoke contracts, research-validation bundle records, and claim-audit scaffolds. These are dependency-free Python object APIs only. They do not add an app, UI, dashboard, CLI, report writer, notebook generator, experiment runner, file writer, p-value engine, or external dependency. The validation pack helps researchers audit reproducibility and claim safety, but it does not prove general-intelligence, artificial life, open-ended discovery, causal-certainty claim, knowledge transfer, or benchmark-rank claim.
+CodonTrace Genesis v0.3.0a1 focuses on API hardening, validation objects, compatibility snapshots, example-smoke contracts, research-validation bundle records, and claim-audit scaffolds. These are dependency-free Python object APIs only. They do not add an app, UI, dashboard, CLI, report writer, notebook generator, experiment runner, file writer, p-value engine, or external dependency. The validation pack helps researchers audit reproducibility and claim safety, but it does not prove general-intelligence, artificial life, open-ended discovery, causal-certainty claim, knowledge transfer, or benchmark-rank claim.
 
 ## v0.3.0a1 non-goal reminder
 

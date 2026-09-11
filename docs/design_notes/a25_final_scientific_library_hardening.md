@@ -17,7 +17,7 @@
 - BenchmarkScenarioSuite now includes known_capsule_transfer_world.
 
 ## Why was it scientifically necessary?
-Scientific artifacts must not be spoofable, placeholder hashes must not be counted as evidence, and overclaim aliases must not bypass policy. The patch hardens CodonTrace as an importable, replayable Python research library rather than an app or workflow product.
+Scientific artifacts must not be spoofable, placeholder hashes must not be counted as evidence, and overclaim aliases must not bypass policy. The patch hardens CodonTrace Genesis as an importable, replayable Python research library rather than an app or workflow product.
 
 ## Existing modules touched
 - codontrace.genesis.claim_gate

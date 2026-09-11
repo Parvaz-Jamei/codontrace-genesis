@@ -17,7 +17,7 @@ CodonTrace Genesis is designed for deterministic, replay/audit-first digital-evo
 
 ## 1. Reproducibility principle
 
-A CodonTrace result is considered reproducible only when another user can identify and preserve:
+A CodonTrace Genesis result is considered reproducible only when another user can identify and preserve:
 
 1. the exact package version,
 2. the exact code source or release archive,

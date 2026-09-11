@@ -72,7 +72,7 @@ ClaimGate is unchanged in the strict direction.
 
 ### Phase G — named materials / chemistry-effect substrate
 
-Opt-in `MaterialsWorld` overlay so later experiments can bind real substance
+CodonTrace Genesis adds an opt-in `MaterialsWorld` overlay so later experiments can bind real substance
 tables. This is **not** an Earth chemistry simulator, KEGG/BiGG GEM solver,
 molecular-dynamics engine, or wet-lab equivalent. Phase A–E default spec
 digest pins stay stable.

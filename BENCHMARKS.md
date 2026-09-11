@@ -147,7 +147,7 @@ The inspected smoke artifact reports:
 |---|---:|
 | Runner | `collective_joss_evidence_benchmark` |
 | Runner schema | `collective_joss_evidence_benchmark_v1.1.0_public_beta_b1` |
-| CodonTrace version | `0.3.0b2` |
+| CodonTrace Genesis version | `0.3.0b2` |
 | Target public version | `0.3.0b2` |
 | Expected version | `0.3.0b2` |
 | Release DOI | `10.5281/zenodo.20337435` |
@@ -314,7 +314,7 @@ Interpretation:
 
 ## 10. Benchmark levels
 
-CodonTrace uses tiered benchmark levels so that CI, reviewers, Colab users, and paper authors do not run the same workload.
+CodonTrace Genesis uses tiered benchmark levels so that CI, reviewers, Colab users, and paper authors do not run the same workload.
 
 | Level | Name | Purpose | Intended runtime | Claim level |
 |---:|---|---|---|---|
@@ -567,7 +567,7 @@ lineage_growth_records
 
 Allowed current claim:
 
-> CodonTrace can expose and export inheritance/compression-related evidence surfaces.
+> CodonTrace Genesis can expose and export inheritance/compression-related evidence surfaces.
 
 Blocked claim:
 
@@ -704,11 +704,11 @@ Required gates:
 
 Allowed current claim:
 
-> CodonTrace includes instrumentation and benchmark scaffolding for investigating collective-behavior hypotheses.
+> CodonTrace Genesis includes instrumentation and benchmark scaffolding for investigating collective-behavior hypotheses.
 
 Blocked current claim:
 
-> CodonTrace proves collective intelligence.
+> CodonTrace Genesis proves collective intelligence.
 
 ---
 
@@ -770,7 +770,7 @@ The current smoke benchmark does not support:
 
 ### Why this matters
 
-A benchmark can be valuable even when it blocks strong claims. For CodonTrace, a blocked claim is not automatically a failure. It can indicate that the evidence gate is doing its job.
+A benchmark can be valuable even when it blocks strong claims. For CodonTrace Genesis, a blocked claim is not automatically a failure. It can indicate that the evidence gate is doing its job.
 
 ---
 

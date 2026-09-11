@@ -1,4 +1,4 @@
-"""GENESIS Foundation Kernel primitives for CodonTrace."""
+"""GENESIS Foundation Kernel primitives for CodonTrace Genesis."""
 
 # Central release identity.
 # BASE_RELEASE_LABEL preserves the compatibility lineage;

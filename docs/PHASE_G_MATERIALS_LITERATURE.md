@@ -1,6 +1,6 @@
-# Phase G materials / chemistry-effect substrate — literature checklist
+# CodonTrace Genesis Phase G materials / chemistry-effect substrate — literature checklist
 
-Phase G adds an **opt-in named-materials overlay** so later experiments can
+CodonTrace Genesis Phase G adds an **opt-in named-materials overlay** so later experiments can
 place organisms in an environment whose substances have explicit physical /
 chemical *effect coefficients* (energy yield, toxicity, viscosity/diffusion,
 permeability, signaling potency, scarcity). It is a software substrate with

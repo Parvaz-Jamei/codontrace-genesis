@@ -1,4 +1,4 @@
-"""Structured trace and timeline objects for replayable CodonTrace runs."""
+"""Structured trace and timeline objects for replayable CodonTrace Genesis runs."""
 
 from __future__ import annotations
 

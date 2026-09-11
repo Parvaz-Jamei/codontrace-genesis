@@ -1,6 +1,11 @@
 # GENESIS Claim Ladder
 
-CodonTrace Genesis / GENESIS is a scientific AI, digital-evolution, causal-discovery, and multi-agent intelligence library. The library supports ambitious claims only through deterministic evidence chains, not through claim text or placeholder metadata.
+**Superseded.** Use [`CLAIMS.md`](../CLAIMS.md) §5 for the public 0–5
+ladder. This page is kept only as a historical evidence-chain note.
+
+CodonTrace Genesis is a scientific digital-evolution and causal-discovery
+library. The library supports ambitious claims only through deterministic
+evidence chains, not through claim text or placeholder metadata.
 
 ## Standard evidence chain
 
@@ -23,8 +28,10 @@ A claim may be promoted only when every required evidence surface has a real dig
 
 ## Social and collective claims
 
-Social interaction is currently observable through event records. Capsule communication is observable as information transfer. Collective intelligence is not claim-eligible until the result contains coordination, non-capsule cooperation, role complementarity, heldout partner distinction, ablation evidence, and replay digest evidence.
+Social interaction is currently observable through event records. Capsule communication is observable as information transfer. Collective-behavior labels are not claim-eligible until the result contains coordination, non-capsule cooperation, role complementarity, heldout partner distinction, ablation evidence, and replay digest evidence. ClaimGate still blocks `intelligence`, `collective_intelligence`, AGI, `tokyo_type1_passed`, and `avida_replacement`.
 
-## Phase 2 candidate status
+## Historical note (retired phrasing)
 
-This package is a Phase 2 integrated candidate with strict AI-team evidence-chain and feature-gap hardening. It exposes stronger primitives for variable genomes, ADF macros, semantic proxy reports, event graphs, causal/discovery protocols, collective/swarm evidence protocols, and benchmark/OEE candidate measurement. Claim promotion remains evidence-gated and replay-audited.
+Earlier drafts called this tree a Phase 2 integrated candidate. That
+phrasing is retired. Claim promotion remains evidence-gated and
+replay-audited; see CLAIMS.md §5.

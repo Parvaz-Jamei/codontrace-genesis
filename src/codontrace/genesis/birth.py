@@ -56,7 +56,12 @@ _INTERVENTION_EVENTS = {
     "before_child_admission",
     "after_birth_event",
 }
-_PLACEMENT_POLICIES = {"same_cell", "adjacent_free", "blocked_if_no_space"}
+_PLACEMENT_POLICIES = {
+    "same_cell",
+    "adjacent_free",
+    "blocked_if_no_space",
+    "replace_occupied",
+}
 _PLACEMENT_RESOLUTION_STAGES = {"gate", "admission", "not_applicable"}
 
 

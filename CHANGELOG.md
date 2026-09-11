@@ -5,15 +5,26 @@
 ### Added
 
 - Optional `ReproductionMode.SEXUAL_CROSSOVER` on `ReproductionConfig` (omitted from default serialization so asexual research digests stay stable).
-- Avida-style positional segment swap (`recombine_positional_segment`, `RecombinationRecord`) with a dedicated deterministic RNG fork (`genesis/reproduction/<parent>/recombination`).
+- `SexualRecombinationConfig` mirroring Avida `avida.cfg` `RECOMBINATION_GROUP`: `recombination_prob`, `same_length_only`, `two_fold_cost_sex`, `max_birth_wait_ticks`, `chamber_capacity`, timeout policy, plus stubs for mating types / lekking.
+- Birth-chamber pairing queue (`BirthChamberState` / `IncipientOffspring`) with capacity and wait-timeout (`fail` or `asexual_fallback`). Empty chambers are omitted from population snapshots so asexual digests stay stable.
+- Avida-style positional continuous corresponding segment exchange (`apply_positional_segment_exchange`, `recombine_positional_segment_pair`) with a dedicated deterministic RNG fork for chamber pairing (`genesis/population/birth_chamber`) and crossover breakpoints (`recombination/<slot>/<slot>`).
+- Dual recombinant products by default; `two_fold_cost_sex` places only one. Mutation still runs after recombination.
 - Two-parent lineage / birth / child-genome fields (`second_parent_id`, `parent_ids`) that appear only on sexual births.
+- Direct `reproduce(..., mate=...)` remains a one-child library API; population sexual mode uses the chamber.
 - `GenesisRuntimeProfile.life_loop_world(reproduction_mode=...)` opt-in; default life-loop remains asexual COPY_SELF → mutate → child.
-- Sexual path reuses Phase A AliveGate, ATP, capacity, and placement gates; missing or inviable mates block with explicit reasons (`no_viable_mate`, `mate_min_runtime_atp_not_met`).
+- Sexual path reuses Phase A AliveGate, ATP, capacity, and placement gates.
 - `tests/test_genesis_phase_b_sexual_recombination.py` and `examples/genesis_sexual_recombination.py`.
+
+### Deferred
+
+- Diploid meiosis / selfing (Aevol Eukaryote) as Phase B.1.
+- Full `MATING_TYPES` / `LEKKING` (config stubs only).
+- Modular random-region swap when `CONT_REC_REGS=0` (Phase B ships continuous corresponding regions).
+- Phase C fluctuating environments and Phase D instinct claim metrics.
 
 ### Notes
 
-Phase B is a recombination *substrate*, not an Avida replacement and not a claim of sexual selection or intelligence. Phase C (fluctuating/seasonal environments) and Phase D (multi-generation instinct claim metrics) remain deferred. Claim language stays software capability / runtime observation only.
+Phase B is a recombination *substrate*, not an Avida replacement and not a claim of sexual selection or intelligence. Claim language stays software capability / runtime observation only. Grounded in Misevic, Ofria, Lenski 2006 Proc B and `devosoft/avida` `avida.cfg` `RECOMBINATION_GROUP`.
 
 ## Unreleased — Phase A Darwinian life-loop
 

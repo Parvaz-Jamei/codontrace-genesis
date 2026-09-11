@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
-from codontrace.genesis.birth import InheritancePolicy, ReproductionMode
+from codontrace.genesis.birth import InheritancePolicy, ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferConfig
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
@@ -306,13 +306,20 @@ class GenesisRuntimeProfile:
         remains available by passing ``offspring_placement=OffspringPlacementPolicy.SAME_CELL``.
         ``REPLACE_OCCUPIED`` is an optional Avida-like overwrite policy and is
         not the life-loop default. Asexual COPY_SELF remains the default
-        inheritance path; pass ``reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER``
-        to enable Phase B two-parent positional recombination.
+        inheritance path; pass         ``reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER``
+        to enable Phase B Avida-parity sexual recombination (birth chamber +
+        positional continuous corresponding crossover). Direct
+        ``reproduce(..., mate=...)`` remains a one-child library API.
 
         Literature grounding (software-capability only, not an Avida
         replacement): limited, depletable resources with partial inflow
         (Avida ecology / Cooper–Ofria; Frontiers digital-evolution review 2021)
         plus a basal energy-budget drain (JaxLife 2024, EEDx-style ISAL).
+        Sexual opt-in follows Misevic, Ofria, Lenski 2006 Proc B and
+        ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP`` (birth chamber,
+        ``RECOMBINATION_PROB``, ``SAME_LENGTH_SEX``, ``TWO_FOLD_COST_SEX``,
+        ``MAX_BIRTH_WAIT_TIME``). Diploid meiosis (Aevol Eukaryote) is
+        deferred as Phase B.1.
 
         Parameters that keep food scarce rather than infinite:
         ``LIFE_LOOP_FOOD_CELLS`` (2 patches), ``LIFE_LOOP_MAX_RESOURCES`` (3),
@@ -347,6 +354,7 @@ class GenesisRuntimeProfile:
         genomes = tuple(eater_genomes + [LIFE_LOOP_WAITER_GENOME] * waiter_count)
         capacity = max(population, 8)
         selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
+        sexual = reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
         configs = PopulationConfigs(
             reproduction=ReproductionConfig(
                 max_population=capacity,
@@ -391,6 +399,9 @@ class GenesisRuntimeProfile:
                 enabled=True,
                 basal_runtime_atp_cost=LIFE_LOOP_BASAL_COST,
             ),
+            sexual_recombination=SexualRecombinationConfig(enabled=True)
+            if sexual
+            else SexualRecombinationConfig(),
         )
         return GenesisExperimentSpec(
             genome_bits=genomes,
@@ -464,6 +475,16 @@ class GenesisRuntimeProfile:
                     {
                         "reproduction_mode": reproduction_mode.value,
                         "inheritance_path": "two_parent_positional_crossover",
+                        "sexual_pairing": "birth_chamber",
+                        "literature_grounding_sex": (
+                            "misevic_ofria_lenski_2006_avida_recombination_group_"
+                            "not_avida_replacement"
+                        ),
+                        "recombination_prob": 1.0,
+                        "same_length_only": False,
+                        "two_fold_cost_sex": False,
+                        "max_birth_wait_ticks": None,
+                        "phase_b1_diploid_meiosis": "deferred",
                     }
                     if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
                     else {}
@@ -637,6 +658,8 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         if second_parent_id:
             two_parent_records += 1
             sexual_pairs += 1
+            if getattr(lineage, "recombination_window_differed", False):
+                recombination_proof += 1
         elif parent_bits and child_bits and _asexual_related(parent_bits, child_bits):
             heritable_pairs += 1
         mutation_count = int(getattr(lineage, "mutation_count", 0) or 0)

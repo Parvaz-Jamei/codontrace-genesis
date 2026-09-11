@@ -214,11 +214,15 @@ unless an explicit `reproduction_mode` / `life_loop_world(reproduction_mode=...)
 selects Phase B two-parent positional crossover. Seasonal environments
 and multi-generation instinct claims remain deferred.
 
-Phase B adds an optional sexual recombination substrate: two viable parents
-combine via an Avida-style positional segment swap, then ordinary mutation
-and Phase A AliveGate / ATP / capacity / placement gates still apply.
-Research presets and the default life-loop run stay asexual so existing
-replay digests remain stable. This is not an Avida replacement.
+Phase B adds an optional sexual recombination substrate grounded in
+Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
+`avida.cfg` `RECOMBINATION_GROUP`): incipient genomes wait in a pairing
+queue, exchange one continuous corresponding positional region, then
+ordinary mutation runs. Config knobs mirror Avida (`recombination_prob`,
+`same_length_only`, `two_fold_cost_sex`, `max_birth_wait_ticks`, chamber
+capacity). Research presets and the default life-loop run stay asexual so
+existing replay digests remain stable. This is not an Avida replacement.
+Diploid meiosis (Aevol Eukaryote) is deferred.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, or instinct evolution.

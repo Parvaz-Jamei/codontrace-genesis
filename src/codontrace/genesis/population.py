@@ -24,11 +24,13 @@ from codontrace.genesis.birth import (
     ADFInheritanceMode,
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
+    BirthChamberState,
     BirthEvent,
     BirthIntent,
     BirthRequest,
     ChildAdmissionResult,
     ChildGenomeResult,
+    IncipientOffspring,
     InheritancePolicy,
     LearningInheritanceRecord,
     MutationAuditResult,
@@ -37,11 +39,15 @@ from codontrace.genesis.birth import (
     RecombinationRecord,
     ReproductionGateResult,
     ReproductionMode,
+    SexualRecombinationConfig,
     SkillCompressionRecord,
     SkillInheritanceMode,
     build_mutation_plan,
     make_policy_digest,
     recombine_positional_segment,
+    recombine_positional_segment_pair,
+    select_chamber_pair,
+    timed_out_chamber_slots,
 )
 from codontrace.genesis.capsule import (
     CapsuleAdoptionBlockedReason,
@@ -415,6 +421,10 @@ class LineageRecord:
     death_tick: int | None
     reproduction_event_id: str | None
     second_parent_id: str | None = None
+    recombination_start_index: int | None = None
+    recombination_end_index: int | None = None
+    recombination_digest: str | None = None
+    recombination_window_differed: bool | None = None
 
     @property
     def id(self) -> str | None:
@@ -446,6 +456,14 @@ class LineageRecord:
         if self.second_parent_id:
             payload["second_parent_id"] = self.second_parent_id
             payload["parent_ids"] = list(self.parent_ids)
+            if self.recombination_start_index is not None:
+                payload["recombination_start_index"] = self.recombination_start_index
+            if self.recombination_end_index is not None:
+                payload["recombination_end_index"] = self.recombination_end_index
+            if self.recombination_digest:
+                payload["recombination_digest"] = self.recombination_digest
+            if self.recombination_window_differed:
+                payload["recombination_window_differed"] = True
         return payload
 
     @classmethod
@@ -461,6 +479,14 @@ class LineageRecord:
             death_tick=None if raw_death is None else _int(data, "death_tick", 0),
             reproduction_event_id=_optional_str(data, "reproduction_event_id"),
             second_parent_id=_optional_str(data, "second_parent_id"),
+            recombination_start_index=None
+            if data.get("recombination_start_index") is None
+            else _int(data, "recombination_start_index", 0),
+            recombination_end_index=None
+            if data.get("recombination_end_index") is None
+            else _int(data, "recombination_end_index", 0),
+            recombination_digest=_optional_str(data, "recombination_digest"),
+            recombination_window_differed=_optional_bool(data, "recombination_window_differed"),
         )
 
 
@@ -669,6 +695,7 @@ class PopulationState:
     organisms: tuple[GenesisOrganism, ...]
     lineage: tuple[LineageRecord, ...]
     fitness: tuple[FitnessResult, ...]
+    birth_chamber: BirthChamberState = field(default_factory=BirthChamberState)
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -680,19 +707,23 @@ class PopulationState:
             raise ConfigurationError(msg)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "generation": self.generation,
             "tick": self.tick,
             "organisms": [_organism_summary(organism) for organism in self.organisms],
             "lineage": [record.to_dict() for record in self.lineage],
             "fitness": [item.to_dict() for item in self.fitness],
         }
+        if not self.birth_chamber.is_empty:
+            payload["birth_chamber"] = self.birth_chamber.to_dict()
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> PopulationState:
         organisms_raw = _list(data, "organisms")
         lineage_raw = _list(data, "lineage")
         fitness_raw = _list(data, "fitness")
+        chamber_raw = data.get("birth_chamber")
         return cls(
             generation=_int(data, "generation", 0),
             tick=_int(data, "tick", 0),
@@ -705,6 +736,9 @@ class PopulationState:
             fitness=tuple(
                 FitnessResult.from_dict(item) for item in fitness_raw if isinstance(item, Mapping)
             ),
+            birth_chamber=BirthChamberState.from_dict(chamber_raw)
+            if isinstance(chamber_raw, Mapping)
+            else BirthChamberState(),
         )
 
     def digest(self) -> str:
@@ -1252,6 +1286,9 @@ class PopulationConfigs:
     runtime_resource_policy: RuntimeResourcePolicy = field(default_factory=RuntimeResourcePolicy)
     newborn_protection_policy: str = "none"
     metabolism: MetabolicConfig = field(default_factory=MetabolicConfig)
+    sexual_recombination: SexualRecombinationConfig = field(
+        default_factory=SexualRecombinationConfig
+    )
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1281,6 +1318,16 @@ class PopulationConfigs:
                 replace(self.death_monitoring, **legacy_overrides),
             )
 
+    @property
+    def effective_sexual_config(self) -> SexualRecombinationConfig:
+        """Return chamber/crossover knobs, enabling Avida defaults when sexual."""
+
+        if self.sexual_recombination.enabled:
+            return self.sexual_recombination
+        if self.reproduction.is_sexual:
+            return replace(self.sexual_recombination, enabled=True)
+        return self.sexual_recombination
+
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
             "reproduction": self.reproduction.to_dict(),
@@ -1306,6 +1353,8 @@ class PopulationConfigs:
         }
         if self.metabolism.enabled or self.metabolism.basal_runtime_atp_cost > 0:
             payload["metabolism"] = self.metabolism.to_dict()
+        if self.sexual_recombination.enabled or self.reproduction.is_sexual:
+            payload["sexual_recombination"] = self.effective_sexual_config.to_dict()
         return payload
 
     @classmethod
@@ -1320,6 +1369,7 @@ class PopulationConfigs:
         evolution_raw = data.get("evolution")
         resource_policy_raw = data.get("runtime_resource_policy")
         metabolism_raw = data.get("metabolism")
+        sexual_raw = data.get("sexual_recombination")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1364,6 +1414,9 @@ class PopulationConfigs:
             metabolism=MetabolicConfig.from_dict(metabolism_raw)
             if isinstance(metabolism_raw, Mapping)
             else MetabolicConfig(),
+            sexual_recombination=SexualRecombinationConfig.from_dict(sexual_raw)
+            if isinstance(sexual_raw, Mapping)
+            else SexualRecombinationConfig(),
         )
 
 
@@ -1726,6 +1779,10 @@ def reproduce(
     world: World2D | None = None,
     live_positions: Mapping[str, tuple[int, int]] | None = None,
     mate: GenesisOrganism | None = None,
+    sexual: SexualRecombinationConfig | None = None,
+    skip_parent_costs: bool = False,
+    recombination_record: RecombinationRecord | None = None,
+    offspring_runtime_atp_override: float | None = None,
 ) -> ReproductionResult:
     """Create a controlled offspring with ATP debit, mutation, and lineage metadata.
 
@@ -1760,7 +1817,10 @@ def reproduce(
             reproduction_events=0,
             reasons=("alive_result_not_required",),
         )
-    decision = can_reproduce(parent, alive_result, config)
+    if skip_parent_costs:
+        decision = ReproductionDecision(True, ())
+    else:
+        decision = can_reproduce(parent, alive_result, config)
     stream = _resolve_rng(seed=seed, rng=rng, namespace=f"genesis/reproduction/{parent.id}")
     birth_intent = BirthIntent(organism_id=parent.id, tick=birth_tick)
     birth_policy_digest = make_policy_digest(config.to_dict())
@@ -1789,8 +1849,16 @@ def reproduce(
         capacity_available=True,
         copy_self_action_detected=True,
         reproduction_enabled=config.enabled,
-        min_runtime_atp_met=parent.atp_state.runtime_available >= config.min_runtime_atp,
-        parent_cost_payable=parent.atp_state.runtime_available >= config.parent_atp_cost,
+        min_runtime_atp_met=(
+            True
+            if skip_parent_costs
+            else parent.atp_state.runtime_available >= config.min_runtime_atp
+        ),
+        parent_cost_payable=(
+            True
+            if skip_parent_costs
+            else parent.atp_state.runtime_available >= config.parent_atp_cost
+        ),
         offspring_fraction_valid=0.0 <= config.offspring_atp_fraction <= 1.0,
         min_runtime_atp_required=config.min_runtime_atp,
         parent_atp_cost=config.parent_atp_cost,
@@ -1817,7 +1885,10 @@ def reproduce(
             reason=decision.reasons[0] if decision.reasons else "reproduction_blocked",
             capacity_available=True,
         )
-    if config.is_sexual:
+    sexual_cfg = sexual if sexual is not None else (
+        SexualRecombinationConfig(enabled=True) if config.is_sexual else SexualRecombinationConfig()
+    )
+    if config.is_sexual and recombination_record is None and not skip_parent_costs:
         mate_reason = _sexual_mate_block_reason(parent, mate, config)
         if mate_reason is not None:
             return _blocked_reproduction_result(
@@ -1827,6 +1898,20 @@ def reproduce(
                 birth_tick=birth_tick,
                 generation=generation,
                 reason=mate_reason,
+                capacity_available=True,
+            )
+        if (
+            mate is not None
+            and sexual_cfg.same_length_only
+            and len(parent.genome.to_compact()) != len(mate.genome.to_compact())
+        ):
+            return _blocked_reproduction_result(
+                parent=parent,
+                config=config,
+                alive_result=alive_result,
+                birth_tick=birth_tick,
+                generation=generation,
+                reason="same_length_sex_not_met",
                 capacity_available=True,
             )
     precomputed_placement: tuple[int, int] | None = None
@@ -1860,51 +1945,62 @@ def reproduce(
             )
     stream = _resolve_rng(seed=seed, rng=rng, namespace=f"genesis/reproduction/{parent.id}")
     ledger_ids: list[int] = []
-    debit_id = parent_after.atp_state.debit_runtime(
-        config.parent_atp_cost,
-        tick=birth_tick,
-        organism_id=parent.id,
-        codon="111",
-        action="COPY_SELF",
-        reason="parent_reproduction_cost",
-    )
-    if debit_id is None and config.parent_atp_cost > 0:
-        blocked = ReproductionDecision(False, ("parent_atp_cost_not_payable",))
-        return ReproductionResult(
-            attempted=True,
-            succeeded=False,
-            parent_before_id=parent.id,
-            parent_after=parent_after,
-            child=None,
-            mutation=None,
-            lineage=None,
-            decision=blocked,
-            event_id=None,
-            ledger_entry_ids=(),
-            birth_intent=birth_intent,
-            birth_request=birth_request,
-            reproduction_gate_result=reproduction_gate_result,
-            ai_birth_intervention_records=ai_birth_records,
+    if skip_parent_costs:
+        offspring_atp = (
+            offspring_runtime_atp_override
+            if offspring_runtime_atp_override is not None
+            else round(parent_after.atp_state.runtime_available * config.offspring_atp_fraction, 10)
         )
-    if debit_id is not None:
-        ledger_ids.append(debit_id)
-    offspring_atp = round(
-        parent_after.atp_state.runtime_available * config.offspring_atp_fraction, 10
-    )
-    if offspring_atp > 0:
-        transfer_id = parent_after.atp_state.debit_runtime(
-            offspring_atp,
+    else:
+        debit_id = parent_after.atp_state.debit_runtime(
+            config.parent_atp_cost,
             tick=birth_tick,
             organism_id=parent.id,
             codon="111",
             action="COPY_SELF",
-            reason="offspring_runtime_atp_transfer",
+            reason="parent_reproduction_cost",
         )
-        if transfer_id is not None:
-            ledger_ids.append(transfer_id)
-    recombination: RecombinationRecord | None = None
+        if debit_id is None and config.parent_atp_cost > 0:
+            blocked = ReproductionDecision(False, ("parent_atp_cost_not_payable",))
+            return ReproductionResult(
+                attempted=True,
+                succeeded=False,
+                parent_before_id=parent.id,
+                parent_after=parent_after,
+                child=None,
+                mutation=None,
+                lineage=None,
+                decision=blocked,
+                event_id=None,
+                ledger_entry_ids=(),
+                birth_intent=birth_intent,
+                birth_request=birth_request,
+                reproduction_gate_result=reproduction_gate_result,
+                ai_birth_intervention_records=ai_birth_records,
+            )
+        if debit_id is not None:
+            ledger_ids.append(debit_id)
+        offspring_atp = round(
+            parent_after.atp_state.runtime_available * config.offspring_atp_fraction, 10
+        )
+        if offspring_atp > 0:
+            transfer_id = parent_after.atp_state.debit_runtime(
+                offspring_atp,
+                tick=birth_tick,
+                organism_id=parent.id,
+                codon="111",
+                action="COPY_SELF",
+                reason="offspring_runtime_atp_transfer",
+            )
+            if transfer_id is not None:
+                ledger_ids.append(transfer_id)
+    recombination = recombination_record
     source_genome = parent.genome
-    if config.is_sexual:
+    if recombination is not None:
+        source_genome = SemanticGenome.from_compact(
+            recombination.child_genome_bits, spec=parent.genome.spec
+        )
+    elif config.is_sexual and not skip_parent_costs:
         if mate is None:
             return _blocked_reproduction_result(
                 parent=parent,
@@ -1915,31 +2011,37 @@ def reproduce(
                 reason="no_viable_mate",
                 capacity_available=True,
             )
-        try:
-            recombination = recombine_positional_segment(
-                parent_a_id=parent.id,
-                parent_b_id=mate.id,
-                parent_a_bits=parent.genome.to_compact(),
-                parent_b_bits=mate.genome.to_compact(),
-                parent_a_genome_digest=parent.genome.digest(),
-                parent_b_genome_digest=mate.genome.digest(),
-                rng=stream.fork("recombination"),
-                codon_width=parent.genome.spec.codon_width,
-                spec=parent.genome.spec,
+        do_recombine = True
+        if sexual_cfg.recombination_prob <= 0.0:
+            do_recombine = False
+        elif sexual_cfg.recombination_prob < 1.0:
+            do_recombine = stream.fork("birth_chamber").random() < sexual_cfg.recombination_prob
+        if do_recombine:
+            try:
+                recombination = recombine_positional_segment(
+                    parent_a_id=parent.id,
+                    parent_b_id=mate.id,
+                    parent_a_bits=parent.genome.to_compact(),
+                    parent_b_bits=mate.genome.to_compact(),
+                    parent_a_genome_digest=parent.genome.digest(),
+                    parent_b_genome_digest=mate.genome.digest(),
+                    rng=stream.fork("recombination"),
+                    codon_width=parent.genome.spec.codon_width,
+                    spec=parent.genome.spec,
+                )
+            except ValueError:
+                return _blocked_reproduction_result(
+                    parent=parent,
+                    config=config,
+                    alive_result=alive_result,
+                    birth_tick=birth_tick,
+                    generation=generation,
+                    reason="recombination_no_overlapping_codon",
+                    capacity_available=True,
+                )
+            source_genome = SemanticGenome.from_compact(
+                recombination.child_genome_bits, spec=parent.genome.spec
             )
-        except ValueError:
-            return _blocked_reproduction_result(
-                parent=parent,
-                config=config,
-                alive_result=alive_result,
-                birth_tick=birth_tick,
-                generation=generation,
-                reason="recombination_no_overlapping_codon",
-                capacity_available=True,
-            )
-        source_genome = SemanticGenome.from_compact(
-            recombination.child_genome_bits, spec=parent.genome.spec
-        )
     mutation_plan = build_mutation_plan(
         plan_id=_reproduction_event_id(
             parent.id, "mutation_plan", birth_tick, stream.state_digest()
@@ -2133,6 +2235,15 @@ def reproduce(
         death_tick=None,
         reproduction_event_id=event_id,
         second_parent_id=None if recombination is None else recombination.parent_b_id,
+        recombination_start_index=None if recombination is None else recombination.start_index,
+        recombination_end_index=None if recombination is None else recombination.end_index,
+        recombination_digest=None if recombination is None else recombination.digest(),
+        recombination_window_differed=None
+        if recombination is None
+        else (
+            recombination.parent_a_bits[recombination.start_index : recombination.end_index]
+            != recombination.parent_b_bits[recombination.start_index : recombination.end_index]
+        ),
     )
     child_genome_result = ChildGenomeResult(
         child_id=resolved_child_id,
@@ -2343,6 +2454,28 @@ def step_population(
     attempts = 0
     blocked_reproduction = 0
     current_tick = population.tick
+    sexual_cfg = configs.effective_sexual_config
+    waiting: list[IncipientOffspring] = list(population.birth_chamber.waiting)
+    chamber_rng = stream.fork("birth_chamber") if sexual_cfg.uses_birth_chamber else None
+    if sexual_cfg.uses_birth_chamber and chamber_rng is not None:
+        waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            waiting=waiting,
+            configs=configs,
+            sexual_cfg=sexual_cfg,
+            stream=stream,
+            chamber_rng=chamber_rng,
+            working_world=working_world,
+            live_positions=live_positions,
+            survivors=survivors,
+            pending=organism_clones,
+            children=children,
+            lineage=lineage,
+            births=births,
+            deaths=deaths,
+            current_tick=current_tick,
+            current_organism=None,
+            alive_result=None,
+        )
     stigmergy_enabled = configs.enable_nexus_stigmergy or (
         configs.capsule_transfer is not None and configs.capsule_transfer.enabled
     )
@@ -2611,6 +2744,39 @@ def step_population(
                 )
             if event.action == "COPY_SELF":
                 attempts += 1
+                if sexual_cfg.uses_birth_chamber:
+                    (
+                        organism,
+                        reproduction_result,
+                        waiting,
+                        lineage,
+                        births,
+                        deaths,
+                        blocked_reproduction,
+                        queued_event,
+                    ) = _handle_chamber_copy_self(
+                        organism=organism,
+                        event=event,
+                        configs=configs,
+                        sexual_cfg=sexual_cfg,
+                        alive_result=alive_result,
+                        generation=population.generation,
+                        birth_tick=current_tick,
+                        stream=stream,
+                        chamber_rng=chamber_rng,
+                        waiting=waiting,
+                        working_world=working_world,
+                        live_positions=live_positions,
+                        survivors=survivors,
+                        pending=organism_clones,
+                        children=children,
+                        lineage=lineage,
+                        births=births,
+                        deaths=deaths,
+                        blocked_reproduction=blocked_reproduction,
+                    )
+                    _replace_last_event(trace, queued_event)
+                    continue
                 mate = None
                 if configs.reproduction.is_sexual:
                     mate = _select_viable_mate(
@@ -2969,6 +3135,42 @@ def step_population(
         else:
             survivors.append(organism)
 
+    if sexual_cfg.uses_birth_chamber and chamber_rng is not None:
+        waiting, lineage, births, deaths, blocked_reproduction = _expire_chamber_waiters(
+            waiting=waiting,
+            configs=configs,
+            sexual_cfg=sexual_cfg,
+            stream=stream,
+            working_world=working_world,
+            live_positions=live_positions,
+            survivors=survivors,
+            pending=organism_clones,
+            children=children,
+            lineage=lineage,
+            births=births,
+            deaths=deaths,
+            blocked_reproduction=blocked_reproduction,
+            current_tick=current_tick,
+        )
+        waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            waiting=waiting,
+            configs=configs,
+            sexual_cfg=sexual_cfg,
+            stream=stream,
+            chamber_rng=chamber_rng,
+            working_world=working_world,
+            live_positions=live_positions,
+            survivors=survivors,
+            pending=organism_clones,
+            children=children,
+            lineage=lineage,
+            births=births,
+            deaths=deaths,
+            current_tick=current_tick,
+            current_organism=None,
+            alive_result=None,
+        )
+
     reproduction_capacity = configs.reproduction.max_population
     effective_capacity = reproduction_capacity
     if configs.evolution is not None and configs.evolution.max_population is not None:
@@ -3097,6 +3299,7 @@ def step_population(
         organisms=next_organisms,
         lineage=lineage,
         fitness=tuple(sorted(fitness_results, key=lambda item: item.organism_id)),
+        birth_chamber=BirthChamberState(waiting=tuple(waiting)),
     )
     working_world.agent_position = None
     world_after_digest = working_world.digest()
@@ -3526,6 +3729,8 @@ def _with_reproduction_delta(
     parent_id: str,
     child_id: str | None,
     event_id: str | None,
+    extra_delta: Mapping[str, JsonValue] | None = None,
+    force_executed: bool = False,
 ) -> TraceEvent:
     delta = dict(event.world_delta)
     mutation_digest = None
@@ -3563,6 +3768,8 @@ def _with_reproduction_delta(
         delta["recombination_digest"] = record.digest()
         delta["recombination_start_index"] = record.start_index
         delta["recombination_end_index"] = record.end_index
+    if extra_delta:
+        delta.update(dict(extra_delta))
     return TraceEvent(
         step=event.step,
         agent_id=event.agent_id,
@@ -3573,7 +3780,7 @@ def _with_reproduction_delta(
         position_before=event.position_before,
         position_after=parent_after.position,
         world_delta=delta,
-        status="executed" if succeeded else "blocked",
+        status="executed" if succeeded or force_executed else "blocked",
         reason=reason,
         ledger_entry_ids=tuple(event.ledger_entry_ids + reproduction_ledger_ids),
         genome_digest=event.genome_digest,
@@ -3963,6 +4170,621 @@ def _death_classification_consistency_status(
     if fitness_level is None:
         return "missing_fitness_level"
     return "matched" if top_level.to_dict() == fitness_level.to_dict() else "mismatch"
+
+
+def _apply_parent_reproduction_costs(
+    organism: GenesisOrganism,
+    config: ReproductionConfig,
+    birth_tick: int,
+) -> tuple[list[int], float, str | None]:
+    ledger_ids: list[int] = []
+    debit_id = organism.atp_state.debit_runtime(
+        config.parent_atp_cost,
+        tick=birth_tick,
+        organism_id=organism.id,
+        codon="111",
+        action="COPY_SELF",
+        reason="parent_reproduction_cost",
+    )
+    if debit_id is None and config.parent_atp_cost > 0:
+        return [], 0.0, "parent_atp_cost_not_payable"
+    if debit_id is not None:
+        ledger_ids.append(debit_id)
+    offspring_atp = round(
+        organism.atp_state.runtime_available * config.offspring_atp_fraction, 10
+    )
+    if offspring_atp > 0:
+        transfer_id = organism.atp_state.debit_runtime(
+            offspring_atp,
+            tick=birth_tick,
+            organism_id=organism.id,
+            codon="111",
+            action="COPY_SELF",
+            reason="offspring_runtime_atp_transfer",
+        )
+        if transfer_id is not None:
+            ledger_ids.append(transfer_id)
+    return ledger_ids, offspring_atp, None
+
+
+def _lookup_step_organism(
+    organism_id: str,
+    *,
+    current: GenesisOrganism | None,
+    survivors: Sequence[GenesisOrganism],
+    pending: Sequence[GenesisOrganism],
+    children: Sequence[GenesisOrganism],
+) -> GenesisOrganism | None:
+    if current is not None and current.id == organism_id:
+        return current
+    for group in (survivors, pending, children):
+        for item in group:
+            if item.id == organism_id:
+                return item
+    return None
+
+
+def _reconstruct_parent(slot: IncipientOffspring, template: GenesisOrganism) -> GenesisOrganism:
+    reconstructed = GenesisOrganism.from_bits(
+        slot.parent_id,
+        slot.genome_bits,
+        initial_runtime_atp=0.0,
+        position=slot.parent_position,
+        ribosome=template.ribosome,
+        action_registry=template.action_registry,
+        action_runtime_config=template.action_runtime_config,
+        memory_config=template.memory_config,
+        execution_source_enabled=template.execution_source_enabled,
+        adf_macro_registry=template.adf_macro_registry,
+        adf_execution_policy=template.adf_execution_policy,
+        translation_profile=template.translation_profile,
+        translation_policy=template.translation_policy,
+    )
+    return reconstructed
+
+
+def _commit_newborn(
+    reproduction_result: ReproductionResult,
+    *,
+    parent: GenesisOrganism,
+    configs: PopulationConfigs,
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    survivors: list[GenesisOrganism],
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+    deaths: int,
+    current_tick: int,
+) -> tuple[bool, ReproductionResult, tuple[LineageRecord, ...], int]:
+    if not reproduction_result.succeeded or reproduction_result.child is None:
+        return False, reproduction_result, lineage, deaths
+    child = reproduction_result.child
+    placement = _resolve_offspring_position(
+        parent_position=parent.position,
+        child_id=child.id,
+        policy=configs.reproduction.offspring_placement,
+        world=working_world,
+        live_positions=live_positions,
+    )
+    if placement is None:
+        blocked = _mark_reproduction_placement_blocked(
+            reproduction_result,
+            reason="offspring_no_free_space",
+            policy=configs.reproduction.offspring_placement,
+        )
+        return False, blocked, lineage, deaths
+    child.position = placement
+    if configs.reproduction.offspring_placement is OffspringPlacementPolicy.REPLACE_OCCUPIED:
+        occupant_id = next(
+            (
+                oid
+                for oid, pos in live_positions.items()
+                if pos == placement and oid not in {parent.id, child.id}
+            ),
+            None,
+        )
+        if occupant_id is not None:
+            live_positions.pop(occupant_id, None)
+            survivors[:] = [item for item in survivors if item.id != occupant_id]
+            deaths += 1
+            lineage = _mark_death(lineage, occupant_id, current_tick)
+    reproduction_result = _finalize_reproduction_placement(
+        reproduction_result,
+        placement=placement,
+        policy=configs.reproduction.offspring_placement,
+    )
+    child = reproduction_result.child
+    if child is None:
+        raise RuntimeError("finalized reproduction unexpectedly lost child")
+    children.append(child)
+    live_positions[child.id] = child.position
+    if reproduction_result.lineage is not None:
+        lineage += (reproduction_result.lineage,)
+    return True, reproduction_result, lineage, deaths
+
+
+def _drain_chamber_pairs(
+    *,
+    waiting: list[IncipientOffspring],
+    configs: PopulationConfigs,
+    sexual_cfg: SexualRecombinationConfig,
+    stream: RNGManager,
+    chamber_rng: RNGManager,
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    survivors: list[GenesisOrganism],
+    pending: Sequence[GenesisOrganism],
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+    births: int,
+    deaths: int,
+    current_tick: int,
+    current_organism: GenesisOrganism | None,
+    alive_result: AliveGateResult | None,
+) -> tuple[list[IncipientOffspring], tuple[LineageRecord, ...], int, int, ReproductionResult | None, list[str]]:
+    last_result: ReproductionResult | None = None
+    placed_ids: list[str] = []
+    template = current_organism or (survivors[0] if survivors else None) or (
+        pending[0] if pending else None
+    )
+    while True:
+        pair = select_chamber_pair(waiting, same_length_only=sexual_cfg.same_length_only)
+        if pair is None:
+            break
+        needed = 1 if sexual_cfg.two_fold_cost_sex else 2
+        if len(live_positions) + needed > configs.reproduction.max_population:
+            break
+        first = waiting[pair[0]]
+        second = waiting[pair[1]]
+        for index in sorted(pair, reverse=True):
+            del waiting[index]
+        do_recombine = True
+        if sexual_cfg.recombination_prob <= 0.0:
+            do_recombine = False
+        elif sexual_cfg.recombination_prob < 1.0:
+            do_recombine = chamber_rng.random() < sexual_cfg.recombination_prob
+        record_a: RecombinationRecord | None = None
+        record_b: RecombinationRecord | None = None
+        if do_recombine:
+            try:
+                record_a, record_b = recombine_positional_segment_pair(
+                    parent_a_id=first.parent_id,
+                    parent_b_id=second.parent_id,
+                    parent_a_bits=first.genome_bits,
+                    parent_b_bits=second.genome_bits,
+                    parent_a_genome_digest=first.genome_digest,
+                    parent_b_genome_digest=second.genome_digest,
+                    rng=stream.fork(f"recombination/{first.slot_id}/{second.slot_id}"),
+                    codon_width=first.codon_width,
+                )
+            except ValueError:
+                record_a, record_b = None, None
+        products: list[tuple[IncipientOffspring, RecombinationRecord | None]] = [
+            (first, record_a),
+            (second, record_b),
+        ]
+        if sexual_cfg.two_fold_cost_sex:
+            deferred_second = products[1]
+            products = products[:1]
+        else:
+            deferred_second = None
+        placed_this_pair = 0
+        for slot, record in products:
+            parent = _lookup_step_organism(
+                slot.parent_id,
+                current=current_organism,
+                survivors=survivors,
+                pending=pending,
+                children=children,
+            )
+            if parent is None:
+                if template is None:
+                    waiting.insert(0, slot)
+                    if placed_this_pair == 0:
+                        waiting.insert(0, second if slot is first else first)
+                    break
+                parent = _reconstruct_parent(slot, template)
+            gate_alive = alive_result or AliveGateResult(
+                passed=True,
+                survived_ticks=0,
+                executed_actions=0,
+                blocked_actions=0,
+                blocked_ratio=0.0,
+                final_runtime_atp=parent.atp_state.runtime_available,
+                lumen_interactions=0,
+                reproduction_events=0,
+                reasons=("birth_chamber_completion",),
+            )
+            birth_config = (
+                configs.reproduction
+                if record is not None
+                else replace(configs.reproduction, reproduction_mode=ReproductionMode.ASEXUAL)
+            )
+            result = reproduce(
+                parent,
+                birth_config,
+                configs.mutation,
+                alive_result=gate_alive,
+                generation=slot.parent_generation,
+                birth_tick=current_tick,
+                rng=stream.fork(f"reproduce/{slot.parent_id}/{current_tick}/{slot.slot_id}"),
+                structural_mutation_config=configs.structural_mutation,
+                world=working_world,
+                live_positions=live_positions,
+                sexual=sexual_cfg,
+                skip_parent_costs=True,
+                recombination_record=record,
+                offspring_runtime_atp_override=slot.offspring_runtime_atp,
+            )
+            admitted, result, lineage, deaths = _commit_newborn(
+                result,
+                parent=parent,
+                configs=configs,
+                working_world=working_world,
+                live_positions=live_positions,
+                survivors=survivors,
+                children=children,
+                lineage=lineage,
+                deaths=deaths,
+                current_tick=current_tick,
+            )
+            if not admitted or result.child is None:
+                waiting.insert(0, slot)
+                if placed_this_pair == 0:
+                    waiting.insert(0, second if slot.slot_id == first.slot_id else first)
+                    if deferred_second is not None:
+                        waiting.insert(0, deferred_second[0])
+                break
+            placed_ids.append(result.child.id)
+            last_result = result
+            births += 1
+            placed_this_pair += 1
+        else:
+            continue
+        break
+    return waiting, lineage, births, deaths, last_result, placed_ids
+
+
+def _expire_chamber_waiters(
+    *,
+    waiting: list[IncipientOffspring],
+    configs: PopulationConfigs,
+    sexual_cfg: SexualRecombinationConfig,
+    stream: RNGManager,
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    survivors: list[GenesisOrganism],
+    pending: Sequence[GenesisOrganism],
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+    births: int,
+    deaths: int,
+    blocked_reproduction: int,
+    current_tick: int,
+) -> tuple[list[IncipientOffspring], tuple[LineageRecord, ...], int, int, int]:
+    timeout_indexes = timed_out_chamber_slots(
+        waiting,
+        now_tick=current_tick,
+        max_birth_wait_ticks=sexual_cfg.max_birth_wait_ticks,
+    )
+    if not timeout_indexes:
+        return waiting, lineage, births, deaths, blocked_reproduction
+    expired = [waiting[index] for index in timeout_indexes]
+    keep = [item for index, item in enumerate(waiting) if index not in set(timeout_indexes)]
+    waiting = keep
+    template = (survivors[0] if survivors else None) or (pending[0] if pending else None)
+    asexual_config = replace(configs.reproduction, reproduction_mode=ReproductionMode.ASEXUAL)
+    for slot in expired:
+        if sexual_cfg.timeout_policy == "fail":
+            blocked_reproduction += 1
+            continue
+        if len(live_positions) >= configs.reproduction.max_population:
+            waiting.append(slot)
+            continue
+        parent = _lookup_step_organism(
+            slot.parent_id,
+            current=None,
+            survivors=survivors,
+            pending=pending,
+            children=children,
+        )
+        if parent is None:
+            if template is None:
+                waiting.append(slot)
+                continue
+            parent = _reconstruct_parent(slot, template)
+        result = reproduce(
+            parent,
+            asexual_config,
+            configs.mutation,
+            alive_result=AliveGateResult(
+                passed=True,
+                survived_ticks=0,
+                executed_actions=0,
+                blocked_actions=0,
+                blocked_ratio=0.0,
+                final_runtime_atp=parent.atp_state.runtime_available,
+                lumen_interactions=0,
+                reproduction_events=0,
+                reasons=("birth_chamber_timeout_asexual_fallback",),
+            ),
+            generation=slot.parent_generation,
+            birth_tick=current_tick,
+            rng=stream.fork(f"reproduce/{slot.parent_id}/{current_tick}/timeout/{slot.slot_id}"),
+            structural_mutation_config=configs.structural_mutation,
+            world=working_world,
+            live_positions=live_positions,
+            skip_parent_costs=True,
+            offspring_runtime_atp_override=slot.offspring_runtime_atp,
+        )
+        admitted, result, lineage, deaths = _commit_newborn(
+            result,
+            parent=parent,
+            configs=configs,
+            working_world=working_world,
+            live_positions=live_positions,
+            survivors=survivors,
+            children=children,
+            lineage=lineage,
+            deaths=deaths,
+            current_tick=current_tick,
+        )
+        if admitted:
+            births += 1
+        else:
+            waiting.append(slot)
+            blocked_reproduction += 1
+    return waiting, lineage, births, deaths, blocked_reproduction
+
+
+def _handle_chamber_copy_self(
+    *,
+    organism: GenesisOrganism,
+    event: TraceEvent,
+    configs: PopulationConfigs,
+    sexual_cfg: SexualRecombinationConfig,
+    alive_result: AliveGateResult,
+    generation: int,
+    birth_tick: int,
+    stream: RNGManager,
+    chamber_rng: RNGManager | None,
+    waiting: list[IncipientOffspring],
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    survivors: list[GenesisOrganism],
+    pending: Sequence[GenesisOrganism],
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+    births: int,
+    deaths: int,
+    blocked_reproduction: int,
+) -> tuple[
+    GenesisOrganism,
+    ReproductionResult | None,
+    list[IncipientOffspring],
+    tuple[LineageRecord, ...],
+    int,
+    int,
+    int,
+    TraceEvent,
+]:
+    if chamber_rng is None:
+        raise RuntimeError("birth chamber pairing requires a chamber RNG namespace")
+    decision = can_reproduce(organism, alive_result, configs.reproduction)
+    if not decision.allowed:
+        blocked_reproduction += 1
+        reproduction_result = _blocked_reproduction_result(
+            parent=organism,
+            config=configs.reproduction,
+            alive_result=alive_result,
+            birth_tick=birth_tick,
+            generation=generation,
+            reason=decision.reasons[0] if decision.reasons else "reproduction_blocked",
+            capacity_available=True,
+        )
+        return (
+            organism,
+            reproduction_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=reproduction_result,
+                succeeded=False,
+                reason=reproduction_result.decision.reasons[0],
+                parent_id=organism.id,
+                child_id=None,
+                event_id=reproduction_result.event_id,
+            ),
+        )
+    if len(live_positions) >= configs.reproduction.max_population:
+        blocked_reproduction += 1
+        reproduction_result = _blocked_reproduction_result(
+            parent=organism,
+            config=configs.reproduction,
+            alive_result=alive_result,
+            birth_tick=birth_tick,
+            generation=generation,
+            reason="max_population_reached",
+            capacity_available=False,
+        )
+        return (
+            organism,
+            reproduction_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=reproduction_result,
+                succeeded=False,
+                reason="max_population_reached",
+                parent_id=organism.id,
+                child_id=None,
+                event_id=reproduction_result.event_id,
+            ),
+        )
+    if len(waiting) >= sexual_cfg.chamber_capacity:
+        blocked_reproduction += 1
+        reproduction_result = _blocked_reproduction_result(
+            parent=organism,
+            config=configs.reproduction,
+            alive_result=alive_result,
+            birth_tick=birth_tick,
+            generation=generation,
+            reason="birth_chamber_full",
+            capacity_available=True,
+        )
+        return (
+            organism,
+            reproduction_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=reproduction_result,
+                succeeded=False,
+                reason="birth_chamber_full",
+                parent_id=organism.id,
+                child_id=None,
+                event_id=reproduction_result.event_id,
+            ),
+        )
+    ledger_ids, offspring_atp, cost_reason = _apply_parent_reproduction_costs(
+        organism, configs.reproduction, birth_tick
+    )
+    if cost_reason is not None:
+        blocked_reproduction += 1
+        reproduction_result = _blocked_reproduction_result(
+            parent=organism,
+            config=configs.reproduction,
+            alive_result=alive_result,
+            birth_tick=birth_tick,
+            generation=generation,
+            reason=cost_reason,
+            capacity_available=True,
+        )
+        return (
+            organism,
+            reproduction_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=reproduction_result,
+                succeeded=False,
+                reason=cost_reason,
+                parent_id=organism.id,
+                child_id=None,
+                event_id=reproduction_result.event_id,
+            ),
+        )
+    slot = IncipientOffspring(
+        slot_id=f"chamber-{birth_tick}-{organism.id}-{len(waiting)}",
+        parent_id=organism.id,
+        genome_bits=organism.genome.to_compact(),
+        genome_digest=organism.genome.digest(),
+        entered_tick=birth_tick,
+        parent_position=organism.position,
+        offspring_runtime_atp=offspring_atp,
+        parent_generation=generation,
+        codon_width=organism.genome.spec.codon_width,
+        ledger_entry_ids=tuple(ledger_ids),
+    )
+    waiting.append(slot)
+    waiting, lineage, births, deaths, pair_result, placed_ids = _drain_chamber_pairs(
+        waiting=waiting,
+        configs=configs,
+        sexual_cfg=sexual_cfg,
+        stream=stream,
+        chamber_rng=chamber_rng,
+        working_world=working_world,
+        live_positions=live_positions,
+        survivors=survivors,
+        pending=pending,
+        children=children,
+        lineage=lineage,
+        births=births,
+        deaths=deaths,
+        current_tick=birth_tick,
+        current_organism=organism,
+        alive_result=alive_result,
+    )
+    extra: dict[str, JsonValue] = {
+        "birth_chamber_queued": True,
+        "birth_chamber_slot_id": slot.slot_id,
+        "birth_chamber_size": len(waiting),
+        "birth_chamber_placed_ids": list(placed_ids),
+    }
+    if pair_result is not None and pair_result.child is not None:
+        return (
+            organism,
+            pair_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=pair_result,
+                succeeded=True,
+                reason="reproduction_succeeded",
+                parent_id=organism.id,
+                child_id=pair_result.child.id,
+                event_id=pair_result.event_id,
+                extra_delta=extra,
+            ),
+        )
+    queued = ReproductionResult(
+        attempted=True,
+        succeeded=False,
+        parent_before_id=organism.id,
+        parent_after=organism,
+        child=None,
+        mutation=None,
+        lineage=None,
+        decision=ReproductionDecision(True, ("birth_chamber_queued",)),
+        event_id=_reproduction_event_id(organism.id, "chamber_queued", birth_tick, slot.slot_id),
+        ledger_entry_ids=tuple(ledger_ids),
+    )
+    return (
+        organism,
+        queued,
+        waiting,
+        lineage,
+        births,
+        deaths,
+        blocked_reproduction,
+        _with_reproduction_delta(
+            event,
+            parent_after=organism,
+            reproduction_result=queued,
+            succeeded=False,
+            reason="birth_chamber_queued",
+            parent_id=organism.id,
+            child_id=None,
+            event_id=queued.event_id,
+            extra_delta=extra,
+            force_executed=True,
+        ),
+    )
 
 
 def _reproduction_mode(value: JsonValue | None) -> ReproductionMode:

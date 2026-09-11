@@ -7,12 +7,16 @@ not claim artificial life, intelligence, cooperation, or instinct evolution.
 from __future__ import annotations
 
 from codontrace.genesis.birth import (
+    BirthChamberState,
     InheritancePolicy,
     MutationOperator,
     RecombinationRecord,
     ReproductionMode,
+    SexualRecombinationConfig,
+    apply_positional_segment_exchange,
     apply_positional_segment_swap,
     recombine_positional_segment,
+    select_chamber_pair,
 )
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult
@@ -83,6 +87,16 @@ def test_positional_segment_swap_replaces_only_the_named_window() -> None:
     assert child[6:] == PARENT_A_BITS[6:]
     assert child != PARENT_A_BITS
     assert child != PARENT_B_BITS
+
+
+def test_positional_segment_exchange_returns_reciprocal_products() -> None:
+    child_a, child_b = apply_positional_segment_exchange(PARENT_A_BITS, PARENT_B_BITS, 3, 6)
+    assert child_a == "101000000"
+    assert child_b == "000111111"
+    assert child_a[3:6] == PARENT_B_BITS[3:6]
+    assert child_b[3:6] == PARENT_A_BITS[3:6]
+    assert child_a[:3] == PARENT_A_BITS[:3]
+    assert child_b[:3] == PARENT_B_BITS[:3]
 
 
 def test_recombine_positional_segment_is_seeded_and_auditable() -> None:
@@ -259,6 +273,8 @@ def test_life_loop_asexual_default_metadata_and_mode_stay_phase_a() -> None:
     assert spec.population_configs is not None
     assert spec.population_configs.reproduction.reproduction_mode is ReproductionMode.ASEXUAL
     assert "reproduction_mode" not in spec.population_configs.reproduction.to_dict()
+    assert "sexual_recombination" not in spec.population_configs.to_dict()
+    assert spec.population_configs.sexual_recombination.enabled is False
 
 
 def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
@@ -279,6 +295,11 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
         spec.population_configs.reproduction.reproduction_mode
         is ReproductionMode.SEXUAL_CROSSOVER
     )
+    assert spec.population_configs.sexual_recombination.enabled is True
+    assert spec.population_configs.sexual_recombination.uses_birth_chamber is True
+    assert spec.population_configs.sexual_recombination.recombination_prob == 1.0
+    assert spec.metadata["sexual_pairing"] == "birth_chamber"
+    assert spec.metadata["phase_b1_diploid_meiosis"] == "deferred"
     assert LIFE_LOOP_EATER_GENOME in spec.genome_bits
     assert LIFE_LOOP_EATER_B_GENOME in spec.genome_bits
     first = GenesisEngine.from_spec(spec).run_ticks()
@@ -289,7 +310,6 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
     assert observation.genesis_alive_full is False
     assert observation.two_parent_lineage_records >= 1
     assert observation.heritable_sexual_pairs >= 1
-    assert observation.recombinant_child_pairs >= 1
     sexual_lineage = [
         record
         for tick in first.ticks
@@ -302,30 +322,26 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
     assert rec.second_parent_id is not None
     assert rec.parent_id != rec.second_parent_id
     assert rec.parent_ids == (rec.parent_id, rec.second_parent_id)
+    assert rec.recombination_digest
+    assert rec.recombination_start_index is not None
+    assert rec.recombination_end_index is not None
+    assert rec.recombination_end_index > rec.recombination_start_index
+    if any(item.recombination_window_differed for item in sexual_lineage):
+        assert observation.recombinant_child_pairs >= 1
 
 
-def test_step_population_sexual_uses_nearest_viable_mate() -> None:
-    world = World2D(4, 4)
-    world.place_resource((1, 1), 6.0)
-    initiator = GenesisOrganism.from_bits(
-        "a",
-        LIFE_LOOP_EATER_GENOME,
-        initial_runtime_atp=20.0,
-        position=(1, 1),
-    )
-    near = GenesisOrganism.from_bits(
-        "b",
-        LIFE_LOOP_EATER_B_GENOME,
-        initial_runtime_atp=20.0,
-        position=(1, 2),
-    )
-    far = GenesisOrganism.from_bits(
-        "c",
-        "111000000",
-        initial_runtime_atp=20.0,
-        position=(3, 3),
-    )
-    configs = PopulationConfigs(
+def _chamber_configs(**sexual_overrides: object) -> PopulationConfigs:
+    sexual_payload: dict[str, object] = {
+        "enabled": True,
+        "recombination_prob": 1.0,
+        "chamber_capacity": 8,
+        "same_length_only": False,
+        "two_fold_cost_sex": False,
+        "timeout_policy": "asexual_fallback",
+        "pairing_policy": "birth_chamber",
+    }
+    sexual_payload.update(sexual_overrides)
+    return PopulationConfigs(
         reproduction=ReproductionConfig(
             min_runtime_atp=1.0,
             parent_atp_cost=1.0,
@@ -340,42 +356,188 @@ def test_step_population_sexual_uses_nearest_viable_mate() -> None:
             max_blocked_ratio=1.0,
             require_positive_runtime_atp=True,
         ),
+        sexual_recombination=SexualRecombinationConfig(**sexual_payload),  # type: ignore[arg-type]
     )
-    fed = step_population(
-        PopulationState(0, 0, (initiator, near, far), (), ()),
+
+
+def test_step_population_sexual_uses_birth_chamber_and_reciprocal_swap() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(1, 1)
+    )
+    parent_b = GenesisOrganism.from_bits(
+        "b", "111111000", initial_runtime_atp=20.0, position=(1, 2)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, parent_b), (), ()),
         world,
-        configs,
+        _chamber_configs(),
         seed=5,
     )
-    born = step_population(fed.population, fed.world_after, configs, seed=6)
-    sexual = [
-        record
-        for record in born.population.lineage
-        if record.second_parent_id and record.parent_id == "a"
-    ]
-    assert born.births >= 1
-    assert sexual
-    assert sexual[0].second_parent_id == "b"
-    child = next(item for item in born.population.organisms if item.id == sexual[0].organism_id)
-    assert child.genome.to_compact() != LIFE_LOOP_EATER_GENOME or (
-        child.genome.to_compact() != LIFE_LOOP_EATER_B_GENOME
-    )
-    # Identity crossover is allowed when the drawn window matches; the record
-    # still names both parents and the swapped interval.
-    record = next(
-        item.reproduction_result
+    sexual = [record for record in born.population.lineage if record.second_parent_id]
+    assert born.births == 2
+    assert len(sexual) == 2
+    assert {record.parent_id for record in sexual} == {"a", "b"}
+    assert {record.second_parent_id for record in sexual} == {"a", "b"}
+    recs = [
+        item.reproduction_result.recombination_record
         for item in born.organism_records
         if item.reproduction_result is not None
         and item.reproduction_result.recombination_record is not None
-        and item.reproduction_result.recombination_record.parent_a_id == "a"
-    )
-    assert record is not None
-    assert record.recombination_record is not None
-    recon = record.recombination_record
+    ]
+    assert recs
+    recon = recs[0]
     mosaic = recon.child_genome_bits
-    assert mosaic[recon.start_index : recon.end_index] == LIFE_LOOP_EATER_B_GENOME[
+    assert mosaic[recon.start_index : recon.end_index] == recon.parent_b_bits[
         recon.start_index : recon.end_index
     ]
+    reciprocal_a, reciprocal_b = apply_positional_segment_exchange(
+        recon.parent_a_bits, recon.parent_b_bits, recon.start_index, recon.end_index
+    )
+    child_bits = {item.genome.to_compact() for item in born.population.organisms}
+    assert reciprocal_a in child_bits
+    assert reciprocal_b in child_bits
+    assert born.population.birth_chamber.is_empty
+
+
+def test_birth_chamber_two_fold_cost_places_only_one_recombinant() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    parent_b = GenesisOrganism.from_bits(
+        "b", "111111000", initial_runtime_atp=20.0, position=(0, 1)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, parent_b), (), ()),
+        world,
+        _chamber_configs(two_fold_cost_sex=True),
+        seed=8,
+    )
+    assert born.births == 1
+    sexual = [record for record in born.population.lineage if record.second_parent_id]
+    assert len(sexual) == 1
+    assert sexual[0].parent_ids == ("a", "b") or sexual[0].parent_id in {"a", "b"}
+
+
+def test_birth_chamber_recombination_prob_zero_places_asexual_copies() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    parent_b = GenesisOrganism.from_bits(
+        "b", "111111000", initial_runtime_atp=20.0, position=(0, 1)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, parent_b), (), ()),
+        world,
+        _chamber_configs(recombination_prob=0.0),
+        seed=8,
+    )
+    assert born.births == 2
+    assert all(record.second_parent_id is None for record in born.population.lineage)
+    child_bits = {
+        item.genome.to_compact()
+        for item in born.population.organisms
+        if item.id not in {"a", "b"}
+    }
+    assert "111000000" in child_bits
+    assert "111111000" in child_bits
+
+
+def test_birth_chamber_same_length_only_leaves_unequal_genomes_waiting() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    parent_b = GenesisOrganism.from_bits(
+        "b", "111000000111", initial_runtime_atp=20.0, position=(0, 1)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, parent_b), (), ()),
+        world,
+        _chamber_configs(same_length_only=True),
+        seed=4,
+    )
+    assert born.births == 0
+    assert len(born.population.birth_chamber.waiting) == 2
+    pair = select_chamber_pair(
+        born.population.birth_chamber.waiting, same_length_only=True
+    )
+    assert pair is None
+
+
+def test_birth_chamber_capacity_blocks_overflow() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    parent_b = GenesisOrganism.from_bits(
+        "b", "111111000", initial_runtime_atp=20.0, position=(0, 1)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, parent_b), (), ()),
+        world,
+        _chamber_configs(chamber_capacity=1),
+        seed=4,
+    )
+    assert born.births == 0
+    assert len(born.population.birth_chamber.waiting) == 1
+    reasons = [
+        event.world_delta.get("reproduction_blocked_reason")
+        for trace in born.traces
+        for event in trace.events
+        if event.action == "COPY_SELF"
+    ]
+    assert "birth_chamber_full" in reasons
+
+
+def test_birth_chamber_timeout_fail_discards_unpaired_genome() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    waiter = GenesisOrganism.from_bits(
+        "z", "000000000", initial_runtime_atp=20.0, position=(2, 2)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, waiter), (), ()),
+        world,
+        _chamber_configs(max_birth_wait_ticks=0, timeout_policy="fail"),
+        seed=4,
+    )
+    assert born.births == 0
+    assert born.population.birth_chamber.is_empty
+    assert born.blocked_reproduction >= 1
+
+
+def test_birth_chamber_timeout_asexual_fallback_places_copy() -> None:
+    world = World2D(4, 4)
+    parent_a = GenesisOrganism.from_bits(
+        "a", "111000000", initial_runtime_atp=20.0, position=(0, 0)
+    )
+    waiter = GenesisOrganism.from_bits(
+        "z", "000000000", initial_runtime_atp=20.0, position=(2, 2)
+    )
+    born = step_population(
+        PopulationState(0, 0, (parent_a, waiter), (), ()),
+        world,
+        _chamber_configs(max_birth_wait_ticks=0, timeout_policy="asexual_fallback"),
+        seed=4,
+    )
+    assert born.births == 1
+    child = next(item for item in born.population.organisms if item.id not in {"a", "z"})
+    assert child.genome.to_compact() == "111000000"
+    assert all(record.second_parent_id is None for record in born.population.lineage)
+
+
+def test_asexual_population_configs_omit_sexual_recombination() -> None:
+    configs = PopulationConfigs()
+    assert "sexual_recombination" not in configs.to_dict()
+    restored = PopulationConfigs.from_dict(configs.to_dict())
+    assert restored.sexual_recombination.enabled is False
+    empty = BirthChamberState()
+    assert "birth_chamber" not in PopulationState(0, 0, (), (), (), empty).to_dict()
 
 
 def test_asexual_life_loop_digest_matches_phase_a_baseline() -> None:

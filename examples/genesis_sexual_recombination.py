@@ -1,10 +1,12 @@
 """Phase B sexual recombination smoke.
 
 This example enables the explicit two-parent crossover path on the life-loop
-preset and prints runtime observations only: recombinant births, two-parent
-lineage records, and a replay digest. Research defaults stay asexual. It does
-not write files, start a UI, or claim life, intelligence, sexual selection,
-instinct evolution, or Avida-replacement status.
+preset. Population runs use an Avida-style birth chamber (pairing queue) and
+positional continuous corresponding crossover, then mutation. It prints
+runtime observations only: recombinant births, two-parent lineage records,
+and a replay digest. Research defaults stay asexual. It does not write files,
+start a UI, or claim life, intelligence, sexual selection, instinct
+evolution, diploid meiosis, or Avida-replacement status.
 """
 
 from __future__ import annotations
@@ -43,7 +45,9 @@ def main() -> None:
 
     print("runtime_profile", spec.metadata["runtime_profile"])
     print("reproduction_mode", spec.metadata["reproduction_mode"])
+    print("sexual_pairing", spec.metadata["sexual_pairing"])
     print("phase_b_sexual_crossover", spec.metadata["phase_b_sexual_crossover"])
+    print("phase_b1_diploid_meiosis", spec.metadata["phase_b1_diploid_meiosis"])
     print("claim_ceiling", spec.metadata["claim_ceiling"])
     print("phase_c_fluctuating_environment", spec.metadata["phase_c_fluctuating_environment"])
     print("phase_d_instinct_metrics", spec.metadata["phase_d_instinct_claim_metrics"])

@@ -209,9 +209,20 @@ runtime ATP stays at or below the configured floor. Adjacent empty-cell
 placement is the preset default (SAME_CELL remains the research default;
 `REPLACE_OCCUPIED` is an explicit overwrite option only). COPY_SELF is gated
 on AliveGate plus runtime ATP so eat-capable lineages can out-reproduce
-WAIT/starved controls. Inheritance stays asexual parent→mutate→child.
-Sexual crossover, seasonal environments, and multi-generation instinct
-claims are deferred.
+WAIT/starved controls. Inheritance stays asexual parent→mutate→child
+unless an explicit `reproduction_mode` / `life_loop_world(reproduction_mode=...)`
+selects Phase B two-parent positional crossover. Seasonal environments
+and multi-generation instinct claims remain deferred.
+
+Phase B adds an optional sexual recombination substrate grounded in
+Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
+`avida.cfg` `RECOMBINATION_GROUP`): incipient genomes wait in a pairing
+queue, exchange one continuous corresponding positional region, then
+ordinary mutation runs. Config knobs mirror Avida (`recombination_prob`,
+`same_length_only`, `two_fold_cost_sex`, `max_birth_wait_ticks`, chamber
+capacity). Research presets and the default life-loop run stay asexual so
+existing replay digests remain stable. This is not an Avida replacement.
+Diploid meiosis (Aevol Eukaryote) is deferred.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, or instinct evolution.

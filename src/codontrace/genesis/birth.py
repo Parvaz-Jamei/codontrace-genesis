@@ -9,11 +9,15 @@ claims.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
 from codontrace._types import JsonValue, Position
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
+from codontrace.specs import GenomeSpec
 
 
 def _digest(payload: dict[str, JsonValue]) -> str:
@@ -96,6 +100,122 @@ class InheritancePolicy(str, Enum):
     DARWINIAN_GENETIC_ONLY = "darwinian_genetic_only"
     BALDWINIAN = "baldwinian"
     LAMARCKIAN_COMPRESSED_LEARNING = "lamarckian_compressed_learning"
+
+
+class ReproductionMode(str, Enum):
+    """Inheritance path for controlled population reproduction.
+
+    ``ASEXUAL`` is the research default (COPY_SELF → mutate → child).
+    ``SEXUAL_CROSSOVER`` is an explicit opt-in two-parent path. Population
+    runs use an Avida-style birth chamber (incipient genomes wait for a
+    partner, then exchange one continuous corresponding region) before
+    ordinary mutation. Direct ``reproduce(..., mate=...)`` remains available
+    as a one-child library API.
+    """
+
+    ASEXUAL = "asexual"
+    SEXUAL_CROSSOVER = "sexual_crossover"
+
+
+_BIRTH_CHAMBER_TIMEOUT_POLICIES = {"fail", "asexual_fallback"}
+_BIRTH_CHAMBER_PAIRING_POLICIES = {"birth_chamber", "nearest_mate"}
+
+
+@dataclass(frozen=True, slots=True)
+class SexualRecombinationConfig:
+    """Avida-parity sexual recombination controls (opt-in).
+
+    Field names follow ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP``
+    (Misevic, Ofria, Lenski 2006 Proc B; Ofria & Wilke 2004):
+
+    - ``recombination_prob`` ← ``RECOMBINATION_PROB`` (default 1.0)
+    - ``max_birth_wait_ticks`` ← ``MAX_BIRTH_WAIT_TIME`` (``None`` / -1 = unlimited)
+    - ``chamber_capacity`` ← ``MAX_GLOBAL_BIRTH_CHAMBER_SIZE`` (default 3600)
+    - ``same_length_only`` ← ``SAME_LENGTH_SEX``
+    - ``two_fold_cost_sex`` ← ``TWO_FOLD_COST_SEX`` (True = place only one product)
+    - ``continuous_regions`` ← ``CONT_REC_REGS``
+    - ``corresponding_positions`` ← ``CORESPOND_REC_REGS``
+
+    Default ``enabled=False`` so asexual research serialization is unchanged.
+    Mating-type / lekking flags are stubs for later; they do not change
+    pairing. Diploid meiosis (Aevol Eukaryote) is deferred.
+    """
+
+    enabled: bool = False
+    recombination_prob: float = 1.0
+    max_birth_wait_ticks: int | None = None
+    chamber_capacity: int = 3600
+    same_length_only: bool = False
+    two_fold_cost_sex: bool = False
+    continuous_regions: bool = True
+    corresponding_positions: bool = True
+    timeout_policy: str = "asexual_fallback"
+    pairing_policy: str = "birth_chamber"
+    modular_region_count: int = 0
+    mating_types_enabled: bool = False
+    lekking: bool = False
+
+    def __post_init__(self) -> None:
+        finite_float("recombination_prob", self.recombination_prob, probability=True)
+        if self.max_birth_wait_ticks is not None:
+            _validate_non_negative(self.max_birth_wait_ticks, "max_birth_wait_ticks")
+        if self.chamber_capacity <= 0:
+            raise ValueError("chamber_capacity must be > 0.")
+        if self.timeout_policy not in _BIRTH_CHAMBER_TIMEOUT_POLICIES:
+            raise ValueError(
+                f"timeout_policy must be one of {sorted(_BIRTH_CHAMBER_TIMEOUT_POLICIES)!r}."
+            )
+        if self.pairing_policy not in _BIRTH_CHAMBER_PAIRING_POLICIES:
+            raise ValueError(
+                f"pairing_policy must be one of {sorted(_BIRTH_CHAMBER_PAIRING_POLICIES)!r}."
+            )
+        _validate_non_negative(self.modular_region_count, "modular_region_count")
+
+    @property
+    def uses_birth_chamber(self) -> bool:
+        return self.enabled and self.pairing_policy == "birth_chamber"
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "enabled": self.enabled,
+            "recombination_prob": self.recombination_prob,
+            "max_birth_wait_ticks": self.max_birth_wait_ticks,
+            "chamber_capacity": self.chamber_capacity,
+            "same_length_only": self.same_length_only,
+            "two_fold_cost_sex": self.two_fold_cost_sex,
+            "continuous_regions": self.continuous_regions,
+            "corresponding_positions": self.corresponding_positions,
+            "timeout_policy": self.timeout_policy,
+            "pairing_policy": self.pairing_policy,
+            "modular_region_count": self.modular_region_count,
+            "mating_types_enabled": self.mating_types_enabled,
+            "lekking": self.lekking,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> SexualRecombinationConfig:
+        wait_raw = data.get("max_birth_wait_ticks")
+        if wait_raw is None or wait_raw == -1:
+            max_wait: int | None = None
+        elif isinstance(wait_raw, int) and not isinstance(wait_raw, bool):
+            max_wait = wait_raw
+        else:
+            raise ValueError("max_birth_wait_ticks must be an integer, -1, or null.")
+        return cls(
+            enabled=bool(data.get("enabled", False)),
+            recombination_prob=float(data.get("recombination_prob", 1.0)),
+            max_birth_wait_ticks=max_wait,
+            chamber_capacity=int(data.get("chamber_capacity", 3600)),
+            same_length_only=bool(data.get("same_length_only", False)),
+            two_fold_cost_sex=bool(data.get("two_fold_cost_sex", False)),
+            continuous_regions=bool(data.get("continuous_regions", True)),
+            corresponding_positions=bool(data.get("corresponding_positions", True)),
+            timeout_policy=str(data.get("timeout_policy", "asexual_fallback")),
+            pairing_policy=str(data.get("pairing_policy", "birth_chamber")),
+            modular_region_count=int(data.get("modular_region_count", 0)),
+            mating_types_enabled=bool(data.get("mating_types_enabled", False)),
+            lekking=bool(data.get("lekking", False)),
+        )
 
 
 class SkillInheritanceMode(str, Enum):
@@ -403,6 +523,9 @@ class ChildGenomeResult:
     mutation_count: int
     genome_bits: str
     validity_status: str = "valid"
+    second_parent_id: str | None = None
+    second_parent_genome_digest: str | None = None
+    recombination_digest: str | None = None
     schema_version: str = "child_genome_result_v1"
 
     def __post_init__(self) -> None:
@@ -415,9 +538,19 @@ class ChildGenomeResult:
             _require(bool(self.mutation_digest), "mutation_digest is required when mutations exist.")
         _require(bool(self.genome_bits), "genome_bits is required.")
         _require(self.validity_status in {"valid", "invalid", "repaired"}, "invalid validity_status.")
+        if self.second_parent_id is not None:
+            _require(bool(self.second_parent_id), "second_parent_id must be non-empty when set.")
+            _require(
+                bool(self.second_parent_genome_digest),
+                "second_parent_id requires second_parent_genome_digest.",
+            )
+            _require(
+                bool(self.recombination_digest),
+                "second_parent_id requires recombination_digest.",
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "schema_version": self.schema_version,
             "child_id": self.child_id,
             "parent_id": self.parent_id,
@@ -428,6 +561,11 @@ class ChildGenomeResult:
             "genome_bits": self.genome_bits,
             "validity_status": self.validity_status,
         }
+        if self.second_parent_id is not None:
+            payload["second_parent_id"] = self.second_parent_id
+            payload["second_parent_genome_digest"] = self.second_parent_genome_digest
+            payload["recombination_digest"] = self.recombination_digest
+        return payload
 
     def digest(self) -> str:
         return _digest(self.to_dict())
@@ -790,6 +928,7 @@ class BirthEvent:
     reproduction_attempted: bool = True
     child_created: bool = False
     blocked_reason: str | None = None
+    second_parent_id: str | None = None
     schema_version: str = "birth_event_v1"
 
     def __post_init__(self) -> None:
@@ -857,9 +996,15 @@ class BirthEvent:
             )
             _require(self.placement_cell is not None, "successful BirthEvent requires placement_cell.")
             _require(self.blocked_reason is None, "successful BirthEvent must not carry blocked_reason.")
+        if self.second_parent_id is not None:
+            _require(bool(self.second_parent_id), "second_parent_id must be non-empty when set.")
+            _require(
+                self.second_parent_id != self.parent_id,
+                "second_parent_id must name a distinct mate.",
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "schema_version": self.schema_version,
             "birth_event_id": self.birth_event_id,
             "tick": self.tick,
@@ -885,6 +1030,10 @@ class BirthEvent:
             "child_created": self.child_created,
             "blocked_reason": self.blocked_reason,
         }
+        if self.second_parent_id is not None:
+            payload["second_parent_id"] = self.second_parent_id
+            payload["parent_ids"] = [self.parent_id, self.second_parent_id]
+        return payload
 
     def digest(self) -> str:
         return _digest(self.to_dict())
@@ -1004,6 +1153,387 @@ def build_mutation_plan(
     )
 
 
+def apply_positional_segment_swap(
+    parent_a_bits: str,
+    parent_b_bits: str,
+    start_index: int,
+    end_index: int,
+) -> str:
+    """Return parent A with the positional ``[start:end]`` segment taken from B.
+
+    Indices are bit offsets into the overlapping prefix. A's exclusive tail is
+    kept; B's exclusive tail is unused. This is Avida ``CORESPOND_REC_REGS``
+    semantics: corresponding genomic *positions*, not homology alignment.
+    """
+
+    _require(bool(parent_a_bits), "parent_a_bits is required.")
+    _require(bool(parent_b_bits), "parent_b_bits is required.")
+    overlap = min(len(parent_a_bits), len(parent_b_bits))
+    _require(0 <= start_index < end_index <= overlap, "crossover window must lie in the overlap.")
+    return parent_a_bits[:start_index] + parent_b_bits[start_index:end_index] + parent_a_bits[end_index:]
+
+
+def apply_positional_segment_exchange(
+    parent_a_bits: str,
+    parent_b_bits: str,
+    start_index: int,
+    end_index: int,
+) -> tuple[str, str]:
+    """Return both reciprocal products of one continuous corresponding swap.
+
+    Avida ``divide-sex`` exchanges the same positional interval on both
+    incipient genomes (``CONT_REC_REGS`` / ``CORESPOND_REC_REGS``).
+    """
+
+    child_a = apply_positional_segment_swap(parent_a_bits, parent_b_bits, start_index, end_index)
+    child_b = apply_positional_segment_swap(parent_b_bits, parent_a_bits, start_index, end_index)
+    return child_a, child_b
+
+
+def choose_positional_crossover_window(
+    *,
+    overlap_bits: int,
+    codon_width: int,
+    rng: RNGManager,
+) -> tuple[int, int]:
+    """Choose a codon-aligned two-point window inside the overlapping prefix."""
+
+    _require(codon_width > 0, "codon_width must be > 0.")
+    aligned = overlap_bits - (overlap_bits % codon_width)
+    _require(aligned >= codon_width, "recombination requires at least one overlapping codon.")
+    codon_count = aligned // codon_width
+    if codon_count == 1:
+        return 0, codon_width
+    # Leave at least one codon from the initiating parent so a two-codon-or-longer
+    # overlap yields a mosaic rather than a full copy of the mate.
+    start_codon = rng.randrange(codon_count)
+    max_len = codon_count - start_codon
+    if start_codon == 0:
+        max_len -= 1
+    length_codons = rng.randrange(1, max_len + 1)
+    # On three-or-more codon overlaps, skip a leading single-codon window so the
+    # swap is not only the shared first instruction when later codons differ.
+    if codon_count >= 3 and start_codon == 0 and length_codons == 1:
+        length_codons = 2
+    start_index = start_codon * codon_width
+    end_index = (start_codon + length_codons) * codon_width
+    return start_index, end_index
+
+
+@dataclass(frozen=True, slots=True)
+class RecombinationRecord:
+    """Audit record for one two-parent positional segment crossover.
+
+    This is software-capability evidence that a recombinant genome was built
+    from two named parents. It is not an intelligence, sex, or Avida-replacement
+    claim.
+    """
+
+    parent_a_id: str
+    parent_b_id: str
+    parent_a_genome_digest: str
+    parent_b_genome_digest: str
+    parent_a_bits: str
+    parent_b_bits: str
+    child_genome_bits: str
+    child_genome_digest: str
+    start_index: int
+    end_index: int
+    codon_width: int
+    rng_digest: str
+    operator: str = MutationOperator.RECOMBINE_WITH_PARTNER.value
+    mechanism: str = "positional_segment_swap"
+    schema_version: str = "recombination_record_v1"
+
+    def __post_init__(self) -> None:
+        _require(bool(self.parent_a_id), "parent_a_id is required.")
+        _require(bool(self.parent_b_id), "parent_b_id is required.")
+        _require(self.parent_a_id != self.parent_b_id, "recombination requires two distinct parents.")
+        _require(bool(self.parent_a_genome_digest), "parent_a_genome_digest is required.")
+        _require(bool(self.parent_b_genome_digest), "parent_b_genome_digest is required.")
+        _require(bool(self.parent_a_bits), "parent_a_bits is required.")
+        _require(bool(self.parent_b_bits), "parent_b_bits is required.")
+        _require(bool(self.child_genome_bits), "child_genome_bits is required.")
+        _require(bool(self.child_genome_digest), "child_genome_digest is required.")
+        _require(bool(self.rng_digest), "rng_digest is required.")
+        _validate_enum_value(self.operator, MutationOperator, "operator")
+        _require(self.codon_width > 0, "codon_width must be > 0.")
+        _validate_non_negative(self.start_index, "start_index")
+        _require(self.end_index > self.start_index, "end_index must be greater than start_index.")
+        expected = apply_positional_segment_swap(
+            self.parent_a_bits,
+            self.parent_b_bits,
+            self.start_index,
+            self.end_index,
+        )
+        _require(
+            self.child_genome_bits == expected,
+            "child_genome_bits must equal the positional segment swap of the named parents.",
+        )
+
+    @property
+    def parent_ids(self) -> tuple[str, str]:
+        return (self.parent_a_id, self.parent_b_id)
+
+    @property
+    def swapped_from_mate(self) -> str:
+        return self.child_genome_bits[self.start_index : self.end_index]
+
+    @property
+    def retained_from_initiator(self) -> str:
+        return self.child_genome_bits[: self.start_index] + self.child_genome_bits[self.end_index :]
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "schema_version": self.schema_version,
+            "parent_a_id": self.parent_a_id,
+            "parent_b_id": self.parent_b_id,
+            "parent_ids": list(self.parent_ids),
+            "parent_a_genome_digest": self.parent_a_genome_digest,
+            "parent_b_genome_digest": self.parent_b_genome_digest,
+            "parent_a_bits": self.parent_a_bits,
+            "parent_b_bits": self.parent_b_bits,
+            "child_genome_bits": self.child_genome_bits,
+            "child_genome_digest": self.child_genome_digest,
+            "start_index": self.start_index,
+            "end_index": self.end_index,
+            "codon_width": self.codon_width,
+            "rng_digest": self.rng_digest,
+            "operator": self.operator,
+            "mechanism": self.mechanism,
+            "swapped_from_mate": self.swapped_from_mate,
+            "retained_from_initiator": self.retained_from_initiator,
+        }
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
+def recombine_positional_segment(
+    *,
+    parent_a_id: str,
+    parent_b_id: str,
+    parent_a_bits: str,
+    parent_b_bits: str,
+    parent_a_genome_digest: str,
+    parent_b_genome_digest: str,
+    rng: RNGManager,
+    codon_width: int = 3,
+    spec: GenomeSpec | None = None,
+) -> RecombinationRecord:
+    """Build a recombinant child genome via Avida-style positional segment swap.
+
+    The crossover window is drawn from ``rng`` so replay is deterministic.
+    Mutation is applied by the caller after this record is produced.
+    """
+
+    overlap = min(len(parent_a_bits), len(parent_b_bits))
+    start_index, end_index = choose_positional_crossover_window(
+        overlap_bits=overlap,
+        codon_width=codon_width,
+        rng=rng,
+    )
+    child_bits = apply_positional_segment_swap(
+        parent_a_bits, parent_b_bits, start_index, end_index
+    )
+    child_digest = SemanticGenome.from_compact(child_bits, spec=spec).digest()
+    return RecombinationRecord(
+        parent_a_id=parent_a_id,
+        parent_b_id=parent_b_id,
+        parent_a_genome_digest=parent_a_genome_digest,
+        parent_b_genome_digest=parent_b_genome_digest,
+        parent_a_bits=parent_a_bits,
+        parent_b_bits=parent_b_bits,
+        child_genome_bits=child_bits,
+        child_genome_digest=child_digest,
+        start_index=start_index,
+        end_index=end_index,
+        codon_width=codon_width,
+        rng_digest=rng.state_digest(),
+    )
+
+
+def recombine_positional_segment_pair(
+    *,
+    parent_a_id: str,
+    parent_b_id: str,
+    parent_a_bits: str,
+    parent_b_bits: str,
+    parent_a_genome_digest: str,
+    parent_b_genome_digest: str,
+    rng: RNGManager,
+    codon_width: int = 3,
+    spec: GenomeSpec | None = None,
+) -> tuple[RecombinationRecord, RecombinationRecord]:
+    """Build both reciprocal recombinant products from one shared window."""
+
+    overlap = min(len(parent_a_bits), len(parent_b_bits))
+    start_index, end_index = choose_positional_crossover_window(
+        overlap_bits=overlap,
+        codon_width=codon_width,
+        rng=rng,
+    )
+    child_a_bits, child_b_bits = apply_positional_segment_exchange(
+        parent_a_bits, parent_b_bits, start_index, end_index
+    )
+    rng_digest = rng.state_digest()
+    record_a = RecombinationRecord(
+        parent_a_id=parent_a_id,
+        parent_b_id=parent_b_id,
+        parent_a_genome_digest=parent_a_genome_digest,
+        parent_b_genome_digest=parent_b_genome_digest,
+        parent_a_bits=parent_a_bits,
+        parent_b_bits=parent_b_bits,
+        child_genome_bits=child_a_bits,
+        child_genome_digest=SemanticGenome.from_compact(child_a_bits, spec=spec).digest(),
+        start_index=start_index,
+        end_index=end_index,
+        codon_width=codon_width,
+        rng_digest=rng_digest,
+        mechanism="positional_continuous_segment_swap",
+    )
+    record_b = RecombinationRecord(
+        parent_a_id=parent_b_id,
+        parent_b_id=parent_a_id,
+        parent_a_genome_digest=parent_b_genome_digest,
+        parent_b_genome_digest=parent_a_genome_digest,
+        parent_a_bits=parent_b_bits,
+        parent_b_bits=parent_a_bits,
+        child_genome_bits=child_b_bits,
+        child_genome_digest=SemanticGenome.from_compact(child_b_bits, spec=spec).digest(),
+        start_index=start_index,
+        end_index=end_index,
+        codon_width=codon_width,
+        rng_digest=rng_digest,
+        mechanism="positional_continuous_segment_swap",
+    )
+    return record_a, record_b
+
+
+@dataclass(frozen=True, slots=True)
+class IncipientOffspring:
+    """One copied genome waiting in the birth chamber for a partner."""
+
+    slot_id: str
+    parent_id: str
+    genome_bits: str
+    genome_digest: str
+    entered_tick: int
+    parent_position: Position
+    offspring_runtime_atp: float
+    parent_generation: int
+    codon_width: int
+    ledger_entry_ids: tuple[int, ...] = ()
+
+    def __post_init__(self) -> None:
+        _require(bool(self.slot_id), "slot_id is required.")
+        _require(bool(self.parent_id), "parent_id is required.")
+        _require(bool(self.genome_bits), "genome_bits is required.")
+        _require(bool(self.genome_digest), "genome_digest is required.")
+        _validate_non_negative(self.entered_tick, "entered_tick")
+        _validate_non_negative(self.offspring_runtime_atp, "offspring_runtime_atp")
+        _validate_non_negative(self.parent_generation, "parent_generation")
+        _require(self.codon_width > 0, "codon_width must be > 0.")
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "slot_id": self.slot_id,
+            "parent_id": self.parent_id,
+            "genome_bits": self.genome_bits,
+            "genome_digest": self.genome_digest,
+            "entered_tick": self.entered_tick,
+            "parent_position": [self.parent_position[0], self.parent_position[1]],
+            "offspring_runtime_atp": self.offspring_runtime_atp,
+            "parent_generation": self.parent_generation,
+            "codon_width": self.codon_width,
+            "ledger_entry_ids": list(self.ledger_entry_ids),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> IncipientOffspring:
+        position_raw = data.get("parent_position", [0, 0])
+        if not isinstance(position_raw, list) or len(position_raw) != 2:
+            raise ValueError("parent_position must be an [x, y] pair.")
+        ledger_raw = data.get("ledger_entry_ids", [])
+        ledger = tuple(int(item) for item in ledger_raw) if isinstance(ledger_raw, list) else ()
+        return cls(
+            slot_id=str(data.get("slot_id", "")),
+            parent_id=str(data.get("parent_id", "")),
+            genome_bits=str(data.get("genome_bits", "")),
+            genome_digest=str(data.get("genome_digest", "")),
+            entered_tick=int(data.get("entered_tick", 0)),
+            parent_position=(int(position_raw[0]), int(position_raw[1])),
+            offspring_runtime_atp=float(data.get("offspring_runtime_atp", 0.0)),
+            parent_generation=int(data.get("parent_generation", 0)),
+            codon_width=int(data.get("codon_width", 3)),
+            ledger_entry_ids=ledger,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class BirthChamberState:
+    """FIFO pairing queue for incipient offspring genomes.
+
+    Empty chambers are omitted from ``PopulationState.to_dict()`` so asexual
+    replay digests stay unchanged.
+    """
+
+    waiting: tuple[IncipientOffspring, ...] = ()
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {"waiting": [item.to_dict() for item in self.waiting]}
+
+    @property
+    def is_empty(self) -> bool:
+        return not self.waiting
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> BirthChamberState:
+        raw = data.get("waiting", [])
+        waiting = tuple(
+            IncipientOffspring.from_dict(item) for item in raw if isinstance(item, Mapping)
+        ) if isinstance(raw, list) else ()
+        return cls(waiting=waiting)
+
+
+def select_chamber_pair(
+    waiting: Sequence[IncipientOffspring],
+    *,
+    same_length_only: bool,
+) -> tuple[int, int] | None:
+    """Return FIFO indices of the oldest compatible waiting pair, if any."""
+
+    for i, first in enumerate(waiting):
+        for j in range(i + 1, len(waiting)):
+            second = waiting[j]
+            if same_length_only and len(first.genome_bits) != len(second.genome_bits):
+                continue
+            if first.parent_id == second.parent_id:
+                continue
+            return (i, j)
+    return None
+
+
+def timed_out_chamber_slots(
+    waiting: Sequence[IncipientOffspring],
+    *,
+    now_tick: int,
+    max_birth_wait_ticks: int | None,
+) -> tuple[int, ...]:
+    """Return indices whose wait exceeded ``max_birth_wait_ticks``.
+
+    ``None`` means unlimited wait (Avida ``MAX_BIRTH_WAIT_TIME -1``).
+    """
+
+    if max_birth_wait_ticks is None:
+        return ()
+    return tuple(
+        index
+        for index, item in enumerate(waiting)
+        if now_tick - item.entered_tick > max_birth_wait_ticks
+    )
+
+
 __all__ = [
     "ADFInheritanceMode",
     "ADFInheritanceRecord",
@@ -1024,12 +1554,24 @@ __all__ = [
     "MutationPlan",
     "MutationPolicy",
     "PhysicsPatch",
+    "BirthChamberState",
+    "IncipientOffspring",
+    "RecombinationRecord",
     "ReproductionGateResult",
+    "ReproductionMode",
+    "SexualRecombinationConfig",
     "SkillCompressionRecord",
     "SkillInheritanceMode",
     "WorldLawPatch",
+    "apply_positional_segment_exchange",
+    "apply_positional_segment_swap",
     "build_mutation_plan",
+    "choose_positional_crossover_window",
     "make_policy_digest",
+    "recombine_positional_segment",
+    "recombine_positional_segment_pair",
+    "select_chamber_pair",
+    "timed_out_chamber_slots",
 ]
 
 # ---------------------------------------------------------------------------

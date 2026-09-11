@@ -282,6 +282,7 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "runtime_observation" in text
     assert "collective_intelligence" in text
     assert "mechanism ablation" in text
+    assert "Results: not yet recorded" in text
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")

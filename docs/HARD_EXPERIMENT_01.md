@@ -69,6 +69,22 @@ A null or small descriptive effect is a valid finding. The campaign object
 refuses a claim ceiling other than `runtime_observation` and will not
 construct if replay digests fail to match.
 
+## Results: not yet recorded
+
+No campaign numbers are archived in this write-up.
+
+- Mean deltas vs `source_bias_off` / `capsules_off`: **not yet recorded**
+- Standardized effect sizes: **not yet recorded**
+- Per-seed fitness vectors: **not yet recorded**
+- Missing-outcome counts: **not yet recorded**
+- Replay digest table (all arms × first and last seeds): **not yet recorded**
+
+A local `run_hard_experiment_01()` printout is a runtime observation, not
+a publication-grade result. Do not copy informal numbers into this
+section without a dated, digest-backed campaign artifact. This section
+must not be filled with intelligence, AGI, Tokyo Type 1, or Avida-replacement
+language.
+
 ## What this does not say
 
 - Capsule adoption is not knowledge transfer.

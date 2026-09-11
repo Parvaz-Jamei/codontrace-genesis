@@ -7,6 +7,8 @@ collective intelligence, or Avida replacement.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from codontrace.errors import ConfigurationError
@@ -437,8 +439,6 @@ def test_phase_f_collective_deme_campaign_stays_runtime_observation() -> None:
 
 
 def test_why_not_intelligence_yet_doc_is_honest() -> None:
-    from pathlib import Path
-
     text = Path("docs/WHY_NOT_INTELLIGENCE_YET.md").read_text(encoding="utf-8")
     assert "CodonTrace Genesis" in text
     assert "not close to AGI" in text
@@ -466,9 +466,43 @@ def test_why_not_intelligence_yet_doc_is_honest() -> None:
         "collective_intelligence",
         "ScientificClaimGate",
         "Phase F",
+        "CodonTrace Genesis",
+        "Genesis qualifier",
     ):
         assert needle in text, needle
     assert "close to AGI" in text
     lowered = text.lower()
     assert "we are close to agi" not in lowered
     assert "almost agi" not in lowered
+
+
+def _bare_codontrace_product_name_hits(path: Path) -> tuple[str, ...]:
+    hits: list[str] = []
+    for index, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        cursor = 0
+        while True:
+            found = line.find("CodonTrace", cursor)
+            if found < 0:
+                break
+            rest = line[found + len("CodonTrace") :]
+            if not rest.startswith(" Genesis"):
+                hits.append(f"{path}:{index}:{line.strip()}")
+            cursor = found + len("CodonTrace")
+    return tuple(hits)
+
+
+def test_phase_f_docs_use_codontrace_genesis_name() -> None:
+    docs = (
+        Path("docs/WHY_NOT_INTELLIGENCE_YET.md"),
+        Path("docs/SCIENTIFIC_AUTHORITIES_2026.md"),
+        Path("docs/PHASE_E_LITERATURE.md"),
+        Path("docs/PHASE_D_LITERATURE.md"),
+        Path("docs/FEATURE_WIRING_MATRIX.md"),
+        Path("docs/SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md"),
+        Path("CLAIMS.md"),
+        Path("README.md"),
+    )
+    hits: list[str] = []
+    for path in docs:
+        hits.extend(_bare_codontrace_product_name_hits(path))
+    assert hits == []

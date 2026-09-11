@@ -7,7 +7,7 @@ Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
 Package: `codontrace==0.3.0b2`
 
-This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release.
+This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release. Always name the project **CodonTrace Genesis** (the PyPI package remains `codontrace`).
 
 CodonTrace Genesis should be described confidently as a **deterministic, replay/audit-first Python research library for digital evolution and ALife experiments**. Its strongest current contribution is not merely running evolutionary simulations; it is exposing **mechanism-level evidence surfaces** so that claims about mutation, birth, death, reproduction, lineage, memory, capsule-mediated signaling, skill compression, roles, collective tasks, quality-diversity, open-endedness, and causal mechanisms can be tested through replayable records rather than asserted from raw outcomes.
 
@@ -66,11 +66,11 @@ Approved comparative positioning:
 
 Avoid:
 
-> CodonTrace is better than Avida, MABE, DEAP, QDax, pyribs, or similar tools.
+> CodonTrace Genesis is better than Avida, MABE, DEAP, QDax, pyribs, or similar tools.
 
 Use instead:
 
-> CodonTrace targets a different layer: evidence integrity, replayability, and claim discipline around experimental digital evolution.
+> CodonTrace Genesis targets a different layer: evidence integrity, replayability, and claim discipline around experimental digital evolution.
 
 ---
 
@@ -97,7 +97,7 @@ These claims are allowed for the current public beta release because they descri
 | Memory and learning | The library includes memory-use records, learning/inheritance records, skill-compression records, and delayed-outcome surfaces. | “Can instrument memory/learning paths” is allowed; “proves learning” requires benchmarks. |
 | Role/social instrumentation | The library includes role records, role contribution records, partner interaction records, and social interaction records. | “Can study role/social behavior” is allowed; “proves collective intelligence” is blocked unless higher evidence levels pass. |
 | QD/OEE instrumentation | The library includes quality-diversity and open-endedness-oriented metrics/records, including Phase D `OEEMetricsReport` wiring at `oee_measurement_only`, Channon 2024 Tokyo Type 1 *measurement* steps (`TokyoType1MeasurementProtocol`) at `tokyo_type1_measurement_only`, optional Empirical-style `shadow_digest` adapters, and multi-seed campaigns. Pack-level `tokyo_type1_measurement_only` without recorded Channon steps aliases to `oee_measurement_only`. CLIP/ASAL foundation-model OE is not implemented. | “Supports descriptive OEE measurement hooks” is allowed; “Tokyo Type 1 passed”, “proves open-ended intelligence”, and CLIP-OE claims are blocked. |
-| Claim gating | CodonTrace does not treat placeholder, fake, `not_run:*`, NaN, Infinity, empty digest, failed, incomplete, or skipped artifacts as positive scientific evidence. | This is a strong positive feature and should be emphasized. |
+| Claim gating | CodonTrace Genesis does not treat placeholder, fake, `not_run:*`, NaN, Infinity, empty digest, failed, incomplete, or skipped artifacts as positive scientific evidence. | This is a strong positive feature and should be emphasized. |
 
 ---
 
@@ -202,13 +202,13 @@ The following observations were present in the inspected quick run. They should 
 
 Approved interpretation:
 
-> **The inspected quick runner demonstrates that CodonTrace can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
+> **The inspected quick runner demonstrates that CodonTrace Genesis can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
 
 ---
 
 ## 5. Claim ladder
 
-CodonTrace claims should move through evidence levels. Stronger language is allowed only when the required evidence exists.
+CodonTrace Genesis claims should move through evidence levels. Stronger language is allowed only when the required evidence exists.
 
 | Level | Name | What it means | Minimum evidence |
 |---:|---|---|---|
@@ -255,7 +255,7 @@ These require a stronger public benchmark:
 - Group behavior outperforms individual baselines.
 - Collective intelligence emerges under controlled conditions.
 - Open-endedness is demonstrated beyond descriptive novelty accumulation.
-- CodonTrace outperforms established tools or baselines.
+- CodonTrace Genesis outperforms established tools or baselines.
 
 ---
 
@@ -266,18 +266,18 @@ The following claims must not be made for `0.3.0b2` unless a future paper/benchm
 - CodonTrace Genesis has proven collective intelligence.
 - CodonTrace Genesis has proven consciousness or subjective experience.
 - CodonTrace Genesis has proven artificial general intelligence.
-- CodonTrace has proven evolved phenotypic plasticity.
-- CodonTrace is an Avida replacement.
-- CodonTrace has proven open-ended intelligence as a settled scientific result.
-- CodonTrace has passed Tokyo Type 1 open-ended evolution (Channon 2024). Measurement steps, multi-seed campaigns, Empirical-style shadow digests, and the `tokyo_type1_measurement_only` hook (including the pack-level alias to `oee_measurement_only`) are not a pass.
-- CodonTrace has proven that instincts or behavior improved across generations as a publication-grade scientific result.
-- CodonTrace is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
-- CodonTrace reproduces biological evolution in a biologically faithful sense.
-- CodonTrace proves that capsule communication is causal without ablation/outcome evidence.
-- CodonTrace proves learning merely because memory records exist.
-- CodonTrace proves social intelligence merely because partner or social interaction records exist.
-- CodonTrace proves role specialization merely because role records exist.
-- CodonTrace proves QD/open-endedness merely because behavior diversity or novelty metrics exist.
+- CodonTrace Genesis has proven evolved phenotypic plasticity.
+- CodonTrace Genesis is an Avida replacement.
+- CodonTrace Genesis has proven open-ended intelligence as a settled scientific result.
+- CodonTrace Genesis has passed Tokyo Type 1 open-ended evolution (Channon 2024). Measurement steps, multi-seed campaigns, Empirical-style shadow digests, and the `tokyo_type1_measurement_only` hook (including the pack-level alias to `oee_measurement_only`) are not a pass.
+- CodonTrace Genesis has proven that instincts or behavior improved across generations as a publication-grade scientific result.
+- CodonTrace Genesis is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
+- CodonTrace Genesis reproduces biological evolution in a biologically faithful sense.
+- CodonTrace Genesis proves that capsule communication is causal without ablation/outcome evidence.
+- CodonTrace Genesis proves learning merely because memory records exist.
+- CodonTrace Genesis proves social intelligence merely because partner or social interaction records exist.
+- CodonTrace Genesis proves role specialization merely because role records exist.
+- CodonTrace Genesis proves QD/open-endedness merely because behavior diversity or novelty metrics exist.
 - CodonTrace Genesis proves intelligence merely because behavior appears complex.
 
 See [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) for the
@@ -411,7 +411,7 @@ This claim policy is written with the following research-software context in min
 
 - JOSS publishes research software and expects clear research application, open-source licensing, documentation, tests, and software-focused papers rather than papers focused on new results produced by the software.
 - Avida is a classic digital-evolution platform for experiments with self-replicating/evolving digital organisms.
-- MODES (Dolson et al. 2019) and Channon 2024 Tokyo Type 1 procedures are **measurement design** references. CodonTrace exposes `oee_measurement_only` / `tokyo_type1_measurement_only` hooks; it does not claim Type 1 OEE passed.
+- MODES (Dolson et al. 2019) and Channon 2024 Tokyo Type 1 procedures are **measurement design** references. CodonTrace Genesis exposes `oee_measurement_only` / `tokyo_type1_measurement_only` hooks; it does not claim Type 1 OEE passed.
 - JaxLife, Aevol_4b, OntoAvida/avidaR, and ASAL are comparators or future measurement options, not superiority claims.
 - MABE is a modular framework for constructing and comparing digital-evolution experiments.
 - DEAP is a general Python evolutionary-computation framework designed around explicit algorithms and transparent data structures.

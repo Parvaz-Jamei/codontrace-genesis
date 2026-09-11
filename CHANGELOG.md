@@ -48,7 +48,8 @@ ClaimGate is unchanged in the strict direction.
   (`heldout_partner_status=not_run`, `communication_ablation_status=not_run`,
   `multilevel_selection_experiment=scaffold_only`). Group fitness remains
   `runtime_observation`; `collective_intelligence` /
-  `proved_collective_intelligence` blocked.
+  `proved_collective_intelligence` blocked. Docs name the project
+  **CodonTrace Genesis** (PyPI package remains `codontrace`).
 - `examples/genesis_scientific_gaps_2026.py` prints blocked pass/intelligence
   claims.
 
@@ -269,7 +270,7 @@ No loosening of scientific claims. Changes tighten evidence surfaces so ClaimGat
 
 ### Notes
 
-This beta promotion does not make CodonTrace a UI product and does not loosen the claim boundary. The core remains a dependency-free research library; Studio/API/Desktop work belongs in a separate consumer repository.
+This beta promotion does not make CodonTrace Genesis a UI product and does not loosen the claim boundary. The core remains a dependency-free research library; Studio/API/Desktop work belongs in a separate consumer repository.
 
 ## 0.3.0a2 — AGPL metadata correction alpha release
 

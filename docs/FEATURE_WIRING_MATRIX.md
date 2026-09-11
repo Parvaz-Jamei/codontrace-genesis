@@ -1,4 +1,4 @@
-# CodonTrace / GENESIS Feature Wiring Matrix
+# CodonTrace Genesis Feature Wiring Matrix
 
 Research-alpha status matrix for public/runtime feature surfaces. Public API presence is not a claim. Claims require runtime effect, evidence artifact, replay/digest support, and conservative ClaimGate eligibility.
 

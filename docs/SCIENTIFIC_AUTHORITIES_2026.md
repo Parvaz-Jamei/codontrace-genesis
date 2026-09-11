@@ -5,7 +5,7 @@ digital-evolution, OEE-measurement, plasticity, and modern-comparator literature
 It is a completeness and honesty checklist after Phase A–E on `main`
 (`0.3.0b2`). It does **not** claim intelligence, AGI, proved open-ended
 evolution, Tokyo Type 1 *passed*, instinct evolution proved, collective
-intelligence, evolved phenotypic plasticity, or that CodonTrace replaces Avida,
+intelligence, evolved phenotypic plasticity, or that CodonTrace Genesis replaces Avida,
 Aevol, JaxLife, MABE, or Empirical.
 
 **Claim ceiling for this map:** software capability / `runtime_observation` /
@@ -33,7 +33,7 @@ objects are opt-in library APIs.
 
 ### 1.1 Core digital evolution
 
-| Authority | What it is | CodonTrace mapping | Status |
+| Authority | What it is | CodonTrace Genesis mapping | Status |
 |---|---|---|---|
 | Ofria & Wilke 2004, *Artificial Life* — Avida platform | Spatial digital organisms, instruction genomes, ecology | Life-loop ecology preset; instruction/genome substrate; audit/replay layer | **partial** (Python library, not C++ Avida ISA clone) |
 | Lenski, Ofria, Pennock, Adami 2003 *Nature* — complex features | Evolution of complex features from simpler building blocks | Measurement of fitness/behavior trajectories (Phase D); not a replication of the 2003 experiment | **deferred** as a paper-grade replication; **landed** as substrate + metrics |
@@ -42,18 +42,18 @@ objects are opt-in library APIs.
 
 ### 1.2 OEE measurement (measurement-only)
 
-| Authority | What it is | CodonTrace mapping | Status |
+| Authority | What it is | CodonTrace Genesis mapping | Status |
 |---|---|---|---|
 | Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* — MODES toolbox | Change, novelty, complexity, ecological potential **after a persistence filter** | `ModesAssessment`, `filter_persistent_lineages`, explicit `persistence_window_t` | **partial** (Python analog, not bit-identical C++ MODES) |
 | Empirical MODES / systematics integration notes | Persistence filter is sensitive to coalescence window; full phylogenetic systematics + shadow runs are the careful path | Opt-in Python shuffled-parentage adapter `build_empirical_systematics_shadow` produces a real `shadow_digest` for Tokyo step_4; default off; never auto-passes Type 1 | **partial** (Python analog, not Empirical C++ systematics); **landed** as opt-in adapter |
 | Bedau evolutionary activity statistics | Novelty, diversity, (cumulative) activity of components | `BedauActivitySurface` | **partial** |
 | Channon 2024 *A Procedure for Testing for Tokyo Type 1 Open-Ended Evolution* (*Artificial Life*) | Measurement-step vocabulary: activity, novelty, shadow/normalization, multi-replicate decision procedure | `TokyoType1MeasurementProtocol` with claim ceiling `tokyo_type1_measurement_only`; pack-level hook aliases to `oee_measurement_only` unless Channon steps are recorded; `tokyo_type1_passed` **blocked** | **landed** as measurement protocol; **blocked** as a pass verdict |
 | Packard et al. 2019 Tokyo types overview | Type taxonomy (Type 1 = ongoing generation of adaptive novelty, etc.) | Cited in protocol literature refs; types 2–3 not implemented as pass tests | **cite / partial** (Type 1 measurement steps only) |
-| Borg et al. 2023 cultural OEE | Cultural/open-endedness in human/cultural systems | Cite only — CodonTrace is not a cultural-evolution engine | **deferred** (cite only) |
+| Borg et al. 2023 cultural OEE | Cultural/open-endedness in human/cultural systems | Cite only — CodonTrace Genesis is not a cultural-evolution engine | **deferred** (cite only) |
 
 ### 1.3 Plasticity / memory / collective
 
-| Authority | What it is | CodonTrace mapping | Status |
+| Authority | What it is | CodonTrace Genesis mapping | Status |
 |---|---|---|---|
 | Clune 2007; Lalejini & Ofria 2016 | Phenotypic plasticity in digital evolution / fluctuating environments | Phase C fluctuating env + Phase E `sense-react` / `read_environment_cue` | **partial** (substrate + protocol, not evolved-plasticity proof) |
 | Frontiers 2021 Adaptive Phenotypic Plasticity | Four Ghalambor conditions as experimental-design checklist | `PlasticityProtocolSpec` / `GHALAMBOR_CLUNE_CONDITIONS` | **landed** as checklist object |
@@ -64,9 +64,9 @@ objects are opt-in library APIs.
 
 ### 1.4 Modern comparators (gap analysis, not copy)
 
-| Comparator | What it is | What CodonTrace deliberately is | Gap / status |
+| Comparator | What it is | What CodonTrace Genesis deliberately is | Gap / status |
 |---|---|---|---|
-| JaxLife 2024 (arXiv 2409.00853) | Embodied neural-network agents; culture/tech accumulation | Instruction/genome ecology + **audit/replay/claim-gate** evidence layer | CodonTrace is **not** an embodied NN culture engine. JaxLife-style culture/tech accumulation is **deferred**. Basal energy-budget *inspiration* is **landed** on the life-loop preset. |
+| JaxLife 2024 (arXiv 2409.00853) | Embodied neural-network agents; culture/tech accumulation | Instruction/genome ecology + **audit/replay/claim-gate** evidence layer | CodonTrace Genesis is **not** an embodied NN culture engine. JaxLife-style culture/tech accumulation is **deferred**. Basal energy-budget *inspiration* is **landed** on the life-loop preset. |
 | Aevol_4b ISAL 2024 | Genome encoding / bioinformatics bridge | Semantic/instruction genomes with digest-backed lineage | Bioinformatics-grade genome export / Aevol encoding parity is **deferred**. Variable-genome tokens are **partial**. |
 | OntoAvida / avidaR 2023 (Sci Data; PeerJ CS) | Phenotype / transcriptome export for analysis | `PhenotypeTranscriptomeEvidence` JSON+digest (genome + action-execution counts + fitness/ATP/role) | **partial** — analysis-ready export, not a biological transcriptome simulator |
 | ASAL 2024/25 foundation-model OE search (arXiv 2412.17799) | Foundation-model / CLIP open-ended search | Out of scope for the dependency-free core | **deferred**; CLIP / foundation-model OE **not implemented**; do **not** add heavy FM dependencies |
@@ -78,7 +78,7 @@ objects are opt-in library APIs.
 Authoritative live tree: [`devosoft/avida`](https://github.com/devosoft/avida)
 `avida.cfg` groups (`VERSION_ID` 2.14.0). Mapping is **semantic**, not a C++ port.
 
-| Avida group / knob family | Avida role | CodonTrace status | Surface |
+| Avida group / knob family | Avida role | CodonTrace Genesis status | Surface |
 |---|---|---|---|
 | `REPRODUCTION` / `BIRTH_METHOD` / `PREFER_EMPTY` | How offspring are placed; prefer empty cells | **landed** (life-loop default `ADJACENT_FREE`; `SAME_CELL` and `REPLACE_OCCUPIED` explicit) | `OffspringPlacementPolicy`, `ReproductionConfig` |
 | World / `POPULATION_CAP` > founders | Room to birth (grid not filled at t=0; do not set `POPULATION_CAP` equal to current *N*) | **landed** (pop&lt;8 keeps historical `capacity=8` on 6×4; `population >= 8` uses `max(pop*2, 16)` and a widened world) | `GenesisRuntimeProfile.life_loop_world` |
@@ -98,7 +98,7 @@ Authoritative live tree: [`devosoft/avida`](https://github.com/devosoft/avida)
 Status key: **landed** = callable library surface with tests; **partial** = analog
 or subset; **deferred** = documented non-goal or future.
 
-| Feature | Avida / avida.cfg | MODES 2019 | Channon 2024 | JaxLife 2024 | Aevol_4b 2024 | CodonTrace |
+| Feature | Avida / avida.cfg | MODES 2019 | Channon 2024 | JaxLife 2024 | Aevol_4b 2024 | CodonTrace Genesis |
 |---|---|---|---|---|---|---|
 | Spatial eat/survive/reproduce loop | landed analog | n/a | n/a | energy-budget inspiration only | n/a | **landed** (`life_loop_world`) |
 | Capacity > initial population (room to birth) | `PREFER_EMPTY` + unfilled grid / `POPULATION_CAP` | n/a | n/a | n/a | n/a | **landed** (regression-tested) |
@@ -118,7 +118,7 @@ or subset; **deferred** = documented non-goal or future.
 | Deme messaging / germline roles | Goldsby / GECCO 2008 / wiki | n/a | n/a | n/a | n/a | **partial** |
 | Ghalambor four-condition checklist | plasticity literature | n/a | n/a | n/a | n/a | **landed** checklist |
 | Phenotype/transcriptome export | OntoAvida/avidaR | n/a | n/a | n/a | bioinformatics bridge **deferred** | **partial** (strengthened Phase E export) |
-| Embodied NN + culture/tech | n/a | n/a | n/a | JaxLife core | n/a | **deferred** (CodonTrace is genome/instruction ecology + audit) |
+| Embodied NN + culture/tech | n/a | n/a | n/a | JaxLife core | n/a | **deferred** (CodonTrace Genesis is genome/instruction ecology + audit) |
 | Foundation-model OE search | n/a | n/a | n/a | n/a | n/a | **deferred** (ASAL / CLIP; no FM deps) |
 | Avida replacement / superiority | — | — | — | — | — | **blocked** |
 
@@ -152,7 +152,7 @@ the coalescence time of the extant population, most historical types drop out
 even if they were successful for a long stretch. A full Empirical phylogeny
 plus shadow/null systematics run is the careful publication path.
 
-CodonTrace Phase D implements an **organism-id descendant graph** evaluated at
+CodonTrace Genesis Phase D implements an **organism-id descendant graph** evaluated at
 `generation + persistence_window_t`:
 
 - An ancestor persists if it, or any descendant, is alive at the horizon.
@@ -181,7 +181,7 @@ This is **measurement design**, not proof of open-endedness.
 
 Channon (2024, *Artificial Life*) publishes a **procedure for testing** Tokyo
 Type 1 OEE (Packard et al. 2019 taxonomy: ongoing generation of adaptive
-novelty). CodonTrace implements the *measurement steps vocabulary* as
+novelty). CodonTrace Genesis implements the *measurement steps vocabulary* as
 `TokyoType1MeasurementProtocol`:
 
 | Step label | What is recorded | Pass claim |
@@ -281,7 +281,7 @@ Use this on the completeness PR. All items must stay **honest**.
 
 ## 10. What this document does not claim
 
-- CodonTrace is not Avida, Empirical, JaxLife, Aevol, or a foundation-model OE search engine.
+- CodonTrace Genesis is not Avida, Empirical, JaxLife, Aevol, or a foundation-model OE search engine.
 - Measuring MODES-style axes or running Channon-2024 *steps* is not passing Tokyo Type 1.
 - Persistence filtering is not a full phylogenetic systematics proof. The Python shadow adapter is not Empirical C++.
 - Capsule/memory effects and the learning-payoff protocol are not proved associative learning.

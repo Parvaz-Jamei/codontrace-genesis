@@ -44,6 +44,9 @@ Phase F work (collective/deme payoff campaigns, group-vs-individual
 contrasts, division-of-labor *metrics*, multi-deme ranking) continues under
 that sentence. Those measurements remain group fitness, not intelligence.
 
+Name the project **CodonTrace Genesis** in docs, PRs, and papers. Do not
+drop the Genesis qualifier. The PyPI/import package remains `codontrace`.
+
 ---
 
 ## 1. Barrier map (literature vs CodonTrace Genesis)

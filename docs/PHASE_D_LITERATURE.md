@@ -4,7 +4,7 @@ Phase D adds a **measurement layer** for multi-generation fitness and
 instinct/behavior trajectories. It does not prove open-ended evolution,
 intelligence, or instinct evolution.
 
-CodonTrace already had `LifeLoopObservation`, `OEEMetricsReport`, QD
+CodonTrace Genesis already had `LifeLoopObservation`, `OEEMetricsReport`, QD
 archives, lineage records, and ClaimGate. Phase D wires those into
 first-class library APIs that are more complete than a typical Avida
 post-hoc analyze-mode dump: callers get a Python
@@ -21,7 +21,7 @@ post-hoc analyze-mode dump: callers get a Python
 | ALife OEE encyclopedia hallmarks | Descriptive flags: ongoing novelty / complexity / activity metrics were observed | Hallmarks observed as metrics ≠ OEE demonstrated |
 | ISAL 2024 MODES assessment (Bohm / Zhang / Dolson) | Report the four MODES axes with persistence filtering and explicit limitations | Not a publication-grade OEE assessment by itself |
 | User philosophy | Survivors reproduce; measure whether next-gen fitness/behavior **metrics** move | Metric deltas are runtime observations, not instinct/intelligence proof |
-| Existing CodonTrace surfaces | `LifeLoopObservation` hook unchanged by default; `OEEMetricsReport` filled as `measurement_only`; lineage + behavior descriptors consumed; ClaimGate remains the authority | Default Phase A/B/C presets and digests stay stable |
+| Existing CodonTrace Genesis surfaces | `LifeLoopObservation` hook unchanged by default; `OEEMetricsReport` filled as `measurement_only`; lineage + behavior descriptors consumed; ClaimGate remains the authority | Default Phase A/B/C presets and digests stay stable |
 
 ## ClaimGate
 

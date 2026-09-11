@@ -76,7 +76,7 @@ The project is ambitious, but claims must pass evidence gates.
 
 ## Research transparency
 
-CodonTrace keeps the most important scientific boundaries in separate reviewable documents:
+CodonTrace Genesis keeps the most important scientific boundaries in separate reviewable documents:
 
 | Document | Purpose |
 |---|---|
@@ -390,7 +390,7 @@ A feature is considered scientifically useful only when it is wired through conf
 
 ### Digital evolution substrate
 
-CodonTrace records mutation, birth, death, reproduction gates, child admission, lineage growth, population dynamics, energy accounting, fitness breakdowns, and replay evidence.
+CodonTrace Genesis records mutation, birth, death, reproduction gates, child admission, lineage growth, population dynamics, energy accounting, fitness breakdowns, and replay evidence.
 
 ### Capsule-mediated signaling
 
@@ -402,7 +402,7 @@ The library is designed to distinguish “a signal existed” from “a signal i
 
 ### Skill compression and inheritance
 
-CodonTrace exposes skill-compression, inheritance, ADF, and child-outcome audit surfaces for testing whether compressed learned behavior changes offspring outcomes.
+CodonTrace Genesis exposes skill-compression, inheritance, ADF, and child-outcome audit surfaces for testing whether compressed learned behavior changes offspring outcomes.
 
 ### Role and social behavior
 

@@ -1,9 +1,9 @@
 """Public integration API manifest helpers.
 
-The manifest makes the public research surface explicit. CodonTrace keeps the
-scientific evidence APIs under ``codontrace.genesis``; root-level ``codontrace``
-may re-export core convenience symbols, but integration/release hardening does
-not require private imports for normal GENESIS research use.
+The manifest makes the public research surface explicit. CodonTrace Genesis
+keeps the scientific evidence APIs under ``codontrace.genesis``; root-level
+``codontrace`` may re-export core convenience symbols, but integration/release
+hardening does not require private imports for normal research use.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # Social, Swarm, and Collective Intelligence Protocol
 
-GENESIS records social interaction and capsule-mediated communication, but strong social, swarm, and collective-intelligence claims require stronger evidence than mean fitness or capsule adoption counts.
+CodonTrace Genesis records social interaction and capsule-mediated communication, but strong social, swarm, and collective-intelligence claims require stronger evidence than mean fitness or capsule adoption counts.
 
 ## Score separation
 

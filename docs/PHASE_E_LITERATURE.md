@@ -5,7 +5,7 @@ associative capsule memory, Avida-inspired role/propagule gates, a deme
 messaging subset, a phenotypic-plasticity *experimental-design* object over
 Phase C environment cues, and an `AvidaParityProtocolSpec` recipe. It does
 not prove learning, evolved plasticity, collective intelligence, or that
-CodonTrace replaces Avida.
+CodonTrace Genesis replaces Avida.
 
 Phase D's MODES / Bedau / multi-generation measurement layer is unchanged.
 When Phase E is enabled, those metrics can observe the resulting action, ATP,

@@ -81,6 +81,7 @@ CodonTrace keeps the most important scientific boundaries in separate reviewable
 | Document | Purpose |
 |---|---|
 | [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims for the current public-beta release |
+| [`docs/PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md) | Phase D multi-generation evidence literature checklist (MODES / Bedau / OEE hallmarks) |
 | [`docs/STUDIO_PHASE1_EXECUTION_SPEC.html`](docs/STUDIO_PHASE1_EXECUTION_SPEC.html) + [`docs/STUDIO_PHASE1_EXECUTION_SPEC.md`](docs/STUDIO_PHASE1_EXECUTION_SPEC.md) | Phase 1 Studio handoff while keeping this repo a core library; HTML for designed handoff, Markdown for GitHub review |
 | [`docs/STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md) | Boundary policy preventing UI/server drift into core |
 | [`docs/PERFORMANCE_PHASE1.md`](docs/PERFORMANCE_PHASE1.md) | Safe live-performance plan without changing scientific semantics |
@@ -213,8 +214,9 @@ WAIT/starved controls. Inheritance stays asexual parent→mutate→child
 unless an explicit `reproduction_mode` / `life_loop_world(reproduction_mode=...)`
 selects Phase B two-parent positional crossover. Seasonal / fluctuating
 environments are opt-in via `dynamic_environment_world()` or
-`life_loop_world(environment=...)`. Multi-generation instinct claims remain
-deferred.
+`life_loop_world(environment=...)`. Multi-generation instinct/behavior
+*measurement* is opt-in via `build_multi_generation_evidence_pack` and does
+not change these presets.
 
 Phase B adds an optional sexual recombination substrate grounded in
 Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
@@ -237,8 +239,17 @@ environment trajectory digests. Default life-loop and sexual presets stay
 static. This is not a claim that phenotypic plasticity evolved, and not an
 Avida replacement.
 
+Phase D adds a post-hoc multi-generation evidence API grounded in the MODES
+toolbox (Dolson et al. 2019; persistence-filtered change/novelty/complexity/
+ecological potential), Bedau evolutionary activity statistics, and ALife OEE
+encyclopedia / ISAL 2024 MODES-assessment reporting practice. Callers get a
+first-class `MultiGenerationEvidencePack` (JSON + digest) rather than only an
+external analyze-mode dump. Metric deltas are **runtime observations**.
+ClaimGate keeps `instinct_improved` below publication grade without multi-seed
+protocol objects and blocks open-ended intelligence.
+
 This is a **software capability / runtime observation** surface. It does not
-prove life, intelligence, cooperation, or instinct evolution.
+prove life, intelligence, cooperation, instinct evolution, or OEE.
 
 ```python
 from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
@@ -252,11 +263,17 @@ spec = GenesisRuntimeProfile.dynamic_environment_world(
 )
 result = GenesisEngine.from_spec(spec).run_ticks()
 print(result.digest()[:24])
+
+from codontrace.genesis import build_multi_generation_evidence_pack
+
+pack = build_multi_generation_evidence_pack(result, spec=spec)
+print(pack.claim_ceiling, pack.digest[:24])
 ```
 
 Print-only smokes: `examples/genesis_life_loop.py`,
 `examples/genesis_sexual_recombination.py`,
-`examples/genesis_dynamic_environment.py`.
+`examples/genesis_dynamic_environment.py`,
+`examples/genesis_multi_generation_evidence.py`.
 
 ---
 

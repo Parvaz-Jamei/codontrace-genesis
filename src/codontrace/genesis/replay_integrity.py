@@ -50,6 +50,7 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.quality_diversity.QDElite",
     "codontrace.genesis.scientific_evidence.ScientificEvidencePack",
     "codontrace.genesis.statistical_protocol.OEEMetricsReport",
+    "codontrace.genesis.multi_generation.MultiGenerationEvidencePack",
     "codontrace.genesis.structural_mutation.GenomeProgram",
     "codontrace.genesis.structural_mutation.StructuralMutationRecord",
     "codontrace.genesis.translation_profile.SemanticProxyReport",
@@ -140,9 +141,9 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.discovery_witness.DiscoveryCandidate",
     "codontrace.genesis.discovery_witness.DiscoveryWitnessConfig",
     "codontrace.genesis.discovery_witness.DistanceToD0Result",
-    "codontrace.genesis.engine.GenesisRun",
-    "codontrace.genesis.engine.GenesisRunSummary",
-    "codontrace.genesis.engine.GenesisSnapshot",
+    "codontrace.engine.GenesisRun",
+    "codontrace.engine.GenesisRunSummary",
+    "codontrace.engine.GenesisSnapshot",
     "codontrace.genesis.evidence_bundle.EvidenceRecord",
     "codontrace.genesis.evidence_lineage.MatureAlphaReadinessResult",
     "codontrace.genesis.example_smoke.ExampleSmokeResult",
@@ -265,6 +266,8 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "parent_genome_digest",
         "child_genome_digest",
         "mutation_digest",
+        "second_parent_genome_digest",
+        "recombination_digest",
     ),
     "codontrace.genesis.birth.LearningInheritanceRecord": (
         "source_lifetime_evidence_digest",
@@ -441,9 +444,9 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "require_baseline_digest",
     ),
     "codontrace.genesis.discovery_witness.DistanceToD0Result": ("baseline_digest",),
-    "codontrace.genesis.engine.GenesisRun": ("spec_digest",),
-    "codontrace.genesis.engine.GenesisRunSummary": ("manifest_digest",),
-    "codontrace.genesis.engine.GenesisSnapshot": (
+    "codontrace.engine.GenesisRun": ("spec_digest",),
+    "codontrace.engine.GenesisRunSummary": ("manifest_digest",),
+    "codontrace.engine.GenesisSnapshot": (
         "world_digest",
         "qd_archive_digest",
         "element_grid_digest",
@@ -517,7 +520,7 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "claim_audit_digest",
     ),
     "codontrace.genesis.population.GenerationResult": ("world_before_digest", "world_after_digest"),
-    "codontrace.genesis.population.LineageRecord": ("genome_digest",),
+    "codontrace.genesis.population.LineageRecord": ("genome_digest", "recombination_digest"),
     "codontrace.genesis.population.MutationResult": ("rng_digest",),
     "codontrace.genesis.population.OrganismStepRecord": (
         "trace_digest",
@@ -632,6 +635,7 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "descriptor_digest",
     ),
     "codontrace.genesis.statistical_protocol.OEEMetricsReport": ("threshold_digest", "digest"),
+    "codontrace.genesis.multi_generation.MultiGenerationEvidencePack": ("run_digest", "digest"),
     "codontrace.genesis.statistical_report.StatisticalExperimentReport": ("protocol_digest",),
     "codontrace.genesis.toolchain.ToolChainRecord": (
         "state_digest",
@@ -829,6 +833,40 @@ for _path, _fields in _PHASE_B_SCIENTIFIC_MATURITY_DIGEST_FIELDS.items():
 
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_PHASE_B_SCIENTIFIC_MATURITY_DIGEST_FIELDS))
+)
+
+# Phase D multi-generation evidence surfaces. Digests identify measurement
+# records; they do not grant OEE/instinct/intelligence claims.
+_PHASE_D_MULTIGEN_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.multi_generation.OrganismCensusRecord": ("genome_digest",),
+    "codontrace.genesis.multi_generation.FitnessTrajectory": ("run_digest",),
+    "codontrace.genesis.multi_generation.InstinctAblationControl": (
+        "treatment_run_digest",
+        "control_run_digest",
+    ),
+    "codontrace.genesis.birth.IncipientOffspring": ("genome_digest",),
+    "codontrace.genesis.birth.RecombinationRecord": (
+        "parent_a_genome_digest",
+        "parent_b_genome_digest",
+        "child_genome_digest",
+        "rng_digest",
+    ),
+    "codontrace.genesis.environment.DynamicEnvironmentObservation": (
+        "environment_config_digest",
+        "trajectory_digest",
+    ),
+    "codontrace.genesis.environment.EnvironmentReplayVerification": (
+        "expected_digest",
+        "observed_digest",
+    ),
+    "codontrace.genesis.memory.SignalActionLink": ("control_digest",),
+    "codontrace.genesis.runtime_profiles.LifeLoopObservation": ("replay_digest",),
+}
+for _path, _fields in _PHASE_D_MULTIGEN_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_PHASE_D_MULTIGEN_DIGEST_FIELDS))
 )
 
 

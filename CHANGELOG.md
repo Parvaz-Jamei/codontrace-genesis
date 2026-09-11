@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Phase D multi-generation instinct/behavior evidence
+
+### Added
+
+- First-class `MultiGenerationEvidencePack` (JSON + digest) measuring multi-generation fitness, survival, births, ATP, and resource intake from existing life-loop records.
+- Descriptive instinct/behavior trajectories (genome→action phenotype summaries) plus same-seed ancestor vs descendant cohort comparison and optional mutation-off ablation/control hooks.
+- Persistence-filtered MODES-inspired axes (change, novelty, complexity, ecological potential; Dolson et al. 2019) and Bedau-style novelty/diversity/activity surfaces as library objects.
+- ClaimGate labels `runtime_observation` / `instinct_improved` (downgrades without multi-seed + ablation) and blocked `open_ended_intelligence` / instinct-evolution-proved aliases. OEE remains `oee_measurement_only` unless existing research-grade thresholds are met.
+- `examples/genesis_multi_generation_evidence.py`, `tests/test_genesis_phase_d_multigen_evidence.py`, and `docs/PHASE_D_LITERATURE.md`.
+
+### Notes
+
+Phase D is an opt-in **measurement** layer. Phase A/B/C default presets, research defaults, and pinned spec/run digests stay stable (`phase_d_instinct_claim_metrics` metadata remains `hooks_only_not_implemented` on those specs). Metric deltas are runtime observations. This is not proof of OEE, AGI, collective intelligence, or instinct evolution, and not an Avida replacement.
+
 ## Unreleased — Phase C dynamic / fluctuating environment
 
 ### Added
@@ -16,7 +30,6 @@
 
 ### Deferred
 
-- Phase D multi-generation instinct / OEE claim metrics.
 - Evolved phenotypic plasticity measurement (environment substrate only).
 - Avida reaction/task-resource coupling (logic tasks as metabolic reactions).
 
@@ -44,7 +57,6 @@ Phase C is a time-varying environment *substrate*, not an Avida replacement and 
 - Diploid meiosis / selfing (Aevol Eukaryote) as Phase B.1.
 - Full `MATING_TYPES` / `LEKKING` (config stubs only).
 - Modular random-region swap when `CONT_REC_REGS=0` (Phase B ships continuous corresponding regions).
-- Phase D instinct claim metrics.
 
 ### Notes
 
@@ -64,7 +76,7 @@ Phase B is a recombination *substrate*, not an Avida replacement and not a claim
 
 ### Notes
 
-Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover) and Phase C (fluctuating/seasonal environments) are opt-in substrates. Phase D (multi-generation instinct claim metrics) remains deferred. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop or dynamic-environment preset. Claim language remains software capability / runtime observation only.
+Phase A is literature-complete as a Darwinian life-loop *substrate* (Avida limited resources + energy-budget ALife). It is not an Avida replacement. Phase B (sexual crossover) and Phase C (fluctuating/seasonal environments) are opt-in substrates. Phase D (multi-generation evidence metrics) is an opt-in post-hoc measurement API that does not change these presets. Research defaults such as `ReproductionConfig.offspring_placement=SAME_CELL` and `ResourceConfig.density=0` are unchanged unless a caller selects the life-loop or dynamic-environment preset. Claim language remains software capability / runtime observation only.
 
 ## 0.3.0b2 — Scientific evidence-gate hardening (capsule / memory / generalization)
 

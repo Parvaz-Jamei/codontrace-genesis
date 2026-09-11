@@ -7,7 +7,7 @@ Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
 Package: `codontrace==0.3.0b2`
 
-This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release.
+This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release. Always name the project **CodonTrace Genesis** (the PyPI package remains `codontrace`).
 
 CodonTrace Genesis should be described confidently as a **deterministic, replay/audit-first Python research library for digital evolution and ALife experiments**. Its strongest current contribution is not merely running evolutionary simulations; it is exposing **mechanism-level evidence surfaces** so that claims about mutation, birth, death, reproduction, lineage, memory, capsule-mediated signaling, skill compression, roles, collective tasks, quality-diversity, open-endedness, and causal mechanisms can be tested through replayable records rather than asserted from raw outcomes.
 
@@ -66,11 +66,11 @@ Approved comparative positioning:
 
 Avoid:
 
-> CodonTrace is better than Avida, MABE, DEAP, QDax, pyribs, or similar tools.
+> CodonTrace Genesis is better than Avida, MABE, DEAP, QDax, pyribs, or similar tools.
 
 Use instead:
 
-> CodonTrace targets a different layer: evidence integrity, replayability, and claim discipline around experimental digital evolution.
+> CodonTrace Genesis targets a different layer: evidence integrity, replayability, and claim discipline around experimental digital evolution.
 
 ---
 
@@ -88,15 +88,16 @@ These claims are allowed for the current public beta release because they descri
 | Evidence integrity | The project includes evidence-oriented records, blocked reasons, claim manifests, output completeness records, export status records, and digest-backed audit surfaces. | Do not treat generated output as positive evidence without checking status, completeness, and claim gates. |
 | Evolution primitives | The library exposes and records mechanisms around genomes, mutation, birth, death, reproduction gates, lineage, selection, survival, and diagnostics. | “Exposes/records mechanisms” is allowed; “proves evolution of intelligence” is not. |
 | Life-loop ecology preset | `GenesisRuntimeProfile.life_loop_world()` can run a short eat → survive → asexual reproduce loop with basal ATP cost, starvation death records, limited depletable food plus partial respawn, adjacent placement, and ATP/AliveGate reproduction gates. Eat-capable lineages can out-reproduce WAIT controls under this preset. Grounded in Avida limited-resource ecology and energy-budget ALife practice. | Allowed as software capability / runtime observation. Do not claim proof of life, intelligence, cooperation, instinct evolution, Avida-replacement status, or benchmark superiority. |
-| Sexual recombination substrate | Explicit `ReproductionMode.SEXUAL_CROSSOVER` / `life_loop_world(reproduction_mode=...)` runs an Avida-parity birth chamber (pairing queue, wait/capacity policy) plus positional continuous corresponding crossover (`CONT_REC_REGS` / `CORESPOND_REC_REGS` semantics), then mutation. Dual-parent lineage and recombination records are digest-backed and replayable. Knobs mirror `avida.cfg` `RECOMBINATION_GROUP` (`RECOMBINATION_PROB`, `SAME_LENGTH_SEX`, `TWO_FOLD_COST_SEX`, `MAX_BIRTH_WAIT_TIME`). Research defaults remain asexual. Grounded in Misevic, Ofria, Lenski 2006 Proc B. | Allowed as software capability / runtime observation. Do not claim sexual selection, evolved instinct, intelligence, diploid meiosis, or Avida-replacement status. |
+| Sexual recombination substrate | Explicit `ReproductionMode.SEXUAL_CROSSOVER` / `life_loop_world(reproduction_mode=...)` runs an Avida-parity birth chamber (pairing queue, wait/capacity policy) plus positional continuous corresponding crossover (`CONT_REC_REGS` / `CORESPOND_REC_REGS` semantics), then mutation. Dual-parent lineage and recombination records are digest-backed and replayable. Knobs mirror `avida.cfg` `RECOMBINATION_GROUP` (`RECOMBINATION_PROB`, `SAME_LENGTH_SEX`, `TWO_FOLD_COST_SEX`, `MAX_BIRTH_WAIT_TIME`). Opt-in `diploid_meiosis` is an Aevol-style homolog-reduction analog before chamber crossover (default off). Research defaults remain asexual. Grounded in Misevic, Ofria, Lenski 2006 Proc B. | Allowed as software capability / runtime observation. Do not claim sexual selection, evolved instinct, intelligence, Aevol-grade meiosis, biological diploidy, or Avida-replacement status. |
 | Dynamic / fluctuating environment substrate | Explicit `GenesisRuntimeProfile.dynamic_environment_world()` / `life_loop_world(environment=...)` runs Avida-parity chemostat pools (`RESOURCE` initial/inflow/outflow), Avida-ED periodic or seeded regime switches (high-food vs low-food or two niche maps), global and/or local patches with optional diffusion/decay hooks, WorldEvent/env records, and replayable environment trajectory digests. Default life-loop and sexual presets stay static. Grounded in Ofria & Wilke 2004, Cooper/Ofria limited-resource ecosystems, and Avida-ED resource modes. | Allowed as software capability / runtime observation. Do not claim evolved phenotypic plasticity, instinct, intelligence, or Avida-replacement / benchmark-superiority status. |
-| Multi-generation evidence metrics | `build_multi_generation_evidence_pack` / `MultiGenerationEvidencePack` measures per-generation fitness, survival, births, ATP, and resource intake; genome→action phenotype summaries; persistence-filtered MODES-style change/novelty/complexity/ecological potential (Dolson et al. 2019) with explicit `persistence_window_t` coalescence-window semantics (not a full Empirical systematics shadow run); Bedau novelty/diversity/activity surfaces; same-seed ancestor vs descendant cohort deltas with optional ablation/control hooks; and an opt-in Channon 2024 `TokyoType1MeasurementProtocol` at `tokyo_type1_measurement_only`. Export is a first-class JSON+digest library object. Default A/B/C presets are unchanged. | Allowed as software capability / runtime observation of metric deltas. `instinct_improved` is ClaimGate-gated and never publication-grade without multi-seed protocol objects. Do not claim OEE, Tokyo Type 1 passed, open-ended intelligence, instinct evolution proved, AGI, or Avida-replacement status. |
-| Capsule/memory/role/deme substrate (Phase E) | Explicit `GenesisRuntimeProfile.phase_e_substrate_world()` / `PhaseESubstrateConfig` runs organism-local or lineage capsule slots that change subsequent action choice, ATP, or task eligibility; optional germline/propagule role gates; deme containers with Goldsby-style send/retrieve/broadcast/block_propagation messaging; a plasticity protocol object over Phase C cues; OntoAvida-style phenotype/transcriptome export; and `AvidaParityProtocolSpec`. Defaults off so A–D digests stay stable. | Allowed as software capability / runtime observation. Do not claim associative learning proved, evolved phenotypic plasticity, collective intelligence, Avida-replacement, or benchmark superiority. |
+| Multi-generation evidence metrics | `build_multi_generation_evidence_pack` / `MultiGenerationEvidencePack` measures per-generation fitness, survival, births, ATP, and resource intake; genome→action phenotype summaries; persistence-filtered MODES-style change/novelty/complexity/ecological potential (Dolson et al. 2019) with explicit `persistence_window_t` coalescence-window semantics; Bedau novelty/diversity/activity surfaces; same-seed ancestor vs descendant cohort deltas with optional ablation/control hooks; an opt-in Channon 2024 `TokyoType1MeasurementProtocol` at `tokyo_type1_measurement_only`; an opt-in Python Empirical-style `EmpiricalSystematicsShadowRun` (`shadow_digest` for Tokyo step_4, default off); and `TokyoType1MeasurementCampaign` / `run_channon_avida_modes_shadow_suite` for ≥2-seed / window-sweep measurement. Export is a first-class JSON+digest library object. Default A/B/C presets are unchanged. Garbage inputs raise `TypeError`. | Allowed as software capability / runtime observation of metric deltas. `instinct_improved` is ClaimGate-gated and never publication-grade without multi-seed protocol objects. Do not claim OEE, Tokyo Type 1 passed, open-ended intelligence, instinct evolution proved, AGI, Empirical C++ parity, or Avida-replacement status. |
+| Capsule/memory/role/deme substrate (Phase E) | Explicit `GenesisRuntimeProfile.phase_e_substrate_world()` / `PhaseESubstrateConfig` runs organism-local or lineage capsule slots that change subsequent action choice, ATP, or task eligibility; optional germline/propagule role gates; deme containers with Goldsby-style send/retrieve/broadcast/block_propagation messaging; a plasticity protocol object over Phase C cues; OntoAvida-style phenotype/transcriptome export; `AvidaParityProtocolSpec`; opt-in `LearningCausalPayoffPack` (cue→action→ATP with ablation + multi-seed); opt-in `CollectiveDemePayoffPack` (GermlineReplication-style replicate-on-mean-fitness + contribution ledger); and Phase F `run_collective_deme_payoff_campaign` (multi-seed ranking, division-of-labor *metrics*, paired group-vs-individual contrast). Heldout-partner and communication-ablation statuses stay `not_run`; multilevel selection stays `scaffold_only`. Defaults off so A–D digests stay stable. | Allowed as software capability / runtime observation. Do not claim associative learning proved, evolved phenotypic plasticity, collective intelligence, Avida-replacement, or benchmark superiority. Group fitness ≠ collective intelligence. `instinct_improved` stays gated. |
+| Logic-9 reaction coupling | Opt-in `Logic9ReactionConfig` treats Logic-9 / NAND-style tasks as reactions that consume named `res{TASK}` resources and award runtime ATP/merit (Ofria & Wilke 2004; avida.cfg 2.14.0 RESOURCE/LOGIC; BMC Evol Biol 2021 resource×population×mutation *axes*). Semantic analog on instruction genomes; default off so A–E pins stay stable. | Allowed as `runtime_observation`. Do not claim Avida replacement, NAND-CPU parity, or metabolic intelligence. |
 | Capsule signaling | The library supports capsule/packet-style information-transfer policies, adoption records, utility scoring, source-fitness controls, and ablation settings. | “Supports testing capsule-mediated transfer” is allowed; “proves communication intelligence” is not. |
 | Memory and learning | The library includes memory-use records, learning/inheritance records, skill-compression records, and delayed-outcome surfaces. | “Can instrument memory/learning paths” is allowed; “proves learning” requires benchmarks. |
 | Role/social instrumentation | The library includes role records, role contribution records, partner interaction records, and social interaction records. | “Can study role/social behavior” is allowed; “proves collective intelligence” is blocked unless higher evidence levels pass. |
-| QD/OEE instrumentation | The library includes quality-diversity and open-endedness-oriented metrics/records, including Phase D `OEEMetricsReport` wiring at `oee_measurement_only` and Channon 2024 Tokyo Type 1 *measurement* steps (`TokyoType1MeasurementProtocol`) at `tokyo_type1_measurement_only`. Pack-level `tokyo_type1_measurement_only` without recorded Channon steps aliases to `oee_measurement_only`. CLIP/ASAL foundation-model OE is not implemented. | “Supports descriptive OEE measurement hooks” is allowed; “Tokyo Type 1 passed”, “proves open-ended intelligence”, and CLIP-OE claims are blocked. |
-| Claim gating | CodonTrace does not treat placeholder, fake, `not_run:*`, NaN, Infinity, empty digest, failed, incomplete, or skipped artifacts as positive scientific evidence. | This is a strong positive feature and should be emphasized. |
+| QD/OEE instrumentation | The library includes quality-diversity and open-endedness-oriented metrics/records, including Phase D `OEEMetricsReport` wiring at `oee_measurement_only`, Channon 2024 Tokyo Type 1 *measurement* steps (`TokyoType1MeasurementProtocol`) at `tokyo_type1_measurement_only`, optional Empirical-style `shadow_digest` adapters, and multi-seed campaigns. Pack-level `tokyo_type1_measurement_only` without recorded Channon steps aliases to `oee_measurement_only`. CLIP/ASAL foundation-model OE is not implemented. | “Supports descriptive OEE measurement hooks” is allowed; “Tokyo Type 1 passed”, “proves open-ended intelligence”, and CLIP-OE claims are blocked. |
+| Claim gating | CodonTrace Genesis does not treat placeholder, fake, `not_run:*`, NaN, Infinity, empty digest, failed, incomplete, or skipped artifacts as positive scientific evidence. | This is a strong positive feature and should be emphasized. |
 
 ---
 
@@ -201,13 +202,13 @@ The following observations were present in the inspected quick run. They should 
 
 Approved interpretation:
 
-> **The inspected quick runner demonstrates that CodonTrace can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
+> **The inspected quick runner demonstrates that CodonTrace Genesis can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
 
 ---
 
 ## 5. Claim ladder
 
-CodonTrace claims should move through evidence levels. Stronger language is allowed only when the required evidence exists.
+CodonTrace Genesis claims should move through evidence levels. Stronger language is allowed only when the required evidence exists.
 
 | Level | Name | What it means | Minimum evidence |
 |---:|---|---|---|
@@ -254,7 +255,7 @@ These require a stronger public benchmark:
 - Group behavior outperforms individual baselines.
 - Collective intelligence emerges under controlled conditions.
 - Open-endedness is demonstrated beyond descriptive novelty accumulation.
-- CodonTrace outperforms established tools or baselines.
+- CodonTrace Genesis outperforms established tools or baselines.
 
 ---
 
@@ -262,22 +263,30 @@ These require a stronger public benchmark:
 
 The following claims must not be made for `0.3.0b2` unless a future paper/benchmark explicitly satisfies the required evidence level.
 
-- CodonTrace has proven artificial general intelligence.
-- CodonTrace has proven consciousness or subjective experience.
-- CodonTrace has proven collective intelligence.
-- CodonTrace has proven evolved phenotypic plasticity.
-- CodonTrace is an Avida replacement.
-- CodonTrace has proven open-ended intelligence as a settled scientific result.
-- CodonTrace has passed Tokyo Type 1 open-ended evolution (Channon 2024). Measurement steps and the `tokyo_type1_measurement_only` hook (including the pack-level alias to `oee_measurement_only`) are not a pass.
-- CodonTrace has proven that instincts or behavior improved across generations as a publication-grade scientific result.
-- CodonTrace is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
-- CodonTrace reproduces biological evolution in a biologically faithful sense.
-- CodonTrace proves that capsule communication is causal without ablation/outcome evidence.
-- CodonTrace proves learning merely because memory records exist.
-- CodonTrace proves social intelligence merely because partner or social interaction records exist.
-- CodonTrace proves role specialization merely because role records exist.
-- CodonTrace proves QD/open-endedness merely because behavior diversity or novelty metrics exist.
-- CodonTrace proves intelligence merely because behavior appears complex.
+- CodonTrace Genesis has proven collective intelligence.
+- CodonTrace Genesis has proven consciousness or subjective experience.
+- CodonTrace Genesis has proven artificial general intelligence.
+- CodonTrace Genesis has proven evolved phenotypic plasticity.
+- CodonTrace Genesis is an Avida replacement.
+- CodonTrace Genesis has proven open-ended intelligence as a settled scientific result.
+- CodonTrace Genesis has passed Tokyo Type 1 open-ended evolution (Channon 2024). Measurement steps, multi-seed campaigns, Empirical-style shadow digests, and the `tokyo_type1_measurement_only` hook (including the pack-level alias to `oee_measurement_only`) are not a pass.
+- CodonTrace Genesis has proven that instincts or behavior improved across generations as a publication-grade scientific result.
+- CodonTrace Genesis is superior to Avida, MABE, DEAP, QDax, pyribs, or other established tools by benchmark evidence.
+- CodonTrace Genesis reproduces biological evolution in a biologically faithful sense.
+- CodonTrace Genesis proves that capsule communication is causal without ablation/outcome evidence.
+- CodonTrace Genesis proves learning merely because memory records exist.
+- CodonTrace Genesis proves social intelligence merely because partner or social interaction records exist.
+- CodonTrace Genesis proves role specialization merely because role records exist.
+- CodonTrace Genesis proves QD/open-endedness merely because behavior diversity or novelty metrics exist.
+- CodonTrace Genesis proves intelligence merely because behavior appears complex.
+
+See [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) for the
+literature-vs-reality barrier map (Nature MI 2021; Chromaria; Stanley;
+Channon 2024; arXiv 2607.09560; JaxLife; Goldsby / demes / major transitions).
+That note does **not** claim CodonTrace Genesis is close to AGI. Deme mean
+fitness, contribution ledgers, division-of-labor *metrics*, and
+group-vs-individual deltas remain `runtime_observation`; they are not
+`collective_intelligence` or `proved_collective_intelligence`.
 
 ---
 
@@ -402,7 +411,7 @@ This claim policy is written with the following research-software context in min
 
 - JOSS publishes research software and expects clear research application, open-source licensing, documentation, tests, and software-focused papers rather than papers focused on new results produced by the software.
 - Avida is a classic digital-evolution platform for experiments with self-replicating/evolving digital organisms.
-- MODES (Dolson et al. 2019) and Channon 2024 Tokyo Type 1 procedures are **measurement design** references. CodonTrace exposes `oee_measurement_only` / `tokyo_type1_measurement_only` hooks; it does not claim Type 1 OEE passed.
+- MODES (Dolson et al. 2019) and Channon 2024 Tokyo Type 1 procedures are **measurement design** references. CodonTrace Genesis exposes `oee_measurement_only` / `tokyo_type1_measurement_only` hooks; it does not claim Type 1 OEE passed.
 - JaxLife, Aevol_4b, OntoAvida/avidaR, and ASAL are comparators or future measurement options, not superiority claims.
 - MABE is a modular framework for constructing and comparing digital-evolution experiments.
 - DEAP is a general Python evolutionary-computation framework designed around explicit algorithms and transparent data structures.

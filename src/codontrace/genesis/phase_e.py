@@ -1460,6 +1460,8 @@ def maybe_replicate_demes(
                 )
             )
             updated.append(replace(deme, generation=deme.generation + 1))
+            if config.replicate_copy_germline and germline_id:
+                updated.append(Deme(deme_id=target_id, member_ids=(germline_id,), generation=0))
         else:
             updated.append(deme)
     if not events:

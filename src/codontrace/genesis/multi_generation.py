@@ -1360,6 +1360,13 @@ def build_multi_generation_evidence_pack(
 ) -> MultiGenerationEvidencePack:
     """Build the Phase D evidence pack from one (or precomputed) run."""
 
+    if result is None:
+        raise TypeError("build_multi_generation_evidence_pack requires a run result, not None.")
+    if not hasattr(result, "ticks") and not hasattr(result, "digest"):
+        raise TypeError(
+            "build_multi_generation_evidence_pack expected an object with a ticks "
+            "collection or digest()."
+        )
     cfg = config or MultiGenerationEvidenceConfig()
     censuses = censuses_from_run(result)
     run_digest = str(result.digest()) if hasattr(result, "digest") else ""

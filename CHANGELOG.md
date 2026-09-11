@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+### Scientific gaps 2026 (opt-in measurement/engineering completeness)
+
+Honest completeness pass for remaining scientific/engineering gaps after
+PR #7+#8 (`1f408d9`). This does **not** claim intelligence, AGI, proved OEE,
+Tokyo Type 1 passed, associative learning, collective intelligence, or
+Avida replacement. Phase A–E default spec digest pins stay stable.
+ClaimGate is unchanged in the strict direction.
+
+#### Added
+
+- Opt-in Empirical-style shadow/null phylogeny adapter
+  (`build_empirical_systematics_shadow`) producing a real `shadow_digest` for
+  Channon 2024 Tokyo Type 1 step_4. Default off. Python shuffled-parentage
+  analog, not Empirical C++.
+- `TokyoType1MeasurementCampaign` / `run_multi_seed_tokyo_measurement_campaign`
+  (≥2 seeds, Bedau/MODES aggregation). Still forbids `tokyo_type1_passed`.
+- Opt-in Logic-9 / NAND-style reaction→resource→merit/ATP coupling
+  (`Logic9ReactionConfig`, `build_logic9_reaction_pack`). Semantic analog of
+  Ofria & Wilke 2004 / avida.cfg 2.14.0 RESOURCE/LOGIC; BMC Evol Biol 2021
+  resource×population×mutation axes recorded, not that paper replicated.
+  Claim ceiling `runtime_observation`.
+- Opt-in learning causal payoff protocol (`build_learning_causal_payoff_pack`):
+  cue→action→ATP/task reward with ablation and multi-seed. `instinct_improved`
+  stays ClaimGate-gated. Am Nat 2020 / PLOS One odometry / Clune–Lalejini–
+  Frontiers 2021 instrumentation only.
+- Opt-in collective deme payoff (`build_collective_deme_payoff_pack`):
+  GermlineReplication-style replicate-on-mean-fitness plus contribution
+  ledger (Goldsby messaging; GECCO 2008 germlines). `collective_intelligence`
+  blocked.
+- `run_channon_avida_modes_shadow_suite` pins `persistence_window_t` sweeps +
+  MODES digest + Tokyo JSON. Type 1 remains unpassed.
+- Opt-in `SexualRecombinationConfig.diploid_meiosis` homolog-reduction analog
+  (Avida `TWO_FOLD_COST_SEX` already placed one recombinant product).
+- `docs/WHY_NOT_INTELLIGENCE_YET.md`: literature-vs-reality barrier map
+  (Nature MI 2021 Miikkulainen & Forrest / Banzhaf computational-evolution
+  agenda; Soros & Stanley Chromaria; Stanley open-endedness as a creative-
+  intelligence component; Channon 2024 measurement ≠ pass; arXiv 2607.09560
+  vocabulary+verifier gaps; JaxLife complementary ecology vs NN culture;
+  Goldsby / GECCO 2008 / demes / Michod–Szathmáry major transitions). Does
+  **not** claim CodonTrace Genesis is close to AGI.
+- Phase F `run_collective_deme_payoff_campaign`: ≥2-seed deme ranking +
+  division-of-labor *metrics* + contribution ledger + paired
+  group-vs-individual contrast. Gap flags stay explicit
+  (`heldout_partner_status=not_run`, `communication_ablation_status=not_run`,
+  `multilevel_selection_experiment=scaffold_only`). Group fitness remains
+  `runtime_observation`; `collective_intelligence` /
+  `proved_collective_intelligence` blocked. Docs name the project
+  **CodonTrace Genesis** (PyPI package remains `codontrace`).
+- `examples/genesis_scientific_gaps_2026.py` prints blocked pass/intelligence
+  claims.
+
+#### Fixed
+
+- `build_multi_generation_evidence_pack` raises `TypeError` on `None` / objects
+  without `ticks` or `digest` instead of silent empty packs.
+- `reproduction_mode=None` is documented and consistently coerced to asexual
+  (never stored as `None`).
+
+#### Claim policy
+
+- Allowed: `runtime_observation`, `oee_measurement_only`,
+  `tokyo_type1_measurement_only` (measurement steps / campaigns recorded).
+- Blocked: `tokyo_type1_passed`, AGI, `avida_replacement`,
+  `associative_learning_proved`, `collective_intelligence`,
+  `open_ended_intelligence` (unchanged).
+- JaxLife NN agents and ASAL CLIP remain docs-only comparators, not ports.
+
 ### Fixed
 
 - Sexual life-loop placement counters (`adjacent_or_displaced_births` / `same_cell_births`) now update from birth-time chamber placement records. Chamber offspring that selection later drops still count. This is a runtime observation fix, not an intelligence claim.
@@ -203,7 +270,7 @@ No loosening of scientific claims. Changes tighten evidence surfaces so ClaimGat
 
 ### Notes
 
-This beta promotion does not make CodonTrace a UI product and does not loosen the claim boundary. The core remains a dependency-free research library; Studio/API/Desktop work belongs in a separate consumer repository.
+This beta promotion does not make CodonTrace Genesis a UI product and does not loosen the claim boundary. The core remains a dependency-free research library; Studio/API/Desktop work belongs in a separate consumer repository.
 
 ## 0.3.0a2 — AGPL metadata correction alpha release
 

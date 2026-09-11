@@ -52,6 +52,13 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.statistical_protocol.OEEMetricsReport",
     "codontrace.genesis.multi_generation.MultiGenerationEvidencePack",
     "codontrace.genesis.tokyo_type1.TokyoType1MeasurementProtocol",
+    "codontrace.genesis.tokyo_type1.TokyoType1MeasurementCampaign",
+    "codontrace.genesis.empirical_systematics.EmpiricalSystematicsShadowRun",
+    "codontrace.genesis.logic9.Logic9ReactionPack",
+    "codontrace.genesis.learning_payoff.LearningCausalPayoffPack",
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffPack",
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign",
+    "codontrace.genesis.benchmark_suite.ChannonAvidaModesShadowSuite",
     "codontrace.genesis.phase_e.AvidaParityProtocolSpec",
     "codontrace.genesis.phase_e.PhaseEEvidencePack",
     "codontrace.genesis.phase_e.PhenotypeTranscriptomeEvidence",
@@ -646,7 +653,12 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "source_pack_digest",
         "digest",
     ),
+    "codontrace.genesis.tokyo_type1.TokyoType1MeasurementCampaign": (
+        "shadow_digest",
+        "digest",
+    ),
     "codontrace.genesis.tokyo_type1.TokyoType1StepResult": ("shadow_digest",),
+    "codontrace.genesis.tokyo_type1.TokyoType1SeedRecord": ("pack_digest",),
     "codontrace.genesis.statistical_report.StatisticalExperimentReport": ("protocol_digest",),
     "codontrace.genesis.toolchain.ToolChainRecord": (
         "state_digest",
@@ -892,12 +904,59 @@ _PHASE_E_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
 for _path, _fields in _PHASE_E_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields
 
+# Scientific-gaps 2026 surfaces (shadow / Logic-9 / payoff / Tokyo campaign).
+_SCIENTIFIC_GAPS_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.empirical_systematics.EmpiricalSystematicsShadowRun": (
+        "shadow_digest",
+        "observed_digest",
+        "digest",
+    ),
+    "codontrace.genesis.logic9.Logic9ReactionEvent": ("genome_digest",),
+    "codontrace.genesis.logic9.Logic9ReactionPack": ("digest",),
+    "codontrace.genesis.learning_payoff.CueActionPayoffRecord": (
+        "run_digest",
+        "ablation_run_digest",
+        "digest",
+    ),
+    "codontrace.genesis.learning_payoff.LearningCausalPayoffPack": ("digest",),
+    "codontrace.genesis.collective_deme.DemePayoffRecord": ("contribution_digest",),
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffPack": ("digest",),
+    "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation": ("digest",),
+    "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord": (
+        "pack_digest",
+        "ledger_digest",
+    ),
+    "codontrace.genesis.collective_deme.GroupVsIndividualContrast": (
+        "ledger_digest",
+        "digest",
+    ),
+    "codontrace.genesis.collective_deme.CollectiveDemePayoffCampaign": ("digest",),
+    "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint": (
+        "modes_digest",
+        "tokyo_protocol_digest",
+    ),
+    "codontrace.genesis.benchmark_suite.ChannonAvidaModesShadowSuite": (
+        "shadow_digest",
+        "digest",
+    ),
+}
+for _path, _fields in _SCIENTIFIC_GAPS_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys(
         (
             *NON_REPLAY_CRITICAL_DIGEST_CLASSES,
             "codontrace.genesis.phase_e.PhaseEObservation",
             "codontrace.genesis.tokyo_type1.TokyoType1StepResult",
+            "codontrace.genesis.tokyo_type1.TokyoType1SeedRecord",
+            "codontrace.genesis.logic9.Logic9ReactionEvent",
+            "codontrace.genesis.learning_payoff.CueActionPayoffRecord",
+            "codontrace.genesis.collective_deme.DemePayoffRecord",
+            "codontrace.genesis.collective_deme.DemeDivisionOfLaborObservation",
+            "codontrace.genesis.collective_deme.CollectiveDemeSeedRecord",
+            "codontrace.genesis.collective_deme.GroupVsIndividualContrast",
+            "codontrace.genesis.benchmark_suite.PersistenceWindowSweepPoint",
         )
     )
 )

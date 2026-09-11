@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 
 from codontrace._types import JsonValue, Position
@@ -120,8 +120,10 @@ class ReproductionMode(str, Enum):
 def coerce_reproduction_mode(value: ReproductionMode | str | None) -> ReproductionMode:
     """Return a ``ReproductionMode``, or raise ``ValueError`` / ``TypeError``.
 
-    ``from_dict`` helpers historically accepted ``None`` as asexual. Direct
-    constructor / preset calls must not store an arbitrary string.
+    ``None`` is **consistently** treated as ``ASEXUAL`` for serialization
+    compatibility (``from_dict`` / omitted keys). It is never stored as a raw
+    ``None``. Non-string types other than ``ReproductionMode`` raise
+    ``TypeError``. Unknown strings raise ``ValueError``.
     """
 
     if value is None:
@@ -163,7 +165,10 @@ class SexualRecombinationConfig:
 
     Default ``enabled=False`` so asexual research serialization is unchanged.
     Mating-type / lekking flags are stubs for later; they do not change
-    pairing. Diploid meiosis (Aevol Eukaryote) is deferred.
+    pairing. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
+    before positional crossover; default off so sexual digest pins stay
+    stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
+    places only one recombinant product when True.
     """
 
     enabled: bool = False
@@ -179,6 +184,7 @@ class SexualRecombinationConfig:
     modular_region_count: int = 0
     mating_types_enabled: bool = False
     lekking: bool = False
+    diploid_meiosis: bool = False
 
     def __post_init__(self) -> None:
         finite_float("recombination_prob", self.recombination_prob, probability=True)
@@ -201,7 +207,7 @@ class SexualRecombinationConfig:
         return self.enabled and self.pairing_policy == "birth_chamber"
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "recombination_prob": self.recombination_prob,
             "max_birth_wait_ticks": self.max_birth_wait_ticks,
@@ -216,6 +222,9 @@ class SexualRecombinationConfig:
             "mating_types_enabled": self.mating_types_enabled,
             "lekking": self.lekking,
         }
+        if self.diploid_meiosis:
+            payload["diploid_meiosis"] = True
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> SexualRecombinationConfig:
@@ -240,6 +249,7 @@ class SexualRecombinationConfig:
             modular_region_count=int(data.get("modular_region_count", 0)),
             mating_types_enabled=bool(data.get("mating_types_enabled", False)),
             lekking=bool(data.get("lekking", False)),
+            diploid_meiosis=bool(data.get("diploid_meiosis", False)),
         )
 
 
@@ -1493,6 +1503,61 @@ class IncipientOffspring:
             codon_width=int(data.get("codon_width", 3)),
             ledger_entry_ids=ledger,
         )
+
+
+def split_diploid_homologs(bits: str, codon_width: int = 3) -> tuple[str, str]:
+    """Split a genome into even/odd codon homologs (Aevol-style diploid analog)."""
+
+    width = max(1, codon_width)
+    codon_count = len(bits) // width
+    if codon_count < 2:
+        return bits, bits
+    even: list[str] = []
+    odd: list[str] = []
+    for index in range(codon_count):
+        codon = bits[index * width : (index + 1) * width]
+        (even if index % 2 == 0 else odd).append(codon)
+    leftover = bits[codon_count * width :]
+    homolog_a = "".join(even) + leftover
+    homolog_b = "".join(odd) if odd else homolog_a
+    if not homolog_a:
+        homolog_a = homolog_b
+    if not homolog_b:
+        homolog_b = homolog_a
+    return homolog_a, homolog_b
+
+
+def reduce_incipient_to_haploid_gamete(
+    slot: IncipientOffspring,
+    rng: RNGManager,
+) -> IncipientOffspring:
+    """Meiotic reduction: homolog crossover, then one haploid product as a gamete.
+
+    The subsequent chamber step still uses positional corresponding crossover
+    (syngamy analog). ``TWO_FOLD_COST_SEX`` continues to place only one child.
+    """
+
+    homolog_a, homolog_b = split_diploid_homologs(slot.genome_bits, slot.codon_width)
+    overlap = min(len(homolog_a), len(homolog_b))
+    if overlap < max(2, slot.codon_width):
+        gamete = homolog_a
+    else:
+        record = recombine_positional_segment(
+            parent_a_id=f"{slot.parent_id}:homolog_a",
+            parent_b_id=f"{slot.parent_id}:homolog_b",
+            parent_a_bits=homolog_a,
+            parent_b_bits=homolog_b,
+            parent_a_genome_digest=SemanticGenome.from_compact(homolog_a).digest(),
+            parent_b_genome_digest=SemanticGenome.from_compact(homolog_b).digest(),
+            rng=rng,
+            codon_width=slot.codon_width,
+        )
+        gamete = record.child_genome_bits
+    return replace(
+        slot,
+        genome_bits=gamete,
+        genome_digest=SemanticGenome.from_compact(gamete).digest(),
+    )
 
 
 @dataclass(frozen=True, slots=True)

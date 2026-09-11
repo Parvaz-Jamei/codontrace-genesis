@@ -46,8 +46,9 @@ CHANNON_2024_MEASUREMENT_STEPS: tuple[tuple[str, str], ...] = (
     (
         "step_4_shadow_normalization",
         "Record shadow / null-model normalization hooks when a real shadow digest "
-        "is supplied. Unavailable unless supplied — not an Empirical systematics "
-        "shadow run by default.",
+        "is supplied. Opt-in Python Empirical-style adapter "
+        "(build_empirical_systematics_shadow) can supply that digest. Default is "
+        "off and never auto-passes Type 1.",
     ),
     (
         "step_5_multi_seed_aggregation",
@@ -309,7 +310,12 @@ def build_tokyo_type1_measurement_protocol(
             "empirical_systematics_shadow_run is unsupported without a caller-supplied "
             "shadow digest; no Empirical systematics run is performed here."
         )
-    shadow_status = "hook_recorded_not_empirical_systematics" if shadow else "unavailable"
+    if empirical_systematics_shadow_run and shadow:
+        shadow_status = "empirical_systematics_shadow_recorded_not_cpp_port"
+    elif shadow:
+        shadow_status = "hook_recorded_not_empirical_systematics"
+    else:
+        shadow_status = "unavailable"
     if seed_count >= 2:
         measurement_status = "multi_seed_measurement_only_still_not_passed"
         multi_seed_step_status = "recorded_below_pass_threshold"
@@ -341,7 +347,12 @@ def build_tokyo_type1_measurement_protocol(
         _step(
             "step_4_shadow_normalization",
             shadow_status,
-            notes="Shadow hook only; Empirical systematics shadow run is not performed.",
+            notes=(
+                "Python Empirical-style shadow/null digest recorded; not a C++ "
+                "Empirical port; not a Type 1 pass."
+                if empirical_systematics_shadow_run and shadow
+                else "Shadow hook only unless a real digest is supplied; default is off."
+            ),
             shadow_digest=shadow,
         ),
         _step(
@@ -364,7 +375,7 @@ def build_tokyo_type1_measurement_protocol(
         novelty_observed=novelty_observed,
         shadow_normalization_status=shadow_status,
         shadow_digest=shadow,
-        empirical_systematics_shadow_run=False,
+        empirical_systematics_shadow_run=bool(empirical_systematics_shadow_run and shadow),
         source_pack_digest=source_digest,
         measurement_status=measurement_status,
     )
@@ -399,6 +410,8 @@ def evaluate_tokyo_type1_measurement_claim(
     ``oee_measurement_only``. ``tokyo_type1_passed`` is rejected either way.
     """
 
+    if isinstance(protocol, TokyoType1MeasurementCampaign):
+        protocol = protocol.protocol
     if not isinstance(protocol, TokyoType1MeasurementProtocol):
         from codontrace.genesis.multi_generation import (
             evaluate_tokyo_type1_measurement_claim as evaluate_pack_claim,
@@ -426,3 +439,168 @@ def evaluate_tokyo_type1_pass_claim(
     return (gate or ScientificClaimGate()).decide(
         ClaimRequest(_PASSED_CLAIM, {}, evidence_digests=digests)
     )
+
+
+@dataclass(frozen=True, slots=True)
+class TokyoType1SeedRecord:
+    """One seed's Bedau/MODES inputs into a multi-seed Tokyo measurement campaign."""
+
+    seed: int
+    pack_digest: str
+    bedau_activity: bool
+    modes_novelty: bool
+    persistence_window_t: int
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "seed": self.seed,
+            "pack_digest": self.pack_digest,
+            "bedau_activity": self.bedau_activity,
+            "modes_novelty": self.modes_novelty,
+            "persistence_window_t": self.persistence_window_t,
+        }
+
+    def digest(self) -> str:
+        return canonical_digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class TokyoType1MeasurementCampaign:
+    """≥2-seed Channon-2024 measurement campaign. Pass remains blocked."""
+
+    seeds: tuple[int, ...]
+    seed_records: tuple[TokyoType1SeedRecord, ...]
+    protocol: TokyoType1MeasurementProtocol
+    shadow_digest: str = ""
+    empirical_systematics_shadow_run: bool = False
+    claim_ceiling: str = _MEASUREMENT_CEILING
+    tokyo_type1_passed: bool = False
+    schema_version: str = "tokyo_type1_measurement_campaign_v1"
+    digest: str = ""
+
+    def __post_init__(self) -> None:
+        if self.tokyo_type1_passed:
+            raise ConfigurationError(
+                "TokyoType1MeasurementCampaign must never set tokyo_type1_passed."
+            )
+        if len(self.seeds) < 2:
+            raise ConfigurationError(
+                "TokyoType1MeasurementCampaign requires seed_count >= 2."
+            )
+        if self.protocol.seed_count < 2:
+            raise ConfigurationError(
+                "Campaign protocol seed_count must be >= 2."
+            )
+        if self.claim_ceiling != _MEASUREMENT_CEILING:
+            raise ConfigurationError(
+                "Campaign claim_ceiling must stay tokyo_type1_measurement_only."
+            )
+        computed = canonical_digest(self._payload())
+        if self.digest and self.digest != computed:
+            raise ConfigurationError("TokyoType1MeasurementCampaign digest mismatch.")
+        object.__setattr__(self, "digest", computed)
+        object.__setattr__(self, "tokyo_type1_passed", False)
+
+    def _payload(self) -> dict[str, JsonValue]:
+        return {
+            "schema_version": self.schema_version,
+            "seeds": list(self.seeds),
+            "seed_records": [item.to_dict() for item in self.seed_records],
+            "protocol": self.protocol.to_dict(),
+            "shadow_digest": self.shadow_digest,
+            "empirical_systematics_shadow_run": self.empirical_systematics_shadow_run,
+            "claim_ceiling": self.claim_ceiling,
+            "tokyo_type1_passed": False,
+            "open_endedness_proved": False,
+        }
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {**self._payload(), "digest": self.digest}
+
+    def to_json(self) -> str:
+        import json
+
+        return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
+
+
+def run_multi_seed_tokyo_measurement_campaign(
+    seeds: tuple[int, ...] | list[int] = (3, 7),
+    *,
+    tick_count: int = 8,
+    population: int = 4,
+    persistence_window_t: int | None = None,
+    empirical_systematics_shadow: bool = False,
+) -> TokyoType1MeasurementCampaign:
+    """Run ≥2 seeds, aggregate Bedau/MODES, build a multi-seed Tokyo protocol.
+
+    Still forbids ``tokyo_type1_passed``. Shadow phylogeny is opt-in.
+    """
+
+    seed_tuple = tuple(int(item) for item in seeds)
+    if len(seed_tuple) < 2:
+        raise ConfigurationError(
+            "run_multi_seed_tokyo_measurement_campaign requires at least two seeds."
+        )
+    from codontrace.genesis.engine import GenesisEngine
+    from codontrace.genesis.multi_generation import build_multi_generation_evidence_pack
+    from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+
+    records: list[TokyoType1SeedRecord] = []
+    packs: list[object] = []
+    last_result: object | None = None
+    window = persistence_window_t if persistence_window_t is not None else 2
+    for seed in seed_tuple:
+        spec = GenesisRuntimeProfile.life_loop_world(
+            seed=seed, tick_count=tick_count, population=population
+        )
+        result = GenesisEngine.from_spec(spec).run_ticks()
+        last_result = result
+        pack = build_multi_generation_evidence_pack(result, spec=spec)
+        packs.append(pack)
+        activity, _n = _bedau_metrics(pack)
+        novelty, _m, resolved_window = _modes_metrics(pack)
+        window = persistence_window_t if persistence_window_t is not None else resolved_window
+        records.append(
+            TokyoType1SeedRecord(
+                seed=seed,
+                pack_digest=str(getattr(pack, "digest", "") or ""),
+                bedau_activity=activity,
+                modes_novelty=novelty,
+                persistence_window_t=window,
+            )
+        )
+    shadow = ""
+    empirical_run = False
+    if empirical_systematics_shadow and last_result is not None:
+        from codontrace.genesis.empirical_systematics import (
+            EmpiricalSystematicsShadowConfig,
+            build_empirical_systematics_shadow,
+        )
+
+        shadow_run = build_empirical_systematics_shadow(
+            last_result,
+            EmpiricalSystematicsShadowConfig(
+                enabled=True, seed=seed_tuple[0], persistence_window_t=window
+            ),
+        )
+        shadow = shadow_run.shadow_digest
+        empirical_run = True
+    protocol = build_tokyo_type1_measurement_protocol(
+        packs[-1] if packs else None,
+        seed_count=len(seed_tuple),
+        shadow_digest=shadow or None,
+        empirical_systematics_shadow_run=empirical_run,
+        persistence_window_t=window,
+    )
+    campaign = TokyoType1MeasurementCampaign(
+        seeds=seed_tuple,
+        seed_records=tuple(records),
+        protocol=protocol,
+        shadow_digest=protocol.shadow_digest,
+        empirical_systematics_shadow_run=protocol.empirical_systematics_shadow_run,
+    )
+    blocked = evaluate_tokyo_type1_pass_claim(protocol)
+    if blocked.allowed:
+        raise ConfigurationError("tokyo_type1_passed must remain blocked.")
+    return campaign
+

@@ -1,9 +1,9 @@
 """Public integration API manifest helpers.
 
-The manifest makes the public research surface explicit. CodonTrace keeps the
-scientific evidence APIs under ``codontrace.genesis``; root-level ``codontrace``
-may re-export core convenience symbols, but integration/release hardening does
-not require private imports for normal GENESIS research use.
+The manifest makes the public research surface explicit. CodonTrace Genesis
+keeps the scientific evidence APIs under ``codontrace.genesis``; root-level
+``codontrace`` may re-export core convenience symbols, but integration/release
+hardening does not require private imports for normal research use.
 """
 
 from __future__ import annotations
@@ -26,6 +26,14 @@ _STABLE_SYMBOLS: tuple[tuple[str, str, str, bool], ...] = (
     ("PhaseEEvidencePack", "codontrace.genesis", "0.3.0b2-phaseE", False),
     ("AvidaParityProtocolSpec", "codontrace.genesis", "0.3.0b2-phaseE", False),
     ("TokyoType1MeasurementProtocol", "codontrace.genesis", "0.3.0b2-authorities2026", False),
+    ("TokyoType1MeasurementCampaign", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
+    ("EmpiricalSystematicsShadowRun", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
+    ("Logic9ReactionPack", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
+    ("LearningCausalPayoffPack", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
+    ("CollectiveDemePayoffPack", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
+    ("CollectiveDemePayoffCampaign", "codontrace.genesis", "0.3.0b2-phaseF", False),
+    ("GroupVsIndividualContrast", "codontrace.genesis", "0.3.0b2-phaseF", False),
+    ("ChannonAvidaModesShadowSuite", "codontrace.genesis", "0.3.0b2-scientific-gaps", False),
     ("Phase1RuntimeMaturityReport", "codontrace.genesis", "0.3.0a1-phase1", True),
     ("PhaseBScientificMaturityReport", "codontrace.genesis", "0.3.0a1-phaseB", True),
     ("ReleaseEvidencePackSample", "codontrace.genesis", "0.3.0a1-phaseB", True),

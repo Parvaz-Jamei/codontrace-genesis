@@ -20,14 +20,16 @@ CodonTrace Genesis is “almost” intelligent. Phase H/I/J/K continue as
 **measurement, literature RAG, and substrate engineering**, not as an
 intelligence countdown.
 
+This is the canonical “not intelligence” document. Phase H–K science maps
+are listed once in [`PHASE_INDEX.md`](PHASE_INDEX.md). Do not add another
+Phase letter that only restates ClaimGate.
+
 Cross-links: [`CLAIMS.md`](../CLAIMS.md),
+[`PHASE_INDEX.md`](PHASE_INDEX.md),
+[`HARD_EXPERIMENT_01.md`](HARD_EXPERIMENT_01.md),
 [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md),
 [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md),
-[`PHASE_H_CI_AI_PATH.md`](PHASE_H_CI_AI_PATH.md),
-[`PHASE_I_CI_EVIDENCE.md`](PHASE_I_CI_EVIDENCE.md),
-[`PHASE_J_REPLAY_CI.md`](PHASE_J_REPLAY_CI.md),
-[`PHASE_K_CI_DEPTH.md`](PHASE_K_CI_DEPTH.md),
 [`rag/README.md`](rag/README.md),
 [`SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md`](SOCIAL_COLLECTIVE_INTELLIGENCE_PROTOCOL.md).
 

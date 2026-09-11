@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+### Advisor hygiene + hard experiment 01
+
+CodonTrace Genesis hygiene and one measurement paper. **Does not** claim
+intelligence, collective intelligence, Tokyo Type 1 passed, or Avida
+replacement. Development identity `0.3.0b4.dev0`. Phase A–E default digest
+pins stay stable.
+
+- Deleted probe leftovers from the published tree:
+  `.grok_write_probe2.txt`, `.grok_write_probe3.txt`, `.size_test_10k.txt`.
+  Added `.gitignore` and `MANIFEST.in` excludes so they are never packaged.
+- Default PR CI now runs full `pytest tests` on Ubuntu × Python 3.11–3.14.
+  Cross-OS jobs keep the release-critical smoke subset (timeout split).
+- Started `engine.py` decomposition: `codontrace.engine_digest` (replay
+  hashes) and `codontrace.engine_results` (tick/snapshot/run identity).
+  Historical imports unchanged. Contract:
+  `docs/ENGINE_REPLAY_CONTRACT.md`.
+- Hard experiment 01 (`codontrace.genesis.hard_experiment_01`): 12-seed
+  paired source-bias on vs source-bias off vs capsules off; effect size;
+  independent replay digests; ClaimGate ceiling `runtime_observation`.
+  Example `examples/genesis_hard_experiment_01.py`. Write-up
+  `docs/HARD_EXPERIMENT_01.md`.
+- Phase H–L “not intelligence” pointers folded into
+  `docs/PHASE_INDEX.md`. Canonical honesty doc remains
+  `docs/WHY_NOT_INTELLIGENCE_YET.md`.
+- Full-suite honesty: register Phase H–L / RAG / hard-experiment digest
+  dataclasses in the replay policy sweep (measurement/reference, not
+  claim-granting). Remove the core `print()` from
+  `print_collective_intelligence_candidate_checklist` (examples may
+  print the rendered checklist). These tests were never in the old CI
+  subset.
+- Working-tree identity is `0.3.0b4.dev0` (`pyproject.toml`,
+  `codontrace.__version__`, `CITATION.cff`, release-label aliases). The
+  public PyPI tip remains `0.3.0b3`.
+- Contributor naming lives in `CONTRIBUTING.md` / `STYLE.md`. README opens
+  with a plain 30-second intro instead of an internal naming-order note.
+- Hard experiment 01 maps each arm to an explicit
+  `CapsuleTransferConfig` intervention (`hard_experiment_01_interventions`).
+
 ### Phase L — Avida ORGANISM_MESSAGING / DEME_GROUP fidelity
 
 CodonTrace Genesis measurement-first follow-on after Phase K (`2614ec4`).

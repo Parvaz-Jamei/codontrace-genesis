@@ -4,9 +4,9 @@
 # BASE_RELEASE_LABEL preserves the compatibility lineage;
 # RELEASE_LABEL names the current public beta package identity.
 BASE_RELEASE_LABEL = "codontrace-0.3.0a1-base-lineage"
-RELEASE_LABEL = "codontrace-0.3.0b3-phase3-causal-mechanism-beta"
+RELEASE_LABEL = "codontrace-0.3.0b4.dev0-phase3-causal-mechanism-beta"
 CURRENT_PACKAGE_LABEL = RELEASE_LABEL
-RELEASE_ARTIFACT_NAME = "codontrace-0.3.0b3-release-bundle.zip"
+RELEASE_ARTIFACT_NAME = "codontrace-0.3.0b4.dev0-release-bundle.zip"
 CURRENT_PACKAGE_ARTIFACT_NAME = RELEASE_ARTIFACT_NAME
 
 from codontrace.genesis.ablation import (
@@ -840,6 +840,19 @@ from codontrace.genesis.phase_l import (
     random_fidelity_genome,
     run_goldsby_aligned_specialist_campaign,
     run_organism_messaging_fidelity_experiment,
+)
+from codontrace.genesis.hard_experiment_01 import (
+    CLAIM_CEILING as HARD_EXPERIMENT_01_CLAIM_CEILING,
+    RESEARCH_SEED_COUNT as HARD_EXPERIMENT_01_SEED_COUNT,
+    HardExperiment01ArmRecord,
+    HardExperiment01Campaign,
+    HardExperiment01Intervention,
+    HardExperiment01SeedRecord,
+    build_hard_experiment_01_spec,
+    evaluate_hard_experiment_01_claim,
+    format_hard_experiment_01_summary,
+    hard_experiment_01_interventions,
+    run_hard_experiment_01,
 )
 from codontrace.genesis.rag import (
     RankedHit,
@@ -2599,4 +2612,21 @@ __all__.extend([
     "CounterfactualReplayProtocol", "CounterfactualReplayIntervention", "CounterfactualReplayResult",
     "OEEExtendedMetrics", "OpenEndednessMetrics",
 ])
+__all__ = list(dict.fromkeys(__all__))
+# Hard experiment 01 is a measurement paper, not a Phase letter.
+__all__.extend(
+    [
+        "HARD_EXPERIMENT_01_CLAIM_CEILING",
+        "HARD_EXPERIMENT_01_SEED_COUNT",
+        "HardExperiment01ArmRecord",
+        "HardExperiment01Campaign",
+        "HardExperiment01Intervention",
+        "HardExperiment01SeedRecord",
+        "build_hard_experiment_01_spec",
+        "evaluate_hard_experiment_01_claim",
+        "format_hard_experiment_01_summary",
+        "hard_experiment_01_interventions",
+        "run_hard_experiment_01",
+    ]
+)
 __all__ = list(dict.fromkeys(__all__))

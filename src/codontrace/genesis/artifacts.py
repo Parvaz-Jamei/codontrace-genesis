@@ -19,7 +19,7 @@ from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.claim_gate import ClaimDecision
 
-_PACKAGE_VERSION = "0.3.0b3"
+_PACKAGE_VERSION = "0.3.0b4.dev0"
 
 RunId = NewType("RunId", str)
 ConfigHash = NewType("ConfigHash", str)

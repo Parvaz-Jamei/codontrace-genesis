@@ -8,11 +8,15 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg)](https://doi.org/10.5281/zenodo.20337435)
 [![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
 
-**CodonTrace Genesis** is a Python research library for building, replaying, auditing, and evaluating digital-evolution experiments with deterministic evidence trails, mechanism-level records, controlled ablations, and explicit claim gates.
+CodonTrace Genesis is a Python library for running small digital-evolution
+experiments that you can replay later. You start a tiny world, let simple
+agents eat, survive, and reproduce, and the library writes down what happened
+as checkable records. Use it when you want to test an evolutionary idea with
+evidence instead of a screenshot. It is research software. It does **not**
+claim that the agents are intelligent.
 
-The PyPI / import package remains `codontrace`. Always name the product **CodonTrace Genesis**.
-
-It is built for researchers who want to test ALife and evolutionary-AI hypotheses with **replayable evidence** rather than final-outcome screenshots or unverifiable claims.
+The installable package is `codontrace`. Product naming for contributors
+lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
 ---
 
@@ -42,7 +46,7 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 |---|---|
 | Package | `codontrace` |
 | Public PyPI tip | `0.3.0b3` — Phase A–G (life-loop + materials). Confirm on [PyPI](https://pypi.org/project/codontrace/). |
-| GitHub `main` | Ahead of that wheel: Phases H–L (RAG + CI evidence pathway) are on `main` with **no version bump**. `codontrace.__version__` still prints `0.3.0b3`. |
+| GitHub `main` / this PR | Development identity `0.3.0b4.dev0` (Phases H–L plus hygiene / hard experiment 01). |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
@@ -77,7 +81,7 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b3` (Phases A–G). GitHub `main` may be ahead (H–L) while still reporting that same version string. Install from source if you need the post–Phase G pathway code.
+The published wheel is `codontrace==0.3.0b3` (Phases A–G). This branch reports development identity `0.3.0b4.dev0` (H–L plus hygiene / hard experiment 01). Install from source if you need the post–Phase G pathway code.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
@@ -107,7 +111,7 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the current tip should print `0.3.0b3`. A `main` checkout currently prints the same string even when H–L are present — do not treat the version tuple as a phase fence.
+A PyPI install of the current tip should print `0.3.0b3`. This checkout prints `0.3.0b4.dev0`. Do not treat the version tuple as a phase fence.
 
 ---
 
@@ -259,7 +263,11 @@ boundaries.
 | [`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) | Phase I: heldout / evolved DoL / MLS / export-of-fitness |
 | [`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay + Price scaffold |
 | [`docs/PHASE_K_CI_DEPTH.md`](docs/PHASE_K_CI_DEPTH.md) | Phase K: coordination, Goldsby-scale harness, Price transmission |
+| [`docs/PHASE_INDEX.md`](docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
 | [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
+| [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
+| [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`STYLE.md`](STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
 | [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |

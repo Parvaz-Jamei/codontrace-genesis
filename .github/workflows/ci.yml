@@ -12,6 +12,56 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
+  ubuntu-full-tests:
+    name: Full pytest (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e . pytest
+
+      - name: Compile package, tests, examples, and tools
+        run: python -m compileall -q src tests examples tools
+
+      - name: Enforce core boundary with AST import guard
+        run: python tools/check_core_boundary.py
+
+      - name: Reject probe leftovers in the checkout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          junk = sorted(
+              p for p in Path(".").rglob("*")
+              if p.is_file()
+              and (
+                  p.name.startswith(".grok_write_probe")
+                  or (p.name.startswith(".size_test_") and p.suffix == ".txt")
+              )
+          )
+          if junk:
+              raise SystemExit("probe leftovers must not ship: " + ", ".join(map(str, junk)))
+          print("no probe leftovers")
+          PY
+
+      - name: Run full test suite
+        run: python -m pytest tests --disable-plugin-autoload
+
   core-smoke-cross-os:
     name: Core smoke (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
@@ -19,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest, macos-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout

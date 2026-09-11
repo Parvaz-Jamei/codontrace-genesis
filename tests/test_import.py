@@ -4,7 +4,7 @@ import codontrace
 
 
 def test_import_and_version() -> None:
-    assert codontrace.__version__ == "0.3.0b3"
+    assert codontrace.__version__ == "0.3.0b4.dev0"
     assert codontrace.SemanticGenome is codontrace.Genome
     assert codontrace.WhiteBoxAgent is codontrace.Agent
     assert codontrace.ATPAccount is codontrace.ATPBudget

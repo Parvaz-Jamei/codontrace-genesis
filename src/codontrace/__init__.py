@@ -1,4 +1,4 @@
-"""Public API for CodonTrace v0.3.0b3 beta research release."""
+"""Public API for CodonTrace v0.3.0b4.dev0 development identity."""
 
 from codontrace.actions import (
     ActionContext,
@@ -379,7 +379,7 @@ from codontrace.topology import (
 from codontrace.trace import TimelineFrame, Trace, TraceEvent, WorldEvent
 from codontrace.world import World2D, WorldObject
 
-__version__ = "0.3.0b3"
+__version__ = "0.3.0b4.dev0"
 
 __all__ = [
     "AgentSnapshot",

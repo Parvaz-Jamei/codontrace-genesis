@@ -154,9 +154,9 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.discovery_witness.DiscoveryCandidate",
     "codontrace.genesis.discovery_witness.DiscoveryWitnessConfig",
     "codontrace.genesis.discovery_witness.DistanceToD0Result",
-    "codontrace.engine.GenesisRun",
-    "codontrace.engine.GenesisRunSummary",
-    "codontrace.engine.GenesisSnapshot",
+    "codontrace.engine_results.GenesisRun",
+    "codontrace.engine_results.GenesisRunSummary",
+    "codontrace.engine_results.GenesisSnapshot",
     "codontrace.genesis.evidence_bundle.EvidenceRecord",
     "codontrace.genesis.evidence_lineage.MatureAlphaReadinessResult",
     "codontrace.genesis.example_smoke.ExampleSmokeResult",
@@ -457,9 +457,9 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
         "require_baseline_digest",
     ),
     "codontrace.genesis.discovery_witness.DistanceToD0Result": ("baseline_digest",),
-    "codontrace.engine.GenesisRun": ("spec_digest",),
-    "codontrace.engine.GenesisRunSummary": ("manifest_digest",),
-    "codontrace.engine.GenesisSnapshot": (
+    "codontrace.engine_results.GenesisRun": ("spec_digest",),
+    "codontrace.engine_results.GenesisRunSummary": ("manifest_digest",),
+    "codontrace.engine_results.GenesisSnapshot": (
         "world_digest",
         "qd_archive_digest",
         "element_grid_digest",
@@ -1170,3 +1170,58 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
 )
 for _path in _CAUSAL_MECHANISM_POLICY_ONLY_CLASSES:
     _DIGEST_FIELDS_BY_CLASS.pop(_path, None)
+
+# Phase H–L measurement objects, literature RAG, and hard experiment 01.
+# Digests identify runtime observations / corpus rows. They do not grant
+# intelligence, collective_intelligence, AGI, tokyo_type1_passed, or
+# avida_replacement claims.
+_MEASUREMENT_PAPER_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.hard_experiment_01.HardExperiment01ArmRecord": (
+        "spec_digest",
+        "result_digest",
+    ),
+    "codontrace.genesis.hard_experiment_01.HardExperiment01Campaign": (
+        "replay_spec_digest",
+        "replay_result_digest",
+        "digest",
+    ),
+    "codontrace.genesis.phase_h.CollectiveIntelligenceCandidateChecklist": ("digest",),
+    "codontrace.genesis.phase_h.CommunicationAblationCampaign": ("digest",),
+    "codontrace.genesis.phase_h.GroupVsIndividualEffectSize": ("digest",),
+    "codontrace.genesis.phase_h.TaskSwitchingCostConfig": ("digest",),
+    "codontrace.genesis.phase_h.TaskSwitchingDoLObservation": ("digest",),
+    "codontrace.genesis.phase_i.EarnedCandidateFlags": ("digest",),
+    "codontrace.genesis.phase_i.EvolvedDivisionOfLaborCampaign": ("digest",),
+    "codontrace.genesis.phase_i.ExportOfFitnessObservation": ("digest",),
+    "codontrace.genesis.phase_i.HeldoutUnfamiliarPartnerCampaign": ("digest",),
+    "codontrace.genesis.phase_i.HeldoutUnfamiliarPartnerSeedRecord": (
+        "familiar_digest",
+        "unfamiliar_digest",
+    ),
+    "codontrace.genesis.phase_i.MlsEvolutionaryOutcomeCampaign": ("digest",),
+    "codontrace.genesis.phase_j.CampaignReplayCapture": ("observed_digest", "digest"),
+    "codontrace.genesis.phase_j.CampaignReplaySpec": ("digest",),
+    "codontrace.genesis.phase_j.DigestReplayVerification": ("digest",),
+    "codontrace.genesis.phase_j.PriceEquationCovarianceCampaign": ("digest",),
+    "codontrace.genesis.phase_j.PriceEquationPartition": ("digest",),
+    "codontrace.genesis.phase_j.ReplayVerifiedCiCandidatePack": ("digest",),
+    "codontrace.genesis.phase_k.ConflictSuppressionObservation": ("digest",),
+    "codontrace.genesis.phase_k.EvolvedCoordinationCampaign": ("digest",),
+    "codontrace.genesis.phase_k.GoldsbyCpuDelayCampaign": ("digest",),
+    "codontrace.genesis.phase_k.MultiGenerationPriceCampaign": ("digest",),
+    "codontrace.genesis.phase_k.MultiGenerationPricePartition": ("digest",),
+    "codontrace.genesis.phase_l.CoordinationAblationEvidence": (
+        "source_digest",
+        "digest",
+    ),
+    "codontrace.genesis.phase_l.GoldsbyAlignedSpecialistCampaign": ("digest",),
+    "codontrace.genesis.phase_l.OrganismMessagingFidelityCampaign": ("digest",),
+    "codontrace.genesis.rag.retriever.ResearchDocument": ("digest",),
+    "codontrace.genesis.rag.retriever.SearchResult": ("corpus_digest", "digest"),
+}
+for _path, _fields in _MEASUREMENT_PAPER_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_MEASUREMENT_PAPER_DIGEST_FIELDS))
+)

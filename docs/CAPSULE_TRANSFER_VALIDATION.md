@@ -1,6 +1,6 @@
 # Scientific validation protocol
 
-This document records a research-alpha protocol implemented in the CodonTrace GENESIS modules.
+This document records a research-alpha protocol implemented in the CodonTrace Genesis modules.
 
 The protocol is evidence-oriented and claim-gated. It does not prove artificial life, full open-ended evolution, true causal discovery, or a full GENESIS Engine. Heavy scientific claims require controlled experiments, multi-seed runs, baselines, ablations, replay verification, and review.
 

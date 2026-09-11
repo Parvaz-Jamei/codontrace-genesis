@@ -56,7 +56,7 @@ Existing fixed-genome and fixed-translation behavior remains default. `CausalGra
 - No true genetic causality claim; contribution remains an attribution estimate.
 
 ### Allowed claim
-CodonTrace now has Phase 2 runtime-integrated library hooks for variable genomes, executable ADF/macros, contribution-ledger evidence, translation-profile GP-map proxy experiments, and manifest audit fields.
+CodonTrace Genesis now has Phase 2 runtime-integrated library hooks for variable genomes, executable ADF/macros, contribution-ledger evidence, translation-profile GP-map proxy experiments, and manifest audit fields.
 
 ### Rejected claim
 This does not prove artificial life, semantic closure, unbounded OEE, causal intelligence, or a full GENESIS engine.

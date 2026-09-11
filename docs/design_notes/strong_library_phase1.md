@@ -40,7 +40,7 @@ None. Phase 1 intentionally upgrades existing modules instead of creating a para
 - UI, server, background jobs, or LLM hot-loop control.
 
 ## Allowed claim
-CodonTrace has a stronger scientific-library foundation with normalized continuous fitness, active-QD-ready candidate architecture, deterministic RNG/replay metadata, benchmark scenario specs, and source-mapped execution traces.
+CodonTrace Genesis has a stronger scientific-library foundation with normalized continuous fitness, active-QD-ready candidate architecture, deterministic RNG/replay metadata, benchmark scenario specs, and source-mapped execution traces.
 
 ## Rejected claim
 This PR does not prove artificial life, semantic closure, unbounded open-ended evolution, causal intelligence, or a full GENESIS engine.

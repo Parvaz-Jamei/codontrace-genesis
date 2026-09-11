@@ -1,6 +1,6 @@
 # Benchmark Scenario Suite
 
-CodonTrace benchmark scenarios are library objects used to create reproducible experiment specs, not an app workflow. The suite gives researchers fixed baseline/treatment definitions for comparing runs under the same seed policy, replay policy, and claim ceiling.
+CodonTrace Genesis benchmark scenarios are library objects used to create reproducible experiment specs, not an app workflow. The suite gives researchers fixed baseline/treatment definitions for comparing runs under the same seed policy, replay policy, and claim ceiling.
 
 ## What it implements
 

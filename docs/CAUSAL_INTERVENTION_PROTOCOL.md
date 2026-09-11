@@ -1,6 +1,6 @@
 # Causal Intervention Protocol
 
-CodonTrace distinguishes event association from intervention-backed evidence. `EventGraph` records temporal association and predictive support; it is not a causal proof by itself.
+CodonTrace Genesis distinguishes event association from intervention-backed evidence. `EventGraph` records temporal association and predictive support; it is not a causal proof by itself.
 
 ## What it implements
 

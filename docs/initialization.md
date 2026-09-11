@@ -2,7 +2,7 @@
 
 `codontrace v0.3.0a1` supports deterministic manual and automatic agent initialization for experiments.
 
-Agent initialization is not a runtime population-evolution system. CodonTrace now provides a separate controlled population lifecycle under `codontrace.genesis.population`, including bounded reproduction, mutation, lineage, fitness scoring, and generation stepping. This does not claim open-ended evolution, biological life, or discovery.
+Agent initialization is not a runtime population-evolution system. CodonTrace Genesis now provides a separate controlled population lifecycle under `codontrace.genesis.population`, including bounded reproduction, mutation, lineage, fitness scoring, and generation stepping. This does not claim open-ended evolution, biological life, or discovery.
 
 ## Runtime boundary
 

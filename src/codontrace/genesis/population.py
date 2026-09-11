@@ -91,6 +91,18 @@ from codontrace.genesis.phase_e import (
     maybe_replicate_demes,
     refresh_phase_e_sensory,
 )
+from codontrace.genesis.materials import (
+    MaterialEvent,
+    MaterialsConfig,
+    MaterialsOrganismState,
+    MaterialsSnapshot,
+    MaterialsState,
+    apply_organism_material_coupling,
+    attach_materials_to_organisms,
+    copy_materials_organism_state,
+    inherit_materials_organism_state,
+    step_materials,
+)
 from codontrace.genesis.fitness import (
     FitnessBreakdown,
     FitnessSignalRegistry,
@@ -778,6 +790,7 @@ class PopulationState:
     birth_chamber: BirthChamberState = field(default_factory=BirthChamberState)
     environment: EnvironmentState | None = None
     deme: DemeState | None = None
+    materials: MaterialsState | None = None
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -802,6 +815,8 @@ class PopulationState:
             payload["environment"] = self.environment.to_dict()
         if self.deme is not None:
             payload["deme"] = self.deme.to_dict()
+        if self.materials is not None:
+            payload["materials"] = self.materials.to_dict()
         return payload
 
     @classmethod
@@ -830,6 +845,9 @@ class PopulationState:
             else None,
             deme=DemeState.from_dict(deme_raw)
             if isinstance((deme_raw := data.get("deme")), Mapping)
+            else None,
+            materials=MaterialsState.from_dict(mat_raw)
+            if isinstance((mat_raw := data.get("materials")), Mapping)
             else None,
         )
 
@@ -1256,6 +1274,9 @@ class GenerationResult:
     deme_state: DemeState | None = None
     birth_placement_records: tuple[BirthPlacementRecord, ...] = ()
     logic9_events: tuple[Logic9ReactionEvent, ...] = ()
+    materials_records: tuple[MaterialEvent, ...] = ()
+    materials_snapshot: MaterialsSnapshot | None = None
+    materials_world_events: tuple[WorldEvent, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1309,6 +1330,14 @@ class GenerationResult:
             ]
         if self.logic9_events:
             payload["logic9_events"] = [item.to_dict() for item in self.logic9_events]
+        if self.materials_records:
+            payload["materials_records"] = [item.to_dict() for item in self.materials_records]
+        if self.materials_snapshot is not None:
+            payload["materials_snapshot"] = self.materials_snapshot.to_dict()
+        if self.materials_world_events:
+            payload["materials_world_events"] = [
+                item.to_dict() for item in self.materials_world_events
+            ]
         return payload
 
     @classmethod
@@ -1414,6 +1443,19 @@ class GenerationResult:
                 for item in _list(data, "logic9_events")
                 if isinstance(item, Mapping)
             ),
+            materials_records=tuple(
+                MaterialEvent.from_dict(item)
+                for item in _list(data, "materials_records")
+                if isinstance(item, Mapping)
+            ),
+            materials_snapshot=MaterialsSnapshot.from_dict(mat_snap_raw)
+            if isinstance((mat_snap_raw := data.get("materials_snapshot")), Mapping)
+            else None,
+            materials_world_events=tuple(
+                WorldEvent.from_dict(cast(dict[str, JsonValue], dict(item)))
+                for item in _list(data, "materials_world_events")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -1450,6 +1492,7 @@ class PopulationConfigs:
     environment: EnvironmentConfig = field(default_factory=EnvironmentConfig)
     phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
     logic9: Logic9ReactionConfig = field(default_factory=Logic9ReactionConfig)
+    materials: MaterialsConfig = field(default_factory=MaterialsConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1522,6 +1565,8 @@ class PopulationConfigs:
             payload["phase_e"] = self.phase_e.to_dict()
         if self.logic9.enabled:
             payload["logic9"] = self.logic9.to_dict()
+        if self.materials.enabled:
+            payload["materials"] = self.materials.to_dict()
         return payload
 
     @classmethod
@@ -1540,6 +1585,7 @@ class PopulationConfigs:
         environment_raw = data.get("environment")
         phase_e_raw = data.get("phase_e")
         logic9_raw = data.get("logic9")
+        materials_raw = data.get("materials")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1596,6 +1642,9 @@ class PopulationConfigs:
             logic9=Logic9ReactionConfig.from_dict(logic9_raw)
             if isinstance(logic9_raw, Mapping)
             else Logic9ReactionConfig(),
+            materials=MaterialsConfig.from_dict(materials_raw)
+            if isinstance(materials_raw, Mapping)
+            else MaterialsConfig(),
         )
 
 
@@ -2412,6 +2461,18 @@ def reproduce(
         phase_e_state=inherit_phase_e_state(
             getattr(parent, "phase_e_state", None), child_id=resolved_child_id
         ),
+        materials_state=inherit_materials_organism_state(
+            getattr(parent, "materials_state", None)
+            if isinstance(getattr(parent, "materials_state", None), MaterialsOrganismState)
+            else None,
+            child_id=resolved_child_id,
+            inherit_intracellular=False,
+            default_permeability=(
+                getattr(parent.materials_state, "membrane_permeability", 1.0)
+                if getattr(parent, "materials_state", None) is not None
+                else 1.0
+            ),
+        ),
     )
     event_id = _reproduction_event_id(parent.id, resolved_child_id, birth_tick, mutation.digest())
     lineage = LineageRecord(
@@ -2631,6 +2692,16 @@ def step_population(
     env_state = population.environment
     if env_cfg.enabled and env_state is None:
         env_state = EnvironmentState.initialize(env_cfg, tick=env_tick)
+    mat_cfg = configs.materials
+    mat_state = population.materials
+    if mat_cfg.enabled and mat_state is None:
+        mat_state = MaterialsState.initialize(mat_cfg, tick=env_tick)
+    working_mat_pools: dict[str, float] = dict(mat_state.pools) if mat_state is not None else {}
+    working_mat_grids: dict[str, dict[tuple[int, int], float]] = (
+        {name: dict(cells) for name, cells in mat_state.grids.items()} if mat_state is not None else {}
+    )
+    materials_coupling_events: list[MaterialEvent] = []
+    materials_consumed: dict[str, float] = {}
     hazard_cost = 0.0
     if env_cfg.enabled and env_state is not None and env_cfg.hazard_atp_scale > 0:
         hazard_cost = round(env_cfg.hazard_atp_scale * env_state.hazard_intensity, 10)
@@ -2641,6 +2712,8 @@ def step_population(
     organism_clones = [_clone_organism(organism) for organism in population.organisms]
     if configs.phase_e.enabled:
         organism_clones = list(attach_phase_e_to_organisms(organism_clones, configs.phase_e))
+    if configs.materials.enabled:
+        organism_clones = list(attach_materials_to_organisms(organism_clones, configs.materials))
     working_deme_state = (
         DemeState.from_dict(population.deme.to_dict())
         if population.deme is not None
@@ -2879,6 +2952,24 @@ def step_population(
                         pool=logic9_pool,
                     )
                 )
+            if configs.materials.enabled:
+                did_eat = bool(event.world_delta.get("lumen_interaction")) or (
+                    event.action == "EAT_LUMEN" and event.reason == "lumen_consumed"
+                )
+                coupling = apply_organism_material_coupling(
+                    organism,
+                    working_mat_pools,
+                    working_mat_grids,
+                    configs.materials,
+                    tick=current_tick,
+                    did_eat=did_eat,
+                )
+                materials_coupling_events.extend(coupling)
+                for item in coupling:
+                    if item.event_type == "uptake" and item.material:
+                        materials_consumed[item.material] = round(
+                            materials_consumed.get(item.material, 0.0) + item.amount, 10
+                        )
             if configs.phase_e.enabled and working_deme_state is not None:
                 phase_e_messages.extend(
                     apply_deme_messaging_after_event(
@@ -3559,6 +3650,34 @@ def step_population(
         if traces:
             for event in environment_world_events:
                 traces[0].append_world_event(replace(event, sequence=traces[0].next_sequence()))
+    materials_records: tuple[MaterialEvent, ...] = ()
+    materials_snapshot: MaterialsSnapshot | None = None
+    materials_world_events: tuple[WorldEvent, ...] = ()
+    if mat_cfg.enabled:
+        coupling_state = MaterialsState(
+            tick=env_tick,
+            pools=working_mat_pools,
+            grids=working_mat_grids,
+            cumulative_inflow=dict(mat_state.cumulative_inflow) if mat_state is not None else {},
+            cumulative_outflow=dict(mat_state.cumulative_outflow) if mat_state is not None else {},
+            cumulative_consumed=dict(mat_state.cumulative_consumed) if mat_state is not None else {},
+            cumulative_reacted=dict(mat_state.cumulative_reacted) if mat_state is not None else {},
+        )
+        mat_result = step_materials(
+            coupling_state,
+            mat_cfg,
+            tick=env_tick,
+            consumed=materials_consumed,
+            organisms=next_organisms,
+            world=working_world,
+        )
+        mat_state = mat_result.state
+        materials_records = tuple((*materials_coupling_events, *mat_result.events))
+        materials_snapshot = mat_result.snapshot
+        materials_world_events = mat_result.world_events
+        if traces:
+            for event in materials_world_events:
+                traces[0].append_world_event(replace(event, sequence=traces[0].next_sequence()))
     skip_legacy = env_cfg.enabled and env_cfg.skip_legacy_respawn
     if not skip_legacy:
         respawn_ns = configs.runtime_resource_policy.seed_namespace
@@ -3604,6 +3723,7 @@ def step_population(
         birth_chamber=BirthChamberState(waiting=tuple(waiting)),
         environment=env_state if env_cfg.enabled else None,
         deme=working_deme_state if configs.phase_e.enabled and configs.phase_e.demes.enabled else None,
+        materials=mat_state if mat_cfg.enabled else None,
     )
     working_world.agent_position = None
     world_after_digest = working_world.digest()
@@ -3645,6 +3765,9 @@ def step_population(
         else None,
         birth_placement_records=tuple(birth_placements),
         logic9_events=tuple(logic9_events),
+        materials_records=materials_records,
+        materials_snapshot=materials_snapshot,
+        materials_world_events=materials_world_events,
     )
 
 
@@ -3957,6 +4080,11 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         translation_profile=organism.translation_profile,
         translation_policy=organism.translation_policy,
         phase_e_state=copy_phase_e_state(getattr(organism, "phase_e_state", None)),
+        materials_state=copy_materials_organism_state(
+            getattr(organism, "materials_state", None)
+            if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
+            else None
+        ),
     )
     clone._cursor = organism._cursor
     clone._step_index = organism._step_index
@@ -4126,6 +4254,9 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
+    materials_state = getattr(organism, "materials_state", None)
+    if materials_state is not None and hasattr(materials_state, "to_dict"):
+        payload["materials_state"] = materials_state.to_dict()
     return payload
 
 
@@ -4168,6 +4299,9 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
         from codontrace.genesis.phase_e import PhaseEOrganismState
 
         organism.phase_e_state = PhaseEOrganismState.from_dict(phase_e_raw)
+    materials_raw = data.get("materials_state")
+    if isinstance(materials_raw, Mapping):
+        organism.materials_state = MaterialsOrganismState.from_dict(materials_raw)
     return organism
 
 

@@ -1,6 +1,6 @@
 # GENESIS Compatibility Matrix — v0.3.0b2 beta unified-runtime
 
-CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-ended autonomous discovery. It is a GENESIS-aligned research-beta foundation engine.
+CodonTrace Genesis is not yet a proof of artificial life, AGI, consciousness, or open-ended autonomous discovery. It is a GENESIS-aligned research-beta foundation engine.
 
 | GENESIS Concept | Current API | Status | Operational Level | Missing / Limitation | Evidence / Tests | Claim Allowed? |
 |---|---|---:|---|---|---|---|
@@ -67,4 +67,5 @@ CodonTrace is not yet a proof of artificial life, AGI, consciousness, or open-en
 | OEE measurement | `OEEMetricsReport`, `TokyoType1MeasurementProtocol` | scaffold / measurement protocol | metrics/thresholds/shadow requirement; Channon 2024 step labels | never proof of open-endedness; `tokyo_type1_passed` blocked | `oee_measurement_only`, `tokyo_type1_measurement_only`, `oee_candidate` |
 | Multi-generation evidence | `MultiGenerationEvidencePack`, `ModesAssessment`, `BedauActivitySurface` | implemented | post-hoc fitness/behavior/MODES/Bedau series from life-loop records; explicit `persistence_window_t` coalescence window | not publication-grade without multi-seed protocol; not OEE proof; no Empirical systematics shadow run | `runtime_observation`; `instinct_improved` only with ClaimGate flags |
 | Capsule/memory/role/deme substrate | `PhaseESubstrateConfig`, `phase_e_substrate_world`, `AvidaParityProtocolSpec` | implemented | opt-in action/ATP/task gates, deme messaging, plasticity protocol | not an Avida ISA clone; not collective-intelligence proof | `runtime_observation` only |
+| Named materials / chemistry-effect | `MaterialSpec`, `MaterialsConfig`, `materials_world` | implemented | opt-in named pools/grids, ATP/toxin coupling, stoichiometric CRN, chemostat, permeability gate, ontology-id schema hooks | not a chemistry simulator; GEM/MD deferred; not wet-lab equivalent | `runtime_observation` only |
 | Translation profile | `TranslationProfile` | experimental | adaptive GP-map proxy | not semantic closure | `adaptive_gp_map_proxy` |

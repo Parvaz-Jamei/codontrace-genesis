@@ -154,6 +154,7 @@ class GenesisOrganism:
     translation_profile: TranslationProfile | None = None
     translation_policy: TranslationPolicy = field(default_factory=TranslationPolicy)
     phase_e_state: object | None = None
+    materials_state: object | None = None
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)

@@ -1,6 +1,6 @@
 # Extensibility
 
-CodonTrace now provides configurable GENESIS research primitives through explicit Registry, Config, Spec, and Protocol objects.
+CodonTrace Genesis now provides configurable GENESIS research primitives through explicit Registry, Config, Spec, and Protocol objects.
 
 The built-in GENESIS v0 defaults remain available, but researchers can define:
 
@@ -14,7 +14,7 @@ The built-in GENESIS v0 defaults remain available, but researchers can define:
 - custom fitness signals through `FitnessSignalRegistry`;
 - custom action statuses through `ActionStatusRegistry`.
 
-This does not make CodonTrace an app, plugin framework, or configuration-file framework. Core APIs accept Python objects and remain dependency-free.
+This does not make CodonTrace Genesis an app, plugin framework, or configuration-file framework. Core APIs accept Python objects and remain dependency-free.
 
 ## GENESIS object-based extension example
 
@@ -75,9 +75,9 @@ Handlers do not receive `ATPAccount`. The agent core applies credits/debits and 
 
 ## D0 / Discovery Witness / QD Hooks
 
-CodonTrace now provides dependency-free library objects for D0 baseline calibration, distance-to-D0 measurement, conservative DiscoveryCandidate records, DiscoveryWitness evidence scaffolds, Quality-Diversity archive hardening, and ablation/statistical protocol records. These APIs are Python-object based, serializable, digestible, and designed for audit. They do not force positive claims or hide controls. Current Integration smoke/examples can write deterministic evidence bundles and validation summaries, while strong discovery/OEE claims still require configured baselines, controls, multi-seed evidence, and ClaimGate approval. Witness status is evidence infrastructure only and requires baseline, replay/trace, ablation coverage, and configurable multi-seed metadata before reaching evidence-supported scaffold status.
+CodonTrace Genesis now provides dependency-free library objects for D0 baseline calibration, distance-to-D0 measurement, conservative DiscoveryCandidate records, DiscoveryWitness evidence scaffolds, Quality-Diversity archive hardening, and ablation/statistical protocol records. These APIs are Python-object based, serializable, digestible, and designed for audit. They do not force positive claims or hide controls. Current Integration smoke/examples can write deterministic evidence bundles and validation summaries, while strong discovery/OEE claims still require configured baselines, controls, multi-seed evidence, and ClaimGate approval. Witness status is evidence infrastructure only and requires baseline, replay/trace, ablation coverage, and configurable multi-seed metadata before reaching evidence-supported scaffold status.
 
 
 ## v0.3.0a1 Release Candidate Hardening + Scientific Evidence Pack
 
-CodonTrace v0.3.0a1 focuses on API hardening, validation objects, compatibility snapshots, example-smoke contracts, research-validation bundle records, and claim-audit scaffolds. These are dependency-free Python object APIs only. They do not add an app, UI, dashboard, CLI, report writer, notebook generator, experiment runner, file writer, p-value engine, or external dependency. The validation pack helps researchers audit reproducibility and claim safety, but it does not prove general-intelligence, artificial life, open-ended discovery, causal-certainty claim, knowledge transfer, or benchmark-rank claim.
+CodonTrace Genesis v0.3.0a1 focuses on API hardening, validation objects, compatibility snapshots, example-smoke contracts, research-validation bundle records, and claim-audit scaffolds. These are dependency-free Python object APIs only. They do not add an app, UI, dashboard, CLI, report writer, notebook generator, experiment runner, file writer, p-value engine, or external dependency. The validation pack helps researchers audit reproducibility and claim safety, but it does not prove general-intelligence, artificial life, open-ended discovery, causal-certainty claim, knowledge transfer, or benchmark-rank claim.

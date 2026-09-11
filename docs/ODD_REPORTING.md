@@ -1,6 +1,6 @@
 # ODD Reporting
 
-CodonTrace supports ODD-style reports for agent-based modeling review. ODD helps reviewers understand the model without reading all implementation files.
+CodonTrace Genesis supports ODD-style reports for agent-based modeling review. ODD helps reviewers understand the model without reading all implementation files.
 
 ## Sections
 
@@ -19,7 +19,7 @@ A `GenesisODDReport` should include:
 - Limitations
 - Claim level
 
-## Mapping to CodonTrace
+## Mapping to CodonTrace Genesis
 
 Entities include organisms, population state, World2D/ElementGrid bridge, capsules/Nexus, EventGraph, memory, and QD archive. State variables include genome, ATP runtime/learning, memory digest, event graph digest, position, fitness breakdown, behavior descriptor, and translation profile digest.
 

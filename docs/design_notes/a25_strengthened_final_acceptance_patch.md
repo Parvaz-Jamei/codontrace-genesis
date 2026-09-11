@@ -1,6 +1,6 @@
-# CodonTrace v0.3.0a1 Strengthened Final Acceptance Patch
+# CodonTrace Genesis v0.3.0a1 Strengthened Final Acceptance Patch
 
-This design note records the final library-hardening patch applied after the strengthened acceptance review. The goal is not to expand product scope; CodonTrace remains an importable Python scientific library.
+This design note records the final library-hardening patch applied after the strengthened acceptance review. The goal is not to expand product scope; CodonTrace Genesis remains an importable Python scientific library.
 
 ## Public API and packaging
 

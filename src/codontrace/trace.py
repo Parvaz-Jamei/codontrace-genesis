@@ -1,4 +1,4 @@
-"""Structured trace and timeline objects for replayable CodonTrace runs."""
+"""Structured trace and timeline objects for replayable CodonTrace Genesis runs."""
 
 from __future__ import annotations
 
@@ -30,6 +30,11 @@ WORLD_EVENT_ENVIRONMENT_OUTFLOW = "environment_outflow"
 WORLD_EVENT_ENVIRONMENT_REGIME_SWITCH = "environment_regime_switch"
 WORLD_EVENT_ENVIRONMENT_PERIODIC_TOGGLE = "environment_periodic_toggle"
 WORLD_EVENT_ENVIRONMENT_HAZARD_CHANGED = "environment_hazard_changed"
+WORLD_EVENT_MATERIAL_INFLOW = "material_inflow"
+WORLD_EVENT_MATERIAL_OUTFLOW = "material_outflow"
+WORLD_EVENT_MATERIAL_REACTION = "material_reaction"
+WORLD_EVENT_MATERIAL_UPTAKE = "material_uptake"
+WORLD_EVENT_MATERIAL_EXCRETE = "material_excrete"
 
 
 @dataclass(frozen=True, slots=True)

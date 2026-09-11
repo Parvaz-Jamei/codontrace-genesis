@@ -3,9 +3,10 @@
 This document maps CodonTrace Genesis **software surfaces** to world-authority
 digital-evolution, OEE-measurement, plasticity, and modern-comparator literature.
 It is a completeness and honesty checklist after Phase A–E on `main`
-(`0.3.0b2`). It does **not** claim intelligence, AGI, proved open-ended
-evolution, Tokyo Type 1 *passed*, instinct evolution proved, collective
-intelligence, evolved phenotypic plasticity, or that CodonTrace Genesis replaces Avida,
+(`0.3.0b2`) plus the opt-in Phase G materials overlay. It does **not** claim
+intelligence, AGI, proved open-ended evolution, Tokyo Type 1 *passed*, instinct
+evolution proved, collective intelligence, evolved phenotypic plasticity,
+realistic chemistry, wet-lab equivalence, or that CodonTrace Genesis replaces Avida,
 Aevol, JaxLife, MABE, or Empirical.
 
 **Claim ceiling for this map:** software capability / `runtime_observation` /
@@ -22,6 +23,7 @@ Cross-links: [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) (MODES / Bedau),
 [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md) (plasticity / demes / capsules),
 [`WHY_NOT_INTELLIGENCE_YET.md`](WHY_NOT_INTELLIGENCE_YET.md) (literature vs
 CodonTrace Genesis reality; not close to AGI),
+[`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) (named materials),
 [`../CLAIMS.md`](../CLAIMS.md).
 
 Phase A–E default preset **spec digest pins stay stable**. New measurement
@@ -87,8 +89,9 @@ Authoritative live tree: [`devosoft/avida`](https://github.com/devosoft/avida)
 | `ORGANISM_MESSAGING` | Send/retrieve/broadcast/block | **partial** | Phase E Goldsby-style buffer |
 | `ENERGY` | Energy/ATP metabolism | **partial** | Dual ATP + basal drain on life-loop preset |
 | `SENSING` | Environmental cues | **partial** | Phase C snapshots + Phase E `read_environment_cue` |
-| `RESOURCE` chemostat (`initial` / `inflow` / `outflow`) | Limited resources; Avida-ED chemostat/periodic literature | **landed** (opt-in Phase C) | `ResourceSpec`, `EnvironmentConfig` |
+| `RESOURCE` chemostat (`initial` / `inflow` / `outflow`) | Limited resources; Avida-ED chemostat/periodic literature | **landed** (opt-in Phase C); named-material extension **landed** (opt-in Phase G) | `ResourceSpec`, `EnvironmentConfig`; `MaterialSpec` / `MaterialsConfig` |
 | Logic-9 / reaction–task metabolic coupling | Tasks as reactions consuming resources (`res{TASK}`) and awarding merit | **landed** opt-in semantic analog (not a NAND CPU) | `Logic9ReactionConfig`, `build_logic9_reaction_pack`; claim ceiling `runtime_observation` |
+| Named materials / chemistry-effect overlay | Energy yield, toxicity, permeability, intracellular profiles | **partial** (effect coefficients + ontology-id schema hooks; GEM/MD deferred) | `materials_world`, `MaterialBindingSchema` |
 | Full Avida ISA / hardware | Instruction-level CPU | **deferred** (deliberately different genome/ISA) | — |
 
 ---
@@ -104,6 +107,7 @@ or subset; **deferred** = documented non-goal or future.
 | Capacity > initial population (room to birth) | `PREFER_EMPTY` + unfilled grid / `POPULATION_CAP` | n/a | n/a | n/a | n/a | **landed** (regression-tested) |
 | Sexual recombination / birth chamber | `RECOMBINATION_GROUP` | n/a | n/a | n/a | diploid meiosis analog opt-in | **landed** opt-in; `diploid_meiosis` + `TWO_FOLD_COST_SEX` default off |
 | Chemostat / fluctuating resources | `RESOURCE` + Avida-ED | n/a | n/a | n/a | n/a | **landed** opt-in Phase C |
+| Named materials / chemistry-effect overlay | resource/reaction analog + ontology-id hooks | n/a | n/a | energy-budget inspiration only | n/a | **landed** opt-in Phase G; GEM/MD **deferred**; wet-lab **blocked** |
 | Persistence-filtered change/novelty/complexity/ecology | post-hoc analyze | **partial** analog | feeds Type 1 activity/novelty steps | n/a | n/a | **landed** Phase D + coalescence-window docs |
 | Empirical systematics shadow phylogeny | n/a | **partial** analog | opt-in `shadow_digest` for step_4; never a pass | n/a | n/a | **landed** opt-in Python adapter (`empirical_systematics_shadow_run` default False) |
 | Multi-seed Tokyo measurement campaign | n/a | Bedau/MODES inputs | **landed** `TokyoType1MeasurementCampaign` (`seed_count≥2`) | n/a | n/a | **landed**; `tokyo_type1_passed` **blocked** |
@@ -290,7 +294,10 @@ Use this on the completeness PR. All items must stay **honest**.
 - Opt-in `diploid_meiosis` is not Aevol-grade meiosis or biological diploidy.
 - Plasticity checklists are not evolved phenotypic plasticity.
 - Phenotype/transcriptome JSON is not a biological transcriptome.
+- Named materials / ontology ids are not realistic chemistry, wet-lab
+  equivalence, or a KEGG/BiGG GEM solver.
 - CLIP / foundation-model open-endedness scoring is **not** implemented.
 
 See `CLAIMS.md`, `docs/PHASE_D_LITERATURE.md`, `docs/PHASE_E_LITERATURE.md`,
+`docs/PHASE_G_MATERIALS_LITERATURE.md`, `docs/WHY_NOT_INTELLIGENCE_YET.md`,
 and `ScientificClaimGate`.

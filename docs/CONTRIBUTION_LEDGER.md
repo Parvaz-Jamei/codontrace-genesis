@@ -4,7 +4,7 @@
 Strong Library Phase 2 library APIs and evidence protocols for this area.
 
 ## What it does not claim
-CodonTrace does not claim solved artificial life, semantic closure, true causal intelligence, proved unbounded open-ended evolution, or Full GENESIS Engine.
+CodonTrace Genesis does not claim solved artificial life, semantic closure, true causal intelligence, proved unbounded open-ended evolution, or Full GENESIS Engine.
 
 ## Config
 Configuration is immutable/dataclass-based where replay-critical.

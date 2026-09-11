@@ -1,6 +1,6 @@
 # GENESIS causal/capsule runtime integration
 
-CodonTrace phase 2 connects existing GENESIS primitives into an auditable runtime path:
+CodonTrace Genesis phase 2 connects existing GENESIS primitives into an auditable runtime path:
 
 ```text
 Organism action → optional memory event → causal graph update → optional capsule/nexus transfer → population metrics
@@ -32,7 +32,7 @@ This is scaffold-level capsule adoption, not full uncertainty-reducing MDL graph
 
 ## LLM role
 
-LLM integration is API-mediated and review/rule-proposal oriented. The LLM must interact through CodonTrace-defined request/response schemas and validators. It must not control organism decisions inside the simulation hot loop, and it must not mutate core state outside approved library APIs.
+LLM integration is API-mediated and review/rule-proposal oriented. The LLM must interact through CodonTrace Genesis-defined request/response schemas and validators. It must not control organism decisions inside the simulation hot loop, and it must not mutate core state outside approved library APIs.
 
 ## Remaining non-claims
 

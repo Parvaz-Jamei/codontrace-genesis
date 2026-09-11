@@ -1,4 +1,4 @@
-# CodonTrace Studio Boundary Policy
+# CodonTrace Genesis Studio Boundary Policy
 
 Status: **required for `0.3.0b2` beta and later**.
 

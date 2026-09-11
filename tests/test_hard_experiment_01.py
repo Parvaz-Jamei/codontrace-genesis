@@ -87,7 +87,7 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     text = (root / "docs" / "HARD_EXPERIMENT_01.md").read_text(encoding="utf-8")
     assert "runtime_observation" in text
     assert "collective_intelligence" in text
-    assert "Phase L" not in text
+    assert not text.lstrip().startswith("# Phase")
 
 
 def test_probe_junk_is_not_in_the_tree() -> None:

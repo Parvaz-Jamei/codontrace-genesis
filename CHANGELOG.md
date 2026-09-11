@@ -10,11 +10,48 @@
 - `life_loop_world` capacity stays `max(pop, 8)` for the historical pop<8 presets (pinned Phase A–E spec/snapshot/tick digests unchanged). For `population >= 8`, capacity is `max(pop*2, 16)` and the world is widened so COPY_SELF is not immediately blocked at capacity or by packed adjacent cells.
 - Summarize helpers (`summarize_life_loop_observation`, `summarize_phase_e_observation`, `summarize_dynamic_environment_observation`) raise `TypeError` on `None` / objects without `ticks` instead of returning silent zeros.
 
-### Notes (scientific authorities)
+### Scientific authorities 2026 (measurement/docs completeness)
 
-- Mapped each eval bugfix to literature in `docs/SCIENTIFIC_AUTHORITIES_2026.md` (MODES 2019 + ISAL assessment; Channon 2024 Tokyo Type 1 *measurement only*; Ofria & Wilke 2004 / `avida.cfg` 2.14.0; Clune 2007 / Lalejini & Ofria 2016 / Frontiers 2021 plasticity protocol). JaxLife, Aevol_4b, and OntoAvida/avidaR are documentation comparators. ASAL / CLIP OE (arXiv 2412.17799) is cited as a future option and is **not** implemented.
-- ClaimGate aliases `tokyo_type1_measurement_only` → `oee_measurement_only` and forbids `tokyo_type1_passed` / `tokyo_type1_oee_proved`. Cheap API: `evaluate_tokyo_type1_measurement_claim`. This is **not** a Type 1 pass, intelligence claim, or OEE proof.
-- Capacity for `population >= 8` exceeds initial *N* in the Avida spirit of `BIRTH_METHOD` / `PREFER_EMPTY` (do not set `POPULATION_CAP` == current population). Capsule wiring requires a subsequent-action effect under a sensory cue, with ablation. Chamber offspring update placement counters like the asexual path.
+Honest completeness pass against world-authority digital-evolution and OEE
+*measurement* literature after Phase A–E (`0.3.0b2`). This does **not** claim
+intelligence, AGI, proved OEE, Tokyo Type 1 passed, or Avida replacement.
+Phase A–E default spec digest pins stay stable.
+
+#### Added
+
+- `docs/SCIENTIFIC_AUTHORITIES_2026.md`: feature × Avida / MODES / Channon 2024 /
+  JaxLife / Aevol matrix (landed / partial / deferred), live `avida.cfg` 2.14.0
+  group map, eval-bugfix → authority mapping, and a PR honesty checklist.
+- `TokyoType1MeasurementProtocol` (Channon 2024 measurement-step vocabulary:
+  activity, novelty, shadow/normalization hooks). Claim ceiling
+  `tokyo_type1_measurement_only` when Channon steps are recorded.
+  `tokyo_type1_passed` is blocked by construction and ClaimGate. Multi-seed is
+  required for any status above measurement_only and still does not pass Type 1.
+- Pack-level cheap hook: `evaluate_tokyo_type1_measurement_claim(pack)` requests
+  `tokyo_type1_measurement_only` and ClaimGate aliases it to `oee_measurement_only`
+  unless `channon_2024_steps_recorded` is set. CLIP / ASAL OE (arXiv 2412.17799)
+  is **not** implemented.
+- Explicit `persistence_window_t` on the Phase D MODES persistence filter, plus
+  coalescence-window semantics and recorded limitations
+  (`no_empirical_systematics_shadow_run`).
+- OntoAvida-style phenotype/transcriptome export fields: fitness, genome length,
+  instruction-execution counts as a transcriptome *proxy* (not biology).
+- `examples/genesis_tokyo_type1_measurement.py` prints blocked pass claims.
+
+#### Claim policy
+
+- Allowed: `tokyo_type1_measurement_only` (measurement steps recorded); pack-level
+  Channon vocabulary without those steps aliases to `oee_measurement_only`.
+- Blocked: `tokyo_type1_passed`, `tokyo_type1_proved`, `channon_2024_passed`,
+  `tokyo_type1_oee_proved`, `avida_replacement`, AGI, open-ended intelligence
+  (unchanged / stronger).
+- JaxLife culture/tech accumulation, Aevol bioinformatics encoding parity, and
+  ASAL / CLIP foundation-model OE search remain documented gaps, not ports.
+- Capacity for `population >= 8` exceeds initial *N* in the Avida spirit of
+  `BIRTH_METHOD` / `PREFER_EMPTY` (do not set `POPULATION_CAP` == current
+  population). Capsule wiring requires a subsequent-action effect under a sensory
+  cue, with ablation. Chamber offspring update placement counters like the
+  asexual path.
 
 ## 0.3.0b2 — Science-gate hardening and Phase A–E substrates (2026-09-11)
 

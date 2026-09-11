@@ -69,7 +69,9 @@ class GenesisRuntimeProfile:
         return GenesisExperimentSpec(
             seed=seed,
             tick_count=tick_count,
-            engine_config=GenesisEngineConfig(claim_level="foundation_engine", qd_mode="disabled", enable_qd=False),
+            engine_config=GenesisEngineConfig(
+                claim_level="foundation_engine", qd_mode="disabled", enable_qd=False
+            ),
             metadata={
                 "default_world_profile": "empty_world_smoke",
                 "resource_runtime_status": "no_resource_pressure",
@@ -79,16 +81,26 @@ class GenesisRuntimeProfile:
         )
 
     @staticmethod
-    def evolution_pilot_world(*, seed: int = 1, tick_count: int = 50, population: int = 6) -> GenesisExperimentSpec:
+    def evolution_pilot_world(
+        *, seed: int = 1, tick_count: int = 50, population: int = 6
+    ) -> GenesisExperimentSpec:
         world = World2D(6, 4)
         for pos in ((0, 0), (1, 0), (2, 1), (4, 2)):
             world.place_resource(pos, 2.0)
         configs = PopulationConfigs(
-            reproduction=ReproductionConfig(max_population=max(population * 2, 12), parent_atp_cost=1.0),
+            reproduction=ReproductionConfig(
+                max_population=max(population * 2, 12), parent_atp_cost=1.0
+            ),
             mutation=MutationConfig(bit_flip_rate=0.02),
-            evolution=EvolutionConfig(max_population=max(population * 2, 12), selection_policy="novelty_weighted", qd_mode="selection_pressure"),
+            evolution=EvolutionConfig(
+                max_population=max(population * 2, 12),
+                selection_policy="novelty_weighted",
+                qd_mode="selection_pressure",
+            ),
             qd_mode="selection_pressure",
-            runtime_resource_policy=RuntimeResourcePolicy(respawn_enabled=True, respawn_rate=1.0, max_resources=8, amount=2.0),
+            runtime_resource_policy=RuntimeResourcePolicy(
+                respawn_enabled=True, respawn_rate=1.0, max_resources=8, amount=2.0
+            ),
         )
         genomes = tuple("101111000" for _ in range(population))  # EAT_LUMEN, COPY_SELF, WAIT
         return GenesisExperimentSpec(
@@ -101,7 +113,9 @@ class GenesisRuntimeProfile:
             element_grid=world2d_to_element_grid(world),
             substrate_bridge_mode="element_grid_source",
             population_configs=configs,
-            engine_config=GenesisEngineConfig(qd_mode="selection_pressure", claim_level="experimental_engine"),
+            engine_config=GenesisEngineConfig(
+                qd_mode="selection_pressure", claim_level="experimental_engine"
+            ),
             metadata={
                 "runtime_profile": "evolution_pilot_world",
                 "resource_runtime_status": "runtime_effective_default_off",
@@ -143,7 +157,9 @@ class GenesisRuntimeProfile:
         )
 
     @staticmethod
-    def qd_selection_pilot_world(*, seed: int = 1, tick_count: int = 8, population: int = 8) -> GenesisExperimentSpec:
+    def qd_selection_pilot_world(
+        *, seed: int = 1, tick_count: int = 8, population: int = 8
+    ) -> GenesisExperimentSpec:
         """Build a controlled runtime QD pilot with real over-capacity novelty pressure."""
 
         world = World2D(6, 4)
@@ -185,7 +201,9 @@ class GenesisRuntimeProfile:
             element_grid=world2d_to_element_grid(world),
             substrate_bridge_mode="element_grid_source",
             population_configs=configs,
-            engine_config=GenesisEngineConfig(qd_mode="selection_pressure", claim_level="experimental_engine"),
+            engine_config=GenesisEngineConfig(
+                qd_mode="selection_pressure", claim_level="experimental_engine"
+            ),
             metadata={
                 "runtime_profile": "qd_selection_pilot_world",
                 "qd_mode": "selection_pressure",
@@ -287,10 +305,14 @@ class GenesisRuntimeProfile:
         )
 
     @staticmethod
-    def memory_delayed_reward_pilot_world(*, seed: int = 1, tick_count: int = 8) -> GenesisExperimentSpec:
+    def memory_delayed_reward_pilot_world(
+        *, seed: int = 1, tick_count: int = 8
+    ) -> GenesisExperimentSpec:
         """Build a small signal/write -> later resource reward pilot."""
 
-        spec = GenesisRuntimeProfile.evolution_pilot_world(seed=seed, tick_count=tick_count, population=1)
+        spec = GenesisRuntimeProfile.evolution_pilot_world(
+            seed=seed, tick_count=tick_count, population=1
+        )
         return replace(
             spec,
             genome_bits=("000101000",),  # WAIT/write signal, EAT_LUMEN reward, WAIT.
@@ -379,10 +401,9 @@ class GenesisRuntimeProfile:
         if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER and eater_count >= 2:
             eater_b_count = eater_count // 2
             eater_a_count = eater_count - eater_b_count
-            eater_genomes = (
-                [LIFE_LOOP_EATER_GENOME] * eater_a_count
-                + [LIFE_LOOP_EATER_B_GENOME] * eater_b_count
-            )
+            eater_genomes = [LIFE_LOOP_EATER_GENOME] * eater_a_count + [
+                LIFE_LOOP_EATER_B_GENOME
+            ] * eater_b_count
         else:
             eater_genomes = [LIFE_LOOP_EATER_GENOME] * eater_count
         genomes = tuple(eater_genomes + [LIFE_LOOP_WAITER_GENOME] * waiter_count)
@@ -495,8 +516,7 @@ class GenesisRuntimeProfile:
                 "resource_amount": LIFE_LOOP_RESOURCE_AMOUNT,
                 "resource_mode": "limited_depletable_with_partial_respawn",
                 "literature_grounding": (
-                    "avida_limited_resources_plus_energy_budget_alife_"
-                    "not_avida_replacement"
+                    "avida_limited_resources_plus_energy_budget_alife_not_avida_replacement"
                 ),
                 "claim_allowed_for_evolution": False,
                 "claim_allowed_for_life": False,
@@ -511,9 +531,7 @@ class GenesisRuntimeProfile:
                     if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
                     else "deferred"
                 ),
-                "phase_c_fluctuating_environment": (
-                    "enabled" if env_cfg.enabled else "deferred"
-                ),
+                "phase_c_fluctuating_environment": ("enabled" if env_cfg.enabled else "deferred"),
                 "phase_d_instinct_claim_metrics": "hooks_only_not_implemented",
                 **(
                     {

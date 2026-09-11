@@ -14,8 +14,10 @@ post-hoc analyze-mode dump: callers get a Python
 
 | Source | What Phase D implements | What Phase D does **not** claim |
 |---|---|---|
-| MODES toolbox — Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* | Change, novelty, complexity, ecological potential **after a persistence filter**: only lineages with descendants alive after `t` generations count | Not a bit-identical C++ MODES port; not proof of open-endedness |
+| MODES toolbox — Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* | Change, novelty, complexity, ecological potential **after a persistence filter**: only lineages with descendants alive after `persistence_window_t` generations count. Filter is an organism-id coalescence window, not a full Empirical systematics shadow run | Not a bit-identical C++ MODES port; not proof of open-endedness |
+| Empirical MODES / systematics notes | Limitations recorded (`no_empirical_systematics_shadow_run`); longer `t` drops lineages that die before the horizon | Not an Empirical phylogeny + shadow campaign |
 | Bedau evolutionary activity | Library objects for novelty (first appearances), diversity (currently present components), and cumulative activity from genotype/behavior presence | Not a proof that evolutionary activity is unbounded |
+| Channon 2024 Tokyo Type 1 procedure | Opt-in `TokyoType1MeasurementProtocol` records activity/novelty/shadow *measurement steps* | `tokyo_type1_passed` blocked; measurement ≠ pass |
 | ALife OEE encyclopedia hallmarks | Descriptive flags: ongoing novelty / complexity / activity metrics were observed | Hallmarks observed as metrics ≠ OEE demonstrated |
 | ISAL 2024 MODES assessment (Bohm / Zhang / Dolson) | Report the four MODES axes with persistence filtering and explicit limitations | Not a publication-grade OEE assessment by itself |
 | User philosophy | Survivors reproduce; measure whether next-gen fitness/behavior **metrics** move | Metric deltas are runtime observations, not instinct/intelligence proof |
@@ -26,10 +28,10 @@ post-hoc analyze-mode dump: callers get a Python
 - Default pack ceiling: `runtime_observation`
 - `instinct_improved` requires metric delta + same-seed paired comparison + **multi-seed protocol** + ablation/control + persistence filter. Missing any of those downgrades to `runtime_observation`.
 - OEE ceiling: `oee_measurement_only`. `oee_candidate` still needs the existing research-grade thresholds (seeds, shadow, CIs, …).
-- Channon 2024 Tokyo Type 1 vocabulary: `tokyo_type1_measurement_only` is a ClaimGate **alias** of `oee_measurement_only` (`evaluate_tokyo_type1_measurement_claim`). This is a measurement hook, **not** a Type 1 pass. `tokyo_type1_passed` remains forbidden. CLIP / ASAL foundation-model OE (arXiv 2412.17799) is **not** implemented.
+- Channon 2024 Tokyo Type 1: `TokyoType1MeasurementProtocol` records measurement steps at ceiling `tokyo_type1_measurement_only`. Pack-level `evaluate_tokyo_type1_measurement_claim(pack)` is a cheap vocabulary hook that aliases to `oee_measurement_only` unless Channon steps are recorded. This is **not** a Type 1 pass. `tokyo_type1_passed` remains forbidden. CLIP / ASAL foundation-model OE (arXiv 2412.17799) is **not** implemented.
 - Blocked: `open_ended_intelligence`, `proved_instinct_evolution`, `proved_open_endedness`, AGI, collective intelligence, Tokyo Type 1 passed.
 
-See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md) for the 2026 bugfix → literature mapping. Pack `LITERATURE_CHECKLIST` keys are unchanged so Phase D pack payloads stay stable.
+See also [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md). Pack `LITERATURE_CHECKLIST` keys are unchanged so Phase D pack payloads stay stable.
 
 ## API entry points
 
@@ -56,4 +58,7 @@ Optional: `life_loop_world(reproduction_mode=SEXUAL_CROSSOVER)` and
 `dynamic_environment_world()` remain substrate opt-ins. Phase D reads
 their records; it does not change their defaults.
 
-Print-only smoke: `examples/genesis_multi_generation_evidence.py`.
+Print-only smoke: `examples/genesis_multi_generation_evidence.py`,
+`examples/genesis_tokyo_type1_measurement.py`.
+
+See also `docs/SCIENTIFIC_AUTHORITIES_2026.md`.

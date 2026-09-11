@@ -9,7 +9,9 @@ Literature grounding (measurement design only — not proof of OEE or intelligen
 
 - MODES toolbox: Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* —
   change, novelty, complexity, ecological potential, with a persistence filter
-  so only lineages that still have descendants after ``t`` generations count.
+  so only lineages that still have descendants after ``persistence_window_t``
+  generations count. The filter is an organism-id descendant graph over a
+  coalescence window, not a full Empirical systematics / shadow phylogeny.
 - Bedau evolutionary activity statistics: novelty, diversity, and (cumulative)
   activity of components over time.
 - ALife OEE encyclopedia hallmarks and the ISAL 2024 MODES assessment
@@ -58,7 +60,9 @@ LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
         "modes_dolson_2019",
         "Dolson, Vostinar, Wiser, Ofria 2019 Artificial Life: MODES toolbox "
         "(change, novelty, complexity, ecological potential) plus persistence "
-        "filter on lineages with descendants after t generations.",
+        "filter on lineages with descendants after persistence_window_t "
+        "generations (coalescence-window organism-id graph, not Empirical "
+        "systematics).",
     ),
     (
         "bedau_evolutionary_activity",
@@ -86,6 +90,13 @@ LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
 _PHASE_D_CLAIM_CEILING = "runtime_observation"
 _MAX_CANDIDATE_CEILING = "candidate_evidence"
 _PACK_SCHEMA = "multi_generation_evidence_pack_v1"
+MODES_PERSISTENCE_LIMITATIONS: tuple[str, ...] = (
+    "coalescence_window_organism_id_graph_not_full_phylogeny",
+    "no_empirical_systematics_shadow_run",
+    "self_survival_counts_as_lineage_continuation",
+    "window_longer_than_mrca_filters_more_historical_types",
+    "not_a_bit_identical_modes_cpp_port",
+)
 _FORBIDDEN_PACK_CLAIMS = frozenset(
     {
         "proved_open_endedness",
@@ -131,6 +142,12 @@ class MultiGenerationEvidenceConfig:
             )
         if self.claim_ceiling in _FORBIDDEN_PACK_CLAIMS:
             raise ConfigurationError("Phase D config must never request a blocked proof claim.")
+
+    @property
+    def persistence_window_t(self) -> int:
+        """Explicit MODES persistence / coalescence window (generations)."""
+
+        return self.persistence_window_generations
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -415,7 +432,13 @@ class InstinctAblationControl:
 
 @dataclass(frozen=True, slots=True)
 class PersistentLineageFilter:
-    """MODES-inspired persistence window: descendants still alive after t."""
+    """MODES-inspired persistence window: descendants still alive after t.
+
+    This is a coalescence-window organism-id descendant graph, not a full
+    Empirical phylogenetic systematics / shadow run. An ancestor persists if
+    it or any descendant is alive at ``generation + persistence_window_t``.
+    Self-survival counts as lineage continuation.
+    """
 
     window_t: int
     generation: int
@@ -425,17 +448,34 @@ class PersistentLineageFilter:
     alive_at_generation: int
     alive_at_horizon: int
     schema_version: str = "persistent_lineage_filter_v1"
+    empirical_systematics_shadow_run: bool = False
+    coalescence_window_semantics: str = "organism_id_descendant_graph_at_generation_plus_t"
+    self_survival_counts_as_lineage_continuation: bool = True
+    horizon_observed: bool = True
+
+    @property
+    def persistence_window_t(self) -> int:
+        return self.window_t
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
             "schema_version": self.schema_version,
             "window_t": self.window_t,
+            "persistence_window_t": self.window_t,
             "generation": self.generation,
             "horizon_generation": self.horizon_generation,
             "persistent_organism_ids": list(self.persistent_organism_ids),
             "persistent_component_keys": list(self.persistent_component_keys),
             "alive_at_generation": self.alive_at_generation,
             "alive_at_horizon": self.alive_at_horizon,
+            "empirical_systematics_shadow_run": False,
+            "coalescence_window_semantics": self.coalescence_window_semantics,
+            "self_survival_counts_as_lineage_continuation": (
+                self.self_survival_counts_as_lineage_continuation
+            ),
+            "horizon_observed": self.horizon_observed,
+            "limitations": list(MODES_PERSISTENCE_LIMITATIONS),
+            "oee_proved": False,
         }
 
     def digest(self) -> str:
@@ -478,6 +518,10 @@ class ModesAssessment:
     literature_refs: tuple[str, ...]
     claim_ceiling: str = _PHASE_D_CLAIM_CEILING
     schema_version: str = "modes_assessment_v1"
+
+    @property
+    def persistence_window_t(self) -> int:
+        return self.persistence_window_generations
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -604,9 +648,17 @@ class MultiGenerationEvidencePack:
     def __post_init__(self) -> None:
         if self.claim_ceiling not in {_PHASE_D_CLAIM_CEILING, _MAX_CANDIDATE_CEILING}:
             raise ConfigurationError("MultiGenerationEvidencePack claim_ceiling is too strong.")
-        if self.claim_ceiling in _FORBIDDEN_PACK_CLAIMS or self.instinct_improved_status in _FORBIDDEN_PACK_CLAIMS:
-            raise ConfigurationError("MultiGenerationEvidencePack must never claim OEE/intelligence proved.")
-        if self.oee_metrics_report is not None and self.oee_metrics_report.claim_level == "proved_open_endedness":
+        if (
+            self.claim_ceiling in _FORBIDDEN_PACK_CLAIMS
+            or self.instinct_improved_status in _FORBIDDEN_PACK_CLAIMS
+        ):
+            raise ConfigurationError(
+                "MultiGenerationEvidencePack must never claim OEE/intelligence proved."
+            )
+        if (
+            self.oee_metrics_report is not None
+            and self.oee_metrics_report.claim_level == "proved_open_endedness"
+        ):
             raise ConfigurationError("OEEMetricsReport must never claim proof of open-endedness.")
         computed = canonical_digest(self._payload())
         if self.digest and self.digest != computed:
@@ -626,7 +678,9 @@ class MultiGenerationEvidencePack:
             "cohort_comparison": None
             if self.cohort_comparison is None
             else self.cohort_comparison.to_dict(),
-            "modes_assessment": None if self.modes_assessment is None else self.modes_assessment.to_dict(),
+            "modes_assessment": None
+            if self.modes_assessment is None
+            else self.modes_assessment.to_dict(),
             "bedau_surface": None if self.bedau_surface is None else self.bedau_surface.to_dict(),
             "oee_metrics_report": None
             if self.oee_metrics_report is None
@@ -634,7 +688,9 @@ class MultiGenerationEvidencePack:
             "hallmark_observation": None
             if self.hallmark_observation is None
             else self.hallmark_observation.to_dict(),
-            "ablation_control": None if self.ablation_control is None else self.ablation_control.to_dict(),
+            "ablation_control": None
+            if self.ablation_control is None
+            else self.ablation_control.to_dict(),
             "literature_checklist": [[key, text] for key, text in self.literature_checklist],
             "multi_seed_protocol": None
             if self.multi_seed_protocol is None
@@ -656,7 +712,9 @@ class MultiGenerationEvidencePack:
         return self.to_json()
 
 
-def export_multi_generation_evidence_pack(pack: MultiGenerationEvidencePack) -> dict[str, JsonValue]:
+def export_multi_generation_evidence_pack(
+    pack: MultiGenerationEvidencePack,
+) -> dict[str, JsonValue]:
     """Return a JSON-ready dict with digest. Callers may write it; the library does not."""
 
     return pack.to_dict()
@@ -730,13 +788,19 @@ def censuses_from_run(result: object) -> tuple[GenerationCensus, ...]:
                 OrganismCensusRecord(
                     organism_id=organism_id,
                     generation=generation,
-                    genome_digest=digest_by_id.get(organism_id, str(getattr(record, "genome_digest", "") or "")),
+                    genome_digest=digest_by_id.get(
+                        organism_id, str(getattr(record, "genome_digest", "") or "")
+                    ),
                     genome_bits=bits_by_id.get(organism_id, ""),
                     parent_id=None if parent_id is None else str(parent_id),
                     second_parent_id=None if second_parent_id is None else str(second_parent_id),
                     fitness=round(require_finite_float("fitness", fitness), 10),
-                    selection_fitness=round(require_finite_float("selection_fitness", selection_fitness), 10),
-                    runtime_atp=round(require_finite_float("runtime_atp", runtime_atp, non_negative=True), 10),
+                    selection_fitness=round(
+                        require_finite_float("selection_fitness", selection_fitness), 10
+                    ),
+                    runtime_atp=round(
+                        require_finite_float("runtime_atp", runtime_atp, non_negative=True), 10
+                    ),
                     lumen_eaten=lumen_eaten,
                     action_counts=action_counts,
                     role_signature=role,
@@ -774,8 +838,12 @@ def censuses_from_run(result: object) -> tuple[GenerationCensus, ...]:
                     parent_id=None if parent_id is None else str(parent_id),
                     second_parent_id=None if second_parent_id is None else str(second_parent_id),
                     fitness=round(require_finite_float("fitness", fitness), 10),
-                    selection_fitness=round(require_finite_float("selection_fitness", selection_fitness), 10),
-                    runtime_atp=round(require_finite_float("runtime_atp", runtime_atp, non_negative=True), 10),
+                    selection_fitness=round(
+                        require_finite_float("selection_fitness", selection_fitness), 10
+                    ),
+                    runtime_atp=round(
+                        require_finite_float("runtime_atp", runtime_atp, non_negative=True), 10
+                    ),
                     lumen_eaten=lumen_eaten,
                     action_counts=action_counts,
                     role_signature=role,
@@ -787,8 +855,12 @@ def censuses_from_run(result: object) -> tuple[GenerationCensus, ...]:
         censuses.append(
             GenerationCensus(
                 generation=generation,
-                mean_fitness=round(float(getattr(generation_result, "mean_fitness", 0.0) or 0.0), 10),
-                max_fitness=round(float(getattr(generation_result, "best_fitness", 0.0) or 0.0), 10),
+                mean_fitness=round(
+                    float(getattr(generation_result, "mean_fitness", 0.0) or 0.0), 10
+                ),
+                max_fitness=round(
+                    float(getattr(generation_result, "best_fitness", 0.0) or 0.0), 10
+                ),
                 selection_mean_fitness=round(
                     float(getattr(generation_result, "selection_mean_fitness", 0.0) or 0.0), 10
                 ),
@@ -879,28 +951,69 @@ def build_children_map(censuses: Sequence[GenerationCensus]) -> dict[str, tuple[
     return {key: tuple(dict.fromkeys(values)) for key, values in children.items()}
 
 
+def describe_modes_persistence_semantics() -> dict[str, JsonValue]:
+    """Return the coalescence-window contract for the Phase D persistence filter.
+
+    This is documentation/measurement design, not a claim that Empirical
+    systematics or open-endedness has been run.
+    """
+
+    return {
+        "persistence_window_t_alias_of": "persistence_window_generations",
+        "coalescence_window_semantics": "organism_id_descendant_graph_at_generation_plus_t",
+        "self_survival_counts_as_lineage_continuation": True,
+        "empirical_systematics_shadow_run": False,
+        "limitations": list(MODES_PERSISTENCE_LIMITATIONS),
+        "oee_proved": False,
+        "literature_refs": ["modes_dolson_2019", "empirical_systematics_persistence_filter_notes"],
+    }
+
+
 def filter_persistent_lineages(
     censuses: Sequence[GenerationCensus],
     *,
     generation: int,
-    window_t: int,
+    window_t: int | None = None,
+    persistence_window_t: int | None = None,
     component_kind: str = "genotype",
 ) -> PersistentLineageFilter:
-    """Return organisms at ``generation`` that still have descendants at ``generation+t``."""
+    """Return organisms at ``generation`` that still have descendants at ``generation+t``.
 
+    ``persistence_window_t`` is the explicit coalescence-window alias of
+    ``window_t``. The horizon census must exist; otherwise no lineage is
+    counted as persistent (the window was not observed). This is not a full
+    Empirical phylogenetic systematics / shadow run.
+    """
+
+    if window_t is None and persistence_window_t is None:
+        raise ConfigurationError(
+            "filter_persistent_lineages requires window_t or persistence_window_t."
+        )
+    if (
+        window_t is not None
+        and persistence_window_t is not None
+        and window_t != persistence_window_t
+    ):
+        raise ConfigurationError(
+            "window_t and persistence_window_t must match when both are provided."
+        )
+    resolved_t = persistence_window_t if persistence_window_t is not None else window_t
+    if resolved_t is None or resolved_t < 1:
+        raise ConfigurationError("persistence_window_t must be >= 1.")
     by_gen = {item.generation: item for item in censuses}
-    horizon = generation + window_t
+    horizon = generation + resolved_t
     current = by_gen.get(generation)
     future = by_gen.get(horizon)
     if current is None or future is None:
         return PersistentLineageFilter(
-            window_t=window_t,
+            window_t=resolved_t,
             generation=generation,
             horizon_generation=horizon,
             persistent_organism_ids=(),
             persistent_component_keys=(),
             alive_at_generation=0 if current is None else len(current.organisms),
             alive_at_horizon=0 if future is None else len(future.organisms),
+            horizon_observed=False,
         )
     children = build_children_map(censuses)
     alive_horizon = {item.organism_id for item in future.organisms}
@@ -911,13 +1024,14 @@ def filter_persistent_lineages(
             persistent.append(organism.organism_id)
             keys.append(organism.component_key(component_kind))
     return PersistentLineageFilter(
-        window_t=window_t,
+        window_t=resolved_t,
         generation=generation,
         horizon_generation=horizon,
         persistent_organism_ids=tuple(persistent),
         persistent_component_keys=tuple(dict.fromkeys(keys)),
         alive_at_generation=len(current.organisms),
         alive_at_horizon=len(future.organisms),
+        horizon_observed=True,
     )
 
 
@@ -967,7 +1081,11 @@ def build_modes_assessment(
     return ModesAssessment(
         points=tuple(points),
         persistence_window_generations=window,
-        literature_refs=("modes_dolson_2019", "isal_2024_modes_assessment"),
+        literature_refs=(
+            "modes_dolson_2019",
+            "isal_2024_modes_assessment",
+            "empirical_systematics_persistence_filter_notes",
+        ),
     )
 
 
@@ -1041,9 +1159,7 @@ def compare_descendant_cohorts(
     by_gen = {item.generation: item for item in censuses}
     ancestor_g = config.ancestor_generation
     descendant_g = (
-        config.descendant_generation
-        if config.descendant_generation is not None
-        else max(by_gen)
+        config.descendant_generation if config.descendant_generation is not None else max(by_gen)
     )
     ancestor = by_gen.get(ancestor_g)
     descendant = by_gen.get(descendant_g)
@@ -1189,9 +1305,7 @@ def build_oee_measurement_from_trajectories(
         coverage_slope = (
             instinct.summaries[-1].unique_behaviors - instinct.summaries[0].unique_behaviors
         ) / max(1, len(instinct.summaries) - 1)
-    persistent_novelty = (
-        sum(novelty_values) / len(novelty_values) if novelty_values else 0.0
-    )
+    persistent_novelty = sum(novelty_values) / len(novelty_values) if novelty_values else 0.0
     lineage_persistence = (
         sum(persistence_values) / len(persistence_values) if persistence_values else 0.0
     )
@@ -1213,7 +1327,8 @@ def build_oee_measurement_from_trajectories(
         metrics=metrics,
         shadow_adjusted=False,
         persistence_window_observed=modes.persistence_window_generations if modes else 0,
-        diversity_collapse_flag=bool(instinct.summaries) and instinct.summaries[-1].unique_behaviors <= 1,
+        diversity_collapse_flag=bool(instinct.summaries)
+        and instinct.summaries[-1].unique_behaviors <= 1,
     )
 
 
@@ -1255,7 +1370,9 @@ def build_multi_generation_evidence_pack(
     instinct = build_instinct_behavior_trajectory(censuses)
     comparison = paired_comparison or compare_descendant_cohorts(censuses, cfg, env_seed=seed)
     if cfg.paired_seed_reevaluation and spec is not None and comparison is not None:
-        ancestor = next((item for item in censuses if item.generation == cfg.ancestor_generation), None)
+        ancestor = next(
+            (item for item in censuses if item.generation == cfg.ancestor_generation), None
+        )
         descendant = censuses[-1] if censuses else None
         if ancestor is not None and descendant is not None:
             comparison = reevaluate_cohorts_on_seed(
@@ -1403,9 +1520,7 @@ def _oee_measurement_flags(pack: MultiGenerationEvidencePack) -> dict[str, bool]
         "min_seed_threshold_met": bool(
             pack.oee_metrics_report and pack.oee_metrics_report.seed_count >= 30
         ),
-        "persistence_window_observed": bool(
-            pack.modes_assessment and pack.modes_assessment.points
-        ),
+        "persistence_window_observed": bool(pack.modes_assessment and pack.modes_assessment.points),
         "confidence_intervals_present": False,
         "stagnation_diversity_status_recorded": pack.oee_metrics_report is not None,
         "claim_gate_decision_digest": False,
@@ -1443,9 +1558,7 @@ def _action_counts(trace: object | None) -> tuple[tuple[str, int], ...]:
     return tuple(sorted(counts.items()))
 
 
-def _behavior_key(
-    role: str, action_counts: Sequence[tuple[str, int]], lumen_eaten: int
-) -> str:
+def _behavior_key(role: str, action_counts: Sequence[tuple[str, int]], lumen_eaten: int) -> str:
     actions = ",".join(f"{name}:{count}" for name, count in action_counts)
     return f"{role}|eat:{lumen_eaten}|{actions}"
 
@@ -1455,6 +1568,13 @@ def _has_living_descendant(
     children: Mapping[str, Sequence[str]],
     alive_horizon: set[str],
 ) -> bool:
+    """True if ``organism_id`` or any descendant is alive at the horizon.
+
+    Self-survival counts as lineage continuation (the coalescence-window
+    lineage did not go extinct). This is an organism-id graph walk, not a
+    phylogenetic taxon reconstruction.
+    """
+
     stack = [organism_id]
     seen: set[str] = set()
     while stack:
@@ -1522,9 +1642,13 @@ def _spec_with_mutation_rate(spec: object, bit_flip_rate: float) -> object:
     new_mutation = None if mutation is None else replace(mutation, bit_flip_rate=bit_flip_rate)
     new_configs = configs
     if configs is not None:
-        new_configs = replace(configs, mutation=replace(configs.mutation, bit_flip_rate=bit_flip_rate))
+        new_configs = replace(
+            configs, mutation=replace(configs.mutation, bit_flip_rate=bit_flip_rate)
+        )
     return replace(
         spec,  # type: ignore[type-var]
-        mutation_config=new_mutation if new_mutation is not None else getattr(spec, "mutation_config", None),
+        mutation_config=new_mutation
+        if new_mutation is not None
+        else getattr(spec, "mutation_config", None),
         population_configs=new_configs,
     )

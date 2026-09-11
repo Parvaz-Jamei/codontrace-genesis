@@ -51,6 +51,7 @@ STRICT_REPLAY_CRITICAL_DIGEST_CLASSES: tuple[str, ...] = (
     "codontrace.genesis.scientific_evidence.ScientificEvidencePack",
     "codontrace.genesis.statistical_protocol.OEEMetricsReport",
     "codontrace.genesis.multi_generation.MultiGenerationEvidencePack",
+    "codontrace.genesis.tokyo_type1.TokyoType1MeasurementProtocol",
     "codontrace.genesis.phase_e.AvidaParityProtocolSpec",
     "codontrace.genesis.phase_e.PhaseEEvidencePack",
     "codontrace.genesis.phase_e.PhenotypeTranscriptomeEvidence",
@@ -640,6 +641,12 @@ _DIGEST_FIELDS_BY_CLASS: dict[str, tuple[str, ...]] = {
     ),
     "codontrace.genesis.statistical_protocol.OEEMetricsReport": ("threshold_digest", "digest"),
     "codontrace.genesis.multi_generation.MultiGenerationEvidencePack": ("run_digest", "digest"),
+    "codontrace.genesis.tokyo_type1.TokyoType1MeasurementProtocol": (
+        "shadow_digest",
+        "source_pack_digest",
+        "digest",
+    ),
+    "codontrace.genesis.tokyo_type1.TokyoType1StepResult": ("shadow_digest",),
     "codontrace.genesis.statistical_report.StatisticalExperimentReport": ("protocol_digest",),
     "codontrace.genesis.toolchain.ToolChainRecord": (
         "state_digest",
@@ -886,7 +893,13 @@ for _path, _fields in _PHASE_E_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields
 
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
-    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, "codontrace.genesis.phase_e.PhaseEObservation"))
+    dict.fromkeys(
+        (
+            *NON_REPLAY_CRITICAL_DIGEST_CLASSES,
+            "codontrace.genesis.phase_e.PhaseEObservation",
+            "codontrace.genesis.tokyo_type1.TokyoType1StepResult",
+        )
+    )
 )
 
 

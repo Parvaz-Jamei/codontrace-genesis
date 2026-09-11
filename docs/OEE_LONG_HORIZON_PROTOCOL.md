@@ -13,7 +13,10 @@ Configuration is immutable/dataclass-based where replay-critical.
 Features are opt-in and remain library APIs, not UI/server workflows.
 
 ## Metrics
-Metrics are digestable and claim-gated.
+Metrics are digestable and claim-gated. Phase D persistence uses an explicit
+`persistence_window_t` coalescence window. Channon 2024 Tokyo Type 1 is
+available as a measurement protocol (`tokyo_type1_measurement_only`); a Type 1
+pass remains blocked.
 
 ## Artifacts / manifest fields
 Relevant Phase 2 fields are recorded through runtime_hashes and validation helpers.

@@ -239,7 +239,11 @@ def read_environment_cue(
                         if not (0 <= cell[0] < width and 0 <= cell[1] < height):
                             continue
                     amount = resources.get(cell, 0.0)
-                    if isinstance(amount, (int, float)) and not isinstance(amount, bool) and amount > 0:
+                    if (
+                        isinstance(amount, (int, float))
+                        and not isinstance(amount, bool)
+                        and amount > 0
+                    ):
                         nearby = True
                         break
                 if nearby:
@@ -325,9 +329,11 @@ class CapsuleMemoryState:
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> CapsuleMemoryState:
         raw_slots = data.get("slots", [])
-        slots = tuple(
-            CapsuleSlot.from_dict(item) for item in raw_slots if isinstance(item, Mapping)
-        ) if isinstance(raw_slots, list) else ()
+        slots = (
+            tuple(CapsuleSlot.from_dict(item) for item in raw_slots if isinstance(item, Mapping))
+            if isinstance(raw_slots, list)
+            else ()
+        )
         return cls(
             slots=slots,
             write_count=_int(data, "write_count", 0),
@@ -347,11 +353,15 @@ class CapsuleMemoryState:
         return None
 
     def write_slot(self, slot: CapsuleSlot, *, capacity: int = 4) -> None:
-        existing = [item for item in self.slots if not (
-            item.cue_regime == slot.cue_regime
-            and item.cue_has_local_food == slot.cue_has_local_food
-            and item.preferred_action == slot.preferred_action
-        )]
+        existing = [
+            item
+            for item in self.slots
+            if not (
+                item.cue_regime == slot.cue_regime
+                and item.cue_has_local_food == slot.cue_has_local_food
+                and item.preferred_action == slot.preferred_action
+            )
+        ]
         existing.append(slot)
         self.slots = tuple(existing[-max(1, capacity) :])
         self.write_count += 1
@@ -652,20 +662,24 @@ class DemeState:
     def from_dict(cls, data: Mapping[str, JsonValue]) -> DemeState:
         return cls(
             demes=tuple(
-                Deme.from_dict(item)
-                for item in data.get("demes", [])
-                if isinstance(item, Mapping)
-            ) if isinstance(data.get("demes", []), list) else (),
+                Deme.from_dict(item) for item in data.get("demes", []) if isinstance(item, Mapping)
+            )
+            if isinstance(data.get("demes", []), list)
+            else (),
             inbox=tuple(
                 DemeMessage.from_dict(item)
                 for item in data.get("inbox", [])
                 if isinstance(item, Mapping)
-            ) if isinstance(data.get("inbox", []), list) else (),
+            )
+            if isinstance(data.get("inbox", []), list)
+            else (),
             replication_events=tuple(
                 DemeReplicationEvent.from_dict(item)
                 for item in data.get("replication_events", [])
                 if isinstance(item, Mapping)
-            ) if isinstance(data.get("replication_events", []), list) else (),
+            )
+            if isinstance(data.get("replication_events", []), list)
+            else (),
         )
 
     def digest(self) -> str:
@@ -907,7 +921,9 @@ class PhaseESubstrateConfig:
         )
 
     @staticmethod
-    def deme_messaging_preset(*, deme_size: int = 2, replicate_on_mean_fitness: float | None = None) -> PhaseESubstrateConfig:
+    def deme_messaging_preset(
+        *, deme_size: int = 2, replicate_on_mean_fitness: float | None = None
+    ) -> PhaseESubstrateConfig:
         return PhaseESubstrateConfig(
             enabled=True,
             capsule_memory=CapsuleMemoryConfig(enabled=True, seed_preferred_action=""),
@@ -1289,7 +1305,11 @@ def send_message(
     inbox_capacity: int = 32,
 ) -> DemeMessage:
     resolved = _message_kind(kind)
-    if resolved is MessageKind.BLOCK_PROPAGATION or not can_forward and resolved is MessageKind.BROADCAST:
+    if (
+        resolved is MessageKind.BLOCK_PROPAGATION
+        or not can_forward
+        and resolved is MessageKind.BROADCAST
+    ):
         message = DemeMessage(
             tick=tick,
             deme_id=deme_id,
@@ -1298,7 +1318,9 @@ def send_message(
             payload=payload,
             recipient_ids=tuple(recipient_ids),
             blocked=True,
-            blocked_reason="block_propagation" if resolved is MessageKind.BLOCK_PROPAGATION else "cannot_forward",
+            blocked_reason="block_propagation"
+            if resolved is MessageKind.BLOCK_PROPAGATION
+            else "cannot_forward",
         )
         state.append_message(message, capacity=inbox_capacity)
         return message
@@ -1315,8 +1337,10 @@ def send_message(
         )
         state.append_message(message, capacity=inbox_capacity)
         return message
-    targets = tuple(recipient_ids) if recipient_ids else (
-        state.members_of(deme_id) if resolved is MessageKind.BROADCAST else ()
+    targets = (
+        tuple(recipient_ids)
+        if recipient_ids
+        else (state.members_of(deme_id) if resolved is MessageKind.BROADCAST else ())
     )
     message = DemeMessage(
         tick=tick,
@@ -1353,11 +1377,7 @@ def apply_deme_messaging_after_event(
     recorded: list[DemeMessage] = []
     action = str(getattr(event, "action", "") or "")
     status = str(getattr(event, "status", "") or "")
-    if (
-        config.send_on_eat
-        and action == "EAT_LUMEN"
-        and status in {"executed", "success"}
-    ):
+    if config.send_on_eat and action == "EAT_LUMEN" and status in {"executed", "success"}:
         recorded.append(
             send_message(
                 deme_state,
@@ -1484,7 +1504,11 @@ class PhaseERuntimeEvent:
 
 @dataclass(frozen=True, slots=True)
 class PhenotypeTranscriptomeEvidence:
-    """OntoAvida / avidaR-inspired exportable phenotype/transcriptome-ish object."""
+    """OntoAvida / avidaR-inspired exportable phenotype/transcriptome-ish object.
+
+    Action-execution counts are a transcriptome *proxy* (instruction/action
+    usage), not a biological RNA assay. Fitness/ATP/role are phenotype fields.
+    """
 
     organism_id: str
     tick: int
@@ -1497,6 +1521,10 @@ class PhenotypeTranscriptomeEvidence:
     sensory_regime: str
     deme_id: str | None
     message_count: int
+    fitness: float = 0.0
+    genome_length: int = 0
+    export_kind: str = "phenotype_plus_instruction_execution_counts_not_biological_transcriptome"
+    literature_refs: tuple[str, ...] = ("ontoavida_avidar_2023",)
     claim_ceiling: str = _PHASE_E_CLAIM_CEILING
     schema_version: str = "phenotype_transcriptome_evidence_v1"
     digest: str = ""
@@ -1507,6 +1535,15 @@ class PhenotypeTranscriptomeEvidence:
             "runtime_atp",
             round(require_finite_float("runtime_atp", self.runtime_atp, non_negative=True), 10),
         )
+        object.__setattr__(
+            self,
+            "fitness",
+            round(require_finite_float("fitness", self.fitness), 10),
+        )
+        if self.genome_length < 0:
+            raise ConfigurationError("genome_length must be non-negative.")
+        if not self.genome_length and self.genome_bits:
+            object.__setattr__(self, "genome_length", len(self.genome_bits))
         computed = canonical_digest(self._payload())
         if self.digest and self.digest != computed:
             raise ConfigurationError("PhenotypeTranscriptomeEvidence digest mismatch.")
@@ -1520,13 +1557,19 @@ class PhenotypeTranscriptomeEvidence:
             "generation": self.generation,
             "genome_bits": self.genome_bits,
             "action_counts": [[name, count] for name, count in self.action_counts],
+            "instruction_execution_counts": [[name, count] for name, count in self.action_counts],
             "runtime_atp": self.runtime_atp,
+            "fitness": self.fitness,
+            "genome_length": self.genome_length,
             "role_kind": self.role_kind,
             "capsule_digest": self.capsule_digest,
             "sensory_regime": self.sensory_regime,
             "deme_id": self.deme_id,
             "message_count": self.message_count,
+            "export_kind": self.export_kind,
+            "literature_refs": list(self.literature_refs),
             "claim_ceiling": self.claim_ceiling,
+            "biological_transcriptome": False,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -1739,6 +1782,11 @@ def export_phenotype_transcriptome(
     messages = tuple(getattr(generation_result, "phase_e_messages", ()) or ())
     generation_no = int(getattr(population, "generation", 0) or 0) if population is not None else 0
     tick_no = int(getattr(population, "tick", 0) or 0) if population is not None else 0
+    fitness_by_id: dict[str, float] = {}
+    for fit in getattr(generation_result, "fitness_results", ()) or ():
+        oid = str(getattr(fit, "organism_id", "") or "")
+        if oid:
+            fitness_by_id[oid] = float(getattr(fit, "score", 0.0) or 0.0)
     rows: list[PhenotypeTranscriptomeEvidence] = []
     for organism in organisms:
         counts: dict[str, int] = {}
@@ -1779,6 +1827,8 @@ def export_phenotype_transcriptome(
                 sensory_regime=regime,
                 deme_id=deme_id,
                 message_count=message_count,
+                fitness=fitness_by_id.get(str(organism.id), 0.0),
+                genome_length=len(genome_bits),
             )
         )
     return tuple(rows)

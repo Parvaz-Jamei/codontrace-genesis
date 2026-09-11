@@ -26,6 +26,12 @@ pins stay stable.
 - Phase H–L “not intelligence” pointers folded into
   `docs/PHASE_INDEX.md`. Canonical honesty doc remains
   `docs/WHY_NOT_INTELLIGENCE_YET.md`.
+- Full-suite honesty: register Phase H–L / RAG / hard-experiment digest
+  dataclasses in the replay policy sweep (measurement/reference, not
+  claim-granting). Remove the core `print()` from
+  `print_collective_intelligence_candidate_checklist` (examples may
+  print the rendered checklist). These tests were never in the old CI
+  subset.
 
 ### Phase L — Avida ORGANISM_MESSAGING / DEME_GROUP fidelity
 

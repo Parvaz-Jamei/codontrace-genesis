@@ -22,14 +22,14 @@ Szathmáry and Maynard Smith (Nature 1995, doi:10.1038/374227a0) listed major ev
 
 ## What CodonTrace Genesis has
 
-Deme containers; germline/soma tags; replicate-on-mean-fitness events; contribution ledger; Phase F/H group-vs-individual deltas; explicit major_transition_in_individuality=False.
+Deme containers; germline/soma tags; replicate-on-mean-fitness; contribution ledger; Phase F/H group-vs-individual deltas; Phase I ExportOfFitnessObservation scaffold with major_transition_in_individuality=False.
 
 ## What CodonTrace Genesis lacks
 
-Evolved transition in individuality; export-of-fitness as a result; conflict suppression; unicell revertant fitness collapse (see Conlin et al. 2023).
+Evolved transition in individuality; endogenous conflict suppression and germline sequestration; Conlin-style unicell revertant fitness collapse that is not payoff construction.
 
 ## Next experiment
 
-MLS vs organism-only with an isolation/revertant test: if group structure is forced off, does competence collapse? That is still not a proved transition until conflict suppression is endogenous.
+Keep the Phase I export-of-fitness scaffold honest: do not set major_transition_in_individuality True until conflict suppression is endogenous.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

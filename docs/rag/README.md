@@ -1,11 +1,11 @@
-# CodonTrace Genesis literature RAG (Phase H)
+# CodonTrace Genesis literature RAG (Phase H/I)
 
 Dependency-light research corpus + retriever for **CodonTrace Genesis**.
 No vector database. No forced ML dependencies. Retrieving a paper does
 **not** unlock `collective_intelligence`, `intelligence`, or AGI.
 
 Machine seed: [`src/codontrace/genesis/rag/corpus/seed.jsonl`](../../src/codontrace/genesis/rag/corpus/seed.jsonl)
-(shipped as package data). Human digests in [`corpus/`](corpus/).
+(shipped as package data). Human copies: [`corpus/`](corpus/).
 
 ## Query
 
@@ -19,7 +19,8 @@ for cite in cite_sources(hits):
 
 `examples/genesis_rag_query.py` prints ranked cites plus the
 `collective_intelligence_candidate` gap checklist (flags are listed, never
-auto-set).
+auto-set). `examples/genesis_phase_i_ci_evidence.py` prints Phase I harness
+status and earnable-flag sources.
 
 Public API: `ingest_document`, `search_corpus(query, k)`, `cite_sources`.
 Search ranking is deterministic for a fixed corpus (TF-IDF + feature-hash +
@@ -27,7 +28,8 @@ keyword overlap). Each `SearchResult` has a replay digest.
 
 ## Papers in the seed
 
-See [`PHASE_H_CI_AI_PATH.md`](../PHASE_H_CI_AI_PATH.md) for the has / lacks /
+See [`PHASE_H_CI_AI_PATH.md`](../PHASE_H_CI_AI_PATH.md) and
+[`PHASE_I_CI_EVIDENCE.md`](../PHASE_I_CI_EVIDENCE.md) for the has / lacks /
 next-experiment map. Seed `doc_id`s:
 
 - `miikkulainen_forrest_2021_nature_mi`
@@ -41,6 +43,9 @@ next-experiment map. Seed `doc_id`s:
 - `cao_yang_2026_vocabulary_verifier_gaps`
 - `chaturvedi_2026_role_mls`
 - `conlin_2023_dol_multicellularity_avida`
+- `gorelick_2004_normalized_mutual_entropy_dol` (Phase I)
+- `okasha_2006_levels_of_selection` (Phase I)
+- `michod_2007_pnas_export_of_fitness` (Phase I)
 
 ## Claim ceiling
 

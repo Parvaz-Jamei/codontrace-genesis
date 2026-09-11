@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### Phase I — collective-intelligence evidence harnesses
+
+CodonTrace Genesis measurement-first follow-on after Phase H (PR #13).
+**Does not** claim intelligence, collective intelligence, Tokyo Type 1
+passed, or Avida replacement. ClaimGate unchanged in the strict direction.
+No version bump. Phase A–E default digest pins stay stable.
+
+- Heldout unfamiliar-partner generalization
+  (`run_heldout_unfamiliar_partner_experiment`): familiar vs heldout lineage,
+  distinct partner digests, leakage status. Smoke does **not** earn
+  ClaimGate `heldout_protocol`.
+- Evolved (not assigned) division of labor
+  (`run_evolved_division_of_labor_experiment`): heritable two-task preference,
+  Gorelick-style NMI, all-A ablation. Does **not** auto-set `ablation_result`.
+- MLS evolutionary *outcome* vs organism-only
+  (`run_mls_evolutionary_outcome_experiment`): majority strategy contrast
+  (Okasha MLS2 analog), not a rank table.
+- Export-of-fitness scaffold (`build_export_of_fitness_observation`): isolation
+  vs group competence; isolation collapse marked as payoff construction;
+  `major_transition_in_individuality=False`.
+- `earn_collective_intelligence_candidate_flags`: research-scale evidence
+  objects may earn candidate flags; smoke never earns;
+  `replay_verification` is not earnable from Phase I.
+- RAG corpus: Gorelick 2004; Okasha 2006; Michod 2007 PNAS.
+- Docs: `docs/PHASE_I_CI_EVIDENCE.md`; WHY_NOT / PHASE_H cross-links.
+- Example: `examples/genesis_phase_i_ci_evidence.py`.
+
 ### Phase H — literature RAG + collective-intelligence pathway scaffolding
 
 CodonTrace Genesis measurement-first kickoff toward CI then broader AI/OEE.

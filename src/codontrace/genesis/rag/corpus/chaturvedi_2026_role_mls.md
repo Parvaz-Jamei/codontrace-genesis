@@ -22,14 +22,14 @@ Chaturvedi, El-Gazzar, and van Gerven (arXiv 2604.00810, 2026) show that multile
 
 ## What CodonTrace Genesis has
 
-Deme/group containers; role tags; group-vs-individual contrast; Phase H effect-size fields and seed_count hook; communication ablation harness.
+Deme/group containers; Phase H effect-size fields; Phase I MLS vs organism-only evolutionary *outcome* analog (majority strategy), not only a fitness delta.
 
 ## What CodonTrace Genesis lacks
 
-Coupled positive-sum/zero-sum channels; group-level shaping of a shared controller/mutation operator; endogenous dynamic roles; tragedy-of-the-commons avoidance as a result.
+Coupled positive-sum/zero-sum channels; shared controller/mutation operator under MLS; tragedy-of-the-commons ecology as in the paper.
 
 ## Next experiment
 
-Two-channel resource ecology with group-level selection on vs off; measure channel occupancy and role dynamics across >=12 seeds. Claim ceiling runtime_observation.
+Two-channel resource ecology remains future work. Phase I MLS outcome harness is the current measurement on-ramp. Claim ceiling runtime_observation.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

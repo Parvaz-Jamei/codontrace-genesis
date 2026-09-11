@@ -287,7 +287,10 @@ Channon 2024; arXiv 2607.09560; JaxLife; Goldsby / demes / major transitions).
 That note does **not** claim CodonTrace Genesis is close to AGI. Deme mean
 fitness, contribution ledgers, division-of-labor *metrics*, and
 group-vs-individual deltas remain `runtime_observation`; they are not
-`collective_intelligence` or `proved_collective_intelligence`.
+`collective_intelligence` or `proved_collective_intelligence`. Phase I
+heldout / evolved-DoL / MLS-outcome harnesses are the same ceiling: smoke
+never auto-sets ClaimGate candidate flags. See
+[`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md).
 
 ---
 

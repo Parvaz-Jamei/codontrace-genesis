@@ -23,14 +23,14 @@ Goldsby, Dornhaus, Kerr, and Ofria used Avida to ask whether the cost of switchi
 
 ## What CodonTrace Genesis has
 
-Phase H TaskSwitchingCostConfig hook that reweights DoL fitness shares by consecutive action-switch counts; Phase E/F role tags and DoL *metrics*; deme replicate-on-mean-fitness analog; messaging buffer.
+Phase H TaskSwitchingCostConfig hook; Phase I evolved (not assigned) two-task preference DoL analog with Gorelick-style NMI and ablation; Phase E/F role tags and DoL metrics; deme replicate-on-mean-fitness analog; messaging buffer.
 
 ## What CodonTrace Genesis lacks
 
-Evolved specialists under a CPU-delay-like cost that changes evolutionary outcome; Shannon mutual-information DoL at Goldsby scale; isolation-vs-group competence tests; 50-replicate campaigns as default evidence. Role tags remain assigned or round-robin.
+Avida CPU-delay specialists at ~50 replicates; isolation-vs-group competence as evolved autonomy loss (Phase I isolation collapse is partly payoff construction); instruction-level coordination.
 
 ## Next experiment
 
-How to get collective intelligence evidence: sweep task_switching_cost across seeds (>=12 research, 50 to approach the paper), measure DoL specialization vs cost, and test whether high-cost organisms fail tasks in isolation. Status stays runtime_observation until ClaimGate flags exist.
+How to get collective intelligence evidence: Phase I run_evolved_division_of_labor_experiment at research seed/generation counts, then still require ClaimGate flags from earn_collective_intelligence_candidate_flags — never from smoke.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

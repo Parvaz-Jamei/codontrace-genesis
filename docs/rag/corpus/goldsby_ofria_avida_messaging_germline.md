@@ -23,14 +23,14 @@ The Goldsby/Ofria Avida line treats communication and germline/soma architecture
 
 ## What CodonTrace Genesis has
 
-send/retrieve/broadcast/block_propagation buffer; role/germline/soma tags as eligibility gates; CollectiveDemePayoffPack; Phase F campaign ranking + group-vs-individual contrast; Phase H communication-ablation harness with multi-seed summary.
+Messaging buffer; role gates; CollectiveDemePayoffPack; Phase F ranking + group-vs-individual contrast; Phase H communication-ablation harness; Phase I heldout unfamiliar-partner campaign and MLS evolutionary-outcome harness (two-task analog).
 
 ## What CodonTrace Genesis lacks
 
-Evolved coordination instructions that pay; heldout unfamiliar-partner generalization; literature-scale MLS vs organism-only evolutionary outcome; evolved germline/soma networks.
+Evolved Avida coordination instructions that pay; literature-scale DEME_GROUP vs organism-only on the instruction ISA; evolved germline/soma networks.
 
 ## Next experiment
 
-How to get collective intelligence evidence: phase H communication ablation (already runnable) plus a true MLS treatment where deme-level selection changes lineage outcome vs organism-only, >=12 seeds, effect size. Do not set ClaimGate ablation_result from a smoke.
+How to get collective intelligence evidence: Phase I heldout + MLS outcome campaigns at research scale; do not set ClaimGate flags from smoke.
 
 Retrieving this digest is not `collective_intelligence` or intelligence evidence.

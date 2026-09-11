@@ -270,6 +270,12 @@ class OEEMetricsReport:
             raise ConfigurationError("OEEMetricsReport digest mismatch.")
         object.__setattr__(self, "digest", computed)
 
+    @property
+    def persistence_window_t(self) -> int:
+        """Explicit persistence / coalescence window used for measurement."""
+
+        return self.persistence_window_observed
+
     def _payload(self) -> dict[str, JsonValue]:
         return {
             "protocol_version": self.protocol_version,

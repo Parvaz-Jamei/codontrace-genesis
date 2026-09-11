@@ -150,6 +150,7 @@ _ALLOWED_CLAIMS: tuple[str, ...] = (
     "collective_intelligence_candidate",
     "swarm_coordination_candidate",
     "adf_single_macro_runtime_effect_observed",
+    "tokyo_type1_measurement_only",
 )
 
 _FORBIDDEN_ALIASES: tuple[str, ...] = (
@@ -213,11 +214,13 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "tokyo_type_1_oee_proved",
     "tokyo_type1_oee_passed",
     "channon_tokyo_type1_passed",
+    "tokyo_type1_proved",
+    "channon_2024_passed",
 )
 
 # Channon 2024 Artif Life: Bedau activity + shadow normalization as *measurement
-# hooks*. Canonical ceiling stays oee_measurement_only. CLIP/ASAL OE is not
-# implemented here.
+# hooks*. Pack-level requests alias to oee_measurement_only; recorded Channon
+# steps may keep tokyo_type1_measurement_only. CLIP/ASAL OE is not implemented.
 TOKYO_TYPE1_MEASUREMENT_CLAIM = "tokyo_type1_measurement_only"
 
 _LEGACY_ALIAS_MAP: tuple[tuple[str, str], ...] = (
@@ -273,6 +276,7 @@ _DEFAULT_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     ),
     "ground_truth_recovered": ("ground_truth_world", "recovery_report", "protocol_executed"),
     "oee_measurement_only": ("oee_metrics",),
+    "tokyo_type1_measurement_only": ("channon_2024_steps_recorded",),
     "runtime_observation": (),
     "instinct_improved": (
         "metric_delta_observed",
@@ -448,7 +452,6 @@ _DEFAULT_REQUIREMENTS: dict[str, tuple[str, ...]] = {
 }
 
 
-
 _CLAIM_LADDER_LEVELS: tuple[str, ...] = (
     "metadata_only",
     "instrumented_runtime",
@@ -471,11 +474,25 @@ _CLAIM_LADDER_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "heldout_supported": ("heldout_protocol", "leakage_check", "partner_or_world_shift"),
     "intervention_supported": ("intervention_result", "treatment_digest", "baseline_digest"),
     "claim_ready_research_alpha": (
-        "schema_version", "artifact_digest", "runtime_records", "pilot_run",
-        "negative_control", "control_digest", "ablation_result", "ablation_digest",
-        "multi_seed_protocol", "effect_size", "confidence_interval", "heldout_protocol",
-        "leakage_check", "partner_or_world_shift", "intervention_result", "treatment_digest",
-        "baseline_digest", "replay_verification", "claim_gate_decision_digest",
+        "schema_version",
+        "artifact_digest",
+        "runtime_records",
+        "pilot_run",
+        "negative_control",
+        "control_digest",
+        "ablation_result",
+        "ablation_digest",
+        "multi_seed_protocol",
+        "effect_size",
+        "confidence_interval",
+        "heldout_protocol",
+        "leakage_check",
+        "partner_or_world_shift",
+        "intervention_result",
+        "treatment_digest",
+        "baseline_digest",
+        "replay_verification",
+        "claim_gate_decision_digest",
     ),
 }
 
@@ -506,8 +523,14 @@ class StrongClaimLadderResult:
             raise ConfigurationError("invalid target_level.")
         flags = tuple(sorted((str(k), bool(v)) for k, v in self.evidence_flags))
         object.__setattr__(self, "evidence_flags", flags)
-        object.__setattr__(self, "missing_for_target", tuple(sorted(str(x) for x in self.missing_for_target)))
-        object.__setattr__(self, "satisfied_levels", tuple(x for x in _CLAIM_LADDER_LEVELS if x in set(self.satisfied_levels)))
+        object.__setattr__(
+            self, "missing_for_target", tuple(sorted(str(x) for x in self.missing_for_target))
+        )
+        object.__setattr__(
+            self,
+            "satisfied_levels",
+            tuple(x for x in _CLAIM_LADDER_LEVELS if x in set(self.satisfied_levels)),
+        )
         computed = _digest(self._payload())
         if self.digest and self.digest != computed:
             raise ConfigurationError("StrongClaimLadderResult digest mismatch.")
@@ -569,7 +592,8 @@ def evaluate_strong_claim_ladder(
         else:
             break
     missing = tuple(
-        name for name in _cumulative_claim_ladder_requirements(target_level)
+        name
+        for name in _cumulative_claim_ladder_requirements(target_level)
         if not normalized_flags.get(name, False)
     )
     return StrongClaimLadderResult(
@@ -580,6 +604,7 @@ def evaluate_strong_claim_ladder(
         missing_for_target=missing,
         satisfied_levels=tuple(satisfied),
     )
+
 
 def default_claim_gate_policy() -> ClaimGatePolicy:
     return ClaimGatePolicy(
@@ -650,6 +675,15 @@ class ScientificClaimGate:
     def decide(self, request: ClaimRequest) -> ClaimDecision:
         normalized = normalize_claim_label(request.claim)
         canonical = self._aliases.get(normalized, normalized)
+        # Pack-level cheap hook: tokyo_type1_measurement_only aliases to
+        # oee_measurement_only. Protocol objects that recorded Channon 2024
+        # steps keep the first-class measurement ceiling. Pass claims stay
+        # forbidden either way.
+        if (
+            normalized == TOKYO_TYPE1_MEASUREMENT_CLAIM
+            and request.evidence_flags.get("channon_2024_steps_recorded", False)
+        ):
+            canonical = normalized
         evidence_digests = tuple(sorted({str(item) for item in request.evidence_digests if item}))
         if request.manifest_digest:
             evidence_digests = tuple(sorted((*evidence_digests, request.manifest_digest)))
@@ -708,6 +742,8 @@ class ScientificClaimGate:
         if canonical == "oee_candidate":
             return "oee_measurement_only"
         if canonical == "instinct_improved":
+            return "runtime_observation"
+        if canonical == "tokyo_type1_measurement_only":
             return "runtime_observation"
         if canonical == "adaptive_gp_map_proxy":
             return "experimental_engine"

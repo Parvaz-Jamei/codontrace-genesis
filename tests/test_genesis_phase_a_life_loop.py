@@ -136,6 +136,21 @@ def test_life_loop_profile_is_explicit_ecology_preset() -> None:
     assert spec.genome_bits.count(LIFE_LOOP_WAITER_GENOME) >= 1
     assert spec.initial_runtime_atp == LIFE_LOOP_INITIAL_RUNTIME_ATP
     assert configs.reproduction.min_runtime_atp == LIFE_LOOP_MIN_RUNTIME_ATP
+    assert spec.population_max > 6
+    assert configs.reproduction.max_population > 6
+    assert spec.population_max == 8
+
+
+def test_life_loop_capacity_always_exceeds_initial_population() -> None:
+    """Avida-like room to birth: founders must not fill the capacity cap."""
+
+    for population in (1, 6, 8, 10):
+        spec = GenesisRuntimeProfile.life_loop_world(seed=3, tick_count=4, population=population)
+        assert spec.population_configs is not None
+        assert spec.population_max > population
+        assert spec.population_configs.reproduction.max_population > population
+    default = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
+    assert default.digest() == "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
 
 
 def test_life_loop_profile_keeps_same_cell_as_explicit_policy() -> None:

@@ -436,9 +436,9 @@ from codontrace.genesis.multi_generation import (
     build_oee_measurement_from_trajectories,
     censuses_from_run,
     compare_descendant_cohorts,
+    describe_modes_persistence_semantics,
     evaluate_instinct_improvement_claim,
     evaluate_oee_measurement_claim,
-    evaluate_tokyo_type1_measurement_claim,
     export_multi_generation_evidence_pack,
     filter_persistent_lineages,
     genomes_from_census,
@@ -642,6 +642,16 @@ from codontrace.genesis.substrate import (
     SubstrateRuleConfig,
     element_grid_to_world2d,
     world2d_to_element_grid,
+)
+from codontrace.genesis.tokyo_type1 import (
+    CHANNON_2024_MEASUREMENT_STEPS,
+    LITERATURE_CHECKLIST as TOKYO_TYPE1_LITERATURE_CHECKLIST,
+    TokyoType1MeasurementProtocol,
+    TokyoType1StepResult,
+    build_tokyo_type1_measurement_protocol,
+    evaluate_tokyo_type1_measurement_claim,
+    evaluate_tokyo_type1_pass_claim,
+    tokyo_type1_claim_request,
 )
 from codontrace.genesis.toolchain import ToolChainState, evaluate_tool_chain_state
 from codontrace.genesis.validation import (
@@ -1118,6 +1128,15 @@ __all__ = [
     "instinct_improvement_claim_request",
     "reevaluate_cohorts_on_seed",
     "run_mutation_ablation_control",
+    "describe_modes_persistence_semantics",
+    "CHANNON_2024_MEASUREMENT_STEPS",
+    "TOKYO_TYPE1_LITERATURE_CHECKLIST",
+    "TokyoType1MeasurementProtocol",
+    "TokyoType1StepResult",
+    "build_tokyo_type1_measurement_protocol",
+    "evaluate_tokyo_type1_measurement_claim",
+    "evaluate_tokyo_type1_pass_claim",
+    "tokyo_type1_claim_request",
     "PHASE_E_LITERATURE_CHECKLIST",
     "AvidaParityProtocolSpec",
     "CapsuleMemoryConfig",

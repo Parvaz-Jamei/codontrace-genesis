@@ -23,6 +23,7 @@ from codontrace.genesis.multi_generation import (
     build_modes_assessment,
     build_multi_generation_evidence_pack,
     compare_descendant_cohorts,
+    describe_modes_persistence_semantics,
     evaluate_instinct_improvement_claim,
     evaluate_oee_measurement_claim,
     evaluate_tokyo_type1_measurement_claim,
@@ -103,6 +104,9 @@ def test_phase_d_public_api_symbols_are_exported() -> None:
         "evaluate_tokyo_type1_measurement_claim",
         "TOKYO_TYPE1_MEASUREMENT_CLAIM",
         "export_multi_generation_evidence_pack",
+        "describe_modes_persistence_semantics",
+        "TokyoType1MeasurementProtocol",
+        "build_tokyo_type1_measurement_protocol",
     ):
         assert hasattr(g, name)
         assert name in g.__all__
@@ -142,10 +146,61 @@ def test_persistence_filter_keeps_only_lineages_with_living_descendants() -> Non
     assert "A" in filt.persistent_organism_ids
     assert "B" not in filt.persistent_organism_ids
     assert filt.alive_at_horizon == 1
+    assert filt.persistence_window_t == 2
+    assert filt.horizon_observed is True
+    assert filt.to_dict()["empirical_systematics_shadow_run"] is False
+    assert "coalescence_window_organism_id_graph_not_full_phylogeny" in filt.to_dict()["limitations"]
     modes = build_modes_assessment(censuses, MultiGenerationEvidenceConfig(persistence_window_generations=2))
     assert modes.points
     assert modes.points[0].persistent_count == 1
+    assert modes.persistence_window_t == 2
     assert modes.to_dict()["oee_proved"] is False
+
+
+def test_persistence_filter_coalescence_window_drops_lineages_that_die_before_horizon() -> None:
+    """Longer t is a stricter coalescence window (Empirical MODES subtlety)."""
+
+    censuses = (
+        _census(
+            0,
+            (
+                _org("A", 0, genome="e1", fitness=1.0),
+                _org("B", 0, genome="w1", fitness=0.2),
+                _org("C", 0, genome="e9", fitness=0.5),
+            ),
+        ),
+        _census(
+            1,
+            (
+                _org("A1", 1, parent_id="A", genome="e2", fitness=1.5),
+                _org("B1", 1, parent_id="B", genome="w2", fitness=0.3),
+            ),
+            births=2,
+            deaths=1,
+        ),
+        _census(2, (_org("A2", 2, parent_id="A1", genome="e3", fitness=2.0),), births=1, deaths=1),
+    )
+    short = filter_persistent_lineages(censuses, generation=0, persistence_window_t=1)
+    long = filter_persistent_lineages(censuses, generation=0, window_t=2, persistence_window_t=2)
+    assert set(short.persistent_organism_ids) == {"A", "B"}
+    assert set(long.persistent_organism_ids) == {"A"}
+    assert "C" not in short.persistent_organism_ids
+    survivor = (
+        _census(0, (_org("S", 0, genome="stay"),)),
+        _census(1, (_org("S", 1, genome="stay"),)),
+        _census(2, (_org("S", 2, genome="stay"),)),
+    )
+    self_alive = filter_persistent_lineages(survivor, generation=0, persistence_window_t=2)
+    assert self_alive.persistent_organism_ids == ("S",)
+    assert self_alive.self_survival_counts_as_lineage_continuation is True
+    missing_horizon = filter_persistent_lineages(censuses, generation=0, persistence_window_t=3)
+    assert missing_horizon.persistent_organism_ids == ()
+    assert missing_horizon.horizon_observed is False
+    semantics = describe_modes_persistence_semantics()
+    assert semantics["empirical_systematics_shadow_run"] is False
+    assert semantics["oee_proved"] is False
+    config = MultiGenerationEvidenceConfig(persistence_window_generations=2)
+    assert config.persistence_window_t == 2
 
 
 def test_bedau_activity_surface_tracks_novelty_diversity_and_activity() -> None:

@@ -271,6 +271,12 @@ def test_avida_parity_protocol_and_ontoavida_export() -> None:
     rows = export_phenotype_transcriptome(result)
     assert rows
     assert rows[0].digest
+    assert rows[0].export_kind == (
+        "phenotype_plus_instruction_execution_counts_not_biological_transcriptome"
+    )
+    assert "instruction_execution_counts" in rows[0].to_dict()
+    assert rows[0].to_dict()["biological_transcriptome"] is False
+    assert "ontoavida_avidar_2023" in rows[0].literature_refs
     pack = build_phase_e_evidence_pack(result, protocol=protocol)
     assert pack.digest == pack.to_dict()["digest"]
     decision = evaluate_phase_e_claim(pack)

@@ -81,6 +81,7 @@ CodonTrace keeps the most important scientific boundaries in separate reviewable
 | Document | Purpose |
 |---|---|
 | [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims for the current public-beta release |
+| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × Avida / MODES / Channon 2024 / JaxLife / Aevol matrix (landed / partial / deferred); no OEE/Avida-replacement claims |
 | [`docs/PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md) | Phase D multi-generation evidence literature checklist (MODES / Bedau / OEE hallmarks) |
 | [`docs/PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md) | Phase E capsule / memory / role / deme / plasticity literature checklist |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | 2026 eval-bugfix → literature mapping (MODES, Channon Tokyo Type 1 *measurement only*, Avida 2.14.0, plasticity protocol). Not intelligence/OEE proof |
@@ -218,8 +219,12 @@ selects Phase B two-parent positional crossover. Seasonal / fluctuating
 environments are opt-in via `dynamic_environment_world()` or
 `life_loop_world(environment=...)`. Multi-generation instinct/behavior
 *measurement* is opt-in via `build_multi_generation_evidence_pack` and does
-not change these presets. Phase E capsule/memory/role/deme substrate effects
-are opt-in via `phase_e_substrate_world()` and do not change A–D defaults.
+not change these presets. An opt-in Channon 2024 Tokyo Type 1
+*measurement* protocol (`TokyoType1MeasurementProtocol`) records activity,
+novelty, and shadow/normalization hooks at claim ceiling
+`tokyo_type1_measurement_only`; `tokyo_type1_passed` is blocked. Phase E
+capsule/memory/role/deme substrate effects are opt-in via
+`phase_e_substrate_world()` and do not change A–D defaults.
 
 Phase B adds an optional sexual recombination substrate grounded in
 Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
@@ -245,11 +250,15 @@ Avida replacement.
 Phase D adds a post-hoc multi-generation evidence API grounded in the MODES
 toolbox (Dolson et al. 2019; persistence-filtered change/novelty/complexity/
 ecological potential), Bedau evolutionary activity statistics, and ALife OEE
-encyclopedia / ISAL 2024 MODES-assessment reporting practice. Callers get a
+encyclopedia / ISAL 2024 MODES-assessment reporting practice. Persistence
+uses an explicit `persistence_window_t` coalescence window (organism-id
+descendant graph; not a full Empirical systematics shadow run). Callers get a
 first-class `MultiGenerationEvidencePack` (JSON + digest) rather than only an
 external analyze-mode dump. Metric deltas are **runtime observations**.
 ClaimGate keeps `instinct_improved` below publication grade without multi-seed
-protocol objects and blocks open-ended intelligence.
+protocol objects and blocks open-ended intelligence. Channon 2024 Tokyo Type 1
+is implemented as measurement steps only (`tokyo_type1_measurement_only`);
+passing Type 1 is blocked. See `docs/SCIENTIFIC_AUTHORITIES_2026.md`.
 
 Phase E adds an opt-in substrate for **real** organism-local or lineage
 capsule/memory effects (subsequent action choice, ATP, or task eligibility),
@@ -282,6 +291,11 @@ from codontrace.genesis import build_multi_generation_evidence_pack
 pack = build_multi_generation_evidence_pack(result, spec=spec)
 print(pack.claim_ceiling, pack.digest[:24])
 
+from codontrace.genesis import build_tokyo_type1_measurement_protocol
+
+protocol = build_tokyo_type1_measurement_protocol(pack)
+print(protocol.claim_ceiling, protocol.tokyo_type1_passed)
+
 from codontrace.genesis import GenesisRuntimeProfile as Profile
 
 phase_e = Profile.phase_e_substrate_world(seed=7, tick_count=8, population=4)
@@ -292,6 +306,7 @@ Print-only smokes: `examples/genesis_life_loop.py`,
 `examples/genesis_sexual_recombination.py`,
 `examples/genesis_dynamic_environment.py`,
 `examples/genesis_multi_generation_evidence.py`,
+`examples/genesis_tokyo_type1_measurement.py`,
 `examples/genesis_phase_e_substrate.py`.
 
 ---

@@ -21,7 +21,7 @@ and birth records because the substrate actually changes subsequent behavior.
 | Clune 2007; Lalejini & Ofria 2016; Frontiers 2021 Adaptive Phenotypic Plasticity (`sense-react-*`) | Sensory-read API over Phase C regime + local patches; optional sense-react action bias | Not a claim that phenotypic plasticity evolved |
 | Ghalambor / Clune four-condition designs | Checklist object: ancestral static, novel static, fluctuating, assimilation under constant novel | Experimental-design checklist only |
 | Am Nat 2020 associative learning; PLOS One odometry case study | Organism-local or lineage capsule slots that change **subsequent** action choice, ATP, or task eligibility under a fixed seed (ablation: disabled capsule ⇒ different digest / behavior) | Not proved associative learning or navigation intelligence |
-| OntoAvida / avidaR (Sci Data 2023; PeerJ CS) | Exportable `PhenotypeTranscriptomeEvidence` JSON+digest objects | Not a transcriptome biology simulator |
+| OntoAvida / avidaR (Sci Data 2023; PeerJ CS) | Exportable `PhenotypeTranscriptomeEvidence` JSON+digest objects (genome, fitness, ATP, role, action-execution counts as a transcriptome *proxy*) | Not a transcriptome biology simulator |
 | Typical Avida post-hoc analyze-mode | First-class Python APIs + replay digests (`PhaseEEvidencePack`, `AvidaParityProtocolSpec`) | Software capability only; no superiority claim |
 
 ## ClaimGate

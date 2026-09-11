@@ -43,4 +43,4 @@ jobs:
         run: python tools/check_core_boundary.py
 
       - name: Run release-critical tests
-        run: python -m pytest tests/test_export_import.py tests/test_api_signature.py tests/test_genesis_causal_mechanism_hardening.py tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py tests/test_genesis_integration_public_api_unification.py tests/test_genesis_integration_runtime_wiring.py tests/release tests/genesis_gates --disable-plugin-autoload
+        run: python -m pytest tests/test_export_import.py tests/test_api_signature.py tests/test_genesis_causal_mechanism_hardening.py tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py tests/test_genesis_integration_public_api_unification.py tests/test_genesis_integration_runtime_wiring.py tests/test_genesis_eval_bugfixes.py tests/release tests/genesis_gates --disable-plugin-autoload

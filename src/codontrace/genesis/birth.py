@@ -117,6 +117,31 @@ class ReproductionMode(str, Enum):
     SEXUAL_CROSSOVER = "sexual_crossover"
 
 
+def coerce_reproduction_mode(value: ReproductionMode | str | None) -> ReproductionMode:
+    """Return a ``ReproductionMode``, or raise ``ValueError`` / ``TypeError``.
+
+    ``from_dict`` helpers historically accepted ``None`` as asexual. Direct
+    constructor / preset calls must not store an arbitrary string.
+    """
+
+    if value is None:
+        return ReproductionMode.ASEXUAL
+    if isinstance(value, ReproductionMode):
+        return value
+    if isinstance(value, str):
+        try:
+            return ReproductionMode(value)
+        except ValueError as exc:
+            allowed = ", ".join(sorted(item.value for item in ReproductionMode))
+            raise ValueError(
+                f"Unsupported reproduction_mode {value!r}. Allowed: {allowed}."
+            ) from exc
+    raise TypeError(
+        "reproduction_mode must be a ReproductionMode or str, "
+        f"not {type(value).__name__}."
+    )
+
+
 _BIRTH_CHAMBER_TIMEOUT_POLICIES = {"fail", "asexual_fallback"}
 _BIRTH_CHAMBER_PAIRING_POLICIES = {"birth_chamber", "nearest_mate"}
 

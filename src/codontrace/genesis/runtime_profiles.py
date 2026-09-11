@@ -10,7 +10,12 @@ from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
-from codontrace.genesis.birth import InheritancePolicy, ReproductionMode, SexualRecombinationConfig
+from codontrace.genesis.birth import (
+    InheritancePolicy,
+    ReproductionMode,
+    SexualRecombinationConfig,
+    coerce_reproduction_mode,
+)
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferConfig
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
@@ -306,7 +311,7 @@ class GenesisRuntimeProfile:
         tick_count: int = 16,
         population: int = 6,
         offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
-        reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL,
+        reproduction_mode: ReproductionMode | str = ReproductionMode.ASEXUAL,
         environment: EnvironmentConfig | None = None,
     ) -> GenesisExperimentSpec:
         """Assemble the Phase A ecology / Darwinian life-loop preset.
@@ -347,14 +352,21 @@ class GenesisRuntimeProfile:
         eating credits runtime ATP, starvation at the configured floor records
         an explicit death reason, survivors that clear AliveGate and ATP gates
         can COPY_SELF, and children inherit a mutated copy of the parent
-        genome unless sexual crossover is explicitly enabled. This is not a
-        proof of life, intelligence, instinct evolution, or Avida-replacement
-        status.
+        genome unless sexual crossover is explicitly enabled. Population
+        capacity is strictly greater than the initial count (``max(pop, 8)``
+        for the historical pop<8 presets; ``max(pop*2, 16)`` when pop>=8) so
+        the default life-loop can birth. This is not a proof of life,
+        intelligence, instinct evolution, or Avida-replacement status.
         """
 
         if population <= 0:
             raise ValueError("life_loop_world population must be > 0.")
-        world = World2D(6, 4)
+        reproduction_mode = coerce_reproduction_mode(reproduction_mode)
+        # pop>=8 used to pack a 6-wide row-major layout with no free von Neumann
+        # neighbor for most parents (adjacent births blocked). Widen only that
+        # case; pop<8 keeps the historical 6x4 pin.
+        world_width = 6 if population < 8 else max(8, population)
+        world = World2D(world_width, 4)
         for pos in LIFE_LOOP_FOOD_CELLS:
             world.place_resource(pos, LIFE_LOOP_RESOURCE_AMOUNT)
         waiter_count = 0 if population < 3 else max(1, population // 3)
@@ -369,7 +381,13 @@ class GenesisRuntimeProfile:
         else:
             eater_genomes = [LIFE_LOOP_EATER_GENOME] * eater_count
         genomes = tuple(eater_genomes + [LIFE_LOOP_WAITER_GENOME] * waiter_count)
-        capacity = max(population, 8)
+        # Capacity must exceed initial pop so COPY_SELF can admit children.
+        # pop < 8 keeps historical capacity=8 (pinned Phase A–E spec/snapshot
+        # digests). pop >= 8 used to equal capacity and block all births.
+        if population < 8:
+            capacity = max(population, 8)
+        else:
+            capacity = max(population * 2, 16)
         selection_capacity = max(2, min(capacity - 2, population + max(1, eater_count)))
         sexual = reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
         env_cfg = environment if environment is not None else EnvironmentConfig()
@@ -624,6 +642,7 @@ class GenesisRuntimeProfile:
                 enabled=enable_capsule_memory,
                 inherit_lineage=inherit_lineage_capsule,
                 seed_preferred_action=seed_preferred_action if enable_capsule_memory else "",
+                seed_requires_local_food=False,
             ),
             roles=RoleDifferentiationConfig(
                 enabled=enable_roles,
@@ -742,7 +761,13 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     evaluate intelligence or cooperation.
     """
 
-    ticks = getattr(result, "ticks", ())
+    if result is None:
+        raise TypeError("summarize_life_loop_observation requires a run result, not None.")
+    if not hasattr(result, "ticks"):
+        raise TypeError(
+            "summarize_life_loop_observation expected an object with a ticks collection."
+        )
+    ticks = getattr(result, "ticks")
     lumen_eaten = 0
     attempts = 0
     births = 0
@@ -754,6 +779,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     bits_by_id: dict[str, str] = {}
     position_by_id: dict[str, tuple[int, int]] = {}
     seen_lineage: dict[tuple[str, str, int], object] = {}
+    placement_by_child: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {}
     final_bits: dict[str, str] = {}
     for tick in ticks:
         generation = getattr(tick, "generation_result", None)
@@ -769,6 +795,12 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         for event in getattr(generation, "resource_policy_records", ()):
             if getattr(event, "event_type", "") == "resource_regenerated":
                 respawns += 1
+        for item in getattr(generation, "birth_placement_records", ()) or ():
+            child_key = str(getattr(item, "child_id", "") or "")
+            parent_cell = getattr(item, "parent_position", None)
+            placed_cell = getattr(item, "placement_cell", None)
+            if child_key and parent_cell is not None and placed_cell is not None:
+                placement_by_child[child_key] = (tuple(parent_cell), tuple(placed_cell))
         for record in getattr(generation, "organism_records", ()):
             death = getattr(record, "death_classification", None)
             if death is None or not getattr(death, "actual_death_removed_from_population", False):
@@ -780,6 +812,22 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
                 starvation_deaths += 1
         for record in getattr(generation, "organism_records", ()):
             reproduction = getattr(record, "reproduction_result", None)
+            if reproduction is not None and getattr(reproduction, "succeeded", False):
+                child = getattr(reproduction, "child", None)
+                parent_after = getattr(reproduction, "parent_after", None)
+                birth_event = getattr(reproduction, "birth_event", None)
+                child_key = "" if child is None else str(getattr(child, "id", "") or "")
+                parent_cell = None if parent_after is None else getattr(parent_after, "position", None)
+                placed_cell = None if child is None else getattr(child, "position", None)
+                if birth_event is not None and getattr(birth_event, "placement_cell", None) is not None:
+                    placed_cell = birth_event.placement_cell
+                if (
+                    child_key
+                    and parent_cell is not None
+                    and placed_cell is not None
+                    and child_key not in placement_by_child
+                ):
+                    placement_by_child[child_key] = (tuple(parent_cell), tuple(placed_cell))
             recombination = None if reproduction is None else getattr(
                 reproduction, "recombination_record", None
             )
@@ -830,6 +878,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
     waiter_births = 0
     sexual_pairs = 0
     two_parent_records = 0
+    counted_placement: set[str] = set()
     for (parent_id, child_id, _birth_tick), lineage in seen_lineage.items():
         parent_bits = bits_by_id.get(parent_id, "")
         child_bits = bits_by_id.get(child_id, "")
@@ -844,9 +893,16 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         mutation_count = int(getattr(lineage, "mutation_count", 0) or 0)
         if (parent_bits and child_bits and parent_bits != child_bits) or mutation_count > 0:
             mutated_pairs += 1
-        parent_pos = position_by_id.get(parent_id)
-        child_pos = position_by_id.get(child_id)
-        if parent_pos is not None and child_pos is not None:
+        parent_pos: tuple[int, int] | None = None
+        child_pos: tuple[int, int] | None = None
+        placed = placement_by_child.get(child_id)
+        if placed is not None:
+            parent_pos, child_pos = placed
+        else:
+            parent_pos = position_by_id.get(parent_id)
+            child_pos = position_by_id.get(child_id)
+        if parent_pos is not None and child_pos is not None and child_id not in counted_placement:
+            counted_placement.add(child_id)
             if parent_pos != child_pos:
                 displaced_births += 1
             else:
@@ -855,6 +911,14 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
             eater_births += 1
         elif parent_bits.startswith("000"):
             waiter_births += 1
+    for child_id, (parent_pos, child_pos) in placement_by_child.items():
+        if child_id in counted_placement:
+            continue
+        counted_placement.add(child_id)
+        if parent_pos != child_pos:
+            displaced_births += 1
+        else:
+            same_cell_births += 1
     surviving_eaters = sum(1 for bits in final_bits.values() if bits.startswith("101"))
     surviving_waiters = sum(1 for bits in final_bits.values() if bits.startswith("000"))
     digest = result.digest() if hasattr(result, "digest") else ""

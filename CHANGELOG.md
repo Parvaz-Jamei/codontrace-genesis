@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-Subsequent library work after `0.3.0b2` belongs here.
+### Fixed
+
+- Sexual life-loop placement counters (`adjacent_or_displaced_births` / `same_cell_births`) now update from birth-time chamber placement records. Chamber offspring that selection later drops still count. This is a runtime observation fix, not an intelligence claim.
+- `reproduction_mode` rejects unknown strings (`ValueError`) and non-string types (`TypeError`) instead of storing a raw `str`. Valid names such as `"sexual_crossover"` still coerce to `ReproductionMode`.
+- `phase_e_substrate_world` capsule observation now aggregates last-seen write/read/substitution counters across the run (not only final survivors). Seed priors are unconstrained so matching cues produce measurable substitution under fixed seeds; capsules-off ablation still differs. Not associative-learning proof.
+- `life_loop_world` capacity stays `max(pop, 8)` for the historical pop<8 presets (pinned Phase A–E spec/snapshot/tick digests unchanged). For `population >= 8`, capacity is `max(pop*2, 16)` and the world is widened so COPY_SELF is not immediately blocked at capacity or by packed adjacent cells.
+- Summarize helpers (`summarize_life_loop_observation`, `summarize_phase_e_observation`, `summarize_dynamic_environment_observation`) raise `TypeError` on `None` / objects without `ticks` instead of returning silent zeros.
 
 ## 0.3.0b2 — Science-gate hardening and Phase A–E substrates (2026-09-11)
 

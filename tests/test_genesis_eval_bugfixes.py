@@ -157,6 +157,10 @@ def test_scientific_authorities_2026_doc_maps_each_fix() -> None:
         "2412.17799",
         "CLIP",
         "Type 1 not passed",
+        "BMC Evol Biol 2021",
+        "Logic-9",
+        "build_empirical_systematics_shadow",
+        "TWO_FOLD_COST_SEX",
     ):
         assert needle in text, needle
 

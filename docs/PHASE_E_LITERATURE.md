@@ -15,12 +15,13 @@ and birth records because the substrate actually changes subsequent behavior.
 
 | Source | What Phase E implements | What Phase E does **not** claim |
 |---|---|---|
-| Avida demes / group selection — `devosoft/avida` wiki [Deme-introduction](https://github.com/devosoft/avida/wiki/Deme-introduction); `DEMES_*` / GermlineReplication | Deme/group containers, optional mean-fitness replication trigger with a recorded event (minimal real path), germline/propagule-eligibility flags | Not a C++ Avida deme port; not group-selection proof |
+| Avida demes / group selection — `devosoft/avida` wiki [Deme-introduction](https://github.com/devosoft/avida/wiki/Deme-introduction); `DEMES_*` / GermlineReplication | Deme/group containers, mean-fitness replication trigger with a recorded event, optional germline copy, `CollectiveDemePayoffPack` contribution ledger | Not a C++ Avida deme port; not group-selection proof; `collective_intelligence` blocked |
 | Goldsby et al. coordination instructions | Messaging buffer with `send_message`, `retrieve_message`, `broadcast_message`, `block_propagation` and digest-backed events | Not evolved communication or language |
-| GECCO 2008 digital germlines / cooperative networks | Soma vs germline / messenger role tags that **gate** reproduction or messaging when enabled | Not evolved division of labor or collective intelligence |
-| Clune 2007; Lalejini & Ofria 2016; Frontiers 2021 Adaptive Phenotypic Plasticity (`sense-react-*`) | Sensory-read API over Phase C regime + local patches; optional sense-react action bias | Not a claim that phenotypic plasticity evolved |
+| GECCO 2008 digital germlines / cooperative networks | Soma vs germline / messenger role tags that **gate** reproduction or messaging when enabled; germline copy on deme replicate | Not evolved division of labor or collective intelligence |
+| Clune 2007; Lalejini & Ofria 2016; Frontiers 2021 Adaptive Phenotypic Plasticity (`sense-react-*`) | Sensory-read API over Phase C regime + local patches; optional sense-react action bias; `LearningCausalPayoffPack` cue→action→ATP with ablation | Not a claim that phenotypic plasticity evolved |
 | Ghalambor / Clune four-condition designs | Checklist object: ancestral static, novel static, fluctuating, assimilation under constant novel | Experimental-design checklist only |
-| Am Nat 2020 associative learning; PLOS One odometry case study | Organism-local or lineage capsule slots that change **subsequent** action choice, ATP, or task eligibility under a fixed seed (ablation: disabled capsule ⇒ different digest / behavior) | Not proved associative learning or navigation intelligence |
+| Am Nat 2020 associative learning; PLOS One odometry case study | Organism-local or lineage capsule slots that change **subsequent** action choice, ATP, or task eligibility under a fixed seed (ablation: disabled capsule ⇒ different digest / behavior); multi-seed payoff protocol | Not proved associative learning or navigation intelligence; `instinct_improved` stays gated |
+| Ofria & Wilke 2004; avida.cfg 2.14.0 Logic-9; BMC Evol Biol 2021 | Opt-in Logic-9 reaction→resource→merit/ATP coupling; resource×population×mutation axes recorded | Not an Avida NAND CPU; not that 2021 paper replicated; `avida_replacement` blocked |
 | OntoAvida / avidaR (Sci Data 2023; PeerJ CS) | Exportable `PhenotypeTranscriptomeEvidence` JSON+digest objects (genome, fitness, ATP, role, action-execution counts as a transcriptome *proxy*) | Not a transcriptome biology simulator |
 | Typical Avida post-hoc analyze-mode | First-class Python APIs + replay digests (`PhaseEEvidencePack`, `AvidaParityProtocolSpec`) | Software capability only; no superiority claim |
 
@@ -65,4 +66,5 @@ print(d_pack.claim_ceiling)
 ```
 
 Defaults for Phase A/B/C/D presets remain off. Print-only smoke:
-`examples/genesis_phase_e_substrate.py`.
+`examples/genesis_phase_e_substrate.py`,
+`examples/genesis_scientific_gaps_2026.py`.

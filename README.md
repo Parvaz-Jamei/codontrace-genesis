@@ -222,9 +222,13 @@ environments are opt-in via `dynamic_environment_world()` or
 not change these presets. An opt-in Channon 2024 Tokyo Type 1
 *measurement* protocol (`TokyoType1MeasurementProtocol`) records activity,
 novelty, and shadow/normalization hooks at claim ceiling
-`tokyo_type1_measurement_only`; `tokyo_type1_passed` is blocked. Phase E
+`tokyo_type1_measurement_only`; `tokyo_type1_passed` is blocked. An opt-in
+Python Empirical-style shadow adapter can supply a real `shadow_digest` for
+Tokyo step_4 (default off; not Empirical C++; never a Type 1 pass). Phase E
 capsule/memory/role/deme substrate effects are opt-in via
-`phase_e_substrate_world()` and do not change A–D defaults.
+`phase_e_substrate_world()` and do not change A–D defaults. Opt-in Logic-9
+reaction coupling, learning causal payoff, and collective deme payoff
+packs are library APIs with `runtime_observation` ceilings.
 
 Phase B adds an optional sexual recombination substrate grounded in
 Avida `divide-sex` / birth-chamber mechanics (Misevic, Ofria, Lenski 2006;
@@ -234,7 +238,8 @@ ordinary mutation runs. Config knobs mirror Avida (`recombination_prob`,
 `same_length_only`, `two_fold_cost_sex`, `max_birth_wait_ticks`, chamber
 capacity). Research presets and the default life-loop run stay asexual so
 existing replay digests remain stable. This is not an Avida replacement.
-Diploid meiosis (Aevol Eukaryote) is deferred.
+Opt-in `diploid_meiosis` is an Aevol-style homolog-reduction analog
+(default off); `TWO_FOLD_COST_SEX` already places one recombinant product.
 
 Phase C adds an optional dynamic environment substrate grounded in Avida
 `environment.cfg` `RESOURCE` lines (Ofria & Wilke 2004; Cooper/Ofria
@@ -252,13 +257,16 @@ toolbox (Dolson et al. 2019; persistence-filtered change/novelty/complexity/
 ecological potential), Bedau evolutionary activity statistics, and ALife OEE
 encyclopedia / ISAL 2024 MODES-assessment reporting practice. Persistence
 uses an explicit `persistence_window_t` coalescence window (organism-id
-descendant graph; not a full Empirical systematics shadow run). Callers get a
+descendant graph). An opt-in Python Empirical-style shadow/null phylogeny
+adapter can produce a real `shadow_digest`; it is not a C++ Empirical port
+and does not pass Tokyo Type 1. Callers get a
 first-class `MultiGenerationEvidencePack` (JSON + digest) rather than only an
 external analyze-mode dump. Metric deltas are **runtime observations**.
 ClaimGate keeps `instinct_improved` below publication grade without multi-seed
 protocol objects and blocks open-ended intelligence. Channon 2024 Tokyo Type 1
 is implemented as measurement steps only (`tokyo_type1_measurement_only`);
-passing Type 1 is blocked. See `docs/SCIENTIFIC_AUTHORITIES_2026.md`.
+passing Type 1 is blocked, including multi-seed campaigns. See
+`docs/SCIENTIFIC_AUTHORITIES_2026.md`.
 
 Phase E adds an opt-in substrate for **real** organism-local or lineage
 capsule/memory effects (subsequent action choice, ATP, or task eligibility),
@@ -268,7 +276,9 @@ Goldsby-style messaging buffer (`send_message` / `retrieve_message` /
 experimental-design object over Phase C `sense-react` cues, OntoAvida-style
 phenotype/transcriptome evidence export, and an `AvidaParityProtocolSpec`
 head-to-head recipe. Defaults stay off. This is not proved learning, evolved
-plasticity, collective intelligence, or an Avida replacement.
+plasticity, collective intelligence, or an Avida replacement. Opt-in
+`LearningCausalPayoffPack` and `CollectiveDemePayoffPack` record cue→payoff
+and deme-replication ledgers at `runtime_observation` only.
 
 This is a **software capability / runtime observation** surface. It does not
 prove life, intelligence, cooperation, instinct evolution, or OEE.
@@ -307,6 +317,7 @@ Print-only smokes: `examples/genesis_life_loop.py`,
 `examples/genesis_dynamic_environment.py`,
 `examples/genesis_multi_generation_evidence.py`,
 `examples/genesis_tokyo_type1_measurement.py`,
+`examples/genesis_scientific_gaps_2026.py`,
 `examples/genesis_phase_e_substrate.py`.
 
 ---

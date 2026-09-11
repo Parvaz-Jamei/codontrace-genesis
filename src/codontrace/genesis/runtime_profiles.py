@@ -335,6 +335,9 @@ class GenesisRuntimeProfile:
         offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.ADJACENT_FREE,
         reproduction_mode: ReproductionMode | str = ReproductionMode.ASEXUAL,
         environment: EnvironmentConfig | None = None,
+        two_fold_cost_sex: bool = False,
+        diploid_meiosis: bool = False,
+        same_length_only: bool = False,
     ) -> GenesisExperimentSpec:
         """Assemble the Phase A ecology / Darwinian life-loop preset.
 
@@ -362,8 +365,11 @@ class GenesisRuntimeProfile:
         Sexual opt-in follows Misevic, Ofria, Lenski 2006 Proc B and
         ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP`` (birth chamber,
         ``RECOMBINATION_PROB``, ``SAME_LENGTH_SEX``, ``TWO_FOLD_COST_SEX``,
-        ``MAX_BIRTH_WAIT_TIME``). Diploid meiosis (Aevol Eukaryote) is
-        deferred as Phase B.1.
+        ``MAX_BIRTH_WAIT_TIME``). Diploid meiosis is an opt-in
+        ``SexualRecombinationConfig.diploid_meiosis`` homolog-reduction flag
+        (Aevol-style analog); default remains off so sexual digest pins stay
+        stable. ``two_fold_cost_sex`` is Avida ``TWO_FOLD_COST_SEX`` (place
+        only one recombinant product) and is also default off.
 
         Parameters that keep food scarce rather than infinite:
         ``LIFE_LOOP_FOOD_CELLS`` (2 patches), ``LIFE_LOOP_MAX_RESOURCES`` (3),
@@ -461,7 +467,12 @@ class GenesisRuntimeProfile:
                 enabled=True,
                 basal_runtime_atp_cost=LIFE_LOOP_BASAL_COST,
             ),
-            sexual_recombination=SexualRecombinationConfig(enabled=True)
+            sexual_recombination=SexualRecombinationConfig(
+                enabled=True,
+                two_fold_cost_sex=two_fold_cost_sex,
+                diploid_meiosis=diploid_meiosis,
+                same_length_only=same_length_only,
+            )
             if sexual
             else SexualRecombinationConfig(),
             environment=env_cfg,
@@ -543,10 +554,12 @@ class GenesisRuntimeProfile:
                             "not_avida_replacement"
                         ),
                         "recombination_prob": 1.0,
-                        "same_length_only": False,
-                        "two_fold_cost_sex": False,
+                        "same_length_only": same_length_only,
+                        "two_fold_cost_sex": two_fold_cost_sex,
                         "max_birth_wait_ticks": None,
-                        "phase_b1_diploid_meiosis": "deferred",
+                        "phase_b1_diploid_meiosis": (
+                            "enabled" if diploid_meiosis else "deferred"
+                        ),
                     }
                     if reproduction_mode is ReproductionMode.SEXUAL_CROSSOVER
                     else {}

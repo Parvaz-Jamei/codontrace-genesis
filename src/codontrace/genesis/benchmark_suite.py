@@ -653,3 +653,146 @@ class BenchmarkScenarioCatalog:
         return {"schema_version": self.schema_version, "contracts": [c.to_dict() for c in self.contracts]}
     def digest(self) -> str:
         return _phase3_digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class PersistenceWindowSweepPoint:
+    """One persistence_window_t measurement (MODES + Tokyo JSON, not a Type 1 pass)."""
+
+    persistence_window_t: int
+    modes_digest: str
+    tokyo_json: str
+    tokyo_protocol_digest: str
+    claim_ceiling: str = "tokyo_type1_measurement_only"
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "persistence_window_t": self.persistence_window_t,
+            "modes_digest": self.modes_digest,
+            "tokyo_json": self.tokyo_json,
+            "tokyo_protocol_digest": self.tokyo_protocol_digest,
+            "claim_ceiling": self.claim_ceiling,
+            "tokyo_type1_passed": False,
+        }
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class ChannonAvidaModesShadowSuite:
+    """Pinned persistence_window_t sweep + MODES + Tokyo JSON.
+
+    Opt-in measurement suite. Does not change BenchmarkScenarioSuite.standard().
+    Claim ceiling remains tokyo_type1_measurement_only.
+    """
+
+    suite_id: str
+    windows: tuple[int, ...]
+    points: tuple[PersistenceWindowSweepPoint, ...]
+    shadow_digest: str = ""
+    empirical_systematics_shadow_run: bool = False
+    claim_ceiling: str = "tokyo_type1_measurement_only"
+    tokyo_type1_passed: bool = False
+    digest: str = ""
+
+    def __post_init__(self) -> None:
+        if self.tokyo_type1_passed:
+            raise ValueError("ChannonAvidaModesShadowSuite must never set tokyo_type1_passed.")
+        if not self.windows:
+            raise ValueError("ChannonAvidaModesShadowSuite requires at least one window.")
+        computed = _digest(self._payload())
+        if self.digest and self.digest != computed:
+            raise ValueError("ChannonAvidaModesShadowSuite digest mismatch.")
+        object.__setattr__(self, "digest", computed)
+        object.__setattr__(self, "tokyo_type1_passed", False)
+
+    def _payload(self) -> dict[str, JsonValue]:
+        return {
+            "suite_id": self.suite_id,
+            "windows": list(self.windows),
+            "points": [item.to_dict() for item in self.points],
+            "shadow_digest": self.shadow_digest,
+            "empirical_systematics_shadow_run": self.empirical_systematics_shadow_run,
+            "claim_ceiling": self.claim_ceiling,
+            "tokyo_type1_passed": False,
+        }
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {**self._payload(), "digest": self.digest}
+
+    def to_json(self) -> str:
+        import json
+
+        return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
+
+
+def run_channon_avida_modes_shadow_suite(
+    *,
+    seed: int = 7,
+    tick_count: int = 8,
+    population: int = 6,
+    windows: tuple[int, ...] = (1, 2, 3),
+    include_empirical_shadow: bool = False,
+) -> ChannonAvidaModesShadowSuite:
+    """Sweep persistence_window_t, pin MODES + Tokyo JSON. Type 1 remains unpassed."""
+
+    from codontrace.genesis.engine import GenesisEngine
+    from codontrace.genesis.multi_generation import (
+        MultiGenerationEvidenceConfig,
+        build_multi_generation_evidence_pack,
+    )
+    from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+    from codontrace.genesis.tokyo_type1 import build_tokyo_type1_measurement_protocol
+
+    spec = GenesisRuntimeProfile.life_loop_world(
+        seed=seed, tick_count=tick_count, population=population
+    )
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    shadow = ""
+    empirical = False
+    if include_empirical_shadow:
+        from codontrace.genesis.empirical_systematics import (
+            EmpiricalSystematicsShadowConfig,
+            build_empirical_systematics_shadow,
+        )
+
+        shadow_run = build_empirical_systematics_shadow(
+            result,
+            EmpiricalSystematicsShadowConfig(
+                enabled=True, seed=seed, persistence_window_t=max(windows)
+            ),
+        )
+        shadow = shadow_run.shadow_digest
+        empirical = True
+    points: list[PersistenceWindowSweepPoint] = []
+    for window in windows:
+        pack = build_multi_generation_evidence_pack(
+            result,
+            MultiGenerationEvidenceConfig(persistence_window_generations=window),
+            spec=spec,
+        )
+        protocol = build_tokyo_type1_measurement_protocol(
+            pack,
+            shadow_digest=shadow or None,
+            empirical_systematics_shadow_run=empirical,
+            persistence_window_t=window,
+        )
+        modes_digest = (
+            pack.modes_assessment.digest() if pack.modes_assessment is not None else ""
+        )
+        points.append(
+            PersistenceWindowSweepPoint(
+                persistence_window_t=window,
+                modes_digest=modes_digest,
+                tokyo_json=protocol.to_json(),
+                tokyo_protocol_digest=protocol.digest,
+            )
+        )
+    return ChannonAvidaModesShadowSuite(
+        suite_id="channon_avida_modes_shadow_suite_v1",
+        windows=windows,
+        points=tuple(points),
+        shadow_digest=shadow,
+        empirical_systematics_shadow_run=empirical,
+    )

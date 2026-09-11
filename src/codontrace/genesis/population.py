@@ -47,6 +47,7 @@ from codontrace.genesis.birth import (
     make_policy_digest,
     recombine_positional_segment,
     recombine_positional_segment_pair,
+    reduce_incipient_to_haploid_gamete,
     select_chamber_pair,
     timed_out_chamber_slots,
 )
@@ -99,6 +100,13 @@ from codontrace.genesis.fitness import (
 )
 from codontrace.genesis.learning import LearningATPConfig
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
+from codontrace.genesis.logic9 import (
+    LOGIC9_TASKS,
+    Logic9ReactionConfig,
+    Logic9ReactionEvent,
+    apply_logic9_runtime_bonus,
+    logic9_resource_name,
+)
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.ribosome import Ribosome
@@ -1247,6 +1255,7 @@ class GenerationResult:
     phase_e_messages: tuple[DemeMessage, ...] = ()
     deme_state: DemeState | None = None
     birth_placement_records: tuple[BirthPlacementRecord, ...] = ()
+    logic9_events: tuple[Logic9ReactionEvent, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1298,6 +1307,8 @@ class GenerationResult:
             payload["birth_placement_records"] = [
                 item.to_dict() for item in self.birth_placement_records
             ]
+        if self.logic9_events:
+            payload["logic9_events"] = [item.to_dict() for item in self.logic9_events]
         return payload
 
     @classmethod
@@ -1389,6 +1400,20 @@ class GenerationResult:
                 for item in _list(data, "birth_placement_records")
                 if isinstance(item, Mapping)
             ),
+            logic9_events=tuple(
+                Logic9ReactionEvent(
+                    tick=int(item.get("tick", 0) or 0),
+                    organism_id=str(item.get("organism_id", "")),
+                    task=str(item.get("task", "NAND")),
+                    resource_name=str(item.get("resource_name", "resNAND")),
+                    consumed=float(item.get("consumed", 0.0) or 0.0),
+                    atp_bonus=float(item.get("atp_bonus", 0.0) or 0.0),
+                    blocked_reason=str(item.get("blocked_reason", "")),
+                    genome_digest=str(item.get("genome_digest", "")),
+                )
+                for item in _list(data, "logic9_events")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -1424,6 +1449,7 @@ class PopulationConfigs:
     )
     environment: EnvironmentConfig = field(default_factory=EnvironmentConfig)
     phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
+    logic9: Logic9ReactionConfig = field(default_factory=Logic9ReactionConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1494,6 +1520,8 @@ class PopulationConfigs:
             payload["environment"] = self.environment.to_dict()
         if self.phase_e.enabled:
             payload["phase_e"] = self.phase_e.to_dict()
+        if self.logic9.enabled:
+            payload["logic9"] = self.logic9.to_dict()
         return payload
 
     @classmethod
@@ -1511,6 +1539,7 @@ class PopulationConfigs:
         sexual_raw = data.get("sexual_recombination")
         environment_raw = data.get("environment")
         phase_e_raw = data.get("phase_e")
+        logic9_raw = data.get("logic9")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1564,6 +1593,9 @@ class PopulationConfigs:
             phase_e=PhaseESubstrateConfig.from_dict(phase_e_raw)
             if isinstance(phase_e_raw, Mapping)
             else PhaseESubstrateConfig(),
+            logic9=Logic9ReactionConfig.from_dict(logic9_raw)
+            if isinstance(logic9_raw, Mapping)
+            else Logic9ReactionConfig(),
         )
 
 
@@ -2617,6 +2649,8 @@ def step_population(
     if working_deme_state is not None and not working_deme_state.demes and configs.phase_e.demes.enabled:
         working_deme_state = build_deme_state(organism_clones)
     phase_e_messages: list[DemeMessage] = []
+    logic9_events: list[Logic9ReactionEvent] = []
+    logic9_pool = {logic9_resource_name(task): 8.0 for task in LOGIC9_TASKS}
     live_positions: dict[str, tuple[int, int]] = {
         item.id: item.position for item in organism_clones
     }
@@ -2836,6 +2870,15 @@ def step_population(
                 )
             event = organism.step(working_world, trace, blocked_positions=blocked_positions)
             live_positions[organism.id] = organism.position
+            if configs.logic9.enabled:
+                logic9_events.extend(
+                    apply_logic9_runtime_bonus(
+                        organism,
+                        tick=current_tick,
+                        config=configs.logic9,
+                        pool=logic9_pool,
+                    )
+                )
             if configs.phase_e.enabled and working_deme_state is not None:
                 phase_e_messages.extend(
                     apply_deme_messaging_after_event(
@@ -3542,6 +3585,13 @@ def step_population(
             replace(item, generation=generation_by_id.get(item.deme_id, item.generation))
             for item in refreshed.demes
         )
+        extra_demes = tuple(
+            item
+            for item in working_deme_state.demes
+            if item.deme_id not in {deme.deme_id for deme in refreshed.demes}
+        )
+        if extra_demes:
+            refreshed.demes = tuple((*refreshed.demes, *extra_demes))
         refreshed.inbox = working_deme_state.inbox
         refreshed.replication_events = working_deme_state.replication_events
         working_deme_state = refreshed
@@ -3594,6 +3644,7 @@ def step_population(
         if configs.phase_e.enabled and configs.phase_e.demes.enabled
         else None,
         birth_placement_records=tuple(birth_placements),
+        logic9_events=tuple(logic9_events),
     )
 
 
@@ -4613,6 +4664,13 @@ def _drain_chamber_pairs(
         second = waiting[pair[1]]
         for index in sorted(pair, reverse=True):
             del waiting[index]
+        if sexual_cfg.diploid_meiosis:
+            first = reduce_incipient_to_haploid_gamete(
+                first, stream.fork(f"meiosis/{first.slot_id}")
+            )
+            second = reduce_incipient_to_haploid_gamete(
+                second, stream.fork(f"meiosis/{second.slot_id}")
+            )
         do_recombine = True
         if sexual_cfg.recombination_prob <= 0.0:
             do_recombine = False

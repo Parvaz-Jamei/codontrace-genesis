@@ -86,11 +86,14 @@ def test_codontrace_adapter_reproduces_he01_v2_runtime_observation() -> None:
     }
     assert len(bundle.seeds) == 30
     assert any(item.sha256 == HE01_V2_DIGEST for item in bundle.artifacts)
+    assert bundle.extra is not None
+    assert bundle.extra["assay_invalid"] is True
     report = audit_bundle(bundle)
     assert report.achieved_level == 1
     assert report.public_name == "runtime_observation"
     assert "consistent_measured_difference" in report.missing_for_next
-    assert "interpretable_null_is_valid_not_mechanism_support" in report.warnings
+    assert "assay_invalid_manipulation_not_realized" in report.warnings
+    assert "interpretable_null_is_valid_not_mechanism_support" not in report.warnings
     gate = ScientificClaimGate()
     assert gate.decide(ClaimRequest("runtime_observation", {})).allowed is True
     assert gate.decide(ClaimRequest("intervention_supported", {})).allowed is False

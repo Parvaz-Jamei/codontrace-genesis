@@ -17,9 +17,10 @@ stable. ClaimGate is not loosened.
 - Adapters: complete CodonTrace Genesis HARD_EXPERIMENT_01 v2;
   Avida `.dat` and MABE2 DataFile CSV **skeletons** only.
 - HARD_EXPERIMENT_01 v2 still grades `runtime_observation` / public
-  level 1 (interpretable null). MODES / Tokyo Type 1 remain
-  measurement neighbors, not a pass. ASME V&V 40 is context-of-use,
-  not a numeric score.
+  level 1, labeled `assay_invalid` (bitwise-identical fitness across
+  arms; manipulation not realized), not a scientific null. MODES /
+  Tokyo Type 1 remain measurement neighbors, not a pass. ASME V&V 40
+  is context-of-use, not a numeric score.
 - Docs: `docs/CLAIMGATE_STANDALONE.md`, collapsed
   `docs/CLAIM_LADDER.md`, `docs/design/*` literature notes.
 

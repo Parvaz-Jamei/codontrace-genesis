@@ -18,9 +18,12 @@ print(report.achieved_level, report.public_name, report.missing_for_next)
 ```
 
 `achieved_level` is the public 0–5 ladder in [`CLAIM_LADDER.md`](CLAIM_LADDER.md).
-HARD_EXPERIMENT_01 v2 (`docs/hard_experiment_01/results_v2.json`) is an
-interpretable null: the auditor returns **`runtime_observation` / public
-level 1**, the same ceiling ClaimGate granted on `main`.
+HARD_EXPERIMENT_01 v2 (`docs/hard_experiment_01/results_v2.json`) is
+**`assay_invalid`** (manipulation not realized): all four arms produced
+bitwise-identical mean fitness `0.164375` and adoptions `169 / 169 / 0 / 169`.
+The auditor still returns **`runtime_observation` / public level 1**, the
+same ceiling ClaimGate granted on `main`. That floor is not a scientific
+null finding.
 
 ## What the auditor is
 
@@ -49,7 +52,7 @@ Design notes: [`design/AVIDA_DAT.md`](design/AVIDA_DAT.md),
 [`design/MABE2_DATAFILE.md`](design/MABE2_DATAFILE.md),
 [`design/ASME_VV40_CONTEXT_OF_USE.md`](design/ASME_VV40_CONTEXT_OF_USE.md),
 [`design/MODES_CHANNON_MEASUREMENT_NEIGHBORS.md`](design/MODES_CHANNON_MEASUREMENT_NEIGHBORS.md),
-[`design/HARD_EXPERIMENT_01_V2_NULL.md`](design/HARD_EXPERIMENT_01_V2_NULL.md).
+[`design/HARD_EXPERIMENT_01_V2_ASSAY_INVALID.md`](design/HARD_EXPERIMENT_01_V2_ASSAY_INVALID.md).
 
 Forbidden aliases (`intelligence`, `collective_intelligence`, AGI,
 `tokyo_type1_passed`, `avida_replacement`, …) are unchanged. Example:

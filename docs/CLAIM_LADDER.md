@@ -16,10 +16,13 @@ CLAIMS.md §8. Forbidden aliases are unchanged.
 Internal ClaimGate still uses nine named rungs. That is a finer evaluator,
 not a second public policy. See [`CLAIM_LADDER_MAP.md`](CLAIM_LADDER_MAP.md).
 
-A null finding is valid. Metrics (including MODES and Channon 2024 Tokyo
-Type 1 measurement steps) do **not** auto-grant a pass. ASME V&V 40
-credibility is context-of-use / risk-informed — not a universal numeric
-score. ClaimGate grades *claims given evidence*.
+A genuine measured null after a realized manipulation is valid evidence
+and does not grant mechanism support. Bitwise-identical outcomes across
+arms are **`assay_invalid`** (manipulation not realized), not a scientific
+null. Metrics (including MODES and Channon 2024 Tokyo Type 1 measurement
+steps) do **not** auto-grant a pass. ASME V&V 40 credibility is
+context-of-use / risk-informed — not a universal numeric score. ClaimGate
+grades *claims given evidence*.
 
 Standalone auditor: [`CLAIMGATE_STANDALONE.md`](CLAIMGATE_STANDALONE.md).
 Historical pages [`SCIENTIFIC_CLAIM_LADDER.md`](SCIENTIFIC_CLAIM_LADDER.md)

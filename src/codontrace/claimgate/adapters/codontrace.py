@@ -238,7 +238,7 @@ def _limitations(data: Mapping[str, Any]) -> tuple[str, ...]:
         return tuple(str(item) for item in raw if str(item).strip())
     return (
         "hard_experiment_01_is_runtime_observation",
-        "null_or_small_effect_is_a_valid_finding",
+        "assay_invalid_manipulation_not_realized",
     )
 
 
@@ -255,11 +255,23 @@ def bundle_from_hard_experiment_01(
     if not isinstance(config, str) or not is_real_evidence_digest(config):
         raise ConfigurationError("campaign is missing a real config/protocol digest.")
     prereg = data.get("prereg_digest")
+    outcomes = _outcomes(data)
+    fitness_means: list[float] = []
+    for outcome in outcomes:
+        if outcome.metric != "terminal_mean_fitness":
+            continue
+        for values in outcome.values_by_arm.values():
+            if values:
+                fitness_means.append(sum(values) / len(values))
+    assay_invalid = len(fitness_means) >= 2 and all(
+        item == fitness_means[0] for item in fitness_means
+    )
     extra: dict[str, Any] = {
         "adapter": "codontrace_hard_experiment_01",
         "experiment_id": data.get("experiment_id"),
         "claim_ceiling": data.get("claim_ceiling"),
         "assay_failed": data.get("assay_failed"),
+        "assay_invalid": assay_invalid,
         "decision_rule_passed": data.get("decision_rule_passed"),
         "collective_intelligence": False,
         "intelligence": False,
@@ -274,7 +286,7 @@ def bundle_from_hard_experiment_01(
         seeds=seeds,
         config_digest=str(config).lower(),
         arms=_arms(data, len(seeds)),
-        outcomes=_outcomes(data),
+        outcomes=outcomes,
         comparisons=_comparisons(data),
         replay=_replay(data),
         artifacts=_artifacts(data, path),

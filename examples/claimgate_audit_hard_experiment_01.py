@@ -1,9 +1,12 @@
 """Audit HARD_EXPERIMENT_01 v2 with the standalone ClaimGate auditor.
 
 Print-only. Uses the committed ``docs/hard_experiment_01/results_v2.json``
-campaign artifact. Does not run the Genesis engine, write files, start a
-UI, loosen ClaimGate, or claim intelligence, collective intelligence,
-Tokyo Type 1 passed, or Avida replacement.
+campaign artifact. v2 is ``assay_invalid`` (manipulation not realized:
+bitwise-identical fitness across arms), not a scientific null. Public
+level stays 1 / ``runtime_observation``. Does not run the Genesis
+engine, write files, start a UI, loosen ClaimGate, or claim
+intelligence, collective intelligence, Tokyo Type 1 passed, or Avida
+replacement.
 """
 
 from __future__ import annotations
@@ -33,9 +36,12 @@ def main() -> None:
     path = committed_results_v2_path()
     bundle = bundle_from_hard_experiment_01(path)
     report = audit_bundle(bundle)
+    extra = bundle.extra or {}
     print("artifact", path)
     print("public_level", report.achieved_level)
     print("public_name", report.public_name)
+    print("assay_invalid", extra.get("assay_invalid"))
+    print("label", "assay_invalid_manipulation_not_realized")
     print("missing_for_next", ",".join(report.missing_for_next))
     print("digest", report.digest)
     print("warnings", ",".join(report.warnings))

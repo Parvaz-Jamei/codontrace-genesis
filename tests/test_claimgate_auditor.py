@@ -72,7 +72,7 @@ def test_synthetic_difference_reaches_candidate_evidence_not_publication() -> No
     assert "negative_control" in report.missing_for_next
 
 
-def test_null_comparison_is_runtime_observation_not_mechanism_support() -> None:
+def test_zero_effect_with_distinct_arm_values_is_not_assay_invalid() -> None:
     payload = _load("level2_difference.json")
     payload["comparisons"][0]["effect_size"] = 0.0
     payload["comparisons"][0]["ci_low"] = 0.0
@@ -82,7 +82,28 @@ def test_null_comparison_is_runtime_observation_not_mechanism_support() -> None:
     assert report.achieved_level == 1
     assert report.public_name == "runtime_observation"
     assert "consistent_measured_difference" in report.missing_for_next
-    assert "interpretable_null_is_valid_not_mechanism_support" in report.warnings
+    assert "no_consistent_measured_difference" in report.warnings
+    assert "assay_invalid_manipulation_not_realized" not in report.warnings
+    assert "interpretable_null_is_valid_not_mechanism_support" not in report.warnings
+
+
+def test_bitwise_identical_arm_means_are_assay_invalid_not_scientific_null() -> None:
+    payload = _load("level2_difference.json")
+    payload["outcomes"][0]["values_by_arm"] = {
+        "on": [0.164375, 0.164375, 0.164375],
+        "off": [0.164375, 0.164375, 0.164375],
+    }
+    payload["comparisons"][0]["effect_size"] = 0.0
+    payload["comparisons"][0]["ci_low"] = 0.0
+    payload["comparisons"][0]["ci_high"] = 0.0
+    payload["comparisons"][0]["p"] = 1.0
+    report = audit_bundle(payload)
+    assert report.achieved_level == 1
+    assert report.public_name == "runtime_observation"
+    assert "consistent_measured_difference" in report.missing_for_next
+    assert "assay_invalid_manipulation_not_realized" in report.warnings
+    assert "interpretable_null_is_valid_not_mechanism_support" not in report.warnings
+    assert "no_consistent_measured_difference" not in report.warnings
 
 
 def test_level_4_requires_ci_and_at_least_16_seeds() -> None:

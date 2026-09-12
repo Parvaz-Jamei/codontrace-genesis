@@ -2,11 +2,13 @@
 
 Rules are CLAIMS.md §5 + §8. Forbidden aliases are never loosened.
 Measurement neighbors (MODES, Channon 2024 Tokyo Type 1, ASME V&V 40)
-do not grant a claim pass. A null finding is valid evidence.
+do not grant a claim pass. Bitwise-identical outcomes across arms are
+``assay_invalid`` (manipulation not realized), not a scientific null.
 """
 
 from __future__ import annotations
 
+import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -152,6 +154,42 @@ def _has_consistent_difference(bundle: ClaimgateBundle) -> bool:
     return any(_comparison_has_difference(item) for item in bundle.comparisons)
 
 
+def _floats_bitwise_identical(values: list[float]) -> bool:
+    if len(values) < 2:
+        return False
+    first = struct.pack("<d", values[0])
+    return all(struct.pack("<d", item) == first for item in values)
+
+
+def _primary_arm_means_bitwise_identical(bundle: ClaimgateBundle) -> bool:
+    """True when the primary metric's arm-level means are bitwise identical."""
+
+    if not bundle.outcomes:
+        return False
+    preferred = next(
+        (
+            outcome
+            for outcome in bundle.outcomes
+            if outcome.metric in {"terminal_mean_fitness", "fitness"}
+        ),
+        None,
+    )
+    outcome = preferred or bundle.outcomes[0]
+    means: list[float] = []
+    for values in outcome.values_by_arm.values():
+        if not values:
+            continue
+        means.append(sum(values) / len(values))
+    return _floats_bitwise_identical(means)
+
+
+def _assay_invalid(bundle: ClaimgateBundle) -> bool:
+    extra = bundle.extra or {}
+    if extra.get("assay_invalid") is True:
+        return True
+    return _primary_arm_means_bitwise_identical(bundle)
+
+
 def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
     return any(
         item.ci_low is not None and item.ci_high is not None for item in bundle.comparisons
@@ -245,8 +283,10 @@ def _neighbor_warnings(bundle: ClaimgateBundle) -> list[str]:
         warnings.append("metrics_do_not_auto_grant_oee_or_tokyo_type1")
     if extra.get("assay_failed") is True:
         warnings.append("assay_failed_keeps_runtime_observation")
-    if bundle.comparisons and not _has_consistent_difference(bundle):
-        warnings.append("interpretable_null_is_valid_not_mechanism_support")
+    if _assay_invalid(bundle):
+        warnings.append("assay_invalid_manipulation_not_realized")
+    elif bundle.comparisons and not _has_consistent_difference(bundle):
+        warnings.append("no_consistent_measured_difference")
     if extra.get("adapter") == "avida_skeleton":
         warnings.append("avida_adapter_is_a_skeleton_not_full_support")
     if extra.get("adapter") == "mabe2_skeleton":
@@ -321,7 +361,7 @@ def audit_bundle(bundle: Mapping[str, Any] | ClaimgateBundle) -> ClaimAuditRepor
     _assert_forbidden_still_blocked()
     flags = _satisfied_flags(parsed)
     extra = parsed.extra or {}
-    if extra.get("assay_failed") is True:
+    if extra.get("assay_failed") is True or _assay_invalid(parsed):
         flags["consistent_measured_difference"] = False
         flags["effect_direction"] = False
         flags["statistical_and_ablation_evidence"] = False

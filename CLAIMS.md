@@ -202,26 +202,26 @@ The following observations were present in the inspected quick run. They should 
 | `collective_mixed` vs `no_capsules` | `0` delta for social interaction, partner interaction, and capsule adoption in inspected seeds | Negative evidence for collective-intelligence readiness under this quick profile. |
 | `high_mutation` vs `no_mutation` | mixed birth-event deltas and no mutation-result delta in inspected pair summary | Not sufficient for a mutation-effect claim. Needs protocol refinement. |
 
-### 4.4 HARD_EXPERIMENT_01 Wave 1 research snapshot (`0.3.0b4.dev0`)
+### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b research snapshot (`0.3.0b4.dev0`)
 
-Inspected artifact: [`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
-Campaign digest: `37f7c447e332d557eb5a3641de01bbdd5c505c99620a361e7aa8c53024300579`
-Prereg digest: `cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`
+Inspected artifacts:
+[`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
+(Wave 1) and
+[`docs/hard_experiment_01/results_v2.json`](docs/hard_experiment_01/results_v2.json)
+(Wave 1b, after survival calibration).
+Prereg digest (unchanged): `cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`
 Seeds: 30 (`11`…`40`). Ticks: 40. Population: 16.
-ClaimGate ceiling granted: **`runtime_observation`** (level 1).
-`intervention_supported` was not requested: every primary BCa CI was
-`[0.0, 0.0]`, Holm p = 1.0, and the dose trend was unsupported. Last-tick
-mean fitness, capsule adoptions, and extinction were identical across
-`source_bias_on`, `source_bias_off`, `capsules_off`, and
-`capsules_shuffled` (fitness 0, adoptions 0, extinction 1.0). A null
-finding is valid. This is not mechanism support and not collective
-intelligence.
+v1 ClaimGate ceiling: **`runtime_observation`** (level 1). v1 is an
+**invalid null** (every arm extinct, adoptions 0; source-bias gate never
+acted). Wave 1b adds an assay gate and overlay calibration; CLAIMS.md
+records only the ceiling ClaimGate actually grants on v2. This is not
+mechanism support and not collective intelligence.
 
 Approved interpretation:
 
 > **The inspected quick runner demonstrates that CodonTrace Genesis can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
 >
-> **HARD_EXPERIMENT_01 Wave 1 (30-seed research) is a runtime observation of a null paired delta on terminal mean fitness. ClaimGate did not grant `intervention_supported`.**
+> **HARD_EXPERIMENT_01 Wave 1 (30-seed research) is a runtime observation of an invalid-null paired delta: populations crashed and the source-bias gate was never exercised. ClaimGate did not grant `intervention_supported`. Wave 1b keeps that ceiling unless ClaimGate grants a higher existing label on the calibrated v2 artifact.**
 
 ---
 
@@ -252,7 +252,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 recorded a 30-seed research campaign whose ClaimGate ceiling is `runtime_observation` only (identical last-tick fitness across four arms; null finding).
+- HARD_EXPERIMENT_01 Wave 1 recorded a 30-seed research campaign whose ClaimGate ceiling is `runtime_observation` only (identical last-tick fitness across four arms; invalid null / assay failure). Wave 1b does not loosen ClaimGate.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

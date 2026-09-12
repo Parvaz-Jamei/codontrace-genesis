@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### HARD_EXPERIMENT_01 Wave 1b — survival calibration + assay gate
+
+CodonTrace Genesis harden of the same Wave 1 question. **Does not**
+claim intelligence, collective intelligence, Tokyo Type 1 passed, or
+Avida replacement. Identity stays `0.3.0b4.dev0`. Phase A–E pins stay
+stable. ClaimGate is not loosened.
+
+- Root-cause: research v1 (`30 / 40 / 16`) was an invalid null — every
+  arm extinct by tick 10, zero `EMIT_NEXUS`, zero adoptions. Energy
+  budget vs `COPY_SELF`, two food cells vs pop 16, no emit codon.
+- Overlay-only calibration (food inflow, ATP, basal cost, death
+  patience, initial genomes) so the existing capsule channel can fire.
+  Estimand / arms / seeds / analysis unchanged.
+- Assay gate: `assay_failed` when treatment mean adoptions ≈ 0 or
+  extinction ≈ 1; ceiling stays `runtime_observation`.
+- Research v2 artifact: `docs/hard_experiment_01/results_v2.json`.
+
 ### HARD_EXPERIMENT_01 Wave 1 — preregistered causal design
 
 CodonTrace Genesis confirmatory measurement on the Wave 0 helpers.

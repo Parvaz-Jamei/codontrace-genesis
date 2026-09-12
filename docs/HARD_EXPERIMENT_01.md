@@ -11,9 +11,12 @@ content scrambled?
 **Preregistration.** [`HARD_EXPERIMENT_01_PREREG.md`](HARD_EXPERIMENT_01_PREREG.md)
 is frozen in an earlier commit. Campaign payloads record `prereg_digest`.
 
-**Claim ceiling:** `runtime_observation` unless the preregistered decision
-rule holds **and** ClaimGate allows existing `intervention_supported`.
-Smoke (`n=12`) is `exploratory_only` and stays `runtime_observation`.
+**Claim ceiling:** `runtime_observation` unless the treatment assay passes,
+the preregistered decision rule holds, **and** ClaimGate allows existing
+`intervention_supported`. Smoke (`n=12`) is `exploratory_only` and stays
+`runtime_observation`. If the treatment arm has mean adoptions ≈ 0 or mean
+extinction ≈ 1, `assay_failed` is recorded and the ceiling stays
+`runtime_observation` even when paired CIs are numerically defined.
 
 **Blocked:** `intelligence`, `collective_intelligence`, `agi`,
 `tokyo_type1_passed`, `avida_replacement`, and related ClaimGate aliases.
@@ -109,11 +112,13 @@ Wall-clock: 76.0 s on the generating runner (one arm×seed probe 0.34 s).
 Replay identity: snapshot digest (full `GenesisRunResult.digest()` is too
 expensive at this scale).
 
-This is a **null finding**. Last-tick mean fitness was identically 0 on
-every arm. Capsule adoptions were 0 — the source-bias gate never acted
-because the channel did not transfer. Populations were extinct at the
-last tick (`extinction_rate = 1.0`). A zero delta is not mechanism
-support and is not intelligence.
+This is an **invalid null for the causal question** (assay failure /
+population crash), not a true null intervention effect. Last-tick mean
+fitness was identically 0 on every arm. Capsule adoptions were 0 — the
+source-bias gate never acted because the channel did not transfer.
+Populations were extinct at the last tick (`extinction_rate = 1.0`).
+Wave 1b documents the root cause below and re-runs confirmatory research
+after a survival calibration that does not change the estimand.
 
 ### Primary contrasts (Holm, α = 0.05)
 
@@ -166,30 +171,95 @@ Decision-rule failures:
 `dose_trend_not_monotonic_same_direction`.
 `intervention_supported` was **not** requested. Null finding is valid.
 
-### Limitations
+### Limitations / Diagnostics (Wave 1b, 2026-09-12)
 
-- Life-loop overlay, not an Avida ISA.
-- At 40 ticks / pop 16 the overlay reached last-tick extinction with
-  zero capsule adoptions, so the confirmatory DAG edges `e1`/`e2` were
-  not exercised. This is a substrate/horizon observation, not a proof
-  that source-fitness weighting cannot matter in a living population.
-- Terminal mean fitness is a last-tick observation.
-- Replay identity is the snapshot digest, not the full run-result hash.
-- Smoke (`n=12`) remains `exploratory_only`.
-- Not knowledge-transfer proof. Not intelligence.
+v1 is not a valid test of source-fitness-weighted transfer. The DAG
+path `gate → which capsule is adopted` never received a capsule.
 
-This section does not use intelligence, AGI, Tokyo Type 1, or
-Avida-replacement language.
+Instrumented seed `11`, treatment, research scale (40 ticks, pop 16),
+**uncalibrated** `life_loop_world` overlay:
+
+| Tick | N | Food cells | Mean ATP | Births | Deaths | Max fitness |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 16 | 1 | 12.97 | 0 | 0 | 3.0 |
+| 1 | 18 | 2 | 5.43 | 2 | 0 | 9.0 |
+| 4 | 7 | 3 | 5.74 | 0 | 9 | 1.0 |
+| 10 | 0 | 3 | — | 0 | 5 | −4.5 |
+| 11–39 | 0 | 3 | — | 0 | 0 | — |
+
+Totals: 2 births, 18 starvation deaths, **0** `EMIT_NEXUS` events, **0**
+adoptions, **0** source-fitness records. Some agents did reach
+fitness ≥ `min_source_fitness` (2.0) on ticks 0–1 (`max_fit` 3.0 / 9.0)
+before the crash. Last-tick `selection_mean_fitness` is 0 because the
+population is empty, not because a living channel had no effect.
+
+Root causes (Avida / digital-evolution ecology, not Avida-parity):
+
+1. **Energy budget vs COPY_SELF.** Initial ATP 14.0, basal 1.2 / tick,
+   `COPY_SELF` codon cost 8.0, eat credit 6.0. Even an eater on food has
+   a negative net budget. Mean ATP falls 13 → 5 after the two early
+   births; everyone is gone by tick 10.
+2. **Resource × population mismatch.** Two food cells, `max_resources=3`,
+   respawn 0.4, sixteen organisms on a 16×4 world. After extinction,
+   three food cells remain unused. Harsh resource/energy budgets with a
+   large *N* produce carrying-capacity collapse (literature constraint 1).
+3. **No movement.** Eater genome `101111000` is EAT / COPY / WAIT. Row-major
+   spawn puts at most the first two organisms on food.
+4. **Channel never emits.** No `EMIT_NEXUS` codon, so Goldsby-style
+   isolation is vacuous: scramble vs treatment cannot differ when
+   neither arm adopts (literature constraints 2–3).
+5. Waiters (5/16) never eat. Death floor is ATP ≤ 0 after one
+   consecutive tick.
+
+This is assay failure, not a true null on `e1`. Okasha & Otsuka still
+apply: the DAG is unchanged.
+
+### Calibration (Wave 1b; not a prereg estimand change)
+
+Survival knobs only, overlay-only (`_apply_survival_calibration`).
+Phase A `life_loop_world(seed=7, tick_count=12, population=6)` pins
+must stay green. No new signaling pathway.
+
+| Knob | v1 / life-loop default | Wave 1b overlay |
+|---|---|---|
+| Index-0 genome | `101111000` (EAT, COPY, WAIT) | `101110000` (EAT, EMIT, WAIT) |
+| Other eaters | `101111000` | `101000000` (EAT, WAIT, WAIT) |
+| Waiters | `000000000` | `000000000` |
+| Initial runtime ATP | 14.0 | 48.0 |
+| Basal ATP / tick | 1.2 | 0.4 |
+| Food amount | 6.0 | 12.0 |
+| Respawn rate | 0.4 | 1.0 |
+| Food layout | 2 cells | even *x* on first two rows |
+| Starvation consecutive ticks | 1 | 3 |
+
+Seeds, *n*, ticks, population, arms, dose, DAG, and the §8 statistical
+decision rule are unchanged. Dated operational note: confirmatory
+`intervention_supported` is not requested when `assay_failed` is true.
+That is a quality gate in front of §8, not a new estimand.
+
+### Results (research v2)
+
+Prereg commit `135b2ac` still precedes these numbers (prereg file
+bytes unchanged). Artifact:
+[`hard_experiment_01/results_v2.json`](hard_experiment_01/results_v2.json).
+Filled after the confirmatory re-run. ClaimGate is updated only to the
+ceiling it grants.
 
 ## Decision rule
 
 Request existing `intervention_supported` only on the research campaign
-when CI(`on` vs `off`) and CI(`on` vs `shuffled`) exclude 0, Holm p < 0.05
-for both, `shuffled ≈ capsules_off`, and the dose trend is monotonic in
+when the treatment assay passes **and** CI(`on` vs `off`) and
+CI(`on` vs `shuffled`) exclude 0, Holm p < 0.05 for both,
+`shuffled ≈ capsules_off`, and the dose trend is monotonic in
 the H1 direction — with every required ClaimGate flag. If allowed,
 ceiling = `intervention_supported` (CLAIMS.md level 3). Else
 `runtime_observation`. Never invent a label. Never claim
 `collective_intelligence*`.
+
+Assay gate (Wave 1b, 2026-09-12): if treatment-arm mean adoptions ≈ 0
+or mean extinction ≈ 1 across seeds, record `assay_failed: true` and
+keep `runtime_observation`. Primary contrasts may still be stored;
+they are not claim-unlocking while the channel was not exercised.
 
 ## What this does not say
 

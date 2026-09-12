@@ -20,15 +20,20 @@ from codontrace.genesis.hard_experiment_01 import (
     RESEARCH_SEED_COUNT,
     SMOKE_SEED_COUNT,
     HardExperiment01ArmRecord,
+    HardExperiment01ArmSummary,
     HardExperiment01SeedRecord,
     _capsule_counts,
     _complete_pair_values,
+    _decision_rule_failures,
     _mean_last_tick_fitness,
     _missing_outcomes_per_arm,
     build_hard_experiment_01_dose_spec,
     build_hard_experiment_01_spec,
+    diagnose_hard_experiment_01_run,
+    evaluate_hard_experiment_01_assay,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_calibration_knobs,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
     hard_experiment_01_prereg_digest,
@@ -366,6 +371,88 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
     )
 
 
+def test_assay_failed_when_treatment_extinctions_or_adoptions_uninterpretable() -> None:
+    extinct = HardExperiment01ArmSummary(
+        arm="source_bias_on",
+        n=30,
+        mean=0.0,
+        sd=0.0,
+        births_mean=2.0,
+        extinction_rate=1.0,
+        adoption_mean=0.0,
+        missing=0,
+    )
+    living_silent = HardExperiment01ArmSummary(
+        arm="source_bias_on",
+        n=30,
+        mean=1.0,
+        sd=0.1,
+        births_mean=2.0,
+        extinction_rate=0.0,
+        adoption_mean=0.0,
+        missing=0,
+    )
+    living_active = HardExperiment01ArmSummary(
+        arm="source_bias_on",
+        n=30,
+        mean=1.0,
+        sd=0.1,
+        births_mean=2.0,
+        extinction_rate=0.0,
+        adoption_mean=1.5,
+        missing=0,
+    )
+    failed_extinct, reasons_extinct = evaluate_hard_experiment_01_assay((extinct,))
+    failed_silent, reasons_silent = evaluate_hard_experiment_01_assay((living_silent,))
+    failed_ok, reasons_ok = evaluate_hard_experiment_01_assay((living_active,))
+    assert failed_extinct is True
+    assert "assay_failed_treatment_extinction_near_one" in reasons_extinct
+    assert "assay_failed_treatment_adoptions_near_zero" in reasons_extinct
+    assert failed_silent is True
+    assert reasons_silent == ("assay_failed_treatment_adoptions_near_zero",)
+    assert failed_ok is False
+    assert reasons_ok == ()
+    v1_payload = {
+        "arm": "source_bias_on",
+        "adoption_mean": 0.0,
+        "extinction_rate": 1.0,
+    }
+    failed_v1, reasons_v1 = evaluate_hard_experiment_01_assay((v1_payload,))
+    assert failed_v1 is True
+    assert "assay_failed_treatment_adoptions_near_zero" in reasons_v1
+    assert "assay_failed_treatment_extinction_near_one" in reasons_v1
+    failures = _decision_rule_failures(
+        scale="research",
+        statistical_tier="research_grade_benchmark_candidate",
+        contrasts=(),
+        shuffled_vs_off=None,
+        dose_trend=None,
+        replay_matched=True,
+        assay_failures=reasons_v1,
+    )
+    assert "assay_failed_treatment_adoptions_near_zero" in failures
+    assert "missing_primary_contrast" in failures
+
+
+def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
+    spec = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=6, population=4)
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
+    diagnostic = diagnose_hard_experiment_01_run(
+        seed=11, arm="source_bias_on", tick_count=6, population=4
+    )
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1b"
+    assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
+    assert adoptions > 0
+    assert diagnostic.total_adoptions > 0
+    assert diagnostic.extinct is False
+    assert diagnostic.final_population not in {None, 0}
+    assert diagnostic.any_agent_reached_min_source_fitness is True
+    off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=6, population=4)
+    off_result = GenesisEngine.from_spec(off).run_ticks()
+    assert len(tuple(getattr(off_result, "capsule_adoption_records", ()) or ())) == 0
+
+
 def test_committed_research_results_match_prereg_and_ceiling() -> None:
     root = Path(__file__).resolve().parents[1]
     path = root / "docs" / "hard_experiment_01" / "results_v1.json"
@@ -391,6 +478,28 @@ def test_committed_research_results_match_prereg_and_ceiling() -> None:
     assert "proved collective intelligence" not in claims[start:end]
 
 
+def test_committed_research_v2_exercises_source_bias_gate() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v2.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["tick_count"] == 40
+    assert payload["population"] == 16
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["claim_ceiling"] == CLAIM_CEILING
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["decision_rule_passed"] is False
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["adoption_mean"] > 0
+    assert by_arm["source_bias_on"]["extinction_rate"] < 1.0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
@@ -407,6 +516,9 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "capsules_shuffled" in text
     assert "Okasha" in text
     assert "Results (research v1)" in text
+    assert "Limitations / Diagnostics" in text
+    assert "assay_failed" in text
+    assert "Results (research v2)" in text
     assert "claim_downgraded" in text
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")

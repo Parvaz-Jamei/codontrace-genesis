@@ -31,6 +31,7 @@ from codontrace.genesis.hard_experiment_01 import (
 def main() -> None:
     campaign = run_hard_experiment_01()
     print(format_hard_experiment_01_summary(campaign))
+    print("assay_failed", campaign.assay_failed)
     gate = ScientificClaimGate()
     payload = campaign.to_dict()
     print(

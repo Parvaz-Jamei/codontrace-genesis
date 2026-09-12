@@ -6,6 +6,12 @@ plus a Goldsby-style dose ladder. Causal reading uses the explicit DAG in
 is ``runtime_observation`` unless the preregistered decision rule holds and
 ``ScientificClaimGate`` allows existing ``intervention_supported``.
 
+Wave 1b keeps the same question, arms, seeds, and decision rule. A survival
+calibration overlay (food / energy / death / initial genomes) plus an assay
+gate sit in front of confirmatory claims: if the treatment arm does not
+emit/adopt capsules or goes extinct, contrasts are recorded but
+``assay_failed`` keeps the ceiling at ``runtime_observation``.
+
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
 A null finding is valid. This module does not mutate a global ClaimGate.
@@ -31,7 +37,8 @@ from codontrace.genesis.capsule import (
 from codontrace.genesis.causal_validation import InterventionResult
 from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
-from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+from codontrace.genesis.population import MetabolicConfig
+from codontrace.genesis.runtime_profiles import LIFE_LOOP_WAITER_GENOME, GenesisRuntimeProfile
 from codontrace.genesis.statistical_protocol import (
     EffectSizeResult,
     MultipleComparisonAudit,
@@ -45,7 +52,9 @@ from codontrace.genesis.statistical_protocol import (
     holm_correction,
     paired_effect_size,
 )
+from codontrace.genesis.substrate import world2d_to_element_grid
 from codontrace.rng import RNGManager
+from codontrace.world import World2D
 
 CLAIM_CEILING = "runtime_observation"
 INTERVENTION_CLAIM = "intervention_supported"
@@ -66,6 +75,23 @@ DOSE_PERMUTATION_DRAWS = 10000
 ALPHA = 0.05
 DOSE_LEVELS: tuple[float, ...] = (0.0, 1.0, 2.0, 4.0)
 ScaleName = Literal["smoke", "research"]
+MIN_SOURCE_FITNESS_TREATMENT = 2.0
+ASSAY_ADOPTIONS_NEAR_ZERO = 1e-12
+ASSAY_EXTINCTION_NEAR_ONE = 1.0 - 1e-12
+# Wave 1b survival / channel-activity calibration. Overlay only — does not
+# mutate ``life_loop_world`` defaults or Phase A–E pins. Existing Genesis v0
+# actions only (no new signaling pathway).
+# EAT_LUMEN, WAIT, WAIT
+CALIBRATION_EATER_GENOME = "101000000"
+# EAT_LUMEN, EMIT_NEXUS, WAIT — index-0 organism so the wired capsule channel fires
+CALIBRATION_EMITTER_GENOME = "101110000"
+# WAIT only
+CALIBRATION_WAITER_GENOME = "000000000"
+CALIBRATION_INITIAL_RUNTIME_ATP = 48.0
+CALIBRATION_BASAL_COST = 0.4
+CALIBRATION_RESOURCE_AMOUNT = 12.0
+CALIBRATION_RESPAWN_RATE = 1.0
+CALIBRATION_STARVATION_CONSECUTIVE_TICKS = 3
 
 ArmName = Literal["source_bias_on", "source_bias_off", "capsules_off", "capsules_shuffled"]
 ARMS: tuple[ArmName, ...] = (
@@ -178,6 +204,301 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
             "alpha": ALPHA,
         }
+    )
+
+
+def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
+    """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
+
+    return {
+        "wave": "1b",
+        "dated": "2026-09-12",
+        "scope": "hard_experiment_01_overlay_only",
+        "life_loop_defaults_unchanged": True,
+        "emitter_genome": CALIBRATION_EMITTER_GENOME,
+        "eater_genome": CALIBRATION_EATER_GENOME,
+        "waiter_genome": CALIBRATION_WAITER_GENOME,
+        "emitter_index": 0,
+        "initial_runtime_atp": CALIBRATION_INITIAL_RUNTIME_ATP,
+        "basal_runtime_atp_cost": CALIBRATION_BASAL_COST,
+        "resource_amount": CALIBRATION_RESOURCE_AMOUNT,
+        "respawn_rate": CALIBRATION_RESPAWN_RATE,
+        "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
+        "food_layout": "even_x_on_first_two_rows",
+        "note": (
+            "Calibration of food inflow, energy, death patience, and initial "
+            "genomes so the existing capsule channel can fire. Not a new "
+            "signaling pathway. Estimand, arms, seeds, and analysis unchanged."
+        ),
+    }
+
+
+def _calibration_food_cells(width: int, height: int) -> tuple[tuple[int, int], ...]:
+    rows = min(2, max(1, int(height)))
+    step = 2 if width > 1 else 1
+    return tuple((x, y) for y in range(rows) for x in range(0, int(width), step))
+
+
+def _calibrated_genomes(base_genomes: Sequence[str]) -> tuple[str, ...]:
+    calibrated: list[str] = []
+    for index, bits in enumerate(base_genomes):
+        if index == 0:
+            calibrated.append(CALIBRATION_EMITTER_GENOME)
+        elif bits == LIFE_LOOP_WAITER_GENOME or bits.startswith("000"):
+            calibrated.append(CALIBRATION_WAITER_GENOME)
+        else:
+            calibrated.append(CALIBRATION_EATER_GENOME)
+    return tuple(calibrated)
+
+
+def _apply_survival_calibration(spec: GenesisExperimentSpec) -> GenesisExperimentSpec:
+    """Keep research-scale overlays alive long enough for capsules to act.
+
+    Overlay-only. Does not change ``life_loop_world`` defaults.
+    """
+
+    configs = spec.population_configs
+    if configs is None:
+        raise ConfigurationError("hard experiment 01 overlay requires population_configs.")
+    width = int(spec.world_width)
+    height = int(spec.world_height)
+    food_cells = _calibration_food_cells(width, height)
+    world = World2D(width, height)
+    for position in food_cells:
+        world.place_resource(position, CALIBRATION_RESOURCE_AMOUNT)
+    resource_policy = replace(
+        configs.runtime_resource_policy,
+        respawn_enabled=True,
+        respawn_rate=CALIBRATION_RESPAWN_RATE,
+        max_resources=max(len(food_cells) * 2, int(spec.population_max or len(spec.genome_bits))),
+        amount=CALIBRATION_RESOURCE_AMOUNT,
+        status="runtime_effective_default_on",
+    )
+    configs = replace(
+        configs,
+        metabolism=MetabolicConfig(enabled=True, basal_runtime_atp_cost=CALIBRATION_BASAL_COST),
+        runtime_resource_policy=resource_policy,
+        death_monitoring=replace(
+            configs.death_monitoring,
+            starvation_consecutive_ticks=CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
+        ),
+    )
+    metadata: dict[str, JsonValue] = {
+        **spec.metadata,
+        "hard_experiment_01_calibration": hard_experiment_01_calibration_knobs(),
+        "food_cells": [list(item) for item in food_cells],
+        "initial_food_patches": len(food_cells),
+        "max_resources": resource_policy.max_resources,
+        "respawn_rate": CALIBRATION_RESPAWN_RATE,
+        "resource_amount": CALIBRATION_RESOURCE_AMOUNT,
+        "basal_runtime_atp_cost": CALIBRATION_BASAL_COST,
+        "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
+    }
+    return replace(
+        spec,
+        genome_bits=_calibrated_genomes(spec.genome_bits),
+        initial_runtime_atp=CALIBRATION_INITIAL_RUNTIME_ATP,
+        element_grid=world2d_to_element_grid(world),
+        population_configs=configs,
+        metadata=metadata,
+    )
+
+
+def evaluate_hard_experiment_01_assay(
+    summaries: Sequence[HardExperiment01ArmSummary] | Sequence[Mapping[str, JsonValue]],
+    *,
+    treatment_arm: ArmName = "source_bias_on",
+) -> tuple[bool, tuple[str, ...]]:
+    """Refuse confirmatory claims when the treatment channel was not exercised.
+
+    Assay failure is a quality gate, not a change to the causal estimand.
+    Contrasts remain recorded; ClaimGate stays at ``runtime_observation``.
+    """
+
+    treatment: HardExperiment01ArmSummary | Mapping[str, JsonValue] | None = None
+    for item in summaries:
+        arm = item.arm if isinstance(item, HardExperiment01ArmSummary) else str(item.get("arm", ""))
+        if arm == treatment_arm:
+            treatment = item
+            break
+    if treatment is None:
+        return True, ("assay_failed_missing_treatment_summary",)
+    if isinstance(treatment, HardExperiment01ArmSummary):
+        adoption_mean = treatment.adoption_mean
+        extinction_rate = treatment.extinction_rate
+    else:
+        raw_adoptions = treatment.get("adoption_mean")
+        raw_extinction = treatment.get("extinction_rate")
+        adoption_mean = (
+            float(raw_adoptions) if isinstance(raw_adoptions, (int, float)) else None
+        )
+        extinction_rate = (
+            float(raw_extinction) if isinstance(raw_extinction, (int, float)) else 1.0
+        )
+    failures: list[str] = []
+    if adoption_mean is None or adoption_mean <= ASSAY_ADOPTIONS_NEAR_ZERO:
+        failures.append("assay_failed_treatment_adoptions_near_zero")
+    if extinction_rate >= ASSAY_EXTINCTION_NEAR_ONE:
+        failures.append("assay_failed_treatment_extinction_near_one")
+    return bool(failures), tuple(failures)
+
+
+@dataclass(frozen=True, slots=True)
+class HardExperiment01TickDiagnostic:
+    """Per-tick food / energy / vital / capsule counters. Not a claim."""
+
+    tick: int
+    population: int
+    food_cells: int
+    mean_runtime_atp: float | None
+    births: int
+    deaths: int
+    capsule_emits: int
+    capsule_adoptions: int
+    agents_at_or_above_min_source_fitness: int
+    max_fitness: float | None
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "tick": self.tick,
+            "population": self.population,
+            "food_cells": self.food_cells,
+            "mean_runtime_atp": self.mean_runtime_atp,
+            "births": self.births,
+            "deaths": self.deaths,
+            "capsule_emits": self.capsule_emits,
+            "capsule_adoptions": self.capsule_adoptions,
+            "agents_at_or_above_min_source_fitness": self.agents_at_or_above_min_source_fitness,
+            "max_fitness": self.max_fitness,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class HardExperiment01RunDiagnostic:
+    """Instrument one overlay run. Observation only."""
+
+    seed: int
+    arm: str
+    tick_count: int
+    population: int
+    final_population: int | None
+    extinct: bool
+    total_births: int
+    total_deaths: int
+    total_emits: int
+    total_adoptions: int
+    any_agent_reached_min_source_fitness: bool
+    ticks: tuple[HardExperiment01TickDiagnostic, ...]
+    claim_ceiling: str = CLAIM_CEILING
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "seed": self.seed,
+            "arm": self.arm,
+            "tick_count": self.tick_count,
+            "population": self.population,
+            "final_population": self.final_population,
+            "extinct": self.extinct,
+            "total_births": self.total_births,
+            "total_deaths": self.total_deaths,
+            "total_emits": self.total_emits,
+            "total_adoptions": self.total_adoptions,
+            "any_agent_reached_min_source_fitness": self.any_agent_reached_min_source_fitness,
+            "ticks": [item.to_dict() for item in self.ticks],
+            "claim_ceiling": self.claim_ceiling,
+            "collective_intelligence": False,
+        }
+
+
+def diagnose_hard_experiment_01_run(
+    *,
+    seed: int,
+    arm: ArmName,
+    tick_count: int,
+    population: int,
+    min_source_fitness: float = MIN_SOURCE_FITNESS_TREATMENT,
+) -> HardExperiment01RunDiagnostic:
+    """Food / ATP / vital / capsule series for one calibrated overlay run."""
+
+    spec, result = _run_arm(seed=seed, arm=arm, tick_count=tick_count, population=population)
+    tick_rows: list[HardExperiment01TickDiagnostic] = []
+    reached = False
+    total_emits = 0
+    total_adoptions = 0
+    total_births = 0
+    total_deaths = 0
+    for index, tick in enumerate(getattr(result, "ticks", ()) or ()):
+        generation = getattr(tick, "generation_result", None)
+        pop_state = None if generation is None else getattr(generation, "population", None)
+        raw_organisms = () if pop_state is None else getattr(pop_state, "organisms", ()) or ()
+        organisms = tuple(raw_organisms)
+        resources = getattr(getattr(generation, "world_after", None), "resources", None)
+        food_cells = len(resources) if isinstance(resources, dict) else 0
+        atps = [
+            float(getattr(getattr(item, "atp_state", None), "runtime_available", 0.0) or 0.0)
+            for item in organisms
+        ]
+        fitness_scores = [
+            float(getattr(item, "score", 0.0) or 0.0)
+            for item in getattr(pop_state, "fitness", ()) or ()
+        ]
+        above = sum(1 for score in fitness_scores if score >= min_source_fitness)
+        if above:
+            reached = True
+        emits = 0
+        adoptions = 0
+        for record in getattr(generation, "organism_records", ()) or ():
+            trace = getattr(record, "trace", None)
+            events = getattr(trace, "events", ()) or ()
+            for event in events:
+                action = getattr(event, "action", "")
+                if action == "EMIT_NEXUS":
+                    emits += 1
+                delta = getattr(event, "world_delta", {}) or {}
+                if delta.get("capsule_adoption_success") is True:
+                    adoptions += 1
+        if adoptions == 0:
+            adoptions = int(getattr(generation, "capsule_adoption_successes", 0) or 0)
+        births = int(getattr(generation, "births", 0) or 0)
+        deaths = int(getattr(generation, "deaths", 0) or 0)
+        total_emits += emits
+        total_adoptions += adoptions
+        total_births += births
+        total_deaths += deaths
+        tick_rows.append(
+            HardExperiment01TickDiagnostic(
+                tick=index,
+                population=len(organisms),
+                food_cells=food_cells,
+                mean_runtime_atp=None if not atps else round(sum(atps) / len(atps), 10),
+                births=births,
+                deaths=deaths,
+                capsule_emits=emits,
+                capsule_adoptions=adoptions,
+                agents_at_or_above_min_source_fitness=above,
+                max_fitness=None if not fitness_scores else round(max(fitness_scores), 10),
+            )
+        )
+    sources, _utilities, _transfers, recorded_adoptions = _capsule_counts(result)
+    if total_adoptions == 0:
+        total_adoptions = recorded_adoptions
+    if total_emits == 0:
+        total_emits = sources
+    final_pop = _final_population(result)
+    _ = spec
+    return HardExperiment01RunDiagnostic(
+        seed=seed,
+        arm=arm,
+        tick_count=tick_count,
+        population=population,
+        final_population=final_pop,
+        extinct=final_pop == 0,
+        total_births=total_births,
+        total_deaths=total_deaths,
+        total_emits=total_emits,
+        total_adoptions=total_adoptions,
+        any_agent_reached_min_source_fitness=reached,
+        ticks=tuple(tick_rows),
     )
 
 
@@ -366,12 +687,14 @@ def _apply_capsule_overlay(
         "tokyo_type1_passed": False,
         "avida_replacement": False,
     }
-    return replace(
-        base,
-        population_configs=configs,
-        capsule_transfer_config=capsule,
-        engine_config=engine_config,
-        metadata=metadata,
+    return _apply_survival_calibration(
+        replace(
+            base,
+            population_configs=configs,
+            capsule_transfer_config=capsule,
+            engine_config=engine_config,
+            metadata=metadata,
+        )
     )
 
 
@@ -812,6 +1135,8 @@ class HardExperiment01Campaign:
     claim_gate_final_claim: str = CLAIM_CEILING
     intervention_result: InterventionResult | None = None
     statistical_tier: str = "exploratory_only"
+    assay_failed: bool = False
+    assay_failures: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if len(self.seeds) < 2 or len(self.seeds) != len(self.seed_records):
@@ -917,6 +1242,9 @@ class HardExperiment01Campaign:
             "interventions": [item.to_dict() for item in self.interventions],
             "decision_rule_passed": self.decision_rule_passed,
             "decision_rule_failures": list(self.decision_rule_failures),
+            "assay_failed": self.assay_failed,
+            "assay_failures": list(self.assay_failures),
+            "calibration": hard_experiment_01_calibration_knobs(),
             "claim_gate_allowed": self.claim_gate_allowed,
             "claim_gate_decision_digest": self.claim_gate_decision_digest,
             "claim_gate_final_claim": self.claim_gate_final_claim,
@@ -940,6 +1268,8 @@ class HardExperiment01Campaign:
                 "null_or_small_effect_is_a_valid_finding",
                 "not_knowledge_transfer_proof",
                 "smoke_is_exploratory_only",
+                "wave_1b_survival_calibration_does_not_change_the_estimand",
+                "assay_failure_keeps_runtime_observation",
             ],
         }
 
@@ -1402,8 +1732,9 @@ def _decision_rule_failures(
     shuffled_vs_off: HardExperiment01PairedContrast | None,
     dose_trend: HardExperiment01DoseTrend | None,
     replay_matched: bool,
+    assay_failures: Sequence[str] = (),
 ) -> tuple[str, ...]:
-    failures: list[str] = []
+    failures: list[str] = list(assay_failures)
     if scale != "research":
         failures.append("not_research_scale")
     if statistical_tier != "research_grade_benchmark_candidate":
@@ -1556,6 +1887,8 @@ def run_hard_experiment_01(
         if item.seed == seed_tuple[0] and item.arm == "source_bias_on"
     )
     statistical_tier = StatisticalTestPolicy().tier_for_n(len(seed_tuple))
+    arm_summaries = tuple(_arm_summary(records, arm) for arm in ARMS)
+    assay_failed, assay_failures = evaluate_hard_experiment_01_assay(arm_summaries)
     failures = _decision_rule_failures(
         scale=scale,
         statistical_tier=statistical_tier,
@@ -1563,6 +1896,7 @@ def run_hard_experiment_01(
         shuffled_vs_off=shuffled_vs_off,
         dose_trend=dose_trend,
         replay_matched=replay_matched,
+        assay_failures=assay_failures,
     )
     prereg_digest = hard_experiment_01_prereg_digest()
     protocol_digest = hard_experiment_01_protocol_digest(prereg_digest)
@@ -1642,7 +1976,9 @@ def run_hard_experiment_01(
         multiple_comparison_audit=MultipleComparisonAudit(metric_count=3),
         dose_records=tuple(dose_records),
         dose_trend=dose_trend,
-        arm_summaries=tuple(_arm_summary(records, arm) for arm in ARMS),
+        arm_summaries=arm_summaries,
+        assay_failed=assay_failed,
+        assay_failures=assay_failures,
         decision_rule_passed=not failures and claim_gate_allowed,
         decision_rule_failures=failures,
         claim_gate_allowed=claim_gate_allowed,
@@ -1675,6 +2011,8 @@ def evaluate_hard_experiment_01_claim(
     ceiling = str(data.get("claim_ceiling") or CLAIM_CEILING)
     if ceiling in _FORBIDDEN:
         raise ConfigurationError(f"hard experiment 01 must not request {ceiling}.")
+    if data.get("assay_failed") is True:
+        ceiling = CLAIM_CEILING
     if ceiling == INTERVENTION_CLAIM and data.get("claim_gate_allowed") is True:
         flags = {name: True for name in INTERVENTION_SUPPORTED_FLAGS}
         decision = gate.decide(
@@ -1741,6 +2079,7 @@ def format_hard_experiment_01_summary(campaign: HardExperiment01Campaign) -> str
             *primary_lines,
             f"dose_trend_supported {None if dose is None else dose.trend_supported}",
             f"decision_rule_passed {campaign.decision_rule_passed}",
+            f"assay_failed {campaign.assay_failed}",
             f"replay_matched {campaign.replay_matched}",
             f"claim_ceiling {campaign.claim_ceiling}",
             "collective_intelligence False",
@@ -1751,8 +2090,12 @@ def format_hard_experiment_01_summary(campaign: HardExperiment01Campaign) -> str
     )
 
 
-def committed_research_results_path() -> Path:
+def committed_research_results_v1_path() -> Path:
     return _repo_root() / "docs" / "hard_experiment_01" / "results_v1.json"
+
+
+def committed_research_results_path() -> Path:
+    return _repo_root() / "docs" / "hard_experiment_01" / "results_v2.json"
 
 
 def write_hard_experiment_01_research_results(path: Path | None = None) -> Path:

@@ -155,6 +155,13 @@ class GenesisOrganism:
     translation_policy: TranslationPolicy = field(default_factory=TranslationPolicy)
     phase_e_state: object | None = None
     materials_state: object | None = None
+    # Wave 1c behavioural capsule coupling (opt-in via
+    # ``CapsuleTransferConfig.adoption_effect_action``). ``None`` keeps the
+    # legacy path byte-identical.
+    capsule_action_bias: str | None = None
+    capsule_action_bias_capsule_id: str | None = None
+    capsule_action_bias_substitutable: tuple[str, ...] = ()
+    capsule_last_executed_action: str | None = None
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)
@@ -244,6 +251,22 @@ class GenesisOrganism:
             alive_result=alive_result,
         )
 
+    def _codon_cost_for_action(self, action_name: str, fallback: float) -> float:
+        """Cost of the codon mapped to ``action_name`` in this organism's table.
+
+        A capsule-biased action must pay its own runtime cost, otherwise the
+        negative control (scrambled payload) would be free of charge.
+        """
+
+        table = getattr(self.ribosome, "codon_table", None)
+        actions = getattr(table, "actions", None)
+        if not callable(actions):
+            return fallback
+        for codon in actions():
+            if getattr(codon, "action_name", None) == action_name:
+                return float(codon.cost)
+        return fallback
+
     def step(
         self,
         world: World2D,
@@ -282,6 +305,27 @@ class GenesisOrganism:
             action_name, phase_e_delta = apply_phase_e_action_choice(
                 self, action_name, world=world
             )
+        capsule_bias_delta: dict[str, JsonValue] = {}
+        if (
+            self.capsule_action_bias is not None
+            and action_name in self.capsule_action_bias_substitutable
+            and self.capsule_action_bias != action_name
+        ):
+            capsule_bias_delta = {
+                "capsule_action_bias_applied": True,
+                "capsule_action_bias_from": action_name,
+                "capsule_action_bias_to": self.capsule_action_bias,
+                "capsule_action_bias_capsule_id": self.capsule_action_bias_capsule_id,
+            }
+            action_name = self.capsule_action_bias
+            token = CompiledToken(
+                bits=token.bits,
+                action=action_name,
+                cost=self._codon_cost_for_action(action_name, token.cost),
+                index=token.index,
+                source=token.source,
+            )
+            capsule_bias_delta["capsule_action_bias_cost"] = token.cost
         action_sequence: tuple[str, ...] = (action_name,)
         source_override = token.source
         adf_expansion_digest: str | None = None
@@ -326,6 +370,8 @@ class GenesisOrganism:
         }
         if phase_e_delta:
             world_delta.update(phase_e_delta)
+        if capsule_bias_delta:
+            world_delta.update(capsule_bias_delta)
         source_token = CompiledToken(
             bits=token.bits,
             action=action_name,

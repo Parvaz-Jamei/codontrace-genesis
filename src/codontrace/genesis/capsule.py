@@ -420,6 +420,11 @@ class CapsuleTransferConfig:
     policy_profile: CapsulePolicyProfile | str = CapsulePolicyProfile.SAFE
     shuffle_mode: CapsuleShuffleMode | str = CapsuleShuffleMode.OFF
     accept_provisional_source_fitness: bool = True
+    # Wave 1c: opt-in behavioural coupling (DAG edge e2: adopted capsule ->
+    # action). Default off keeps every pre-existing config digest byte-stable;
+    # the two keys below are serialised only when the coupling is enabled.
+    adoption_effect_action: bool = False
+    adoption_substitutable_actions: tuple[str, ...] = ("WAIT",)
 
     @property
     def effective_max_capsules_read_per_tick(self) -> int:
@@ -467,6 +472,11 @@ class CapsuleTransferConfig:
         ):
             msg = "Capsule transfer counts/ttl are invalid."
             raise ConfigurationError(msg)
+        substitutable = tuple(str(item) for item in self.adoption_substitutable_actions)
+        if self.adoption_effect_action and not substitutable:
+            msg = "adoption_effect_action requires at least one substitutable action."
+            raise ConfigurationError(msg)
+        object.__setattr__(self, "adoption_substitutable_actions", substitutable)
         if self.adoption_min_confidence is not None:
             object.__setattr__(self, "adoption_min_confidence", finite_float("adoption_min_confidence", self.adoption_min_confidence, probability=True))
 
@@ -483,7 +493,7 @@ class CapsuleTransferConfig:
         )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "min_confidence": self.min_confidence,
             "min_source_fitness": self.min_source_fitness,
@@ -509,6 +519,10 @@ class CapsuleTransferConfig:
             "shuffle_mode": _capsule_shuffle_mode(self.shuffle_mode).value,
             "accept_provisional_source_fitness": self.accept_provisional_source_fitness,
         }
+        if self.adoption_effect_action:
+            payload["adoption_effect_action"] = True
+            payload["adoption_substitutable_actions"] = list(self.adoption_substitutable_actions)
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> CapsuleTransferConfig:
@@ -548,6 +562,12 @@ class CapsuleTransferConfig:
             ),
             accept_provisional_source_fitness=_bool(
                 data, "accept_provisional_source_fitness", True
+            ),
+            adoption_effect_action=_bool(data, "adoption_effect_action", False),
+            adoption_substitutable_actions=(
+                ("WAIT",)
+                if data.get("adoption_substitutable_actions") is None
+                else _str_tuple(data, "adoption_substitutable_actions")
             ),
         )
 

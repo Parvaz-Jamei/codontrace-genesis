@@ -31,16 +31,29 @@ ARM_ROLES: dict[str, str] = {
     "source_bias_off": "mechanism_ablation",
     "capsules_off": "channel_off",
     "capsules_shuffled": "negative_control",
+    "oracle_capsule": "positive_control",
 }
-DEFAULT_RESULTS = Path("docs/hard_experiment_01/results_v2.json")
+DEFAULT_RESULTS = Path("docs/hard_experiment_01/results_v3.json")
+# Names of the primary outcome across schema versions (v1/v2 composite
+# selection fitness; v3 receiver mean terminal runtime ATP). The arm record
+# field is ``terminal_mean_fitness`` in every version; ``primary_outcome``
+# names what it measures.
+PRIMARY_METRIC_FALLBACK = "terminal_mean_fitness"
+# Manipulation-check codes (Wave 1c) that make a campaign assay_invalid
+# regardless of p-values. Anything starting with this prefix counts.
+ASSAY_FAILURE_PREFIX = "assay_failed_"
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-def committed_results_v2_path() -> Path:
+def committed_results_v3_path() -> Path:
     return _repo_root() / DEFAULT_RESULTS
+
+
+def committed_results_v2_path() -> Path:
+    return _repo_root() / "docs" / "hard_experiment_01" / "results_v2.json"
 
 
 def _sha256_file(path: Path) -> str:
@@ -118,6 +131,18 @@ def _arms(data: Mapping[str, Any], seed_count: int) -> tuple[ClaimgateArm, ...]:
     return tuple(arms)
 
 
+def _primary_metric_name(data: Mapping[str, Any]) -> str:
+    raw = data.get("primary_outcome")
+    return str(raw) if isinstance(raw, str) and raw.strip() else PRIMARY_METRIC_FALLBACK
+
+
+def _assay_failure_codes(data: Mapping[str, Any]) -> tuple[str, ...]:
+    raw = data.get("assay_failures")
+    if not isinstance(raw, list):
+        return ()
+    return tuple(str(item) for item in raw if str(item).startswith(ASSAY_FAILURE_PREFIX))
+
+
 def _outcomes(data: Mapping[str, Any]) -> tuple[ClaimgateOutcome, ...]:
     records = data.get("seed_records")
     if not isinstance(records, list):
@@ -139,7 +164,7 @@ def _outcomes(data: Mapping[str, Any]) -> tuple[ClaimgateOutcome, ...]:
                 adoptions[name].append(float(adopted))
     return (
         ClaimgateOutcome(
-            metric="terminal_mean_fitness",
+            metric=_primary_metric_name(data),
             values_by_arm={name: tuple(values) for name, values in fitness.items() if values},
         ),
         ClaimgateOutcome(
@@ -248,7 +273,9 @@ def bundle_from_hard_experiment_01(
     """Build a claimgate_bundle_v1 from HARD_EXPERIMENT_01 v2 (or equivalent)."""
 
     if source is None:
-        source = committed_results_v2_path()
+        source = committed_results_v3_path()
+        if not source.is_file():
+            source = committed_results_v2_path()
     data, path = _campaign_mapping(source)
     seeds = _seeds(data)
     config = data.get("protocol_digest") or data.get("digest")
@@ -256,22 +283,27 @@ def bundle_from_hard_experiment_01(
         raise ConfigurationError("campaign is missing a real config/protocol digest.")
     prereg = data.get("prereg_digest")
     outcomes = _outcomes(data)
+    primary_metric = _primary_metric_name(data)
     fitness_means: list[float] = []
     for outcome in outcomes:
-        if outcome.metric != "terminal_mean_fitness":
+        if outcome.metric != primary_metric:
             continue
         for values in outcome.values_by_arm.values():
             if values:
                 fitness_means.append(sum(values) / len(values))
-    assay_invalid = len(fitness_means) >= 2 and all(
+    means_identical = len(fitness_means) >= 2 and all(
         item == fitness_means[0] for item in fitness_means
     )
+    manipulation_failures = _assay_failure_codes(data)
+    assay_invalid = means_identical or bool(manipulation_failures)
     extra: dict[str, Any] = {
         "adapter": "codontrace_hard_experiment_01",
         "experiment_id": data.get("experiment_id"),
         "claim_ceiling": data.get("claim_ceiling"),
+        "primary_outcome": primary_metric,
         "assay_failed": data.get("assay_failed"),
         "assay_invalid": assay_invalid,
+        "assay_manipulation_failures": list(manipulation_failures),
         "decision_rule_passed": data.get("decision_rule_passed"),
         "collective_intelligence": False,
         "intelligence": False,

@@ -202,7 +202,7 @@ The following observations were present in the inspected quick run. They should 
 | `collective_mixed` vs `no_capsules` | `0` delta for social interaction, partner interaction, and capsule adoption in inspected seeds | Negative evidence for collective-intelligence readiness under this quick profile. |
 | `high_mutation` vs `no_mutation` | mixed birth-event deltas and no mutation-result delta in inspected pair summary | Not sufficient for a mutation-effect claim. Needs protocol refinement. |
 
-### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b research snapshot (`0.3.0b4.dev0`)
+### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b / 1c research snapshot (`0.3.0b4.dev0`)
 
 Inspected artifacts:
 [`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
@@ -224,6 +224,17 @@ adoptions `169 / 169 / 0 / 169`. That is **`assay_invalid`**
 fitness estimand. It is **not** a scientific null finding.
 `intervention_supported` was not requested. This is not mechanism
 support and not collective intelligence. Public level stays **1**.
+
+Wave 1c (v3, amendment 01, PR after #24):
+[`docs/hard_experiment_01/results_v3.json`](docs/hard_experiment_01/results_v3.json),
+campaign digest `e71321fa60f4ed3a97e07d12e23a9e86275a102ffeadbea94124099fa3446aef`,
+amendment digest `6d156e824b9b9c4d06be4eb6f4d35f265592eab7c41d35a6b8c0ca951dfc7de8`.
+The manipulation **was realized** (gate rejects 91/seed only in the
+treatment arm; positive control 78.4 vs 28.0 ATP; dose pattern matched),
+but all arms have **sd = 0 across seeds**: the overlay is deterministic
+given the role layout, so dz is undefined and no inference is available.
+Granted ceiling stays **`runtime_observation`** (level 1). Not mechanism
+support, not collective intelligence.
 
 Approved interpretation:
 

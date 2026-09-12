@@ -12,11 +12,16 @@ from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleShuffleMode
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
+    ANALYSIS_ARMS,
     ARMS,
+    CALIBRATION_GOOD_PAYLOAD_ACTION,
+    CALIBRATION_POOR_PAYLOAD_ACTION,
     CLAIM_CEILING,
     DOSE_LEVELS,
     INTERVENTION_CLAIM,
     INTERVENTION_SUPPORTED_FLAGS,
+    MIN_SOURCE_FITNESS_TREATMENT,
+    PRIMARY_OUTCOME,
     RESEARCH_SEED_COUNT,
     SMOKE_SEED_COUNT,
     HardExperiment01ArmRecord,
@@ -36,6 +41,7 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_calibration_knobs,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
+    hard_experiment_01_prereg_amendment_digest,
     hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
 )
@@ -112,7 +118,9 @@ def test_hard_experiment_01_dag_and_prereg_are_frozen() -> None:
 
 def test_dose_two_matches_treatment_spec() -> None:
     treatment = build_hard_experiment_01_spec(seed=11, arm="source_bias_on")
-    dose_two = build_hard_experiment_01_dose_spec(seed=11, min_source_fitness=2.0)
+    dose_two = build_hard_experiment_01_dose_spec(
+        seed=11, min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT
+    )
     shuffled = build_hard_experiment_01_spec(seed=11, arm="capsules_shuffled")
     assert treatment.digest() == dose_two.digest()
     assert treatment.capsule_transfer_config is not None
@@ -174,7 +182,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         campaign.seeds[0],
         campaign.seeds[-1],
     }
-    assert len(campaign.replay_records) == 8
+    assert len(campaign.replay_records) == 10
     assert all(item.matched for item in campaign.replay_records)
     last = campaign.seed_records[-1]
     last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
@@ -213,7 +221,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         "capsule_transfer_count",
         "capsule_adoptions",
     } <= set(sample_arm)
-    assert len(campaign.interventions) == 4
+    assert len(campaign.interventions) == 5
     assert {item.arm for item in campaign.interventions} == set(ARMS)
     assert campaign.to_dict()["interventions"][1]["role"] == "mechanism_ablation"
     assert all(
@@ -368,6 +376,7 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
         ("source_bias_off", 0),
         ("capsules_off", 0),
         ("capsules_shuffled", 0),
+        ("oracle_capsule", 0),
     )
 
 
@@ -435,20 +444,20 @@ def test_assay_failed_when_treatment_extinctions_or_adoptions_uninterpretable() 
 
 
 def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
-    spec = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=6, population=4)
+    spec = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=8, population=8)
     result = GenesisEngine.from_spec(spec).run_ticks()
     adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
     diagnostic = diagnose_hard_experiment_01_run(
-        seed=11, arm="source_bias_on", tick_count=6, population=4
+        seed=11, arm="source_bias_on", tick_count=8, population=8
     )
-    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1b"
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1c"
     assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
     assert adoptions > 0
     assert diagnostic.total_adoptions > 0
     assert diagnostic.extinct is False
     assert diagnostic.final_population not in {None, 0}
     assert diagnostic.any_agent_reached_min_source_fitness is True
-    off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=6, population=4)
+    off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=8, population=8)
     off_result = GenesisEngine.from_spec(off).run_ticks()
     assert len(tuple(getattr(off_result, "capsule_adoption_records", ()) or ())) == 0
 
@@ -500,6 +509,82 @@ def test_committed_research_v2_exercises_source_bias_gate() -> None:
     assert by_arm["capsules_off"]["adoption_mean"] == 0.0
 
 
+def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
+    """The v2 defect: identical arms. v3 must exercise every DAG edge."""
+
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=True)
+    by_arm = {item.arm: item for item in campaign.arm_summaries}
+    assert set(by_arm) == set(ARMS)
+    assert campaign.assay_failed is False, campaign.assay_failures
+    assert by_arm["source_bias_on"].bias_applied_mean > 0
+    assert by_arm["source_bias_on"].rejected_by_source_fitness_mean > 0
+    assert set(by_arm["source_bias_on"].bias_payload_totals) == {CALIBRATION_GOOD_PAYLOAD_ACTION}
+    assert CALIBRATION_POOR_PAYLOAD_ACTION in by_arm["source_bias_off"].bias_payload_totals
+    assert by_arm["capsules_off"].bias_applied_mean == 0.0
+    assert by_arm["capsules_off"].adoption_mean == 0.0
+    assert by_arm["oracle_capsule"].mean > by_arm["capsules_off"].mean
+    assert any(
+        item.source_bias_on.result_digest != item.source_bias_off.result_digest
+        for item in campaign.seed_records
+    )
+    payload = campaign.to_dict()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["analysis_arms"] == list(ANALYSIS_ARMS)
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["dose_trend"]["pattern"] == "step_up_then_saturate"
+    first_on = campaign.seed_records[0].source_bias_on.to_dict()
+    assert first_on["legacy_terminal_selection_fitness"] is not None
+
+
+def test_wave_1c_engine_knobs_default_off_and_serialize_conditionally() -> None:
+    from codontrace.genesis.capsule import CapsuleTransferConfig
+    from codontrace.genesis.population import RuntimeResourcePolicy
+
+    legacy = CapsuleTransferConfig(enabled=True)
+    assert legacy.adoption_effect_action is False
+    assert "adoption_effect_action" not in legacy.to_dict()
+    coupled = CapsuleTransferConfig(enabled=True, adoption_effect_action=True)
+    assert coupled.to_dict()["adoption_effect_action"] is True
+    assert CapsuleTransferConfig.from_dict(coupled.to_dict()).digest() == coupled.digest()
+    assert CapsuleTransferConfig.from_dict(legacy.to_dict()).digest() == legacy.digest()
+    policy = RuntimeResourcePolicy(respawn_enabled=True, respawn_rate=1.0, max_resources=4)
+    assert "respawn_under_organisms" not in policy.to_dict()
+    renewable = RuntimeResourcePolicy(
+        respawn_enabled=True,
+        respawn_rate=1.0,
+        max_resources=4,
+        respawn_under_organisms=True,
+        respawn_draws_per_tick=3,
+    )
+    assert RuntimeResourcePolicy.from_dict(renewable.to_dict()).digest() == renewable.digest()
+    assert renewable.digest() != policy.digest()
+
+
+def test_committed_research_v3_is_a_valid_assay() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v3.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v3"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    assert payload["claim_ceiling"] in {CLAIM_CEILING, INTERVENTION_CLAIM}
+    if payload["claim_ceiling"] == INTERVENTION_CLAIM:
+        assert payload["decision_rule_passed"] is True
+        assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["rejected_by_source_fitness_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
@@ -519,7 +604,9 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "Limitations / Diagnostics" in text
     assert "assay_failed" in text
     assert "Results (research v2)" in text
+    assert "Results (research v3)" in text
     assert "claim_downgraded" in text
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md").is_file()
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")

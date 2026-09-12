@@ -1128,10 +1128,19 @@ class RuntimeResourcePolicy:
     amount: float = 2.0
     seed_namespace: str = "resource_respawn"
     status: str = "disabled_by_config"
+    # Wave 1c renewable-food knobs. Defaults reproduce the legacy behaviour
+    # (one draw per tick, never under an organism) and are omitted from
+    # ``to_dict`` so existing policy/spec digests stay byte-stable.
+    respawn_under_organisms: bool = False
+    respawn_draws_per_tick: int = 1
 
     def __post_init__(self) -> None:
         if not isinstance(self.respawn_enabled, bool):
             raise ConfigurationError("RuntimeResourcePolicy.respawn_enabled must be a bool.")
+        if not isinstance(self.respawn_under_organisms, bool):
+            raise ConfigurationError("RuntimeResourcePolicy.respawn_under_organisms must be a bool.")
+        if self.respawn_draws_per_tick < 1:
+            raise ConfigurationError("RuntimeResourcePolicy.respawn_draws_per_tick must be >= 1.")
         object.__setattr__(self, "respawn_rate", finite_float("RuntimeResourcePolicy.respawn_rate", self.respawn_rate, non_negative=True, probability=True))
         object.__setattr__(self, "amount", finite_float("RuntimeResourcePolicy.amount", self.amount, non_negative=True))
         if self.max_resources < 0:
@@ -1146,7 +1155,7 @@ class RuntimeResourcePolicy:
         object.__setattr__(self, "status", resolved if self.status == "disabled_by_config" else self.status)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "respawn_enabled": self.respawn_enabled,
             "respawn_rate": self.respawn_rate,
             "max_resources": self.max_resources,
@@ -1156,6 +1165,11 @@ class RuntimeResourcePolicy:
             "status": self.status,
             "claim_allowed": self.respawn_enabled and self.status.startswith("runtime_effective"),
         }
+        if self.respawn_under_organisms:
+            payload["respawn_under_organisms"] = True
+        if self.respawn_draws_per_tick != 1:
+            payload["respawn_draws_per_tick"] = self.respawn_draws_per_tick
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> "RuntimeResourcePolicy":
@@ -1169,6 +1183,8 @@ class RuntimeResourcePolicy:
             amount=_float(data, "amount", 2.0),
             seed_namespace=_str(data, "seed_namespace", "resource_respawn"),
             status=_str(data, "status", "disabled_by_config"),
+            respawn_under_organisms=_bool(data, "respawn_under_organisms", False),
+            respawn_draws_per_tick=_int(data, "respawn_draws_per_tick", 1),
         )
 
     def digest(self) -> str:
@@ -2810,6 +2826,13 @@ def step_population(
         capsule_transfer_metrics: list[CapsuleTransferMetric] = []
         capsule_adoption_records: list[CapsuleAdoptionRecord] = []
         capsule_shuffle_records: list[CapsuleShuffleRecord] = []
+        capsule_action_coupling = (
+            configs.capsule_transfer
+            if configs.capsule_transfer is not None
+            and configs.capsule_transfer.enabled
+            and configs.capsule_transfer.adoption_effect_action
+            else None
+        )
         nexus_signal_count_before = (
             0 if working_nexus_layer is None else len(working_nexus_layer.signals)
         )
@@ -2895,6 +2918,10 @@ def step_population(
                         )
                         if adoption_result.succeeded:
                             capsule_adoption_successes += 1
+                            if capsule_action_coupling is not None:
+                                _apply_capsule_action_bias(
+                                    organism, capsule, capsule_action_coupling
+                                )
                         else:
                             capsule_adoption_failures += 1
                         capsule_adoption_records.append(
@@ -2943,6 +2970,8 @@ def step_population(
                 )
             event = organism.step(working_world, trace, blocked_positions=blocked_positions)
             live_positions[organism.id] = organism.position
+            if capsule_action_coupling is not None:
+                _track_capsule_payload_action(organism, event, capsule_action_coupling)
             if configs.logic9.enabled:
                 logic9_events.extend(
                     apply_logic9_runtime_bonus(
@@ -3020,6 +3049,9 @@ def step_population(
                         ttl=ttl,
                         source_fitness=source_fitness,
                         source_fitness_status=source_status,
+                        payload_action=None
+                        if capsule_action_coupling is None
+                        else organism.capsule_last_executed_action,
                     )
                     working_nexus_layer.deposit(capsule, position=organism.position)
                     capsule_emit_count += 1
@@ -3689,6 +3721,15 @@ def step_population(
             rng=respawn_rng,
             occupied_positions={item.position for item in next_organisms},
         )
+        for _extra_draw in range(configs.runtime_resource_policy.respawn_draws_per_tick - 1):
+            working_world, extra_events = _apply_runtime_resource_policy(
+                working_world,
+                configs.runtime_resource_policy,
+                tick=current_tick,
+                rng=respawn_rng,
+                occupied_positions={item.position for item in next_organisms},
+            )
+            resource_events = (*resource_events, *extra_events)
     if configs.phase_e.enabled and working_deme_state is not None:
         fitness_by_id = {item.organism_id: item.score for item in fitness_results}
         working_deme_state, _repl = maybe_replicate_demes(
@@ -3835,7 +3876,7 @@ def _apply_runtime_resource_policy(
         for y in range(world.height)
         for x in range(world.width)
         if (x, y) not in world.walls
-        and (x, y) not in occupied_positions
+        and ((x, y) not in occupied_positions or policy.respawn_under_organisms)
         and (x, y) not in world.resources
     )
     if not candidates:
@@ -4013,6 +4054,48 @@ def _last_world_delta_str(trace: Trace, key: str) -> str | None:
     return None
 
 
+def _track_capsule_payload_action(
+    organism: GenesisOrganism, event: TraceEvent, config: CapsuleTransferConfig
+) -> None:
+    """Remember the emitter's latest executed, non-signalling action.
+
+    Only active under ``adoption_effect_action``; the value becomes the capsule
+    payload (``event_pattern[1]``) on the next EMIT_NEXUS.
+    """
+
+    if event.action == "EMIT_NEXUS" or event.action in config.adoption_substitutable_actions:
+        return
+    if organism.action_runtime_config.counts_as_executed(event.status):
+        organism.capsule_last_executed_action = event.action
+
+
+def capsule_payload_action(capsule: CausalCapsule) -> str | None:
+    """Behavioural payload carried by a capsule (``None`` for legacy capsules)."""
+
+    for item in capsule.event_pattern:
+        if item != "EMIT_NEXUS":
+            return str(item)
+    return None
+
+
+def _apply_capsule_action_bias(
+    organism: GenesisOrganism, capsule: CausalCapsule, config: CapsuleTransferConfig
+) -> bool:
+    """Install the adopted capsule's payload as the organism's action bias.
+
+    Returns ``True`` when a bias was (re)installed. Unknown payloads are
+    ignored so a scrambled control cannot inject unregistered actions.
+    """
+
+    action = capsule_payload_action(capsule)
+    if action is None or organism.action_registry.get(action) is None:
+        return False
+    organism.capsule_action_bias = action
+    organism.capsule_action_bias_capsule_id = capsule.capsule_id
+    organism.capsule_action_bias_substitutable = tuple(config.adoption_substitutable_actions)
+    return True
+
+
 def _capsule_from_nexus_event(
     organism: GenesisOrganism,
     event: TraceEvent,
@@ -4021,6 +4104,7 @@ def _capsule_from_nexus_event(
     ttl: int,
     source_fitness: float | None = None,
     source_fitness_status: SourceFitnessStatus = SourceFitnessStatus.UNAVAILABLE,
+    payload_action: str | None = None,
 ) -> CausalCapsule:
     event_digest = hashlib.sha256(
         finite_json_dumps(event.to_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -4036,7 +4120,7 @@ def _capsule_from_nexus_event(
         source_fitness_status=source_fitness_status,
         source_fitness_tick=None if source_fitness is None else tick,
         source_graph_digest=graph_digest,
-        event_pattern=(event.action,),
+        event_pattern=(event.action,) if payload_action is None else (event.action, payload_action),
         predicted_outcome=event.status,
         confidence=1.0,
         emitted_tick=tick,
@@ -4080,6 +4164,10 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         translation_profile=organism.translation_profile,
         translation_policy=organism.translation_policy,
         phase_e_state=copy_phase_e_state(getattr(organism, "phase_e_state", None)),
+        capsule_action_bias=organism.capsule_action_bias,
+        capsule_action_bias_capsule_id=organism.capsule_action_bias_capsule_id,
+        capsule_action_bias_substitutable=organism.capsule_action_bias_substitutable,
+        capsule_last_executed_action=organism.capsule_last_executed_action,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)

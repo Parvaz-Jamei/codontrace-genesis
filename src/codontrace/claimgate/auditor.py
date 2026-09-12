@@ -170,7 +170,8 @@ def _primary_arm_means_bitwise_identical(bundle: ClaimgateBundle) -> bool:
         (
             outcome
             for outcome in bundle.outcomes
-            if outcome.metric in {"terminal_mean_fitness", "fitness"}
+            if outcome.metric
+            in {"terminal_mean_fitness", "fitness", "receiver_mean_terminal_runtime_atp"}
         ),
         None,
     )

@@ -417,6 +417,21 @@ silent; shuffled channel active; positive control `oracle_capsule` above
 `capsules_off`; arms not bitwise-identical. Any failure → `assay_failed`
 with an `assay_failed_*` code, `assay_invalid` in the standalone auditor.
 
+## Wave E6 (ODD + Morris screening)
+
+Wave E6 documents the HE01 overlay in
+[`HARD_EXPERIMENT_01_ODD.md`](HARD_EXPERIMENT_01_ODD.md) (Grimm 2020 ODD;
+Claim level `runtime_observation`) and adds an exploratory Morris
+elementary-effects screen
+([`hard_experiment_01/morris_e6_design.md`](hard_experiment_01/morris_e6_design.md),
+`codontrace.genesis.hard_experiment_01_morris`) on four post-Amd-03-safe
+knobs (`read_radius`, `min_source_fitness`, basal cost, food amount).
+Coverage and respawn stay Amd-03-frozen. Seeds are held-out exploratory
+(2000–2009), never 11–40 or 1000–1009. Morris μ* is a qualitative rank,
+not Holm/BCa and not a ClaimGate input. v5 remains assay PASS /
+decision-rule FAIL (`shuffled_better_than_capsules_off`). E6 does not
+claim `intervention_supported`. ODD ≠ intelligence.
+
 ## What this does not say
 
 - Capsule adoption is not knowledge transfer.

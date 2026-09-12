@@ -242,6 +242,11 @@ Approved interpretation:
 >
 > **HARD_EXPERIMENT_01 Wave 1 is a runtime observation of an invalid-null crash (gate never exercised). Wave 1b v2 is a runtime observation labeled `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`). The intervention was not realized on the estimand. This is not a scientific null finding. ClaimGate did not grant `intervention_supported`.**
 
+Wave E6 (2026-09-12) adds overlay ODD documentation and an exploratory
+Morris screen on held-out seeds 2000–2009. ClaimGate ceiling stays
+`runtime_observation`. E6 does not rewrite Amd 01/02/03 and does not
+reanalyse seeds 11–40.
+
 ---
 
 ## 5. Claim ladder

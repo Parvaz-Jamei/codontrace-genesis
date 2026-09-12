@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### HARD_EXPERIMENT_01 Wave 1 — preregistered causal design
+
+CodonTrace Genesis confirmatory measurement on the Wave 0 helpers.
+**Does not** claim intelligence, collective intelligence, Tokyo Type 1
+passed, or Avida replacement. Identity stays `0.3.0b4.dev0`. Phase A–E
+pins stay stable. ClaimGate is not loosened.
+
+- Preregistration `docs/HARD_EXPERIMENT_01_PREREG.md` is committed
+  *before* campaign numbers. Campaigns record `prereg_digest`.
+- Four arms: `source_bias_on`, `source_bias_off`, `capsules_off`,
+  `capsules_shuffled` (`CapsuleShuffleMode.CONTENT`). Explicit DAG
+  (Okasha & Otsuka 2020) states which edge each arm cuts.
+- Dose-response `min_source_fitness ∈ {0,1,2,4}` with `FITNESS_WEIGHTED`
+  and a seed-fixed Spearman permutation trend (Goldsby 2012 pattern).
+- Paired dz + BCa 95% CI (10000) + sign-flip p; Holm across three
+  primary contrasts; `PairedComparisonResult.claim_downgraded` when CI
+  includes 0; missing outcomes dropped, never zero-filled.
+- Smoke (12 / 6 / 4) stays in CI at `runtime_observation`. Research
+  (30 / 40 / 16) may request existing `intervention_supported` only if
+  the preregistered decision rule holds and ClaimGate allows it.
+
 ### Advisor hygiene + hard experiment 01
 
 CodonTrace Genesis hygiene and one measurement paper. **Does not** claim

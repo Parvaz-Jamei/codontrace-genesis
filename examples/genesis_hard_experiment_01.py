@@ -1,9 +1,9 @@
 """CodonTrace Genesis hard experiment 01 — capsule source-bias measurement.
 
-Print-only. Runs the 12-seed paired campaign (source-bias on vs source-bias
-off vs capsules off) and shows ClaimGate still blocking intelligence claims.
-Does not write files, start a UI, set ClaimGate flags, or claim intelligence,
-collective intelligence, Tokyo Type 1 passed, or Avida replacement.
+Print-only. Runs the smoke campaign (12 seeds, four arms + dose) and shows
+ClaimGate still blocking intelligence claims. Does not write files, start a
+UI, mutate a global ClaimGate, or claim intelligence, collective
+intelligence, Tokyo Type 1 passed, or Avida replacement.
 """
 
 from __future__ import annotations

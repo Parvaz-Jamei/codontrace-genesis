@@ -1184,10 +1184,17 @@ _MEASUREMENT_PAPER_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "spec_digest",
         "result_digest",
     ),
+    "codontrace.genesis.hard_experiment_01.HardExperiment01DoseRecord": (
+        "spec_digest",
+        "result_digest",
+    ),
     "codontrace.genesis.hard_experiment_01.HardExperiment01Campaign": (
         "replay_spec_digest",
         "replay_result_digest",
         "digest",
+        "prereg_digest",
+        "protocol_digest",
+        "claim_gate_decision_digest",
     ),
     "codontrace.genesis.phase_h.CollectiveIntelligenceCandidateChecklist": ("digest",),
     "codontrace.genesis.phase_h.CommunicationAblationCampaign": ("digest",),

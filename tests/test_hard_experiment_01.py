@@ -1,4 +1,4 @@
-"""Hard experiment 01: capsule source-bias vs next-gen fitness.
+"""Hard experiment 01: preregistered capsule source-bias causal design.
 
 Measurement only. Does not claim intelligence, collective intelligence,
 AGI, Tokyo Type 1 passed, or Avida replacement.
@@ -8,25 +8,34 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleShuffleMode
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
+    ARMS,
     CLAIM_CEILING,
+    DOSE_LEVELS,
+    INTERVENTION_CLAIM,
+    INTERVENTION_SUPPORTED_FLAGS,
     RESEARCH_SEED_COUNT,
+    SMOKE_SEED_COUNT,
     HardExperiment01ArmRecord,
     HardExperiment01SeedRecord,
     _capsule_counts,
     _complete_pair_values,
     _mean_last_tick_fitness,
     _missing_outcomes_per_arm,
+    build_hard_experiment_01_dose_spec,
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
+    hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
-
+from codontrace.genesis.statistical_protocol import StatisticalTestPolicy
 
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
 LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
@@ -42,68 +51,135 @@ def test_phase_a_life_loop_digest_pin_unchanged_by_hard_experiment_01() -> None:
 
 
 def test_hard_experiment_01_overlay_does_not_alias_default_life_loop_digest() -> None:
-    overlay = build_hard_experiment_01_spec(seed=7, arm="source_bias_on", tick_count=12, population=6)
+    overlay = build_hard_experiment_01_spec(
+        seed=7, arm="source_bias_on", tick_count=12, population=6
+    )
+    shuffled = build_hard_experiment_01_spec(
+        seed=7, arm="capsules_shuffled", tick_count=12, population=6
+    )
     pinned = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
     assert overlay.digest() != pinned.digest()
+    assert shuffled.digest() != pinned.digest()
+    assert shuffled.digest() != overlay.digest()
     assert pinned.digest() == LIFE_LOOP_SPEC_DIGEST
 
 
 def test_hard_experiment_01_interventions_map_each_arm() -> None:
     mapped = hard_experiment_01_interventions()
-    assert {item.arm for item in mapped} == {"source_bias_on", "source_bias_off", "capsules_off"}
+    assert {item.arm for item in mapped} == set(ARMS)
     by_arm = {item.arm: item for item in mapped}
     assert by_arm["source_bias_on"].role == "treatment"
     assert by_arm["source_bias_off"].role == "mechanism_ablation"
     assert by_arm["capsules_off"].role == "channel_off"
+    assert by_arm["capsules_shuffled"].role == "negative_control"
     assert "min_source_fitness" in by_arm["source_bias_off"].knob
     assert by_arm["capsules_off"].knob == "CapsuleTransferConfig.enabled"
+    assert by_arm["capsules_shuffled"].knob == "CapsuleTransferConfig.shuffle_mode"
+    assert by_arm["source_bias_off"].cuts_edges == ("e1",)
+    assert by_arm["capsules_off"].cuts_edges == ("e1", "e2")
+    assert by_arm["capsules_shuffled"].cuts_edges == ("e2_content",)
     assert all(item.to_dict()["collective_intelligence"] is False for item in mapped)
 
 
+def test_hard_experiment_01_dag_and_prereg_are_frozen() -> None:
+    dag = hard_experiment_01_causal_dag()
+    assert dag["path"] == "gate → which capsule is adopted → action → ATP → terminal fitness"
+    assert dag["nodes"] == [
+        "gate",
+        "which_capsule_is_adopted",
+        "action",
+        "ATP",
+        "terminal_fitness",
+    ]
+    root = Path(__file__).resolve().parents[1]
+    prereg = root / "docs" / "HARD_EXPERIMENT_01_PREREG.md"
+    assert prereg.is_file()
+    digest = hard_experiment_01_prereg_digest()
+    assert digest == __import__("hashlib").sha256(prereg.read_bytes()).hexdigest()
+    assert len(digest) == 64
+    text = prereg.read_text(encoding="utf-8")
+    assert "source_bias_on` > `source_bias_off" in text
+    assert "capsules_shuffled" in text
+    assert "Okasha" in text
+    assert "intervention_supported" in text
+    assert "collective_intelligence" in text
+
+
+def test_dose_two_matches_treatment_spec() -> None:
+    treatment = build_hard_experiment_01_spec(seed=11, arm="source_bias_on")
+    dose_two = build_hard_experiment_01_dose_spec(seed=11, min_source_fitness=2.0)
+    shuffled = build_hard_experiment_01_spec(seed=11, arm="capsules_shuffled")
+    assert treatment.digest() == dose_two.digest()
+    assert treatment.capsule_transfer_config is not None
+    assert (
+        treatment.capsule_transfer_config.adoption_policy
+        == CapsuleAdoptionPolicy.FITNESS_WEIGHTED
+    )
+    assert treatment.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.OFF
+    assert shuffled.capsule_transfer_config is not None
+    assert shuffled.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT
+    assert shuffled.capsule_transfer_config.shuffle_mode is not CapsuleShuffleMode.OFF
+    assert shuffled.digest() != treatment.digest()
+
+
 def test_hard_experiment_01_replays_all_arms_for_endpoint_seeds() -> None:
-    campaign = run_hard_experiment_01(seed_count=2)
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=True)
     assert campaign.seeds[0] != campaign.seeds[-1]
     assert campaign.replay_verified_seeds == (campaign.seeds[0], campaign.seeds[-1])
-    expected = {
-        (campaign.seeds[0], "source_bias_on"),
-        (campaign.seeds[0], "source_bias_off"),
-        (campaign.seeds[0], "capsules_off"),
-        (campaign.seeds[-1], "source_bias_on"),
-        (campaign.seeds[-1], "source_bias_off"),
-        (campaign.seeds[-1], "capsules_off"),
-    }
+    expected = {(seed, arm) for seed in (campaign.seeds[0], campaign.seeds[-1]) for arm in ARMS}
     observed = {(item.seed, item.arm) for item in campaign.replay_records}
     assert observed == expected
     assert all(item.matched for item in campaign.replay_records)
     assert campaign.replay_matched is True
+    assert campaign.prereg_digest == hard_experiment_01_prereg_digest()
+    assert campaign.scale == "smoke"
+    assert campaign.claim_ceiling == CLAIM_CEILING
+    assert "not_research_scale" in campaign.decision_rule_failures
+    assert campaign.dose_trend is not None
+    assert campaign.dose_trend.min_source_fitness == DOSE_LEVELS
+    assert len(campaign.paired_contrasts) == 3
+    assert campaign.multiple_comparison_audit is not None
+    assert campaign.multiple_comparison_audit.metric_count == 3
+    assert {item.baseline_arm for item in campaign.paired_contrasts} == {
+        "source_bias_off",
+        "capsules_off",
+        "capsules_shuffled",
+    }
+    assert all(item.p_holm is not None for item in campaign.paired_contrasts)
+    assert campaign.shuffled_vs_capsules_off is not None
+    assert StatisticalTestPolicy().tier_for_n(2) == "descriptive_only"
 
 
 def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
-    assert RESEARCH_SEED_COUNT == 12
+    assert SMOKE_SEED_COUNT == 12
+    assert RESEARCH_SEED_COUNT == 30
+    assert StatisticalTestPolicy().tier_for_n(12) == "exploratory_only"
+    assert StatisticalTestPolicy().tier_for_n(30) == "research_grade_benchmark_candidate"
     campaign = run_hard_experiment_01()
     first = campaign.seed_records[0].source_bias_on
     replay_spec = build_hard_experiment_01_spec(seed=first.seed, arm="source_bias_on")
     replay_result = GenesisEngine.from_spec(replay_spec).run_ticks()
     assert len(campaign.seeds) == 12
+    assert campaign.seeds == tuple(range(11, 23))
     assert campaign.claim_ceiling == CLAIM_CEILING
     assert campaign.replay_matched is True
     assert campaign.replay_verified_seeds == (campaign.seeds[0], campaign.seeds[-1])
-    assert {item.arm for item in campaign.replay_records} == {
-        "source_bias_on",
-        "source_bias_off",
-        "capsules_off",
-    }
+    assert {item.arm for item in campaign.replay_records} == set(ARMS)
     assert {item.seed for item in campaign.replay_records} == {
         campaign.seeds[0],
         campaign.seeds[-1],
     }
-    assert len(campaign.replay_records) == 6
+    assert len(campaign.replay_records) == 8
     assert all(item.matched for item in campaign.replay_records)
     last = campaign.seed_records[-1]
     last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
     last_replay_result = GenesisEngine.from_spec(last_replay_spec).run_ticks()
     assert last_replay_spec.digest() == last.capsules_off.spec_digest
     assert last_replay_result.digest() == last.capsules_off.result_digest
+    shuffled_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_shuffled")
+    shuffled_replay_result = GenesisEngine.from_spec(shuffled_replay_spec).run_ticks()
+    assert shuffled_replay_spec.digest() == last.capsules_shuffled.spec_digest
+    assert shuffled_replay_result.digest() == last.capsules_shuffled.result_digest
     assert replay_spec.digest() == first.spec_digest
     assert replay_result.digest() == first.result_digest
     assert campaign.to_dict()["collective_intelligence"] is False
@@ -112,15 +188,17 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert campaign.to_dict()["tokyo_type1_passed"] is False
     assert campaign.to_dict()["avida_replacement"] is False
     assert campaign.to_dict()["claim_gate_flags_auto_set"] is False
-    assert dict(campaign.missing_outcomes_per_arm) == {
-        "source_bias_on": 0,
-        "source_bias_off": 0,
-        "capsules_off": 0,
-    }
+    assert campaign.to_dict()["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert dict(campaign.missing_outcomes_per_arm) == {arm: 0 for arm in ARMS}
     assert all(
         arm.outcome_missing is False
         for item in campaign.seed_records
-        for arm in (item.source_bias_on, item.source_bias_off, item.capsules_off)
+        for arm in (
+            item.source_bias_on,
+            item.source_bias_off,
+            item.capsules_off,
+            item.capsules_shuffled,
+        )
     )
     sample_arm = campaign.seed_records[0].source_bias_on.to_dict()
     assert "capsule_emissions" not in sample_arm
@@ -130,17 +208,25 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         "capsule_transfer_count",
         "capsule_adoptions",
     } <= set(sample_arm)
-    assert len(campaign.interventions) == 3
-    assert {item.arm for item in campaign.interventions} == {
-        "source_bias_on",
-        "source_bias_off",
-        "capsules_off",
-    }
+    assert len(campaign.interventions) == 4
+    assert {item.arm for item in campaign.interventions} == set(ARMS)
     assert campaign.to_dict()["interventions"][1]["role"] == "mechanism_ablation"
-    assert all(item.source_bias_on.spec_digest != item.capsules_off.spec_digest for item in campaign.seed_records)
     assert all(
-        item.source_bias_on.spec_digest != item.source_bias_off.spec_digest for item in campaign.seed_records
+        item.source_bias_on.spec_digest != item.capsules_off.spec_digest
+        for item in campaign.seed_records
     )
+    assert all(
+        item.source_bias_on.spec_digest != item.source_bias_off.spec_digest
+        for item in campaign.seed_records
+    )
+    assert all(
+        item.source_bias_on.spec_digest != item.capsules_shuffled.spec_digest
+        for item in campaign.seed_records
+    )
+    for contrast in campaign.paired_contrasts:
+        if contrast.ci_low is not None and contrast.ci_high is not None:
+            includes_zero = contrast.ci_low <= 0.0 <= contrast.ci_high
+            assert contrast.claim_downgraded is includes_zero or contrast.paired_result is None
     decision = evaluate_hard_experiment_01_claim(campaign)
     assert decision.allowed is True
     assert decision.final_claim == CLAIM_CEILING
@@ -152,9 +238,14 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     assert gate.decide(ClaimRequest("agi", payload)).allowed is False
     assert gate.decide(ClaimRequest("tokyo_type1_passed", payload)).allowed is False
     assert gate.decide(ClaimRequest("avida_replacement", payload)).allowed is False
+    assert gate.decide(
+        ClaimRequest(INTERVENTION_CLAIM, {name: True for name in INTERVENTION_SUPPORTED_FLAGS})
+    ).allowed is True
     summary = format_hard_experiment_01_summary(campaign)
     assert "claim_ceiling runtime_observation" in summary
     assert "collective_intelligence False" in summary
+    assert "capsules_shuffled" in summary
+    assert campaign.statistical_tier == "exploratory_only"
 
 
 def test_capsule_counts_are_recorded_separately() -> None:
@@ -245,16 +336,20 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
         source_bias_on=_arm(11, "source_bias_on", 2.0, missing=False),
         source_bias_off=_arm(11, "source_bias_off", 1.0, missing=False),
         capsules_off=_arm(11, "capsules_off", 0.5, missing=False),
+        capsules_shuffled=_arm(11, "capsules_shuffled", 0.6, missing=False),
         delta_vs_source_bias_off=1.0,
         delta_vs_capsules_off=1.5,
+        delta_vs_capsules_shuffled=1.4,
     )
     incomplete = HardExperiment01SeedRecord(
         seed=12,
         source_bias_on=_arm(12, "source_bias_on", None, missing=True),
         source_bias_off=_arm(12, "source_bias_off", 1.0, missing=False),
         capsules_off=_arm(12, "capsules_off", 0.5, missing=False),
+        capsules_shuffled=_arm(12, "capsules_shuffled", 0.6, missing=False),
         delta_vs_source_bias_off=None,
         delta_vs_capsules_off=None,
+        delta_vs_capsules_shuffled=None,
     )
     baseline, treatment = _complete_pair_values(
         (complete, incomplete),
@@ -267,12 +362,14 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
         ("source_bias_on", 1),
         ("source_bias_off", 0),
         ("capsules_off", 0),
+        ("capsules_shuffled", 0),
     )
 
 
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG.md").is_file()
     assert (root / "docs" / "ENGINE_REPLAY_CONTRACT.md").is_file()
     assert (root / "docs" / "PHASE_INDEX.md").is_file()
     assert (root / "STYLE.md").is_file()
@@ -282,7 +379,8 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "runtime_observation" in text
     assert "collective_intelligence" in text
     assert "mechanism ablation" in text
-    assert "Results: not yet recorded" in text
+    assert "capsules_shuffled" in text
+    assert "Okasha" in text
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")
@@ -290,6 +388,8 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "naming-order" in style
     assert "Always name the product" not in readme
     assert "eat, survive, and reproduce" in readme
+    version = (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'version = "0.3.0b4.dev0"' in version
 
 
 def test_probe_junk_is_not_in_the_tree() -> None:

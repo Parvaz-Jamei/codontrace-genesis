@@ -1,0 +1,8 @@
+#filetype dat
+# 1: update
+# 2: ave_fitness
+# 3: max_fitness
+# 4: ave_merit
+100 0.40 1.00 8.0
+200 0.42 1.05 8.5
+300 0.44 1.10 9.0

@@ -7,6 +7,7 @@ def test_claim_ladder_downgrades_to_current_evidence_without_rejecting_ambition(
         {"schema_version": True, "artifact_digest": True, "runtime_records": True},
     )
     assert result.achieved_level == "instrumented_runtime"
+    assert result.public_level == 1
     assert result.target_level == "claim_ready_research_alpha"
     assert "multi_seed_protocol" in result.missing_for_target
     assert result.digest == evaluate_strong_claim_ladder(
@@ -39,6 +40,7 @@ def test_claim_ladder_reaches_research_alpha_when_all_required_evidence_exists()
     }
     result = evaluate_strong_claim_ladder("open_ended_claim", flags)
     assert result.achieved_level == "claim_ready_research_alpha"
+    assert result.public_level == 5
     assert result.missing_for_target == ()
 
 

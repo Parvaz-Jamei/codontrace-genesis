@@ -301,6 +301,8 @@ All four arms × seeds `11` and `40`: **matched**. Campaign constructed.
 ### ClaimGate ceiling
 
 **`runtime_observation`** (CLAIMS.md public level 1).
+The Wave 2 standalone auditor must reproduce this public level from
+`results_v2.json` ([`CLAIMGATE_STANDALONE.md`](CLAIMGATE_STANDALONE.md)).
 
 Decision-rule failures:
 `ci_on_vs_off_includes_0`,

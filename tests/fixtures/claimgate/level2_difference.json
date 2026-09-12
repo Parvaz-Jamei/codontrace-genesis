@@ -1,0 +1,39 @@
+{
+  "schema": "claimgate_bundle_v1",
+  "software": {"name": "CodonTrace Genesis", "version": "0.3.0b4.dev0", "commit": "e58d98398c5737e0f44b79cd9497b85cce947c0c"},
+  "seeds": [1, 2, 3],
+  "config_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "arms": [
+    {"name": "on", "role": "treatment", "n": 3},
+    {"name": "off", "role": "channel_off", "n": 3}
+  ],
+  "outcomes": [
+    {
+      "metric": "fitness",
+      "values_by_arm": {
+        "on": [1.0, 1.1, 1.2],
+        "off": [0.2, 0.2, 0.2]
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "a": "on",
+      "b": "off",
+      "effect_size": 0.9,
+      "ci_low": 0.4,
+      "ci_high": 1.4,
+      "p": 0.01,
+      "test": "paired",
+      "correction": "holm"
+    }
+  ],
+  "replay": {"verified": false, "digests": []},
+  "artifacts": [
+    {
+      "path": "synthetic.json",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "limitations": ["synthetic_fixture_not_a_publication"]
+}

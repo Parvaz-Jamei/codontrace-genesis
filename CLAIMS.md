@@ -214,6 +214,8 @@ v2 campaign digest:
 Prereg digest (unchanged): `cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`
 Seeds: 30 (`11`…`40`). Ticks: 40. Population: 16.
 v1 and v2 ClaimGate ceiling granted: **`runtime_observation`** (level 1).
+The Wave 2 standalone auditor (`codontrace.claimgate`) must reproduce
+that same public level from the committed v2 artifact.
 v1 extinctions were 1.0 with adoptions 0 (assay failure). v2 treatment
 adoptions mean 169.0 and extinction 0.0 (`assay_failed=false`); primary
 dz = 0, CI `[0.0, 0.0]`, Holm p = 1.0. An interpretable null is valid.
@@ -255,7 +257,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 exercised the source-bias gate (treatment adoptions 169, extinction 0) and still found a paired-delta null. Wave 1b does not loosen ClaimGate.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 exercised the source-bias gate (treatment adoptions 169, extinction 0) and still found a paired-delta null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder; it does not raise this ceiling.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

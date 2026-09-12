@@ -475,6 +475,37 @@ _CLAIM_LADDER_LEVELS: tuple[str, ...] = (
     "claim_ready_research_alpha",
 )
 
+# Public 0–5 names are CLAIMS.md §5. This map is correspondence only
+# (docs/CLAIM_LADDER_MAP.md). It does not unlock claims or skip rungs.
+PUBLIC_CLAIM_LEVEL_NAMES: tuple[str, ...] = (
+    "software_capability",
+    "runtime_observation",
+    "candidate_evidence",
+    "mechanism_support",
+    "replicated_effect",
+    "publication_grade",
+)
+
+INTERNAL_TO_PUBLIC_LEVEL: dict[str, int] = {
+    "metadata_only": 0,
+    "instrumented_runtime": 1,
+    "pilot_supported": 1,
+    "control_supported": 2,
+    "ablation_supported": 3,
+    "multi_seed_supported": 4,
+    "heldout_supported": 4,
+    "intervention_supported": 3,
+    "claim_ready_research_alpha": 5,
+}
+
+
+def public_level_for_internal(level: str) -> int:
+    """Return the CLAIMS.md §5 public level for an internal ClaimGate rung."""
+
+    if level not in INTERNAL_TO_PUBLIC_LEVEL:
+        raise ConfigurationError("level is not a recognized internal claim ladder level.")
+    return INTERNAL_TO_PUBLIC_LEVEL[level]
+
 _CLAIM_LADDER_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "metadata_only": (),
     "instrumented_runtime": ("schema_version", "artifact_digest", "runtime_records"),
@@ -526,6 +557,7 @@ class StrongClaimLadderResult:
     satisfied_levels: tuple[str, ...]
     schema_version: str = "strong_claim_ladder_result_v1"
     digest: str = ""
+    public_level: int = -1
 
     def __post_init__(self) -> None:
         if self.achieved_level not in _CLAIM_LADDER_LEVELS:
@@ -542,6 +574,7 @@ class StrongClaimLadderResult:
             "satisfied_levels",
             tuple(x for x in _CLAIM_LADDER_LEVELS if x in set(self.satisfied_levels)),
         )
+        object.__setattr__(self, "public_level", public_level_for_internal(self.achieved_level))
         computed = _digest(self._payload())
         if self.digest and self.digest != computed:
             raise ConfigurationError("StrongClaimLadderResult digest mismatch.")

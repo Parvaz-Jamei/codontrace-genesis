@@ -499,7 +499,7 @@ def _result_identity_digest(result: object) -> str:
         value = str(digest())
         if len(value) == 64:
             return value
-    return str(result.digest())
+    raise ConfigurationError("hard experiment 01 run is missing a 64-hex snapshot digest.")
 
 
 def _run_arm(
@@ -853,11 +853,11 @@ class HardExperiment01Campaign:
             object.__setattr__(
                 self, "protocol_digest", hard_experiment_01_protocol_digest(self.prereg_digest)
             )
-        if self.multiple_comparison_audit is None:
-            object.__setattr__(
-                self, "multiple_comparison_audit", MultipleComparisonAudit(metric_count=3)
-            )
-        if self.multiple_comparison_audit.metric_count != 3:
+        audit = self.multiple_comparison_audit
+        if audit is None:
+            audit = MultipleComparisonAudit(metric_count=3)
+            object.__setattr__(self, "multiple_comparison_audit", audit)
+        if audit.metric_count != 3:
             raise ConfigurationError("primary family is exactly three contrasts.")
         object.__setattr__(
             self,
@@ -1092,7 +1092,10 @@ def _original_arm(
 ) -> HardExperiment01ArmRecord:
     for record in records:
         if record.seed == seed:
-            return getattr(record, arm)
+            found = getattr(record, arm)
+            if isinstance(found, HardExperiment01ArmRecord):
+                return found
+            raise ConfigurationError(f"seed {seed} arm {arm} is not an arm record.")
     raise ConfigurationError(f"no campaign record for seed {seed} arm {arm}.")
 
 

@@ -38,9 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = audit_bundle(_load_bundle(args.bundle))
     except (OSError, json.JSONDecodeError, ConfigurationError) as exc:
-        print(f"claimgate-audit-error: {exc}", file=sys.stderr)
+        sys.stderr.write(f"claimgate-audit-error: {exc}\n")
         return 2
-    print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+    sys.stdout.write(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n")
     return 0
 
 

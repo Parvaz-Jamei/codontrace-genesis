@@ -247,6 +247,15 @@ Morris screen on held-out seeds 2000–2009. ClaimGate ceiling stays
 `runtime_observation`. E6 does not rewrite Amd 01/02/03 and does not
 reanalyse seeds 11–40.
 
+Wave 1d″ (evidence honesty only, 2026-09-12): documents that the
+`capsules_shuffled` peer-rotation control preserves the payload marginal
+(so `shuffled > capsules_off` is by construction), splits adoption
+attempts vs accepts, surfaces shuffle content/source-changed rates on new
+runs, and corrects the dose pattern *display* label to
+`step_up_then_downturn` without rewriting Amd 01. Ceiling stays
+`runtime_observation`. No `intervention_supported`. No re-campaign;
+`results_v5.json` unchanged. Wave 1e deferred to Amendment 04.
+
 ---
 
 ## 5. Claim ladder
@@ -276,7 +285,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling. Wave 1d″ adds evidence-honesty documentation and additive metrics only; it does not raise this ceiling or grant `intervention_supported`.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

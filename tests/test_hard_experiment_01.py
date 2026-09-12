@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleShuffleMode
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
@@ -268,14 +270,18 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
 
 
 def test_capsule_counts_are_recorded_separately() -> None:
+    class _Adopt:
+        def __init__(self, ok: bool) -> None:
+            self.adoption_success = ok
+
     class _Result:
         capsule_source_fitness_records = (object(), object())
         capsule_utility_records = (object(),)
         capsule_transfer_metrics = (object(), object(), object())
-        capsule_adoption_records = (object(), object(), object(), object())
+        capsule_adoption_records = (_Adopt(True), _Adopt(False), _Adopt(True), _Adopt(False))
 
-    sources, utilities, transfers, adoptions = _capsule_counts(_Result())
-    assert (sources, utilities, transfers, adoptions) == (2, 1, 3, 4)
+    sources, utilities, transfers, adoptions, accepted = _capsule_counts(_Result())
+    assert (sources, utilities, transfers, adoptions, accepted) == (2, 1, 3, 4, 2)
     # The old helper used max(sources, utilities, transfers) as "emissions".
     assert sources != utilities
     assert max(sources, utilities, transfers) == 3
@@ -543,9 +549,13 @@ def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
         item.source_bias_on.result_digest != item.capsules_off.result_digest
         for item in campaign.seed_records
     )
-    # Assay may only fail the Amd 02 smoke-scale positive-control clause.
+    # Wave 1d″: do not soft-pass assay failure — xfail(strict) the Amd 02 smoke clause.
     if campaign.assay_failed:
-        assert campaign.assay_failures == ("assay_failed_positive_control_did_not_move_outcome",)
+        if campaign.assay_failures == ("assay_failed_positive_control_did_not_move_outcome",):
+            pytest.xfail(
+                reason="Amd 02 smoke-scale positive-control clause only (strict xfail)",
+            )
+        pytest.fail(f"unexpected assay failures: {campaign.assay_failures}")
     payload = campaign.to_dict()
     assert payload["primary_outcome"] == PRIMARY_OUTCOME
     assert payload["analysis_arms"] == list(ANALYSIS_ARMS)
@@ -553,7 +563,17 @@ def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
     assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
     assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
     assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
-    assert payload["dose_trend"]["pattern"] == "step_up_then_saturate"
+    assert payload["dose_trend"]["pattern"] == "step_up_then_downturn"
+    assert "pattern_label_note" in payload["dose_trend"]
+    # Wave 1d″ honesty fields on new runs.
+    shuffled_summary = by_arm["capsules_shuffled"]
+    assert shuffled_summary.adoption_accepted_mean is not None
+    assert shuffled_summary.shuffle_content_changed_rate is not None
+    assert shuffled_summary.shuffle_content_changed_rate > 0.0
+    first_shuffled = campaign.seed_records[0].capsules_shuffled.to_dict()
+    assert first_shuffled["capsule_adoptions_semantics"] == "attempts"
+    assert "capsule_adoptions_accepted" in first_shuffled
+    assert "shuffle_content_changed_count" in first_shuffled
     first_on = campaign.seed_records[0].source_bias_on.to_dict()
     assert first_on["legacy_terminal_selection_fitness"] is not None
 
@@ -797,3 +817,43 @@ def test_probe_junk_is_not_in_the_tree() -> None:
     gitignore = (root / ".gitignore").read_text(encoding="utf-8")
     assert ".grok_write_probe" in gitignore
     assert ".size_test_" in gitignore
+
+
+def test_peer_rotation_preserves_event_pattern_multiset() -> None:
+    """CONTENT peer-rotation is a cyclic content swap; multiset of patterns is preserved."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    capsules = (
+        CausalCapsule("c1", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("c2", "s2", 2.0, "g2", ("SENSE_DANGER",), "warn", 0.9, 0, 10),
+        CausalCapsule("c3", "s3", 0.5, "g3", ("WAIT",), "noop", 0.9, 0, 10),
+    )
+    before = sorted(capsule.event_pattern for capsule in capsules)
+    shuffled, records = apply_capsule_shuffle_control(
+        capsules, CapsuleShuffleMode.CONTENT, tick=3, target_organism_id="t"
+    )
+    after = sorted(capsule.event_pattern for capsule in shuffled)
+    assert after == before
+    assert len(records) == 3
+    assert any(record.content_changed for record in records)
+    # Source ids stay on the original capsule under CONTENT mode.
+    assert all(not record.source_changed for record in records)
+
+
+def test_single_capsule_window_shuffle_is_identity_for_content() -> None:
+    """Window size 1 → peer is self → content_changed false (rotation identity)."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    alone = CausalCapsule("solo", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10)
+    shuffled, records = apply_capsule_shuffle_control(
+        (alone,), CapsuleShuffleMode.CONTENT, tick=1, target_organism_id="t"
+    )
+    assert len(shuffled) == 1
+    assert len(records) == 1
+    assert records[0].content_changed is False
+    assert records[0].source_changed is False
+    assert shuffled[0].event_pattern == alone.event_pattern
+    assert shuffled[0].predicted_outcome == alone.predicted_outcome
+

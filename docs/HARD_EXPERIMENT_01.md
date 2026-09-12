@@ -417,6 +417,23 @@ silent; shuffled channel active; positive control `oracle_capsule` above
 `capsules_off`; arms not bitwise-identical. Any failure → `assay_failed`
 with an `assay_failed_*` code, `assay_invalid` in the standalone auditor.
 
+## Wave 1d″ — evidence honesty (no new claim)
+
+See [`hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md`](hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md)
+and [`../handoff/WAVE_1D_PRIME_REVIEW.md`](../handoff/WAVE_1D_PRIME_REVIEW.md).
+
+The CONTENT shuffle control is a **cyclic peer-rotation that preserves the
+payload marginal**, so `shuffled > capsules_off` is expected by construction
+(~46.65% of the ~30.69 ATP treatment surplus is “channel with 50/50 pool”;
+~53.35% is the gate). `capsule_adoptions` counts **attempts**, not successful
+accepts; new runs expose `capsule_adoptions_accepted` and shuffle
+`content_changed` / `source_changed` rates. Dose display for new runs is
+`step_up_then_downturn` (Amd 01 frozen text unchanged): `dose(1.5)≡treatment`
+and S is the algebraic sum of two primary contrasts (Hothorn 2020;
+Simpson & Margolin 1986). ClaimGate stays **`runtime_observation`**. No
+`results_v5.json` overwrite; Wave 1e content-null / activity-matched arms
+are deferred to Amendment 04.
+
 ## Wave E6 (ODD + Morris screening)
 
 Wave E6 documents the HE01 overlay in

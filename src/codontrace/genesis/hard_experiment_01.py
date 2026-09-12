@@ -18,6 +18,11 @@ and reverts food/respawn to Amendment 01 / v3 (every-cell food;
 remains the frozen failed-calibration trail. No new engine semantics;
 estimand unchanged.
 
+Wave 1d″ is evidence-honesty only (no new ClaimGate claim, no Amd rewrite,
+no re-campaign): document that peer-rotation shuffle preserves the payload
+marginal; split adoption attempts vs accepts; surface shuffle
+content/source-changed rates; correct the dose pattern display label.
+
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
 A null finding is valid. This module does not mutate a global ClaimGate.
@@ -560,8 +565,24 @@ def _manipulation_check_failures(
     adoptions_none = _num("capsules_off", "adoption_mean")
     if (applied_none or 0.0) > 0.0 or (adoptions_none or 0.0) > 0.0:
         failures.append("assay_failed_capsules_off_channel_active")
+    # Wave 1d″: historical adoption_mean counts *attempts*, so a checks that
+    # only looks at attempts is vacuous when blocked records dominate. Prefer
+    # successful accepts and/or shuffle content_changed when those additive
+    # fields exist (new runs). Legacy artifacts without the fields keep the
+    # attempts fallback so frozen v5 JSON tests stay green.
     adoptions_shuffled = _num("capsules_shuffled", "adoption_mean")
-    if adoptions_shuffled is None or adoptions_shuffled <= ASSAY_ADOPTIONS_NEAR_ZERO:
+    accepted_shuffled = _num("capsules_shuffled", "adoption_accepted_mean")
+    content_changed_rate = _num("capsules_shuffled", "shuffle_content_changed_rate")
+    if accepted_shuffled is not None or content_changed_rate is not None:
+        channel_active = (accepted_shuffled or 0.0) > ASSAY_ADOPTIONS_NEAR_ZERO or (
+            content_changed_rate or 0.0
+        ) > 0.0
+    else:
+        channel_active = (
+            adoptions_shuffled is not None
+            and adoptions_shuffled > ASSAY_ADOPTIONS_NEAR_ZERO
+        )
+    if not channel_active:
         failures.append("assay_failed_shuffled_channel_silent")
     oracle_mean = _num("oracle_capsule", "mean")
     none_mean = _num("capsules_off", "mean")
@@ -711,7 +732,7 @@ def diagnose_hard_experiment_01_run(
                 max_fitness=None if not fitness_scores else round(max(fitness_scores), 10),
             )
         )
-    sources, _utilities, _transfers, recorded_adoptions = _capsule_counts(result)
+    sources, _utilities, _transfers, recorded_adoptions, _accepted = _capsule_counts(result)
     if total_adoptions == 0:
         total_adoptions = recorded_adoptions
     if total_emits == 0:
@@ -1091,18 +1112,32 @@ def _birth_count(result: object) -> int:
     return total
 
 
-def _capsule_counts(result: object) -> tuple[int, int, int, int]:
-    """Count source, utility, transfer, and adoption records separately.
+def _capsule_counts(result: object) -> tuple[int, int, int, int, int]:
+    """Count source, utility, transfer, adoption attempts, and successful accepts.
 
-    These surfaces are not interchangeable. A max() across them would hide
-    which channel actually fired.
+    ``capsule_adoptions`` / adoption attempts = len(capsule_adoption_records),
+    including blocked attempts. Successful accepts require
+    ``adoption_success is True``. These surfaces are not interchangeable.
     """
 
     sources = len(tuple(getattr(result, "capsule_source_fitness_records", ()) or ()))
     utilities = len(tuple(getattr(result, "capsule_utility_records", ()) or ()))
     transfers = len(tuple(getattr(result, "capsule_transfer_metrics", ()) or ()))
-    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
-    return sources, utilities, transfers, adoptions
+    adoption_records = tuple(getattr(result, "capsule_adoption_records", ()) or ())
+    adoptions = len(adoption_records)
+    accepted = sum(
+        1 for record in adoption_records if getattr(record, "adoption_success", False) is True
+    )
+    return sources, utilities, transfers, adoptions, accepted
+
+
+def _shuffle_change_counts(result: object) -> tuple[int, int, int]:
+    """(shuffle_record_count, content_changed_count, source_changed_count)."""
+
+    records = tuple(getattr(result, "capsule_shuffle_records", ()) or ())
+    content = sum(1 for record in records if getattr(record, "content_changed", False) is True)
+    source = sum(1 for record in records if getattr(record, "source_changed", False) is True)
+    return len(records), content, source
 
 
 def _final_population(result: object) -> int | None:
@@ -1151,7 +1186,13 @@ def _run_arm(
 
 @dataclass(frozen=True, slots=True)
 class HardExperiment01ArmRecord:
-    """One seed × one arm. Fitness is a runtime observation, not intelligence."""
+    """One seed × one arm. Fitness is a runtime observation, not intelligence.
+
+    ``capsule_adoptions`` counts adoption *attempts* (len of
+    ``capsule_adoption_records``, including blocked). Successful accepts are
+    ``capsule_adoptions_accepted``. Shuffle peer-rotation audits live in the
+    ``shuffle_*`` fields (Wave 1d″ honesty).
+    """
 
     seed: int
     arm: ArmName
@@ -1172,6 +1213,10 @@ class HardExperiment01ArmRecord:
     bias_applied_events: int = 0
     bias_payload_counts: Mapping[str, int] = field(default_factory=dict)
     rejected_by_source_fitness: int = 0
+    capsule_adoptions_accepted: int = 0
+    shuffle_record_count: int = 0
+    shuffle_content_changed_count: int = 0
+    shuffle_source_changed_count: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "bias_payload_counts", dict(self.bias_payload_counts))
@@ -1197,8 +1242,14 @@ class HardExperiment01ArmRecord:
             self.capsule_utility_count,
             self.capsule_transfer_count,
             self.capsule_adoptions,
+            self.capsule_adoptions_accepted,
+            self.shuffle_record_count,
+            self.shuffle_content_changed_count,
+            self.shuffle_source_changed_count,
         ) < 0:
             raise ConfigurationError("counts must be >= 0.")
+        if self.capsule_adoptions_accepted > self.capsule_adoptions:
+            raise ConfigurationError("accepted adoptions cannot exceed attempts.")
         if len(self.spec_digest) != 64 or len(self.result_digest) != 64:
             raise ConfigurationError("arm records require 64-hex spec/result digests.")
 
@@ -1212,6 +1263,8 @@ class HardExperiment01ArmRecord:
             "capsule_utility_count": self.capsule_utility_count,
             "capsule_transfer_count": self.capsule_transfer_count,
             "capsule_adoptions": self.capsule_adoptions,
+            "capsule_adoptions_semantics": "attempts",
+            "capsule_adoptions_accepted": self.capsule_adoptions_accepted,
             "spec_digest": self.spec_digest,
             "result_digest": self.result_digest,
             "next_generation_observed": self.next_generation_observed,
@@ -1224,6 +1277,9 @@ class HardExperiment01ArmRecord:
             "bias_applied_events": self.bias_applied_events,
             "bias_payload_counts": dict(self.bias_payload_counts),
             "rejected_by_source_fitness": self.rejected_by_source_fitness,
+            "shuffle_record_count": self.shuffle_record_count,
+            "shuffle_content_changed_count": self.shuffle_content_changed_count,
+            "shuffle_source_changed_count": self.shuffle_source_changed_count,
             "claim_ceiling": CLAIM_CEILING,
         }
 
@@ -1376,8 +1432,14 @@ class HardExperiment01DoseRecord:
 class HardExperiment01DoseTrend:
     """Preregistered pattern test on the threshold ladder (amendment 01).
 
-    Statistic S = (m_peak - m_low) + (m_peak - m_saturated); one-sided
+    Statistic S = (m_peak - m_low) + (m_peak - m_high); one-sided
     seed-fixed permutation p by shuffling levels within each complete seed.
+
+    Wave 1d″ honesty: Amd 01 frozen text still says ``step_up_then_saturate``,
+    but new-run display uses ``step_up_then_downturn`` because dose(4.0) is
+    outside support (equals capsules_off). ``dose(1.5)`` is identical to the
+    treatment arm; S is the algebraic sum of two primary contrasts and adds
+    no independent information (Hothorn 2020; Simpson & Margolin 1986).
     """
 
     min_source_fitness: tuple[float, ...]
@@ -1389,7 +1451,14 @@ class HardExperiment01DoseTrend:
     trend_supported: bool
     complete_case_seeds: int
     dropped_seeds: int
-    pattern: str = "step_up_then_saturate"
+    pattern: str = "step_up_then_downturn"
+    pattern_label_note: str = (
+        "Amd 01 frozen label was step_up_then_saturate; v5 means show a downturn "
+        "at dose 4.0 (outside support ≡ capsules_off), not saturation. "
+        "dose(1.5)≡source_bias_on; S=(m_1.5-m_0)+(m_1.5-m_4) is the algebraic "
+        "sum of two primary contrasts (zero independent info). "
+        "Cite Hothorn 2020; Simpson & Margolin 1986."
+    )
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -1397,6 +1466,7 @@ class HardExperiment01DoseTrend:
             "means": list(self.means),
             "sample_counts": list(self.sample_counts),
             "pattern": self.pattern,
+            "pattern_label_note": self.pattern_label_note,
             "peak_index": DOSE_PEAK_INDEX,
             "pattern_statistic": self.pattern_statistic,
             "permutation_p": self.permutation_p,
@@ -1409,7 +1479,11 @@ class HardExperiment01DoseTrend:
 
 @dataclass(frozen=True, slots=True)
 class HardExperiment01ArmSummary:
-    """Complete-case descriptive stats for one arm. Not a claim."""
+    """Complete-case descriptive stats for one arm. Not a claim.
+
+    ``adoption_mean`` is mean adoption *attempts* (historical). Successful
+    accepts are ``adoption_accepted_mean``. Shuffle rates are Wave 1d″ additive.
+    """
 
     arm: str
     n: int
@@ -1423,6 +1497,10 @@ class HardExperiment01ArmSummary:
     bias_payload_totals: Mapping[str, int] = field(default_factory=dict)
     rejected_by_source_fitness_mean: float | None = None
     legacy_fitness_mean: float | None = None
+    adoption_accepted_mean: float | None = None
+    shuffle_content_changed_rate: float | None = None
+    shuffle_source_changed_rate: float | None = None
+    shuffle_record_mean: float | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "bias_payload_totals", dict(self.bias_payload_totals))
@@ -1436,12 +1514,17 @@ class HardExperiment01ArmSummary:
             "births_mean": self.births_mean,
             "extinction_rate": self.extinction_rate,
             "adoption_mean": self.adoption_mean,
+            "adoption_mean_semantics": "attempts",
+            "adoption_accepted_mean": self.adoption_accepted_mean,
             "missing": self.missing,
             "primary_outcome": PRIMARY_OUTCOME,
             "bias_applied_mean": self.bias_applied_mean,
             "bias_payload_totals": dict(self.bias_payload_totals),
             "rejected_by_source_fitness_mean": self.rejected_by_source_fitness_mean,
             "legacy_fitness_mean": self.legacy_fitness_mean,
+            "shuffle_record_mean": self.shuffle_record_mean,
+            "shuffle_content_changed_rate": self.shuffle_content_changed_rate,
+            "shuffle_source_changed_rate": self.shuffle_source_changed_rate,
         }
 
 
@@ -1632,12 +1715,18 @@ class HardExperiment01Campaign:
                 "oracle_capsule_is_a_positive_control_not_a_hypothesis_arm",
                 "missing_last_tick_outcomes_are_dropped_not_zero_filled",
                 "capsules_shuffled_is_content_scramble_not_channel_off",
+                "capsules_shuffled_peer_rotation_preserves_payload_marginal",
+                "capsule_adoptions_count_attempts_not_successful_accepts",
+                "dose_pattern_display_is_step_up_then_downturn_not_saturate",
+                "dose_statistic_is_algebraic_sum_of_two_primary_contrasts",
+                "dose_1_5_identical_to_treatment_arm",
                 "price_identity_is_not_causal_without_the_explicit_dag",
                 "null_or_small_effect_is_a_valid_finding",
                 "not_knowledge_transfer_proof",
                 "smoke_is_exploratory_only",
                 "wave_1b_survival_calibration_does_not_change_the_estimand",
                 "wave_1c_e2_coupling_is_an_opt_in_engine_knob_default_off",
+                "wave_1d_double_prime_evidence_honesty_only_no_new_claim",
                 "assay_failure_keeps_runtime_observation",
             ],
         }
@@ -1654,7 +1743,8 @@ def _record_from_run(
     result: object,
 ) -> HardExperiment01ArmRecord:
     births = _birth_count(result)
-    sources, utilities, transfers, adoptions = _capsule_counts(result)
+    sources, utilities, transfers, adoptions, accepted = _capsule_counts(result)
+    shuffle_n, content_n, source_n = _shuffle_change_counts(result)
     roles = _genome_roles(spec)
     outcome = _receiver_mean_terminal_atp(result, roles)
     legacy = _mean_last_tick_fitness(result)
@@ -1680,6 +1770,10 @@ def _record_from_run(
         bias_applied_events=applied,
         bias_payload_counts=payloads,
         rejected_by_source_fitness=rejected,
+        capsule_adoptions_accepted=accepted,
+        shuffle_record_count=shuffle_n,
+        shuffle_content_changed_count=content_n,
+        shuffle_source_changed_count=source_n,
     )
 
 
@@ -1725,7 +1819,7 @@ def _dose_record(
     result = _run_spec(spec)
     fitness = _receiver_mean_terminal_atp(result, _genome_roles(spec))
     final_pop = _final_population(result)
-    _sources, _utilities, _transfers, adoptions = _capsule_counts(result)
+    _sources, _utilities, _transfers, adoptions, _accepted = _capsule_counts(result)
     return HardExperiment01DoseRecord(
         seed=seed,
         min_source_fitness=float(min_source_fitness),
@@ -1983,6 +2077,7 @@ def _arm_summary(
     ]
     births = [float(item.births) for item in items]
     adoptions = [float(item.capsule_adoptions) for item in items]
+    accepted = [float(item.capsule_adoptions_accepted) for item in items]
     extinct = sum(1 for item in items if item.extinct)
     missing = sum(1 for item in items if item.outcome_missing)
     applied = [float(item.bias_applied_events) for item in items]
@@ -1996,6 +2091,10 @@ def _arm_summary(
     for item in items:
         for payload, count in item.bias_payload_counts.items():
             totals[payload] = totals.get(payload, 0) + int(count)
+    shuffle_n = sum(item.shuffle_record_count for item in items)
+    content_n = sum(item.shuffle_content_changed_count for item in items)
+    source_n = sum(item.shuffle_source_changed_count for item in items)
+    shuffle_means = [float(item.shuffle_record_count) for item in items]
     return HardExperiment01ArmSummary(
         arm=arm,
         n=len(fitness),
@@ -2009,6 +2108,14 @@ def _arm_summary(
         bias_payload_totals=dict(sorted(totals.items())),
         rejected_by_source_fitness_mean=_mean(rejected) if rejected else None,
         legacy_fitness_mean=_mean(legacy) if legacy else None,
+        adoption_accepted_mean=_mean(accepted) if accepted else None,
+        shuffle_record_mean=_mean(shuffle_means) if shuffle_means else None,
+        shuffle_content_changed_rate=(
+            None if shuffle_n == 0 else round(content_n / shuffle_n, 10)
+        ),
+        shuffle_source_changed_rate=(
+            None if shuffle_n == 0 else round(source_n / shuffle_n, 10)
+        ),
     )
 
 

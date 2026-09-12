@@ -214,17 +214,22 @@ v2 campaign digest:
 Prereg digest (unchanged): `cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`
 Seeds: 30 (`11`…`40`). Ticks: 40. Population: 16.
 v1 and v2 ClaimGate ceiling granted: **`runtime_observation`** (level 1).
+The Wave 2 standalone auditor (`codontrace.claimgate`) must reproduce
+that same public level from the committed v2 artifact.
 v1 extinctions were 1.0 with adoptions 0 (assay failure). v2 treatment
-adoptions mean 169.0 and extinction 0.0 (`assay_failed=false`); primary
-dz = 0, CI `[0.0, 0.0]`, Holm p = 1.0. An interpretable null is valid.
+adoptions mean 169.0 and extinction 0.0 (`assay_failed=false`); all four
+arms produced bitwise-identical `terminal_mean_fitness` `0.164375` and
+adoptions `169 / 169 / 0 / 169`. That is **`assay_invalid`**
+(manipulation not realized): the intervention did not change the
+fitness estimand. It is **not** a scientific null finding.
 `intervention_supported` was not requested. This is not mechanism
-support and not collective intelligence.
+support and not collective intelligence. Public level stays **1**.
 
 Approved interpretation:
 
 > **The inspected quick runner demonstrates that CodonTrace Genesis can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
 >
-> **HARD_EXPERIMENT_01 Wave 1 is a runtime observation of an invalid-null crash (gate never exercised). Wave 1b v2 is a runtime observation of an interpretable null on terminal mean fitness after the capsule channel fired. ClaimGate did not grant `intervention_supported`.**
+> **HARD_EXPERIMENT_01 Wave 1 is a runtime observation of an invalid-null crash (gate never exercised). Wave 1b v2 is a runtime observation labeled `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`). The intervention was not realized on the estimand. This is not a scientific null finding. ClaimGate did not grant `intervention_supported`.**
 
 ---
 
@@ -255,7 +260,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 exercised the source-bias gate (treatment adoptions 169, extinction 0) and still found a paired-delta null. Wave 1b does not loosen ClaimGate.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

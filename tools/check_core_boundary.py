@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import ast
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 FORBIDDEN_TOP_LEVEL_MODULES: frozenset[str] = frozenset(
     {
@@ -31,6 +31,21 @@ FORBIDDEN_TOP_LEVEL_MODULES: frozenset[str] = frozenset(
 )
 
 FORBIDDEN_DYNAMIC_IMPORTS: frozenset[str] = FORBIDDEN_TOP_LEVEL_MODULES
+
+# Wave 2: codontrace.claimgate must not import Genesis engine/population.
+CLAIMGATE_FORBIDDEN_PREFIXES: tuple[str, ...] = (
+    "codontrace.engine",
+    "codontrace.engine_digest",
+    "codontrace.engine_results",
+    "codontrace.genesis.engine",
+    "codontrace.genesis.population",
+)
+CLAIMGATE_FORBIDDEN_BARE: frozenset[str] = frozenset(
+    {"engine", "population", "engine_digest", "engine_results"}
+)
+CLAIMGATE_FORBIDDEN_FROM_PACKAGES: frozenset[str] = frozenset(
+    {"codontrace", "codontrace.genesis"}
+)
 
 
 @dataclass(frozen=True)
@@ -65,6 +80,25 @@ def _call_name(node: ast.AST) -> str:
     return ""
 
 
+def _is_claimgate_path(path: Path) -> bool:
+    parts = path.parts
+    return "claimgate" in parts and "codontrace" in parts
+
+
+def _claimgate_forbidden_module(
+    module_name: str | None, imported_names: tuple[str, ...] = ()
+) -> bool:
+    module = module_name or ""
+    if module in CLAIMGATE_FORBIDDEN_BARE:
+        return True
+    for prefix in CLAIMGATE_FORBIDDEN_PREFIXES:
+        if module == prefix or module.startswith(prefix + "."):
+            return True
+    if module in CLAIMGATE_FORBIDDEN_FROM_PACKAGES:
+        return any(name in CLAIMGATE_FORBIDDEN_BARE for name in imported_names)
+    return False
+
+
 def scan_python_source(path: Path, *, root: Path | None = None) -> tuple[BoundaryViolation, ...]:
     source = path.read_text(encoding="utf-8")
     try:
@@ -74,6 +108,7 @@ def scan_python_source(path: Path, *, root: Path | None = None) -> tuple[Boundar
         return (BoundaryViolation(rel, exc.lineno or 0, "<syntax-error>", "syntax error"),)
 
     rel_path = path.relative_to(root) if root and path.is_relative_to(root) else path
+    claimgate = _is_claimgate_path(path)
     violations: list[BoundaryViolation] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -83,11 +118,30 @@ def scan_python_source(path: Path, *, root: Path | None = None) -> tuple[Boundar
                     violations.append(
                         BoundaryViolation(rel_path, node.lineno, alias.name, "import")
                     )
+                if claimgate and _claimgate_forbidden_module(alias.name):
+                    violations.append(
+                        BoundaryViolation(
+                            rel_path,
+                            node.lineno,
+                            alias.name,
+                            "claimgate engine/population import",
+                        )
+                    )
         elif isinstance(node, ast.ImportFrom):
             top = _top_level(node.module)
+            imported = tuple(alias.name for alias in node.names)
             if top in FORBIDDEN_TOP_LEVEL_MODULES:
                 violations.append(
                     BoundaryViolation(rel_path, node.lineno, node.module or "", "from-import")
+                )
+            if claimgate and _claimgate_forbidden_module(node.module, imported):
+                violations.append(
+                    BoundaryViolation(
+                        rel_path,
+                        node.lineno,
+                        node.module or ",".join(imported),
+                        "claimgate engine/population from-import",
+                    )
                 )
         elif isinstance(node, ast.Call):
             call_name = _call_name(node.func)
@@ -101,6 +155,15 @@ def scan_python_source(path: Path, *, root: Path | None = None) -> tuple[Boundar
                             node.lineno,
                             module_name or "",
                             "dynamic import",
+                        )
+                    )
+                if claimgate and _claimgate_forbidden_module(module_name):
+                    violations.append(
+                        BoundaryViolation(
+                            rel_path,
+                            node.lineno,
+                            module_name or "",
+                            "claimgate engine/population dynamic import",
                         )
                     )
     return tuple(violations)

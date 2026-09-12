@@ -1,0 +1,12 @@
+{
+  "schema": "claimgate_bundle_v1",
+  "software": {"name": "CodonTrace Genesis", "version": "0.3.0b4.dev0", "commit": ""},
+  "seeds": [],
+  "config_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "arms": [],
+  "outcomes": [],
+  "comparisons": [],
+  "replay": {"verified": false, "digests": []},
+  "artifacts": [],
+  "limitations": ["software_capability_only"]
+}

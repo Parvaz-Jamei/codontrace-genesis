@@ -251,12 +251,13 @@ Scale: 30 seeds (`11`…`40`), 40 ticks, population 16.
 Wall-clock: 745.8 s on the generating runner. Replay identity: snapshot
 digest. `assay_failed`: **false**.
 
-This is an **interpretable null** on the registered estimand. The
-treatment arm kept survivors (`extinction_rate = 0.0`) and exercised
-the capsule channel (`adoption_mean = 169.0`). Last-tick mean fitness
-was identical across arms (`0.164375`). A zero paired delta after the
-channel fired is a valid finding. It is not mechanism support and not
-intelligence.
+This is **`assay_invalid`**, not a scientific null. All four arms
+produced bitwise-identical `terminal_mean_fitness` `0.164375`. Adoptions
+were `169 / 169 / 0 / 169` (only `capsules_off` differs). The treatment
+arm kept survivors (`extinction_rate = 0.0`) and the capsule channel
+fired, but the intervention did not change the fitness estimand
+(manipulation not realized). Public ClaimGate level remains 1. It is
+not mechanism support and not intelligence.
 
 ### Primary contrasts (Holm, α = 0.05)
 
@@ -301,6 +302,8 @@ All four arms × seeds `11` and `40`: **matched**. Campaign constructed.
 ### ClaimGate ceiling
 
 **`runtime_observation`** (CLAIMS.md public level 1).
+The Wave 2 standalone auditor must reproduce this public level from
+`results_v2.json` ([`CLAIMGATE_STANDALONE.md`](CLAIMGATE_STANDALONE.md)).
 
 Decision-rule failures:
 `ci_on_vs_off_includes_0`,
@@ -308,8 +311,10 @@ Decision-rule failures:
 `ci_on_vs_shuffled_includes_0`,
 `holm_on_vs_shuffled_not_below_alpha`,
 `dose_trend_not_monotonic_same_direction`.
-`intervention_supported` was **not** requested. Interpretable null is
-valid. The source-bias gate *was* exercised (treatment adoptions > 0;
+`intervention_supported` was **not** requested. Label: **`assay_invalid`**
+(outcomes bitwise-identical across arms on the fitness estimand;
+manipulation not realized). That is not a scientific null finding.
+The source-bias gate *was* exercised (treatment adoptions > 0;
 `capsules_off` adoptions = 0).
 
 ## Decision rule

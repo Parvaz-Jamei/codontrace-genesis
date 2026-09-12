@@ -31,3 +31,30 @@ def test_ast_boundary_guard_allows_policy_text_and_blocks_real_imports(tmp_path:
 
 def test_core_tree_has_no_ui_or_server_imports() -> None:
     assert scan_paths((Path("src/codontrace"),), root=Path.cwd()) == ()
+
+
+def test_claimgate_ast_forbids_engine_and_population_imports(tmp_path: Path) -> None:
+    claimgate = tmp_path / "codontrace" / "claimgate"
+    claimgate.mkdir(parents=True)
+    bad = claimgate / "bad.py"
+    bad.write_text("from codontrace.genesis.engine import GenesisEngine\n", encoding="utf-8")
+    violations = scan_python_source(bad)
+    assert len(violations) == 1
+    assert "engine/population" in violations[0].reason
+
+    pop = claimgate / "pop.py"
+    pop.write_text("from codontrace.genesis.population import PopulationState\n", encoding="utf-8")
+    assert scan_python_source(pop)[0].reason.endswith("from-import")
+
+    allowed = claimgate / "ok.py"
+    allowed.write_text(
+        "from codontrace.genesis.claim_gate import ScientificClaimGate\n"
+        "from codontrace.genesis.canonical import canonical_digest\n"
+        "from codontrace.genesis.statistical_protocol import holm_correction\n",
+        encoding="utf-8",
+    )
+    assert scan_python_source(allowed) == ()
+
+
+def test_claimgate_package_has_no_engine_or_population_imports() -> None:
+    assert scan_paths((Path("src/codontrace/claimgate"),), root=Path.cwd()) == ()

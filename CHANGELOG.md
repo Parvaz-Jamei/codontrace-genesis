@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Wave 2 — simulator-agnostic ClaimGate auditor
+
+CodonTrace Genesis standalone evidence auditor. **Does not** claim
+intelligence, collective intelligence, Tokyo Type 1 passed, or Avida
+replacement. Identity stays `0.3.0b4.dev0`. Phase A–E pins stay
+stable. ClaimGate is not loosened.
+
+- New package `codontrace.claimgate`: `claimgate_bundle_v1` +
+  `audit_bundle` → public 0–5 (`CLAIMS.md` §5 + §8). CLI
+  `python -m codontrace.claimgate audit bundle.json`.
+- `StrongClaimLadderResult.public_level` maps the nine internal rungs
+  through `docs/CLAIM_LADDER_MAP.md`. Digest payload unchanged.
+- Adapters: complete CodonTrace Genesis HARD_EXPERIMENT_01 v2;
+  Avida `.dat` and MABE2 DataFile CSV **skeletons** only.
+- HARD_EXPERIMENT_01 v2 still grades `runtime_observation` / public
+  level 1, labeled `assay_invalid` (bitwise-identical fitness across
+  arms; manipulation not realized), not a scientific null. MODES /
+  Tokyo Type 1 remain measurement neighbors, not a pass. ASME V&V 40
+  is context-of-use, not a numeric score.
+- Docs: `docs/CLAIMGATE_STANDALONE.md`, collapsed
+  `docs/CLAIM_LADDER.md`, `docs/design/*` literature notes.
+
 ### HARD_EXPERIMENT_01 Wave 1b — survival calibration + assay gate
 
 CodonTrace Genesis harden of the same Wave 1 question. **Does not**

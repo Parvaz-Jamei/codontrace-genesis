@@ -221,7 +221,7 @@ letters.
 
 1. **Hygiene** — keep `main` free of probe junk and claim-language drift.
 2. **Widen CI** — more of the existing suite on hosted runners, still honest.
-3. **`HARD_EXPERIMENT_01`** — one hard division-of-labor / ablation / isolation experiment, not another scaffold.
+3. **`HARD_EXPERIMENT_01`** — one hard division-of-labor / ablation / isolation experiment, not another scaffold. Wave 2 adds a standalone ClaimGate auditor around that evidence; it does not raise the ceiling.
 4. **Candidate** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
 5. **Goldsby-grade** — literature-scale specialist / messaging work; `is_goldsby_2012_pnas_experiment` stays false until that experiment exists.
 6. **OEE later** — Tokyo Type 1 *pass* and open-ended intelligence remain blocked until evidence exists.
@@ -266,6 +266,7 @@ boundaries.
 | [`docs/PHASE_INDEX.md`](docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
 | [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
 | [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
+| [`docs/CLAIMGATE_STANDALONE.md`](docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
 | [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`STYLE.md`](STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |

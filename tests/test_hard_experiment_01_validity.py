@@ -141,6 +141,13 @@ def test_manipulation_check_fails_as_assay_invalid_when_arms_identical() -> None
     assert "manipulation_not_realized_no_source_fitness_rejects" in failures
 
 
+def test_tick_quantile_may_be_signed_because_fitness_can_be_negative() -> None:
+    cfg = CapsuleTransferConfig(source_fitness_quantile=0.5, min_source_fitness=-0.25)
+    assert cfg.min_source_fitness == -0.25
+    assert tick_source_fitness_threshold((-1.0, 0.0, 1.0), 0.5) == 0.0
+    assert tick_source_fitness_threshold((-2.0, -1.0, -0.5), 0.5) == -1.0
+
+
 def test_tick_median_quantile_is_interpolated_and_empty_pool_is_zero() -> None:
     assert tick_source_fitness_threshold((), 0.5) == 0.0
     assert tick_source_fitness_threshold((0.1, 0.2, 0.3), 0.5) == 0.2

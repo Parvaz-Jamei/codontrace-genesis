@@ -450,8 +450,12 @@ class CapsuleTransferConfig:
             object.__setattr__(
                 self, "adoption_policy", CapsuleAdoptionPolicy(str(self.adoption_policy))
             )
-        for field_name in (
+        object.__setattr__(
+            self,
             "min_source_fitness",
+            finite_float("min_source_fitness", self.min_source_fitness),
+        )
+        for field_name in (
             "emission_cost_runtime_atp",
             "emission_cost_learning_atp",
             "read_cost_runtime_atp",

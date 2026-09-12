@@ -283,7 +283,7 @@ def _apply_survival_calibration(spec: GenesisExperimentSpec) -> GenesisExperimen
             starvation_consecutive_ticks=CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
         ),
     )
-    metadata = {
+    metadata: dict[str, JsonValue] = {
         **spec.metadata,
         "hard_experiment_01_calibration": hard_experiment_01_calibration_knobs(),
         "food_cells": [list(item) for item in food_cells],

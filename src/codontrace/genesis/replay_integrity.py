@@ -1189,6 +1189,8 @@ _MEASUREMENT_PAPER_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "replay_result_digest",
         "digest",
     ),
+    "codontrace.genesis.hard_experiment_01.HardExperiment01CausalDag": ("digest",),
+    "codontrace.genesis.hard_experiment_01.HardExperiment01DoseResponse": ("digest",),
     "codontrace.genesis.phase_h.CollectiveIntelligenceCandidateChecklist": ("digest",),
     "codontrace.genesis.phase_h.CommunicationAblationCampaign": ("digest",),
     "codontrace.genesis.phase_h.GroupVsIndividualEffectSize": ("digest",),

@@ -843,17 +843,23 @@ from codontrace.genesis.phase_l import (
 )
 from codontrace.genesis.hard_experiment_01 import (
     CLAIM_CEILING as HARD_EXPERIMENT_01_CLAIM_CEILING,
+    DESIGN_CLAIM_CEILING as HARD_EXPERIMENT_01_DESIGN_CLAIM_CEILING,
+    RESEARCH_GRADE_SEED_COUNT as HARD_EXPERIMENT_01_RESEARCH_GRADE_SEED_COUNT,
     RESEARCH_SEED_COUNT as HARD_EXPERIMENT_01_SEED_COUNT,
     HardExperiment01ArmRecord,
     HardExperiment01Campaign,
+    HardExperiment01CausalDag,
+    HardExperiment01DoseResponse,
     HardExperiment01Intervention,
     HardExperiment01ReplayRecord,
     HardExperiment01SeedRecord,
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_dag,
     hard_experiment_01_interventions,
     run_hard_experiment_01,
+    run_hard_experiment_01_dose_response,
 )
 from codontrace.genesis.rag import (
     RankedHit,
@@ -2624,17 +2630,23 @@ __all__ = list(dict.fromkeys(__all__))
 __all__.extend(
     [
         "HARD_EXPERIMENT_01_CLAIM_CEILING",
+        "HARD_EXPERIMENT_01_DESIGN_CLAIM_CEILING",
+        "HARD_EXPERIMENT_01_RESEARCH_GRADE_SEED_COUNT",
         "HARD_EXPERIMENT_01_SEED_COUNT",
         "HardExperiment01ArmRecord",
         "HardExperiment01Campaign",
+        "HardExperiment01CausalDag",
+        "HardExperiment01DoseResponse",
         "HardExperiment01Intervention",
         "HardExperiment01ReplayRecord",
         "HardExperiment01SeedRecord",
         "build_hard_experiment_01_spec",
         "evaluate_hard_experiment_01_claim",
         "format_hard_experiment_01_summary",
+        "hard_experiment_01_dag",
         "hard_experiment_01_interventions",
         "run_hard_experiment_01",
+        "run_hard_experiment_01_dose_response",
     ]
 )
 __all__ = list(dict.fromkeys(__all__))

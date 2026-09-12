@@ -221,7 +221,7 @@ letters.
 
 1. **Hygiene** — keep `main` free of probe junk and claim-language drift.
 2. **Widen CI** — more of the existing suite on hosted runners, still honest.
-3. **`HARD_EXPERIMENT_01`** — one hard division-of-labor / ablation / isolation experiment, not another scaffold.
+3. **`HARD_EXPERIMENT_01` Wave 1** — four-arm causal design (including shuffled specificity control), dose ladder, and explicit DAG. Still one measurement paper, not another Phase letter. Results not yet archived.
 4. **Candidate** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
 5. **Goldsby-grade** — literature-scale specialist / messaging work; `is_goldsby_2012_pnas_experiment` stays false until that experiment exists.
 6. **OEE later** — Tokyo Type 1 *pass* and open-ended intelligence remain blocked until evidence exists.

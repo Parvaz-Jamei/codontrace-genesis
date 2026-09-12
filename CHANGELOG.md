@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Wave 1 — HARD_EXPERIMENT_01 causal design
+
+CodonTrace Genesis preregistered deepening of hard experiment 01. **Does
+not** claim intelligence, collective intelligence, Tokyo Type 1 passed, or
+Avida replacement. Development identity stays `0.3.0b4.dev0`. Phase A–E
+default digest pins stay stable. ClaimGate is not loosened.
+
+- Four paired arms: `source_bias_on` (treatment), `source_bias_off`
+  (mechanism ablation), `capsules_off` (channel off), and
+  `capsules_shuffled` (SOURCE-shuffle negative / specificity control that
+  preserves capsule traffic while permuting source identities/weights).
+- Explicit causal DAG + `do()`-style interventions
+  (`hard_experiment_01_dag`). Price-equation terms stay a statistical
+  identity, not automatic causation.
+- `min_source_fitness` dose ladder (≥3 levels) with honest monotone/null
+  report (`run_hard_experiment_01_dose_response`).
+- Inferential contrasts use Wave 0 machinery: paired `d_z`, BCa CI,
+  sign-flip *p*, Holm across the three planned comparisons. Missing
+  last-tick outcomes stay dropped, not zero-filled.
+- Library default remains 12-seed exploratory
+  (`StatisticalTestPolicy.tier_for_n(12)`). Research-grade path is
+  `seed_count=30`. Claim language must match n.
+- Claim ceiling stays `runtime_observation` until a dated digest-backed
+  artifact is archived. Design ceiling `intervention_supported` is
+  documented only; it is not auto-granted. Results section remains
+  pre-results.
+- Docs / example / tests updated. Schema `hard_experiment_01_v2`.
+
 ### Advisor hygiene + hard experiment 01
 
 CodonTrace Genesis hygiene and one measurement paper. **Does not** claim

@@ -12,6 +12,11 @@ gate sit in front of confirmatory claims: if the treatment arm does not
 emit/adopt capsules or goes extinct, contrasts are recorded but
 ``assay_failed`` keeps the ceiling at ``runtime_observation``.
 
+Wave 1d (SCHEMA v4 / Amendment 02) restores across-seed variance by
+seed-permuting the v3 role multiset and drawing sparse food coverage in
+``[0.5, 0.8]``, with ``respawn_draws_per_tick = max(1, population_size // 4)``.
+No new engine semantics; estimand unchanged.
+
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
 A null finding is valid. This module does not mutate a global ClaimGate.
@@ -70,9 +75,10 @@ RESEARCH_POPULATION = 16
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 EXPERIMENT_ID = "hard_experiment_01_capsule_source_bias"
-SCHEMA_VERSION = "hard_experiment_01_v3"
+SCHEMA_VERSION = "hard_experiment_01_v4"
 PREREG_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG.md"
 PREREG_AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
+PREREG_AMENDMENT_02_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
 # Wave 1c primary outcome: mean terminal runtime ATP of the *receiver* class
 # (the units the intervention acts on). The v1/v2 composite selection score is
 # kept as a secondary, descriptive field (``legacy_terminal_selection_fitness``).
@@ -222,6 +228,21 @@ def hard_experiment_01_prereg_amendment_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def hard_experiment_01_prereg_amendment_02_path() -> Path:
+    return _repo_root() / PREREG_AMENDMENT_02_RELATIVE_PATH
+
+
+def hard_experiment_01_prereg_amendment_02_digest() -> str:
+    """SHA-256 of the frozen amendment 02 file (UTF-8 bytes)."""
+
+    path = hard_experiment_01_prereg_amendment_02_path()
+    if not path.is_file():
+        raise ConfigurationError(
+            f"missing preregistration amendment: {PREREG_AMENDMENT_02_RELATIVE_PATH}"
+        )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -256,6 +277,11 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "prereg_digest": digest,
             "prereg_amendment_path": PREREG_AMENDMENT_RELATIVE_PATH,
             "prereg_amendment_digest": hard_experiment_01_prereg_amendment_digest(),
+            "prereg_amendment_02_path": PREREG_AMENDMENT_02_RELATIVE_PATH,
+            "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
+            "role_layout": "seed_permuted_v3_multiset",
+            "food_coverage_range": [0.5, 0.8],
+            "respawn_draws_per_tick": "max(1, population_size // 4)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
             "positive_control_arm": "oracle_capsule",
@@ -272,7 +298,7 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
     """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
 
     return {
-        "wave": "1c",
+        "wave": "1d",
         "dated": "2026-09-12",
         "scope": "hard_experiment_01_overlay_only",
         "life_loop_defaults_unchanged": True,
@@ -282,32 +308,47 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "good_payload_action": CALIBRATION_GOOD_PAYLOAD_ACTION,
         "poor_payload_action": CALIBRATION_POOR_PAYLOAD_ACTION,
         "role_period": CALIBRATION_ROLE_PERIOD,
-        "role_layout": "index%4: 0 good_emitter, 1 poor_emitter (good in oracle), 2-3 receiver",
+        "role_layout": "seed_permuted_v3_multiset",
         "initial_runtime_atp": CALIBRATION_INITIAL_RUNTIME_ATP,
         "basal_runtime_atp_cost": CALIBRATION_BASAL_COST,
         "resource_amount": CALIBRATION_RESOURCE_AMOUNT,
         "respawn_rate": CALIBRATION_RESPAWN_RATE,
         "respawn_under_organisms": CALIBRATION_RESPAWN_UNDER_ORGANISMS,
-        "respawn_draws_per_tick": "population_size",
+        "respawn_draws_per_tick": "max(1, population_size // 4)",
         "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
-        "food_layout": "every_cell",
+        "food_layout": "seed_coverage_[0.5,0.8]",
+        "food_coverage_range": [0.5, 0.8],
         "adoption_effect_action": True,
         "adoption_substitutable_actions": ["WAIT"],
         "primary_outcome": PRIMARY_OUTCOME,
         "note": (
-            "Wave 1c: the adopted capsule payload now substitutes WAIT in the "
-            "receiver (DAG edge e2), food is renewable under the eater, and "
-            "source quality varies (good vs poor emitters) so the source-fitness "
-            "gate has something to select on. Estimand unchanged; outcome "
-            "re-specified in prereg amendment 01 before analysis seeds were run."
+            "Wave 1d: seed-permute the v3 role multiset and draw sparse food "
+            "coverage in [0.5, 0.8] so across-seed variance (and Cohen dz) can "
+            "be defined. Estimand, arms, seeds, and Amendment 01 decision rule "
+            "unchanged (prereg amendment 02)."
         ),
     }
 
 
-def _calibration_food_cells(width: int, height: int) -> tuple[tuple[int, int], ...]:
-    """Food on every cell of the first two rows so position is not a confound."""
+def _calibration_food_cells(
+    width: int, height: int, *, seed: int
+) -> tuple[tuple[int, int], ...]:
+    """Seed-derived sparse food with coverage in [0.5, 0.8] (Amd 02 §3.2)."""
 
-    return tuple((x, y) for y in range(int(height)) for x in range(int(width)))
+    cells = [(x, y) for y in range(int(height)) for x in range(int(width))]
+    n = len(cells)
+    if n <= 0:
+        raise ConfigurationError("hard experiment 01 food layout requires a non-empty lattice.")
+    rng = RNGManager(seed=seed, namespace="hard_experiment_01/food")
+    coverage_draw = min(0.8, 0.5 + 0.3 * rng.random())
+    k = int(round(coverage_draw * n))
+    k_lo = int(math.ceil(0.5 * n))
+    k_hi = int(math.floor(0.8 * n))
+    k = max(k_lo, min(k_hi, k))
+    for index in range(len(cells) - 1, 0, -1):
+        swap = rng.randrange(index + 1)
+        cells[index], cells[swap] = cells[swap], cells[index]
+    return tuple(cells[:k])
 
 
 def calibration_role_for_index(index: int, *, oracle: bool = False) -> str:
@@ -321,6 +362,19 @@ def calibration_role_for_index(index: int, *, oracle: bool = False) -> str:
     return "receiver"
 
 
+def permute_roles_for_seed(
+    seed: int, n: int, *, oracle: bool = False
+) -> tuple[str, ...]:
+    """Fisher–Yates permute the v3 role multiset (Amd 02 §3.1)."""
+
+    roles = [calibration_role_for_index(index, oracle=oracle) for index in range(int(n))]
+    rng = RNGManager(seed=seed, namespace="hard_experiment_01/roles")
+    for index in range(len(roles) - 1, 0, -1):
+        swap = rng.randrange(index + 1)
+        roles[index], roles[swap] = roles[swap], roles[index]
+    return tuple(roles)
+
+
 _ROLE_GENOME: dict[str, str] = {
     "good_emitter": CALIBRATION_EMITTER_GENOME,
     "poor_emitter": CALIBRATION_POOR_EMITTER_GENOME,
@@ -328,15 +382,15 @@ _ROLE_GENOME: dict[str, str] = {
 }
 
 
-def _calibrated_genomes(base_genomes: Sequence[str], *, oracle: bool = False) -> tuple[str, ...]:
-    return tuple(
-        _ROLE_GENOME[calibration_role_for_index(index, oracle=oracle)]
-        for index in range(len(base_genomes))
-    )
+def _calibrated_genomes(
+    base_genomes: Sequence[str], *, seed: int, oracle: bool = False
+) -> tuple[str, ...]:
+    roles = permute_roles_for_seed(seed, len(base_genomes), oracle=oracle)
+    return tuple(_ROLE_GENOME[role] for role in roles)
 
 
 def _apply_survival_calibration(
-    spec: GenesisExperimentSpec, *, oracle: bool = False
+    spec: GenesisExperimentSpec, *, seed: int, oracle: bool = False
 ) -> GenesisExperimentSpec:
     """Keep research-scale overlays alive long enough for capsules to act.
 
@@ -348,20 +402,27 @@ def _apply_survival_calibration(
         raise ConfigurationError("hard experiment 01 overlay requires population_configs.")
     width = int(spec.world_width)
     height = int(spec.world_height)
-    food_cells = _calibration_food_cells(width, height)
+    food_cells = _calibration_food_cells(width, height, seed=seed)
+    food_coverage = len(food_cells) / float(width * height)
     world = World2D(width, height)
     for position in food_cells:
         world.place_resource(position, CALIBRATION_RESOURCE_AMOUNT)
-    population_size = int(spec.population_max or len(spec.genome_bits))
+    # Amd 02: draws from the overlay organism count (smoke 8→2, research 16→4),
+    # not life_loop ``population_max`` capacity. max_resources stays the full
+    # lattice (v3 used len(food_cells) when food covered every cell); capping at
+    # the sparse initial k would let uneaten off-row patches block respawn.
+    population_size = len(spec.genome_bits)
+    respawn_draws_per_tick = max(1, population_size // 4)
+    lattice_cells = width * height
     resource_policy = replace(
         configs.runtime_resource_policy,
         respawn_enabled=True,
         respawn_rate=CALIBRATION_RESPAWN_RATE,
-        max_resources=len(food_cells),
+        max_resources=lattice_cells,
         amount=CALIBRATION_RESOURCE_AMOUNT,
         status="runtime_effective_default_on",
         respawn_under_organisms=CALIBRATION_RESPAWN_UNDER_ORGANISMS,
-        respawn_draws_per_tick=max(1, population_size),
+        respawn_draws_per_tick=respawn_draws_per_tick,
     )
     configs = replace(
         configs,
@@ -372,24 +433,23 @@ def _apply_survival_calibration(
             starvation_consecutive_ticks=CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
         ),
     )
+    genome_roles = permute_roles_for_seed(seed, len(spec.genome_bits), oracle=oracle)
     metadata: dict[str, JsonValue] = {
         **spec.metadata,
         "hard_experiment_01_calibration": hard_experiment_01_calibration_knobs(),
         "food_cells": [list(item) for item in food_cells],
+        "food_coverage": food_coverage,
         "initial_food_patches": len(food_cells),
         "max_resources": resource_policy.max_resources,
         "respawn_rate": CALIBRATION_RESPAWN_RATE,
         "resource_amount": CALIBRATION_RESOURCE_AMOUNT,
         "basal_runtime_atp_cost": CALIBRATION_BASAL_COST,
         "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
-        "genome_roles": [
-            calibration_role_for_index(index, oracle=oracle)
-            for index in range(len(spec.genome_bits))
-        ],
+        "genome_roles": list(genome_roles),
     }
     return replace(
         spec,
-        genome_bits=_calibrated_genomes(spec.genome_bits, oracle=oracle),
+        genome_bits=_calibrated_genomes(spec.genome_bits, seed=seed, oracle=oracle),
         initial_runtime_atp=CALIBRATION_INITIAL_RUNTIME_ATP,
         element_grid=world2d_to_element_grid(world),
         population_configs=configs,
@@ -874,6 +934,7 @@ def _apply_capsule_overlay(
             engine_config=engine_config,
             metadata=metadata,
         ),
+        seed=seed,
         oracle=oracle,
     )
 
@@ -1496,6 +1557,11 @@ class HardExperiment01Campaign:
             "prereg_path": PREREG_RELATIVE_PATH,
             "prereg_amendment_path": PREREG_AMENDMENT_RELATIVE_PATH,
             "prereg_amendment_digest": hard_experiment_01_prereg_amendment_digest(),
+            "prereg_amendment_02_path": PREREG_AMENDMENT_02_RELATIVE_PATH,
+            "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
+            "role_layout": "seed_permuted_v3_multiset",
+            "food_coverage_range": [0.5, 0.8],
+            "respawn_draws_per_tick": "max(1, population_size // 4)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
             "positive_control_arm": "oracle_capsule",

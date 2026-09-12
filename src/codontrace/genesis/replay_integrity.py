@@ -1236,3 +1236,21 @@ for _path, _fields in _MEASUREMENT_PAPER_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_MEASUREMENT_PAPER_DIGEST_FIELDS))
 )
+
+# Wave 2 standalone ClaimGate auditor. Bundle/report digests identify an
+# evidence grade. They do not grant intelligence, collective_intelligence,
+# AGI, tokyo_type1_passed, or avida_replacement, and they are not engine
+# replay identity.
+_CLAIMGATE_STANDALONE_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.claimgate.auditor.ClaimAuditReport": ("digest",),
+    "codontrace.claimgate.schema.ClaimgateBundle": (
+        "config_digest",
+        "preregistration_digest",
+    ),
+}
+for _path, _fields in _CLAIMGATE_STANDALONE_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_CLAIMGATE_STANDALONE_DIGEST_FIELDS))
+)

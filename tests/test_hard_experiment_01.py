@@ -52,7 +52,10 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_prereg_amendment_02_digest,
     hard_experiment_01_prereg_amendment_03_digest,
     hard_experiment_01_prereg_amendment_04_digest,
+    hard_experiment_01_prereg_amendment_05_digest,
     hard_experiment_01_prereg_amendment_digest,
+    ACTIVITY_MATCH_PILOT_GATE,
+    evaluate_hard_experiment_01_wave1e_pilot_gates,
     hard_experiment_01_prereg_digest,
     hard_experiment_01_protocol_digest,
     permute_roles_for_seed,
@@ -910,6 +913,61 @@ def test_wave_1e_amendment_04_and_schema_v6() -> None:
     assert "shuffled_better_than_capsules_off" not in campaign.decision_rule_failures
     assert campaign.content_null_vs_capsules_off is not None
     assert campaign.mean_abs_activity_match_gap is not None
+    assert payload["prereg_amendment_05_digest"] == hard_experiment_01_prereg_amendment_05_digest()
+    assert ACTIVITY_MATCH_PILOT_GATE is False
+    assert knobs["activity_match_pilot_gate"] is False
+    assert payload["activity_match_pilot_gate"] is False
+
+
+def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
+    """Amendment 05 is hashed; SCHEMA stays v6; prior digests frozen; activity gate demoted."""
+
+    root = Path(__file__).resolve().parents[1]
+    amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
+    amd05 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md"
+    assert amd04.is_file()
+    assert amd05.is_file()
+    expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
+    expected05 = __import__("hashlib").sha256(amd05.read_bytes()).hexdigest()
+    assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
+    assert expected05 == "d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7"
+    assert hard_experiment_01_prereg_amendment_04_digest() == expected04
+    assert hard_experiment_01_prereg_amendment_05_digest() == expected05
+    # Prior digests unchanged (frozen pins from Amd 02–04 / Wave 1e).
+    assert hard_experiment_01_prereg_amendment_02_digest() == (
+        "14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f"
+    )
+    assert hard_experiment_01_prereg_amendment_03_digest() == (
+        "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    )
+    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert ACTIVITY_MATCH_PILOT_GATE is False
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
+    payload = campaign.to_dict()
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["prereg_amendment_04_digest"] == expected04
+    assert payload["prereg_amendment_05_digest"] == expected05
+    assert payload["prereg_amendment_03_digest"] == (
+        "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    )
+    assert payload["activity_match_pilot_gate"] is False
+    # protocol digest incorporates amd05 bytes via canonical digest payload
+    assert hard_experiment_01_protocol_digest() == campaign.protocol_digest
+    assert "activity_match_gap_is_exploratory_non_blocking_under_amd05" in payload["limitations"]
+    # Decision rule still cares about content_null, not activity epsilon.
+    assert "activity_match" not in " ".join(campaign.decision_rule_failures)
+    gates = evaluate_hard_experiment_01_wave1e_pilot_gates(campaign)
+    assert gates["activity_match_pilot_gate"] is False
+    assert gates["gates"]["activity_match_exploratory"]["blocking"] is False
+    exploratory = gates["gates"]["activity_match_exploratory"]
+    assert "mean_abs_activity_match_gap" in exploratory
+    assert gates["gates"]["schema_amd_digests"]["pass"] is True
+    # Confirmatory clearance ignores activity gap magnitude.
+    assert gates["overall_pass"] == (
+        gates["gates"]["assay"]["pass"]
+        and gates["gates"]["content_null"]["pass"]
+        and gates["gates"]["schema_amd_digests"]["pass"]
+    )
 
 
 def test_content_null_destroys_eat_lumen_marginal_and_nulls_window_one() -> None:

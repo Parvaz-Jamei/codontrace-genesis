@@ -25,8 +25,10 @@ content/source-changed rates; correct the dose pattern display label.
 
 Wave 1e (SCHEMA v6 / Amendment 04) adds confirmatory ``capsules_content_null``
 (fixed WAIT payload) and auxiliary ``capsules_activity_matched`` (yoked accept
-count). Legacy ``capsules_shuffled`` is sensitivity-only. ClaimGate ceiling
-stays ``runtime_observation``; Amd 04 alone never raises it.
+count). Legacy ``capsules_shuffled`` is sensitivity-only. Amendment 05 demotes
+activity_matched off the pilot gate after Wave 1e pilot FAIL on volume yoke
+only; content_null remains confirmatory; SCHEMA stays v6. ClaimGate ceiling
+stays ``runtime_observation``; Amd 04/05 alone never raise it.
 
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
@@ -92,8 +94,12 @@ PREREG_AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md
 PREREG_AMENDMENT_02_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
 PREREG_AMENDMENT_03_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
 PREREG_AMENDMENT_04_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
-# Amd 04 pilot: mean |activity_match_gap| <= epsilon (accepts).
+PREREG_AMENDMENT_05_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md"
+# Amd 04 reporting reference: mean |activity_match_gap| vs epsilon (accepts).
+# Amd 05: activity match is exploratory / non-blocking for the pilot gate;
+# do not silent-retune epsilon inside Amd 04.
 ACTIVITY_MATCH_EPSILON = 1
+ACTIVITY_MATCH_PILOT_GATE = False  # Amd 05: demoted off pilot clearance
 CONTENT_NULL_PAYLOAD_ACTION = "WAIT"
 # Wave 1c primary outcome: mean terminal runtime ATP of the *receiver* class
 # (the units the intervention acts on). The v1/v2 composite selection score is
@@ -304,6 +310,21 @@ def hard_experiment_01_prereg_amendment_04_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def hard_experiment_01_prereg_amendment_05_path() -> Path:
+    return _repo_root() / PREREG_AMENDMENT_05_RELATIVE_PATH
+
+
+def hard_experiment_01_prereg_amendment_05_digest() -> str:
+    """SHA-256 of the frozen amendment 05 file (UTF-8 bytes)."""
+
+    path = hard_experiment_01_prereg_amendment_05_path()
+    if not path.is_file():
+        raise ConfigurationError(
+            f"missing preregistration amendment: {PREREG_AMENDMENT_05_RELATIVE_PATH}"
+        )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -344,6 +365,8 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
             "prereg_amendment_04_path": PREREG_AMENDMENT_04_RELATIVE_PATH,
             "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
+            "prereg_amendment_05_path": PREREG_AMENDMENT_05_RELATIVE_PATH,
+            "prereg_amendment_05_digest": hard_experiment_01_prereg_amendment_05_digest(),
             "role_layout": "seed_permuted_v3_multiset",
             "food_layout": "every_cell",
             "respawn_draws_per_tick": "max(1, population_size)",
@@ -358,6 +381,7 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
             "alpha": ALPHA,
             "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
+            "activity_match_pilot_gate": ACTIVITY_MATCH_PILOT_GATE,
             "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
         }
     )
@@ -391,13 +415,15 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "adoption_substitutable_actions": ["WAIT"],
         "primary_outcome": PRIMARY_OUTCOME,
         "note": (
-            "Wave 1e / Amd 04: keep Amd 03 ecology; confirmatory null is "
+            "Wave 1e / Amd 04+05: keep Amd 03 ecology; confirmatory null is "
             "capsules_content_null (WAIT fixed token); capsules_shuffled is "
             "sensitivity; capsules_activity_matched yokes accepts to "
-            "source_bias_on. ClaimGate ceiling stays runtime_observation."
+            "source_bias_on but is exploratory/non-blocking for the pilot "
+            "gate (Amd 05). ClaimGate ceiling stays runtime_observation."
         ),
         "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
         "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
+        "activity_match_pilot_gate": ACTIVITY_MATCH_PILOT_GATE,
     }
 
 
@@ -1797,6 +1823,8 @@ class HardExperiment01Campaign:
             "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
             "prereg_amendment_04_path": PREREG_AMENDMENT_04_RELATIVE_PATH,
             "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
+            "prereg_amendment_05_path": PREREG_AMENDMENT_05_RELATIVE_PATH,
+            "prereg_amendment_05_digest": hard_experiment_01_prereg_amendment_05_digest(),
             "role_layout": "seed_permuted_v3_multiset",
             "food_layout": "every_cell",
             "respawn_draws_per_tick": "max(1, population_size)",
@@ -1807,6 +1835,7 @@ class HardExperiment01Campaign:
             "positive_control_arm": "oracle_capsule",
             "pilot_seeds": list(PILOT_SEEDS),
             "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
+            "activity_match_pilot_gate": ACTIVITY_MATCH_PILOT_GATE,
             "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
             "protocol_digest": self.protocol_digest,
             "causal_dag": hard_experiment_01_causal_dag(),
@@ -1873,6 +1902,9 @@ class HardExperiment01Campaign:
                 "capsules_shuffled_is_sensitivity_peer_rotation_not_confirmatory_null",
                 "capsules_shuffled_peer_rotation_preserves_payload_marginal",
                 "capsules_activity_matched_is_auxiliary_yoked_accept_control",
+                "activity_match_gap_is_exploratory_non_blocking_under_amd05",
+                "unmatched_activity_volume_is_limitation_not_content_null_fail",
+                "wave_1e_amd05_does_not_auto_grant_intervention_supported",
                 "capsule_adoptions_count_attempts_not_successful_accepts",
                 "dose_pattern_display_is_step_up_then_downturn_not_saturate",
                 "dose_statistic_is_algebraic_sum_of_two_primary_contrasts",
@@ -2410,7 +2442,7 @@ def _decision_rule_failures(
     replay_matched: bool,
     assay_failures: Sequence[str] = (),
 ) -> tuple[str, ...]:
-    """Amd 04 confirmatory failures (shuffled_better is sensitivity-only)."""
+    """Amd 04/05 confirmatory failures (shuffled_better + activity gap sensitivity-only)."""
 
     failures: list[str] = list(assay_failures)
     if scale != "research":
@@ -2779,6 +2811,115 @@ def _cohens_d_note(value: float) -> str:
     if magnitude < 0.8:
         return "medium"
     return "large"
+
+
+
+def evaluate_hard_experiment_01_wave1e_pilot_gates(
+    campaign: HardExperiment01Campaign,
+) -> dict[str, JsonValue]:
+    """Amd 05 pilot clearance helper (docs companion for Wave 1e pilot scripts).
+
+    Confirmatory gates: assay valid, content_null profitable rate ≈ 0 with
+    content-changed evidence, SCHEMA v6 + amd04 + amd05 digests present.
+    ``mean_abs_activity_match_gap`` is **reported** against Amd 04 ε but does
+    **not** block clearance (ACTIVITY_MATCH_PILOT_GATE=False). Decision rule
+    for content_null is unchanged; ClaimGate is not raised here.
+    """
+
+    payload = campaign.to_dict()
+    arms = {item.arm: item for item in campaign.arm_summaries}
+    oracle = arms.get("oracle_capsule")
+    caps_off = arms.get("capsules_off")
+    content_null = arms.get("capsules_content_null")
+
+    # Assay / positive control
+    assay_ok = not campaign.assay_failed
+    oracle_gt_off = (
+        oracle is not None
+        and caps_off is not None
+        and oracle.mean is not None
+        and caps_off.mean is not None
+        and float(oracle.mean) > float(caps_off.mean)
+    )
+    gate_assay = bool(assay_ok and oracle_gt_off)
+
+    # Content null manipulation (confirmatory)
+    eat = 0
+    total = 0
+    changed = 0
+    shuffle_records = 0
+    for seed_rec in campaign.seed_records:
+        arm_rec = seed_rec.capsules_content_null
+        if arm_rec is None:
+            continue
+        for key, value in dict(arm_rec.bias_payload_counts or {}).items():
+            total += int(value)
+            if key == CALIBRATION_GOOD_PAYLOAD_ACTION:
+                eat += int(value)
+        changed += int(arm_rec.shuffle_content_changed_count or 0)
+        shuffle_records += int(arm_rec.shuffle_record_count or 0)
+    eat_rate = 0.0 if total == 0 else eat / total
+    if content_null is not None and content_null.shuffle_content_changed_rate is not None:
+        content_changed_rate = float(content_null.shuffle_content_changed_rate)
+    elif shuffle_records > 0:
+        content_changed_rate = changed / shuffle_records
+    else:
+        content_changed_rate = float(changed > 0)
+    gate_content_null = eat_rate <= 1e-9 and content_changed_rate > 0.0
+
+    # Digests / schema
+    amd04 = str(payload.get("prereg_amendment_04_digest") or "")
+    amd05 = str(payload.get("prereg_amendment_05_digest") or "")
+    schema_ok = str(payload.get("schema_version") or campaign.schema_version) == SCHEMA_VERSION
+    gate_digests = (
+        schema_ok
+        and SCHEMA_VERSION == "hard_experiment_01_v6"
+        and len(amd04) >= 16
+        and len(amd05) >= 16
+        and amd04 == hard_experiment_01_prereg_amendment_04_digest()
+        and amd05 == hard_experiment_01_prereg_amendment_05_digest()
+    )
+
+    gap = campaign.mean_abs_activity_match_gap
+    gap_within_epsilon = gap is not None and float(gap) <= float(ACTIVITY_MATCH_EPSILON) + 1e-9
+    # Amd 05: exploratory report only — never blocks overall clearance.
+    gate_activity_exploratory = {
+        "blocking": ACTIVITY_MATCH_PILOT_GATE,
+        "mean_abs_activity_match_gap": gap,
+        "epsilon": ACTIVITY_MATCH_EPSILON,
+        "within_epsilon": gap_within_epsilon,
+        "note": (
+            "reported non-blocking sensitivity; unmatched volume is a "
+            "limitation not a silent fail of content_null"
+        ),
+    }
+
+    overall = gate_assay and gate_content_null and gate_digests
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "amendment": "05",
+        "overall_pass": overall,
+        "cleared_for_11_40": overall,
+        "activity_match_pilot_gate": ACTIVITY_MATCH_PILOT_GATE,
+        "gates": {
+            "assay": {
+                "pass": gate_assay,
+                "assay_failed": campaign.assay_failed,
+                "oracle_gt_off": oracle_gt_off,
+            },
+            "content_null": {
+                "pass": gate_content_null,
+                "eat_rate": eat_rate,
+                "content_changed_rate": content_changed_rate,
+            },
+            "activity_match_exploratory": gate_activity_exploratory,
+            "schema_amd_digests": {
+                "pass": gate_digests,
+                "prereg_amendment_04_digest": amd04,
+                "prereg_amendment_05_digest": amd05,
+            },
+        },
+    }
 
 
 def format_hard_experiment_01_summary(campaign: HardExperiment01Campaign) -> str:

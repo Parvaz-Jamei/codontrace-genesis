@@ -9,7 +9,9 @@ One measurement question, not a new Phase letter. Three paired arms:
 - ``capsules_off``: transfer disabled (ablation of the capsule channel)
 
 Outcome: last-tick mean organism fitness after a life-loop that can birth.
-Research default is 12 paired seeds. Claim ceiling is ``runtime_observation``.
+Default seed_count=12 is smoke / exploratory
+(``StatisticalTestPolicy.tier_for_n(12) == "exploratory_only"``).
+Research-grade n is 30. Claim ceiling is ``runtime_observation``.
 ``ScientificClaimGate`` still blocks intelligence / collective_intelligence /
 AGI / tokyo_type1_passed / avida_replacement.
 
@@ -122,7 +124,7 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
 
 
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
-    """Deterministic seed tuple. Research default is 12."""
+    """Deterministic seed tuple. 12 is smoke/exploratory; research-grade n is 30."""
 
     count = int(seed_count)
     if count < 2:
@@ -228,13 +230,19 @@ def build_hard_experiment_01_spec(
     )
 
 
-def _mean_last_tick_fitness(result: object) -> float:
+def _mean_last_tick_fitness(result: object) -> float | None:
+    """Last-tick mean fitness, or None when the tick/generation is missing.
+
+    A missing outcome must not be coerced to 0.0 — that would bias paired
+    deltas toward zero. Callers drop the pair from the analysis.
+    """
+
     ticks = tuple(getattr(result, "ticks", ()) or ())
     if not ticks:
-        return 0.0
+        return None
     generation = getattr(ticks[-1], "generation_result", None)
     if generation is None:
-        return 0.0
+        return None
     selection = getattr(generation, "selection_mean_fitness", None)
     if isinstance(selection, (int, float)) and not isinstance(selection, bool):
         return round(float(selection), 10)
@@ -244,7 +252,7 @@ def _mean_last_tick_fitness(result: object) -> float:
         for item in getattr(population, "fitness", ()) or ()
     ]
     if not scores:
-        return 0.0
+        return None
     return round(sum(scores) / len(scores), 10)
 
 
@@ -256,12 +264,18 @@ def _birth_count(result: object) -> int:
     return total
 
 
-def _capsule_counts(result: object) -> tuple[int, int]:
-    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
+def _capsule_counts(result: object) -> tuple[int, int, int, int]:
+    """Count source, utility, transfer, and adoption records separately.
+
+    These surfaces are not interchangeable. A max() across them would hide
+    which channel actually fired.
+    """
+
     sources = len(tuple(getattr(result, "capsule_source_fitness_records", ()) or ()))
     utilities = len(tuple(getattr(result, "capsule_utility_records", ()) or ()))
     transfers = len(tuple(getattr(result, "capsule_transfer_metrics", ()) or ()))
-    return max(sources, utilities, transfers), adoptions
+    adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
+    return sources, utilities, transfers, adoptions
 
 
 def _run_arm(
@@ -284,23 +298,37 @@ class HardExperiment01ArmRecord:
 
     seed: int
     arm: ArmName
-    terminal_mean_fitness: float
+    terminal_mean_fitness: float | None
     births: int
-    capsule_emissions: int
+    capsule_source_count: int
+    capsule_utility_count: int
+    capsule_transfer_count: int
     capsule_adoptions: int
     spec_digest: str
     result_digest: str
     next_generation_observed: bool
+    outcome_missing: bool = False
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "terminal_mean_fitness",
-            require_finite_float("terminal_mean_fitness", self.terminal_mean_fitness),
-        )
+        if self.outcome_missing:
+            object.__setattr__(self, "terminal_mean_fitness", None)
+        elif self.terminal_mean_fitness is None:
+            raise ConfigurationError("terminal_mean_fitness is required when outcome_missing is false.")
+        else:
+            object.__setattr__(
+                self,
+                "terminal_mean_fitness",
+                require_finite_float("terminal_mean_fitness", self.terminal_mean_fitness),
+            )
         if self.arm not in ARMS:
             raise ConfigurationError(f"unknown arm: {self.arm!r}")
-        if self.births < 0 or self.capsule_emissions < 0 or self.capsule_adoptions < 0:
+        if min(
+            self.births,
+            self.capsule_source_count,
+            self.capsule_utility_count,
+            self.capsule_transfer_count,
+            self.capsule_adoptions,
+        ) < 0:
             raise ConfigurationError("counts must be >= 0.")
         if len(self.spec_digest) != 64 or len(self.result_digest) != 64:
             raise ConfigurationError("arm records require 64-hex spec/result digests.")
@@ -311,11 +339,14 @@ class HardExperiment01ArmRecord:
             "arm": self.arm,
             "terminal_mean_fitness": self.terminal_mean_fitness,
             "births": self.births,
-            "capsule_emissions": self.capsule_emissions,
+            "capsule_source_count": self.capsule_source_count,
+            "capsule_utility_count": self.capsule_utility_count,
+            "capsule_transfer_count": self.capsule_transfer_count,
             "capsule_adoptions": self.capsule_adoptions,
             "spec_digest": self.spec_digest,
             "result_digest": self.result_digest,
             "next_generation_observed": self.next_generation_observed,
+            "outcome_missing": self.outcome_missing,
             "claim_ceiling": CLAIM_CEILING,
         }
 
@@ -328,24 +359,26 @@ class HardExperiment01SeedRecord:
     source_bias_on: HardExperiment01ArmRecord
     source_bias_off: HardExperiment01ArmRecord
     capsules_off: HardExperiment01ArmRecord
-    delta_vs_source_bias_off: float
-    delta_vs_capsules_off: float
+    delta_vs_source_bias_off: float | None
+    delta_vs_capsules_off: float | None
 
     def __post_init__(self) -> None:
         if self.source_bias_on.seed != self.seed or self.source_bias_off.seed != self.seed:
             raise ConfigurationError("seed records must share one seed.")
         if self.capsules_off.seed != self.seed:
             raise ConfigurationError("seed records must share one seed.")
-        object.__setattr__(
-            self,
-            "delta_vs_source_bias_off",
-            require_finite_float("delta_vs_source_bias_off", self.delta_vs_source_bias_off),
-        )
-        object.__setattr__(
-            self,
-            "delta_vs_capsules_off",
-            require_finite_float("delta_vs_capsules_off", self.delta_vs_capsules_off),
-        )
+        if self.delta_vs_source_bias_off is not None:
+            object.__setattr__(
+                self,
+                "delta_vs_source_bias_off",
+                require_finite_float("delta_vs_source_bias_off", self.delta_vs_source_bias_off),
+            )
+        if self.delta_vs_capsules_off is not None:
+            object.__setattr__(
+                self,
+                "delta_vs_capsules_off",
+                require_finite_float("delta_vs_capsules_off", self.delta_vs_capsules_off),
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -355,6 +388,33 @@ class HardExperiment01SeedRecord:
             "capsules_off": self.capsules_off.to_dict(),
             "delta_vs_source_bias_off": self.delta_vs_source_bias_off,
             "delta_vs_capsules_off": self.delta_vs_capsules_off,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class HardExperiment01ReplayRecord:
+    """Independent re-run of one seed × arm. Digests must match the campaign."""
+
+    seed: int
+    arm: ArmName
+    spec_digest: str
+    result_digest: str
+    matched: bool
+
+    def __post_init__(self) -> None:
+        if self.arm not in ARMS:
+            raise ConfigurationError(f"unknown arm: {self.arm!r}")
+        if len(self.spec_digest) != 64 or len(self.result_digest) != 64:
+            raise ConfigurationError("replay records require 64-hex spec/result digests.")
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "seed": self.seed,
+            "arm": self.arm,
+            "spec_digest": self.spec_digest,
+            "result_digest": self.result_digest,
+            "matched": self.matched,
+            "claim_ceiling": CLAIM_CEILING,
         }
 
 
@@ -369,9 +429,12 @@ class HardExperiment01Campaign:
     effect_vs_source_bias_off: EffectSizeResult
     effect_vs_capsules_off: EffectSizeResult
     replay_verified_seed: int
+    replay_verified_seeds: tuple[int, ...]
+    replay_records: tuple[HardExperiment01ReplayRecord, ...]
     replay_spec_digest: str
     replay_result_digest: str
     replay_matched: bool
+    missing_outcomes_per_arm: tuple[tuple[str, int], ...] = ()
     interventions: tuple[HardExperiment01Intervention, ...] = ()
     question: str = _QUESTION
     claim_ceiling: str = CLAIM_CEILING
@@ -384,10 +447,26 @@ class HardExperiment01Campaign:
             raise ConfigurationError("campaign requires paired seed records for every seed.")
         if self.claim_ceiling != CLAIM_CEILING or self.claim_ceiling in _FORBIDDEN:
             raise ConfigurationError("hard experiment 01 ceiling must stay runtime_observation.")
-        if not self.replay_matched:
+        if not self.replay_records:
+            raise ConfigurationError("hard experiment 01 requires replay records for first and last seeds.")
+        if not self.replay_matched or not all(item.matched for item in self.replay_records):
             raise ConfigurationError("hard experiment 01 requires a matching replay digest.")
+        replay_arms = {item.arm for item in self.replay_records}
+        if replay_arms != set(ARMS):
+            raise ConfigurationError("hard experiment 01 must replay every arm.")
         if not self.interventions:
             object.__setattr__(self, "interventions", hard_experiment_01_interventions())
+        if not self.missing_outcomes_per_arm:
+            object.__setattr__(
+                self,
+                "missing_outcomes_per_arm",
+                tuple((arm, 0) for arm in ARMS),
+            )
+        missing_arms = {item[0] for item in self.missing_outcomes_per_arm}
+        if missing_arms != set(ARMS):
+            raise ConfigurationError("missing_outcomes_per_arm must cover every arm.")
+        if any(count < 0 for _, count in self.missing_outcomes_per_arm):
+            raise ConfigurationError("missing outcome counts must be >= 0.")
         expected_arms = {item.arm for item in self.interventions}
         if expected_arms != set(ARMS):
             raise ConfigurationError("hard experiment 01 interventions must cover every arm.")
@@ -420,9 +499,14 @@ class HardExperiment01Campaign:
             "effect_vs_source_bias_off": self.effect_vs_source_bias_off.to_dict(),
             "effect_vs_capsules_off": self.effect_vs_capsules_off.to_dict(),
             "replay_verified_seed": self.replay_verified_seed,
+            "replay_verified_seeds": list(self.replay_verified_seeds),
+            "replay_records": [item.to_dict() for item in self.replay_records],
             "replay_spec_digest": self.replay_spec_digest,
             "replay_result_digest": self.replay_result_digest,
             "replay_matched": self.replay_matched,
+            "missing_outcomes_per_arm": {
+                arm: count for arm, count in self.missing_outcomes_per_arm
+            },
             "interventions": [item.to_dict() for item in self.interventions],
             "claim_ceiling": self.claim_ceiling,
             "collective_intelligence": False,
@@ -435,6 +519,7 @@ class HardExperiment01Campaign:
                 "life_loop_overlay_not_avida_isa",
                 "source_bias_is_min_source_fitness_plus_fitness_weighted_adoption",
                 "terminal_mean_fitness_is_last_tick_observation",
+                "missing_last_tick_outcomes_are_dropped_not_zero_filled",
                 "null_or_small_effect_is_a_valid_finding",
                 "not_knowledge_transfer_proof",
             ],
@@ -455,17 +540,21 @@ def _arm_record(
         seed=seed, arm=arm, tick_count=tick_count, population=population
     )
     births = _birth_count(result)
-    emissions, adoptions = _capsule_counts(result)
+    sources, utilities, transfers, adoptions = _capsule_counts(result)
+    fitness = _mean_last_tick_fitness(result)
     return HardExperiment01ArmRecord(
         seed=seed,
         arm=arm,
-        terminal_mean_fitness=_mean_last_tick_fitness(result),
+        terminal_mean_fitness=fitness,
         births=births,
-        capsule_emissions=emissions,
+        capsule_source_count=sources,
+        capsule_utility_count=utilities,
+        capsule_transfer_count=transfers,
         capsule_adoptions=adoptions,
         spec_digest=spec.digest(),
         result_digest=str(result.digest()),
         next_generation_observed=births > 0,
+        outcome_missing=fitness is None,
     )
 
 
@@ -475,6 +564,91 @@ def _mean(values: Sequence[float]) -> float:
     return round(sum(values) / len(values), 10)
 
 
+def _optional_delta(left: float | None, right: float | None) -> float | None:
+    if left is None or right is None:
+        return None
+    return round(left - right, 10)
+
+
+def _complete_pair_values(
+    records: Sequence[HardExperiment01SeedRecord],
+    *,
+    treatment_arm: ArmName,
+    baseline_arm: ArmName,
+) -> tuple[list[float], list[float]]:
+    treatment: list[float] = []
+    baseline: list[float] = []
+    for record in records:
+        treat = getattr(record, treatment_arm)
+        base = getattr(record, baseline_arm)
+        if treat.outcome_missing or base.outcome_missing:
+            continue
+        if treat.terminal_mean_fitness is None or base.terminal_mean_fitness is None:
+            continue
+        treatment.append(treat.terminal_mean_fitness)
+        baseline.append(base.terminal_mean_fitness)
+    return baseline, treatment
+
+
+def _effect_or_insufficient(
+    metric_name: str, baseline: Sequence[float], treatment: Sequence[float]
+) -> EffectSizeResult:
+    if not baseline or not treatment:
+        return EffectSizeResult(
+            metric_name=metric_name,
+            baseline_mean=0.0,
+            treatment_mean=0.0,
+            mean_delta=0.0,
+            standardized_delta_lite=0.0,
+            sample_count=0,
+            interpretation="insufficient_paired_outcomes",
+        )
+    return estimate_effect_size_lite(metric_name, baseline, treatment)
+
+
+def _original_arm(
+    records: Sequence[HardExperiment01SeedRecord], seed: int, arm: ArmName
+) -> HardExperiment01ArmRecord:
+    for record in records:
+        if record.seed == seed:
+            return getattr(record, arm)
+    raise ConfigurationError(f"no campaign record for seed {seed} arm {arm}.")
+
+
+def _replay_arm(
+    original: HardExperiment01ArmRecord,
+    *,
+    tick_count: int,
+    population: int,
+) -> HardExperiment01ReplayRecord:
+    spec, result = _run_arm(
+        seed=original.seed,
+        arm=original.arm,
+        tick_count=tick_count,
+        population=population,
+    )
+    spec_digest = spec.digest()
+    result_digest = str(result.digest())
+    return HardExperiment01ReplayRecord(
+        seed=original.seed,
+        arm=original.arm,
+        spec_digest=spec_digest,
+        result_digest=result_digest,
+        matched=spec_digest == original.spec_digest and result_digest == original.result_digest,
+    )
+
+
+def _missing_outcomes_per_arm(
+    records: Sequence[HardExperiment01SeedRecord],
+) -> tuple[tuple[str, int], ...]:
+    counts = {arm: 0 for arm in ARMS}
+    for record in records:
+        for arm in ARMS:
+            if getattr(record, arm).outcome_missing:
+                counts[arm] += 1
+    return tuple((arm, counts[arm]) for arm in ARMS)
+
+
 def run_hard_experiment_01(
     seeds: Sequence[int] | None = None,
     *,
@@ -482,13 +656,10 @@ def run_hard_experiment_01(
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
 ) -> HardExperiment01Campaign:
-    """Paired 12-seed source-bias campaign. Research default seed_count=12."""
+    """Paired source-bias campaign. Default seed_count=12 is exploratory; research n=30."""
 
     seed_tuple = _resolve_seeds(seeds, seed_count, default_count=RESEARCH_SEED_COUNT)
     records: list[HardExperiment01SeedRecord] = []
-    on_fits: list[float] = []
-    off_fits: list[float] = []
-    none_fits: list[float] = []
     for seed in seed_tuple:
         on_rec = _arm_record(
             seed=seed, arm="source_bias_on", tick_count=tick_count, population=population
@@ -499,50 +670,63 @@ def run_hard_experiment_01(
         none_rec = _arm_record(
             seed=seed, arm="capsules_off", tick_count=tick_count, population=population
         )
-        on_fits.append(on_rec.terminal_mean_fitness)
-        off_fits.append(off_rec.terminal_mean_fitness)
-        none_fits.append(none_rec.terminal_mean_fitness)
         records.append(
             HardExperiment01SeedRecord(
                 seed=seed,
                 source_bias_on=on_rec,
                 source_bias_off=off_rec,
                 capsules_off=none_rec,
-                delta_vs_source_bias_off=round(
-                    on_rec.terminal_mean_fitness - off_rec.terminal_mean_fitness, 10
+                delta_vs_source_bias_off=_optional_delta(
+                    on_rec.terminal_mean_fitness, off_rec.terminal_mean_fitness
                 ),
-                delta_vs_capsules_off=round(
-                    on_rec.terminal_mean_fitness - none_rec.terminal_mean_fitness, 10
+                delta_vs_capsules_off=_optional_delta(
+                    on_rec.terminal_mean_fitness, none_rec.terminal_mean_fitness
                 ),
             )
         )
-    replay_seed = seed_tuple[0]
-    replay_spec, replay_result = _run_arm(
-        seed=replay_seed,
-        arm="source_bias_on",
-        tick_count=tick_count,
-        population=population,
+    off_fits, on_vs_off = _complete_pair_values(
+        records, treatment_arm="source_bias_on", baseline_arm="source_bias_off"
     )
-    first = records[0].source_bias_on
-    replay_matched = (
-        replay_spec.digest() == first.spec_digest
-        and str(replay_result.digest()) == first.result_digest
+    none_fits, on_vs_none = _complete_pair_values(
+        records, treatment_arm="source_bias_on", baseline_arm="capsules_off"
+    )
+    replay_seeds = tuple(dict.fromkeys((seed_tuple[0], seed_tuple[-1])))
+    replay_records = tuple(
+        _replay_arm(
+            _original_arm(records, seed, arm),
+            tick_count=tick_count,
+            population=population,
+        )
+        for seed in replay_seeds
+        for arm in ARMS
+    )
+    first_replay = next(
+        item
+        for item in replay_records
+        if item.seed == seed_tuple[0] and item.arm == "source_bias_on"
     )
     campaign = HardExperiment01Campaign(
         seeds=seed_tuple,
         seed_records=tuple(records),
-        mean_delta_vs_source_bias_off=_mean([item.delta_vs_source_bias_off for item in records]),
-        mean_delta_vs_capsules_off=_mean([item.delta_vs_capsules_off for item in records]),
-        effect_vs_source_bias_off=estimate_effect_size_lite(
-            "terminal_mean_fitness", off_fits, on_fits
+        mean_delta_vs_source_bias_off=_mean(
+            [item.delta_vs_source_bias_off for item in records if item.delta_vs_source_bias_off is not None]
         ),
-        effect_vs_capsules_off=estimate_effect_size_lite(
-            "terminal_mean_fitness", none_fits, on_fits
+        mean_delta_vs_capsules_off=_mean(
+            [item.delta_vs_capsules_off for item in records if item.delta_vs_capsules_off is not None]
         ),
-        replay_verified_seed=replay_seed,
-        replay_spec_digest=replay_spec.digest(),
-        replay_result_digest=str(replay_result.digest()),
-        replay_matched=replay_matched,
+        effect_vs_source_bias_off=_effect_or_insufficient(
+            "terminal_mean_fitness", off_fits, on_vs_off
+        ),
+        effect_vs_capsules_off=_effect_or_insufficient(
+            "terminal_mean_fitness", none_fits, on_vs_none
+        ),
+        replay_verified_seed=seed_tuple[0],
+        replay_verified_seeds=replay_seeds,
+        replay_records=replay_records,
+        replay_spec_digest=first_replay.spec_digest,
+        replay_result_digest=first_replay.result_digest,
+        replay_matched=all(item.matched for item in replay_records),
+        missing_outcomes_per_arm=_missing_outcomes_per_arm(records),
     )
     _assert_blocked(campaign.to_dict(), ScientificClaimGate())
     return campaign

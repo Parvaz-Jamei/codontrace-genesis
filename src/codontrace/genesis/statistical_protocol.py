@@ -1,19 +1,20 @@
 """Statistical protocol scaffolds for GENESIS evidence records.
 
-The objects here are dependency-free audit scaffolds. They do not calculate
-p-values, run experiments, write reports, or prove scientific claims.
+Dependency-free audit scaffolds. Inferential helpers here compute
+descriptive p-values, intervals, and corrections. They do not run
+experiments, write reports, or prove scientific claims.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.rng import RNGManager
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,12 +147,44 @@ def estimate_effect_size_lite(
     )
 
 
-def _pooled_std(a: Sequence[float], b: Sequence[float]) -> float:
-    values = list(a) + list(b)
+def paired_effect_size(deltas: Sequence[float]) -> float:
+    """Cohen's dz = mean(Δ) / s_Δ using the sample SD (ddof=1).
+
+    Zero variance with a non-zero mean is undefined (not a zero effect).
+    """
+
+    if any(isinstance(value, bool) or not isinstance(value, int | float) for value in deltas):
+        msg = "deltas must be numeric."
+        raise ConfigurationError(msg)
+    values = [float(value) for value in deltas]
     if len(values) < 2:
-        return 0.0
+        msg = "paired_effect_size requires at least two deltas."
+        raise ConfigurationError(msg)
+    mean_delta = sum(values) / len(values)
+    sample_sd = math.sqrt(sum((value - mean_delta) ** 2 for value in values) / (len(values) - 1))
+    if sample_sd == 0.0:
+        if mean_delta == 0.0:
+            return 0.0
+        raise ConfigurationError(
+            "paired_effect_size is undefined when s_delta is 0 and mean(delta) is not 0."
+        )
+    return mean_delta / sample_sd
+
+
+def _sample_sum_of_squares(values: Sequence[float]) -> float:
     mean = sum(values) / len(values)
-    return math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+    return sum((value - mean) ** 2 for value in values)
+
+
+def _pooled_std(a: Sequence[float], b: Sequence[float]) -> float:
+    """Classical pooled SD: sqrt(((n1-1)s1² + (n2-1)s2²) / (n1+n2-2))."""
+
+    n1 = len(a)
+    n2 = len(b)
+    degrees = n1 + n2 - 2
+    if n1 < 1 or n2 < 1 or degrees <= 0:
+        return 0.0
+    return math.sqrt((_sample_sum_of_squares(a) + _sample_sum_of_squares(b)) / degrees)
 
 
 def _digest(payload: Mapping[str, JsonValue]) -> str:
@@ -428,6 +461,12 @@ from codontrace.genesis.canonical import (
 
 @dataclass(frozen=True, slots=True)
 class StatisticalTestPolicy:
+    """Seed-count tiers for descriptive vs research-grade language.
+
+    n=12 is ``exploratory_only`` (smoke / exploratory). Research-grade
+    language requires ``n >= min_research_grade_n`` (default 30).
+    """
+
     paired: bool = True
     ci_method: str = "bca_bootstrap"
     test_name: str = "paired_permutation"
@@ -558,3 +597,232 @@ class PairedComparisonResult:
 
     def digest(self) -> str:
         return _strict_stat_digest(self.to_dict())
+
+
+_DEFAULT_INFERENTIAL_SEED = 20260911
+_MONTE_CARLO_SIGN_FLIPS = 20000
+_EXACT_SIGN_FLIP_MAX_N = 20
+
+
+def _require_numeric_sequence(name: str, values: Sequence[float]) -> list[float]:
+    if any(isinstance(value, bool) or not isinstance(value, int | float) for value in values):
+        raise ConfigurationError(f"{name} must be numeric.")
+    return [float(value) for value in values]
+
+
+def _norm_cdf(value: float) -> float:
+    return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
+
+
+def _norm_ppf(probability: float) -> float:
+    """Acklam rational approximation to the standard-normal quantile."""
+
+    if probability <= 0.0:
+        return float("-inf")
+    if probability >= 1.0:
+        return float("inf")
+    a = (
+        -3.969683028665376e01,
+        2.209460984245205e02,
+        -2.759285104469687e02,
+        1.383577518672690e02,
+        -3.066479806614716e01,
+        2.506628277459239e00,
+    )
+    b = (
+        -5.447609879822406e01,
+        1.615858368580409e02,
+        -1.556989798598866e02,
+        6.680131188771972e01,
+        -1.328068155288572e01,
+    )
+    c = (
+        -7.784894002430293e-03,
+        -3.223964580411365e-01,
+        -2.400758277161838e00,
+        -2.549732539343734e00,
+        4.374664141464968e00,
+        2.938163982698783e00,
+    )
+    d = (
+        7.784695709041462e-03,
+        3.224671290700398e-01,
+        2.445134137142996e00,
+        3.754408661907416e00,
+    )
+    plow = 0.02425
+    phigh = 1.0 - plow
+    if probability < plow:
+        q = math.sqrt(-2.0 * math.log(probability))
+        return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
+        )
+    if probability > phigh:
+        q = math.sqrt(-2.0 * math.log(1.0 - probability))
+        return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
+        )
+    q = probability - 0.5
+    r = q * q
+    return (
+        (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5])
+        * q
+        / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0)
+    )
+
+
+def _mean_of(values: Sequence[float]) -> float:
+    return sum(values) / len(values)
+
+
+def exact_sign_flip_permutation_p(
+    deltas: Sequence[float],
+    *,
+    seed: int = _DEFAULT_INFERENTIAL_SEED,
+) -> float:
+    """Two-sided sign-flip permutation p-value for paired deltas.
+
+    Exhaustive over all 2^n sign patterns when n≤20. Larger n uses a
+    20000-draw Monte Carlo with a fixed seed. Monte Carlo p-values use
+    (1 + extreme) / (1 + draws) so a finite draw cannot report p=0.
+    This is a measurement, not a claim unlock.
+    """
+
+    values = _require_numeric_sequence("deltas", deltas)
+    if not values:
+        raise ConfigurationError("exact_sign_flip_permutation_p requires at least one delta.")
+    observed = abs(sum(values))
+    n = len(values)
+    if n <= _EXACT_SIGN_FLIP_MAX_N:
+        count = 0
+        for mask in range(1 << n):
+            total = 0.0
+            for index, value in enumerate(values):
+                total += value if (mask >> index) & 1 else -value
+            if abs(total) + 1e-15 >= observed:
+                count += 1
+        return count / float(1 << n)
+    rng = RNGManager(seed=int(seed), namespace="sign_flip_permutation")
+    count = 0
+    for _ in range(_MONTE_CARLO_SIGN_FLIPS):
+        total = 0.0
+        for value in values:
+            total += value if rng.randrange(2) == 0 else -value
+        if abs(total) + 1e-15 >= observed:
+            count += 1
+    return (1 + count) / (1 + _MONTE_CARLO_SIGN_FLIPS)
+
+
+def _percentile(sorted_values: Sequence[float], quantile: float) -> float:
+    if not sorted_values:
+        return 0.0
+    if quantile <= 0.0:
+        return sorted_values[0]
+    if quantile >= 1.0:
+        return sorted_values[-1]
+    position = quantile * (len(sorted_values) - 1)
+    low = int(math.floor(position))
+    high = int(math.ceil(position))
+    if low == high:
+        return sorted_values[low]
+    fraction = position - low
+    return sorted_values[low] * (1.0 - fraction) + sorted_values[high] * fraction
+
+
+def _bootstrap_means(
+    values: Sequence[float],
+    *,
+    resamples: int,
+    seed: int,
+) -> list[float]:
+    rng = RNGManager(seed=int(seed), namespace="bootstrap_paired")
+    n = len(values)
+    means: list[float] = []
+    for _ in range(resamples):
+        draw = [values[rng.randrange(n)] for _ in range(n)]
+        means.append(_mean_of(draw))
+    return means
+
+
+def _bca_acceleration(values: Sequence[float]) -> float:
+    n = len(values)
+    if n < 2:
+        return 0.0
+    jack = [(_mean_of(values) * n - values[index]) / (n - 1) for index in range(n)]
+    center = _mean_of(jack)
+    cubed = sum((center - item) ** 3 for item in jack)
+    squared = sum((center - item) ** 2 for item in jack)
+    if squared <= 0.0:
+        return 0.0
+    return cubed / (6.0 * (squared**1.5))
+
+
+def bootstrap_ci_paired(
+    deltas: Sequence[float],
+    *,
+    method: Literal["bca", "percentile"] = "bca",
+    resamples: int = 10000,
+    seed: int = _DEFAULT_INFERENTIAL_SEED,
+    confidence: float = 0.95,
+) -> tuple[float, float]:
+    """Paired-delta CI for the mean. ``method`` is ``bca`` or ``percentile``.
+
+    Resamples the paired differences (not the two arms independently).
+    n=1 and zero-width bootstrap clouds fall back to a point / percentile
+    interval because BCa jackknife acceleration is undefined there.
+    """
+
+    values = _require_numeric_sequence("deltas", deltas)
+    if not values:
+        raise ConfigurationError("bootstrap_ci_paired requires at least one delta.")
+    if method not in {"bca", "percentile"}:
+        raise ConfigurationError('bootstrap_ci_paired method must be "bca" or "percentile".')
+    if resamples < 1:
+        raise ConfigurationError("resamples must be >= 1.")
+    if not 0.0 < confidence < 1.0:
+        raise ConfigurationError("confidence must be in (0, 1).")
+    theta = _mean_of(values)
+    if len(values) == 1:
+        return (theta, theta)
+    boots = sorted(_bootstrap_means(values, resamples=resamples, seed=seed))
+    alpha = (1.0 - confidence) / 2.0
+    if method == "percentile":
+        return (_percentile(boots, alpha), _percentile(boots, 1.0 - alpha))
+    less = sum(1 for item in boots if item < theta)
+    proportion = less / len(boots)
+    if proportion <= 0.0 or proportion >= 1.0:
+        return (_percentile(boots, alpha), _percentile(boots, 1.0 - alpha))
+    z0 = _norm_ppf(proportion)
+    acceleration = _bca_acceleration(values)
+
+    def _adjusted(tail: float) -> float:
+        z_tail = _norm_ppf(tail)
+        denom = 1.0 - acceleration * (z0 + z_tail)
+        if denom == 0.0:
+            return tail
+        return _norm_cdf(z0 + (z0 + z_tail) / denom)
+
+    low_q = min(max(_adjusted(alpha), 0.0), 1.0)
+    high_q = min(max(_adjusted(1.0 - alpha), 0.0), 1.0)
+    if low_q > high_q:
+        low_q, high_q = high_q, low_q
+    return (_percentile(boots, low_q), _percentile(boots, high_q))
+
+
+def holm_correction(p_values: Sequence[float]) -> tuple[float, ...]:
+    """Holm step-down adjusted p-values, returned in the original order."""
+
+    values = _require_numeric_sequence("p_values", p_values)
+    if any(value < 0.0 or value > 1.0 for value in values):
+        raise ConfigurationError("p_values must lie in [0, 1].")
+    count = len(values)
+    if count == 0:
+        return ()
+    order = sorted(range(count), key=lambda index: (values[index], index))
+    adjusted = [0.0] * count
+    running = 0.0
+    for rank, index in enumerate(order):
+        running = min(1.0, max(running, (count - rank) * values[index]))
+        adjusted[index] = running
+    return tuple(adjusted)
+

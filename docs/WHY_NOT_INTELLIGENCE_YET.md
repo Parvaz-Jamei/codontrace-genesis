@@ -308,7 +308,7 @@ still never earns.
 | `GroupVsIndividualContrast` | paired deme-on vs organism-only mean fitness, selected vs unselected deme means, message count, ledger digest | group-vs-individual payoff coupling *hook* | Delta is group fitness, not intelligence |
 | `run_collective_deme_payoff_campaign` | ≥2 seeds of the above | multi-replicate measurement | Gap flags stay `not_run` / `scaffold_only` |
 | Phase H `run_communication_ablation_experiment` | messaging on vs off, multi-seed, Cohen's *d* | Goldsby: communication must pay | `measured_runtime_observation`; ClaimGate `ablation_result` **not** set |
-| Phase H `run_group_vs_individual_effect_size_campaign` | configurable `seed_count` (default 12; smoke 2) + effect-size fields | group-vs-individual payoff | Delta is still group fitness |
+| Phase H `run_group_vs_individual_effect_size_campaign` | configurable `seed_count` (default 12 = exploratory; research-grade 30; smoke 2) + effect-size fields | group-vs-individual payoff | Delta is still group fitness |
 | Phase H `TaskSwitchingCostConfig` | reweights DoL fitness shares by action-switch counts | Goldsby 2012 analog | Not evolved DoL; Phase K adds the 50-replicate CPU-delay *harness* |
 | Literature RAG (`search_corpus`) | citable digests + deterministic TF-IDF | experiment design map | Retrieval is not evidence |
 | Phase J `verify_digest_replay` / `build_replay_verified_ci_candidate_pack` | independent campaign digest re-execution | replay_verification honesty | Smoke never earns; same-object replay rejected |

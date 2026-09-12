@@ -91,7 +91,7 @@ LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
 
 
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
-    """Deterministic seed tuple. Research default is 12; smoke may pass 2."""
+    """Deterministic seed tuple. 12 is exploratory; research-grade n is 30; smoke may pass 2."""
 
     count = int(seed_count)
     if count < 2:
@@ -513,7 +513,7 @@ def run_communication_ablation_experiment(
     tick_count: int = 4,
     population: int = 4,
 ) -> CommunicationAblationCampaign:
-    """Messaging on vs off across seeds. Smoke may use seed_count=2; research default 12."""
+    """Messaging on vs off across seeds. Smoke may use seed_count=2; 12 is exploratory; research-grade n is 30."""
 
     seed_tuple = _resolve_seeds(seeds, seed_count, default_count=RESEARCH_SEED_COUNT)
     records: list[CommunicationAblationSeedRecord] = []
@@ -634,7 +634,7 @@ def run_group_vs_individual_effect_size_campaign(
     top_k: int = 1,
     task_switching_cost: float = DEFAULT_TASK_SWITCHING_COST,
 ) -> GroupVsIndividualEffectSize:
-    """Group-vs-individual contrast with Cohen's d. Default seed_count=12; smoke uses 2."""
+    """Group-vs-individual contrast with Cohen's d. Default seed_count=12 is exploratory; research-grade n is 30; smoke uses 2."""
 
     seed_tuple = _resolve_seeds(seeds, seed_count, default_count=RESEARCH_SEED_COUNT)
     contrasts: list[GroupVsIndividualContrast] = []

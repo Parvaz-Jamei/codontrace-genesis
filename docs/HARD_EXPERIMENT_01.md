@@ -16,7 +16,7 @@ source-fitness gating ablated and (b) capsules off?
 | Item | Choice |
 |---|---|
 | Product | CodonTrace Genesis |
-| Seeds | 12 paired (`11` … `22`), research default |
+| Seeds | 12 paired (`11` … `22`) is the **smoke / exploratory** default (`StatisticalTestPolicy.tier_for_n(12) == exploratory_only`). Research-grade n is **30**. |
 | Substrate | Phase A `life_loop_world` overlay (does **not** change A–E pins) |
 | Ticks / N | 6 ticks, population 4 |
 | Treatment | `source_bias_on`: capsules on, `min_source_fitness=2.0`, `FITNESS_WEIGHTED` |
@@ -54,7 +54,8 @@ from codontrace.genesis.hard_experiment_01 import (
     run_hard_experiment_01,
 )
 
-campaign = run_hard_experiment_01()  # 12 seeds
+campaign = run_hard_experiment_01()  # 12 seeds: exploratory / smoke
+# research-grade language requires seed_count=30
 print(campaign.mean_delta_vs_source_bias_off)
 print(campaign.effect_vs_capsules_off.interpretation)
 print(evaluate_hard_experiment_01_claim(campaign).final_claim)
@@ -67,6 +68,22 @@ python examples/genesis_hard_experiment_01.py
 A null or small descriptive effect is a valid finding. The campaign object
 refuses a claim ceiling other than `runtime_observation` and will not
 construct if replay digests fail to match.
+
+## Results: not yet recorded
+
+No campaign numbers are archived in this write-up.
+
+- Mean deltas vs `source_bias_off` / `capsules_off`: **not yet recorded**
+- Standardized effect sizes: **not yet recorded**
+- Per-seed fitness vectors: **not yet recorded**
+- Missing-outcome counts: **not yet recorded**
+- Replay digest table (all arms × first and last seeds): **not yet recorded**
+
+A local `run_hard_experiment_01()` printout is a runtime observation, not
+a publication-grade result. Do not copy informal numbers into this
+section without a dated, digest-backed campaign artifact. This section
+must not be filled with intelligence, AGI, Tokyo Type 1, or Avida-replacement
+language.
 
 ## What this does not say
 

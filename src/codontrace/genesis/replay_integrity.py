@@ -1180,6 +1180,10 @@ _MEASUREMENT_PAPER_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "spec_digest",
         "result_digest",
     ),
+    "codontrace.genesis.hard_experiment_01.HardExperiment01ReplayRecord": (
+        "spec_digest",
+        "result_digest",
+    ),
     "codontrace.genesis.hard_experiment_01.HardExperiment01Campaign": (
         "replay_spec_digest",
         "replay_result_digest",

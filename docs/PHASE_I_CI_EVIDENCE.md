@@ -74,7 +74,10 @@ forbidden. `collective_intelligence_candidate` still needs
 `replay_verification` from Phase J (or an equivalent independent digest
 match).
 
-Research defaults: `seed_count=12`, `generations=20`. Smoke: `2` seeds,
+Library default `seed_count=12` is smoke/exploratory
+(`StatisticalTestPolicy.tier_for_n(12) == exploratory_only`).
+Research-grade n is `30`. `generations=20` stays the library default.
+Smoke: `2` seeds,
 `6` generations.
 
 ---

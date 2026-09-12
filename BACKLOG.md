@@ -12,14 +12,66 @@
 8. Phase G (implemented, opt-in substrate): named `MaterialSpec` chemistry-effect overlay (energy yield, toxicity, viscosity/diffusion, permeability, signaling, scarcity), named-material chemostat, simple stoichiometric CRN, cellularity/membrane uptake gate, ChEBI/KEGG schema hooks without a GEM/MD solver. Defaults off. Realistic-chemistry / wet-lab-equivalent claims remain blocked.
 9. Scientific authorities 2026 map (`docs/SCIENTIFIC_AUTHORITIES_2026.md`) plus honesty note `docs/WHY_NOT_INTELLIGENCE_YET.md`: literature vs CodonTrace Genesis reality. Completeness of *measurement and documentation*, not a claim that CodonTrace Genesis replaces those systems or is close to AGI. JaxLife NN and ASAL CLIP stay docs-only.
 10. Phase F (implemented, opt-in measurement): multi-seed collective deme payoff campaigns, deme mean-fitness ranking, division-of-labor *metrics*. Still ClaimGate-blocks `collective_intelligence` / `proved_collective_intelligence`. Not a major transition in individuality.
-11. Phase H (implemented, opt-in measurement + literature RAG): research corpus/retriever; communication ablation harness; group-vs-individual effect sizes (`seed_count` default 12); Goldsby 2012 task-switching cost hook; candidate checklist printer. ClaimGate still blocks `collective_intelligence` / `intelligence` / AGI. Library-complete beta is not “done.”
+11. Phase H (implemented, opt-in measurement + literature RAG): research corpus/retriever; communication ablation harness; group-vs-individual effect sizes (`seed_count` library default 12 = exploratory; research-grade 30); Goldsby 2012 task-switching cost hook; candidate checklist printer. ClaimGate still blocks `collective_intelligence` / `intelligence` / AGI. Library-complete beta is not “done.”
 12. Phase I (implemented, opt-in CI evidence harnesses): heldout unfamiliar-partner generalization; evolved (not assigned) DoL + Gorelick NMI + ablation; MLS vs organism-only evolutionary *outcome*; export-of-fitness scaffold with `major_transition_in_individuality=False`. ClaimGate flags can be earned from research-scale evidence objects only — never auto-set from smokes. `collective_intelligence` still blocked.
 13. Phase J (implemented, opt-in replay-verified CI candidate packs): independent campaign digest re-execution so `replay_verification` can be earned honestly when digests match; Price-equation / Okasha MLS1 covariance scaffold (snapshot, no transmission term). Research-scale full flags may allow `collective_intelligence_candidate`. `collective_intelligence` / AGI / Tokyo Type 1 passed / Avida replacement still blocked. No version bump.
 14. Phase K (implemented, opt-in CI-depth measurements): evolved send/retrieve/broadcast instruction analog that can pay under ablation; Goldsby-scale CPU-delay specialist harness (research default 50 replicates); multi-generation Price with a transmission term; Michod/Conlin conflict-suppression hooks. Smoke never earns flags. Bare `collective_intelligence` / intelligence / AGI / `tokyo_type1_passed` still blocked. No version bump.
 15. Phase L (implemented, opt-in Avida-fidelity analogs): closer ORGANISM_MESSAGING (per-organism FIFO, faced-neighbor send, block_propagation) and DEME_GROUP (maybe_replicate_demes) semantics — still analog, not a C++ port; Goldsby 2012-aligned specialist measurement (not the PNAS experiment); optional Phase K coordination-ablation evidence feed that does not auto-set ClaimGate flags. Smoke never earns. Bare `collective_intelligence` / intelligence / AGI / `tokyo_type1_passed` still blocked. No version bump.
-16. Hard experiment 01 (implemented, measurement paper): 12-seed capsule source-bias vs next-generation fitness, with source-fitness ablation and capsules-off controls, effect size, and replay digests. Claim ceiling `runtime_observation`. Not a Phase M. Further engine.py splits can continue if A–E pins stay stable.
+16. Hard experiment 01 (implemented, measurement paper): capsule source-bias vs next-generation fitness (library default 12 seeds = exploratory; research-grade n=30), with source-fitness ablation and capsules-off controls, effect size, and replay digests. Claim ceiling `runtime_observation`. Not a Phase M. Further engine.py splits can continue if A–E pins stay stable.
 
 Phase A life-loop literature items (basal metabolism, starvation reason, limited depletable resources, spatial capacity, differential reproductive-success observation) are implemented on the ecology preset only.
+
+## Wave 0 lint-type (CI `continue-on-error`)
+
+Job `lint-type` (Ubuntu / Python 3.12) runs `ruff check src tests` and
+`mypy --strict src`. It is **not blocking** until these inventories are
+cleared. Recorded 2026-09-11 on `0.3.0b4.dev0` after PR #19.
+
+### Ruff (`ruff check src tests`) — 1273 errors
+
+| Code | Count | Rule |
+|---|---:|---|
+| E501 | 955 | line-too-long |
+| I001 | 87 | unsorted-imports |
+| F811 | 48 | redefined-while-unused |
+| UP042 | 37 | replace-str-enum |
+| F401 | 33 | unused-import |
+| B017 | 27 | assert-raises-exception |
+| E402 | 21 | module-import-not-at-top-of-file |
+| UP037 | 12 | quoted-annotation |
+| B009 | 11 | get-attr-with-constant |
+| E701 | 6 | multiple-statements-on-one-line-colon |
+| F841 | 6 | unused-variable |
+| B023 | 5 | function-uses-loop-variable |
+| E702 | 5 | multiple-statements-on-one-line-semicolon |
+| SIM102 | 4 | collapsible-if |
+| SIM114 | 3 | if-with-same-arms |
+| other | 13 | UP017, SIM113, SIM401, SIM108, SIM210, F402, SIM118, SIM103, SIM105, F821, UP012, SIM300, B905 (1 each) |
+
+About 160 are auto-fixable with `ruff check --fix`.
+
+### Mypy (`mypy --strict src`) — 263 errors in 37 files
+
+| Code | Count |
+|---|---:|
+| arg-type | 83 |
+| attr-defined | 38 |
+| dict-item | 29 |
+| assignment | 29 |
+| misc | 26 |
+| union-attr | 24 |
+| operator | 17 |
+| unused-ignore | 5 |
+| var-annotated | 3 |
+| type-var | 3 |
+| call-arg | 2 |
+| no-untyped-def, no-redef, no-any-return, name-defined | 1 each |
+
+Heaviest files: `genesis/__init__.py` (37), `engine.py` (35),
+`genesis/population.py` (25), `actions.py` (20), `genesis/fitness.py` (14),
+`genesis/birth.py` (13), `genesis/logic9.py` (12).
+
+Do not treat a green `continue-on-error` job as a type-safe release gate.
 
 ## Non-goals that remain active
 

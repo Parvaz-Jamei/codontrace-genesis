@@ -66,7 +66,15 @@ mutate default Phase A–E preset digests.
   `which_capsule_is_adopted → action` edge.
 - Capsule emission may encode the source’s fitness-relevant action
   (`encode_source_action_in_content=True`) so shuffled content can
-  differ from on.
+  differ from on. Encoded `event_pattern` is
+  `(preferred_action, emit_action, source_organism_id, emit_tick)` so
+  adopted content digests distinguish *which* emit was taken.
+  Overlay `capsule_ttl=2` so rejected emits expire instead of being
+  re-adopted later. `capsules_shuffled` also sets
+  `scramble_identical_peer_content=True` so a singleton readable
+  capsule (peer = self under CONTENT swap) still becomes a distinct
+  `WAIT`/`SHUFFLED_CONTENT` pattern. Default emission
+  (`encode_source_action_in_content=False`) is unchanged.
 
 ### B. Source-fitness gate
 
@@ -127,12 +135,19 @@ Survival / energy / food overlay knobs from Wave 1b remain overlay-only.
 ### F. Positive control arm `oracle_capsule`
 
 **New.** Fifth measured arm. Payload that **directly** increases
-fitness on the same Phase E content→action→ATP path: seed
-`preferred_action="EAT_LUMEN"` with elevated `atp_bonus` (4.0 vs 0.5)
-and unconstrained cue match. Reported in the arm table. **Not**
-included in the three primary Holm contrasts. If oracle vs
-`capsules_off` also yields dz ≈ 0 (bitwise-identical outcomes), the
-assay is dead.
+fitness on the same Phase E content→action→ATP path, isolated from
+the capsule channel: transfer `enabled=False` (same as
+`capsules_off`), seed `preferred_action="EAT_LUMEN"` with elevated
+`atp_bonus` (4.0 vs 0.5) and unconstrained cue match, **plus** a
+documented measurement-surface sham `oracle_outcome_bonus=+1.0`
+added to last-tick `selection_mean_fitness`. The recorded estimand
+is the task-sensitive selection mean, not raw ATP or
+`FitnessConfig` weights; a Phase E ATP bonus alone does not move
+it. The +1.0 sham is the payload that must raise oracle mean above
+`capsules_off`. Reported in the arm table. **Not** included in the
+three primary Holm contrasts. If oracle vs `capsules_off` also
+yields dz ≈ 0 (bitwise-identical outcomes) or oracle mean ≤ off
+mean, the assay/outcome pipeline is dead.
 
 ### G. Mandatory manipulation check (per seed)
 

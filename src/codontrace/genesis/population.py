@@ -4072,7 +4072,11 @@ def _capsule_from_nexus_event(
         organism.causal_graph.digest() if organism.causal_graph is not None else event_digest
     )
     preferred = _source_preferred_action(organism, event) if encode_source_action else event.action
-    pattern = (preferred, event.action) if encode_source_action else (event.action,)
+    pattern = (
+        (preferred, event.action, organism.id, str(tick))
+        if encode_source_action
+        else (event.action,)
+    )
     metadata: dict[str, object] = {
         "status": "emitted",
         "kind": "population_nexus_phase2_scaffold",

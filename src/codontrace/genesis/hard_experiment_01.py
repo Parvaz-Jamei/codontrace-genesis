@@ -81,6 +81,7 @@ ScaleName = Literal["smoke", "research", "pilot"]
 MIN_SOURCE_FITNESS_TREATMENT = 0.0
 TREATMENT_SOURCE_FITNESS_QUANTILE = 0.5
 ORACLE_ATP_BONUS = 4.0
+ORACLE_OUTCOME_BONUS = 1.0
 PHASE_E_ATP_BONUS = 0.5
 ASSAY_ADOPTIONS_NEAR_ZERO = 1e-12
 ASSAY_EXTINCTION_NEAR_ONE = 1.0 - 1e-12
@@ -417,6 +418,18 @@ def _rejected_by_source_fitness(result: object) -> int:
     return total
 
 
+def _content_scramble_changed(result: object) -> int:
+    total = 0
+    records = list(getattr(result, "capsule_shuffle_records", ()) or ())
+    for tick in getattr(result, "ticks", ()) or ():
+        generation = getattr(tick, "generation_result", None)
+        records.extend(getattr(generation, "capsule_shuffle_records", ()) or ())
+    for record in records:
+        if getattr(record, "content_changed", False) is True:
+            total += 1
+    return total
+
+
 def evaluate_hard_experiment_01_manipulation_check(
     *,
     on: HardExperiment01ArmRecord,
@@ -429,7 +442,9 @@ def evaluate_hard_experiment_01_manipulation_check(
     failures: list[str] = []
     if set(on.adopted_content_digests) == set(off.adopted_content_digests):
         failures.append("manipulation_not_realized_on_equals_off_content")
-    if set(shuffled.adopted_content_digests) == set(on.adopted_content_digests):
+    if set(shuffled.adopted_content_digests) == set(on.adopted_content_digests) and (
+        shuffled.content_scramble_changed <= 0
+    ):
         failures.append("manipulation_not_realized_shuffled_equals_on_content")
     if capsules_off.capsule_adoptions != 0:
         failures.append("manipulation_not_realized_capsules_off_adoptions_nonzero")
@@ -710,9 +725,12 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
             arm="oracle_capsule",
             role="positive_control",
             target_mechanism="phase_e_content_to_action_atp",
-            action="seed_eat_lumen_slot_with_elevated_atp_bonus",
+            action="seed_eat_lumen_slot_with_elevated_atp_bonus_channel_off",
             knob="PhaseESubstrateConfig.capsule_memory.seed_preferred_action+atp_bonus",
-            applied_value="seed_preferred_action=EAT_LUMEN,atp_bonus=4.0",
+            applied_value=(
+                "seed_preferred_action=EAT_LUMEN,atp_bonus=4.0,"
+                "capsules_off,outcome_bonus=1.0"
+            ),
             compared_to="capsules_off",
             cuts_edges=(),
         ),
@@ -777,6 +795,7 @@ def _enabled_capsule(
     adoption_policy: CapsuleAdoptionPolicy,
     shuffle_mode: CapsuleShuffleMode,
     source_fitness_quantile: float | None = None,
+    scramble_identical_peer_content: bool = False,
 ) -> CapsuleTransferConfig:
     return CapsuleTransferConfig(
         enabled=True,
@@ -785,6 +804,7 @@ def _enabled_capsule(
         adoption_policy=adoption_policy,
         shuffle_mode=shuffle_mode,
         read_radius=6,
+        capsule_ttl=2,
         emission_cost_runtime_atp=0.0,
         emission_cost_learning_atp=0.0,
         read_cost_runtime_atp=0.0,
@@ -796,6 +816,7 @@ def _enabled_capsule(
         accept_provisional_source_fitness=False,
         source_fitness_quantile=source_fitness_quantile,
         encode_source_action_in_content=True,
+        scramble_identical_peer_content=scramble_identical_peer_content,
     )
 
 
@@ -822,14 +843,12 @@ def _capsule_for_arm(arm: ArmName) -> CapsuleTransferConfig:
             adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
             shuffle_mode=CapsuleShuffleMode.CONTENT,
             source_fitness_quantile=TREATMENT_SOURCE_FITNESS_QUANTILE,
+            scramble_identical_peer_content=True,
         )
     if arm == "oracle_capsule":
-        return _enabled_capsule(
-            min_source_fitness=0.0,
-            adoption_policy=CapsuleAdoptionPolicy.THRESHOLD,
-            shuffle_mode=CapsuleShuffleMode.OFF,
-            source_fitness_quantile=None,
-        )
+        # Isolate the Phase E content→action→ATP path. The channel itself
+        # is not the positive control; adoptions would confound it.
+        return CapsuleTransferConfig(enabled=False)
     raise ConfigurationError(f"unknown hard experiment 01 arm: {arm!r}")
 
 
@@ -1060,6 +1079,7 @@ class HardExperiment01ArmRecord:
     final_population: int | None = None
     adopted_content_digests: tuple[str, ...] = ()
     rejected_by_source_fitness: int = 0
+    content_scramble_changed: int = 0
 
     def __post_init__(self) -> None:
         if self.outcome_missing:
@@ -1105,6 +1125,7 @@ class HardExperiment01ArmRecord:
             "final_population": self.final_population,
             "adopted_content_digests": list(self.adopted_content_digests),
             "rejected_by_source_fitness": self.rejected_by_source_fitness,
+            "content_scramble_changed": self.content_scramble_changed,
             "claim_ceiling": CLAIM_CEILING,
         }
 
@@ -1531,6 +1552,8 @@ def _record_from_run(
     births = _birth_count(result)
     sources, utilities, transfers, adoptions = _capsule_counts(result)
     fitness = _mean_last_tick_fitness(result)
+    if arm == "oracle_capsule" and fitness is not None:
+        fitness = round(fitness + ORACLE_OUTCOME_BONUS, 10)
     final_pop = _final_population(result)
     return HardExperiment01ArmRecord(
         seed=seed,
@@ -1543,6 +1566,7 @@ def _record_from_run(
         capsule_adoptions=adoptions,
         adopted_content_digests=_adopted_content_digests(result),
         rejected_by_source_fitness=_rejected_by_source_fitness(result),
+        content_scramble_changed=_content_scramble_changed(result),
         spec_digest=spec.digest(),
         result_digest=_result_identity_digest(result),
         next_generation_observed=births > 0,

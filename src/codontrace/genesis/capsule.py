@@ -422,6 +422,7 @@ class CapsuleTransferConfig:
     accept_provisional_source_fitness: bool = True
     source_fitness_quantile: float | None = None
     encode_source_action_in_content: bool = False
+    scramble_identical_peer_content: bool = False
 
     @property
     def effective_max_capsules_read_per_tick(self) -> int:
@@ -525,6 +526,8 @@ class CapsuleTransferConfig:
             payload["source_fitness_quantile"] = self.source_fitness_quantile
         if self.encode_source_action_in_content:
             payload["encode_source_action_in_content"] = True
+        if self.scramble_identical_peer_content:
+            payload["scramble_identical_peer_content"] = True
         return payload
 
     @classmethod
@@ -571,6 +574,9 @@ class CapsuleTransferConfig:
             else _float(data, "source_fitness_quantile", 0.5),
             encode_source_action_in_content=_bool(
                 data, "encode_source_action_in_content", False
+            ),
+            scramble_identical_peer_content=_bool(
+                data, "scramble_identical_peer_content", False
             ),
         )
 
@@ -1250,7 +1256,11 @@ def read_nexus_capsules(
     )
     capsules = nearby_capsules[: config.effective_max_capsules_read_per_tick]
     capsules, shuffle_records = apply_capsule_shuffle_control(
-        capsules, config.shuffle_mode, tick=tick, target_organism_id=organism_id
+        capsules,
+        config.shuffle_mode,
+        tick=tick,
+        target_organism_id=organism_id,
+        scramble_identical_peer_content=config.scramble_identical_peer_content,
     )
     return CapsuleReadResult(
         attempted=True,
@@ -1412,6 +1422,7 @@ def apply_capsule_shuffle_control(
     *,
     tick: int,
     target_organism_id: str = "",
+    scramble_identical_peer_content: bool = False,
 ) -> tuple[tuple[CausalCapsule, ...], tuple[CapsuleShuffleRecord, ...]]:
     """Return actually shuffled capsules plus audit records for negative controls.
 
@@ -1435,6 +1446,7 @@ def apply_capsule_shuffle_control(
             resolved,
             tick=tick,
             target_organism_id=target_organism_id,
+            scramble_identical_peer_content=scramble_identical_peer_content,
         )
         shuffled.append(changed)
         records.append(
@@ -1465,6 +1477,7 @@ def _shuffle_one_capsule(
     *,
     tick: int,
     target_organism_id: str,
+    scramble_identical_peer_content: bool = False,
 ) -> CausalCapsule:
     metadata = dict(capsule.metadata)
     metadata.update(
@@ -1502,6 +1515,13 @@ def _shuffle_one_capsule(
         event_pattern = peer.event_pattern
         predicted_outcome = peer.predicted_outcome
         source_graph_digest = peer.source_graph_digest
+        if scramble_identical_peer_content and (
+            event_pattern == capsule.event_pattern
+            and predicted_outcome == capsule.predicted_outcome
+            and source_graph_digest == capsule.source_graph_digest
+        ):
+            event_pattern = ("WAIT", "SHUFFLED_CONTENT", *tuple(capsule.event_pattern))
+            predicted_outcome = "shuffled_negative_control"
     if mode in {CapsuleShuffleMode.TIMING, CapsuleShuffleMode.CONTENT_SOURCE_TIMING}:
         emitted_tick = max(0, tick)
         ttl = max(0, capsule.ttl)

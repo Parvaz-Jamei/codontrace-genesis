@@ -97,6 +97,33 @@ def test_manipulation_check_passes_only_when_construct_is_realized() -> None:
     assert failures == ()
 
 
+def test_manipulation_check_accepts_peer_swap_when_scramble_records_fire() -> None:
+    on = _arm(11, "source_bias_on", adoptions=3, rejected=2, digests=("a", "b"))
+    off = _arm(11, "source_bias_off", adoptions=5, digests=("a", "b", "c"))
+    capsules_off = _arm(11, "capsules_off", adoptions=0)
+    shuffled = HardExperiment01ArmRecord(
+        seed=11,
+        arm="capsules_shuffled",
+        terminal_mean_fitness=1.0,
+        births=1,
+        capsule_source_count=0,
+        capsule_utility_count=0,
+        capsule_transfer_count=0,
+        capsule_adoptions=3,
+        spec_digest="a" * 64,
+        result_digest="b" * 64,
+        next_generation_observed=True,
+        adopted_content_digests=("a", "b"),
+        rejected_by_source_fitness=2,
+        content_scramble_changed=4,
+    )
+    passed, failures = evaluate_hard_experiment_01_manipulation_check(
+        on=on, off=off, capsules_off=capsules_off, shuffled=shuffled
+    )
+    assert passed is True
+    assert failures == ()
+
+
 def test_manipulation_check_fails_as_assay_invalid_when_arms_identical() -> None:
     same = ("same-digest",)
     on = _arm(11, "source_bias_on", adoptions=4, rejected=0, digests=same)
@@ -125,6 +152,7 @@ def test_default_capsule_transfer_config_omits_optional_wave1c_keys() -> None:
     payload = CapsuleTransferConfig().to_dict()
     assert "source_fitness_quantile" not in payload
     assert "encode_source_action_in_content" not in payload
+    assert "scramble_identical_peer_content" not in payload
     enabled = CapsuleTransferConfig(
         source_fitness_quantile=0.5, encode_source_action_in_content=True
     ).to_dict()

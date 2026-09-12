@@ -64,6 +64,7 @@ from codontrace.genesis.capsule import (
     build_capsule_adoption_record,
     estimate_capsule_transfer_effect,
     read_nexus_capsules,
+    tick_source_fitness_threshold,
 )
 from codontrace.genesis.causal_graph import CausalGraph
 from codontrace.genesis.death import (
@@ -90,6 +91,7 @@ from codontrace.genesis.phase_e import (
     inherit_phase_e_state,
     maybe_replicate_demes,
     refresh_phase_e_sensory,
+    write_phase_e_slot_from_adopted_capsule,
 )
 from codontrace.genesis.materials import (
     MaterialEvent,
@@ -2855,6 +2857,20 @@ def step_population(
                     capsule_read_count += len(read_result.capsules_read)
                     capsule_shuffle_records.extend(read_result.shuffle_records)
                     adoption_policy = CausalCapsuleAdoptionPolicy()
+                    transfer_cfg = configs.capsule_transfer
+                    if transfer_cfg.source_fitness_quantile is not None:
+                        pool = [float(score) for score in last_known_fitness_by_id.values()]
+                        pool.extend(
+                            float(item.source_fitness)
+                            for item in read_result.capsules_read
+                            if item.source_fitness_numeric_for_threshold is not None
+                        )
+                        transfer_cfg = replace(
+                            transfer_cfg,
+                            min_source_fitness=tick_source_fitness_threshold(
+                                pool, transfer_cfg.source_fitness_quantile
+                            ),
+                        )
                     for capsule in read_result.capsules_read[
                         : configs.capsule_transfer.max_adoptions_per_organism
                     ]:
@@ -2890,11 +2906,15 @@ def step_population(
                             organism.causal_graph,
                             organism.episodic_memory,
                             organism.atp_state,
-                            configs.capsule_transfer,
+                            transfer_cfg,
                             tick=current_tick,
                         )
                         if adoption_result.succeeded:
                             capsule_adoption_successes += 1
+                            if configs.phase_e.enabled:
+                                write_phase_e_slot_from_adopted_capsule(
+                                    organism, capsule, tick=current_tick
+                                )
                         else:
                             capsule_adoption_failures += 1
                         capsule_adoption_records.append(
@@ -3020,6 +3040,10 @@ def step_population(
                         ttl=ttl,
                         source_fitness=source_fitness,
                         source_fitness_status=source_status,
+                        encode_source_action=(
+                            configs.capsule_transfer is not None
+                            and configs.capsule_transfer.encode_source_action_in_content
+                        ),
                     )
                     working_nexus_layer.deposit(capsule, position=organism.position)
                     capsule_emit_count += 1
@@ -4013,6 +4037,23 @@ def _last_world_delta_str(trace: Trace, key: str) -> str | None:
     return None
 
 
+def _source_preferred_action(organism: GenesisOrganism, event: TraceEvent) -> str:
+    """Fitness-relevant action carried in capsule content when HE01 encoding is on."""
+
+    if event.action == "EAT_LUMEN" or event.world_delta.get("lumen_interaction"):
+        return "EAT_LUMEN"
+    bits = ""
+    genome = getattr(organism, "genome", None)
+    to_compact = getattr(genome, "to_compact", None)
+    if callable(to_compact):
+        bits = str(to_compact())
+    if bits.startswith("101"):
+        return "EAT_LUMEN"
+    if bits.startswith("111"):
+        return "COPY_SELF"
+    return event.action or "WAIT"
+
+
 def _capsule_from_nexus_event(
     organism: GenesisOrganism,
     event: TraceEvent,
@@ -4021,6 +4062,7 @@ def _capsule_from_nexus_event(
     ttl: int,
     source_fitness: float | None = None,
     source_fitness_status: SourceFitnessStatus = SourceFitnessStatus.UNAVAILABLE,
+    encode_source_action: bool = False,
 ) -> CausalCapsule:
     event_digest = hashlib.sha256(
         finite_json_dumps(event.to_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -4029,6 +4071,22 @@ def _capsule_from_nexus_event(
     graph_digest = (
         organism.causal_graph.digest() if organism.causal_graph is not None else event_digest
     )
+    preferred = _source_preferred_action(organism, event) if encode_source_action else event.action
+    pattern = (preferred, event.action) if encode_source_action else (event.action,)
+    metadata: dict[str, object] = {
+        "status": "emitted",
+        "kind": "population_nexus_phase2_scaffold",
+        "position": [organism.position[0], organism.position[1]],
+        "trace_event_digest": event_digest,
+        "causal_graph_digest": graph_digest,
+        "adoption_semantics": "scaffold_level_capsule_adoption_not_full_mdl_merge",
+        "source_fitness_status": source_fitness_status.value,
+        "source_fitness_unavailable_is_not_zero": source_fitness is None,
+        "source_lineage_id": organism.id,
+    }
+    if encode_source_action:
+        metadata["source_preferred_action"] = preferred
+        metadata["encode_source_action_in_content"] = True
     return CausalCapsule(
         capsule_id=capsule_id,
         source_organism_id=organism.id,
@@ -4036,22 +4094,12 @@ def _capsule_from_nexus_event(
         source_fitness_status=source_fitness_status,
         source_fitness_tick=None if source_fitness is None else tick,
         source_graph_digest=graph_digest,
-        event_pattern=(event.action,),
+        event_pattern=pattern,
         predicted_outcome=event.status,
         confidence=1.0,
         emitted_tick=tick,
         ttl=ttl,
-        metadata={
-            "status": "emitted",
-            "kind": "population_nexus_phase2_scaffold",
-            "position": [organism.position[0], organism.position[1]],
-            "trace_event_digest": event_digest,
-            "causal_graph_digest": graph_digest,
-            "adoption_semantics": "scaffold_level_capsule_adoption_not_full_mdl_merge",
-            "source_fitness_status": source_fitness_status.value,
-            "source_fitness_unavailable_is_not_zero": source_fitness is None,
-            "source_lineage_id": organism.id,
-        },
+        metadata=metadata,  # type: ignore[arg-type]
     )
 
 

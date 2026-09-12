@@ -9,7 +9,10 @@ source-fitness gating ablated, (b) capsules off, and (c) the channel on with
 content scrambled?
 
 **Preregistration.** [`HARD_EXPERIMENT_01_PREREG.md`](HARD_EXPERIMENT_01_PREREG.md)
-is frozen in an earlier commit. Campaign payloads record `prereg_digest`.
+is frozen in an earlier commit. Wave 1c deviations live in
+[`HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md`](HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md).
+Campaign payloads record both `prereg_digest` and `amendment_digest`.
+Do not reuse the v2 prereg alone for the changed design.
 
 **Claim ceiling:** `runtime_observation` unless the treatment assay passes,
 the preregistered decision rule holds, **and** ClaimGate allows existing
@@ -47,12 +50,14 @@ Dose `min_source_fitness ∈ {0, 1, 2, 4}` with `FITNESS_WEIGHTED` modulates
 | Product | CodonTrace Genesis |
 | Smoke | 12 paired seeds (`11`…`22`), 6 ticks, pop 4, in CI (`exploratory_only`) |
 | Research | 30 paired seeds (`11`…`40`), 40 ticks, pop 16 (CLAIMS.md §9 ticks/pop; research-grade n) |
-| Substrate | Phase A `life_loop_world` overlay (does **not** change A–E pins) |
-| Treatment | `source_bias_on`: capsules on, `min_source_fitness=2.0`, `FITNESS_WEIGHTED` |
-| Ablation | `source_bias_off`: capsules on, `min_source_fitness=0.0`, `THRESHOLD` |
+| Substrate (v1/v2) | Phase A `life_loop_world` overlay (does **not** change A–E pins) |
+| Substrate (v3 / Wave 1c) | `phase_e_substrate_world` overlay (CLAIMS.md: capsule slots change action / ATP). A–E pins unchanged. |
+| Treatment (v3) | `source_bias_on`: capsules on, tick-median `source_fitness_quantile=0.5`, `accept_provisional_source_fitness=False`, `FITNESS_WEIGHTED` |
+| Ablation | `source_bias_off`: capsules on, gate ablated (`min_source_fitness=0.0`, `THRESHOLD`) |
 | Channel off | `capsules_off`: transfer disabled |
 | Negative control | `capsules_shuffled`: channel on, content scrambled |
-| Dose | `{0,1,2,4}` × `FITNESS_WEIGHTED`; Spearman + seed-fixed permutation trend |
+| Positive control (v3) | `oracle_capsule`: Phase E payload that directly raises fitness. Reported; **not** in the three Holm contrasts. |
+| Dose (v3) | quantile `{0.0, 0.25, 0.50, 0.75}` × `FITNESS_WEIGHTED`; Spearman + seed-fixed permutation trend |
 | Outcome | last-tick `selection_mean_fitness` (missing dropped, never zero-filled) |
 | Secondary | births, extinction rate, adoption count |
 | Statistics | `paired_effect_size` (dz), `bootstrap_ci_paired` (BCa, 10000), `exact_sign_flip_permutation_p`, Holm on three primary contrasts, `PairedComparisonResult.claim_downgraded` when CI includes 0, `MultipleComparisonAudit(metric_count=3)` |
@@ -317,6 +322,20 @@ manipulation not realized). That is not a scientific null finding.
 The source-bias gate *was* exercised (treatment adoptions > 0;
 `capsules_off` adoptions = 0).
 
+### Results (research v3)
+
+Wave 1c confirmatory artifact after amendment 01:
+[`hard_experiment_01/results_v3.json`](hard_experiment_01/results_v3.json)
+(written after the overlay is locked). Substrate:
+`phase_e_substrate_world`. Campaign stores `prereg_digest` and
+`amendment_digest`. `oracle_capsule` is reported and is not in the
+three primary Holm contrasts. Valid outcomes are a real effect **or**
+a null with manipulation check passed and positive control positive.
+If the assay is still dead, the label is `assay_failed` /
+`assay_invalid`, not a scientific null. ClaimGate ceiling stays
+whatever the auditor grants (v2 remains level 1 / `assay_invalid`).
+Wave 3 is not this write-up.
+
 ## Decision rule
 
 Request existing `intervention_supported` only on the research campaign
@@ -332,6 +351,21 @@ Assay gate (Wave 1b, 2026-09-12): if treatment-arm mean adoptions ≈ 0
 or mean extinction ≈ 1 across seeds, record `assay_failed: true` and
 keep `runtime_observation`. Primary contrasts may still be stored;
 they are not claim-unlocking while the channel was not exercised.
+
+Wave 1c validity (2026-09-12, amendment 01): per-seed manipulation
+check (adopted content digests `on ≠ off`, shuffled ≠ on,
+`capsules_off` adoptions = 0, `rejected_by_source_fitness` in `on` > 0).
+Any missing → `assay_failed: manipulation_not_realized`. If outcomes
+are bitwise-identical across primary arms in ≥ 90% of seeds → warning
+`arms_bitwise_identical`. Positive control `oracle_capsule` must move
+fitness vs `capsules_off` or the assay is dead. `births > 0` is a
+validity condition when the claim is about next-generation fitness.
+ClaimGate public level ≥ 2 additionally requires
+`manipulation_check_passed`, `positive_control_detected` (or a
+documented waiver), and within-arm outcome variance > 0. Existing HE01
+v2 grading stays `assay_invalid`. A scientific null is valid only when
+the manipulation check passed **and** the positive control moved
+fitness.
 
 ## What this does not say
 

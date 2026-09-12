@@ -14,11 +14,15 @@ from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
     ARMS,
     CLAIM_CEILING,
+    CONFIG_LOCKED,
     DOSE_LEVELS,
     INTERVENTION_CLAIM,
     INTERVENTION_SUPPORTED_FLAGS,
+    PILOT_SEEDS,
+    PRIMARY_ARMS,
     RESEARCH_SEED_COUNT,
     SMOKE_SEED_COUNT,
+    TREATMENT_SOURCE_FITNESS_QUANTILE,
     HardExperiment01ArmRecord,
     HardExperiment01ArmSummary,
     HardExperiment01SeedRecord,
@@ -27,17 +31,21 @@ from codontrace.genesis.hard_experiment_01 import (
     _decision_rule_failures,
     _mean_last_tick_fitness,
     _missing_outcomes_per_arm,
+    assert_hard_experiment_01_seeds_allowed,
     build_hard_experiment_01_dose_spec,
     build_hard_experiment_01_spec,
     diagnose_hard_experiment_01_run,
     evaluate_hard_experiment_01_assay,
     evaluate_hard_experiment_01_claim,
+    evaluate_hard_experiment_01_manipulation_check,
     format_hard_experiment_01_summary,
+    hard_experiment_01_amendment_digest,
     hard_experiment_01_calibration_knobs,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
     hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
+    run_hard_experiment_01_pilot,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.statistical_protocol import StatisticalTestPolicy
@@ -83,6 +91,7 @@ def test_hard_experiment_01_interventions_map_each_arm() -> None:
     assert by_arm["source_bias_off"].cuts_edges == ("e1",)
     assert by_arm["capsules_off"].cuts_edges == ("e1", "e2")
     assert by_arm["capsules_shuffled"].cuts_edges == ("e2_content",)
+    assert by_arm["oracle_capsule"].role == "positive_control"
     assert all(item.to_dict()["collective_intelligence"] is False for item in mapped)
 
 
@@ -108,11 +117,20 @@ def test_hard_experiment_01_dag_and_prereg_are_frozen() -> None:
     assert "Okasha" in text
     assert "intervention_supported" in text
     assert "collective_intelligence" in text
+    amendment = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
+    assert amendment.is_file()
+    amendment_digest = hard_experiment_01_amendment_digest()
+    assert amendment_digest == __import__("hashlib").sha256(amendment.read_bytes()).hexdigest()
+    assert amendment_digest != digest
+    assert "phase_e_substrate_world" in amendment.read_text(encoding="utf-8")
+    assert "source_fitness_quantile" in amendment.read_text(encoding="utf-8")
 
 
 def test_dose_two_matches_treatment_spec() -> None:
     treatment = build_hard_experiment_01_spec(seed=11, arm="source_bias_on")
-    dose_two = build_hard_experiment_01_dose_spec(seed=11, min_source_fitness=2.0)
+    dose_two = build_hard_experiment_01_dose_spec(
+        seed=11, min_source_fitness=TREATMENT_SOURCE_FITNESS_QUANTILE
+    )
     shuffled = build_hard_experiment_01_spec(seed=11, arm="capsules_shuffled")
     assert treatment.digest() == dose_two.digest()
     assert treatment.capsule_transfer_config is not None
@@ -121,6 +139,8 @@ def test_dose_two_matches_treatment_spec() -> None:
         == CapsuleAdoptionPolicy.FITNESS_WEIGHTED
     )
     assert treatment.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.OFF
+    assert treatment.capsule_transfer_config.accept_provisional_source_fitness is False
+    assert treatment.capsule_transfer_config.source_fitness_quantile == TREATMENT_SOURCE_FITNESS_QUANTILE
     assert shuffled.capsule_transfer_config is not None
     assert shuffled.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT
     assert shuffled.capsule_transfer_config.shuffle_mode is not CapsuleShuffleMode.OFF
@@ -137,6 +157,7 @@ def test_hard_experiment_01_replays_all_arms_for_endpoint_seeds() -> None:
     assert all(item.matched for item in campaign.replay_records)
     assert campaign.replay_matched is True
     assert campaign.prereg_digest == hard_experiment_01_prereg_digest()
+    assert campaign.amendment_digest == hard_experiment_01_amendment_digest()
     assert campaign.scale == "smoke"
     assert campaign.claim_ceiling == CLAIM_CEILING
     assert "not_research_scale" in campaign.decision_rule_failures
@@ -174,7 +195,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         campaign.seeds[0],
         campaign.seeds[-1],
     }
-    assert len(campaign.replay_records) == 8
+    assert len(campaign.replay_records) == 10
     assert all(item.matched for item in campaign.replay_records)
     last = campaign.seed_records[-1]
     last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
@@ -213,7 +234,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         "capsule_transfer_count",
         "capsule_adoptions",
     } <= set(sample_arm)
-    assert len(campaign.interventions) == 4
+    assert len(campaign.interventions) == 5
     assert {item.arm for item in campaign.interventions} == set(ARMS)
     assert campaign.to_dict()["interventions"][1]["role"] == "mechanism_ablation"
     assert all(
@@ -368,6 +389,7 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
         ("source_bias_off", 0),
         ("capsules_off", 0),
         ("capsules_shuffled", 0),
+        ("oracle_capsule", 2),
     )
 
 
@@ -441,13 +463,19 @@ def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
     diagnostic = diagnose_hard_experiment_01_run(
         seed=11, arm="source_bias_on", tick_count=6, population=4
     )
-    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1b"
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1c"
+    assert spec.metadata["hard_experiment_01_substrate"] == "phase_e_substrate_world"
     assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
+    assert spec.capsule_transfer_config is not None
+    assert spec.capsule_transfer_config.accept_provisional_source_fitness is False
+    assert "COPY" in "".join(spec.genome_bits) or any(
+        bits in { "101111000", "101110111", "111000000"} for bits in spec.genome_bits
+    )
     assert adoptions > 0
     assert diagnostic.total_adoptions > 0
+    assert diagnostic.total_births > 0
     assert diagnostic.extinct is False
     assert diagnostic.final_population not in {None, 0}
-    assert diagnostic.any_agent_reached_min_source_fitness is True
     off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=6, population=4)
     off_result = GenesisEngine.from_spec(off).run_ticks()
     assert len(tuple(getattr(off_result, "capsule_adoption_records", ()) or ())) == 0
@@ -519,7 +547,11 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "Limitations / Diagnostics" in text
     assert "assay_failed" in text
     assert "Results (research v2)" in text
+    assert "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01" in text
+    assert "oracle_capsule" in text
+    assert "phase_e_substrate_world" in text
     assert "claim_downgraded" in text
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md").is_file()
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")

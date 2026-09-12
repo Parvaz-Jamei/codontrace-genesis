@@ -507,6 +507,7 @@ from codontrace.genesis.phase_e import (
     RoleKind,
     SensoryCue,
     apply_phase_e_action_choice,
+    write_phase_e_slot_from_adopted_capsule,
     attach_phase_e_to_organisms,
     build_phase_e_evidence_pack,
     evaluate_phase_e_claim,
@@ -853,10 +854,12 @@ from codontrace.genesis.hard_experiment_01 import (
     build_hard_experiment_01_spec,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    hard_experiment_01_amendment_digest,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
     hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
+    run_hard_experiment_01_pilot,
 )
 from codontrace.genesis.rag import (
     RankedHit,
@@ -1524,6 +1527,7 @@ __all__ = [
     "RoleKind",
     "SensoryCue",
     "apply_phase_e_action_choice",
+    "write_phase_e_slot_from_adopted_capsule",
     "attach_phase_e_to_organisms",
     "build_phase_e_evidence_pack",
     "evaluate_phase_e_claim",
@@ -2637,10 +2641,12 @@ __all__.extend(
         "build_hard_experiment_01_spec",
         "evaluate_hard_experiment_01_claim",
         "format_hard_experiment_01_summary",
+        "hard_experiment_01_amendment_digest",
         "hard_experiment_01_causal_dag",
         "hard_experiment_01_interventions",
         "hard_experiment_01_prereg_digest",
         "run_hard_experiment_01",
+        "run_hard_experiment_01_pilot",
     ]
 )
 __all__ = list(dict.fromkeys(__all__))

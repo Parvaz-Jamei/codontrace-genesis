@@ -9,7 +9,7 @@ stigmergic intelligence.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, cast
@@ -420,6 +420,8 @@ class CapsuleTransferConfig:
     policy_profile: CapsulePolicyProfile | str = CapsulePolicyProfile.SAFE
     shuffle_mode: CapsuleShuffleMode | str = CapsuleShuffleMode.OFF
     accept_provisional_source_fitness: bool = True
+    source_fitness_quantile: float | None = None
+    encode_source_action_in_content: bool = False
 
     @property
     def effective_max_capsules_read_per_tick(self) -> int:
@@ -469,6 +471,16 @@ class CapsuleTransferConfig:
             raise ConfigurationError(msg)
         if self.adoption_min_confidence is not None:
             object.__setattr__(self, "adoption_min_confidence", finite_float("adoption_min_confidence", self.adoption_min_confidence, probability=True))
+        if self.source_fitness_quantile is not None:
+            object.__setattr__(
+                self,
+                "source_fitness_quantile",
+                finite_float(
+                    "source_fitness_quantile",
+                    self.source_fitness_quantile,
+                    probability=True,
+                ),
+            )
 
     @classmethod
     def from_emission_config(cls, config: CapsuleEmissionConfig) -> CapsuleTransferConfig:
@@ -483,7 +495,7 @@ class CapsuleTransferConfig:
         )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "min_confidence": self.min_confidence,
             "min_source_fitness": self.min_source_fitness,
@@ -509,6 +521,11 @@ class CapsuleTransferConfig:
             "shuffle_mode": _capsule_shuffle_mode(self.shuffle_mode).value,
             "accept_provisional_source_fitness": self.accept_provisional_source_fitness,
         }
+        if self.source_fitness_quantile is not None:
+            payload["source_fitness_quantile"] = self.source_fitness_quantile
+        if self.encode_source_action_in_content:
+            payload["encode_source_action_in_content"] = True
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> CapsuleTransferConfig:
@@ -549,10 +566,43 @@ class CapsuleTransferConfig:
             accept_provisional_source_fitness=_bool(
                 data, "accept_provisional_source_fitness", True
             ),
+            source_fitness_quantile=None
+            if data.get("source_fitness_quantile") is None
+            else _float(data, "source_fitness_quantile", 0.5),
+            encode_source_action_in_content=_bool(
+                data, "encode_source_action_in_content", False
+            ),
         )
 
     def digest(self) -> str:
         return _digest(self.to_dict())
+
+
+def tick_source_fitness_threshold(scores: Sequence[float], quantile: float) -> float:
+    """Same-tick source-fitness quantile. Empty pool is 0.0 (no invented threshold)."""
+
+    if not scores:
+        return 0.0
+    ordered = sorted(float(item) for item in scores)
+    q = finite_float("source_fitness_quantile", quantile, probability=True)
+    if q <= 0.0:
+        return ordered[0]
+    if q >= 1.0:
+        return ordered[-1]
+    index = q * (len(ordered) - 1)
+    low = int(index)
+    high = min(low + 1, len(ordered) - 1)
+    frac = index - low
+    return ordered[low] * (1.0 - frac) + ordered[high] * frac
+
+
+SOURCE_FITNESS_REJECTION_REASONS: frozenset[str] = frozenset(
+    {
+        CapsuleAdoptionBlockedReason.SOURCE_FITNESS_BELOW_THRESHOLD.value,
+        CapsuleAdoptionBlockedReason.SOURCE_FITNESS_PROVISIONAL_NOT_ACCEPTED.value,
+        CapsuleAdoptionBlockedReason.SOURCE_FITNESS_UNAVAILABLE.value,
+    }
+)
 
 
 @dataclass(slots=True)
@@ -780,6 +830,7 @@ class CapsuleAdoptionRecord:
     runtime_atp_after: float | None = None
     learning_atp_after: float | None = None
     source_fitness_numeric_for_threshold: float | None = None
+    content_digest: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -807,7 +858,7 @@ class CapsuleAdoptionRecord:
             object.__setattr__(self, "blocked_reason", CapsuleAdoptionBlockedReason.UNKNOWN.value)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "capsule_id": self.capsule_id,
             "source_organism_id": self.source_organism_id,
             "target_organism_id": self.target_organism_id,
@@ -825,6 +876,9 @@ class CapsuleAdoptionRecord:
             "runtime_atp_after": self.runtime_atp_after,
             "learning_atp_after": self.learning_atp_after,
         }
+        if self.content_digest:
+            payload["content_digest"] = self.content_digest
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> CapsuleAdoptionRecord:
@@ -849,6 +903,7 @@ class CapsuleAdoptionRecord:
             source_fitness_numeric_for_threshold=_optional_float(
                 data, "source_fitness_numeric_for_threshold"
             ),
+            content_digest=_str(data, "content_digest", ""),
         )
 
     def digest(self) -> str:
@@ -1568,6 +1623,7 @@ def build_capsule_adoption_record(
         source_fitness=capsule.source_fitness,
         source_fitness_status=capsule.source_fitness_status,
         source_fitness_numeric_for_threshold=capsule.source_fitness_numeric_for_threshold,
+        content_digest=capsule.content_digest,
         confidence=capsule.confidence,
         runtime_atp_before=runtime_atp_before,
         learning_atp_before=learning_atp_before,

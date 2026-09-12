@@ -154,3 +154,53 @@ def test_parse_roundtrip_is_deterministic() -> None:
     again = parse_claimgate_bundle(bundle.to_dict())
     assert bundle.digest() == again.digest()
     assert audit_bundle(bundle).digest == audit_bundle(again).digest
+
+
+def test_he01_validity_gates_cap_public_level_at_assay_invalid() -> None:
+    payload = _load("level2_difference.json")
+    payload["adapter"] = "codontrace_hard_experiment_01"
+    payload["assay_validity_required"] = True
+    payload["next_generation_claim"] = True
+    payload["manipulation_check_passed"] = False
+    payload["positive_control_detected"] = False
+    payload["births_positive"] = False
+    report = audit_bundle(payload)
+    assert report.achieved_level == 1
+    assert report.public_name == "runtime_observation"
+    assert "assay_invalid_manipulation_not_realized" in report.warnings
+    assert "assay_validity_manipulation_check_not_passed" in report.warnings
+    assert "assay_validity_positive_control_not_detected" in report.warnings
+    assert "assay_validity_births_not_positive" in report.warnings
+
+
+def test_he01_validity_pass_keeps_generic_level2_reachable() -> None:
+    payload = _load("level2_difference.json")
+    payload["outcomes"][0]["values_by_arm"] = {
+        "on": [1.0, 1.1, 1.2],
+        "off": [0.2, 0.3, 0.4],
+    }
+    payload["adapter"] = "codontrace_hard_experiment_01"
+    payload["next_generation_claim"] = True
+    payload["manipulation_check_passed"] = True
+    payload["positive_control_detected"] = True
+    payload["births_positive"] = True
+    report = audit_bundle(payload)
+    assert report.achieved_level == 2
+    assert report.public_name == "candidate_evidence"
+    assert "assay_invalid_manipulation_not_realized" not in report.warnings
+
+
+def test_positive_control_waiver_is_accepted_when_documented() -> None:
+    payload = _load("level2_difference.json")
+    payload["outcomes"][0]["values_by_arm"] = {
+        "on": [1.0, 1.1, 1.2],
+        "off": [0.2, 0.3, 0.4],
+    }
+    payload["adapter"] = "codontrace_hard_experiment_01"
+    payload["manipulation_check_passed"] = True
+    payload["positive_control_detected"] = False
+    payload["positive_control_waiver"] = "synthetic fixture documents a waiver"
+    payload["births_positive"] = True
+    report = audit_bundle(payload)
+    assert report.achieved_level == 2
+    assert "assay_validity_positive_control_not_detected" not in report.warnings

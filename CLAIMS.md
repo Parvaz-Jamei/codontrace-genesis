@@ -202,7 +202,7 @@ The following observations were present in the inspected quick run. They should 
 | `collective_mixed` vs `no_capsules` | `0` delta for social interaction, partner interaction, and capsule adoption in inspected seeds | Negative evidence for collective-intelligence readiness under this quick profile. |
 | `high_mutation` vs `no_mutation` | mixed birth-event deltas and no mutation-result delta in inspected pair summary | Not sufficient for a mutation-effect claim. Needs protocol refinement. |
 
-### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b research snapshot (`0.3.0b4.dev0`)
+### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b / 1c research snapshot (`0.3.0b4.dev0`)
 
 Inspected artifacts:
 [`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
@@ -224,6 +224,14 @@ adoptions `169 / 169 / 0 / 169`. That is **`assay_invalid`**
 fitness estimand. It is **not** a scientific null finding.
 `intervention_supported` was not requested. This is not mechanism
 support and not collective intelligence. Public level stays **1**.
+
+Wave 1c (this identity, not Wave 3) does not loosen ClaimGate. Dated
+amendment
+[`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md`](docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md)
+records the substrate / gate / genome / seed-lock / oracle changes.
+Existing v2 grading remains `assay_invalid`. A v3 confirmatory reading
+is allowed only after the manipulation check and positive control pass;
+until then the granted ceiling stays **`runtime_observation`**.
 
 Approved interpretation:
 
@@ -260,7 +268,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1c adds a dated prereg amendment, Phase E substrate, tick-median gate, COPY genomes, oracle positive control, seed lock, and auditor validity gates; it does not loosen ClaimGate and does not raise the granted ceiling above `runtime_observation` unless those gates and the decision rule pass. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

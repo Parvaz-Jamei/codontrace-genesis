@@ -1,20 +1,20 @@
 """Hard experiment 01: preregistered capsule source-bias causal design.
 
-Wave 1 confirmatory measurement, not a new Phase letter. Four paired arms
-plus a Goldsby-style dose ladder. Causal reading uses the explicit DAG in
-``docs/HARD_EXPERIMENT_01_PREREG.md`` (Okasha & Otsuka 2020). Claim ceiling
-is ``runtime_observation`` unless the preregistered decision rule holds and
-``ScientificClaimGate`` allows existing ``intervention_supported``.
+Wave 1c assay-validity fix, not a new Phase letter. Four primary paired
+arms, a Goldsby-style dose ladder, and a positive-control
+``oracle_capsule`` arm. Causal reading uses the explicit DAG in
+``docs/HARD_EXPERIMENT_01_PREREG.md`` plus dated amendment
+``docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md``. Claim ceiling is
+``runtime_observation`` unless the preregistered decision rule holds,
+the assay is valid, and ``ScientificClaimGate`` allows existing
+``intervention_supported``.
 
-Wave 1b keeps the same question, arms, seeds, and decision rule. A survival
-calibration overlay (food / energy / death / initial genomes) plus an assay
-gate sit in front of confirmatory claims: if the treatment arm does not
-emit/adopt capsules or goes extinct, contrasts are recorded but
-``assay_failed`` keeps the ceiling at ``runtime_observation``.
+Wave 1c does not loosen ClaimGate. v2 remains ``assay_invalid``. A null
+is valid only when the manipulation check passed and the positive
+control moved fitness. This module does not mutate a global ClaimGate.
 
 Forbidden: intelligence / collective_intelligence / AGI /
-tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
-A null finding is valid. This module does not mutate a global ClaimGate.
+tokyo_type1_passed / avida_replacement.
 """
 
 from __future__ import annotations
@@ -30,10 +30,12 @@ from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.capsule import (
+    SOURCE_FITNESS_REJECTION_REASONS,
     CapsuleAdoptionPolicy,
     CapsuleShuffleMode,
     CapsuleTransferConfig,
 )
+from codontrace.genesis.phase_e import CapsuleMemoryConfig, PhaseESubstrateConfig
 from codontrace.genesis.causal_validation import InterventionResult
 from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
@@ -67,39 +69,56 @@ RESEARCH_POPULATION = 16
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 EXPERIMENT_ID = "hard_experiment_01_capsule_source_bias"
-SCHEMA_VERSION = "hard_experiment_01_v2"
+SCHEMA_VERSION = "hard_experiment_01_v3"
 PREREG_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG.md"
+AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
 INFERENTIAL_SEED = 20260911
 BOOTSTRAP_RESAMPLES = 10000
 DOSE_PERMUTATION_DRAWS = 10000
 ALPHA = 0.05
-DOSE_LEVELS: tuple[float, ...] = (0.0, 1.0, 2.0, 4.0)
-ScaleName = Literal["smoke", "research"]
-MIN_SOURCE_FITNESS_TREATMENT = 2.0
+DOSE_LEVELS: tuple[float, ...] = (0.0, 0.25, 0.5, 0.75)
+ScaleName = Literal["smoke", "research", "pilot"]
+MIN_SOURCE_FITNESS_TREATMENT = 0.0
+TREATMENT_SOURCE_FITNESS_QUANTILE = 0.5
+ORACLE_ATP_BONUS = 4.0
+PHASE_E_ATP_BONUS = 0.5
 ASSAY_ADOPTIONS_NEAR_ZERO = 1e-12
 ASSAY_EXTINCTION_NEAR_ONE = 1.0 - 1e-12
-# Wave 1b survival / channel-activity calibration. Overlay only — does not
-# mutate ``life_loop_world`` defaults or Phase A–E pins. Existing Genesis v0
-# actions only (no new signaling pathway).
-# EAT_LUMEN, WAIT, WAIT
-CALIBRATION_EATER_GENOME = "101000000"
-# EAT_LUMEN, EMIT_NEXUS, WAIT — index-0 organism so the wired capsule channel fires
-CALIBRATION_EMITTER_GENOME = "101110000"
-# WAIT only
-CALIBRATION_WAITER_GENOME = "000000000"
+ARMS_IDENTICAL_WARNING_FRACTION = 0.9
+PILOT_SEEDS: tuple[int, ...] = tuple(range(1000, 1010))
+ANALYSIS_SEED_MIN = 11
+ANALYSIS_SEED_MAX = 40
+CONFIG_LOCKED = True
+# Wave 1c survival / channel-activity calibration. Overlay only — does not
+# mutate ``life_loop_world`` defaults or Phase A–E pins. Every genome
+# includes COPY_SELF so births can be > 0.
+# EAT_LUMEN, COPY_SELF, WAIT
+CALIBRATION_EATER_GENOME = "101111000"
+# EAT_LUMEN, EMIT_NEXUS, COPY_SELF
+CALIBRATION_EMITTER_GENOME = "101110111"
+# COPY_SELF, WAIT, WAIT
+CALIBRATION_WAITER_GENOME = "111000000"
 CALIBRATION_INITIAL_RUNTIME_ATP = 48.0
 CALIBRATION_BASAL_COST = 0.4
 CALIBRATION_RESOURCE_AMOUNT = 12.0
 CALIBRATION_RESPAWN_RATE = 1.0
 CALIBRATION_STARVATION_CONSECUTIVE_TICKS = 3
 
-ArmName = Literal["source_bias_on", "source_bias_off", "capsules_off", "capsules_shuffled"]
-ARMS: tuple[ArmName, ...] = (
+ArmName = Literal[
+    "source_bias_on",
+    "source_bias_off",
+    "capsules_off",
+    "capsules_shuffled",
+    "oracle_capsule",
+]
+PRIMARY_ARMS: tuple[ArmName, ...] = (
     "source_bias_on",
     "source_bias_off",
     "capsules_off",
     "capsules_shuffled",
 )
+ARMS: tuple[ArmName, ...] = (*PRIMARY_ARMS, "oracle_capsule")
+POSITIVE_CONTROL_ARM: ArmName = "oracle_capsule"
 PRIMARY_CONTRASTS: tuple[tuple[ArmName, ArmName], ...] = (
     ("source_bias_on", "source_bias_off"),
     ("source_bias_on", "capsules_off"),
@@ -176,6 +195,10 @@ def hard_experiment_01_prereg_path() -> Path:
     return _repo_root() / PREREG_RELATIVE_PATH
 
 
+def hard_experiment_01_amendment_path() -> Path:
+    return _repo_root() / AMENDMENT_RELATIVE_PATH
+
+
 def hard_experiment_01_prereg_digest() -> str:
     """SHA-256 of the frozen preregistration file (UTF-8 bytes)."""
 
@@ -185,10 +208,23 @@ def hard_experiment_01_prereg_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
-    """Digest of the confirmatory protocol + DAG, not of campaign numbers."""
+def hard_experiment_01_amendment_digest() -> str:
+    """SHA-256 of amendment 01 (UTF-8 bytes). Not a reuse of the v2 prereg."""
+
+    path = hard_experiment_01_amendment_path()
+    if not path.is_file():
+        raise ConfigurationError(f"missing amendment file: {AMENDMENT_RELATIVE_PATH}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def hard_experiment_01_protocol_digest(
+    prereg_digest: str | None = None,
+    amendment_digest: str | None = None,
+) -> str:
+    """Digest of the confirmatory protocol + DAG + amendment, not campaign numbers."""
 
     digest = prereg_digest or hard_experiment_01_prereg_digest()
+    amendment = amendment_digest or hard_experiment_01_amendment_digest()
     return canonical_digest(
         {
             "experiment_id": EXPERIMENT_ID,
@@ -200,6 +236,8 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "primary_contrasts": [list(item) for item in PRIMARY_CONTRASTS],
             "prereg_path": PREREG_RELATIVE_PATH,
             "prereg_digest": digest,
+            "amendment_path": AMENDMENT_RELATIVE_PATH,
+            "amendment_digest": amendment,
             "inferential_seed": INFERENTIAL_SEED,
             "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
             "alpha": ALPHA,
@@ -211,10 +249,11 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
     """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
 
     return {
-        "wave": "1b",
+        "wave": "1c",
         "dated": "2026-09-12",
         "scope": "hard_experiment_01_overlay_only",
         "life_loop_defaults_unchanged": True,
+        "substrate": "phase_e_substrate_world",
         "emitter_genome": CALIBRATION_EMITTER_GENOME,
         "eater_genome": CALIBRATION_EATER_GENOME,
         "waiter_genome": CALIBRATION_WAITER_GENOME,
@@ -225,10 +264,16 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "respawn_rate": CALIBRATION_RESPAWN_RATE,
         "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
         "food_layout": "even_x_on_first_two_rows",
+        "source_fitness_gate": "tick_median_quantile",
+        "treatment_source_fitness_quantile": TREATMENT_SOURCE_FITNESS_QUANTILE,
+        "accept_provisional_source_fitness": False,
+        "pilot_seeds": list(PILOT_SEEDS),
+        "analysis_seeds": list(range(ANALYSIS_SEED_MIN, ANALYSIS_SEED_MAX + 1)),
+        "config_locked": CONFIG_LOCKED,
         "note": (
-            "Calibration of food inflow, energy, death patience, and initial "
-            "genomes so the existing capsule channel can fire. Not a new "
-            "signaling pathway. Estimand, arms, seeds, and analysis unchanged."
+            "Wave 1c overlay: Phase E substrate, COPY genomes, tick-median "
+            "source-fitness gate, oracle positive control. Not a new "
+            "signaling pathway. A–E pins unchanged."
         ),
     }
 
@@ -341,6 +386,90 @@ def evaluate_hard_experiment_01_assay(
     if extinction_rate >= ASSAY_EXTINCTION_NEAR_ONE:
         failures.append("assay_failed_treatment_extinction_near_one")
     return bool(failures), tuple(failures)
+
+
+def _adopted_content_digests(result: object) -> tuple[str, ...]:
+    digests: set[str] = set()
+    for record in getattr(result, "capsule_adoption_records", ()) or ():
+        if getattr(record, "adoption_success", False) is not True:
+            continue
+        digest = str(getattr(record, "content_digest", "") or "")
+        if digest:
+            digests.add(digest)
+        else:
+            digests.add(
+                canonical_digest(
+                    {
+                        "capsule_id": str(getattr(record, "capsule_id", "")),
+                        "source_organism_id": str(getattr(record, "source_organism_id", "")),
+                    }
+                )
+            )
+    return tuple(sorted(digests))
+
+
+def _rejected_by_source_fitness(result: object) -> int:
+    total = 0
+    for record in getattr(result, "capsule_adoption_records", ()) or ():
+        reason = str(getattr(record, "blocked_reason", "") or "")
+        if reason in SOURCE_FITNESS_REJECTION_REASONS:
+            total += 1
+    return total
+
+
+def evaluate_hard_experiment_01_manipulation_check(
+    *,
+    on: HardExperiment01ArmRecord,
+    off: HardExperiment01ArmRecord,
+    capsules_off: HardExperiment01ArmRecord,
+    shuffled: HardExperiment01ArmRecord,
+) -> tuple[bool, tuple[str, ...]]:
+    """Per-seed manipulation check. Missing construct → assay_failed."""
+
+    failures: list[str] = []
+    if set(on.adopted_content_digests) == set(off.adopted_content_digests):
+        failures.append("manipulation_not_realized_on_equals_off_content")
+    if set(shuffled.adopted_content_digests) == set(on.adopted_content_digests):
+        failures.append("manipulation_not_realized_shuffled_equals_on_content")
+    if capsules_off.capsule_adoptions != 0:
+        failures.append("manipulation_not_realized_capsules_off_adoptions_nonzero")
+    if on.rejected_by_source_fitness <= 0:
+        failures.append("manipulation_not_realized_no_source_fitness_rejects")
+    if failures:
+        failures.insert(0, "manipulation_not_realized")
+    return not bool(failures), tuple(failures)
+
+
+def _seed_outcomes_bitwise_identical(record: HardExperiment01SeedRecord) -> bool:
+    values = [
+        item.terminal_mean_fitness
+        for item in (
+            record.source_bias_on,
+            record.source_bias_off,
+            record.capsules_off,
+            record.capsules_shuffled,
+        )
+        if not item.outcome_missing and item.terminal_mean_fitness is not None
+    ]
+    if len(values) < 2:
+        return False
+    first = values[0]
+    return all(item == first for item in values)
+
+
+def _within_arm_variance_positive(
+    records: Sequence[HardExperiment01SeedRecord], arm: ArmName
+) -> bool:
+    values = [
+        getattr(record, arm).terminal_mean_fitness
+        for record in records
+        if getattr(record, arm).terminal_mean_fitness is not None
+        and not getattr(record, arm).outcome_missing
+    ]
+    finite = [float(item) for item in values if item is not None]
+    if len(finite) < 2:
+        return False
+    return _sample_sd(finite) > 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -540,8 +669,11 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
             target_mechanism="capsule_source_fitness_bias",
             action="enable_source_fitness_weighted_capsule_transfer",
             knob="CapsuleTransferConfig.min_source_fitness+adoption_policy",
-            applied_value="min_source_fitness=2.0,FITNESS_WEIGHTED,shuffle=off",
-            compared_to="life_loop_world default capsules-off overlay",
+            applied_value=(
+                "source_fitness_quantile=0.5,accept_provisional=False,"
+                "FITNESS_WEIGHTED,shuffle=off"
+            ),
+            compared_to="phase_e_substrate_world capsules-off overlay",
             cuts_edges=(),
         ),
         HardExperiment01Intervention(
@@ -550,7 +682,7 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
             target_mechanism="capsule_source_fitness_bias",
             action="disable_source_fitness_gating_keep_capsule_channel",
             knob="CapsuleTransferConfig.min_source_fitness+adoption_policy",
-            applied_value="min_source_fitness=0.0,THRESHOLD,shuffle=off",
+            applied_value="min_source_fitness=0.0,THRESHOLD,shuffle=off,no_quantile",
             compared_to="source_bias_on",
             cuts_edges=("e1",),
         ),
@@ -570,24 +702,56 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
             target_mechanism="capsule_content_information",
             action="scramble_capsule_content_keep_channel",
             knob="CapsuleTransferConfig.shuffle_mode",
-            applied_value="CapsuleShuffleMode.CONTENT",
+            applied_value="CapsuleShuffleMode.CONTENT,source_fitness_quantile=0.5",
             compared_to="source_bias_on",
             cuts_edges=("e2_content",),
+        ),
+        HardExperiment01Intervention(
+            arm="oracle_capsule",
+            role="positive_control",
+            target_mechanism="phase_e_content_to_action_atp",
+            action="seed_eat_lumen_slot_with_elevated_atp_bonus",
+            knob="PhaseESubstrateConfig.capsule_memory.seed_preferred_action+atp_bonus",
+            applied_value="seed_preferred_action=EAT_LUMEN,atp_bonus=4.0",
+            compared_to="capsules_off",
+            cuts_edges=(),
         ),
     )
 
 
 def default_research_seeds(seed_count: int = RESEARCH_SEED_COUNT) -> tuple[int, ...]:
-    """Deterministic seed tuple. Smoke n=12; research-grade n=30."""
+    """Deterministic analysis seed tuple. Smoke n=12; research-grade n=30."""
 
     count = int(seed_count)
     if count < 2:
         raise ConfigurationError("hard experiment 01 seed_count must be >= 2.")
-    return tuple(range(11, 11 + count))
+    return tuple(range(ANALYSIS_SEED_MIN, ANALYSIS_SEED_MIN + count))
 
 
 def default_smoke_seeds(seed_count: int = SMOKE_SEED_COUNT) -> tuple[int, ...]:
     return default_research_seeds(seed_count)
+
+
+def default_pilot_seeds() -> tuple[int, ...]:
+    return PILOT_SEEDS
+
+
+def analysis_seeds_locked(seeds: Sequence[int]) -> bool:
+    return any(ANALYSIS_SEED_MIN <= int(seed) <= ANALYSIS_SEED_MAX for seed in seeds)
+
+
+def assert_hard_experiment_01_seeds_allowed(
+    seeds: Sequence[int],
+    *,
+    config_locked: bool = CONFIG_LOCKED,
+) -> None:
+    """Refuse analysis seeds 11–40 until the Wave 1c overlay is locked."""
+
+    if analysis_seeds_locked(seeds) and not config_locked:
+        raise ConfigurationError(
+            "analysis seeds 11–40 must not run until HARD_EXPERIMENT_01 "
+            "config is locked (amendment 01)."
+        )
 
 
 def _resolve_seeds(
@@ -595,13 +759,16 @@ def _resolve_seeds(
     seed_count: int | None,
     *,
     default_count: int,
+    config_locked: bool = CONFIG_LOCKED,
 ) -> tuple[int, ...]:
     if seeds is not None:
         resolved = tuple(int(item) for item in seeds)
         if len(resolved) < 2:
             raise ConfigurationError("hard experiment 01 requires at least two seeds.")
-        return resolved
-    return default_research_seeds(default_count if seed_count is None else seed_count)
+    else:
+        resolved = default_research_seeds(default_count if seed_count is None else seed_count)
+    assert_hard_experiment_01_seeds_allowed(resolved, config_locked=config_locked)
+    return resolved
 
 
 def _enabled_capsule(
@@ -609,6 +776,7 @@ def _enabled_capsule(
     min_source_fitness: float,
     adoption_policy: CapsuleAdoptionPolicy,
     shuffle_mode: CapsuleShuffleMode,
+    source_fitness_quantile: float | None = None,
 ) -> CapsuleTransferConfig:
     return CapsuleTransferConfig(
         enabled=True,
@@ -625,7 +793,9 @@ def _enabled_capsule(
         min_atp_runtime_to_emit=0.0,
         max_adoptions_per_organism=2,
         max_capsules_read_per_tick=4,
-        accept_provisional_source_fitness=True,
+        accept_provisional_source_fitness=False,
+        source_fitness_quantile=source_fitness_quantile,
+        encode_source_action_in_content=True,
     )
 
 
@@ -634,21 +804,31 @@ def _capsule_for_arm(arm: ArmName) -> CapsuleTransferConfig:
         return CapsuleTransferConfig(enabled=False)
     if arm == "source_bias_on":
         return _enabled_capsule(
-            min_source_fitness=2.0,
+            min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT,
             adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
             shuffle_mode=CapsuleShuffleMode.OFF,
+            source_fitness_quantile=TREATMENT_SOURCE_FITNESS_QUANTILE,
         )
     if arm == "source_bias_off":
         return _enabled_capsule(
             min_source_fitness=0.0,
             adoption_policy=CapsuleAdoptionPolicy.THRESHOLD,
             shuffle_mode=CapsuleShuffleMode.OFF,
+            source_fitness_quantile=None,
         )
     if arm == "capsules_shuffled":
         return _enabled_capsule(
-            min_source_fitness=2.0,
+            min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT,
             adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
             shuffle_mode=CapsuleShuffleMode.CONTENT,
+            source_fitness_quantile=TREATMENT_SOURCE_FITNESS_QUANTILE,
+        )
+    if arm == "oracle_capsule":
+        return _enabled_capsule(
+            min_source_fitness=0.0,
+            adoption_policy=CapsuleAdoptionPolicy.THRESHOLD,
+            shuffle_mode=CapsuleShuffleMode.OFF,
+            source_fitness_quantile=None,
         )
     raise ConfigurationError(f"unknown hard experiment 01 arm: {arm!r}")
 
@@ -663,16 +843,36 @@ def _apply_capsule_overlay(
 ) -> GenesisExperimentSpec:
     if tick_count <= 0 or population <= 0:
         raise ConfigurationError("tick_count and population must be > 0.")
-    base = GenesisRuntimeProfile.life_loop_world(
-        seed=seed, tick_count=tick_count, population=population
+    oracle = arm_label == "oracle_capsule"
+    base = GenesisRuntimeProfile.phase_e_substrate_world(
+        seed=seed,
+        tick_count=tick_count,
+        population=population,
+        enable_capsule_memory=True,
+        seed_preferred_action="EAT_LUMEN" if oracle else "",
+        inherit_lineage_capsule=True,
     )
     configs = base.population_configs
     if configs is None:
-        raise ConfigurationError("life_loop_world must supply population_configs.")
+        raise ConfigurationError("phase_e_substrate_world must supply population_configs.")
+    memory = CapsuleMemoryConfig(
+        enabled=True,
+        inherit_lineage=True,
+        effect_action_choice=True,
+        effect_atp=True,
+        effect_task_eligibility=True,
+        atp_bonus=ORACLE_ATP_BONUS if oracle else PHASE_E_ATP_BONUS,
+        slot_capacity=4,
+        substitutable_actions=("WAIT",),
+        write_actions=(),
+        seed_preferred_action="EAT_LUMEN" if oracle else "",
+        seed_requires_local_food=False,
+    )
     configs = replace(
         configs,
         capsule_transfer=capsule,
         enable_nexus_stigmergy=capsule.enabled,
+        phase_e=PhaseESubstrateConfig(enabled=True, capsule_memory=memory),
     )
     engine_config = replace(base.engine_config, enable_capsules=capsule.enabled)
     metadata = {
@@ -680,6 +880,7 @@ def _apply_capsule_overlay(
         "runtime_profile": EXPERIMENT_ID,
         "hard_experiment_01_arm": arm_label,
         "hard_experiment_01_question": _QUESTION,
+        "hard_experiment_01_substrate": "phase_e_substrate_world",
         "claim_ceiling": CLAIM_CEILING,
         "collective_intelligence": False,
         "intelligence": False,
@@ -705,7 +906,7 @@ def build_hard_experiment_01_spec(
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
 ) -> GenesisExperimentSpec:
-    """Life-loop overlay. Does not mutate default Phase A–E preset digests."""
+    """Phase E overlay. Does not mutate default Phase A–E preset digests."""
 
     if arm not in ARMS:
         raise ConfigurationError(f"unknown hard experiment 01 arm: {arm!r}")
@@ -725,11 +926,11 @@ def build_hard_experiment_01_dose_spec(
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
 ) -> GenesisExperimentSpec:
-    """FITNESS_WEIGHTED dose overlay. ``min_source_fitness=2.0`` matches treatment."""
+    """FITNESS_WEIGHTED dose overlay. Quantile ``0.5`` matches treatment."""
 
     if float(min_source_fitness) not in DOSE_LEVELS:
-        raise ConfigurationError(f"dose min_source_fitness must be one of {DOSE_LEVELS}.")
-    if float(min_source_fitness) == 2.0:
+        raise ConfigurationError(f"dose source_fitness_quantile must be one of {DOSE_LEVELS}.")
+    if float(min_source_fitness) == TREATMENT_SOURCE_FITNESS_QUANTILE:
         return build_hard_experiment_01_spec(
             seed=seed, arm="source_bias_on", tick_count=tick_count, population=population
         )
@@ -738,11 +939,12 @@ def build_hard_experiment_01_dose_spec(
         tick_count=tick_count,
         population=population,
         capsule=_enabled_capsule(
-            min_source_fitness=float(min_source_fitness),
+            min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT,
             adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
             shuffle_mode=CapsuleShuffleMode.OFF,
+            source_fitness_quantile=float(min_source_fitness),
         ),
-        arm_label=f"dose_{int(min_source_fitness)}",
+        arm_label=f"dose_q{float(min_source_fitness)}",
     )
 
 
@@ -856,6 +1058,8 @@ class HardExperiment01ArmRecord:
     outcome_missing: bool = False
     extinct: bool = False
     final_population: int | None = None
+    adopted_content_digests: tuple[str, ...] = ()
+    rejected_by_source_fitness: int = 0
 
     def __post_init__(self) -> None:
         if self.outcome_missing:
@@ -899,6 +1103,8 @@ class HardExperiment01ArmRecord:
             "outcome_missing": self.outcome_missing,
             "extinct": self.extinct,
             "final_population": self.final_population,
+            "adopted_content_digests": list(self.adopted_content_digests),
+            "rejected_by_source_fitness": self.rejected_by_source_fitness,
             "claim_ceiling": CLAIM_CEILING,
         }
 
@@ -915,14 +1121,19 @@ class HardExperiment01SeedRecord:
     delta_vs_source_bias_off: float | None
     delta_vs_capsules_off: float | None
     delta_vs_capsules_shuffled: float | None
+    oracle_capsule: HardExperiment01ArmRecord | None = None
+    manipulation_check_passed: bool = False
+    manipulation_failures: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        arms = (
+        arms = [
             self.source_bias_on,
             self.source_bias_off,
             self.capsules_off,
             self.capsules_shuffled,
-        )
+        ]
+        if self.oracle_capsule is not None:
+            arms.append(self.oracle_capsule)
         if any(item.seed != self.seed for item in arms):
             raise ConfigurationError("seed records must share one seed.")
         for name in (
@@ -944,6 +1155,11 @@ class HardExperiment01SeedRecord:
             "delta_vs_source_bias_off": self.delta_vs_source_bias_off,
             "delta_vs_capsules_off": self.delta_vs_capsules_off,
             "delta_vs_capsules_shuffled": self.delta_vs_capsules_shuffled,
+            "oracle_capsule": None
+            if self.oracle_capsule is None
+            else self.oracle_capsule.to_dict(),
+            "manipulation_check_passed": self.manipulation_check_passed,
+            "manipulation_failures": list(self.manipulation_failures),
         }
 
 
@@ -1137,6 +1353,16 @@ class HardExperiment01Campaign:
     statistical_tier: str = "exploratory_only"
     assay_failed: bool = False
     assay_failures: tuple[str, ...] = ()
+    amendment_digest: str = ""
+    amendment_path: str = AMENDMENT_RELATIVE_PATH
+    config_locked: bool = CONFIG_LOCKED
+    substrate: str = "phase_e_substrate_world"
+    manipulation_check_passed: bool = False
+    positive_control_detected: bool = False
+    arms_bitwise_identical_warning: bool = False
+    campaign_warnings: tuple[str, ...] = ()
+    oracle_vs_capsules_off: HardExperiment01PairedContrast | None = None
+    births_positive: bool = False
 
     def __post_init__(self) -> None:
         if len(self.seeds) < 2 or len(self.seeds) != len(self.seed_records):
@@ -1174,9 +1400,13 @@ class HardExperiment01Campaign:
             raise ConfigurationError("hard experiment 01 interventions must cover every arm.")
         if not self.prereg_digest:
             object.__setattr__(self, "prereg_digest", hard_experiment_01_prereg_digest())
+        if not self.amendment_digest:
+            object.__setattr__(self, "amendment_digest", hard_experiment_01_amendment_digest())
         if not self.protocol_digest:
             object.__setattr__(
-                self, "protocol_digest", hard_experiment_01_protocol_digest(self.prereg_digest)
+                self,
+                "protocol_digest",
+                hard_experiment_01_protocol_digest(self.prereg_digest, self.amendment_digest),
             )
         audit = self.multiple_comparison_audit
         if audit is None:
@@ -1212,7 +1442,11 @@ class HardExperiment01Campaign:
             "statistical_tier": self.statistical_tier,
             "prereg_digest": self.prereg_digest,
             "prereg_path": PREREG_RELATIVE_PATH,
+            "amendment_digest": self.amendment_digest,
+            "amendment_path": self.amendment_path,
             "protocol_digest": self.protocol_digest,
+            "substrate": self.substrate,
+            "config_locked": self.config_locked,
             "causal_dag": hard_experiment_01_causal_dag(),
             "seeds": list(self.seeds),
             "seed_records": [item.to_dict() for item in self.seed_records],
@@ -1244,6 +1478,14 @@ class HardExperiment01Campaign:
             "decision_rule_failures": list(self.decision_rule_failures),
             "assay_failed": self.assay_failed,
             "assay_failures": list(self.assay_failures),
+            "manipulation_check_passed": self.manipulation_check_passed,
+            "positive_control_detected": self.positive_control_detected,
+            "arms_bitwise_identical_warning": self.arms_bitwise_identical_warning,
+            "campaign_warnings": list(self.campaign_warnings),
+            "oracle_vs_capsules_off": None
+            if self.oracle_vs_capsules_off is None
+            else self.oracle_vs_capsules_off.to_dict(),
+            "births_positive": self.births_positive,
             "calibration": hard_experiment_01_calibration_knobs(),
             "claim_gate_allowed": self.claim_gate_allowed,
             "claim_gate_decision_digest": self.claim_gate_decision_digest,
@@ -1268,8 +1510,10 @@ class HardExperiment01Campaign:
                 "null_or_small_effect_is_a_valid_finding",
                 "not_knowledge_transfer_proof",
                 "smoke_is_exploratory_only",
-                "wave_1b_survival_calibration_does_not_change_the_estimand",
+                "wave_1c_phase_e_substrate_and_tick_median_gate",
+                "amendment_01_is_required_with_the_frozen_v2_prereg",
                 "assay_failure_keeps_runtime_observation",
+                "oracle_capsule_is_not_in_the_primary_holm_family",
             ],
         }
 
@@ -1297,6 +1541,8 @@ def _record_from_run(
         capsule_utility_count=utilities,
         capsule_transfer_count=transfers,
         capsule_adoptions=adoptions,
+        adopted_content_digests=_adopted_content_digests(result),
+        rejected_by_source_fitness=_rejected_by_source_fitness(result),
         spec_digest=spec.digest(),
         result_digest=_result_identity_digest(result),
         next_generation_observed=births > 0,
@@ -1390,8 +1636,10 @@ def _complete_pair_values(
     treatment: list[float] = []
     baseline: list[float] = []
     for record in records:
-        treat = getattr(record, treatment_arm)
-        base = getattr(record, baseline_arm)
+        treat = getattr(record, treatment_arm, None)
+        base = getattr(record, baseline_arm, None)
+        if treat is None or base is None:
+            continue
         if treat.outcome_missing or base.outcome_missing:
             continue
         if treat.terminal_mean_fitness is None or base.terminal_mean_fitness is None:
@@ -1458,7 +1706,8 @@ def _missing_outcomes_per_arm(
     counts = {arm: 0 for arm in ARMS}
     for record in records:
         for arm in ARMS:
-            if getattr(record, arm).outcome_missing:
+            item = getattr(record, arm, None)
+            if item is None or item.outcome_missing:
                 counts[arm] += 1
     return tuple((arm, counts[arm]) for arm in ARMS)
 
@@ -1597,7 +1846,8 @@ def _apply_holm(
 def _arm_summary(
     records: Sequence[HardExperiment01SeedRecord], arm: ArmName
 ) -> HardExperiment01ArmSummary:
-    items = [getattr(record, arm) for record in records]
+    raw = [getattr(record, arm, None) for record in records]
+    items = [item for item in raw if item is not None]
     fitness = [
         item.terminal_mean_fitness
         for item in items
@@ -1606,7 +1856,7 @@ def _arm_summary(
     births = [float(item.births) for item in items]
     adoptions = [float(item.capsule_adoptions) for item in items]
     extinct = sum(1 for item in items if item.extinct)
-    missing = sum(1 for item in items if item.outcome_missing)
+    missing = sum(1 for item in raw if item is None or item.outcome_missing)
     return HardExperiment01ArmSummary(
         arm=arm,
         n=len(fitness),
@@ -1799,19 +2049,28 @@ def run_hard_experiment_01(
     population: int | None = None,
     scale: ScaleName = "smoke",
     include_dose: bool = True,
+    config_locked: bool = CONFIG_LOCKED,
 ) -> HardExperiment01Campaign:
     """Paired source-bias campaign. Default is smoke (12/6/4, CI)."""
 
-    if scale not in {"smoke", "research"}:
-        raise ConfigurationError("scale must be 'smoke' or 'research'.")
+    if scale not in {"smoke", "research", "pilot"}:
+        raise ConfigurationError("scale must be 'smoke', 'research', or 'pilot'.")
     resolved_ticks = (
         RESEARCH_TICK_COUNT if scale == "research" else SMOKE_TICK_COUNT
     ) if tick_count is None else int(tick_count)
     resolved_pop = (
         RESEARCH_POPULATION if scale == "research" else SMOKE_POPULATION
     ) if population is None else int(population)
-    default_n = RESEARCH_SEED_COUNT if scale == "research" else SMOKE_SEED_COUNT
-    seed_tuple = _resolve_seeds(seeds, seed_count, default_count=default_n)
+    if scale == "pilot":
+        seed_tuple = PILOT_SEEDS if seeds is None else tuple(int(item) for item in seeds)
+        if len(seed_tuple) < 2:
+            raise ConfigurationError("hard experiment 01 requires at least two seeds.")
+        assert_hard_experiment_01_seeds_allowed(seed_tuple, config_locked=config_locked)
+    else:
+        default_n = RESEARCH_SEED_COUNT if scale == "research" else SMOKE_SEED_COUNT
+        seed_tuple = _resolve_seeds(
+            seeds, seed_count, default_count=default_n, config_locked=config_locked
+        )
     records: list[HardExperiment01SeedRecord] = []
     dose_records: list[HardExperiment01DoseRecord] = []
     for seed in seed_tuple:
@@ -1821,6 +2080,12 @@ def run_hard_experiment_01(
             )
             for arm in ARMS
         }
+        passed, manip_failures = evaluate_hard_experiment_01_manipulation_check(
+            on=by_arm["source_bias_on"],
+            off=by_arm["source_bias_off"],
+            capsules_off=by_arm["capsules_off"],
+            shuffled=by_arm["capsules_shuffled"],
+        )
         records.append(
             HardExperiment01SeedRecord(
                 seed=seed,
@@ -1840,11 +2105,14 @@ def run_hard_experiment_01(
                     by_arm["source_bias_on"].terminal_mean_fitness,
                     by_arm["capsules_shuffled"].terminal_mean_fitness,
                 ),
+                oracle_capsule=by_arm["oracle_capsule"],
+                manipulation_check_passed=passed,
+                manipulation_failures=manip_failures,
             )
         )
         if include_dose:
             for level in DOSE_LEVELS:
-                reused = by_arm["source_bias_on"] if level == 2.0 else None
+                reused = by_arm["source_bias_on"] if level == TREATMENT_SOURCE_FITNESS_QUANTILE else None
                 dose_records.append(
                     _dose_record(
                         seed=seed,
@@ -1889,8 +2157,68 @@ def run_hard_experiment_01(
     statistical_tier = StatisticalTestPolicy().tier_for_n(len(seed_tuple))
     arm_summaries = tuple(_arm_summary(records, arm) for arm in ARMS)
     assay_failed, assay_failures = evaluate_hard_experiment_01_assay(arm_summaries)
+    manip_failed = [item for item in records if not item.manipulation_check_passed]
+    if manip_failed:
+        assay_failed = True
+        extra = ["manipulation_not_realized"]
+        extra.extend(
+            reason
+            for item in manip_failed
+            for reason in item.manipulation_failures
+            if reason not in extra
+        )
+        assay_failures = tuple(dict.fromkeys((*assay_failures, *extra)))
+    identical_frac = (
+        sum(1 for item in records if _seed_outcomes_bitwise_identical(item)) / len(records)
+        if records
+        else 0.0
+    )
+    arms_identical_warning = identical_frac >= ARMS_IDENTICAL_WARNING_FRACTION
+    warnings: list[str] = []
+    if arms_identical_warning:
+        warnings.append("arms_bitwise_identical")
+    births_positive = any(
+        getattr(record, arm).births > 0
+        for record in records
+        for arm in PRIMARY_ARMS
+    )
+    if not births_positive:
+        assay_failed = True
+        assay_failures = tuple(dict.fromkeys((*assay_failures, "assay_failed_births_not_positive")))
+    oracle_vs_off: HardExperiment01PairedContrast | None = None
+    if all(item.oracle_capsule is not None for item in records):
+        oracle_vs_off = _paired_contrast(
+            records, treatment_arm="oracle_capsule", baseline_arm="capsules_off"
+        )
+    positive_control_detected = False
+    if oracle_vs_off is not None:
+        oracle_means = [
+            item.oracle_capsule.terminal_mean_fitness
+            for item in records
+            if item.oracle_capsule is not None
+            and not item.oracle_capsule.outcome_missing
+            and item.oracle_capsule.terminal_mean_fitness is not None
+        ]
+        off_means = [
+            item.capsules_off.terminal_mean_fitness
+            for item in records
+            if not item.capsules_off.outcome_missing
+            and item.capsules_off.terminal_mean_fitness is not None
+        ]
+        if oracle_means and off_means:
+            oracle_mean = _mean(oracle_means)
+            off_mean = _mean(off_means)
+            identical = len(oracle_means) == len(off_means) and all(
+                left == right for left, right in zip(oracle_means, off_means, strict=False)
+            )
+            positive_control_detected = oracle_mean > off_mean and not identical
+        if not positive_control_detected:
+            assay_failed = True
+            assay_failures = tuple(
+                dict.fromkeys((*assay_failures, "assay_failed_positive_control_not_detected"))
+            )
     failures = _decision_rule_failures(
-        scale=scale,
+        scale="research" if scale == "research" else scale,
         statistical_tier=statistical_tier,
         contrasts=primary,
         shuffled_vs_off=shuffled_vs_off,
@@ -1899,7 +2227,8 @@ def run_hard_experiment_01(
         assay_failures=assay_failures,
     )
     prereg_digest = hard_experiment_01_prereg_digest()
-    protocol_digest = hard_experiment_01_protocol_digest(prereg_digest)
+    amendment_digest = hard_experiment_01_amendment_digest()
+    protocol_digest = hard_experiment_01_protocol_digest(prereg_digest, amendment_digest)
     vs_off = _contrast_by_baseline(primary, "source_bias_off")
     intervention: InterventionResult | None = None
     if (
@@ -1970,8 +2299,16 @@ def run_hard_experiment_01(
         tick_count=resolved_ticks,
         population=resolved_pop,
         prereg_digest=prereg_digest,
+        amendment_digest=amendment_digest,
         protocol_digest=protocol_digest,
+        config_locked=config_locked,
         paired_contrasts=primary,
+        oracle_vs_capsules_off=oracle_vs_off,
+        manipulation_check_passed=all(item.manipulation_check_passed for item in records),
+        positive_control_detected=positive_control_detected,
+        arms_bitwise_identical_warning=arms_identical_warning,
+        campaign_warnings=tuple(warnings),
+        births_positive=births_positive,
         shuffled_vs_capsules_off=shuffled_vs_off,
         multiple_comparison_audit=MultipleComparisonAudit(metric_count=3),
         dose_records=tuple(dose_records),
@@ -1990,6 +2327,25 @@ def run_hard_experiment_01(
     )
     _assert_blocked(campaign.to_dict(), ScientificClaimGate())
     return campaign
+
+
+def run_hard_experiment_01_pilot(
+    *,
+    tick_count: int = SMOKE_TICK_COUNT,
+    population: int = SMOKE_POPULATION,
+    include_dose: bool = False,
+    config_locked: bool = CONFIG_LOCKED,
+) -> HardExperiment01Campaign:
+    """Survival / calibration only. Seeds 1000–1009. Not confirmatory."""
+
+    return run_hard_experiment_01(
+        PILOT_SEEDS,
+        tick_count=tick_count,
+        population=population,
+        scale="pilot",
+        include_dose=include_dose,
+        config_locked=config_locked,
+    )
 
 
 def evaluate_hard_experiment_01_claim(
@@ -2072,6 +2428,9 @@ def format_hard_experiment_01_summary(campaign: HardExperiment01Campaign) -> str
             f"seed_count {len(campaign.seeds)}",
             f"statistical_tier {campaign.statistical_tier}",
             f"prereg_digest {campaign.prereg_digest}",
+            f"amendment_digest {campaign.amendment_digest}",
+            f"manipulation_check_passed {campaign.manipulation_check_passed}",
+            f"positive_control_detected {campaign.positive_control_detected}",
             f"mean_delta_vs_source_bias_off {campaign.mean_delta_vs_source_bias_off}",
             f"mean_delta_vs_capsules_off {campaign.mean_delta_vs_capsules_off}",
             f"effect_vs_source_bias_off {vs_off.standardized_delta_lite} {vs_off.interpretation}",
@@ -2098,12 +2457,16 @@ def committed_research_results_path() -> Path:
     return _repo_root() / "docs" / "hard_experiment_01" / "results_v2.json"
 
 
+def committed_research_results_v3_path() -> Path:
+    return _repo_root() / "docs" / "hard_experiment_01" / "results_v3.json"
+
+
 def write_hard_experiment_01_research_results(path: Path | None = None) -> Path:
     """Run the research campaign and write the digest-backed JSON artifact."""
 
     import json
 
-    dest = path or committed_research_results_path()
+    dest = path or committed_research_results_v3_path()
     dest.parent.mkdir(parents=True, exist_ok=True)
     campaign = run_hard_experiment_01(scale="research")
     dest.write_text(

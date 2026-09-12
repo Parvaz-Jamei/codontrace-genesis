@@ -1,6 +1,7 @@
 """CodonTrace Genesis hard experiment 01 — capsule source-bias measurement.
 
-Print-only. Runs the smoke campaign (12 seeds, four arms + dose) and shows
+Print-only. Runs the smoke campaign (12 seeds, four primary arms +
+oracle + dose) and shows
 ClaimGate still blocking intelligence claims. Does not write files, start a
 UI, mutate a global ClaimGate, or claim intelligence, collective
 intelligence, Tokyo Type 1 passed, or Avida replacement.
@@ -32,6 +33,11 @@ def main() -> None:
     campaign = run_hard_experiment_01()
     print(format_hard_experiment_01_summary(campaign))
     print("assay_failed", campaign.assay_failed)
+    print("amendment_digest", campaign.amendment_digest)
+    print("manipulation_check_passed", campaign.manipulation_check_passed)
+    print("positive_control_detected", campaign.positive_control_detected)
+    print("births_positive", campaign.births_positive)
+    print("substrate", campaign.substrate)
     gate = ScientificClaimGate()
     payload = campaign.to_dict()
     print(

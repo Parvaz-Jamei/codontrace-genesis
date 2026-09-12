@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+### HARD_EXPERIMENT_01 Wave 1c — assay validity
+
+CodonTrace Genesis fix of the HE01 v2 **assay_invalid** crash (not a
+scientific null). **Does not** claim intelligence, collective
+intelligence, Tokyo Type 1 passed, or Avida replacement. Identity
+stays `0.3.0b4.dev0`. Phase A–E pins stay stable. ClaimGate is not
+loosened. Wave 3 is not this change.
+
+- Root-cause (v2): `accept_provisional_source_fitness=True` bypassed
+  absolute `min_source_fitness=2.0`; that threshold never bites
+  fitness ≈ 0.16; genomes had no `COPY` so births = 0; capsule
+  content on `life_loop_world` only recorded and did not change
+  action / ATP (DAG edge `content → action` missing). All four arms
+  were bitwise-identical (`0.164375`, adoptions `169 / 169 / 0 / 169`).
+- Treatment now uses `accept_provisional_source_fitness=False` and a
+  same-tick **median** source-fitness quantile. Confirmatory substrate
+  is `phase_e_substrate_world`. Calibration genomes include `COPY`.
+- Formal amendment
+  `docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md` (own digest).
+  Campaigns store `prereg_digest` **and** `amendment_digest`.
+- Seed lock: calibration / pilot only on `1000–1009`. Analysis seeds
+  `11–40` do not run until the overlay is locked.
+- Positive control arm `oracle_capsule` (not in the Holm family of 3).
+- Mandatory per-seed manipulation check; identical-arm outcomes in
+  ≥ 90% of seeds warn `arms_bitwise_identical`.
+- ClaimGate auditor: before public level ≥ 2 require
+  `manipulation_check_passed`, `positive_control_detected` (or
+  waiver), within-arm variance > 0, and `births > 0` for
+  next-generation claims. Else ceiling = level 1 / `assay_invalid`.
+  v2 artifact grading stays `assay_invalid`.
+
 ### Wave 2 — simulator-agnostic ClaimGate auditor
 
 CodonTrace Genesis standalone evidence auditor. **Does not** claim

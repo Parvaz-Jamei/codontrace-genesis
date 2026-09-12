@@ -31,8 +31,10 @@ ARM_ROLES: dict[str, str] = {
     "source_bias_off": "mechanism_ablation",
     "capsules_off": "channel_off",
     "capsules_shuffled": "negative_control",
+    "oracle_capsule": "positive_control",
 }
 DEFAULT_RESULTS = Path("docs/hard_experiment_01/results_v2.json")
+DEFAULT_RESULTS_V3 = Path("docs/hard_experiment_01/results_v3.json")
 
 
 def _repo_root() -> Path:
@@ -41,6 +43,10 @@ def _repo_root() -> Path:
 
 def committed_results_v2_path() -> Path:
     return _repo_root() / DEFAULT_RESULTS
+
+
+def committed_results_v3_path() -> Path:
+    return _repo_root() / DEFAULT_RESULTS_V3
 
 
 def _sha256_file(path: Path) -> str:
@@ -227,6 +233,14 @@ def _artifacts(data: Mapping[str, Any], source_path: Path | None) -> tuple[Claim
                 sha256=prereg.lower(),
             )
         )
+    amendment = data.get("amendment_digest")
+    if isinstance(amendment, str) and is_real_evidence_digest(amendment):
+        artifacts.append(
+            ClaimgateArtifact(
+                path=str(data.get("amendment_path") or "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"),
+                sha256=amendment.lower(),
+            )
+        )
     if not artifacts:
         raise ConfigurationError("campaign produced no artifact digests.")
     return tuple(artifacts)
@@ -272,6 +286,14 @@ def bundle_from_hard_experiment_01(
         "claim_ceiling": data.get("claim_ceiling"),
         "assay_failed": data.get("assay_failed"),
         "assay_invalid": assay_invalid,
+        "assay_validity_required": True,
+        "next_generation_claim": True,
+        "manipulation_check_passed": data.get("manipulation_check_passed") is True,
+        "positive_control_detected": data.get("positive_control_detected") is True,
+        "positive_control_waiver": data.get("positive_control_waiver"),
+        "births_positive": data.get("births_positive") is True,
+        "arms_bitwise_identical_warning": data.get("arms_bitwise_identical_warning") is True,
+        "amendment_digest": data.get("amendment_digest"),
         "decision_rule_passed": data.get("decision_rule_passed"),
         "collective_intelligence": False,
         "intelligence": False,

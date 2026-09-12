@@ -25,7 +25,7 @@ hard experiment 01, not a Phase M.
 | [`PHASE_D_LITERATURE.md`](PHASE_D_LITERATURE.md) | Multi-generation measurement literature | OEE proof |
 | [`PHASE_E_LITERATURE.md`](PHASE_E_LITERATURE.md) | Capsule / role / deme literature | Collective intelligence |
 | [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) | Named-materials overlay | Wet-lab / realistic chemistry |
-| [`HARD_EXPERIMENT_01.md`](HARD_EXPERIMENT_01.md) | Preregistered 4-arm + dose source-bias measurement | A new Phase letter |
+| [`HARD_EXPERIMENT_01.md`](HARD_EXPERIMENT_01.md) | Preregistered 4-arm + dose source-bias measurement (Wave 1c: + `oracle_capsule`, amendment 01) | A new Phase letter |
 | [`CLAIMGATE_STANDALONE.md`](CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic evidence auditor | Wave 3 / PyPI / Tokyo pass |
 | [`ENGINE_REPLAY_CONTRACT.md`](ENGINE_REPLAY_CONTRACT.md) | Digest-pin invariants after the engine split | Full-world replay engine |
 | [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md) | Literature × library matrix | Intelligence countdown |

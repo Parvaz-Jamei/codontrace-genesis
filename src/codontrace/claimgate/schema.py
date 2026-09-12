@@ -27,6 +27,7 @@ ARM_ROLES: frozenset[str] = frozenset(
         "channel_off",
         "negative_control",
         "dose",
+        "positive_control",
     }
 )
 SOFTWARE_PACKAGE_DOI = "10.5281/zenodo.20337435"

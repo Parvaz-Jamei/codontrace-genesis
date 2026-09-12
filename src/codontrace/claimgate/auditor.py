@@ -190,6 +190,59 @@ def _assay_invalid(bundle: ClaimgateBundle) -> bool:
     return _primary_arm_means_bitwise_identical(bundle)
 
 
+def _he01_validity_required(bundle: ClaimgateBundle) -> bool:
+    extra = bundle.extra or {}
+    if extra.get("assay_validity_required") is True:
+        return True
+    if extra.get("adapter") == "codontrace_hard_experiment_01":
+        return True
+    if extra.get("next_generation_claim") is True:
+        return True
+    experiment = str(extra.get("experiment_id") or "")
+    return experiment.startswith("hard_experiment_01")
+
+
+def _within_arm_variance_positive(bundle: ClaimgateBundle) -> bool:
+    if not bundle.outcomes:
+        return False
+    preferred = next(
+        (
+            outcome
+            for outcome in bundle.outcomes
+            if outcome.metric in {"terminal_mean_fitness", "fitness"}
+        ),
+        None,
+    )
+    outcome = preferred or bundle.outcomes[0]
+    if not outcome.values_by_arm:
+        return False
+    for values in outcome.values_by_arm.values():
+        if len(values) < 2:
+            return False
+        mean = sum(values) / len(values)
+        if all(item == values[0] for item in values) or sum((item - mean) ** 2 for item in values) == 0.0:
+            return False
+    return True
+
+
+def _he01_validity_failures(bundle: ClaimgateBundle) -> tuple[str, ...]:
+    if not _he01_validity_required(bundle):
+        return ()
+    extra = bundle.extra or {}
+    reasons: list[str] = []
+    if extra.get("manipulation_check_passed") is not True:
+        reasons.append("manipulation_check_not_passed")
+    if extra.get("positive_control_detected") is not True:
+        waiver = extra.get("positive_control_waiver")
+        if not (isinstance(waiver, str) and waiver.strip()):
+            reasons.append("positive_control_not_detected")
+    if not _within_arm_variance_positive(bundle):
+        reasons.append("within_arm_outcome_variance_zero")
+    if extra.get("next_generation_claim") is True and extra.get("births_positive") is not True:
+        reasons.append("births_not_positive")
+    return tuple(reasons)
+
+
 def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
     return any(
         item.ci_low is not None and item.ci_high is not None for item in bundle.comparisons
@@ -283,10 +336,14 @@ def _neighbor_warnings(bundle: ClaimgateBundle) -> list[str]:
         warnings.append("metrics_do_not_auto_grant_oee_or_tokyo_type1")
     if extra.get("assay_failed") is True:
         warnings.append("assay_failed_keeps_runtime_observation")
-    if _assay_invalid(bundle):
+    validity = _he01_validity_failures(bundle)
+    if _assay_invalid(bundle) or validity:
         warnings.append("assay_invalid_manipulation_not_realized")
+        warnings.extend(f"assay_validity_{item}" for item in validity)
     elif bundle.comparisons and not _has_consistent_difference(bundle):
         warnings.append("no_consistent_measured_difference")
+    if extra.get("arms_bitwise_identical_warning") is True:
+        warnings.append("arms_bitwise_identical")
     if extra.get("adapter") == "avida_skeleton":
         warnings.append("avida_adapter_is_a_skeleton_not_full_support")
     if extra.get("adapter") == "mabe2_skeleton":
@@ -361,10 +418,13 @@ def audit_bundle(bundle: Mapping[str, Any] | ClaimgateBundle) -> ClaimAuditRepor
     _assert_forbidden_still_blocked()
     flags = _satisfied_flags(parsed)
     extra = parsed.extra or {}
-    if extra.get("assay_failed") is True or _assay_invalid(parsed):
+    validity = _he01_validity_failures(parsed)
+    if extra.get("assay_failed") is True or _assay_invalid(parsed) or validity:
         flags["consistent_measured_difference"] = False
         flags["effect_direction"] = False
         flags["statistical_and_ablation_evidence"] = False
+        if validity:
+            extra = {**extra, "assay_invalid": True}
     hits = _forbidden_hits(parsed)
     if hits:
         flags["consistent_measured_difference"] = False

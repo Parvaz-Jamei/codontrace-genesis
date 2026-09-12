@@ -1291,6 +1291,53 @@ def record_phase_e_after_event(organism: Any, event: object) -> None:
     )
 
 
+def write_phase_e_slot_from_adopted_capsule(
+    organism: Any,
+    capsule: Any,
+    *,
+    tick: int,
+) -> bool:
+    """Write an unconstrained Phase E slot from adopted nexus-capsule content.
+
+    Default organisms have ``phase_e_state is None`` and this is a no-op, so
+    Phase A–D traces stay byte-stable. The slot uses an empty cue so WAIT
+    genomes can substitute toward the transferred preferred action.
+    """
+
+    state: PhaseEOrganismState | None = getattr(organism, "phase_e_state", None)
+    if state is None or not state.enabled or not state.capsule.enabled:
+        return False
+    metadata = getattr(capsule, "metadata", {}) or {}
+    preferred = ""
+    if isinstance(metadata, Mapping):
+        raw = metadata.get("source_preferred_action")
+        if isinstance(raw, str) and raw.strip():
+            preferred = raw.strip()
+    pattern = tuple(getattr(capsule, "event_pattern", ()) or ())
+    if not preferred and pattern:
+        preferred = str(pattern[0])
+    if preferred not in {
+        "EAT_LUMEN",
+        "COPY_SELF",
+        "EMIT_NEXUS",
+        "WAIT",
+        "MOVE_TOWARD",
+        "MOVE_AWAY",
+    }:
+        preferred = "EAT_LUMEN"
+    state.capsule.write_slot(
+        CapsuleSlot(
+            cue_regime="",
+            cue_has_local_food=False,
+            preferred_action=preferred,
+            written_tick=int(tick),
+            source="adopted_capsule",
+        ),
+        capacity=state.slot_capacity,
+    )
+    return True
+
+
 def send_message(
     state: DemeState,
     *,

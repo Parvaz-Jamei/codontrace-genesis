@@ -32,6 +32,10 @@ loosened. Wave 3 is not this change.
   waiver), within-arm variance > 0, and `births > 0` for
   next-generation claims. Else ceiling = level 1 / `assay_invalid`.
   v2 artifact grading stays `assay_invalid`.
+- Research v3 (`docs/hard_experiment_01/results_v3.json`):
+  `assay_failed: manipulation_not_realized` on 8 / 30 seeds; oracle
+  positive control detected (dz = 2.96); births mean 27.5; ceiling
+  `runtime_observation`. Not a scientific null.
 
 ### Wave 2 — simulator-agnostic ClaimGate auditor
 

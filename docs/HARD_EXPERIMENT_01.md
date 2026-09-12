@@ -325,16 +325,92 @@ The source-bias gate *was* exercised (treatment adoptions > 0;
 ### Results (research v3)
 
 Wave 1c confirmatory artifact after amendment 01:
-[`hard_experiment_01/results_v3.json`](hard_experiment_01/results_v3.json)
-(written after the overlay is locked). Substrate:
-`phase_e_substrate_world`. Campaign stores `prereg_digest` and
-`amendment_digest`. `oracle_capsule` is reported and is not in the
-three primary Holm contrasts. Valid outcomes are a real effect **or**
-a null with manipulation check passed and positive control positive.
-If the assay is still dead, the label is `assay_failed` /
-`assay_invalid`, not a scientific null. ClaimGate ceiling stays
-whatever the auditor grants (v2 remains level 1 / `assay_invalid`).
-Wave 3 is not this write-up.
+[`hard_experiment_01/results_v3.json`](hard_experiment_01/results_v3.json).
+Campaign digest
+`48c216208c29c14e6100614c7e1a0ed4ddd99d3379c27fcca4114e1ee7857e3c`.
+`prereg_digest`
+`cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`.
+`amendment_digest`
+`862fdfc05b29abf84abd53c927b269e7c05b1e386973f69e0eeb95a18c120e13`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16.
+Substrate: `phase_e_substrate_world`. Schema: `hard_experiment_01_v3`.
+`StatisticalTestPolicy` tier: `research_grade_benchmark_candidate`.
+Wall-clock: 558.9 s on the generating runner. Replay identity: snapshot
+digest; all five arms × seeds `11` and `40` **matched**.
+`config_locked`: true.
+
+This is **`assay_failed: manipulation_not_realized`**, not a scientific
+null. 22 / 30 seeds passed the per-seed manipulation check. Eight
+seeds (`17, 21, 24, 29, 31, 32, 37, 39`) failed both
+`on_equals_off_content` and `no_source_fitness_rejects` (tick-median
+gate never rejected; adopted content sets were identical). Campaign
+`manipulation_check_passed` is therefore false. Positive control
+**detected** (oracle mean 1.108 vs `capsules_off` 0.161; dz = 2.96,
+BCa CI `[0.81, 1.04]`). Births mean 27.5 on primary arms
+(`births_positive` true). `capsules_off` adoptions = 0. Arms are not
+bitwise-identical in ≥ 90% of seeds (17 / 30 identical; no
+`arms_bitwise_identical` warning). Public ClaimGate level remains 1.
+It is not mechanism support and not intelligence.
+
+### Primary contrasts (Holm, α = 0.05)
+
+| Contrast | n | mean | sd | dz | CI95 | p_holm | claim_downgraded |
+|---|---:|---:|---:|---:|---|---:|---|
+| `on` vs `off` | 30 | −0.00388 | 0.0193 | −0.201 | [−0.0185, −0.00011] | 0.479 | no |
+| `on` vs `capsules_off` | 30 | −0.0752 | 0.276 | −0.272 | [−0.166, 0.0298] | 0.472 | yes |
+| `on` vs `shuffled` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+
+`shuffled ≈ capsules_off`: no (CI includes 0, but means follow `on`,
+not `capsules_off`). `on` vs `shuffled` last-tick fitness is
+bitwise-identical even when content digests differ — the scramble
+moved the construct, not the estimand.
+
+### Arm table
+
+| Arm | n | mean | sd | births mean | adoptions mean | extinction |
+|---|---:|---:|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 0.0860 | 0.178 | 27.5 | 28.13 | 0.0 |
+| `source_bias_off` | 30 | 0.0899 | 0.182 | 27.5 | 34.8 | 0.0 |
+| `capsules_off` | 30 | 0.1612 | 0.299 | 27.47 | 0.0 | 0.7 |
+| `capsules_shuffled` | 30 | 0.0860 | 0.178 | 27.5 | 28.13 | 0.0 |
+| `oracle_capsule` | 30 | 1.108 | 0.054 | 88.2 | 0.0 | 0.0 |
+
+`oracle_capsule` is reported and is **not** in the Holm family.
+Missing last-tick outcomes: 0 per arm. None zero-filled.
+
+### Dose table (`FITNESS_WEIGHTED` quantiles)
+
+| `source_fitness_quantile` | n | mean |
+|---:|---:|---:|
+| 0.00 | 30 | 0.0864 |
+| 0.25 | 30 | 0.0863 |
+| 0.50 | 30 | 0.0860 |
+| 0.75 | 30 | 0.1229 |
+
+Spearman ρ = 0.2. Permutation p = 0.920. Consecutive means are not
+monotonic. `same_direction_as_h1` is true. Trend supported: **no**.
+
+### Replay
+
+All five arms × seeds `11` and `40`: **matched**. Campaign constructed.
+
+### ClaimGate ceiling
+
+**`runtime_observation`** (CLAIMS.md public level 1). The Wave 2
+auditor grades v3 as level 1 / `assay_invalid` because the
+campaign-level manipulation check did not pass. v2 remains
+`assay_invalid` as well.
+
+Decision-rule failures:
+`manipulation_not_realized`,
+`manipulation_not_realized_on_equals_off_content`,
+`manipulation_not_realized_no_source_fitness_rejects`,
+`holm_on_vs_off_not_below_alpha`,
+`ci_on_vs_shuffled_includes_0`,
+`holm_on_vs_shuffled_not_below_alpha`,
+`dose_trend_not_monotonic_same_direction`.
+`intervention_supported` was **not** requested. Wave 3 is not this
+write-up.
 
 ## Decision rule
 

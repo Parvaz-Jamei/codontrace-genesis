@@ -9,6 +9,7 @@ from codontrace.claimgate.adapters.avida import bundle_from_avida_runs, parse_av
 from codontrace.claimgate.adapters.codontrace import (
     bundle_from_hard_experiment_01,
     committed_results_v2_path,
+    committed_results_v3_path,
 )
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
@@ -99,3 +100,16 @@ def test_codontrace_adapter_reproduces_he01_v2_runtime_observation() -> None:
     assert gate.decide(ClaimRequest("intervention_supported", {})).allowed is False
     assert gate.decide(ClaimRequest("collective_intelligence", {})).allowed is False
     assert gate.decide(ClaimRequest("tokyo_type1_passed", {})).allowed is False
+
+
+def test_codontrace_adapter_keeps_he01_v3_at_runtime_observation() -> None:
+    path = committed_results_v3_path()
+    bundle = bundle_from_hard_experiment_01(path)
+    assert bundle.software.name == "CodonTrace Genesis"
+    assert bundle.extra is not None
+    assert bundle.extra["assay_validity_required"] is True
+    report = audit_bundle(bundle)
+    assert report.achieved_level == 1
+    assert report.public_name == "runtime_observation"
+    assert "assay_invalid_manipulation_not_realized" in report.warnings
+    assert report.achieved_level < 2

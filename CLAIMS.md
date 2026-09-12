@@ -229,9 +229,14 @@ Wave 1c (this identity, not Wave 3) does not loosen ClaimGate. Dated
 amendment
 [`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md`](docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md)
 records the substrate / gate / genome / seed-lock / oracle changes.
-Existing v2 grading remains `assay_invalid`. A v3 confirmatory reading
-is allowed only after the manipulation check and positive control pass;
-until then the granted ceiling stays **`runtime_observation`**.
+Existing v2 grading remains `assay_invalid`. Research v3
+([`docs/hard_experiment_01/results_v3.json`](docs/hard_experiment_01/results_v3.json),
+digest
+`48c216208c29c14e6100614c7e1a0ed4ddd99d3379c27fcca4114e1ee7857e3c`)
+is **`assay_failed: manipulation_not_realized`** (8 / 30 seeds; gate
+never rejected and `on` content = `off` content). Positive control
+detected; births > 0. That is not a scientific null. Granted ceiling
+stays **`runtime_observation`**.
 
 Approved interpretation:
 
@@ -268,7 +273,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1c adds a dated prereg amendment, Phase E substrate, tick-median gate, COPY genomes, oracle positive control, seed lock, and auditor validity gates; it does not loosen ClaimGate and does not raise the granted ceiling above `runtime_observation` unless those gates and the decision rule pass. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
+- HARD_EXPERIMENT_01 Wave 1 / 1b / 1c recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. v3 (`phase_e_substrate_world`, amendment 01) is `assay_failed: manipulation_not_realized` on 8 / 30 seeds even though the oracle positive control moved fitness and births were > 0. That is not a scientific null. Wave 1c does not loosen ClaimGate and does not raise the granted ceiling. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

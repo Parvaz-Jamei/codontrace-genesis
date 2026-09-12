@@ -528,6 +528,42 @@ def test_committed_research_v2_exercises_source_bias_gate() -> None:
     assert by_arm["capsules_off"]["adoption_mean"] == 0.0
 
 
+def test_committed_research_v3_records_validity_and_both_digests() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v3.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v3"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["tick_count"] == 40
+    assert payload["population"] == 16
+    assert payload["substrate"] == "phase_e_substrate_world"
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["amendment_digest"] == hard_experiment_01_amendment_digest()
+    assert payload["amendment_digest"] != payload["prereg_digest"]
+    assert payload["claim_ceiling"] == CLAIM_CEILING
+    assert payload["positive_control_detected"] is True
+    assert payload["births_positive"] is True
+    assert payload["oracle_vs_capsules_off"] is not None
+    assert "oracle_capsule" not in {
+        item["baseline_arm"] for item in payload["paired_contrasts"]
+    }
+    assert len(payload["paired_contrasts"]) == 3
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+    assert by_arm["source_bias_on"]["births_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    if payload["manipulation_check_passed"] is not True:
+        assert payload["assay_failed"] is True
+        assert "manipulation_not_realized" in payload["assay_failures"]
+    claims = (root / "CLAIMS.md").read_text(encoding="utf-8")
+    assert "runtime_observation" in claims
+    start = claims.find("### 4.4")
+    end = claims.find("## 5.")
+    assert "proved collective intelligence" not in claims[start:end]
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
@@ -547,6 +583,7 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "Limitations / Diagnostics" in text
     assert "assay_failed" in text
     assert "Results (research v2)" in text
+    assert "Results (research v3)" in text
     assert "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01" in text
     assert "oracle_capsule" in text
     assert "phase_e_substrate_world" in text

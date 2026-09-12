@@ -83,7 +83,7 @@ That sentence is stronger than “scrambled still a problem.”
    `shuffle_content_changed_rate > 0`. Legacy summaries without those fields
    keep the attempts fallback so frozen v5 JSON tests stay green.
 4. **Dose honesty:** new-run `dose_trend.pattern` display label is
-   `step_up_then_downturn` (plus `pattern_label_note`). Amd 01 frozen text is
+   `peak_at_intermediate_dose_then_channel_closure` (plus `pattern_label_note`; `independent: false`). Amd 01 frozen text is
    **not** rewritten. `dose(1.5)` digests equal treatment; `dose(4.0)` is
    outside support (sd=0, equals `capsules_off`). Statistic
    `S = 47.174… = 16.488… + 30.685…` is the algebraic sum of two primary
@@ -155,3 +155,13 @@ amendment. E6 Morris / HE02 / HE03 stay on the later track after 1e.
 - Tests — xfail path; shuffle unit tests; counts split.
 - `docs/HARD_EXPERIMENT_01.md` / `CLAIMS.md` — short honesty paragraphs only.
 
+---
+
+## Follow-on audit closure (Wave 1d′ review blockers)
+
+- Dose: `independent: false`; out of decision rule; `metric_count = len(PRIMARY_CONTRASTS)`.
+- B6: smoke edge-level asserts split from positive-control mean move (no permissive `if assay_failed`).
+- P1 pilots committed: `pilot_v5.json`, `pilot_v6.json`.
+- P3: [`AMD03_CODE_DEVIATIONS.md`](AMD03_CODE_DEVIATIONS.md) (Willroth rows; Amd 03 bytes frozen).
+- P5: `_calibration_food_cells` no longer takes a dead `seed` parameter.
+- CONTENT_NULL remains confirmatory null; peer-rotation stays sensitivity (known non-derangement when payloads collide / window size 1).

@@ -202,7 +202,7 @@ The following observations were present in the inspected quick run. They should 
 | `collective_mixed` vs `no_capsules` | `0` delta for social interaction, partner interaction, and capsule adoption in inspected seeds | Negative evidence for collective-intelligence readiness under this quick profile. |
 | `high_mutation` vs `no_mutation` | mixed birth-event deltas and no mutation-result delta in inspected pair summary | Not sufficient for a mutation-effect claim. Needs protocol refinement. |
 
-### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b / 1c research snapshot (`0.3.0b4.dev0`)
+### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b / 1c / 1d′ / 1e research snapshot (`0.3.0b4.dev0`)
 
 Inspected artifacts:
 [`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
@@ -247,14 +247,31 @@ Morris screen on held-out seeds 2000–2009. ClaimGate ceiling stays
 `runtime_observation`. E6 does not rewrite Amd 01/02/03 and does not
 reanalyse seeds 11–40.
 
+Wave 1d′ research snapshot (SCHEMA v5, Amd 03):
+[`docs/hard_experiment_01/results_v5.json`](docs/hard_experiment_01/results_v5.json).
+Assay PASS; decision-rule FAIL on `shuffled_better_than_capsules_off`
+(peer-rotation preserves payload marginal — design caveat, not silent
+mechanism proof). Ceiling **`runtime_observation`**. Pilot:
+`docs/hard_experiment_01/pilot_v5.json`. Amd 03 code deviations:
+`docs/hard_experiment_01/AMD03_CODE_DEVIATIONS.md` (does not rewrite Amd 03
+bytes).
+
 Wave 1d″ (evidence honesty only, 2026-09-12): documents that the
 `capsules_shuffled` peer-rotation control preserves the payload marginal
 (so `shuffled > capsules_off` is by construction), splits adoption
-attempts vs accepts, surfaces shuffle content/source-changed rates on new
-runs, and corrects the dose pattern *display* label to
-`step_up_then_downturn` without rewriting Amd 01. Ceiling stays
-`runtime_observation`. No `intervention_supported`. No re-campaign;
-`results_v5.json` unchanged. Wave 1e deferred to Amendment 04.
+attempts vs accepts (`capsule_adoption_attempts` alias +
+`capsule_adoptions_accepted`), surfaces shuffle content/source-changed
+rates on new runs, and corrects the dose pattern *display* label to
+`peak_at_intermediate_dose_then_channel_closure` with `independent: false`
+(descriptive only; out of `metric_count`) without rewriting Amd 01.
+Ceiling stays `runtime_observation`. No `intervention_supported`. No
+re-campaign; `results_v5.json` unchanged.
+
+Wave 1e (SCHEMA v6, Amd 04/05 on branch): confirmatory
+`capsules_content_null`; shuffled demoted to sensitivity; activity_matched
+auxiliary (Amd 05 demotes activity pilot gate). Pilot:
+`docs/hard_experiment_01/pilot_v6.json`. No committed research `results_v6.json`
+yet. Ceiling stays **`runtime_observation`**.
 
 ---
 

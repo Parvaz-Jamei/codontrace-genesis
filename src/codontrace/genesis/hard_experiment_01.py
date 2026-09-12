@@ -121,6 +121,10 @@ ScaleName = Literal["smoke", "research"]
 MIN_SOURCE_FITNESS_TREATMENT = 1.5
 ASSAY_ADOPTIONS_NEAR_ZERO = 1e-12
 ASSAY_EXTINCTION_NEAR_ONE = 1.0 - 1e-12
+# Peer-rotation often sits just under 0.99 (window-size-1 identity); CONTENT_NULL
+# is the confirmatory null and must clear this bar. Shuffled arm only fails
+# never_changed; rate_below is applied to content_null (Amd 04).
+ASSAY_SHUFFLE_CONTENT_CHANGE_MIN = 0.99
 # Wave 1b survival / channel-activity calibration. Overlay only — does not
 # mutate ``life_loop_world`` defaults or Phase A–E pins. Existing Genesis v0
 # actions only (no new signaling pathway).
@@ -428,11 +432,10 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
 
 
 def _calibration_food_cells(
-    width: int, height: int, *, seed: int = 0
+    width: int, height: int
 ) -> tuple[tuple[int, int], ...]:
-    """Every lattice cell (Amd 01 / v3). ``seed`` kept for API stability; ignored."""
+    """Every lattice cell (Amd 01 / v3 / Amd 03). Seed omitted — layout ignores it."""
 
-    del seed  # placement is deterministic every-cell (Amd 03 §3.2)
     cells = tuple((x, y) for y in range(int(height)) for x in range(int(width)))
     if not cells:
         raise ConfigurationError("hard experiment 01 food layout requires a non-empty lattice.")
@@ -490,7 +493,7 @@ def _apply_survival_calibration(
         raise ConfigurationError("hard experiment 01 overlay requires population_configs.")
     width = int(spec.world_width)
     height = int(spec.world_height)
-    food_cells = _calibration_food_cells(width, height, seed=seed)
+    food_cells = _calibration_food_cells(width, height)
     food_coverage = len(food_cells) / float(width * height)
     world = World2D(width, height)
     for position in food_cells:
@@ -657,6 +660,15 @@ def _manipulation_check_failures(
         )
     if not channel_active:
         failures.append("assay_failed_shuffled_channel_silent")
+    # B2: scramble must have fired when shuffle telemetry exists.
+    shuffle_records = _num("capsules_shuffled", "shuffle_record_mean")
+    if (
+        content_changed_rate is not None
+        and shuffle_records is not None
+        and shuffle_records > 0.0
+        and content_changed_rate <= 0.0
+    ):
+        failures.append("assay_failed_shuffle_never_changed_content")
     # Amd 04: confirmatory content_null must destroy profitable payload marginal.
     if "capsules_content_null" in by_arm:
         null_payloads = _payloads("capsules_content_null")
@@ -674,6 +686,11 @@ def _manipulation_check_failures(
             null_channel = adoptions_null > ASSAY_ADOPTIONS_NEAR_ZERO
         if not null_channel:
             failures.append("assay_failed_content_null_channel_silent")
+        if (
+            content_changed_null is not None
+            and content_changed_null + 1e-15 < ASSAY_SHUFFLE_CONTENT_CHANGE_MIN
+        ):
+            failures.append("assay_failed_shuffle_content_change_rate_below_threshold")
     oracle_mean = _num("oracle_capsule", "mean")
     none_mean = _num("capsules_off", "mean")
     if oracle_mean is None or none_mean is None or oracle_mean <= none_mean:
@@ -1277,6 +1294,36 @@ def _shuffle_change_counts(result: object) -> tuple[int, int, int]:
     return len(records), content, source
 
 
+def _adoption_blocked_by_reason(result: object) -> dict[str, int]:
+    """Blocked-reason histogram for adoption attempts (B1 invariant)."""
+
+    counts: dict[str, int] = {}
+    for record in getattr(result, "capsule_adoption_records", ()) or ():
+        reason = getattr(record, "blocked_reason", None)
+        if reason is None:
+            continue
+        key = str(reason)
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _source_fitness_support(
+    result: object,
+) -> tuple[float | None, float | None, float | None]:
+    """min / median / max of adoption-record source_fitness (B5 dose support)."""
+
+    values: list[float] = []
+    for record in getattr(result, "capsule_adoption_records", ()) or ():
+        raw = getattr(record, "source_fitness", None)
+        if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+            values.append(float(raw))
+    if not values:
+        return None, None, None
+    values.sort()
+    mid = values[len(values) // 2]
+    return values[0], mid, values[-1]
+
+
 def _final_population(result: object) -> int | None:
     pack = getattr(result, "evidence_pack", None)
     summary = getattr(pack, "summary", None)
@@ -1359,11 +1406,20 @@ class HardExperiment01ArmRecord:
     shuffle_record_count: int = 0
     shuffle_content_changed_count: int = 0
     shuffle_source_changed_count: int = 0
+    capsule_adoption_blocked_by_reason: Mapping[str, int] = field(default_factory=dict)
+    source_fitness_min: float | None = None
+    source_fitness_median: float | None = None
+    source_fitness_max: float | None = None
     activity_match_budget: int | None = None
     activity_match_gap: int | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "bias_payload_counts", dict(self.bias_payload_counts))
+        object.__setattr__(
+            self,
+            "capsule_adoption_blocked_by_reason",
+            dict(self.capsule_adoption_blocked_by_reason),
+        )
         if min(self.receiver_count, self.bias_applied_events, self.rejected_by_source_fitness) < 0:
             raise ConfigurationError("manipulation-check counts must be >= 0.")
         if self.outcome_missing:
@@ -1394,6 +1450,11 @@ class HardExperiment01ArmRecord:
             raise ConfigurationError("counts must be >= 0.")
         if self.capsule_adoptions_accepted > self.capsule_adoptions:
             raise ConfigurationError("accepted adoptions cannot exceed attempts.")
+        blocked_total = sum(int(v) for v in self.capsule_adoption_blocked_by_reason.values())
+        if self.capsule_adoptions != self.capsule_adoptions_accepted + blocked_total:
+            raise ConfigurationError(
+                "adoption attempts must equal accepted + sum(blocked_by_reason)."
+            )
         if len(self.spec_digest) != 64 or len(self.result_digest) != 64:
             raise ConfigurationError("arm records require 64-hex spec/result digests.")
 
@@ -1407,6 +1468,7 @@ class HardExperiment01ArmRecord:
             "capsule_utility_count": self.capsule_utility_count,
             "capsule_transfer_count": self.capsule_transfer_count,
             "capsule_adoptions": self.capsule_adoptions,
+            "capsule_adoption_attempts": self.capsule_adoptions,  # B1 alias
             "capsule_adoptions_semantics": "attempts",
             "capsule_adoptions_accepted": self.capsule_adoptions_accepted,
             "spec_digest": self.spec_digest,
@@ -1424,6 +1486,10 @@ class HardExperiment01ArmRecord:
             "shuffle_record_count": self.shuffle_record_count,
             "shuffle_content_changed_count": self.shuffle_content_changed_count,
             "shuffle_source_changed_count": self.shuffle_source_changed_count,
+            "capsule_adoption_blocked_by_reason": dict(self.capsule_adoption_blocked_by_reason),
+            "source_fitness_min": self.source_fitness_min,
+            "source_fitness_median": self.source_fitness_median,
+            "source_fitness_max": self.source_fitness_max,
             "activity_match_budget": self.activity_match_budget,
             "activity_match_gap": self.activity_match_gap,
             "claim_ceiling": CLAIM_CEILING,
@@ -1601,11 +1667,13 @@ class HardExperiment01DoseTrend:
     Statistic S = (m_peak - m_low) + (m_peak - m_high); one-sided
     seed-fixed permutation p by shuffling levels within each complete seed.
 
-    Wave 1d″ honesty: Amd 01 frozen text still says ``step_up_then_saturate``,
-    but new-run display uses ``step_up_then_downturn`` because dose(4.0) is
-    outside support (equals capsules_off). ``dose(1.5)`` is identical to the
-    treatment arm; S is the algebraic sum of two primary contrasts and adds
-    no independent information (Hothorn 2020; Simpson & Margolin 1986).
+    Wave 1d′/″ honesty: Amd 01 frozen text still says ``step_up_then_saturate``,
+    but new-run display uses ``peak_at_intermediate_dose_then_channel_closure``
+    because dose(4.0) is outside support (equals capsules_off / total gate
+    closure). ``dose(1.5)`` is identical to the treatment arm; S is the
+    algebraic sum of two primary contrasts and adds no independent information
+    (``independent: false``; Hothorn 2020; Simpson & Margolin 1986). Descriptive
+    only — excluded from the confirmatory decision rule and from metric_count.
     """
 
     min_source_fitness: tuple[float, ...]
@@ -1617,13 +1685,15 @@ class HardExperiment01DoseTrend:
     trend_supported: bool
     complete_case_seeds: int
     dropped_seeds: int
-    pattern: str = "step_up_then_downturn"
+    pattern: str = "peak_at_intermediate_dose_then_channel_closure"
+    independent: bool = False
     pattern_label_note: str = (
-        "Amd 01 frozen label was step_up_then_saturate; v5 means show a downturn "
-        "at dose 4.0 (outside support ≡ capsules_off), not saturation. "
-        "dose(1.5)≡source_bias_on; S=(m_1.5-m_0)+(m_1.5-m_4) is the algebraic "
-        "sum of two primary contrasts (zero independent info). "
-        "Cite Hothorn 2020; Simpson & Margolin 1986."
+        "Amd 01 frozen label was step_up_then_saturate; display is "
+        "peak_at_intermediate_dose_then_channel_closure (dose 4.0 ≡ capsules_off "
+        "/ channel closure, not saturation). dose(1.5)≡source_bias_on; "
+        "S=(m_1.5-m_0)+(m_1.5-m_4) is the algebraic sum of two primary contrasts "
+        "(independent=false; zero inferential info). Descriptive only — not in "
+        "decision rule / metric_count. Cite Hothorn 2020; Simpson & Margolin 1986."
     )
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -1633,6 +1703,7 @@ class HardExperiment01DoseTrend:
             "sample_counts": list(self.sample_counts),
             "pattern": self.pattern,
             "pattern_label_note": self.pattern_label_note,
+            "independent": self.independent,
             "peak_index": DOSE_PEAK_INDEX,
             "pattern_statistic": self.pattern_statistic,
             "permutation_p": self.permutation_p,
@@ -1782,11 +1853,14 @@ class HardExperiment01Campaign:
                 self, "protocol_digest", hard_experiment_01_protocol_digest(self.prereg_digest)
             )
         audit = self.multiple_comparison_audit
+        primary_n = len(PRIMARY_CONTRASTS)
         if audit is None:
-            audit = MultipleComparisonAudit(metric_count=3)
+            audit = MultipleComparisonAudit(metric_count=primary_n)
             object.__setattr__(self, "multiple_comparison_audit", audit)
-        if audit.metric_count != 3:
-            raise ConfigurationError("primary family is exactly three contrasts.")
+        if audit.metric_count != primary_n:
+            raise ConfigurationError(
+                f"primary family metric_count must equal len(PRIMARY_CONTRASTS)={primary_n}."
+            )
         object.__setattr__(
             self,
             "mean_delta_vs_source_bias_off",
@@ -1906,8 +1980,9 @@ class HardExperiment01Campaign:
                 "unmatched_activity_volume_is_limitation_not_content_null_fail",
                 "wave_1e_amd05_does_not_auto_grant_intervention_supported",
                 "capsule_adoptions_count_attempts_not_successful_accepts",
-                "dose_pattern_display_is_step_up_then_downturn_not_saturate",
+                "dose_pattern_display_is_peak_at_intermediate_dose_then_channel_closure",
                 "dose_statistic_is_algebraic_sum_of_two_primary_contrasts",
+                "dose_trend_is_descriptive_independent_false",
                 "dose_1_5_identical_to_treatment_arm",
                 "price_identity_is_not_causal_without_the_explicit_dag",
                 "null_or_small_effect_is_a_valid_finding",
@@ -1936,6 +2011,8 @@ def _record_from_run(
     births = _birth_count(result)
     sources, utilities, transfers, adoptions, accepted = _capsule_counts(result)
     shuffle_n, content_n, source_n = _shuffle_change_counts(result)
+    blocked_by = _adoption_blocked_by_reason(result)
+    sf_min, sf_med, sf_max = _source_fitness_support(result)
     roles = _genome_roles(spec)
     outcome = _receiver_mean_terminal_atp(result, roles)
     legacy = _mean_last_tick_fitness(result)
@@ -1968,6 +2045,10 @@ def _record_from_run(
         shuffle_record_count=shuffle_n,
         shuffle_content_changed_count=content_n,
         shuffle_source_changed_count=source_n,
+        capsule_adoption_blocked_by_reason=blocked_by,
+        source_fitness_min=sf_min,
+        source_fitness_median=sf_med,
+        source_fitness_max=sf_max,
         activity_match_budget=activity_match_budget,
         activity_match_gap=gap,
     )
@@ -2402,8 +2483,21 @@ def _analyze_dose_trend(
             if _dose_pattern_statistic(perm_means) + 1e-15 >= statistic:
                 extreme += 1
         p_value = (1 + extreme) / (1 + DOSE_PERMUTATION_DRAWS)
+    # B5: umbrella/downturn is not a monotone "trend"; keep pattern_matched for
+    # the peak-at-intermediate shape, but never claim trend_supported here.
+    # Dose block is descriptive (independent=false) and out of the decision rule.
+    monotone = False
+    if len(numeric_means) == len(DOSE_LEVELS):
+        monotone = all(
+            numeric_means[index] <= numeric_means[index + 1] + 1e-15
+            for index in range(len(numeric_means) - 1)
+        )
     trend_supported = bool(
-        matched and statistic is not None and p_value is not None and p_value < ALPHA
+        monotone
+        and matched
+        and statistic is not None
+        and p_value is not None
+        and p_value < ALPHA
     )
     return HardExperiment01DoseTrend(
         min_source_fitness=DOSE_LEVELS,
@@ -2415,6 +2509,8 @@ def _analyze_dose_trend(
         trend_supported=trend_supported,
         complete_case_seeds=complete_n,
         dropped_seeds=dropped,
+        pattern="peak_at_intermediate_dose_then_channel_closure",
+        independent=False,
     )
 
 
@@ -2475,8 +2571,9 @@ def _decision_rule_failures(
     elif content_null_vs_off.ci_low > 0.0:
         # Amd 04 confirmatory null: content-null must not beat channel-off.
         failures.append("content_null_better_than_capsules_off")
-    if dose_trend is None or not dose_trend.trend_supported:
-        failures.append("dose_pattern_not_supported")
+    # B4: dose_trend is descriptive only (independent=false); not a confirmatory
+    # failure. ``dose_trend`` retained in signature for call-site stability.
+    del dose_trend
     return tuple(failures)
 
 
@@ -2733,7 +2830,7 @@ def run_hard_experiment_01(
         paired_contrasts=primary,
         shuffled_vs_capsules_off=shuffled_vs_off,
         content_null_vs_capsules_off=content_null_vs_off,
-        multiple_comparison_audit=MultipleComparisonAudit(metric_count=3),
+        multiple_comparison_audit=MultipleComparisonAudit(metric_count=len(PRIMARY_CONTRASTS)),
         dose_records=tuple(dose_records),
         dose_trend=dose_trend,
         arm_summaries=arm_summaries,

@@ -417,6 +417,43 @@ silent; shuffled channel active; positive control `oracle_capsule` above
 `capsules_off`; arms not bitwise-identical. Any failure → `assay_failed`
 with an `assay_failed_*` code, `assay_invalid` in the standalone auditor.
 
+### Results (research v5) — Wave 1d′
+
+Amendment 03 (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md`) restores
+every-cell food + population respawn draws and keeps roles-only seed
+variance. Artifact:
+[`hard_experiment_01/results_v5.json`](hard_experiment_01/results_v5.json)
+(SCHEMA `hard_experiment_01_v5`). Campaign digest prefix `0556c47bf6590d98…`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16. Primary outcome:
+`receiver_mean_terminal_runtime_atp`. Replay matched: **True**.
+`assay_failed`: **False**. Decision rule: **FAIL**
+(`shuffled_better_than_capsules_off` — expected under peer-rotation marginal
+preservation; see Wave 1d″ honesty). ClaimGate ceiling:
+**`runtime_observation`**. Pilot trail: `hard_experiment_01/pilot_v5.json`.
+Code deviations sibling note:
+[`hard_experiment_01/AMD03_CODE_DEVIATIONS.md`](hard_experiment_01/AMD03_CODE_DEVIATIONS.md).
+
+| Arm | n | mean | sd | adoption attempts |
+|---|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 58.685 | 13.255 | 542.53 |
+| `source_bias_off` | 30 | 42.197 | 15.212 | 542.53 |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 |
+| `capsules_shuffled` | 30 | 42.314 | 8.715 | 542.53 |
+| `oracle_capsule` | 30 | 78.397 | 0.252 | 542.53 |
+
+Frozen v5 dose label remains Amd 01 `step_up_then_saturate`; new-run display
+uses `peak_at_intermediate_dose_then_channel_closure` with `independent: false`
+(S ≈ 47.174 = algebraic sum of two primary contrasts).
+
+### Results (research v6) — Wave 1e (SCHEMA on branch; research campaign pending)
+
+SCHEMA `hard_experiment_01_v6` (Amendments 04/05): confirmatory
+`capsules_content_null`, auxiliary `capsules_activity_matched`, shuffled
+demoted to sensitivity. Pilot:
+[`hard_experiment_01/pilot_v6.json`](hard_experiment_01/pilot_v6.json).
+No committed `results_v6.json` yet — ClaimGate stays
+**`runtime_observation`**; do not invent `intervention_supported`.
+
 ## Wave 1d″ — evidence honesty (no new claim)
 
 See [`hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md`](hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md)
@@ -426,13 +463,13 @@ The CONTENT shuffle control is a **cyclic peer-rotation that preserves the
 payload marginal**, so `shuffled > capsules_off` is expected by construction
 (~46.65% of the ~30.69 ATP treatment surplus is “channel with 50/50 pool”;
 ~53.35% is the gate). `capsule_adoptions` counts **attempts**, not successful
-accepts; new runs expose `capsule_adoptions_accepted` and shuffle
-`content_changed` / `source_changed` rates. Dose display for new runs is
-`step_up_then_downturn` (Amd 01 frozen text unchanged): `dose(1.5)≡treatment`
-and S is the algebraic sum of two primary contrasts (Hothorn 2020;
-Simpson & Margolin 1986). ClaimGate stays **`runtime_observation`**. No
-`results_v5.json` overwrite; Wave 1e content-null / activity-matched arms
-are deferred to Amendment 04.
+accepts; JSON also exposes `capsule_adoption_attempts` / `capsule_adoptions_accepted`.
+Dose display for new runs is
+`peak_at_intermediate_dose_then_channel_closure` with **`independent: false`**
+(Amd 01 frozen text unchanged): `dose(1.5)≡treatment` and S is the algebraic
+sum of two primary contrasts (Hothorn 2020; Simpson & Margolin 1986); dose is
+descriptive only (out of decision rule / `metric_count`). ClaimGate stays
+**`runtime_observation`**. No `results_v5.json` overwrite.
 
 ## Wave E6 (ODD + Morris screening)
 

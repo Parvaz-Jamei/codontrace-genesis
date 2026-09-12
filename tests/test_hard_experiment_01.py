@@ -44,6 +44,7 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
     hard_experiment_01_prereg_amendment_02_digest,
+    hard_experiment_01_prereg_amendment_03_digest,
     hard_experiment_01_prereg_amendment_digest,
     hard_experiment_01_prereg_digest,
     hard_experiment_01_protocol_digest,
@@ -455,7 +456,7 @@ def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
     diagnostic = diagnose_hard_experiment_01_run(
         seed=11, arm="source_bias_on", tick_count=8, population=8
     )
-    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1d"
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1d_prime"
     assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
     assert adoptions > 0
     assert diagnostic.total_adoptions > 0
@@ -515,13 +516,12 @@ def test_committed_research_v2_exercises_source_bias_gate() -> None:
 
 
 def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
-    """The v2 defect: identical arms. Wave 1c/1d must exercise every DAG edge.
+    """The v2 defect: identical arms. Wave 1c/1d′ must exercise every DAG edge.
 
-    Under SCHEMA v4 (Amd 02) sparse food + reduced respawn draws, the aggregate
-    positive-control clause ``oracle > capsules_off`` can fail at smoke scale on
-    unlucky seeds; that is an Amd 02 calibration risk for the research/pilot
-    gate, not a regression to the v2 "identical arms" defect. Edge-level
-    manipulation checks below must still pass.
+    SCHEMA v5 (Amd 03) restores every-cell food + population respawn draws, so
+    the aggregate positive-control clause is expected to hold at smoke scale
+    again. Edge-level manipulation checks below must still pass. (Amd 02 / v4
+    sparse-food calibration failure remains historical.)
     """
 
     campaign = run_hard_experiment_01(seed_count=2, include_dose=True)
@@ -552,6 +552,7 @@ def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
     assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
     assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
     assert payload["dose_trend"]["pattern"] == "step_up_then_saturate"
     first_on = campaign.seed_records[0].source_bias_on.to_dict()
     assert first_on["legacy_terminal_selection_fitness"] is not None
@@ -607,14 +608,21 @@ def test_committed_research_v3_is_a_valid_assay() -> None:
 
 
 
-def test_wave_1d_amendment_02_and_schema_v4() -> None:
-    """Amendment 02 is hashed; Amd 01 + original digests stay frozen; SCHEMA is v4."""
+def test_wave_1d_prime_amendment_03_and_schema_v5() -> None:
+    """Amendment 03 is hashed; Amd 01+02 digests stay frozen; SCHEMA is v5."""
 
     root = Path(__file__).resolve().parents[1]
+    amd03 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
+    assert amd03.is_file()
+    expected03 = __import__("hashlib").sha256(amd03.read_bytes()).hexdigest()
+    assert expected03 == "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    assert hard_experiment_01_prereg_amendment_03_digest() == expected03
+    # Amd 02 remains a hashed trail (historical failed calibration).
     amd02 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
     assert amd02.is_file()
-    expected = __import__("hashlib").sha256(amd02.read_bytes()).hexdigest()
-    assert hard_experiment_01_prereg_amendment_02_digest() == expected
+    expected02 = __import__("hashlib").sha256(amd02.read_bytes()).hexdigest()
+    assert hard_experiment_01_prereg_amendment_02_digest() == expected02
+    assert expected02 == "14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f"
     assert (
         hard_experiment_01_prereg_amendment_digest()
         == "6d156e824b9b9c4d06be4eb6f4d35f265592eab7c41d35a6b8c0ca951dfc7de8"
@@ -622,24 +630,25 @@ def test_wave_1d_amendment_02_and_schema_v4() -> None:
     assert hard_experiment_01_prereg_digest() == __import__("hashlib").sha256(
         (root / "docs" / "HARD_EXPERIMENT_01_PREREG.md").read_bytes()
     ).hexdigest()
-    assert SCHEMA_VERSION == "hard_experiment_01_v4"
+    assert SCHEMA_VERSION == "hard_experiment_01_v5"
     protocol = hard_experiment_01_protocol_digest()
     assert len(protocol) == 64
     knobs = hard_experiment_01_calibration_knobs()
-    assert knobs["wave"] == "1d"
+    assert knobs["wave"] == "1d_prime"
     assert knobs["role_layout"] == "seed_permuted_v3_multiset"
-    assert knobs["food_layout"] == "seed_coverage_[0.5,0.8]"
-    assert knobs["respawn_draws_per_tick"] == "max(1, population_size // 4)"
-    assert knobs["food_coverage_range"] == [0.5, 0.8]
-    # In-memory smoke campaign payload must carry SCHEMA v4 + Amd 02 digest.
+    assert knobs["food_layout"] == "every_cell"
+    assert knobs["food_coverage"] == 1.0
+    assert knobs["respawn_draws_per_tick"] == "max(1, population_size)"
+    # In-memory smoke campaign payload must carry SCHEMA v5 + Amd 03 digest.
     campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
     payload = campaign.to_dict()
-    assert payload["schema_version"] == "hard_experiment_01_v4"
-    assert payload["prereg_amendment_02_digest"] == expected
+    assert payload["schema_version"] == "hard_experiment_01_v5"
+    assert payload["prereg_amendment_03_digest"] == expected03
+    assert payload["prereg_amendment_02_digest"] == expected02
     assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
     assert payload["role_layout"] == "seed_permuted_v3_multiset"
-    assert payload["food_coverage_range"] == [0.5, 0.8]
-    assert payload["respawn_draws_per_tick"] == "max(1, population_size // 4)"
+    assert payload["food_layout"] == "every_cell"
+    assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
     assert campaign.protocol_digest == hard_experiment_01_protocol_digest()
 
 
@@ -668,7 +677,12 @@ def test_wave_1d_seed_permuted_roles_preserve_multiset() -> None:
     assert spec_a.metadata["genome_roles"] != spec_b.metadata["genome_roles"]
 
 
-def test_wave_1d_sparse_food_and_reduced_respawn_draws() -> None:
+def test_wave_1d_prime_every_cell_food_and_population_respawn_draws() -> None:
+    """SCHEMA v5: every-cell food (Amd 01/v3); respawn draws = population.
+
+    v4 Amd 02 sparse [0.5, 0.8] + pop//4 remains historical failed calibration.
+    """
+
     spec_a = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
     spec_b = build_hard_experiment_01_spec(seed=1001, arm="source_bias_on", tick_count=8, population=8)
     spec_a2 = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
@@ -678,21 +692,24 @@ def test_wave_1d_sparse_food_and_reduced_respawn_draws() -> None:
     n = int(spec_a.world_width) * int(spec_a.world_height)
     coverage_a = float(spec_a.metadata["food_coverage"])
     coverage_b = float(spec_b.metadata["food_coverage"])
-    assert 0.5 <= coverage_a <= 0.8
-    assert 0.5 <= coverage_b <= 0.8
+    assert coverage_a == 1.0
+    assert coverage_b == 1.0
+    assert len(cells_a) == n
+    assert len(cells_b) == n
     assert abs(coverage_a - len(cells_a) / n) < 1e-12
     assert abs(coverage_b - len(cells_b) / n) < 1e-12
     assert spec_a.metadata["initial_food_patches"] == len(cells_a)
     assert cells_a == cells_a2
-    assert cells_a != cells_b
+    # Placement ignores seed: identical across seeds under every-cell layout.
+    assert cells_a == cells_b
     policy = spec_a.population_configs.runtime_resource_policy
-    assert policy.respawn_draws_per_tick == max(1, 8 // 4)
-    assert policy.respawn_draws_per_tick < 8
+    assert policy.respawn_draws_per_tick == max(1, 8)  # smoke 8→8
+    assert policy.respawn_draws_per_tick == 8
     research = build_hard_experiment_01_spec(
         seed=1000, arm="source_bias_on", tick_count=40, population=16
     )
-    assert research.population_configs.runtime_resource_policy.respawn_draws_per_tick == 4
-    assert research.population_configs.runtime_resource_policy.respawn_draws_per_tick < 16
+    assert research.population_configs.runtime_resource_policy.respawn_draws_per_tick == 16
+    assert float(research.metadata["food_coverage"]) == 1.0
 
 
 def test_hard_experiment_01_docs_and_example_exist() -> None:
@@ -718,6 +735,7 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "claim_downgraded" in text
     assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md").is_file()
     assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md").is_file()
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md").is_file()
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")

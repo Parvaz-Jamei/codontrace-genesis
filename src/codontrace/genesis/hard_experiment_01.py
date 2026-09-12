@@ -12,10 +12,11 @@ gate sit in front of confirmatory claims: if the treatment arm does not
 emit/adopt capsules or goes extinct, contrasts are recorded but
 ``assay_failed`` keeps the ceiling at ``runtime_observation``.
 
-Wave 1d (SCHEMA v4 / Amendment 02) restores across-seed variance by
-seed-permuting the v3 role multiset and drawing sparse food coverage in
-``[0.5, 0.8]``, with ``respawn_draws_per_tick = max(1, population_size // 4)``.
-No new engine semantics; estimand unchanged.
+Wave 1d′ (SCHEMA v5 / Amendment 03) keeps seed-permuted roles from Amd 02
+and reverts food/respawn to Amendment 01 / v3 (every-cell food;
+``respawn_draws_per_tick = max(1, population_size)``). Amd 02 / SCHEMA v4
+remains the frozen failed-calibration trail. No new engine semantics;
+estimand unchanged.
 
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
@@ -75,10 +76,11 @@ RESEARCH_POPULATION = 16
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 EXPERIMENT_ID = "hard_experiment_01_capsule_source_bias"
-SCHEMA_VERSION = "hard_experiment_01_v4"
+SCHEMA_VERSION = "hard_experiment_01_v5"
 PREREG_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG.md"
 PREREG_AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
 PREREG_AMENDMENT_02_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
+PREREG_AMENDMENT_03_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
 # Wave 1c primary outcome: mean terminal runtime ATP of the *receiver* class
 # (the units the intervention acts on). The v1/v2 composite selection score is
 # kept as a secondary, descriptive field (``legacy_terminal_selection_fitness``).
@@ -243,6 +245,21 @@ def hard_experiment_01_prereg_amendment_02_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def hard_experiment_01_prereg_amendment_03_path() -> Path:
+    return _repo_root() / PREREG_AMENDMENT_03_RELATIVE_PATH
+
+
+def hard_experiment_01_prereg_amendment_03_digest() -> str:
+    """SHA-256 of the frozen amendment 03 file (UTF-8 bytes)."""
+
+    path = hard_experiment_01_prereg_amendment_03_path()
+    if not path.is_file():
+        raise ConfigurationError(
+            f"missing preregistration amendment: {PREREG_AMENDMENT_03_RELATIVE_PATH}"
+        )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -279,9 +296,11 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "prereg_amendment_digest": hard_experiment_01_prereg_amendment_digest(),
             "prereg_amendment_02_path": PREREG_AMENDMENT_02_RELATIVE_PATH,
             "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
+            "prereg_amendment_03_path": PREREG_AMENDMENT_03_RELATIVE_PATH,
+            "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
             "role_layout": "seed_permuted_v3_multiset",
-            "food_coverage_range": [0.5, 0.8],
-            "respawn_draws_per_tick": "max(1, population_size // 4)",
+            "food_layout": "every_cell",
+            "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
             "positive_control_arm": "oracle_capsule",
@@ -298,7 +317,7 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
     """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
 
     return {
-        "wave": "1d",
+        "wave": "1d_prime",
         "dated": "2026-09-12",
         "scope": "hard_experiment_01_overlay_only",
         "life_loop_defaults_unchanged": True,
@@ -314,41 +333,32 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "resource_amount": CALIBRATION_RESOURCE_AMOUNT,
         "respawn_rate": CALIBRATION_RESPAWN_RATE,
         "respawn_under_organisms": CALIBRATION_RESPAWN_UNDER_ORGANISMS,
-        "respawn_draws_per_tick": "max(1, population_size // 4)",
+        "respawn_draws_per_tick": "max(1, population_size)",
         "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
-        "food_layout": "seed_coverage_[0.5,0.8]",
-        "food_coverage_range": [0.5, 0.8],
+        "food_layout": "every_cell",
+        "food_coverage": 1.0,
         "adoption_effect_action": True,
         "adoption_substitutable_actions": ["WAIT"],
         "primary_outcome": PRIMARY_OUTCOME,
         "note": (
-            "Wave 1d: seed-permute the v3 role multiset and draw sparse food "
-            "coverage in [0.5, 0.8] so across-seed variance (and Cohen dz) can "
-            "be defined. Estimand, arms, seeds, and Amendment 01 decision rule "
-            "unchanged (prereg amendment 02)."
+            "Wave 1d′: keep seed-permuted v3 role multiset; revert food to "
+            "every-cell and respawn_draws_per_tick to max(1, population_size) "
+            "(Amd 01 / v3 ecology). Estimand, arms, seeds, and Amendment 01 "
+            "decision rule unchanged (prereg amendment 03)."
         ),
     }
 
 
 def _calibration_food_cells(
-    width: int, height: int, *, seed: int
+    width: int, height: int, *, seed: int = 0
 ) -> tuple[tuple[int, int], ...]:
-    """Seed-derived sparse food with coverage in [0.5, 0.8] (Amd 02 §3.2)."""
+    """Every lattice cell (Amd 01 / v3). ``seed`` kept for API stability; ignored."""
 
-    cells = [(x, y) for y in range(int(height)) for x in range(int(width))]
-    n = len(cells)
-    if n <= 0:
+    del seed  # placement is deterministic every-cell (Amd 03 §3.2)
+    cells = tuple((x, y) for y in range(int(height)) for x in range(int(width)))
+    if not cells:
         raise ConfigurationError("hard experiment 01 food layout requires a non-empty lattice.")
-    rng = RNGManager(seed=seed, namespace="hard_experiment_01/food")
-    coverage_draw = min(0.8, 0.5 + 0.3 * rng.random())
-    k = int(round(coverage_draw * n))
-    k_lo = int(math.ceil(0.5 * n))
-    k_hi = int(math.floor(0.8 * n))
-    k = max(k_lo, min(k_hi, k))
-    for index in range(len(cells) - 1, 0, -1):
-        swap = rng.randrange(index + 1)
-        cells[index], cells[swap] = cells[swap], cells[index]
-    return tuple(cells[:k])
+    return cells
 
 
 def calibration_role_for_index(index: int, *, oracle: bool = False) -> str:
@@ -407,12 +417,10 @@ def _apply_survival_calibration(
     world = World2D(width, height)
     for position in food_cells:
         world.place_resource(position, CALIBRATION_RESOURCE_AMOUNT)
-    # Amd 02: draws from the overlay organism count (smoke 8→2, research 16→4),
-    # not life_loop ``population_max`` capacity. max_resources stays the full
-    # lattice (v3 used len(food_cells) when food covered every cell); capping at
-    # the sparse initial k would let uneaten off-row patches block respawn.
+    # Amd 03: revert respawn draws to Amd 01 / v3 (smoke 8→8, research 16→16).
+    # Food is every-cell again; max_resources remains the full lattice.
     population_size = len(spec.genome_bits)
-    respawn_draws_per_tick = max(1, population_size // 4)
+    respawn_draws_per_tick = max(1, population_size)
     lattice_cells = width * height
     resource_policy = replace(
         configs.runtime_resource_policy,
@@ -1559,9 +1567,11 @@ class HardExperiment01Campaign:
             "prereg_amendment_digest": hard_experiment_01_prereg_amendment_digest(),
             "prereg_amendment_02_path": PREREG_AMENDMENT_02_RELATIVE_PATH,
             "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
+            "prereg_amendment_03_path": PREREG_AMENDMENT_03_RELATIVE_PATH,
+            "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
             "role_layout": "seed_permuted_v3_multiset",
-            "food_coverage_range": [0.5, 0.8],
-            "respawn_draws_per_tick": "max(1, population_size // 4)",
+            "food_layout": "every_cell",
+            "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
             "positive_control_arm": "oracle_capsule",

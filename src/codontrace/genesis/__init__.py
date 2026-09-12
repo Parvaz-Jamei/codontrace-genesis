@@ -856,6 +856,7 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
     hard_experiment_01_prereg_amendment_02_digest,
+    hard_experiment_01_prereg_amendment_03_digest,
     hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
 )
@@ -2641,6 +2642,7 @@ __all__.extend(
         "hard_experiment_01_causal_dag",
         "hard_experiment_01_interventions",
         "hard_experiment_01_prereg_amendment_02_digest",
+        "hard_experiment_01_prereg_amendment_03_digest",
         "hard_experiment_01_prereg_digest",
         "run_hard_experiment_01",
     ]

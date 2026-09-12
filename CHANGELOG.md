@@ -17,7 +17,10 @@ stable. ClaimGate is not loosened.
   Estimand / arms / seeds / analysis unchanged.
 - Assay gate: `assay_failed` when treatment mean adoptions ≈ 0 or
   extinction ≈ 1; ceiling stays `runtime_observation`.
-- Research v2 artifact: `docs/hard_experiment_01/results_v2.json`.
+- Research v2 (`docs/hard_experiment_01/results_v2.json`): treatment
+  adoptions 169, extinction 0, assay passed; primary dz = 0,
+  CI `[0,0]`, Holm p = 1.0; ceiling `runtime_observation`. Interpretable
+  null after the channel fired.
 
 ### HARD_EXPERIMENT_01 Wave 1 — preregistered causal design
 

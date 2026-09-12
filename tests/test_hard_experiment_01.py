@@ -478,6 +478,28 @@ def test_committed_research_results_match_prereg_and_ceiling() -> None:
     assert "proved collective intelligence" not in claims[start:end]
 
 
+def test_committed_research_v2_exercises_source_bias_gate() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v2.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["tick_count"] == 40
+    assert payload["population"] == 16
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["claim_ceiling"] == CLAIM_CEILING
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["decision_rule_passed"] is False
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["adoption_mean"] > 0
+    assert by_arm["source_bias_on"]["extinction_rate"] < 1.0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()

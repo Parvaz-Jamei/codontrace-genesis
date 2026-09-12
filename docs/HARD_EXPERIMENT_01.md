@@ -242,8 +242,75 @@ That is a quality gate in front of §8, not a new estimand.
 Prereg commit `135b2ac` still precedes these numbers (prereg file
 bytes unchanged). Artifact:
 [`hard_experiment_01/results_v2.json`](hard_experiment_01/results_v2.json).
-Filled after the confirmatory re-run. ClaimGate is updated only to the
-ceiling it grants.
+Campaign digest
+`2ba450ef1f2eb80f6860b865d91a15c52f506cad6e80811b6be1307ff2e158ae`.
+`prereg_digest`
+`cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16.
+`StatisticalTestPolicy` tier: `research_grade_benchmark_candidate`.
+Wall-clock: 745.8 s on the generating runner. Replay identity: snapshot
+digest. `assay_failed`: **false**.
+
+This is an **interpretable null** on the registered estimand. The
+treatment arm kept survivors (`extinction_rate = 0.0`) and exercised
+the capsule channel (`adoption_mean = 169.0`). Last-tick mean fitness
+was identical across arms (`0.164375`). A zero paired delta after the
+channel fired is a valid finding. It is not mechanism support and not
+intelligence.
+
+### Primary contrasts (Holm, α = 0.05)
+
+| Contrast | n | mean | sd | dz | CI95 | p_holm | claim_downgraded |
+|---|---:|---:|---:|---:|---|---:|---|
+| `on` vs `off` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+| `on` vs `capsules_off` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+| `on` vs `shuffled` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+
+`shuffled ≈ capsules_off`: yes (BCa CI [0.0, 0.0] includes 0). Both
+arms share the same last-tick fitness; only adoptions differ
+(`169` vs `0`).
+
+### Arm table
+
+| Arm | n | mean | sd | births mean | adoptions mean | extinction |
+|---|---:|---:|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 0.164375 | 0.0 | 0.0 | 169.0 | 0.0 |
+| `source_bias_off` | 30 | 0.164375 | 0.0 | 0.0 | 169.0 | 0.0 |
+| `capsules_off` | 30 | 0.164375 | 0.0 | 0.0 | 0.0 | 0.0 |
+| `capsules_shuffled` | 30 | 0.164375 | 0.0 | 0.0 | 169.0 | 0.0 |
+
+Missing last-tick outcomes: 0 per arm. None zero-filled.
+
+### Dose table (`FITNESS_WEIGHTED`)
+
+| `min_source_fitness` | n | mean |
+|---:|---:|---:|
+| 0 | 30 | 0.164375 |
+| 1 | 30 | 0.164375 |
+| 2 | 30 | 0.164375 |
+| 4 | 30 | 0.164375 |
+
+Spearman ρ is undefined (zero variance). Consecutive means are
+non-decreasing (ties). `same_direction_as_h1` is false. Trend supported:
+**no**.
+
+### Replay
+
+All four arms × seeds `11` and `40`: **matched**. Campaign constructed.
+
+### ClaimGate ceiling
+
+**`runtime_observation`** (CLAIMS.md public level 1).
+
+Decision-rule failures:
+`ci_on_vs_off_includes_0`,
+`holm_on_vs_off_not_below_alpha`,
+`ci_on_vs_shuffled_includes_0`,
+`holm_on_vs_shuffled_not_below_alpha`,
+`dose_trend_not_monotonic_same_direction`.
+`intervention_supported` was **not** requested. Interpretable null is
+valid. The source-bias gate *was* exercised (treatment adoptions > 0;
+`capsules_off` adoptions = 0).
 
 ## Decision rule
 

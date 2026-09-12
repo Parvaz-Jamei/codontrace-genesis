@@ -484,6 +484,24 @@ def _run_spec(spec: GenesisExperimentSpec) -> object:
     return GenesisEngine.from_spec(spec).run_ticks()
 
 
+def _result_identity_digest(result: object) -> str:
+    """Replay identity for one run.
+
+    Full ``GenesisRunResult.digest()`` hashes every tick plus maturity
+    reports and is too expensive for a 30×40×16 campaign. The snapshot
+    digest is the Phase A pin surface and is sufficient to detect a
+    mismatched re-run.
+    """
+
+    snapshot = getattr(result, "snapshot", None)
+    digest = getattr(snapshot, "digest", None)
+    if callable(digest):
+        value = str(digest())
+        if len(value) == 64:
+            return value
+    return str(result.digest())
+
+
 def _run_arm(
     *,
     seed: int,
@@ -950,7 +968,7 @@ def _record_from_run(
         capsule_transfer_count=transfers,
         capsule_adoptions=adoptions,
         spec_digest=spec.digest(),
-        result_digest=str(result.digest()),
+        result_digest=_result_identity_digest(result),
         next_generation_observed=births > 0,
         outcome_missing=fitness is None,
         extinct=final_pop == 0,
@@ -1008,7 +1026,7 @@ def _dose_record(
         births=_birth_count(result),
         capsule_adoptions=adoptions,
         spec_digest=spec.digest(),
-        result_digest=str(result.digest()),
+        result_digest=_result_identity_digest(result),
         outcome_missing=fitness is None,
         extinct=final_pop == 0,
     )
@@ -1091,7 +1109,7 @@ def _replay_arm(
         population=population,
     )
     spec_digest = spec.digest()
-    result_digest = str(result.digest())
+    result_digest = _result_identity_digest(result)
     return HardExperiment01ReplayRecord(
         seed=original.seed,
         arm=original.arm,

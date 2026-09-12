@@ -22,6 +22,9 @@ pins stay stable. ClaimGate is not loosened.
 - Smoke (12 / 6 / 4) stays in CI at `runtime_observation`. Research
   (30 / 40 / 16) may request existing `intervention_supported` only if
   the preregistered decision rule holds and ClaimGate allows it.
+- Research v1 (`docs/hard_experiment_01/results_v1.json`) is a null
+  finding: dz = 0, CI `[0, 0]`, Holm p = 1.0, ceiling
+  `runtime_observation`. Replay matched. Capsule adoptions were 0.
 
 ### Advisor hygiene + hard experiment 01
 

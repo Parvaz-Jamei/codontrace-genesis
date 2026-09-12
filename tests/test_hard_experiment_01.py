@@ -175,13 +175,13 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
     last_replay_result = GenesisEngine.from_spec(last_replay_spec).run_ticks()
     assert last_replay_spec.digest() == last.capsules_off.spec_digest
-    assert last_replay_result.digest() == last.capsules_off.result_digest
+    assert last_replay_result.snapshot.digest() == last.capsules_off.result_digest
     shuffled_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_shuffled")
     shuffled_replay_result = GenesisEngine.from_spec(shuffled_replay_spec).run_ticks()
     assert shuffled_replay_spec.digest() == last.capsules_shuffled.spec_digest
-    assert shuffled_replay_result.digest() == last.capsules_shuffled.result_digest
+    assert shuffled_replay_result.snapshot.digest() == last.capsules_shuffled.result_digest
     assert replay_spec.digest() == first.spec_digest
-    assert replay_result.digest() == first.result_digest
+    assert replay_result.snapshot.digest() == first.result_digest
     assert campaign.to_dict()["collective_intelligence"] is False
     assert campaign.to_dict()["intelligence"] is False
     assert campaign.to_dict()["agi"] is False
@@ -366,6 +366,31 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
     )
 
 
+def test_committed_research_results_match_prereg_and_ceiling() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v1.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["tick_count"] == 40
+    assert payload["population"] == 16
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["claim_ceiling"] == CLAIM_CEILING
+    assert payload["collective_intelligence"] is False
+    assert payload["intelligence"] is False
+    assert payload["replay_matched"] is True
+    assert len(payload["paired_contrasts"]) == 3
+    assert payload["multiple_comparison_audit"]["metric_count"] == 3
+    assert payload["decision_rule_passed"] is False
+    claims = (root / "CLAIMS.md").read_text(encoding="utf-8")
+    assert "runtime_observation" in claims
+    assert "HARD_EXPERIMENT_01 Wave 1" in claims
+    start = claims.find("### 4.4")
+    end = claims.find("## 5.")
+    assert "proved collective intelligence" not in claims[start:end]
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
@@ -381,6 +406,8 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "mechanism ablation" in text
     assert "capsules_shuffled" in text
     assert "Okasha" in text
+    assert "Results (research v1)" in text
+    assert "claim_downgraded" in text
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")

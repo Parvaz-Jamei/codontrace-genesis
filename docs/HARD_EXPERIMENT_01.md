@@ -53,7 +53,7 @@ Dose `min_source_fitness ∈ {0, 1, 2, 4}` with `FITNESS_WEIGHTED` modulates
 | Outcome | last-tick `selection_mean_fitness` (missing dropped, never zero-filled) |
 | Secondary | births, extinction rate, adoption count |
 | Statistics | `paired_effect_size` (dz), `bootstrap_ci_paired` (BCa, 10000), `exact_sign_flip_permutation_p`, Holm on three primary contrasts, `PairedComparisonResult.claim_downgraded` when CI includes 0, `MultipleComparisonAudit(metric_count=3)` |
-| Replay | all arms × `seeds[0]` and `seeds[-1]`; campaign refuses a mismatch |
+| Replay | all arms × `seeds[0]` and `seeds[-1]`; snapshot digest identity; campaign refuses a mismatch |
 | Library | `codontrace.genesis.hard_experiment_01` |
 | Example | `examples/genesis_hard_experiment_01.py` |
 
@@ -95,20 +95,90 @@ python examples/genesis_hard_experiment_01.py
 
 A campaign object will not construct if replay digests fail to match.
 
-## Results: not yet recorded
+## Results (research v1)
 
-Research-scale numbers are generated **after** the preregistration commit
-and archived in [`hard_experiment_01/results_v1.json`](hard_experiment_01/results_v1.json)
-when the research campaign has been run. Until that artifact exists, do
-not copy informal local printouts into this section.
+Prereg commit `135b2ac` precedes these numbers. Artifact:
+[`hard_experiment_01/results_v1.json`](hard_experiment_01/results_v1.json).
+Campaign digest
+`37f7c447e332d557eb5a3641de01bbdd5c505c99620a361e7aa8c53024300579`.
+`prereg_digest`
+`cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16.
+`StatisticalTestPolicy` tier: `research_grade_benchmark_candidate`.
+Wall-clock: 76.0 s on the generating runner (one arm×seed probe 0.34 s).
+Replay identity: snapshot digest (full `GenesisRunResult.digest()` is too
+expensive at this scale).
 
-- Arm table (n, mean, sd, dz, CI95, p_holm): **not yet recorded**
-- Dose table: **not yet recorded**
-- Extinction per arm: **not yet recorded**
-- Replay status: **not yet recorded**
-- ClaimGate ceiling: **not yet recorded** (smoke stays `runtime_observation`)
+This is a **null finding**. Last-tick mean fitness was identically 0 on
+every arm. Capsule adoptions were 0 — the source-bias gate never acted
+because the channel did not transfer. Populations were extinct at the
+last tick (`extinction_rate = 1.0`). A zero delta is not mechanism
+support and is not intelligence.
 
-This section must not be filled with intelligence, AGI, Tokyo Type 1, or
+### Primary contrasts (Holm, α = 0.05)
+
+| Contrast | n | mean | sd | dz | CI95 | p_holm | claim_downgraded |
+|---|---:|---:|---:|---:|---|---:|---|
+| `on` vs `off` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+| `on` vs `capsules_off` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+| `on` vs `shuffled` | 30 | 0.0 | 0.0 | 0.0 | [0.0, 0.0] | 1.0 | yes |
+
+`shuffled ≈ capsules_off`: yes (BCa CI [0.0, 0.0] includes 0). Vacuous
+here because both arms are identically zero.
+
+### Arm table
+
+| Arm | n | mean | sd | births mean | adoptions mean | extinction |
+|---|---:|---:|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 0.0 | 0.0 | 2.0 | 0.0 | 1.0 |
+| `source_bias_off` | 30 | 0.0 | 0.0 | 2.0 | 0.0 | 1.0 |
+| `capsules_off` | 30 | 0.0 | 0.0 | 2.0 | 0.0 | 1.0 |
+| `capsules_shuffled` | 30 | 0.0 | 0.0 | 2.0 | 0.0 | 1.0 |
+
+Missing last-tick outcomes: 0 per arm. None zero-filled.
+
+### Dose table (`FITNESS_WEIGHTED`)
+
+| `min_source_fitness` | n | mean |
+|---:|---:|---:|
+| 0 | 30 | 0.0 |
+| 1 | 30 | 0.0 |
+| 2 | 30 | 0.0 |
+| 4 | 30 | 0.0 |
+
+Spearman ρ is undefined (zero variance). Consecutive means are
+non-decreasing (ties). `same_direction_as_h1` is false. Trend supported:
+**no**.
+
+### Replay
+
+All four arms × seeds `11` and `40`: **matched**. Campaign constructed.
+
+### ClaimGate ceiling
+
+**`runtime_observation`** (CLAIMS.md public level 1).
+
+Decision-rule failures:
+`ci_on_vs_off_includes_0`,
+`holm_on_vs_off_not_below_alpha`,
+`ci_on_vs_shuffled_includes_0`,
+`holm_on_vs_shuffled_not_below_alpha`,
+`dose_trend_not_monotonic_same_direction`.
+`intervention_supported` was **not** requested. Null finding is valid.
+
+### Limitations
+
+- Life-loop overlay, not an Avida ISA.
+- At 40 ticks / pop 16 the overlay reached last-tick extinction with
+  zero capsule adoptions, so the confirmatory DAG edges `e1`/`e2` were
+  not exercised. This is a substrate/horizon observation, not a proof
+  that source-fitness weighting cannot matter in a living population.
+- Terminal mean fitness is a last-tick observation.
+- Replay identity is the snapshot digest, not the full run-result hash.
+- Smoke (`n=12`) remains `exploratory_only`.
+- Not knowledge-transfer proof. Not intelligence.
+
+This section does not use intelligence, AGI, Tokyo Type 1, or
 Avida-replacement language.
 
 ## Decision rule

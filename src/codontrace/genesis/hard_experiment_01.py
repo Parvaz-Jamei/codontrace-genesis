@@ -23,6 +23,11 @@ no re-campaign): document that peer-rotation shuffle preserves the payload
 marginal; split adoption attempts vs accepts; surface shuffle
 content/source-changed rates; correct the dose pattern display label.
 
+Wave 1e (SCHEMA v6 / Amendment 04) adds confirmatory ``capsules_content_null``
+(fixed WAIT payload) and auxiliary ``capsules_activity_matched`` (yoked accept
+count). Legacy ``capsules_shuffled`` is sensitivity-only. ClaimGate ceiling
+stays ``runtime_observation``; Amd 04 alone never raises it.
+
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
 A null finding is valid. This module does not mutate a global ClaimGate.
@@ -81,11 +86,15 @@ RESEARCH_POPULATION = 16
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 EXPERIMENT_ID = "hard_experiment_01_capsule_source_bias"
-SCHEMA_VERSION = "hard_experiment_01_v5"
+SCHEMA_VERSION = "hard_experiment_01_v6"
 PREREG_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG.md"
 PREREG_AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
 PREREG_AMENDMENT_02_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
 PREREG_AMENDMENT_03_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
+PREREG_AMENDMENT_04_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
+# Amd 04 pilot: mean |activity_match_gap| <= epsilon (accepts).
+ACTIVITY_MATCH_EPSILON = 1
+CONTENT_NULL_PAYLOAD_ACTION = "WAIT"
 # Wave 1c primary outcome: mean terminal runtime ATP of the *receiver* class
 # (the units the intervention acts on). The v1/v2 composite selection score is
 # kept as a secondary, descriptive field (``legacy_terminal_selection_fitness``).
@@ -135,23 +144,38 @@ CALIBRATION_RESPAWN_UNDER_ORGANISMS = True
 CALIBRATION_STARVATION_CONSECUTIVE_TICKS = 3
 
 ArmName = Literal[
-    "source_bias_on", "source_bias_off", "capsules_off", "capsules_shuffled", "oracle_capsule"
+    "source_bias_on",
+    "source_bias_off",
+    "capsules_off",
+    "capsules_content_null",
+    "capsules_activity_matched",
+    "capsules_shuffled",
+    "oracle_capsule",
 ]
 ARMS: tuple[ArmName, ...] = (
     "source_bias_on",
     "source_bias_off",
     "capsules_off",
+    "capsules_content_null",
+    "capsules_activity_matched",
     "capsules_shuffled",
     "oracle_capsule",
 )
-# Arms that enter the confirmatory analysis. ``oracle_capsule`` is a positive
-# control (all emitters good, gate off): it must move the outcome vs
-# ``capsules_off`` or the assay is declared invalid. It is not a hypothesis arm.
-ANALYSIS_ARMS: tuple[ArmName, ...] = ARMS[:4]
+# Confirmatory analysis arms (Amd 04). ``oracle_capsule`` is a positive
+# control; ``capsules_shuffled`` is sensitivity/archival; activity_matched is
+# auxiliary (yoked volume).
+ANALYSIS_ARMS: tuple[ArmName, ...] = (
+    "source_bias_on",
+    "source_bias_off",
+    "capsules_off",
+    "capsules_content_null",
+)
+SENSITIVITY_ARMS: tuple[ArmName, ...] = ("capsules_shuffled",)
+AUXILIARY_ARMS: tuple[ArmName, ...] = ("capsules_activity_matched",)
 PRIMARY_CONTRASTS: tuple[tuple[ArmName, ArmName], ...] = (
     ("source_bias_on", "source_bias_off"),
     ("source_bias_on", "capsules_off"),
-    ("source_bias_on", "capsules_shuffled"),
+    ("source_bias_on", "capsules_content_null"),
 )
 INTERVENTION_SUPPORTED_FLAGS: tuple[str, ...] = (
     "intervention_result_artifact",
@@ -180,7 +204,7 @@ _QUESTION = (
     "Does source-fitness-gated capsule transfer raise receiver mean terminal "
     "runtime ATP relative to (a) the same capsule channel with source-fitness "
     "gating ablated, (b) capsules off, and (c) the capsule channel on with "
-    "content scrambled?"
+    "informative payload destroyed (content null)?"
 )
 
 _DAG_NODES = (
@@ -265,6 +289,21 @@ def hard_experiment_01_prereg_amendment_03_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def hard_experiment_01_prereg_amendment_04_path() -> Path:
+    return _repo_root() / PREREG_AMENDMENT_04_RELATIVE_PATH
+
+
+def hard_experiment_01_prereg_amendment_04_digest() -> str:
+    """SHA-256 of the frozen amendment 04 file (UTF-8 bytes)."""
+
+    path = hard_experiment_01_prereg_amendment_04_path()
+    if not path.is_file():
+        raise ConfigurationError(
+            f"missing preregistration amendment: {PREREG_AMENDMENT_04_RELATIVE_PATH}"
+        )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -303,17 +342,23 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
             "prereg_amendment_03_path": PREREG_AMENDMENT_03_RELATIVE_PATH,
             "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
+            "prereg_amendment_04_path": PREREG_AMENDMENT_04_RELATIVE_PATH,
+            "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
             "role_layout": "seed_permuted_v3_multiset",
             "food_layout": "every_cell",
             "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
+            "sensitivity_arms": list(SENSITIVITY_ARMS),
+            "auxiliary_arms": list(AUXILIARY_ARMS),
             "positive_control_arm": "oracle_capsule",
             "dose_peak_index": DOSE_PEAK_INDEX,
             "pilot_seeds": list(PILOT_SEEDS),
             "inferential_seed": INFERENTIAL_SEED,
             "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
             "alpha": ALPHA,
+            "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
+            "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
         }
     )
 
@@ -322,7 +367,7 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
     """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
 
     return {
-        "wave": "1d_prime",
+        "wave": "1e",
         "dated": "2026-09-12",
         "scope": "hard_experiment_01_overlay_only",
         "life_loop_defaults_unchanged": True,
@@ -346,11 +391,13 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "adoption_substitutable_actions": ["WAIT"],
         "primary_outcome": PRIMARY_OUTCOME,
         "note": (
-            "Wave 1d′: keep seed-permuted v3 role multiset; revert food to "
-            "every-cell and respawn_draws_per_tick to max(1, population_size) "
-            "(Amd 01 / v3 ecology). Estimand, arms, seeds, and Amendment 01 "
-            "decision rule unchanged (prereg amendment 03)."
+            "Wave 1e / Amd 04: keep Amd 03 ecology; confirmatory null is "
+            "capsules_content_null (WAIT fixed token); capsules_shuffled is "
+            "sensitivity; capsules_activity_matched yokes accepts to "
+            "source_bias_on. ClaimGate ceiling stays runtime_observation."
         ),
+        "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
+        "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
     }
 
 
@@ -584,6 +631,23 @@ def _manipulation_check_failures(
         )
     if not channel_active:
         failures.append("assay_failed_shuffled_channel_silent")
+    # Amd 04: confirmatory content_null must destroy profitable payload marginal.
+    if "capsules_content_null" in by_arm:
+        null_payloads = _payloads("capsules_content_null")
+        if CALIBRATION_GOOD_PAYLOAD_ACTION in null_payloads:
+            failures.append("assay_failed_content_null_adopted_profitable_payload")
+        content_changed_null = _num("capsules_content_null", "shuffle_content_changed_rate")
+        accepted_null = _num("capsules_content_null", "adoption_accepted_mean")
+        adoptions_null = _num("capsules_content_null", "adoption_mean")
+        null_channel = False
+        if content_changed_null is not None or accepted_null is not None:
+            null_channel = (content_changed_null or 0.0) > 0.0 or (
+                accepted_null or 0.0
+            ) > ASSAY_ADOPTIONS_NEAR_ZERO
+        elif adoptions_null is not None:
+            null_channel = adoptions_null > ASSAY_ADOPTIONS_NEAR_ZERO
+        if not null_channel:
+            failures.append("assay_failed_content_null_channel_silent")
     oracle_mean = _num("oracle_capsule", "mean")
     none_mean = _num("capsules_off", "mean")
     if oracle_mean is None or none_mean is None or oracle_mean <= none_mean:
@@ -820,10 +884,30 @@ def hard_experiment_01_interventions() -> tuple[HardExperiment01Intervention, ..
             cuts_edges=("e1", "e2"),
         ),
         HardExperiment01Intervention(
-            arm="capsules_shuffled",
+            arm="capsules_content_null",
             role="negative_control",
             target_mechanism="capsule_content_information",
-            action="scramble_capsule_content_keep_channel",
+            action="null_capsule_payload_keep_channel",
+            knob="CapsuleTransferConfig.shuffle_mode",
+            applied_value="CapsuleShuffleMode.CONTENT_NULL",
+            compared_to="source_bias_on",
+            cuts_edges=("e2_content",),
+        ),
+        HardExperiment01Intervention(
+            arm="capsules_activity_matched",
+            role="auxiliary_control",
+            target_mechanism="capsule_channel_activity_volume",
+            action="null_payload_yoke_accept_count_to_treatment",
+            knob="CapsuleTransferConfig.shuffle_mode+max_successful_adoptions",
+            applied_value="CONTENT_NULL+yoked_accept_cap",
+            compared_to="source_bias_on",
+            cuts_edges=("e2_content",),
+        ),
+        HardExperiment01Intervention(
+            arm="capsules_shuffled",
+            role="sensitivity_negative_control",
+            target_mechanism="capsule_content_information",
+            action="peer_rotate_capsule_content_keep_channel",
             knob="CapsuleTransferConfig.shuffle_mode",
             applied_value="CapsuleShuffleMode.CONTENT",
             compared_to="source_bias_on",
@@ -874,6 +958,7 @@ def _enabled_capsule(
     min_source_fitness: float,
     adoption_policy: CapsuleAdoptionPolicy,
     shuffle_mode: CapsuleShuffleMode,
+    max_successful_adoptions: int | None = None,
 ) -> CapsuleTransferConfig:
     return CapsuleTransferConfig(
         enabled=True,
@@ -893,10 +978,13 @@ def _enabled_capsule(
         accept_provisional_source_fitness=True,
         adoption_effect_action=True,
         adoption_substitutable_actions=("WAIT",),
+        max_successful_adoptions=max_successful_adoptions,
     )
 
 
-def _capsule_for_arm(arm: ArmName) -> CapsuleTransferConfig:
+def _capsule_for_arm(
+    arm: ArmName, *, activity_match_budget: int | None = None
+) -> CapsuleTransferConfig:
     if arm == "capsules_off":
         return CapsuleTransferConfig(enabled=False)
     if arm == "source_bias_on":
@@ -910,6 +998,24 @@ def _capsule_for_arm(arm: ArmName) -> CapsuleTransferConfig:
             min_source_fitness=0.0,
             adoption_policy=CapsuleAdoptionPolicy.THRESHOLD,
             shuffle_mode=CapsuleShuffleMode.OFF,
+        )
+    if arm == "capsules_content_null":
+        return _enabled_capsule(
+            min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT,
+            adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
+            shuffle_mode=CapsuleShuffleMode.CONTENT_NULL,
+        )
+    if arm == "capsules_activity_matched":
+        if activity_match_budget is None:
+            raise ConfigurationError(
+                "capsules_activity_matched requires activity_match_budget "
+                "(yoked source_bias_on capsule_adoptions_accepted)."
+            )
+        return _enabled_capsule(
+            min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT,
+            adoption_policy=CapsuleAdoptionPolicy.FITNESS_WEIGHTED,
+            shuffle_mode=CapsuleShuffleMode.CONTENT_NULL,
+            max_successful_adoptions=int(activity_match_budget),
         )
     if arm == "capsules_shuffled":
         return _enabled_capsule(
@@ -974,8 +1080,13 @@ def build_hard_experiment_01_spec(
     arm: ArmName,
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
+    activity_match_budget: int | None = None,
 ) -> GenesisExperimentSpec:
-    """Life-loop overlay. Does not mutate default Phase A–E preset digests."""
+    """Life-loop overlay. Does not mutate default Phase A–E preset digests.
+
+    ``activity_match_budget`` is required for ``capsules_activity_matched``
+    (yoked ``source_bias_on`` successful accepts for the same seed).
+    """
 
     if arm not in ARMS:
         raise ConfigurationError(f"unknown hard experiment 01 arm: {arm!r}")
@@ -983,7 +1094,7 @@ def build_hard_experiment_01_spec(
         seed=seed,
         tick_count=tick_count,
         population=population,
-        capsule=_capsule_for_arm(arm),
+        capsule=_capsule_for_arm(arm, activity_match_budget=activity_match_budget),
         arm_label=arm,
         oracle=arm == "oracle_capsule",
     )
@@ -1177,9 +1288,14 @@ def _run_arm(
     arm: ArmName,
     tick_count: int,
     population: int,
+    activity_match_budget: int | None = None,
 ) -> tuple[GenesisExperimentSpec, object]:
     spec = build_hard_experiment_01_spec(
-        seed=seed, arm=arm, tick_count=tick_count, population=population
+        seed=seed,
+        arm=arm,
+        tick_count=tick_count,
+        population=population,
+        activity_match_budget=activity_match_budget,
     )
     return spec, _run_spec(spec)
 
@@ -1217,6 +1333,8 @@ class HardExperiment01ArmRecord:
     shuffle_record_count: int = 0
     shuffle_content_changed_count: int = 0
     shuffle_source_changed_count: int = 0
+    activity_match_budget: int | None = None
+    activity_match_gap: int | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "bias_payload_counts", dict(self.bias_payload_counts))
@@ -1280,13 +1398,15 @@ class HardExperiment01ArmRecord:
             "shuffle_record_count": self.shuffle_record_count,
             "shuffle_content_changed_count": self.shuffle_content_changed_count,
             "shuffle_source_changed_count": self.shuffle_source_changed_count,
+            "activity_match_budget": self.activity_match_budget,
+            "activity_match_gap": self.activity_match_gap,
             "claim_ceiling": CLAIM_CEILING,
         }
 
 
 @dataclass(frozen=True, slots=True)
 class HardExperiment01SeedRecord:
-    """Paired record for one seed: four analysis arms + positive control."""
+    """Paired record for one seed: confirmatory + auxiliary + sensitivity + oracle."""
 
     seed: int
     source_bias_on: HardExperiment01ArmRecord
@@ -1297,6 +1417,10 @@ class HardExperiment01SeedRecord:
     delta_vs_capsules_off: float | None
     delta_vs_capsules_shuffled: float | None
     oracle_capsule: HardExperiment01ArmRecord | None = None
+    capsules_content_null: HardExperiment01ArmRecord | None = None
+    capsules_activity_matched: HardExperiment01ArmRecord | None = None
+    delta_vs_capsules_content_null: float | None = None
+    delta_vs_capsules_activity_matched: float | None = None
 
     def __post_init__(self) -> None:
         arms = tuple(
@@ -1305,6 +1429,8 @@ class HardExperiment01SeedRecord:
                 self.source_bias_on,
                 self.source_bias_off,
                 self.capsules_off,
+                self.capsules_content_null,
+                self.capsules_activity_matched,
                 self.capsules_shuffled,
                 self.oracle_capsule,
             )
@@ -1316,6 +1442,8 @@ class HardExperiment01SeedRecord:
             "delta_vs_source_bias_off",
             "delta_vs_capsules_off",
             "delta_vs_capsules_shuffled",
+            "delta_vs_capsules_content_null",
+            "delta_vs_capsules_activity_matched",
         ):
             value = getattr(self, name)
             if value is not None:
@@ -1327,12 +1455,24 @@ class HardExperiment01SeedRecord:
             "source_bias_on": self.source_bias_on.to_dict(),
             "source_bias_off": self.source_bias_off.to_dict(),
             "capsules_off": self.capsules_off.to_dict(),
+            "capsules_content_null": (
+                None
+                if self.capsules_content_null is None
+                else self.capsules_content_null.to_dict()
+            ),
+            "capsules_activity_matched": (
+                None
+                if self.capsules_activity_matched is None
+                else self.capsules_activity_matched.to_dict()
+            ),
             "capsules_shuffled": self.capsules_shuffled.to_dict(),
             "oracle_capsule": (
                 None if self.oracle_capsule is None else self.oracle_capsule.to_dict()
             ),
             "delta_vs_source_bias_off": self.delta_vs_source_bias_off,
             "delta_vs_capsules_off": self.delta_vs_capsules_off,
+            "delta_vs_capsules_content_null": self.delta_vs_capsules_content_null,
+            "delta_vs_capsules_activity_matched": self.delta_vs_capsules_activity_matched,
             "delta_vs_capsules_shuffled": self.delta_vs_capsules_shuffled,
         }
 
@@ -1558,12 +1698,15 @@ class HardExperiment01Campaign:
     protocol_digest: str = ""
     paired_contrasts: tuple[HardExperiment01PairedContrast, ...] = ()
     shuffled_vs_capsules_off: HardExperiment01PairedContrast | None = None
+    content_null_vs_capsules_off: HardExperiment01PairedContrast | None = None
     multiple_comparison_audit: MultipleComparisonAudit | None = None
     dose_records: tuple[HardExperiment01DoseRecord, ...] = ()
     dose_trend: HardExperiment01DoseTrend | None = None
     arm_summaries: tuple[HardExperiment01ArmSummary, ...] = ()
     decision_rule_passed: bool = False
     decision_rule_failures: tuple[str, ...] = ()
+    sensitivity_failures: tuple[str, ...] = ()
+    mean_abs_activity_match_gap: float | None = None
     claim_gate_allowed: bool = False
     claim_gate_decision_digest: str = ""
     claim_gate_final_claim: str = CLAIM_CEILING
@@ -1652,13 +1795,19 @@ class HardExperiment01Campaign:
             "prereg_amendment_02_digest": hard_experiment_01_prereg_amendment_02_digest(),
             "prereg_amendment_03_path": PREREG_AMENDMENT_03_RELATIVE_PATH,
             "prereg_amendment_03_digest": hard_experiment_01_prereg_amendment_03_digest(),
+            "prereg_amendment_04_path": PREREG_AMENDMENT_04_RELATIVE_PATH,
+            "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
             "role_layout": "seed_permuted_v3_multiset",
             "food_layout": "every_cell",
             "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
+            "sensitivity_arms": list(SENSITIVITY_ARMS),
+            "auxiliary_arms": list(AUXILIARY_ARMS),
             "positive_control_arm": "oracle_capsule",
             "pilot_seeds": list(PILOT_SEEDS),
+            "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
+            "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
             "protocol_digest": self.protocol_digest,
             "causal_dag": hard_experiment_01_causal_dag(),
             "seeds": list(self.seeds),
@@ -1671,6 +1820,11 @@ class HardExperiment01Campaign:
             "shuffled_vs_capsules_off": None
             if self.shuffled_vs_capsules_off is None
             else self.shuffled_vs_capsules_off.to_dict(),
+            "content_null_vs_capsules_off": None
+            if self.content_null_vs_capsules_off is None
+            else self.content_null_vs_capsules_off.to_dict(),
+            "sensitivity_failures": list(self.sensitivity_failures),
+            "mean_abs_activity_match_gap": self.mean_abs_activity_match_gap,
             "multiple_comparison_audit": None
             if self.multiple_comparison_audit is None
             else self.multiple_comparison_audit.to_dict(),
@@ -1689,6 +1843,7 @@ class HardExperiment01Campaign:
             "interventions": [item.to_dict() for item in self.interventions],
             "decision_rule_passed": self.decision_rule_passed,
             "decision_rule_failures": list(self.decision_rule_failures),
+            "sensitivity_failures_note": "shuffled_better_than_capsules_off is sensitivity-only under Amd 04",
             "assay_failed": self.assay_failed,
             "assay_failures": list(self.assay_failures),
             "calibration": hard_experiment_01_calibration_knobs(),
@@ -1714,8 +1869,10 @@ class HardExperiment01Campaign:
                 "source_fitness_gate_is_a_step_function_on_this_substrate",
                 "oracle_capsule_is_a_positive_control_not_a_hypothesis_arm",
                 "missing_last_tick_outcomes_are_dropped_not_zero_filled",
-                "capsules_shuffled_is_content_scramble_not_channel_off",
+                "capsules_content_null_is_confirmatory_negative_control",
+                "capsules_shuffled_is_sensitivity_peer_rotation_not_confirmatory_null",
                 "capsules_shuffled_peer_rotation_preserves_payload_marginal",
+                "capsules_activity_matched_is_auxiliary_yoked_accept_control",
                 "capsule_adoptions_count_attempts_not_successful_accepts",
                 "dose_pattern_display_is_step_up_then_downturn_not_saturate",
                 "dose_statistic_is_algebraic_sum_of_two_primary_contrasts",
@@ -1727,6 +1884,7 @@ class HardExperiment01Campaign:
                 "wave_1b_survival_calibration_does_not_change_the_estimand",
                 "wave_1c_e2_coupling_is_an_opt_in_engine_knob_default_off",
                 "wave_1d_double_prime_evidence_honesty_only_no_new_claim",
+                "wave_1e_amd04_does_not_auto_grant_intervention_supported",
                 "assay_failure_keeps_runtime_observation",
             ],
         }
@@ -1741,6 +1899,7 @@ def _record_from_run(
     arm: ArmName,
     spec: GenesisExperimentSpec,
     result: object,
+    activity_match_budget: int | None = None,
 ) -> HardExperiment01ArmRecord:
     births = _birth_count(result)
     sources, utilities, transfers, adoptions, accepted = _capsule_counts(result)
@@ -1750,6 +1909,9 @@ def _record_from_run(
     legacy = _mean_last_tick_fitness(result)
     final_pop = _final_population(result)
     applied, payloads, rejected = _manipulation_metrics(result)
+    gap = None
+    if activity_match_budget is not None:
+        gap = int(accepted) - int(activity_match_budget)
     return HardExperiment01ArmRecord(
         seed=seed,
         arm=arm,
@@ -1774,6 +1936,8 @@ def _record_from_run(
         shuffle_record_count=shuffle_n,
         shuffle_content_changed_count=content_n,
         shuffle_source_changed_count=source_n,
+        activity_match_budget=activity_match_budget,
+        activity_match_gap=gap,
     )
 
 
@@ -1783,11 +1947,22 @@ def _arm_record(
     arm: ArmName,
     tick_count: int,
     population: int,
+    activity_match_budget: int | None = None,
 ) -> HardExperiment01ArmRecord:
     spec, result = _run_arm(
-        seed=seed, arm=arm, tick_count=tick_count, population=population
+        seed=seed,
+        arm=arm,
+        tick_count=tick_count,
+        population=population,
+        activity_match_budget=activity_match_budget,
     )
-    return _record_from_run(seed=seed, arm=arm, spec=spec, result=result)
+    return _record_from_run(
+        seed=seed,
+        arm=arm,
+        spec=spec,
+        result=result,
+        activity_match_budget=activity_match_budget,
+    )
 
 
 def _dose_record(
@@ -1906,11 +2081,13 @@ def _replay_arm(
     tick_count: int,
     population: int,
 ) -> HardExperiment01ReplayRecord:
+    budget = original.activity_match_budget
     spec, result = _run_arm(
         seed=original.seed,
         arm=original.arm,
         tick_count=tick_count,
         population=population,
+        activity_match_budget=budget,
     )
     spec_digest = spec.digest()
     result_digest = _result_identity_digest(result)
@@ -2228,11 +2405,13 @@ def _decision_rule_failures(
     scale: ScaleName,
     statistical_tier: str,
     contrasts: Sequence[HardExperiment01PairedContrast],
-    shuffled_vs_off: HardExperiment01PairedContrast | None,
+    content_null_vs_off: HardExperiment01PairedContrast | None,
     dose_trend: HardExperiment01DoseTrend | None,
     replay_matched: bool,
     assay_failures: Sequence[str] = (),
 ) -> tuple[str, ...]:
+    """Amd 04 confirmatory failures (shuffled_better is sensitivity-only)."""
+
     failures: list[str] = list(assay_failures)
     if scale != "research":
         failures.append("not_research_scale")
@@ -2241,29 +2420,45 @@ def _decision_rule_failures(
     if not replay_matched:
         failures.append("replay_mismatch")
     vs_off = _contrast_by_baseline(contrasts, "source_bias_off")
-    vs_shuffled = _contrast_by_baseline(contrasts, "capsules_shuffled")
-    if vs_off is None or vs_shuffled is None:
+    vs_null = _contrast_by_baseline(contrasts, "capsules_content_null")
+    if vs_off is None or vs_null is None:
         failures.append("missing_primary_contrast")
         return tuple(failures)
-    if vs_off.dz is None or vs_shuffled.dz is None:
+    if vs_off.dz is None or vs_null.dz is None:
         failures.append("dz_undefined")
     if not _ci_excludes_zero(vs_off.ci_low, vs_off.ci_high):
         failures.append("ci_on_vs_off_includes_0")
     if vs_off.p_holm is None or vs_off.p_holm >= ALPHA:
         failures.append("holm_on_vs_off_not_below_alpha")
-    if not _ci_excludes_zero(vs_shuffled.ci_low, vs_shuffled.ci_high):
-        failures.append("ci_on_vs_shuffled_includes_0")
-    if vs_shuffled.p_holm is None or vs_shuffled.p_holm >= ALPHA:
-        failures.append("holm_on_vs_shuffled_not_below_alpha")
+    if not _ci_excludes_zero(vs_null.ci_low, vs_null.ci_high):
+        failures.append("ci_on_vs_content_null_includes_0")
+    if vs_null.p_holm is None or vs_null.p_holm >= ALPHA:
+        failures.append("holm_on_vs_content_null_not_below_alpha")
+    if (
+        content_null_vs_off is None
+        or content_null_vs_off.ci_low is None
+        or content_null_vs_off.ci_high is None
+    ):
+        failures.append("missing_content_null_vs_capsules_off")
+    elif content_null_vs_off.ci_low > 0.0:
+        # Amd 04 confirmatory null: content-null must not beat channel-off.
+        failures.append("content_null_better_than_capsules_off")
+    if dose_trend is None or not dose_trend.trend_supported:
+        failures.append("dose_pattern_not_supported")
+    return tuple(failures)
+
+
+def _sensitivity_failures(
+    *,
+    shuffled_vs_off: HardExperiment01PairedContrast | None,
+) -> tuple[str, ...]:
+    """Legacy peer-rotation non-superiority (expected to fail by construction)."""
+
+    failures: list[str] = []
     if shuffled_vs_off is None or shuffled_vs_off.ci_low is None or shuffled_vs_off.ci_high is None:
         failures.append("missing_shuffled_vs_capsules_off")
     elif shuffled_vs_off.ci_low > 0.0:
-        # Amendment 01: scrambled content must not *beat* channel-off. A
-        # scrambled channel that helps would mean channel presence, not
-        # content, drives the outcome.
         failures.append("shuffled_better_than_capsules_off")
-    if dose_trend is None or not dose_trend.trend_supported:
-        failures.append("dose_pattern_not_supported")
     return tuple(failures)
 
 
@@ -2317,18 +2512,30 @@ def run_hard_experiment_01(
     records: list[HardExperiment01SeedRecord] = []
     dose_records: list[HardExperiment01DoseRecord] = []
     for seed in seed_tuple:
-        by_arm = {
-            arm: _arm_record(
+        by_arm: dict[str, HardExperiment01ArmRecord] = {}
+        # Treatment first so activity_matched can yoke accept count.
+        for arm in ARMS:
+            if arm == "capsules_activity_matched":
+                continue
+            by_arm[arm] = _arm_record(
                 seed=seed, arm=arm, tick_count=resolved_ticks, population=resolved_pop
             )
-            for arm in ARMS
-        }
+        budget = int(by_arm["source_bias_on"].capsule_adoptions_accepted)
+        by_arm["capsules_activity_matched"] = _arm_record(
+            seed=seed,
+            arm="capsules_activity_matched",
+            tick_count=resolved_ticks,
+            population=resolved_pop,
+            activity_match_budget=budget,
+        )
         records.append(
             HardExperiment01SeedRecord(
                 seed=seed,
                 source_bias_on=by_arm["source_bias_on"],
                 source_bias_off=by_arm["source_bias_off"],
                 capsules_off=by_arm["capsules_off"],
+                capsules_content_null=by_arm["capsules_content_null"],
+                capsules_activity_matched=by_arm["capsules_activity_matched"],
                 capsules_shuffled=by_arm["capsules_shuffled"],
                 oracle_capsule=by_arm["oracle_capsule"],
                 delta_vs_source_bias_off=_optional_delta(
@@ -2338,6 +2545,14 @@ def run_hard_experiment_01(
                 delta_vs_capsules_off=_optional_delta(
                     by_arm["source_bias_on"].terminal_mean_fitness,
                     by_arm["capsules_off"].terminal_mean_fitness,
+                ),
+                delta_vs_capsules_content_null=_optional_delta(
+                    by_arm["source_bias_on"].terminal_mean_fitness,
+                    by_arm["capsules_content_null"].terminal_mean_fitness,
+                ),
+                delta_vs_capsules_activity_matched=_optional_delta(
+                    by_arm["source_bias_on"].terminal_mean_fitness,
+                    by_arm["capsules_activity_matched"].terminal_mean_fitness,
                 ),
                 delta_vs_capsules_shuffled=_optional_delta(
                     by_arm["source_bias_on"].terminal_mean_fitness,
@@ -2372,6 +2587,9 @@ def run_hard_experiment_01(
     shuffled_vs_off = _paired_contrast(
         records, treatment_arm="capsules_shuffled", baseline_arm="capsules_off"
     )
+    content_null_vs_off = _paired_contrast(
+        records, treatment_arm="capsules_content_null", baseline_arm="capsules_off"
+    )
     dose_trend = _analyze_dose_trend(dose_records) if dose_records else None
     replay_seeds = tuple(dict.fromkeys((seed_tuple[0], seed_tuple[-1])))
     replay_records = tuple(
@@ -2398,11 +2616,19 @@ def run_hard_experiment_01(
         scale=scale,
         statistical_tier=statistical_tier,
         contrasts=primary,
-        shuffled_vs_off=shuffled_vs_off,
+        content_null_vs_off=content_null_vs_off,
         dose_trend=dose_trend,
         replay_matched=replay_matched,
         assay_failures=assay_failures,
     )
+    sensitivity_failures = _sensitivity_failures(shuffled_vs_off=shuffled_vs_off)
+    activity_gaps = [
+        abs(int(item.capsules_activity_matched.activity_match_gap))
+        for item in records
+        if item.capsules_activity_matched is not None
+        and item.capsules_activity_matched.activity_match_gap is not None
+    ]
+    mean_abs_gap = None if not activity_gaps else _mean([float(g) for g in activity_gaps])
     prereg_digest = hard_experiment_01_prereg_digest()
     protocol_digest = hard_experiment_01_protocol_digest(prereg_digest)
     vs_off = _contrast_by_baseline(primary, "source_bias_off")
@@ -2474,6 +2700,7 @@ def run_hard_experiment_01(
         protocol_digest=protocol_digest,
         paired_contrasts=primary,
         shuffled_vs_capsules_off=shuffled_vs_off,
+        content_null_vs_capsules_off=content_null_vs_off,
         multiple_comparison_audit=MultipleComparisonAudit(metric_count=3),
         dose_records=tuple(dose_records),
         dose_trend=dose_trend,
@@ -2482,6 +2709,8 @@ def run_hard_experiment_01(
         assay_failures=assay_failures,
         decision_rule_passed=not failures and claim_gate_allowed,
         decision_rule_failures=failures,
+        sensitivity_failures=sensitivity_failures,
+        mean_abs_activity_match_gap=mean_abs_gap,
         claim_gate_allowed=claim_gate_allowed,
         claim_gate_decision_digest=decision.digest,
         claim_gate_final_claim=decision.final_claim if claim_gate_allowed else CLAIM_CEILING,
@@ -2580,6 +2809,8 @@ def format_hard_experiment_01_summary(campaign: HardExperiment01Campaign) -> str
             *primary_lines,
             f"dose_trend_supported {None if dose is None else dose.trend_supported}",
             f"decision_rule_passed {campaign.decision_rule_passed}",
+            f"sensitivity_failures {list(campaign.sensitivity_failures)}",
+            f"mean_abs_activity_match_gap {campaign.mean_abs_activity_match_gap}",
             f"assay_failed {campaign.assay_failed}",
             f"replay_matched {campaign.replay_matched}",
             f"claim_ceiling {campaign.claim_ceiling}",

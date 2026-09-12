@@ -221,7 +221,7 @@ def test_morris_claimgate_stays_runtime_observation() -> None:
     assert gate.decide(ClaimRequest("runtime_observation", {})).allowed is True
     assert gate.decide(ClaimRequest("collective_intelligence", {})).allowed is False
     assert gate.decide(ClaimRequest("intervention_supported", {})).allowed is False
-    assert SCHEMA_VERSION == "hard_experiment_01_v5"
+    assert SCHEMA_VERSION == "hard_experiment_01_v6"
     assert calibration_anchor_knobs()["min_source_fitness"] == 1.5
     assert set(FACTOR_LEVELS) == {
         "read_radius",

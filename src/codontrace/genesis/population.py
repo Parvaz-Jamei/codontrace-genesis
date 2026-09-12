@@ -2785,6 +2785,24 @@ def step_population(
         if nexus_layer is not None
         else (NexusStigmergyLayer() if stigmergy_enabled else None)
     )
+    # Wave 1e / Amd 04 activity-matched yoke: run-wide successful-accept budget
+    # (cap-down). Copied onto the working nexus layer; excluded from nexus digest.
+    adoption_budget_box: list[int] | None = None
+    if working_nexus_layer is not None:
+        prior = (
+            None
+            if nexus_layer is None
+            else nexus_layer.adoption_budget_remaining
+        )
+        if isinstance(prior, list) and prior:
+            working_nexus_layer.adoption_budget_remaining = prior
+            adoption_budget_box = prior
+        elif (
+            configs.capsule_transfer is not None
+            and configs.capsule_transfer.max_successful_adoptions is not None
+        ):
+            adoption_budget_box = [int(configs.capsule_transfer.max_successful_adoptions)]
+            working_nexus_layer.adoption_budget_remaining = adoption_budget_box
 
     for organism in sorted(organism_clones, key=lambda item: item.id):
         if organism.id not in live_positions:
@@ -2884,6 +2902,30 @@ def step_population(
                         capsule_adoption_attempts += 1
                         attempt_runtime_atp_before = organism.atp_state.runtime_available
                         attempt_learning_atp_before = organism.atp_state.learning_available
+                        if adoption_budget_box is not None and adoption_budget_box[0] <= 0:
+                            capsule_adoption_failures += 1
+                            capsule_adoption_records.append(
+                                CapsuleAdoptionRecord(
+                                    capsule_id=capsule.capsule_id,
+                                    source_organism_id=capsule.source_organism_id,
+                                    target_organism_id=organism.id,
+                                    emitted_tick=capsule.emitted_tick,
+                                    read_tick=current_tick,
+                                    adoption_attempt_tick=current_tick,
+                                    adoption_success=False,
+                                    blocked_reason=(
+                                        CapsuleAdoptionBlockedReason.ACTIVITY_MATCH_BUDGET_EXHAUSTED.value
+                                    ),
+                                    source_fitness=capsule.source_fitness,
+                                    source_fitness_status=capsule.source_fitness_status,
+                                    confidence=capsule.confidence,
+                                    runtime_atp_before=attempt_runtime_atp_before,
+                                    learning_atp_before=attempt_learning_atp_before,
+                                    runtime_atp_after=organism.atp_state.runtime_available,
+                                    learning_atp_after=organism.atp_state.learning_available,
+                                )
+                            )
+                            continue
                         if organism.causal_graph is None:
                             capsule_adoption_failures += 1
                             capsule_adoption_records.append(
@@ -2918,6 +2960,8 @@ def step_population(
                         )
                         if adoption_result.succeeded:
                             capsule_adoption_successes += 1
+                            if adoption_budget_box is not None:
+                                adoption_budget_box[0] = max(0, adoption_budget_box[0] - 1)
                             if capsule_action_coupling is not None:
                                 _apply_capsule_action_bias(
                                     organism, capsule, capsule_action_coupling

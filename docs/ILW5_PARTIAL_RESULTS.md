@@ -35,9 +35,9 @@ Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | 8 / 22 |
-| Executed / enumerated (full design) | 8 / 312 |
-| By kind | `{'ablation': 7, 'baseline': 1}` |
+| Executed / planned (this subset) | 16 / 22 |
+| Executed / enumerated (full design) | 16 / 312 |
+| By kind | `{'ablation': 14, 'baseline': 2}` |
 | ClaimGate ceiling | `runtime_observation` |
 | Outcomes invented | `False` |
 | Intelligence claimed | `False` |
@@ -53,17 +53,17 @@ Artifact counts (honest runtime observations only):
 - `ablation-mutation_off-S2-4100` (birth=0, death=36, turnover=32, coverage=1.0, conservation=True)
 - `ablation-ecological_feedback_off-S2-4100` (birth=31, death=39, turnover=31, coverage=1.0, conservation=True)
 - `ablation-lineage_inheritance_off-S2-4100` (birth=492, death=477, turnover=469, coverage=1.0, conservation=True)
+- `baseline-S2-4101` (birth=27, death=34, turnover=27, coverage=1.0, conservation=True)
+- `ablation-toolchain_to_action_off-S2-4101` (birth=11, death=19, turnover=11, coverage=1.0, conservation=True)
+- `ablation-experience_to_capsule_off-S2-4101` (birth=32, death=35, turnover=29, coverage=1.0, conservation=True)
+- `ablation-capsule_transport_off-S2-4101` (birth=25, death=27, turnover=23, coverage=1.0, conservation=True)
+- `ablation-capsule_to_policy_off-S2-4101` (birth=29, death=32, turnover=27, coverage=1.0, conservation=True)
+- `ablation-mutation_off-S2-4101` (birth=0, death=31, turnover=27, coverage=1.0, conservation=True)
+- `ablation-ecological_feedback_off-S2-4101` (birth=36, death=44, turnover=36, coverage=1.0, conservation=True)
+- `ablation-lineage_inheritance_off-S2-4101` (birth=211, death=205, turnover=197, coverage=1.0, conservation=True)
 
 ### Remaining planned (this subset)
 
-- `baseline-S2-4101`
-- `ablation-toolchain_to_action_off-S2-4101`
-- `ablation-experience_to_capsule_off-S2-4101`
-- `ablation-capsule_transport_off-S2-4101`
-- `ablation-capsule_to_policy_off-S2-4101`
-- `ablation-mutation_off-S2-4101`
-- `ablation-ecological_feedback_off-S2-4101`
-- `ablation-lineage_inheritance_off-S2-4101`
 - `interaction-toolchainxcapsule-S2-4100`
 - `interaction-capsulexecology-S2-4100`
 - `interaction-mutationxcapsule-S2-4100`

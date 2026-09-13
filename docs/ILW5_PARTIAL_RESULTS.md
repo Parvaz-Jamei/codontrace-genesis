@@ -31,12 +31,46 @@ Digests: `ilw_prereg_design_digest`, `ilw_prereg_document_digest` recorded on ar
 
 ## Executed summary
 
-_See JSON artifact for per-cell digests and gate fields. Counts below refreshed when the partial runner lands cells._
+Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | _pending first batch_ |
-| Executed / enumerated (full design) | _pending_ / 312 |
+| Executed / planned (this subset) | 8 / 22 |
+| Executed / enumerated (full design) | 8 / 312 |
+| By kind | `{'ablation': 7, 'baseline': 1}` |
+| ClaimGate ceiling | `runtime_observation` |
+| Outcomes invented | `False` |
+| Intelligence claimed | `False` |
+| Replay in this partial | `False` |
+
+### Completed cell ids
+
+- `baseline-S2-4100` (birth=25, death=27, turnover=24, coverage=1.0, conservation=True)
+- `ablation-toolchain_to_action_off-S2-4100` (birth=12, death=20, turnover=12, coverage=1.0, conservation=True)
+- `ablation-experience_to_capsule_off-S2-4100` (birth=26, death=29, turnover=23, coverage=1.0, conservation=True)
+- `ablation-capsule_transport_off-S2-4100` (birth=31, death=35, turnover=29, coverage=1.0, conservation=True)
+- `ablation-capsule_to_policy_off-S2-4100` (birth=34, death=35, turnover=31, coverage=1.0, conservation=True)
+- `ablation-mutation_off-S2-4100` (birth=0, death=36, turnover=32, coverage=1.0, conservation=True)
+- `ablation-ecological_feedback_off-S2-4100` (birth=31, death=39, turnover=31, coverage=1.0, conservation=True)
+- `ablation-lineage_inheritance_off-S2-4100` (birth=492, death=477, turnover=469, coverage=1.0, conservation=True)
+
+### Remaining planned (this subset)
+
+- `baseline-S2-4101`
+- `ablation-toolchain_to_action_off-S2-4101`
+- `ablation-experience_to_capsule_off-S2-4101`
+- `ablation-capsule_transport_off-S2-4101`
+- `ablation-capsule_to_policy_off-S2-4101`
+- `ablation-mutation_off-S2-4101`
+- `ablation-ecological_feedback_off-S2-4101`
+- `ablation-lineage_inheritance_off-S2-4101`
+- `interaction-toolchainxcapsule-S2-4100`
+- `interaction-capsulexecology-S2-4100`
+- `interaction-mutationxcapsule-S2-4100`
+- `interaction-heterogeneityxpopulation_size-S2-4100`
+- `s4-32x32-t128-p64-4100`
+- `s4-64x64-t128-p64-4100`
+
 
 ## Remainder
 

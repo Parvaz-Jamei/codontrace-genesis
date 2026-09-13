@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ticks", type=int, default=80)
     ap.add_argument("--generations", type=int, default=None)
     ap.add_argument("--population", type=int, default=24)
-    ap.add_argument("--per-run-timeout", type=int, default=300)
+    ap.add_argument("--per-run-timeout", type=int, default=900)
     ap.add_argument("--repeat-per-scenario", type=int, default=1)
     ap.add_argument("--src-dir", default="src")
     ap.add_argument("--max-new-runs", type=int, default=0, help="Optional cap of NEW tasks this session (0=all remaining)")

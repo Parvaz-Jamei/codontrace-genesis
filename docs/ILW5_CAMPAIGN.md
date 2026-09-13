@@ -1,6 +1,6 @@
 # ILW-5 campaign harness (factorial / ablation / scale)
 
-**Status:** Harness landed + local confirmatory smoke (1–2 cells) + **partial confirmatory subset** (`outputs/ilw5_campaign_partial.json`).  
+**Status:** Harness landed + local confirmatory smoke (1–2 cells) + **partial confirmatory subset** (`outputs/ilw5_campaign_partial.json`, 38/312 enumerated cells).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Prereq:** S2 pilot gates PASS (`docs/ILW_PILOT_S2_RESULTS.md` / `outputs/ilw_pilot_s2.json`).

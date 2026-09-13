@@ -1,6 +1,6 @@
 # ILW-5 partial confirmatory results
 
-**Status:** Partial local confirmatory subset **expanded** (30/38 planned cells; 30/312 enumerated).  
+**Status:** Partial local confirmatory subset **landed** (38/38 planned cells; 38/312 enumerated).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged — **no promotion**).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Intelligence / CCE / AGI claims:** **none** (forbidden; not emitted).
@@ -35,15 +35,17 @@ Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | 30 / 38 |
-| Executed / enumerated (full design) | 30 / 312 |
-| By kind | `{'ablation': 21, 'baseline': 3, 'interaction': 4, 'scale_s4': 2}` |
+| Executed / planned (this subset) | 38 / 38 |
+| Executed / enumerated (full design) | 38 / 312 |
+| By kind | `{'ablation': 28, 'baseline': 4, 'interaction': 4, 'scale_s4': 2}` |
 | ClaimGate ceiling | `runtime_observation` |
 | Outcomes invented | `False` |
 | Intelligence claimed | `False` |
 | Replay in this partial | `False` |
 
 All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `scientific_claim_emitted=false`, `claim_ceiling=runtime_observation`.
+
+SHA for this landing recorded in git history on `wave-1d-seed-variance`.
 
 ### Completed cell ids
 
@@ -71,6 +73,14 @@ All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `s
 - `ablation-mutation_off-S2-4102` (birth=0, death=32, turnover=28, coverage=1.0, conservation=True)
 - `ablation-ecological_feedback_off-S2-4102` (birth=28, death=36, turnover=28, coverage=1.0, conservation=True)
 - `ablation-lineage_inheritance_off-S2-4102` (birth=454, death=443, turnover=435, coverage=1.0, conservation=True)
+- `baseline-S2-4103` (birth=31, death=33, turnover=28, coverage=1.0, conservation=True)
+- `ablation-toolchain_to_action_off-S2-4103` (birth=14, death=22, turnover=14, coverage=1.0, conservation=True)
+- `ablation-experience_to_capsule_off-S2-4103` (birth=23, death=26, turnover=21, coverage=1.0, conservation=True)
+- `ablation-capsule_transport_off-S2-4103` (birth=29, death=33, turnover=28, coverage=1.0, conservation=True)
+- `ablation-capsule_to_policy_off-S2-4103` (birth=28, death=32, turnover=26, coverage=1.0, conservation=True)
+- `ablation-mutation_off-S2-4103` (birth=0, death=36, turnover=29, coverage=1.0, conservation=True)
+- `ablation-ecological_feedback_off-S2-4103` (birth=32, death=40, turnover=32, coverage=1.0, conservation=True)
+- `ablation-lineage_inheritance_off-S2-4103` (birth=582, death=526, turnover=518, coverage=1.0, conservation=True)
 - `interaction-toolchainxcapsule-S2-4100` (birth=10, death=18, turnover=10, coverage=1.0, conservation=True)
 - `interaction-capsulexecology-S2-4100` (birth=22, death=30, turnover=22, coverage=1.0, conservation=True)
 - `interaction-mutationxcapsule-S2-4100` (birth=0, death=35, turnover=30, coverage=1.0, conservation=True)
@@ -80,19 +90,12 @@ All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `s
 
 ### Remaining planned (this subset)
 
-- `baseline-S2-4103`
-- `ablation-toolchain_to_action_off-S2-4103`
-- `ablation-experience_to_capsule_off-S2-4103`
-- `ablation-capsule_transport_off-S2-4103`
-- `ablation-capsule_to_policy_off-S2-4103`
-- `ablation-mutation_off-S2-4103`
-- `ablation-ecological_feedback_off-S2-4103`
-- `ablation-lineage_inheritance_off-S2-4103`
+_none — planned expanded subset complete_
 
 
 ## Remainder
 
-- Ablation × seeds 4102–4107
+- Ablation × seeds 4104–4107
 - Interaction × seeds 4101–4107
 - Full S4 27-cell grid × 8 seeds
 - Morris EE + DSD continuous arms (prereg-locked; execute off-box / Colab)

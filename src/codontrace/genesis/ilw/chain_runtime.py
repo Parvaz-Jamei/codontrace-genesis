@@ -1,17 +1,19 @@
-"""ILW-2 integrated causal chain runtime.
+"""ILW integrated causal chain runtime (ILW-2/ILW-3).
 
 Wires genome -> toolchain -> VM phenotype -> action -> resource/world
 consequence -> experienced event -> capsule+provenance -> transport/accept/apply
 -> receiver policy/action change -> survival/reproduction -> mutation/lineage
 -> next ecological state under one run_id / WorldSpec / scheduler / ledger.
 
-Claim ceiling stays ``runtime_observation``. No outcome injection / oracle
-treatment / fitness shortcut outside VM/world. Prefer small honest integration.
+ILW-3 adds final digest, S1 smoke scale helper, and initial resource snapshots
+for replay / conservation assays. Claim ceiling stays ``runtime_observation``.
+No outcome injection / oracle treatment / fitness shortcut outside VM/world.
+Smoke must not emit ClaimGate ladder promotions.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -124,6 +126,9 @@ class IlwChainRuntime:
     _event_seq: int = field(default=0, init=False, repr=False)
     _birth_counter: int = field(default=0, init=False, repr=False)
     _registry: SubsystemRegistry = field(init=False, repr=False)
+    _initial_resource_totals: dict[str, float] | None = field(
+        default=None, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         rid = str(self.run_id).strip()
@@ -152,6 +157,22 @@ class IlwChainRuntime:
         return cls(
             run_id=run_id,
             world_spec=WorldSpec.s0_unit(seed=seed),
+            knockouts=knockouts or KnockoutConfig.none(),
+        )
+
+    @classmethod
+    def s1(
+        cls,
+        *,
+        run_id: str = "ilw3-s1",
+        seed: int = 1,
+        knockouts: KnockoutConfig | None = None,
+    ) -> IlwChainRuntime:
+        """S1 integrated-smoke scale runtime (16×16 / 32 tick)."""
+
+        return cls(
+            run_id=run_id,
+            world_spec=WorldSpec.s1_smoke(seed=seed),
             knockouts=knockouts or KnockoutConfig.none(),
         )
 
@@ -230,12 +251,16 @@ class IlwChainRuntime:
                     "tick": 0,
                 }
             )
+        # Snapshot resources after bootstrap, before organism actions mutate them.
+        self._initial_resource_totals = dict(self._world.totals())
 
     def run(self, ticks: int | None = None) -> dict[str, JsonValue]:
         """Execute the integrated chain for ``ticks`` (default: WorldSpec horizon)."""
 
         if not self._organisms:
             self.bootstrap()
+        elif self._initial_resource_totals is None:
+            self._initial_resource_totals = dict(self._world.totals())
         horizon = self.world_spec.tick_horizon if ticks is None else int(ticks)
         if horizon < 0:
             raise IlwChainError("ticks must be non-negative.")
@@ -268,25 +293,79 @@ class IlwChainRuntime:
         return tick
 
     def summary(self) -> dict[str, JsonValue]:
+        births = sum(1 for rec in self._lineage_records if rec.get("parent_id"))
+        deaths = sum(1 for org in self._organisms.values() if not org.alive)
         return {
             "run_id": self.run_id,
             "world_spec_digest": self.world_spec.digest(),
+            "scale_label": self.world_spec.scale_label,
             "tick": self._scheduler.tick,
             "ledger_digest": self._ledger.digest(),
             "world_digest": self._world.digest(),
+            "final_digest": self.final_digest(),
             "observed_edge_ids": sorted(self._ledger.observed_edge_ids),
             "event_count": len(self._ledger),
             "alive_count": len(self.alive_organisms),
             "organism_count": len(self._organisms),
             "capsule_count": len(self._capsules),
             "lineage_record_count": len(self._lineage_records),
+            "birth_count": int(births),
+            "death_count": int(deaths),
             "resource_totals": self._world.totals(),
             "claim_ceiling": CLAIM_CEILING,
+            "claim_promotions": [],
+            "ladder_promotion": None,
+            "scientific_claim_emitted": False,
             "knockouts": self.knockouts.to_dict(),
         }
 
     def assert_required_edges_covered(self) -> None:
         self._registry.assert_ready_for_world_claim(self._ledger.observed_edge_ids)
+
+    @property
+    def initial_resource_totals(self) -> dict[str, float]:
+        if self._initial_resource_totals is None:
+            raise IlwChainError(
+                "initial_resource_totals unavailable; call bootstrap() or run() first."
+            )
+        return dict(self._initial_resource_totals)
+
+    def final_digest(self) -> str:
+        """Bitwise-stable digest of world + ledger + organism/capsule state."""
+
+        organisms = [
+            {
+                "organism_id": org.organism_id,
+                "state_digest": org.state_digest(),
+            }
+            for org in sorted(self._organisms.values(), key=lambda o: o.organism_id)
+        ]
+        capsules = [
+            {
+                "capsule_id": cap.capsule_id,
+                "payload_digest": cap.payload_digest,
+                "provenance_digest": cap.provenance_digest,
+                "parent_capsule_id": cap.parent_capsule_id,
+                "source_id": cap.source_id,
+                "tick": cap.tick,
+            }
+            for cap in sorted(self._capsules.values(), key=lambda c: c.capsule_id)
+        ]
+        return canonical_digest(
+            {
+                "run_id": self.run_id,
+                "tick": self._scheduler.tick,
+                "world_spec_digest": self.world_spec.digest(),
+                "ledger_digest": self._ledger.digest(),
+                "world_digest": self._world.digest(),
+                "organisms": organisms,
+                "capsules": capsules,
+                "lineage_records": list(self._lineage_records),
+                "capsule_genealogy": list(self._capsule_genealogy),
+                "claim_ceiling": CLAIM_CEILING,
+            },
+            prefix="ilw_final",
+        )
 
     # ------------------------------------------------------------------ chain
     def _run_organism_chain(self, org: IlwOrganism, tick: int) -> None:
@@ -984,7 +1063,10 @@ class IlwChainRuntime:
             blocked_reason=blocked,
             before=before,
             after=after,
-            extra={"birth_id": birth_id, "child_genome_digest": child.genome_digest if child else ""},
+            extra={
+                "birth_id": birth_id,
+                "child_genome_digest": child.genome_digest if child else "",
+            },
         )
 
     def _edge_lineage_inheritance(

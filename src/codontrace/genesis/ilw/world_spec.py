@@ -140,3 +140,18 @@ class WorldSpec:
             population_cap=8,
             scale_label="S0",
         )
+
+    @classmethod
+    def s1_smoke(cls, *, seed: int = 1) -> WorldSpec:
+        """Integrated-smoke S1 scale (16×16 / 32 tick); larger than S0 unit."""
+
+        return cls(
+            width=16,
+            height=16,
+            seed=seed,
+            tick_horizon=32,
+            resource_kinds=("lumen", "vitae"),
+            niche_count=4,
+            population_cap=24,
+            scale_label="S1",
+        )

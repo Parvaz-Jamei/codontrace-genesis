@@ -5,6 +5,8 @@ ILW-1: shared WorldSpec, run-scoped scheduler, append-only event ledger, and
 deterministic seed namespace.
 ILW-2: full genome→lineage causal chain in a dual-resource world under one
 run_id / WorldSpec / scheduler / ledger.
+ILW-3: integrated smoke with replay, conservation, 100% required-edge coverage;
+no scientific claim / no ClaimGate ladder promotion.
 
 Claim ceiling stays ``runtime_observation``; scientific name is
 ``integrated eco-evolutionary runtime`` (not intelligence / AGI / CI).
@@ -25,6 +27,11 @@ from codontrace.genesis.ilw.chain_runtime import (
     IlwChainRuntime,
     IlwOrganism,
 )
+from codontrace.genesis.ilw.conservation import (
+    ConservationReport,
+    IlwConservationError,
+    check_conservation,
+)
 from codontrace.genesis.ilw.dag import (
     CLAIM_CEILING,
     REQUIRED_TELEMETRY_FIELDS,
@@ -44,6 +51,11 @@ from codontrace.genesis.ilw.event_ledger import (
     EventLedgerError,
     LedgerEvent,
 )
+from codontrace.genesis.ilw.integrated_smoke import (
+    IlwSmokeError,
+    IlwSmokeReport,
+    run_integrated_smoke,
+)
 from codontrace.genesis.ilw.knockouts import IlwKnockoutError, KnockoutConfig
 from codontrace.genesis.ilw.orphan import (
     OrphanSubsystemError,
@@ -62,16 +74,20 @@ __all__ = [
     "WORLD_SPEC_SCHEMA",
     "AdapterHonestyError",
     "CapsuleRecord",
+    "ConservationReport",
     "DualResourceWorld",
     "DualResourceWorldError",
     "EventLedger",
     "EventLedgerError",
     "IlwChainError",
     "IlwChainRuntime",
+    "IlwConservationError",
     "IlwKnockoutError",
     "IlwOrganism",
     "IlwScheduler",
     "IlwSchedulerError",
+    "IlwSmokeError",
+    "IlwSmokeReport",
     "IntegrationDAG",
     "IntegrationDAGError",
     "KnockoutConfig",
@@ -86,5 +102,7 @@ __all__ = [
     "WorldSpecError",
     "assert_claim_ceiling_runtime_observation",
     "assert_no_fixture_outcome_injection",
+    "check_conservation",
     "load_integration_dag",
+    "run_integrated_smoke",
 ]

@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-2 genome→lineage causal chain in dual-resource world.
+**Status:** ILW-3 integrated smoke (replay, conservation, edge coverage; no science claim).
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0 / ILW-1 / ILW-2)
+## Code map (ILW-0 / ILW-1 / ILW-2 / ILW-3)
 
 | Path | Role |
 |------|------|
@@ -156,6 +156,9 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `src/codontrace/genesis/ilw/knockouts.py` | Per-edge knockout config (one cut set each) |
 | `src/codontrace/genesis/ilw/chain_runtime.py` | ILW-2 integrated causal chain under one run_id |
 | `tests/test_ilw2_causal_chain.py` | ILW-2 chain / coverage / knockout tests |
+| `src/codontrace/genesis/ilw/conservation.py` | Resource/energy conservation assays |
+| `src/codontrace/genesis/ilw/integrated_smoke.py` | ILW-3 integrated smoke + replay |
+| `tests/test_ilw3_integrated_smoke.py` | ILW-3 replay / conservation / coverage / no-claim |
 
 ## ILW-1 (this milestone) — done when
 
@@ -177,6 +180,20 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
    path (survival/reproduction→mutation→inheritance) are recordable on one run.
 5. At least one edge-off knockout severs apply (fail-first blocked telemetry);
    no outcome injection; ClaimGate ceiling remains `runtime_observation`.
+
+
+## ILW-3 (this milestone) — done when
+
+1. Integrated smoke runs at S1-ish scale (larger than 4×4 / 6 tick) under one
+   `run_id` / WorldSpec / scheduler / ledger.
+2. Independent replay bitwise-rebuilds `final_digest`.
+3. Conservation checks pass for resources (harvest+renewal reconciliation) and
+   energy non-negativity / harvest conversion.
+4. Required-edge coverage is 100% on the integrated run.
+5. `attempted` / `accepted` / `applied` remain separate fields (never one counter).
+6. At least one birth and one death occur when dynamics allow (honest; no fixture).
+7. Smoke emits **no** ClaimGate ladder promotion / scientific claim; ceiling stays
+   `runtime_observation`.
 
 ## Primary references
 

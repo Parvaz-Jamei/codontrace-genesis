@@ -4,3 +4,5 @@
 4. handoff/WAVE_1D_PRIME_REVIEW.md
 5. handoff/03_GIVE_THIS_TO_AGENT_ILW.md + INTEGRATED_LIVING_WORLD_PLAN.md
 6. Archive: 0001-wave-1c-e2-coupling.patch — do NOT re-apply
+
+BEFORE EVERY STAGE: git pull latest main + literature search (≤2) then prereg, then code.

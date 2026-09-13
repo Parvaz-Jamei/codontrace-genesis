@@ -30,3 +30,10 @@
 
 ## Drive clean pack
 https://drive.google.com/drive/folders/1UkmbI55LN3NwRnmu3nzhXMk8uXKkiTpU
+
+## Standing discipline (EVERY wave / EVERY science step)
+1. **`git fetch` + work from latest `main`** (or rebase your branch) before coding. Never start from a stale clone.
+2. **Literature search BEFORE design/code** on any science wave (≤2 targeted searches; cite DOIs). Do not invent mechanisms from memory alone.
+3. After search: prereg/amendment (hashed) **before** campaign numbers.
+4. Push every finished unit immediately so the next bot does not lose work.
+5. ClaimGate never loosened; pins A–E unchanged; no forbidden aliases; short Persian report ≤10 lines per wave.

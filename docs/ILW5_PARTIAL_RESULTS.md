@@ -1,6 +1,6 @@
 # ILW-5 partial confirmatory results
 
-**Status:** Partial local confirmatory subset **landed** (22/22 planned cells; 22/312 enumerated).  
+**Status:** Partial local confirmatory subset **expanded** (24/38 planned cells; 24/312 enumerated).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged — **no promotion**).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Intelligence / CCE / AGI claims:** **none** (forbidden; not emitted).
@@ -13,10 +13,10 @@ Planned local subset (not the full 312 enumerated cells):
 
 | Block | Cells |
 |-------|-------|
-| Ablation (baseline + 7 OAT knockouts) × seeds 4100–4101 | 16 |
+| Ablation (baseline + 7 OAT knockouts) × seeds 4100–4103 | 32 |
 | Interaction screening × seed 4100 | 4 |
 | Small S4 slice (32 & 64 width × t128 × pop64) × seed 4100 | 2 |
-| **Planned total** | **22** |
+| **Planned total (expanded)** | **38** |
 | Full design enumeration | **312** |
 
 Artifact: `outputs/ilw5_campaign_partial.json`  
@@ -35,9 +35,9 @@ Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | 22 / 22 |
-| Executed / enumerated (full design) | 22 / 312 |
-| By kind | `{'ablation': 14, 'baseline': 2, 'interaction': 4, 'scale_s4': 2}` |
+| Executed / planned (this subset) | 24 / 38 |
+| Executed / enumerated (full design) | 24 / 312 |
+| By kind | `{'ablation': 21, 'baseline': 3}` |
 | ClaimGate ceiling | `runtime_observation` |
 | Outcomes invented | `False` |
 | Intelligence claimed | `False` |
@@ -63,16 +63,31 @@ All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `s
 - `ablation-mutation_off-S2-4101` (birth=0, death=31, turnover=27, coverage=1.0, conservation=True)
 - `ablation-ecological_feedback_off-S2-4101` (birth=36, death=44, turnover=36, coverage=1.0, conservation=True)
 - `ablation-lineage_inheritance_off-S2-4101` (birth=211, death=205, turnover=197, coverage=1.0, conservation=True)
-- `interaction-toolchainxcapsule-S2-4100` (birth=10, death=18, turnover=10, coverage=1.0, conservation=True)
-- `interaction-capsulexecology-S2-4100` (birth=22, death=30, turnover=22, coverage=1.0, conservation=True)
-- `interaction-mutationxcapsule-S2-4100` (birth=0, death=35, turnover=30, coverage=1.0, conservation=True)
-- `interaction-heterogeneityxpopulation_size-S2-4100` (birth=19, death=27, turnover=19, coverage=1.0, conservation=True)
-- `s4-32x32-t128-p64-4100` (birth=25, death=28, turnover=23, coverage=1.0, conservation=True)
-- `s4-64x64-t128-p64-4100` (birth=35, death=36, turnover=32, coverage=1.0, conservation=True)
+- `baseline-S2-4102` (birth=39, death=45, turnover=38, coverage=1.0, conservation=True)
+- `ablation-toolchain_to_action_off-S2-4102` (birth=10, death=18, turnover=10, coverage=1.0, conservation=True)
+- `ablation-experience_to_capsule_off-S2-4102` (birth=28, death=32, turnover=26, coverage=1.0, conservation=True)
+- `ablation-capsule_transport_off-S2-4102` (birth=26, death=30, turnover=22, coverage=1.0, conservation=True)
+- `ablation-capsule_to_policy_off-S2-4102` (birth=32, death=35, turnover=29, coverage=1.0, conservation=True)
+- `ablation-mutation_off-S2-4102` (birth=0, death=32, turnover=28, coverage=1.0, conservation=True)
+- `ablation-ecological_feedback_off-S2-4102` (birth=28, death=36, turnover=28, coverage=1.0, conservation=True)
+- `ablation-lineage_inheritance_off-S2-4102` (birth=454, death=443, turnover=435, coverage=1.0, conservation=True)
 
 ### Remaining planned (this subset)
 
-_none — planned subset complete_
+- `baseline-S2-4103`
+- `ablation-toolchain_to_action_off-S2-4103`
+- `ablation-experience_to_capsule_off-S2-4103`
+- `ablation-capsule_transport_off-S2-4103`
+- `ablation-capsule_to_policy_off-S2-4103`
+- `ablation-mutation_off-S2-4103`
+- `ablation-ecological_feedback_off-S2-4103`
+- `ablation-lineage_inheritance_off-S2-4103`
+- `interaction-toolchainxcapsule-S2-4100`
+- `interaction-capsulexecology-S2-4100`
+- `interaction-mutationxcapsule-S2-4100`
+- `interaction-heterogeneityxpopulation_size-S2-4100`
+- `s4-32x32-t128-p64-4100`
+- `s4-64x64-t128-p64-4100`
 
 
 ## Remainder

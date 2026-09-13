@@ -1,0 +1,21 @@
+CodonTrace Genesis — Drive pack 2026-09-12
+Folder: https://drive.google.com/drive/folders/1XJ5Y19JYHZuX4CGx3FjLx_fWOPOGfZSV
+
+00_README_START_HERE.md
+01_CHAT_KNOWLEDGE.md
+02_AGENT_PROMPT_WAVES_0_3.md
+03_0001-wave-1c-e2-coupling.patch.gz  sha256=f6193b716f1564d3a045eeca0803abe000d049e66727f34f9d8599ccdbd674c0
+   uncompressed patch sha256=af6db978e31ec38198cf2679c96e95c47d7a0fdbab69ccb3aec0234fc2172a52
+   apply from git commit 49b9f2c: gunzip -c FILE | git am --3way
+04_AGENT_HANDOFF_NEXT_WAVES.md
+05_AGENT_HANDOFF_LEGACY_2026-09-11.md
+06_MASTER_ROADMAP_CI_AI.md
+AGENT_HANDOFF_NEXT_WAVES.md  (earlier copy of 04)
+
+Repo: https://github.com/Parvaz-Jamei/codontrace-genesis
+main at pack time: 49b9f2c
+Wave 1c local commit: 34f9da2
+Competing PR: #25 (do not merge both)
+Identity: 0.3.0b4.dev0
+ClaimGate ceiling: runtime_observation
+Phase A-E pins unchanged

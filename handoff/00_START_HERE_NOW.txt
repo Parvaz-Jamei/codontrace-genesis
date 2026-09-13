@@ -1,0 +1,89 @@
+# START HERE NOW — 2026-09-12 22:30 UTC
+# برای ایجنت پیاده‌ساز CodonTrace Genesis. این فایل بر Wave 1c hex patch اولویت دارد.
+محصول: CodonTrace Genesis. هویت: 0.3.0b4.dev0. سقف ClaimGate: runtime_observation.
+بدون tag / PyPI. بدون Phase M+. forbidden aliases را شل نکن:
+intelligence, collective_intelligence, proved_collective_intelligence, agi,
+tokyo_type1_passed, avida_replacement.
+Phase A–E pins دست‌نخورده:
+  spec 7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac
+  snapshot 76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a
+==============================================================================
+وضعیت خانه (انجام شده، تکرار نکن)
+==============================================================================
+PR باز (تنها کار زنده):
+  https://github.com/Parvaz-Jamei/codontrace-genesis/pull/27
+  عنوان: Wave 1d′ + E6: SCHEMA v5 + ODD/Morris
+  base = main
+  compare = wave-1d-seed-variance
+  HEAD هنگام نوشتن این فایل: a1ce4e6749e3f99a6642e083f3d4e421c20b14d8
+  Wave 1c کامل داخل همین برنچ است (0077b46، capsule.py = 72172 بایت).
+روی همین HEAD از قبل آمده (دوباره نساز):
+  a5acb8b  docs: Wave 1d″ evidence honesty
+  4b23dfd  docs: Amendment 04 (SCHEMA v6 plan)
+  a1ce4e6  feat: Wave 1e SCHEMA v6 — content_null + activity_matched
+  9504e3e  docs: E6 ODD + Morris
+  WAVE_1D_DOUBLE_PRIME_HONESTY.md
+  HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md
+  results_v5.json دست‌نخورده بماند.
+رقبا بسته شدند، merge نشدند:
+  #25 closed: Superseded by wave-1d-seed-variance / #27
+  #26 closed: incomplete / truncated capsule.py. Do not merge.
+  هر دو #25 و #26 را با هم merge نکن. هیچ‌کدام را squash-merge نکن.
+Squash-merge #27 هنوز نزده شده چون CI سبز نیست:
+  Lint and typecheck (Ubuntu, Python 3.12) = FAILURE
+  Core smoke = سبز. Full pytest در حال اجرا بود.
+  تا lint + full pytest سبز نشود merge نکن. بعد از سبز شدن: Squash and merge روی #27.
+==============================================================================
+الان چه کار کن (به این ترتیب)
+==============================================================================
+0) lint #27 را سبز کن (بدون شل کردن ClaimGate، بدون claim جدید).
+   بعد اگر CI کامل سبز شد، Squash and merge روی همان #27.
+1) 1d″ صداقت شواهد — روایت + فیلدهای additive روی برنچ است. campaign جدید نزن.
+   results_v5.json را overwrite نکن. Amd 01/03 frozen text را بازنویسی نکن.
+   هنوز باز از بازبینی (اگر در کد کامل نشده):
+   P1  pilot_v5.json در درخت نیست؛ Amd 03 به فایل workspace ارجاع می‌دهد.
+   P3  انحراف population_size / max_resources را در جدول Amd 03 بنویس.
+   WAVE_1E_SCIENCE_BRIEF.md در Amd 04 ارجاع شده ولی در درخت نیست — commit کن
+       یا ارجاع را به فایل موجود عوض کن. مسیر amendment باید در درخت باشد.
+2) Amendment 04 + SCHEMA v6 کد آمده. بازوها را از صفر ننویس.
+   بعدی: فقط PILOT v6 روی بذرهای 1000–1009.
+   گیت‌های پایلوت (Amd 04 بخش 5):
+     content_null نرخ EAT_LUMEN تقریبا 0
+     mean |activity_match_gap| کمتر یا مساوی epsilon=1
+     assay valid؛ oracle بزرگ‌تر از capsules_off
+     sd بزرگ‌تر از 0 روی بازوهای کانال‌دار
+   اگر پایلوت FAIL: توقف. بذر 11–40 را اجرا نکن. results_v6 نساز.
+   falsifier: content_null نباید capsules_off را ببرد.
+   سقف حتی اگر هر سه primary بعداً پاس شود حداکثر mechanism_support است؛
+   الان runtime_observation. intervention_supported نساز.
+3) E6 (Morris + ODD) از قبل روی برنچ آمده (9504e3e). فقط حساسیت/مستند.
+   claim جدید نساز.
+4) HE02 (E1+E2+E5) سپس HE03 (E3) سپس E4/E7 شرطی سپس نردبان claim Wave 3.
+==============================================================================
+قوانین کدنویسی (از بازبینی)
+==============================================================================
+- شمارنده را به چیزی که آرزو می‌کنی بشمارد نام نده (*_attempts جدا از succeeded).
+- گیت assay باید telemetry همان کمیت دستکاری‌شده را بخواند (content_changed).
+- آمار مشتق independent: false + assert به والدینش.
+- اگر دو spec یکی‌اند، alias بزن نه re-run (dose 1.5 == source_bias_on).
+- sd==0 باید sentinel undefined برگرداند نه عدد قشنگ.
+- تست را ضعیف نکن تا سبز شود؛ xfail(strict=True) یا parametrize روی scale.
+- جدول انحراف را از کد generate کن.
+- هر helper تصادفی property test داشته باشد (derangement برای shuffle).
+- مسیرهای ارجاع‌شده در amendment باید در درخت باشند.
+==============================================================================
+اعداد کلیدی results_v5 (برای ارجاع سریع؛ campaign منجمد)
+==============================================================================
+source_bias_on      mean 58.6854  sd 13.2555  useful 100%   bias_applied 253.70
+source_bias_off     mean 42.1967  sd 15.2120  useful 42.12% bias_applied 412.13
+capsules_off        mean 28.0000  sd  0.0000  (ساختاری)
+capsules_shuffled   mean 42.3142  sd  8.7154  useful 44.78% bias_applied 369.50
+oracle_capsule      mean 78.3967  sd  0.2515  useful 100%   bias_applied 412.13
+on−off Δ 16.4888   shuffled−off Δ 14.3142 (= 46.65% of on−channel-off)
+on−channel-off Δ 30.6854
+Z′ oracle vs off = 0.985 (فریبنده)؛ oracle vs source_bias_off = −0.281
+adoption_mean = 542.5333 یکسان روی چهار arm کانال‌دار (نشانهٔ تلاش، نه پذیرش)
+گزارش هر موج: حداکثر ۱۰ خط فارسی.
+بازبینی کامل: 01_WAVE_1D_PRIME_REVIEW.md را از hex parts بازسازی کن (02_HOW_TO_READ.txt).
+SHA256: 3a7e718884c0f66052bd9fd62d4dfad1db43ae4a91763919f71e2e294151baa4
+Bytes: 32495

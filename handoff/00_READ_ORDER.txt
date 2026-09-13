@@ -1,15 +1,6 @@
-# Handoff read order (CodonTrace Genesis) — 2026-09-13
-
-## On this branch (already landed)
-- Wave 1c–1e + E6 + ILW-0…6 + Colab marathon (see commits on `wave-1d-seed-variance`)
-- `INTEGRATED_LIVING_WORLD_PLAN.md`, `WAVE_1D_PRIME_REVIEW.md`
-- Archive: `0001-wave-1c-e2-coupling.patch` (already applied as 0077b46 — do NOT re-apply)
-
-## Drive pack (folder 1XJ5Y19…) per MANIFEST.txt
-00 README → 01 chat knowledge → **02_AGENT_PROMPT_WAVES_0_3.md** (MISSING on Drive; only shards 02a_WAVE0 + 02d_ADDENDA found) → 03 patch.gz → 04 next waves → 05 legacy → 06 master roadmap
-
-## Blocker for HE02
-Need full `AGENT_PROMPT_WAVES_0_3.md` / `02_AGENT_PROMPT_WAVES_0_3.md` (Addendum 1+2, E1–E7 detail). Upload that file or paste it; shards alone are not enough to lock HE02 prereg.
-
-## Colab
-`docs/colab/codontrace_joss_heavy_to_drive.ipynb` — timeout 900 @ 92a2020; review after DONE.txt
+1. handoff/00_NEXT_BOT_STATUS_2026-09-13.md
+2. handoff/AGENT_PROMPT_WAVES_0_3.md
+3. handoff/04_AGENT_HANDOFF_NEXT_WAVES.md (§3 Steps — HE02+)
+4. handoff/WAVE_1D_PRIME_REVIEW.md
+5. handoff/03_GIVE_THIS_TO_AGENT_ILW.md + INTEGRATED_LIVING_WORLD_PLAN.md
+6. Archive: 0001-wave-1c-e2-coupling.patch — do NOT re-apply

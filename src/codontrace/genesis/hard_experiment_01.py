@@ -3080,6 +3080,12 @@ def committed_research_results_v5_path() -> Path:
     return _repo_root() / "docs" / "hard_experiment_01" / "results_v5.json"
 
 
+def committed_research_results_v6_path() -> Path:
+    """Wave 1e / Amendments 04+05 research artifact (SCHEMA v6)."""
+
+    return _repo_root() / "docs" / "hard_experiment_01" / "results_v6.json"
+
+
 def write_hard_experiment_01_research_results(path: Path | None = None) -> Path:
     """Run the research campaign and write the digest-backed JSON artifact."""
 

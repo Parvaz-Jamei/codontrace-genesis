@@ -445,14 +445,34 @@ Frozen v5 dose label remains Amd 01 `step_up_then_saturate`; new-run display
 uses `peak_at_intermediate_dose_then_channel_closure` with `independent: false`
 (S ≈ 47.174 = algebraic sum of two primary contrasts).
 
-### Results (research v6) — Wave 1e (SCHEMA on branch; research campaign pending)
+### Results (research v6) — Wave 1e
 
-SCHEMA `hard_experiment_01_v6` (Amendments 04/05): confirmatory
-`capsules_content_null`, auxiliary `capsules_activity_matched`, shuffled
-demoted to sensitivity. Pilot:
-[`hard_experiment_01/pilot_v6.json`](hard_experiment_01/pilot_v6.json).
-No committed `results_v6.json` yet — ClaimGate stays
-**`runtime_observation`**; do not invent `intervention_supported`.
+Amendments 04+05 (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md`,
+`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md`) replace the broken
+peer-rotation confirmatory null with `capsules_content_null`, keep
+`capsules_activity_matched` as auxiliary (Amd 05 demotes activity-match
+ε from pilot gate), and leave legacy shuffled as sensitivity. Artifact:
+[`hard_experiment_01/results_v6.json`](hard_experiment_01/results_v6.json)
+(SCHEMA `hard_experiment_01_v6`). Campaign digest prefix `5a3e2b9a98191a49…`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16. Primary outcome:
+`receiver_mean_terminal_runtime_atp`. Replay matched: **True**.
+`assay_failed`: **False**. Decision rule: **PASS**. Sensitivity:
+`shuffled_better_than_capsules_off` (expected; non-blocking). ClaimGate
+ceiling: **`intervention_supported`** (earned by full decision rule +
+gate flags; Amd 04/05 alone do not auto-grant). content_null mean =
+capsules_off = 28; activity_match mean |gap| ≈ 17.67 (exploratory /
+Boot–yoked limitation under Amd 05). Pilot trail:
+`hard_experiment_01/pilot_v6.json`.
+
+| Arm | n | mean | sd | adoption attempts |
+|---|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 58.685 | 13.255 | 542.53 |
+| `source_bias_off` | 30 | 42.197 | 15.212 | 542.53 |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 |
+| `capsules_content_null` | 30 | 28.000 | 0.000 | 542.53 |
+| `capsules_activity_matched` | 30 | 28.000 | 0.000 | 542.53 |
+| `capsules_shuffled` | 30 | 42.314 | 8.715 | 542.53 |
+| `oracle_capsule` | 30 | 78.397 | 0.252 | 542.53 |
 
 ## Wave 1d″ — evidence honesty (no new claim)
 

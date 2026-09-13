@@ -690,6 +690,44 @@ def test_committed_research_v5_is_a_valid_assay() -> None:
     assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
 
 
+def test_committed_research_v6_is_a_valid_assay() -> None:
+    """Wave 1e research artifact (Amd 04/05 / SCHEMA v6); ClaimGate only if earned."""
+
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v6.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
+    assert payload["prereg_amendment_04_digest"] == hard_experiment_01_prereg_amendment_04_digest()
+    assert payload["prereg_amendment_05_digest"] == hard_experiment_01_prereg_amendment_05_digest()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    assert payload["claim_ceiling"] in {CLAIM_CEILING, INTERVENTION_CLAIM}
+    if payload["claim_ceiling"] == INTERVENTION_CLAIM:
+        assert payload["decision_rule_passed"] is True
+        assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["rejected_by_source_fitness_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+    assert by_arm["capsules_content_null"]["mean"] == by_arm["capsules_off"]["mean"]
+    assert by_arm["capsules_content_null"]["bias_payload_totals"] == {}
+    assert payload["role_layout"] == "seed_permuted_v3_multiset"
+    assert payload["food_layout"] == "every_cell"
+    assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
+    assert "capsules_content_null" in payload["analysis_arms"]
+    assert "capsules_activity_matched" in {item["arm"] for item in payload["arm_summaries"]}
+
+
 def test_wave_1d_prime_amendment_03_and_schema_v5() -> None:
     """Amendment 03 is hashed; Amd 01+02 digests stay frozen; SCHEMA is v5."""
 
@@ -1213,6 +1251,7 @@ def test_method9_amendment_reference_paths_exist() -> None:
                 "results_v2.json",
                 "results_v3.json",
                 "results_v5.json",
+                "results_v6.json",
                 "CLAIMS.md",
                 "STYLE.md",
                 "CONTRIBUTING.md",

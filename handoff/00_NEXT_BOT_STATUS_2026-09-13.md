@@ -37,3 +37,9 @@ https://drive.google.com/drive/folders/1UkmbI55LN3NwRnmu3nzhXMk8uXKkiTpU
 3. After search: prereg/amendment (hashed) **before** campaign numbers.
 4. Push every finished unit immediately so the next bot does not lose work.
 5. ClaimGate never loosened; pins A–E unchanged; no forbidden aliases; short Persian report ≤10 lines per wave.
+
+## Progress 2026-09-13 (this session)
+- `main` fast-forwarded to include full AGENT_PROMPT + NEXT_BOT status (`289e966`).
+- HE02 lit brief + draft prereg committed under `docs/hard_experiment_02/` and `docs/HARD_EXPERIMENT_02_PREREG.md`.
+- **Next code:** implement E1/E2/E5 knobs only after reading prereg; pilot 1000–1009 first.
+- Colab still deferred.

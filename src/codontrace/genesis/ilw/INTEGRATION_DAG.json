@@ -1,0 +1,535 @@
+{
+  "schema": "ilw_integration_dag_v0",
+  "milestone": "ILW-0",
+  "claim_ceiling": "runtime_observation",
+  "scientific_name": "integrated eco-evolutionary runtime",
+  "forbidden_claim_aliases": [
+    "intelligence",
+    "agi",
+    "collective_intelligence",
+    "open_ended_intelligence",
+    "tokyo_type_1_passed",
+    "avida_replacement"
+  ],
+  "description": "Required causal edges for an Integrated Living World run. Every edge needs independent edge_id, before/after telemetry, separate attempt/success counters, and a knockout. Outcome injection, treatment oracles, and fitness shortcuts outside VM/world are forbidden.",
+  "required_telemetry_fields": [
+    "run_id",
+    "seed",
+    "tick",
+    "generation",
+    "world_spec_digest",
+    "event_id",
+    "causal_parent_ids",
+    "edge_id",
+    "actor_id",
+    "lineage_id",
+    "genome_digest",
+    "source_id",
+    "capsule_id",
+    "capsule_parent_id",
+    "payload_digest",
+    "provenance_digest",
+    "attempted",
+    "accepted",
+    "applied",
+    "blocked_reason",
+    "state_before_digest",
+    "state_after_digest",
+    "energy_delta",
+    "resource_delta",
+    "fitness_proxy_delta"
+  ],
+  "telemetry_rules": {
+    "attempt_accepted_applied_are_separate_counters": true,
+    "required_edge_coverage_must_be_100_percent": true,
+    "replay_must_bitwise_rebuild_final_digest": true
+  },
+  "subsystems": [
+    {
+      "id": "genome",
+      "label": "mutable genome"
+    },
+    {
+      "id": "toolchain",
+      "label": "toolchain / codon phenotype path"
+    },
+    {
+      "id": "vm_phenotype",
+      "label": "VM phenotype"
+    },
+    {
+      "id": "action",
+      "label": "organism action"
+    },
+    {
+      "id": "resource_world",
+      "label": "resource / world consequence"
+    },
+    {
+      "id": "experienced_event",
+      "label": "experienced event"
+    },
+    {
+      "id": "capsule",
+      "label": "capsule with provenance"
+    },
+    {
+      "id": "transport_accept_apply",
+      "label": "capsule transport / accept / apply"
+    },
+    {
+      "id": "receiver_policy",
+      "label": "receiver policy / action change"
+    },
+    {
+      "id": "survival_reproduction",
+      "label": "survival / reproduction"
+    },
+    {
+      "id": "mutation_lineage",
+      "label": "mutation / lineage"
+    },
+    {
+      "id": "next_ecological_state",
+      "label": "next ecological state"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "genome_to_toolchain",
+      "source": "genome",
+      "target": "toolchain",
+      "required": true,
+      "knockout_id": null,
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest"
+      ],
+      "description": "Genome controls toolchain composition / codon path selection."
+    },
+    {
+      "edge_id": "toolchain_to_vm_phenotype",
+      "source": "toolchain",
+      "target": "vm_phenotype",
+      "required": true,
+      "knockout_id": "toolchain_to_action_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta"
+      ],
+      "description": "Toolchain produces executable VM phenotype."
+    },
+    {
+      "edge_id": "vm_phenotype_to_action",
+      "source": "vm_phenotype",
+      "target": "action",
+      "required": true,
+      "knockout_id": "toolchain_to_action_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta"
+      ],
+      "description": "VM phenotype emits world-affecting actions."
+    },
+    {
+      "edge_id": "action_to_resource_world",
+      "source": "action",
+      "target": "resource_world",
+      "required": true,
+      "knockout_id": null,
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta",
+        "resource_delta",
+        "fitness_proxy_delta"
+      ],
+      "description": "Action changes resources / spatial world state."
+    },
+    {
+      "edge_id": "resource_world_to_experienced_event",
+      "source": "resource_world",
+      "target": "experienced_event",
+      "required": true,
+      "knockout_id": null,
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "source_id",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta",
+        "resource_delta"
+      ],
+      "description": "World consequence is experienced as a ledger event."
+    },
+    {
+      "edge_id": "experience_to_capsule",
+      "source": "experienced_event",
+      "target": "capsule",
+      "required": true,
+      "knockout_id": "experience_to_capsule_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "capsule_id",
+        "capsule_parent_id",
+        "payload_digest",
+        "provenance_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest"
+      ],
+      "description": "Real agent experience forms a provenance-bearing capsule (not a hand payload)."
+    },
+    {
+      "edge_id": "capsule_transport_accept_apply",
+      "source": "capsule",
+      "target": "transport_accept_apply",
+      "required": true,
+      "knockout_id": "capsule_transport_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "source_id",
+        "capsule_id",
+        "capsule_parent_id",
+        "payload_digest",
+        "provenance_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest"
+      ],
+      "description": "Capsule is transported, accepted, and applied as three separate counters."
+    },
+    {
+      "edge_id": "capsule_to_policy",
+      "source": "transport_accept_apply",
+      "target": "receiver_policy",
+      "required": true,
+      "knockout_id": "capsule_to_policy_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "capsule_id",
+        "payload_digest",
+        "provenance_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta",
+        "fitness_proxy_delta"
+      ],
+      "description": "Applied capsule changes receiver policy / subsequent action choice."
+    },
+    {
+      "edge_id": "policy_to_survival_reproduction",
+      "source": "receiver_policy",
+      "target": "survival_reproduction",
+      "required": true,
+      "knockout_id": null,
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "energy_delta",
+        "resource_delta",
+        "fitness_proxy_delta"
+      ],
+      "description": "Policy-driven action outcomes affect survival and reproduction."
+    },
+    {
+      "edge_id": "survival_reproduction_to_mutation_lineage",
+      "source": "survival_reproduction",
+      "target": "mutation_lineage",
+      "required": true,
+      "knockout_id": "mutation_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest"
+      ],
+      "description": "Births carry mutation into organism phylogeny records."
+    },
+    {
+      "edge_id": "lineage_inheritance",
+      "source": "mutation_lineage",
+      "target": "genome",
+      "required": true,
+      "knockout_id": "lineage_inheritance_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "genome_digest",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest"
+      ],
+      "description": "Descendant genomes inherit lineage state (joinable with capsule genealogy)."
+    },
+    {
+      "edge_id": "mutation_lineage_to_next_ecological_state",
+      "source": "mutation_lineage",
+      "target": "next_ecological_state",
+      "required": true,
+      "knockout_id": null,
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "actor_id",
+        "lineage_id",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "resource_delta",
+        "fitness_proxy_delta"
+      ],
+      "description": "Population / lineage turnover updates ecological state."
+    },
+    {
+      "edge_id": "ecological_feedback",
+      "source": "next_ecological_state",
+      "target": "resource_world",
+      "required": true,
+      "knockout_id": "ecological_feedback_off",
+      "required_telemetry_fields": [
+        "run_id",
+        "seed",
+        "tick",
+        "generation",
+        "world_spec_digest",
+        "event_id",
+        "causal_parent_ids",
+        "edge_id",
+        "attempted",
+        "accepted",
+        "applied",
+        "blocked_reason",
+        "state_before_digest",
+        "state_after_digest",
+        "resource_delta"
+      ],
+      "description": "Next ecological state feeds back into resource regime (expiry / niche pressure)."
+    }
+  ],
+  "knockouts": [
+    {
+      "knockout_id": "toolchain_to_action_off",
+      "cuts_edge_ids": [
+        "toolchain_to_vm_phenotype",
+        "vm_phenotype_to_action"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "experience_to_capsule_off",
+      "cuts_edge_ids": [
+        "experience_to_capsule"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "capsule_transport_off",
+      "cuts_edge_ids": [
+        "capsule_transport_accept_apply"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "capsule_to_policy_off",
+      "cuts_edge_ids": [
+        "capsule_to_policy"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "mutation_off",
+      "cuts_edge_ids": [
+        "survival_reproduction_to_mutation_lineage"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "ecological_feedback_off",
+      "cuts_edge_ids": [
+        "ecological_feedback"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    },
+    {
+      "knockout_id": "lineage_inheritance_off",
+      "cuts_edge_ids": [
+        "lineage_inheritance"
+      ],
+      "keeps_cost_and_throughput_matched": true
+    }
+  ],
+  "chain": [
+    "genome",
+    "toolchain",
+    "vm_phenotype",
+    "action",
+    "resource_world",
+    "experienced_event",
+    "capsule",
+    "transport_accept_apply",
+    "receiver_policy",
+    "survival_reproduction",
+    "mutation_lineage",
+    "next_ecological_state"
+  ]
+}

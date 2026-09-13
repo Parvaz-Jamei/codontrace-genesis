@@ -596,27 +596,27 @@ def run_ilw5_partial(
             if isinstance(cell_id, str):
                 prior_by_id[cell_id] = row
 
-    results: list[dict[str, Any]] = []
+    # Execute only cells not already present; preserve all prior planned rows even
+    # when max_cells stops early (do not drop later prior interaction/S4 cells).
+    pending = [c for c in planned if c.cell_id not in prior_by_id]
+    if max_cells is not None:
+        pending = pending[: int(max_cells)]
     newly_run = 0
-    for cell in planned:
-        if cell.cell_id in prior_by_id:
-            results.append(prior_by_id[cell.cell_id])
-            continue
-        if max_cells is not None and newly_run >= int(max_cells):
-            break
+    new_by_id: dict[str, dict[str, Any]] = {}
+    for cell in pending:
         executed = run_campaign_cell(
             cell,
             harness=unlocked,
             bootstrap_population=bootstrap_population,
             run_replay=run_replay,
         )
-        results.append(executed.to_dict())
+        new_by_id[cell.cell_id] = executed.to_dict()
         newly_run += 1
-        # Checkpoint after every newly completed cell so crashes lose at most one.
+        combined = dict(prior_by_id)
+        combined.update(new_by_id)
+        results = [combined[c.cell_id] for c in planned if c.cell_id in combined]
         if write_artifact:
-            remaining_ids = [
-                c.cell_id for c in planned if c.cell_id not in {r["cell"]["cell_id"] for r in results}
-            ]
+            remaining_ids = [c.cell_id for c in planned if c.cell_id not in combined]
             payload = _partial_payload(
                 design=design,
                 planned=planned,
@@ -628,9 +628,10 @@ def run_ilw5_partial(
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
-    remaining_ids = [
-        c.cell_id for c in planned if c.cell_id not in {r["cell"]["cell_id"] for r in results}
-    ]
+    combined = dict(prior_by_id)
+    combined.update(new_by_id)
+    results = [combined[c.cell_id] for c in planned if c.cell_id in combined]
+    remaining_ids = [c.cell_id for c in planned if c.cell_id not in combined]
     payload = _partial_payload(
         design=design,
         planned=planned,

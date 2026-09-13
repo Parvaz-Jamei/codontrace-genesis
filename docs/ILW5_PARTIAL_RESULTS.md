@@ -1,6 +1,6 @@
 # ILW-5 partial confirmatory results
 
-**Status:** Partial local confirmatory subset **expanded** (24/38 planned cells; 24/312 enumerated).  
+**Status:** Partial local confirmatory subset **expanded** (30/38 planned cells; 30/312 enumerated).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged — **no promotion**).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Intelligence / CCE / AGI claims:** **none** (forbidden; not emitted).
@@ -35,9 +35,9 @@ Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | 24 / 38 |
-| Executed / enumerated (full design) | 24 / 312 |
-| By kind | `{'ablation': 21, 'baseline': 3}` |
+| Executed / planned (this subset) | 30 / 38 |
+| Executed / enumerated (full design) | 30 / 312 |
+| By kind | `{'ablation': 21, 'baseline': 3, 'interaction': 4, 'scale_s4': 2}` |
 | ClaimGate ceiling | `runtime_observation` |
 | Outcomes invented | `False` |
 | Intelligence claimed | `False` |
@@ -71,6 +71,12 @@ All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `s
 - `ablation-mutation_off-S2-4102` (birth=0, death=32, turnover=28, coverage=1.0, conservation=True)
 - `ablation-ecological_feedback_off-S2-4102` (birth=28, death=36, turnover=28, coverage=1.0, conservation=True)
 - `ablation-lineage_inheritance_off-S2-4102` (birth=454, death=443, turnover=435, coverage=1.0, conservation=True)
+- `interaction-toolchainxcapsule-S2-4100` (birth=10, death=18, turnover=10, coverage=1.0, conservation=True)
+- `interaction-capsulexecology-S2-4100` (birth=22, death=30, turnover=22, coverage=1.0, conservation=True)
+- `interaction-mutationxcapsule-S2-4100` (birth=0, death=35, turnover=30, coverage=1.0, conservation=True)
+- `interaction-heterogeneityxpopulation_size-S2-4100` (birth=19, death=27, turnover=19, coverage=1.0, conservation=True)
+- `s4-32x32-t128-p64-4100` (birth=25, death=28, turnover=23, coverage=1.0, conservation=True)
+- `s4-64x64-t128-p64-4100` (birth=35, death=36, turnover=32, coverage=1.0, conservation=True)
 
 ### Remaining planned (this subset)
 
@@ -82,12 +88,6 @@ All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `s
 - `ablation-mutation_off-S2-4103`
 - `ablation-ecological_feedback_off-S2-4103`
 - `ablation-lineage_inheritance_off-S2-4103`
-- `interaction-toolchainxcapsule-S2-4100`
-- `interaction-capsulexecology-S2-4100`
-- `interaction-mutationxcapsule-S2-4100`
-- `interaction-heterogeneityxpopulation_size-S2-4100`
-- `s4-32x32-t128-p64-4100`
-- `s4-64x64-t128-p64-4100`
 
 
 ## Remainder

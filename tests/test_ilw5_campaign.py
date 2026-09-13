@@ -115,3 +115,75 @@ def test_partial_payload_honesty_flags_without_execution(tmp_path):
     assert payload["planned_count"] == 8 * 2 + 4 + 2
     assert payload["enumerated_total"] == 312
     assert art.is_file()
+
+
+def test_partial_resume_preserves_later_prior_cells(tmp_path):
+    """max_cells must not drop previously completed cells that appear later in plan order."""
+    from codontrace.genesis.ilw.campaign import (
+        build_ablation_cells,
+        build_interaction_screening_cells,
+        run_ilw5_partial,
+        select_partial_campaign_cells,
+    )
+    from codontrace.genesis.ilw.prereg import PilotGateStatus, PilotHarness
+
+    unlocked = PilotHarness(
+        gates=PilotGateStatus(
+            replay_ok=True,
+            conservation_ok=True,
+            edge_coverage_ok=True,
+            pom_patterns_recorded=True,
+            no_claim_promotion=True,
+            claim_ceiling_ok=True,
+        )
+    )
+    art = tmp_path / "partial.json"
+    # Seed artifact with interaction-only prior rows (appear after ablations in plan).
+    interactions = build_interaction_screening_cells(seed=4100)
+    fake_rows = []
+    for cell in interactions:
+        fake_rows.append(
+            {
+                "cell": cell.to_dict(),
+                "replay_matched": False,
+                "conservation_passed": True,
+                "required_edge_coverage": 1.0,
+                "birth_count": 0,
+                "death_count": 0,
+                "generation_turnover": 0,
+                "lineage_depth": 0,
+                "unique_genome_count": 0,
+                "niches_occupied": 0,
+                "knockout_applied_zero_when_expected": True,
+                "final_digest": "ilw_final:fixture_prior_only",
+                "event_count": 0,
+                "no_claim_promotion": True,
+                "claim_ceiling": "runtime_observation",
+                "status": "runtime_observation",
+                "scientific_claim_emitted": False,
+                "ladder_promotion": None,
+            }
+        )
+    import json
+    art.write_text(
+        json.dumps(
+            {
+                "executed_cells": fake_rows,
+                "campaign_outcomes_invented": False,
+            }
+        )
+    )
+    # max_cells=0: no new runs, but prior interaction rows must remain when plan includes them.
+    payload = run_ilw5_partial(
+        harness=unlocked,
+        max_cells=0,
+        write_artifact=True,
+        artifact_path=art,
+        resume=True,
+        ablation_seeds=(4100,),
+        interaction_seeds=(4100,),
+        s4_seeds=(),
+    )
+    ids = [r["cell"]["cell_id"] for r in payload["executed_cells"]]
+    assert all(c.cell_id in ids for c in interactions)
+    assert payload["executed_count"] == len(interactions)

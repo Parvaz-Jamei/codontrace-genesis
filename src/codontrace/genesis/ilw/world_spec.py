@@ -155,3 +155,43 @@ class WorldSpec:
             population_cap=24,
             scale_label="S1",
         )
+
+
+    @classmethod
+    def s2_pilot(cls, *, seed: int = 3100) -> WorldSpec:
+        """Multi-generation S2 pilot scale (32×32 / 128 tick); prereg SCALE_LADDER."""
+
+        return cls(
+            width=32,
+            height=32,
+            seed=seed,
+            tick_horizon=128,
+            resource_kinds=("lumen", "vitae"),
+            niche_count=4,
+            population_cap=64,
+            scale_label="S2",
+        )
+
+    @classmethod
+    def from_scale_ladder(cls, scale_label: str, *, seed: int) -> WorldSpec:
+        """Build a WorldSpec from a locked SCALE_LADDER label (S0–S3; S4 is multi-cell)."""
+
+        from codontrace.genesis.ilw.prereg import SCALE_LADDER
+
+        if scale_label == "S4":
+            raise WorldSpecError(
+                "S4 is a finite-size multi-cell challenge; construct cells explicitly."
+            )
+        ladder = SCALE_LADDER.get(scale_label)
+        if ladder is None:
+            raise WorldSpecError(f"unknown scale_label: {scale_label!r}")
+        return cls(
+            width=int(ladder["width"]),
+            height=int(ladder["height"]),
+            seed=seed,
+            tick_horizon=int(ladder["tick_horizon"]),
+            resource_kinds=("lumen", "vitae"),
+            niche_count=int(ladder["niche_count"]),
+            population_cap=int(ladder["population_cap"]),
+            scale_label=str(ladder["label"]),
+        )

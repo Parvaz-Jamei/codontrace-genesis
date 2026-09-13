@@ -9,6 +9,7 @@ ILW-3: integrated smoke with replay, conservation, 100% required-edge coverage;
 no scientific claim / no ClaimGate ladder promotion.
 ILW-4: locked preregistration (POM patterns, interactions, scale/horizon/seeds,
 stop rules, Morris→DSD plan) + pilot harness stub (fail-first confirmatory block).
+ILW-pilot / ILW-5: S2 pilot gates artifact; confirmatory campaign harness (smoke cells).
 
 Claim ceiling stays ``runtime_observation``; scientific name is
 ``integrated eco-evolutionary runtime`` (not intelligence / AGI / CI).
@@ -95,6 +96,35 @@ from codontrace.genesis.ilw.scheduler import IlwScheduler, IlwSchedulerError
 from codontrace.genesis.ilw.seed_namespace import SeedNamespace, SeedNamespaceError
 from codontrace.genesis.ilw.world_spec import WORLD_SPEC_SCHEMA, WorldSpec, WorldSpecError
 
+
+from codontrace.genesis.ilw.campaign import (
+    CampaignCell,
+    CampaignCellResult,
+    IlwCampaignError,
+    build_ablation_cells,
+    build_interaction_screening_cells,
+    build_s4_scale_cells,
+    default_smoke_artifact_path,
+    enumerate_campaign_design,
+    run_campaign_cell,
+    run_ilw5_smoke,
+)
+
+from codontrace.genesis.ilw.pilot import (
+    IlwPilotError,
+    PilotCampaignReport,
+    PomPatternRecord,
+    SeedPilotResult,
+    default_artifact_path,
+    evaluate_pilot_gates,
+    evaluate_pom_patterns,
+    load_pilot_gates,
+    run_s2_pilot,
+    run_seed_pilot,
+    unlock_harness_from_artifact,
+    unlocked_harness_or_raise,
+)
+
 __all__ = [
     "CLAIM_CEILING",
     "FORBIDDEN_OUTCOME_INJECTION_KEYS",
@@ -161,4 +191,26 @@ __all__ = [
     "locked_design_dict",
     "run_integrated_smoke",
     "summarize_prereg",
+    "IlwPilotError",
+    "PilotCampaignReport",
+    "PomPatternRecord",
+    "SeedPilotResult",
+    "default_artifact_path",
+    "evaluate_pilot_gates",
+    "evaluate_pom_patterns",
+    "load_pilot_gates",
+    "run_s2_pilot",
+    "run_seed_pilot",
+    "unlock_harness_from_artifact",
+    "unlocked_harness_or_raise",
+    "CampaignCell",
+    "CampaignCellResult",
+    "IlwCampaignError",
+    "build_ablation_cells",
+    "build_interaction_screening_cells",
+    "build_s4_scale_cells",
+    "default_smoke_artifact_path",
+    "enumerate_campaign_design",
+    "run_campaign_cell",
+    "run_ilw5_smoke",
 ]

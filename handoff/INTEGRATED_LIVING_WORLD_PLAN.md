@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-4 locked prereg (POM patterns, interactions, scale/horizon/seeds, stop rules, Morris→DSD; pilot harness fail-first). No campaign outcomes yet.
+**Status:** ILW-5 campaign harness landed. S2 pilot gates PASS (seeds 3100–3107). Confirmatory smoke on held-out seed 4100 (baseline + capsule_to_policy_off). Full factorial/S4 remaining for Colab. No intelligence/CCE claim.
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0 / ILW-1 / ILW-2 / ILW-3 / ILW-4)
+## Code map (ILW-0 … ILW-5)
 
 | Path | Role |
 |------|------|
@@ -162,6 +162,12 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `docs/ILW_PREREG_V1.md` | Locked ILW-4 prereg (POM, DoE, seeds, stop rules) |
 | `src/codontrace/genesis/ilw/prereg.py` | Digests, seed lists, pilot harness stub |
 | `tests/test_ilw4_prereg.py` | Digest pins, seed disjointness, fail-first confirmatory |
+| `src/codontrace/genesis/ilw/pilot.py` | S2 pilot runner, POM recording, gate artifact |
+| `src/codontrace/genesis/ilw/campaign.py` | ILW-5 factorial/ablation/S4 cell harness + smoke |
+| `docs/ILW_PILOT_S2_RESULTS.md` | S2 pilot gate artifact (PASS) |
+| `docs/ILW5_CAMPAIGN.md` | ILW-5 design + local smoke / Colab remainder |
+| `tests/test_ilw_pilot_gates.py` | Fast pilot gate / POM unit tests |
+| `tests/test_ilw5_campaign.py` | Campaign design enumeration tests |
 
 ## ILW-1 (this milestone) — done when
 
@@ -211,6 +217,18 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 4. ClaimGate ceiling remains `runtime_observation`; scientific name remains
    `integrated eco-evolutionary runtime` (never intelligence / AGI / CI).
 5. No Colab; no ClaimGate loosening; no CCE claim.
+
+
+## ILW-5 (this milestone) — done when
+
+1. S2 pilot gates PASS on seeds 3100–3107 (replay, conservation, edge coverage,
+   POM rows recorded, no claim promotion, ceiling `runtime_observation`).
+2. Campaign harness encodes ablation, interaction pairs, and S4 scale cells from
+   the locked prereg (executable builders; digests pinned on artifacts).
+3. Confirmatory held-out smoke runs ≥1–2 cells on seeds 4100–4107 only after unlock.
+4. Remaining full campaign documented for Colab/Drive — no invented outcome tables.
+5. ClaimGate ceiling remains `runtime_observation`; no CCE / intelligence claim.
+6. ILW-6 not started unless harness is solid and time remains.
 
 ## Primary references
 

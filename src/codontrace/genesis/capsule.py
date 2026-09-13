@@ -65,6 +65,7 @@ class CapsuleAdoptionBlockedReason(str, Enum):
     TARGET_ALREADY_ADOPTED = "target_already_adopted"
     SOURCE_TARGET_SAME = "source_target_same"
     SHUFFLE_CONTROL_NOT_CLAIM_ELIGIBLE = "shuffle_control_not_claim_eligible"
+    ACTIVITY_MATCH_BUDGET_EXHAUSTED = "activity_match_budget_exhausted"
     UNKNOWN = "unknown"
 
 
@@ -82,6 +83,9 @@ class CapsuleShuffleMode(str, Enum):
     TIMING = "timing"
     CONTENT_SOURCE_TIMING = "content_source_timing"
     RANDOM_METADATA = "random_metadata"
+    # Amendment 04 / Wave 1e: fixed-null payload (Goldsby-style knockout).
+    # Replaces event_pattern/predicted_outcome with WAIT; not peer-rotation.
+    CONTENT_NULL = "content_null"
 
 
 @dataclass(frozen=True, slots=True)
@@ -420,6 +424,15 @@ class CapsuleTransferConfig:
     policy_profile: CapsulePolicyProfile | str = CapsulePolicyProfile.SAFE
     shuffle_mode: CapsuleShuffleMode | str = CapsuleShuffleMode.OFF
     accept_provisional_source_fitness: bool = True
+    # Wave 1c: opt-in behavioural coupling (DAG edge e2: adopted capsule ->
+    # action). Default off keeps every pre-existing config digest byte-stable;
+    # the two keys below are serialised only when the coupling is enabled.
+    adoption_effect_action: bool = False
+    adoption_substitutable_actions: tuple[str, ...] = ("WAIT",)
+    # Wave 1e / Amd 04: optional generation-wide successful-accept budget for
+    # activity-matched (yoked) negative controls. None = uncapped. Serialized
+    # only when set so pre-existing config digests stay byte-stable.
+    max_successful_adoptions: int | None = None
 
     @property
     def effective_max_capsules_read_per_tick(self) -> int:
@@ -467,6 +480,17 @@ class CapsuleTransferConfig:
         ):
             msg = "Capsule transfer counts/ttl are invalid."
             raise ConfigurationError(msg)
+        substitutable = tuple(str(item) for item in self.adoption_substitutable_actions)
+        if self.adoption_effect_action and not substitutable:
+            msg = "adoption_effect_action requires at least one substitutable action."
+            raise ConfigurationError(msg)
+        object.__setattr__(self, "adoption_substitutable_actions", substitutable)
+        if self.max_successful_adoptions is not None:
+            budget = int(self.max_successful_adoptions)
+            if budget < 0:
+                msg = "max_successful_adoptions must be >= 0 when set."
+                raise ConfigurationError(msg)
+            object.__setattr__(self, "max_successful_adoptions", budget)
         if self.adoption_min_confidence is not None:
             object.__setattr__(self, "adoption_min_confidence", finite_float("adoption_min_confidence", self.adoption_min_confidence, probability=True))
 
@@ -483,7 +507,7 @@ class CapsuleTransferConfig:
         )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "min_confidence": self.min_confidence,
             "min_source_fitness": self.min_source_fitness,
@@ -509,6 +533,12 @@ class CapsuleTransferConfig:
             "shuffle_mode": _capsule_shuffle_mode(self.shuffle_mode).value,
             "accept_provisional_source_fitness": self.accept_provisional_source_fitness,
         }
+        if self.adoption_effect_action:
+            payload["adoption_effect_action"] = True
+            payload["adoption_substitutable_actions"] = list(self.adoption_substitutable_actions)
+        if self.max_successful_adoptions is not None:
+            payload["max_successful_adoptions"] = int(self.max_successful_adoptions)
+        return payload
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> CapsuleTransferConfig:
@@ -549,6 +579,15 @@ class CapsuleTransferConfig:
             accept_provisional_source_fitness=_bool(
                 data, "accept_provisional_source_fitness", True
             ),
+            adoption_effect_action=_bool(data, "adoption_effect_action", False),
+            adoption_substitutable_actions=(
+                ("WAIT",)
+                if data.get("adoption_substitutable_actions") is None
+                else _str_tuple(data, "adoption_substitutable_actions")
+            ),
+            max_successful_adoptions=None
+            if data.get("max_successful_adoptions") is None
+            else _int(data, "max_successful_adoptions", 0),
         )
 
     def digest(self) -> str:
@@ -983,6 +1022,8 @@ class NexusStigmergyLayer:
 
     store: CapsuleStore = field(default_factory=CapsuleStore)
     signals: tuple[NexusSignal, ...] = ()
+    # Run-wide mutable accept budget for Amd 04 activity_matched (not digested).
+    adoption_budget_remaining: list[int] | None = None
 
     def deposit(self, capsule: CausalCapsule, position: Position | None = None) -> NexusSignal:
         stored_capsule = capsule
@@ -1364,6 +1405,8 @@ def apply_capsule_shuffle_control(
     shuffled capsule objects rather than a post-hoc score adjustment.  OFF returns
     the original tuple and no records. RANDOM_METADATA is intentionally marked
     claim-ineligible because it does not disrupt source/content/timing signal.
+    CONTENT_NULL replaces every payload with WAIT (Amd 04 confirmatory null);
+    it is not peer-rotation and still nulls a window of size 1.
     """
 
     resolved = _capsule_shuffle_mode(mode)
@@ -1447,6 +1490,11 @@ def _shuffle_one_capsule(
         event_pattern = peer.event_pattern
         predicted_outcome = peer.predicted_outcome
         source_graph_digest = peer.source_graph_digest
+    if mode is CapsuleShuffleMode.CONTENT_NULL:
+        # Fixed null token (Amd 04): destroy informative payload marginal.
+        # Window size 1 still nulls — peer is unused for content.
+        event_pattern = ("WAIT",)
+        predicted_outcome = "WAIT"
     if mode in {CapsuleShuffleMode.TIMING, CapsuleShuffleMode.CONTENT_SOURCE_TIMING}:
         emitted_tick = max(0, tick)
         ttl = max(0, capsule.ttl)

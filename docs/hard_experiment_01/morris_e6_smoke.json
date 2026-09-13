@@ -1,0 +1,124 @@
+{
+  "agi": false,
+  "arm": "source_bias_on",
+  "avida_replacement": false,
+  "bytes_sha256": "f8321bfac96a60af47823d803532b793d08d5a2b91bf01a897ec6ed11ecaff2b",
+  "claim_ceiling": "runtime_observation",
+  "claim_gate_unchanged": true,
+  "collective_intelligence": false,
+  "delta": 0.6666666666666666,
+  "design_seed": 20260912,
+  "factors": {
+    "basal_runtime_atp_cost": [
+      0.2,
+      0.4,
+      0.6,
+      0.8
+    ],
+    "min_source_fitness": [
+      0.0,
+      1.0,
+      1.5,
+      3.0
+    ],
+    "read_radius": [
+      1.0,
+      3.0,
+      6.0,
+      10.0
+    ],
+    "resource_amount": [
+      1.0,
+      2.0,
+      3.0,
+      4.0
+    ]
+  },
+  "frozen": {
+    "food_coverage": 1.0,
+    "food_layout": "every_cell",
+    "respawn_draws_per_tick": "max(1, population_size)",
+    "role_layout": "seed_permuted_v3_multiset"
+  },
+  "intelligence": false,
+  "k": 4,
+  "n_evaluations": 10,
+  "note": "exploratory_only Morris mu* screen; not Holm/BCa; not a ClaimGate input; Amd 03 coverage/respawn frozen",
+  "outcome": "receiver_mean_terminal_runtime_atp",
+  "outcomes": [
+    44.375,
+    42.7,
+    46.0,
+    54.0,
+    57.2,
+    44.375,
+    51.375,
+    47.7,
+    54.0,
+    57.2
+  ],
+  "p": 4,
+  "population": 8,
+  "r": 2,
+  "rng_namespace": "hard_experiment_01/morris",
+  "scale": "smoke",
+  "schema": "hard_experiment_01_morris_e6",
+  "screening": [
+    {
+      "factor": "read_radius",
+      "mu": -4.012499999999996,
+      "mu_star": 4.012499999999996,
+      "n_effects": 2,
+      "sigma": 2.1213203435596424
+    },
+    {
+      "factor": "min_source_fitness",
+      "mu": 7.199999999999996,
+      "mu_star": 7.199999999999996,
+      "n_effects": 2,
+      "sigma": 3.181980515339464
+    },
+    {
+      "factor": "basal_runtime_atp_cost",
+      "mu": 4.800000000000004,
+      "mu_star": 4.800000000000004,
+      "n_effects": 2,
+      "sigma": 0.0
+    },
+    {
+      "factor": "resource_amount",
+      "mu": 11.25,
+      "mu_star": 11.25,
+      "n_effects": 2,
+      "sigma": 1.0606601717798212
+    }
+  ],
+  "seeds": [
+    2000
+  ],
+  "tick_count": 8,
+  "tier": "exploratory_only",
+  "tokyo_type1_passed": false,
+  "trajectories": [
+    {
+      "index": 0,
+      "n_points": 5,
+      "stepped_factors": [
+        "read_radius",
+        "min_source_fitness",
+        "resource_amount",
+        "basal_runtime_atp_cost"
+      ]
+    },
+    {
+      "index": 1,
+      "n_points": 5,
+      "stepped_factors": [
+        "resource_amount",
+        "read_radius",
+        "min_source_fitness",
+        "basal_runtime_atp_cost"
+      ]
+    }
+  ]
+}

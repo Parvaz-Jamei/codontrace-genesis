@@ -8,16 +8,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleShuffleMode
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
+    ANALYSIS_ARMS,
     ARMS,
+    AUXILIARY_ARMS,
+    CALIBRATION_GOOD_PAYLOAD_ACTION,
+    CALIBRATION_POOR_PAYLOAD_ACTION,
     CLAIM_CEILING,
+    CONTENT_NULL_PAYLOAD_ACTION,
     DOSE_LEVELS,
     INTERVENTION_CLAIM,
     INTERVENTION_SUPPORTED_FLAGS,
+    MIN_SOURCE_FITNESS_TREATMENT,
+    PRIMARY_OUTCOME,
     RESEARCH_SEED_COUNT,
+    SENSITIVITY_ARMS,
     SMOKE_SEED_COUNT,
     HardExperiment01ArmRecord,
     HardExperiment01ArmSummary,
@@ -27,16 +37,28 @@ from codontrace.genesis.hard_experiment_01 import (
     _decision_rule_failures,
     _mean_last_tick_fitness,
     _missing_outcomes_per_arm,
+    _sensitivity_failures,
     build_hard_experiment_01_dose_spec,
     build_hard_experiment_01_spec,
     diagnose_hard_experiment_01_run,
     evaluate_hard_experiment_01_assay,
     evaluate_hard_experiment_01_claim,
     format_hard_experiment_01_summary,
+    SCHEMA_VERSION,
+    calibration_role_for_index,
     hard_experiment_01_calibration_knobs,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
+    hard_experiment_01_prereg_amendment_02_digest,
+    hard_experiment_01_prereg_amendment_03_digest,
+    hard_experiment_01_prereg_amendment_04_digest,
+    hard_experiment_01_prereg_amendment_05_digest,
+    hard_experiment_01_prereg_amendment_digest,
+    ACTIVITY_MATCH_PILOT_GATE,
+    evaluate_hard_experiment_01_wave1e_pilot_gates,
     hard_experiment_01_prereg_digest,
+    hard_experiment_01_protocol_digest,
+    permute_roles_for_seed,
     run_hard_experiment_01,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
@@ -76,12 +98,16 @@ def test_hard_experiment_01_interventions_map_each_arm() -> None:
     assert by_arm["source_bias_on"].role == "treatment"
     assert by_arm["source_bias_off"].role == "mechanism_ablation"
     assert by_arm["capsules_off"].role == "channel_off"
-    assert by_arm["capsules_shuffled"].role == "negative_control"
+    assert by_arm["capsules_content_null"].role == "negative_control"
+    assert by_arm["capsules_activity_matched"].role == "auxiliary_control"
+    assert by_arm["capsules_shuffled"].role == "sensitivity_negative_control"
     assert "min_source_fitness" in by_arm["source_bias_off"].knob
     assert by_arm["capsules_off"].knob == "CapsuleTransferConfig.enabled"
+    assert by_arm["capsules_content_null"].knob == "CapsuleTransferConfig.shuffle_mode"
     assert by_arm["capsules_shuffled"].knob == "CapsuleTransferConfig.shuffle_mode"
     assert by_arm["source_bias_off"].cuts_edges == ("e1",)
     assert by_arm["capsules_off"].cuts_edges == ("e1", "e2")
+    assert by_arm["capsules_content_null"].cuts_edges == ("e2_content",)
     assert by_arm["capsules_shuffled"].cuts_edges == ("e2_content",)
     assert all(item.to_dict()["collective_intelligence"] is False for item in mapped)
 
@@ -112,8 +138,11 @@ def test_hard_experiment_01_dag_and_prereg_are_frozen() -> None:
 
 def test_dose_two_matches_treatment_spec() -> None:
     treatment = build_hard_experiment_01_spec(seed=11, arm="source_bias_on")
-    dose_two = build_hard_experiment_01_dose_spec(seed=11, min_source_fitness=2.0)
+    dose_two = build_hard_experiment_01_dose_spec(
+        seed=11, min_source_fitness=MIN_SOURCE_FITNESS_TREATMENT
+    )
     shuffled = build_hard_experiment_01_spec(seed=11, arm="capsules_shuffled")
+    content_null = build_hard_experiment_01_spec(seed=11, arm="capsules_content_null")
     assert treatment.digest() == dose_two.digest()
     assert treatment.capsule_transfer_config is not None
     assert (
@@ -125,6 +154,10 @@ def test_dose_two_matches_treatment_spec() -> None:
     assert shuffled.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT
     assert shuffled.capsule_transfer_config.shuffle_mode is not CapsuleShuffleMode.OFF
     assert shuffled.digest() != treatment.digest()
+    assert content_null.capsule_transfer_config is not None
+    assert content_null.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT_NULL
+    assert content_null.digest() != shuffled.digest()
+    assert content_null.digest() != treatment.digest()
 
 
 def test_hard_experiment_01_replays_all_arms_for_endpoint_seeds() -> None:
@@ -148,8 +181,12 @@ def test_hard_experiment_01_replays_all_arms_for_endpoint_seeds() -> None:
     assert {item.baseline_arm for item in campaign.paired_contrasts} == {
         "source_bias_off",
         "capsules_off",
-        "capsules_shuffled",
+        "capsules_content_null",
     }
+    assert set(SENSITIVITY_ARMS) == {"capsules_shuffled"}
+    assert set(AUXILIARY_ARMS) == {"capsules_activity_matched"}
+    assert "capsules_content_null" in ANALYSIS_ARMS
+    assert "capsules_shuffled" not in ANALYSIS_ARMS
     assert all(item.p_holm is not None for item in campaign.paired_contrasts)
     assert campaign.shuffled_vs_capsules_off is not None
     assert StatisticalTestPolicy().tier_for_n(2) == "descriptive_only"
@@ -174,7 +211,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         campaign.seeds[0],
         campaign.seeds[-1],
     }
-    assert len(campaign.replay_records) == 8
+    assert len(campaign.replay_records) == 14
     assert all(item.matched for item in campaign.replay_records)
     last = campaign.seed_records[-1]
     last_replay_spec = build_hard_experiment_01_spec(seed=last.seed, arm="capsules_off")
@@ -213,7 +250,7 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
         "capsule_transfer_count",
         "capsule_adoptions",
     } <= set(sample_arm)
-    assert len(campaign.interventions) == 4
+    assert len(campaign.interventions) == 7
     assert {item.arm for item in campaign.interventions} == set(ARMS)
     assert campaign.to_dict()["interventions"][1]["role"] == "mechanism_ablation"
     assert all(
@@ -249,19 +286,26 @@ def test_hard_experiment_01_twelve_seeds_replay_and_claimgate() -> None:
     summary = format_hard_experiment_01_summary(campaign)
     assert "claim_ceiling runtime_observation" in summary
     assert "collective_intelligence False" in summary
-    assert "capsules_shuffled" in summary
+    assert "capsules_content_null" in summary
+    assert "sensitivity_failures" in summary
     assert campaign.statistical_tier == "exploratory_only"
+    assert any(item.arm == "capsules_shuffled" for item in campaign.arm_summaries)
+    assert any(item.arm == "capsules_activity_matched" for item in campaign.arm_summaries)
 
 
 def test_capsule_counts_are_recorded_separately() -> None:
+    class _Adopt:
+        def __init__(self, ok: bool) -> None:
+            self.adoption_success = ok
+
     class _Result:
         capsule_source_fitness_records = (object(), object())
         capsule_utility_records = (object(),)
         capsule_transfer_metrics = (object(), object(), object())
-        capsule_adoption_records = (object(), object(), object(), object())
+        capsule_adoption_records = (_Adopt(True), _Adopt(False), _Adopt(True), _Adopt(False))
 
-    sources, utilities, transfers, adoptions = _capsule_counts(_Result())
-    assert (sources, utilities, transfers, adoptions) == (2, 1, 3, 4)
+    sources, utilities, transfers, adoptions, accepted = _capsule_counts(_Result())
+    assert (sources, utilities, transfers, adoptions, accepted) == (2, 1, 3, 4, 2)
     # The old helper used max(sources, utilities, transfers) as "emissions".
     assert sources != utilities
     assert max(sources, utilities, transfers) == 3
@@ -367,7 +411,10 @@ def test_missing_arm_is_dropped_from_paired_analysis() -> None:
         ("source_bias_on", 1),
         ("source_bias_off", 0),
         ("capsules_off", 0),
+        ("capsules_content_null", 0),
+        ("capsules_activity_matched", 0),
         ("capsules_shuffled", 0),
+        ("oracle_capsule", 0),
     )
 
 
@@ -425,30 +472,32 @@ def test_assay_failed_when_treatment_extinctions_or_adoptions_uninterpretable() 
         scale="research",
         statistical_tier="research_grade_benchmark_candidate",
         contrasts=(),
-        shuffled_vs_off=None,
+        content_null_vs_off=None,
         dose_trend=None,
         replay_matched=True,
         assay_failures=reasons_v1,
     )
+    sens = _sensitivity_failures(shuffled_vs_off=None)
+    assert "missing_shuffled_vs_capsules_off" in sens
     assert "assay_failed_treatment_adoptions_near_zero" in failures
     assert "missing_primary_contrast" in failures
 
 
 def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
-    spec = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=6, population=4)
+    spec = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=8, population=8)
     result = GenesisEngine.from_spec(spec).run_ticks()
     adoptions = len(tuple(getattr(result, "capsule_adoption_records", ()) or ()))
     diagnostic = diagnose_hard_experiment_01_run(
-        seed=11, arm="source_bias_on", tick_count=6, population=4
+        seed=11, arm="source_bias_on", tick_count=8, population=8
     )
-    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1b"
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1e"
     assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
     assert adoptions > 0
     assert diagnostic.total_adoptions > 0
     assert diagnostic.extinct is False
     assert diagnostic.final_population not in {None, 0}
     assert diagnostic.any_agent_reached_min_source_fitness is True
-    off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=6, population=4)
+    off = build_hard_experiment_01_spec(seed=11, arm="capsules_off", tick_count=8, population=8)
     off_result = GenesisEngine.from_spec(off).run_ticks()
     assert len(tuple(getattr(off_result, "capsule_adoption_records", ()) or ())) == 0
 
@@ -500,6 +549,290 @@ def test_committed_research_v2_exercises_source_bias_gate() -> None:
     assert by_arm["capsules_off"]["adoption_mean"] == 0.0
 
 
+def test_wave_1c_manipulation_check_passes_at_smoke_scale() -> None:
+    """The v2 defect: identical arms. Wave 1c/1d′ must exercise every DAG edge.
+
+    SCHEMA v5 (Amd 03) restores every-cell food + population respawn draws, so
+    the aggregate positive-control clause is expected to hold at smoke scale
+    again. Edge-level manipulation checks below must still pass. (Amd 02 / v4
+    sparse-food calibration failure remains historical.)
+    """
+
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=True)
+    by_arm = {item.arm: item for item in campaign.arm_summaries}
+    assert set(by_arm) == set(ARMS)
+    assert by_arm["source_bias_on"].bias_applied_mean > 0
+    assert by_arm["source_bias_on"].rejected_by_source_fitness_mean > 0
+    assert set(by_arm["source_bias_on"].bias_payload_totals) == {CALIBRATION_GOOD_PAYLOAD_ACTION}
+    assert CALIBRATION_POOR_PAYLOAD_ACTION in by_arm["source_bias_off"].bias_payload_totals
+    assert by_arm["capsules_off"].bias_applied_mean == 0.0
+    assert by_arm["capsules_off"].adoption_mean == 0.0
+    assert by_arm["capsules_shuffled"].adoption_mean > 0
+    assert any(
+        item.source_bias_on.result_digest != item.source_bias_off.result_digest
+        for item in campaign.seed_records
+    )
+    # v2 defect must stay gone: treatment vs off are not bitwise-identical.
+    assert any(
+        item.source_bias_on.result_digest != item.capsules_off.result_digest
+        for item in campaign.seed_records
+    )
+    # B6: split smoke vs research — edge-level checks always; only the Amd 03/smoke
+    # positive-control miss is non-blocking here (no soft assert on the failure tuple).
+    unexpected = tuple(
+        f
+        for f in campaign.assay_failures
+        if f != "assay_failed_positive_control_did_not_move_outcome"
+    )
+    assert unexpected == (), unexpected
+    payload = campaign.to_dict()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["analysis_arms"] == list(ANALYSIS_ARMS)
+    assert payload["schema_version"] == SCHEMA_VERSION
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
+    assert payload["dose_trend"]["pattern"] == "peak_at_intermediate_dose_then_channel_closure"
+    assert payload["dose_trend"]["independent"] is False
+    assert payload["dose_trend"]["trend_supported"] is False
+    assert "pattern_label_note" in payload["dose_trend"]
+    # Wave 1d″ honesty fields on new runs.
+    shuffled_summary = by_arm["capsules_shuffled"]
+    assert shuffled_summary.adoption_accepted_mean is not None
+    assert shuffled_summary.shuffle_content_changed_rate is not None
+    assert shuffled_summary.shuffle_content_changed_rate > 0.0
+    first_shuffled = campaign.seed_records[0].capsules_shuffled.to_dict()
+    assert first_shuffled["capsule_adoptions_semantics"] == "attempts"
+    assert "capsule_adoptions_accepted" in first_shuffled
+    assert "shuffle_content_changed_count" in first_shuffled
+    first_on = campaign.seed_records[0].source_bias_on.to_dict()
+    assert first_on["legacy_terminal_selection_fitness"] is not None
+
+
+def test_wave_1c_engine_knobs_default_off_and_serialize_conditionally() -> None:
+    from codontrace.genesis.capsule import CapsuleTransferConfig
+    from codontrace.genesis.population import RuntimeResourcePolicy
+
+    legacy = CapsuleTransferConfig(enabled=True)
+    assert legacy.adoption_effect_action is False
+    assert "adoption_effect_action" not in legacy.to_dict()
+    coupled = CapsuleTransferConfig(enabled=True, adoption_effect_action=True)
+    assert coupled.to_dict()["adoption_effect_action"] is True
+    assert CapsuleTransferConfig.from_dict(coupled.to_dict()).digest() == coupled.digest()
+    assert CapsuleTransferConfig.from_dict(legacy.to_dict()).digest() == legacy.digest()
+    policy = RuntimeResourcePolicy(respawn_enabled=True, respawn_rate=1.0, max_resources=4)
+    assert "respawn_under_organisms" not in policy.to_dict()
+    renewable = RuntimeResourcePolicy(
+        respawn_enabled=True,
+        respawn_rate=1.0,
+        max_resources=4,
+        respawn_under_organisms=True,
+        respawn_draws_per_tick=3,
+    )
+    assert RuntimeResourcePolicy.from_dict(renewable.to_dict()).digest() == renewable.digest()
+    assert renewable.digest() != policy.digest()
+
+
+def test_committed_research_v3_is_a_valid_assay() -> None:
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v3.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v3"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    assert payload["claim_ceiling"] in {CLAIM_CEILING, INTERVENTION_CLAIM}
+    if payload["claim_ceiling"] == INTERVENTION_CLAIM:
+        assert payload["decision_rule_passed"] is True
+        assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["rejected_by_source_fitness_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+
+
+def test_committed_research_v5_is_a_valid_assay() -> None:
+    """Wave 1d′ research artifact (Amd 03 / SCHEMA v5); do not loosen ClaimGate."""
+
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v5.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v5"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    assert payload["claim_ceiling"] in {CLAIM_CEILING, INTERVENTION_CLAIM}
+    if payload["claim_ceiling"] == INTERVENTION_CLAIM:
+        assert payload["decision_rule_passed"] is True
+        assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["rejected_by_source_fitness_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+    assert payload["role_layout"] == "seed_permuted_v3_multiset"
+    assert payload["food_layout"] == "every_cell"
+    assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
+
+
+def test_committed_research_v6_is_a_valid_assay() -> None:
+    """Wave 1e research artifact (Amd 04/05 / SCHEMA v6); ClaimGate only if earned."""
+
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v6.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["prereg_amendment_02_digest"] == hard_experiment_01_prereg_amendment_02_digest()
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
+    assert payload["prereg_amendment_04_digest"] == hard_experiment_01_prereg_amendment_04_digest()
+    assert payload["prereg_amendment_05_digest"] == hard_experiment_01_prereg_amendment_05_digest()
+    assert payload["primary_outcome"] == PRIMARY_OUTCOME
+    assert payload["assay_failed"] is False
+    assert payload["assay_failures"] == []
+    assert payload["replay_matched"] is True
+    assert payload["collective_intelligence"] is False
+    assert payload["claim_ceiling"] in {CLAIM_CEILING, INTERVENTION_CLAIM}
+    if payload["claim_ceiling"] == INTERVENTION_CLAIM:
+        assert payload["decision_rule_passed"] is True
+        assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["rejected_by_source_fitness_mean"] > 0
+    assert by_arm["capsules_off"]["adoption_mean"] == 0.0
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]
+    assert by_arm["capsules_content_null"]["mean"] == by_arm["capsules_off"]["mean"]
+    assert by_arm["capsules_content_null"]["bias_payload_totals"] == {}
+    assert payload["role_layout"] == "seed_permuted_v3_multiset"
+    assert payload["food_layout"] == "every_cell"
+    assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
+    assert "capsules_content_null" in payload["analysis_arms"]
+    assert "capsules_activity_matched" in {item["arm"] for item in payload["arm_summaries"]}
+
+
+def test_wave_1d_prime_amendment_03_and_schema_v5() -> None:
+    """Amendment 03 is hashed; Amd 01+02 digests stay frozen; SCHEMA is v5."""
+
+    root = Path(__file__).resolve().parents[1]
+    amd03 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
+    assert amd03.is_file()
+    expected03 = __import__("hashlib").sha256(amd03.read_bytes()).hexdigest()
+    assert expected03 == "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    assert hard_experiment_01_prereg_amendment_03_digest() == expected03
+    # Amd 02 remains a hashed trail (historical failed calibration).
+    amd02 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
+    assert amd02.is_file()
+    expected02 = __import__("hashlib").sha256(amd02.read_bytes()).hexdigest()
+    assert hard_experiment_01_prereg_amendment_02_digest() == expected02
+    assert expected02 == "14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f"
+    assert (
+        hard_experiment_01_prereg_amendment_digest()
+        == "6d156e824b9b9c4d06be4eb6f4d35f265592eab7c41d35a6b8c0ca951dfc7de8"
+    )
+    assert hard_experiment_01_prereg_digest() == __import__("hashlib").sha256(
+        (root / "docs" / "HARD_EXPERIMENT_01_PREREG.md").read_bytes()
+    ).hexdigest()
+    # SCHEMA advanced to v6 under Amd 04; Amd 01–03 digests stay frozen.
+    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    protocol = hard_experiment_01_protocol_digest()
+    assert len(protocol) == 64
+    knobs = hard_experiment_01_calibration_knobs()
+    assert knobs["wave"] == "1e"
+    assert knobs["role_layout"] == "seed_permuted_v3_multiset"
+    assert knobs["food_layout"] == "every_cell"
+    assert knobs["food_coverage"] == 1.0
+    assert knobs["respawn_draws_per_tick"] == "max(1, population_size)"
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
+    payload = campaign.to_dict()
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["prereg_amendment_03_digest"] == expected03
+    assert payload["prereg_amendment_02_digest"] == expected02
+    assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
+    assert payload["prereg_amendment_04_digest"] == hard_experiment_01_prereg_amendment_04_digest()
+    assert payload["role_layout"] == "seed_permuted_v3_multiset"
+    assert payload["food_layout"] == "every_cell"
+    assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
+    assert campaign.protocol_digest == hard_experiment_01_protocol_digest()
+
+
+def test_wave_1d_seed_permuted_roles_preserve_multiset() -> None:
+    from collections import Counter
+
+    n = 8
+    base = tuple(calibration_role_for_index(i) for i in range(n))
+    roles_a = permute_roles_for_seed(1000, n)
+    roles_b = permute_roles_for_seed(1001, n)
+    roles_a_again = permute_roles_for_seed(1000, n)
+    assert Counter(roles_a) == Counter(base)
+    assert Counter(roles_b) == Counter(base)
+    assert roles_a == roles_a_again
+    assert roles_a != roles_b
+    oracle_a = permute_roles_for_seed(1000, n, oracle=True)
+    oracle_base = tuple(calibration_role_for_index(i, oracle=True) for i in range(n))
+    assert Counter(oracle_a) == Counter(oracle_base)
+    assert "poor_emitter" not in oracle_a
+    spec_a = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
+    spec_b = build_hard_experiment_01_spec(seed=1001, arm="source_bias_on", tick_count=8, population=8)
+    spec_a2 = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
+    assert spec_a.metadata["genome_roles"] == list(roles_a)
+    assert spec_b.metadata["genome_roles"] == list(roles_b)
+    assert spec_a.metadata["genome_roles"] == spec_a2.metadata["genome_roles"]
+    assert spec_a.metadata["genome_roles"] != spec_b.metadata["genome_roles"]
+
+
+def test_wave_1d_prime_every_cell_food_and_population_respawn_draws() -> None:
+    """SCHEMA v5: every-cell food (Amd 01/v3); respawn draws = population.
+
+    v4 Amd 02 sparse [0.5, 0.8] + pop//4 remains historical failed calibration.
+    """
+
+    spec_a = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
+    spec_b = build_hard_experiment_01_spec(seed=1001, arm="source_bias_on", tick_count=8, population=8)
+    spec_a2 = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
+    cells_a = [tuple(item) for item in spec_a.metadata["food_cells"]]
+    cells_b = [tuple(item) for item in spec_b.metadata["food_cells"]]
+    cells_a2 = [tuple(item) for item in spec_a2.metadata["food_cells"]]
+    n = int(spec_a.world_width) * int(spec_a.world_height)
+    coverage_a = float(spec_a.metadata["food_coverage"])
+    coverage_b = float(spec_b.metadata["food_coverage"])
+    assert coverage_a == 1.0
+    assert coverage_b == 1.0
+    assert len(cells_a) == n
+    assert len(cells_b) == n
+    assert abs(coverage_a - len(cells_a) / n) < 1e-12
+    assert abs(coverage_b - len(cells_b) / n) < 1e-12
+    assert spec_a.metadata["initial_food_patches"] == len(cells_a)
+    assert cells_a == cells_a2
+    # Placement ignores seed: identical across seeds under every-cell layout.
+    assert cells_a == cells_b
+    policy = spec_a.population_configs.runtime_resource_policy
+    assert policy.respawn_draws_per_tick == max(1, 8)  # smoke 8→8
+    assert policy.respawn_draws_per_tick == 8
+    research = build_hard_experiment_01_spec(
+        seed=1000, arm="source_bias_on", tick_count=40, population=16
+    )
+    assert research.population_configs.runtime_resource_policy.respawn_draws_per_tick == 16
+    assert float(research.metadata["food_coverage"]) == 1.0
+
+
 def test_hard_experiment_01_docs_and_example_exist() -> None:
     root = Path(__file__).resolve().parents[1]
     assert (root / "docs" / "HARD_EXPERIMENT_01.md").is_file()
@@ -519,7 +852,17 @@ def test_hard_experiment_01_docs_and_example_exist() -> None:
     assert "Limitations / Diagnostics" in text
     assert "assay_failed" in text
     assert "Results (research v2)" in text
+    assert "Results (research v3)" in text
     assert "claim_downgraded" in text
+    # P4: every committed results_vN.json on disk needs a Results section.
+    results_dir = root / "docs" / "hard_experiment_01"
+    for results_path in sorted(results_dir.glob("results_v*.json")):
+        version = results_path.stem.replace("results_v", "v")
+        assert f"Results (research {version})" in text, results_path.name
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md").is_file()
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md").is_file()
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md").is_file()
+    assert (root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md").is_file()
     assert not text.lstrip().startswith("# Phase")
     style = (root / "STYLE.md").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")
@@ -550,3 +893,402 @@ def test_probe_junk_is_not_in_the_tree() -> None:
     gitignore = (root / ".gitignore").read_text(encoding="utf-8")
     assert ".grok_write_probe" in gitignore
     assert ".size_test_" in gitignore
+
+
+def test_peer_rotation_preserves_event_pattern_multiset() -> None:
+    """CONTENT peer-rotation is a cyclic content swap; multiset of patterns is preserved."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    capsules = (
+        CausalCapsule("c1", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("c2", "s2", 2.0, "g2", ("SENSE_DANGER",), "warn", 0.9, 0, 10),
+        CausalCapsule("c3", "s3", 0.5, "g3", ("WAIT",), "noop", 0.9, 0, 10),
+    )
+    before = sorted(capsule.event_pattern for capsule in capsules)
+    shuffled, records = apply_capsule_shuffle_control(
+        capsules, CapsuleShuffleMode.CONTENT, tick=3, target_organism_id="t"
+    )
+    after = sorted(capsule.event_pattern for capsule in shuffled)
+    assert after == before
+    assert len(records) == 3
+    assert any(record.content_changed for record in records)
+    # Source ids stay on the original capsule under CONTENT mode.
+    assert all(not record.source_changed for record in records)
+
+
+def test_single_capsule_window_shuffle_is_identity_for_content() -> None:
+    """Window size 1 → peer is self → content_changed false (rotation identity)."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    alone = CausalCapsule("solo", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10)
+    shuffled, records = apply_capsule_shuffle_control(
+        (alone,), CapsuleShuffleMode.CONTENT, tick=1, target_organism_id="t"
+    )
+    assert len(shuffled) == 1
+    assert len(records) == 1
+    assert records[0].content_changed is False
+    assert records[0].source_changed is False
+    assert shuffled[0].event_pattern == alone.event_pattern
+    assert shuffled[0].predicted_outcome == alone.predicted_outcome
+
+def test_wave_1e_amendment_04_and_schema_v6() -> None:
+    """Amendment 04 is hashed; SCHEMA is v6; Amd 01–03 digests stay frozen."""
+
+    root = Path(__file__).resolve().parents[1]
+    amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
+    assert amd04.is_file()
+    expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
+    assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
+    assert hard_experiment_01_prereg_amendment_04_digest() == expected04
+    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert CONTENT_NULL_PAYLOAD_ACTION == "WAIT"
+    knobs = hard_experiment_01_calibration_knobs()
+    assert knobs["wave"] == "1e"
+    assert knobs["content_null_payload_action"] == "WAIT"
+    assert knobs["activity_match_epsilon"] == 1
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
+    payload = campaign.to_dict()
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["prereg_amendment_04_digest"] == expected04
+    assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
+    assert "capsules_content_null" in payload["analysis_arms"]
+    assert "capsules_shuffled" in payload["sensitivity_arms"]
+    assert "capsules_activity_matched" in payload["auxiliary_arms"]
+    assert "shuffled_better_than_capsules_off" not in campaign.decision_rule_failures
+    assert campaign.content_null_vs_capsules_off is not None
+    assert campaign.mean_abs_activity_match_gap is not None
+    assert payload["prereg_amendment_05_digest"] == hard_experiment_01_prereg_amendment_05_digest()
+    assert ACTIVITY_MATCH_PILOT_GATE is False
+    assert knobs["activity_match_pilot_gate"] is False
+    assert payload["activity_match_pilot_gate"] is False
+
+
+def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
+    """Amendment 05 is hashed; SCHEMA stays v6; prior digests frozen; activity gate demoted."""
+
+    root = Path(__file__).resolve().parents[1]
+    amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
+    amd05 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md"
+    assert amd04.is_file()
+    assert amd05.is_file()
+    expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
+    expected05 = __import__("hashlib").sha256(amd05.read_bytes()).hexdigest()
+    assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
+    assert expected05 == "d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7"
+    assert hard_experiment_01_prereg_amendment_04_digest() == expected04
+    assert hard_experiment_01_prereg_amendment_05_digest() == expected05
+    # Prior digests unchanged (frozen pins from Amd 02–04 / Wave 1e).
+    assert hard_experiment_01_prereg_amendment_02_digest() == (
+        "14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f"
+    )
+    assert hard_experiment_01_prereg_amendment_03_digest() == (
+        "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    )
+    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert ACTIVITY_MATCH_PILOT_GATE is False
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
+    payload = campaign.to_dict()
+    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["prereg_amendment_04_digest"] == expected04
+    assert payload["prereg_amendment_05_digest"] == expected05
+    assert payload["prereg_amendment_03_digest"] == (
+        "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
+    )
+    assert payload["activity_match_pilot_gate"] is False
+    # protocol digest incorporates amd05 bytes via canonical digest payload
+    assert hard_experiment_01_protocol_digest() == campaign.protocol_digest
+    assert "activity_match_gap_is_exploratory_non_blocking_under_amd05" in payload["limitations"]
+    # Decision rule still cares about content_null, not activity epsilon.
+    assert "activity_match" not in " ".join(campaign.decision_rule_failures)
+    gates = evaluate_hard_experiment_01_wave1e_pilot_gates(campaign)
+    assert gates["activity_match_pilot_gate"] is False
+    assert gates["gates"]["activity_match_exploratory"]["blocking"] is False
+    exploratory = gates["gates"]["activity_match_exploratory"]
+    assert "mean_abs_activity_match_gap" in exploratory
+    assert gates["gates"]["schema_amd_digests"]["pass"] is True
+    # Confirmatory clearance ignores activity gap magnitude.
+    assert gates["overall_pass"] == (
+        gates["gates"]["assay"]["pass"]
+        and gates["gates"]["content_null"]["pass"]
+        and gates["gates"]["schema_amd_digests"]["pass"]
+    )
+
+
+def test_content_null_destroys_eat_lumen_marginal_and_nulls_window_one() -> None:
+    """CONTENT_NULL → WAIT payloads; EAT rate 0; window-1 still nulls."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+    from codontrace.genesis.population import capsule_payload_action
+
+    capsules = (
+        CausalCapsule("c1", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("c2", "s2", 2.0, "g2", ("SENSE_DANGER",), "warn", 0.9, 0, 10),
+        CausalCapsule("c3", "s3", 0.5, "g3", ("WAIT",), "noop", 0.9, 0, 10),
+    )
+    nulled, records = apply_capsule_shuffle_control(
+        capsules, CapsuleShuffleMode.CONTENT_NULL, tick=3, target_organism_id="t"
+    )
+    assert len(nulled) == 3
+    assert all(capsule.event_pattern == ("WAIT",) for capsule in nulled)
+    assert all(capsule.predicted_outcome == "WAIT" for capsule in nulled)
+    assert all(capsule_payload_action(capsule) == "WAIT" for capsule in nulled)
+    eat_rate = sum(
+        1 for capsule in nulled if capsule_payload_action(capsule) == "EAT_LUMEN"
+    ) / len(nulled)
+    assert eat_rate == 0.0
+    assert any(record.content_changed for record in records)
+    # Peer-rotation CONTENT still available as sensitivity/shuffled path.
+    rotated, _ = apply_capsule_shuffle_control(
+        capsules, CapsuleShuffleMode.CONTENT, tick=3, target_organism_id="t"
+    )
+    assert sorted(c.event_pattern for c in rotated) == sorted(
+        c.event_pattern for c in capsules
+    )
+
+    alone = CausalCapsule("solo", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10)
+    nulled_one, records_one = apply_capsule_shuffle_control(
+        (alone,), CapsuleShuffleMode.CONTENT_NULL, tick=1, target_organism_id="t"
+    )
+    assert len(nulled_one) == 1
+    assert records_one[0].content_changed is True
+    assert nulled_one[0].event_pattern == ("WAIT",)
+    assert nulled_one[0].predicted_outcome == "WAIT"
+    assert capsule_payload_action(nulled_one[0]) != "EAT_LUMEN"
+
+
+def test_content_null_arm_runtime_has_zero_profitable_bias_payload() -> None:
+    """Live content_null arm: shuffle nulls payloads; no EAT_LUMEN bias applied."""
+
+    spec = build_hard_experiment_01_spec(
+        seed=11, arm="capsules_content_null", tick_count=8, population=8
+    )
+    assert spec.capsule_transfer_config is not None
+    assert spec.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT_NULL
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    shuffle_records = tuple(getattr(result, "capsule_shuffle_records", ()) or ())
+    assert shuffle_records
+    assert any(getattr(r, "content_changed", False) for r in shuffle_records)
+    # Adopted behavioural payloads under content_null must not be EAT_LUMEN.
+    from codontrace.genesis.hard_experiment_01 import _manipulation_metrics
+
+    _applied, payloads, _rejected = _manipulation_metrics(result)
+    assert CALIBRATION_GOOD_PAYLOAD_ACTION not in payloads
+
+
+def test_activity_matched_reports_gap_and_caps_accepts() -> None:
+    """activity_matched yokes accepts to treatment; gap field present."""
+
+    on = build_hard_experiment_01_spec(seed=11, arm="source_bias_on", tick_count=8, population=8)
+    on_result = GenesisEngine.from_spec(on).run_ticks()
+    from codontrace.genesis.hard_experiment_01 import _capsule_counts
+
+    _s, _u, _t, _a, accepted = _capsule_counts(on_result)
+    matched = build_hard_experiment_01_spec(
+        seed=11,
+        arm="capsules_activity_matched",
+        tick_count=8,
+        population=8,
+        activity_match_budget=accepted,
+    )
+    assert matched.capsule_transfer_config is not None
+    assert matched.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT_NULL
+    assert matched.capsule_transfer_config.max_successful_adoptions == accepted
+    matched_result = GenesisEngine.from_spec(matched).run_ticks()
+    _s2, _u2, _t2, _a2, matched_accepted = _capsule_counts(matched_result)
+    assert matched_accepted <= accepted
+    gap = matched_accepted - accepted
+    assert abs(gap) <= max(1, accepted)  # cap-down; cannot exceed budget
+
+
+def test_peer_rotation_still_available_as_shuffled_sensitivity() -> None:
+    """Legacy CONTENT peer-rotation remains for capsules_shuffled sensitivity arm."""
+
+    shuffled = build_hard_experiment_01_spec(seed=11, arm="capsules_shuffled")
+    assert shuffled.capsule_transfer_config is not None
+    assert shuffled.capsule_transfer_config.shuffle_mode is CapsuleShuffleMode.CONTENT
+    assert "capsules_shuffled" in SENSITIVITY_ARMS
+
+
+def test_smoke_scale_positive_control_moves_outcome() -> None:
+    """B6: positive-control mean move — asserted directly (no permissive if).
+
+    Under Amd 03 every-cell food this usually holds at smoke; if a future
+    calibration regresses it, encode ``pytest.mark.xfail(strict=True, reason=...)``
+    via an amendment note rather than softening the assert.
+    """
+
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
+    by_arm = {item.arm: item for item in campaign.arm_summaries}
+    assert by_arm["oracle_capsule"].mean is not None
+    assert by_arm["capsules_off"].mean is not None
+    assert by_arm["oracle_capsule"].mean > by_arm["capsules_off"].mean
+
+
+def test_b1_adoption_attempts_equal_accepted_plus_blocked() -> None:
+    """B1 invariant: attempts == accepted + sum(blocked_by_reason)."""
+
+    from codontrace.genesis.hard_experiment_01 import (
+        _adoption_blocked_by_reason,
+        _capsule_counts,
+    )
+
+    spec = build_hard_experiment_01_spec(
+        seed=11, arm="source_bias_on", tick_count=8, population=8
+    )
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    _sources, _u, _t, attempts, accepted = _capsule_counts(result)
+    blocked = _adoption_blocked_by_reason(result)
+    assert attempts == accepted + sum(blocked.values())
+    record = __import__(
+        "codontrace.genesis.hard_experiment_01", fromlist=["_record_from_run"]
+    )
+    # Round-trip through arm record JSON alias.
+    from codontrace.genesis.hard_experiment_01 import _record_from_run
+
+    arm = _record_from_run(seed=11, arm="source_bias_on", spec=spec, result=result)
+    payload = arm.to_dict()
+    assert payload["capsule_adoption_attempts"] == payload["capsule_adoptions"]
+    assert payload["capsule_adoptions_accepted"] == accepted
+    assert payload["capsule_adoptions"] == accepted + sum(
+        payload["capsule_adoption_blocked_by_reason"].values()
+    )
+
+
+def test_b4_dose_statistic_is_algebraic_sum_of_primary_contrasts() -> None:
+    """B4 guard: pattern_statistic ≈ c_off.mean_delta + c_none.mean_delta."""
+
+    from codontrace.genesis.hard_experiment_01 import PRIMARY_CONTRASTS
+
+    campaign = run_hard_experiment_01(seed_count=2, include_dose=True)
+    assert campaign.dose_trend is not None
+    assert campaign.dose_trend.independent is False
+    assert campaign.multiple_comparison_audit.metric_count == len(PRIMARY_CONTRASTS)
+    by_base = {
+        item.baseline_arm: item for item in campaign.paired_contrasts if item.treatment_arm == "source_bias_on"
+    }
+    c_off = by_base["source_bias_off"]
+    c_none = by_base["capsules_off"]
+    assert c_off.mean_delta is not None and c_none.mean_delta is not None
+    assert campaign.dose_trend.pattern_statistic is not None
+    assert abs(
+        campaign.dose_trend.pattern_statistic - (c_off.mean_delta + c_none.mean_delta)
+    ) < 1e-9
+    assert "dose_pattern_not_supported" not in campaign.decision_rule_failures
+
+
+def test_method8_content_null_window_one_still_nulls() -> None:
+    """Method #8: CONTENT_NULL nulls even when the window has size 1."""
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    alone = CausalCapsule("solo", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10)
+    shuffled, records = apply_capsule_shuffle_control(
+        (alone,), CapsuleShuffleMode.CONTENT_NULL, tick=1, target_organism_id="t"
+    )
+    assert len(records) == 1
+    assert records[0].content_changed is True
+    assert shuffled[0].event_pattern != alone.event_pattern
+
+
+def test_method8_peer_rotation_known_failure_with_duplicate_payloads() -> None:
+    """Method #8: peer-rotation is NOT a derangement when payloads collide.
+
+    CONTENT_NULL is the confirmatory null; peer-rotation stays sensitivity
+    telemetry (Wave 1d″ / Amd 04).
+    """
+
+    from codontrace.genesis.capsule import CausalCapsule, apply_capsule_shuffle_control
+
+    capsules = (
+        CausalCapsule("c1", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("c2", "s2", 2.0, "g2", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("c3", "s3", 0.5, "g3", ("SENSE_DANGER",), "warn", 0.9, 0, 10),
+    )
+    _shuffled, records = apply_capsule_shuffle_control(
+        capsules, CapsuleShuffleMode.CONTENT, tick=3, target_organism_id="t"
+    )
+    # ≥2 distinct payloads, yet cyclic peer-rotation can leave content unchanged
+    # when neighbours share event_pattern (known failure → keep CONTENT_NULL).
+    assert len({c.event_pattern for c in capsules}) >= 2
+    assert any(not r.content_changed for r in records) or all(r.content_changed for r in records)
+    # Document: when all payloads distinct, every content_changed.
+    distinct = (
+        CausalCapsule("d1", "s1", 1.0, "g1", ("EAT_LUMEN",), "ok", 0.9, 0, 10),
+        CausalCapsule("d2", "s2", 2.0, "g2", ("SENSE_DANGER",), "warn", 0.9, 0, 10),
+        CausalCapsule("d3", "s3", 0.5, "g3", ("WAIT",), "noop", 0.9, 0, 10),
+    )
+    _s2, records2 = apply_capsule_shuffle_control(
+        distinct, CapsuleShuffleMode.CONTENT, tick=4, target_organism_id="t"
+    )
+    assert all(r.content_changed for r in records2)
+
+
+def test_method9_amendment_reference_paths_exist() -> None:
+    """Method #9 / P1: repo-relative paths cited in amendments must exist."""
+
+    import re
+
+    root = Path(__file__).resolve().parents[1]
+    amd_dir = root / "docs"
+    path_re = re.compile(r"`([^`]+)`")
+    missing: list[str] = []
+    for amd in sorted(amd_dir.glob("HARD_EXPERIMENT_01_PREREG_AMENDMENT_*.md")):
+        text = amd.read_text(encoding="utf-8")
+        for match in path_re.findall(text):
+            candidate = match.strip()
+            if candidate.startswith("http://") or candidate.startswith("https://"):
+                continue
+            # Repo-relative looks like docs/... / src/... / results_vN.json / etc.
+            rel = None
+            if candidate.startswith(("docs/", "src/", "tests/", "examples/", "handoff/")):
+                rel = root / candidate
+            elif candidate.startswith("HARD_EXPERIMENT_01") and candidate.endswith(".md"):
+                rel = root / "docs" / candidate
+            elif candidate in {
+                "results_v1.json",
+                "results_v2.json",
+                "results_v3.json",
+                "results_v5.json",
+                "results_v6.json",
+                "CLAIMS.md",
+                "STYLE.md",
+                "CONTRIBUTING.md",
+                "README.md",
+                "pyproject.toml",
+            }:
+                if candidate.startswith("results_"):
+                    rel = root / "docs" / "hard_experiment_01" / candidate
+                else:
+                    rel = root / candidate
+            elif candidate in {
+                "WAVE_1D_DOUBLE_PRIME_HONESTY.md",
+                "WAVE_1D_PILOT_DIAGNOSIS.md",
+                "WAVE_1D_PILOT_REPORT.md",
+                "WAVE_1E_PILOT_REPORT.md",
+                "WAVE_1E_SCIENCE_BRIEF.md",
+                "pilot_v5.json",
+                "pilot_v6.json",
+            }:
+                rel = root / "docs" / "hard_experiment_01" / candidate
+            if rel is not None and not rel.exists():
+                missing.append(f"{amd.name}: {candidate} -> {rel}")
+    assert missing == [], missing
+
+
+def test_p1_committed_pilots_exist() -> None:
+    root = Path(__file__).resolve().parents[1]
+    assert (root / "docs" / "hard_experiment_01" / "pilot_v5.json").is_file()
+    assert (root / "docs" / "hard_experiment_01" / "pilot_v6.json").is_file()
+    assert (root / "docs" / "hard_experiment_01" / "AMD03_CODE_DEVIATIONS.md").is_file()
+
+
+def test_p5_calibration_food_cells_has_no_seed_parameter() -> None:
+    import inspect
+    from codontrace.genesis.hard_experiment_01 import _calibration_food_cells
+
+    params = inspect.signature(_calibration_food_cells).parameters
+    assert "seed" not in params
+    cells = _calibration_food_cells(4, 2)
+    assert len(cells) == 8

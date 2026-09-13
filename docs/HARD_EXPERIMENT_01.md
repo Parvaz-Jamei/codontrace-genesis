@@ -317,13 +317,91 @@ manipulation not realized). That is not a scientific null finding.
 The source-bias gate *was* exercised (treatment adoptions > 0;
 `capsules_off` adoptions = 0).
 
+### Results (research v3) — Wave 1c
+
+Amendment 01 (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md`, digest
+`6d156e824b9b9c4d06be4eb6f4d35f265592eab7c41d35a6b8c0ca951dfc7de8`) was committed before these
+numbers; the frozen v2 prereg bytes are unchanged (`prereg_digest`
+`cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40`). Artifact:
+[`hard_experiment_01/results_v3.json`](hard_experiment_01/results_v3.json).
+Campaign digest `e71321fa60f4ed3a97e07d12e23a9e86275a102ffeadbea94124099fa3446aef`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16 (4 good emitters,
+4 poor emitters, 8 receivers). Primary outcome: `receiver_mean_terminal_runtime_atp`.
+Tier: `research_grade_benchmark_candidate`. Replay matched: **True**.
+`assay_failed`: **False** (no manipulation-check failure).
+
+### Primary contrasts (Holm, α = 0.05)
+
+| Contrast | n | mean Δ (ATP) | dz | CI95 | p_holm | claim_downgraded |
+|---|---:|---:|---:|---|---:|---|
+| `source_bias_on` vs `source_bias_off` | 30 | 7.4750 | — | [7.4750, 7.4750] | 0.000150 | yes |
+| `source_bias_on` vs `capsules_off` | 30 | 50.0500 | — | [50.0500, 50.0500] | 0.000150 | yes |
+| `source_bias_on` vs `capsules_shuffled` | 30 | 49.5625 | — | [49.5625, 49.5625] | 0.000150 | yes |
+
+`shuffled − capsules_off`: mean Δ 0.4875, CI95
+[0.4875, 0.4875] (rule: lower bound ≤ 0 → fail).
+
+### Arm table (receiver mean terminal runtime ATP)
+
+| Arm | n | mean | sd | adoptions | bias applied | gate rejects | payloads | legacy fitness |
+|---|---:|---:|---:|---:|---:|---:|---|---:|
+| `source_bias_on` | 30 | 78.050 | 0.000 | 559.0 | 386.0 | 91.0 | {'EAT_LUMEN': 11580} | 0.9257 |
+| `source_bias_off` | 30 | 70.575 | 0.000 | 559.0 | 412.0 | 0.0 | {'EAT_LUMEN': 10470, 'SENSE_DANGER': 1890} | 0.9289 |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 | 0.0 | 0.0 | {} | 0.5496 |
+| `capsules_shuffled` | 30 | 28.488 | 0.000 | 559.0 | 409.0 | 229.0 | {'EAT_LUMEN': 2820, 'SENSE_DANGER': 9450} | 0.7722 |
+| `oracle_capsule` | 30 | 78.375 | 0.000 | 559.0 | 412.0 | 0.0 | {'EAT_LUMEN': 12360} | 1.0015 |
+
+Missing last-tick outcomes: {'capsules_off': 0, 'capsules_shuffled': 0, 'oracle_capsule': 0, 'source_bias_off': 0, 'source_bias_on': 0}. None zero-filled.
+
+### Dose table (`FITNESS_WEIGHTED`, pattern `step_up_then_saturate`)
+
+| `min_source_fitness` | n | mean |
+|---:|---:|---:|
+| 0 | 30 | 70.575 |
+| 1.5 | 30 | 78.050 |
+| 4 | 30 | 28.000 |
+
+Pattern statistic S = 57.525, permutation p = 0.000100,
+pattern matched: True, supported: **True**.
+
+### Replay
+
+All five arms × seeds `11` and `40`: **matched**.
+
+### ClaimGate ceiling
+
+**`runtime_observation`** (decision rule passed: False;
+ClaimGate allowed: False; final claim `runtime_observation`).
+Decision-rule failures: `dz_undefined`, `shuffled_better_than_capsules_off`.
+
+**Reading (honest).** The manipulation was realized for the first time:
+the gate rejected poor sources only in `source_bias_on` (91 rejects/seed),
+`source_bias_off` adopted the poor payload, `capsules_off` was silent,
+the positive control moved the outcome (78.4 vs 28.0), and the dose
+pattern matched (70.6 → 78.1 → 28.0). Receivers gated on source fitness
+ended with +7.5 ATP over ungated receivers. **But every arm has sd = 0
+across the 30 seeds**: the v3 overlay is fully deterministic given the
+role layout (fixed roles, fixed food, respawn only refills eaten cells,
+no births/mutation), so the seed carries no variance. Paired dz is
+undefined, the BCa interval is a point, and the permutation p-values are
+degenerate. The 30 "seeds" are 30 replays of one run. Inference is
+therefore **not available**; the campaign is a valid single-configuration
+demonstration, graded `runtime_observation`. Fixing this is Wave 1d
+(seed-dependent randomization of role placement / food, see
+`AGENT_HANDOFF`), not a statistics change.
+
+`shuffled_better_than_capsules_off` fired on a +0.49 ATP point
+difference with zero variance; with real seed variance this rule is
+expected to be re-evaluated, not removed.
+
 ## Decision rule
 
 Request existing `intervention_supported` only on the research campaign
 when the treatment assay passes **and** CI(`on` vs `off`) and
 CI(`on` vs `shuffled`) exclude 0, Holm p < 0.05 for both,
-`shuffled ≈ capsules_off`, and the dose trend is monotonic in
-the H1 direction — with every required ClaimGate flag. If allowed,
+`shuffled` does not beat `capsules_off` (amendment 01), and the dose
+pattern `step_up_then_saturate` is supported — with every required
+ClaimGate flag. If allowed,
 ceiling = `intervention_supported` (CLAIMS.md level 3). Else
 `runtime_observation`. Never invent a label. Never claim
 `collective_intelligence*`.
@@ -332,6 +410,101 @@ Assay gate (Wave 1b, 2026-09-12): if treatment-arm mean adoptions ≈ 0
 or mean extinction ≈ 1 across seeds, record `assay_failed: true` and
 keep `runtime_observation`. Primary contrasts may still be stored;
 they are not claim-unlocking while the channel was not exercised.
+
+Manipulation check (Wave 1c, amendment 01 §3): treatment bias applied
+and gate rejects > 0; gate-off arm adopted the poor payload; channel-off
+silent; shuffled channel active; positive control `oracle_capsule` above
+`capsules_off`; arms not bitwise-identical. Any failure → `assay_failed`
+with an `assay_failed_*` code, `assay_invalid` in the standalone auditor.
+
+### Results (research v5) — Wave 1d′
+
+Amendment 03 (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md`) restores
+every-cell food + population respawn draws and keeps roles-only seed
+variance. Artifact:
+[`hard_experiment_01/results_v5.json`](hard_experiment_01/results_v5.json)
+(SCHEMA `hard_experiment_01_v5`). Campaign digest prefix `0556c47bf6590d98…`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16. Primary outcome:
+`receiver_mean_terminal_runtime_atp`. Replay matched: **True**.
+`assay_failed`: **False**. Decision rule: **FAIL**
+(`shuffled_better_than_capsules_off` — expected under peer-rotation marginal
+preservation; see Wave 1d″ honesty). ClaimGate ceiling:
+**`runtime_observation`**. Pilot trail: `hard_experiment_01/pilot_v5.json`.
+Code deviations sibling note:
+[`hard_experiment_01/AMD03_CODE_DEVIATIONS.md`](hard_experiment_01/AMD03_CODE_DEVIATIONS.md).
+
+| Arm | n | mean | sd | adoption attempts |
+|---|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 58.685 | 13.255 | 542.53 |
+| `source_bias_off` | 30 | 42.197 | 15.212 | 542.53 |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 |
+| `capsules_shuffled` | 30 | 42.314 | 8.715 | 542.53 |
+| `oracle_capsule` | 30 | 78.397 | 0.252 | 542.53 |
+
+Frozen v5 dose label remains Amd 01 `step_up_then_saturate`; new-run display
+uses `peak_at_intermediate_dose_then_channel_closure` with `independent: false`
+(S ≈ 47.174 = algebraic sum of two primary contrasts).
+
+### Results (research v6) — Wave 1e
+
+Amendments 04+05 (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md`,
+`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md`) replace the broken
+peer-rotation confirmatory null with `capsules_content_null`, keep
+`capsules_activity_matched` as auxiliary (Amd 05 demotes activity-match
+ε from pilot gate), and leave legacy shuffled as sensitivity. Artifact:
+[`hard_experiment_01/results_v6.json`](hard_experiment_01/results_v6.json)
+(SCHEMA `hard_experiment_01_v6`). Campaign digest prefix `5a3e2b9a98191a49…`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16. Primary outcome:
+`receiver_mean_terminal_runtime_atp`. Replay matched: **True**.
+`assay_failed`: **False**. Decision rule: **PASS**. Sensitivity:
+`shuffled_better_than_capsules_off` (expected; non-blocking). ClaimGate
+ceiling: **`intervention_supported`** (earned by full decision rule +
+gate flags; Amd 04/05 alone do not auto-grant). content_null mean =
+capsules_off = 28; activity_match mean |gap| ≈ 17.67 (exploratory /
+Boot–yoked limitation under Amd 05). Pilot trail:
+`hard_experiment_01/pilot_v6.json`.
+
+| Arm | n | mean | sd | adoption attempts |
+|---|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 58.685 | 13.255 | 542.53 |
+| `source_bias_off` | 30 | 42.197 | 15.212 | 542.53 |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 |
+| `capsules_content_null` | 30 | 28.000 | 0.000 | 542.53 |
+| `capsules_activity_matched` | 30 | 28.000 | 0.000 | 542.53 |
+| `capsules_shuffled` | 30 | 42.314 | 8.715 | 542.53 |
+| `oracle_capsule` | 30 | 78.397 | 0.252 | 542.53 |
+
+## Wave 1d″ — evidence honesty (no new claim)
+
+See [`hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md`](hard_experiment_01/WAVE_1D_DOUBLE_PRIME_HONESTY.md)
+and [`../handoff/WAVE_1D_PRIME_REVIEW.md`](../handoff/WAVE_1D_PRIME_REVIEW.md).
+
+The CONTENT shuffle control is a **cyclic peer-rotation that preserves the
+payload marginal**, so `shuffled > capsules_off` is expected by construction
+(~46.65% of the ~30.69 ATP treatment surplus is “channel with 50/50 pool”;
+~53.35% is the gate). `capsule_adoptions` counts **attempts**, not successful
+accepts; JSON also exposes `capsule_adoption_attempts` / `capsule_adoptions_accepted`.
+Dose display for new runs is
+`peak_at_intermediate_dose_then_channel_closure` with **`independent: false`**
+(Amd 01 frozen text unchanged): `dose(1.5)≡treatment` and S is the algebraic
+sum of two primary contrasts (Hothorn 2020; Simpson & Margolin 1986); dose is
+descriptive only (out of decision rule / `metric_count`). ClaimGate stays
+**`runtime_observation`**. No `results_v5.json` overwrite.
+
+## Wave E6 (ODD + Morris screening)
+
+Wave E6 documents the HE01 overlay in
+[`HARD_EXPERIMENT_01_ODD.md`](HARD_EXPERIMENT_01_ODD.md) (Grimm 2020 ODD;
+Claim level `runtime_observation`) and adds an exploratory Morris
+elementary-effects screen
+([`hard_experiment_01/morris_e6_design.md`](hard_experiment_01/morris_e6_design.md),
+`codontrace.genesis.hard_experiment_01_morris`) on four post-Amd-03-safe
+knobs (`read_radius`, `min_source_fitness`, basal cost, food amount).
+Coverage and respawn stay Amd-03-frozen. Seeds are held-out exploratory
+(2000–2009), never 11–40 or 1000–1009. Morris μ* is a qualitative rank,
+not Holm/BCa and not a ClaimGate input. v5 remains assay PASS /
+decision-rule FAIL (`shuffled_better_than_capsules_off`). E6 does not
+claim `intervention_supported`. ODD ≠ intelligence.
 
 ## What this does not say
 

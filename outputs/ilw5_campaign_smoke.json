@@ -1,0 +1,93 @@
+{
+  "campaign_outcomes_invented": false,
+  "cce_claimed": false,
+  "claim_ceiling": "runtime_observation",
+  "claim_promotions": [],
+  "design_cell_counts": {
+    "ablation_per_seed": 8,
+    "interaction_per_seed": 4,
+    "s4_per_seed": 27,
+    "seeds": 8,
+    "total_enumerated": 312
+  },
+  "executed_cells": [
+    {
+      "birth_count": 25,
+      "cell": {
+        "cell_id": "baseline-S2-4100",
+        "height": 32,
+        "interaction_label": null,
+        "kind": "baseline",
+        "knockouts": [],
+        "niche_count": 4,
+        "notes": "Intact confirmatory baseline.",
+        "population_cap": 64,
+        "scale_label": "S2",
+        "seed": 4100,
+        "tick_horizon": 128,
+        "width": 32
+      },
+      "claim_ceiling": "runtime_observation",
+      "conservation_passed": true,
+      "death_count": 27,
+      "event_count": 11300,
+      "final_digest": "ilw_final:23411f46acd739d44017887ebba8ce90236733995887da7764ada8df1d2ae2b9",
+      "generation_turnover": 24,
+      "knockout_applied_zero_when_expected": null,
+      "ladder_promotion": null,
+      "lineage_depth": 2,
+      "niches_occupied": 3,
+      "no_claim_promotion": true,
+      "replay_matched": true,
+      "required_edge_coverage": 1.0,
+      "scientific_claim_emitted": false,
+      "status": "runtime_observation",
+      "unique_genome_count": 30
+    },
+    {
+      "birth_count": 34,
+      "cell": {
+        "cell_id": "ablation-capsule_to_policy_off-S2-4100",
+        "height": 32,
+        "interaction_label": null,
+        "kind": "ablation",
+        "knockouts": [
+          "capsule_to_policy_off"
+        ],
+        "niche_count": 4,
+        "notes": "Single-edge knockout capsule_to_policy_off; sham/yoked cost match declared in prereg.",
+        "population_cap": 64,
+        "scale_label": "S2",
+        "seed": 4100,
+        "tick_horizon": 128,
+        "width": 32
+      },
+      "claim_ceiling": "runtime_observation",
+      "conservation_passed": true,
+      "death_count": 35,
+      "event_count": 12290,
+      "final_digest": "ilw_final:6649fe826c74a84d3362a7521d2a0a1a12fdcba148dd3d1b98720b9e87977b18",
+      "generation_turnover": 31,
+      "knockout_applied_zero_when_expected": true,
+      "ladder_promotion": null,
+      "lineage_depth": 2,
+      "niches_occupied": 3,
+      "no_claim_promotion": true,
+      "replay_matched": true,
+      "required_edge_coverage": 1.0,
+      "scientific_claim_emitted": false,
+      "status": "runtime_observation",
+      "unique_genome_count": 41
+    }
+  ],
+  "ilw_prereg_design_digest": "ilw_prereg_design:998654e9d27f5f314b7fa587785dac76fef4d7c1cdeb08cfcc74a83ba369c673",
+  "ilw_prereg_document_digest": "81dbfc057a7ff89e539940575bb51cbfb8db5f185fa282d9dd39963a3e9b125d",
+  "intelligence_claimed": false,
+  "ladder_promotion": null,
+  "milestone": "ILW-5",
+  "morris_ee_note": "Morris EE screening + full fractional-factorial / DSD continuous arms are encoded in design; not fully executed locally.",
+  "remaining_for_colab": "Execute remaining confirmatory seeds 4100\u20134107 \u00d7 ablation + interaction + S4 grid on Colab/Drive; record digests + gates; do not raise ClaimGate.",
+  "scientific_claim_emitted": false,
+  "scientific_name": "integrated eco-evolutionary runtime",
+  "status": "smoke_runtime_observation"
+}

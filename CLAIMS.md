@@ -202,7 +202,7 @@ The following observations were present in the inspected quick run. They should 
 | `collective_mixed` vs `no_capsules` | `0` delta for social interaction, partner interaction, and capsule adoption in inspected seeds | Negative evidence for collective-intelligence readiness under this quick profile. |
 | `high_mutation` vs `no_mutation` | mixed birth-event deltas and no mutation-result delta in inspected pair summary | Not sufficient for a mutation-effect claim. Needs protocol refinement. |
 
-### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b research snapshot (`0.3.0b4.dev0`)
+### 4.4 HARD_EXPERIMENT_01 Wave 1 / 1b / 1c / 1d′ / 1e research snapshot (`0.3.0b4.dev0`)
 
 Inspected artifacts:
 [`docs/hard_experiment_01/results_v1.json`](docs/hard_experiment_01/results_v1.json)
@@ -225,11 +225,53 @@ fitness estimand. It is **not** a scientific null finding.
 `intervention_supported` was not requested. This is not mechanism
 support and not collective intelligence. Public level stays **1**.
 
+Wave 1c (v3, amendment 01, PR after #24):
+[`docs/hard_experiment_01/results_v3.json`](docs/hard_experiment_01/results_v3.json),
+campaign digest `e71321fa60f4ed3a97e07d12e23a9e86275a102ffeadbea94124099fa3446aef`,
+amendment digest `6d156e824b9b9c4d06be4eb6f4d35f265592eab7c41d35a6b8c0ca951dfc7de8`.
+The manipulation **was realized** (gate rejects 91/seed only in the
+treatment arm; positive control 78.4 vs 28.0 ATP; dose pattern matched),
+but all arms have **sd = 0 across seeds**: the overlay is deterministic
+given the role layout, so dz is undefined and no inference is available.
+Granted ceiling stays **`runtime_observation`** (level 1). Not mechanism
+support, not collective intelligence.
+
 Approved interpretation:
 
 > **The inspected quick runner demonstrates that CodonTrace Genesis can generate controlled evidence surfaces and counterfactual-style pair summaries. It provides candidate evidence for capsule, memory, and reproduction instrumentation, but it does not establish collective intelligence or publication-grade causal effects.**
 >
 > **HARD_EXPERIMENT_01 Wave 1 is a runtime observation of an invalid-null crash (gate never exercised). Wave 1b v2 is a runtime observation labeled `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`). The intervention was not realized on the estimand. This is not a scientific null finding. ClaimGate did not grant `intervention_supported`.**
+
+Wave E6 (2026-09-12) adds overlay ODD documentation and an exploratory
+Morris screen on held-out seeds 2000–2009. ClaimGate ceiling stays
+`runtime_observation`. E6 does not rewrite Amd 01/02/03 and does not
+reanalyse seeds 11–40.
+
+Wave 1d′ research snapshot (SCHEMA v5, Amd 03):
+[`docs/hard_experiment_01/results_v5.json`](docs/hard_experiment_01/results_v5.json).
+Assay PASS; decision-rule FAIL on `shuffled_better_than_capsules_off`
+(peer-rotation preserves payload marginal — design caveat, not silent
+mechanism proof). Ceiling **`runtime_observation`**. Pilot:
+`docs/hard_experiment_01/pilot_v5.json`. Amd 03 code deviations:
+`docs/hard_experiment_01/AMD03_CODE_DEVIATIONS.md` (does not rewrite Amd 03
+bytes).
+
+Wave 1d″ (evidence honesty only, 2026-09-12): documents that the
+`capsules_shuffled` peer-rotation control preserves the payload marginal
+(so `shuffled > capsules_off` is by construction), splits adoption
+attempts vs accepts (`capsule_adoption_attempts` alias +
+`capsule_adoptions_accepted`), surfaces shuffle content/source-changed
+rates on new runs, and corrects the dose pattern *display* label to
+`peak_at_intermediate_dose_then_channel_closure` with `independent: false`
+(descriptive only; out of `metric_count`) without rewriting Amd 01.
+Ceiling stays `runtime_observation`. No `intervention_supported`. No
+re-campaign; `results_v5.json` unchanged.
+
+Wave 1e (SCHEMA v6, Amd 04/05 on branch): confirmatory
+`capsules_content_null`; shuffled demoted to sensitivity; activity_matched
+auxiliary (Amd 05 demotes activity pilot gate). Pilot:
+`docs/hard_experiment_01/pilot_v6.json`. No committed research `results_v6.json`
+yet. Ceiling stays **`runtime_observation`**.
 
 ---
 
@@ -260,7 +302,7 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling. Wave 1d″ adds evidence-honesty documentation and additive metrics only; it does not raise this ceiling or grant `intervention_supported`.
 
 ### Level 2 candidate claims allowed with inspected-output wording
 

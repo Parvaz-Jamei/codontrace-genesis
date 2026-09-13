@@ -9,6 +9,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "codontrace.genesis.rag" = ["corpus/*.jsonl", "corpus/*.md"]
+"codontrace.genesis.ilw" = ["INTEGRATION_DAG.json"]
 
 [project]
 name = "codontrace"

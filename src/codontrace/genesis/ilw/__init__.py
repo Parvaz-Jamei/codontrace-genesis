@@ -7,6 +7,8 @@ ILW-2: full genome→lineage causal chain in a dual-resource world under one
 run_id / WorldSpec / scheduler / ledger.
 ILW-3: integrated smoke with replay, conservation, 100% required-edge coverage;
 no scientific claim / no ClaimGate ladder promotion.
+ILW-4: locked preregistration (POM patterns, interactions, scale/horizon/seeds,
+stop rules, Morris→DSD plan) + pilot harness stub (fail-first confirmatory block).
 
 Claim ceiling stays ``runtime_observation``; scientific name is
 ``integrated eco-evolutionary runtime`` (not intelligence / AGI / CI).
@@ -61,6 +63,34 @@ from codontrace.genesis.ilw.orphan import (
     OrphanSubsystemError,
     SubsystemRegistry,
 )
+from codontrace.genesis.ilw.prereg import (
+    CONFIRMATORY_HELD_OUT_SEEDS,
+    DOE_PLAN,
+    EDGE_KNOCKOUTS,
+    FORBIDDEN_CLAIM_LABELS,
+    HORIZON_DEFINITIONS,
+    INTERACTIONS_TO_ESTIMATE,
+    MESOUDI_CCE_CRITERIA,
+    PILOT_SEEDS,
+    POM_ACCEPTANCE_PATTERNS,
+    PREREG_RELATIVE_PATH,
+    PREREG_VERSION,
+    SCALE_LADDER,
+    SHAM_YOKED_CONTROLS,
+    SMOKE_SEEDS,
+    STOP_RULES,
+    IlwPreregError,
+    PilotGateError,
+    PilotGateStatus,
+    PilotHarness,
+    assert_no_forbidden_claims,
+    assert_prereg_claim_ceiling,
+    assert_seed_policy_disjoint,
+    ilw_prereg_design_digest,
+    ilw_prereg_document_digest,
+    locked_design_dict,
+    summarize_prereg,
+)
 from codontrace.genesis.ilw.scheduler import IlwScheduler, IlwSchedulerError
 from codontrace.genesis.ilw.seed_namespace import SeedNamespace, SeedNamespaceError
 from codontrace.genesis.ilw.world_spec import WORLD_SPEC_SCHEMA, WorldSpec, WorldSpecError
@@ -94,6 +124,25 @@ __all__ = [
     "LedgerEvent",
     "OrphanEventError",
     "OrphanSubsystemError",
+    "PILOT_SEEDS",
+    "POM_ACCEPTANCE_PATTERNS",
+    "PREREG_RELATIVE_PATH",
+    "PREREG_VERSION",
+    "SCALE_LADDER",
+    "SHAM_YOKED_CONTROLS",
+    "SMOKE_SEEDS",
+    "STOP_RULES",
+    "CONFIRMATORY_HELD_OUT_SEEDS",
+    "DOE_PLAN",
+    "EDGE_KNOCKOUTS",
+    "FORBIDDEN_CLAIM_LABELS",
+    "HORIZON_DEFINITIONS",
+    "INTERACTIONS_TO_ESTIMATE",
+    "MESOUDI_CCE_CRITERIA",
+    "IlwPreregError",
+    "PilotGateError",
+    "PilotGateStatus",
+    "PilotHarness",
     "RegisteredEventConsumer",
     "SeedNamespace",
     "SeedNamespaceError",
@@ -102,7 +151,14 @@ __all__ = [
     "WorldSpecError",
     "assert_claim_ceiling_runtime_observation",
     "assert_no_fixture_outcome_injection",
+    "assert_no_forbidden_claims",
+    "assert_prereg_claim_ceiling",
+    "assert_seed_policy_disjoint",
     "check_conservation",
+    "ilw_prereg_design_digest",
+    "ilw_prereg_document_digest",
     "load_integration_dag",
+    "locked_design_dict",
     "run_integrated_smoke",
+    "summarize_prereg",
 ]

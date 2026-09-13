@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-3 integrated smoke (replay, conservation, edge coverage; no science claim).
+**Status:** ILW-4 locked prereg (POM patterns, interactions, scale/horizon/seeds, stop rules, Morris→DSD; pilot harness fail-first). No campaign outcomes yet.
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -49,7 +49,7 @@ Forbidden: outcome injection, treatment oracle, fitness shortcut outside VM/worl
 | ILW-1 | WorldSpec, scheduler, event ledger, shared seed namespace; keep adapters |
 | ILW-2 | Full genome→lineage chain in a two-resource environment |
 | ILW-3 | Integrated smoke: replay, conservation, edge coverage; no science claim |
-| ILW-4 | Prereg patterns, interactions, scale, horizon, seeds, stop rule; then pilot |
+| ILW-4 | Prereg patterns, interactions, scale, horizon, seeds, stop rule; pilot harness (done when digests pin; pilot before confirmatory) |
 | ILW-5 | Factorial / ablation campaign + scale challenge |
 | ILW-6 | MODES, phylogeny, novelty+learnability (exploratory only) |
 
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0 / ILW-1 / ILW-2 / ILW-3)
+## Code map (ILW-0 / ILW-1 / ILW-2 / ILW-3 / ILW-4)
 
 | Path | Role |
 |------|------|
@@ -159,6 +159,9 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `src/codontrace/genesis/ilw/conservation.py` | Resource/energy conservation assays |
 | `src/codontrace/genesis/ilw/integrated_smoke.py` | ILW-3 integrated smoke + replay |
 | `tests/test_ilw3_integrated_smoke.py` | ILW-3 replay / conservation / coverage / no-claim |
+| `docs/ILW_PREREG_V1.md` | Locked ILW-4 prereg (POM, DoE, seeds, stop rules) |
+| `src/codontrace/genesis/ilw/prereg.py` | Digests, seed lists, pilot harness stub |
+| `tests/test_ilw4_prereg.py` | Digest pins, seed disjointness, fail-first confirmatory |
 
 ## ILW-1 (this milestone) — done when
 
@@ -194,6 +197,20 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 6. At least one birth and one death occur when dynamics allow (honest; no fixture).
 7. Smoke emits **no** ClaimGate ladder promotion / scientific claim; ceiling stays
    `runtime_observation`.
+
+## ILW-4 (this milestone) — done when
+
+1. Locked prereg (`docs/ILW_PREREG_V1.md` + `prereg.py`) records POM acceptance
+   patterns, interactions to estimate, scale ladder S1–S4 with stop rules,
+   horizon definitions (ticks + turnover + lineage depth + regime changes),
+   seed policy (pilot vs confirmatory held-out), edge knockout + sham/yoked
+   plan, and Morris → fractional-factorial / DSD plan with cited DOIs.
+2. Design + document digests pin in tests; pilot seeds ≠ confirmatory seeds.
+3. Pilot harness stub refuses confirmatory seeds until pilot gates pass
+   (fail-first); does **not** start ILW-5 / large campaign.
+4. ClaimGate ceiling remains `runtime_observation`; scientific name remains
+   `integrated eco-evolutionary runtime` (never intelligence / AGI / CI).
+5. No Colab; no ClaimGate loosening; no CCE claim.
 
 ## Primary references
 

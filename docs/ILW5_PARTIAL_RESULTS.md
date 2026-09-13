@@ -1,6 +1,6 @@
 # ILW-5 partial confirmatory results
 
-**Status:** Partial local confirmatory subset in progress / landed.  
+**Status:** Partial local confirmatory subset **landed** (22/22 planned cells; 22/312 enumerated).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged — **no promotion**).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Intelligence / CCE / AGI claims:** **none** (forbidden; not emitted).
@@ -35,13 +35,15 @@ Artifact counts (honest runtime observations only):
 
 | Metric | Value |
 |--------|-------|
-| Executed / planned (this subset) | 16 / 22 |
-| Executed / enumerated (full design) | 16 / 312 |
-| By kind | `{'ablation': 14, 'baseline': 2}` |
+| Executed / planned (this subset) | 22 / 22 |
+| Executed / enumerated (full design) | 22 / 312 |
+| By kind | `{'ablation': 14, 'baseline': 2, 'interaction': 4, 'scale_s4': 2}` |
 | ClaimGate ceiling | `runtime_observation` |
 | Outcomes invented | `False` |
 | Intelligence claimed | `False` |
 | Replay in this partial | `False` |
+
+All executed cells: `conservation_passed=true`, `required_edge_coverage=1.0`, `scientific_claim_emitted=false`, `claim_ceiling=runtime_observation`.
 
 ### Completed cell ids
 
@@ -61,15 +63,16 @@ Artifact counts (honest runtime observations only):
 - `ablation-mutation_off-S2-4101` (birth=0, death=31, turnover=27, coverage=1.0, conservation=True)
 - `ablation-ecological_feedback_off-S2-4101` (birth=36, death=44, turnover=36, coverage=1.0, conservation=True)
 - `ablation-lineage_inheritance_off-S2-4101` (birth=211, death=205, turnover=197, coverage=1.0, conservation=True)
+- `interaction-toolchainxcapsule-S2-4100` (birth=10, death=18, turnover=10, coverage=1.0, conservation=True)
+- `interaction-capsulexecology-S2-4100` (birth=22, death=30, turnover=22, coverage=1.0, conservation=True)
+- `interaction-mutationxcapsule-S2-4100` (birth=0, death=35, turnover=30, coverage=1.0, conservation=True)
+- `interaction-heterogeneityxpopulation_size-S2-4100` (birth=19, death=27, turnover=19, coverage=1.0, conservation=True)
+- `s4-32x32-t128-p64-4100` (birth=25, death=28, turnover=23, coverage=1.0, conservation=True)
+- `s4-64x64-t128-p64-4100` (birth=35, death=36, turnover=32, coverage=1.0, conservation=True)
 
 ### Remaining planned (this subset)
 
-- `interaction-toolchainxcapsule-S2-4100`
-- `interaction-capsulexecology-S2-4100`
-- `interaction-mutationxcapsule-S2-4100`
-- `interaction-heterogeneityxpopulation_size-S2-4100`
-- `s4-32x32-t128-p64-4100`
-- `s4-64x64-t128-p64-4100`
+_none — planned subset complete_
 
 
 ## Remainder

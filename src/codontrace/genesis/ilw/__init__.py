@@ -2,9 +2,13 @@
 
 ILW-0: integration DAG, fail-first orphan subsystem checks, event consumer.
 ILW-1: shared WorldSpec, run-scoped scheduler, append-only event ledger, and
-deterministic seed namespace. Claim ceiling stays ``runtime_observation``;
-scientific name is ``integrated eco-evolutionary runtime`` (not intelligence /
-AGI / CI). Adapters must not inject fixture outcomes.
+deterministic seed namespace.
+ILW-2: full genome→lineage causal chain in a dual-resource world under one
+run_id / WorldSpec / scheduler / ledger.
+
+Claim ceiling stays ``runtime_observation``; scientific name is
+``integrated eco-evolutionary runtime`` (not intelligence / AGI / CI).
+Adapters must not inject fixture outcomes.
 """
 
 from __future__ import annotations
@@ -15,6 +19,12 @@ from codontrace.genesis.ilw.adapter_honesty import (
     assert_claim_ceiling_runtime_observation,
     assert_no_fixture_outcome_injection,
 )
+from codontrace.genesis.ilw.chain_runtime import (
+    CapsuleRecord,
+    IlwChainError,
+    IlwChainRuntime,
+    IlwOrganism,
+)
 from codontrace.genesis.ilw.dag import (
     CLAIM_CEILING,
     REQUIRED_TELEMETRY_FIELDS,
@@ -23,6 +33,7 @@ from codontrace.genesis.ilw.dag import (
     IntegrationDAGError,
     load_integration_dag,
 )
+from codontrace.genesis.ilw.dual_resource_world import DualResourceWorld, DualResourceWorldError
 from codontrace.genesis.ilw.event_consumer import (
     OrphanEventError,
     RegisteredEventConsumer,
@@ -33,6 +44,7 @@ from codontrace.genesis.ilw.event_ledger import (
     EventLedgerError,
     LedgerEvent,
 )
+from codontrace.genesis.ilw.knockouts import IlwKnockoutError, KnockoutConfig
 from codontrace.genesis.ilw.orphan import (
     OrphanSubsystemError,
     SubsystemRegistry,
@@ -49,12 +61,20 @@ __all__ = [
     "SCIENTIFIC_NAME",
     "WORLD_SPEC_SCHEMA",
     "AdapterHonestyError",
+    "CapsuleRecord",
+    "DualResourceWorld",
+    "DualResourceWorldError",
     "EventLedger",
     "EventLedgerError",
+    "IlwChainError",
+    "IlwChainRuntime",
+    "IlwKnockoutError",
+    "IlwOrganism",
     "IlwScheduler",
     "IlwSchedulerError",
     "IntegrationDAG",
     "IntegrationDAGError",
+    "KnockoutConfig",
     "LedgerEvent",
     "OrphanEventError",
     "OrphanSubsystemError",

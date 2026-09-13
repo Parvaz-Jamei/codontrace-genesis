@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-1 WorldSpec / scheduler / ledger / seed namespace.
+**Status:** ILW-2 genome→lineage causal chain in dual-resource world.
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0 / ILW-1)
+## Code map (ILW-0 / ILW-1 / ILW-2)
 
 | Path | Role |
 |------|------|
@@ -152,6 +152,10 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `src/codontrace/genesis/ilw/adapter_honesty.py` | No fixture/oracle outcome injection |
 | `tests/test_ilw0_integration_dag.py` | Minimal ILW-0 tests |
 | `tests/test_ilw1_world_runtime.py` | ILW-1 WorldSpec / ledger / scheduler / seeds |
+| `src/codontrace/genesis/ilw/dual_resource_world.py` | Dual limited renewable resources + niches |
+| `src/codontrace/genesis/ilw/knockouts.py` | Per-edge knockout config (one cut set each) |
+| `src/codontrace/genesis/ilw/chain_runtime.py` | ILW-2 integrated causal chain under one run_id |
+| `tests/test_ilw2_causal_chain.py` | ILW-2 chain / coverage / knockout tests |
 
 ## ILW-1 (this milestone) — done when
 
@@ -160,6 +164,19 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 3. Event ledger is append-only with `edge_id` + causal parent checks.
 4. Seed namespace is deterministic and does not leak across runs.
 5. Adapters stay honest (no fixture outcome injection); ClaimGate ceiling remains `runtime_observation`.
+
+
+## ILW-2 (this milestone) — done when
+
+1. Full causal chain genome→…→next ecological state runs under one `run_id`,
+   one `WorldSpec`, one scheduler, and one event ledger.
+2. Dual limited renewable resources + niches form the minimal vertical world.
+3. Every required DAG edge emits telemetry with `edge_id`, before/after digests,
+   and separate `attempted` / `accepted` / `applied`.
+4. Capsule path (experience→capsule→transport/accept/apply→policy) and lineage
+   path (survival/reproduction→mutation→inheritance) are recordable on one run.
+5. At least one edge-off knockout severs apply (fail-first blocked telemetry);
+   no outcome injection; ClaimGate ceiling remains `runtime_observation`.
 
 ## Primary references
 

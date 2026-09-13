@@ -10,6 +10,8 @@ no scientific claim / no ClaimGate ladder promotion.
 ILW-4: locked preregistration (POM patterns, interactions, scale/horizon/seeds,
 stop rules, Morris→DSD plan) + pilot harness stub (fail-first confirmatory block).
 ILW-pilot / ILW-5: S2 pilot gates artifact; confirmatory campaign harness (smoke cells).
+ILW-6: exploratory MODES-style phylogeny hooks, organism↔capsule genealogy join,
+novelty + learnability probes (no ClaimGate promotion / no CCE / no intelligence).
 
 Claim ceiling stays ``runtime_observation``; scientific name is
 ``integrated eco-evolutionary runtime`` (not intelligence / AGI / CI).
@@ -125,6 +127,28 @@ from codontrace.genesis.ilw.pilot import (
     unlocked_harness_or_raise,
 )
 
+
+from codontrace.genesis.ilw.exploratory import (
+    ILW6_FORBIDDEN_PROMOTIONS,
+    ILW6_LIMITATIONS,
+    ILW6_SCHEMA,
+    ILW6_STATUS,
+    CapsuleGenealNode,
+    Ilw6ExploratoryError,
+    Ilw6ExploratoryReport,
+    LearnabilityProbe,
+    ModesStylePoint,
+    OrganismPhyloNode,
+    PhyloJoinRow,
+    build_capsule_genealogy,
+    build_organism_phylogeny,
+    join_organism_capsule_phylogenies,
+    learnability_probe,
+    modes_style_novelty_probe,
+    run_ilw6_exploratory,
+    run_ilw6_exploratory_smoke,
+)
+
 __all__ = [
     "CLAIM_CEILING",
     "FORBIDDEN_OUTCOME_INJECTION_KEYS",
@@ -213,4 +237,22 @@ __all__ = [
     "enumerate_campaign_design",
     "run_campaign_cell",
     "run_ilw5_smoke",
+    "ILW6_FORBIDDEN_PROMOTIONS",
+    "ILW6_LIMITATIONS",
+    "ILW6_SCHEMA",
+    "ILW6_STATUS",
+    "CapsuleGenealNode",
+    "Ilw6ExploratoryError",
+    "Ilw6ExploratoryReport",
+    "LearnabilityProbe",
+    "ModesStylePoint",
+    "OrganismPhyloNode",
+    "PhyloJoinRow",
+    "build_capsule_genealogy",
+    "build_organism_phylogeny",
+    "join_organism_capsule_phylogenies",
+    "learnability_probe",
+    "modes_style_novelty_probe",
+    "run_ilw6_exploratory",
+    "run_ilw6_exploratory_smoke",
 ]

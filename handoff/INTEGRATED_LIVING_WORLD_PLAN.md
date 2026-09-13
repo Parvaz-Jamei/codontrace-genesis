@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-5 campaign harness landed. S2 pilot gates PASS (seeds 3100–3107). Confirmatory smoke on held-out seed 4100 (baseline + capsule_to_policy_off). Full factorial/S4 remaining for Colab. No intelligence/CCE claim.
+**Status:** ILW-6 exploratory phylogeny + MODES-style novelty/learnability hooks landed (no ClaimGate promotion). ILW-5 campaign harness + S2 pilot PASS remain. Full factorial/S4 remaining for Colab. No intelligence/CCE claim.
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0 … ILW-5)
+## Code map (ILW-0 … ILW-6)
 
 | Path | Role |
 |------|------|
@@ -168,6 +168,9 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `docs/ILW5_CAMPAIGN.md` | ILW-5 design + local smoke / Colab remainder |
 | `tests/test_ilw_pilot_gates.py` | Fast pilot gate / POM unit tests |
 | `tests/test_ilw5_campaign.py` | Campaign design enumeration tests |
+| `src/codontrace/genesis/ilw/exploratory.py` | ILW-6 phylogeny / genealogy join + exploratory MODES/learnability |
+| `docs/ILW6_EXPLORATORY.md` | ILW-6 exploratory ceiling (no CCE / intelligence) |
+| `tests/test_ilw6_exploratory.py` | Digests/export + empty claim promotions |
 
 ## ILW-1 (this milestone) — done when
 
@@ -229,6 +232,21 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 4. Remaining full campaign documented for Colab/Drive — no invented outcome tables.
 5. ClaimGate ceiling remains `runtime_observation`; no CCE / intelligence claim.
 6. ILW-6 not started unless harness is solid and time remains.
+
+
+
+## ILW-6 (this milestone) — done when
+
+1. Organism phylogeny and capsule genealogy export as separate trees that are
+   joinable on shared keys (`lineage_id`, `organism_id` / `source_id`).
+2. MODES-style change/novelty/complexity/ecological-potential probes run as
+   **exploratory** measurement hooks (not a C++ MODES port; not an OEE pass).
+3. Learnability probe is descriptive only; Mesoudi CCE criteria remain unpassed
+   and `cce_claimed` / `intelligence_claimed` stay false.
+4. Export digests are stable; `claim_promotions` is always empty; ClaimGate
+   ceiling remains `runtime_observation`; scientific name remains
+   `integrated eco-evolutionary runtime`.
+5. Docs (`docs/ILW6_EXPLORATORY.md`) mark the exploratory ceiling explicitly.
 
 ## Primary references
 

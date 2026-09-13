@@ -1,6 +1,6 @@
 # Integrated Living World (ILW) — Plan
 
-**Status:** ILW-0 scaffolding only.
+**Status:** ILW-1 WorldSpec / scheduler / ledger / seed namespace.
 **ClaimGate ceiling:** `runtime_observation` (never loosened here).
 **Scientific name:** `integrated eco-evolutionary runtime`
 (not intelligence / AGI / collective intelligence / Tokyo Type 1 / Avida replacement).
@@ -137,7 +137,7 @@ No new standalone pilots-as-world-claims, theatrical network inflation, config
 cherry-pick, ATP-only claims, treatment oracles, weakened tests, Phase A–E pin
 breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 
-## Code map (ILW-0)
+## Code map (ILW-0 / ILW-1)
 
 | Path | Role |
 |------|------|
@@ -145,7 +145,21 @@ breaks, tag/PyPI, or ClaimGate raises. Ceiling stays `runtime_observation`.
 | `src/codontrace/genesis/ilw/dag.py` | Load + validate DAG |
 | `src/codontrace/genesis/ilw/orphan.py` | Fail-first orphan subsystem registry |
 | `src/codontrace/genesis/ilw/event_consumer.py` | Reject orphan / unregistered events |
+| `src/codontrace/genesis/ilw/world_spec.py` | Shared digest-stable WorldSpec |
+| `src/codontrace/genesis/ilw/seed_namespace.py` | Run-scoped deterministic seed namespaces |
+| `src/codontrace/genesis/ilw/scheduler.py` | Tick scheduler bound to one run_id |
+| `src/codontrace/genesis/ilw/event_ledger.py` | Append-only causal event ledger |
+| `src/codontrace/genesis/ilw/adapter_honesty.py` | No fixture/oracle outcome injection |
 | `tests/test_ilw0_integration_dag.py` | Minimal ILW-0 tests |
+| `tests/test_ilw1_world_runtime.py` | ILW-1 WorldSpec / ledger / scheduler / seeds |
+
+## ILW-1 (this milestone) — done when
+
+1. Shared `WorldSpec` is digest-stable (frozen/slots; `canonical_digest`).
+2. Scheduler advances ticks under one `run_id` only.
+3. Event ledger is append-only with `edge_id` + causal parent checks.
+4. Seed namespace is deterministic and does not leak across runs.
+5. Adapters stay honest (no fixture outcome injection); ClaimGate ceiling remains `runtime_observation`.
 
 ## Primary references
 

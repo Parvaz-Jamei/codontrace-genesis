@@ -57,6 +57,7 @@ CellKind = Literal["baseline", "ablation", "interaction", "scale_s4"]
 
 DEFAULT_CAMPAIGN_BOOTSTRAP = 8
 DEFAULT_SMOKE_ARTIFACT = "outputs/ilw5_campaign_smoke.json"
+DEFAULT_PARTIAL_ARTIFACT = "outputs/ilw5_campaign_partial.json"
 
 
 class IlwCampaignError(ConfigurationError):
@@ -69,6 +70,10 @@ def _repo_root() -> Path:
 
 def default_smoke_artifact_path() -> Path:
     return _repo_root() / DEFAULT_SMOKE_ARTIFACT
+
+
+def default_partial_artifact_path() -> Path:
+    return _repo_root() / DEFAULT_PARTIAL_ARTIFACT
 
 
 @dataclass(frozen=True, slots=True)
@@ -507,17 +512,210 @@ def run_ilw5_smoke(
     return payload
 
 
+def select_partial_campaign_cells(
+    *,
+    ablation_seeds: Sequence[int] = (4100, 4101),
+    interaction_seeds: Sequence[int] = (4100,),
+    s4_seeds: Sequence[int] = (4100,),
+    s4_widths: Sequence[int] = (32, 64),
+    s4_horizons: Sequence[int] = (128,),
+    s4_pop_caps: Sequence[int] = (64,),
+    scale_label: str = "S2",
+) -> list[CampaignCell]:
+    """Build the meaningful confirmatory subset (design only; no outcomes).
+
+    Default: all 8 ablation arms × seeds 4100–4101, interaction screening on
+    4100, and a small S4 slice (not the full 27×8 grid).
+    """
+
+    cells: list[CampaignCell] = []
+    seen: set[str] = set()
+    for seed in ablation_seeds:
+        for cell in build_ablation_cells(seed=int(seed), scale_label=scale_label):
+            if cell.cell_id not in seen:
+                cells.append(cell)
+                seen.add(cell.cell_id)
+    for seed in interaction_seeds:
+        for cell in build_interaction_screening_cells(seed=int(seed), scale_label=scale_label):
+            if cell.cell_id not in seen:
+                cells.append(cell)
+                seen.add(cell.cell_id)
+    for seed in s4_seeds:
+        for cell in build_s4_scale_cells(
+            seed=int(seed),
+            widths=s4_widths,
+            horizons=s4_horizons,
+            pop_caps=s4_pop_caps,
+        ):
+            if cell.cell_id not in seen:
+                cells.append(cell)
+                seen.add(cell.cell_id)
+    return cells
+
+
+def run_ilw5_partial(
+    *,
+    cells: Sequence[CampaignCell] | None = None,
+    harness: PilotHarness | None = None,
+    bootstrap_population: int = DEFAULT_CAMPAIGN_BOOTSTRAP,
+    run_replay: bool = False,
+    write_artifact: bool = True,
+    artifact_path: Path | None = None,
+    resume: bool = True,
+    max_cells: int | None = None,
+    ablation_seeds: Sequence[int] = (4100, 4101),
+    interaction_seeds: Sequence[int] = (4100,),
+    s4_seeds: Sequence[int] = (4100,),
+    s4_widths: Sequence[int] = (32, 64),
+    s4_horizons: Sequence[int] = (128,),
+    s4_pop_caps: Sequence[int] = (64,),
+) -> dict[str, Any]:
+    """Execute a confirmatory subset; write honest partial artifact (no invented rows).
+
+    ``run_replay`` defaults False so a meaningful subset fits local wall-clock;
+    smoke already verified digest replay on S2 cells. When False, each result
+    records ``replay_matched=False`` honestly.
+    """
+
+    unlocked = harness if harness is not None else unlock_harness_from_artifact()
+    design = enumerate_campaign_design()
+    planned = list(cells) if cells is not None else select_partial_campaign_cells(
+        ablation_seeds=ablation_seeds,
+        interaction_seeds=interaction_seeds,
+        s4_seeds=s4_seeds,
+        s4_widths=s4_widths,
+        s4_horizons=s4_horizons,
+        s4_pop_caps=s4_pop_caps,
+    )
+    path = artifact_path or default_partial_artifact_path()
+    prior_by_id: dict[str, dict[str, Any]] = {}
+    if resume and path.is_file():
+        prior = json.loads(path.read_text())
+        for row in prior.get("executed_cells", []):
+            cell_id = row.get("cell", {}).get("cell_id")
+            if isinstance(cell_id, str):
+                prior_by_id[cell_id] = row
+
+    results: list[dict[str, Any]] = []
+    newly_run = 0
+    for cell in planned:
+        if cell.cell_id in prior_by_id:
+            results.append(prior_by_id[cell.cell_id])
+            continue
+        if max_cells is not None and newly_run >= int(max_cells):
+            break
+        executed = run_campaign_cell(
+            cell,
+            harness=unlocked,
+            bootstrap_population=bootstrap_population,
+            run_replay=run_replay,
+        )
+        results.append(executed.to_dict())
+        newly_run += 1
+        # Checkpoint after every newly completed cell so crashes lose at most one.
+        if write_artifact:
+            remaining_ids = [
+                c.cell_id for c in planned if c.cell_id not in {r["cell"]["cell_id"] for r in results}
+            ]
+            payload = _partial_payload(
+                design=design,
+                planned=planned,
+                results=results,
+                newly_run=newly_run,
+                run_replay=run_replay,
+                remaining_ids=remaining_ids,
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+    remaining_ids = [
+        c.cell_id for c in planned if c.cell_id not in {r["cell"]["cell_id"] for r in results}
+    ]
+    payload = _partial_payload(
+        design=design,
+        planned=planned,
+        results=results,
+        newly_run=newly_run,
+        run_replay=run_replay,
+        remaining_ids=remaining_ids,
+    )
+    if write_artifact:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return payload
+
+
+def _partial_payload(
+    *,
+    design: Mapping[str, Any],
+    planned: Sequence[CampaignCell],
+    results: Sequence[Mapping[str, Any]],
+    newly_run: int,
+    run_replay: bool,
+    remaining_ids: Sequence[str],
+) -> dict[str, Any]:
+    by_kind: dict[str, int] = {}
+    for row in results:
+        kind = str(row.get("cell", {}).get("kind", "unknown"))
+        by_kind[kind] = by_kind.get(kind, 0) + 1
+    return {
+        "milestone": "ILW-5",
+        "status": "partial_runtime_observation",
+        "claim_ceiling": CLAIM_CEILING,
+        "scientific_name": SCIENTIFIC_NAME,
+        "ilw_prereg_design_digest": design["ilw_prereg_design_digest"],
+        "ilw_prereg_document_digest": design["ilw_prereg_document_digest"],
+        "design_cell_counts": design["cell_counts"],
+        "planned_cell_ids": [c.cell_id for c in planned],
+        "planned_count": len(planned),
+        "executed_count": len(results),
+        "enumerated_total": design["cell_counts"]["total_enumerated"],
+        "newly_run_this_invocation": newly_run,
+        "executed_by_kind": by_kind,
+        "run_replay": bool(run_replay),
+        "executed_cells": list(results),
+        "remaining_planned_cell_ids": list(remaining_ids),
+        "remaining_for_colab": (
+            "Full confirmatory grid remains: seeds 4100–4107 × ablation + interaction + "
+            "full S4 27-cell grid + Morris EE / DSD continuous arms. Do not raise ClaimGate."
+        ),
+        "campaign_outcomes_invented": False,
+        "cce_claimed": False,
+        "intelligence_claimed": False,
+        "ladder_promotion": None,
+        "scientific_claim_emitted": False,
+        "claim_promotions": [],
+        "honesty_notes": [
+            "Only executed cells appear; no fixture/invented outcome rows.",
+            "ClaimGate ceiling remains runtime_observation.",
+            "Partial local subset; not a full confirmatory campaign.",
+            (
+                "Replay digest check skipped in this partial (run_replay=False); "
+                "S2 smoke previously recorded replay_matched=true for baseline + "
+                "capsule_to_policy_off at seed 4100."
+                if not run_replay
+                else "Replay digest check enabled for executed cells."
+            ),
+        ],
+    }
+
+
+
 __all__ = [
     "CampaignCell",
     "CampaignCellResult",
     "DEFAULT_CAMPAIGN_BOOTSTRAP",
+    "DEFAULT_PARTIAL_ARTIFACT",
     "DEFAULT_SMOKE_ARTIFACT",
     "IlwCampaignError",
     "build_ablation_cells",
     "build_interaction_screening_cells",
     "build_s4_scale_cells",
+    "default_partial_artifact_path",
     "default_smoke_artifact_path",
     "enumerate_campaign_design",
     "run_campaign_cell",
+    "run_ilw5_partial",
     "run_ilw5_smoke",
+    "select_partial_campaign_cells",
 ]

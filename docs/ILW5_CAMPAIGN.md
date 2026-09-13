@@ -1,6 +1,6 @@
 # ILW-5 campaign harness (factorial / ablation / scale)
 
-**Status:** Harness landed + local confirmatory smoke (1–2 cells).  
+**Status:** Harness landed + local confirmatory smoke (1–2 cells) + **partial confirmatory subset** (`outputs/ilw5_campaign_partial.json`).  
 **ClaimGate ceiling:** `runtime_observation` (unchanged).  
 **Scientific name:** `integrated eco-evolutionary runtime`  
 **Prereq:** S2 pilot gates PASS (`docs/ILW_PILOT_S2_RESULTS.md` / `outputs/ilw_pilot_s2.json`).
@@ -21,6 +21,12 @@ Digests recorded on every artifact:
 
 - `ilw_prereg_design_digest`
 - `ilw_prereg_document_digest`
+
+## Partial confirmatory (local)
+
+See `docs/ILW5_PARTIAL_RESULTS.md` and `outputs/ilw5_campaign_partial.json`.
+
+Runner: `scripts/run_ilw5_partial.py` / `run_ilw5_partial()` (resume-friendly checkpoints).
 
 ## Local smoke (executed)
 
@@ -47,7 +53,7 @@ Do **not** loosen ClaimGate. Do **not** start ILW-6 until this harness stays sol
 | Path | Role |
 |------|------|
 | `src/codontrace/genesis/ilw/pilot.py` | S2 pilot runner + gate artifact |
-| `src/codontrace/genesis/ilw/campaign.py` | ILW-5 cell builders + smoke runner |
+| `src/codontrace/genesis/ilw/campaign.py` | ILW-5 cell builders + smoke + partial runner |
 | `src/codontrace/genesis/ilw/prereg.py` | Locked design + PilotHarness unlock |
 | `tests/test_ilw_pilot_gates.py` | Fast gate/POM unit tests |
 | `tests/test_ilw5_campaign.py` | Design enumeration tests |

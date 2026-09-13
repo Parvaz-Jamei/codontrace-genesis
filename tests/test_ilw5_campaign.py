@@ -68,3 +68,50 @@ def test_confirmatory_harness_gate():
         )
     )
     unlocked.assert_seed_allowed(CONFIRMATORY_HELD_OUT_SEEDS[0], role="confirmatory")
+
+
+def test_select_partial_campaign_cells_default_subset():
+    from codontrace.genesis.ilw.campaign import select_partial_campaign_cells
+
+    cells = select_partial_campaign_cells()
+    kinds = {c.kind for c in cells}
+    assert kinds == {"baseline", "ablation", "interaction", "scale_s4"}
+    # 8 ablation arms × 2 seeds + 4 interactions + 2 S4 slice cells
+    assert len(cells) == 8 * 2 + 4 + 2
+    assert all(c.seed in CONFIRMATORY_HELD_OUT_SEEDS for c in cells)
+    assert {c.seed for c in cells if c.kind in {"baseline", "ablation"}} == {4100, 4101}
+    assert all(c.seed == 4100 for c in cells if c.kind == "interaction")
+    assert all(c.scale_label == "S4" for c in cells if c.kind == "scale_s4")
+
+
+def test_partial_payload_honesty_flags_without_execution(tmp_path):
+    """Partial runner with max_cells=0 writes design-only honest artifact."""
+    from codontrace.genesis.ilw.campaign import run_ilw5_partial
+    from codontrace.genesis.ilw.prereg import PilotGateStatus, PilotHarness
+
+    unlocked = PilotHarness(
+        gates=PilotGateStatus(
+            replay_ok=True,
+            conservation_ok=True,
+            edge_coverage_ok=True,
+            pom_patterns_recorded=True,
+            no_claim_promotion=True,
+            claim_ceiling_ok=True,
+        )
+    )
+    art = tmp_path / "ilw5_campaign_partial.json"
+    payload = run_ilw5_partial(
+        harness=unlocked,
+        max_cells=0,
+        write_artifact=True,
+        artifact_path=art,
+        resume=False,
+    )
+    assert payload["campaign_outcomes_invented"] is False
+    assert payload["intelligence_claimed"] is False
+    assert payload["cce_claimed"] is False
+    assert payload["claim_ceiling"] == "runtime_observation"
+    assert payload["executed_count"] == 0
+    assert payload["planned_count"] == 8 * 2 + 4 + 2
+    assert payload["enumerated_total"] == 312
+    assert art.is_file()

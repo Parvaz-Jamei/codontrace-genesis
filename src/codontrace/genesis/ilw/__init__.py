@@ -106,10 +106,13 @@ from codontrace.genesis.ilw.campaign import (
     build_ablation_cells,
     build_interaction_screening_cells,
     build_s4_scale_cells,
+    default_partial_artifact_path,
     default_smoke_artifact_path,
     enumerate_campaign_design,
     run_campaign_cell,
+    run_ilw5_partial,
     run_ilw5_smoke,
+    select_partial_campaign_cells,
 )
 
 from codontrace.genesis.ilw.pilot import (
@@ -236,7 +239,10 @@ __all__ = [
     "default_smoke_artifact_path",
     "enumerate_campaign_design",
     "run_campaign_cell",
+    "run_ilw5_partial",
     "run_ilw5_smoke",
+    "select_partial_campaign_cells",
+    "default_partial_artifact_path",
     "ILW6_FORBIDDEN_PROMOTIONS",
     "ILW6_LIMITATIONS",
     "ILW6_SCHEMA",

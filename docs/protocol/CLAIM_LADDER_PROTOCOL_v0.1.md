@@ -241,7 +241,7 @@ inference; broken negative control ≠ mechanism proof.
 ## 7. Relation to MODES / Channon 2024 — complementary
 
 | Neighbor | What it is | What it is not |
-|---|---|---|
+|---|---|
 | **MODES** (Dolson et al. 2019) | Measurement toolbox: change, novelty, complexity, ecological potential after a persistence filter | A claim pass |
 | **Channon 2024 Tokyo Type 1** | Measurement-step procedure / vocabulary | `tokyo_type1_passed` |
 | **This claim ladder** | Grades *claim wording* given evidence | A novelty metric |
@@ -264,11 +264,11 @@ verbs. See [`design/MODES_CHANNON_MEASUREMENT_NEIGHBORS.md`](../design/MODES_CHA
    COU is not a V&V 40 credibility argument.
 4. **Simulator scope.** The standalone auditor’s Avida / MABE2 paths are
    ingest skeletons, not full platform support.
-5. **Forbidden aliases unchanged:** `intelligence`, `collective_intelligence`,
-   AGI, `tokyo_type1_passed`, `avida_replacement`, and related forms stay
-   blocked at every level.
-6. **No open-ended discovery / ASAL / OMNI / LLM / ESP32 / differentiation-goal
-   content** is introduced by this protocol wave.
+5. **Forbidden aliases unchanged.** Never claim intelligence, collective
+   intelligence, or AGI. Also blocked at every level: `tokyo_type1_passed`,
+   `avida_replacement`, and related forms.
+6. **Hard bans for this wave:** no new-goal / ASAL / OMNI / LLM / ESP32 /
+   differentiation-goal content is introduced by this protocol wave.
 7. **HE02 and later hard experiments** are out of scope here; this document
    does not touch their code or configs.
 8. **Identity unchanged:** `0.3.0b4.dev0`. No tag. No PyPI publish.

@@ -69,4 +69,4 @@ See also short brief: `docs/hard_experiment_03/HE03_SCIENCE_BRIEF.md`.
 
 
 ## Document digest
-`sha256:eef3469fb7449eccc23ce6bdc4cabdddcf20d3fbd1c49d2c66c23be4000457ae`
+`sha256:PLACEHOLDER_RECOMPUTE`

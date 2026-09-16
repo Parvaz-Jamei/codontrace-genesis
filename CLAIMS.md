@@ -516,3 +516,18 @@ Recommended update triggers:
 - a JOSS/arXiv/paper artifact is prepared,
 - collective, memory, capsule, role, or open-endedness evidence moves to a higher claim level,
 - a previously blocked claim becomes supported by replicated evidence.
+
+## HARD_EXPERIMENT_02 (food-patch + deme/kin; E1+E2+E5)
+
+Prereg: [`docs/HARD_EXPERIMENT_02_PREREG.md`](docs/HARD_EXPERIMENT_02_PREREG.md).
+Science brief: [`docs/hard_experiment_02/HE02_SCIENCE_BRIEF.md`](docs/hard_experiment_02/HE02_SCIENCE_BRIEF.md).
+
+ClaimGate ceiling granted: **`runtime_observation`** (level 1 / start).
+`intervention_supported` is not granted by this entry. Forbidden aliases
+(`intelligence`, `collective_intelligence`, `AGI`, Tokyo Type 1, Avida
+replacement) remain blocked. Phase A–E digest pins are untouched.
+
+Pilot / research JSON artifacts under `docs/hard_experiment_02/` are
+observational until ClaimGate explicitly grants a higher rung after
+manipulation checks and Holm-surviving contrasts clear.
+

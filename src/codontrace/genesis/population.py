@@ -91,6 +91,22 @@ from codontrace.genesis.phase_e import (
     maybe_replicate_demes,
     refresh_phase_e_sensory,
 )
+from codontrace.genesis.canonical import canonical_digest
+from codontrace.genesis.food_patch_signal import (
+    FoodPatchSignalConfig,
+    FoodPatchSignalRecord,
+    FoodPatchState,
+    MOVE_TOWARD_CAPSULE_TARGET,
+    decode_patch_payload,
+    encode_patch_payload,
+    spawn_patches_for_tick,
+)
+from codontrace.genesis.deme_selection import DemeSelectionConfig, DemeSelectionRecord
+from codontrace.genesis.stepping_stone_reward import (
+    SteppingStoneRewardConfig,
+    SteppingStoneRewardRecord,
+    apply_stepping_stone_rewards,
+)
 from codontrace.genesis.materials import (
     MaterialEvent,
     MaterialsConfig,
@@ -1293,6 +1309,7 @@ class GenerationResult:
     materials_records: tuple[MaterialEvent, ...] = ()
     materials_snapshot: MaterialsSnapshot | None = None
     materials_world_events: tuple[WorldEvent, ...] = ()
+    food_patch_signal_records: tuple[FoodPatchSignalRecord, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1353,6 +1370,10 @@ class GenerationResult:
         if self.materials_world_events:
             payload["materials_world_events"] = [
                 item.to_dict() for item in self.materials_world_events
+            ]
+        if self.food_patch_signal_records:
+            payload["food_patch_signal_records"] = [
+                item.to_dict() for item in self.food_patch_signal_records
             ]
         return payload
 
@@ -1472,6 +1493,11 @@ class GenerationResult:
                 for item in _list(data, "materials_world_events")
                 if isinstance(item, Mapping)
             ),
+            food_patch_signal_records=tuple(
+                FoodPatchSignalRecord.from_dict(item)
+                for item in _list(data, "food_patch_signal_records")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -1509,6 +1535,11 @@ class PopulationConfigs:
     phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
     logic9: Logic9ReactionConfig = field(default_factory=Logic9ReactionConfig)
     materials: MaterialsConfig = field(default_factory=MaterialsConfig)
+    food_patch_signal: FoodPatchSignalConfig = field(default_factory=FoodPatchSignalConfig)
+    deme_selection: DemeSelectionConfig = field(default_factory=DemeSelectionConfig)
+    stepping_stone_reward: SteppingStoneRewardConfig = field(
+        default_factory=SteppingStoneRewardConfig
+    )
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1583,6 +1614,12 @@ class PopulationConfigs:
             payload["logic9"] = self.logic9.to_dict()
         if self.materials.enabled:
             payload["materials"] = self.materials.to_dict()
+        if self.food_patch_signal.enabled:
+            payload["food_patch_signal"] = self.food_patch_signal.to_dict()
+        if self.deme_selection.enabled:
+            payload["deme_selection"] = self.deme_selection.to_dict()
+        if self.stepping_stone_reward.enabled:
+            payload["stepping_stone_reward"] = self.stepping_stone_reward.to_dict()
         return payload
 
     @classmethod
@@ -1602,6 +1639,9 @@ class PopulationConfigs:
         phase_e_raw = data.get("phase_e")
         logic9_raw = data.get("logic9")
         materials_raw = data.get("materials")
+        food_patch_signal_raw = data.get("food_patch_signal")
+        deme_selection_raw = data.get("deme_selection")
+        stepping_stone_reward_raw = data.get("stepping_stone_reward")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1661,6 +1701,15 @@ class PopulationConfigs:
             materials=MaterialsConfig.from_dict(materials_raw)
             if isinstance(materials_raw, Mapping)
             else MaterialsConfig(),
+            food_patch_signal=FoodPatchSignalConfig.from_dict(food_patch_signal_raw)
+            if isinstance(food_patch_signal_raw, Mapping)
+            else FoodPatchSignalConfig(),
+            deme_selection=DemeSelectionConfig.from_dict(deme_selection_raw)
+            if isinstance(deme_selection_raw, Mapping)
+            else DemeSelectionConfig(),
+            stepping_stone_reward=SteppingStoneRewardConfig.from_dict(stepping_stone_reward_raw)
+            if isinstance(stepping_stone_reward_raw, Mapping)
+            else SteppingStoneRewardConfig(),
         )
 
 
@@ -2804,6 +2853,8 @@ def step_population(
             adoption_budget_box = [int(configs.capsule_transfer.max_successful_adoptions)]
             working_nexus_layer.adoption_budget_remaining = adoption_budget_box
 
+    active_food_patches: tuple[FoodPatchState, ...] = ()
+    food_patch_signal_records: list[FoodPatchSignalRecord] = []
     for organism in sorted(organism_clones, key=lambda item: item.id):
         if organism.id not in live_positions:
             continue
@@ -2858,6 +2909,22 @@ def step_population(
             None if working_nexus_layer is None else working_nexus_layer.digest()
         )
         for _ in range(configs.ticks_per_generation):
+            world_width = int(getattr(world, "width", getattr(world, "cols", 0)) or 0)
+            world_height = int(getattr(world, "height", getattr(world, "rows", 0)) or 0)
+            active_food_patches = _he02_sync_food_patches(
+                tick=current_tick,
+                width=world_width,
+                height=world_height,
+                config=configs.food_patch_signal,
+                active=active_food_patches,
+                seed_key=f"he02|{current_tick}|{len(population.organisms)}",
+            )
+            if configs.food_patch_signal.enabled:
+                _he02_place_patch_resources(
+                    world,
+                    active_food_patches,
+                    amount=float(configs.food_patch_signal.patch_atp),
+                )
             if configs.metabolism.enabled and configs.metabolism.basal_runtime_atp_cost > 0:
                 payable = min(
                     organism.atp_state.runtime_available,
@@ -2966,6 +3033,27 @@ def step_population(
                                 _apply_capsule_action_bias(
                                     organism, capsule, capsule_action_coupling
                                 )
+                            if configs.food_patch_signal.enabled and active_food_patches:
+                                payload_token = capsule_payload_action(capsule)
+                                true_xy = _he02_true_patch_xy(active_food_patches)
+                                if payload_token is not None and true_xy is not None:
+                                    food_patch_signal_records.append(
+                                        FoodPatchSignalRecord(
+                                            tick=int(current_tick),
+                                            emitter_id=str(capsule.source_organism_id),
+                                            receiver_id=str(organism.id),
+                                            payload_digest=canonical_digest(
+                                                {"payload": str(payload_token)}
+                                            ),
+                                            target_true=true_xy,
+                                            moved=(
+                                                getattr(organism, "capsule_action_bias", None)
+                                                == MOVE_TOWARD_CAPSULE_TARGET
+                                            ),
+                                            ate_at_target=False,
+                                            payload_token=str(payload_token),
+                                        )
+                                    )
                         else:
                             capsule_adoption_failures += 1
                         capsule_adoption_records.append(
@@ -3093,12 +3181,40 @@ def step_population(
                         ttl=ttl,
                         source_fitness=source_fitness,
                         source_fitness_status=source_status,
-                        payload_action=None
-                        if capsule_action_coupling is None
-                        else organism.capsule_last_executed_action,
+                        payload_action=_he02_payload_action(
+                        organism,
+                        configs.food_patch_signal,
+                        active_food_patches,
+                        capsule_action_coupling,
+                    ),
                     )
                     working_nexus_layer.deposit(capsule, position=organism.position)
                     capsule_emit_count += 1
+                    if (
+                        configs.food_patch_signal.enabled
+                        and active_food_patches
+                        and configs.capsule_transfer is not None
+                        and configs.capsule_transfer.enabled
+                        and str(getattr(configs.capsule_transfer.shuffle_mode, "value", configs.capsule_transfer.shuffle_mode))
+                        == "off"
+                    ):
+                        payload_token = capsule_payload_action(capsule)
+                        true_xy = _he02_true_patch_xy(active_food_patches)
+                        if payload_token is not None and true_xy is not None:
+                            food_patch_signal_records.append(
+                                FoodPatchSignalRecord(
+                                    tick=int(current_tick),
+                                    emitter_id=str(organism.id),
+                                    receiver_id=str(organism.id),
+                                    payload_digest=canonical_digest(
+                                        {"payload": str(payload_token)}
+                                    ),
+                                    target_true=true_xy,
+                                    moved=False,
+                                    ate_at_target=False,
+                                    payload_token=str(payload_token),
+                                )
+                            )
                     capsule_emit_counts_by_tick[current_tick] = emits_this_tick + 1
                     event.world_delta.update(
                         {
@@ -3853,8 +3969,8 @@ def step_population(
         materials_records=materials_records,
         materials_snapshot=materials_snapshot,
         materials_world_events=materials_world_events,
+        food_patch_signal_records=tuple(food_patch_signal_records),
     )
-
 
 def _apply_runtime_resource_policy(
     world: World2D,
@@ -4098,6 +4214,98 @@ def _last_world_delta_str(trace: Trace, key: str) -> str | None:
     return None
 
 
+def _he02_true_patch_xy(
+    patches: tuple[FoodPatchState, ...],
+    position: tuple[int, int] | None = None,
+) -> tuple[int, int] | None:
+    """Return canonical active-patch coordinates for payload↔patch MI.
+
+    Uses lexicographic first patch so Y is environment ground truth, not
+    receiver-local nearest (which would desynchronize from emitter encoding).
+    ``position`` is accepted for call-site compatibility and ignored.
+    """
+
+    if not patches:
+        return None
+    _ = position
+    patch = min(patches, key=lambda item: (int(item.x), int(item.y), str(item.patch_id)))
+    return (int(patch.x), int(patch.y))
+
+
+def _he02_payload_action(
+    organism: GenesisOrganism,
+    food_cfg: FoodPatchSignalConfig,
+    patches: tuple[FoodPatchState, ...],
+    capsule_action_coupling: CapsuleTransferConfig | None,
+) -> str | None:
+    """Prefer food-patch coordinate payloads when E1 is enabled and visible."""
+
+    if food_cfg.enabled and patches:
+        pos = organism.position
+        for patch in patches:
+            dx = abs(int(pos[0]) - int(patch.x))
+            dy = abs(int(pos[1]) - int(patch.y))
+            if max(dx, dy) <= int(food_cfg.visibility_radius):
+                return encode_patch_payload(patch.x, patch.y)
+    if capsule_action_coupling is None:
+        return None
+    return organism.capsule_last_executed_action
+
+
+def _he02_sync_food_patches(
+    *,
+    tick: int,
+    width: int,
+    height: int,
+    config: FoodPatchSignalConfig,
+    active: tuple[FoodPatchState, ...],
+    seed_key: str,
+) -> tuple[FoodPatchState, ...]:
+    """Deterministic spawn/expiry using a tick-scoped hash stream."""
+
+    if not config.enabled:
+        return ()
+    needed = max(2, int(config.patch_count) * 2)
+    draws: list[float] = []
+    # Local deterministic stream; does not touch global RNG.
+    material = f"{seed_key}|food_patch|{tick}|{width}x{height}".encode("utf-8")
+    digest = hashlib.sha256(material).digest()
+    cursor = 0
+    while len(draws) < needed:
+        if cursor + 4 > len(digest):
+            digest = hashlib.sha256(digest + material).digest()
+            cursor = 0
+        chunk = int.from_bytes(digest[cursor : cursor + 4], "big")
+        cursor += 4
+        draws.append((chunk % 10_000_000) / 10_000_000.0)
+    return spawn_patches_for_tick(
+        tick=tick,
+        width=width,
+        height=height,
+        config=config,
+        rng_draw=draws,
+        active=active,
+    )
+
+
+def _he02_place_patch_resources(
+    world: object,
+    patches: tuple[FoodPatchState, ...],
+    *,
+    amount: float,
+) -> None:
+    """Deposit patch ATP/resources onto the world grid when API allows."""
+
+    place = getattr(world, "place_resource", None)
+    if not callable(place):
+        return
+    for patch in patches:
+        try:
+            place((int(patch.x), int(patch.y)), float(amount))
+        except Exception:
+            # World APIs vary; HE02 records still capture signal MI without placement.
+            continue
+
 def _track_capsule_payload_action(
     organism: GenesisOrganism, event: TraceEvent, config: CapsuleTransferConfig
 ) -> None:
@@ -4129,9 +4337,37 @@ def _apply_capsule_action_bias(
 
     Returns ``True`` when a bias was (re)installed. Unknown payloads are
     ignored so a scrambled control cannot inject unregistered actions.
+    HE02 food-patch payloads (``PATCH:x:y``) install MOVE_TOWARD_CAPSULE_TARGET
+    plus ``capsule_nav_target``.
     """
 
     action = capsule_payload_action(capsule)
+    patch = decode_patch_payload(action)
+    if patch is not None:
+        if organism.action_registry.get(MOVE_TOWARD_CAPSULE_TARGET) is None:
+            return False
+        organism.capsule_action_bias = MOVE_TOWARD_CAPSULE_TARGET
+        organism.capsule_action_bias_capsule_id = capsule.capsule_id
+        organism.capsule_action_bias_substitutable = tuple(config.adoption_substitutable_actions)
+        organism.capsule_nav_target = (int(patch[0]), int(patch[1]))
+        return True
+    # metadata fallback for HE02 emitters that stash coords without pattern rewrite
+    meta = getattr(capsule, "metadata", None)
+    if isinstance(meta, dict):
+        raw = meta.get("food_patch")
+        if isinstance(raw, (list, tuple)) and len(raw) == 2:
+            try:
+                target = (int(raw[0]), int(raw[1]))
+            except (TypeError, ValueError):
+                target = None
+            if target is not None and organism.action_registry.get(MOVE_TOWARD_CAPSULE_TARGET) is not None:
+                organism.capsule_action_bias = MOVE_TOWARD_CAPSULE_TARGET
+                organism.capsule_action_bias_capsule_id = capsule.capsule_id
+                organism.capsule_action_bias_substitutable = tuple(
+                    config.adoption_substitutable_actions
+                )
+                organism.capsule_nav_target = target
+                return True
     if action is None or organism.action_registry.get(action) is None:
         return False
     organism.capsule_action_bias = action
@@ -4212,6 +4448,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         capsule_action_bias_capsule_id=organism.capsule_action_bias_capsule_id,
         capsule_action_bias_substitutable=organism.capsule_action_bias_substitutable,
         capsule_last_executed_action=organism.capsule_last_executed_action,
+        capsule_nav_target=organism.capsule_nav_target,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)

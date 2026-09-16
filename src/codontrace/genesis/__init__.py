@@ -860,6 +860,39 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_prereg_digest,
     run_hard_experiment_01,
 )
+from codontrace.genesis.food_patch_signal import (
+    MOVE_TOWARD_CAPSULE_TARGET,
+    FoodPatchSignalConfig,
+    FoodPatchSignalRecord,
+    FoodPatchState,
+    payload_patch_mutual_information,
+)
+from codontrace.genesis.deme_selection import (
+    E2_ORDINAL_PREDICTION,
+    DemeSelectionCell,
+    DemeSelectionConfig,
+    DemeSelectionRecord,
+    e2_ordinal_respects_prediction,
+)
+from codontrace.genesis.stepping_stone_reward import (
+    SteppingStoneRewardConfig,
+    SteppingStoneRewardRecord,
+    apply_stepping_stone_rewards,
+)
+from codontrace.genesis.hard_experiment_02 import (
+    HardExperiment02Campaign,
+    HardExperiment02Intervention,
+    build_hard_experiment_02_spec,
+    evaluate_hard_experiment_02_claim,
+    evaluate_hard_experiment_02_pilot_gates,
+    format_hard_experiment_02_summary,
+    hard_experiment_02_causal_dag,
+    hard_experiment_02_interventions,
+    hard_experiment_02_prereg_digest,
+    run_hard_experiment_02,
+    write_hard_experiment_02_results,
+)
+
 from codontrace.genesis.rag import (
     RankedHit,
     ResearchCorpus,

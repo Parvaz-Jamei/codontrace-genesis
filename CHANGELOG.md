@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### HARD_EXPERIMENT_02 — E1+E2+E5 after prereg
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.
+Phase A–E pins unchanged.
+
+- Default-off knobs: `FoodPatchSignalConfig`, `DemeSelectionConfig`,
+  `SteppingStoneRewardConfig` with conditional `to_dict`, digests,
+  ConfigurationError validation, and pin+runtime tests.
+- `MOVE_TOWARD_CAPSULE_TARGET` on HE02 action registries only.
+- Campaign module `hard_experiment_02` with prereg arms, manipulation
+  checks (`assay_invalid` when not realized), pilot seeds 1000–1009,
+  research 30-seed path, ClaimGate adapter.
+- Docs: `HARD_EXPERIMENT_02.md`; CLAIMS ceiling starts at
+  `runtime_observation`.
+
+
 ### Wave 2 — simulator-agnostic ClaimGate auditor
 
 CodonTrace Genesis standalone evidence auditor. **Does not** claim

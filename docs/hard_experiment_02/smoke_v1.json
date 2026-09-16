@@ -199,8 +199,162 @@
   "protocol_digest": "99964be5d621e68092c2913b7ebd694788f7b60a03e04eff5598acb81f06474b",
   "scale": "smoke",
   "schema_version": "hard_experiment_02_v1",
-  "seed_records": [],
-  "seeds": [1000, 1001],
+  "seed_records": [
+    {
+      "activity_matched": {
+        "arm": "activity_matched",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 3,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "12af5f96889d889976a098c88193403b17b44cd1cfb81583de60f7f370ef8130",
+        "seed": 1000,
+        "spec_digest": "18ba2763d0f084f37d32e782ca8b05a2c96c5fb016c6d579d5955c87afa45612",
+        "terminal_mean_fitness": 0.83685
+      },
+      "capsules_shuffled": {
+        "arm": "capsules_shuffled",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 16,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "446026e68f20652320f1a9a5cfd3b3b6000b690869061cbb089e5231221f4914",
+        "seed": 1000,
+        "spec_digest": "feffa743cf671723541f82b43b6dae7b0f65cf930ea8e7c96ad7d51a8455f186",
+        "terminal_mean_fitness": 0.43435
+      },
+      "channel_off": {
+        "arm": "channel_off",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 0,
+        "capsule_emissions": 0,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "8d4f8b46caf431836cd6748a54924adc82c55060c6bb420f171dccc8ae471b10",
+        "seed": 1000,
+        "spec_digest": "0504cc185d34b41c95664206ccde6822ef6e8d05e82ca284a9164cf063c9f4c4",
+        "terminal_mean_fitness": 0.6156
+      },
+      "content_null": {
+        "arm": "content_null",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 3,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "0d28cd3df092673a3eaefed4b48808aa41a774c586adc3c251d0ac45abeebe34",
+        "seed": 1000,
+        "spec_digest": "7838f433c518c18e0c3803cf419c781bca65141d0b91c32f94d047eef2f23429",
+        "terminal_mean_fitness": 0.83685
+      },
+      "oracle_moderate": {
+        "arm": "oracle_moderate",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 50,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.1795582423,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "6a54ab1f3fe43e452668326e37d07373667fe2d717012def6355718e0a8efbdc",
+        "seed": 1000,
+        "spec_digest": "ce171580e452501a453c0dae78ba9fe28b95eb671356ae0f7ddf6aa2c8bea28d",
+        "terminal_mean_fitness": 0.45415
+      },
+      "seed": 1000,
+      "treatment": {
+        "arm": "treatment",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 26,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.3050725246,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "23dc12347cb90ac354433063406971de9749b78063a0f20d85bbd2e5fe0703d3",
+        "seed": 1000,
+        "spec_digest": "e2143b2b0027949b0ff6b6cae0e61a6cacb4d4f6c2422c1df28f953ef0c4cb9a",
+        "terminal_mean_fitness": 0.43435
+      }
+    },
+    {
+      "activity_matched": {
+        "arm": "activity_matched",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 3,
+        "capsule_emissions": 9,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "67d10f64a4912ae7aab78f16f39ecf95abaf44058a0a42f48aaf05a9de549d14",
+        "seed": 1001,
+        "spec_digest": "e79d170044541cec3e8d43d76acc061c07c0a94c2d75c2b1e3eb856b915b742e",
+        "terminal_mean_fitness": 0.84185
+      },
+      "capsules_shuffled": {
+        "arm": "capsules_shuffled",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 21,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "2d7453caf5adccb7a862c5bb75cd47a0ae9e3b8f0be323d8022f517b4848aad2",
+        "seed": 1001,
+        "spec_digest": "a4f5c6fba4ddc638ca9c6fb51f91675459dc2f244eba94ca58eff24d3d9609dc",
+        "terminal_mean_fitness": 0.41935
+      },
+      "channel_off": {
+        "arm": "channel_off",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 0,
+        "capsule_emissions": 0,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "bd530ffc867f4ba66d4871a7125468dc957dd1e40211c36a99c5b945ddb83a63",
+        "seed": 1001,
+        "spec_digest": "db074b3f08fe9657bb51a4cb41332ef5fbd87a463a142cd42697c94cdb321517",
+        "terminal_mean_fitness": 0.6156
+      },
+      "content_null": {
+        "arm": "content_null",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 24,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.0,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "e30a389feb003db252f464ed17612efaf6dd170ee5355c4f67237fe92f7217e4",
+        "seed": 1001,
+        "spec_digest": "90da0df3ff01a8a0d08d8a4da0c62de022d0a24d424cdae4a3ae1c5671944e88",
+        "terminal_mean_fitness": 0.85185
+      },
+      "oracle_moderate": {
+        "arm": "oracle_moderate",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 50,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.1795582423,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "2e72c65af300668ee3a3c576decaaacc2de6a074ec36d8102f45963714b9668b",
+        "seed": 1001,
+        "spec_digest": "beacf05a8944d6bc196c9fe54deb48d494dc7202c4643806a105d00528de5617",
+        "terminal_mean_fitness": 0.45415
+      },
+      "seed": 1001,
+      "treatment": {
+        "arm": "treatment",
+        "assay_failures": [],
+        "capsule_adoptions_accepted": 3,
+        "capsule_emissions": 55,
+        "payload_patch_mi": 0.8366407419,
+        "receiver_mean_terminal_runtime_atp": 44.0,
+        "result_digest": "cef535f66598ed5a8390fd2442b0bc3c5a12d6758ee913e7981d8b4c1668f56d",
+        "seed": 1001,
+        "spec_digest": "d0db16d9e98833d08dbfbe0b15a28b9eb8a03276909f565626c30734f2c15b85",
+        "terminal_mean_fitness": 0.84185
+      }
+    }
+  ],
+  "seeds": [
+    1000,
+    1001
+  ],
   "software": {
     "name": "CodonTrace Genesis",
     "version": "0.3.0b4.dev0"

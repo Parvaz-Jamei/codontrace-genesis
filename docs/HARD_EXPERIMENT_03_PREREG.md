@@ -69,4 +69,4 @@ See also short brief: `docs/hard_experiment_03/HE03_SCIENCE_BRIEF.md`.
 
 
 ## Document digest
-`sha256:PLACEHOLDER_RECOMPUTE`
+`sha256:TEMP`

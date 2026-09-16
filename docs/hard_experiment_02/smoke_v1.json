@@ -1,1 +1,209 @@
-PLACEHOLDER
+{
+  "agi": false,
+  "arm_summaries": [
+    {
+      "adoption_mean": 14.5,
+      "arm": "treatment",
+      "mean": 44.0,
+      "mi_mean": 0.5708566333,
+      "n": 2
+    },
+    {
+      "adoption_mean": 13.5,
+      "arm": "content_null",
+      "mean": 44.0,
+      "mi_mean": 0.0,
+      "n": 2
+    },
+    {
+      "adoption_mean": 3.0,
+      "arm": "activity_matched",
+      "mean": 44.0,
+      "mi_mean": 0.0,
+      "n": 2
+    },
+    {
+      "adoption_mean": 0.0,
+      "arm": "channel_off",
+      "mean": 44.0,
+      "mi_mean": 0.0,
+      "n": 2
+    },
+    {
+      "adoption_mean": 18.5,
+      "arm": "capsules_shuffled",
+      "mean": 44.0,
+      "mi_mean": 0.0,
+      "n": 2
+    },
+    {
+      "adoption_mean": 50.0,
+      "arm": "oracle_moderate",
+      "mean": 44.0,
+      "mi_mean": 0.1795582423,
+      "n": 2
+    }
+  ],
+  "assay_failed": false,
+  "assay_failures": [],
+  "claim_ceiling": "runtime_observation",
+  "collective_intelligence": false,
+  "decision_rule_failures": [
+    "no_holm_surviving_primary_contrast"
+  ],
+  "decision_rule_passed": false,
+  "digest": "61d31b7f7555b94fa9200711abf4bc1dcf9f40437c68d204b897153670f08aee",
+  "e2_ordinal_ok": null,
+  "experiment_id": "hard_experiment_02_food_patch_deme",
+  "intelligence": false,
+  "interventions": [
+    {
+      "action": "enable_e1_e2_e5",
+      "applied_value": "E1 on, GERMLINE\u00d7CLONAL, E5 on, capsules honest",
+      "arm": "treatment",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "life_loop_world default",
+      "cuts_edges": [],
+      "knob": "FoodPatchSignalConfig+DemeSelectionConfig+SteppingStoneRewardConfig",
+      "role": "treatment",
+      "target_mechanism": "food_patch_signal+deme_germline_clonal+stepping_stone"
+    },
+    {
+      "action": "null_payload_keep_channel",
+      "applied_value": "CONTENT_NULL",
+      "arm": "content_null",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "treatment",
+      "cuts_edges": [
+        "e1_food_patch_signal"
+      ],
+      "knob": "CapsuleTransferConfig.shuffle_mode",
+      "role": "negative_control",
+      "target_mechanism": "capsule_content_information"
+    },
+    {
+      "action": "null_payload_yoke_accept_count",
+      "applied_value": "yoked_accept_cap",
+      "arm": "activity_matched",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "treatment",
+      "cuts_edges": [
+        "e1_food_patch_signal"
+      ],
+      "knob": "CONTENT_NULL+max_successful_adoptions",
+      "role": "auxiliary_control",
+      "target_mechanism": "capsule_channel_activity_volume"
+    },
+    {
+      "action": "disable_capsule_transfer",
+      "applied_value": "enabled=False",
+      "arm": "channel_off",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "treatment",
+      "cuts_edges": [
+        "e1_food_patch_signal"
+      ],
+      "knob": "CapsuleTransferConfig.enabled",
+      "role": "channel_off",
+      "target_mechanism": "capsule_transfer_channel"
+    },
+    {
+      "action": "shuffle_content",
+      "applied_value": "CONTENT",
+      "arm": "capsules_shuffled",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "treatment",
+      "cuts_edges": [
+        "e1_food_patch_signal"
+      ],
+      "knob": "CapsuleTransferConfig.shuffle_mode",
+      "role": "negative_control",
+      "target_mechanism": "payload_source_association"
+    },
+    {
+      "action": "oracle_payload_fraction",
+      "applied_value": "f=0.5",
+      "arm": "oracle_moderate",
+      "claim_ceiling": "runtime_observation",
+      "collective_intelligence": false,
+      "compared_to": "channel_off",
+      "cuts_edges": [],
+      "knob": "useful_fraction=0.5",
+      "role": "positive_control",
+      "target_mechanism": "useful_payload_fraction"
+    }
+  ],
+  "limitations": [
+    "hard_experiment_02_starts_at_runtime_observation",
+    "e2_ordinal_pattern_is_descriptive_not_a_single_dz",
+    "research_campaign_required_for_confirmatory_claim"
+  ],
+  "paired_contrasts": [
+    {
+      "baseline_arm": "content_null",
+      "dz": null,
+      "n_pairs": 2,
+      "p_holm": null,
+      "p_raw": null,
+      "treatment_arm": "treatment"
+    },
+    {
+      "baseline_arm": "channel_off",
+      "dz": null,
+      "n_pairs": 2,
+      "p_holm": null,
+      "p_raw": null,
+      "treatment_arm": "treatment"
+    },
+    {
+      "baseline_arm": "capsules_shuffled",
+      "dz": null,
+      "n_pairs": 2,
+      "p_holm": null,
+      "p_raw": null,
+      "treatment_arm": "treatment"
+    }
+  ],
+  "pilot_gates": {
+    "claim_ceiling": "runtime_observation",
+    "cleared_for_research": false,
+    "gates": {
+      "assay": {
+        "assay_failed": false,
+        "pass": true
+      },
+      "oracle_gt_channel_off": {
+        "pass": false
+      },
+      "payload_mi_manipulation": {
+        "pass": true,
+        "shuffled_mi_mean": 0.0,
+        "treatment_mi_mean": 0.5708566333
+      },
+      "schema": {
+        "pass": true
+      }
+    },
+    "overall_pass": false,
+    "schema_version": "hard_experiment_02_v1"
+  },
+  "population": 8,
+  "prereg_digest": "cb7d42c81c606f8386561ce3371103d661dc7ea395dd2bf6976adffd6e4ec0fc",
+  "primary_outcome": "receiver_mean_terminal_runtime_atp",
+  "product_name": "CodonTrace Genesis",
+  "protocol_digest": "99964be5d621e68092c2913b7ebd694788f7b60a03e04eff5598acb81f06474b",
+  "scale": "smoke",
+  "schema_version": "hard_experiment_02_v1",
+  "seed_records": [],
+  "seeds": [1000, 1001],
+  "software": {
+    "name": "CodonTrace Genesis",
+    "version": "0.3.0b4.dev0"
+  },
+  "tick_count": 8
+}

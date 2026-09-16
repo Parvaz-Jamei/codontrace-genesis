@@ -1,5 +1,7 @@
 # HARD_EXPERIMENT_03_PREREG (draft lock 2026-09-17)
 
+Product: **CodonTrace Genesis**.
+
 Date: 2026-09-17. Repo: Parvaz-Jamei/codontrace-genesis @ main.
 Status: **PREREG BEFORE CODE** — do not implement `TaskSwitchCostConfig` / IsolationAssay / `gorelick_nmi` engine paths, and do not run a research campaign, until this file is hashed and committed.
 
@@ -48,7 +50,7 @@ Re-run evolved specialists alone in a single-individual environment; report perf
 - Manipulation checks must pass (switch events incur cost when enabled; matrices non-degenerate; cost_0 ≠ cost_high intermediate records).
 - IsolationAssay reported always; used as supporting pattern, not a solo claim escalator.
 - ClaimGate ceiling at most `intervention_supported` if all CLAIMS.md §5 flags met — **never invent labels**; default ceiling `runtime_observation`.
-- Forbidden: `collective_intelligence*`, intelligence / AGI aliases, Phase letter bump, pin A–E changes, ClaimGate loosening.
+- Never claim intelligence, collective intelligence, or AGI. No Phase letter bump, pin A–E changes, or ClaimGate loosening.
 
 ## Knob template (for later code PR — not this PR)
 Every new config: frozen dataclass `slots=True`, `enabled=False`, `ConfigurationError` in `__post_init__`, `to_dict` non-defaults only, `canonical_digest`, one DAG edge, pin+runtime tests. **This PR adds zero `src/` code.**
@@ -67,4 +69,4 @@ See also short brief: `docs/hard_experiment_03/HE03_SCIENCE_BRIEF.md`.
 
 
 ## Document digest
-`sha256:30cc3e914269e41707da5dd829d2dbe6e9e86fc30387dcb929b069fb0737c81f`
+`sha256:eef3469fb7449eccc23ce6bdc4cabdddcf20d3fbd1c49d2c66c23be4000457ae`

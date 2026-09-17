@@ -14,6 +14,9 @@ Product: **CodonTrace Genesis** (`0.3.0b4`).
   `paired_effect_size` was called with two arm vectors. Corrected analysis:
   [`hard_experiment_02/ANALYSIS_CORRECTION_v1b.md`](hard_experiment_02/ANALYSIS_CORRECTION_v1b.md).
   Ceiling stays `runtime_observation` (shuffled control not separated).
+- Live entry point: `codontrace.genesis.he02_contrasts.run_hard_experiment_02_v1b`
+  (rescores swallowed `dz`). Do not read `dz` from `results_v1.json`.
+  Frozen-row CLI: `python -m codontrace.genesis.he02_contrasts`
 - Phase A–E `life_loop_world(seed=7, tick_count=12, population=6)` pins unchanged
 
 ## Arms

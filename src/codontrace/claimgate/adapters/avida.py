@@ -7,7 +7,10 @@ Format notes (avidaR / PrintData wiki, coordinator search 2026-09-12):
 - Each run directory is treated as one seed.
 - Arm mapping is user-supplied.
 
-This is a skeleton. It does **not** claim full Avida support.
+This is a skeleton. It does **not** claim full Avida support,
+literature compatibility, or audited published `.dat` campaign parity.
+Do not cite this adapter as evidence until a real published `.dat`
+run is ingested and reviewed.
 """
 
 from __future__ import annotations

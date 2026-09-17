@@ -13,10 +13,13 @@ is frozen in an earlier commit. Campaign payloads record `prereg_digest`.
 
 **Claim ceiling:** `runtime_observation` unless the treatment assay passes,
 the preregistered decision rule holds, **and** ClaimGate allows existing
-`intervention_supported`. Smoke (`n=12`) is `exploratory_only` and stays
-`runtime_observation`. If the treatment arm has mean adoptions ≈ 0 or mean
-extinction ≈ 1, `assay_failed` is recorded and the ceiling stays
-`runtime_observation` even when paired CIs are numerically defined.
+`intervention_supported` (SCHEMA v7 research artifact may earn that ceiling;
+LOCK text alone never auto-grants). Smoke (`n=12`) is `exploratory_only` and
+stays `runtime_observation`. If the treatment arm has mean adoptions ≈ 0 or
+mean extinction ≈ 1, or treatment seed variance is zero, `assay_failed` is
+recorded and the ceiling stays `runtime_observation` even when paired CIs are
+numerically defined. Confirmatory negative control is `capsules_content_null`
+(shuffled is sensitivity-only).
 
 **Blocked:** `intelligence`, `collective_intelligence`, `agi`,
 `tokyo_type1_passed`, `avida_replacement`, and related ClaimGate aliases.
@@ -473,6 +476,47 @@ Boot–yoked limitation under Amd 05). Pilot trail:
 | `capsules_activity_matched` | 30 | 28.000 | 0.000 | 542.53 |
 | `capsules_shuffled` | 30 | 42.314 | 8.715 | 542.53 |
 | `oracle_capsule` | 30 | 78.397 | 0.252 | 542.53 |
+
+
+### Results (research v7) — SCHEMA v7 / LOCK
+
+Single lock digest: [`HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md`](HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md)
+(`prereg_amendment_lock_digest`
+`818b4efe364d5248fc0f1bd52e28e0e860579f4934a6e047e69730171e39159c`).
+Artifact: [`hard_experiment_01/results_v7.json`](hard_experiment_01/results_v7.json)
+(SCHEMA `hard_experiment_01_v7`). Campaign digest
+`28f812c5aa1e84bad5b8ab61162c29d2d8db80f6e3ccb8e3bbb2861c95f390b9`.
+Scale: 30 seeds (`11`…`40`), 40 ticks, population 16. Primary outcome:
+`receiver_mean_terminal_runtime_atp`. Food layout:
+`every_cell_seed_amounts_v7` (coverage 1.0; per-cell amounts × `{0.75,1.0,1.25}`
+from seed RNG). Role layout: seed Fisher–Yates (unchanged). Replay matched:
+**True**. `assay_failed`: **False**. Decision rule: **PASS**. Sensitivity:
+`shuffled_better_than_capsules_off` (expected peer-rotation; non-blocking).
+**Confirmatory null:** `capsules_content_null` mean = `capsules_off` mean = 28
+(null − off = 0; lower 95% BCa ≤ 0). ClaimGate ceiling:
+**`intervention_supported`** (earned by full decision rule + gate flags; LOCK
+alone does not auto-grant). Pilot trail: `hard_experiment_01/pilot_v7.json`
+(seeds 1000–1009 cleared: assay PASS, content_null PASS, treatment sd > 0).
+
+| Arm | n | mean | sd | adoption attempts |
+|---|---:|---:|---:|---:|
+| `source_bias_on` | 30 | 58.669 | 13.254 | (see JSON) |
+| `source_bias_off` | 30 | 42.180 | 15.205 | (see JSON) |
+| `capsules_off` | 30 | 28.000 | 0.000 | 0.0 |
+| `capsules_content_null` | 30 | 28.000 | 0.000 | (channel active; WAIT token) |
+| `capsules_shuffled` | 30 | 41.518 | 8.219 | (sensitivity) |
+| `oracle_capsule` | 30 | 78.376 | 0.284 | (positive control) |
+
+Primary contrasts (Holm): on vs off mean Δ ≈ 16.49, dz ≈ 2.37, CI95 excludes 0;
+on vs content_null mean Δ ≈ 30.67, dz ≈ 2.31, CI95 excludes 0.
+
+**Reading (honest).** Seed-contingent food amounts + role permute give
+treatment across-seed sd > 0 (not 30 bitwise replays). Confirmatory
+`capsules_content_null` severs informational usefulness (equals channel-off;
+does not “win”). Legacy shuffled still beats off by construction — sensitivity
+only. Ceiling at most `intervention_supported`; not collective intelligence /
+AGI / Avida replacement. `capsules_off` / content_null sd = 0 remains the
+structural WAIT basal plateau (Amd 03 honesty), not a silent assay fail.
 
 ## Wave 1d″ — evidence honesty (no new claim)
 

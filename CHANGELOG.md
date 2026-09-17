@@ -2,10 +2,36 @@
 
 ## Unreleased
 
-### Discovery-wire + ESP32 Moj-ه thin bridge
+### HARD_EXPERIMENT_01 SCHEMA v7 — seed-contingent food amounts + lock digest
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. Estimand unchanged. ClaimGate not
+loosened by the lock text alone. Phase A–E pins unchanged (HE01 overlay only).
+
+- Single prereg lock: `docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md` (no
+  sixth soft numbered amendment pile-on).
+- Every-cell food coverage retained (Amd 03 lesson); initial resource amounts
+  drawn per seed from discrete multipliers `{0.75, 1.0, 1.25}` × base
+  (`hard_experiment_01/food_amounts`) so analysis seeds are distinct environment
+  realizations (Avida spatial-heterogeneity / Taylor-style seed contingency).
+- Confirmatory negative control remains `capsules_content_null`; legacy
+  `capsules_shuffled` sensitivity-only (peer-rotation may beat off).
+- Assay gate: `assay_failed_treatment_seed_variance_zero` if treatment outcomes
+  are seed-invariant.
+- Artifacts: `docs/hard_experiment_01/pilot_v7.json`,
+  `docs/hard_experiment_01/results_v7.json`. Ceiling at most
+  `intervention_supported` when the full rule + healthy control hold; else
+  honest `assay_invalid` / zero / `runtime_observation`.
+- ESP32 Moj-ه demoted in CLAIMS/CHANGELOG/README to **engineering stub only**
+  (`SimEsp32Bridge`), not a scientific research surface.
+- Avida/MABE ClaimGate adapters remain **skeletons** until audited published
+  `.dat` / DataFile CSV campaigns exist (no literature-compatibility overclaim).
+- HE02/HE03 research results remain deferred (docs only).
+
+### Discovery-wire + ESP32 Moj-ه thin bridge (engineering stub — not research surface)
 
 CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.
 Phase A–E pins unchanged when `discovery_wire` is default-off.
+ESP32 is an **engineering stub** (`SimEsp32Bridge`); not a scientific research surface.
 **Zero claim that physical robots ran.**
 
 - Optional `DiscoveryWireConfig` on `QDSearchConfig` (default OFF): every N

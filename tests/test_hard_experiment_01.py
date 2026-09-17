@@ -54,7 +54,10 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_prereg_amendment_04_digest,
     hard_experiment_01_prereg_amendment_05_digest,
     hard_experiment_01_prereg_amendment_digest,
+    hard_experiment_01_prereg_amendment_lock_digest,
     ACTIVITY_MATCH_PILOT_GATE,
+    FOOD_AMOUNT_MULTIPLIERS,
+    calibration_food_amount_layout,
     evaluate_hard_experiment_01_wave1e_pilot_gates,
     hard_experiment_01_prereg_digest,
     hard_experiment_01_protocol_digest,
@@ -490,7 +493,7 @@ def test_calibration_smoke_treatment_arm_has_adoptions() -> None:
     diagnostic = diagnose_hard_experiment_01_run(
         seed=11, arm="source_bias_on", tick_count=8, population=8
     )
-    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1e"
+    assert spec.metadata["hard_experiment_01_calibration"]["wave"] == "1e_lock_v7"
     assert hard_experiment_01_calibration_knobs()["life_loop_defaults_unchanged"] is True
     assert adoptions > 0
     assert diagnostic.total_adoptions > 0
@@ -750,25 +753,26 @@ def test_wave_1d_prime_amendment_03_and_schema_v5() -> None:
     assert hard_experiment_01_prereg_digest() == __import__("hashlib").sha256(
         (root / "docs" / "HARD_EXPERIMENT_01_PREREG.md").read_bytes()
     ).hexdigest()
-    # SCHEMA advanced to v6 under Amd 04; Amd 01–03 digests stay frozen.
-    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    # SCHEMA advanced to v7 under LOCK; Amd 01–05 digests stay frozen.
+    assert SCHEMA_VERSION == "hard_experiment_01_v7"
     protocol = hard_experiment_01_protocol_digest()
     assert len(protocol) == 64
     knobs = hard_experiment_01_calibration_knobs()
-    assert knobs["wave"] == "1e"
+    assert knobs["wave"] == "1e_lock_v7"
     assert knobs["role_layout"] == "seed_permuted_v3_multiset"
-    assert knobs["food_layout"] == "every_cell"
+    assert knobs["food_layout"] == "every_cell_seed_amounts_v7"
     assert knobs["food_coverage"] == 1.0
     assert knobs["respawn_draws_per_tick"] == "max(1, population_size)"
     campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
     payload = campaign.to_dict()
-    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["schema_version"] == "hard_experiment_01_v7"
     assert payload["prereg_amendment_03_digest"] == expected03
     assert payload["prereg_amendment_02_digest"] == expected02
     assert payload["prereg_amendment_digest"] == hard_experiment_01_prereg_amendment_digest()
     assert payload["prereg_amendment_04_digest"] == hard_experiment_01_prereg_amendment_04_digest()
+    assert payload["prereg_amendment_lock_digest"] == hard_experiment_01_prereg_amendment_lock_digest()
     assert payload["role_layout"] == "seed_permuted_v3_multiset"
-    assert payload["food_layout"] == "every_cell"
+    assert payload["food_layout"] == "every_cell_seed_amounts_v7"
     assert payload["respawn_draws_per_tick"] == "max(1, population_size)"
     assert campaign.protocol_digest == hard_experiment_01_protocol_digest()
 
@@ -799,9 +803,10 @@ def test_wave_1d_seed_permuted_roles_preserve_multiset() -> None:
 
 
 def test_wave_1d_prime_every_cell_food_and_population_respawn_draws() -> None:
-    """SCHEMA v5: every-cell food (Amd 01/v3); respawn draws = population.
+    """SCHEMA v7: every-cell coverage + seed-contingent amounts; respawn draws = pop.
 
     v4 Amd 02 sparse [0.5, 0.8] + pop//4 remains historical failed calibration.
+    Cell *set* is seed-invariant (coverage 1.0); *amounts* differ by seed (LOCK).
     """
 
     spec_a = build_hard_experiment_01_spec(seed=1000, arm="source_bias_on", tick_count=8, population=8)
@@ -810,6 +815,9 @@ def test_wave_1d_prime_every_cell_food_and_population_respawn_draws() -> None:
     cells_a = [tuple(item) for item in spec_a.metadata["food_cells"]]
     cells_b = [tuple(item) for item in spec_b.metadata["food_cells"]]
     cells_a2 = [tuple(item) for item in spec_a2.metadata["food_cells"]]
+    amounts_a = list(spec_a.metadata["food_amounts"])
+    amounts_b = list(spec_b.metadata["food_amounts"])
+    amounts_a2 = list(spec_a2.metadata["food_amounts"])
     n = int(spec_a.world_width) * int(spec_a.world_height)
     coverage_a = float(spec_a.metadata["food_coverage"])
     coverage_b = float(spec_b.metadata["food_coverage"])
@@ -821,8 +829,13 @@ def test_wave_1d_prime_every_cell_food_and_population_respawn_draws() -> None:
     assert abs(coverage_b - len(cells_b) / n) < 1e-12
     assert spec_a.metadata["initial_food_patches"] == len(cells_a)
     assert cells_a == cells_a2
-    # Placement ignores seed: identical across seeds under every-cell layout.
+    # Cell positions identical across seeds (every-cell coverage).
     assert cells_a == cells_b
+    # Amounts are seed-contingent and replay-stable (LOCK).
+    assert amounts_a == amounts_a2
+    assert amounts_a != amounts_b
+    assert set(amounts_a).issubset({2.0 * m for m in FOOD_AMOUNT_MULTIPLIERS})
+    assert spec_a.metadata["food_layout"] == "every_cell_seed_amounts_v7"
     policy = spec_a.population_configs.runtime_resource_policy
     assert policy.respawn_draws_per_tick == max(1, 8)  # smoke 8→8
     assert policy.respawn_draws_per_tick == 8
@@ -934,7 +947,7 @@ def test_single_capsule_window_shuffle_is_identity_for_content() -> None:
     assert shuffled[0].predicted_outcome == alone.predicted_outcome
 
 def test_wave_1e_amendment_04_and_schema_v6() -> None:
-    """Amendment 04 is hashed; SCHEMA is v6; Amd 01–03 digests stay frozen."""
+    """Amendment 04 is hashed; SCHEMA is now v7 (LOCK); Amd 01–03 digests stay frozen."""
 
     root = Path(__file__).resolve().parents[1]
     amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
@@ -942,15 +955,15 @@ def test_wave_1e_amendment_04_and_schema_v6() -> None:
     expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
     assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
     assert hard_experiment_01_prereg_amendment_04_digest() == expected04
-    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert SCHEMA_VERSION == "hard_experiment_01_v7"
     assert CONTENT_NULL_PAYLOAD_ACTION == "WAIT"
     knobs = hard_experiment_01_calibration_knobs()
-    assert knobs["wave"] == "1e"
+    assert knobs["wave"] == "1e_lock_v7"
     assert knobs["content_null_payload_action"] == "WAIT"
     assert knobs["activity_match_epsilon"] == 1
     campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
     payload = campaign.to_dict()
-    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["schema_version"] == "hard_experiment_01_v7"
     assert payload["prereg_amendment_04_digest"] == expected04
     assert payload["prereg_amendment_03_digest"] == hard_experiment_01_prereg_amendment_03_digest()
     assert "capsules_content_null" in payload["analysis_arms"]
@@ -966,7 +979,7 @@ def test_wave_1e_amendment_04_and_schema_v6() -> None:
 
 
 def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
-    """Amendment 05 is hashed; SCHEMA stays v6; prior digests frozen; activity gate demoted."""
+    """Amendment 05 is hashed; SCHEMA now v7 via LOCK; prior digests frozen; activity gate demoted."""
 
     root = Path(__file__).resolve().parents[1]
     amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
@@ -986,13 +999,14 @@ def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
     assert hard_experiment_01_prereg_amendment_03_digest() == (
         "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
     )
-    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert SCHEMA_VERSION == "hard_experiment_01_v7"
     assert ACTIVITY_MATCH_PILOT_GATE is False
     campaign = run_hard_experiment_01(seed_count=2, include_dose=False)
     payload = campaign.to_dict()
-    assert payload["schema_version"] == "hard_experiment_01_v6"
+    assert payload["schema_version"] == "hard_experiment_01_v7"
     assert payload["prereg_amendment_04_digest"] == expected04
     assert payload["prereg_amendment_05_digest"] == expected05
+    assert payload["prereg_amendment_lock_digest"] == hard_experiment_01_prereg_amendment_lock_digest()
     assert payload["prereg_amendment_03_digest"] == (
         "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
     )
@@ -1013,6 +1027,7 @@ def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
         gates["gates"]["assay"]["pass"]
         and gates["gates"]["content_null"]["pass"]
         and gates["gates"]["schema_amd_digests"]["pass"]
+        and gates["gates"]["treatment_seed_variance"]["pass"]
     )
 
 
@@ -1252,6 +1267,7 @@ def test_method9_amendment_reference_paths_exist() -> None:
                 "results_v3.json",
                 "results_v5.json",
                 "results_v6.json",
+                "results_v7.json",
                 "CLAIMS.md",
                 "STYLE.md",
                 "CONTRIBUTING.md",
@@ -1292,3 +1308,70 @@ def test_p5_calibration_food_cells_has_no_seed_parameter() -> None:
     assert "seed" not in params
     cells = _calibration_food_cells(4, 2)
     assert len(cells) == 8
+
+
+def test_schema_v7_lock_digest_and_seed_food_amounts() -> None:
+    """LOCK file hashed; food amounts seed-contingent; confirmatory null intact."""
+
+    root = Path(__file__).resolve().parents[1]
+    lock = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md"
+    assert lock.is_file()
+    expected = __import__("hashlib").sha256(lock.read_bytes()).hexdigest()
+    assert hard_experiment_01_prereg_amendment_lock_digest() == expected
+    assert SCHEMA_VERSION == "hard_experiment_01_v7"
+    assert FOOD_AMOUNT_MULTIPLIERS == (0.75, 1.0, 1.25)
+    layout_a = calibration_food_amount_layout(1000, 8, 4)
+    layout_b = calibration_food_amount_layout(1001, 8, 4)
+    layout_a2 = calibration_food_amount_layout(1000, 8, 4)
+    assert layout_a == layout_a2
+    assert [c for c, _ in layout_a] == [c for c, _ in layout_b]
+    assert [a for _, a in layout_a] != [a for _, a in layout_b]
+    campaign = run_hard_experiment_01(seeds=(1000, 1001, 1002), include_dose=False)
+    payload = campaign.to_dict()
+    assert payload["schema_version"] == "hard_experiment_01_v7"
+    assert payload["prereg_amendment_lock_digest"] == expected
+    assert payload["food_layout"] == "every_cell_seed_amounts_v7"
+    by_arm = {item.arm: item for item in campaign.arm_summaries}
+    assert by_arm["source_bias_on"].sd is not None and by_arm["source_bias_on"].sd > 0.0
+    # Confirmatory null must not look like "shuffled wins" vs off on mean when n small;
+    # content_null mean should track capsules_off basal path.
+    assert by_arm["capsules_content_null"].mean == by_arm["capsules_off"].mean
+    gates = evaluate_hard_experiment_01_wave1e_pilot_gates(campaign)
+    assert gates["gates"]["schema_amd_digests"]["pass"] is True
+    assert gates["gates"]["treatment_seed_variance"]["pass"] is True
+    assert gates["gates"]["content_null"]["pass"] is True
+
+
+def test_negative_control_integrity_content_null_confirmatory() -> None:
+    """content_null is confirmatory; shuffled is sensitivity-only."""
+
+    by_arm = {item.arm: item for item in hard_experiment_01_interventions()}
+    assert by_arm["capsules_content_null"].role == "negative_control"
+    assert by_arm["capsules_shuffled"].role == "sensitivity_negative_control"
+    assert "capsules_content_null" in ANALYSIS_ARMS
+    assert "capsules_shuffled" in SENSITIVITY_ARMS
+    assert "capsules_shuffled" not in ANALYSIS_ARMS
+
+
+def test_committed_research_v7_is_a_valid_assay() -> None:
+    """SCHEMA v7 / LOCK research artifact; ceiling only if earned."""
+
+    root = Path(__file__).resolve().parents[1]
+    path = root / "docs" / "hard_experiment_01" / "results_v7.json"
+    assert path.is_file()
+    payload = __import__("json").loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "hard_experiment_01_v7"
+    assert payload["scale"] == "research"
+    assert payload["seeds"] == list(range(11, 41))
+    assert payload["prereg_digest"] == hard_experiment_01_prereg_digest()
+    assert payload["prereg_amendment_lock_digest"] == hard_experiment_01_prereg_amendment_lock_digest()
+    assert payload["food_layout"] == "every_cell_seed_amounts_v7"
+    assert payload["assay_failed"] is False
+    assert payload["replay_matched"] is True
+    assert payload["decision_rule_passed"] is True
+    assert payload["claim_ceiling"] == INTERVENTION_CLAIM
+    assert payload["claim_gate_allowed"] is True
+    by_arm = {item["arm"]: item for item in payload["arm_summaries"]}
+    assert by_arm["source_bias_on"]["sd"] > 0.0
+    assert by_arm["capsules_content_null"]["mean"] == by_arm["capsules_off"]["mean"]
+    assert by_arm["oracle_capsule"]["mean"] > by_arm["capsules_off"]["mean"]

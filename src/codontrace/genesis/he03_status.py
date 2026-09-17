@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -45,9 +44,5 @@ def he03_phase2_status() -> dict[str, Any]:
     }
 
 
-def main() -> None:
-    print(json.dumps(he03_phase2_status(), indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()
+def main() -> dict[str, Any]:
+    return he03_phase2_status()

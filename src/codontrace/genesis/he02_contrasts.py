@@ -180,10 +180,5 @@ def run_hard_experiment_02_v1b(*args: Any, **kwargs: Any) -> Any:
     return rescore_he02_campaign(run_hard_experiment_02(*args, **kwargs))
 
 
-def main() -> None:
-    report = analyze_committed_research()
-    print(json.dumps(report, indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()
+def main() -> dict[str, Any]:
+    return analyze_committed_research()

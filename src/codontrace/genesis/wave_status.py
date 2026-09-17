@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -27,13 +26,9 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "create tag v0.3.0b4.dev0-he02-v1b on 59b1dc5 or later; do not publish PyPI",
+        "next": "create tag v0.3.0b4.dev0-he02-v1b; do not publish PyPI",
     }
 
 
-def main() -> None:
-    print(json.dumps(wave_status(), indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()
+def main() -> dict[str, Any]:
+    return wave_status()

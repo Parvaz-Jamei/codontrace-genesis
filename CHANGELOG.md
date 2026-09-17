@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
+## [0.3.0b4] — 2026-09-17
+
+PyPI research-beta cut. Tag `v0.3.0b4`. Includes HE01 SCHEMA v7 (PR #35),
+discovery ClaimGate waves A–D, ESP32 engineering stub, and prior H–L work.
+Install: `pip install codontrace==0.3.0b4`.
 
 ### HARD_EXPERIMENT_01 SCHEMA v7 — seed-contingent food amounts + lock digest
 
-CodonTrace Genesis. Identity `0.3.0b4.dev0`. Estimand unchanged. ClaimGate not
+CodonTrace Genesis. Identity `0.3.0b4`. Estimand unchanged. ClaimGate not
 loosened by the lock text alone. Phase A–E pins unchanged (HE01 overlay only).
 
 - Single prereg lock: `docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md` (no

@@ -1,12 +1,12 @@
 # CodonTrace Genesis Claim Policy
 
-Version target: `0.3.0b3`
+Version target: `0.3.0b4`
 Release DOI: `10.5281/zenodo.20337435`
 License: `AGPL-3.0-or-later`
 Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-Package: `codontrace==0.3.0b3`
-Development identity on `main`: `0.3.0b4.dev0` (unreleased; Phases H–L + HARD_EXPERIMENT_01). Published PyPI tip: `0.3.0b3` (A–G).
+Package: `codontrace==0.3.0b4`
+Release identity on `main`: `0.3.0b4` (Phases H–L + HARD_EXPERIMENT_01 SCHEMA v7 + discovery ClaimGate pipeline). Prior PyPI tip: `0.3.0b3` (A–G).
 
 This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release. Always name the project **CodonTrace Genesis** (the PyPI package remains `codontrace`).
 

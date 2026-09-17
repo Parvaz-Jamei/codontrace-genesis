@@ -50,7 +50,7 @@ def contrasts_from_seed_dicts(
             continue
         try:
             dz_val = paired_effect_size(deltas) if len(deltas) >= 2 else None
-        except ConfigurationError:
+        except (ConfigurationError, TypeError):
             dz_val = None
         p_raw = exact_sign_flip_permutation_p(deltas, seed=INFERENTIAL_SEED)
         raw.append(
@@ -73,7 +73,11 @@ def contrasts_from_seed_dicts(
 
 
 def decision_from_contrasts(contrasts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    """Confirmatory rule for HE02. Does not raise ClaimGate."""
+    """Confirmatory rule for HE02.
+
+    Passing the statistical rule does **not** raise ClaimGate. This helper
+    never returns ``intervention_supported=True``.
+    """
 
     failures: list[str] = []
     surviving = [
@@ -99,16 +103,27 @@ def decision_from_contrasts(contrasts: Sequence[Mapping[str, Any]]) -> dict[str,
     if not surviving:
         failures.append("no_holm_surviving_primary_contrast")
     return {
-        "decision_rule_passed": False,
+        "decision_rule_passed": not failures,
         "decision_rule_failures": failures,
         "claim_ceiling": CLAIM_CEILING,
         "intervention_supported": False,
     }
 
 
+def _committed_results_path() -> Path:
+    here = Path(__file__).resolve()
+    candidates = []
+    if len(here.parents) >= 4:
+        candidates.append(here.parents[3] / "docs/hard_experiment_02/results_v1.json")
+    candidates.append(Path.cwd() / "docs/hard_experiment_02/results_v1.json")
+    for path in candidates:
+        if path.is_file():
+            return path
+    raise ConfigurationError("committed HE02 results_v1.json not found")
+
+
 def analyze_committed_research(path: Path | None = None) -> dict[str, Any]:
-    root = Path(__file__).resolve().parents[3]
-    source = path or (root / "docs/hard_experiment_02/results_v1.json")
+    source = path or _committed_results_path()
     raw = json.loads(source.read_text(encoding="utf-8"))
     contrasts = contrasts_from_seed_dicts(raw["seed_records"], assay_failed=False)
     decision = decision_from_contrasts(contrasts)

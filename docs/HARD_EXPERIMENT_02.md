@@ -1,6 +1,6 @@
 # HARD_EXPERIMENT_02 — food-patch signalling under deme/kin selection
 
-Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
+Product: **CodonTrace Genesis** (`0.3.0b4`).
 
 ## Status
 
@@ -10,8 +10,10 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 - Action `MOVE_TOWARD_CAPSULE_TARGET` is registered only on HE02 specs (not in the default action registry)
 - ClaimGate ceiling starts at **`runtime_observation`**
 - **Research `results_v1`: landed** under `docs/hard_experiment_02/results_v1.json`
-  (honest null on Holm; ceiling stays `runtime_observation`, not
-  `intervention_supported`)
+  (seed rows frozen). Original contrast block stored `dz=None` because
+  `paired_effect_size` was called with two arm vectors. Corrected analysis:
+  [`hard_experiment_02/ANALYSIS_CORRECTION_v1b.md`](hard_experiment_02/ANALYSIS_CORRECTION_v1b.md).
+  Ceiling stays `runtime_observation` (shuffled control not separated).
 - Phase A–E `life_loop_world(seed=7, tick_count=12, population=6)` pins unchanged
 
 ## Arms
@@ -37,8 +39,9 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 
 ## Artifacts
 
-- Pilot: [`hard_experiment_02/pilot_v1.json`](hard_experiment_02/pilot_v1.json) (when run)
-- Research: **landed** — `hard_experiment_02/results_v1.json` (Holm null; no confirmatory upgrade)
+- Pilot: [`hard_experiment_02/pilot_v1.json`](hard_experiment_02/pilot_v1.json)
+- Research: [`hard_experiment_02/results_v1.json`](hard_experiment_02/results_v1.json)
+- Analysis v1b: [`hard_experiment_02/analysis_v1b_contrasts.json`](hard_experiment_02/analysis_v1b_contrasts.json) (same seeds; not a new run)
 
 ## ClaimGate
 

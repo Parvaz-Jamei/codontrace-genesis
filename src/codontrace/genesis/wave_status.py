@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from codontrace._version import package_version
 from codontrace.genesis.he03_status import he03_phase2_status
 
 
@@ -15,7 +16,7 @@ def wave_status() -> dict[str, Any]:
     he03 = he03_phase2_status()
     return {
         "product": "CodonTrace Genesis",
-        "package_identity": "0.3.0b4.dev1",
+        "package_identity": package_version(),
         "pypi_cut": True,
         "proposed_tag": "v0.3.0b4.dev0-he02-v1b",
         "tag_created_in_this_wave": False,

@@ -24,34 +24,48 @@ Phase A life-loop literature items (basal metabolism, starvation reason, limited
 
 ## Wave 0 lint-type (CI `continue-on-error`)
 
-Job `lint-type` (Ubuntu / Python 3.12) runs `ruff check src tests` and
-`mypy --strict src`. It is **not blocking** until these inventories are
-cleared. Recorded 2026-09-11 on `0.3.0b4.dev0` after PR #19.
+Job `lint-type` is **not blocking**. Recorded inventory below is the 2026-09-11 snapshot
+on `0.3.0b4.dev0` after PR #19. That snapshot is **not** a claim that those
+findings were later deleted from the tree.
 
-### Ruff (`ruff check src tests`) — 1273 errors
+### Policy as of 2026-09-17 (`0.3.0b5` line)
 
-| Code | Count | Rule |
-|---|---:|---|
-| E501 | 955 | line-too-long |
-| I001 | 87 | unsorted-imports |
-| F811 | 48 | redefined-while-unused |
-| UP042 | 37 | replace-str-enum |
-| F401 | 33 | unused-import |
-| B017 | 27 | assert-raises-exception |
-| E402 | 21 | module-import-not-at-top-of-file |
-| UP037 | 12 | quoted-annotation |
-| B009 | 11 | get-attr-with-constant |
-| E701 | 6 | multiple-statements-on-one-line-colon |
-| F841 | 6 | unused-variable |
-| B023 | 5 | function-uses-loop-variable |
-| E702 | 5 | multiple-statements-on-one-line-semicolon |
-| SIM102 | 4 | collapsible-if |
-| SIM114 | 3 | if-with-same-arms |
-| other | 13 | UP017, SIM113, SIM401, SIM108, SIM210, F402, SIM118, SIM103, SIM105, F821, UP012, SIM300, B905 (1 each) |
+`[tool.ruff.lint] ignore = ["E501"]` only. Line-length is deferred. The other
+codes from the snapshot are **visible** again; they are not ignored as a block.
+No dedicated `ruff check --fix` pass has landed, so I001 / F401 / UP042 / F811
+and the rest of the non-E501 set are still open. `mypy --strict src` is unchanged.
 
-About 160 are auto-fixable with `ruff check --fix`.
+Cleared in this wave: none of the 1273 snapshot rows by code edit.
+Changed: display policy (E501 hidden; remainder no longer hidden).
 
-### Mypy (`mypy --strict src`) — 263 errors in 37 files
+### Ruff snapshot 2026-09-11 — 1273 findings (`ruff check src tests`, no ignores)
+
+| Code | Count | Rule | Status 2026-09-17 |
+|---|---:|---|---|
+| E501 | 955 | line-too-long | ignored in `pyproject.toml`; not wrapped |
+| I001 | 87 | unsorted-imports | open |
+| F811 | 48 | redefined-while-unused | open |
+| UP042 | 37 | replace-str-enum | open |
+| F401 | 33 | unused-import | open |
+| B017 | 27 | assert-raises-exception | open |
+| E402 | 21 | module-import-not-at-top-of-file | open |
+| UP037 | 12 | quoted-annotation | open |
+| B009 | 11 | get-attr-with-constant | open |
+| E701 | 6 | multiple-statements-on-one-line-colon | open |
+| F841 | 6 | unused-variable | open |
+| B023 | 5 | function-uses-loop-variable | open |
+| E702 | 5 | multiple-statements-on-one-line-semicolon | open |
+| SIM102 | 4 | collapsible-if | open |
+| SIM114 | 3 | if-with-same-arms | open |
+| other | 13 | UP017, SIM113, SIM401, SIM108, SIM210, F402, SIM118, SIM103, SIM105, F821, UP012, SIM300, B905 (1 each) | open |
+
+About 189 are auto-fixable with `ruff check --fix` (not run on this line).
+After E501 ignore, expected remaining visible ruff count is ~318 plus any
+new findings since the snapshot. A later CI log on `ba03621` reported 1336
+before the E501-only ignore landed; that is the same backlog plus drift, not
+a new science failure.
+
+### Mypy (`mypy --strict src`) — 263 errors in 37 files (2026-09-11 snapshot)
 
 | Code | Count |
 |---|---:|

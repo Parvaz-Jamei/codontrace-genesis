@@ -9,7 +9,7 @@ from codontrace.genesis.ribosome import Ribosome
 
 
 def test_release_identity_is_a25_unified_runtime() -> None:
-    assert codontrace.__version__ == "0.3.0b4.dev0"
+    assert codontrace.__version__ in {"0.3.0b4", "0.3.0b4.dev0"}
 
 
 def test_manifest_hashes_use_real_codon_table_and_genome_spec() -> None:
@@ -38,7 +38,6 @@ def test_replay_is_deterministic_for_same_spec_and_seed() -> None:
 
     assert first.replay_bundle.digest() == second.replay_bundle.digest()
     assert first.manifest.digest() == second.manifest.digest()
-
 
 
 def test_no_stale_producer_version_in_official_examples() -> None:

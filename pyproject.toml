@@ -14,7 +14,8 @@ where = ["src"]
 [project]
 name = "codontrace"
 version = "0.3.0b5"
-# Published PyPI tip is still 0.3.0b4 until GitHub Release v0.3.0b5 is published.
+# Prior identities: version = "0.3.0b4.dev0", version = "0.3.0b4.dev1", version = "0.3.0b4".
+# Public cuts 0.3.0b4 and 0.3.0b5 are immutable. Do not recut them.
 description = "CodonTrace Genesis: deterministic research-beta engine for digital evolution, causal mechanism auditing, capsule-mediated transfer, skill compression, role emergence, and replayable evidence artifacts."
 readme = "README.md"
 requires-python = ">=3.11,<3.15"

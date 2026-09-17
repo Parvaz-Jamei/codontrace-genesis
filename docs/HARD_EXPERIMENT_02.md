@@ -9,7 +9,9 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 - Knobs (default off): `FoodPatchSignalConfig`, `DemeSelectionConfig`, `SteppingStoneRewardConfig`
 - Action `MOVE_TOWARD_CAPSULE_TARGET` is registered only on HE02 specs (not in the default action registry)
 - ClaimGate ceiling starts at **`runtime_observation`**
-- **Research `results_v1`: deferred** (pilot/smoke only; do not invent a research artifact)
+- **Research `results_v1`: landed** under `docs/hard_experiment_02/results_v1.json`
+  (honest null on Holm; ceiling stays `runtime_observation`, not
+  `intervention_supported`)
 - Phase A–E `life_loop_world(seed=7, tick_count=12, population=6)` pins unchanged
 
 ## Arms
@@ -36,7 +38,7 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 ## Artifacts
 
 - Pilot: [`hard_experiment_02/pilot_v1.json`](hard_experiment_02/pilot_v1.json) (when run)
-- Research: **deferred** — no committed `results_v1.json` yet (honesty; not fabricated)
+- Research: **landed** — `hard_experiment_02/results_v1.json` (Holm null; no confirmatory upgrade)
 
 ## ClaimGate
 

@@ -3058,7 +3058,19 @@ def step_population(
                                 _apply_capsule_action_bias(
                                     organism, capsule, capsule_action_coupling
                                 )
-                            if configs.food_patch_signal.enabled and active_food_patches:
+                            if (
+                                configs.food_patch_signal.enabled
+                                and active_food_patches
+                                and configs.capsule_transfer is not None
+                                and str(
+                                    getattr(
+                                        configs.capsule_transfer.shuffle_mode,
+                                        "value",
+                                        configs.capsule_transfer.shuffle_mode,
+                                    )
+                                )
+                                == "off"
+                            ):
                                 payload_token = capsule_payload_action(capsule)
                                 true_xy = _he02_true_patch_xy(active_food_patches)
                                 if payload_token is not None and true_xy is not None:
@@ -3127,6 +3139,15 @@ def step_population(
                 )
             event = organism.step(working_world, trace, blocked_positions=blocked_positions)
             live_positions[organism.id] = organism.position
+            if configs.food_patch_signal.enabled and active_food_patches:
+                _he02_try_harvest_at_nav_target(
+                    organism,
+                    working_world,
+                    patches=active_food_patches,
+                    config=configs.food_patch_signal,
+                    tick=int(current_tick),
+                    records=food_patch_signal_records,
+                )
             if configs.task_switch_cost.enabled:
                 prev_task = last_task_by_organism.get(str(organism.id))
                 current_task, switch_record = apply_task_switch_cost(
@@ -4345,6 +4366,67 @@ def _he02_place_patch_resources(
         except Exception:
             # World APIs vary; HE02 records still capture signal MI without placement.
             continue
+
+
+def _he02_try_harvest_at_nav_target(
+    organism: GenesisOrganism,
+    world: object,
+    *,
+    patches: tuple[FoodPatchState, ...],
+    config: FoodPatchSignalConfig,
+    tick: int,
+    records: list[FoodPatchSignalRecord],
+) -> bool:
+    """Credit patch ATP when a guided organism occupies the signaled patch.
+
+    Completes E1 wiring: MOVE_TOWARD_CAPSULE_TARGET previously never harvested,
+    so receiver terminal ATP could not discriminate arms (oracle_gt_channel_off
+    stayed false despite healthy MI). Selective value requires an *active* patch
+    matching ``capsule_nav_target``.
+    """
+
+    _ = world
+    target = getattr(organism, "capsule_nav_target", None)
+    if target is None:
+        return False
+    pos = organism.position
+    if (int(pos[0]), int(pos[1])) != (int(target[0]), int(target[1])):
+        return False
+    on_patch = any(
+        (int(patch.x), int(patch.y)) == (int(target[0]), int(target[1]))
+        for patch in patches
+    )
+    if not on_patch:
+        return False
+    credit = float(config.patch_atp)
+    if credit <= 0.0:
+        return False
+    organism.atp_state.credit_runtime(
+        credit,
+        tick=int(tick),
+        organism_id=str(organism.id),
+        codon="000",
+        action=MOVE_TOWARD_CAPSULE_TARGET,
+        reason="he02_ate_at_signaled_patch",
+    )
+    receiver_id = str(organism.id)
+    for index in range(len(records) - 1, -1, -1):
+        record = records[index]
+        if record.receiver_id != receiver_id or record.ate_at_target:
+            continue
+        records[index] = FoodPatchSignalRecord(
+            tick=record.tick,
+            emitter_id=record.emitter_id,
+            receiver_id=record.receiver_id,
+            payload_digest=record.payload_digest,
+            target_true=record.target_true,
+            moved=True,
+            ate_at_target=True,
+            payload_token=record.payload_token,
+        )
+        break
+    return True
+
 
 def _track_capsule_payload_action(
     organism: GenesisOrganism, event: TraceEvent, config: CapsuleTransferConfig

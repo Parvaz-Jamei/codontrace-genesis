@@ -287,7 +287,8 @@ null mean = capsules_off = 28; treatment sd ≈ 13.25. ClaimGate ceiling
 **earned: `intervention_supported`** (full rule + healthy control). Lock alone
 never auto-grants; not collective intelligence / AGI / Avida replacement.
 
-HE02 / HE03: **deferred** for research `results_v1` — docs/prereg only until
+HE02 research `results_v1` **landed** (Holm null; ClaimGate stays
+`runtime_observation`). HE03: **deferred** for research `results_v1` until
 honest campaigns are run. Do not invent results artifacts.
 
 ---
@@ -321,7 +322,9 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
 - HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling. Wave 1d″ adds evidence-honesty documentation and additive metrics only; it does not raise this ceiling or grant `intervention_supported`. SCHEMA v7 / LOCK may grant at most `intervention_supported` when the locked research artifact and healthy confirmatory null support it — never by amendment text alone.
 - Avida / MABE2 ClaimGate adapters (`claimgate/adapters/avida.py`, `mabe2.py`) are **skeletons only** until a real published `.dat` / DataFile CSV campaign is audited. Do **not** claim literature compatibility or external-platform parity from the skeleton parsers.
-- HE02 / HE03 research `results_v1` are **deferred** (docs/prereg honesty only).
+- HE02 research `results_v1` landed with honest Holm null (ceiling remains
+  `runtime_observation`; not `intervention_supported`).
+- HE03 research `results_v1` remains **deferred** (docs/prereg honesty only).
 
 ### Level 2 candidate claims allowed with inspected-output wording
 
@@ -546,9 +549,10 @@ ClaimGate ceiling granted: **`runtime_observation`** (level 1 / start).
 (`intelligence`, `collective_intelligence`, `AGI`, Tokyo Type 1, Avida
 replacement) remain blocked. Phase A–E digest pins are untouched.
 
-Pilot / research JSON artifacts under `docs/hard_experiment_02/` are
-observational until ClaimGate explicitly grants a higher rung after
-manipulation checks and Holm-surviving contrasts clear.
+Pilot gates cleared; research `results_v1.json` is committed. Holm primary
+contrasts did **not** survive — ClaimGate ceiling remains
+**`runtime_observation`**. `intervention_supported` is not granted.
+
 
 ## HARD_EXPERIMENT_03 (task-switch DoL; E3)
 

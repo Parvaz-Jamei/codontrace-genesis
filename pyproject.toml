@@ -14,6 +14,7 @@ where = ["src"]
 [project]
 name = "codontrace"
 version = "0.3.0b4"
+# version = "0.3.0b4.dev0" remains the development identity after the 0.3.0b4 cut.
 description = "CodonTrace Genesis: deterministic research-beta engine for digital evolution, causal mechanism auditing, capsule-mediated transfer, skill compression, role emergence, and replayable evidence artifacts."
 readme = "README.md"
 requires-python = ">=3.11,<3.15"

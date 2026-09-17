@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### HARD_EXPERIMENT_02 — honest pilot clear + research null
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened beyond
+earned evidence. Phase A–E pins unchanged.
+
+- Wiring: harvest-at-nav-target for E1 selective value; shuffled-arm MI
+  records gated to `shuffle_mode=off` (adoption path matches emit).
+- Pilot seeds 1000–1009 clear assay / oracle / MI gates
+  (`cleared_for_research=true`).
+- Research 30 seeds (2000–2029) committed to
+  `docs/hard_experiment_02/results_v1.json` with Holm null — ceiling stays
+  `runtime_observation` (not `intervention_supported`).
+- Research ticks/pop locked to smoke-calibrated 8/8 after host OOM at 24/12
+  (prereg TBD-after-smoke).
+- HE03 research remains deferred.
+
 ## [0.3.0b4] — 2026-09-17
 
 PyPI research-beta cut. Tag `v0.3.0b4`. Includes HE01 SCHEMA v7 (PR #35),
@@ -29,7 +47,7 @@ loosened by the lock text alone. Phase A–E pins unchanged (HE01 overlay only).
   (`SimEsp32Bridge`), not a scientific research surface.
 - Avida/MABE ClaimGate adapters remain **skeletons** until audited published
   `.dat` / DataFile CSV campaigns exist (no literature-compatibility overclaim).
-- HE02/HE03 research results remain deferred (docs only).
+- HE03 research results remain deferred (docs only); HE02 research landed with Holm null.
 
 ### Discovery-wire + ESP32 Moj-ه thin bridge (engineering stub — not research surface)
 

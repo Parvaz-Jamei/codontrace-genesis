@@ -201,6 +201,25 @@ def test_he02_smoke_campaign_runs_and_stays_at_runtime_observation() -> None:
     assert campaign.claim_ceiling == "runtime_observation"
 
 
+
+
+def test_he02_harvest_helper_is_wired_for_oracle_discrimination() -> None:
+    """E1 selective value requires harvest-at-nav-target (wiring, not a new mechanism)."""
+
+    from codontrace.genesis import population as population_module
+    from codontrace.genesis.hard_experiment_02 import _run_arm
+
+    assert hasattr(population_module, "_he02_try_harvest_at_nav_target")
+    oracle = _run_arm(seed=1000, arm="oracle_moderate", tick_count=8, population=8)
+    channel_off = _run_arm(seed=1000, arm="channel_off", tick_count=8, population=8)
+    assert oracle.receiver_mean_terminal_runtime_atp is not None
+    assert channel_off.receiver_mean_terminal_runtime_atp is not None
+    assert (
+        float(oracle.receiver_mean_terminal_runtime_atp)
+        > float(channel_off.receiver_mean_terminal_runtime_atp)
+    )
+
+
 def test_invalid_deme_level_raises() -> None:
     with pytest.raises(ConfigurationError):
         DemeSelectionConfig(enabled=True, level="NOT_A_LEVEL")  # type: ignore[arg-type]

@@ -1254,3 +1254,52 @@ for _path, _fields in _CLAIMGATE_STANDALONE_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_CLAIMGATE_STANDALONE_DIGEST_FIELDS))
 )
+
+# ILW public digest dataclasses (pilot/campaign/smoke/exploratory reports and
+# chain records). Digests identify integrated-run artifacts; they do not grant
+# intelligence, collective_intelligence, AGI, tokyo_type1_passed, or
+# avida_replacement, and they are not engine replay-identity pins A–E.
+_ILW_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.ilw.campaign.CampaignCellResult": ("final_digest",),
+    "codontrace.genesis.ilw.chain_runtime.CapsuleRecord": (
+        "payload_digest",
+        "provenance_digest",
+    ),
+    "codontrace.genesis.ilw.chain_runtime.IlwOrganism": ("genome_digest",),
+    "codontrace.genesis.ilw.exploratory.CapsuleGenealNode": (
+        "payload_digest",
+        "provenance_digest",
+    ),
+    "codontrace.genesis.ilw.exploratory.Ilw6ExploratoryReport": (
+        "world_spec_digest",
+        "final_digest",
+    ),
+    "codontrace.genesis.ilw.exploratory.OrganismPhyloNode": (
+        "genome_digest",
+        "parent_genome_digest",
+        "mutation_digest",
+    ),
+    "codontrace.genesis.ilw.exploratory.PhyloJoinRow": (
+        "genome_digest",
+        "payload_digest",
+    ),
+    "codontrace.genesis.ilw.integrated_smoke.IlwSmokeReport": (
+        "primary_final_digest",
+        "replay_final_digest",
+    ),
+    "codontrace.genesis.ilw.pilot.PilotCampaignReport": (
+        "design_digest",
+        "document_digest",
+    ),
+    "codontrace.genesis.ilw.pilot.SeedPilotResult": (
+        "primary_final_digest",
+        "replay_final_digest",
+        "world_spec_digest",
+    ),
+}
+for _path, _fields in _ILW_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_ILW_PUBLIC_DIGEST_FIELDS))
+)

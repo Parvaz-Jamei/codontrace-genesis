@@ -48,10 +48,14 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 |---|---|
 | Package | `codontrace` |
 | Public PyPI tip | `0.3.0b4` — Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline. Confirm on [PyPI](https://pypi.org/project/codontrace/). |
-| GitHub `main` | Release identity `0.3.0b4` (research beta). |
+| GitHub `main` | Development identity `0.3.0b4.dev1` (ahead of the published cut). |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
+| Official GitHub release | [`v0.3.0b4`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b4) (set older handoff tags to pre-release so Latest stays here) |
+| HE01 | SCHEMA v7 locked; ceiling at most `intervention_supported` when the full rule holds |
+| HE02 | Research null after analysis v1b; ceiling stays `runtime_observation` |
+| HE03 | Code + prereg present; research `results_v1` is absent on purpose |
 | Claim ceiling | Research software and evidence infrastructure. Not a proof of AGI, consciousness, collective intelligence, Tokyo Type 1 passed, or Avida replacement. |
 
 ### Phases A–L
@@ -83,7 +87,7 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b4` (Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline). Older `0.3.0b3` remains the A–G substrate tip.
+The published wheel is `codontrace==0.3.0b4` (Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline). `main` is `0.3.0b4.dev1` and is not a PyPI recut. Older `0.3.0b3` remains the A–G substrate tip.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
@@ -113,7 +117,7 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the current tip should print `0.3.0b4`. Do not treat the version tuple as a phase fence.
+A PyPI install of the current tip prints `0.3.0b4`. An editable install from `main` prints `0.3.0b4.dev1`. Do not treat the version tuple as a phase fence.
 
 ---
 
@@ -221,12 +225,12 @@ Full policy: [`CLAIMS.md`](CLAIMS.md).
 Library-complete beta is not “done.” The next work is **not** more empty Phase
 letters.
 
-1. **Hygiene** — keep `main` free of probe junk and claim-language drift.
-2. **Widen CI** — more of the existing suite on hosted runners, still honest.
-3. **`HARD_EXPERIMENT_01`** — one hard division-of-labor / ablation / isolation experiment, not another scaffold. Wave 2 adds a standalone ClaimGate auditor around that evidence; it does not raise the ceiling.
-4. **Candidate** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
-5. **Goldsby-grade** — literature-scale specialist / messaging work; `is_goldsby_2012_pnas_experiment` stays false until that experiment exists.
-6. **OEE later** — Tokyo Type 1 *pass* and open-ended intelligence remain blocked until evidence exists.
+1. **Do not recut PyPI `0.3.0b4`.** The next public wheel is `0.3.0b5` only after CI is green on a release identity.
+2. **Keep `main` on `0.3.0b4.dev1`** until that cut. Mark stale GitHub handoff releases as pre-release so Latest stays on [`v0.3.0b4`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b4).
+3. **HE03 research campaign** — run only against the locked prereg; do not fabricate `results_v1`.
+4. **Lint/type inventory** — `lint-type` remains non-blocking until the ruff/mypy backlog is reduced in its own PR.
+5. **Candidate claims** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
+6. **OEE later** — Tokyo Type 1 *pass* and open-ended intelligence remain blocked.
 
 ---
 
@@ -276,7 +280,7 @@ boundaries.
 | [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols and claim boundaries |
-| [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Release evidence for the public `0.3.0b3` wheel |
+| [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Release evidence pack (see file for which public wheel it covers) |
 
 Phase literature checklists: [`PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md),
 [`PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md),
@@ -310,7 +314,7 @@ versioned software release.
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b3},
+  version = {0.3.0b4},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
 }

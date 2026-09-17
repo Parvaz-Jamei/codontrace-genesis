@@ -35,6 +35,7 @@ ARM_ROLES: dict[str, str] = {
     "oracle_moderate": "positive_control",
 }
 DEFAULT_RESULTS = Path("docs/hard_experiment_02/results_v1.json")
+ANALYSIS_V1B = Path("docs/hard_experiment_02/analysis_v1b_contrasts.json")
 # Names of the primary outcome across schema versions (v1/v2 composite
 # selection fitness; v3 receiver mean terminal runtime ATP). The arm record
 # field is ``terminal_mean_fitness`` in every version; ``primary_outcome``
@@ -175,10 +176,25 @@ def _outcomes(data: Mapping[str, Any]) -> tuple[ClaimgateOutcome, ...]:
     )
 
 
-def _comparisons(data: Mapping[str, Any]) -> tuple[ClaimgateComparison, ...]:
+def _paired_contrasts(data: Mapping[str, Any]) -> list[Any]:
     raw = data.get("paired_contrasts")
     if not isinstance(raw, list):
         raise ConfigurationError("campaign.paired_contrasts must be a list.")
+    needs_overlay = any(isinstance(item, Mapping) and item.get("dz") is None for item in raw)
+    if not needs_overlay:
+        return raw
+    overlay_path = _repo_root() / ANALYSIS_V1B
+    if not overlay_path.is_file():
+        return raw
+    overlay = json.loads(overlay_path.read_text(encoding="utf-8"))
+    fixed = overlay.get("paired_contrasts")
+    if isinstance(fixed, list) and fixed:
+        return fixed
+    return raw
+
+
+def _comparisons(data: Mapping[str, Any]) -> tuple[ClaimgateComparison, ...]:
+    raw = _paired_contrasts(data)
     comparisons: list[ClaimgateComparison] = []
     for item in raw:
         if not isinstance(item, Mapping):

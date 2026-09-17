@@ -95,7 +95,6 @@ def test_odd_forbidden_claim_words_absent() -> None:
     for match in re.finditer(r"intelligence", lowered):
         window = lowered[max(0, match.start() - 40) : match.end() + 40]
         assert any(token in window for token in _ALLOWED_INTELLIGENCE_WINDOWS), window
-    # Must deny the confirmatory label, not assert it.
     assert "does not claim `intervention_supported`" in text
     assert "claim `intervention_supported`" not in text.replace(
         "does not claim `intervention_supported`", ""
@@ -165,7 +164,6 @@ def test_morris_treatment_spec_freezes_coverage_and_respawn() -> None:
     assert spec.capsule_transfer_config is not None
     assert spec.capsule_transfer_config.read_radius == 3
     assert spec.capsule_transfer_config.min_source_fitness == 1.0
-    # Confirmatory builder remains on Amd 03 defaults.
     baseline = build_hard_experiment_01_spec(
         seed=2000, arm="source_bias_on", tick_count=8, population=8
     )
@@ -221,7 +219,7 @@ def test_morris_claimgate_stays_runtime_observation() -> None:
     assert gate.decide(ClaimRequest("runtime_observation", {})).allowed is True
     assert gate.decide(ClaimRequest("collective_intelligence", {})).allowed is False
     assert gate.decide(ClaimRequest("intervention_supported", {})).allowed is False
-    assert SCHEMA_VERSION == "hard_experiment_01_v6"
+    assert SCHEMA_VERSION == "hard_experiment_01_v7"
     assert calibration_anchor_knobs()["min_source_fitness"] == 1.5
     assert set(FACTOR_LEVELS) == {
         "read_radius",

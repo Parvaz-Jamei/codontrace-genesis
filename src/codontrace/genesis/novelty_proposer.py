@@ -107,7 +107,7 @@ class NoveltyProposer(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class RandomProposer:
-    """Negative / baseline proposer: samples the same parameter space at random."""
+    """Negative / baseline proposer: samples the same parameter space uniformly."""
 
     seed: int = 1
     descriptor_names: tuple[str, ...] = ("unique_positions", "energy_efficiency")
@@ -117,8 +117,10 @@ class RandomProposer:
     def propose(self, archive_summary: ArchiveSummary) -> CandidateSpec:
         rng = RNGManager(self.seed ^ (archive_summary.filled_bins * 1_000_003))
         names = self.descriptor_names or archive_summary.descriptor_names or ("d0",)
-        descriptors = {name: rng.random() for name in names}
-        quality = self.quality_low + rng.random() * (self.quality_high - self.quality_low)
+        descriptors = {name: (rng.randrange(0, 1_000_000) / 1_000_000) for name in names}
+        quality = self.quality_low + (rng.randrange(0, 1_000_000) / 1_000_000) * (
+            self.quality_high - self.quality_low
+        )
         genome = f"RAND:{rng.randrange(0, 1_000_000):06d}"
         return CandidateSpec(
             candidate_id=f"random:{self.seed}:{genome}",
@@ -145,13 +147,14 @@ class ExternalModelStubProposer:
     def propose(self, archive_summary: ArchiveSummary) -> CandidateSpec:
         rng = RNGManager(self.seed + archive_summary.filled_bins)
         names = self.descriptor_names or archive_summary.descriptor_names or ("d0",)
-        # Stub heuristic: nudge descriptors away from mean coverage proxy.
         bias = min(1.0, max(0.0, 1.0 - archive_summary.coverage))
+        unit = rng.randrange(0, 1_000_000) / 1_000_000
         descriptors = {
-            name: round(min(1.0, rng.random() * 0.5 + bias * 0.5), 10) for name in names
+            name: round(min(1.0, (rng.randrange(0, 1_000_000) / 1_000_000) * 0.5 + bias * 0.5), 10)
+            for name in names
         }
         base = archive_summary.mean_fitness if archive_summary.mean_fitness is not None else 0.2
-        quality = round(min(1.0, max(0.0, float(base) + 0.05 + rng.random() * 0.1)), 10)
+        quality = round(min(1.0, max(0.0, float(base) + 0.05 + unit * 0.1)), 10)
         genome = f"STUB:{self.model_name}:{rng.randrange(0, 1_000_000):06d}"
         return CandidateSpec(
             candidate_id=f"stub:{self.seed}:{genome}",

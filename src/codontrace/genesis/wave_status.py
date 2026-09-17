@@ -18,7 +18,7 @@ def wave_status() -> dict[str, Any]:
         "product": "CodonTrace Genesis",
         "package_identity": package_version(),
         "pypi_cut": True,
-        "proposed_tag": "v0.3.0b4.dev0-he02-v1b",
+        "proposed_tag": "v0.3.0b5",
         "tag_created_in_this_wave": False,
         "phase1_wrapper_present": helper.is_file()
         and "run_hard_experiment_02_v1b" in helper.read_text(encoding="utf-8"),
@@ -27,7 +27,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "do not recut PyPI 0.3.0b4; next public cut is 0.3.0b5",
+        "next": "do not recut PyPI 0.3.0b4 or 0.3.0b5; next public cut is 0.3.0b6",
     }
 
 

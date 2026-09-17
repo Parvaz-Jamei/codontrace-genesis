@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Open-ended discovery ClaimGate pipeline (waves الف–د)
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.
+Phase A–E pins unchanged. Zero ESP32 / Moj-ه code.
+
+- Goal doc: `docs/design/OPEN_ENDED_DISCOVERY_CLAIMGATE_PIPELINE_v2.md`
+  (ASAL Kumar et al. arXiv:2412.17799; Flageat et al. IEEE TEVC 2026 /
+  arXiv:2409.13315; MAP-Elites; QD; OMNI-EPIC; HE01 three-negative lesson).
+- Wave الف: `run_discovery_pipeline(candidate, *, scale=...) -> DiscoveryAuditReport`
+  with digest-bearing accept/reject and unit tests on ≥3 hand-crafted candidates.
+- Wave ب: `NoveltyProposer` Protocol + `RandomProposer` + `ExternalModelStubProposer`
+  (callable without paid API) + Pydantic boundary `parse_external_proposal`.
+- Wave ج: `CandidateSpec` / `DiscoveryAuditReport` / `NegativeControlResult` as
+  `@dataclass(frozen=True, slots=True)`; witness sha256 matches content.
+- Wave د: campaign 3–5 proposals with all three negatives
+  (`proposer_random`, `proposer_shuffled_archive`, `archive_no_op`); ceiling
+  above `runtime_observation` only if meaningfully better than all three;
+  honest accept/reject rates (100% reject is valid data).
+- Hypothesis: `paired_effect_size` never returns NaN when variance is 0.
+- Replay digest policy registration for new public digest dataclasses.
+- No AGI / collective-intelligence claims.
+
 ### HARD_EXPERIMENT_03 — E3 TaskSwitchCost + gorelick_nmi + IsolationAssay
 
 CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.

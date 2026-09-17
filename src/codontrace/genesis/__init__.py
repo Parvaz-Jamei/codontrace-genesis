@@ -159,16 +159,24 @@ from codontrace.genesis.discovery_runner import (
     DiscoveryReviewPack,
     MultiSeedProtocol,
     PersistenceChecker,
+    hand_crafted_demo_candidates,
+    run_discovery_pipeline,
+    score_candidate,
 )
 from codontrace.genesis.discovery_witness import (
+    CLAIM_CEILING_DISCOVERY_CANDIDATE,
+    CLAIM_CEILING_RUNTIME,
+    CandidateSpec,
     D0BaselineRun,
     D0BaselineSet,
     D0CalibrationResult,
     D0DistanceMetricConfig,
+    DiscoveryAuditReport,
     DiscoveryCandidate,
     DiscoveryWitness,
     DiscoveryWitnessConfig,
     DistanceToD0Result,
+    NegativeControlResult,
     WitnessValidationResult,
     build_discovery_witness,
     calibrate_d0_baseline,
@@ -2707,4 +2715,49 @@ __all__.extend(
         "run_hard_experiment_01",
     ]
 )
+__all__ = list(dict.fromkeys(__all__))
+
+# Open-ended discovery ClaimGate pipeline (waves الف–د).
+from codontrace.genesis.novelty_proposer import (
+    ArchiveSummary,
+    ExternalCandidateProposalModel,
+    ExternalModelStubProposer,
+    NoveltyProposer,
+    RandomProposer,
+    archive_summary_from_qd,
+    empty_archive_summary,
+    parse_external_proposal,
+)
+from codontrace.genesis.discovery_campaign import (
+    CAMPAIGN_ID as OPEN_ENDED_DISCOVERY_CAMPAIGN_ID,
+    CLAIM_CEILING as OPEN_ENDED_DISCOVERY_CLAIM_CEILING,
+    DiscoveryCampaignReport,
+    default_campaign_proposers,
+    run_discovery_campaign,
+    write_discovery_campaign_report,
+)
+__all__.extend([
+    "CLAIM_CEILING_DISCOVERY_CANDIDATE",
+    "CLAIM_CEILING_RUNTIME",
+    "CandidateSpec",
+    "DiscoveryAuditReport",
+    "NegativeControlResult",
+    "hand_crafted_demo_candidates",
+    "run_discovery_pipeline",
+    "score_candidate",
+    "ArchiveSummary",
+    "ExternalCandidateProposalModel",
+    "ExternalModelStubProposer",
+    "NoveltyProposer",
+    "RandomProposer",
+    "archive_summary_from_qd",
+    "empty_archive_summary",
+    "parse_external_proposal",
+    "OPEN_ENDED_DISCOVERY_CAMPAIGN_ID",
+    "OPEN_ENDED_DISCOVERY_CLAIM_CEILING",
+    "DiscoveryCampaignReport",
+    "default_campaign_proposers",
+    "run_discovery_campaign",
+    "write_discovery_campaign_report",
+])
 __all__ = list(dict.fromkeys(__all__))

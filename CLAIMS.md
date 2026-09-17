@@ -548,3 +548,23 @@ until ClaimGate explicitly grants a higher rung after manipulation checks and
 Holm-surviving contrasts clear. No fabricated `results_v1.json` in the
 implementation PR.
 
+
+## Open-ended discovery ClaimGate pipeline (waves الف–د)
+
+Design: [`docs/design/OPEN_ENDED_DISCOVERY_CLAIMGATE_PIPELINE_v2.md`](docs/design/OPEN_ENDED_DISCOVERY_CLAIMGATE_PIPELINE_v2.md).
+
+Literature cited (no overclaim): ASAL — Kumar et al., arXiv:2412.17799 /
+Artificial Life 2025; Flageat, Janmohamed, Lim & Cully, IEEE TEVC 30(1):286–295
+(Feb 2026), arXiv:2409.13315; MAP-Elites (Mouret & Clune 2015); QD
+Chatzilygeroudis et al. 2021; OMNI-EPIC 2024; HE01 three-discovery-negatives lesson.
+
+ClaimGate ceiling granted: **`runtime_observation`** (level 1 / start) unless a
+candidate is meaningfully better than all three discovery negatives, in which
+case the audit may record `discovery_witness_candidate` for that candidate only.
+Campaign-level ceiling stays observational when no proposal clears the three
+negatives. 100% reject rates are valid data.
+
+Forbidden: AGI, collective intelligence, open-ended intelligence, Tokyo Type 1
+passed, Avida replacement. Phase A–E digest pins untouched. Zero ESP32 code in
+this wave set.
+

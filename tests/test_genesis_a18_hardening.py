@@ -45,9 +45,9 @@ def _event(status: str = "executed", action: str = "EAT_LUMEN") -> TraceEvent:
 
 
 def test_version_artifact_identity() -> None:
-    assert codontrace.__version__ in {"0.3.0b4", "0.3.0b4.dev0"}
+    assert codontrace.__version__ in {"0.3.0b4", "0.3.0b4.dev0", "0.3.0b4.dev1"}
     text = Path("pyproject.toml").read_text(encoding="utf-8")
-    assert 'version = "0.3.0b4"' in text or 'version = "0.3.0b4.dev0"' in text
+    assert any(f'version = "{v}"' in text for v in ("0.3.0b4", "0.3.0b4.dev0", "0.3.0b4.dev1"))
 
 
 def test_zip_hygiene_allows_post_build_dist_and_checks_built_artifacts() -> None:

@@ -15,8 +15,8 @@ def wave_status() -> dict[str, Any]:
     he03 = he03_phase2_status()
     return {
         "product": "CodonTrace Genesis",
-        "package_identity": "0.3.0b4.dev0",
-        "pypi_cut": False,
+        "package_identity": "0.3.0b4.dev1",
+        "pypi_cut": True,
         "proposed_tag": "v0.3.0b4.dev0-he02-v1b",
         "tag_created_in_this_wave": False,
         "phase1_wrapper_present": helper.is_file()
@@ -26,7 +26,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "create tag v0.3.0b4.dev0-he02-v1b; do not publish PyPI",
+        "next": "do not recut PyPI 0.3.0b4; next public cut is 0.3.0b5",
     }
 
 

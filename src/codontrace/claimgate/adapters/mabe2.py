@@ -5,7 +5,10 @@ Format notes (coordinator search 2026-09-12):
 - MABE2 ``DataFile`` uses ``ADD_COLUMN(name, expr)`` then ``WRITE``.
 - A ``.csv`` filename is written as CSV.
 
-This is a skeleton. It does **not** claim full MABE2 support.
+This is a skeleton. It does **not** claim full MABE2 support,
+literature compatibility, or audited published DataFile CSV parity.
+Do not cite this adapter as evidence until a real published CSV
+export is ingested and reviewed.
 """
 
 from __future__ import annotations

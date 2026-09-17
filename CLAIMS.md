@@ -267,11 +267,28 @@ rates on new runs, and corrects the dose pattern *display* label to
 Ceiling stays `runtime_observation`. No `intervention_supported`. No
 re-campaign; `results_v5.json` unchanged.
 
-Wave 1e (SCHEMA v6, Amd 04/05 on branch): confirmatory
-`capsules_content_null`; shuffled demoted to sensitivity; activity_matched
-auxiliary (Amd 05 demotes activity pilot gate). Pilot:
-`docs/hard_experiment_01/pilot_v6.json`. No committed research `results_v6.json`
-yet. Ceiling stays **`runtime_observation`**.
+Wave 1e (SCHEMA v6, Amd 04/05): confirmatory `capsules_content_null`;
+shuffled demoted to sensitivity; activity_matched auxiliary. Pilot:
+`docs/hard_experiment_01/pilot_v6.json`. Committed research artifact
+`docs/hard_experiment_01/results_v6.json` exists on disk (historical SCHEMA v6
+trail); CLAIMS previously lagged that commit. Ceiling for v6 was earned only
+if the full decision rule + ClaimGate flags held — never auto-granted by Amd
+04/05 alone.
+
+SCHEMA v7 / LOCK (`docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md`): keeps
+every-cell coverage + role Fisher–Yates; adds seed-contingent initial food
+amounts (discrete multipliers mean 1.0) so analysis seeds are distinct
+environment realizations. Confirmatory null remains `capsules_content_null`
+(shuffled sensitivity-only). Pilot `docs/hard_experiment_01/pilot_v7.json`
+(cleared); research
+[`docs/hard_experiment_01/results_v7.json`](docs/hard_experiment_01/results_v7.json)
+(campaign digest `28f812c5…`). Assay PASS; decision rule PASS; confirmatory
+null mean = capsules_off = 28; treatment sd ≈ 13.25. ClaimGate ceiling
+**earned: `intervention_supported`** (full rule + healthy control). Lock alone
+never auto-grants; not collective intelligence / AGI / Avida replacement.
+
+HE02 / HE03: **deferred** for research `results_v1` — docs/prereg only until
+honest campaigns are run. Do not invent results artifacts.
 
 ---
 
@@ -302,7 +319,9 @@ These can be used immediately, provided exact version/release context is shown:
 - CodonTrace Genesis includes claim-gating discipline that prevents placeholder/fake/failed/invalid artifacts from being counted as positive evidence.
 - CodonTrace Genesis can be used to construct controlled treatment/control and ablation-style experiments around information transfer, memory, reproduction, roles, and behavior diversity.
 - CodonTrace Genesis is suitable for building controlled ALife/digital-evolution experiments and reviewing scientific evidence schemas.
-- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling. Wave 1d″ adds evidence-honesty documentation and additive metrics only; it does not raise this ceiling or grant `intervention_supported`.
+- HARD_EXPERIMENT_01 Wave 1 / 1b recorded 30-seed research campaigns whose ClaimGate ceiling is `runtime_observation` only. v1 was an invalid null (crash, adoptions 0). v2 is `assay_invalid`: all four arms produced bitwise-identical mean fitness `0.164375` (adoptions `169 / 169 / 0 / 169`); the intervention was not realized on the estimand. That is not a scientific null. Wave 1b does not loosen ClaimGate. Wave 2 adds a simulator-agnostic auditor that grades the same public 0–5 ladder and labels v2 `assay_invalid`; it does not raise this ceiling. Wave 1d″ adds evidence-honesty documentation and additive metrics only; it does not raise this ceiling or grant `intervention_supported`. SCHEMA v7 / LOCK may grant at most `intervention_supported` when the locked research artifact and healthy confirmatory null support it — never by amendment text alone.
+- Avida / MABE2 ClaimGate adapters (`claimgate/adapters/avida.py`, `mabe2.py`) are **skeletons only** until a real published `.dat` / DataFile CSV campaign is audited. Do **not** claim literature compatibility or external-platform parity from the skeleton parsers.
+- HE02 / HE03 research `results_v1` are **deferred** (docs/prereg honesty only).
 
 ### Level 2 candidate claims allowed with inspected-output wording
 
@@ -568,25 +587,28 @@ Forbidden: AGI, collective intelligence, open-ended intelligence, Tokyo Type 1
 passed, Avida replacement. Phase A–E digest pins untouched. Zero ESP32 code in
 this wave set.
 
-## Discovery-wire + ESP32 Moj-ه (post waves الف–د)
+## Discovery-wire + ESP32 Moj-ه (engineering stub only — not a research surface)
 
 Design: [`docs/design/ESP32_BRIDGE_v0.1.md`](docs/design/ESP32_BRIDGE_v0.1.md);
 wire hook in `qd_search.DiscoveryWireConfig` (default off).
 
-Literature cited (no overclaim): Koos, Mouret & Doncieux, IEEE TEC 17(1):122–145
-(2013) transferability / reality gap; ESP32 as thin execute+sense bridge
-(MQTT/UART); OMNI-EPIC arXiv:2405.15568 bounded archive; ARE 2024 heterogeneous
-reality gap — document STR-disparity honestly.
+**Demotion (honesty):** ESP32 / Moj-ه is an **engineering stub**
+(`SimEsp32Bridge` + fail-closed Serial/MQTT transports). It is **not** a
+scientific research surface and does not support ClaimGate mechanism claims.
+Literature cited only as engineering context (Koos/Mouret/Doncieux 2013
+transferability; OMNI-EPIC arXiv:2405.15568; ARE 2024 STR-disparity) — not as
+evidence that physical campaigns ran.
 
-ClaimGate ceiling granted: **`runtime_observation`** unless a wired proposal
-clears all three discovery negatives (`discovery_witness_candidate` for that
-candidate only). Digests omit `discovery_wire` when disabled so A–E pins hold.
+ClaimGate for discovery-wire stays **`runtime_observation`** unless a wired
+proposal clears all three discovery negatives (`discovery_witness_candidate`
+for that candidate only). Digests omit `discovery_wire` when disabled so A–E
+pins hold.
 
-ESP32 status: **software + `SimEsp32Bridge` + fail-closed transport stubs only**.
-**No claim that physical robots ran.** No fabricated hardware results. Stop
-criterion (goal §11): after 20 real tests, if STR-disparity is not better than
-the no-transfer baseline → stop / redesign.
+ESP32 status: **software stub only**. **No claim that physical robots ran.**
+No fabricated hardware results. Not listed among HE01/HE02/HE03 scientific
+surfaces.
 
 Forbidden: AGI, collective intelligence, open-ended intelligence, Tokyo Type 1
-passed, Avida replacement, completed physical robot campaign claims.
+passed, Avida replacement, completed physical robot campaign claims,
+ESP32-as-evidence overclaims.
 

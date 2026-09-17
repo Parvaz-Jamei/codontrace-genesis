@@ -9,6 +9,7 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 - Knobs (default off): `TaskSwitchCostConfig`, `IsolationAssayConfig`
 - Metric: `codontrace.genesis.metrics.division_of_labor.gorelick_nmi` (confirmatory; non-NMI proxies remain **legacy**)
 - ClaimGate ceiling starts at **`runtime_observation`**
+- **Research `results_v1`: deferred** (no committed research artifact; do not invent one)
 - Phase A–E `life_loop_world(seed=7, tick_count=12, population=6)` pins unchanged
 
 ## Arms
@@ -29,7 +30,7 @@ Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
 
 ## Artifacts
 
-- Pilot / research JSON under `docs/hard_experiment_03/` when run (not fabricated here)
+- Pilot / research JSON under `docs/hard_experiment_03/` when run (**research results deferred**; not fabricated here)
 
 ## ClaimGate
 

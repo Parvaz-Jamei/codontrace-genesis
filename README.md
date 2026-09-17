@@ -35,6 +35,8 @@ CodonTrace Genesis is **not** currently presented as:
 - proof of open-ended intelligence, or a Tokyo Type 1 *pass* (Channon 2024)
 - a biological evolution simulator or wet-lab chemistry engine
 - a replacement for Avida, MABE, DEAP, QDax, pyribs, or similar tools
+- a physical-robot research platform (ESP32 Moj-ه is an engineering stub / `SimEsp32Bridge` only)
+- an Avida/MABE literature-compatible campaign runner (ClaimGate adapters are skeletons until audited published `.dat`/CSV exist)
 
 The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md).
 

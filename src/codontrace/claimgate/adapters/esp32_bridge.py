@@ -8,8 +8,8 @@ Literature (cite briefly; no overclaim):
 - OMNI-EPIC arXiv:2405.15568 — bounded interesting archive lesson.
 - ARE 2024 heterogeneous reality gap — document STR-disparity honestly.
 
-This module does **not** claim that physical robots ran. ``SimEsp32Bridge`` is
-for tests. Serial/MQTT transports fail closed without a device and hold no
+This module is an **engineering stub only** (not a scientific research surface).
+It does **not** claim that physical robots ran. ``SimEsp32Bridge`` is for tests. Serial/MQTT transports fail closed without a device and hold no
 secrets. ClaimGate ceiling stays honest; no AGI / collective intelligence.
 """
 

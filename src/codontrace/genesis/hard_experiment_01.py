@@ -30,6 +30,14 @@ activity_matched off the pilot gate after Wave 1e pilot FAIL on volume yoke
 only; content_null remains confirmatory; SCHEMA stays v6. ClaimGate ceiling
 stays ``runtime_observation``; Amd 04/05 alone never raise it.
 
+SCHEMA v7 / ``HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK`` keeps every-cell food
+coverage and role Fisher–Yates, and adds seed-contingent initial food amounts
+(discrete multipliers; mean 1.0) so analysis seeds are distinct environment
+realizations (Avida spatial-heterogeneity lesson). Confirmatory null remains
+``capsules_content_null``; shuffled stays sensitivity-only. Lock alone never
+raises ClaimGate; ceiling at most ``intervention_supported`` when the full
+rule holds with a healthy control.
+
 Forbidden: intelligence / collective_intelligence / AGI /
 tokyo_type1_passed / avida_replacement. ClaimGate is never loosened.
 A null finding is valid. This module does not mutate a global ClaimGate.
@@ -88,13 +96,14 @@ RESEARCH_POPULATION = 16
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 EXPERIMENT_ID = "hard_experiment_01_capsule_source_bias"
-SCHEMA_VERSION = "hard_experiment_01_v6"
+SCHEMA_VERSION = "hard_experiment_01_v7"
 PREREG_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG.md"
 PREREG_AMENDMENT_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_01.md"
 PREREG_AMENDMENT_02_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
 PREREG_AMENDMENT_03_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
 PREREG_AMENDMENT_04_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
 PREREG_AMENDMENT_05_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md"
+PREREG_AMENDMENT_LOCK_RELATIVE_PATH = "docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md"
 # Amd 04 reporting reference: mean |activity_match_gap| vs epsilon (accepts).
 # Amd 05: activity match is exploratory / non-blocking for the pilot gate;
 # do not silent-retune epsilon inside Amd 04.
@@ -149,6 +158,9 @@ CALIBRATION_BASAL_COST = 0.4
 # so EAT_LUMEN is sustainably positive (+amount - 0.8 per tick) while WAIT
 # (-0.1) and SENSE_DANGER (-0.4) are sustainably negative.
 CALIBRATION_RESOURCE_AMOUNT = 2.0
+# SCHEMA v7 / LOCK: seed-contingent initial food amounts (coverage stays 1.0).
+# Mean multiplier = 1.0 in expectation — avoids Amd 02 sparse-food assay inversion.
+FOOD_AMOUNT_MULTIPLIERS: tuple[float, ...] = (0.75, 1.0, 1.25)
 CALIBRATION_RESPAWN_RATE = 1.0
 CALIBRATION_RESPAWN_UNDER_ORGANISMS = True
 CALIBRATION_STARVATION_CONSECUTIVE_TICKS = 3
@@ -329,6 +341,21 @@ def hard_experiment_01_prereg_amendment_05_digest() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def hard_experiment_01_prereg_amendment_lock_path() -> Path:
+    return _repo_root() / PREREG_AMENDMENT_LOCK_RELATIVE_PATH
+
+
+def hard_experiment_01_prereg_amendment_lock_digest() -> str:
+    """SHA-256 of the frozen SCHEMA v7 amendment LOCK file (UTF-8 bytes)."""
+
+    path = hard_experiment_01_prereg_amendment_lock_path()
+    if not path.is_file():
+        raise ConfigurationError(
+            f"missing preregistration amendment lock: {PREREG_AMENDMENT_LOCK_RELATIVE_PATH}"
+        )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -371,8 +398,11 @@ def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:
             "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
             "prereg_amendment_05_path": PREREG_AMENDMENT_05_RELATIVE_PATH,
             "prereg_amendment_05_digest": hard_experiment_01_prereg_amendment_05_digest(),
+            "prereg_amendment_lock_path": PREREG_AMENDMENT_LOCK_RELATIVE_PATH,
+            "prereg_amendment_lock_digest": hard_experiment_01_prereg_amendment_lock_digest(),
             "role_layout": "seed_permuted_v3_multiset",
-            "food_layout": "every_cell",
+            "food_layout": "every_cell_seed_amounts_v7",
+            "food_amount_multipliers": list(FOOD_AMOUNT_MULTIPLIERS),
             "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
@@ -395,8 +425,8 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
     """Survival / channel-activity knobs. Not a new mechanism and not the estimand."""
 
     return {
-        "wave": "1e",
-        "dated": "2026-09-12",
+        "wave": "1e_lock_v7",
+        "dated": "2026-09-17",
         "scope": "hard_experiment_01_overlay_only",
         "life_loop_defaults_unchanged": True,
         "good_emitter_genome": CALIBRATION_EMITTER_GENOME,
@@ -413,17 +443,17 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
         "respawn_under_organisms": CALIBRATION_RESPAWN_UNDER_ORGANISMS,
         "respawn_draws_per_tick": "max(1, population_size)",
         "starvation_consecutive_ticks": CALIBRATION_STARVATION_CONSECUTIVE_TICKS,
-        "food_layout": "every_cell",
+        "food_layout": "every_cell_seed_amounts_v7",
+        "food_amount_multipliers": list(FOOD_AMOUNT_MULTIPLIERS),
         "food_coverage": 1.0,
         "adoption_effect_action": True,
         "adoption_substitutable_actions": ["WAIT"],
         "primary_outcome": PRIMARY_OUTCOME,
         "note": (
-            "Wave 1e / Amd 04+05: keep Amd 03 ecology; confirmatory null is "
-            "capsules_content_null (WAIT fixed token); capsules_shuffled is "
-            "sensitivity; capsules_activity_matched yokes accepts to "
-            "source_bias_on but is exploratory/non-blocking for the pilot "
-            "gate (Amd 05). ClaimGate ceiling stays runtime_observation."
+            "SCHEMA v7 / LOCK: keep Amd 03 ecology + Amd 04/05 confirmatory "
+            "content_null; add seed-contingent initial food amounts "
+            "(multipliers mean 1.0). Shuffled sensitivity-only. ClaimGate "
+            "ceiling at most intervention_supported when full rule holds."
         ),
         "content_null_payload_action": CONTENT_NULL_PAYLOAD_ACTION,
         "activity_match_epsilon": ACTIVITY_MATCH_EPSILON,
@@ -434,12 +464,32 @@ def hard_experiment_01_calibration_knobs() -> dict[str, JsonValue]:
 def _calibration_food_cells(
     width: int, height: int
 ) -> tuple[tuple[int, int], ...]:
-    """Every lattice cell (Amd 01 / v3 / Amd 03). Seed omitted — layout ignores it."""
+    """Every lattice cell (Amd 01 / v3 / Amd 03 / LOCK). Coverage stays 1.0."""
 
     cells = tuple((x, y) for y in range(int(height)) for x in range(int(width)))
     if not cells:
         raise ConfigurationError("hard experiment 01 food layout requires a non-empty lattice.")
     return cells
+
+
+def calibration_food_amount_layout(
+    seed: int, width: int, height: int
+) -> tuple[tuple[tuple[int, int], float], ...]:
+    """SCHEMA v7 / LOCK: every-cell coverage with seed-contingent amounts.
+
+    Discrete multipliers ``FOOD_AMOUNT_MULTIPLIERS`` (mean 1.0) so each analysis
+    seed realizes a distinct resource field without Amd 02 sparse-food failure.
+    Namespace ``hard_experiment_01/food_amounts`` (does not steal engine streams).
+    """
+
+    cells = _calibration_food_cells(width, height)
+    rng = RNGManager(seed=int(seed), namespace="hard_experiment_01/food_amounts")
+    n_mult = len(FOOD_AMOUNT_MULTIPLIERS)
+    layout: list[tuple[tuple[int, int], float]] = []
+    for cell in cells:
+        mult = FOOD_AMOUNT_MULTIPLIERS[rng.randrange(n_mult)]
+        layout.append((cell, float(CALIBRATION_RESOURCE_AMOUNT) * float(mult)))
+    return tuple(layout)
 
 
 def calibration_role_for_index(index: int, *, oracle: bool = False) -> str:
@@ -493,11 +543,12 @@ def _apply_survival_calibration(
         raise ConfigurationError("hard experiment 01 overlay requires population_configs.")
     width = int(spec.world_width)
     height = int(spec.world_height)
-    food_cells = _calibration_food_cells(width, height)
+    food_layout = calibration_food_amount_layout(seed, width, height)
+    food_cells = tuple(cell for cell, _amount in food_layout)
     food_coverage = len(food_cells) / float(width * height)
     world = World2D(width, height)
-    for position in food_cells:
-        world.place_resource(position, CALIBRATION_RESOURCE_AMOUNT)
+    for position, amount in food_layout:
+        world.place_resource(position, amount)
     # Amd 03: revert respawn draws to Amd 01 / v3 (smoke 8→8, research 16→16).
     # Food is every-cell again; max_resources remains the full lattice.
     population_size = len(spec.genome_bits)
@@ -527,6 +578,9 @@ def _apply_survival_calibration(
         **spec.metadata,
         "hard_experiment_01_calibration": hard_experiment_01_calibration_knobs(),
         "food_cells": [list(item) for item in food_cells],
+        "food_amounts": [float(amount) for _cell, amount in food_layout],
+        "food_amount_multipliers": list(FOOD_AMOUNT_MULTIPLIERS),
+        "food_layout": "every_cell_seed_amounts_v7",
         "food_coverage": food_coverage,
         "initial_food_patches": len(food_cells),
         "max_resources": resource_policy.max_resources,
@@ -700,6 +754,15 @@ def _manipulation_check_failures(
         for record in seed_records
     ):
         failures.append("assay_failed_arms_bitwise_identical")
+    # SCHEMA v7 / LOCK: refuse 30 bitwise replays on the treatment estimand.
+    if seed_records:
+        treatment_outcomes = [
+            record.source_bias_on.terminal_mean_fitness
+            for record in seed_records
+            if record.source_bias_on.terminal_mean_fitness is not None
+        ]
+        if len(treatment_outcomes) >= 2 and len(set(treatment_outcomes)) < 2:
+            failures.append("assay_failed_treatment_seed_variance_zero")
     return failures
 
 
@@ -1899,8 +1962,11 @@ class HardExperiment01Campaign:
             "prereg_amendment_04_digest": hard_experiment_01_prereg_amendment_04_digest(),
             "prereg_amendment_05_path": PREREG_AMENDMENT_05_RELATIVE_PATH,
             "prereg_amendment_05_digest": hard_experiment_01_prereg_amendment_05_digest(),
+            "prereg_amendment_lock_path": PREREG_AMENDMENT_LOCK_RELATIVE_PATH,
+            "prereg_amendment_lock_digest": hard_experiment_01_prereg_amendment_lock_digest(),
             "role_layout": "seed_permuted_v3_multiset",
-            "food_layout": "every_cell",
+            "food_layout": "every_cell_seed_amounts_v7",
+            "food_amount_multipliers": list(FOOD_AMOUNT_MULTIPLIERS),
             "respawn_draws_per_tick": "max(1, population_size)",
             "primary_outcome": PRIMARY_OUTCOME,
             "analysis_arms": list(ANALYSIS_ARMS),
@@ -2964,18 +3030,26 @@ def evaluate_hard_experiment_01_wave1e_pilot_gates(
         content_changed_rate = float(changed > 0)
     gate_content_null = eat_rate <= 1e-9 and content_changed_rate > 0.0
 
-    # Digests / schema
+    # Digests / schema (v7 lock)
     amd04 = str(payload.get("prereg_amendment_04_digest") or "")
     amd05 = str(payload.get("prereg_amendment_05_digest") or "")
+    lock = str(payload.get("prereg_amendment_lock_digest") or "")
     schema_ok = str(payload.get("schema_version") or campaign.schema_version) == SCHEMA_VERSION
     gate_digests = (
         schema_ok
-        and SCHEMA_VERSION == "hard_experiment_01_v6"
+        and SCHEMA_VERSION == "hard_experiment_01_v7"
         and len(amd04) >= 16
         and len(amd05) >= 16
+        and len(lock) >= 16
         and amd04 == hard_experiment_01_prereg_amendment_04_digest()
         and amd05 == hard_experiment_01_prereg_amendment_05_digest()
+        and lock == hard_experiment_01_prereg_amendment_lock_digest()
     )
+
+    # Treatment seed variance (LOCK): not 30 bitwise replays
+    treatment = arms.get("source_bias_on")
+    treatment_sd = None if treatment is None else treatment.sd
+    gate_variance = treatment_sd is not None and float(treatment_sd) > 0.0
 
     gap = campaign.mean_abs_activity_match_gap
     gap_within_epsilon = gap is not None and float(gap) <= float(ACTIVITY_MATCH_EPSILON) + 1e-9
@@ -2991,10 +3065,10 @@ def evaluate_hard_experiment_01_wave1e_pilot_gates(
         ),
     }
 
-    overall = gate_assay and gate_content_null and gate_digests
+    overall = gate_assay and gate_content_null and gate_digests and gate_variance
     return {
         "schema_version": SCHEMA_VERSION,
-        "amendment": "05",
+        "amendment": "lock_v7",
         "overall_pass": overall,
         "cleared_for_11_40": overall,
         "activity_match_pilot_gate": ACTIVITY_MATCH_PILOT_GATE,
@@ -3009,11 +3083,16 @@ def evaluate_hard_experiment_01_wave1e_pilot_gates(
                 "eat_rate": eat_rate,
                 "content_changed_rate": content_changed_rate,
             },
+            "treatment_seed_variance": {
+                "pass": gate_variance,
+                "treatment_sd": treatment_sd,
+            },
             "activity_match_exploratory": gate_activity_exploratory,
             "schema_amd_digests": {
                 "pass": gate_digests,
                 "prereg_amendment_04_digest": amd04,
                 "prereg_amendment_05_digest": amd05,
+                "prereg_amendment_lock_digest": lock,
             },
         },
     }
@@ -3086,12 +3165,18 @@ def committed_research_results_v6_path() -> Path:
     return _repo_root() / "docs" / "hard_experiment_01" / "results_v6.json"
 
 
+def committed_research_results_v7_path() -> Path:
+    """SCHEMA v7 / LOCK research artifact (seed-contingent food amounts)."""
+
+    return _repo_root() / "docs" / "hard_experiment_01" / "results_v7.json"
+
+
 def write_hard_experiment_01_research_results(path: Path | None = None) -> Path:
     """Run the research campaign and write the digest-backed JSON artifact."""
 
     import json
 
-    dest = path or committed_research_results_path()
+    dest = path or committed_research_results_v7_path()
     dest.parent.mkdir(parents=True, exist_ok=True)
     campaign = run_hard_experiment_01(scale="research")
     dest.write_text(

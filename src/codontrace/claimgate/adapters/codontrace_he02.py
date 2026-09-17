@@ -29,11 +29,29 @@ PRODUCT_NAME = "CodonTrace Genesis"
 ARM_ROLES: dict[str, str] = {
     "treatment": "treatment",
     "content_null": "negative_control",
-    "activity_matched": "auxiliary_control",
+    "activity_matched": "negative_control",
     "channel_off": "channel_off",
     "capsules_shuffled": "negative_control",
-    "oracle_moderate": "positive_control",
+    "oracle_moderate": "dose",
 }
+CLAIMGATE_ROLE_ALIASES: dict[str, str] = {
+    "treatment": "treatment",
+    "negative_control": "negative_control",
+    "channel_off": "channel_off",
+    "mechanism_ablation": "mechanism_ablation",
+    "dose": "dose",
+    "auxiliary_control": "negative_control",
+    "positive_control": "dose",
+}
+
+
+def _claimgate_role(arm_name: str, raw_role: str) -> str:
+    mapped = ARM_ROLES.get(arm_name, "")
+    if mapped:
+        return mapped
+    return CLAIMGATE_ROLE_ALIASES.get(raw_role, "")
+
+
 DEFAULT_RESULTS = Path("docs/hard_experiment_02/results_v1.json")
 ANALYSIS_V1B = Path("docs/hard_experiment_02/analysis_v1b_contrasts.json")
 # Names of the primary outcome across schema versions (v1/v2 composite
@@ -111,7 +129,7 @@ def _arms(data: Mapping[str, Any], seed_count: int) -> tuple[ClaimgateArm, ...]:
             if not isinstance(item, Mapping):
                 continue
             name = str(item.get("arm") or "")
-            role = str(item.get("role") or ARM_ROLES.get(name, ""))
+            role = _claimgate_role(name, str(item.get("role") or ""))
             if name and role:
                 arms.append(ClaimgateArm(name=name, role=role, n=seed_count))
     if not arms:

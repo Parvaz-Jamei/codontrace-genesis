@@ -162,6 +162,8 @@ class GenesisOrganism:
     capsule_action_bias_capsule_id: str | None = None
     capsule_action_bias_substitutable: tuple[str, ...] = ()
     capsule_last_executed_action: str | None = None
+    # HE02 E1: coordinates from an adopted food-patch capsule payload.
+    capsule_nav_target: tuple[int, int] | None = None
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)
@@ -439,6 +441,7 @@ class GenesisOrganism:
                     step_index=self._step_index,
                     world=world,
                     blocked_positions=tuple(sorted(blocked_set)),
+                    nav_target=self.capsule_nav_target,
                 )
             )
         status: ActionStatus = self.action_runtime_config.validate_status(result.status)
@@ -502,6 +505,7 @@ class GenesisOrganism:
                         step_index=self._step_index,
                         world=world,
                         blocked_positions=tuple(sorted(blocked_set)),
+                        nav_target=self.capsule_nav_target,
                     )
                 )
                 primitive_status = self.action_runtime_config.validate_status(primitive_result.status)

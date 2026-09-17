@@ -370,6 +370,9 @@ class ActionContext:
     step_index: int
     world: World2D
     blocked_positions: tuple[Position, ...] = ()
+    # HE02 E1: optional navigation target from an adopted food-patch capsule.
+    # Default None keeps all pre-HE02 call sites and digests unchanged.
+    nav_target: Position | None = None
 
     @property
     def view(self) -> WorldView:
@@ -1245,6 +1248,49 @@ def default_action_registry_manifest() -> tuple[dict[str, str], ...]:
         )
     return tuple(rows)
 
+
+
+
+def move_toward_capsule_target_handler(ctx: ActionContext) -> ActionResult:
+    """HE02 MOVE_TOWARD_CAPSULE_TARGET: step closer to adopted capsule nav target."""
+
+    target = ctx.nav_target
+    if target is None:
+        return ActionResult.blocked(
+            reason="no_capsule_nav_target",
+            position_after=ctx.position,
+            world_delta={"movement": "no_capsule_nav_target"},
+        )
+    if target in ctx.blocked_positions and _manhattan(ctx.position, target) == 1:
+        return ActionResult.blocked(
+            reason="occupied_blocked",
+            position_after=ctx.position,
+            world_delta={"target": list(target), "movement": "occupied_blocked"},
+        )
+    moves = _candidate_moves(ctx)
+    if not moves:
+        return ActionResult.blocked(
+            reason="no_open_step_toward_capsule_target",
+            position_after=ctx.position,
+            world_delta={"target": list(target), "movement": "blocked"},
+        )
+    next_position = min(moves, key=lambda pos: (_manhattan(pos, target), pos[1], pos[0]))
+    if _manhattan(next_position, target) >= _manhattan(ctx.position, target):
+        return ActionResult.blocked(
+            reason="no_better_step_toward_capsule_target",
+            position_after=ctx.position,
+            world_delta={"target": list(target), "movement": "not_closer"},
+        )
+    return ActionResult.executed(
+        reason="moved_toward_capsule_target",
+        position_after=next_position,
+        world_delta={
+            "from": list(ctx.position),
+            "to": list(next_position),
+            "target": list(target),
+            "he02_food_patch_signal": True,
+        },
+    )
 
 def default_action_registry() -> ActionRegistry:
     """Return the immutable default handler registry."""

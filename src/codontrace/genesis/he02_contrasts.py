@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -133,6 +134,50 @@ def analyze_committed_research(path: Path | None = None) -> dict[str, Any]:
         "paired_contrasts": contrasts,
         **decision,
     }
+
+
+def rescore_he02_campaign(campaign: Any) -> Any:
+    """Replace swallowed two-arg ``dz=None`` contrasts on a live campaign."""
+
+    from codontrace.genesis.hard_experiment_02 import HardExperiment02PairedContrast
+
+    rows = contrasts_from_seed_dicts(
+        [rec.to_dict() for rec in campaign.seed_records],
+        assay_failed=bool(campaign.assay_failed),
+    )
+    contrasts = tuple(
+        HardExperiment02PairedContrast(
+            treatment_arm=str(item["treatment_arm"]),
+            baseline_arm=str(item["baseline_arm"]),
+            dz=item["dz"],
+            p_raw=item["p_raw"],
+            p_holm=item["p_holm"],
+            n_pairs=int(item["n_pairs"]),
+        )
+        for item in rows
+    )
+    decision = decision_from_contrasts(rows)
+    failures = list(campaign.decision_rule_failures)
+    for item in decision["decision_rule_failures"]:
+        if item not in failures:
+            failures.append(item)
+    return replace(
+        campaign,
+        paired_contrasts=contrasts,
+        decision_rule_passed=bool(
+            decision["decision_rule_passed"] and not campaign.assay_failed
+        ),
+        decision_rule_failures=tuple(failures),
+        digest="",
+    )
+
+
+def run_hard_experiment_02_v1b(*args: Any, **kwargs: Any) -> Any:
+    """Live HE02 run + v1b rescoring. Does not raise ClaimGate."""
+
+    from codontrace.genesis.hard_experiment_02 import run_hard_experiment_02
+
+    return rescore_he02_campaign(run_hard_experiment_02(*args, **kwargs))
 
 
 def main() -> None:

@@ -16,9 +16,26 @@ from codontrace.claimgate.adapters.codontrace import (
     committed_results_v2_path,
     committed_results_v3_path,
 )
+from codontrace.claimgate.adapters.esp32_bridge import (
+    MqttEsp32Transport,
+    SensorReading,
+    SerialEsp32Transport,
+    SimEsp32Bridge,
+    STRDisparityResult,
+    TransportEsp32Bridge,
+    compute_str_disparity,
+    parse_sensor_payload,
+    str_stop_criterion_met,
+)
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 
 __all__ = [
+    "MqttEsp32Transport",
+    "SensorReading",
+    "SerialEsp32Transport",
+    "SimEsp32Bridge",
+    "STRDisparityResult",
+    "TransportEsp32Bridge",
     "bundle_from_avida_runs",
     "bundle_from_hard_experiment_01",
     "bundle_from_hard_experiment_02",
@@ -30,6 +47,9 @@ __all__ = [
     "bundle_from_mabe2_csv",
     "committed_results_v2_path",
     "committed_results_v3_path",
+    "compute_str_disparity",
     "parse_avida_dat",
     "parse_mabe2_csv",
+    "parse_sensor_payload",
+    "str_stop_criterion_met",
 ]

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Discovery-wire + ESP32 Moj-ه thin bridge
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.
+Phase A–E pins unchanged when `discovery_wire` is default-off.
+**Zero claim that physical robots ran.**
+
+- Optional `DiscoveryWireConfig` on `QDSearchConfig` (default OFF): every N
+  generations, `NoveltyProposer.propose` → cheap S1 `run_discovery_pipeline` →
+  admit to QD archive / innovation_protection only when ClaimGate ceiling is
+  `discovery_witness_candidate`. Omitted from digests when disabled.
+- ESP32 Moj-ه thin adapter `claimgate/adapters/esp32_bridge.py`:
+  `move` / `read_sensor`, Pydantic untrusted boundary, `SimEsp32Bridge`,
+  Serial/MQTT stubs fail closed (no secrets), STR-disparity helper + §11 stop
+  criterion. Firmware sketches under `firmware/esp32/` with safety comments.
+- Docs: `docs/design/ESP32_BRIDGE_v0.1.md` (Koos/Mouret/Doncieux 2013;
+  OMNI-EPIC arXiv:2405.15568; ARE 2024 STR-disparity honesty).
+- Replay digest policy registration for `DiscoveryWireEvent` + `STRDisparityResult`.
+- No AGI / collective-intelligence / fabricated hardware-campaign claims.
+
 ### Open-ended discovery ClaimGate pipeline (waves الف–د)
 
 CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.

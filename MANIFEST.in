@@ -32,3 +32,5 @@ global-exclude *.html
 global-exclude *.patch
 global-exclude .grok_write_probe*.txt
 global-exclude .size_test_*.txt
+
+recursive-include firmware *

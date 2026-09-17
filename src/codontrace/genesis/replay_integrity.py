@@ -1336,3 +1336,27 @@ for _path, _fields in _HE02_HE03_PUBLIC_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_HE02_HE03_PUBLIC_DIGEST_FIELDS))
 )
+
+# Open-ended discovery ClaimGate pipeline (waves الف–د) public digest dataclasses.
+# Digests identify audit/campaign artifacts. They do not grant intelligence,
+# collective_intelligence, AGI, tokyo_type1_passed, or avida_replacement, and
+# they are not engine replay-identity pins A–E.
+_OPEN_ENDED_DISCOVERY_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.discovery_campaign.DiscoveryCampaignReport": (
+        "protocol_digest",
+        "archive_digest",
+    ),
+    "codontrace.genesis.discovery_witness.DiscoveryAuditReport": (
+        "candidate_digest",
+        "replay_digest",
+        "protocol_digest",
+    ),
+    "codontrace.genesis.discovery_witness.NegativeControlResult": ("candidate_digest",),
+    "codontrace.genesis.novelty_proposer.ArchiveSummary": ("archive_digest",),
+}
+for _path, _fields in _OPEN_ENDED_DISCOVERY_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_OPEN_ENDED_DISCOVERY_PUBLIC_DIGEST_FIELDS))
+)

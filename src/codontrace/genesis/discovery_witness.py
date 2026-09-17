@@ -11,7 +11,7 @@ import json
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import cast
+from typing import Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -941,3 +941,243 @@ def _int_tuple(data: Mapping[str, JsonValue], key: str) -> tuple[int, ...]:
         msg = f"{key} must be a list of integers."
         raise ConfigurationError(msg)
     return tuple(cast(list[int], raw))
+
+
+# --- Open-ended discovery ClaimGate pipeline (waves الف–د) -----------------
+# CandidateSpec / DiscoveryAuditReport are frozen digest-bearing witnesses.
+# They do not prove open-endedness, AGI, or collective intelligence.
+
+
+DiscoveryScale = Literal["S1", "S2", "research"]
+CLAIM_CEILING_RUNTIME = "runtime_observation"
+CLAIM_CEILING_DISCOVERY_CANDIDATE = "discovery_witness_candidate"
+_FORBIDDEN_DISCOVERY_CEILINGS = frozenset(
+    {
+        "collective_intelligence",
+        "intelligence",
+        "agi",
+        "tokyo_type1_passed",
+        "avida_replacement",
+        "open_ended_intelligence",
+        "proved_open_endedness",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateSpec:
+    """Immutable discovery candidate; digest identifies content, not proof."""
+
+    candidate_id: str
+    genome: str
+    descriptors: dict[str, float]
+    quality: float
+    source: str
+    metadata: dict[str, JsonValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.candidate_id:
+            msg = "CandidateSpec.candidate_id must not be empty."
+            raise ConfigurationError(msg)
+        if not self.source:
+            msg = "CandidateSpec.source must not be empty."
+            raise ConfigurationError(msg)
+        if isinstance(self.quality, bool) or not isinstance(self.quality, int | float):
+            msg = "CandidateSpec.quality must be numeric."
+            raise ConfigurationError(msg)
+        if not math.isfinite(float(self.quality)):
+            msg = "CandidateSpec.quality must be finite."
+            raise ConfigurationError(msg)
+        clean_desc: dict[str, float] = {}
+        for key, raw in self.descriptors.items():
+            if not isinstance(key, str) or isinstance(raw, bool) or not isinstance(raw, int | float):
+                msg = "CandidateSpec.descriptors must be string -> numeric."
+                raise ConfigurationError(msg)
+            value = float(raw)
+            if not math.isfinite(value):
+                msg = "CandidateSpec.descriptors values must be finite."
+                raise ConfigurationError(msg)
+            clean_desc[key] = value
+        object.__setattr__(self, "descriptors", clean_desc)
+        object.__setattr__(self, "quality", float(self.quality))
+        object.__setattr__(self, "metadata", dict(self.metadata))
+        object.__setattr__(self, "genome", str(self.genome))
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "candidate_id": self.candidate_id,
+            "genome": self.genome,
+            "descriptors": dict(sorted(self.descriptors.items())),
+            "quality": self.quality,
+            "source": self.source,
+            "metadata": dict(sorted(self.metadata.items())),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> CandidateSpec:
+        raw_desc = data.get("descriptors", {})
+        if not isinstance(raw_desc, Mapping):
+            msg = "CandidateSpec.descriptors must be an object."
+            raise ConfigurationError(msg)
+        return cls(
+            candidate_id=_str(data, "candidate_id"),
+            genome=_str(data, "genome", ""),
+            descriptors={str(k): float(v) for k, v in raw_desc.items()},  # validated in post_init
+            quality=_float(data, "quality", 0.0),
+            source=_str(data, "source"),
+            metadata=_metadata(data.get("metadata", {})),
+        )
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class NegativeControlResult:
+    """One of the three mandatory discovery negatives (HE01 lesson)."""
+
+    control_id: str
+    score: float
+    candidate_digest: str
+    reasons: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.control_id not in {
+            "proposer_random",
+            "proposer_shuffled_archive",
+            "archive_no_op",
+        }:
+            msg = f"Unknown discovery negative control_id: {self.control_id!r}."
+            raise ConfigurationError(msg)
+        if isinstance(self.score, bool) or not isinstance(self.score, int | float):
+            msg = "NegativeControlResult.score must be numeric."
+            raise ConfigurationError(msg)
+        if not math.isfinite(float(self.score)):
+            msg = "NegativeControlResult.score must be finite."
+            raise ConfigurationError(msg)
+        object.__setattr__(self, "score", float(self.score))
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "control_id": self.control_id,
+            "score": self.score,
+            "candidate_digest": self.candidate_digest,
+            "reasons": list(self.reasons),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> NegativeControlResult:
+        return cls(
+            control_id=_str(data, "control_id"),
+            score=_float(data, "score", 0.0),
+            candidate_digest=_str(data, "candidate_digest", ""),
+            reasons=_str_tuple(data, "reasons"),
+        )
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryAuditReport:
+    """Mandatory audit record before any archive admission."""
+
+    candidate_id: str
+    candidate_digest: str
+    scale: str
+    accepted: bool
+    claim_ceiling: str
+    novelty_score: float
+    margin: float
+    negative_controls: tuple[NegativeControlResult, ...]
+    beat_all_negatives: bool
+    reasons: tuple[str, ...]
+    replay_digest: str
+    protocol_digest: str
+
+    def __post_init__(self) -> None:
+        if self.scale not in {"S1", "S2", "research"}:
+            msg = "DiscoveryAuditReport.scale must be S1, S2, or research."
+            raise ConfigurationError(msg)
+        if self.claim_ceiling in _FORBIDDEN_DISCOVERY_CEILINGS:
+            msg = "DiscoveryAuditReport.claim_ceiling hit a forbidden alias."
+            raise ConfigurationError(msg)
+        if self.claim_ceiling not in {
+            CLAIM_CEILING_RUNTIME,
+            CLAIM_CEILING_DISCOVERY_CANDIDATE,
+        }:
+            msg = (
+                "DiscoveryAuditReport.claim_ceiling must be "
+                f"{CLAIM_CEILING_RUNTIME!r} or {CLAIM_CEILING_DISCOVERY_CANDIDATE!r}."
+            )
+            raise ConfigurationError(msg)
+        if self.accepted and self.claim_ceiling == CLAIM_CEILING_DISCOVERY_CANDIDATE:
+            if not self.beat_all_negatives:
+                msg = "Accepted discovery_witness_candidate requires beat_all_negatives."
+                raise ConfigurationError(msg)
+        if self.claim_ceiling == CLAIM_CEILING_DISCOVERY_CANDIDATE and not self.beat_all_negatives:
+            msg = "Ceiling above runtime_observation requires beating all three negatives."
+            raise ConfigurationError(msg)
+        for name in ("novelty_score", "margin"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(
+                float(value)
+            ):
+                msg = f"DiscoveryAuditReport.{name} must be finite numeric."
+                raise ConfigurationError(msg)
+        object.__setattr__(self, "novelty_score", float(self.novelty_score))
+        object.__setattr__(self, "margin", float(self.margin))
+        if len(self.negative_controls) != 3:
+            msg = "DiscoveryAuditReport requires exactly three negative controls."
+            raise ConfigurationError(msg)
+        control_ids = {item.control_id for item in self.negative_controls}
+        if control_ids != {
+            "proposer_random",
+            "proposer_shuffled_archive",
+            "archive_no_op",
+        }:
+            msg = "DiscoveryAuditReport negatives must be the HE01 three-control set."
+            raise ConfigurationError(msg)
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "candidate_id": self.candidate_id,
+            "candidate_digest": self.candidate_digest,
+            "scale": self.scale,
+            "accepted": self.accepted,
+            "claim_ceiling": self.claim_ceiling,
+            "novelty_score": self.novelty_score,
+            "margin": self.margin,
+            "negative_controls": [item.to_dict() for item in self.negative_controls],
+            "beat_all_negatives": self.beat_all_negatives,
+            "reasons": list(self.reasons),
+            "replay_digest": self.replay_digest,
+            "protocol_digest": self.protocol_digest,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> DiscoveryAuditReport:
+        raw_controls = data.get("negative_controls")
+        if not isinstance(raw_controls, list):
+            msg = "DiscoveryAuditReport.negative_controls must be a list."
+            raise ConfigurationError(msg)
+        return cls(
+            candidate_id=_str(data, "candidate_id"),
+            candidate_digest=_str(data, "candidate_digest"),
+            scale=_str(data, "scale", "S1"),
+            accepted=_bool(data, "accepted", False),
+            claim_ceiling=_str(data, "claim_ceiling", CLAIM_CEILING_RUNTIME),
+            novelty_score=_float(data, "novelty_score", 0.0),
+            margin=_float(data, "margin", 0.0),
+            negative_controls=tuple(
+                NegativeControlResult.from_dict(_mapping(item, "negative_control"))
+                for item in raw_controls
+            ),
+            beat_all_negatives=_bool(data, "beat_all_negatives", False),
+            reasons=_str_tuple(data, "reasons"),
+            replay_digest=_str(data, "replay_digest", ""),
+            protocol_digest=_str(data, "protocol_digest", ""),
+        )
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())

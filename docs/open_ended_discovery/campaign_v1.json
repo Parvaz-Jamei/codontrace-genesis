@@ -1,0 +1,247 @@
+{
+  "accept_count": 1,
+  "accept_rate": 0.2,
+  "archive_digest": "campaign_archive_empty_v1",
+  "beat_all_negatives_count": 1,
+  "campaign_id": "open_ended_discovery_campaign_v1",
+  "claim_ceiling": "runtime_observation",
+  "forbidden_claims": [
+    "agi",
+    "collective_intelligence",
+    "open_ended_intelligence",
+    "tokyo_type1_passed",
+    "avida_replacement"
+  ],
+  "honesty": "100% reject is valid data; do not fabricate passes. Ceiling stays runtime_observation unless proposals beat all three negatives.",
+  "literature": [
+    "Kumar et al. ASAL arXiv:2412.17799 / Artificial Life 2025",
+    "Flageat, Janmohamed, Lim & Cully IEEE TEVC 30(1):286-295 (2026) arXiv:2409.13315",
+    "MAP-Elites Mouret & Clune 2015; QD Chatzilygeroudis et al. 2021; OMNI-EPIC 2024",
+    "HE01 lesson: three discovery negatives required"
+  ],
+  "proposal_count": 5,
+  "protocol_digest": "e5f174d0f9c39742d7f05c4b30d1f0c9b4f30edbfd5d7500ec830301057c9a5c",
+  "reject_count": 4,
+  "reject_rate": 0.8,
+  "report_digest": "6dd6c7897bdede9d41faf7ff8101955952a122ee4cacd1d54db52a3bbbcd7e38",
+  "reports": [
+    {
+      "accepted": false,
+      "beat_all_negatives": false,
+      "candidate_digest": "328a6877369e79793f447d5a6fc8caec801d81cba526a66f93e2b5e1c9c14dbb",
+      "candidate_id": "random:7:RAND:337731",
+      "claim_ceiling": "runtime_observation",
+      "margin": 0.15,
+      "negative_controls": [
+        {
+          "candidate_digest": "2afa6f0f27883e77c6a88c7d55fcde7c5f85ba62360e3a094158062f3aa7813e",
+          "control_id": "proposer_random",
+          "reasons": [
+            "random_proposer_baseline"
+          ],
+          "score": 0.633038457
+        },
+        {
+          "candidate_digest": "c9d7f9164ef25941e12f2b003a1b5fc208e086c0fbbb11bf4f1ad2d1a8de6f97",
+          "control_id": "proposer_shuffled_archive",
+          "reasons": [
+            "archive_summary_shuffled_before_propose",
+            "delta=-0.0264700912"
+          ],
+          "score": 0.554794512
+        },
+        {
+          "candidate_digest": "b943672da65a8909f333655c5b3e2f056d4cb5c1a7c012935fe6a6274dddb13b",
+          "control_id": "archive_no_op",
+          "reasons": [
+            "neutral_archive_admission_probe"
+          ],
+          "score": 0.2517811661
+        }
+      ],
+      "novelty_score": 0.5283244208,
+      "protocol_digest": "1fd27260c09e8a9e7230b8a03b1e1208762132f61ffec69aa7e6b34e6c1b502f",
+      "reasons": [
+        "not_better_than_proposer_random",
+        "not_better_than_proposer_shuffled_archive",
+        "held_at_runtime_observation"
+      ],
+      "replay_digest": "7291365d852865d9f13ca428c0ebf9ef096a8123105dbc46346e830a302c0e0b",
+      "scale": "S1"
+    },
+    {
+      "accepted": true,
+      "beat_all_negatives": true,
+      "candidate_digest": "80321e217d9bfece380003a60ae535a244a975880f40244d0bf2a69ae28ebffa",
+      "candidate_id": "random:8:RAND:871869",
+      "claim_ceiling": "discovery_witness_candidate",
+      "margin": 0.15,
+      "negative_controls": [
+        {
+          "candidate_digest": "2afa6f0f27883e77c6a88c7d55fcde7c5f85ba62360e3a094158062f3aa7813e",
+          "control_id": "proposer_random",
+          "reasons": [
+            "random_proposer_baseline"
+          ],
+          "score": 0.633038457
+        },
+        {
+          "candidate_digest": "c9d7f9164ef25941e12f2b003a1b5fc208e086c0fbbb11bf4f1ad2d1a8de6f97",
+          "control_id": "proposer_shuffled_archive",
+          "reasons": [
+            "archive_summary_shuffled_before_propose",
+            "delta=0.6606383098"
+          ],
+          "score": 0.554794512
+        },
+        {
+          "candidate_digest": "b943672da65a8909f333655c5b3e2f056d4cb5c1a7c012935fe6a6274dddb13b",
+          "control_id": "archive_no_op",
+          "reasons": [
+            "neutral_archive_admission_probe"
+          ],
+          "score": 0.2517811661
+        }
+      ],
+      "novelty_score": 1.2154328218,
+      "protocol_digest": "1fd27260c09e8a9e7230b8a03b1e1208762132f61ffec69aa7e6b34e6c1b502f",
+      "reasons": [
+        "meaningfully_better_than_all_three_negatives"
+      ],
+      "replay_digest": "3488b1cb6b05ce9098084b9b7ff66ce7812ebb3804a3f5127df46d164311211f",
+      "scale": "S1"
+    },
+    {
+      "accepted": false,
+      "beat_all_negatives": false,
+      "candidate_digest": "85a7ed85795e4be1eb34c599a5312563973ea9627867d26b5bb72e184ff3f7aa",
+      "candidate_id": "stub:17:STUB:stub-novelty-v0:801118",
+      "claim_ceiling": "runtime_observation",
+      "margin": 0.15,
+      "negative_controls": [
+        {
+          "candidate_digest": "2afa6f0f27883e77c6a88c7d55fcde7c5f85ba62360e3a094158062f3aa7813e",
+          "control_id": "proposer_random",
+          "reasons": [
+            "random_proposer_baseline"
+          ],
+          "score": 0.633038457
+        },
+        {
+          "candidate_digest": "c9d7f9164ef25941e12f2b003a1b5fc208e086c0fbbb11bf4f1ad2d1a8de6f97",
+          "control_id": "proposer_shuffled_archive",
+          "reasons": [
+            "archive_summary_shuffled_before_propose",
+            "delta=0.0494594564"
+          ],
+          "score": 0.554794512
+        },
+        {
+          "candidate_digest": "b943672da65a8909f333655c5b3e2f056d4cb5c1a7c012935fe6a6274dddb13b",
+          "control_id": "archive_no_op",
+          "reasons": [
+            "neutral_archive_admission_probe"
+          ],
+          "score": 0.2517811661
+        }
+      ],
+      "novelty_score": 0.6042539684,
+      "protocol_digest": "1fd27260c09e8a9e7230b8a03b1e1208762132f61ffec69aa7e6b34e6c1b502f",
+      "reasons": [
+        "not_better_than_proposer_random",
+        "not_better_than_proposer_shuffled_archive",
+        "held_at_runtime_observation"
+      ],
+      "replay_digest": "d788f9649a5ecce6c37388d1c5449d1557144999b9985c84f07b42c80fd011e9",
+      "scale": "S1"
+    },
+    {
+      "accepted": false,
+      "beat_all_negatives": false,
+      "candidate_digest": "b900f4239e93e47e055e4bed15916e76bfc9861381a9f222e992b33f6f3ca846",
+      "candidate_id": "stub:18:STUB:stub-novelty-v0:408000",
+      "claim_ceiling": "runtime_observation",
+      "margin": 0.15,
+      "negative_controls": [
+        {
+          "candidate_digest": "2afa6f0f27883e77c6a88c7d55fcde7c5f85ba62360e3a094158062f3aa7813e",
+          "control_id": "proposer_random",
+          "reasons": [
+            "random_proposer_baseline"
+          ],
+          "score": 0.633038457
+        },
+        {
+          "candidate_digest": "c9d7f9164ef25941e12f2b003a1b5fc208e086c0fbbb11bf4f1ad2d1a8de6f97",
+          "control_id": "proposer_shuffled_archive",
+          "reasons": [
+            "archive_summary_shuffled_before_propose",
+            "delta=-0.0075042801"
+          ],
+          "score": 0.554794512
+        },
+        {
+          "candidate_digest": "b943672da65a8909f333655c5b3e2f056d4cb5c1a7c012935fe6a6274dddb13b",
+          "control_id": "archive_no_op",
+          "reasons": [
+            "neutral_archive_admission_probe"
+          ],
+          "score": 0.2517811661
+        }
+      ],
+      "novelty_score": 0.5472902319,
+      "protocol_digest": "1fd27260c09e8a9e7230b8a03b1e1208762132f61ffec69aa7e6b34e6c1b502f",
+      "reasons": [
+        "not_better_than_proposer_random",
+        "not_better_than_proposer_shuffled_archive",
+        "held_at_runtime_observation"
+      ],
+      "replay_digest": "cf3eac758bfe75b474ed36fc7103167940013932598014237938a29f7247c5f1",
+      "scale": "S1"
+    },
+    {
+      "accepted": false,
+      "beat_all_negatives": false,
+      "candidate_digest": "6de4d8bd15cbcda13cc111e7ac659070cd94781724fa082e35150a29a3a66d9f",
+      "candidate_id": "random:9:RAND:764700",
+      "claim_ceiling": "runtime_observation",
+      "margin": 0.15,
+      "negative_controls": [
+        {
+          "candidate_digest": "2afa6f0f27883e77c6a88c7d55fcde7c5f85ba62360e3a094158062f3aa7813e",
+          "control_id": "proposer_random",
+          "reasons": [
+            "random_proposer_baseline"
+          ],
+          "score": 0.633038457
+        },
+        {
+          "candidate_digest": "c9d7f9164ef25941e12f2b003a1b5fc208e086c0fbbb11bf4f1ad2d1a8de6f97",
+          "control_id": "proposer_shuffled_archive",
+          "reasons": [
+            "archive_summary_shuffled_before_propose",
+            "delta=0.1514893547"
+          ],
+          "score": 0.554794512
+        },
+        {
+          "candidate_digest": "b943672da65a8909f333655c5b3e2f056d4cb5c1a7c012935fe6a6274dddb13b",
+          "control_id": "archive_no_op",
+          "reasons": [
+            "neutral_archive_admission_probe"
+          ],
+          "score": 0.2517811661
+        }
+      ],
+      "novelty_score": 0.7062838667,
+      "protocol_digest": "1fd27260c09e8a9e7230b8a03b1e1208762132f61ffec69aa7e6b34e6c1b502f",
+      "reasons": [
+        "not_better_than_proposer_random",
+        "held_at_runtime_observation"
+      ],
+      "replay_digest": "906c83f23e9368f9a6aa5045652af478b1a7aa8af1f344f4b10afe6e7bd9364f",
+      "scale": "S1"
+    }
+  ],
+  "scale": "S1"
+}

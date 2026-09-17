@@ -57,7 +57,9 @@ dev = [
   "mypy>=2.0,<3",
   "build>=1.5,<2",
   "twine>=6.2,<7",
-  "pip-audit>=2.10,<3"
+  "pip-audit>=2.10,<3",
+  "hypothesis>=6.0,<7",
+  "pydantic>=2.0,<3"
 ]
 science = [
   "numpy>=2.0,<3",

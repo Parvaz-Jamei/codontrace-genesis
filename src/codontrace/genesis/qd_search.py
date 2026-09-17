@@ -12,11 +12,14 @@ import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace.rng import RNGManager
+
+DiscoveryPipelineScale = Literal["S1", "S2", "research"]
 
 
 class QDDescriptorFamily(str, Enum):
@@ -86,6 +89,75 @@ class QDDescriptorConfig:
         return _digest(self.to_dict())
 
 
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryWireConfig:
+    """Optional qd_search → NoveltyProposer → ClaimGate admission hook.
+
+    Default OFF. When disabled, omitted from ``QDSearchConfig.to_dict()`` so
+    digests and A–E pins stay unchanged. Does not claim AGI or open-ended proof.
+    """
+
+    enabled: bool = False
+    propose_every_n_generations: int = 50
+    scale: DiscoveryPipelineScale = "S1"
+    max_admissions_per_hook: int = 1
+
+    def __post_init__(self) -> None:
+        if self.propose_every_n_generations <= 0:
+            raise ConfigurationError(
+                "DiscoveryWireConfig.propose_every_n_generations must be > 0."
+            )
+        if self.max_admissions_per_hook <= 0:
+            raise ConfigurationError(
+                "DiscoveryWireConfig.max_admissions_per_hook must be > 0."
+            )
+        if self.scale not in {"S1", "S2", "research"}:
+            raise ConfigurationError(
+                f"DiscoveryWireConfig.scale unsupported: {self.scale!r}"
+            )
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "enabled": self.enabled,
+            "propose_every_n_generations": self.propose_every_n_generations,
+            "scale": self.scale,
+            "max_admissions_per_hook": self.max_admissions_per_hook,
+        }
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryWireEvent:
+    """One propose→audit→(optional) archive-admission observation."""
+
+    generation: int
+    candidate_id: str
+    candidate_digest: str
+    audit_digest: str
+    accepted: bool
+    claim_ceiling: str
+    admitted_to_archive: bool
+    innovation_id: str | None = None
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "generation": self.generation,
+            "candidate_id": self.candidate_id,
+            "candidate_digest": self.candidate_digest,
+            "audit_digest": self.audit_digest,
+            "accepted": self.accepted,
+            "claim_ceiling": self.claim_ceiling,
+            "admitted_to_archive": self.admitted_to_archive,
+            "innovation_id": self.innovation_id,
+        }
+
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+
 @dataclass(frozen=True, slots=True)
 class QDSearchConfig:
     descriptor_config: QDDescriptorConfig = field(default_factory=QDDescriptorConfig.default)
@@ -94,6 +166,7 @@ class QDSearchConfig:
     novelty_weight: float = 0.0
     seed: int = 1
     qd_selection_enabled: bool = True
+    discovery_wire: DiscoveryWireConfig = field(default_factory=DiscoveryWireConfig)
 
     def __post_init__(self) -> None:
         if self.generations < 0 or self.offspring_per_generation <= 0:
@@ -101,7 +174,8 @@ class QDSearchConfig:
         object.__setattr__(self, "novelty_weight", finite_float("novelty_weight", self.novelty_weight, non_negative=True))
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        # Omit discovery_wire when disabled so digests stay pin-stable.
+        payload: dict[str, JsonValue] = {
             "descriptor_config": self.descriptor_config.to_dict(),
             "generations": self.generations,
             "offspring_per_generation": self.offspring_per_generation,
@@ -109,6 +183,9 @@ class QDSearchConfig:
             "seed": self.seed,
             "qd_selection_enabled": self.qd_selection_enabled,
         }
+        if self.discovery_wire.enabled:
+            payload["discovery_wire"] = self.discovery_wire.to_dict()
+        return payload
 
     def digest(self) -> str:
         return _digest(self.to_dict())
@@ -274,13 +351,20 @@ class QDSearchRunResult:
     config: QDSearchConfig
     steps: tuple[QDSearchStepResult, ...]
     archive: QDSearchArchive
+    discovery_wire_events: tuple[DiscoveryWireEvent, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "config": self.config.to_dict(),
             "steps": [item.to_dict() for item in self.steps],
             "archive": self.archive.to_dict(),
         }
+        # Omit empty wire events so default-off digests stay unchanged.
+        if self.discovery_wire_events:
+            payload["discovery_wire_events"] = [
+                item.to_dict() for item in self.discovery_wire_events
+            ]
+        return payload
 
     def digest(self) -> str:
         return _digest(self.to_dict())
@@ -292,10 +376,12 @@ class QDSearchRunner:
         config: QDSearchConfig,
         evaluator: Callable[[str], tuple[float, Mapping[str, float]]],
         emitter: QDEmitter | None = None,
+        proposer: object | None = None,
     ) -> None:
         self.config = config
         self.evaluator = evaluator
         self.emitter = emitter or MutationEmitter()
+        self.proposer = proposer
 
     def run(self, initial_genomes: Sequence[str]) -> QDSearchRunResult:
         if not initial_genomes:
@@ -303,6 +389,7 @@ class QDSearchRunner:
         rng = RNGManager(seed=self.config.seed, namespace="qd_search")
         archive = QDSearchArchive()
         steps: list[QDSearchStepResult] = []
+        wire_events: list[DiscoveryWireEvent] = []
         parents = list(initial_genomes)
         for generation in range(self.config.generations):
             selections: list[QDParentSelection] = []
@@ -331,6 +418,14 @@ class QDSearchRunner:
                 inserted += int(was_inserted)
                 selections.append(QDParentSelection(parent, source, self.config.novelty_weight))
                 parents.append(genome)
+            if self.config.discovery_wire.enabled:
+                archive, gen_events = _run_discovery_wire_hook(
+                    archive=archive,
+                    config=self.config,
+                    generation=generation,
+                    proposer=self.proposer,
+                )
+                wire_events.extend(gen_events)
             steps.append(
                 QDSearchStepResult(
                     generation,
@@ -340,7 +435,9 @@ class QDSearchRunner:
                     tuple(selections),
                 )
             )
-        return QDSearchRunResult(self.config, tuple(steps), archive)
+        return QDSearchRunResult(
+            self.config, tuple(steps), archive, tuple(wire_events)
+        )
 
 
 class QDCandidateSearchRunner:
@@ -459,6 +556,114 @@ class QDCandidateSearchRunner:
                 )
             )
         return QDSearchRunResult(self.config, tuple(steps), archive)
+
+
+
+def _archive_summary_for_wire(archive: QDSearchArchive, config: QDSearchConfig):
+    from codontrace.genesis.novelty_proposer import archive_summary_from_qd
+
+    elites = list(archive.elites.values())
+    qualities = [item.quality for item in elites]
+    best = max(qualities) if qualities else None
+    mean = (sum(qualities) / len(qualities)) if qualities else None
+    bin_count = 1
+    for name in config.descriptor_config.descriptor_names:
+        bin_count *= config.descriptor_config.bins_per_descriptor.get(name, 8)
+    coverage = (len(elites) / bin_count) if bin_count else 0.0
+    return archive_summary_from_qd(
+        archive_digest=archive.digest(),
+        filled_bins=len(elites),
+        coverage=min(1.0, coverage),
+        best_fitness=best,
+        mean_fitness=mean,
+        descriptor_names=config.descriptor_config.descriptor_names,
+        elite_genomes=tuple(item.genome for item in elites[:32]),
+    )
+
+
+def _candidate_for_archive(
+    candidate_spec: object, config: QDSearchConfig
+) -> QDSearchCandidate:
+    genome = str(getattr(candidate_spec, "genome", "") or getattr(candidate_spec, "candidate_id", "wire"))
+    quality = float(getattr(candidate_spec, "quality", 0.0))
+    raw_desc = dict(getattr(candidate_spec, "descriptors", {}) or {})
+    descriptors: dict[str, float] = {}
+    for name in config.descriptor_config.descriptor_names:
+        if name in raw_desc:
+            descriptors[name] = float(raw_desc[name])
+        else:
+            # Map missing dims to midpoint of configured range (honest filler).
+            lo = config.descriptor_config.min_values.get(name, 0.0)
+            hi = config.descriptor_config.max_values.get(name, 1.0)
+            descriptors[name] = (lo + hi) / 2.0
+    return QDSearchCandidate(genome, quality, descriptors, None)
+
+
+def _run_discovery_wire_hook(
+    *,
+    archive: QDSearchArchive,
+    config: QDSearchConfig,
+    generation: int,
+    proposer: object | None,
+) -> tuple[QDSearchArchive, list[DiscoveryWireEvent]]:
+    """Every N generations: propose → S1 pipeline → admit only if ceiling allows."""
+
+    wire = config.discovery_wire
+    if not wire.enabled:
+        return archive, []
+    n = wire.propose_every_n_generations
+    # Fire on generations N-1, 2N-1, ... (1-indexed every N).
+    if (generation + 1) % n != 0:
+        return archive, []
+
+    from codontrace.genesis.discovery_runner import run_discovery_pipeline
+    from codontrace.genesis.discovery_witness import CLAIM_CEILING_DISCOVERY_CANDIDATE
+    from codontrace.genesis.innovation_protection import build_innovation_record
+    from codontrace.genesis.novelty_proposer import RandomProposer
+
+    active_proposer = proposer if proposer is not None else RandomProposer(
+        seed=config.seed + generation * 17
+    )
+    summary = _archive_summary_for_wire(archive, config)
+    events: list[DiscoveryWireEvent] = []
+    for hook_index in range(wire.max_admissions_per_hook):
+        candidate = active_proposer.propose(summary)  # type: ignore[attr-defined]
+        report = run_discovery_pipeline(
+            candidate, scale=wire.scale, archive_summary=summary
+        )
+        admitted = False
+        innovation_id: str | None = None
+        if report.accepted and report.claim_ceiling == CLAIM_CEILING_DISCOVERY_CANDIDATE:
+            archive_candidate = _candidate_for_archive(candidate, config)
+            archive, _was_inserted = archive.update(
+                archive_candidate, config.descriptor_config
+            )
+            admitted = True
+            record = build_innovation_record(
+                innovation_id=f"wire:{candidate.candidate_id}",
+                kind="discovery_wire_admission",
+                first_seen_generation=generation,
+                lineage_id=candidate.candidate_id,
+                novelty_score=float(report.novelty_score),
+                contribution_digest=report.digest(),
+                niche_id="discovery_wire",
+            )
+            innovation_id = record.innovation_id
+        events.append(
+            DiscoveryWireEvent(
+                generation=generation,
+                candidate_id=candidate.candidate_id,
+                candidate_digest=candidate.digest(),
+                audit_digest=report.digest(),
+                accepted=report.accepted,
+                claim_ceiling=report.claim_ceiling,
+                admitted_to_archive=admitted,
+                innovation_id=innovation_id,
+            )
+        )
+        # Avoid unused-var lint if max_admissions is 1.
+        _ = hook_index
+    return archive, events
 
 
 def _digest(payload: Mapping[str, JsonValue]) -> str:

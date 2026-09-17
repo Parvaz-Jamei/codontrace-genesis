@@ -1360,3 +1360,23 @@ for _path, _fields in _OPEN_ENDED_DISCOVERY_PUBLIC_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_OPEN_ENDED_DISCOVERY_PUBLIC_DIGEST_FIELDS))
 )
+
+# Discovery-wire + ESP32 Moj-ه public digest dataclasses (post waves الف–د).
+# Digests identify wire/audit/STR records. They do not grant intelligence,
+# collective_intelligence, AGI, tokyo_type1_passed, avida_replacement, or a
+# completed physical robot campaign. Pins A–E unchanged when discovery_wire is off.
+_DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.qd_search.DiscoveryWireEvent": (
+        "candidate_digest",
+        "audit_digest",
+    ),
+    "codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult": ("record_digest",),
+}
+for _path, _fields in _DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys(
+        (*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS)
+    )
+)

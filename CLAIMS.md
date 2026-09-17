@@ -568,3 +568,25 @@ Forbidden: AGI, collective intelligence, open-ended intelligence, Tokyo Type 1
 passed, Avida replacement. Phase A–E digest pins untouched. Zero ESP32 code in
 this wave set.
 
+## Discovery-wire + ESP32 Moj-ه (post waves الف–د)
+
+Design: [`docs/design/ESP32_BRIDGE_v0.1.md`](docs/design/ESP32_BRIDGE_v0.1.md);
+wire hook in `qd_search.DiscoveryWireConfig` (default off).
+
+Literature cited (no overclaim): Koos, Mouret & Doncieux, IEEE TEC 17(1):122–145
+(2013) transferability / reality gap; ESP32 as thin execute+sense bridge
+(MQTT/UART); OMNI-EPIC arXiv:2405.15568 bounded archive; ARE 2024 heterogeneous
+reality gap — document STR-disparity honestly.
+
+ClaimGate ceiling granted: **`runtime_observation`** unless a wired proposal
+clears all three discovery negatives (`discovery_witness_candidate` for that
+candidate only). Digests omit `discovery_wire` when disabled so A–E pins hold.
+
+ESP32 status: **software + `SimEsp32Bridge` + fail-closed transport stubs only**.
+**No claim that physical robots ran.** No fabricated hardware results. Stop
+criterion (goal §11): after 20 real tests, if STR-disparity is not better than
+the no-transfer baseline → stop / redesign.
+
+Forbidden: AGI, collective intelligence, open-ended intelligence, Tokyo Type 1
+passed, Avida replacement, completed physical robot campaign claims.
+

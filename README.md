@@ -47,8 +47,8 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI tip | `0.3.0b3` — Phase A–G (life-loop + materials). Confirm on [PyPI](https://pypi.org/project/codontrace/). |
-| GitHub `main` / this PR | Development identity `0.3.0b4.dev0` (Phases H–L plus hygiene / hard experiment 01). |
+| Public PyPI tip | `0.3.0b4` — Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline. Confirm on [PyPI](https://pypi.org/project/codontrace/). |
+| GitHub `main` | Release identity `0.3.0b4` (research beta). |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
@@ -56,7 +56,7 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 
 ### Phases A–L
 
-Phases A–G are the public `0.3.0b3` substrate. Phases H–L are on `main` only until a later release.
+Phases A–G remain the earlier `0.3.0b3` substrate. Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline ship in public `0.3.0b4`.
 
 | Phase | What landed | Claim ceiling |
 |---|---|---|
@@ -83,22 +83,22 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b3` (Phases A–G). This branch reports development identity `0.3.0b4.dev0` (H–L plus hygiene / hard experiment 01). Install from source if you need the post–Phase G pathway code.
+The published wheel is `codontrace==0.3.0b4` (Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline). Older `0.3.0b3` remains the A–G substrate tip.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
-### From PyPI (`0.3.0b3`)
+### From PyPI (`0.3.0b4`)
 
 ```bash
-pip install codontrace==0.3.0b3
+pip install codontrace==0.3.0b4
 ```
 
 Optional research extras:
 
 ```bash
-pip install "codontrace[research]==0.3.0b3"
-pip install "codontrace[causal]==0.3.0b3"
-pip install "codontrace[qd]==0.3.0b3"
+pip install "codontrace[research]==0.3.0b4"
+pip install "codontrace[causal]==0.3.0b4"
+pip install "codontrace[qd]==0.3.0b4"
 ```
 
 ### From source (`main`, may be ahead of PyPI)
@@ -113,7 +113,7 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the current tip should print `0.3.0b3`. This checkout prints `0.3.0b4.dev0`. Do not treat the version tuple as a phase fence.
+A PyPI install of the current tip should print `0.3.0b4`. Do not treat the version tuple as a phase fence.
 
 ---
 

@@ -1,0 +1,39 @@
+{
+  "schema": "hard_experiment_02_analysis_v1b",
+  "source_artifact": "docs/hard_experiment_02/results_v1.json",
+  "source_digest": "45741d911facd4eae0e7f000c2fcd3873280d4b344d3266c4fab9fbe28295419",
+  "bug": "paired_effect_size was called with two arm vectors; TypeError swallowed; dz/p stored null",
+  "primary_outcome": "receiver_mean_terminal_runtime_atp",
+  "claim_ceiling": "runtime_observation",
+  "decision_rule_passed": false,
+  "decision_rule_failures": [
+    "information_control_not_separated"
+  ],
+  "note": "Holm survives vs content_null and channel_off; not vs capsules_shuffled. Mean ATP delta vs off is 0.533 on baseline 44. No ClaimGate upgrade.",
+  "paired_contrasts": [
+    {
+      "treatment_arm": "treatment",
+      "baseline_arm": "content_null",
+      "dz": 1.1294252408,
+      "p_raw": 4.99975e-05,
+      "p_holm": 0.0001499925,
+      "n_pairs": 30
+    },
+    {
+      "treatment_arm": "treatment",
+      "baseline_arm": "channel_off",
+      "dz": 1.1294252408,
+      "p_raw": 4.99975e-05,
+      "p_holm": 0.0001499925,
+      "n_pairs": 30
+    },
+    {
+      "treatment_arm": "treatment",
+      "baseline_arm": "capsules_shuffled",
+      "dz": 0.195366691,
+      "p_raw": 0.365731713414,
+      "p_holm": 0.365731713414,
+      "n_pairs": 30
+    }
+  ]
+}

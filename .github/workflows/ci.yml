@@ -54,7 +54,8 @@ jobs:
               name = path.name
               if name.startswith(".grok_write_probe"):
                   return True
-              if name.startswith(".size_test_") and path.suffix == ".txt":n                  return True
+              if name.startswith(".size_test_") and path.suffix == ".txt":
+                  return True
               return any(
                   fnmatch.fnmatch(name, pattern)
                   for pattern in ("*_FULL_RESTORE*", "*_backup*", "*.orig")

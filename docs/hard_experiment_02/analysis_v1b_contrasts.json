@@ -1,7 +1,8 @@
 {
   "schema": "hard_experiment_02_analysis_v1b",
   "source_artifact": "docs/hard_experiment_02/results_v1.json",
-  "source_digest": "45741d911facd4eae0e7f000c2fcd3873280d4b344d3266c4fab9fbe28295419",
+  "as_run_digest": "45741d911facd4eae0e7f000c2fcd3873280d4b344d3266c4fab9fbe28295419",
+  "source_digest": "4909c1ed7243137eee2758b6024dca184987cce28672aadb1cb2e2f0b0d96bf4",
   "bug": "paired_effect_size was called with two arm vectors; TypeError swallowed; dz/p stored null",
   "primary_outcome": "receiver_mean_terminal_runtime_atp",
   "claim_ceiling": "runtime_observation",
@@ -9,7 +10,7 @@
   "decision_rule_failures": [
     "information_control_not_separated"
   ],
-  "note": "Holm survives vs content_null and channel_off; not vs capsules_shuffled. Mean ATP delta vs off is 0.533 on baseline 44. No ClaimGate upgrade.",
+  "note": "Contrasts inlined into results_v1.json. as_run_digest is the pre-correction payload. Holm survives vs content_null and channel_off; not vs capsules_shuffled. Mean ATP delta vs off is 0.533 on baseline 44. No ClaimGate upgrade.",
   "paired_contrasts": [
     {
       "treatment_arm": "treatment",

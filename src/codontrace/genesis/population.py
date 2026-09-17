@@ -107,6 +107,12 @@ from codontrace.genesis.stepping_stone_reward import (
     SteppingStoneRewardRecord,
     apply_stepping_stone_rewards,
 )
+from codontrace.genesis.task_switch_cost import (
+    TaskSwitchCostConfig,
+    TaskSwitchCostRecord,
+    apply_task_switch_cost,
+    update_task_activity,
+)
 from codontrace.genesis.materials import (
     MaterialEvent,
     MaterialsConfig,
@@ -1310,6 +1316,7 @@ class GenerationResult:
     materials_snapshot: MaterialsSnapshot | None = None
     materials_world_events: tuple[WorldEvent, ...] = ()
     food_patch_signal_records: tuple[FoodPatchSignalRecord, ...] = ()
+    task_switch_cost_records: tuple[TaskSwitchCostRecord, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload: dict[str, JsonValue] = {
@@ -1374,6 +1381,10 @@ class GenerationResult:
         if self.food_patch_signal_records:
             payload["food_patch_signal_records"] = [
                 item.to_dict() for item in self.food_patch_signal_records
+            ]
+        if self.task_switch_cost_records:
+            payload["task_switch_cost_records"] = [
+                item.to_dict() for item in self.task_switch_cost_records
             ]
         return payload
 
@@ -1498,6 +1509,11 @@ class GenerationResult:
                 for item in _list(data, "food_patch_signal_records")
                 if isinstance(item, Mapping)
             ),
+            task_switch_cost_records=tuple(
+                TaskSwitchCostRecord.from_dict(item)
+                for item in _list(data, "task_switch_cost_records")
+                if isinstance(item, Mapping)
+            ),
         )
 
     def digest(self) -> str:
@@ -1540,6 +1556,7 @@ class PopulationConfigs:
     stepping_stone_reward: SteppingStoneRewardConfig = field(
         default_factory=SteppingStoneRewardConfig
     )
+    task_switch_cost: TaskSwitchCostConfig = field(default_factory=TaskSwitchCostConfig)
 
     def __post_init__(self) -> None:
         if self.ticks_per_generation <= 0:
@@ -1620,6 +1637,8 @@ class PopulationConfigs:
             payload["deme_selection"] = self.deme_selection.to_dict()
         if self.stepping_stone_reward.enabled:
             payload["stepping_stone_reward"] = self.stepping_stone_reward.to_dict()
+        if self.task_switch_cost.enabled:
+            payload["task_switch_cost"] = self.task_switch_cost.to_dict()
         return payload
 
     @classmethod
@@ -1642,6 +1661,7 @@ class PopulationConfigs:
         food_patch_signal_raw = data.get("food_patch_signal")
         deme_selection_raw = data.get("deme_selection")
         stepping_stone_reward_raw = data.get("stepping_stone_reward")
+        task_switch_cost_raw = data.get("task_switch_cost")
         return cls(
             reproduction=ReproductionConfig.from_dict(reproduction_raw)
             if isinstance(reproduction_raw, Mapping)
@@ -1710,6 +1730,9 @@ class PopulationConfigs:
             stepping_stone_reward=SteppingStoneRewardConfig.from_dict(stepping_stone_reward_raw)
             if isinstance(stepping_stone_reward_raw, Mapping)
             else SteppingStoneRewardConfig(),
+            task_switch_cost=TaskSwitchCostConfig.from_dict(task_switch_cost_raw)
+            if isinstance(task_switch_cost_raw, Mapping)
+            else TaskSwitchCostConfig(),
         )
 
 
@@ -2855,6 +2878,8 @@ def step_population(
 
     active_food_patches: tuple[FoodPatchState, ...] = ()
     food_patch_signal_records: list[FoodPatchSignalRecord] = []
+    task_switch_cost_records: list[TaskSwitchCostRecord] = []
+    last_task_by_organism: dict[str, str] = {}
     for organism in sorted(organism_clones, key=lambda item: item.id):
         if organism.id not in live_positions:
             continue
@@ -3102,6 +3127,20 @@ def step_population(
                 )
             event = organism.step(working_world, trace, blocked_positions=blocked_positions)
             live_positions[organism.id] = organism.position
+            if configs.task_switch_cost.enabled:
+                prev_task = last_task_by_organism.get(str(organism.id))
+                current_task, switch_record = apply_task_switch_cost(
+                    tick=int(current_tick),
+                    organism_id=str(organism.id),
+                    action=str(event.action),
+                    previous_task=prev_task,
+                    config=configs.task_switch_cost,
+                    atp_state=organism.atp_state,
+                )
+                if current_task is not None:
+                    last_task_by_organism[str(organism.id)] = current_task
+                if switch_record is not None:
+                    task_switch_cost_records.append(switch_record)
             if capsule_action_coupling is not None:
                 _track_capsule_payload_action(organism, event, capsule_action_coupling)
             if configs.logic9.enabled:
@@ -3970,6 +4009,7 @@ def step_population(
         materials_snapshot=materials_snapshot,
         materials_world_events=materials_world_events,
         food_patch_signal_records=tuple(food_patch_signal_records),
+        task_switch_cost_records=tuple(task_switch_cost_records),
     )
 
 def _apply_runtime_resource_policy(

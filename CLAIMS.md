@@ -531,3 +531,20 @@ Pilot / research JSON artifacts under `docs/hard_experiment_02/` are
 observational until ClaimGate explicitly grants a higher rung after
 manipulation checks and Holm-surviving contrasts clear.
 
+## HARD_EXPERIMENT_03 (task-switch DoL; E3)
+
+Prereg: [`docs/HARD_EXPERIMENT_03_PREREG.md`](docs/HARD_EXPERIMENT_03_PREREG.md).
+Science brief: [`docs/hard_experiment_03/HE03_SCIENCE_BRIEF.md`](docs/hard_experiment_03/HE03_SCIENCE_BRIEF.md).
+
+ClaimGate ceiling granted: **`runtime_observation`** (level 1 / start).
+`intervention_supported` is not granted by this entry. Forbidden aliases
+(`intelligence`, `collective_intelligence`, `AGI`, Tokyo Type 1, Avida
+replacement) remain blocked. Phase A–E digest pins are untouched.
+
+IsolationAssay is a **secondary** readout of lost lower-level autonomy under
+task-switch costs (Goldsby-style). It is not a collective-intelligence claim.
+Pilot / research JSON under `docs/hard_experiment_03/` remain observational
+until ClaimGate explicitly grants a higher rung after manipulation checks and
+Holm-surviving contrasts clear. No fabricated `results_v1.json` in the
+implementation PR.
+

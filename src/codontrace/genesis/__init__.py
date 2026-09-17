@@ -892,6 +892,33 @@ from codontrace.genesis.hard_experiment_02 import (
     run_hard_experiment_02,
     write_hard_experiment_02_results,
 )
+from codontrace.genesis.task_switch_cost import (
+    TaskSwitchCostConfig,
+    TaskSwitchCostRecord,
+    apply_task_switch_cost,
+)
+from codontrace.genesis.isolation_assay import (
+    IsolationAssayConfig,
+    IsolationAssayResult,
+    run_isolation_assay,
+)
+from codontrace.genesis.metrics.division_of_labor import (
+    GorelickNMIResult,
+    gorelick_nmi,
+)
+from codontrace.genesis.hard_experiment_03 import (
+    HardExperiment03Campaign,
+    HardExperiment03Intervention,
+    build_hard_experiment_03_spec,
+    evaluate_hard_experiment_03_claim,
+    evaluate_hard_experiment_03_pilot_gates,
+    format_hard_experiment_03_summary,
+    hard_experiment_03_causal_dag,
+    hard_experiment_03_interventions,
+    hard_experiment_03_prereg_digest,
+    run_hard_experiment_03,
+    write_hard_experiment_03_results,
+)
 
 from codontrace.genesis.rag import (
     RankedHit,

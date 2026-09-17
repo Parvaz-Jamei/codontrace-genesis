@@ -1303,3 +1303,36 @@ for _path, _fields in _ILW_PUBLIC_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_ILW_PUBLIC_DIGEST_FIELDS))
 )
+
+# HARD_EXPERIMENT_02 / HARD_EXPERIMENT_03 public digest dataclasses.
+# Digests identify observational campaign / signal artifacts. They do not grant
+# intelligence, collective_intelligence, AGI, tokyo_type1_passed, or
+# avida_replacement, and they are not engine replay-identity pins A–E.
+_HE02_HE03_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.food_patch_signal.FoodPatchSignalRecord": ("payload_digest",),
+    "codontrace.genesis.hard_experiment_02.HardExperiment02ArmRecord": (
+        "result_digest",
+        "spec_digest",
+    ),
+    "codontrace.genesis.hard_experiment_02.HardExperiment02Campaign": (
+        "prereg_digest",
+        "protocol_digest",
+        "digest",
+    ),
+    "codontrace.genesis.hard_experiment_03.HardExperiment03ArmRecord": (
+        "result_digest",
+        "spec_digest",
+    ),
+    "codontrace.genesis.hard_experiment_03.HardExperiment03Campaign": (
+        "prereg_digest",
+        "protocol_digest",
+        "digest",
+    ),
+    "codontrace.genesis.isolation_assay.IsolationAssayResult": ("digest",),
+}
+for _path, _fields in _HE02_HE03_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_HE02_HE03_PUBLIC_DIGEST_FIELDS))
+)

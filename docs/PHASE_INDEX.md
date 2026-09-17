@@ -35,4 +35,5 @@ If you need a “we are not claiming intelligence” citation, cite
 `WHY_NOT_INTELLIGENCE_YET.md` once. Do not add another Phase letter that
 only restates ClaimGate.
 
+- HARD_EXPERIMENT_03: task-switch DoL (E3); ClaimGate ceiling runtime_observation; see docs/HARD_EXPERIMENT_03.md
 - HARD_EXPERIMENT_02: food-patch + deme/kin (E1+E2+E5); ClaimGate ceiling runtime_observation; see docs/HARD_EXPERIMENT_02.md

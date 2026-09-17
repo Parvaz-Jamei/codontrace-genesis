@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### HARD_EXPERIMENT_03 — E3 TaskSwitchCost + gorelick_nmi + IsolationAssay
+
+CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.
+Phase A–E pins unchanged.
+
+- Default-off `TaskSwitchCostConfig` (Goldsby 0 / ~25 / ~50 cycle → ATP
+  analogues 0 / 0.25 / 0.50) with conditional `to_dict`, digests,
+  ConfigurationError validation, and pin+runtime tests.
+- Confirmatory `gorelick_nmi` at `codontrace.genesis.metrics.division_of_labor`
+  (Gorelick NMI/NME); non-NMI DoL proxies stay **legacy**.
+- `IsolationAssay` secondary solo-vs-group drop (not collective intelligence).
+- Campaign module `hard_experiment_03` with prereg arms, honest
+  `runtime_observation` ceiling, pilot seeds 1000–1009.
+- ClaimGate adapter `bundle_from_hard_experiment_03`; replay digest policy
+  registration for HE02/HE03 public digest dataclasses.
+- Docs: `HARD_EXPERIMENT_03.md`; CLAIMS ceiling starts at
+  `runtime_observation`. No fabricated research `results_v1.json`.
+
 ### HARD_EXPERIMENT_02 — E1+E2+E5 after prereg
 
 CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened.

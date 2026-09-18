@@ -6,6 +6,9 @@ Format notes (avidaR / PrintData wiki, coordinator search 2026-09-12):
 - Column names live in comment lines ``# N: column name``.
 - Each run directory is treated as one seed.
 - Arm mapping is user-supplied.
+- The primary series is a fitness-like column (``ave_fitness`` first),
+  never the leading ``update`` clock column.
+- Directories that share a ClaimGate role are aggregated into one arm.
 
 This is a skeleton. It does **not** claim full Avida support,
 literature compatibility, or audited published `.dat` campaign parity.
@@ -35,6 +38,13 @@ from codontrace.genesis.canonical import canonical_digest
 
 _HEADER_RE = re.compile(r"^#\s*(\d+)\s*:\s*(.+?)\s*$")
 PRODUCT_NAME = "Avida (ClaimGate skeleton)"
+PREFERRED_METRICS: tuple[str, ...] = (
+    "ave_fitness",
+    "average_fitness",
+    "mean_fitness",
+    "fitness",
+)
+SKIP_METRICS = frozenset({"update", "updates", "time", "timestep", "generation"})
 
 
 def parse_avida_dat(text: str) -> tuple[tuple[str, ...], tuple[tuple[float, ...], ...]]:
@@ -87,6 +97,17 @@ def _read_run_directory(path: Path) -> tuple[dict[str, list[float]], list[Claimg
     return metrics, artifacts
 
 
+def _pick_metric(metrics: Mapping[str, list[float]]) -> tuple[str, list[float]]:
+    for name in PREFERRED_METRICS:
+        series = metrics.get(name)
+        if series:
+            return name, series
+    for name, series in metrics.items():
+        if name.lower() not in SKIP_METRICS and series:
+            return name, series
+    raise ConfigurationError("Avida .dat has no fitness-like column (expected ave_fitness).")
+
+
 def bundle_from_avida_runs(
     run_dirs: Sequence[Path | str],
     arm_map: Mapping[str, str],
@@ -98,7 +119,8 @@ def bundle_from_avida_runs(
     """Skeleton bundle: one directory per seed; ``arm_map`` is required.
 
     ``arm_map`` keys are directory names (or paths) and values are ClaimGate
-    arm roles. Full Avida / avida.cfg support is **not** claimed.
+    arm roles. Folders that share a role are one arm. Full Avida / avida.cfg
+    support is **not** claimed.
     """
 
     if not run_dirs:
@@ -107,9 +129,9 @@ def bundle_from_avida_runs(
         raise ConfigurationError("Avida arm mapping is user-supplied and required.")
     seeds: list[int] = []
     artifacts: list[ClaimgateArtifact] = []
-    values_by_arm: dict[str, list[float]] = {}
-    arms: list[ClaimgateArm] = []
-    metric_name = "last_column_observation"
+    values_by_role: dict[str, list[float]] = {}
+    counts_by_role: dict[str, int] = {}
+    metric_name = "ave_fitness"
     for index, raw in enumerate(run_dirs, start=1):
         path = Path(raw)
         if not path.is_dir():
@@ -122,28 +144,33 @@ def bundle_from_avida_runs(
         metrics, found = _read_run_directory(path)
         artifacts.extend(found)
         seeds.append(index)
-        series = next(iter(metrics.values()), [])
-        values_by_arm.setdefault(path.name, []).extend(series[-1:] if series else [])
-        if metrics:
-            metric_name = next(iter(metrics))
-        arms.append(ClaimgateArm(name=path.name, role=role, n=1))
+        name, series = _pick_metric(metrics)
+        metric_name = name
+        if not series:
+            raise ConfigurationError(f"Avida run directory has an empty metric series: {path}")
+        values_by_role.setdefault(role, []).append(series[-1])
+        counts_by_role[role] = counts_by_role.get(role, 0) + 1
     digest_source = {
         "adapter": "avida_skeleton",
         "runs": [str(Path(item)) for item in run_dirs],
         "arm_map": dict(sorted(arm_map.items())),
     }
     resolved_digest = config_digest or canonical_digest(digest_source)
+    arms = tuple(
+        ClaimgateArm(name=role, role=role, n=counts_by_role[role])
+        for role in counts_by_role
+    )
     bundle = ClaimgateBundle(
         software=ClaimgateSoftware(
             name=PRODUCT_NAME, version=software_version, commit=commit
         ),
         seeds=tuple(seeds),
         config_digest=resolved_digest,
-        arms=tuple(arms),
+        arms=arms,
         outcomes=(
             ClaimgateOutcome(
                 metric=metric_name,
-                values_by_arm={name: tuple(values) for name, values in values_by_arm.items()},
+                values_by_arm={role: tuple(values) for role, values in values_by_role.items()},
             ),
         ),
         comparisons=(),

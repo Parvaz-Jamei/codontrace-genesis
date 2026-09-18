@@ -120,13 +120,16 @@ evidence is actually earned.
 
 # AI usage disclosure
 
-Generative AI tools were used during development. Grok (xAI; Grok 4 family,
-2026) assisted with code generation, refactoring, test scaffolding,
-documentation edits, and drafting of this paper. Human author Parvaz Jamei
-reviewed, edited, and validated all AI-assisted code and text, and made the
-core design decisions: the claim-ladder architecture, the engine/auditor
-boundary, the choice of negative controls, and the scope of each experiment.
-Conversational AI was not used to interact with JOSS editors or reviewers.
+Generative AI tools were used during development. Assistance covered code
+generation, refactoring, test scaffolding, documentation edits, and drafting
+of this paper. Tools used in 2026 included Grok (xAI; Grok 4 family),
+Claude Fable (Anthropic; Fable 5 / Fable 5.1), and ChatGPT / GPT-6 Astra
+(OpenAI). Exact patch-level versions varied across sessions. Human author
+Parvaz Jamei reviewed, edited, and validated all AI-assisted code and text,
+and made the core design decisions: the claim-ladder architecture, the
+engine/auditor boundary, the choice of negative controls, and the scope of
+each experiment. Conversational AI was not used to interact with JOSS
+editors or reviewers.
 
 # Acknowledgements
 

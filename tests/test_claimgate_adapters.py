@@ -44,11 +44,28 @@ def test_avida_skeleton_uses_run_folder_as_seed_and_user_arm_map() -> None:
     )
     assert {arm.role for arm in bundle.arms} == {"treatment", "channel_off"}
     assert bundle.seeds == (1, 2)
+    assert bundle.outcomes[0].metric == "ave_fitness"
+    assert bundle.outcomes[0].values_by_arm["treatment"] == (0.60,)
+    assert bundle.outcomes[0].values_by_arm["channel_off"] == (0.44,)
     assert bundle.extra is not None
     assert bundle.extra["full_avida_support"] is False
     report = audit_bundle(bundle)
     assert report.achieved_level <= 1
     assert "avida_adapter_is_a_skeleton_not_full_support" in report.warnings
+
+
+def test_avida_adapter_aggregates_same_role_folders_on_ave_fitness() -> None:
+    bundle = bundle_from_avida_runs(
+        (FIXTURES / "avida" / "seed_11", FIXTURES / "avida" / "seed_12"),
+        {"seed_11": "treatment", "seed_12": "treatment"},
+        software_version="skeleton",
+    )
+    assert len(bundle.arms) == 1
+    assert bundle.arms[0].role == "treatment"
+    assert bundle.arms[0].n == 2
+    assert bundle.outcomes[0].metric == "ave_fitness"
+    assert bundle.outcomes[0].values_by_arm["treatment"] == (0.60, 0.44)
+    assert "update" not in bundle.outcomes[0].values_by_arm
 
 
 def test_mabe2_csv_skeleton_reads_datafile_export() -> None:

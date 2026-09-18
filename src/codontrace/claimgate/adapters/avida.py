@@ -6,8 +6,8 @@ Format notes (avidaR / PrintData wiki, coordinator search 2026-09-12):
 - Column names live in comment lines ``# N: column name``.
 - Each run directory is treated as one seed.
 - Arm mapping is user-supplied.
-- The primary series is a fitness-like column (``ave_fitness`` first),
-  never the leading ``update`` clock column.
+- Metric source prefers ``average.dat``, then a fitness-like column
+  (``ave_fitness`` first). The ``update`` clock is never the outcome.
 - Directories that share a ClaimGate role are aggregated into one arm.
 
 This is a skeleton. It does **not** claim full Avida support,
@@ -38,6 +38,7 @@ from codontrace.genesis.canonical import canonical_digest
 
 _HEADER_RE = re.compile(r"^#\s*(\d+)\s*:\s*(.+?)\s*$")
 PRODUCT_NAME = "Avida (ClaimGate skeleton)"
+PREFERRED_FILES: tuple[str, ...] = ("average.dat", "fitness.dat")
 PREFERRED_METRICS: tuple[str, ...] = (
     "ave_fitness",
     "average_fitness",
@@ -45,6 +46,10 @@ PREFERRED_METRICS: tuple[str, ...] = (
     "fitness",
 )
 SKIP_METRICS = frozenset({"update", "updates", "time", "timestep", "generation"})
+
+
+def _normalize_column(name: str) -> str:
+    return "_".join(name.strip().lower().replace("-", "_").split())
 
 
 def parse_avida_dat(text: str) -> tuple[tuple[str, ...], tuple[tuple[float, ...], ...]]:
@@ -58,7 +63,7 @@ def parse_avida_dat(text: str) -> tuple[tuple[str, ...], tuple[tuple[float, ...]
             continue
         header = _HEADER_RE.match(line)
         if header:
-            names[int(header.group(1))] = header.group(2).strip()
+            names[int(header.group(1))] = _normalize_column(header.group(2))
             continue
         if line.startswith("#"):
             continue
@@ -76,20 +81,29 @@ def parse_avida_dat(text: str) -> tuple[tuple[str, ...], tuple[tuple[float, ...]
     return columns, tuple(rows)
 
 
-def _read_run_directory(path: Path) -> tuple[dict[str, list[float]], list[ClaimgateArtifact]]:
-    metrics: dict[str, list[float]] = {}
-    artifacts: list[ClaimgateArtifact] = []
+def _metric_files(path: Path) -> list[Path]:
     files = sorted(path.glob("*.dat"))
     if not files:
         raise ConfigurationError(f"Avida run directory has no .dat files: {path}")
-    for file_path in files:
-        columns, rows = parse_avida_dat(file_path.read_text(encoding="utf-8"))
+    preferred = [path / name for name in PREFERRED_FILES if (path / name).is_file()]
+    return preferred[:1] if preferred else files
+
+
+def _read_run_directory(path: Path) -> tuple[dict[str, list[float]], list[ClaimgateArtifact]]:
+    metrics: dict[str, list[float]] = {}
+    artifacts: list[ClaimgateArtifact] = []
+    all_files = sorted(path.glob("*.dat"))
+    if not all_files:
+        raise ConfigurationError(f"Avida run directory has no .dat files: {path}")
+    for file_path in all_files:
         artifacts.append(
             ClaimgateArtifact(
                 path=str(file_path.as_posix()),
                 sha256=hashlib.sha256(file_path.read_bytes()).hexdigest(),
             )
         )
+    for file_path in _metric_files(path):
+        columns, rows = parse_avida_dat(file_path.read_text(encoding="utf-8"))
         for index, name in enumerate(columns):
             series = [row[index] for row in rows if index < len(row)]
             if series:

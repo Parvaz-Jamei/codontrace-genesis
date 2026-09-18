@@ -8,7 +8,9 @@ tags:
   - reproducibility
   - quality-diversity
 authors:
-  - name: Parvaz Jamei
+  - given-names: Parvaz
+    surname: Jamei
+    corresponding: true
     affiliation: 1
 affiliations:
   - name: Independent researcher
@@ -100,18 +102,20 @@ ports-and-adapters architecture for evidence adapters.
 # Research impact statement
 
 CodonTrace Genesis is intended as infrastructure rather than as a vehicle
-for a single scientific finding. The accompanying Claim Ladder Protocol,
-written in the style of reporting standards such as ODD [@grimm2020odd] and
-the machine-learning reproducibility checklist of Pineau et al.
-[@pineau2021reproducibility], is meant for independent use by other
-digital-evolution researchers regardless of simulator. Worked examples
-shipped with the package (a capsule-signalling experiment and a
-task-switching-cost experiment) demonstrate the audit workflow end-to-end,
-including cases where a pre-registered comparison did not reach significance.
-They are illustrations of how to use the software, not research findings of
-this paper. Near-term significance is the reproducible reference workflow:
-versioned releases, digest-pinned campaigns, and a public claim ceiling that
-stays at runtime observation until stronger evidence is actually earned.
+for a single scientific finding. Near-term scholarly signals are a versioned
+PyPI package (`codontrace`), a Zenodo archive
+(DOI `10.5281/zenodo.20337435`), continuous integration across Python
+3.11-3.14, and a written Claim Ladder Protocol in the style of reporting
+standards such as ODD [@grimm2020odd] and the machine-learning
+reproducibility checklist of Pineau et al. [@pineau2021reproducibility].
+The protocol is meant for independent use by other digital-evolution
+researchers regardless of simulator. Worked examples shipped with the
+package (a capsule-signalling experiment and a task-switching-cost
+experiment) demonstrate the audit workflow end-to-end, including cases
+where a pre-registered comparison did not reach significance. They are
+illustrations of how to use the software, not research findings of this
+paper. The public claim ceiling stays at runtime observation until stronger
+evidence is actually earned.
 
 # AI usage disclosure
 

@@ -9,8 +9,11 @@ copy from multiplying.
 
 **Claim policy:** [`../CLAIMS.md`](../CLAIMS.md)
 
+**Ports (engine vs domains):** [`ARCHITECTURE_PORTS.md`](ARCHITECTURE_PORTS.md)
+
 **Still blocked:** `intelligence`, `collective_intelligence`, `agi`,
-`tokyo_type1_passed`, `avida_replacement`.
+`tokyo_type1_passed`, `avida_replacement`, `samd_certified`,
+`asme_vv40_passed`.
 
 Phase L is on `main`. The next published scientific object after L is
 hard experiment 01, not a Phase M.
@@ -27,6 +30,8 @@ hard experiment 01, not a Phase M.
 | [`PHASE_G_MATERIALS_LITERATURE.md`](PHASE_G_MATERIALS_LITERATURE.md) | Named-materials overlay | Wet-lab / realistic chemistry |
 | [`HARD_EXPERIMENT_01.md`](HARD_EXPERIMENT_01.md) | Preregistered 4-arm + dose source-bias measurement | A new Phase letter |
 | [`CLAIMGATE_STANDALONE.md`](CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic evidence auditor | Wave 3 / PyPI / Tokyo pass |
+| [`ARCHITECTURE_PORTS.md`](ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile | A second engine per domain |
+| [`BIOMEDICAL_ENGINEERING.md`](BIOMEDICAL_ENGINEERING.md) | COU / risk labels on a ClaimGate bundle | SaMD / ASME certification |
 | [`ENGINE_REPLAY_CONTRACT.md`](ENGINE_REPLAY_CONTRACT.md) | Digest-pin invariants after the engine split | Full-world replay engine |
 | [`SCIENTIFIC_AUTHORITIES_2026.md`](SCIENTIFIC_AUTHORITIES_2026.md) | Literature × library matrix | Intelligence countdown |
 | [`rag/README.md`](rag/README.md) | Corpus + retriever | Evidence that a paper was “done” |

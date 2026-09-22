@@ -34,8 +34,8 @@ normalizes CRLF for adapters **and** campaign prereg pins (HE01–HE03, ILW).
 Shared `adapters.roles.canonical_role` is the role port used by HE01/HE02/HE03.
 HE03 adapter no longer uses invalid schema roles and will not invent a missing
 research JSON. Duplicate HE01 `dose_ladder` is omitted when `oracle_capsule`
-already maps to `dose`. `engine.py` untouched. No version bump. Phase A–E
-pins unchanged. ClaimGate not loosened.
+already maps to `dose`. BAIC Word file is rebuilt from `paper.md`. `engine.py`
+untouched. No version bump. Phase A–E pins unchanged. ClaimGate not loosened.
 
 ### HARD_EXPERIMENT_02 — honest pilot clear + research null
 

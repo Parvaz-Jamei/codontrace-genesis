@@ -35,9 +35,10 @@ The Genesis engine does not know medicine. Biomedical labels are a
 - Meet-in-the-middle uses a relative float match so all-positive paired
   deltas still count as 2/2^n. It remains opt-in; HE01 `results_v7.json`
   is not recut.
-- HE01 v7 arm-role translation lives in
-  `codontrace.claimgate.adapters.he01_arm_roles` and is applied by the
-  ClaimGate adapter (artifact bytes unchanged).
+- HE01 v7 arm-role translation uses `adapters.roles.canonical_role`
+  (HE01 map in `he01_arm_roles`). Artifact bytes unchanged.
+- `sha256_text_file` pins adapter text artifacts and campaign prereg files
+  to Git LF identity. Binary snapshots still use `read_bytes()`.
 - JOSS Flageat DOI is `10.1109/TEVC.2025.3548438` (IEEE TEVC 30(1):286–295).
 
 Do not strengthen this manuscript with fabricated clinical data.

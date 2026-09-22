@@ -1,12 +1,15 @@
 {
-  "generated_utc": "2026-09-22T12:55:00Z",
+  "generated_utc": "2026-09-22T13:10:00Z",
   "suite": "claimgate_local_snapshot_v1",
   "pytest_files": [
     "tests/test_claimgate_ladder_packs.py",
     "tests/test_claimgate_biomedical.py",
-    "tests/test_claimgate_adapters.py"
+    "tests/test_claimgate_adapters.py",
+    "tests/test_claimgate_roles.py",
+    "tests/test_claimgate_he03_adapter.py",
+    "tests/test_text_digest.py"
   ],
-  "pytest_passed": 31,
+  "pytest_passed": 36,
   "pytest_failed": 0,
   "ladder_validation_digest": "ea0366d0295445190485b4e5634b4a09ea7001fd520150e9450c9d1a6feeb814",
   "levels": [4, 1, 1, 1, 2, 2, 4, 3, 4],

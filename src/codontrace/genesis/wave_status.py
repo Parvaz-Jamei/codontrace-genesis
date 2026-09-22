@@ -18,7 +18,7 @@ def wave_status() -> dict[str, Any]:
         "product": "CodonTrace Genesis",
         "package_identity": package_version(),
         "pypi_cut": True,
-        "proposed_tag": "v0.3.0b6",
+        "proposed_tag": "v0.3.0b7",
         "tag_created_in_this_wave": False,
         "phase1_wrapper_present": helper.is_file()
         and "run_hard_experiment_02_v1b" in helper.read_text(encoding="utf-8"),
@@ -27,7 +27,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "do not recut published wheels (0.3.0b4 / 0.3.0b5 / 0.3.0b6); HE03 research results_v1 stays absent on purpose; no new tag until CI of that commit is green",
+        "next": "do not recut published wheels (0.3.0b4 / 0.3.0b5 / 0.3.0b6 / 0.3.0b7); HE03 research results_v1 stays absent on purpose; no new tag until CI of that commit is green",
     }
 
 

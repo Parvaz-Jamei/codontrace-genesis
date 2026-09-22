@@ -55,12 +55,12 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI tip | `0.3.0b6` — confirm on [PyPI](https://pypi.org/project/codontrace/). Older `0.3.0b4` / `0.3.0b5` are immutable. |
-| GitHub `main` | Runtime `__version__` is `[project].version` in `pyproject.toml` (currently `0.3.0b6`). `main` can be ahead of tag `v0.3.0b6`; that is not a recut. |
+| Public PyPI tip | `0.3.0b7` — published with tag `v0.3.0b7`. Older `0.3.0b4` / `0.3.0b5` / `0.3.0b6` are immutable. |
+| GitHub `main` | Runtime `__version__` is `[project].version` in `pyproject.toml` (currently `0.3.0b7`). Later commits may move ahead of tag `v0.3.0b7`; that is not a recut. |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
-| Official GitHub release | [`v0.3.0b6`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b6) (older handoff tags stay pre-release so Latest stays here) |
+| Official GitHub release | [`v0.3.0b7`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b7) (older handoff tags stay pre-release so Latest stays here) |
 | HE01 | SCHEMA v7 locked; ceiling at most `intervention_supported` when the full rule holds |
 | HE02 | Research null after analysis v1b; ceiling stays `runtime_observation` |
 | HE03 | Code + prereg present; research `results_v1` is absent on purpose |
@@ -95,26 +95,25 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b6`. Older public cuts `0.3.0b4` and
-`0.3.0b5` remain immutable and must not be recut. Runtime identity on `main`
-is `[project].version` in `pyproject.toml` (currently the same `0.3.0b6`
-string even when git is a few commits ahead of tag `v0.3.0b6`). Phases A–G
+The published wheel is `codontrace==0.3.0b7`. Older public cuts `0.3.0b4`,
+`0.3.0b5`, and `0.3.0b6` remain immutable and must not be recut. Runtime identity
+is `[project].version` in `pyproject.toml` (this cut is `0.3.0b7`). Phases A–G
 remain the `0.3.0b3` substrate; H–L + HE01 SCHEMA v7 shipped in `0.3.0b4`.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
-### From PyPI (`0.3.0b6`)
+### From PyPI (`0.3.0b7`)
 
 ```bash
-pip install codontrace==0.3.0b6
+pip install codontrace==0.3.0b7
 ```
 
 Optional research extras:
 
 ```bash
-pip install "codontrace[research]==0.3.0b6"
-pip install "codontrace[causal]==0.3.0b6"
-pip install "codontrace[qd]==0.3.0b6"
+pip install "codontrace[research]==0.3.0b7"
+pip install "codontrace[causal]==0.3.0b7"
+pip install "codontrace[qd]==0.3.0b7"
 ```
 
 ### From source (`main`, may be ahead of PyPI)
@@ -129,9 +128,8 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the current tip prints `0.3.0b6`. An editable install from
-`main` prints `[project].version` from `pyproject.toml` (currently also
-`0.3.0b6` even if `main` is ahead of the tag). Do not treat the version
+A PyPI install of this cut prints `0.3.0b7`. An editable install from
+`main` prints `[project].version` from `pyproject.toml`. Do not treat the version
 tuple as a phase fence.
 
 ---
@@ -240,8 +238,8 @@ Full policy: [`CLAIMS.md`](CLAIMS.md).
 Library-complete beta is not “done.” The next work is **not** more empty Phase
 letters.
 
-1. **Do not recut published wheels** `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`. A later public identity needs its own version, a green CI on that exact commit, and an explicit tag.
-2. **Do not tag or publish from a red or queued CI.** Runtime identity stays the pyproject version until then. Latest GitHub release is [`v0.3.0b6`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b6).
+1. **Do not recut published wheels** `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, or `0.3.0b7`. A later public identity needs its own version, a green CI on that exact commit, and an explicit tag.
+2. **Do not tag or publish from a red or queued CI.** Runtime identity stays the pyproject version until then. This cut’s GitHub release is [`v0.3.0b7`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b7).
 3. **HE03 research campaign** — run only against the locked prereg; do not fabricate `results_v1`.
 4. **Lint/type inventory** — `lint-type` remains non-blocking until the ruff/mypy backlog is reduced in its own PR.
 5. **Candidate claims** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
@@ -364,7 +362,7 @@ versioned software release.
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b6},
+  version = {0.3.0b7},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
 }

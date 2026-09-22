@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.3.0b7] — 2026-09-22
+
+Research-beta cut. Tag `v0.3.0b7`. Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.
+
 ### DomainProfile — ports, not a second engine
 
 ClaimGate domain labels live on `DomainProfile` (`alife` / `biomedical` /

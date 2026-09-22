@@ -1,12 +1,12 @@
 # CodonTrace Genesis Claim Policy
 
-Version source: `pyproject.toml` `[project].version` (currently `0.3.0b6`)
+Version source: `pyproject.toml` `[project].version` (currently `0.3.0b7`)
 Release DOI: `10.5281/zenodo.20337435`
 License: `AGPL-3.0-or-later`
 Status: Public beta research software
 Repository: `https://github.com/Parvaz-Jamei/codontrace-genesis`
-Package: `codontrace` (PyPI tip `0.3.0b6`; older `0.3.0b4` / `0.3.0b5` immutable)
-Release identity on `main`: the pyproject version. `main` may be ahead of tag `v0.3.0b6`; that is not a recut.
+Package: `codontrace` (release identity `0.3.0b7`; published wheels `0.3.0b4` / `0.3.0b5` / `0.3.0b6` immutable)
+Release identity on `main`: the pyproject version. Tag `v0.3.0b7` is this cut. Later commits may move ahead of that tag; that is not a recut.
 
 This document defines the strongest claims that CodonTrace Genesis can make today, the claims that require stronger benchmark evidence, and the claims that are explicitly blocked for the current release. Always name the project **CodonTrace Genesis** (the PyPI package remains `codontrace`).
 

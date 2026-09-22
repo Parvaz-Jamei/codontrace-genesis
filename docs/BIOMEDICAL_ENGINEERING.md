@@ -139,3 +139,25 @@ print(annotated.extra["credibility_worksheet"]["coupled_ceiling"])
 
 See `examples/claimgate_biomedical_worksheet.py`.
 
+## Study file: executed run versus a declared rank
+
+`audit_biomedical_study_file` reads a JSON study. A phenomenon closes only
+when its `arm` is on the campaign, `audit_bundle` is at least 4, and replay
+is verified. Typing `knowledge: adequate` without that arm does not close
+the row; it is marked `declared_only`. A submodel with `use_experiment`
+takes its level from the same audit. A typed level with no bundle is capped
+at 2.
+
+`examples/studies/he01_phenomena.json` points at
+`docs/hard_experiment_01/results_v7.json`. The source-bias arm is executed.
+Contact stress and the patient submodel stay declared. The claim ladder is
+whatever the campaign already earned; the study does not raise it.
+
+```python
+from codontrace.claimgate.adapters.biomedical import audit_biomedical_study_file
+
+study = audit_biomedical_study_file("examples/studies/he01_phenomena.json")
+print(study.claim_level, study.worksheet.open_gaps, study.worksheet.coupled_ceiling)
+```
+
+

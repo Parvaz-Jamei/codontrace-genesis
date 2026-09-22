@@ -1,0 +1,13 @@
+{
+  "question_of_interest": "Which phenomena does the executed HE01 campaign actually close?",
+  "context_of_use": "Life-loop campaign results_v7; not an implant and not a patient model.",
+  "experiment": "docs/hard_experiment_01/results_v7.json",
+  "phenomena": [
+    {"name": "source_fitness_bias", "importance": "high", "arm": "source_bias_on"},
+    {"name": "contact_stress", "importance": "high", "knowledge": "adequate"}
+  ],
+  "submodels": [
+    {"name": "life_loop", "role": "device", "use_experiment": true, "evidence_categories": [1, 8]},
+    {"name": "patient_geometry", "role": "patient", "level": 4, "evidence_categories": [4]}
+  ]
+}

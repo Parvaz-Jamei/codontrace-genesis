@@ -248,3 +248,180 @@ def attach_credibility_worksheet(
     if _WORKSHEET_NOTE not in limitations:
         limitations = limitations + (_WORKSHEET_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+@dataclass(frozen=True, slots=True)
+class BiomedicalStudy:
+    """A worksheet bound to executed bundles, plus the rows still only declared."""
+
+    claim_level: int | None
+    worksheet: CredibilityWorksheet
+    executed: tuple[str, ...]
+    declared_only: tuple[str, ...]
+    submodel_sources: tuple[tuple[str, int, str], ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "claim_level": self.claim_level,
+            "worksheet": self.worksheet.to_dict(),
+            "executed": list(self.executed),
+            "declared_only": list(self.declared_only),
+            "submodel_sources": [
+                {"name": name, "level": level, "source": source}
+                for name, level, source in self.submodel_sources
+            ],
+            "raises_claim_ladder": False,
+        }
+
+
+def _knowledge_from_run(level: int, replay: bool) -> str:
+    if level >= 4 and replay:
+        return "adequate"
+    if level >= 3:
+        return "partial"
+    return "none"
+
+
+def _as_rows(raw: object, field: str) -> tuple[Mapping[str, object], ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
+        raise ConfigurationError(f"{field} must be a list.")
+    rows: list[Mapping[str, object]] = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, Mapping):
+            raise ConfigurationError(f"{field}[{index}] must be a mapping.")
+        rows.append(item)
+    return tuple(rows)
+
+
+def audit_biomedical_study(
+    study: Mapping[str, object],
+    *,
+    experiment: ClaimgateBundle | None = None,
+    bundles: Mapping[str, ClaimgateBundle] | None = None,
+) -> BiomedicalStudy:
+    """Bind the worksheet to runs. A declared rank cannot close a gap.
+
+    A phenomenon closes only when its ``arm`` is on ``experiment``, the
+    audit is at least 4, and replay is verified. Otherwise a typed
+    ``adequate`` is downgraded and the row is ``declared_only``.
+
+    A submodel with ``use_experiment`` or ``bundle`` takes its level from
+    ``audit_bundle``. A typed level with no bundle is capped at 2.
+    """
+
+    from codontrace.claimgate.auditor import audit_bundle
+
+    claimed = study.get("claimed")
+    if isinstance(claimed, str) and claimed.strip().lower() in BIOMEDICAL.blocked_claims:
+        raise ConfigurationError(f"{claimed!r} is blocked on the biomedical study.")
+    library = dict(bundles or {})
+    run_level: int | None = None
+    replay = False
+    arm_names: set[str] = set()
+    if experiment is not None:
+        run_level = audit_bundle(experiment).achieved_level
+        replay = experiment.replay.verified
+        arm_names = {arm.name for arm in experiment.arms}
+
+    phenomena_out: list[dict[str, object]] = []
+    executed: list[str] = []
+    declared_only: list[str] = []
+    for raw in _as_rows(study.get("phenomena"), "phenomena"):
+        name = raw.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ConfigurationError("phenomena need a name.")
+        arm = raw.get("arm")
+        row = dict(raw)
+        if isinstance(arm, str) and arm.strip():
+            if experiment is None:
+                raise ConfigurationError(f"phenomenon {name!r} names an arm but no experiment was given.")
+            if arm not in arm_names:
+                raise ConfigurationError(f"arm {arm!r} is not in the experiment.")
+            assert run_level is not None
+            row["knowledge"] = _knowledge_from_run(run_level, replay)
+            executed.append(name.strip())
+        else:
+            declared_only.append(name.strip())
+            if row.get("knowledge") == "adequate":
+                row["knowledge"] = "partial"
+            elif "knowledge" not in row:
+                row["knowledge"] = "none"
+        phenomena_out.append(row)
+
+    submodels_out: list[dict[str, object]] = []
+    sources: list[tuple[str, int, str]] = []
+    for raw in _as_rows(study.get("submodels"), "submodels"):
+        name = raw.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ConfigurationError("submodels need a name.")
+        row = dict(raw)
+        bound: ClaimgateBundle | None = None
+        if row.get("use_experiment") is True:
+            if experiment is None:
+                raise ConfigurationError(f"submodel {name!r} requested the experiment, and none was given.")
+            bound = experiment
+        bundle_key = row.get("bundle")
+        if isinstance(bundle_key, str):
+            if bundle_key not in library:
+                raise ConfigurationError(f"submodel bundle {bundle_key!r} was not provided.")
+            bound = library[bundle_key]
+        if bound is not None:
+            measured = audit_bundle(bound).achieved_level
+            typed = row.get("level")
+            if isinstance(typed, bool) or not isinstance(typed, int):
+                typed = measured
+            row["level"] = min(typed, measured)
+            sources.append((name.strip(), row["level"], "executed"))
+            executed.append(name.strip())
+        else:
+            typed = row.get("level", 0)
+            if isinstance(typed, bool) or not isinstance(typed, int) or typed not in range(6):
+                raise ConfigurationError(f"submodel {name!r} needs a level 0–5 or a bundle.")
+            row["level"] = min(typed, 2)
+            sources.append((name.strip(), row["level"], "declared"))
+            declared_only.append(name.strip())
+        submodels_out.append(row)
+
+    sheet = credibility_worksheet(phenomena_out, submodels_out)
+    extra_gaps = list(sheet.open_gaps)
+    for name in declared_only:
+        extra_gaps.append(f"declared_only:{name}")
+    sheet = CredibilityWorksheet(
+        tuple(extra_gaps),
+        sheet.limiting_submodel,
+        sheet.limiting_level,
+        sheet.coupled_ceiling,
+    )
+    return BiomedicalStudy(run_level, sheet, tuple(executed), tuple(declared_only), tuple(sources))
+
+
+def audit_biomedical_study_file(path: str) -> BiomedicalStudy:
+    """Read a study JSON. ``experiment`` is an HE01 campaign path, not a certificate."""
+
+    import json
+    from pathlib import Path
+
+    from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
+
+    study_path = Path(path)
+    if not study_path.is_file():
+        raise ConfigurationError(f"study file not found: {path}")
+    loaded = json.loads(study_path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise ConfigurationError("study JSON must be an object.")
+    experiment_raw = loaded.get("experiment")
+    experiment = None
+    if isinstance(experiment_raw, str) and experiment_raw.strip():
+        candidate = Path(experiment_raw)
+        if not candidate.is_file():
+            for parent in study_path.parents:
+                hit = parent / experiment_raw
+                if hit.is_file():
+                    candidate = hit
+                    break
+        if not candidate.is_file():
+            raise ConfigurationError(f"study experiment not found: {experiment_raw}")
+        experiment = bundle_from_hard_experiment_01(candidate)
+    return audit_biomedical_study(loaded, experiment=experiment)

@@ -22,6 +22,7 @@ ensure_src_path()
 from codontrace.claimgate import audit_bundle  # noqa: E402
 from codontrace.claimgate.adapters.biomedical import (  # noqa: E402
     attach_credibility_worksheet,
+    audit_biomedical_study_file,
     bundle_from_device_model_cou,
 )
 
@@ -68,6 +69,12 @@ def main() -> None:
     print("limiting_submodel", sheet["limiting_submodel"])
     print("coupled_ceiling", sheet["coupled_ceiling"])
     print("raises_claim_ladder", sheet["raises_claim_ladder"])
+    study = audit_biomedical_study_file("examples/studies/he01_phenomena.json")
+    print("study_claim_level", study.claim_level)
+    print("study_executed", study.executed)
+    print("study_declared_only", study.declared_only)
+    print("study_gaps", study.worksheet.open_gaps)
+    print("study_ceiling", study.worksheet.coupled_ceiling)
 
 
 if __name__ == "__main__":

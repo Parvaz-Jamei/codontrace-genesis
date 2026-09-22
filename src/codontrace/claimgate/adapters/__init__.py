@@ -3,8 +3,11 @@
 from codontrace.claimgate.adapters.avida import bundle_from_avida_runs, parse_avida_dat
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
+    BiomedicalStudy,
     CredibilityWorksheet,
     attach_credibility_worksheet,
+    audit_biomedical_study,
+    audit_biomedical_study_file,
     bundle_from_biomedical_cou,
     bundle_from_device_model_cou,
     credibility_worksheet,
@@ -50,8 +53,11 @@ from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, cano
 
 __all__ = [
     "BLOCKED_BIOMEDICAL_CLAIMS",
+    "BiomedicalStudy",
     "CredibilityWorksheet",
     "attach_credibility_worksheet",
+    "audit_biomedical_study",
+    "audit_biomedical_study_file",
     "credibility_worksheet",
     "MqttEsp32Transport",
     "SensorReading",

@@ -26,6 +26,21 @@ from codontrace.genesis.ilw.adapter_honesty import (
     assert_claim_ceiling_runtime_observation,
     assert_no_fixture_outcome_injection,
 )
+from codontrace.genesis.ilw.campaign import (
+    CampaignCell,
+    CampaignCellResult,
+    IlwCampaignError,
+    build_ablation_cells,
+    build_interaction_screening_cells,
+    build_s4_scale_cells,
+    default_partial_artifact_path,
+    default_smoke_artifact_path,
+    enumerate_campaign_design,
+    run_campaign_cell,
+    run_ilw5_partial,
+    run_ilw5_smoke,
+    select_partial_campaign_cells,
+)
 from codontrace.genesis.ilw.chain_runtime import (
     CapsuleRecord,
     IlwChainError,
@@ -56,6 +71,26 @@ from codontrace.genesis.ilw.event_ledger import (
     EventLedgerError,
     LedgerEvent,
 )
+from codontrace.genesis.ilw.exploratory import (
+    ILW6_FORBIDDEN_PROMOTIONS,
+    ILW6_LIMITATIONS,
+    ILW6_SCHEMA,
+    ILW6_STATUS,
+    CapsuleGenealNode,
+    Ilw6ExploratoryError,
+    Ilw6ExploratoryReport,
+    LearnabilityProbe,
+    ModesStylePoint,
+    OrganismPhyloNode,
+    PhyloJoinRow,
+    build_capsule_genealogy,
+    build_organism_phylogeny,
+    join_organism_capsule_phylogenies,
+    learnability_probe,
+    modes_style_novelty_probe,
+    run_ilw6_exploratory,
+    run_ilw6_exploratory_smoke,
+)
 from codontrace.genesis.ilw.integrated_smoke import (
     IlwSmokeError,
     IlwSmokeReport,
@@ -65,6 +100,20 @@ from codontrace.genesis.ilw.knockouts import IlwKnockoutError, KnockoutConfig
 from codontrace.genesis.ilw.orphan import (
     OrphanSubsystemError,
     SubsystemRegistry,
+)
+from codontrace.genesis.ilw.pilot import (
+    IlwPilotError,
+    PilotCampaignReport,
+    PomPatternRecord,
+    SeedPilotResult,
+    default_artifact_path,
+    evaluate_pilot_gates,
+    evaluate_pom_patterns,
+    load_pilot_gates,
+    run_s2_pilot,
+    run_seed_pilot,
+    unlock_harness_from_artifact,
+    unlocked_harness_or_raise,
 )
 from codontrace.genesis.ilw.prereg import (
     CONFIRMATORY_HELD_OUT_SEEDS,
@@ -97,60 +146,6 @@ from codontrace.genesis.ilw.prereg import (
 from codontrace.genesis.ilw.scheduler import IlwScheduler, IlwSchedulerError
 from codontrace.genesis.ilw.seed_namespace import SeedNamespace, SeedNamespaceError
 from codontrace.genesis.ilw.world_spec import WORLD_SPEC_SCHEMA, WorldSpec, WorldSpecError
-
-
-from codontrace.genesis.ilw.campaign import (
-    CampaignCell,
-    CampaignCellResult,
-    IlwCampaignError,
-    build_ablation_cells,
-    build_interaction_screening_cells,
-    build_s4_scale_cells,
-    default_partial_artifact_path,
-    default_smoke_artifact_path,
-    enumerate_campaign_design,
-    run_campaign_cell,
-    run_ilw5_partial,
-    run_ilw5_smoke,
-    select_partial_campaign_cells,
-)
-
-from codontrace.genesis.ilw.pilot import (
-    IlwPilotError,
-    PilotCampaignReport,
-    PomPatternRecord,
-    SeedPilotResult,
-    default_artifact_path,
-    evaluate_pilot_gates,
-    evaluate_pom_patterns,
-    load_pilot_gates,
-    run_s2_pilot,
-    run_seed_pilot,
-    unlock_harness_from_artifact,
-    unlocked_harness_or_raise,
-)
-
-
-from codontrace.genesis.ilw.exploratory import (
-    ILW6_FORBIDDEN_PROMOTIONS,
-    ILW6_LIMITATIONS,
-    ILW6_SCHEMA,
-    ILW6_STATUS,
-    CapsuleGenealNode,
-    Ilw6ExploratoryError,
-    Ilw6ExploratoryReport,
-    LearnabilityProbe,
-    ModesStylePoint,
-    OrganismPhyloNode,
-    PhyloJoinRow,
-    build_capsule_genealogy,
-    build_organism_phylogeny,
-    join_organism_capsule_phylogenies,
-    learnability_probe,
-    modes_style_novelty_probe,
-    run_ilw6_exploratory,
-    run_ilw6_exploratory_smoke,
-)
 
 __all__ = [
     "CLAIM_CEILING",

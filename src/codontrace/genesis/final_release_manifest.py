@@ -6,8 +6,6 @@ write files, publish packages, run CI, or generate reports.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -316,11 +314,18 @@ def _str_tuple(data: Mapping[str, JsonValue], key: str) -> tuple[str, ...]:
 
 # Phase 3 P0/P1 strict final claim/release-pack contracts.
 from codontrace.genesis.canonical import (
-    PHASE3_STATUS_VALUES as _PHASE3_STATUS_VALUES,
     canonical_digest as _strict_phase3_digest,
+)
+from codontrace.genesis.canonical import (
     is_real_evidence_digest as _strict_is_real_digest,
+)
+from codontrace.genesis.canonical import (
     require_finite_float as _phase3_finite,
+)
+from codontrace.genesis.canonical import (
     require_phase3_status as _require_phase3_status,
+)
+from codontrace.genesis.canonical import (
     require_real_evidence_digest as _strict_require_real_digest,
 )
 

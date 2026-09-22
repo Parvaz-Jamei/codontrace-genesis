@@ -7,14 +7,12 @@ unless a protocol supplies comparative, held-out evidence.
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from codontrace.genesis.canonical import require_finite_float
-
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_json_dumps
+from codontrace._types import JsonValue
+from codontrace.genesis.canonical import require_finite_float
 
 SOCIAL_INTERACTION_TYPES = (
     "resource_sharing",

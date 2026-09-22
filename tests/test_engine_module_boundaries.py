@@ -20,7 +20,6 @@ from codontrace.genesis.engine import GenesisEngine as GenesisEngineReexport
 from codontrace.genesis.engine import _action_registry_hash as genesis_action_registry_hash
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 
-
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
 LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
 

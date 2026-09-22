@@ -1,9 +1,12 @@
 
 """Phase 3 scale/performance resource-budget evidence primitives."""
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
+
 
 @dataclass(frozen=True, slots=True)
 class ResourceBudgetPolicy:

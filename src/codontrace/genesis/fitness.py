@@ -7,8 +7,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 from codontrace.genesis.liveness import AliveGateResult
 from codontrace.genesis.status import ActionStatusRegistry
 from codontrace.trace import Trace, TraceEvent

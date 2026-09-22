@@ -28,7 +28,6 @@ from codontrace.genesis.food_patch_signal import (
 from codontrace.genesis.hard_experiment_02 import (
     ARMS,
     CLAIM_CEILING,
-    PILOT_SEEDS,
     build_hard_experiment_02_spec,
     evaluate_hard_experiment_02_claim,
     evaluate_hard_experiment_02_pilot_gates,

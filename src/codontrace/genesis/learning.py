@@ -8,14 +8,13 @@ available for memory/consolidation-style updates in controlled library runs.
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass
 from typing import cast
 
+from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.memory import EpisodicEvent, MemoryWriteResult
-from codontrace._numeric import finite_float, finite_json_dumps
 
 
 @dataclass(frozen=True, slots=True)

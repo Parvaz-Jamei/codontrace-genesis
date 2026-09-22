@@ -40,7 +40,6 @@ from codontrace.genesis.runtime_profiles import (
 from codontrace.rng import RNGManager
 from codontrace.world import World2D
 
-
 PARENT_A_BITS = "101111000"
 PARENT_B_BITS = "000000111"
 

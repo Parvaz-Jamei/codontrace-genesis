@@ -206,9 +206,7 @@ def _stable_dict(data: Mapping[str, Any] | None) -> dict[str, JsonValue]:
         return {}
     out: dict[str, JsonValue] = {}
     for key, value in sorted(data.items()):
-        if isinstance(value, bool):
-            out[str(key)] = value
-        elif isinstance(value, int):
+        if isinstance(value, bool) or isinstance(value, int):
             out[str(key)] = value
         elif isinstance(value, float):
             if not math.isfinite(value):
@@ -993,9 +991,7 @@ def mutation_audit_from_result_record(record: object, plan: object | None = None
     operators = tuple(str(item) for item in operator_sequence) if isinstance(operator_sequence, Sequence) and not isinstance(operator_sequence, (str, bytes, bytearray)) else applied_tuple
     blocked = "none"
     validity = str(data.get("validity_status") or "valid")
-    if validity == "invalid":
-        blocked = "validation_failed"
-    elif rejected_tuple and not applied_tuple:
+    if validity == "invalid" or rejected_tuple and not applied_tuple:
         blocked = "validation_failed"
     elif int(data.get("mutation_count", 0) or 0) == 0:
         blocked = "rng_not_selected"

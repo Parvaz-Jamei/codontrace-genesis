@@ -24,6 +24,28 @@ from codontrace.actions import (
     default_action_registry,
 )
 from codontrace.codon import CodonTable
+from codontrace.engine_digest import (
+    _action_registry_hash,
+    _adf_vocabulary_hash,
+    _codon_table_hash,
+    _digest,
+    _digest_sequence,
+    _genome_spec_hash,
+    _json_float_value,
+    _json_str_tuple,
+    _jsonish_for_digest,
+    _object_hash,
+    _ribosome_hash,
+    _stable_default_action_registry_hash,
+    _status_registry_digest,
+)
+from codontrace.engine_results import (
+    ConsistencyValidationResult,
+    GenesisRun,
+    GenesisRunSummary,
+    GenesisSnapshot,
+    GenesisTickResult,
+)
 from codontrace.genesis.adf_runtime import ADFExecutionPolicy, ADFMacroRegistry
 from codontrace.genesis.api_audit import ActionWiringMatrix, export_action_wiring_matrix
 from codontrace.genesis.artifacts import (
@@ -41,16 +63,16 @@ from codontrace.genesis.birth import (
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
     BirthEvent,
+    ChildAdmissionResult,
     ChildGenomeResult,
     LearningInheritanceRecord,
     MutationAuditResult,
     MutationPlan,
-    SkillCompressionRecord,
     SkillCompressionAblationPolicy,
+    SkillCompressionRecord,
 )
 from codontrace.genesis.capsule import CapsuleTransferConfig, NexusStigmergyLayer
 from codontrace.genesis.capsule_validation import CapsuleAblationPolicy, CapsuleOutcomeWindow
-from codontrace.genesis.collective_intelligence import CollectiveTaskGraph, RoleAblationProtocol
 from codontrace.genesis.causal_graph import CausalGraph, CausalGraphConfig
 from codontrace.genesis.claim_gate import (
     ClaimRequest,
@@ -58,6 +80,7 @@ from codontrace.genesis.claim_gate import (
     StrongClaimLadderResult,
     evaluate_strong_claim_ladder,
 )
+from codontrace.genesis.collective_intelligence import CollectiveTaskGraph, RoleAblationProtocol
 from codontrace.genesis.contribution_ledger import (
     CodonContributionRecord,
     ContributionLedger,
@@ -90,6 +113,8 @@ from codontrace.genesis.event_graph import EventGraph
 from codontrace.genesis.evidence import EvidenceManifest
 from codontrace.genesis.evidence_validation import EvidenceValidationContext
 from codontrace.genesis.frames import EngineFrame, engine_frame_from_generation
+from codontrace.genesis.generalization import HeldoutPartnerEvaluationProtocol
+from codontrace.genesis.intervention import CounterfactualReplayProtocol
 from codontrace.genesis.memory import (
     DelayedRewardTrace,
     EpisodicMemory,
@@ -97,6 +122,7 @@ from codontrace.genesis.memory import (
     MemoryUseEvidence,
     SourceReputationMemory,
 )
+from codontrace.genesis.open_endedness import OEEExtendedMetrics
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import (
     FitnessConfig,
@@ -128,7 +154,13 @@ from codontrace.genesis.review import (
     validate_review_result,
 )
 from codontrace.genesis.ribosome import CodonExecutionRecord, Ribosome
-from codontrace.genesis.role import RoleAssignment, RoleContribution, infer_role_from_record, RoleMechanicsPolicy, TerritoryMechanicsConfig
+from codontrace.genesis.role import (
+    RoleAssignment,
+    RoleContribution,
+    RoleMechanicsPolicy,
+    TerritoryMechanicsConfig,
+    infer_role_from_record,
+)
 from codontrace.genesis.rules import ApprovedRuleSet
 from codontrace.genesis.selection import EvolutionConfig, select_population
 from codontrace.genesis.structural_mutation import (
@@ -141,35 +173,10 @@ from codontrace.genesis.substrate import (
     element_grid_to_world2d,
     world2d_to_element_grid,
 )
-from codontrace.genesis.generalization import HeldoutPartnerEvaluationProtocol
-from codontrace.genesis.intervention import CounterfactualReplayProtocol
-from codontrace.genesis.open_endedness import OEEExtendedMetrics
 from codontrace.genesis.translation_profile import (
     TranslationPolicy,
     TranslationProfile,
     build_semantic_proxy_report,
-)
-from codontrace.engine_digest import (
-    _action_registry_hash,
-    _adf_vocabulary_hash,
-    _codon_table_hash,
-    _digest,
-    _digest_sequence,
-    _genome_spec_hash,
-    _json_float_value,
-    _json_str_tuple,
-    _jsonish_for_digest,
-    _object_hash,
-    _ribosome_hash,
-    _stable_default_action_registry_hash,
-    _status_registry_digest,
-)
-from codontrace.engine_results import (
-    ConsistencyValidationResult,
-    GenesisRun,
-    GenesisRunSummary,
-    GenesisSnapshot,
-    GenesisTickResult,
 )
 from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
@@ -990,7 +997,7 @@ class GenesisRunResult:
     @property
     def reproduction_attempt_records(self) -> tuple[ReproductionAttemptRecord, ...]:
         rows: list[ReproductionAttemptRecord] = []
-        capacity = max((tick.generation_result.before_count for tick in self.ticks), default=None)
+        _capacity = max((tick.generation_result.before_count for tick in self.ticks), default=None)
         copy_self_by_tick_org: dict[tuple[int, str], object] = {}
         for tick in self.ticks:
             for trace in tick.generation_result.traces:
@@ -1271,8 +1278,8 @@ class GenesisRunResult:
             )
             status = evaluation.source_fitness_status
             state_changed = evaluation.state_changed
-            allowed_source = evaluation.allowed_source
-            selection_delta_measured = evaluation.selection_delta_measured
+            _allowed_source = evaluation.allowed_source
+            _selection_delta_measured = evaluation.selection_delta_measured
             utility_selection_delta = evaluation.utility_selection_delta
             utility_raw_fitness_delta = evaluation.utility_raw_fitness_delta
             utility_task_delta = evaluation.utility_task_delta
@@ -2962,17 +2969,17 @@ def _phase2_manifest_protocol_statuses(
         "benchmark_scenario_digest" in engine.spec.metadata
         and engine.spec.metadata.get("scenario_runtime_status") in {"measured", "runtime_effective"}
     )
-    statuses = {field: "not_run" for field in phase2_hashes}
-    for field in ("genome_program_digest",):
-        statuses[field] = "measured"
-    for field in ("structural_mutation_digest", "structural_mutation_record_digest"):
-        statuses[field] = "measured" if has_mutation_event else "not_observed"
-    for field in ("adf_macro_registry_digest", "macro_registry_digest"):
-        statuses[field] = "measured" if engine.spec.adf_macro_registry is not None else "disabled_by_config"
-    for field in ("adf_usefulness_report_digest", "macro_utility_digest"):
-        statuses[field] = "provisional" if engine.spec.adf_macro_registry is not None else "not_run"
-    for field in ("translation_profile_digest", "translation_profile_hash"):
-        statuses[field] = "measured" if engine.spec.translation_profile is not None else "fixed_default"
+    statuses = {name: "not_run" for name in phase2_hashes}
+    for name in ("genome_program_digest",):
+        statuses[name] = "measured"
+    for name in ("structural_mutation_digest", "structural_mutation_record_digest"):
+        statuses[name] = "measured" if has_mutation_event else "not_observed"
+    for name in ("adf_macro_registry_digest", "macro_registry_digest"):
+        statuses[name] = "measured" if engine.spec.adf_macro_registry is not None else "disabled_by_config"
+    for name in ("adf_usefulness_report_digest", "macro_utility_digest"):
+        statuses[name] = "provisional" if engine.spec.adf_macro_registry is not None else "not_run"
+    for name in ("translation_profile_digest", "translation_profile_hash"):
+        statuses[name] = "measured" if engine.spec.translation_profile is not None else "fixed_default"
     statuses["contribution_ledger_digest"] = "measured" if has_contribution_ledger else "not_observed"
     statuses["micro_ablation_attribution_digest"] = "not_run"
     statuses["innovation_registry_digest"] = "not_configured"
@@ -2986,12 +2993,12 @@ def _phase2_manifest_protocol_statuses(
         and evidence_context.has_intervention_protocol_artifact()
         else "not_run"
     )
-    for field in (
+    for name in (
         "intervention_protocol_digest",
         "intervention_result_digest",
         "causal_intervention_result_digest",
     ):
-        statuses[field] = intervention_status
+        statuses[name] = intervention_status
     statuses["discovery_witness_digest"] = "not_run"
     statuses["benchmark_scenario_digest"] = "measured" if benchmark_runtime else "not_configured"
     statuses["statistical_report_digest"] = "provisional" if has_ticks else "empty_but_available"
@@ -3011,8 +3018,8 @@ def _phase2_manifest_protocol_statuses(
         "counterfactual_replay_protocol_digest": engine.spec.counterfactual_replay_protocol,
         "oee_extended_metrics_digest": engine.spec.oee_extended_metrics,
     }
-    for field, configured_value in config_status_map.items():
-        statuses[field] = "configured_digest_only" if configured_value is not None else "disabled_by_config"
+    for name, configured_value in config_status_map.items():
+        statuses[name] = "configured_digest_only" if configured_value is not None else "disabled_by_config"
     if engine.spec.oee_extended_metrics is not None and engine.spec.oee_extended_metrics.claim_eligible:
         statuses["oee_extended_metrics_digest"] = "candidate_evidence"
     if evidence_context.has_semantic_proxy_artifact() or engine.spec.translation_profile is not None:
@@ -3021,10 +3028,10 @@ def _phase2_manifest_protocol_statuses(
         statuses["semantic_proxy_report_digest"] = "fixed_default"
     statuses["phase2_claim_decision_digest"] = "measured"
     statuses["claim_gate_decision_digest"] = "measured"
-    out = {f"phase2.{field}.status": status for field, status in sorted(statuses.items())}
-    for field, status in sorted(statuses.items()):
+    out = {f"phase2.{name}.status": status for name, status in sorted(statuses.items())}
+    for name, status in sorted(statuses.items()):
         if status == "provisional":
-            out[f"phase2.{field}.status_reason"] = "deterministic_digest_present_but_control_or_runtime_protocol_incomplete"
+            out[f"phase2.{name}.status_reason"] = "deterministic_digest_present_but_control_or_runtime_protocol_incomplete"
     return out
 
 

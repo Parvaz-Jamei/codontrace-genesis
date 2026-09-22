@@ -11,7 +11,7 @@ import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NewType, Protocol, cast
 
@@ -550,7 +550,7 @@ def manifest_from_parts(
 def utc_timestamp() -> str:
     """Return an ISO timestamp for optional caller-side audit metadata."""
 
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 # Conservative from_dict helpers are attached after class creation to keep the

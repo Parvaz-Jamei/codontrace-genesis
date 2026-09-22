@@ -961,7 +961,7 @@ def summarize_dynamic_environment_observation(
         raise TypeError(
             "summarize_dynamic_environment_observation expected an object with a ticks collection."
         )
-    ticks = getattr(result, "ticks")
+    ticks = result.ticks
     snapshots = snapshots_from_generation_results(ticks)
     events: list[EnvironmentEvent] = []
     for tick in ticks:

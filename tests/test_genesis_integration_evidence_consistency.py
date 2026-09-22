@@ -1,6 +1,6 @@
 from codontrace.genesis import GenesisEngine
-from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.evidence_consistency import audit_result_evidence_consistency
+from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.runtime_wiring_audit import integration_feature_catalog
 
 

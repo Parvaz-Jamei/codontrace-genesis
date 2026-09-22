@@ -1,6 +1,5 @@
-from codontrace.genesis import AliveGateResult, describe_behavior
+from codontrace.genesis import AliveGateResult, GenesisEngine, describe_behavior
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
-from codontrace.genesis import GenesisEngine
 from codontrace.trace import Trace, TraceEvent
 
 

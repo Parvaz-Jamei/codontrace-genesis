@@ -1,6 +1,6 @@
 from codontrace.genesis import GenesisEngine
-from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.replay_integrity import replay_digest_class_policies
+from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 
 
 def _run():

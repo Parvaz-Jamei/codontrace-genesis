@@ -14,8 +14,8 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, cast
 
-from codontrace._types import JsonValue, Position
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue, Position
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.causal_graph import CausalGraph, CausalNode

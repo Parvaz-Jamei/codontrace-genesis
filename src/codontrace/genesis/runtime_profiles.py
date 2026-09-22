@@ -20,8 +20,8 @@ from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleTransferCon
 from codontrace.genesis.death import DeathMonitoringConfig
 from codontrace.genesis.engine import GenesisEngineConfig, GenesisExperimentSpec
 from codontrace.genesis.environment import EnvironmentConfig
-from codontrace.genesis.materials import MaterialsConfig
 from codontrace.genesis.liveness import AliveGateConfig
+from codontrace.genesis.materials import MaterialsConfig
 from codontrace.genesis.phase_e import (
     CapsuleMemoryConfig,
     DemeConfig,
@@ -41,7 +41,7 @@ from codontrace.genesis.population import (
 )
 from codontrace.genesis.selection import EvolutionConfig
 from codontrace.genesis.substrate import world2d_to_element_grid
-from codontrace.world import World2D, WorldObject
+from codontrace.world import World2D
 
 # EAT_LUMEN, COPY_SELF, WAIT — eat first so runtime ATP can cross the reproduction gate.
 LIFE_LOOP_EATER_GENOME = "101111000"
@@ -874,7 +874,7 @@ def summarize_life_loop_observation(result: object) -> LifeLoopObservation:
         raise TypeError(
             "summarize_life_loop_observation expected an object with a ticks collection."
         )
-    ticks = getattr(result, "ticks")
+    ticks = result.ticks
     lumen_eaten = 0
     attempts = 0
     births = 0

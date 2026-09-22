@@ -489,15 +489,15 @@ def export_action_wiring_matrix(
 
     registry = action_registry or default_action_registry()
     table = codon_table or CodonTable.genesis_toolchain_v0()
-    names = tuple(str(name) for name in getattr(registry, "names")())
+    names = tuple(str(name) for name in registry.names())
     codons_by_action: dict[str, list[str]] = {}
-    for codon in getattr(table, "actions")():
+    for codon in table.actions():
         action_name = str(getattr(codon, "action_name", getattr(codon, "action", "")))
         codons_by_action.setdefault(action_name, []).append(str(getattr(codon, "bits", "")))
     all_actions = tuple(sorted(set(names) | set(codons_by_action)))
     rows: list[ActionWiringRecord] = []
     for action_name in all_actions:
-        handler = getattr(registry, "get")(action_name)
+        handler = registry.get(action_name)
         contract = _action_effect_contract(action_name)
         codons = tuple(codons_by_action.get(action_name, ()))
         handler_stable_id = ""

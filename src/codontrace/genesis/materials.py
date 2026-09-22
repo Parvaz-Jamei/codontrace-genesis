@@ -36,7 +36,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, cast
+from typing import Any
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -1711,7 +1711,7 @@ def summarize_materials_observation(
         raise TypeError(
             "summarize_materials_observation expected an object with a ticks collection."
         )
-    ticks = getattr(result, "ticks")
+    ticks = result.ticks
     snapshots = snapshots_from_generation_results(ticks)
     events: list[MaterialEvent] = []
     for tick in ticks:

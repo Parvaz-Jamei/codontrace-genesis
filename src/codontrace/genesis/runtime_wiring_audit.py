@@ -13,7 +13,7 @@ from importlib import import_module
 from typing import Any
 
 from codontrace._types import JsonValue
-from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
+from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.replay_integrity import replay_digest_class_policies
 
 

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass, field
 
+from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue, Position
 from codontrace.genesis.atp import GenesisATPState
-from codontrace._numeric import finite_float, finite_json_dumps
 
 
 @dataclass(frozen=True, slots=True)
@@ -531,7 +530,8 @@ class DelayedRewardTrace(SignalActionLink):
 # ---------------------------------------------------------------------------
 # Signal/capsule -> memory -> action causal evidence primitives (P0/P2)
 # ---------------------------------------------------------------------------
-from codontrace.genesis.canonical import canonical_digest as _genesis_canonical_digest, require_finite_float as _genesis_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _genesis_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _genesis_require_finite_float
 
 
 @dataclass(frozen=True, slots=True)
@@ -635,7 +635,7 @@ class SourceReputationMemory:
     def score_for(self, source_id: str) -> float:
         return dict(self.source_scores).get(source_id, 0.0)
 
-    def update_from_packet_outcome(self, source_id: str, *, useful: bool, outcome_delta: float) -> "SourceReputationMemory":
+    def update_from_packet_outcome(self, source_id: str, *, useful: bool, outcome_delta: float) -> SourceReputationMemory:
         delta = _genesis_require_finite_float("outcome_delta", outcome_delta)
         old = self.score_for(source_id)
         signed = abs(delta) if useful else -abs(delta)

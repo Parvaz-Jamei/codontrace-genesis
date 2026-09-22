@@ -13,8 +13,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 
-from codontrace._types import JsonValue, Position
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue, Position
 from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
@@ -1667,7 +1667,8 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Skill-compression causal controls and child outcome audits (P0)
 # ---------------------------------------------------------------------------
-from codontrace.genesis.canonical import canonical_digest as _birth_canonical_digest, require_finite_float as _birth_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _birth_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _birth_require_finite_float
 
 _SKILL_COMPRESSION_ABLATION_MODES = {
     "full_compression",

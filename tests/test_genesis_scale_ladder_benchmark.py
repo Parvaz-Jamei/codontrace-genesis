@@ -1,8 +1,8 @@
 import pytest
 
+from codontrace.errors import ConfigurationError
 from codontrace.genesis import canonical_digest
 from codontrace.genesis.phase_b_scientific_maturity import ScaleBenchmarkReport
-from codontrace.errors import ConfigurationError
 
 
 def D(name: str) -> str:

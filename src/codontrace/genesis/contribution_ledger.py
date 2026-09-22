@@ -365,8 +365,8 @@ def _float(data: Mapping[str, JsonValue], key: str, default: float) -> float:
 # ---------------------------------------------------------------------------
 # Multi-agent credit attribution ledger (P2)
 # ---------------------------------------------------------------------------
-from dataclasses import field as _ledger_field
-from codontrace.genesis.canonical import canonical_digest as _ledger_canonical_digest, require_finite_float as _ledger_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _ledger_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _ledger_require_finite_float
 
 
 @dataclass(frozen=True, slots=True)

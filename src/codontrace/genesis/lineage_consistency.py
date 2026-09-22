@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
 

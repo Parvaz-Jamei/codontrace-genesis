@@ -15,7 +15,6 @@ from typing import Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.discovery_witness import (
     CLAIM_CEILING_DISCOVERY_CANDIDATE,

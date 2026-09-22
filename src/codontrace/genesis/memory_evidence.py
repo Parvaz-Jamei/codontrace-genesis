@@ -53,10 +53,7 @@ def classify_memory_delayed_evidence(
 
     has_control = bool(control_digest) and not str(control_digest).startswith("not_run")
 
-    if memory_written and memory_read and reward_observed:
-        status = "read_linked"
-        correct = True
-    elif runtime_correct_flag and memory_read:
+    if memory_written and memory_read and reward_observed or runtime_correct_flag and memory_read:
         status = "read_linked"
         correct = True
     elif runtime_correct_flag and not memory_read:

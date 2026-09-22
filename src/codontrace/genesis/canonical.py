@@ -9,14 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-
-
 
 _PLACEHOLDER_DIGEST_VALUES = {
     "",

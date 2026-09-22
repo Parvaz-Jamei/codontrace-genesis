@@ -1,4 +1,4 @@
-from codontrace.genesis import GenesisEngine, GenesisExperimentSpec, GenesisEngineConfig
+from codontrace.genesis import GenesisEngine, GenesisEngineConfig, GenesisExperimentSpec
 
 
 def test_engine_result_public_surface_contract_phase1():

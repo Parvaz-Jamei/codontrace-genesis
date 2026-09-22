@@ -8,15 +8,14 @@ an archive, and feed archive/novelty information back into parent selection.
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
+from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace.rng import RNGManager
 
 DiscoveryPipelineScale = Literal["S1", "S2", "research"]

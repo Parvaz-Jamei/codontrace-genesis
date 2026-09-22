@@ -7,8 +7,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import cast
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.quality_diversity import (
     BehaviorDescriptorSchema,

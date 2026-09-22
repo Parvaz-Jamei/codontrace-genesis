@@ -126,7 +126,8 @@ def _digest(payload: dict[str, JsonValue]) -> str:
 # ---------------------------------------------------------------------------
 # Heldout partner generalization protocol (P1)
 # ---------------------------------------------------------------------------
-from codontrace.genesis.canonical import canonical_digest as _generalization_canonical_digest, require_finite_float as _generalization_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _generalization_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _generalization_require_finite_float
 
 
 @dataclass(frozen=True, slots=True)

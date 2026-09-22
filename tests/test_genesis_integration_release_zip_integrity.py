@@ -1,8 +1,8 @@
 import subprocess
 import sys
-from pathlib import Path
-from tools.build_clean_release_zip import build
+
 from tools.audit_release_zip import audit
+from tools.build_clean_release_zip import build
 
 
 def test_build_clean_release_zip_excludes_cache_files(tmp_path):

@@ -15,10 +15,10 @@ from codontrace.genesis.ilw.prereg import (
     CONFIRMATORY_HELD_OUT_SEEDS,
     EDGE_KNOCKOUTS,
     INTERACTIONS_TO_ESTIMATE,
+    SCIENTIFIC_NAME,
     PilotGateError,
     PilotGateStatus,
     PilotHarness,
-    SCIENTIFIC_NAME,
 )
 
 
@@ -120,10 +120,8 @@ def test_partial_payload_honesty_flags_without_execution(tmp_path):
 def test_partial_resume_preserves_later_prior_cells(tmp_path):
     """max_cells must not drop previously completed cells that appear later in plan order."""
     from codontrace.genesis.ilw.campaign import (
-        build_ablation_cells,
         build_interaction_screening_cells,
         run_ilw5_partial,
-        select_partial_campaign_cells,
     )
     from codontrace.genesis.ilw.prereg import PilotGateStatus, PilotHarness
 

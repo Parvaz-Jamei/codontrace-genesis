@@ -16,11 +16,11 @@ from codontrace.engine import (
     GenesisRunSummary,
     GenesisSnapshot,
     GenesisTickResult,
-    apply_human_review,
-    attach_review_result,
     _action_registry_hash,
     _execution_source_digest,
     _phase2_hashes,
+    apply_human_review,
+    attach_review_result,
 )
 
 __all__ = [

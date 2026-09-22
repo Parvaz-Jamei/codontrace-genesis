@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import (
     canonical_digest,
-    is_real_evidence_digest as _real_digest,
     require_finite_float,
 )
-
+from codontrace.genesis.canonical import (
+    is_real_evidence_digest as _real_digest,
+)
 
 OEE_RESEARCH_GRADE_MIN_SEEDS = 30
 

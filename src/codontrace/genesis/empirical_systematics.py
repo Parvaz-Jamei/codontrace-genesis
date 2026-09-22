@@ -198,7 +198,7 @@ def phylogeny_edges_from_censuses(
 
 def _stable_permutation(values: Sequence[str], *, seed: int, namespace: str) -> tuple[str, ...]:
     def _key(item: str) -> str:
-        payload = f"{namespace}:{seed}:{item}".encode("utf-8")
+        payload = f"{namespace}:{seed}:{item}".encode()
         return hashlib.sha256(payload).hexdigest()
 
     return tuple(sorted(values, key=_key))

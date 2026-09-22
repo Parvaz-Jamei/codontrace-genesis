@@ -48,10 +48,10 @@ class PluginRegistry:
         self._plugins = dict(sorted(mapping.items()))
 
     @classmethod
-    def empty(cls) -> "PluginRegistry":
+    def empty(cls) -> PluginRegistry:
         return cls(())
 
-    def register(self, plugin: PluginSpec) -> "PluginRegistry":
+    def register(self, plugin: PluginSpec) -> PluginRegistry:
         return PluginRegistry((*self._plugins.values(), plugin))
 
     def by_extension_point(self, extension_point: str) -> tuple[PluginSpec, ...]:

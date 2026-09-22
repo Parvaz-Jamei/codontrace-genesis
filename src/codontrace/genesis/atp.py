@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 from codontrace.energy import ATPAccount
 
 

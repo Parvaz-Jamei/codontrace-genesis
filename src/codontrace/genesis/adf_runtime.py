@@ -364,7 +364,7 @@ class ADFUsefulnessControlReport:
 
 
 def build_adf_usefulness_control_report(
-    registry: "ADFMacroRegistry",
+    registry: ADFMacroRegistry,
     macro_id: str,
     *,
     task_delta: float = 0.0,

@@ -392,7 +392,8 @@ def build_oee_metrics_report(
         shadow_adjusted_novelty=float(adjusted_novelty),
     )
 
-from codontrace.genesis.canonical import canonical_digest as _phase3_digest, require_finite_float as _phase3_finite
+from codontrace.genesis.canonical import canonical_digest as _phase3_digest
+
 
 @dataclass(frozen=True, slots=True)
 class PreregisteredMetric:
@@ -453,8 +454,14 @@ class DowngradeRule:
 # Phase 3 P0/P1 strict statistical validation contracts.
 from codontrace.genesis.canonical import (
     canonical_digest as _strict_stat_digest,
+)
+from codontrace.genesis.canonical import (
     is_real_evidence_digest as _strict_stat_is_real_digest,
+)
+from codontrace.genesis.canonical import (
     require_finite_float as _strict_stat_finite,
+)
+from codontrace.genesis.canonical import (
     require_real_evidence_digest as _strict_stat_require_real_digest,
 )
 

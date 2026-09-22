@@ -34,7 +34,6 @@ from codontrace.genesis.phase_e import (
 )
 from codontrace.genesis.phase_h import (
     _CLAIM_CEILING,
-    _FORBIDDEN,
     RESEARCH_SEED_COUNT,
     SMOKE_SEED_COUNT,
     CommunicationAblationCampaign,
@@ -47,14 +46,13 @@ from codontrace.genesis.phase_i import (
     ABLATION_DROP_EPSILON,
     DEFAULT_GROUP_SIZE,
     MLS_KEEP_FRACTION,
+    PAIR_BONUS,
     RESEARCH_GENERATION_COUNT,
     SMOKE_GENERATION_COUNT,
-    SMOKE_N_GROUPS,
     TASK_A,
     TASK_A_YIELD,
     TASK_B,
     TASK_B_YIELD,
-    PAIR_BONUS,
     CandidateFlagEarnCriteria,
     EarnedCandidateFlags,
     _DetRng,

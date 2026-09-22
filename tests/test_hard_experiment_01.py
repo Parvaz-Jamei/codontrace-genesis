@@ -8,12 +8,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from codontrace.genesis.capsule import CapsuleAdoptionPolicy, CapsuleShuffleMode
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.hard_experiment_01 import (
+    ACTIVITY_MATCH_PILOT_GATE,
     ANALYSIS_ARMS,
     ARMS,
     AUXILIARY_ARMS,
@@ -22,11 +21,13 @@ from codontrace.genesis.hard_experiment_01 import (
     CLAIM_CEILING,
     CONTENT_NULL_PAYLOAD_ACTION,
     DOSE_LEVELS,
+    FOOD_AMOUNT_MULTIPLIERS,
     INTERVENTION_CLAIM,
     INTERVENTION_SUPPORTED_FLAGS,
     MIN_SOURCE_FITNESS_TREATMENT,
     PRIMARY_OUTCOME,
     RESEARCH_SEED_COUNT,
+    SCHEMA_VERSION,
     SENSITIVITY_ARMS,
     SMOKE_SEED_COUNT,
     HardExperiment01ArmRecord,
@@ -40,12 +41,13 @@ from codontrace.genesis.hard_experiment_01 import (
     _sensitivity_failures,
     build_hard_experiment_01_dose_spec,
     build_hard_experiment_01_spec,
+    calibration_food_amount_layout,
+    calibration_role_for_index,
     diagnose_hard_experiment_01_run,
     evaluate_hard_experiment_01_assay,
     evaluate_hard_experiment_01_claim,
+    evaluate_hard_experiment_01_wave1e_pilot_gates,
     format_hard_experiment_01_summary,
-    SCHEMA_VERSION,
-    calibration_role_for_index,
     hard_experiment_01_calibration_knobs,
     hard_experiment_01_causal_dag,
     hard_experiment_01_interventions,
@@ -55,10 +57,6 @@ from codontrace.genesis.hard_experiment_01 import (
     hard_experiment_01_prereg_amendment_05_digest,
     hard_experiment_01_prereg_amendment_digest,
     hard_experiment_01_prereg_amendment_lock_digest,
-    ACTIVITY_MATCH_PILOT_GATE,
-    FOOD_AMOUNT_MULTIPLIERS,
-    calibration_food_amount_layout,
-    evaluate_hard_experiment_01_wave1e_pilot_gates,
     hard_experiment_01_prereg_digest,
     hard_experiment_01_protocol_digest,
     permute_roles_for_seed,
@@ -1156,7 +1154,7 @@ def test_b1_adoption_attempts_equal_accepted_plus_blocked() -> None:
     _sources, _u, _t, attempts, accepted = _capsule_counts(result)
     blocked = _adoption_blocked_by_reason(result)
     assert attempts == accepted + sum(blocked.values())
-    record = __import__(
+    _record = __import__(
         "codontrace.genesis.hard_experiment_01", fromlist=["_record_from_run"]
     )
     # Round-trip through arm record JSON alias.
@@ -1302,6 +1300,7 @@ def test_p1_committed_pilots_exist() -> None:
 
 def test_p5_calibration_food_cells_has_no_seed_parameter() -> None:
     import inspect
+
     from codontrace.genesis.hard_experiment_01 import _calibration_food_cells
 
     params = inspect.signature(_calibration_food_cells).parameters

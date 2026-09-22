@@ -13,8 +13,10 @@ from codontrace.genesis.artifacts import (
 __all__ = ["ReplayBundle", "ReplayVerificationResult", "verify_replay_bundle"]
 
 from dataclasses import dataclass
+
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest as _phase3_digest
+
 
 @dataclass(frozen=True, slots=True)
 class ReplayBundleManifest:

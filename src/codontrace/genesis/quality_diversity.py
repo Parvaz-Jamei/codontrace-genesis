@@ -9,14 +9,13 @@ of open-ended discovery.
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import cast
 
+from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-from codontrace._numeric import finite_float, finite_json_dumps
 
 
 @dataclass(frozen=True, slots=True)
@@ -1118,7 +1117,7 @@ class ParetoObjectiveVector:
         ):
             object.__setattr__(self, attr, round(require_finite_float(attr, getattr(self, attr)), 10))
 
-    def dominates(self, other: "ParetoObjectiveVector") -> bool:
+    def dominates(self, other: ParetoObjectiveVector) -> bool:
         own = (self.task_score, self.survival_viability, self.energy_efficiency, self.novelty, self.cooperation_coordination, -self.complexity_cost)
         their = (other.task_score, other.survival_viability, other.energy_efficiency, other.novelty, other.cooperation_coordination, -other.complexity_cost)
         return all(a >= b for a, b in zip(own, their, strict=True)) and any(a > b for a, b in zip(own, their, strict=True))
@@ -1171,7 +1170,7 @@ class MultiObjectiveQDArchive:
     elites: tuple[ParetoEliteRecord, ...] = ()
     schema_version: str = "multi_objective_qd_archive_v1"
 
-    def insert(self, elite: ParetoEliteRecord) -> "MultiObjectiveQDArchive":
+    def insert(self, elite: ParetoEliteRecord) -> MultiObjectiveQDArchive:
         kept = []
         for item in self.elites:
             if elite.objectives.dominates(item.objectives) and elite.descriptor_key == item.descriptor_key:

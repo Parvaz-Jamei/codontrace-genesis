@@ -8,14 +8,13 @@ evolution or artificial-life discovery.
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Protocol, runtime_checkable
@@ -368,7 +366,8 @@ def _digest(payload: dict[str, JsonValue]) -> str:
     return canonical_digest(payload)
 
 # Phase 3 release-grade campaign primitives.
-from codontrace.genesis.canonical import canonical_digest as _phase3_digest, require_finite_float as _phase3_finite
+from codontrace.genesis.canonical import canonical_digest as _phase3_digest
+
 
 @dataclass(frozen=True, slots=True)
 class Phase3MetricSpec:
@@ -465,11 +464,20 @@ class Phase3CampaignSpec:
 from codontrace.errors import ConfigurationError as _Phase3ConfigurationError
 from codontrace.genesis.canonical import (
     PHASE3_CLAIM_GRADE_STATUSES as _CLAIM_ELIGIBLE_PHASE3_STATUSES,
+)
+from codontrace.genesis.canonical import (
     canonical_digest as _strict_digest,
+)
+from codontrace.genesis.canonical import (
     is_real_evidence_digest as _is_real_evidence_digest,
+)
+from codontrace.genesis.canonical import (
     require_phase3_status as _require_phase3_status,
+)
+from codontrace.genesis.canonical import (
     require_real_evidence_digest as _require_real_evidence_digest,
 )
+
 
 def _strict_status_reasons_for_digests(**digests: str) -> tuple[str, ...]:
     reasons: list[str] = []

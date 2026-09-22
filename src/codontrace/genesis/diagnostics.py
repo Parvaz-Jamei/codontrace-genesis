@@ -825,8 +825,8 @@ def write_export_csvs(
 
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    envelopes = getattr(result, "export_envelopes_by_name")
-    schemas = getattr(result, "export_table_schemas")
+    envelopes = result.export_envelopes_by_name
+    schemas = result.export_table_schemas
     files: list[ExportWrittenFile] = []
     for name in sorted(envelopes):
         envelope = envelopes[name]

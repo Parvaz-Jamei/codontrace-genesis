@@ -1,4 +1,4 @@
-from dataclasses import is_dataclass, fields
+from dataclasses import fields, is_dataclass
 
 import codontrace.genesis.phase_b_scientific_maturity as pb
 

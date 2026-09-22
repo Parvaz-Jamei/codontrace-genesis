@@ -202,7 +202,7 @@ class DeathMonitoringConfig:
         return payload
 
     @classmethod
-    def from_dict(cls, data: dict[str, JsonValue]) -> "DeathMonitoringConfig":
+    def from_dict(cls, data: dict[str, JsonValue]) -> DeathMonitoringConfig:
         def _strict_bool(name: str, default: bool) -> bool:
             if name not in data:
                 return default
@@ -422,7 +422,7 @@ class DeathClassificationRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, JsonValue]) -> "DeathClassificationRecord":
+    def from_dict(cls, data: dict[str, JsonValue]) -> DeathClassificationRecord:
         def _field(name: str, default: object = None) -> object:
             return data[name] if name in data else default
 

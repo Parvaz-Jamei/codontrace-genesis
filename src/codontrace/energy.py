@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 
 LedgerKind = Literal["debit", "credit"]
 

@@ -1,4 +1,3 @@
-import math
 import subprocess
 import sys
 from pathlib import Path
@@ -20,7 +19,6 @@ from codontrace.genesis.campaign import (
 )
 from codontrace.genesis.final_release_manifest import (
     FinalClaimManifest,
-    ReleaseEvidencePack,
     validate_final_claim_manifest,
 )
 from codontrace.genesis.statistical_protocol import (

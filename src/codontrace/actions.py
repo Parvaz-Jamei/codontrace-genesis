@@ -8,9 +8,9 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
+from codontrace._numeric import finite_float
 from codontrace._types import JsonValue, Position
 from codontrace.errors import ConfigurationError
-from codontrace._numeric import finite_float
 
 if TYPE_CHECKING:
     from codontrace.world import World2D, WorldObject
@@ -720,7 +720,7 @@ def eat_lumen_handler(ctx: ActionContext) -> ActionResult:
     """
 
     amount = ctx.view.resource_amount(ctx.position)
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    _inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
     if amount <= 0:
         return ActionResult.blocked(
             reason="no_lumen",

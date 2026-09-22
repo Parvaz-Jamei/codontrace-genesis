@@ -16,9 +16,9 @@ from codontrace.genesis.materials import (
     MaterialBindingSchema,
     MaterialKind,
     MaterialReactionSpec,
-    MaterialSpec,
     MaterialsConfig,
     MaterialsOrganismState,
+    MaterialSpec,
     MaterialsState,
     apply_organism_material_coupling,
     apply_stoichiometric_reaction,
@@ -40,7 +40,6 @@ from codontrace.genesis.runtime_profiles import (
 )
 from codontrace.trace import WorldEvent
 from codontrace.world import World2D
-
 
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
 LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"

@@ -432,7 +432,7 @@ def evaluate_pom_patterns(
     min_lineage = min(r.lineage_depth for r in seed_results)
     min_genomes = min(r.unique_genome_count for r in seed_results)
     min_niches = min(r.niches_occupied for r in seed_results)
-    all_replay = all(r.replay_matched for r in seed_results)
+    _all_replay = all(r.replay_matched for r in seed_results)
     all_cons = all(r.conservation_passed for r in seed_results)
     all_cov = all(r.required_edge_coverage >= 1.0 for r in seed_results)
     all_c2p = all(r.capsule_to_policy_applied > 0 for r in seed_results)

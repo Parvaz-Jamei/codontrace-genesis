@@ -151,7 +151,8 @@ def _digest(payload: Mapping[str, JsonValue]) -> str:
 # ---------------------------------------------------------------------------
 # Counterfactual replay protocol (P2)
 # ---------------------------------------------------------------------------
-from codontrace.genesis.canonical import canonical_digest as _intervention_canonical_digest, require_finite_float as _intervention_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _intervention_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _intervention_require_finite_float
 
 _COUNTERFACTUAL_REPLAY_INTERVENTIONS = {
     "disable_capsule_transfer",

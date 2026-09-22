@@ -6,9 +6,8 @@ regions, harvest depletion, and per-tick renewal. No oracle fitness injection.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import MutableMapping
 from dataclasses import dataclass, field
-from typing import Any
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError

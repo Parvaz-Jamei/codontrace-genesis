@@ -1,7 +1,7 @@
 """Phase 2: HE03 research artifact must not be invented."""
 
-from codontrace.genesis.he03_status import he03_phase2_status
 from codontrace.genesis.hard_experiment_03 import CLAIM_CEILING
+from codontrace.genesis.he03_status import he03_phase2_status
 
 
 def test_he03_research_results_are_absent() -> None:

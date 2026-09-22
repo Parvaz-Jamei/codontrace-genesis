@@ -3,30 +3,38 @@ from __future__ import annotations
 import pytest
 
 import codontrace.genesis as genesis
+from codontrace.genesis.birth import ChildOutcomeAuditRecord, SkillCompressionAblationPolicy
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.capsule_validation import (
     CapsuleAblationPolicy,
-    CapsuleOutcomeWindow,
     CapsuleDelayedOutcomeRecord,
+    CapsuleOutcomeWindow,
     PacketAblationPolicy,
     PacketOutcomeWindow,
 )
-from codontrace.genesis.memory import SignalMemoryCausalLinkRecord, SourceReputationMemory
-from codontrace.genesis.birth import SkillCompressionAblationPolicy, ChildOutcomeAuditRecord
-from codontrace.genesis.role import RoleMechanicsPolicy, TerritoryMechanicsConfig, TerritoryDefenseRecord
 from codontrace.genesis.collective_intelligence import (
-    CollectiveTaskSpec,
-    CollectiveTaskNode,
-    RoleDependencyEdge,
     CollectiveTaskGraph,
+    CollectiveTaskNode,
+    CollectiveTaskSpec,
     JointTaskProgressRecord,
     RoleAblationProtocol,
+    RoleDependencyEdge,
+)
+from codontrace.genesis.contribution_ledger import (
+    MultiAgentContributionLedger,
+    MultiAgentContributionRecord,
+    MultiAgentCreditLedger,
 )
 from codontrace.genesis.generalization import HeldoutPartnerEvaluationProtocol, HeldoutPartnerEvaluationRecord
-from codontrace.genesis.contribution_ledger import MultiAgentContributionRecord, MultiAgentContributionLedger, MultiAgentCreditLedger
-from codontrace.genesis.intervention import CounterfactualReplayProtocol, CounterfactualReplayIntervention, CounterfactualReplayResult
+from codontrace.genesis.intervention import (
+    CounterfactualReplayIntervention,
+    CounterfactualReplayProtocol,
+    CounterfactualReplayResult,
+)
+from codontrace.genesis.memory import SignalMemoryCausalLinkRecord, SourceReputationMemory
 from codontrace.genesis.open_endedness import OEEExtendedMetrics, OpenEndednessMetrics
 from codontrace.genesis.replay_integrity import replay_digest_class_policies
+from codontrace.genesis.role import RoleMechanicsPolicy, TerritoryDefenseRecord, TerritoryMechanicsConfig
 
 
 def d(name: str) -> str:

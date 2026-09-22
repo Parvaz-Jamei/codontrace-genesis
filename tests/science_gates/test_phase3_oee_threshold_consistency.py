@@ -1,10 +1,9 @@
-import pytest
 
 from codontrace.genesis import canonical_digest
 from codontrace.genesis.open_endedness import (
+    OEE_RESEARCH_GRADE_MIN_SEEDS,
     LearnabilityReport,
     OEECandidateMetrics,
-    OEE_RESEARCH_GRADE_MIN_SEEDS,
     SteppingStoneTransferReport,
 )
 

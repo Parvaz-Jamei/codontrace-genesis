@@ -8,7 +8,7 @@ scale, statistics, release packs, plugins, and evidence-lineage wiring.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from codontrace._types import JsonValue
@@ -1118,7 +1118,7 @@ def build_phase_b_scientific_maturity_report(result: Any) -> PhaseBScientificMat
     phase1 = result.phase1_runtime_maturity_report
     phase1_digest = getattr(phase1, "record_digest", None) or (phase1.digest() if hasattr(phase1, "digest") else _stable_digest(phase1))
     manifest_digest = result.manifest.digest()
-    run_digest = result.run.spec_digest
+    _run_digest = result.run.spec_digest
     world_digest = result.manifest.runtime_hashes.get("element_grid_hash") or result.manifest.runtime_hashes.get("world_digest") or manifest_digest
     behavior_digest = _stable_digest([getattr(item, "to_dict", lambda: item)() for item in result.behavior_descriptors])
     qd_digest = _stable_digest([getattr(item, "to_dict", lambda: item)() for item in result.qd_selection_audit])

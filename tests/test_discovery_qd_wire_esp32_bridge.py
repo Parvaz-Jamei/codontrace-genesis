@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import pytest
 
-from codontrace.errors import ConfigurationError
 from codontrace.claimgate.adapters.esp32_bridge import (
-    MqttEsp32Transport,
     MoveCommand,
+    MqttEsp32Transport,
     SensorReading,
     SerialEsp32Transport,
     SimEsp32Bridge,
@@ -22,6 +21,7 @@ from codontrace.claimgate.adapters.esp32_bridge import (
     parse_sensor_payload,
     str_stop_criterion_met,
 )
+from codontrace.errors import ConfigurationError
 from codontrace.genesis.discovery_witness import CLAIM_CEILING_DISCOVERY_CANDIDATE
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.novelty_proposer import RandomProposer

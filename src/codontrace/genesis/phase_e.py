@@ -1692,7 +1692,7 @@ def summarize_phase_e_observation(result: object) -> PhaseEObservation:
     sensory_reads = 0
     gated_blocks = 0
     last_pop = None
-    ticks = getattr(result, "ticks")
+    ticks = result.ticks
     messages_sent = 0
     messages_retrieved = 0
     messages_blocked = 0

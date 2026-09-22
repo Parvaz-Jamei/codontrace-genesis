@@ -1,4 +1,3 @@
-from pathlib import Path
 from tools.audit_package_hygiene import audit
 
 

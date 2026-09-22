@@ -5,10 +5,8 @@ import math
 import pytest
 
 from codontrace.actions import ActionRegistry, ActionResult, ActionRuntimeConfig, EnergyEffect, default_action_registry
-from codontrace.energy import ATPAccount
-from codontrace.trace import Trace, TraceEvent
-from codontrace.world import World2D
 from codontrace.codon import Codon, CodonTable
+from codontrace.energy import ATPAccount
 from codontrace.genesis import (
     AliveGateResult,
     EpisodicEvent,
@@ -29,17 +27,30 @@ from codontrace.genesis import (
 )
 from codontrace.genesis.adf_runtime import ADFExecutionPolicy, ADFMacroDefinition, ADFMacroRegistry
 from codontrace.genesis.atp import DualATPBudget
+from codontrace.genesis.benchmark_suite import AblationConfig, BaselineConfig, BenchmarkScenario
 from codontrace.genesis.capsule import CapsuleTransferConfig, CapsuleTransferMetric, CausalCapsule
 from codontrace.genesis.death import DeathClassificationRecord
-from codontrace.genesis.qd_search import QDDescriptorConfig, QDSearchConfig
+from codontrace.genesis.fitness import (
+    FitnessBreakdown,
+    FitnessComponent,
+    FitnessComponentValue,
+    SelectionFitnessScore,
+    build_fitness_component_value,
+)
 from codontrace.genesis.learning import LearningATPConfig, consolidate_memory
-from codontrace.genesis.fitness import FitnessBreakdown, FitnessComponent, FitnessComponentValue, SelectionFitnessScore, build_fitness_component_value
-from codontrace.genesis.qd_descriptors import DescriptorSpec, DescriptorValue, QDDescriptorRegistry, QDSelectionFeedbackConfig
+from codontrace.genesis.population import FitnessResult, OrganismStepRecord
+from codontrace.genesis.qd_descriptors import (
+    DescriptorSpec,
+    DescriptorValue,
+    QDDescriptorRegistry,
+    QDSelectionFeedbackConfig,
+)
+from codontrace.genesis.qd_search import QDDescriptorConfig, QDSearchConfig
 from codontrace.genesis.quality_diversity import BehaviorBin, BehaviorDescriptorSchema, QDElite
 from codontrace.genesis.ribosome import Ribosome
-from codontrace.genesis.population import FitnessResult, OrganismStepRecord
-from codontrace.genesis.benchmark_suite import BenchmarkScenario, BaselineConfig, AblationConfig
 from codontrace.genesis.substrate_runtime import GenesisWorldState, SubstrateActionBridge
+from codontrace.trace import Trace, TraceEvent
+from codontrace.world import World2D
 
 
 def _memory_event(tick: int, digest: str) -> EpisodicEvent:
@@ -305,7 +316,7 @@ def test_metadata_only_benchmark_is_not_evidence_bearing() -> None:
 
 
 def test_reserved_world_config_features_export_non_claim_status() -> None:
-    from codontrace.scenario import ResourceConfig, ObstacleConfig, WorldConfig
+    from codontrace.scenario import ObstacleConfig, ResourceConfig, WorldConfig
 
     resource = ResourceConfig(density=0.0, distribution="none", respawn=True, respawn_rate=0.2)
     assert resource.to_dict()["respawn_status"] == "reserved_config_only"

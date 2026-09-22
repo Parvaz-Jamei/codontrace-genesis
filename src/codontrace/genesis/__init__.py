@@ -35,11 +35,11 @@ from codontrace.genesis.adf import (
 )
 from codontrace.genesis.analyst import AnalystInputBundle
 from codontrace.genesis.api_audit import (
+    ActionWiringMatrix,
+    ActionWiringRecord,
     APIAuditResult,
     APIDeprecationAuditResult,
     APIStabilityLevel,
-    ActionWiringMatrix,
-    ActionWiringRecord,
     CompatibilitySnapshot,
     DeprecatedAPISymbol,
     PublicAPISymbol,
@@ -78,6 +78,21 @@ from codontrace.genesis.behavior import (
     BehaviorMetricRegistry,
     describe_behavior,
     infer_role_signature,
+)
+from codontrace.genesis.birth import (
+    BirthChamberState,
+    IncipientOffspring,
+    RecombinationRecord,
+    ReproductionMode,
+    SexualRecombinationConfig,
+    apply_positional_segment_exchange,
+    apply_positional_segment_swap,
+    choose_positional_crossover_window,
+    recombine_positional_segment,
+    recombine_positional_segment_pair,
+    reduce_incipient_to_haploid_gamete,
+    select_chamber_pair,
+    split_diploid_homologs,
 )
 from codontrace.genesis.campaign import (
     CrossPartnerEvaluationResult,
@@ -145,6 +160,29 @@ from codontrace.genesis.claim_audit import (
     audit_docs_claims,
 )
 from codontrace.genesis.codon_table import GenesisCodonTable
+from codontrace.genesis.collective_deme import (
+    CollectiveDemePayoffCampaign,
+    CollectiveDemePayoffPack,
+    CollectiveDemeSeedRecord,
+    DemeDivisionOfLaborObservation,
+    DemeMeanFitnessRank,
+    DemePayoffRecord,
+    GroupVsIndividualContrast,
+    build_collective_deme_payoff_pack,
+    build_deme_division_of_labor_observation,
+    build_group_vs_individual_contrast,
+    evaluate_collective_deme_payoff_campaign_claim,
+    evaluate_collective_deme_payoff_claim,
+    rank_demes_by_mean_fitness,
+    run_collective_deme_payoff_campaign,
+)
+from codontrace.genesis.deme_selection import (
+    E2_ORDINAL_PREDICTION,
+    DemeSelectionCell,
+    DemeSelectionConfig,
+    DemeSelectionRecord,
+    e2_ordinal_respects_prediction,
+)
 from codontrace.genesis.discovery import (
     D0BaselineConfig,
     DiscoveryClaimLevel,
@@ -196,6 +234,14 @@ from codontrace.genesis.elements import (
     elements_to_dicts,
     get_element_spec,
 )
+from codontrace.genesis.empirical_systematics import (
+    EmpiricalSystematicsShadowConfig,
+    EmpiricalSystematicsShadowRun,
+    PhylogenyEdge,
+    build_empirical_systematics_shadow,
+    evaluate_empirical_systematics_shadow_claim,
+    phylogeny_edges_from_censuses,
+)
 from codontrace.genesis.engine import (
     GenesisEngine,
     GenesisEngineConfig,
@@ -210,32 +256,28 @@ from codontrace.genesis.engine import (
 from codontrace.genesis.engine import (
     GenesisRunResult as GenesisEngineRunResult,
 )
-from codontrace.genesis.evidence import EvidenceManifest
-from codontrace.genesis.phase1_runtime_maturity import (
-    ADFUsefulnessAuditRecord,
-    CapsuleControlAuditRecord,
-    CausalInterventionAuditRecord,
-    DeathEnergyDiagnosticRecord,
-    MutationOperatorAuditRecord,
-    Phase1FeatureMaturityStatus,
-    Phase1RuntimeMaturityReport,
-    ReproductionGateAuditRecord,
-    RuntimeQDAuditRecord,
-    RuntimeRoleEvidenceRecord,
-    ToolchainPreconditionAuditRecord,
-    adf_usefulness_audit,
-    attach_phase1_report_to_manifest,
-    build_phase1_runtime_maturity_report,
-    capsule_control_audit,
-    causal_intervention_audit,
-    infer_runtime_roles_from_events,
-    mutation_audit_from_structural_record,
-    mutation_noop_audit,
-    phase1_public_api_entries,
-    reproduction_audit_from_result,
-    runtime_qd_audit_from_selection,
-    toolchain_precondition_from_record,
+from codontrace.genesis.environment import (
+    DynamicEnvironmentObservation,
+    EnvironmentConfig,
+    EnvironmentEvent,
+    EnvironmentRegime,
+    EnvironmentReplayVerification,
+    EnvironmentSchedule,
+    EnvironmentSnapshot,
+    EnvironmentState,
+    ResourceSpec,
+    ScheduleKind,
+    SpatialResourceMode,
+    apply_chemostat_step,
+    decay_local_patches,
+    diffuse_local_patches,
+    environment_trajectory_digest,
+    snapshots_from_generation_results,
+    step_environment,
+    summarize_dynamic_environment_observation,
+    verify_environment_trajectory_replay,
 )
+from codontrace.genesis.evidence import EvidenceManifest
 from codontrace.genesis.evidence_bundle import (
     EvidenceBundle,
     EvidenceBundleValidationResult,
@@ -283,6 +325,13 @@ from codontrace.genesis.fitness import (
     evaluate_task_sensitive_fitness,
     task_sensitive_raw_metrics,
 )
+from codontrace.genesis.food_patch_signal import (
+    MOVE_TOWARD_CAPSULE_TARGET,
+    FoodPatchSignalConfig,
+    FoodPatchSignalRecord,
+    FoodPatchState,
+    payload_patch_mutual_information,
+)
 from codontrace.genesis.frames import (
     AgentFrame,
     CapsuleFrame,
@@ -298,12 +347,73 @@ from codontrace.genesis.generalization import (
     MixedPopulationSpec,
     PartnerGroup,
 )
+from codontrace.genesis.hard_experiment_01 import (
+    CLAIM_CEILING as HARD_EXPERIMENT_01_CLAIM_CEILING,
+)
+from codontrace.genesis.hard_experiment_01 import (
+    SMOKE_SEED_COUNT as HARD_EXPERIMENT_01_SEED_COUNT,
+)
+from codontrace.genesis.hard_experiment_01 import (
+    HardExperiment01ArmRecord,
+    HardExperiment01Campaign,
+    HardExperiment01Intervention,
+    HardExperiment01ReplayRecord,
+    HardExperiment01SeedRecord,
+    build_hard_experiment_01_dose_spec,
+    build_hard_experiment_01_spec,
+    evaluate_hard_experiment_01_claim,
+    format_hard_experiment_01_summary,
+    hard_experiment_01_causal_dag,
+    hard_experiment_01_interventions,
+    hard_experiment_01_prereg_amendment_02_digest,
+    hard_experiment_01_prereg_amendment_03_digest,
+    hard_experiment_01_prereg_digest,
+    run_hard_experiment_01,
+)
+from codontrace.genesis.hard_experiment_02 import (
+    HardExperiment02Campaign,
+    HardExperiment02Intervention,
+    build_hard_experiment_02_spec,
+    evaluate_hard_experiment_02_claim,
+    evaluate_hard_experiment_02_pilot_gates,
+    format_hard_experiment_02_summary,
+    hard_experiment_02_causal_dag,
+    hard_experiment_02_interventions,
+    hard_experiment_02_prereg_digest,
+    run_hard_experiment_02,
+    write_hard_experiment_02_results,
+)
+from codontrace.genesis.hard_experiment_03 import (
+    HardExperiment03Campaign,
+    HardExperiment03Intervention,
+    build_hard_experiment_03_spec,
+    evaluate_hard_experiment_03_claim,
+    evaluate_hard_experiment_03_pilot_gates,
+    format_hard_experiment_03_summary,
+    hard_experiment_03_causal_dag,
+    hard_experiment_03_interventions,
+    hard_experiment_03_prereg_digest,
+    run_hard_experiment_03,
+    write_hard_experiment_03_results,
+)
+from codontrace.genesis.isolation_assay import (
+    IsolationAssayConfig,
+    IsolationAssayResult,
+    run_isolation_assay,
+)
 from codontrace.genesis.learning import (
     LearningATPConfig,
     LearningUpdateDecision,
     MemoryConsolidationResult,
     consolidate_memory,
     decide_learning_update,
+)
+from codontrace.genesis.learning_payoff import (
+    CueActionPayoffRecord,
+    LearningCausalPayoffPack,
+    build_learning_causal_payoff_pack,
+    evaluate_learning_causal_payoff_claim,
+    instinct_improved_remains_gated,
 )
 from codontrace.genesis.limitations import (
     FailureModeRecord,
@@ -313,6 +423,54 @@ from codontrace.genesis.limitations import (
     audit_limitations,
 )
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
+from codontrace.genesis.logic9 import (
+    LOGIC9_TASKS,
+    Logic9ReactionConfig,
+    Logic9ReactionEvent,
+    Logic9ReactionPack,
+    apply_logic9_runtime_bonus,
+    build_logic9_reaction_pack,
+    detect_logic9_tasks,
+    evaluate_logic9_reaction_claim,
+    logic9_outputs,
+    logic9_resource_specs,
+)
+from codontrace.genesis.materials import (
+    LITERATURE_CHECKLIST as PHASE_G_LITERATURE_CHECKLIST,
+)
+from codontrace.genesis.materials import (
+    WORLD_EVENT_MATERIAL_EXCRETE,
+    WORLD_EVENT_MATERIAL_INFLOW,
+    WORLD_EVENT_MATERIAL_OUTFLOW,
+    WORLD_EVENT_MATERIAL_REACTION,
+    WORLD_EVENT_MATERIAL_UPTAKE,
+    MaterialBindingSchema,
+    MaterialEvent,
+    MaterialKind,
+    MaterialReactionSpec,
+    MaterialsConfig,
+    MaterialsEvidencePack,
+    MaterialsObservation,
+    MaterialsOrganismState,
+    MaterialSpec,
+    MaterialsReplayVerification,
+    MaterialsSnapshot,
+    MaterialsState,
+    SpatialCoexistenceObservation,
+    apply_organism_material_coupling,
+    apply_stoichiometric_reaction,
+    attach_materials_to_organisms,
+    build_materials_evidence_pack,
+    evaluate_materials_claim,
+    materials_trajectory_digest,
+    measure_spatial_coexistence,
+    step_materials,
+    summarize_materials_observation,
+    verify_materials_trajectory_replay,
+)
+from codontrace.genesis.materials import (
+    snapshots_from_generation_results as materials_snapshots_from_generation_results,
+)
 from codontrace.genesis.mature_alpha import (
     APIStabilityMap,
     CompatibilityPolicy,
@@ -333,123 +491,9 @@ from codontrace.genesis.memory import (
     MemoryWriteResult,
     SignalActionLink,
 )
-from codontrace.genesis.organism import (
-    BrainStepResult,
-    GenesisOrganism,
-    GenesisRunResult,
-    OrganismTickResult,
-    PopulationTickResult,
-)
-from codontrace.genesis.paper_companion import (
-    BenchmarkScenario,
-    ExternalReplicationRecord,
-    PaperEvidenceBundle,
-    PreRegisteredMetric,
-)
-from codontrace.genesis.environment import (
-    DynamicEnvironmentObservation,
-    EnvironmentConfig,
-    EnvironmentEvent,
-    EnvironmentReplayVerification,
-    EnvironmentRegime,
-    EnvironmentSchedule,
-    EnvironmentSnapshot,
-    EnvironmentState,
-    ResourceSpec,
-    ScheduleKind,
-    SpatialResourceMode,
-    apply_chemostat_step,
-    decay_local_patches,
-    diffuse_local_patches,
-    environment_trajectory_digest,
-    snapshots_from_generation_results,
-    step_environment,
-    summarize_dynamic_environment_observation,
-    verify_environment_trajectory_replay,
-)
-from codontrace.genesis.materials import (
-    LITERATURE_CHECKLIST as PHASE_G_LITERATURE_CHECKLIST,
-    MaterialBindingSchema,
-    MaterialEvent,
-    MaterialKind,
-    MaterialReactionSpec,
-    MaterialSpec,
-    MaterialsConfig,
-    MaterialsEvidencePack,
-    MaterialsObservation,
-    MaterialsOrganismState,
-    MaterialsReplayVerification,
-    MaterialsSnapshot,
-    MaterialsState,
-    SpatialCoexistenceObservation,
-    WORLD_EVENT_MATERIAL_EXCRETE,
-    WORLD_EVENT_MATERIAL_INFLOW,
-    WORLD_EVENT_MATERIAL_OUTFLOW,
-    WORLD_EVENT_MATERIAL_REACTION,
-    WORLD_EVENT_MATERIAL_UPTAKE,
-    apply_organism_material_coupling,
-    apply_stoichiometric_reaction,
-    attach_materials_to_organisms,
-    build_materials_evidence_pack,
-    evaluate_materials_claim,
-    materials_trajectory_digest,
-    measure_spatial_coexistence,
-    snapshots_from_generation_results as materials_snapshots_from_generation_results,
-    step_materials,
-    summarize_materials_observation,
-    verify_materials_trajectory_replay,
-)
-from codontrace.genesis.population import (
-    FitnessConfig,
-    FitnessResult,
-    GenerationResult,
-    LineageRecord,
-    MetabolicConfig,
-    MutationConfig,
-    MutationResult,
-    OffspringPlacementPolicy,
-    OrganismStepRecord,
-    PopulationCausalSummary,
-    PopulationConfigs,
-    RuntimeResourceEvent,
-    RuntimeResourcePolicy,
-    PopulationState,
-    ReproductionConfig,
-    ReproductionDecision,
-    ReproductionResult,
-    can_reproduce,
-    evaluate_fitness,
-    mutate_genome,
-    reproduce,
-    step_population,
-)
-from codontrace.genesis.birth import (
-    BirthChamberState,
-    IncipientOffspring,
-    RecombinationRecord,
-    ReproductionMode,
-    SexualRecombinationConfig,
-    apply_positional_segment_exchange,
-    apply_positional_segment_swap,
-    choose_positional_crossover_window,
-    recombine_positional_segment,
-    recombine_positional_segment_pair,
-    reduce_incipient_to_haploid_gamete,
-    select_chamber_pair,
-    split_diploid_homologs,
-)
-from codontrace.genesis.population_runner import PopulationRunner
-from codontrace.genesis.runtime_profiles import (
-    LIFE_LOOP_BASAL_COST,
-    LIFE_LOOP_EATER_B_GENOME,
-    LIFE_LOOP_EATER_GENOME,
-    LIFE_LOOP_FOOD_CELLS,
-    LIFE_LOOP_MAX_RESOURCES,
-    LIFE_LOOP_RESPAWN_RATE,
-    LIFE_LOOP_WAITER_GENOME,
-    GenesisRuntimeProfile,
-    LifeLoopObservation,
-    summarize_life_loop_observation,
+from codontrace.genesis.metrics.division_of_labor import (
+    GorelickNMIResult,
+    gorelick_nmi,
 )
 from codontrace.genesis.multi_generation import (
     LITERATURE_CHECKLIST,
@@ -488,8 +532,46 @@ from codontrace.genesis.multi_generation import (
     reevaluate_cohorts_on_seed,
     run_mutation_ablation_control,
 )
+from codontrace.genesis.organism import (
+    BrainStepResult,
+    GenesisOrganism,
+    GenesisRunResult,
+    OrganismTickResult,
+    PopulationTickResult,
+)
+from codontrace.genesis.paper_companion import (
+    BenchmarkScenario,
+    ExternalReplicationRecord,
+    PaperEvidenceBundle,
+    PreRegisteredMetric,
+)
+from codontrace.genesis.phase1_runtime_maturity import (
+    ADFUsefulnessAuditRecord,
+    CapsuleControlAuditRecord,
+    CausalInterventionAuditRecord,
+    DeathEnergyDiagnosticRecord,
+    MutationOperatorAuditRecord,
+    Phase1FeatureMaturityStatus,
+    Phase1RuntimeMaturityReport,
+    ReproductionGateAuditRecord,
+    RuntimeQDAuditRecord,
+    RuntimeRoleEvidenceRecord,
+    ToolchainPreconditionAuditRecord,
+    adf_usefulness_audit,
+    attach_phase1_report_to_manifest,
+    build_phase1_runtime_maturity_report,
+    capsule_control_audit,
+    causal_intervention_audit,
+    infer_runtime_roles_from_events,
+    mutation_audit_from_structural_record,
+    mutation_noop_audit,
+    phase1_public_api_entries,
+    reproduction_audit_from_result,
+    runtime_qd_audit_from_selection,
+    toolchain_precondition_from_record,
+)
 from codontrace.genesis.phase_e import (
-    LITERATURE_CHECKLIST as PHASE_E_LITERATURE_CHECKLIST,
+    GHALAMBOR_CLUNE_CONDITIONS,
     AvidaParityProtocolSpec,
     CapsuleMemoryConfig,
     CapsuleMemoryState,
@@ -500,7 +582,6 @@ from codontrace.genesis.phase_e import (
     DemeReplicationEvent,
     DemeState,
     DifferentiationRole,
-    GHALAMBOR_CLUNE_CONDITIONS,
     MessageKind,
     PhaseEEvidencePack,
     PhaseEObservation,
@@ -524,222 +605,8 @@ from codontrace.genesis.phase_e import (
     send_message,
     summarize_phase_e_observation,
 )
-from codontrace.genesis.quality_diversity import (
-    BehaviorBin,
-    BehaviorDescriptorSchema,
-    DiscoveryCandidateFromQD,
-    EliteRecord,
-    QDArchive,
-    QDArchiveBatchUpdateResult,
-    QDArchiveConfig,
-    QDArchiveItemUpdateRecord,
-    QDArchivePolicy,
-    QDArchiveRejectedCandidate,
-    QDArchiveSummary,
-    QDArchiveUpdateResult,
-    QDElite,
-    QDUpdateResult,
-    assign_behavior_bin,
-    descriptor_distance,
-    normalize_descriptor,
-    summarize_qd_archive,
-    update_qd_archive,
-    update_qd_archive_many,
-    validate_descriptor_against_schema,
-)
-from codontrace.genesis.release_candidate import (
-    ReleaseCandidateChecklist,
-    ReleaseCandidateDecision,
-    ReleaseGateException,
-    ReleaseGateRecord,
-    ReleaseGateStatus,
-    SupplyChainAuditResult,
-    SupplyChainCheck,
-    evaluate_release_candidate,
-    evaluate_supply_chain_checks,
-)
-from codontrace.genesis.release_readiness import (
-    ArtifactHygieneRecord,
-    DocsConsistencyConfig,
-    DocsConsistencyRecord,
-    ReleaseReadinessProfile,
-    evaluate_artifact_hygiene,
-    evaluate_docs_consistency,
-)
-from codontrace.genesis.replay_integrity import (
-    ReplayDigestClassPolicy,
-    audit_replay_digest_policy_registry,
-    build_replay_digest_class_policy,
-    replay_digest_class_policies,
-)
-from codontrace.genesis.research_validation import (
-    ValidationBundle,
-    ValidationRunRecord,
-    ValidationScenario,
-)
-from codontrace.genesis.review import (
-    AllowedOutputSchema,
-    ClaimReview,
-    DiscoveryReview,
-    ExternalReviewRecord,
-    ForbiddenClaimPolicy,
-    HumanReviewDecision,
-    LLMReviewRequest,
-    LLMReviewResult,
-    ReviewArtifact,
-    ReviewArtifactType,
-    ReviewerInstructionSet,
-    ReviewerProtocol,
-    ReviewFinding,
-    ReviewSeverity,
-    RuleProposalReview,
-    validate_review_result,
-)
-from codontrace.genesis.ribosome import CompiledBrain, CompiledToken, Ribosome, TranslationResult
-from codontrace.genesis.role import RoleAssignment, RoleContribution, RoleProfile, RoleTimeline
-from codontrace.genesis.rules import (
-    ApprovalStatus,
-    ApprovedRuleSet,
-    CodonActionCompatibilityCheck,
-    ConservationCheck,
-    DeterminismCheck,
-    FitnessExploitCheck,
-    HumanApprovalRecord,
-    LocalityCheck,
-    NamespaceCheck,
-    ReactionCycleCheck,
-    RuleProposal,
-    RuleProposalSource,
-    RuleRiskReport,
-    RuleSetDiff,
-    RuleValidationResult,
-    RuleValidator,
-    apply_approved_rule_set,
-)
-from codontrace.genesis.scenario_suite import (
-    ComponentToggle,
-    ComponentToggleMatrix,
-    ScenarioComponentRequirement,
-    ScenarioSuite,
-    ScenarioSuiteValidationResult,
-    SeedMatrix,
-    validate_scenario_suite,
-)
-from codontrace.genesis.scientific_evidence import (
-    AblationEvidenceSummary,
-    ClaimDowngradeResult,
-    ClaimDowngradeRule,
-    D0EvidenceSummary,
-    EvidenceCompletenessScore,
-    QDEvidenceSummary,
-    ScientificEvidencePack,
-    ScientificEvidenceProfile,
-    ScientificEvidenceValidationResult,
-    WitnessEvidenceSummary,
-    apply_claim_downgrade_rules,
-    score_evidence_completeness,
-    validate_scientific_evidence_pack,
-)
-from codontrace.genesis.selection import (
-    AgeLayeredSelection,
-    ElitismSelection,
-    EvolutionConfig,
-    EvolutionSelectionResult,
-    FitnessProportionalSelection,
-    NoveltyScore,
-    NoveltyWeightedSelection,
-    QDFallbackReason,
-    QDParentFeedback,
-    QDSelectionAuditRecord,
-    QDSelectionFeedback,
-    SelectionPolicy,
-    TournamentSelection,
-    policy_from_name,
-    select_population,
-)
-from codontrace.genesis.social import (
-    CompetitionEvent,
-    CooperationEvent,
-    PartnerInteractionEvent,
-    ResourceSharingEvent,
-    SocialInteractionEvent,
-    social_events_from_capsule_records,
-    social_events_from_trace,
-)
-from codontrace.genesis.statistical_protocol import (
-    EffectSizeResult,
-    StatisticalProtocolConfig,
-    estimate_effect_size_lite,
-)
-from codontrace.genesis.status import ActionStatusDefinition, ActionStatusRegistry
-from codontrace.genesis.substrate import (
-    AppliedSubstrateRuleRecord,
-    ElementCell,
-    ElementGrid,
-    ElementGridConfig,
-    ElementRuleConfig,
-    ElementStepResult,
-    SubstratePhysicsConfig,
-    SubstrateRule,
-    SubstrateRuleConfig,
-    element_grid_to_world2d,
-    world2d_to_element_grid,
-)
-from codontrace.genesis.tokyo_type1 import (
-    CHANNON_2024_MEASUREMENT_STEPS,
-    LITERATURE_CHECKLIST as TOKYO_TYPE1_LITERATURE_CHECKLIST,
-    TokyoType1MeasurementCampaign,
-    TokyoType1MeasurementProtocol,
-    TokyoType1SeedRecord,
-    TokyoType1StepResult,
-    build_tokyo_type1_measurement_protocol,
-    evaluate_tokyo_type1_measurement_claim,
-    evaluate_tokyo_type1_pass_claim,
-    run_multi_seed_tokyo_measurement_campaign,
-    tokyo_type1_claim_request,
-)
-from codontrace.genesis.empirical_systematics import (
-    EmpiricalSystematicsShadowConfig,
-    EmpiricalSystematicsShadowRun,
-    PhylogenyEdge,
-    build_empirical_systematics_shadow,
-    evaluate_empirical_systematics_shadow_claim,
-    phylogeny_edges_from_censuses,
-)
-from codontrace.genesis.logic9 import (
-    LOGIC9_TASKS,
-    Logic9ReactionConfig,
-    Logic9ReactionEvent,
-    Logic9ReactionPack,
-    apply_logic9_runtime_bonus,
-    build_logic9_reaction_pack,
-    detect_logic9_tasks,
-    evaluate_logic9_reaction_claim,
-    logic9_outputs,
-    logic9_resource_specs,
-)
-from codontrace.genesis.learning_payoff import (
-    CueActionPayoffRecord,
-    LearningCausalPayoffPack,
-    build_learning_causal_payoff_pack,
-    evaluate_learning_causal_payoff_claim,
-    instinct_improved_remains_gated,
-)
-from codontrace.genesis.collective_deme import (
-    CollectiveDemePayoffCampaign,
-    CollectiveDemePayoffPack,
-    CollectiveDemeSeedRecord,
-    DemeDivisionOfLaborObservation,
-    DemeMeanFitnessRank,
-    DemePayoffRecord,
-    GroupVsIndividualContrast,
-    build_collective_deme_payoff_pack,
-    build_deme_division_of_labor_observation,
-    build_group_vs_individual_contrast,
-    evaluate_collective_deme_payoff_campaign_claim,
-    evaluate_collective_deme_payoff_claim,
-    rank_demes_by_mean_fitness,
-    run_collective_deme_payoff_campaign,
+from codontrace.genesis.phase_e import (
+    LITERATURE_CHECKLIST as PHASE_E_LITERATURE_CHECKLIST,
 )
 from codontrace.genesis.phase_h import (
     RESEARCH_SEED_COUNT,
@@ -762,6 +629,7 @@ from codontrace.genesis.phase_i import (
     RESEARCH_GENERATION_COUNT,
     SMOKE_GENERATION_COUNT,
     CandidateFlagEarnCriteria,
+    CoordinationAblationLike,
     EarnedCandidateFlags,
     EvolvedDivisionOfLaborCampaign,
     EvolvedDivisionOfLaborSeedRecord,
@@ -770,7 +638,6 @@ from codontrace.genesis.phase_i import (
     HeldoutUnfamiliarPartnerSeedRecord,
     MlsEvolutionaryOutcomeCampaign,
     MlsOutcomeSeedRecord,
-    CoordinationAblationLike,
     ReplayVerificationLike,
     TaskGroupEvaluation,
     build_export_of_fitness_observation,
@@ -849,85 +716,54 @@ from codontrace.genesis.phase_l import (
     run_goldsby_aligned_specialist_campaign,
     run_organism_messaging_fidelity_experiment,
 )
-from codontrace.genesis.hard_experiment_01 import (
-    CLAIM_CEILING as HARD_EXPERIMENT_01_CLAIM_CEILING,
-    SMOKE_SEED_COUNT as HARD_EXPERIMENT_01_SEED_COUNT,
-    HardExperiment01ArmRecord,
-    HardExperiment01Campaign,
-    HardExperiment01Intervention,
-    HardExperiment01ReplayRecord,
-    HardExperiment01SeedRecord,
-    build_hard_experiment_01_dose_spec,
-    build_hard_experiment_01_spec,
-    evaluate_hard_experiment_01_claim,
-    format_hard_experiment_01_summary,
-    hard_experiment_01_causal_dag,
-    hard_experiment_01_interventions,
-    hard_experiment_01_prereg_amendment_02_digest,
-    hard_experiment_01_prereg_amendment_03_digest,
-    hard_experiment_01_prereg_digest,
-    run_hard_experiment_01,
+from codontrace.genesis.population import (
+    FitnessConfig,
+    FitnessResult,
+    GenerationResult,
+    LineageRecord,
+    MetabolicConfig,
+    MutationConfig,
+    MutationResult,
+    OffspringPlacementPolicy,
+    OrganismStepRecord,
+    PopulationCausalSummary,
+    PopulationConfigs,
+    PopulationState,
+    ReproductionConfig,
+    ReproductionDecision,
+    ReproductionResult,
+    RuntimeResourceEvent,
+    RuntimeResourcePolicy,
+    can_reproduce,
+    evaluate_fitness,
+    mutate_genome,
+    reproduce,
+    step_population,
 )
-from codontrace.genesis.food_patch_signal import (
-    MOVE_TOWARD_CAPSULE_TARGET,
-    FoodPatchSignalConfig,
-    FoodPatchSignalRecord,
-    FoodPatchState,
-    payload_patch_mutual_information,
+from codontrace.genesis.population_runner import PopulationRunner
+from codontrace.genesis.quality_diversity import (
+    BehaviorBin,
+    BehaviorDescriptorSchema,
+    DiscoveryCandidateFromQD,
+    EliteRecord,
+    QDArchive,
+    QDArchiveBatchUpdateResult,
+    QDArchiveConfig,
+    QDArchiveItemUpdateRecord,
+    QDArchivePolicy,
+    QDArchiveRejectedCandidate,
+    QDArchiveSummary,
+    QDArchiveUpdateResult,
+    QDElite,
+    QDUpdateResult,
+    assign_behavior_bin,
+    descriptor_distance,
+    normalize_descriptor,
+    summarize_qd_archive,
+    update_qd_archive,
+    update_qd_archive_many,
+    validate_descriptor_against_schema,
 )
-from codontrace.genesis.deme_selection import (
-    E2_ORDINAL_PREDICTION,
-    DemeSelectionCell,
-    DemeSelectionConfig,
-    DemeSelectionRecord,
-    e2_ordinal_respects_prediction,
-)
-from codontrace.genesis.stepping_stone_reward import (
-    SteppingStoneRewardConfig,
-    SteppingStoneRewardRecord,
-    apply_stepping_stone_rewards,
-)
-from codontrace.genesis.hard_experiment_02 import (
-    HardExperiment02Campaign,
-    HardExperiment02Intervention,
-    build_hard_experiment_02_spec,
-    evaluate_hard_experiment_02_claim,
-    evaluate_hard_experiment_02_pilot_gates,
-    format_hard_experiment_02_summary,
-    hard_experiment_02_causal_dag,
-    hard_experiment_02_interventions,
-    hard_experiment_02_prereg_digest,
-    run_hard_experiment_02,
-    write_hard_experiment_02_results,
-)
-from codontrace.genesis.task_switch_cost import (
-    TaskSwitchCostConfig,
-    TaskSwitchCostRecord,
-    apply_task_switch_cost,
-)
-from codontrace.genesis.isolation_assay import (
-    IsolationAssayConfig,
-    IsolationAssayResult,
-    run_isolation_assay,
-)
-from codontrace.genesis.metrics.division_of_labor import (
-    GorelickNMIResult,
-    gorelick_nmi,
-)
-from codontrace.genesis.hard_experiment_03 import (
-    HardExperiment03Campaign,
-    HardExperiment03Intervention,
-    build_hard_experiment_03_spec,
-    evaluate_hard_experiment_03_claim,
-    evaluate_hard_experiment_03_pilot_gates,
-    format_hard_experiment_03_summary,
-    hard_experiment_03_causal_dag,
-    hard_experiment_03_interventions,
-    hard_experiment_03_prereg_digest,
-    run_hard_experiment_03,
-    write_hard_experiment_03_results,
-)
-
 from codontrace.genesis.rag import (
     RankedHit,
     ResearchCorpus,
@@ -938,6 +774,181 @@ from codontrace.genesis.rag import (
     ingest_document,
     load_default_corpus,
     search_corpus,
+)
+from codontrace.genesis.release_candidate import (
+    ReleaseCandidateChecklist,
+    ReleaseCandidateDecision,
+    ReleaseGateException,
+    ReleaseGateRecord,
+    ReleaseGateStatus,
+    SupplyChainAuditResult,
+    SupplyChainCheck,
+    evaluate_release_candidate,
+    evaluate_supply_chain_checks,
+)
+from codontrace.genesis.release_readiness import (
+    ArtifactHygieneRecord,
+    DocsConsistencyConfig,
+    DocsConsistencyRecord,
+    ReleaseReadinessProfile,
+    evaluate_artifact_hygiene,
+    evaluate_docs_consistency,
+)
+from codontrace.genesis.replay_integrity import (
+    ReplayDigestClassPolicy,
+    audit_replay_digest_policy_registry,
+    build_replay_digest_class_policy,
+    replay_digest_class_policies,
+)
+from codontrace.genesis.research_validation import (
+    ValidationBundle,
+    ValidationRunRecord,
+    ValidationScenario,
+)
+from codontrace.genesis.review import (
+    AllowedOutputSchema,
+    ClaimReview,
+    DiscoveryReview,
+    ExternalReviewRecord,
+    ForbiddenClaimPolicy,
+    HumanReviewDecision,
+    LLMReviewRequest,
+    LLMReviewResult,
+    ReviewArtifact,
+    ReviewArtifactType,
+    ReviewerInstructionSet,
+    ReviewerProtocol,
+    ReviewFinding,
+    ReviewSeverity,
+    RuleProposalReview,
+    validate_review_result,
+)
+from codontrace.genesis.ribosome import CompiledBrain, CompiledToken, Ribosome, TranslationResult
+from codontrace.genesis.role import RoleAssignment, RoleContribution, RoleProfile, RoleTimeline
+from codontrace.genesis.rules import (
+    ApprovalStatus,
+    ApprovedRuleSet,
+    CodonActionCompatibilityCheck,
+    ConservationCheck,
+    DeterminismCheck,
+    FitnessExploitCheck,
+    HumanApprovalRecord,
+    LocalityCheck,
+    NamespaceCheck,
+    ReactionCycleCheck,
+    RuleProposal,
+    RuleProposalSource,
+    RuleRiskReport,
+    RuleSetDiff,
+    RuleValidationResult,
+    RuleValidator,
+    apply_approved_rule_set,
+)
+from codontrace.genesis.runtime_profiles import (
+    LIFE_LOOP_BASAL_COST,
+    LIFE_LOOP_EATER_B_GENOME,
+    LIFE_LOOP_EATER_GENOME,
+    LIFE_LOOP_FOOD_CELLS,
+    LIFE_LOOP_MAX_RESOURCES,
+    LIFE_LOOP_RESPAWN_RATE,
+    LIFE_LOOP_WAITER_GENOME,
+    GenesisRuntimeProfile,
+    LifeLoopObservation,
+    summarize_life_loop_observation,
+)
+from codontrace.genesis.scenario_suite import (
+    ComponentToggle,
+    ComponentToggleMatrix,
+    ScenarioComponentRequirement,
+    ScenarioSuite,
+    ScenarioSuiteValidationResult,
+    SeedMatrix,
+    validate_scenario_suite,
+)
+from codontrace.genesis.scientific_evidence import (
+    AblationEvidenceSummary,
+    ClaimDowngradeResult,
+    ClaimDowngradeRule,
+    D0EvidenceSummary,
+    EvidenceCompletenessScore,
+    QDEvidenceSummary,
+    ScientificEvidencePack,
+    ScientificEvidenceProfile,
+    ScientificEvidenceValidationResult,
+    WitnessEvidenceSummary,
+    apply_claim_downgrade_rules,
+    score_evidence_completeness,
+    validate_scientific_evidence_pack,
+)
+from codontrace.genesis.selection import (
+    AgeLayeredSelection,
+    ElitismSelection,
+    EvolutionConfig,
+    EvolutionSelectionResult,
+    FitnessProportionalSelection,
+    NoveltyScore,
+    NoveltyWeightedSelection,
+    QDFallbackReason,
+    QDParentFeedback,
+    QDSelectionAuditRecord,
+    QDSelectionFeedback,
+    SelectionPolicy,
+    TournamentSelection,
+    policy_from_name,
+    select_population,
+)
+from codontrace.genesis.social import (
+    CompetitionEvent,
+    CooperationEvent,
+    PartnerInteractionEvent,
+    ResourceSharingEvent,
+    SocialInteractionEvent,
+    social_events_from_capsule_records,
+    social_events_from_trace,
+)
+from codontrace.genesis.statistical_protocol import (
+    EffectSizeResult,
+    StatisticalProtocolConfig,
+    estimate_effect_size_lite,
+)
+from codontrace.genesis.status import ActionStatusDefinition, ActionStatusRegistry
+from codontrace.genesis.stepping_stone_reward import (
+    SteppingStoneRewardConfig,
+    SteppingStoneRewardRecord,
+    apply_stepping_stone_rewards,
+)
+from codontrace.genesis.substrate import (
+    AppliedSubstrateRuleRecord,
+    ElementCell,
+    ElementGrid,
+    ElementGridConfig,
+    ElementRuleConfig,
+    ElementStepResult,
+    SubstratePhysicsConfig,
+    SubstrateRule,
+    SubstrateRuleConfig,
+    element_grid_to_world2d,
+    world2d_to_element_grid,
+)
+from codontrace.genesis.task_switch_cost import (
+    TaskSwitchCostConfig,
+    TaskSwitchCostRecord,
+    apply_task_switch_cost,
+)
+from codontrace.genesis.tokyo_type1 import (
+    CHANNON_2024_MEASUREMENT_STEPS,
+    TokyoType1MeasurementCampaign,
+    TokyoType1MeasurementProtocol,
+    TokyoType1SeedRecord,
+    TokyoType1StepResult,
+    build_tokyo_type1_measurement_protocol,
+    evaluate_tokyo_type1_measurement_claim,
+    evaluate_tokyo_type1_pass_claim,
+    run_multi_seed_tokyo_measurement_campaign,
+    tokyo_type1_claim_request,
+)
+from codontrace.genesis.tokyo_type1 import (
+    LITERATURE_CHECKLIST as TOKYO_TYPE1_LITERATURE_CHECKLIST,
 )
 from codontrace.genesis.toolchain import ToolChainState, evaluate_tool_chain_state
 from codontrace.genesis.validation import (
@@ -1696,6 +1707,7 @@ from codontrace.genesis.benchmark_suite import (
     run_channon_avida_modes_shadow_suite,
 )
 from codontrace.genesis.claim_gate import (
+    TOKYO_TYPE1_MEASUREMENT_CLAIM,
     ClaimDecision,
     ClaimDowngradeReason,
     ClaimEvidenceRequirement,
@@ -1704,7 +1716,6 @@ from codontrace.genesis.claim_gate import (
     EvidenceRequirement,
     ScientificClaimGate,
     StrongClaimLadderResult,
-    TOKYO_TYPE1_MEASUREMENT_CLAIM,
     default_claim_gate_policy,
     evaluate_strong_claim_ladder,
     normalize_claim_label,
@@ -2026,6 +2037,7 @@ from codontrace.genesis.innovation_protection import (
 from codontrace.genesis.statistical_protocol import (
     OEEClaimThresholds,
     OEEMetricsReport,
+    SignFlipPermutationDetail,
     StatisticalTestPolicy,
     bootstrap_ci_paired,
     build_oee_metrics_report,
@@ -2034,7 +2046,6 @@ from codontrace.genesis.statistical_protocol import (
     holm_correction,
     meet_in_the_middle_sign_flip_p,
     sign_flip_permutation_detail,
-    SignFlipPermutationDetail,
     validate_statistical_claim_inputs,
 )
 from codontrace.genesis.structural_mutation import (
@@ -2135,6 +2146,7 @@ from codontrace.genesis.birth import (
     ADFInheritanceMode,
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
+    BirthChamberState,
     BirthEvent,
     BirthIntent,
     BirthRequest,
@@ -2142,6 +2154,7 @@ from codontrace.genesis.birth import (
     ChildGenomeResult,
     ExternalBirthInterventionAPI,
     GenomeGrammarPatch,
+    IncipientOffspring,
     InheritancePolicy,
     InterventionScope,
     LearningInheritanceRecord,
@@ -2155,8 +2168,6 @@ from codontrace.genesis.birth import (
     ReproductionGateResult,
     ReproductionMode,
     SexualRecombinationConfig,
-    BirthChamberState,
-    IncipientOffspring,
     SkillCompressionRecord,
     SkillInheritanceMode,
     WorldLawPatch,
@@ -2200,8 +2211,8 @@ from codontrace.genesis.diagnostics import (
     EnergyAccountingRecord,
     EngineDigestAuditRecord,
     ExportEnvelope,
-    ExportWrittenFile,
     ExportWriteManifest,
+    ExportWrittenFile,
     InventoryState,
     LineageGrowthRecord,
     OutputCompletenessRecord,
@@ -2328,54 +2339,10 @@ from codontrace.genesis.canonical import (
     canonical_digest,
     canonical_json,
     canonical_payload,
+    is_real_evidence_digest,
     reject_nan_inf_payload,
     require_finite_float,
-    is_real_evidence_digest,
     require_real_evidence_digest,
-)
-from codontrace.genesis.evidence_status import (
-    EvidenceStatus,
-    EvidenceStatusRecord,
-    coerce_evidence_status,
-    is_claim_eligible_status,
-    validate_status_transition,
-)
-from codontrace.genesis.evidence_registry import (
-    EvidenceRegistry,
-    EvidenceRegistryEntry,
-)
-from codontrace.genesis.social import SocialScoreBreakdown, score_social_interactions
-from codontrace.genesis.collective_intelligence import (
-    CollectiveAblationRecord,
-    CollectiveCoordinationRecord,
-    CollectiveIntelligenceEvidenceReport,
-    CollectiveTaskSpec,
-    RoleComplementarityRecord,
-    build_collective_evidence_report,
-)
-from codontrace.genesis.swarm_metrics import SwarmMetricReport, compute_swarm_metric_report
-from codontrace.genesis.open_endedness import OEECandidateMetrics
-from codontrace.genesis.curriculum import (
-    ChallengeNoveltyReport,
-    CurriculumStepRecord,
-    EnvironmentAgentTransferRecord,
-    EnvironmentLineageRecord,
-    EnvironmentMutationSpec,
-)
-from codontrace.genesis.plugins import PluginRegistry, PluginSpec
-from codontrace.genesis.checkpointing import (
-    CheckpointResumeSpec,
-    LongRunIntegrityReport,
-    RunCheckpoint,
-    SeedSweepResult,
-    SeedSweepSpec,
-)
-from codontrace.genesis.quality_diversity import (
-    MultiObjectiveQDArchive,
-    ParetoEliteRecord,
-    ParetoObjectiveVector,
-    QDTradeoffReport,
-    build_qd_tradeoff_report,
 )
 from codontrace.genesis.causal_validation import (
     CausalEffectEstimate,
@@ -2385,6 +2352,50 @@ from codontrace.genesis.causal_validation import (
     InterventionSpec,
     build_causal_evidence_report,
 )
+from codontrace.genesis.checkpointing import (
+    CheckpointResumeSpec,
+    LongRunIntegrityReport,
+    RunCheckpoint,
+    SeedSweepResult,
+    SeedSweepSpec,
+)
+from codontrace.genesis.collective_intelligence import (
+    CollectiveAblationRecord,
+    CollectiveCoordinationRecord,
+    CollectiveIntelligenceEvidenceReport,
+    CollectiveTaskSpec,
+    RoleComplementarityRecord,
+    build_collective_evidence_report,
+)
+from codontrace.genesis.curriculum import (
+    ChallengeNoveltyReport,
+    CurriculumStepRecord,
+    EnvironmentAgentTransferRecord,
+    EnvironmentLineageRecord,
+    EnvironmentMutationSpec,
+)
+from codontrace.genesis.evidence_registry import (
+    EvidenceRegistry,
+    EvidenceRegistryEntry,
+)
+from codontrace.genesis.evidence_status import (
+    EvidenceStatus,
+    EvidenceStatusRecord,
+    coerce_evidence_status,
+    is_claim_eligible_status,
+    validate_status_transition,
+)
+from codontrace.genesis.open_endedness import OEECandidateMetrics
+from codontrace.genesis.plugins import PluginRegistry, PluginSpec
+from codontrace.genesis.quality_diversity import (
+    MultiObjectiveQDArchive,
+    ParetoEliteRecord,
+    ParetoObjectiveVector,
+    QDTradeoffReport,
+    build_qd_tradeoff_report,
+)
+from codontrace.genesis.social import SocialScoreBreakdown, score_social_interactions
+from codontrace.genesis.swarm_metrics import SwarmMetricReport, compute_swarm_metric_report
 
 __all__.extend([
     "canonical_payload", "canonical_json", "canonical_digest", "reject_nan_inf_payload", "require_finite_float", "is_real_evidence_digest", "require_real_evidence_digest",
@@ -2403,110 +2414,263 @@ __all__.extend([
 
 
 # Phase 3 maximum scientific validation public exports.
-from codontrace.genesis.campaign import (
-    Phase3CampaignSpec, Phase3ScenarioSpec, Phase3SeedPlan, Phase3ControlPlan,
-    Phase3MetricSpec, Phase3RunRecord, Phase3CampaignResult, Phase3CampaignManifest,
-    Phase3ExperimentLedger,
-)
-from codontrace.genesis.evidence_lineage import (
-    EvidenceLineageNode, EvidenceLineageEdge, EvidenceLineageDAG, EvidenceLineageValidator,
-)
-from codontrace.genesis.replay import ReplayBundleManifest, ReplayBundleV2, ReplayEquivalenceReport
-from codontrace.genesis.checkpointing import CheckpointRecord, ResumeValidationRecord
-from codontrace.genesis.statistical_protocol import (
-    PreregisteredMetric, SeedSweepPlan, PairedComparisonResult,
-    MultipleComparisonAudit, DowngradeRule,
+from codontrace.genesis.adf_runtime import (
+    ADFCompressionReport,
+    ADFCostBenefitReport,
+    ADFNullControlReport,
+    ADFPermutationControlReport,
+    ADFReuseTrajectory,
+    ADFSourceMapLineage,
 )
 from codontrace.genesis.benchmark_suite import (
-    BenchmarkScenarioCatalog, BenchmarkScenarioContract, BenchmarkControlSpec,
+    BenchmarkControlSpec,
     BenchmarkDifficultyLadder,
+    BenchmarkScenarioCatalog,
+    BenchmarkScenarioContract,
 )
-from codontrace.genesis.quality_diversity import (
-    QDScoreReport, CoverageReport, EliteReplacementAudit, DescriptorDriftReport,
-    ParetoArchive, ParetoFrontReport, EmitterAudit,
-)
-from codontrace.genesis.adf_runtime import (
-    ADFCompressionReport, ADFReuseTrajectory, ADFSourceMapLineage,
-    ADFNullControlReport, ADFPermutationControlReport, ADFCostBenefitReport,
+from codontrace.genesis.campaign import (
+    Phase3CampaignManifest,
+    Phase3CampaignResult,
+    Phase3CampaignSpec,
+    Phase3ControlPlan,
+    Phase3ExperimentLedger,
+    Phase3MetricSpec,
+    Phase3RunRecord,
+    Phase3ScenarioSpec,
+    Phase3SeedPlan,
 )
 from codontrace.genesis.causal_validation import (
-    InterventionExecutor, CausalEffectReport, CausalAblationReport,
+    CausalAblationReport,
+    CausalEffectReport,
+    InterventionExecutor,
 )
+from codontrace.genesis.checkpointing import CheckpointRecord, ResumeValidationRecord
 from codontrace.genesis.collective_intelligence import (
     CollectiveEvidenceReport,
-    DivisionOfLaborReport, JointTaskProgressReport, RoleComplementarityReport,
-    PartnerHeldoutReport, SocialClaimLadder,
+    DivisionOfLaborReport,
+    JointTaskProgressReport,
+    PartnerHeldoutReport,
+    RoleComplementarityReport,
+    SocialClaimLadder,
 )
-from codontrace.genesis.swarm_metrics import SwarmResilienceReport, ScalingCurveReport
-from codontrace.genesis.open_endedness import (
-    OEEArtifactSequence, NoveltyTrajectory, LearnabilityReport, PersistenceReport,
-    SteppingStoneTransferReport, CurriculumCoEvolutionReport, D0ShadowBaselineReport,
-    TaskGeneratorSpec, EnvironmentMutationRecord,
-)
-from codontrace.genesis.plugins import (
-    GenesisPluginSpec, PluginManifest, ActionPlugin, WorldPlugin, FitnessPlugin,
-    MutationPlugin, SelectionPolicyPlugin, PluginValidationReport, PluginSandboxPolicy,
-    ActionPluginSpec, WorldPluginSpec, FitnessPluginSpec, MutationPluginSpec,
-    PolicyPluginSpec, PluginValidationResult,
-)
-from codontrace.genesis.scale_performance import (
-    ScaleBenchmarkSpec, ScaleBenchmarkReport, ResourceBudgetPolicy,
-    MemoryFootprintReport, ThroughputReport, LongRunStabilityReport,
+from codontrace.genesis.evidence_lineage import (
+    EvidenceLineageDAG,
+    EvidenceLineageEdge,
+    EvidenceLineageNode,
+    EvidenceLineageValidator,
 )
 from codontrace.genesis.final_release_manifest import (
-    FinalClaimManifest, FinalClaimValidationResult, validate_final_claim_manifest, ReleaseEvidencePack, Phase3ScientificSummary,
-    NegativeResultReport, ReplayBundleIndex, BenchmarkLeaderboardArtifact,
-    AblationMatrixArtifact, ClaimDowngradeReport,
+    AblationMatrixArtifact,
+    BenchmarkLeaderboardArtifact,
+    ClaimDowngradeReport,
+    FinalClaimManifest,
+    FinalClaimValidationResult,
+    NegativeResultReport,
+    Phase3ScientificSummary,
+    ReleaseEvidencePack,
+    ReplayBundleIndex,
+    validate_final_claim_manifest,
+)
+from codontrace.genesis.open_endedness import (
+    CurriculumCoEvolutionReport,
+    D0ShadowBaselineReport,
+    EnvironmentMutationRecord,
+    LearnabilityReport,
+    NoveltyTrajectory,
+    OEEArtifactSequence,
+    PersistenceReport,
+    SteppingStoneTransferReport,
+    TaskGeneratorSpec,
 )
 from codontrace.genesis.phase_b_scientific_maturity import (
-    PhaseBScientificMaturityReport, PhaseBFeatureMaturityStatus,
-    DiscoveryEvent, DiscoveryCandidate, DiscoveryWitness, D0BaselineReport,
-    ShadowBaselineReport, DistanceToD0Result, DiscoveryPersistenceReport,
-    DiscoveryClaimEligibilityResult,
-    DiscoveryEvent as PhaseBDiscoveryEvent,
-    DiscoveryCandidate as PhaseBDiscoveryCandidate,
-    DiscoveryWitness as PhaseBDiscoveryWitness,
-    DistanceToD0Result as PhaseBDistanceToD0Result,
-    AblationWitness, AblationPlan, AblationResult,
-    InterventionResult, InterventionComparisonReport,
-    AblationWitness as PhaseBAblationWitness,
-    InterventionResult as PhaseBInterventionResult,
-    LineageSnapshot, WorldSnapshot, PartnerGroupSpec, HeldoutEvaluationSpec,
-    ReplayableEvaluationSpec, GeneralizationMatrix, HeldoutLeakageAudit,
-    HeldoutEvaluationResult as PhaseBHeldoutEvaluationResult,
-    CollectiveSwarmEvidenceLadder, OEEClaimEligibilityResult,
-    OEECandidateMetrics,
-    CurriculumEnvironmentRecord, EnvironmentMutationSpec, CurriculumStepRecord,
-    EnvironmentLineageRecord, ChallengeNoveltyReport, EnvironmentAgentTransferRecord,
-    TaskGeneratorSpec as PhaseBTaskGeneratorSpec,
-    EnvironmentMutationSpec as PhaseBEnvironmentMutationSpec,
-    CurriculumStepRecord as PhaseBCurriculumStepRecord,
-    EnvironmentLineageRecord as PhaseBEnvironmentLineageRecord,
-    ChallengeNoveltyReport as PhaseBChallengeNoveltyReport,
-    EnvironmentAgentTransferRecord as PhaseBEnvironmentAgentTransferRecord,
-    ScaleBenchmarkSpec as PhaseBScaleBenchmarkSpec,
-    ScaleBenchmarkReport as PhaseBScaleBenchmarkReport,
-    ResourceBudgetPolicy as PhaseBResourceBudgetPolicy,
-    LongHorizonRunManifest, CheckpointResumeAudit, SeedSweepReport,
-    StatisticalClaimValidationResult, PreregisteredMetricSpec, PairedSeedComparison,
-    EffectSizeReport, ConfidenceIntervalReport,
-    MultipleComparisonAudit as PhaseBMultipleComparisonAudit,
-    NegativeResultReport as PhaseBNegativeResultReport,
-    PluginSpec as PhaseBPluginSpec, PluginManifest as PhaseBPluginManifest,
-    ActionPluginSpec as PhaseBActionPluginSpec, WorldPluginSpec as PhaseBWorldPluginSpec,
-    FitnessPluginSpec as PhaseBFitnessPluginSpec, MutationPluginSpec as PhaseBMutationPluginSpec,
-    PolicyPluginSpec as PhaseBPolicyPluginSpec, PluginValidationResult as PhaseBPluginValidationResult,
-    ReleaseEvidencePackSample,
-    Phase3ScientificSummary as PhaseBPhase3ScientificSummary,
-    ReplayBundleIndex as PhaseBReplayBundleIndex,
-    BenchmarkLeaderboardArtifact as PhaseBBenchmarkLeaderboardArtifact,
     AblationMatrixArtifact as PhaseBAblationMatrixArtifact,
-    ClaimDowngradeReport as PhaseBClaimDowngradeReport,
-    ReleaseEvidencePack as PhaseBReleaseEvidencePack,
-    FinalClaimManifest as PhaseBFinalClaimManifest,
-    EvidenceLineageDAG as PhaseBEvidenceLineageDAG,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    AblationPlan,
+    AblationResult,
+    AblationWitness,
+    ChallengeNoveltyReport,
+    CheckpointResumeAudit,
+    CollectiveSwarmEvidenceLadder,
+    ConfidenceIntervalReport,
+    CurriculumEnvironmentRecord,
+    CurriculumStepRecord,
+    D0BaselineReport,
+    DiscoveryCandidate,
+    DiscoveryClaimEligibilityResult,
+    DiscoveryEvent,
+    DiscoveryPersistenceReport,
+    DiscoveryWitness,
+    DistanceToD0Result,
+    EffectSizeReport,
+    EnvironmentAgentTransferRecord,
+    EnvironmentLineageRecord,
+    EnvironmentMutationSpec,
+    GeneralizationMatrix,
+    HeldoutEvaluationSpec,
+    HeldoutLeakageAudit,
+    InterventionComparisonReport,
+    InterventionResult,
+    LineageSnapshot,
+    LongHorizonRunManifest,
+    OEECandidateMetrics,
+    OEEClaimEligibilityResult,
+    PairedSeedComparison,
+    PartnerGroupSpec,
+    PhaseBFeatureMaturityStatus,
+    PhaseBScientificMaturityReport,
+    PreregisteredMetricSpec,
+    ReleaseEvidencePackSample,
+    ReplayableEvaluationSpec,
+    SeedSweepReport,
+    ShadowBaselineReport,
+    StatisticalClaimValidationResult,
+    WorldSnapshot,
     build_phase_b_scientific_maturity_report,
 )
+from codontrace.genesis.phase_b_scientific_maturity import (
+    AblationWitness as PhaseBAblationWitness,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ActionPluginSpec as PhaseBActionPluginSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    BenchmarkLeaderboardArtifact as PhaseBBenchmarkLeaderboardArtifact,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ChallengeNoveltyReport as PhaseBChallengeNoveltyReport,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ClaimDowngradeReport as PhaseBClaimDowngradeReport,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    CurriculumStepRecord as PhaseBCurriculumStepRecord,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    DiscoveryCandidate as PhaseBDiscoveryCandidate,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    DiscoveryEvent as PhaseBDiscoveryEvent,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    DiscoveryWitness as PhaseBDiscoveryWitness,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    DistanceToD0Result as PhaseBDistanceToD0Result,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    EnvironmentAgentTransferRecord as PhaseBEnvironmentAgentTransferRecord,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    EnvironmentLineageRecord as PhaseBEnvironmentLineageRecord,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    EnvironmentMutationSpec as PhaseBEnvironmentMutationSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    EvidenceLineageDAG as PhaseBEvidenceLineageDAG,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    FinalClaimManifest as PhaseBFinalClaimManifest,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    FitnessPluginSpec as PhaseBFitnessPluginSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    HeldoutEvaluationResult as PhaseBHeldoutEvaluationResult,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    InterventionResult as PhaseBInterventionResult,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    MultipleComparisonAudit as PhaseBMultipleComparisonAudit,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    MutationPluginSpec as PhaseBMutationPluginSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    NegativeResultReport as PhaseBNegativeResultReport,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    Phase3ScientificSummary as PhaseBPhase3ScientificSummary,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    PluginManifest as PhaseBPluginManifest,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    PluginSpec as PhaseBPluginSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    PluginValidationResult as PhaseBPluginValidationResult,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    PolicyPluginSpec as PhaseBPolicyPluginSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ReleaseEvidencePack as PhaseBReleaseEvidencePack,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ReplayBundleIndex as PhaseBReplayBundleIndex,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ResourceBudgetPolicy as PhaseBResourceBudgetPolicy,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ScaleBenchmarkReport as PhaseBScaleBenchmarkReport,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    ScaleBenchmarkSpec as PhaseBScaleBenchmarkSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    TaskGeneratorSpec as PhaseBTaskGeneratorSpec,
+)
+from codontrace.genesis.phase_b_scientific_maturity import (
+    WorldPluginSpec as PhaseBWorldPluginSpec,
+)
+from codontrace.genesis.plugins import (
+    ActionPlugin,
+    ActionPluginSpec,
+    FitnessPlugin,
+    FitnessPluginSpec,
+    GenesisPluginSpec,
+    MutationPlugin,
+    MutationPluginSpec,
+    PluginManifest,
+    PluginSandboxPolicy,
+    PluginValidationReport,
+    PluginValidationResult,
+    PolicyPluginSpec,
+    SelectionPolicyPlugin,
+    WorldPlugin,
+    WorldPluginSpec,
+)
+from codontrace.genesis.quality_diversity import (
+    CoverageReport,
+    DescriptorDriftReport,
+    EliteReplacementAudit,
+    EmitterAudit,
+    ParetoArchive,
+    ParetoFrontReport,
+    QDScoreReport,
+)
+from codontrace.genesis.replay import ReplayBundleManifest, ReplayBundleV2, ReplayEquivalenceReport
+from codontrace.genesis.scale_performance import (
+    LongRunStabilityReport,
+    MemoryFootprintReport,
+    ResourceBudgetPolicy,
+    ScaleBenchmarkReport,
+    ScaleBenchmarkSpec,
+    ThroughputReport,
+)
+from codontrace.genesis.statistical_protocol import (
+    DowngradeRule,
+    MultipleComparisonAudit,
+    PairedComparisonResult,
+    PreregisteredMetric,
+    SeedSweepPlan,
+)
+from codontrace.genesis.swarm_metrics import ScalingCurveReport, SwarmResilienceReport
+
 __all__.extend([
     "BASE_RELEASE_LABEL", "RELEASE_LABEL", "CURRENT_PACKAGE_LABEL", "RELEASE_ARTIFACT_NAME", "CURRENT_PACKAGE_ARTIFACT_NAME",
     "Phase3CampaignSpec", "Phase3ScenarioSpec", "Phase3SeedPlan", "Phase3ControlPlan", "Phase3MetricSpec", "Phase3RunRecord", "Phase3CampaignResult", "Phase3CampaignManifest", "Phase3ExperimentLedger",
@@ -2557,45 +2721,79 @@ __all__.extend([
 # evidence records use PhaseB* names wherever an older runtime/API class already
 # owns the unprefixed name.  This avoids hidden shadow imports while keeping old
 # user code stable.
+from codontrace.genesis.causal_validation import InterventionResult as LegacyInterventionResult
 from codontrace.genesis.discovery_witness import (
     DiscoveryCandidate as LegacyDiscoveryCandidate,
+)
+from codontrace.genesis.discovery_witness import (
     DiscoveryWitness as LegacyDiscoveryWitness,
+)
+from codontrace.genesis.discovery_witness import (
     DistanceToD0Result as LegacyDistanceToD0Result,
 )
-from codontrace.genesis.causal_validation import InterventionResult as LegacyInterventionResult
+
 DiscoveryCandidate = LegacyDiscoveryCandidate
 DiscoveryWitness = LegacyDiscoveryWitness
 DistanceToD0Result = LegacyDistanceToD0Result
 InterventionResult = LegacyInterventionResult
+from codontrace.genesis.campaign import HeldoutEvaluationResult as LegacyHeldoutEvaluationResult
 from codontrace.genesis.curriculum import (
-    EnvironmentMutationSpec as LegacyEnvironmentMutationSpec,
-    CurriculumStepRecord as LegacyCurriculumStepRecord,
-    EnvironmentLineageRecord as LegacyEnvironmentLineageRecord,
     ChallengeNoveltyReport as LegacyChallengeNoveltyReport,
+)
+from codontrace.genesis.curriculum import (
+    CurriculumStepRecord as LegacyCurriculumStepRecord,
+)
+from codontrace.genesis.curriculum import (
     EnvironmentAgentTransferRecord as LegacyEnvironmentAgentTransferRecord,
 )
-from codontrace.genesis.open_endedness import TaskGeneratorSpec as LegacyTaskGeneratorSpec
-from codontrace.genesis.campaign import HeldoutEvaluationResult as LegacyHeldoutEvaluationResult
-from codontrace.genesis.scale_performance import (
-    ScaleBenchmarkSpec as LegacyScaleBenchmarkSpec,
-    ScaleBenchmarkReport as LegacyScaleBenchmarkReport,
-    ResourceBudgetPolicy as LegacyResourceBudgetPolicy,
+from codontrace.genesis.curriculum import (
+    EnvironmentLineageRecord as LegacyEnvironmentLineageRecord,
 )
-from codontrace.genesis.plugins import (
-    PluginManifest as LegacyPluginManifest,
-    PluginValidationResult as LegacyPluginValidationResult,
+from codontrace.genesis.curriculum import (
+    EnvironmentMutationSpec as LegacyEnvironmentMutationSpec,
+)
+from codontrace.genesis.evidence_lineage import EvidenceLineageDAG as LegacyEvidenceLineageDAG
+from codontrace.genesis.final_release_manifest import (
+    AblationMatrixArtifact as LegacyAblationMatrixArtifact,
+)
+from codontrace.genesis.final_release_manifest import (
+    BenchmarkLeaderboardArtifact as LegacyBenchmarkLeaderboardArtifact,
+)
+from codontrace.genesis.final_release_manifest import (
+    ClaimDowngradeReport as LegacyClaimDowngradeReport,
 )
 from codontrace.genesis.final_release_manifest import (
     FinalClaimManifest as LegacyFinalClaimManifest,
-    ReleaseEvidencePack as LegacyReleaseEvidencePack,
-    Phase3ScientificSummary as LegacyPhase3ScientificSummary,
-    NegativeResultReport as LegacyNegativeResultReport,
-    ReplayBundleIndex as LegacyReplayBundleIndex,
-    BenchmarkLeaderboardArtifact as LegacyBenchmarkLeaderboardArtifact,
-    AblationMatrixArtifact as LegacyAblationMatrixArtifact,
-    ClaimDowngradeReport as LegacyClaimDowngradeReport,
 )
-from codontrace.genesis.evidence_lineage import EvidenceLineageDAG as LegacyEvidenceLineageDAG
+from codontrace.genesis.final_release_manifest import (
+    NegativeResultReport as LegacyNegativeResultReport,
+)
+from codontrace.genesis.final_release_manifest import (
+    Phase3ScientificSummary as LegacyPhase3ScientificSummary,
+)
+from codontrace.genesis.final_release_manifest import (
+    ReleaseEvidencePack as LegacyReleaseEvidencePack,
+)
+from codontrace.genesis.final_release_manifest import (
+    ReplayBundleIndex as LegacyReplayBundleIndex,
+)
+from codontrace.genesis.open_endedness import TaskGeneratorSpec as LegacyTaskGeneratorSpec
+from codontrace.genesis.plugins import (
+    PluginManifest as LegacyPluginManifest,
+)
+from codontrace.genesis.plugins import (
+    PluginValidationResult as LegacyPluginValidationResult,
+)
+from codontrace.genesis.scale_performance import (
+    ResourceBudgetPolicy as LegacyResourceBudgetPolicy,
+)
+from codontrace.genesis.scale_performance import (
+    ScaleBenchmarkReport as LegacyScaleBenchmarkReport,
+)
+from codontrace.genesis.scale_performance import (
+    ScaleBenchmarkSpec as LegacyScaleBenchmarkSpec,
+)
+
 EnvironmentMutationSpec = LegacyEnvironmentMutationSpec
 CurriculumStepRecord = LegacyCurriculumStepRecord
 EnvironmentLineageRecord = LegacyEnvironmentLineageRecord
@@ -2638,6 +2836,12 @@ __all__.extend([
 ])
 __all__ = list(dict.fromkeys(__all__))
 # Public integration/audit APIs.
+from codontrace.genesis.evidence_consistency import (
+    EvidenceConsistencyIssue,
+    audit_claim_payloads,
+    audit_result_evidence_consistency,
+)
+from codontrace.genesis.lineage_consistency import validate_evidence_lineage_dag_payload
 from codontrace.genesis.public_api_manifest import (
     ROOT_PUBLIC_API_POLICY,
     IntegrationPublicAPISymbol,
@@ -2645,18 +2849,13 @@ from codontrace.genesis.public_api_manifest import (
     public_api_manifest_payload,
     validate_public_api_manifest,
 )
+from codontrace.genesis.replay_policy_audit import audit_replay_policy_coverage
 from codontrace.genesis.runtime_wiring_audit import (
     RuntimeWiringFeature,
     audit_runtime_wiring,
     integration_feature_catalog,
 )
-from codontrace.genesis.evidence_consistency import (
-    EvidenceConsistencyIssue,
-    audit_claim_payloads,
-    audit_result_evidence_consistency,
-)
-from codontrace.genesis.replay_policy_audit import audit_replay_policy_coverage
-from codontrace.genesis.lineage_consistency import validate_evidence_lineage_dag_payload
+
 __all__.extend([
     "ROOT_PUBLIC_API_POLICY", "IntegrationPublicAPISymbol", "build_public_api_manifest",
     "public_api_manifest_payload", "validate_public_api_manifest",
@@ -2666,25 +2865,37 @@ __all__.extend([
 ])
 __all__ = list(dict.fromkeys(__all__))
 # Public causal-mechanism hardening APIs (capsule, memory, compression, roles, collective tasks).
+from codontrace.genesis.birth import ChildOutcomeAuditRecord, SkillCompressionAblationPolicy
 from codontrace.genesis.capsule_validation import (
-    CapsuleAblationPolicy, PacketAblationPolicy, CapsuleOutcomeWindow,
-    PacketOutcomeWindow, CapsuleDelayedOutcomeRecord, PacketDelayedOutcomeRecord,
+    CapsuleAblationPolicy,
+    CapsuleDelayedOutcomeRecord,
+    CapsuleOutcomeWindow,
+    PacketAblationPolicy,
+    PacketDelayedOutcomeRecord,
+    PacketOutcomeWindow,
 )
-from codontrace.genesis.memory import SignalMemoryCausalLinkRecord, SourceReputationMemory
-from codontrace.genesis.birth import SkillCompressionAblationPolicy, ChildOutcomeAuditRecord
-from codontrace.genesis.role import RoleMechanicsPolicy, TerritoryMechanicsConfig, TerritoryDefenseRecord
 from codontrace.genesis.collective_intelligence import (
-    CollectiveTaskNode, RoleDependencyEdge, CollectiveTaskGraph,
-    JointTaskProgressRecord, RoleAblationProtocol,
+    CollectiveTaskGraph,
+    CollectiveTaskNode,
+    JointTaskProgressRecord,
+    RoleAblationProtocol,
+    RoleDependencyEdge,
+)
+from codontrace.genesis.contribution_ledger import (
+    MultiAgentContributionLedger,
+    MultiAgentContributionRecord,
+    MultiAgentCreditLedger,
 )
 from codontrace.genesis.generalization import HeldoutPartnerEvaluationProtocol, HeldoutPartnerEvaluationRecord
-from codontrace.genesis.contribution_ledger import (
-    MultiAgentContributionRecord, MultiAgentContributionLedger, MultiAgentCreditLedger,
-)
 from codontrace.genesis.intervention import (
-    CounterfactualReplayProtocol, CounterfactualReplayIntervention, CounterfactualReplayResult,
+    CounterfactualReplayIntervention,
+    CounterfactualReplayProtocol,
+    CounterfactualReplayResult,
 )
+from codontrace.genesis.memory import SignalMemoryCausalLinkRecord, SourceReputationMemory
 from codontrace.genesis.open_endedness import OEEExtendedMetrics, OpenEndednessMetrics
+from codontrace.genesis.role import RoleMechanicsPolicy, TerritoryDefenseRecord, TerritoryMechanicsConfig
+
 __all__.extend([
     "CapsuleAblationPolicy", "PacketAblationPolicy", "CapsuleOutcomeWindow",
     "PacketOutcomeWindow", "CapsuleDelayedOutcomeRecord", "PacketDelayedOutcomeRecord",
@@ -2724,6 +2935,18 @@ __all__.extend(
 __all__ = list(dict.fromkeys(__all__))
 
 # Open-ended discovery ClaimGate pipeline (waves الف–د).
+from codontrace.genesis.discovery_campaign import (
+    CAMPAIGN_ID as OPEN_ENDED_DISCOVERY_CAMPAIGN_ID,
+)
+from codontrace.genesis.discovery_campaign import (
+    CLAIM_CEILING as OPEN_ENDED_DISCOVERY_CLAIM_CEILING,
+)
+from codontrace.genesis.discovery_campaign import (
+    DiscoveryCampaignReport,
+    default_campaign_proposers,
+    run_discovery_campaign,
+    write_discovery_campaign_report,
+)
 from codontrace.genesis.novelty_proposer import (
     ArchiveSummary,
     ExternalCandidateProposalModel,
@@ -2734,14 +2957,7 @@ from codontrace.genesis.novelty_proposer import (
     empty_archive_summary,
     parse_external_proposal,
 )
-from codontrace.genesis.discovery_campaign import (
-    CAMPAIGN_ID as OPEN_ENDED_DISCOVERY_CAMPAIGN_ID,
-    CLAIM_CEILING as OPEN_ENDED_DISCOVERY_CLAIM_CEILING,
-    DiscoveryCampaignReport,
-    default_campaign_proposers,
-    run_discovery_campaign,
-    write_discovery_campaign_report,
-)
+
 __all__.extend([
     "CLAIM_CEILING_DISCOVERY_CANDIDATE",
     "CLAIM_CEILING_RUNTIME",

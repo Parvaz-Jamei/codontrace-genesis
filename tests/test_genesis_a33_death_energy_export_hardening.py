@@ -218,7 +218,7 @@ def _learning_parent() -> GenesisOrganism:
         learning_enabled=True,
     )
     memory = EpisodicMemory(parent.memory_config)
-    event = TraceEvent(
+    _event = TraceEvent(
         step=0,
         agent_id="parent",
         codon="111",

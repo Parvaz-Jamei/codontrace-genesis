@@ -14,7 +14,7 @@ from typing import Any
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.canonical import canonical_digest, canonical_payload
+from codontrace.genesis.canonical import canonical_digest
 
 ROOT_PUBLIC_API_POLICY = "genesis_scientific_api_under_codontrace.genesis"
 

@@ -1,6 +1,5 @@
-from pathlib import Path
-from tools.audit_genesis_references import audit
 from tools.audit_examples_integration import audit as audit_examples
+from tools.audit_genesis_references import audit
 
 
 def test_reference_audit_fails_on_unallowlisted_old_artifact_key(tmp_path):

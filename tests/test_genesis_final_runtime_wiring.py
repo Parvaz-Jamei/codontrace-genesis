@@ -220,8 +220,9 @@ def test_reproduction_action_cost_and_parent_build_cost_are_audited_separately()
 
 
 def test_evolution_pilot_default_has_successful_births_and_status(tmp_path: Path) -> None:
-    from examples.genesis_evolution_pilot import run
     import json
+
+    from examples.genesis_evolution_pilot import run
 
     output = run(tmp_path, tick_count=20)
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
@@ -230,8 +231,9 @@ def test_evolution_pilot_default_has_successful_births_and_status(tmp_path: Path
 
 
 def test_qd_selection_pilot_runtime_applies_selection_pressure(tmp_path: Path) -> None:
-    from examples.genesis_qd_selection_pilot import run
     import json
+
+    from examples.genesis_qd_selection_pilot import run
 
     output = run(tmp_path)
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
@@ -240,8 +242,9 @@ def test_qd_selection_pilot_runtime_applies_selection_pressure(tmp_path: Path) -
 
 
 def test_capsule_utility_pilot_emits_nonempty_truthful_records(tmp_path: Path) -> None:
-    from examples.genesis_capsule_utility_pilot import run
     import json
+
+    from examples.genesis_capsule_utility_pilot import run
 
     output = run(tmp_path)
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
@@ -252,8 +255,9 @@ def test_capsule_utility_pilot_emits_nonempty_truthful_records(tmp_path: Path) -
 
 
 def test_memory_delayed_reward_pilot_emits_records_without_strong_memory_claim(tmp_path: Path) -> None:
-    from examples.genesis_memory_delayed_reward_pilot import run
     import json
+
+    from examples.genesis_memory_delayed_reward_pilot import run
 
     output = run(tmp_path)
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
@@ -285,8 +289,9 @@ def test_memory_delayed_reward_pilot_emits_records_without_strong_memory_claim(t
 
 
 def test_social_partner_pilot_exports_familiar_and_unfamiliar_events(tmp_path: Path) -> None:
-    from examples.genesis_social_partner_pilot import run
     import json
+
+    from examples.genesis_social_partner_pilot import run
 
     output = run(tmp_path)
     payload = json.loads(Path(output["json"]).read_text(encoding="utf-8"))
@@ -296,9 +301,10 @@ def test_social_partner_pilot_exports_familiar_and_unfamiliar_events(tmp_path: P
 
 
 def test_standalone_toolchain_and_qd_examples_exist_and_run(tmp_path: Path) -> None:
-    from examples.genesis_toolchain_pilot import run as run_toolchain
-    from examples.genesis_qd_selection_pilot import run as run_qd
     import json
+
+    from examples.genesis_qd_selection_pilot import run as run_qd
+    from examples.genesis_toolchain_pilot import run as run_toolchain
 
     tool = run_toolchain(tmp_path / "tool")
     qd = run_qd(tmp_path / "qd")

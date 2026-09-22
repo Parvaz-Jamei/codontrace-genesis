@@ -1,5 +1,4 @@
-from codontrace.genesis.adf_runtime import ADFMacroRegistry, ADFMacroDefinition
-from codontrace.genesis.adf_runtime import build_adf_usefulness_control_report
+from codontrace.genesis.adf_runtime import ADFMacroDefinition, ADFMacroRegistry, build_adf_usefulness_control_report
 
 
 def test_single_action_adf_macro_without_compression_is_not_claim_eligible():

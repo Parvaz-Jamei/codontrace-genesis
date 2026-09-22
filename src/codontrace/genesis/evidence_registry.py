@@ -41,7 +41,7 @@ class EvidenceRegistry:
         self._entries = dict(sorted(mapping.items()))
 
     @classmethod
-    def phase2_default(cls) -> "EvidenceRegistry":
+    def phase2_default(cls) -> EvidenceRegistry:
         entries = []
         for name in PHASE2_MANIFEST_FIELDS:
             module = "engine"

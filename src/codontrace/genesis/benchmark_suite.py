@@ -596,6 +596,7 @@ def benchmark_v2_scenarios() -> tuple[BenchmarkScenario, ...]:
 # Phase 3 benchmark catalog contracts.
 from codontrace.genesis.canonical import canonical_digest as _phase3_digest
 
+
 @dataclass(frozen=True, slots=True)
 class BenchmarkControlSpec:
     positive_control: str
@@ -642,7 +643,7 @@ class BenchmarkScenarioCatalog:
     contracts: tuple[BenchmarkScenarioContract, ...]
     schema_version: str = "benchmark_scenario_catalog_v1"
     @classmethod
-    def phase3_default(cls) -> "BenchmarkScenarioCatalog":
+    def phase3_default(cls) -> BenchmarkScenarioCatalog:
         contracts=[]
         for fam in _PHASE3_SCENARIO_FAMILIES:
             controls=BenchmarkControlSpec(f"{fam}_positive", f"{fam}_negative")

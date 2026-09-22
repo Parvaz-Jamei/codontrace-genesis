@@ -1,4 +1,4 @@
-from codontrace.genesis import GenesisEngine, ScientificClaimGate, ClaimRequest
+from codontrace.genesis import ClaimRequest, GenesisEngine, ScientificClaimGate
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 
 

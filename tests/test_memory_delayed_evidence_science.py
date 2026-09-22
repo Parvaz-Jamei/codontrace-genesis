@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from codontrace.genesis.memory_evidence import classify_memory_delayed_evidence
 from codontrace.genesis.memory import MemoryUseEvidence
+from codontrace.genesis.memory_evidence import classify_memory_delayed_evidence
 
 
 def test_write_then_reward_is_temporal_correlation_not_causal() -> None:

@@ -193,7 +193,8 @@ def _digest(payload: Mapping[str, JsonValue]) -> str:
 # ---------------------------------------------------------------------------
 # Runtime role mechanics and territory primitives (P1)
 # ---------------------------------------------------------------------------
-from codontrace.genesis.canonical import canonical_digest as _role_canonical_digest, require_finite_float as _role_require_finite_float
+from codontrace.genesis.canonical import canonical_digest as _role_canonical_digest
+from codontrace.genesis.canonical import require_finite_float as _role_require_finite_float
 
 
 @dataclass(frozen=True, slots=True)

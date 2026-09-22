@@ -1,14 +1,13 @@
 import pytest
 
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.adf_runtime import ADFMacroRegistry, ADFMacroDefinition
-from codontrace.genesis.adf_runtime import build_adf_usefulness_control_report
+from codontrace.genesis.adf_runtime import ADFMacroDefinition, ADFMacroRegistry, build_adf_usefulness_control_report
 from codontrace.genesis.causal_validation import CausalEffectEstimate, CausalInterventionRunPair, InterventionSpec
 from codontrace.genesis.contribution_ledger import build_micro_ablation_attribution_record
 from codontrace.genesis.discovery_gate import D0CalibrationRun
+from codontrace.genesis.social import SocialInteractionEvent
 from codontrace.genesis.structural_mutation import StructuralMutationConfig
 from codontrace.genesis.translation_profile import TranslationWeight
-from codontrace.genesis.social import SocialInteractionEvent
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])

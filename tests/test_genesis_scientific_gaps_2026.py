@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.benchmark_suite import run_channon_avida_modes_shadow_suite
 from codontrace.genesis.birth import (
     ReproductionMode,
     SexualRecombinationConfig,
@@ -20,11 +21,19 @@ from codontrace.genesis.birth import (
     split_diploid_homologs,
 )
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
-from codontrace.genesis.engine import GenesisEngine
+from codontrace.genesis.collective_deme import (
+    build_collective_deme_payoff_pack,
+    evaluate_collective_deme_payoff_claim,
+)
 from codontrace.genesis.empirical_systematics import (
     EmpiricalSystematicsShadowConfig,
     build_empirical_systematics_shadow,
     evaluate_empirical_systematics_shadow_claim,
+)
+from codontrace.genesis.engine import GenesisEngine
+from codontrace.genesis.learning_payoff import (
+    build_learning_causal_payoff_pack,
+    evaluate_learning_causal_payoff_claim,
 )
 from codontrace.genesis.liveness import AliveGateConfig
 from codontrace.genesis.logic9 import (
@@ -59,15 +68,6 @@ from codontrace.genesis.tokyo_type1 import (
     build_tokyo_type1_measurement_protocol,
     evaluate_tokyo_type1_pass_claim,
     run_multi_seed_tokyo_measurement_campaign,
-)
-from codontrace.genesis.benchmark_suite import run_channon_avida_modes_shadow_suite
-from codontrace.genesis.collective_deme import (
-    build_collective_deme_payoff_pack,
-    evaluate_collective_deme_payoff_claim,
-)
-from codontrace.genesis.learning_payoff import (
-    build_learning_causal_payoff_pack,
-    evaluate_learning_causal_payoff_claim,
 )
 from codontrace.rng import RNGManager
 from codontrace.world import World2D

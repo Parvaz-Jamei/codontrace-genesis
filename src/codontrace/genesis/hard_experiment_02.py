@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal
 
@@ -27,9 +27,7 @@ from codontrace.genesis.capsule import (
 )
 from codontrace.genesis.deme_selection import (
     E2_ORDINAL_PREDICTION,
-    DemeSelectionCell,
     DemeSelectionConfig,
-    e2_ordinal_respects_prediction,
 )
 from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
 from codontrace.genesis.food_patch_signal import (

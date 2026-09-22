@@ -15,8 +15,8 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import cast
 
-from codontrace._types import JsonValue
 from codontrace._numeric import finite_float, finite_json_dumps
+from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
@@ -40,10 +40,10 @@ from codontrace.genesis.birth import (
     ReproductionGateResult,
     ReproductionMode,
     SexualRecombinationConfig,
-    coerce_reproduction_mode,
     SkillCompressionRecord,
     SkillInheritanceMode,
     build_mutation_plan,
+    coerce_reproduction_mode,
     make_policy_digest,
     recombine_positional_segment,
     recombine_positional_segment_pair,
@@ -51,6 +51,7 @@ from codontrace.genesis.birth import (
     select_chamber_pair,
     timed_out_chamber_slots,
 )
+from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.capsule import (
     CapsuleAdoptionBlockedReason,
     CapsuleAdoptionRecord,
@@ -71,6 +72,7 @@ from codontrace.genesis.death import (
     DeathMonitoringConfig,
     classify_death,
 )
+from codontrace.genesis.deme_selection import DemeSelectionConfig
 from codontrace.genesis.environment import (
     EnvironmentConfig,
     EnvironmentEvent,
@@ -79,39 +81,30 @@ from codontrace.genesis.environment import (
     local_resource_consumed,
     step_environment,
 )
-from codontrace.genesis.phase_e import (
-    DemeMessage,
-    DemeState,
-    PhaseESubstrateConfig,
-    apply_deme_messaging_after_event,
-    attach_phase_e_to_organisms,
-    build_deme_state,
-    copy_phase_e_state,
-    inherit_phase_e_state,
-    maybe_replicate_demes,
-    refresh_phase_e_sensory,
+from codontrace.genesis.fitness import (
+    FitnessBreakdown,
+    FitnessSignalRegistry,
+    SelectionFitnessScore,
+    evaluate_task_sensitive_fitness,
+    task_sensitive_raw_metrics,
 )
-from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.food_patch_signal import (
+    MOVE_TOWARD_CAPSULE_TARGET,
     FoodPatchSignalConfig,
     FoodPatchSignalRecord,
     FoodPatchState,
-    MOVE_TOWARD_CAPSULE_TARGET,
     decode_patch_payload,
     encode_patch_payload,
     spawn_patches_for_tick,
 )
-from codontrace.genesis.deme_selection import DemeSelectionConfig, DemeSelectionRecord
-from codontrace.genesis.stepping_stone_reward import (
-    SteppingStoneRewardConfig,
-    SteppingStoneRewardRecord,
-    apply_stepping_stone_rewards,
-)
-from codontrace.genesis.task_switch_cost import (
-    TaskSwitchCostConfig,
-    TaskSwitchCostRecord,
-    apply_task_switch_cost,
-    update_task_activity,
+from codontrace.genesis.learning import LearningATPConfig
+from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
+from codontrace.genesis.logic9 import (
+    LOGIC9_TASKS,
+    Logic9ReactionConfig,
+    Logic9ReactionEvent,
+    apply_logic9_runtime_bonus,
+    logic9_resource_name,
 )
 from codontrace.genesis.materials import (
     MaterialEvent,
@@ -125,24 +118,20 @@ from codontrace.genesis.materials import (
     inherit_materials_organism_state,
     step_materials,
 )
-from codontrace.genesis.fitness import (
-    FitnessBreakdown,
-    FitnessSignalRegistry,
-    SelectionFitnessScore,
-    evaluate_task_sensitive_fitness,
-    task_sensitive_raw_metrics,
-)
-from codontrace.genesis.learning import LearningATPConfig
-from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
-from codontrace.genesis.logic9 import (
-    LOGIC9_TASKS,
-    Logic9ReactionConfig,
-    Logic9ReactionEvent,
-    apply_logic9_runtime_bonus,
-    logic9_resource_name,
-)
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.phase_e import (
+    DemeMessage,
+    DemeState,
+    PhaseESubstrateConfig,
+    apply_deme_messaging_after_event,
+    attach_phase_e_to_organisms,
+    build_deme_state,
+    copy_phase_e_state,
+    inherit_phase_e_state,
+    maybe_replicate_demes,
+    refresh_phase_e_sensory,
+)
 from codontrace.genesis.ribosome import Ribosome
 from codontrace.genesis.selection import (
     EvolutionConfig,
@@ -157,10 +146,18 @@ from codontrace.genesis.social import (
     social_events_from_trace,
 )
 from codontrace.genesis.status import ActionStatusRegistry
+from codontrace.genesis.stepping_stone_reward import (
+    SteppingStoneRewardConfig,
+)
 from codontrace.genesis.structural_mutation import (
     StructuralMutationConfig,
     build_genome_program,
     mutate_genome_program,
+)
+from codontrace.genesis.task_switch_cost import (
+    TaskSwitchCostConfig,
+    TaskSwitchCostRecord,
+    apply_task_switch_cost,
 )
 from codontrace.genesis.toolchain import evaluate_tool_chain_state
 from codontrace.genesis.translation_profile import inherit_translation_profile
@@ -1194,7 +1191,7 @@ class RuntimeResourcePolicy:
         return payload
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, JsonValue]) -> "RuntimeResourcePolicy":
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> RuntimeResourcePolicy:
         kinds_raw = data.get("resource_kinds", ["lumen"])
         kinds = tuple(str(item) for item in kinds_raw) if isinstance(kinds_raw, list) else ("lumen",)
         return cls(
@@ -1249,7 +1246,7 @@ class RuntimeResourceEvent:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, JsonValue]) -> "RuntimeResourceEvent":
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> RuntimeResourceEvent:
         raw_pos = data.get("position")
         pos = None
         if isinstance(raw_pos, list) and len(raw_pos) == 2:
@@ -4329,7 +4326,7 @@ def _he02_sync_food_patches(
     needed = max(2, int(config.patch_count) * 2)
     draws: list[float] = []
     # Local deterministic stream; does not touch global RNG.
-    material = f"{seed_key}|food_patch|{tick}|{width}x{height}".encode("utf-8")
+    material = f"{seed_key}|food_patch|{tick}|{width}x{height}".encode()
     digest = hashlib.sha256(material).digest()
     cursor = 0
     while len(draws) < needed:

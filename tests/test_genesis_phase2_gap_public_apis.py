@@ -1,8 +1,8 @@
 from codontrace.genesis import (
     ChallengeNoveltyReport,
+    EnvironmentMutationSpec,
     EvidenceRegistry,
     EvidenceStatus,
-    EnvironmentMutationSpec,
     MultiObjectiveQDArchive,
     ParetoEliteRecord,
     ParetoObjectiveVector,

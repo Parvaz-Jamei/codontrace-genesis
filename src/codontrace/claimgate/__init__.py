@@ -6,6 +6,14 @@ Genesis engine or population modules.
 """
 
 from codontrace.claimgate.auditor import ClaimAuditReport, audit_bundle
+from codontrace.claimgate.domain import (
+    ALIFE,
+    BIOMEDICAL,
+    HARDWARE,
+    PROFILES,
+    DomainProfile,
+    bundle_from_declared_scores,
+)
 from codontrace.claimgate.ladder import (
     INTERNAL_TO_PUBLIC_LEVEL,
     PUBLIC_CLAIM_LEVEL_NAMES,
@@ -27,6 +35,8 @@ from codontrace.claimgate.schema import (
 )
 
 __all__ = [
+    "ALIFE",
+    "BIOMEDICAL",
     "ClaimAuditReport",
     "ClaimgateArm",
     "ClaimgateArtifact",
@@ -35,11 +45,15 @@ __all__ = [
     "ClaimgateOutcome",
     "ClaimgateReplay",
     "ClaimgateSoftware",
+    "DomainProfile",
+    "HARDWARE",
     "INTERNAL_TO_PUBLIC_LEVEL",
+    "PROFILES",
     "PUBLIC_CLAIM_LEVEL_NAMES",
     "PUBLIC_LADDER",
     "SCHEMA_VERSION",
     "audit_bundle",
+    "bundle_from_declared_scores",
     "parse_claimgate_bundle",
     "public_level_for_internal",
     "public_level_name",

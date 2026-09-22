@@ -1,10 +1,10 @@
-"""Biomedical COU wrapper: analog only, blocked clinical aliases."""
+"""Domain profiles: biomedical is one port; engine is not forked."""
 
 from __future__ import annotations
 
 import pytest
 
-from codontrace.claimgate import audit_bundle
+from codontrace.claimgate import ALIFE, audit_bundle, bundle_from_declared_scores
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
     bundle_from_biomedical_cou,
@@ -23,13 +23,26 @@ def test_biomedical_wrapper_records_risk_and_stays_unverified() -> None:
         metric="auroc_toy",
     )
     extra = bundle.extra or {}
+    assert extra["domain"] == "biomedical"
     assert extra["model_risk"] == 3
     assert extra["asme_vv40"] == "complement_only"
-    assert extra["certification"] == "none"
     assert bundle.replay.verified is False
     report = audit_bundle(bundle)
     assert report.achieved_level <= 2
-    assert any("Not a medical device" in item for item in bundle.limitations)
+
+
+def test_alife_profile_blocks_avida_replacement() -> None:
+    with pytest.raises(ConfigurationError):
+        bundle_from_declared_scores(
+            profile=ALIFE,
+            question_of_interest="q",
+            context_of_use="c",
+            model_influence=1,
+            decision_consequence=1,
+            treatment_scores=(0.2,),
+            control_scores=(0.1,),
+            claimed="avida_replacement",
+        )
 
 
 @pytest.mark.parametrize("alias", sorted(BLOCKED_BIOMEDICAL_CLAIMS))

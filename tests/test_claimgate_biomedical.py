@@ -9,9 +9,11 @@ import pytest
 from codontrace.claimgate import ALIFE, HARDWARE, audit_bundle, bundle_from_declared_scores
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
+    assess_risk_bar,
     attach_credibility_worksheet,
     audit_biomedical_study,
     audit_biomedical_study_file,
+    biomedical_risk_bar_payload,
     biomedical_study_payload,
     bundle_from_biomedical_cou,
     bundle_from_device_model_cou,
@@ -437,3 +439,58 @@ def test_a_wide_interval_does_not_close_and_one_run_is_not_two() -> None:
     assert repeated.ceiling_measured is False
     assert repeated.worksheet.coupled_ceiling is None
     assert "not_independent:loop_b" in repeated.worksheet.open_gaps
+
+
+def test_risk_bar_does_not_move_the_claim_level() -> None:
+    he01 = bundle_from_hard_experiment_01(Path("docs/hard_experiment_01/results_v7.json"))
+    phenomena = (
+        {"name": "source_fitness_bias", "importance": "high", "arm": "source_bias_on"},
+        {"name": "contact_stress", "importance": "high", "knowledge": "adequate"},
+    )
+    plain = audit_biomedical_study({"phenomena": phenomena}, experiment=he01)
+    graded = audit_biomedical_study(
+        {"model_influence": 3, "decision_consequence": 3, "phenomena": phenomena},
+        experiment=he01,
+    )
+    assert plain.risk_bar is None
+    assert graded.risk_bar is not None
+    assert graded.claim_level == plain.claim_level == 4
+    assert graded.executed == plain.executed
+    assert graded.worksheet.open_gaps == plain.worksheet.open_gaps
+    assert graded.risk_bar.met is False
+    assert graded.risk_bar.model_risk == 3
+    assert graded.risk_bar.required_level == 4
+    assert "pirt:contact_stress" in graded.risk_bar.blocking_gaps
+    assert "achieved_below_bar" not in graded.risk_bar.blocking_gaps
+    assert graded.risk_bar.to_dict()["raises_claim_ladder"] is False
+
+    with pytest.raises(ConfigurationError, match="both be set"):
+        audit_biomedical_study({"model_influence": 3, "phenomena": phenomena}, experiment=he01)
+    with pytest.raises(ConfigurationError, match="1–3"):
+        assess_risk_bar(model_influence=True, decision_consequence=3, achieved_level=4)
+
+
+def test_committed_risk_bar_matches_the_live_audit() -> None:
+    import json
+
+    live = biomedical_risk_bar_payload()
+    committed = json.loads(Path("docs/claimgate/risk_bar.json").read_text(encoding="utf-8"))
+    rows = {row["name"]: row for row in live["rows"]}  # type: ignore[index,union-attr]
+    assert live["not_an_fda_score"] is True
+    assert live["not_a_device_certificate"] is True
+    assert live["raises_claim_ladder"] is False
+    assert rows["device_table"]["claim_level"] == 0
+    assert rows["device_table"]["met"] is False
+    assert rows["device_table"]["blocking_gaps"] == ["achieved_below_bar"]
+    assert rows["he01_executed_phenomenon"]["claim_level"] == 4
+    assert rows["he01_executed_phenomenon"]["met"] is True
+    assert rows["he01_executed_phenomenon"]["model_risk"] == 3
+    assert rows["he01_plus_declared_phenomenon"]["claim_level"] == 4
+    assert rows["he01_plus_declared_phenomenon"]["met"] is False
+    assert "pirt:contact_stress" in rows["he01_plus_declared_phenomenon"]["blocking_gaps"]
+    assert committed == live
+    baic = Path("paper/baic/paper.md").read_text(encoding="utf-8")
+    digest = str(live["digest"])
+    assert digest[:8] in baic
+    assert "risk_bar.json" in baic
+    assert "جدول FDA نیست" in baic

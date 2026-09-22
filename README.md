@@ -270,7 +270,7 @@ A new module is a `DomainProfile` or an adapter. It is not a copy of `engine.py`
 | Biomedical module | declared question of interest, context of use, risk, and a PIRT worksheet | no |
 | Hardware arm | `SimEsp32Bridge` today; further arms on the same bridge port | optional |
 
-`ALIFE` is the default profile for the life-loop. `BIOMEDICAL` and `HARDWARE` are the two extra profiles that ship now. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels. The same port ranks a phenomena table (PIRT, from nuclear safety) and caps a coupled model at its weakest submodel (building-block VVUQ). A study file closes a phenomenon only when that arm was executed; a typed rank does not. The worksheet does not raise the ladder. It is not a device. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
+`ALIFE` is the default profile for the life-loop. `BIOMEDICAL` and `HARDWARE` are the two extra profiles that ship now. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels. The same port ranks a phenomena table (PIRT, from nuclear safety) and caps a coupled model at its weakest submodel (building-block VVUQ). A study file closes a phenomenon only when that arm was executed; a typed rank does not. Declared model risk has a separate bar (level 2/3/4 for risk 1/2/3, and an open high-importance phenomenon blocks from risk 2 up). The bar does not move the ladder. See `docs/claimgate/risk_bar.json`. It is not a device. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
 
 ```python
 from codontrace.claimgate import audit_bundle

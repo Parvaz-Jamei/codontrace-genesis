@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- A declared model risk now has its own bar and still does not move the
+  claim level. Risk is `max(influence, consequence)`. This port asks for
+  public level 2, 3, or 4 at risk 1, 2, or 3. From risk 2 up, an open
+  high-importance PIRT gap also blocks. The numbers are not an FDA score.
+  `docs/claimgate/risk_bar.json` (prefix `b053e7f1`): the device table is
+  risk 3 at level 0 and does not meet the bar; HE01 at level 4 meets risk 3
+  when only the executed phenomenon is listed, and stays at 4 without
+  meeting the bar when contact stress is declared and has no arm.
+- English BAIC manuscript, IEEE conference styles, same measurements:
+  `paper/baic/BAIC2026_Jamei_en.docx`. Sole authorship is stated. Domain
+  labels follow the cited FDA, ASME, IEC, and IMDRF texts. No clinical
+  coauthor is invented.
 - BAIC manuscript is a measurement of the bundle, not a tool tour and not a
   literature percentage. `paper/baic/paper.md` states that the file label
   `intervention_supported` stays and does not grant public level 4, that

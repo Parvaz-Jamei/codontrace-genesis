@@ -162,6 +162,27 @@ ceiling. The claim ladder is the campaign's own grade. The study does
 not raise it. The committed copy is
 `docs/claimgate/biomedical_study.json`.
 
+## Risk bar (commensurate evidence, not a second grade)
+
+ASME V&V 40 asks for evidence commensurate with model risk. This port
+makes that check executable and keeps it off the ladder. Risk is
+`max(model_influence, decision_consequence)` on the declared 1–3 labels.
+The required public level is 2, 3, or 4 for risk 1, 2, or 3. From risk 2
+up, an open `pirt:` gap also blocks. The numbers are this implementation,
+not an FDA table and not a certificate.
+
+`docs/claimgate/risk_bar.json` is the live result. The device-score table
+is risk 3 at level 0 and does not meet the bar. HE01 stays at level 4:
+it meets risk 3 when the only listed phenomenon is the executed treatment
+arm, and it does not meet risk 3 when contact stress is listed with no arm.
+Declaring the risk does not lower the campaign grade.
+
+```python
+from codontrace.claimgate.adapters.biomedical import biomedical_risk_bar_payload
+
+print(biomedical_risk_bar_payload()["rows"])
+```
+
 ```python
 from codontrace.claimgate.adapters.biomedical import audit_biomedical_study_file
 

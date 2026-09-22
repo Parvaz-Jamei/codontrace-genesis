@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg)](https://doi.org/10.5281/zenodo.20337435)
-[![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
+[![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE)
 
 CodonTrace Genesis is a Python library for running small digital-evolution
 experiments that you can replay later. You start a tiny world, let simple
@@ -22,7 +22,7 @@ today is one arm, `SimEsp32Bridge`. Further domain modules and hardware arms
 attach the same way, without a second engine.
 
 The installable package is `codontrace`. Product naming for contributors
-lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
+lives in [`CONTRIBUTING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CONTRIBUTING.md) and [`STYLE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/STYLE.md).
 
 ---
 
@@ -46,7 +46,7 @@ CodonTrace Genesis is **not** currently presented as:
 - a medical device, SaMD, IVD, FDA/CE clearance, or ASME V&V 40 certification (biomedical is a ClaimGate `DomainProfile` port)
 - an Avida/MABE literature-compatible campaign runner (ClaimGate adapters are skeletons until audited published `.dat`/CSV exist)
 
-The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md).
+The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md) and [`docs/WHY_NOT_INTELLIGENCE_YET.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/WHY_NOT_INTELLIGENCE_YET.md).
 
 ---
 
@@ -55,12 +55,12 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](CLA
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI tip | `0.3.0b7` — published with tag `v0.3.0b7`. Older `0.3.0b4` / `0.3.0b5` / `0.3.0b6` are immutable. |
-| GitHub `main` | Runtime `__version__` is `[project].version` in `pyproject.toml` (currently `0.3.0b7`). Later commits may move ahead of tag `v0.3.0b7`; that is not a recut. |
+| Public PyPI tip | `0.3.0b6` — tag [`v0.3.0b6`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b6). Older `0.3.0b4` and `0.3.0b5` are immutable. |
+| GitHub `main` | Runtime `__version__` is `[project].version` in `pyproject.toml` (currently `0.3.0b7`). That identity is not tagged and is not on PyPI. |
 | Python | `3.11–3.14` |
 | DOI | `10.5281/zenodo.20337435` |
 | License | `AGPL-3.0-or-later` |
-| Official GitHub release | [`v0.3.0b7`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b7) (older handoff tags stay pre-release so Latest stays here) |
+| Official GitHub release | [`v0.3.0b6`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b6). There is no `v0.3.0b7` tag. |
 | HE01 | SCHEMA v7 locked; ceiling at most `intervention_supported` when the full rule holds |
 | HE02 | Research null after analysis v1b; ceiling stays `runtime_observation` |
 | HE03 | Code + prereg present; research `results_v1` is absent on purpose |
@@ -95,25 +95,25 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b7`. Older public cuts `0.3.0b4`,
-`0.3.0b5`, and `0.3.0b6` remain immutable and must not be recut. Runtime identity
-is `[project].version` in `pyproject.toml` (this cut is `0.3.0b7`). Phases A–G
+The published wheel is `codontrace==0.3.0b6`. `0.3.0b7` is the identity in
+`pyproject.toml` on `main` and is not a PyPI release. Older public cuts
+`0.3.0b4` and `0.3.0b5` remain immutable and must not be recut. Phases A–G
 remain the `0.3.0b3` substrate; H–L + HE01 SCHEMA v7 shipped in `0.3.0b4`.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
 
-### From PyPI (`0.3.0b7`)
+### From PyPI (`0.3.0b6`)
 
 ```bash
-pip install codontrace==0.3.0b7
+pip install codontrace==0.3.0b6
 ```
 
 Optional research extras:
 
 ```bash
-pip install "codontrace[research]==0.3.0b7"
-pip install "codontrace[causal]==0.3.0b7"
-pip install "codontrace[qd]==0.3.0b7"
+pip install "codontrace[research]==0.3.0b6"
+pip install "codontrace[causal]==0.3.0b6"
+pip install "codontrace[qd]==0.3.0b6"
 ```
 
 ### From source (`main`, may be ahead of PyPI)
@@ -128,8 +128,8 @@ python -m pip install -e ".[dev,research,causal,qd]"
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of this cut prints `0.3.0b7`. An editable install from
-`main` prints `[project].version` from `pyproject.toml`. Do not treat the version
+A PyPI install of the published tip prints `0.3.0b6`. An editable install from
+`main` prints `[project].version` from `pyproject.toml` (currently `0.3.0b7`). Do not treat the version
 tuple as a phase fence.
 
 ---
@@ -188,7 +188,7 @@ environments, multi-generation / Tokyo Type 1 *measurement*, Phase E substrate,
 materials, RAG, and H–L CI harnesses) are library APIs with the ceilings in
 the status table. Defaults stay off so A–E digest pins remain stable.
 
-Print-only smokes live under [`examples/`](examples/).
+Print-only smokes live under [`examples/`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/examples/).
 
 ---
 
@@ -209,7 +209,7 @@ Expected core artifacts: `run_config.json`, `summary.json`, `run_records.csv`,
 `feature_matrix.csv`, `counterfactual_pairs.csv`, `claim_readiness.json`,
 `artifact_manifest.json`, `environment.txt`, `report.html`.
 
-Levels and interpretation: [`BENCHMARKS.md`](BENCHMARKS.md).
+Levels and interpretation: [`BENCHMARKS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/BENCHMARKS.md).
 
 ---
 
@@ -229,7 +229,7 @@ the full honest flag set is present, including replay. It does **not** allow
 bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1_passed`, or
 Avida replacement.
 
-Full policy: [`CLAIMS.md`](CLAIMS.md).
+Full policy: [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md).
 
 ---
 
@@ -238,8 +238,8 @@ Full policy: [`CLAIMS.md`](CLAIMS.md).
 Library-complete beta is not “done.” The next work is **not** more empty Phase
 letters.
 
-1. **Do not recut published wheels** `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, or `0.3.0b7`. A later public identity needs its own version, a green CI on that exact commit, and an explicit tag.
-2. **Do not tag or publish from a red or queued CI.** Runtime identity stays the pyproject version until then. This cut’s GitHub release is [`v0.3.0b7`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b7).
+1. **Do not recut published wheels** `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`. A later public identity needs its own version, a green CI on that exact commit, and an explicit tag. `0.3.0b7` is not that tag yet.
+2. **Do not tag or publish from a red or queued CI.** Runtime identity stays the pyproject version until then. The GitHub release that exists is [`v0.3.0b6`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b6).
 3. **HE03 research campaign** — run only against the locked prereg; do not fabricate `results_v1`.
 4. **Lint/type inventory** — `lint-type` remains non-blocking until the ruff/mypy backlog is reduced in its own PR.
 5. **Candidate claims** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
@@ -300,7 +300,7 @@ bundle = bundle_from_device_model_cou(
 print(audit_bundle(bundle).achieved_level, bundle.extra["domain"], bundle.extra["model_risk"])
 ```
 
-The second call stays on the biomedical port. It does not start `GenesisEngine`. Map: [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md). Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md).
+The second call stays on the biomedical port. It does not start `GenesisEngine`. Map: [`docs/ARCHITECTURE_PORTS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ARCHITECTURE_PORTS.md). Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/BIOMEDICAL_ENGINEERING.md).
 
 ---
 
@@ -308,33 +308,33 @@ The second call stays on the biomedical port. It does not start `GenesisEngine`.
 
 | Document | Purpose |
 |---|---|
-| [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims |
-| [`docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md`](docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md) | Claim-ladder protocol v0.1 (design + grade ALife claims; Wave 3) |
-| [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; not close to AGI |
-| [`docs/PHASE_H_CI_AI_PATH.md`](docs/PHASE_H_CI_AI_PATH.md) | Phase H: RAG + ablation / effect-size harnesses |
-| [`docs/PHASE_I_CI_EVIDENCE.md`](docs/PHASE_I_CI_EVIDENCE.md) | Phase I: heldout / evolved DoL / MLS / export-of-fitness |
-| [`docs/PHASE_J_REPLAY_CI.md`](docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay + Price scaffold |
-| [`docs/PHASE_K_CI_DEPTH.md`](docs/PHASE_K_CI_DEPTH.md) | Phase K: coordination, Goldsby-scale harness, Price transmission |
-| [`docs/PHASE_INDEX.md`](docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
-| [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
-| [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
-| [`docs/CLAIMGATE_STANDALONE.md`](docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
-| [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile; not a second engine per domain |
-| [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md) | Biomedical analog (QOI/COU labels); not SaMD / FDA / ASME certification |
-| [`paper/baic/paper.md`](paper/baic/paper.md) | BAIC 2026 Persian manuscript (evidence audit; not a device paper) |
-| [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`STYLE.md`](STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
-| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
-| [`docs/rag/README.md`](docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
-| [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
-| [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols and claim boundaries |
-| [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Release evidence pack (see file for which public wheel it covers) |
+| [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md) | Allowed, candidate, and blocked claims |
+| [`docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md) | Claim-ladder protocol v0.1 (design + grade ALife claims; Wave 3) |
+| [`docs/WHY_NOT_INTELLIGENCE_YET.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; not close to AGI |
+| [`docs/PHASE_H_CI_AI_PATH.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_H_CI_AI_PATH.md) | Phase H: RAG + ablation / effect-size harnesses |
+| [`docs/PHASE_I_CI_EVIDENCE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_I_CI_EVIDENCE.md) | Phase I: heldout / evolved DoL / MLS / export-of-fitness |
+| [`docs/PHASE_J_REPLAY_CI.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay + Price scaffold |
+| [`docs/PHASE_K_CI_DEPTH.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_K_CI_DEPTH.md) | Phase K: coordination, Goldsby-scale harness, Price transmission |
+| [`docs/PHASE_INDEX.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
+| [`docs/PHASE_L_AVIDA_FIDELITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
+| [`docs/HARD_EXPERIMENT_01.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
+| [`docs/CLAIMGATE_STANDALONE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
+| [`docs/ARCHITECTURE_PORTS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile; not a second engine per domain |
+| [`docs/BIOMEDICAL_ENGINEERING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/BIOMEDICAL_ENGINEERING.md) | Biomedical analog (QOI/COU labels); not SaMD / FDA / ASME certification |
+| [`paper/baic/paper.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/paper/baic/paper.md) | BAIC 2026 Persian manuscript (evidence audit; not a device paper) |
+| [`docs/ENGINE_REPLAY_CONTRACT.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
+| [`CONTRIBUTING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CONTRIBUTING.md) / [`STYLE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
+| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
+| [`docs/rag/README.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
+| [`REPRODUCIBILITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
+| [`BENCHMARKS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/BENCHMARKS.md) | Benchmark protocols and claim boundaries |
+| [`RELEASE_EVIDENCE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/RELEASE_EVIDENCE.md) | Release evidence pack (see file for which public wheel it covers) |
 
-Phase literature checklists: [`PHASE_D_LITERATURE.md`](docs/PHASE_D_LITERATURE.md),
-[`PHASE_E_LITERATURE.md`](docs/PHASE_E_LITERATURE.md),
-[`PHASE_G_MATERIALS_LITERATURE.md`](docs/PHASE_G_MATERIALS_LITERATURE.md).
+Phase literature checklists: [`PHASE_D_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_D_LITERATURE.md),
+[`PHASE_E_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_E_LITERATURE.md),
+[`PHASE_G_MATERIALS_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_G_MATERIALS_LITERATURE.md).
 Studio / performance notes stay out of core:
-[`STUDIO_BOUNDARY.md`](docs/STUDIO_BOUNDARY.md).
+[`STUDIO_BOUNDARY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/STUDIO_BOUNDARY.md).
 
 ---
 
@@ -348,7 +348,7 @@ python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py
 python -m pytest tests -q
 ```
 
-Validation tiers: [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+Validation tiers: [`REPRODUCIBILITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/REPRODUCIBILITY.md).
 
 ---
 
@@ -364,11 +364,12 @@ versioned software release.
   author = {Jamei, Parvaz},
   version = {0.3.0b7},
   doi = {10.5281/zenodo.20337435},
-  url = {https://github.com/Parvaz-Jamei/codontrace-genesis}
+  url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
+  note = {0.3.0b7 is the pyproject identity on main at commit c8db778 and is not the PyPI tip. PyPI tip is 0.3.0b6. The DOI is the software archive, not a campaign archive.}
 }
 ```
 
-A [`CITATION.cff`](CITATION.cff) file is included for citation-aware tools.
+A [`CITATION.cff`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CITATION.cff) file is included for citation-aware tools.
 
 Use of the software does not automatically imply co-authorship. Co-authorship
 may be appropriate when there is substantial collaboration in experimental
@@ -387,7 +388,7 @@ versions open, attributable, and scientifically inspectable.
 Commercial or proprietary use cases that cannot comply with `AGPL-3.0-or-later`
 may contact the author for a separate commercial license.
 
-See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+See [`LICENSE`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE) and [`NOTICE`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/NOTICE).
 
 ---
 

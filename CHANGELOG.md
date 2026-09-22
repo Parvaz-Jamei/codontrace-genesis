@@ -10,10 +10,14 @@
   risk 3 at level 0 and does not meet the bar; HE01 at level 4 meets risk 3
   when only the executed phenomenon is listed, and stays at 4 without
   meeting the bar when contact stress is declared and has no arm.
+- README links to repository files are absolute GitHub URLs, so the PyPI
+  rendering of the same file does not 404 them.
+- `0.3.0b7` is the pyproject identity only. It is not tagged and not on PyPI.
+  The published tip remains `0.3.0b6`.
 - English BAIC manuscript, IEEE conference styles, same measurements:
   `paper/baic/BAIC2026_Jamei_en.docx`. Sole authorship is stated. Domain
   labels follow the cited FDA, ASME, IEC, and IMDRF texts. No clinical
-  coauthor is invented.
+  coauthor is invented. The graded files were read at commit `c8db778`.
 - BAIC manuscript is a measurement of the bundle, not a tool tour and not a
   literature percentage. `paper/baic/paper.md` states that the file label
   `intervention_supported` stays and does not grant public level 4, that
@@ -52,7 +56,7 @@
 
 ## [0.3.0b7] — 2026-09-22
 
-Research-beta cut. Tag `v0.3.0b7`. Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.
+Pyproject identity only. Not tagged and not on PyPI. Published tip remains `0.3.0b6` (tag `v0.3.0b6`). Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.
 
 ### DomainProfile — ports, not a second engine
 

@@ -569,10 +569,13 @@ def build() -> None:
         "The same grade 4 meets the risk-3 bar when the listed phenomenon "
         "was executed, and it does not meet that bar when a high-importance "
         "phenomenon is only declared. Six requirement deletions stay below "
-        "grade 4, and the count is not a literature rate. Code and the "
-        "committed results are in the public repository github.com/\u200b"
+        "grade 4, and the count is not a literature rate. The graded files "
+        "were read at commit c8db778. The package identity in pyproject is "
+        "0.3.0b7, which is not a PyPI release; the published tip is 0.3.0b6. "
+        "Code and those files are in the public repository github.com/\u200b"
         "Parvaz-Jamei/\u200bcodontrace-genesis. The software DOI is "
-        "10.5281/zenodo.20337435.",
+        "10.5281/zenodo.20337435, and it is the software archive, not the "
+        "campaign archive.",
     )
 
     _p(doc, styles, "Heading5", "Acknowledgment")

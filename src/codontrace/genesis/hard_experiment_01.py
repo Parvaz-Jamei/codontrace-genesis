@@ -45,7 +45,6 @@ A null finding is valid. This module does not mutate a global ClaimGate.
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -80,6 +79,7 @@ from codontrace.genesis.statistical_protocol import (
     paired_effect_size,
 )
 from codontrace.genesis.substrate import world2d_to_element_grid
+from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.rng import RNGManager
 from codontrace.world import World2D
 
@@ -278,7 +278,7 @@ def hard_experiment_01_prereg_amendment_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment: {PREREG_AMENDMENT_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_prereg_amendment_02_path() -> Path:
@@ -293,7 +293,7 @@ def hard_experiment_01_prereg_amendment_02_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment: {PREREG_AMENDMENT_02_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_prereg_amendment_03_path() -> Path:
@@ -308,7 +308,7 @@ def hard_experiment_01_prereg_amendment_03_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment: {PREREG_AMENDMENT_03_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_prereg_amendment_04_path() -> Path:
@@ -323,7 +323,7 @@ def hard_experiment_01_prereg_amendment_04_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment: {PREREG_AMENDMENT_04_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_prereg_amendment_05_path() -> Path:
@@ -338,7 +338,7 @@ def hard_experiment_01_prereg_amendment_05_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment: {PREREG_AMENDMENT_05_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_prereg_amendment_lock_path() -> Path:
@@ -353,7 +353,7 @@ def hard_experiment_01_prereg_amendment_lock_digest() -> str:
         raise ConfigurationError(
             f"missing preregistration amendment lock: {PREREG_AMENDMENT_LOCK_RELATIVE_PATH}"
         )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def _repo_root() -> Path:
@@ -370,7 +370,7 @@ def hard_experiment_01_prereg_digest() -> str:
     path = hard_experiment_01_prereg_path()
     if not path.is_file():
         raise ConfigurationError(f"missing preregistration file: {PREREG_RELATIVE_PATH}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_01_protocol_digest(prereg_digest: str | None = None) -> str:

@@ -130,6 +130,7 @@ def test_he01_v7_roles_translate_to_schema() -> None:
     assert roles["capsules_activity_matched"] == "negative_control"
     assert roles["capsules_shuffled"] == "negative_control"
     assert roles["oracle_capsule"] == "dose"
+    assert "dose_ladder" not in roles
     assert set(roles.values()) <= {
         "treatment",
         "mechanism_ablation",

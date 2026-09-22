@@ -1,12 +1,9 @@
-"""Translate HE01 campaign arm names/roles into claimgate_bundle_v1 roles.
-
-The v7 artifact uses auxiliary_control, sensitivity_negative_control, and
-positive_control. The public schema allows treatment, mechanism_ablation,
-channel_off, negative_control, and dose. Translation stays in the adapter;
-artifact bytes are not rewritten.
-"""
+"""HE01 arm names for ClaimGate. Shared translation lives in ``roles``."""
 
 from __future__ import annotations
+
+from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES
+from codontrace.claimgate.adapters.roles import canonical_role as _canonical_role
 
 ARM_ROLES: dict[str, str] = {
     "source_bias_on": "treatment",
@@ -17,26 +14,10 @@ ARM_ROLES: dict[str, str] = {
     "capsules_content_null": "negative_control",
     "capsules_activity_matched": "negative_control",
 }
-ROLE_ALIASES: dict[str, str] = {
-    "auxiliary_control": "negative_control",
-    "sensitivity_negative_control": "negative_control",
-    "positive_control": "dose",
-}
-SCHEMA_ROLES = frozenset(
-    {
-        "treatment",
-        "mechanism_ablation",
-        "channel_off",
-        "negative_control",
-        "dose",
-    }
-)
 
 
 def canonical_role(arm_name: str, raw_role: str = "") -> str:
-    mapped = ARM_ROLES.get(arm_name, "")
-    if mapped:
-        return mapped
-    if raw_role in SCHEMA_ROLES:
-        return raw_role
-    return ROLE_ALIASES.get(raw_role, "")
+    return _canonical_role(arm_name, raw_role, arm_map=ARM_ROLES)
+
+
+__all__ = ["ARM_ROLES", "ROLE_ALIASES", "SCHEMA_ROLES", "canonical_role"]

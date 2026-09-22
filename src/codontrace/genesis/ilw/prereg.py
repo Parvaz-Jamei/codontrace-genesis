@@ -11,7 +11,6 @@ collective_intelligence).
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,6 +19,7 @@ from typing import Any, Literal
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.ilw.dag import CLAIM_CEILING, SCIENTIFIC_NAME
+from codontrace.genesis.text_digest import sha256_text_file
 
 PREREG_VERSION = "ilw_prereg_v1"
 PREREG_RELATIVE_PATH = "docs/ILW_PREREG_V1.md"
@@ -352,7 +352,7 @@ def ilw_prereg_document_digest() -> str:
     path = prereg_document_path()
     if not path.is_file():
         raise IlwPreregError(f"missing preregistration file: {PREREG_RELATIVE_PATH}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 @dataclass(frozen=True, slots=True)

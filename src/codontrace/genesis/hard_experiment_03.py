@@ -34,6 +34,7 @@ from codontrace.genesis.task_switch_cost import (
     SWITCH_COST_ATP_MODERATE,
     TaskSwitchCostConfig,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 PRODUCT_NAME = "CodonTrace Genesis"
 CLAIM_CEILING = "runtime_observation"
@@ -98,7 +99,7 @@ def hard_experiment_03_prereg_digest() -> str:
     path = hard_experiment_03_prereg_path()
     if not path.is_file():
         raise ConfigurationError(f"missing HE03 prereg: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_03_causal_dag() -> dict[str, JsonValue]:

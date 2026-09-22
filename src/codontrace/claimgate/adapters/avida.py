@@ -18,7 +18,6 @@ run is ingested and reviewed.
 
 from __future__ import annotations
 
-import hashlib
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -35,6 +34,7 @@ from codontrace.claimgate.schema import (
 )
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
+from codontrace.genesis.text_digest import sha256_text_file
 
 _HEADER_RE = re.compile(r"^#\s*(\d+)\s*:\s*(.+?)\s*$")
 PRODUCT_NAME = "Avida (ClaimGate skeleton)"
@@ -99,7 +99,7 @@ def _read_run_directory(path: Path) -> tuple[dict[str, list[float]], list[Claimg
         artifacts.append(
             ClaimgateArtifact(
                 path=str(file_path.as_posix()),
-                sha256=hashlib.sha256(file_path.read_bytes()).hexdigest(),
+                sha256=sha256_text_file(file_path),
             )
         )
     for file_path in _metric_files(path):

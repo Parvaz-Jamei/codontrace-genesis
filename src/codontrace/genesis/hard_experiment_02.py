@@ -47,6 +47,7 @@ from codontrace.genesis.hard_experiment_01 import (
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.stepping_stone_reward import SteppingStoneRewardConfig
+from codontrace.genesis.text_digest import sha256_text_file
 
 PRODUCT_NAME = "CodonTrace Genesis"
 CLAIM_CEILING = "runtime_observation"
@@ -119,7 +120,7 @@ def hard_experiment_02_prereg_digest() -> str:
     path = hard_experiment_02_prereg_path()
     if not path.is_file():
         raise ConfigurationError(f"missing HE02 prereg: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def hard_experiment_02_causal_dag() -> dict[str, JsonValue]:

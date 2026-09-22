@@ -118,7 +118,11 @@ def _arms(data: Mapping[str, Any], seed_count: int) -> tuple[ClaimgateArm, ...]:
                 if name and mapped_role:
                     arms.append(ClaimgateArm(name=name, role=mapped_role, n=int(n)))
     dose_records = data.get("dose_records")
-    if isinstance(dose_records, list) and dose_records:
+    if (
+        isinstance(dose_records, list)
+        and dose_records
+        and not any(arm.role == "dose" for arm in arms)
+    ):
         arms.append(ClaimgateArm(name="dose_ladder", role="dose", n=len(dose_records)))
     if not arms:
         raise ConfigurationError("campaign is missing arm records.")

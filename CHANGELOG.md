@@ -30,8 +30,12 @@ do not raise the ladder; new blocked aliases include `simd_certified`,
 ClaimGate grades are committed at `docs/claimgate/ladder_validation.json`
 (not a population error rate). HE01 v7 role aliases are translated in
 `he01_arm_roles` and applied by the ClaimGate adapter; `sha256_text_file`
-normalizes CRLF for that adapter. Campaign `read_bytes()` pins are
-unchanged. No version bump. Phase A–E pins unchanged. ClaimGate not loosened.
+normalizes CRLF for adapters **and** campaign prereg pins (HE01–HE03, ILW).
+Shared `adapters.roles.canonical_role` is the role port used by HE01/HE02/HE03.
+HE03 adapter no longer uses invalid schema roles and will not invent a missing
+research JSON. Duplicate HE01 `dose_ladder` is omitted when `oracle_capsule`
+already maps to `dose`. `engine.py` untouched. No version bump. Phase A–E
+pins unchanged. ClaimGate not loosened.
 
 ### HARD_EXPERIMENT_02 — honest pilot clear + research null
 

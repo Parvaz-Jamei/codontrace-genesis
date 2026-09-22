@@ -14,7 +14,6 @@ export is ingested and reviewed.
 from __future__ import annotations
 
 import csv
-import hashlib
 import io
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -31,6 +30,7 @@ from codontrace.claimgate.schema import (
 )
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
+from codontrace.genesis.text_digest import sha256_text_file
 
 PRODUCT_NAME = "MABE2 (ClaimGate skeleton)"
 
@@ -118,7 +118,7 @@ def bundle_from_mabe2_csv(
         artifacts=(
             ClaimgateArtifact(
                 path=str(file_path.as_posix()),
-                sha256=hashlib.sha256(file_path.read_bytes()).hexdigest(),
+                sha256=sha256_text_file(file_path),
             ),
         ),
         limitations=(

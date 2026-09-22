@@ -13,6 +13,10 @@
   (`min_source_fitness` 1.5 to 0 and `FITNESS_WEIGHTED` to `THRESHOLD`).
   The manuscript attributes 16.49 to that package. Related work now cites
   MIRROR (10.5281/zenodo.20463358) and NovaFabric (arXiv:2609.12582).
+- Biomedical port: an executable PIRT (importance × knowledge, from nuclear
+  safety) and a weakest-submodel cap (building-block VVUQ). Non-identifiable
+  or calibration-only submodels are capped. The worksheet does not raise
+  the claim ladder and does not start the engine.
 
 ## [0.3.0b7] — 2026-09-22
 

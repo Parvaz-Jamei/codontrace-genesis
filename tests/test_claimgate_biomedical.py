@@ -10,8 +10,10 @@ from codontrace.claimgate import ALIFE, HARDWARE, audit_bundle, bundle_from_decl
 from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
+    attach_credibility_worksheet,
     bundle_from_biomedical_cou,
     bundle_from_device_model_cou,
+    credibility_worksheet,
 )
 from codontrace.errors import ConfigurationError
 
@@ -215,3 +217,79 @@ def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     assert "not" in baic_readme.lower() and "tree" in baic_readme.lower()
     assert "opt-in" in baic_readme.lower()
     assert "Studentized" in baic_readme or "studentized" in baic_readme
+
+
+def test_pirt_gap_and_weakest_submodel_do_not_raise_the_ladder() -> None:
+    sheet = credibility_worksheet(
+        phenomena=(
+            {"name": "contact_stress", "importance": "high", "knowledge": "partial"},
+            {"name": "wear_debris", "importance": "high", "knowledge": "none"},
+            {"name": "packaging", "importance": "low", "knowledge": "none"},
+            {"name": "fatigue", "importance": "medium", "knowledge": "adequate"},
+        ),
+        submodels=(
+            {
+                "name": "device_fea",
+                "role": "device",
+                "level": 3,
+                "evidence_categories": (1, 3),
+            },
+            {
+                "name": "patient_geometry",
+                "role": "patient",
+                "level": 4,
+                "identifiable": False,
+                "evidence_categories": (2,),
+            },
+        ),
+    )
+    assert sheet.open_gaps == (
+        "pirt:contact_stress",
+        "pirt:wear_debris",
+        "nonidentifiable:patient_geometry",
+        "supporting_evidence_only:patient_geometry",
+    )
+    assert sheet.limiting_submodel == "patient_geometry"
+    assert sheet.limiting_level == 1
+    assert sheet.coupled_ceiling == 1
+    assert sheet.to_dict()["raises_claim_ladder"] is False
+
+    bundle = bundle_from_device_model_cou(
+        question_of_interest="Would this bench-like score table license a worst-case size pick?",
+        context_of_use="Synthetic table only; no ISO 14879-1 test; no implant.",
+        model_influence=2,
+        decision_consequence=3,
+        treatment_scores=(0.12, 0.11, 0.13),
+        control_scores=(0.20, 0.19, 0.21),
+        device_software_kind="simd_declared",
+        physics_based=True,
+    )
+    before = audit_bundle(bundle).achieved_level
+    annotated = attach_credibility_worksheet(
+        bundle,
+        phenomena=({"name": "contact_stress", "importance": "high", "knowledge": "adequate"},),
+        submodels=(
+            {"name": "device_fea", "role": "device", "level": 3, "evidence_categories": (1, 8)},
+            {"name": "patient_geometry", "role": "patient", "level": 1, "evidence_categories": (4,)},
+        ),
+    )
+    assert audit_bundle(annotated).achieved_level == before
+    stored = annotated.extra["credibility_worksheet"]
+    assert stored["coupled_ceiling"] == 1
+    assert stored["open_gaps"] == []
+
+
+def test_worksheet_rejects_an_empty_table_and_a_certificate_is_still_blocked() -> None:
+    with pytest.raises(ConfigurationError, match="phenomenon or a submodel"):
+        credibility_worksheet()
+    with pytest.raises(ConfigurationError):
+        bundle_from_device_model_cou(
+            question_of_interest="q",
+            context_of_use="c",
+            model_influence=1,
+            decision_consequence=1,
+            treatment_scores=(1.0,),
+            control_scores=(1.0,),
+            device_software_kind="simd_declared",
+            claimed="asme_vv40_passed",
+        )

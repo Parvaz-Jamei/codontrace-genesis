@@ -87,3 +87,55 @@ and 30 seeds are in the bundle. Level 5 still needs an archived DOI.
 
 See `examples/claimgate_audit_biomedical_toy.py`.
 The toy numbers are synthetic. They are not a clinical study or a device test.
+
+## Executable worksheet (PIRT + weakest submodel)
+
+Two checks from outside this field, wired as a port and not as a second engine:
+
+- **PIRT** (phenomena identification and ranking), used in nuclear safety
+  (OECD/NEA). Each phenomenon has an importance (`low` / `medium` / `high`)
+  and a knowledge rank (`none` / `partial` / `adequate`). High importance
+  stays an open gap until knowledge is adequate. Low importance is screened
+  out. The ranks are declared by the user; the port does not discover physics.
+- **Weakest-submodel cap**, the building-block rule from aerospace VVUQ and
+  the hierarchical in-silico trial layout (device, patient, coupled, cohort,
+  clinician, outcome map). The coupled ceiling is the minimum usable level
+  of the recorded submodels. A non-identifiable submodel cannot contribute
+  above 1. Evidence that is only calibration, plausibility, or emergent
+  behaviour (FDA 2023 categories 2, 6, 7) cannot contribute above 2.
+
+`audit_bundle` is not called by the worksheet and its public level does not
+move. `raises_claim_ladder` is false. Strings such as `asme_vv40_passed`
+remain `ConfigurationError`.
+
+```python
+from codontrace.claimgate.adapters.biomedical import (
+    attach_credibility_worksheet,
+    bundle_from_device_model_cou,
+)
+
+bundle = bundle_from_device_model_cou(
+    question_of_interest="Which recorded gap blocks a coupled claim?",
+    context_of_use="Declared worksheet only; no implant.",
+    model_influence=2,
+    decision_consequence=3,
+    treatment_scores=(0.12, 0.11, 0.13),
+    control_scores=(0.20, 0.19, 0.21),
+    device_software_kind="simd_declared",
+    physics_based=True,
+)
+annotated = attach_credibility_worksheet(
+    bundle,
+    phenomena=(
+        {"name": "contact_stress", "importance": "high", "knowledge": "partial"},
+    ),
+    submodels=(
+        {"name": "device_fea", "role": "device", "level": 3, "evidence_categories": (1, 3)},
+        {"name": "patient_geometry", "role": "patient", "level": 1, "evidence_categories": (4,)},
+    ),
+)
+print(annotated.extra["credibility_worksheet"]["coupled_ceiling"])
+```
+
+See `examples/claimgate_biomedical_worksheet.py`.
+

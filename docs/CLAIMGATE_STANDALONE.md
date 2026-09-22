@@ -29,7 +29,9 @@ null finding.
 
 - A `claimgate_bundle_v1` schema plus `audit_bundle(bundle) -> ClaimAuditReport`.
 - Adapters: complete CodonTrace Genesis (`HardExperiment01Campaign` /
-  `results_v2.json`); **skeletons** for Avida `.dat` and MABE2 DataFile CSV.
+  `results_v2.json`); **skeletons** for Avida `.dat` and MABE2 DataFile CSV;
+  a **biomedical COU wrapper** that records user-declared question-of-interest
+  and risk labels without certifying a device.
 - Import-isolated from `engine` / `population` (AST-enforced).
 
 ## What it is not
@@ -37,6 +39,7 @@ null finding.
 - Not a universal validation score (see ASME V&V 40 below).
 - Not an OEE or Tokyo Type 1 pass from metrics.
 - Not full Avida or MABE2 support.
+- Not a medical device, SaMD, or ASME V&V 40 implementation.
 - Not Wave 3, a tag, a PyPI release, or Phase M+.
 
 ## Neighbors and complements (not substitutes)
@@ -44,6 +47,7 @@ null finding.
 | Neighbor | Role relative to ClaimGate |
 |---|---|
 | **ASME V&V 40** | Credibility is *context-of-use / risk-informed*. ClaimGate grades claims given evidence. Complementary, not a numeric score. |
+| **Biomedical COU wrapper** | Records QOI / COU / declared influence and consequence. Does not certify SaMD or compute clinical validity. |
 | **MODES (Dolson et al. 2019)** | Measurement procedure for novelty / change / complexity after a persistence filter. Measurement ≠ claim pass. |
 | **Channon 2024 Tokyo Type 1** | Measurement-step vocabulary. CodonTrace Genesis may record steps; ClaimGate must **not** auto-grant `tokyo_type1_passed`. |
 | **Avida `.dat` / MABE2 DataFile** | Ingest skeletons so foreign run artifacts can be wrapped as bundles. Arm mapping is user-supplied. |
@@ -51,9 +55,12 @@ null finding.
 Design notes: [`design/AVIDA_DAT.md`](design/AVIDA_DAT.md),
 [`design/MABE2_DATAFILE.md`](design/MABE2_DATAFILE.md),
 [`design/ASME_VV40_CONTEXT_OF_USE.md`](design/ASME_VV40_CONTEXT_OF_USE.md),
+[`BIOMEDICAL_ENGINEERING.md`](BIOMEDICAL_ENGINEERING.md),
 [`design/MODES_CHANNON_MEASUREMENT_NEIGHBORS.md`](design/MODES_CHANNON_MEASUREMENT_NEIGHBORS.md),
 [`design/HARD_EXPERIMENT_01_V2_ASSAY_INVALID.md`](design/HARD_EXPERIMENT_01_V2_ASSAY_INVALID.md).
 
 Forbidden aliases (`intelligence`, `collective_intelligence`, AGI,
-`tokyo_type1_passed`, `avida_replacement`, …) are unchanged. Example:
-[`examples/claimgate_audit_hard_experiment_01.py`](../examples/claimgate_audit_hard_experiment_01.py).
+`tokyo_type1_passed`, `avida_replacement`, `samd_certified`,
+`asme_vv40_passed`, …) are unchanged. Example:
+[`examples/claimgate_audit_hard_experiment_01.py`](../examples/claimgate_audit_hard_experiment_01.py),
+[`examples/claimgate_audit_biomedical_toy.py`](../examples/claimgate_audit_biomedical_toy.py).

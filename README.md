@@ -15,6 +15,12 @@ as checkable records. Use it when you want to test an evolutionary idea with
 evidence instead of a screenshot. It is research software. It does **not**
 claim that the agents are intelligent.
 
+That life-loop is still the product. Domain modules sit beside the engine;
+they do not replace it. The biomedical module is the first extra port: a
+ClaimGate `DomainProfile` that audits a declared evidence table. Hardware
+today is one arm, `SimEsp32Bridge`. Further domain modules and hardware arms
+attach the same way, without a second engine.
+
 The installable package is `codontrace`. Product naming for contributors
 lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
@@ -26,6 +32,7 @@ lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 - a replay / audit-first evidence layer (specs, runtime digests, manifests)
 - a mechanism instrumentation toolkit (ablations, treatment/control, delayed outcomes)
 - a claim-gated workflow: software capability and runtime observations are allowed; strong scientific conclusions are not auto-promoted
+- one biomedical port and one hardware arm on that same auditor; more domain modules and hardware arms attach later without forking the engine
 
 ## What it is not
 
@@ -244,28 +251,28 @@ letters.
 
 ## Architecture
 
-The engine runs a world. It does not know the domain.
+The product is still the engine: a world, agents that eat, survive, and reproduce, then a digest you can replay. The engine does not know medicine or hardware.
 
 ```text
-adapter  →  claimgate_bundle_v1  →  audit_bundle()  →  public ladder 0–5
-                                         ↑
-              DomainProfile labels the bundle (alife | biomedical | hardware)
-              It does not tick the world, and it does not grant a certificate.
-
 GenesisEngine  →  ticks, digest, replay
-       └→ native adapter  →  the same bundle and the same auditor
+       └→ native adapter  →  claimgate_bundle_v1  →  audit_bundle()  →  ladder 0–5
+
+Domain modules (same auditor, no second engine)
+       biomedical   DomainProfile  — declared evidence table
+       hardware     SimEsp32Bridge — one arm today; more arms later
+       (later)      another DomainProfile or ingest adapter
 ```
 
-A new domain is a `DomainProfile` or an ingest adapter. It is not a second copy of `engine.py`.
+A new module is a `DomainProfile` or an adapter. It is not a copy of `engine.py`.
 
 | Port | Ingest | Engine |
 |---|---|---|
-| Native campaign | live spec, or HE01 / HE02 / HE03 JSON | ticks only when a spec is run; JSON adapters read the artifact |
+| Native campaign | live spec, or HE01 / HE02 / HE03 JSON | yes, when a spec runs; JSON adapters only read the artifact |
 | Avida `.dat`, MABE2 CSV | foreign run tables | no |
-| Biomedical table | declared question of interest, context of use, and risk | no |
-| Hardware | ESP32 bridge | optional |
+| Biomedical module | declared question of interest, context of use, and risk | no |
+| Hardware arm | `SimEsp32Bridge` today; further arms on the same bridge port | optional |
 
-`ALIFE`, `BIOMEDICAL`, and `HARDWARE` are the three profiles. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels on the bundle. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
+`ALIFE` is the default profile for the life-loop. `BIOMEDICAL` and `HARDWARE` are the two extra profiles that ship now. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels. It is not a device. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
 
 ```python
 from codontrace.claimgate import audit_bundle
@@ -275,8 +282,27 @@ report = audit_bundle(bundle_from_hard_experiment_01())
 print(report.achieved_level, report.public_name, report.missing_for_next)
 ```
 
-Map and rules: [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md).
-Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md).
+```python
+from codontrace.claimgate import audit_bundle
+from codontrace.claimgate.adapters.biomedical import bundle_from_device_model_cou
+
+bundle = bundle_from_device_model_cou(
+    question_of_interest="Would this score table support the claim?",
+    context_of_use="Declared table only; no implant.",
+    model_influence=2,
+    decision_consequence=3,
+    treatment_scores=(0.12, 0.11, 0.13),
+    control_scores=(0.20, 0.19, 0.21),
+    device_software_kind="simd_declared",
+    iec_62304_class="B",
+    imdrf_n12_category="II",
+    fda_2023_evidence=(1, 3, 8),
+    physics_based=True,
+)
+print(audit_bundle(bundle).achieved_level, bundle.extra["domain"], bundle.extra["model_risk"])
+```
+
+The second call stays on the biomedical port. It does not start `GenesisEngine`. Map: [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md). Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md).
 
 ---
 

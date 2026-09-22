@@ -1,0 +1,99 @@
+{
+  "digest": "ea0366d0295445190485b4e5634b4a09ea7001fd520150e9450c9d1a6feeb814",
+  "external_raters": false,
+  "n_packs": 9,
+  "not_a_population_error_rate": true,
+  "rows": [
+    {
+      "auditor_level": 4,
+      "bundle_digest": "e7425248f9d2f7724908341960b9fffb554678ac528b4d9c9aaeb0eb3e88ec80",
+      "missing_for_next": ["archived_artifact_or_doi"],
+      "pack_id": "reference",
+      "paper_label": "reference",
+      "paper_table3_level": 4,
+      "public_name": "replicated_effect",
+      "report_digest": "1d0509e20fc638fa685a975c7f5788463db0cf0b093467e520be5a9dacbaa1bb"
+    },
+    {
+      "auditor_level": 1,
+      "bundle_digest": "794df633dce243027c388f28fa867308fa27289dfe14b895466b4503c5707edb",
+      "missing_for_next": ["consistent_measured_difference"],
+      "pack_id": "identical_arms",
+      "paper_label": "expected",
+      "paper_table3_level": 1,
+      "public_name": "runtime_observation",
+      "report_digest": "e9a3df1083d552e9883e8ecb8b900a7c6b4c4016ae808fb913897ffbda373150"
+    },
+    {
+      "auditor_level": 1,
+      "bundle_digest": "888dbe77d8738333ac39edc1ce42ba883e1532d98736366218988953b2d75bd4",
+      "missing_for_next": ["consistent_measured_difference"],
+      "pack_id": "zero_width_ci",
+      "paper_label": "expected",
+      "paper_table3_level": 1,
+      "public_name": "runtime_observation",
+      "report_digest": "104f05f63c8069b0a0b931e29dc731e1cc26a446ff116ee09762f1293b7a9f87"
+    },
+    {
+      "auditor_level": 1,
+      "bundle_digest": "5052d49893746ac091b3022044928861c5d0e26f7fab39b2f2170c2b523a4162",
+      "missing_for_next": ["consistent_measured_difference", "paired_comparison"],
+      "pack_id": "no_paired_comparison",
+      "paper_label": "expected",
+      "paper_table3_level": 1,
+      "public_name": "runtime_observation",
+      "report_digest": "52e3958394c4391a1c5c17aa380306482a1c4b98fae04df01922d80aa64068c2"
+    },
+    {
+      "auditor_level": 2,
+      "bundle_digest": "2a9eda7e8f1012c52d6d673b5ec29583534cdf895302d0822762c02674d2c263",
+      "missing_for_next": ["replay_audit"],
+      "pack_id": "no_replay",
+      "paper_label": "expected",
+      "paper_table3_level": 2,
+      "public_name": "candidate_evidence",
+      "report_digest": "d8067e72405406e7d9e43386a5ff210869be94af6bbd18768f41069470765a08"
+    },
+    {
+      "auditor_level": 2,
+      "bundle_digest": "8004a79f24e274607ce1b07eae329f4d0217b301be6776f808af1066be485dc2",
+      "missing_for_next": ["artifact_completeness"],
+      "pack_id": "empty_limitations",
+      "paper_label": "expected",
+      "paper_table3_level": 2,
+      "public_name": "candidate_evidence",
+      "report_digest": "ff00683e93bbe8a4b5ab4487e7a3f07c53e0c365d3a59314aad0409fdb7456fb"
+    },
+    {
+      "auditor_level": 4,
+      "bundle_digest": "31f6f570be55c0e50a6b4703f607ca2b930fa2559c889b31bdf212907e93c076",
+      "missing_for_next": ["archived_artifact_or_doi"],
+      "pack_id": "placeholder_digest",
+      "paper_label": "mismatch",
+      "paper_table3_level": 4,
+      "public_name": "replicated_effect",
+      "report_digest": "1d0509e20fc638fa685a975c7f5788463db0cf0b093467e520be5a9dacbaa1bb"
+    },
+    {
+      "auditor_level": 3,
+      "bundle_digest": "8cb8dc018f7146f3aff641e6139bfb8d55fa53990769166831ad1111efb96b16",
+      "missing_for_next": ["seed_count_ge_16"],
+      "pack_id": "three_seeds",
+      "paper_label": "needs_definition",
+      "paper_table3_level": 3,
+      "public_name": "mechanism_support",
+      "report_digest": "0914201707bdcf916e0373caecd019e0e923eae6e5d378c82be7706f6a88c628"
+    },
+    {
+      "auditor_level": 4,
+      "bundle_digest": "968ae4258fec3c526ffa63aea2baa15b417ffefbd3c176394a06da8f9814d188",
+      "missing_for_next": ["archived_artifact_or_doi"],
+      "pack_id": "drop_confirmatory_keep_sensitivity_role",
+      "paper_label": "mismatch",
+      "paper_table3_level": 4,
+      "public_name": "replicated_effect",
+      "report_digest": "1d0509e20fc638fa685a975c7f5788463db0cf0b093467e520be5a9dacbaa1bb"
+    }
+  ],
+  "schema": "claimgate_ladder_validation_v1"
+}

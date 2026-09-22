@@ -1,0 +1,107 @@
+{
+  "anti_gaming": [
+    {
+      "audited_level": 4,
+      "base_level": 4,
+      "labels": {
+        "decision_consequence": 3,
+        "model_influence": 3,
+        "model_risk": 3
+      },
+      "raised": false
+    },
+    {
+      "audited_level": 4,
+      "base_level": 4,
+      "labels": {
+        "device_software_kind": "simd_declared",
+        "iec_62304_class": "C",
+        "imdrf_n12_category": "IV"
+      },
+      "raised": false
+    },
+    {
+      "audited_level": 4,
+      "base_level": 4,
+      "labels": {
+        "asme_vv40": "passed_label",
+        "fda_2023_evidence": [
+          1,
+          3,
+          4,
+          8
+        ],
+        "physics_based": true
+      },
+      "raised": false
+    },
+    {
+      "audited_level": 4,
+      "base_level": 4,
+      "labels": {
+        "importance": "high",
+        "knowledge": "adequate",
+        "measured": true
+      },
+      "raised": false
+    }
+  ],
+  "anti_gaming_holds": true,
+  "digest": "4c206d74c520709ea9ced9c868f9000aed06ea127a4d1c16e37e48ce97165747",
+  "escape_rate": 0.14285714285714285,
+  "external_raters": false,
+  "n_defects": 7,
+  "n_escaped": 1,
+  "not_a_literature_rate": true,
+  "population": "planted_defects_on_the_reference_pack",
+  "reference_level": 4,
+  "rows": [
+    {
+      "auditor_level": 1,
+      "class": "requirement_knockout",
+      "defect": "identical_arms",
+      "escaped": false
+    },
+    {
+      "auditor_level": 1,
+      "class": "requirement_knockout",
+      "defect": "zero_width_ci",
+      "escaped": false
+    },
+    {
+      "auditor_level": 1,
+      "class": "requirement_knockout",
+      "defect": "no_paired_comparison",
+      "escaped": false
+    },
+    {
+      "auditor_level": 2,
+      "class": "requirement_knockout",
+      "defect": "no_replay",
+      "escaped": false
+    },
+    {
+      "auditor_level": 2,
+      "class": "requirement_knockout",
+      "defect": "empty_limitations",
+      "escaped": false
+    },
+    {
+      "auditor_level": 3,
+      "class": "requirement_knockout",
+      "defect": "three_seeds",
+      "escaped": false
+    },
+    {
+      "auditor_level": 4,
+      "class": "role_relabel",
+      "defect": "role_relabel_sensitivity",
+      "escaped": true
+    }
+  ],
+  "schema": "claimgate_defect_grid_v1",
+  "wilson95": [
+    0.02567962434474355,
+    0.5131278292743189
+  ]
+}

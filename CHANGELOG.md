@@ -27,6 +27,11 @@
 - A phenomenon can name `max_interval_width`. The treatment contrast must
   be no wider, or the row stays `not_closed`. Two submodels with the same
   config digest are `not_independent` and do not form a measured ceiling.
+- `defect_grid.json` records the live auditor on seven planted defects:
+  six requirement knockouts drop below the reference level 4, and the
+  sensitivity arm that keeps the `negative_control` role stays at 4
+  (1/7 escaped; Wilson 95% about 0.03 to 0.51). Declared regulatory
+  labels do not raise the level. This is not a literature rate.
 
 ## [0.3.0b7] — 2026-09-22
 

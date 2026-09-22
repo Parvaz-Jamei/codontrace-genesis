@@ -244,26 +244,39 @@ letters.
 
 ## Architecture
 
+The engine runs a world. It does not know the domain.
+
 ```text
-GenesisExperimentSpec
-        │
-        ▼
-Engine / population / runtime modules
-        │
-        ▼
-GenesisRunResult
-        │
-        ├── runtime records
-        ├── artifact digests
-        ├── replay policies
-        ├── evidence manifests
-        ├── causal mechanism reports
-        └── claim-gated summaries
+adapter  →  claimgate_bundle_v1  →  audit_bundle()  →  public ladder 0–5
+                                         ↑
+              DomainProfile labels the bundle (alife | biomedical | hardware)
+              It does not tick the world, and it does not grant a certificate.
+
+GenesisEngine  →  ticks, digest, replay
+       └→ native adapter  →  the same bundle and the same auditor
 ```
 
-A feature is scientifically useful only when it is wired through configuration,
-runtime behavior, records, digests, manifests, examples, tests, and claim
-boundaries.
+A new domain is a `DomainProfile` or an ingest adapter. It is not a second copy of `engine.py`.
+
+| Port | Ingest | Engine |
+|---|---|---|
+| Native campaign | live spec, or HE01 / HE02 / HE03 JSON | ticks only when a spec is run; JSON adapters read the artifact |
+| Avida `.dat`, MABE2 CSV | foreign run tables | no |
+| Biomedical table | declared question of interest, context of use, and risk | no |
+| Hardware | ESP32 bridge | optional |
+
+`ALIFE`, `BIOMEDICAL`, and `HARDWARE` are the three profiles. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels on the bundle. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
+
+```python
+from codontrace.claimgate import audit_bundle
+from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
+
+report = audit_bundle(bundle_from_hard_experiment_01())
+print(report.achieved_level, report.public_name, report.missing_for_next)
+```
+
+Map and rules: [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md).
+Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md).
 
 ---
 

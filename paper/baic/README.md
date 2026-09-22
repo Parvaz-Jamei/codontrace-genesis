@@ -4,7 +4,8 @@ Persian conference paper for BAIC 2026 (Ferdowsi University of Mashhad, ۵–۷ 
 Author: **Parvaz Jamei / پرواز جمیعی**.
 
 - Source: [`paper.md`](paper.md)
-- Word (official قالب_مقاله, two-column RTL, B Nazanin): [`مقاله_BAIC_2026_نهایی.docx`](مقاله_BAIC_2026_نهایی.docx) and [`BAIC2026_Jamei_final.docx`](BAIC2026_Jamei_final.docx)
+- Word (official قالب_مقاله, two-column RTL, B Nazanin): [`BAIC2026_Jamei.docx`](BAIC2026_Jamei.docx)
+- PDF (same text, four A4 pages, B Nazanin embedded): [`BAIC2026_Jamei.pdf`](BAIC2026_Jamei.pdf)
 
 [`SECTIONS_5_8.md`](SECTIONS_5_8.md) is a stub pointing at `paper.md` (do not edit two copies).
 

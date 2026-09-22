@@ -1,0 +1,457 @@
+"""English BAIC manuscript in the congress Word template.
+
+The page, styles, and numbering come from the official congress file
+(paper/baic/baic_congress_template.docx), not from an IEEE template.
+English paragraphs are left-to-right. The saved package has one
+core-properties part, which is what Word requires.
+"""
+
+from __future__ import annotations
+
+import io
+import zipfile
+from copy import deepcopy
+from pathlib import Path
+
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from lxml import etree
+
+ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE = ROOT / "paper" / "baic" / "baic_congress_template.docx"
+OUT = ROOT / "paper" / "baic" / "BAIC2026_Jamei_en.docx"
+COL = 4600
+PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def _styles(doc: Document) -> dict:
+    return {style.style_id: style for style in doc.styles}
+
+
+def _ltr(paragraph, align: str = "both") -> None:
+    ppr = paragraph._p.get_or_add_pPr()
+    bidi = ppr.find(qn("w:bidi"))
+    if bidi is None:
+        bidi = OxmlElement("w:bidi")
+        ppr.append(bidi)
+    bidi.set(qn("w:val"), "0")
+    jc = ppr.find(qn("w:jc"))
+    if jc is None:
+        jc = OxmlElement("w:jc")
+        ppr.append(jc)
+    jc.set(qn("w:val"), align)
+
+
+def _times(run, size_pt: float, bold: bool = False, italic: bool = False) -> None:
+    run.bold = bold
+    run.italic = italic
+    run.font.name = "Times New Roman"
+    rpr = run._r.get_or_add_rPr()
+    fonts = rpr.find(qn("w:rFonts"))
+    if fonts is None:
+        fonts = OxmlElement("w:rFonts")
+        rpr.append(fonts)
+    for attr in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
+        fonts.set(qn(attr), "Times New Roman")
+    half = str(int(size_pt * 2))
+    for tag in ("w:sz", "w:szCs"):
+        node = rpr.find(qn(tag))
+        if node is None:
+            node = OxmlElement(tag)
+            rpr.append(node)
+        node.set(qn("w:val"), half)
+    lang = rpr.find(qn("w:lang"))
+    if lang is None:
+        lang = OxmlElement("w:lang")
+        rpr.append(lang)
+    lang.set(qn("w:val"), "en-US")
+    lang.set(qn("w:bidi"), "en-US")
+
+
+def _p(doc: Document, styles: dict, style_id: str, text: str = "", size: float = 10, align: str = "both", bold: bool = False):
+    paragraph = doc.add_paragraph()
+    paragraph.style = styles[style_id]
+    _ltr(paragraph, align)
+    if text:
+        run = paragraph.add_run(text)
+        _times(run, size, bold=bold)
+    if style_id == "Caption":
+        paragraph.paragraph_format.keep_with_next = True
+    return paragraph
+
+
+def _drop_section_rtl(sect) -> None:
+    for child in list(sect):
+        if child.tag in {qn("w:bidi"), qn("w:rtlGutter")}:
+            sect.remove(child)
+
+
+def _clear(doc: Document):
+    body = doc.element.body
+    title_sect = None
+    for child in list(body):
+        ppr = child.find(qn("w:pPr")) if child.tag == qn("w:p") else None
+        if ppr is not None:
+            sect = ppr.find(qn("w:sectPr"))
+            if sect is not None and title_sect is None:
+                title_sect = deepcopy(sect)
+    final = body.find(qn("w:sectPr"))
+    if title_sect is None or final is None:
+        raise SystemExit("congress template is missing its section break")
+    _drop_section_rtl(title_sect)
+    _drop_section_rtl(final)
+    for child in list(body):
+        if child is not final:
+            body.remove(child)
+    return title_sect
+
+
+def _borders(table) -> None:
+    tbl_pr = table._tbl.tblPr
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        element = OxmlElement(f"w:{edge}")
+        element.set(qn("w:val"), "single")
+        element.set(qn("w:sz"), "4")
+        element.set(qn("w:space"), "0")
+        element.set(qn("w:color"), "000000")
+        borders.append(element)
+    tbl_pr.append(borders)
+    width = OxmlElement("w:tblW")
+    width.set(qn("w:w"), str(COL))
+    width.set(qn("w:type"), "dxa")
+    tbl_pr.append(width)
+    layout = OxmlElement("w:tblLayout")
+    layout.set(qn("w:type"), "fixed")
+    tbl_pr.append(layout)
+
+
+def _cell(cell, text: str, header: bool) -> None:
+    cell.text = ""
+    paragraph = cell.paragraphs[0]
+    _ltr(paragraph, "center" if header else "both")
+    ppr = paragraph._p.get_or_add_pPr()
+    ind = ppr.find(qn("w:ind"))
+    if ind is None:
+        ind = OxmlElement("w:ind")
+        ppr.append(ind)
+    ind.set(qn("w:left"), "0")
+    ind.set(qn("w:right"), "0")
+    ind.set(qn("w:firstLine"), "0")
+    ind.set(qn("w:hanging"), "0")
+    run = paragraph.add_run(text)
+    _times(run, 8, bold=header)
+
+
+def _table(doc: Document, rows: list[list[str]], widths: list[int]) -> None:
+    table = doc.add_table(rows=len(rows), cols=len(widths))
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
+    _borders(table)
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is not None:
+        for col, width in zip(grid.findall(qn("w:gridCol")), widths):
+            col.set(qn("w:w"), str(width))
+    for r_index, row in enumerate(rows):
+        for c_index, text in enumerate(row):
+            _cell(table.rows[r_index].cells[c_index], text, r_index == 0)
+            tc_pr = table.rows[r_index].cells[c_index]._tc.get_or_add_tcPr()
+            tc_w = tc_pr.find(qn("w:tcW"))
+            if tc_w is None:
+                tc_w = OxmlElement("w:tcW")
+                tc_pr.append(tc_w)
+            tc_w.set(qn("w:w"), str(widths[c_index]))
+            tc_w.set(qn("w:type"), "dxa")
+
+
+def _header(doc: Document) -> None:
+    line = (
+        "1st National Congress on Biomedical Engineering, "
+        "Artificial Intelligence and Cognitive Science, "
+        "Ferdowsi University of Mashhad, 2026"
+    )
+    for section in doc.sections:
+        header = section.header
+        header.is_linked_to_previous = False
+        if not header.paragraphs:
+            continue
+        first = header.paragraphs[0]
+        for paragraph in header.paragraphs:
+            for run in paragraph.runs:
+                run.text = ""
+        run = first.add_run(line) if not first.runs else first.runs[0]
+        run.text = line
+        _times(run, 8)
+        _ltr(first, "center")
+
+
+def _sanitize(path: Path) -> None:
+    """Drop the duplicate core.xml that makes Word call the file corrupt."""
+
+    source = zipfile.ZipFile(path)
+    buffer = io.BytesIO()
+    seen: set[str] = set()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as out:
+        for info in source.infolist():
+            if info.filename in seen:
+                continue
+            data = source.read(info.filename)
+            if info.filename == "_rels/.rels":
+                root = etree.fromstring(data)
+                kept = False
+                for rel in list(root):
+                    if not rel.tag.endswith("Relationship"):
+                        continue
+                    if (rel.get("Type") or "").endswith("/core-properties"):
+                        if kept:
+                            root.remove(rel)
+                        kept = True
+                data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+            seen.add(info.filename)
+            out.writestr(info, data)
+    path.write_bytes(buffer.getvalue())
+    check = zipfile.ZipFile(path)
+    names = check.namelist()
+    if len(names) != len(set(names)):
+        raise SystemExit("duplicate zip parts remain")
+    rels = etree.fromstring(check.read("_rels/.rels"))
+    cores = [
+        rel for rel in rels
+        if rel.tag.endswith("Relationship") and (rel.get("Type") or "").endswith("/core-properties")
+    ]
+    if len(cores) != 1:
+        raise SystemExit(f"expected one core-properties link, found {len(cores)}")
+
+
+def build() -> None:
+    if not TEMPLATE.is_file():
+        raise SystemExit(f"missing congress template: {TEMPLATE}")
+    doc = Document(str(TEMPLATE))
+    styles = _styles(doc)
+    title_sect = _clear(doc)
+    _header(doc)
+
+    _p(doc, styles, "Title", "A File Label Is Not an Audit Level", 14, "center", True)
+    author = _p(doc, styles, "Author", "", 11, "center")
+    name = author.add_run("Parvaz Jamei")
+    _times(name, 11, bold=True)
+    mark = author.add_run("1")
+    _times(mark, 11)
+    mark.font.superscript = True
+    aff = _p(doc, styles, "Author", "", 9, "center")
+    one = aff.add_run("1")
+    _times(one, 9)
+    one.font.superscript = True
+    rest = aff.add_run(
+        "Independent researcher, Mashhad, Iran, parvaz.jamie@gmail.com, "
+        "ORCID 0009-0002-9980-270X"
+    )
+    _times(rest, 9)
+
+    abstract = (
+        "Abstract- Credibility guides say what evidence a computational model "
+        "should carry. They do not grade one file from its declared label. "
+        "This paper grades the bundle. The label stored in the campaign file "
+        "maps only to an internal grade of 3. Public grade 4 is recorded only "
+        "when replay is verified and an interval is present on at least 16 "
+        "seeds. Thirty paired seeds reach grade 4. The contrast of 16.49 comes "
+        "from two settings changed together. A device score table that carries "
+        "regulatory labels and no recorded run stays at grade 0. A declared "
+        "model risk has a separate bar and does not move the grade. Six "
+        "deletions of a ladder condition fall below grade 4. That count is not "
+        "a rate over the published literature."
+    )
+    _p(doc, styles, "abstract0", abstract, 9, "both")
+    keywords = _p(
+        doc,
+        styles,
+        "Index",
+        "Keywords- evidence audit, computational model credibility, unit of analysis, credibility ladder",
+        9,
+        "both",
+    )
+    keywords._p.get_or_add_pPr().append(title_sect)
+
+    _p(doc, styles, "Heading1", "Introduction", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The November 2023 guidance of the U.S. Food and Drug Administration ties the credibility of a physics-based simulation to the decision it informs, and it places a standalone machine-learning model outside that scope [1]. The American Society of Mechanical Engineers (ASME) V&V 40 asks for the question of interest, the context of use, and the consequence of the decision [2]. NASA-STD-7009B separates the capability of a model from permission to transfer a result [3]. None of these documents returns a grade for one research file. Pathmanathan and colleagues carry the credibility chain down to the submodels of an in silico clinical trial [4]. This paper asks the same question of one auditor: with only the evidence inside the bundle, where does the claim stop.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "Three measurements are reported. A file label is not the audit grade, and a declared model risk does not move that grade. A phenomenon closes only from an executed treatment arm. Six requirement deletions fall below grade 4. No dual extraction of published papers was performed, and no literature rate is stated. The auditor is not an external rater.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "The engine does not know a domain, and it was not rewritten for medicine. A domain profile names the port: artificial life, biomedical, or hardware. Records from Avida, a table from MABE2, and an Overview, Design concepts, and Details description are read through that port and are not the product of this paper. An ESP32 port is implemented and is not one of the measurements below. A configuration string that would claim an ASME V&V 40 pass is rejected. This tool does not issue an ASME, FDA, or IEC certificate. Viceconti and colleagues set an in silico trial on context, risk, and a verification chain [5]. Here that chain becomes a grade on one file, not a certificate for a product.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "MIRROR assembles a local evidence bundle for inspection before release and does not offer a regulatory guarantee [6]. NovaFabric records an agent run in a signed capsule and does not set a claim ceiling [7]. The difference here is a grade computed from the conditions present in the bundle.",
+        10,
+    )
+
+    _p(doc, styles, "Heading1", "Audit ladder", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The auditor reads the bundle. It does not call the engine. Each grade requires every condition of the grades below it. Grade 0 means that software identity, source digest, artifact, seed list, configuration fingerprint, artifact manifest, and run record are not all present. Grade 1 still lacks a paired treatment and control, a paired comparison, and a consistent measured difference. Grade 2 still lacks an intervention or a deletion, a negative control, verified replay, a direction of effect, and a written limitation with the artifact. Grade 3 still lacks a numeric interval or at least 16 seeds. Grade 4 has both. Grade 5 also requires an archive identifier separate from the software bundle. In this implementation the public name of grade 4 is replicated effect. Table 1 names only the new condition at each step.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 1. Condition that holds the grade in place", 8, "center", True)
+    _table(doc, [
+        ["Held", "If this is missing"],
+        ["0", "Version, seeds, fingerprint, manifest, run record"],
+        ["1", "Paired arms, paired comparison, consistent difference"],
+        ["2", "Intervention, negative control, replay, written limit"],
+        ["3", "Numeric interval, or at least 16 seeds"],
+        ["4", "Archive identifier separate from the software bundle"],
+    ], [1000, 3600])
+    _p(
+        doc, styles, "Normal",
+        "On a compared arm, more outcome rows than seeds void both the interval and the condition of 16 seeds. A subsample is not a new seed. The hash is taken from the file bytes and does not rewrite them. The default test is a sign-flip permutation with a Holm correction and a bias-corrected and accelerated interval, written BCa below. A studentized bootstrap is optional when there are at most 40 pairs.",
+        10,
+    )
+
+    _p(doc, styles, "Heading1", "Two controls", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The string intervention supported inside the file is internal grade 3. That name alone does not confer public grade 4. These thresholds belong to this implementation. They are not approval of a device.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "The positive control is the source-bias campaign HE01, replayable, with 30 paired seeds. The results file, fingerprint prefix 28f812c5, contains three comparisons. Against the open channel with no source bias, the difference is 16.49, the raw Monte Carlo p value is 4.99975e-5, the Holm p value is 1.50e-4, and the BCa interval is 14.25 to 19.14. The p value is a floor from 20,000 draws, not zero. The primary comparison changes two settings together: the source-fitness threshold moves from 1.5 to 0, and the acceptance policy moves from fitness-weighted to threshold. The difference 16.49 belongs to that pair of settings, not to either setting alone. Against the closed channel and against empty content the difference is 30.67 and the interval is 26.03 to 35.32. In those two contrasts, both content and bias change. The auditor returns grade 4 because replay, the interval, and the seed count hold.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "The negative control is a declared score table for a device model. The question was whether a size choice would be licensed. There is no ISO 14879-1 test and no implant. Model influence is 2 and decision consequence is 3. Treatment scores are 0.12, 0.11, and 0.13. Control scores are 0.20, 0.19, and 0.21. The declared labels are software in a medical device, class B of IEC 62304 [8], category II of the International Medical Device Regulators Forum (IMDRF) [9], and evidence categories 1, 3, and 8 of the 2023 guidance, with the model declared as physics-based. Replay is not verified, and the artifact manifest is among the conditions for leaving grade 0, so the grade is 0. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit, and that example is not run here [10]. Table 2 records the distance between the two controls.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 2. Positive and negative controls", 8, "center", True)
+    _table(doc, [
+        ["Bundle", "Declared", "Executed", "Grade"],
+        ["HE01", "File label", "Replay, 30 seeds, interval", "4"],
+        ["Device table", "Regulatory labels", "No recorded run", "0"],
+    ], [1000, 1200, 1600, 800])
+    _p(
+        doc, styles, "Normal",
+        "Grade 5 on HE01 lacks only an archived artifact or a DOI for the campaign itself. The software identifier 10.5281/zenodo.20337435 is not counted as that archive, so the positive control stays at grade 4. On these two bundles, changing only declared metadata did not raise the grade. The fields tried were model influence, decision consequence, the software-in-a-device flag, the IEC and IMDRF labels, the FDA evidence categories, and the typed word adequate. Declaring that a model is not physics-based records the scope note in the 2023 guidance and still does not move the ladder.",
+        10,
+    )
+
+    _p(doc, styles, "Heading1", "Closure and the risk bar", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The credibility worksheet ranks a phenomenon. The rank alone does not close it. Closure requires the arm to be in the bundle, the role to be treatment, and the arm to be side A of a comparison whose interval bounds are both finite. The auditor must be at grade 4 or higher, and replay must be verified. If the phenomenon names a maximum interval width, the interval must be no wider. One arm closes one phenomenon. A second phenomenon on the same arm is marked shared and stays open. A rank with no arm stays declared.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "On the study bound to HE01, source-fitness bias and the life-loop campaign both close. The life loop is a campaign, not a device, and it carries no FDA evidence category. Contact stress and patient geometry stay declared. Patient geometry remains at a usable level of 2. Because not every submodel was executed, the coupled ceiling is empty. The claim grade of the campaign is still 4. The primary interval is about 4.89 wide. A tolerance of 1.0 does not close source bias. A tolerance of 6.0 does. A closed channel is not a treatment arm. Two submodels that share a configuration fingerprint are not independent and do not form a ceiling. Two replayed bundles at grade 4 with different fingerprints can set a ceiling of 4, and that ceiling does not change the public grade. The ranking is the phenomena identification and ranking table used in nuclear safety [11]. A high-importance row stays open unless knowledge is adequate and the row was measured. A submodel that is not identifiable cannot contribute above 1. Evidence limited to calibration, plausibility, or emergent behavior, categories 2, 6, and 7 of the 2023 guidance, cannot contribute above 2 [1], [3].",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 3. Phenomenon closure on the HE01 study", 8, "center", True)
+    _table(doc, [
+        ["Row", "Evidence", "Result"],
+        ["Source bias", "Treatment, grade 4, replay", "Closed"],
+        ["Life loop", "Executed campaign", "Closed"],
+        ["Contact stress", "Rank, no arm", "Declared only"],
+        ["Patient geometry", "Declared submodel, level 2", "Declared only"],
+    ], [1300, 2100, 1200])
+    _p(
+        doc, styles, "Normal",
+        "The unit of analysis is the seed, not a row of subsamples. If a compared arm has more values than seeds, the interval and the 16-seed condition both fail, and a pseudoreplication warning is stored [12]. HE01 has one value per seed and remains at grade 4.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "Risk on this port is the maximum of declared influence and declared consequence. The question is the one ASME V&V 40 asks, whether the evidence is commensurate with model risk [2]. The numbers are this implementation, not an FDA table. Risk 1 asks for grade 2, risk 2 for grade 3, and risk 3 for grade 4. From risk 2 upward, an open high-importance phenomenon also blocks the bar. The bar does not call the auditor and does not change the grade. The device table is risk 3 at grade 0, so the bar is not met. HE01 with only the executed source-bias phenomenon meets risk 3 and stays at grade 4. The same campaign, with contact stress added and no arm for it, is still grade 4, and the bar is not met. Declaring the risk neither closes the open phenomenon nor lowers the grade. The committed result has fingerprint prefix b053e7f1. Table 4 is that comparison.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 4. Declared risk against the audit grade", 8, "center", True)
+    _table(doc, [
+        ["Bundle", "Risk", "Grade", "Bar"],
+        ["Device table", "3", "0", "Not met"],
+        ["HE01, source bias only", "3", "4", "Met"],
+        ["HE01 plus contact stress", "3", "4", "Not met"],
+    ], [1900, 700, 800, 1200])
+
+    _p(doc, styles, "Heading1", "Requirement deletions", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The intact reference is grade 4. Six bundles were built by removing one condition, and all six stayed below 4. Identical arms, a zero-width interval, and an unpaired comparison stay at grade 1. Missing replay, and an empty limitation, stay at grade 2. Three seeds stay at grade 3. The six bundles are not an independent random sample, so no binomial interval and no false-accept rate are reported. The count is not a percentage of papers. Table 5 lists the grades. A separate row changes the label of a sensitivity arm and still receives grade 4, because a confirmatory negative-control arm is still in the bundle. The row is a probe, not an escape trial. The deletion file prefix is 3c8a8a1f.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 5. One condition removed from a grade-4 reference", 8, "center", True)
+    _table(doc, [
+        ["Deletion", "Grade"],
+        ["Identical arms", "1"],
+        ["Zero-width interval", "1"],
+        ["No paired comparison", "1"],
+        ["No replay", "2"],
+        ["Empty limitation", "2"],
+        ["Three seeds instead of 16", "3"],
+    ], [3200, 1400])
+
+    _p(doc, styles, "Heading1", "Discussion", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The measurements are grades of the evidence inside a bundle. The file label does not confer grade 4. A phenomenon without an executed arm does not close. Deletions of ladder conditions stay below grade 4. The risk bar does not move the grade. A percentage of orthopedic or cardiac claims was not measured. That percentage would need an entry protocol, two extractors, and agreement between raters.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "HE01 is the reference campaign of the auditor. It is not a clinical result and not a device test. The intervention changes two settings together and reports the final energy of a receiver in the simulation. The device table is not a bench test. The deletions follow the auditor's own conditions, so a grade below 4 is the ladder's stated expectation and not an error rate for an outside population. The hardware port is outside these measurements. The software version is read from the project configuration and is not written as a constant inside the bundle.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "Configuration rejects strings that would claim FDA clearance, clinical validation, IEC 62304 certification, or an ASME V&V 40 pass. Rejection is not an audit grade. Four observations can be repeated from the committed files. The campaign audit returns grade 4, and grade 5 lacks only a separate archive identifier. The device table returns grade 0. The committed study and the deletion file match the live auditor. On HE01 the risk bar leaves grade 4 unchanged. The study fingerprint prefix is d176f0ab. The graded files were read at repository commit c8db778. The package identity in the project configuration is 0.3.0b7, which is not a PyPI release. The published tip is 0.3.0b6. The DOI named above is the software archive, not the campaign archive.",
+        10,
+    )
+
+    _p(doc, styles, "Heading1", "Conclusion", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "A file label, an IEC 62304 class, an IMDRF phrase, a typed knowledge word, and a declared risk do not raise the audit grade. The campaign file reaches grade 4 because replay and an interval on 30 seeds hold. The table with no recorded run stays at grade 0. The same grade 4 meets the risk-3 bar when the listed phenomenon was executed, and it does not meet that bar when a high-importance phenomenon is only declared. Six requirement deletions stay below grade 4, and the count is not a literature rate.",
+        10,
+    )
+
+    _p(doc, styles, "Heading", "Acknowledgment", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The biomedical labels follow the FDA, ASME, IEC, and IMDRF documents cited above. The author is solely responsible for the software and for the measurements in this paper. The study grades evidence bundles and does not report a clinical study or a regulatory submission.",
+        10,
+    )
+    _p(doc, styles, "Heading", "References", 12, "left", True)
+    refs = [
+        "U.S. Food and Drug Administration, “Assessing the credibility of computational modeling and simulation in medical device submissions,” Nov. 2023.",
+        "Assessing Credibility of Computational Modeling through Verification and Validation: Application to Medical Devices, ASME V&V 40-2018. New York: ASME, 2018.",
+        "NASA-STD-7009B, Standard for Models and Simulations. Washington, DC: NASA, Mar. 5, 2024.",
+        "P. Pathmanathan, K. Aycock, A. Badal, R. Bighamian, J. Bodner, B. A. Craven, and S. Niederer, “Credibility assessment of in silico clinical trials for medical devices,” PLoS Comput. Biol., vol. 20, no. 8, Art. no. e1012289, Aug. 2024.",
+        "M. Viceconti, F. Pappalardo, B. Rodriguez, M. Horner, J. Bischoff, and F. Musuamba Tshinanu, “In silico trials: verification, validation and uncertainty quantification of predictive models used in the regulatory evaluation of biomedical products,” Methods, vol. 185, pp. 120-127, 2021.",
+        "A. Sokolov, “MIRROR: local evidence bundles for reproducible research software review,” Zenodo, May 2026, doi: 10.5281/zenodo.20463358.",
+        "M. Seyedkazemi Ardebili, “NovaFabric: tamper-evident, replayable evidence for autonomous AI agent runs,” arXiv:2609.12582, 2026.",
+        "IEC 62304:2006+AMD1:2015, Medical device software, Software life cycle processes. Geneva: IEC.",
+        "Software as a Medical Device: Possible Framework for Risk Categorization and Characterization Considerations, IMDRF/SaMD WG/N12 and N81.",
+        "Tibial Tray Worst-Case Size Identification for Fatigue Testing, ASME VVUQ 40.1-2026. New York: ASME, 2026.",
+        "Phenomena Identification and Ranking Table, NEA/CSNI/R(2017)18. Paris: OECD Nuclear Energy Agency, 2018.",
+        "S. H. Hurlbert, “Pseudoreplication and the design of ecological field experiments,” Ecological Monographs, vol. 54, no. 2, pp. 187-211, 1984.",
+    ]
+    for ref in refs:
+        _p(doc, styles, "References", ref, 8, "both")
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(OUT)
+    _sanitize(OUT)
+    print(OUT)
+
+
+if __name__ == "__main__":
+    build()

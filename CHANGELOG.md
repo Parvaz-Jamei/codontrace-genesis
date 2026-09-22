@@ -14,10 +14,9 @@
   rendering of the same file does not 404 them.
 - `0.3.0b7` is the pyproject identity only. It is not tagged and not on PyPI.
   The published tip remains `0.3.0b6`.
-- English BAIC manuscript, IEEE conference styles, same measurements:
-  `paper/baic/BAIC2026_Jamei_en.docx`. Sole authorship is stated. Domain
-  labels follow the cited FDA, ASME, IEC, and IMDRF texts. No clinical
-  coauthor is invented. The graded files were read at commit `c8db778`.
+- The English BAIC file is rebuilt in the congress template, not an IEEE
+  template, and the package no longer contains a duplicate core-properties
+  part. Word can open `paper/baic/BAIC2026_Jamei_en.docx`.
 - BAIC manuscript is a measurement of the bundle, not a tool tour and not a
   literature percentage. `paper/baic/paper.md` states that the file label
   `intervention_supported` stays and does not grant public level 4, that

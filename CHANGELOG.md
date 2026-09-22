@@ -24,6 +24,9 @@
   `not_closed`. `coupled_ceiling` is set only when every submodel cleared
   that bar. See `examples/studies/he01_phenomena.json` and
   `docs/claimgate/biomedical_study.json`.
+- A phenomenon can name `max_interval_width`. The treatment contrast must
+  be no wider, or the row stays `not_closed`. Two submodels with the same
+  config digest are `not_independent` and do not form a measured ceiling.
 
 ## [0.3.0b7] — 2026-09-22
 

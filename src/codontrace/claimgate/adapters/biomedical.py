@@ -299,11 +299,25 @@ def _text(raw: object) -> str:
     return raw.strip() if isinstance(raw, str) else ""
 
 
-def _arm_has_interval(bundle: ClaimgateBundle, arm_name: str) -> bool:
-    return any(
-        arm_name in (item.a, item.b) and item.ci_low is not None and item.ci_high is not None
-        for item in bundle.comparisons
-    )
+def _treatment_width(bundle: ClaimgateBundle, arm_name: str) -> float | None:
+    """Width of the first contrast that names this arm as treatment."""
+
+    for item in bundle.comparisons:
+        if item.a == arm_name and item.ci_low is not None and item.ci_high is not None:
+            return item.ci_high - item.ci_low
+    return None
+
+
+def _max_width(raw: Mapping[str, object], label: str) -> float | None:
+    if "max_interval_width" not in raw:
+        return None
+    value = raw.get("max_interval_width")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigurationError(f"{label} max_interval_width must be a positive finite number.")
+    number = float(value)
+    if number <= 0 or number != number or number in (float("inf"), float("-inf")):
+        raise ConfigurationError(f"{label} max_interval_width must be a positive finite number.")
+    return number
 
 
 def _as_rows(raw: object, field: str) -> tuple[Mapping[str, object], ...]:
@@ -329,9 +343,11 @@ def audit_biomedical_study(
 
     A phenomenon closes only when its arm is the treatment side of a
     comparison that has an interval, the audit is at least 4, and replay
-    is verified. One arm can close only one phenomenon. A present arm
-    that fails those checks is ``not_closed``, not declared. A typed
-    ``adequate`` with no such arm stays open.
+    is verified. If ``max_interval_width`` is set, that interval must be
+    no wider. One arm can close only one phenomenon. A present arm that
+    fails those checks is ``not_closed``. Two submodels that share a
+    config digest are not independent, so they do not make a measured
+    coupled ceiling.
 
     A submodel is ``executed`` only at level >= 4 with replay. Otherwise
     a bound bundle is ``recorded`` and an unbound level is capped at 2.
@@ -360,6 +376,7 @@ def audit_biomedical_study(
     not_closed: list[str] = []
     used_arms: set[str] = set()
     shared: list[str] = []
+    too_wide: list[str] = []
     for raw in _as_rows(study.get("phenomena"), "phenomena"):
         name = raw.get("name")
         if not isinstance(name, str) or not name.strip():
@@ -372,12 +389,18 @@ def audit_biomedical_study(
                 raise ConfigurationError(f"phenomenon {label!r} names an arm but no experiment was given.")
             if arm not in arms:
                 raise ConfigurationError(f"arm {arm!r} is not in the experiment.")
+            width = _treatment_width(experiment, arm)
+            limit = _max_width(raw, label)
+            wide = limit is not None and (width is None or width > limit)
+            if wide:
+                too_wide.append(label)
             closes = (
                 run_level >= 4
                 and replay
                 and arms[arm] == "treatment"
                 and arm not in used_arms
-                and _arm_has_interval(experiment, arm)
+                and width is not None
+                and not wide
             )
             if arm in used_arms:
                 shared.append(label)
@@ -401,6 +424,8 @@ def audit_biomedical_study(
 
     submodels_out: list[dict[str, object]] = []
     sources: list[tuple[str, int, str]] = []
+    seen_digests: set[str] = set()
+    repeated: list[str] = []
     for raw in _as_rows(study.get("submodels"), "submodels"):
         name = raw.get("name")
         if not isinstance(name, str) or not name.strip():
@@ -426,7 +451,13 @@ def audit_biomedical_study(
                 typed = measured
             used = min(typed, measured)
             row["level"] = used
-            if measured >= 4 and bound.replay.verified:
+            duplicate = bound.config_digest in seen_digests
+            seen_digests.add(bound.config_digest)
+            if duplicate:
+                sources.append((label, used, "repeated"))
+                not_closed.append(label)
+                repeated.append(label)
+            elif measured >= 4 and bound.replay.verified:
                 sources.append((label, used, "executed"))
                 executed.append(label)
             else:
@@ -448,6 +479,10 @@ def audit_biomedical_study(
         extra_gaps.append(f"declared_only:{name}")
     for name in shared:
         extra_gaps.append(f"shared_arm:{name}")
+    for name in too_wide:
+        extra_gaps.append(f"interval_too_wide:{name}")
+    for name in repeated:
+        extra_gaps.append(f"not_independent:{name}")
     every_executed = bool(sources) and all(source == "executed" for _, _, source in sources)
     ceiling_measured = every_executed and len(sources) >= 2
     ceiling = sheet.coupled_ceiling if ceiling_measured else None

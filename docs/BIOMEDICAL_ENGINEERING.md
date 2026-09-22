@@ -145,11 +145,14 @@ See `examples/claimgate_biomedical_worksheet.py`.
 `audit_biomedical_study_file` reads a JSON study. A phenomenon closes only
 when its arm is the treatment side of a comparison that has an interval,
 `audit_bundle` is at least 4, and replay is verified. One arm closes one
-phenomenon. Typing `knowledge: adequate` does not close the row. An arm
-that is present but fails those checks is `not_closed`, not a declaration.
-A submodel is `executed` only on that same bar. A typed level with no
-bundle is capped at 2. `coupled_ceiling` is filled only when every
-submodel cleared that bar.
+phenomenon. If `max_interval_width` is set, that treatment contrast must
+be no wider: a significant interval can still be too wide for the question.
+Typing `knowledge: adequate` does not close the row. An arm that is present
+but fails those checks is `not_closed`, not a declaration. A submodel is
+`executed` only on that same bar. Two submodels that share a config digest
+are one run, not two. A typed level with no bundle is capped at 2.
+`coupled_ceiling` is filled only when every submodel cleared that bar on
+its own run.
 
 `examples/studies/he01_phenomena.json` points at
 `docs/hard_experiment_01/results_v7.json`, a life-loop campaign, not a

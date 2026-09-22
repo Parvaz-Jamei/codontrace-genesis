@@ -9,7 +9,7 @@
     "tests/test_claimgate_he03_adapter.py",
     "tests/test_text_digest.py"
   ],
-  "pytest_passed": 43,
+  "pytest_passed": 44,
   "pytest_failed": 0,
   "ladder_validation_digest": "ea0366d0295445190485b4e5634b4a09ea7001fd520150e9450c9d1a6feeb814",
   "biomedical_study_digest": "d176f0abcea245791704f4b807f16d82eff94c7231b7fb39e28d244c8aee4780",

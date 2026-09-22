@@ -372,3 +372,68 @@ def test_committed_biomedical_study_matches_the_live_audit() -> None:
     assert live["raises_claim_ladder"] is False
     assert live["not_a_device_certificate"] is True
     assert committed == live
+
+
+def test_a_wide_interval_does_not_close_and_one_run_is_not_two() -> None:
+    import hashlib
+    from dataclasses import replace
+
+    he01 = bundle_from_hard_experiment_01(Path("docs/hard_experiment_01/results_v7.json"))
+    wide = audit_biomedical_study(
+        {
+            "phenomena": (
+                {
+                    "name": "source_fitness_bias",
+                    "importance": "high",
+                    "arm": "source_bias_on",
+                    "max_interval_width": 1.0,
+                },
+            )
+        },
+        experiment=he01,
+    )
+    assert "source_fitness_bias" in wide.not_closed
+    assert "interval_too_wide:source_fitness_bias" in wide.worksheet.open_gaps
+
+    tight = audit_biomedical_study(
+        {
+            "phenomena": (
+                {
+                    "name": "source_fitness_bias",
+                    "importance": "high",
+                    "arm": "source_bias_on",
+                    "max_interval_width": 6.0,
+                },
+            )
+        },
+        experiment=he01,
+    )
+    assert tight.executed == ("source_fitness_bias",)
+
+    other = replace(he01, config_digest=hashlib.sha256(b"second-protocol").hexdigest())
+    measured = audit_biomedical_study(
+        {
+            "submodels": (
+                {"name": "loop_a", "role": "campaign", "use_experiment": True},
+                {"name": "loop_b", "role": "campaign", "bundle": "other"},
+            )
+        },
+        experiment=he01,
+        bundles={"other": other},
+    )
+    assert measured.ceiling_measured is True
+    assert measured.worksheet.coupled_ceiling == 4
+
+    repeated = audit_biomedical_study(
+        {
+            "submodels": (
+                {"name": "loop_a", "role": "campaign", "use_experiment": True},
+                {"name": "loop_b", "role": "campaign", "bundle": "same"},
+            )
+        },
+        experiment=he01,
+        bundles={"same": he01},
+    )
+    assert repeated.ceiling_measured is False
+    assert repeated.worksheet.coupled_ceiling is None
+    assert "not_independent:loop_b" in repeated.worksheet.open_gaps

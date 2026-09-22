@@ -1,6 +1,10 @@
 """External evidence adapters. Skeletons do not claim full simulator support."""
 
 from codontrace.claimgate.adapters.avida import bundle_from_avida_runs, parse_avida_dat
+from codontrace.claimgate.adapters.biomedical import (
+    BLOCKED_BIOMEDICAL_CLAIMS,
+    bundle_from_biomedical_cou,
+)
 from codontrace.claimgate.adapters.codontrace_he02 import (
     bundle_from_hard_experiment_02,
     committed_pilot_v1_path as committed_he02_pilot_v1_path,
@@ -30,6 +34,7 @@ from codontrace.claimgate.adapters.esp32_bridge import (
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 
 __all__ = [
+    "BLOCKED_BIOMEDICAL_CLAIMS",
     "MqttEsp32Transport",
     "SensorReading",
     "SerialEsp32Transport",
@@ -37,6 +42,7 @@ __all__ = [
     "STRDisparityResult",
     "TransportEsp32Bridge",
     "bundle_from_avida_runs",
+    "bundle_from_biomedical_cou",
     "bundle_from_hard_experiment_01",
     "bundle_from_hard_experiment_02",
     "bundle_from_hard_experiment_03",

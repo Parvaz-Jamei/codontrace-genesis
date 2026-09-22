@@ -21,22 +21,17 @@ The Genesis engine does not know medicine. Biomedical labels are a
 
 ## Status versus this git tree
 
-Checked against `main` at the commit that added this directory:
-
 - `docs/hard_experiment_01/results_v7.json` **is** present.
-- `09_results/ladder_validation.json` is **not** in the tree. The nine-pack
-  auditor numbers in the manuscript are a reported internal sanity check,
-  not a committed artifact.
+- Nine-pack auditor table is now generated from the live auditor:
+  [`docs/claimgate/ladder_validation.json`](../../docs/claimgate/ladder_validation.json).
+  Rebuild: `PYTHONPATH=src python tools/export_ladder_validation.py`.
+  The old path `09_results/ladder_validation.json` was never in the tree.
+  This is still **not** an external rater study and **not** a population
+  false-accept rate.
 - Branch `fix/small-sample-ci-coverage` **does not exist**.
 - Default `exact_sign_flip_permutation_p` is still exhaustive for n≤20 and
   Monte Carlo for n>20, so published HE01 p-values are not silently recut.
-- `sign_flip_permutation_detail` reports the method and a censored floor.
-  `meet_in_the_middle_sign_flip_p` is exact for n≤40 and is **opt-in**.
-- Studentized bootstrap CI is **opt-in** (`method="studentized"`). Default
-  `bootstrap_ci_paired` stays BCa so published campaign pins stay.
-- Meet-in-the-middle uses a relative float match so all-positive paired
-  deltas still count as 2/2^n. It remains opt-in; HE01 `results_v7.json`
-  is not recut.
-- JOSS Flageat DOI is `10.1109/TEVC.2025.3548438` (IEEE TEVC 30(1):286–295).
+- Studentized bootstrap CI is **opt-in**. Default `bootstrap_ci_paired` stays BCa.
+- Meet-in-the-middle sign-flip is **opt-in**.
 
 Do not strengthen this manuscript with fabricated clinical data.

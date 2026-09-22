@@ -1,49 +1,11 @@
-## ۵. بازتحلیل آزمایش انتقال اطلاعات
+# Stub — do not maintain a second manuscript
 
-سی بذر جفتی ۱۱ تا ۴۰، جمعیت ۱۶، چهل گام. پاسخ انرژی شبیه‌سازی‌شدهٔ گیرنده است نه ATP زیستی. منبع `docs/hard_experiment_01/results_v7.json`، پیشوند `28f812c5`. سقف همان فایل `intervention_supported` است.
+The full BAIC 2026 source is [`paper.md`](paper.md) (title through
+references). This file exists only so older links do not 404.
 
-**جدول ۴.** کنتراست‌های تأییدی ذخیره‌شده در v7.
+Concatenate is no longer required:
 
-| کنترل | تفاضل | d_z | بازهٔ ۹۵٪ | p خام | p هولم |
-|---|---|---|---|---|---|
-| بی‌دروازه | 16.49 | 2.37 | 14.25–19.14 | 4.99975×10⁻⁵ | 1.50×10⁻⁴ |
-| کپسول خاموش | 30.67 | 2.31 | 26.03–35.32 | 4.99975×10⁻⁵ | 1.50×10⁻⁴ |
-| محتوای خنثی | 30.67 | 2.31 | 26.03–35.32 | 4.99975×10⁻⁵ | 1.50×10⁻⁴ |
-
-مداخله مرکب است (`min_source_fitness` و سیاست پذیرش با هم عوض می‌شوند). سه بازو روی انرژی ۲۸٫۰ اشباع‌اند. `births_mean=0`. بازپخش فقط بذرهای ۱۱ و ۴۰.
-
-## ۶. شواهد مهندسی مکمل
-
-بازپخش بذر با دیجست ثابت، حذف یال جهت‌دار، غربال Morris در دامنهٔ آزموده‌شده. این‌ها صحت کل جهان یا علیت عمومی را اثبات نمی‌کنند.
-
-## ۷. کاربرد و مرزها
-
-منطق مشترک با ASME V&V 40 روش‌شناختی است نه گواهی محصول [5]. راهنمای FDA ۲۰۲۳ مدل فیزیک‌مبناست نه مدل مستقل یادگیری ماشین [14]. نردبان این مقاله اجرای آن چارچوب نیست. نه بسته را همان تیم ساخته است. آداپتور آویدا اسکلت است. جدول ۱ مصنوع کالیبراسیون ندارد.
-
-## ۸. نتیجه‌گیری
-
-زیرساخت بازپخش/گراف/نردبان، چهار نقص مهندسی، سنجش داخلی با بازهٔ پهن، و یک اثر تجربی با مخدوش‌کننده‌های صریح. هیچ ادعای هوشمندی، جایگزینی آویدا یا آمادگی بالینی صادر نمی‌شود.
-
-## داده و کد
-
-https://github.com/Parvaz-Jamei/codontrace-genesis  
-DOI: `10.5281/zenodo.20337435`  
-نه بسته: `docs/claimgate/ladder_validation.json` (دایجست `ea0366d0`)
-
-## سپاسگزاری
-
-از ابزارهای هوش مصنوعی در توسعه و ویرایش استفاده شد. مسئولیت نسخهٔ ارسالی با نویسنده است.
-
-## مراجع
-
-1. European Parliament and Council, Regulation (EU) 2024/1689, Annex IV, Jul. 2024.
-2. F. Angermeir et al., Proc. ICSE, 2026, doi:10.1145/3744916.3773207.
-3. J. Mirkovic et al., Proc. ACM REP, 2026.
-4. NASA-STD-7009B, Mar. 2024.
-5. ASME V&V 40-2018.
-6. M. López-Ibáñez et al., ACM TEVO, 2021.
-7. C. Ofria and C. O. Wilke, Artificial Life, 2004.
-8. M. Flageat et al., IEEE TEVC, 2026, doi:10.1109/TEVC.2025.3548438.
-9. V. Grimm et al., JASSS, 2020.
-10. R. L. Kendal et al., Trends Cogn. Sci., 2018.
-14. FDA, Credibility of Computational Modeling, Nov. 2023.
+```bash
+# full paper:
+#   paper/baic/paper.md
+```

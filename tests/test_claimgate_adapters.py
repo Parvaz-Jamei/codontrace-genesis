@@ -10,6 +10,7 @@ from codontrace.claimgate.adapters.codontrace import (
     bundle_from_hard_experiment_01,
     committed_results_v2_path,
 )
+from codontrace.claimgate.adapters.he01_arm_roles import canonical_role
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
 from codontrace.genesis.engine import GenesisEngine
@@ -116,3 +117,35 @@ def test_codontrace_adapter_reproduces_he01_v2_runtime_observation() -> None:
     assert gate.decide(ClaimRequest("intervention_supported", {})).allowed is False
     assert gate.decide(ClaimRequest("collective_intelligence", {})).allowed is False
     assert gate.decide(ClaimRequest("tokyo_type1_passed", {})).allowed is False
+
+
+def test_he01_v7_roles_translate_to_schema() -> None:
+    path = Path("docs/hard_experiment_01/results_v7.json")
+    bundle = bundle_from_hard_experiment_01(path)
+    roles = {arm.name: arm.role for arm in bundle.arms}
+    assert roles["source_bias_on"] == "treatment"
+    assert roles["source_bias_off"] == "mechanism_ablation"
+    assert roles["capsules_off"] == "channel_off"
+    assert roles["capsules_content_null"] == "negative_control"
+    assert roles["capsules_activity_matched"] == "negative_control"
+    assert roles["capsules_shuffled"] == "negative_control"
+    assert roles["oracle_capsule"] == "dose"
+    assert set(roles.values()) <= {
+        "treatment",
+        "mechanism_ablation",
+        "channel_off",
+        "negative_control",
+        "dose",
+    }
+    assert "receiver_mean_terminal_runtime_atp" in {item.metric for item in bundle.outcomes}
+    extra = bundle.extra or {}
+    assert extra.get("assay_invalid") is not True
+
+
+def test_canonical_role_maps_v7_aliases() -> None:
+    assert canonical_role("oracle_capsule", "positive_control") == "dose"
+    assert canonical_role("capsules_activity_matched", "auxiliary_control") == "negative_control"
+    assert canonical_role("capsules_shuffled", "sensitivity_negative_control") == "negative_control"
+    assert canonical_role("unknown_arm", "treatment") == "treatment"
+    assert canonical_role("unknown_arm", "positive_control") == "dose"
+    assert canonical_role("unknown_arm", "not_a_role") == ""

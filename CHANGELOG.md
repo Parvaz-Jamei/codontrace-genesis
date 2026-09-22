@@ -26,8 +26,12 @@ the ESP32 line is an engineering stub. BAIC 2026 source lives in
 records declared SiMD/SaMD kind, IEC 62304 class, IMDRF N12 category,
 and FDA 2023 evidence cats 1–8 (`bundle_from_device_model_cou`). Labels
 do not raise the ladder; new blocked aliases include `simd_certified`,
-`iec_62304_certified`, `in_silico_trial_validated`. No version bump. Phase A–E
-pins unchanged. ClaimGate not loosened.
+`iec_62304_certified`, `in_silico_trial_validated`. Live nine-pack
+ClaimGate grades are committed at `docs/claimgate/ladder_validation.json`
+(not a population error rate). HE01 v7 role aliases are translated in
+`he01_arm_roles` and applied by the ClaimGate adapter; `sha256_text_file`
+normalizes CRLF for that adapter. Campaign `read_bytes()` pins are
+unchanged. No version bump. Phase A–E pins unchanged. ClaimGate not loosened.
 
 ### HARD_EXPERIMENT_02 — honest pilot clear + research null
 

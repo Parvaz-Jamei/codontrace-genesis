@@ -6,12 +6,12 @@ or population modules. Does not unlock claims.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from codontrace.claimgate.adapters.he01_arm_roles import ARM_ROLES, canonical_role
 from codontrace.claimgate.schema import (
     ClaimgateArm,
     ClaimgateArtifact,
@@ -24,15 +24,9 @@ from codontrace.claimgate.schema import (
 )
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import is_real_evidence_digest
+from codontrace.genesis.text_digest import sha256_text_file
 
 PRODUCT_NAME = "CodonTrace Genesis"
-ARM_ROLES: dict[str, str] = {
-    "source_bias_on": "treatment",
-    "source_bias_off": "mechanism_ablation",
-    "capsules_off": "channel_off",
-    "capsules_shuffled": "negative_control",
-    "oracle_capsule": "positive_control",
-}
 DEFAULT_RESULTS = Path("docs/hard_experiment_01/results_v3.json")
 # Names of the primary outcome across schema versions (v1/v2 composite
 # selection fitness; v3 receiver mean terminal runtime ATP). The arm record
@@ -57,7 +51,7 @@ def committed_results_v2_path() -> Path:
 
 
 def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def _as_mapping(value: object, name: str) -> Mapping[str, Any]:
@@ -109,7 +103,7 @@ def _arms(data: Mapping[str, Any], seed_count: int) -> tuple[ClaimgateArm, ...]:
             if not isinstance(item, Mapping):
                 continue
             name = str(item.get("arm") or "")
-            role = str(item.get("role") or ARM_ROLES.get(name, ""))
+            role = canonical_role(name, str(item.get("role") or ""))
             if name and role:
                 arms.append(ClaimgateArm(name=name, role=role, n=seed_count))
     if not arms:
@@ -119,7 +113,7 @@ def _arms(data: Mapping[str, Any], seed_count: int) -> tuple[ClaimgateArm, ...]:
                 if not isinstance(item, Mapping):
                     continue
                 name = str(item.get("arm") or "")
-                mapped_role = ARM_ROLES.get(name, "")
+                mapped_role = canonical_role(name, str(item.get("role") or ""))
                 n = item.get("n", seed_count)
                 if name and mapped_role:
                     arms.append(ClaimgateArm(name=name, role=mapped_role, n=int(n)))

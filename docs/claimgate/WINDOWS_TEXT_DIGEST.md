@@ -1,7 +1,6 @@
-# Text-file digest policy
-
 Use `codontrace.genesis.text_digest.sha256_text_file` for markdown, JSON, `.dat`, and `.csv` pins.
 
+The HE01 ClaimGate adapter (`adapters/codontrace.py`) uses this helper.
 On Linux this equals raw `read_bytes()` when the file is already LF.
 On Windows with `core.autocrlf=true` it keeps the same digest as Linux.
 

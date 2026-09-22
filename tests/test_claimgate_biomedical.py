@@ -206,6 +206,9 @@ def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     assert "intervention_supported" in baic
     assert "برای نمایش قالب" not in baic
     assert "برای نشان دادن قالب" not in baic
+    assert "FITNESS_WEIGHTED" in baic
+    assert "MIRROR" in baic
+    assert "فقط سوگیری برداشته" not in baic
     assert "ladder_validation.json" in baic_readme
     assert "fix/small-sample-ci-coverage" in baic_readme
     assert "does not exist" in baic_readme.lower()

@@ -9,6 +9,10 @@
   `intervention_supported` stays, still maps to public 3, and does not by
   itself grant level 4. ESP32 remains implemented and unevaluated in the
   paper. Campaign numbers are not recut.
+- The HE01 primary contrast changes two knobs together
+  (`min_source_fitness` 1.5 to 0 and `FITNESS_WEIGHTED` to `THRESHOLD`).
+  The manuscript attributes 16.49 to that package. Related work now cites
+  MIRROR (10.5281/zenodo.20463358) and NovaFabric (arXiv:2609.12582).
 
 ## [0.3.0b7] — 2026-09-22
 

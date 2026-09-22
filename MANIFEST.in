@@ -33,4 +33,6 @@ global-exclude *.patch
 global-exclude .grok_write_probe*.txt
 global-exclude .size_test_*.txt
 
+recursive-include paper *.md
+recursive-include paper *.bib
 recursive-include firmware *

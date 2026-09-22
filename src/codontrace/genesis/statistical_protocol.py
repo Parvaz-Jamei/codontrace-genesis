@@ -602,6 +602,30 @@ class PairedComparisonResult:
 _DEFAULT_INFERENTIAL_SEED = 20260911
 _MONTE_CARLO_SIGN_FLIPS = 20000
 _EXACT_SIGN_FLIP_MAX_N = 20
+_MEET_IN_THE_MIDDLE_MAX_N = 40
+_SIGN_FLIP_ABS_EPS = 1e-15
+
+
+@dataclass(frozen=True, slots=True)
+class SignFlipPermutationDetail:
+    """How a sign-flip p-value was produced. Does not unlock a claim."""
+
+    p: float
+    n: int
+    method: str
+    n_patterns: int
+    censored_floor: bool
+    floor: float | None
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "p": self.p,
+            "n": self.n,
+            "method": self.method,
+            "n_patterns": self.n_patterns,
+            "censored_floor": self.censored_floor,
+            "floor": self.floor,
+        }
 
 
 def _require_numeric_sequence(name: str, values: Sequence[float]) -> list[float]:
@@ -694,23 +718,162 @@ def exact_sign_flip_permutation_p(
     observed = abs(sum(values))
     n = len(values)
     if n <= _EXACT_SIGN_FLIP_MAX_N:
-        count = 0
-        for mask in range(1 << n):
-            total = 0.0
-            for index, value in enumerate(values):
-                total += value if (mask >> index) & 1 else -value
-            if abs(total) + 1e-15 >= observed:
-                count += 1
-        return count / float(1 << n)
+        return _exhaustive_sign_flip_count(values, observed) / float(1 << n)
+    return _monte_carlo_sign_flip_p(values, observed, seed)
+
+
+def _monte_carlo_sign_flip_p(values: Sequence[float], observed: float, seed: int) -> float:
     rng = RNGManager(seed=int(seed), namespace="sign_flip_permutation")
     count = 0
     for _ in range(_MONTE_CARLO_SIGN_FLIPS):
         total = 0.0
         for value in values:
             total += value if rng.randrange(2) == 0 else -value
-        if abs(total) + 1e-15 >= observed:
+        if abs(total) + _SIGN_FLIP_ABS_EPS >= observed:
             count += 1
     return (1 + count) / (1 + _MONTE_CARLO_SIGN_FLIPS)
+
+
+def _exhaustive_sign_flip_count(values: Sequence[float], observed: float) -> int:
+    count = 0
+    n = len(values)
+    for mask in range(1 << n):
+        total = 0.0
+        for index, value in enumerate(values):
+            total += value if (mask >> index) & 1 else -value
+        if abs(total) + _SIGN_FLIP_ABS_EPS >= observed:
+            count += 1
+    return count
+
+
+def _signed_sums(values: Sequence[float]) -> list[float]:
+    n = len(values)
+    out = [0.0] * (1 << n)
+    for mask in range(1 << n):
+        total = 0.0
+        for index, value in enumerate(values):
+            total += value if (mask >> index) & 1 else -value
+        out[mask] = total
+    return out
+
+
+def meet_in_the_middle_sign_flip_p(deltas: Sequence[float]) -> float:
+    """Exact two-sided sign-flip p for n≤40 via split enumeration.
+
+    Default ``exact_sign_flip_permutation_p`` is unchanged (exhaustive n≤20,
+    Monte Carlo otherwise) so published campaign pins stay stable.
+    """
+
+    values = _require_numeric_sequence("deltas", deltas)
+    if not values:
+        raise ConfigurationError("meet_in_the_middle_sign_flip_p requires at least one delta.")
+    n = len(values)
+    if n > _MEET_IN_THE_MIDDLE_MAX_N:
+        raise ConfigurationError(
+            f"meet_in_the_middle_sign_flip_p supports n<= {_MEET_IN_THE_MIDDLE_MAX_N}, got {n}."
+        )
+    observed = abs(sum(values))
+    return _meet_in_the_middle_count(values, observed) / float(1 << n)
+
+
+def _meet_in_the_middle_count(values: Sequence[float], observed: float) -> int:
+    n = len(values)
+    if n <= 1:
+        return _exhaustive_sign_flip_count(values, observed)
+    n1 = n // 2
+    left = _signed_sums(values[:n1])
+    right = sorted(_signed_sums(values[n1:]))
+    threshold = observed - _SIGN_FLIP_ABS_EPS
+    if threshold <= 0.0:
+        return 1 << n
+    lo_bound = -threshold
+    hi_bound = threshold
+    count = 0
+    m = len(right)
+    for left_sum in left:
+        # |L+R| >= observed - eps  <=>  R >= hi_bound-L  or  R <= lo_bound-L
+        hi_start = _bisect_left(right, hi_bound - left_sum)
+        lo_end = _bisect_right(right, lo_bound - left_sum)
+        count += (m - hi_start) + lo_end
+    return count
+
+
+def _bisect_left(sorted_values: Sequence[float], target: float) -> int:
+    low = 0
+    high = len(sorted_values)
+    while low < high:
+        mid = (low + high) // 2
+        if sorted_values[mid] < target:
+            low = mid + 1
+        else:
+            high = mid
+    return low
+
+
+def _bisect_right(sorted_values: Sequence[float], target: float) -> int:
+    low = 0
+    high = len(sorted_values)
+    while low < high:
+        mid = (low + high) // 2
+        if sorted_values[mid] <= target:
+            low = mid + 1
+        else:
+            high = mid
+    return low
+
+
+def sign_flip_permutation_detail(
+    deltas: Sequence[float],
+    *,
+    seed: int = _DEFAULT_INFERENTIAL_SEED,
+    method: Literal["auto", "exhaustive", "meet_in_the_middle", "monte_carlo"] = "auto",
+) -> SignFlipPermutationDetail:
+    """Report p together with the method. Auto matches ``exact_sign_flip_permutation_p``."""
+
+    values = _require_numeric_sequence("deltas", deltas)
+    if not values:
+        raise ConfigurationError("sign_flip_permutation_detail requires at least one delta.")
+    n = len(values)
+    observed = abs(sum(values))
+    resolved = method
+    if method == "auto":
+        resolved = "exhaustive" if n <= _EXACT_SIGN_FLIP_MAX_N else "monte_carlo"
+    if resolved == "exhaustive":
+        if n > _EXACT_SIGN_FLIP_MAX_N:
+            raise ConfigurationError("exhaustive sign-flip is limited to n<=20.")
+        count = _exhaustive_sign_flip_count(values, observed)
+        return SignFlipPermutationDetail(
+            p=count / float(1 << n),
+            n=n,
+            method="exhaustive",
+            n_patterns=1 << n,
+            censored_floor=False,
+            floor=None,
+        )
+    if resolved == "meet_in_the_middle":
+        p_value = meet_in_the_middle_sign_flip_p(values)
+        return SignFlipPermutationDetail(
+            p=p_value,
+            n=n,
+            method="meet_in_the_middle",
+            n_patterns=1 << n,
+            censored_floor=False,
+            floor=None,
+        )
+    if resolved != "monte_carlo":
+        raise ConfigurationError(
+            'sign_flip method must be "auto", "exhaustive", "meet_in_the_middle", or "monte_carlo".'
+        )
+    p_value = _monte_carlo_sign_flip_p(values, observed, seed)
+    floor = 1.0 / (1 + _MONTE_CARLO_SIGN_FLIPS)
+    return SignFlipPermutationDetail(
+        p=p_value,
+        n=n,
+        method="monte_carlo",
+        n_patterns=_MONTE_CARLO_SIGN_FLIPS,
+        censored_floor=True,
+        floor=floor,
+    )
 
 
 def _percentile(sorted_values: Sequence[float], quantile: float) -> float:

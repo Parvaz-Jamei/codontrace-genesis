@@ -2032,6 +2032,9 @@ from codontrace.genesis.statistical_protocol import (
     choose_paired_test,
     exact_sign_flip_permutation_p,
     holm_correction,
+    meet_in_the_middle_sign_flip_p,
+    sign_flip_permutation_detail,
+    SignFlipPermutationDetail,
     validate_statistical_claim_inputs,
 )
 from codontrace.genesis.structural_mutation import (
@@ -2105,6 +2108,9 @@ __all__.extend(
         "validate_statistical_claim_inputs",
         "choose_paired_test",
         "exact_sign_flip_permutation_p",
+        "meet_in_the_middle_sign_flip_p",
+        "sign_flip_permutation_detail",
+        "SignFlipPermutationDetail",
         "bootstrap_ci_paired",
         "holm_correction",
         "TranslationWeight",

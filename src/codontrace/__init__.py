@@ -1,4 +1,4 @@
-"""Public API for CodonTrace v0.3.0b4."""
+"""Public API for CodonTrace Genesis. Version comes from pyproject.toml."""
 
 from codontrace.actions import (
     ActionContext,
@@ -378,8 +378,9 @@ from codontrace.topology import (
 )
 from codontrace.trace import TimelineFrame, Trace, TraceEvent, WorldEvent
 from codontrace.world import World2D, WorldObject
+from codontrace._version import package_version
 
-__version__ = "0.3.0b4"
+__version__ = package_version()
 
 __all__ = [
     "AgentSnapshot",

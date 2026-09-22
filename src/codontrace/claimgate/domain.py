@@ -9,8 +9,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from codontrace.errors import ConfigurationError
-from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.claimgate.schema import (
     ClaimgateArm,
     ClaimgateBundle,
@@ -20,6 +18,8 @@ from codontrace.claimgate.schema import (
     ClaimgateSoftware,
     parse_claimgate_bundle,
 )
+from codontrace.errors import ConfigurationError
+from codontrace.genesis.canonical import canonical_digest, canonical_payload
 
 
 @dataclass(frozen=True, slots=True)

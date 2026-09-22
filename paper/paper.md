@@ -36,8 +36,10 @@ directories into a common evidence bundle. The Avida adapter reads named
 aggregates folders that share a user-supplied ClaimGate role. It remains a
 skeleton: it is not an `avida.cfg` interpreter and does not claim Avida
 replacement. The package also includes a dependency-free statistical protocol
-(paired effect sizes, bootstrap confidence intervals, exact sign-flip
-permutation tests, Holm correction) and a deterministic digest and replay
+(paired effect sizes, bootstrap confidence intervals, sign-flip
+permutation tests — exhaustive for n≤20, Monte Carlo otherwise, with an
+opt-in exact meet-in-the-middle count for n≤40 that is not the default —
+Holm correction) and a deterministic digest and replay
 system so that every recorded claim can be traced to the configuration, seed
 set, and code version that produced it.
 
@@ -84,7 +86,11 @@ deterministic, content-addressed digest for every run. The statistical and
 audit layer (`claimgate/`) is a separate package with zero imports from the
 simulation core, enforced by an automated boundary check. It defines the
 six-level claim ladder, a schema for evidence bundles, and adapters that
-translate native, Avida, and MABE2 artifacts into that schema. Keeping the
+translate native, Avida, and MABE2 artifacts into that schema. Domains attach
+as `DomainProfile` ports (`alife`, `biomedical`, `hardware`); the engine does
+not know medicine. The biomedical port records a user-declared context of use
+and refuses SaMD / FDA / ASME-pass aliases — it is not a second engine and
+not a device certification. Keeping the
 auditor off the engine is a deliberate trade-off: it prevents a passing
 simulation from silently promoting a scientific claim, at the cost of
 requiring an explicit adapter for each external format. One shipped example
@@ -93,10 +99,10 @@ division-of-labor studies in digital evolution [@goldsby2012division]. The
 open-ended discovery layer adds a quality-diversity search loop with three
 explicit negative controls (a random proposer, a shuffled-archive proposer,
 and a no-op archive) so that a discovered behaviour is retained only after it
-beats chance and not merely the existence of a channel. An optional
-hardware-agnostic bridge can send a handful of evolved genomes to small
-physical robots as a low-volume reality check, following the transferability
-approach of Koos et al. [@koos2013transferability]. The project uses
+beats chance and not merely the existence of a channel. An optional ESP32 bridge is an engineering stub (`SimEsp32Bridge`): it
+does not claim that physical robots ran and is not a hardware research
+platform. Koos et al. [@koos2013transferability] is the intended
+transferability analog, not a completed robot campaign. The project uses
 `pytest` for testing, `ruff` and `mypy` for static checks, and a
 ports-and-adapters architecture for evidence adapters.
 

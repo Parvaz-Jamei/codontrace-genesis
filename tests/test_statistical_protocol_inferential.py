@@ -15,6 +15,8 @@ from codontrace.genesis.statistical_protocol import (
     bootstrap_ci_paired,
     exact_sign_flip_permutation_p,
     holm_correction,
+    meet_in_the_middle_sign_flip_p,
+    sign_flip_permutation_detail,
 )
 
 
@@ -117,3 +119,34 @@ def test_bootstrap_ci_rejects_bad_inputs() -> None:
         bootstrap_ci_paired([1.0], method="jackknife")  # type: ignore[arg-type]
     with pytest.raises(ConfigurationError):
         exact_sign_flip_permutation_p([])
+
+
+def test_meet_in_the_middle_matches_exhaustive_for_small_n() -> None:
+    deltas = (1.0, 2.0, 3.0, -0.5, 0.25, 4.0, 0.0, -1.5)
+    exhaustive = exact_sign_flip_permutation_p(deltas)
+    mitm = meet_in_the_middle_sign_flip_p(deltas)
+    assert mitm == pytest.approx(exhaustive)
+    detail = sign_flip_permutation_detail(deltas)
+    assert detail.method == "exhaustive"
+    assert detail.censored_floor is False
+    assert detail.p == pytest.approx(exhaustive)
+
+
+def test_sign_flip_detail_flags_monte_carlo_floor_and_mitm_is_exact() -> None:
+    deltas = (1.0,) * 21
+    auto = sign_flip_permutation_detail(deltas, seed=1)
+    assert auto.method == "monte_carlo"
+    assert auto.censored_floor is True
+    assert auto.floor == pytest.approx(1.0 / 20001.0)
+    assert auto.p >= auto.floor
+    assert exact_sign_flip_permutation_p(deltas, seed=1) == pytest.approx(auto.p)
+    mitm = sign_flip_permutation_detail(deltas, method="meet_in_the_middle")
+    assert mitm.method == "meet_in_the_middle"
+    assert mitm.censored_floor is False
+    assert mitm.p == pytest.approx(2.0 / float(1 << 21))
+    assert mitm.p < auto.floor
+
+
+def test_meet_in_the_middle_rejects_n_above_40() -> None:
+    with pytest.raises(ConfigurationError):
+        meet_in_the_middle_sign_flip_p([1.0] * 41)

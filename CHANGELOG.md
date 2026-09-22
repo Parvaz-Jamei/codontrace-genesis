@@ -8,7 +8,16 @@ ClaimGate domain labels live on `DomainProfile` (`alife` / `biomedical` /
 `hardware`). The Genesis engine stays domain-agnostic. Biomedical is one
 port, not a medical engine: `samd_certified`, `fda_cleared`,
 `clinical_validated`, and `asme_vv40_passed` raise `ConfigurationError`.
-No version bump. Phase A–E pins unchanged. ClaimGate not loosened.
+Runtime `__version__` reads `[project].version` from pyproject (no hardcoded
+identity). README / CLAIMS / CITATION now name the published PyPI tip
+`0.3.0b6` and say `main` may be ahead of tag `v0.3.0b6` without recutting.
+`sign_flip_permutation_detail` reports exhaustive / Monte Carlo /
+meet-in-the-middle and will not hide a censored p-floor; default
+`exact_sign_flip_permutation_p` is unchanged so published campaign pins stay
+stable. JOSS no longer calls the default sign-flip “exact” for all n, and
+the ESP32 line is an engineering stub. BAIC 2026 source lives in
+`paper/baic/` (evidence-audit analog; not SaMD). No version bump. Phase A–E
+pins unchanged. ClaimGate not loosened.
 
 ### HARD_EXPERIMENT_02 — honest pilot clear + research null
 

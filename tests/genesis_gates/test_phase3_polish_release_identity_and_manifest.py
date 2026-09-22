@@ -9,7 +9,9 @@ from codontrace.genesis.ribosome import Ribosome
 
 
 def test_release_identity_is_a25_unified_runtime() -> None:
-    assert codontrace.__version__ in {"0.3.0b4", "0.3.0b4.dev0", "0.3.0b4.dev1", "0.3.0b5", "0.3.0b6"}
+    from codontrace._version import package_version
+
+    assert codontrace.__version__ == package_version()
 
 
 def test_manifest_hashes_use_real_codon_table_and_genome_spec() -> None:

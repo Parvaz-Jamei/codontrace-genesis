@@ -27,7 +27,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "do not recut PyPI 0.3.0b4 or 0.3.0b5; publish 0.3.0b6 from tag v0.3.0b6",
+        "next": "do not recut published wheels (0.3.0b4 / 0.3.0b5 / 0.3.0b6); HE03 research results_v1 stays absent on purpose; no new tag until CI of that commit is green",
     }
 
 

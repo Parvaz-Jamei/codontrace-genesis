@@ -18,9 +18,12 @@
   or calibration-only submodels are capped. The worksheet does not raise
   the claim ladder and does not start the engine.
 - `audit_biomedical_study_file` binds that worksheet to a campaign. A
-  phenomenon closes only when its arm was executed at auditor level >= 4
-  with replay. A typed rank with no run stays `declared_only` and cannot
-  close the gap. See `examples/studies/he01_phenomena.json`.
+  phenomenon closes only when its treatment arm has an interval, the
+  auditor is at least 4, and replay is verified. One arm closes one
+  phenomenon. A typed rank does not. A weak or non-treatment arm is
+  `not_closed`. `coupled_ceiling` is set only when every submodel cleared
+  that bar. See `examples/studies/he01_phenomena.json` and
+  `docs/claimgate/biomedical_study.json`.
 
 ## [0.3.0b7] — 2026-09-22
 

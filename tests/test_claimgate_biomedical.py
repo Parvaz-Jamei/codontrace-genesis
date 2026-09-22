@@ -7,16 +7,17 @@ from pathlib import Path
 import pytest
 
 from codontrace.claimgate import ALIFE, HARDWARE, audit_bundle, bundle_from_declared_scores
-from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
     attach_credibility_worksheet,
     audit_biomedical_study,
     audit_biomedical_study_file,
+    biomedical_study_payload,
     bundle_from_biomedical_cou,
     bundle_from_device_model_cou,
     credibility_worksheet,
 )
+from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
 from codontrace.errors import ConfigurationError
 
 
@@ -278,7 +279,7 @@ def test_pirt_gap_and_weakest_submodel_do_not_raise_the_ladder() -> None:
     assert audit_bundle(annotated).achieved_level == before
     stored = annotated.extra["credibility_worksheet"]
     assert stored["coupled_ceiling"] == 1
-    assert stored["open_gaps"] == []
+    assert stored["open_gaps"] == ["pirt:contact_stress"]
 
 
 def test_worksheet_rejects_an_empty_table_and_a_certificate_is_still_blocked() -> None:
@@ -300,13 +301,17 @@ def test_worksheet_rejects_an_empty_table_and_a_certificate_is_still_blocked() -
 def test_study_closes_only_the_arm_that_was_executed() -> None:
     study = audit_biomedical_study_file("examples/studies/he01_phenomena.json")
     assert study.claim_level == 4
+    assert study.ceiling_measured is False
     assert "source_fitness_bias" in study.executed
+    assert "life_loop" in study.executed
     assert "contact_stress" in study.declared_only
+    assert study.not_closed == ()
     assert "pirt:source_fitness_bias" not in study.worksheet.open_gaps
     assert "pirt:contact_stress" in study.worksheet.open_gaps
     assert "declared_only:contact_stress" in study.worksheet.open_gaps
     assert "declared_only:patient_geometry" in study.worksheet.open_gaps
-    assert study.worksheet.coupled_ceiling == 2
+    assert study.worksheet.coupled_ceiling is None
+    assert study.context_of_use.startswith("Life-loop")
     assert study.worksheet.to_dict()["raises_claim_ladder"] is False
     sources = {name: (level, source) for name, level, source in study.submodel_sources}
     assert sources["life_loop"] == (4, "executed")
@@ -334,4 +339,36 @@ def test_a_named_arm_must_exist_and_a_weak_run_does_not_close_the_phenomenon() -
     )
     assert closed.claim_level == 0
     assert "pirt:score_table" in closed.worksheet.open_gaps
-    assert "score_table" in closed.executed
+    assert "score_table" in closed.not_closed
+    assert "score_table" not in closed.executed
+
+    he01 = bundle_from_hard_experiment_01(Path("docs/hard_experiment_01/results_v7.json"))
+    stolen = audit_biomedical_study(
+        {
+            "phenomena": (
+                {"name": "source_fitness_bias", "importance": "high", "arm": "source_bias_on"},
+                {"name": "contact_stress", "importance": "high", "arm": "source_bias_on"},
+                {"name": "capsule_channel", "importance": "high", "arm": "capsules_off"},
+            )
+        },
+        experiment=he01,
+    )
+    assert stolen.executed == ("source_fitness_bias",)
+    assert "contact_stress" in stolen.not_closed
+    assert "capsule_channel" in stolen.not_closed
+    assert "shared_arm:contact_stress" in stolen.worksheet.open_gaps
+    assert "pirt:capsule_channel" in stolen.worksheet.open_gaps
+    assert "pirt:contact_stress" in stolen.worksheet.open_gaps
+
+
+def test_committed_biomedical_study_matches_the_live_audit() -> None:
+    import json
+
+    live = biomedical_study_payload()
+    committed = json.loads(Path("docs/claimgate/biomedical_study.json").read_text(encoding="utf-8"))
+    assert live["claim_level"] == 4
+    assert live["coupled_ceiling"] is None
+    assert live["ceiling_measured"] is False
+    assert live["raises_claim_ladder"] is False
+    assert live["not_a_device_certificate"] is True
+    assert committed == live

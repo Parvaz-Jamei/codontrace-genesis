@@ -1,0 +1,40 @@
+{
+  "ceiling_measured": false,
+  "claim_level": 4,
+  "context_of_use": "Life-loop campaign results_v7; not an implant and not a patient model.",
+  "coupled_ceiling": null,
+  "declared_only": [
+    "contact_stress",
+    "patient_geometry"
+  ],
+  "digest": "d176f0abcea245791704f4b807f16d82eff94c7231b7fb39e28d244c8aee4780",
+  "executed": [
+    "source_fitness_bias",
+    "life_loop"
+  ],
+  "limiting_level": 2,
+  "limiting_submodel": "patient_geometry",
+  "not_a_device_certificate": true,
+  "not_closed": [],
+  "open_gaps": [
+    "pirt:contact_stress",
+    "declared_only:contact_stress",
+    "declared_only:patient_geometry"
+  ],
+  "question_of_interest": "Which phenomena does the executed HE01 campaign actually close?",
+  "raises_claim_ladder": false,
+  "schema": "biomedical_study_result_v1",
+  "study": "examples/studies/he01_phenomena.json",
+  "submodel_sources": [
+    {
+      "level": 4,
+      "name": "life_loop",
+      "source": "executed"
+    },
+    {
+      "level": 2,
+      "name": "patient_geometry",
+      "source": "declared"
+    }
+  ]
+}

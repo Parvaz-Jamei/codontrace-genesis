@@ -7,7 +7,7 @@
     {"name": "contact_stress", "importance": "high", "knowledge": "adequate"}
   ],
   "submodels": [
-    {"name": "life_loop", "role": "device", "use_experiment": true, "evidence_categories": [1, 8]},
+    {"name": "life_loop", "role": "campaign", "use_experiment": true},
     {"name": "patient_geometry", "role": "patient", "level": 4, "evidence_categories": [4]}
   ]
 }

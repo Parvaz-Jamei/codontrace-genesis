@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from typing import cast
 
+from codontrace._types import JsonValue
 from codontrace.claimgate.domain import (
     BIOMEDICAL,
     FDA_2023_EVIDENCE_CATEGORIES,
@@ -18,7 +20,16 @@ BLOCKED_BIOMEDICAL_CLAIMS = BIOMEDICAL.blocked_claims
 _IMPORTANCE = frozenset({"low", "medium", "high"})
 _KNOWLEDGE = frozenset({"none", "partial", "adequate"})
 _SUBMODEL_ROLES = frozenset(
-    {"device", "patient", "coupled", "cohort", "clinician", "outcome_map", "full"}
+    {
+        "device",
+        "patient",
+        "coupled",
+        "cohort",
+        "clinician",
+        "outcome_map",
+        "full",
+        "campaign",
+    }
 )
 # FDA 2023 cats that are comparator or calculation evidence, not support-only.
 _VALIDATING_CATEGORIES = frozenset({1, 3, 4, 5, 8})
@@ -166,9 +177,10 @@ def credibility_worksheet(
 ) -> CredibilityWorksheet:
     """Rank phenomena and cap a coupled model at its weakest submodel.
 
-    A high-importance phenomenon is an open gap until knowledge is
-    ``adequate``. Medium importance is a gap only when knowledge is
-    ``none``. Low importance is screened out, as in a PIRT.
+    A high-importance phenomenon stays open until knowledge is ``adequate``
+    and the row is marked ``measured``. A typed rank alone does not measure it.
+    Medium importance is a gap only when knowledge is ``none``. Low importance
+    is screened out, as in a PIRT.
 
     A submodel declared non-identifiable cannot contribute above 1.
     Evidence limited to calibration, plausibility, or emergent behaviour
@@ -190,9 +202,10 @@ def credibility_worksheet(
         seen.add(name)
         importance = _label(raw.get("importance"), _IMPORTANCE, f"phenomena[{index}].importance")
         knowledge = _label(raw.get("knowledge"), _KNOWLEDGE, f"phenomena[{index}].knowledge")
-        if importance == "high" and knowledge != "adequate":
-            gaps.append(f"pirt:{name}")
-        elif importance == "medium" and knowledge == "none":
+        measured = raw.get("measured") is True
+        high_open = importance == "high" and (knowledge != "adequate" or not measured)
+        medium_open = importance == "medium" and knowledge == "none"
+        if high_open or medium_open:
             gaps.append(f"pirt:{name}")
 
     usable: list[tuple[str, int]] = []
@@ -243,7 +256,7 @@ def attach_credibility_worksheet(
 
     sheet = credibility_worksheet(phenomena, submodels)
     extra = dict(bundle.extra or {})
-    extra["credibility_worksheet"] = sheet.to_dict()
+    extra["credibility_worksheet"] = cast(JsonValue, sheet.to_dict())
     limitations = bundle.limitations
     if _WORKSHEET_NOTE not in limitations:
         limitations = limitations + (_WORKSHEET_NOTE,)
@@ -258,28 +271,39 @@ class BiomedicalStudy:
     worksheet: CredibilityWorksheet
     executed: tuple[str, ...]
     declared_only: tuple[str, ...]
+    not_closed: tuple[str, ...]
     submodel_sources: tuple[tuple[str, int, str], ...]
+    question_of_interest: str
+    context_of_use: str
+    ceiling_measured: bool
 
     def to_dict(self) -> dict[str, object]:
         return {
             "claim_level": self.claim_level,
+            "question_of_interest": self.question_of_interest,
+            "context_of_use": self.context_of_use,
             "worksheet": self.worksheet.to_dict(),
             "executed": list(self.executed),
+            "not_closed": list(self.not_closed),
             "declared_only": list(self.declared_only),
             "submodel_sources": [
                 {"name": name, "level": level, "source": source}
                 for name, level, source in self.submodel_sources
             ],
+            "ceiling_measured": self.ceiling_measured,
             "raises_claim_ladder": False,
         }
 
 
-def _knowledge_from_run(level: int, replay: bool) -> str:
-    if level >= 4 and replay:
-        return "adequate"
-    if level >= 3:
-        return "partial"
-    return "none"
+def _text(raw: object) -> str:
+    return raw.strip() if isinstance(raw, str) else ""
+
+
+def _arm_has_interval(bundle: ClaimgateBundle, arm_name: str) -> bool:
+    return any(
+        arm_name in (item.a, item.b) and item.ci_low is not None and item.ci_high is not None
+        for item in bundle.comparisons
+    )
 
 
 def _as_rows(raw: object, field: str) -> tuple[Mapping[str, object], ...]:
@@ -303,12 +327,15 @@ def audit_biomedical_study(
 ) -> BiomedicalStudy:
     """Bind the worksheet to runs. A declared rank cannot close a gap.
 
-    A phenomenon closes only when its ``arm`` is on ``experiment``, the
-    audit is at least 4, and replay is verified. Otherwise a typed
-    ``adequate`` is downgraded and the row is ``declared_only``.
+    A phenomenon closes only when its arm is the treatment side of a
+    comparison that has an interval, the audit is at least 4, and replay
+    is verified. One arm can close only one phenomenon. A present arm
+    that fails those checks is ``not_closed``, not declared. A typed
+    ``adequate`` with no such arm stays open.
 
-    A submodel with ``use_experiment`` or ``bundle`` takes its level from
-    ``audit_bundle``. A typed level with no bundle is capped at 2.
+    A submodel is ``executed`` only at level >= 4 with replay. Otherwise
+    a bound bundle is ``recorded`` and an unbound level is capped at 2.
+    ``coupled_ceiling`` is set only when every submodel is executed.
     """
 
     from codontrace.claimgate.auditor import audit_bundle
@@ -316,38 +343,60 @@ def audit_biomedical_study(
     claimed = study.get("claimed")
     if isinstance(claimed, str) and claimed.strip().lower() in BIOMEDICAL.blocked_claims:
         raise ConfigurationError(f"{claimed!r} is blocked on the biomedical study.")
+    question = _text(study.get("question_of_interest"))
+    context = _text(study.get("context_of_use"))
     library = dict(bundles or {})
     run_level: int | None = None
     replay = False
-    arm_names: set[str] = set()
+    arms: dict[str, str] = {}
     if experiment is not None:
         run_level = audit_bundle(experiment).achieved_level
         replay = experiment.replay.verified
-        arm_names = {arm.name for arm in experiment.arms}
+        arms = {arm.name: arm.role for arm in experiment.arms}
 
     phenomena_out: list[dict[str, object]] = []
     executed: list[str] = []
     declared_only: list[str] = []
+    not_closed: list[str] = []
+    used_arms: set[str] = set()
+    shared: list[str] = []
     for raw in _as_rows(study.get("phenomena"), "phenomena"):
         name = raw.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ConfigurationError("phenomena need a name.")
+        label = name.strip()
         arm = raw.get("arm")
         row = dict(raw)
         if isinstance(arm, str) and arm.strip():
-            if experiment is None:
-                raise ConfigurationError(f"phenomenon {name!r} names an arm but no experiment was given.")
-            if arm not in arm_names:
+            if experiment is None or run_level is None:
+                raise ConfigurationError(f"phenomenon {label!r} names an arm but no experiment was given.")
+            if arm not in arms:
                 raise ConfigurationError(f"arm {arm!r} is not in the experiment.")
-            assert run_level is not None
-            row["knowledge"] = _knowledge_from_run(run_level, replay)
-            executed.append(name.strip())
+            closes = (
+                run_level >= 4
+                and replay
+                and arms[arm] == "treatment"
+                and arm not in used_arms
+                and _arm_has_interval(experiment, arm)
+            )
+            if arm in used_arms:
+                shared.append(label)
+            if closes:
+                used_arms.add(arm)
+                row["knowledge"] = "adequate"
+                row["measured"] = True
+                executed.append(label)
+            else:
+                not_closed.append(label)
+                row["knowledge"] = "partial" if run_level >= 3 else "none"
+                row["measured"] = False
         else:
-            declared_only.append(name.strip())
+            declared_only.append(label)
             if row.get("knowledge") == "adequate":
                 row["knowledge"] = "partial"
             elif "knowledge" not in row:
                 row["knowledge"] = "none"
+            row["measured"] = False
         phenomena_out.append(row)
 
     submodels_out: list[dict[str, object]] = []
@@ -356,11 +405,14 @@ def audit_biomedical_study(
         name = raw.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ConfigurationError("submodels need a name.")
+        label = name.strip()
         row = dict(raw)
+        if row.get("use_experiment") is True and isinstance(row.get("bundle"), str):
+            raise ConfigurationError(f"submodel {label!r} cannot both use the experiment and name a bundle.")
         bound: ClaimgateBundle | None = None
         if row.get("use_experiment") is True:
             if experiment is None:
-                raise ConfigurationError(f"submodel {name!r} requested the experiment, and none was given.")
+                raise ConfigurationError(f"submodel {label!r} requested the experiment, and none was given.")
             bound = experiment
         bundle_key = row.get("bundle")
         if isinstance(bundle_key, str):
@@ -372,29 +424,45 @@ def audit_biomedical_study(
             typed = row.get("level")
             if isinstance(typed, bool) or not isinstance(typed, int):
                 typed = measured
-            row["level"] = min(typed, measured)
-            sources.append((name.strip(), row["level"], "executed"))
-            executed.append(name.strip())
+            used = min(typed, measured)
+            row["level"] = used
+            if measured >= 4 and bound.replay.verified:
+                sources.append((label, used, "executed"))
+                executed.append(label)
+            else:
+                sources.append((label, used, "recorded"))
+                not_closed.append(label)
         else:
             typed = row.get("level", 0)
             if isinstance(typed, bool) or not isinstance(typed, int) or typed not in range(6):
-                raise ConfigurationError(f"submodel {name!r} needs a level 0–5 or a bundle.")
-            row["level"] = min(typed, 2)
-            sources.append((name.strip(), row["level"], "declared"))
-            declared_only.append(name.strip())
+                raise ConfigurationError(f"submodel {label!r} needs a level 0–5 or a bundle.")
+            used = min(typed, 2)
+            row["level"] = used
+            sources.append((label, used, "declared"))
+            declared_only.append(label)
         submodels_out.append(row)
 
     sheet = credibility_worksheet(phenomena_out, submodels_out)
     extra_gaps = list(sheet.open_gaps)
     for name in declared_only:
         extra_gaps.append(f"declared_only:{name}")
-    sheet = CredibilityWorksheet(
-        tuple(extra_gaps),
-        sheet.limiting_submodel,
-        sheet.limiting_level,
-        sheet.coupled_ceiling,
+    for name in shared:
+        extra_gaps.append(f"shared_arm:{name}")
+    every_executed = bool(sources) and all(source == "executed" for _, _, source in sources)
+    ceiling_measured = every_executed and len(sources) >= 2
+    ceiling = sheet.coupled_ceiling if ceiling_measured else None
+    sheet = CredibilityWorksheet(tuple(extra_gaps), sheet.limiting_submodel, sheet.limiting_level, ceiling)
+    return BiomedicalStudy(
+        run_level,
+        sheet,
+        tuple(executed),
+        tuple(declared_only),
+        tuple(not_closed),
+        tuple(sources),
+        question,
+        context,
+        ceiling_measured,
     )
-    return BiomedicalStudy(run_level, sheet, tuple(executed), tuple(declared_only), tuple(sources))
 
 
 def audit_biomedical_study_file(path: str) -> BiomedicalStudy:
@@ -425,3 +493,36 @@ def audit_biomedical_study_file(path: str) -> BiomedicalStudy:
             raise ConfigurationError(f"study experiment not found: {experiment_raw}")
         experiment = bundle_from_hard_experiment_01(candidate)
     return audit_biomedical_study(loaded, experiment=experiment)
+
+
+def biomedical_study_payload(
+    path: str = "examples/studies/he01_phenomena.json",
+) -> dict[str, object]:
+    """Live result of the committed study. Not a device certificate."""
+
+    from codontrace.genesis.canonical import canonical_digest, canonical_payload
+
+    study = audit_biomedical_study_file(path)
+    body: dict[str, object] = {
+        "schema": "biomedical_study_result_v1",
+        "study": path,
+        "claim_level": study.claim_level,
+        "question_of_interest": study.question_of_interest,
+        "context_of_use": study.context_of_use,
+        "executed": list(study.executed),
+        "not_closed": list(study.not_closed),
+        "declared_only": list(study.declared_only),
+        "open_gaps": list(study.worksheet.open_gaps),
+        "coupled_ceiling": study.worksheet.coupled_ceiling,
+        "limiting_submodel": study.worksheet.limiting_submodel,
+        "limiting_level": study.worksheet.limiting_level,
+        "ceiling_measured": study.ceiling_measured,
+        "submodel_sources": [
+            {"name": name, "level": level, "source": source}
+            for name, level, source in study.submodel_sources
+        ],
+        "raises_claim_ladder": False,
+        "not_a_device_certificate": True,
+    }
+    body["digest"] = canonical_digest(canonical_payload({key: body[key] for key in body if key != "digest"}))
+    return body

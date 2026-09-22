@@ -99,8 +99,9 @@ Two checks from outside this field, wired as a port and not as a second engine:
   out. The ranks are declared by the user; the port does not discover physics.
 - **Weakest-submodel cap**, the building-block rule from aerospace VVUQ and
   the hierarchical in-silico trial layout (device, patient, coupled, cohort,
-  clinician, outcome map). The coupled ceiling is the minimum usable level
-  of the recorded submodels. A non-identifiable submodel cannot contribute
+  clinician, outcome map, or an executed non-device `campaign`). The coupled ceiling is the minimum usable level
+  of the recorded submodels, and only when a study has executed every
+  submodel. A non-identifiable submodel cannot contribute
   above 1. Evidence that is only calibration, plausibility, or emergent
   behaviour (FDA 2023 categories 2, 6, 7) cannot contribute above 2.
 
@@ -142,16 +143,21 @@ See `examples/claimgate_biomedical_worksheet.py`.
 ## Study file: executed run versus a declared rank
 
 `audit_biomedical_study_file` reads a JSON study. A phenomenon closes only
-when its `arm` is on the campaign, `audit_bundle` is at least 4, and replay
-is verified. Typing `knowledge: adequate` without that arm does not close
-the row; it is marked `declared_only`. A submodel with `use_experiment`
-takes its level from the same audit. A typed level with no bundle is capped
-at 2.
+when its arm is the treatment side of a comparison that has an interval,
+`audit_bundle` is at least 4, and replay is verified. One arm closes one
+phenomenon. Typing `knowledge: adequate` does not close the row. An arm
+that is present but fails those checks is `not_closed`, not a declaration.
+A submodel is `executed` only on that same bar. A typed level with no
+bundle is capped at 2. `coupled_ceiling` is filled only when every
+submodel cleared that bar.
 
 `examples/studies/he01_phenomena.json` points at
-`docs/hard_experiment_01/results_v7.json`. The source-bias arm is executed.
-Contact stress and the patient submodel stay declared. The claim ladder is
-whatever the campaign already earned; the study does not raise it.
+`docs/hard_experiment_01/results_v7.json`, a life-loop campaign, not a
+device model. The source-bias treatment arm closes. Contact stress and
+the patient submodel stay declared, so there is no measured coupled
+ceiling. The claim ladder is the campaign's own grade. The study does
+not raise it. The committed copy is
+`docs/claimgate/biomedical_study.json`.
 
 ```python
 from codontrace.claimgate.adapters.biomedical import audit_biomedical_study_file

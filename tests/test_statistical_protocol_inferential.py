@@ -112,6 +112,26 @@ def test_bca_bootstrap_matches_hand_calculation() -> None:
     ) == pytest.approx((4.0 / 3.0, 3.0333333333333314))
 
 
+def test_studentized_bootstrap_is_opt_in_and_does_not_change_default() -> None:
+    deltas = [1.0, 2.0, 4.0]
+    default = bootstrap_ci_paired(deltas, resamples=200, seed=11, confidence=0.8)
+    bca = bootstrap_ci_paired(deltas, method="bca", resamples=200, seed=11, confidence=0.8)
+    assert default == pytest.approx((4.0 / 3.0, 3.0))
+    assert bca == pytest.approx(default)
+    assert bootstrap_ci_paired([3.0], method="studentized") == (3.0, 3.0)
+    assert bootstrap_ci_paired([2.0, 2.0, 2.0], method="studentized", resamples=50) == (
+        2.0,
+        2.0,
+    )
+    studentized = bootstrap_ci_paired(
+        deltas, method="studentized", resamples=200, seed=11, confidence=0.8
+    )
+    assert studentized == pytest.approx((1.0104576778010383, 4.979084644397925))
+    mean = sum(deltas) / 3.0
+    assert studentized[0] <= mean <= studentized[1]
+    assert studentized[0] < default[0] or studentized[1] > default[1]
+
+
 def test_bootstrap_ci_rejects_bad_inputs() -> None:
     with pytest.raises(ConfigurationError):
         bootstrap_ci_paired([])

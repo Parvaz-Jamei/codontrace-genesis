@@ -103,10 +103,11 @@ def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     assert "DomainProfile" in baic
     assert "asme_vv40_passed" in baic
     assert "اختیاری" in baic
-    assert "پیاده نشده" in baic
     assert "studentized" in baic.lower()
+    assert "پیاده نشده" not in baic
     assert "ladder_validation.json" in baic_readme
     assert "fix/small-sample-ci-coverage" in baic_readme
     assert "does not exist" in baic_readme.lower()
     assert "not" in baic_readme.lower() and "tree" in baic_readme.lower()
+    assert "opt-in" in baic_readme.lower()
     assert "Studentized" in baic_readme or "studentized" in baic_readme

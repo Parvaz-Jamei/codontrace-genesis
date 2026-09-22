@@ -36,7 +36,8 @@ directories into a common evidence bundle. The Avida adapter reads named
 aggregates folders that share a user-supplied ClaimGate role. It remains a
 skeleton: it is not an `avida.cfg` interpreter and does not claim Avida
 replacement. The package also includes a dependency-free statistical protocol
-(paired effect sizes, bootstrap confidence intervals, sign-flip
+(paired effect sizes, bootstrap confidence intervals — BCa default, optional
+studentized percentile-t — sign-flip
 permutation tests — exhaustive for n≤20, Monte Carlo otherwise, with an
 opt-in exact meet-in-the-middle count for n≤40 that is not the default —
 Holm correction) and a deterministic digest and replay

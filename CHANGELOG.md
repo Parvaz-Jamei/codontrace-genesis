@@ -14,7 +14,8 @@ identity). README / CLAIMS / CITATION now name the published PyPI tip
 `sign_flip_permutation_detail` reports exhaustive / Monte Carlo /
 meet-in-the-middle and will not hide a censored p-floor; default
 `exact_sign_flip_permutation_p` is unchanged so published campaign pins stay
-stable. JOSS no longer calls the default sign-flip “exact” for all n, and
+stable. `bootstrap_ci_paired(..., method="studentized")` is opt-in
+percentile-t; default BCa is unchanged. JOSS no longer calls the default sign-flip “exact” for all n, and
 the ESP32 line is an engineering stub. BAIC 2026 source lives in
 `paper/baic/` (evidence-audit analog; not SaMD). No version bump. Phase A–E
 pins unchanged. ClaimGate not loosened.

@@ -923,23 +923,24 @@ def _bca_acceleration(values: Sequence[float]) -> float:
 def bootstrap_ci_paired(
     deltas: Sequence[float],
     *,
-    method: Literal["bca", "percentile"] = "bca",
+    method: Literal["bca", "percentile", "studentized"] = "bca",
     resamples: int = 10000,
     seed: int = _DEFAULT_INFERENTIAL_SEED,
     confidence: float = 0.95,
 ) -> tuple[float, float]:
-    """Paired-delta CI for the mean. ``method`` is ``bca`` or ``percentile``.
+    """Paired-delta CI for the mean.
 
-    Resamples the paired differences (not the two arms independently).
-    n=1 and zero-width bootstrap clouds fall back to a point / percentile
-    interval because BCa jackknife acceleration is undefined there.
+    Default ``bca`` is unchanged so published campaign pins stay stable.
+    ``studentized`` is the percentile-t bootstrap (opt-in).
     """
 
     values = _require_numeric_sequence("deltas", deltas)
     if not values:
         raise ConfigurationError("bootstrap_ci_paired requires at least one delta.")
-    if method not in {"bca", "percentile"}:
-        raise ConfigurationError('bootstrap_ci_paired method must be "bca" or "percentile".')
+    if method not in {"bca", "percentile", "studentized"}:
+        raise ConfigurationError(
+            'bootstrap_ci_paired method must be "bca", "percentile", or "studentized".'
+        )
     if resamples < 1:
         raise ConfigurationError("resamples must be >= 1.")
     if not 0.0 < confidence < 1.0:
@@ -947,6 +948,10 @@ def bootstrap_ci_paired(
     theta = _mean_of(values)
     if len(values) == 1:
         return (theta, theta)
+    if method == "studentized":
+        return _studentized_bootstrap_ci(
+            values, resamples=resamples, seed=seed, confidence=confidence
+        )
     boots = sorted(_bootstrap_means(values, resamples=resamples, seed=seed))
     alpha = (1.0 - confidence) / 2.0
     if method == "percentile":
@@ -970,6 +975,49 @@ def bootstrap_ci_paired(
     if low_q > high_q:
         low_q, high_q = high_q, low_q
     return (_percentile(boots, low_q), _percentile(boots, high_q))
+
+
+def _sample_mean_se(values: Sequence[float]) -> tuple[float, float]:
+    n = len(values)
+    theta = _mean_of(values)
+    if n < 2:
+        return theta, 0.0
+    variance = sum((item - theta) ** 2 for item in values) / (n - 1)
+    if variance <= 0.0:
+        return theta, 0.0
+    return theta, math.sqrt(variance / n)
+
+
+def _studentized_bootstrap_ci(
+    values: Sequence[float],
+    *,
+    resamples: int,
+    seed: int,
+    confidence: float,
+) -> tuple[float, float]:
+    theta, se = _sample_mean_se(values)
+    if se <= 0.0:
+        return (theta, theta)
+    rng = RNGManager(seed=int(seed), namespace="bootstrap_studentized")
+    n = len(values)
+    t_star: list[float] = []
+    for _ in range(resamples):
+        draw = [values[rng.randrange(n)] for _ in range(n)]
+        _mean_star, se_star = _sample_mean_se(draw)
+        if se_star <= 0.0:
+            continue
+        t_star.append((_mean_star - theta) / se_star)
+    if len(t_star) < 2:
+        return (theta, theta)
+    t_star.sort()
+    alpha = (1.0 - confidence) / 2.0
+    t_lo = _percentile(t_star, alpha)
+    t_hi = _percentile(t_star, 1.0 - alpha)
+    low = theta - t_hi * se
+    high = theta - t_lo * se
+    if low > high:
+        low, high = high, low
+    return (low, high)
 
 
 def holm_correction(p_values: Sequence[float]) -> tuple[float, ...]:

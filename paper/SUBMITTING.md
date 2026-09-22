@@ -35,6 +35,7 @@ https://joss.theoj.org/papers/new
   not FDA/CE, not ASME V&V 40 certification.
 - Default sign-flip p is exhaustive only for n≤20; Monte Carlo otherwise.
   Meet-in-the-middle is opt-in and must not recut HE01 pins.
+- Default paired CI is BCa. Studentized percentile-t is opt-in.
 - Not an Avida replacement, not AGI, not collective intelligence.
 - HE02 ceiling remains `runtime_observation` unless later evidence earns more.
 

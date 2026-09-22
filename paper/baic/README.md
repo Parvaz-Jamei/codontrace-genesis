@@ -31,7 +31,8 @@ Checked against `main` at the commit that added this directory:
   Monte Carlo for n>20, so published HE01 p-values are not silently recut.
 - `sign_flip_permutation_detail` reports the method and a censored floor.
   `meet_in_the_middle_sign_flip_p` is exact for n≤40 and is **opt-in**.
-- Studentized bootstrap CI is **not** implemented in this tree.
+- Studentized bootstrap CI is **opt-in** (`method="studentized"`). Default
+  `bootstrap_ci_paired` stays BCa so published campaign pins stay.
 - JOSS Flageat DOI is `10.1109/TEVC.2025.3548438` (IEEE TEVC 30(1):286–295).
 
 Do not strengthen this manuscript with fabricated clinical data.

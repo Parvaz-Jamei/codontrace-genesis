@@ -77,5 +77,13 @@ report = audit_bundle(bundle)
 print(report.achieved_level, bundle.extra["model_risk"], bundle.extra["fda_2023_scope"])
 ```
 
+That call is the negative control: regulatory labels and no execution bundle.
+`audit_bundle` returns `0` because `artifact_manifest` is missing. It is not
+a display fixture. HE01 `docs/hard_experiment_01/results_v7.json` is the
+positive control. Its file label stays `intervention_supported` (internal
+map: public 3, and the name alone does not promote). `audit_bundle` on that
+file returns `4` (`replicated_effect`): replay, intervention, an interval,
+and 30 seeds are in the bundle. Level 5 still needs an archived DOI.
+
 See `examples/claimgate_audit_biomedical_toy.py`.
 The toy numbers are synthetic. They are not a clinical study or a device test.

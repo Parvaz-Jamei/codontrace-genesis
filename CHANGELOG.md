@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- BAIC source names the evaluation as a pair: executed HE01 is the positive
+  control (`audit_bundle` on `results_v7.json` is public level 4) and the
+  device-model table with no execution evidence is the negative control
+  (level 0, missing `artifact_manifest`). The file label
+  `intervention_supported` stays, still maps to public 3, and does not by
+  itself grant level 4. ESP32 remains implemented and unevaluated in the
+  paper. Campaign numbers are not recut.
+
 ## [0.3.0b7] — 2026-09-22
 
 Research-beta cut. Tag `v0.3.0b7`. Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.

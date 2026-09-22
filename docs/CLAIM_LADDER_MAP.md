@@ -30,7 +30,7 @@ describes the same *kind* of evidence, not a promotion rule.
 | 4 | `ablation_supported` | 3 | Mechanism support | Removing a mechanism changes the measured outcome. |
 | 5 | `multi_seed_supported` | 4 | Replicated effect | Paired seeds, effect size, and an uncertainty interval. |
 | 6 | `heldout_supported` | 4 | Replicated effect | Stability under partner/world shift plus leakage checks. |
-| 7 | `intervention_supported` | 3 | Mechanism support | Explicit baseline/treatment intervention. Internally this sits *after* multi-seed; publicly it is still mechanism evidence. |
+| 7 | `intervention_supported` | 3 | Mechanism support | Explicit baseline/treatment intervention. Internally this sits *after* multi-seed; publicly it is still mechanism evidence. The name does not grant public 4. A bundle that also has a confidence interval and at least 16 seeds is graded 4 by `audit_bundle`. HE01 `results_v7.json` keeps this ceiling string and audits at 4. |
 | 8 | `claim_ready_research_alpha` | 5 | Publication-grade scientific claim | All required surfaces plus replay and a ClaimGate decision digest. Still not a license to claim intelligence or an Avida replacement. |
 
 ## What this map is not

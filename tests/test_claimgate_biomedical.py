@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from codontrace.claimgate import ALIFE, HARDWARE, audit_bundle, bundle_from_declared_scores
+from codontrace.claimgate.adapters.codontrace import bundle_from_hard_experiment_01
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
     bundle_from_biomedical_cou,
@@ -139,6 +140,40 @@ def test_device_model_cou_ml_table_stays_out_of_fda_2023_scope() -> None:
     assert audit_bundle(bundle).achieved_level <= 2
 
 
+def test_he01_v7_auditor_is_level_4_and_file_label_stays_intervention_supported() -> None:
+    bundle = bundle_from_hard_experiment_01(
+        Path("docs/hard_experiment_01/results_v7.json")
+    )
+    report = audit_bundle(bundle)
+    assert report.achieved_level == 4
+    assert report.public_name == "replicated_effect"
+    assert report.missing_for_next == ("archived_artifact_or_doi",)
+    assert (bundle.extra or {})["claim_ceiling"] == "intervention_supported"
+    assert bundle.replay.verified is True
+    assert len(bundle.seeds) == 30
+
+
+def test_device_table_without_execution_evidence_stays_at_zero() -> None:
+    bundle = bundle_from_device_model_cou(
+        question_of_interest="Would a declared score table license a worst-case size pick?",
+        context_of_use="Declared labels only. No replay. No intervention. No implant.",
+        model_influence=2,
+        decision_consequence=3,
+        treatment_scores=(0.12, 0.11, 0.13),
+        control_scores=(0.20, 0.19, 0.21),
+        device_software_kind="simd_declared",
+        iec_62304_class="B",
+        imdrf_n12_category="II",
+        fda_2023_evidence=(1, 3, 8),
+        physics_based=True,
+        metric="declared_peak_stress",
+    )
+    report = audit_bundle(bundle)
+    assert report.achieved_level == 0
+    assert "artifact_manifest" in report.missing_for_next
+    assert bundle.replay.verified is False
+
+
 def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     joss = Path("paper/paper.md").read_text(encoding="utf-8")
     bib = Path("paper/paper.bib").read_text(encoding="utf-8")
@@ -164,6 +199,13 @@ def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     assert "VVUQ 40.1" in baic
     assert "10.1371/journal.pcbi.1012289" in baic
     assert "simd_declared" in baic
+    assert "ESP32" in baic
+    assert "کنترل مثبت" in baic
+    assert "کنترل منفی" in baic
+    assert "سطح ۴" in baic
+    assert "intervention_supported" in baic
+    assert "برای نمایش قالب" not in baic
+    assert "برای نشان دادن قالب" not in baic
     assert "ladder_validation.json" in baic_readme
     assert "fix/small-sample-ci-coverage" in baic_readme
     assert "does not exist" in baic_readme.lower()

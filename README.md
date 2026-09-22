@@ -274,6 +274,7 @@ boundaries.
 | [`docs/PHASE_L_AVIDA_FIDELITY.md`](docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
 | [`docs/HARD_EXPERIMENT_01.md`](docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
 | [`docs/CLAIMGATE_STANDALONE.md`](docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
+| [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile; not a second engine per domain |
 | [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`STYLE.md`](STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |

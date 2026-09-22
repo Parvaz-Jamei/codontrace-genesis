@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### DomainProfile — ports, not a second engine
+
+ClaimGate domain labels live on `DomainProfile` (`alife` / `biomedical` /
+`hardware`). The Genesis engine stays domain-agnostic. Biomedical is one
+port, not a medical engine: `samd_certified`, `fda_cleared`,
+`clinical_validated`, and `asme_vv40_passed` raise `ConfigurationError`.
+No version bump. Phase A–E pins unchanged. ClaimGate not loosened.
+
 ### HARD_EXPERIMENT_02 — honest pilot clear + research null
 
 CodonTrace Genesis. Identity `0.3.0b4.dev0`. ClaimGate not loosened beyond

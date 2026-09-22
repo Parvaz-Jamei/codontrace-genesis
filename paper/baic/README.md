@@ -12,6 +12,7 @@ This file is the git-tracked source. It is **not** a medical-device paper.
 | Reporting defects found by ordinary engineering review | “the ladder discovered its own bugs automatically” |
 | Toy or retrospective score tables | Clinical validity |
 | Opt-in exact sign-flip (n≤40) and method reporting | Silent recut of HE01 p-values |
+| Declared SiMD/SaMD / IEC 62304 / FDA 2023 cats as labels | Device certification or in-silico trial validity |
 
 The Genesis engine does not know medicine. Biomedical labels are a
 `DomainProfile` port (`codontrace.claimgate.domain`). See

@@ -91,7 +91,9 @@ translate native, Avida, and MABE2 artifacts into that schema. Domains attach
 as `DomainProfile` ports (`alife`, `biomedical`, `hardware`); the engine does
 not know medicine. The biomedical port records a user-declared context of use
 and refuses SaMD / FDA / ASME-pass aliases — it is not a second engine and
-not a device certification. Keeping the
+not a device certification. The same port can record declared SiMD/SaMD
+labels and FDA 2023 evidence-category integers; those labels do not raise
+the ladder. Keeping the
 auditor off the engine is a deliberate trade-off: it prevents a passing
 simulation from silently promoting a scientific claim, at the cost of
 requiring an explicit adapter for each external format. One shipped example

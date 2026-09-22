@@ -27,6 +27,7 @@ robots. Domains attach at the **adapter** port.
 | MABE2 CSV | `adapters.mabe2` | no |
 | Declared score table | `claimgate.domain` | no |
 | Biomedical labels | `adapters.biomedical` → `domain.BIOMEDICAL` | no |
+| Device-model analog (SiMD/SaMD labels) | `bundle_from_device_model_cou` | no |
 | ESP32 stub | `adapters.esp32_bridge` | optional |
 
 Adding a domain means a new `DomainProfile` or ingest adapter.

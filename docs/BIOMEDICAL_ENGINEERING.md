@@ -1,31 +1,54 @@
 # Biomedical engineering interface (honest scope)
 
-CodonTrace Genesis is **not** a medical device, SaMD, IVD, or ASME V&V 40
+CodonTrace Genesis is **not** a medical device, SaMD, SiMD, IVD, or ASME V&V 40
 implementation. It does not diagnose, treat, or certify a clinical model.
 
 What it can do for biomedical *engineering* is the same thing it does for
 digital evolution: refuse to let a written claim outrun the evidence bundle.
 
-## Map to ASME V&V 40-2018 (complement, not substitute)
+Equipment-adjacent work uses the **same** `DomainProfile` port. Declaring
+`simd_declared` (software in a medical device) or `samd_declared` records
+IMDRF language. It does not classify a product.
 
-| V&V 40 concept | ClaimGate analog | What this repo does **not** do |
+## Map to ASME V&V 40-2018 and FDA 2023 CM&S (complement, not substitute)
+
+| Standard concept | ClaimGate analog | What this repo does **not** do |
 |---|---|---|
 | Question of interest (QOI) | `extra.question_of_interest` | Answer the clinical question |
 | Context of use (COU) | `extra.context_of_use` | Approve a regulatory COU |
 | Model influence | `extra.model_influence` (1–3, user-declared) | Measure influence on a real decision |
 | Decision consequence | `extra.decision_consequence` (1–3, user-declared) | Estimate patient harm |
 | Model risk | `extra.model_risk = max(influence, consequence)` | A numeric V&V 40 risk grade |
+| FDA 2023 evidence cats 1–8 | `extra.fda_2023_evidence` (declared subset) | Collect or grade VVUQ evidence |
+| IEC 62304 A/B/C | `extra.iec_62304_class` (declared) | Software safety classification |
+| IMDRF N12 I–IV | `extra.imdrf_n12_category` (declared) | SaMD risk categorization |
+| SiMD vs SaMD | `extra.device_software_kind` | Device file, 510(k), CE, or MDSW |
 | Credibility vs risk | public ladder 0–5 on the *claim* | A credibility score for the *model* |
 
+FDA 2023 Table 2 categories recorded as labels: (1) code verification,
+(2) model calibration, (3) bench-test validation, (4) in vivo validation,
+(5) population-based validation, (6) emergent behaviour, (7) model
+plausibility, (8) calculation verification / UQ on COU simulations.
+Cats 1, 3, and 4 overlap ASME V&V 40. The 2023 guidance applies to
+**physics-based or mechanistic** models, not standalone ML. If
+`physics_based=False`, `fda_2023_scope` is `out_of_scope_standalone_ml`
+even if categories are declared.
+
+ASME VVUQ 40.1-2026 is a worked tibial-tray *example*, not a pass bit.
+IMDRF N81 (2025) characterizes medical-device software including
+embedded software; this port stores characterization labels only.
+
 Risk fields are **labels supplied by the user**. The auditor does not infer
-them from AUROC, sensitivity, or a hospital log.
+them from AUROC, sensitivity, or a hospital log. Declaring evidence
+categories does **not** raise the ClaimGate ladder.
 
 ## Blocked biomedical claims
 
 These strings must not be treated as earned by a passing audit:
 
-- `medical_device`, `samd_certified`, `fda_cleared`, `ce_marked`
-- `clinical_validated`, `asme_vv40_passed`, `patient_safe`
+- `medical_device`, `samd_certified`, `simd_certified`, `fda_cleared`, `ce_marked`
+- `clinical_validated`, `asme_vv40_passed`, `vvuq_40_1_passed`, `patient_safe`
+- `iec_62304_certified`, `imdrf_n81_passed`, `in_silico_trial_validated`, `digital_twin_certified`
 - any diagnosis / treatment performance claim
 
 A high ClaimGate level on a toy or retrospective table is still only a claim
@@ -35,19 +58,24 @@ grade. It is not clinical validity.
 
 ```python
 from codontrace.claimgate import audit_bundle
-from codontrace.claimgate.adapters.biomedical import bundle_from_biomedical_cou
+from codontrace.claimgate.adapters.biomedical import bundle_from_device_model_cou
 
-bundle = bundle_from_biomedical_cou(
-    question_of_interest="Would this in-silico AUROC support a screening claim?",
-    context_of_use="Retrospective table only; no bedside use.",
+bundle = bundle_from_device_model_cou(
+    question_of_interest="Would this bench-like score table license a worst-case size pick?",
+    context_of_use="Synthetic table only; no ISO 14879-1 test; no implant.",
     model_influence=2,
     decision_consequence=3,
-    treatment_scores=(0.71, 0.68, 0.73),
-    control_scores=(0.50, 0.52, 0.49),
+    treatment_scores=(0.12, 0.11, 0.13),
+    control_scores=(0.20, 0.19, 0.21),
+    device_software_kind="simd_declared",
+    iec_62304_class="B",
+    imdrf_n12_category="II",
+    fda_2023_evidence=(1, 3, 8),
+    physics_based=True,
 )
 report = audit_bundle(bundle)
-print(report.achieved_level, bundle.extra["model_risk"])
+print(report.achieved_level, bundle.extra["model_risk"], bundle.extra["fda_2023_scope"])
 ```
 
 See `examples/claimgate_audit_biomedical_toy.py`.
-The toy numbers are synthetic. They are not a clinical study.
+The toy numbers are synthetic. They are not a clinical study or a device test.

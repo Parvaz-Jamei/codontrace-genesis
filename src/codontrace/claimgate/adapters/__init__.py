@@ -4,6 +4,7 @@ from codontrace.claimgate.adapters.avida import bundle_from_avida_runs, parse_av
 from codontrace.claimgate.adapters.biomedical import (
     BLOCKED_BIOMEDICAL_CLAIMS,
     bundle_from_biomedical_cou,
+    bundle_from_device_model_cou,
 )
 from codontrace.claimgate.adapters.codontrace_he02 import (
     bundle_from_hard_experiment_02,
@@ -43,6 +44,7 @@ __all__ = [
     "TransportEsp32Bridge",
     "bundle_from_avida_runs",
     "bundle_from_biomedical_cou",
+    "bundle_from_device_model_cou",
     "bundle_from_hard_experiment_01",
     "bundle_from_hard_experiment_02",
     "bundle_from_hard_experiment_03",

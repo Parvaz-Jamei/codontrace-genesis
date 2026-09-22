@@ -19,7 +19,10 @@ except ImportError:
 ensure_src_path()
 
 from codontrace.claimgate import audit_bundle  # noqa: E402
-from codontrace.claimgate.adapters.biomedical import bundle_from_biomedical_cou  # noqa: E402
+from codontrace.claimgate.adapters.biomedical import (  # noqa: E402
+    bundle_from_biomedical_cou,
+    bundle_from_device_model_cou,
+)
 
 
 def main() -> None:
@@ -41,6 +44,29 @@ def main() -> None:
     print("public_name", report.public_name)
     print("replay_verified", bundle.replay.verified)
     print("certification", extra.get("certification"))
+    print("device_software_kind", extra.get("device_software_kind"))
+    print("fda_2023_scope", extra.get("fda_2023_scope"))
+
+    device = bundle_from_device_model_cou(
+        question_of_interest="Would this bench-like score table license a worst-case size pick?",
+        context_of_use="Synthetic table only; no ISO 14879-1 test; no implant.",
+        model_influence=2,
+        decision_consequence=3,
+        treatment_scores=(0.12, 0.11, 0.13),
+        control_scores=(0.20, 0.19, 0.21),
+        device_software_kind="simd_declared",
+        iec_62304_class="B",
+        imdrf_n12_category="II",
+        fda_2023_evidence=(1, 3, 8),
+        physics_based=True,
+        metric="declared_peak_stress_toy",
+    )
+    device_report = audit_bundle(device)
+    device_extra = device.extra or {}
+    print("simd_kind", device_extra.get("device_software_kind"))
+    print("iec_62304_class", device_extra.get("iec_62304_class"))
+    print("fda_2023_evidence", device_extra.get("fda_2023_evidence"))
+    print("device_public_level", device_report.achieved_level)
 
 
 if __name__ == "__main__":

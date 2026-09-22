@@ -2,16 +2,17 @@
 
 ## Unreleased
 
-- BAIC source names the evaluation as a pair: executed HE01 is the positive
-  control (`audit_bundle` on `results_v7.json` is public level 4) and the
-  device-model table with no execution evidence is the negative control
-  (level 0, missing `artifact_manifest`). The file label
-  `intervention_supported` stays, still maps to public 3, and does not by
-  itself grant level 4. ESP32 remains implemented and unevaluated in the
-  paper. Campaign numbers are not recut.
+- BAIC manuscript is a measurement of the bundle, not a tool tour and not a
+  literature percentage. `paper/baic/paper.md` states that the file label
+  `intervention_supported` stays and does not grant public level 4, that
+  HE01 (`results_v7.json`, prefix `28f812c5`) reaches 4 from replay and the
+  BCa interval on 30 seeds, and that the device-score table stays at 0.
+  Phenomenon closure, the six requirement knockouts, and the Hurlbert
+  unit-of-analysis rule are in the camera-ready Word file. No Wilson rate.
+  ESP32 remains implemented and unevaluated. Campaign numbers are not recut.
 - The HE01 primary contrast changes two knobs together
   (`min_source_fitness` 1.5 to 0 and `FITNESS_WEIGHTED` to `THRESHOLD`).
-  The manuscript attributes 16.49 to that package. Related work now cites
+  The manuscript attributes 16.49 to that package. Related work cites
   MIRROR (10.5281/zenodo.20463358) and NovaFabric (arXiv:2609.12582).
 - Biomedical port: an executable PIRT (importance × knowledge, from nuclear
   safety) and a weakest-submodel cap (building-block VVUQ). Non-identifiable

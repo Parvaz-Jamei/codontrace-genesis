@@ -4,10 +4,13 @@ Persian conference paper for BAIC 2026 (Ferdowsi University of Mashhad, ۵–۷ 
 Author: **Parvaz Jamei / پرواز جمیعی**.
 
 - Source: [`paper.md`](paper.md)
-- Word (قالب_مقاله, two-column RTL, B Nazanin): [`BAIC2026_Jamei_5p.docx`](BAIC2026_Jamei_5p.docx)
-- Same text, upload name: [`BAIC2026_Jamei.docx`](BAIC2026_Jamei.docx)
+- Word (قالب_مقاله, two-column RTL, B Nazanin, three A4 pages): [`BAIC2026_Jamei.docx`](BAIC2026_Jamei.docx)
+- Same bytes, previous filename: [`BAIC2026_Jamei_5p.docx`](BAIC2026_Jamei_5p.docx)
 
 [`SECTIONS_5_8.md`](SECTIONS_5_8.md) is a stub pointing at `paper.md` (do not edit two copies).
+
+The manuscript grades a bundle. It does not report a literature percentage.
+Rebuild the Word file with `PYTHONPATH=src python tools/build_baic_docx.py`.
 
 Biomedical labels are a `DomainProfile` port (`codontrace.claimgate.domain`). See
 [`docs/ARCHITECTURE_PORTS.md`](../../docs/ARCHITECTURE_PORTS.md) and

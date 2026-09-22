@@ -197,6 +197,24 @@ def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
     )
 
 
+def _pseudoreplicated(bundle: ClaimgateBundle) -> bool:
+    """More than one outcome row per seed on a contrasted arm.
+
+    Ecology calls this simple pseudoreplication (Hurlbert 1984): subsamples
+    are not replicates. They do not add seeds and they do not carry an interval.
+    """
+
+    n_seeds = len(bundle.seeds)
+    if n_seeds < 1:
+        return False
+    contrasted = {name for item in bundle.comparisons for name in (item.a, item.b)}
+    for outcome in bundle.outcomes:
+        for name, values in outcome.values_by_arm.items():
+            if name in contrasted and len(values) > n_seeds:
+                return True
+    return False
+
+
 def _has_paired_comparison(bundle: ClaimgateBundle) -> bool:
     names = {arm.name for arm in bundle.arms}
     return any(
@@ -292,6 +310,8 @@ def _neighbor_warnings(bundle: ClaimgateBundle) -> list[str]:
         warnings.append("avida_adapter_is_a_skeleton_not_full_support")
     if extra.get("adapter") == "mabe2_skeleton":
         warnings.append("mabe2_adapter_is_a_skeleton_not_full_support")
+    if _pseudoreplicated(bundle):
+        warnings.append("pseudoreplicated_rows_do_not_carry_the_interval")
     return warnings
 
 
@@ -302,6 +322,7 @@ def _satisfied_flags(bundle: ClaimgateBundle) -> dict[str, bool]:
     has_ablation = bool(roles & {"mechanism_ablation", "channel_off"})
     has_negative = "negative_control" in roles
     difference = _has_consistent_difference(bundle)
+    pseudo = _pseudoreplicated(bundle)
     return {
         "software_version": bool(bundle.software.version.strip()),
         "recorded_source_or_artifact": _has_source_record(bundle),
@@ -317,8 +338,8 @@ def _satisfied_flags(bundle: ClaimgateBundle) -> dict[str, bool]:
         "replay_audit": bundle.replay.verified and bool(bundle.replay.digests),
         "effect_direction": difference,
         "artifact_completeness": _has_artifact_manifest(bundle) and bool(bundle.limitations),
-        "confidence_interval": _has_confidence_interval(bundle),
-        "seed_count_ge_16": len(bundle.seeds) >= LEVEL4_MIN_SEEDS,
+        "confidence_interval": _has_confidence_interval(bundle) and not pseudo,
+        "seed_count_ge_16": len(bundle.seeds) >= LEVEL4_MIN_SEEDS and not pseudo,
         "archived_artifact_or_doi": _has_archived_doi(bundle),
         "documented_limitations": bool(bundle.limitations),
         "statistical_and_ablation_evidence": difference

@@ -15,7 +15,7 @@ def main() -> None:
     payload = defect_grid_payload()
     OUT.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(OUT)
-    print(payload["n_escaped"], "/", payload["n_defects"], payload["digest"])
+    print(payload["n_caught"], "/", payload["n_knockouts"], payload["digest"])
 
 
 if __name__ == "__main__":

@@ -1,12 +1,13 @@
-"""Planted-defect grid and the anti-gaming property.
+"""Planted-defect checks and the anti-gaming property.
 
-This is a measurement of the auditor on bundles we built. It is not a
-rate for the published in-silico literature.
+The knockouts are deterministic predicates, not a binomial sample and
+not a rate for the published literature. The role-relabel builder still
+keeps a confirmatory negative-control arm; its extra flags are unread,
+so that row is a probe, not an escape trial.
 """
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Mapping
 
 from codontrace.claimgate.auditor import audit_bundle
@@ -23,7 +24,6 @@ from codontrace.claimgate.ladder_packs import (
 from codontrace.claimgate.schema import ClaimgateBundle
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 
-# Knockouts that remove a rung the reference bundle had.
 SHOULD_DROP: tuple[tuple[str, Callable[[], ClaimgateBundle]], ...] = (
     ("identical_arms", pack_identical_arms),
     ("zero_width_ci", pack_zero_width_ci),
@@ -33,9 +33,7 @@ SHOULD_DROP: tuple[tuple[str, Callable[[], ClaimgateBundle]], ...] = (
     ("three_seeds", pack_three_seeds),
 )
 
-# A sensitivity arm kept under the negative_control role. The auditor
-# still sees the role, so this row can stay at the reference level.
-NAMED_ESCAPE = ("role_relabel_sensitivity", pack_drop_confirmatory_keep_sensitivity_role)
+NAMED_PROBE = ("role_relabel_sensitivity", pack_drop_confirmatory_keep_sensitivity_role)
 
 _LABELS: tuple[Mapping[str, object], ...] = (
     {"model_influence": 3, "decision_consequence": 3, "model_risk": 3},
@@ -45,24 +43,11 @@ _LABELS: tuple[Mapping[str, object], ...] = (
 )
 
 
-def wilson_interval(successes: int, n: int, z: float = 1.959963984540054) -> tuple[float, float]:
-    """Wilson score interval. Successes here are escaped defects."""
-
-    if n < 1:
-        raise ValueError("wilson_interval needs at least one trial")
-    p = successes / n
-    z2 = z * z
-    denom = 1.0 + z2 / n
-    center = (p + z2 / (2.0 * n)) / denom
-    margin = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denom
-    return (max(0.0, center - margin), min(1.0, center + margin))
-
-
 def _with_labels(bundle: ClaimgateBundle, labels: Mapping[str, object]) -> ClaimgateBundle:
     extra = dict(bundle.extra or {})
     extra.update(labels)
     extra["label_inflation"] = True
-    return bundle.__class__(
+    return ClaimgateBundle(
         software=bundle.software,
         seeds=bundle.seeds,
         config_digest=bundle.config_digest,
@@ -107,35 +92,30 @@ def defect_grid_payload() -> dict[str, object]:
                 "defect": name,
                 "class": "requirement_knockout",
                 "auditor_level": level,
-                "escaped": level >= reference,
+                "caught": level < reference,
             }
         )
-    escape_name, escape_builder = NAMED_ESCAPE
-    escape_level = audit_bundle(escape_builder()).achieved_level
-    rows.append(
-        {
-            "defect": escape_name,
-            "class": "role_relabel",
-            "auditor_level": escape_level,
-            "escaped": escape_level >= reference,
-        }
-    )
-    n = len(rows)
-    escaped = sum(1 for row in rows if row["escaped"])
-    low, high = wilson_interval(escaped, n)
+    probe_name, probe_builder = NAMED_PROBE
+    probe_level = audit_bundle(probe_builder()).achieved_level
     gaming = anti_gaming_rows(pack_reference())
     body: dict[str, object] = {
         "schema": "claimgate_defect_grid_v1",
         "reference_level": reference,
-        "n_defects": n,
-        "n_escaped": escaped,
-        "escape_rate": escaped / n,
-        "wilson95": [low, high],
-        "rows": rows,
+        "n_knockouts": len(rows),
+        "n_caught": sum(1 for row in rows if row["caught"]),
+        "knockouts": rows,
+        "role_relabel_probe": {
+            "defect": probe_name,
+            "auditor_level": probe_level,
+            "confirmatory_arm_still_present": True,
+            "flags_read": False,
+            "not_an_escape_trial": True,
+        },
         "anti_gaming": gaming,
         "anti_gaming_holds": all(not row["raised"] for row in gaming),
-        "population": "planted_defects_on_the_reference_pack",
+        "population": "deterministic_requirement_knockouts",
         "not_a_literature_rate": True,
+        "not_a_binomial_sample": True,
         "external_raters": False,
     }
     return {**body, "digest": canonical_digest(canonical_payload(body))}

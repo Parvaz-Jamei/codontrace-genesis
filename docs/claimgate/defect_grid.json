@@ -47,61 +47,58 @@
     }
   ],
   "anti_gaming_holds": true,
-  "digest": "4c206d74c520709ea9ced9c868f9000aed06ea127a4d1c16e37e48ce97165747",
-  "escape_rate": 0.14285714285714285,
+  "digest": "3c8a8a1f408093520b8ceeec05c6ce332d57c5debcfe421a0d478ab4b6c3f8ea",
   "external_raters": false,
-  "n_defects": 7,
-  "n_escaped": 1,
-  "not_a_literature_rate": true,
-  "population": "planted_defects_on_the_reference_pack",
-  "reference_level": 4,
-  "rows": [
+  "knockouts": [
     {
       "auditor_level": 1,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "identical_arms",
-      "escaped": false
+      "defect": "identical_arms"
     },
     {
       "auditor_level": 1,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "zero_width_ci",
-      "escaped": false
+      "defect": "zero_width_ci"
     },
     {
       "auditor_level": 1,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "no_paired_comparison",
-      "escaped": false
+      "defect": "no_paired_comparison"
     },
     {
       "auditor_level": 2,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "no_replay",
-      "escaped": false
+      "defect": "no_replay"
     },
     {
       "auditor_level": 2,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "empty_limitations",
-      "escaped": false
+      "defect": "empty_limitations"
     },
     {
       "auditor_level": 3,
+      "caught": true,
       "class": "requirement_knockout",
-      "defect": "three_seeds",
-      "escaped": false
-    },
-    {
-      "auditor_level": 4,
-      "class": "role_relabel",
-      "defect": "role_relabel_sensitivity",
-      "escaped": true
+      "defect": "three_seeds"
     }
   ],
-  "schema": "claimgate_defect_grid_v1",
-  "wilson95": [
-    0.02567962434474355,
-    0.5131278292743189
-  ]
+  "n_caught": 6,
+  "n_knockouts": 6,
+  "not_a_binomial_sample": true,
+  "not_a_literature_rate": true,
+  "population": "deterministic_requirement_knockouts",
+  "reference_level": 4,
+  "role_relabel_probe": {
+    "auditor_level": 4,
+    "confirmatory_arm_still_present": true,
+    "defect": "role_relabel_sensitivity",
+    "flags_read": false,
+    "not_an_escape_trial": true
+  },
+  "schema": "claimgate_defect_grid_v1"
 }

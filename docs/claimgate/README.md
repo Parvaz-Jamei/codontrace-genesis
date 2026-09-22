@@ -7,7 +7,7 @@ project prestigious, certified, or independently reviewed.
 |---|---|---|
 | `ladder_validation.json` | Live auditor grades of nine synthetic packs | Population false-accept rate |
 | `biomedical_study.json` | Live audit of `examples/studies/he01_phenomena.json` | A device credibility grade |
-| `defect_grid.json` | Live escape rate on 7 planted defects, plus the anti-gaming check | A rate for the published literature |
+| `defect_grid.json` | Six deterministic knockouts, all caught; the role-relabel row is an unread-flag probe, not a rate | A binomial false-accept rate, or a literature percentage |
 | `test_snapshot.json` | Local pytest count of ClaimGate adapter/port tests | GitHub Actions matrix / multi-OS proof |
 
 Rebuild validation:

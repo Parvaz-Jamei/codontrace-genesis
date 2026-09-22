@@ -15,7 +15,12 @@ identity). README / CLAIMS / CITATION now name the published PyPI tip
 meet-in-the-middle and will not hide a censored p-floor; default
 `exact_sign_flip_permutation_p` is unchanged so published campaign pins stay
 stable. `bootstrap_ci_paired(..., method="studentized")` is opt-in
-percentile-t; default BCa is unchanged. JOSS no longer calls the default sign-flip “exact” for all n, and
+percentile-t; default BCa is unchanged. Meet-in-the-middle sign-flip
+uses a relative float match so all-positive n=30 deltas count as 2/2^n;
+the default p path and HE01 `results_v7.json` are unchanged. BAIC
+manuscript in `paper/baic/` combines the honest revision (claim audit,
+composite intervention, missing calibration artifact) with the fuller
+tables, without recutting campaign numbers or claiming SaMD. JOSS no longer calls the default sign-flip “exact” for all n, and
 the ESP32 line is an engineering stub. BAIC 2026 source lives in
 `paper/baic/` (evidence-audit analog; not SaMD). No version bump. Phase A–E
 pins unchanged. ClaimGate not loosened.

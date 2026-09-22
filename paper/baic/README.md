@@ -33,6 +33,9 @@ Checked against `main` at the commit that added this directory:
   `meet_in_the_middle_sign_flip_p` is exact for n≤40 and is **opt-in**.
 - Studentized bootstrap CI is **opt-in** (`method="studentized"`). Default
   `bootstrap_ci_paired` stays BCa so published campaign pins stay.
+- Meet-in-the-middle uses a relative float match so all-positive paired
+  deltas still count as 2/2^n. It remains opt-in; HE01 `results_v7.json`
+  is not recut.
 - JOSS Flageat DOI is `10.1109/TEVC.2025.3548438` (IEEE TEVC 30(1):286–295).
 
 Do not strengthen this manuscript with fabricated clinical data.

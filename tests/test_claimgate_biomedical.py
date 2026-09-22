@@ -105,6 +105,10 @@ def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     assert "اختیاری" in baic
     assert "studentized" in baic.lower()
     assert "پیاده نشده" not in baic
+    assert "28f812c5" in baic
+    assert "NASA-STD-7009B" in baic
+    assert "read_bytes" in baic
+    assert "results_v7.json" in baic
     assert "ladder_validation.json" in baic_readme
     assert "fix/small-sample-ci-coverage" in baic_readme
     assert "does not exist" in baic_readme.lower()

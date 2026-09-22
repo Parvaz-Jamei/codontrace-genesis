@@ -167,6 +167,14 @@ def test_sign_flip_detail_flags_monte_carlo_floor_and_mitm_is_exact() -> None:
     assert mitm.p < auto.floor
 
 
-def test_meet_in_the_middle_rejects_n_above_40() -> None:
+def test_meet_in_the_middle_counts_all_positive_float_deltas() -> None:
+    # Non-dyadic floats: split sums must still count the two extreme patterns.
+    deltas = tuple(float(i) + 0.0125 * (i % 7) for i in range(1, 31))
+    assert min(deltas) > 0.0
+    assert meet_in_the_middle_sign_flip_p(deltas) == pytest.approx(2.0 / float(1 << 30))
+    subset = deltas[:20]
+    assert meet_in_the_middle_sign_flip_p(subset) == pytest.approx(
+        exact_sign_flip_permutation_p(subset)
+    )
     with pytest.raises(ConfigurationError):
         meet_in_the_middle_sign_flip_p([1.0] * 41)

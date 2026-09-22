@@ -604,6 +604,7 @@ _MONTE_CARLO_SIGN_FLIPS = 20000
 _EXACT_SIGN_FLIP_MAX_N = 20
 _MEET_IN_THE_MIDDLE_MAX_N = 40
 _SIGN_FLIP_ABS_EPS = 1e-15
+_SIGN_FLIP_REL_EPS = 1e-12
 
 
 @dataclass(frozen=True, slots=True)
@@ -699,6 +700,12 @@ def _mean_of(values: Sequence[float]) -> float:
     return sum(values) / len(values)
 
 
+def _sign_flip_match_eps(observed: float) -> float:
+    """Absolute+relative slack so split sums still match the all-sign pattern."""
+
+    return _SIGN_FLIP_ABS_EPS + _SIGN_FLIP_REL_EPS * max(1.0, abs(observed))
+
+
 def exact_sign_flip_permutation_p(
     deltas: Sequence[float],
     *,
@@ -729,7 +736,7 @@ def _monte_carlo_sign_flip_p(values: Sequence[float], observed: float, seed: int
         total = 0.0
         for value in values:
             total += value if rng.randrange(2) == 0 else -value
-        if abs(total) + _SIGN_FLIP_ABS_EPS >= observed:
+        if abs(total) + _sign_flip_match_eps(observed) >= observed:
             count += 1
     return (1 + count) / (1 + _MONTE_CARLO_SIGN_FLIPS)
 
@@ -741,7 +748,7 @@ def _exhaustive_sign_flip_count(values: Sequence[float], observed: float) -> int
         total = 0.0
         for index, value in enumerate(values):
             total += value if (mask >> index) & 1 else -value
-        if abs(total) + _SIGN_FLIP_ABS_EPS >= observed:
+        if abs(total) + _sign_flip_match_eps(observed) >= observed:
             count += 1
     return count
 
@@ -783,7 +790,7 @@ def _meet_in_the_middle_count(values: Sequence[float], observed: float) -> int:
     n1 = n // 2
     left = _signed_sums(values[:n1])
     right = sorted(_signed_sums(values[n1:]))
-    threshold = observed - _SIGN_FLIP_ABS_EPS
+    threshold = observed - _sign_flip_match_eps(observed)
     if threshold <= 0.0:
         return 1 << n
     lo_bound = -threshold

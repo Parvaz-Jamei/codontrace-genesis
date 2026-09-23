@@ -60,7 +60,7 @@ from codontrace.claimgate.adapters.host_parasite import (
 ```
 
 See `API_SKETCH.md`, `REQUIREMENTS.md`, `EXPERT_BRAINSTORM.md` (consensus MVP),
-`PHASE1_REVIEW.md`, `CITATIONS.md`, and `README_FA.md`.
+`PHASE1_REVIEW.md`, `PHASE2_REVIEW.md`, `PHASE3_REVIEW.md`, `CITATIONS.md`, and `README_FA.md`.
 
 ## Honest limits
 

@@ -322,3 +322,374 @@ def bundle_from_host_parasite_cou(
     extra = dict(bundle.extra or {})
     extra.update(labels)
     return replace(bundle, extra=extra)
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — intervention falsification, multilevel gate, ARD/FSD labels
+# ---------------------------------------------------------------------------
+
+_TRANSITION_BLOCKED = frozenset(
+    {
+        "major_transition_proved",
+        "transition_to_individuality_proved",
+        "fitness_reorganization_proved",
+    }
+)
+
+_DYNAMICS_LABELS = frozenset({"undeclared", "ard_candidate", "fsd_candidate", "ard_fsd_mixed_candidate"})
+_WORKSHEET_NOTE_HP = "Multilevel worksheet does not raise the claim ladder."
+_FALSIFICATION_NOTE = "Digital intervention falsification does not grant intervention_supported by itself."
+
+
+@dataclass(frozen=True, slots=True)
+class MultilevelTransitionWorksheet:
+    """Gate for transition-language honesty (Michod / Okasha caution).
+
+    A typed reorganization sketch cannot prove a major transition. Open gaps
+    keep `major_transition_proved` and kin blocked. The worksheet never raises
+    the public ClaimGate ladder.
+    """
+
+    open_gaps: tuple[str, ...]
+    readiness_documented: bool
+    limiting_note: str
+
+    @property
+    def transition_claim_allowed(self) -> bool:
+        """Always False: readiness never unlocks transition claim language."""
+
+        return False
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": "host_parasite_multilevel_worksheet_v1",
+            "open_gaps": list(self.open_gaps),
+            "readiness_documented": self.readiness_documented,
+            "transition_claim_allowed": False,
+            "limiting_note": self.limiting_note,
+            "raises_claim_ladder": False,
+            "sources": ["michod_nedelcu_2003", "okasha_multilevel_2022", "okasha_otsuka_2020"],
+        }
+
+
+def multilevel_transition_worksheet(
+    *,
+    within_host_conflict_measured: bool = False,
+    between_host_export_measured: bool = False,
+    fitness_reorganization_documented: bool = False,
+    price_partition_only: bool = True,
+    requested_transition_claim: str = "",
+) -> MultilevelTransitionWorksheet:
+    """Build a multilevel gate. Price-only summaries keep transitions blocked."""
+
+    gaps: list[str] = []
+    if not within_host_conflict_measured:
+        gaps.append("within_host_conflict_unmeasured")
+    if not between_host_export_measured:
+        gaps.append("between_host_export_unmeasured")
+    if not fitness_reorganization_documented:
+        gaps.append("fitness_reorganization_undocumented")
+    if price_partition_only:
+        gaps.append("price_partition_is_not_causal")
+    claim = requested_transition_claim.strip().lower()
+    transition_aliases = _TRANSITION_BLOCKED | {
+        "major_transition",
+        "fitness_reorganization",
+        "transition_to_individuality",
+    } | set(HOST_PARASITE.blocked_claims)
+    if claim and claim in transition_aliases:
+        gaps.append(f"blocked_claim:{claim}")
+    ready = not gaps
+    note = (
+        "Multilevel readiness documented; transition claim language still blocked."
+        if ready
+        else "Transition strings stay blocked while multilevel gaps remain open."
+    )
+    return MultilevelTransitionWorksheet(tuple(gaps), ready, note)
+
+
+def assert_transition_claim_allowed(
+    claimed: str,
+    worksheet: MultilevelTransitionWorksheet,
+) -> str:
+    """Fail closed on transition strings.
+
+    The worksheet documents multilevel readiness. It does **not** unlock
+    transition claim language. Only ordinary digital claims such as
+    ``runtime_observation`` may pass.
+    """
+
+    claim = assert_claim_allowed(claimed)
+    transition_aliases = _TRANSITION_BLOCKED | {
+        "major_transition",
+        "fitness_reorganization",
+        "transition_to_individuality",
+    }
+    if claim in transition_aliases:
+        raise ConfigurationError(
+            f"{claimed!r} stays blocked; multilevel worksheet gaps="
+            f"{list(worksheet.open_gaps)} readiness="
+            f"{worksheet.transition_claim_allowed}."
+        )
+    if not worksheet.transition_claim_allowed and claim not in {
+        "runtime_observation",
+        "declared_score",
+    }:
+        # Non-transition claims still ok; worksheet gaps do not block ordinary labels.
+        pass
+    return claim
+
+
+@dataclass(frozen=True, slots=True)
+class DynamicsLabels:
+    """Optional ARD / FSD candidate labels without proving Red Queen."""
+
+    label: str
+    red_queen_proved: bool
+    note: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": "host_parasite_dynamics_labels_v1",
+            "label": self.label,
+            "red_queen_proved": self.red_queen_proved,
+            "note": self.note,
+            "raises_claim_ladder": False,
+        }
+
+
+def declared_dynamics_labels(label: str = "undeclared") -> DynamicsLabels:
+    """Declare ARD/FSD candidate language. Never sets red_queen_proved."""
+
+    if not isinstance(label, str) or not label.strip():
+        raise ConfigurationError("dynamics label must be a non-empty string.")
+    key = label.strip().lower()
+    if key not in _DYNAMICS_LABELS:
+        raise ConfigurationError(
+            f"dynamics label must be one of {sorted(_DYNAMICS_LABELS)}; got {label!r}."
+        )
+    if key == "undeclared":
+        note = "No ARD/FSD candidate declared."
+    else:
+        note = (
+            f"{key} is a digital candidate label only; Red Queen dynamics are not proved."
+        )
+    return DynamicsLabels(key, False, note)
+
+
+@dataclass(frozen=True, slots=True)
+class InterventionFalsificationResult:
+    """Digital falsification report. Does not grant intervention_supported."""
+
+    intervention_id: str
+    kind: str
+    passed: bool
+    control_score: float
+    intervention_score: float
+    score_delta: float
+    reason: str
+    claim_ceiling: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "intervention_id": self.intervention_id,
+            "kind": self.kind,
+            "passed": self.passed,
+            "control_score": self.control_score,
+            "intervention_score": self.intervention_score,
+            "score_delta": self.score_delta,
+            "reason": self.reason,
+            "claim_ceiling": self.claim_ceiling,
+            "grants_intervention_supported": False,
+            "raises_claim_ladder": False,
+        }
+
+
+def _env_pair(
+    *,
+    host_tasks: Sequence[str],
+    parasite_tasks: Sequence[str],
+    payload: Sequence[int],
+    steal_fraction: float,
+    null_kind: str,
+):
+    from codontrace.genesis.host_parasite_env import HostParasiteEnv, dual_null_template
+
+    env = HostParasiteEnv(
+        steal_fraction=steal_fraction,
+        null_template=dual_null_template(null_kind),
+    )
+    env.add_host("H0", host_tasks)
+    env.try_horizontal_inject(
+        host_id="H0",
+        parasite_id="P0",
+        parasite_tasks=parasite_tasks,
+        payload=payload,
+    )
+    return env
+
+
+def run_intervention_falsification(
+    *,
+    kind: str,
+    host_tasks: Sequence[str],
+    parasite_tasks: Sequence[str],
+    payload: Sequence[int] = (1, 2, 3),
+    steal_fraction: float = 0.8,
+    intervention_id: str = "I_auto",
+    expected_direction: str = "intervention_score_ge_control",
+) -> InterventionFalsificationResult:
+    """Execute one digital falsification hook against HostParasiteEnv.
+
+    Control = intact infection. Intervention arms:
+
+    - ``remove_parasites``: no inject attempted (abiotic host only)
+    - ``content_null_payload``: content-null template
+    - ``structure_null_overlap``: structure-null template
+    - ``steal_fraction_ablation``: steal_fraction forced to 0
+    - ``abiotic_only_arm``: alias of remove_parasites
+
+    A pass means the digital score moved in the expected direction. This never
+    sets claim ceiling above ``runtime_observation`` and never grants
+    ``intervention_supported``.
+    """
+
+    if not isinstance(kind, str) or not kind.strip():
+        raise ConfigurationError("falsification kind is required.")
+    key = kind.strip().lower()
+    allowed = frozenset(
+        {
+            "remove_parasites",
+            "content_null_payload",
+            "structure_null_overlap",
+            "steal_fraction_ablation",
+            "abiotic_only_arm",
+        }
+    )
+    if key not in allowed:
+        raise ConfigurationError(
+            f"falsification kind must be one of {sorted(allowed)}; got {kind!r}."
+        )
+    if expected_direction not in {
+        "intervention_score_ge_control",
+        "intervention_score_le_control",
+        "scores_differ",
+    }:
+        raise ConfigurationError("unsupported expected_direction.")
+
+    from codontrace.genesis.host_parasite_env import HostParasiteEnv
+
+    probe = HostParasiteEnv(steal_fraction=steal_fraction)
+    eligible, _overlap = probe.infection_eligible(host_tasks, parasite_tasks)
+    if not eligible:
+        raise ConfigurationError(
+            "run_intervention_falsification requires task overlap so the control arm can infect."
+        )
+
+    control = _env_pair(
+        host_tasks=host_tasks,
+        parasite_tasks=parasite_tasks,
+        payload=payload,
+        steal_fraction=steal_fraction,
+        null_kind="none",
+    )
+    control_score = control.population_outcome_score()
+
+    if key in {"remove_parasites", "abiotic_only_arm"}:
+        from codontrace.genesis.host_parasite_env import HostParasiteEnv
+
+        intervened = HostParasiteEnv(steal_fraction=steal_fraction)
+        intervened.add_host("H0", host_tasks)
+        # No parasite inject — remove-parasites / abiotic-only arm.
+        intervention_score = intervened.population_outcome_score()
+        reason = "parasites_absent"
+    elif key == "content_null_payload":
+        intervened = _env_pair(
+            host_tasks=host_tasks,
+            parasite_tasks=parasite_tasks,
+            payload=payload,
+            steal_fraction=steal_fraction,
+            null_kind="content_null",
+        )
+        intervention_score = intervened.population_outcome_score()
+        reason = "content_null_applied"
+    elif key == "structure_null_overlap":
+        intervened = _env_pair(
+            host_tasks=host_tasks,
+            parasite_tasks=parasite_tasks,
+            payload=payload,
+            steal_fraction=steal_fraction,
+            null_kind="structure_null",
+        )
+        intervention_score = intervened.population_outcome_score()
+        reason = "structure_null_applied"
+    else:  # steal_fraction_ablation
+        intervened = _env_pair(
+            host_tasks=host_tasks,
+            parasite_tasks=parasite_tasks,
+            payload=payload,
+            steal_fraction=0.0,
+            null_kind="none",
+        )
+        intervention_score = intervened.population_outcome_score()
+        reason = "steal_fraction_zeroed"
+
+    delta = round(intervention_score - control_score, 10)
+    if expected_direction == "intervention_score_ge_control":
+        passed = intervention_score >= control_score and delta != 0.0
+    elif expected_direction == "intervention_score_le_control":
+        passed = intervention_score <= control_score and delta != 0.0
+    else:
+        passed = delta != 0.0
+    if not passed and delta == 0.0:
+        reason = f"{reason};assay_invalid_no_score_change"
+    return InterventionFalsificationResult(
+        intervention_id=intervention_id,
+        kind=key,
+        passed=passed,
+        control_score=control_score,
+        intervention_score=intervention_score,
+        score_delta=delta,
+        reason=reason,
+        claim_ceiling="runtime_observation",
+    )
+
+
+def attach_phase3_honesty(
+    bundle: ClaimgateBundle,
+    *,
+    falsification: InterventionFalsificationResult | None = None,
+    worksheet: MultilevelTransitionWorksheet | None = None,
+    dynamics: DynamicsLabels | None = None,
+) -> ClaimgateBundle:
+    """Attach Phase 3 honesty records without raising the public ladder."""
+
+    if falsification is None and worksheet is None and dynamics is None:
+        raise ConfigurationError(
+            "attach_phase3_honesty requires falsification, worksheet, or dynamics."
+        )
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_phase3_honesty requires a host_parasite domain bundle."
+        )
+    limitations = bundle.limitations
+    if falsification is not None:
+        if "intervention_falsification" in extra:
+            raise ConfigurationError("intervention_falsification already attached.")
+        extra["intervention_falsification"] = cast(JsonValue, falsification.to_dict())
+        if _FALSIFICATION_NOTE not in limitations:
+            limitations = limitations + (_FALSIFICATION_NOTE,)
+    if worksheet is not None:
+        if "multilevel_transition_worksheet" in extra:
+            raise ConfigurationError("multilevel_transition_worksheet already attached.")
+        extra["multilevel_transition_worksheet"] = cast(JsonValue, worksheet.to_dict())
+        if _WORKSHEET_NOTE_HP not in limitations:
+            limitations = limitations + (_WORKSHEET_NOTE_HP,)
+    if dynamics is not None:
+        if "dynamics_labels" in extra:
+            raise ConfigurationError("dynamics_labels already attached.")
+        if dynamics.red_queen_proved:
+            raise ConfigurationError("dynamics_labels cannot claim red_queen_proved.")
+        extra["dynamics_labels"] = cast(JsonValue, dynamics.to_dict())
+    return replace(bundle, extra=extra, limitations=limitations)

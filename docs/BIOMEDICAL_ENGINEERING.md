@@ -192,4 +192,4 @@ print(study.claim_level, study.worksheet.open_gaps, study.worksheet.coupled_ceil
 
 ## Applied medical evidence suite (2026-09-24)
 
-Additive package only: see `docs/claimgate/applied_medical_evidence_20260924/`. It does **not** replace `docs/claimgate/risk_bar.json`, `docs/claimgate/biomedical_study.json`, or `docs/hard_experiment_01/results_v7.json`.
+Additive packages only: see `docs/claimgate/applied_medical_evidence_20260924/` and sibling `docs/claimgate/novel_valuable_evidence_20260924/`. They do **not** replace `docs/claimgate/risk_bar.json`, `docs/claimgate/biomedical_study.json`, or `docs/hard_experiment_01/results_v7.json`.

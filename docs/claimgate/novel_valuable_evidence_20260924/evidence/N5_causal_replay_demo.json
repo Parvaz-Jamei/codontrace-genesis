@@ -1,0 +1,38 @@
+{
+  "cli_exit_code": 0,
+  "cli_stderr": "",
+  "cli_stdout": "Action MOVE_EAST was selected because codon 101 decoded to MOVE_EAST. ATP before action was 5.0; action cost was 1.0; resource credit was 0.0; net ATP delta was -1.0; ledger entry refs were agent-1:0; raw ledger entry ids were 0. Status=executed; reason=moved; movement (1, 1)->(2, 1). Perturbations: low_atp:insufficient_atp, wall_inserted:wall_blocked.\n{'name': 'baseline', 'status': 'executed', 'reason': 'moved', 'position_after': [2, 1]}\n{'name': 'low_atp', 'status': 'blocked', 'reason': 'insufficient_atp', 'position_after': [1, 1]}\n{'name': 'wall_inserted', 'status': 'blocked', 'reason': 'wall_blocked', 'position_after': [1, 1]}\n",
+  "note": "Deterministic causal replay: identical setup \u2192 identical explanation. Perturbations show counterfactual dependence (ATP / wall), not mere correlation. Addresses Price\u2260causality at micro scale; does NOT claim collective intelligence.",
+  "perturbation_results": [
+    {
+      "name": "baseline",
+      "position_after": [
+        2,
+        1
+      ],
+      "reason": "moved",
+      "status": "executed"
+    },
+    {
+      "name": "low_atp",
+      "position_after": [
+        1,
+        1
+      ],
+      "reason": "insufficient_atp",
+      "status": "blocked"
+    },
+    {
+      "name": "wall_inserted",
+      "position_after": [
+        1,
+        1
+      ],
+      "reason": "wall_blocked",
+      "status": "blocked"
+    }
+  ],
+  "second_run_perturbations_match": true,
+  "second_run_summary_match": true,
+  "summary": "Action MOVE_EAST was selected because codon 101 decoded to MOVE_EAST. ATP before action was 5.0; action cost was 1.0; resource credit was 0.0; net ATP delta was -1.0; ledger entry refs were agent-1:0; raw ledger entry ids were 0. Status=executed; reason=moved; movement (1, 1)->(2, 1). Perturbations: low_atp:insufficient_atp, wall_inserted:wall_blocked."
+}

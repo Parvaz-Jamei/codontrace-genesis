@@ -1,0 +1,36 @@
+{
+  "as_run_digest": "45741d911facd4eae0e7f000c2fcd3873280d4b344d3266c4fab9fbe28295419",
+  "claim_ceiling": "runtime_observation",
+  "contrasts": {
+    "vs_capsules_shuffled": {
+      "dz": 0.195366691,
+      "fails_holm": true,
+      "p_holm": 0.365731713414,
+      "survives_holm": false
+    },
+    "vs_channel_off": {
+      "dz": 1.1294252408,
+      "p_holm": 0.0001499925,
+      "survives_holm": true
+    },
+    "vs_content_null": {
+      "dz": 1.1294252408,
+      "p_holm": 0.0001499925,
+      "survives_holm": true
+    }
+  },
+  "decision_rule_failures": [
+    "information_control_not_separated"
+  ],
+  "decision_rule_passed": false,
+  "holm_alpha": 0.05,
+  "honest_nonclaim": "HE02 did NOT prove communication or division of labor. This suite records the confirmatory fail as evidence of claim\u2013evidence discrimination.",
+  "interpretation": "Treatment vs channel_off / content_null survives Holm (dz\u22481.13); vs capsules_shuffled fails (dz\u22480.20, p_holm\u22480.37). Effect is not separated from information-bearing capsule content under the prereg decision rule \u2192 confirmatory communication claim not earned (information_control_not_separated). Maps to Floreano/Knoester honesty: signals need selective value AND content-sensitive controls; channel-off alone can look like a win.",
+  "literature_map": {
+    "Floreano_2007": "honest signals under relatedness/colony selection; food-location MI",
+    "Knoester_2008": "cooperative construction needs content-bearing network structure"
+  },
+  "pattern_name": "content_null_not_information_control",
+  "pilot_report_delta_atp_note": "PILOT_REPORT.md: Holm survives vs off/null (dz\u22481.13, \u0394ATP=+0.53 on baseline 44) and fails vs shuffled (dz\u22480.20, p_holm\u22480.37).",
+  "source": "docs/hard_experiment_02/analysis_v1b_contrasts.json"
+}

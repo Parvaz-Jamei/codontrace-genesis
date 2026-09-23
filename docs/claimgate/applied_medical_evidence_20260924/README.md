@@ -74,3 +74,5 @@ Write new outputs under this folder only.
 - HE01 is a life-loop campaign used here as an *executed* evidence bundle analog, not an implant or patient model.
 - `raises_claim_ladder` stays false for worksheet / study overlays.
 - This package strengthens the **applied claim-gating story**; it does not upgrade the paper's empirical HE01 numbers.
+
+Sibling additive pack (ALife claim–evidence portfolio): `docs/claimgate/novel_valuable_evidence_20260924/`.

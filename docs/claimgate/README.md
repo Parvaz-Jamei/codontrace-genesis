@@ -23,3 +23,10 @@ PYTHONPATH=src python -m pytest tests/test_claimgate_ladder_packs.py tests/test_
 
 Still missing for any stronger claim: external raters, factorial HE01,
 public Avida `.dat`, and a real biomedical model under a stated COU.
+
+## Additive evidence packs (2026-09-24)
+
+Read-only suites that do **not** rewrite the pins above:
+
+- `applied_medical_evidence_20260924/` — biomedical DomainProfile stress tests (FDA CM&S / ASME V&V 40 language).
+- `novel_valuable_evidence_20260924/` — ALife claim–evidence discrimination (HE01/HE02 portfolio, overclaim traps, content-null pattern).

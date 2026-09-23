@@ -34,6 +34,7 @@ Phase 9                      → evolvability/Cornish assays + comparator + HE_H
 Phase 10                     → genome-aware Zaman dual digests (Wave 3; this PR)
 Phase 11                     → codon-entropy / Hamming dual-null (Wave 3; this PR)
 Phase 12                     → HGT-analogue + intracellular/free-living pack (Wave 3; this PR)
+Phase 13                     → declared task–gene map digests (Wave 3 earn-in; this PR)
 ```
 
 Phases 1–9 are on main; Wave 3 (Phases 10–12) lands on `feat/host-parasite-wave3-genome`. See `DEPTH_BRAINSTORM_WAVE3.md`.

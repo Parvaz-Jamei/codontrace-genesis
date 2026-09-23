@@ -190,4 +190,6 @@ study = audit_biomedical_study_file("examples/studies/he01_phenomena.json")
 print(study.claim_level, study.worksheet.open_gaps, study.worksheet.coupled_ceiling)
 ```
 
+## Applied medical evidence suite (2026-09-24)
 
+Additive package only: see `docs/claimgate/applied_medical_evidence_20260924/`. It does **not** replace `docs/claimgate/risk_bar.json`, `docs/claimgate/biomedical_study.json`, or `docs/hard_experiment_01/results_v7.json`.

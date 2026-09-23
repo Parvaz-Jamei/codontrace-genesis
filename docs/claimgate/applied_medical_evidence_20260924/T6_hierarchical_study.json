@@ -1,0 +1,50 @@
+{
+  "schema": "biomedical_study_result_v1",
+  "study": "/workspace/applied_medical_evidence_20260924/studies/hierarchical_isct_demo.json",
+  "claim_level": 4,
+  "question_of_interest": "Does typed knowledge:adequate close contact_stress without an executed arm?",
+  "context_of_use": "New applied-medical suite 2026-09-24; HE01 as life-loop analog only; not a device certificate.",
+  "executed": [
+    "source_fitness_bias",
+    "life_loop"
+  ],
+  "not_closed": [],
+  "declared_only": [
+    "contact_stress",
+    "population_endpoint",
+    "patient_geometry",
+    "outcome_map"
+  ],
+  "open_gaps": [
+    "pirt:contact_stress",
+    "pirt:population_endpoint",
+    "declared_only:contact_stress",
+    "declared_only:population_endpoint",
+    "declared_only:patient_geometry",
+    "declared_only:outcome_map"
+  ],
+  "coupled_ceiling": null,
+  "limiting_submodel": "outcome_map",
+  "limiting_level": 2,
+  "ceiling_measured": false,
+  "submodel_sources": [
+    {
+      "name": "life_loop",
+      "level": 4,
+      "source": "executed"
+    },
+    {
+      "name": "patient_geometry",
+      "level": 2,
+      "source": "declared"
+    },
+    {
+      "name": "outcome_map",
+      "level": 2,
+      "source": "declared"
+    }
+  ],
+  "raises_claim_ladder": false,
+  "not_a_device_certificate": true,
+  "digest": "cb44550f9248ed917acbea8b88a24f9455782363284f13f4d6199672834f82fd"
+}

@@ -1,0 +1,61 @@
+{
+  "schema": "biomedical_risk_bar_v1",
+  "required_level_by_risk": [
+    {
+      "model_risk": 1,
+      "required_level": 2
+    },
+    {
+      "model_risk": 2,
+      "required_level": 3
+    },
+    {
+      "model_risk": 3,
+      "required_level": 4
+    }
+  ],
+  "high_pirt_blocks_from_risk": 2,
+  "raises_claim_ladder": false,
+  "not_an_fda_score": true,
+  "not_a_device_certificate": true,
+  "rows": [
+    {
+      "name": "device_table",
+      "claim_level": 0,
+      "model_influence": 2,
+      "decision_consequence": 3,
+      "model_risk": 3,
+      "required_level": 4,
+      "blocking_gaps": [
+        "achieved_below_bar"
+      ],
+      "met": false,
+      "raises_claim_ladder": false
+    },
+    {
+      "name": "he01_executed_phenomenon",
+      "claim_level": 4,
+      "model_influence": 3,
+      "decision_consequence": 3,
+      "model_risk": 3,
+      "required_level": 4,
+      "blocking_gaps": [],
+      "met": true,
+      "raises_claim_ladder": false
+    },
+    {
+      "name": "he01_plus_declared_phenomenon",
+      "claim_level": 4,
+      "model_influence": 3,
+      "decision_consequence": 3,
+      "model_risk": 3,
+      "required_level": 4,
+      "blocking_gaps": [
+        "pirt:contact_stress"
+      ],
+      "met": false,
+      "raises_claim_ladder": false
+    }
+  ],
+  "digest": "b053e7f1bdbd0cd9e350cd322bf95695052c0cc46f8ec60ec243228bb83533d0"
+}

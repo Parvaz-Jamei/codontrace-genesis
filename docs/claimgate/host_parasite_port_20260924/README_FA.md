@@ -22,3 +22,7 @@
 ## فاز ۴
 
 اجرای کمپین چندبذری با خلاصه‌های canonical و سقف ادعای fail-closed تا `candidate_evidence`؛ بدون اثبات Red Queen و بدون دست‌زدن به `engine.py`.
+
+## فاز ۶
+
+طرح عاملی abiotic×biotic، خلاصه شبکه با digest، و preregistration اجباری پیش از attach کمپین؛ بدون ادعای Red Queen یا بالینی.

@@ -188,3 +188,27 @@ diag = diagnose_coevolution_ranges([
 ])
 assert diag.red_queen_proved is False
 ```
+
+
+## Phase 6 — factorial, network, preregistration
+
+```python
+from codontrace.genesis.host_parasite_factorial import (
+    run_abiotic_biotic_factorial,
+    summarize_interaction_network,
+)
+from codontrace.claimgate.adapters.host_parasite_prereg import (
+    host_parasite_preregistration,
+    attach_host_parasite_preregistration,
+)
+
+factorial = run_abiotic_biotic_factorial(seeds=(1, 2), request_claim_ceiling="candidate_evidence")
+assert factorial.red_queen_proved is False
+prereg = host_parasite_preregistration(
+    question_of_interest="Does abiotic productivity change infected retained-CPU?",
+    context_of_use="Digital factorial only.",
+    arms=("intact", "abiotic_only"),
+    success_metrics=("mean_retained_cpu_contrast",),
+)
+# attach_host_parasite_campaign requires preregistration on the bundle first.
+```

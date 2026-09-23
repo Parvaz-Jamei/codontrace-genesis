@@ -60,9 +60,9 @@ from codontrace.claimgate.adapters.host_parasite import (
     InterventionFalsificationResult,
     MultilevelTransitionWorksheet,
     assert_transition_claim_allowed,
+    attach_coevolution_diagnostics,
     attach_declared_intervention_menu,
     attach_host_parasite_campaign,
-    attach_coevolution_diagnostics,
     attach_phase3_honesty,
     bundle_from_host_parasite_campaign,
     bundle_from_host_parasite_cou,
@@ -74,6 +74,12 @@ from codontrace.claimgate.adapters.host_parasite import (
 )
 from codontrace.claimgate.adapters.host_parasite import (
     assert_claim_allowed as assert_host_parasite_claim_allowed,
+)
+from codontrace.claimgate.adapters.host_parasite_prereg import (
+    HostParasitePreregistration,
+    attach_host_parasite_preregistration,
+    host_parasite_preregistration,
+    require_preregistration_before_campaign_attach,
 )
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, canonical_role
@@ -114,6 +120,10 @@ __all__ = [
     "bundle_from_host_parasite_cou",
     "bundle_from_host_parasite_campaign",
     "attach_host_parasite_campaign",
+    "require_preregistration_before_campaign_attach",
+    "host_parasite_preregistration",
+    "attach_host_parasite_preregistration",
+    "HostParasitePreregistration",
     "attach_coevolution_diagnostics",
     "declared_cou_risk_labels",
     "declared_dynamics_labels",

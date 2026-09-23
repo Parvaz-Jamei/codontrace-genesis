@@ -73,3 +73,5 @@ See `API_SKETCH.md`, `REQUIREMENTS.md`, `EXPERT_BRAINSTORM.md` (consensus MVP),
   labels**, same stance as the biomedical port — not clearance.
 - Untracked junk under `src/codontrace/genesis/population/` is out of scope
   and must not be committed with this work.
+
+Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/`.

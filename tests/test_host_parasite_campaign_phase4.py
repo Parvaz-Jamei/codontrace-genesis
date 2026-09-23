@@ -10,12 +10,26 @@ from codontrace.claimgate.adapters.host_parasite import (
     bundle_from_host_parasite_campaign,
     bundle_from_host_parasite_cou,
 )
+from codontrace.claimgate.adapters.host_parasite_prereg import (
+    attach_host_parasite_preregistration,
+    host_parasite_preregistration,
+)
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.host_parasite_campaign import (
     CAMPAIGN_ARMS,
     run_host_parasite_campaign,
 )
 
+
+def _with_prereg(bundle):
+    prereg = host_parasite_preregistration(
+        question_of_interest="Digital host–parasite campaign audit",
+        context_of_use="Digital HostParasiteEnv only. No clinic. No Red Queen proof.",
+        arms=("intact", "abiotic_only", "content_null"),
+        success_metrics=("mean_retained_cpu_contrast",),
+        planned_claim_ceiling="runtime_observation",
+    )
+    return attach_host_parasite_preregistration(bundle, prereg)
 
 def test_campaign_arms_cover_required_set() -> None:
     assert CAMPAIGN_ARMS == frozenset(
@@ -142,6 +156,7 @@ def test_attach_refuses_silent_overwrite() -> None:
         context_of_use="Digital only.",
         claimed="runtime_observation",
     )
+    bundle = _with_prereg(bundle)
     with pytest.raises(ConfigurationError, match="already attached"):
         attach_host_parasite_campaign(bundle, campaign)
 
@@ -163,6 +178,7 @@ def test_attach_refuses_missing_requested_claim() -> None:
     # Simulate a corrupted / menu-only attach surface with no requested_claim.
     from dataclasses import replace
 
+    bundle = _with_prereg(bundle)
     broken = replace(bundle, extra={k: v for k, v in (bundle.extra or {}).items() if k != "requested_claim"})
     with pytest.raises(ConfigurationError, match="requested_claim"):
         attach_host_parasite_campaign(broken, campaign)
@@ -186,6 +202,7 @@ def test_attach_refuses_candidate_without_falsification() -> None:
         control_scores=(0.9, 0.8),
         claimed="candidate_evidence",
     )
+    bundle = _with_prereg(bundle)
     with pytest.raises(ConfigurationError, match="falsification"):
         attach_host_parasite_campaign(bundle, campaign)
 

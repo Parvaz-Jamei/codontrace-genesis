@@ -835,12 +835,16 @@ def attach_host_parasite_campaign(
     missing.
     """
 
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
     from codontrace.genesis.host_parasite_campaign import HostParasiteCampaignResult
 
     if not isinstance(campaign, HostParasiteCampaignResult):
         raise ConfigurationError(
             "campaign must be a HostParasiteCampaignResult."
         )
+    require_preregistration_before_campaign_attach(bundle)
     extra = dict(bundle.extra or {})
     if extra.get("domain") != HOST_PARASITE.name:
         raise ConfigurationError(

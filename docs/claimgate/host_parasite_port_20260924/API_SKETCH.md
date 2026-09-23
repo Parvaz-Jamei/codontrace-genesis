@@ -1,7 +1,7 @@
 # API sketch — `host_parasite` DomainProfile
 
-Status: **partially implemented** in this PR (profile + thin adapter + tests).
-Infection physics and `HostParasiteEnv` are **not** implemented.
+Status: **Phase 1 complete** (profile + hardened adapter + declared intervention menu stub + tests).
+Infection physics and `HostParasiteEnv` remain Phase 2+; not in engine core.
 
 ## Profile name
 
@@ -23,6 +23,10 @@ epidemic_forecast_certified
 phage_therapy_cleared
 virulence_optimized_for_humans
 biosafety_level_certified
+crispr_identity_proved
+crispr_therapy_validated
+red_queen_proved
+major_transition_proved
 intelligence
 collective_intelligence
 agi
@@ -40,7 +44,11 @@ Module: `codontrace.claimgate.adapters.host_parasite`
 | Symbol | Role |
 |---|---|
 | `BLOCKED_HOST_PARASITE_CLAIMS` | `frozenset` mirror of profile blocks |
+| `DECLARED_INTERVENTION_KINDS` | allowed digital falsification hook kinds |
 | `assert_claim_allowed(claimed)` | normalize + raise `ConfigurationError` if blocked |
+| `declared_cou_risk_labels(...)` | merge/validate declared COU risk labels |
+| `declared_intervention_menu(...)` | schema stub for later falsification planning |
+| `attach_declared_intervention_menu(...)` | store menu on a host_parasite bundle only |
 | `bundle_from_host_parasite_cou(...)` | wrap declared scores via `bundle_from_declared_scores(profile=HOST_PARASITE, ...)` |
 
 Docstring contract: **DomainProfile port, not a second engine / not clinical.**

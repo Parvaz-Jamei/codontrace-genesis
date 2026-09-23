@@ -22,7 +22,8 @@ engine.py / genesis ticks     → domain-agnostic (unchanged)
 ClaimGate DomainProfile       → host_parasite blocked_claims + limitations
 adapters/host_parasite.py     → thin wrap of bundle_from_declared_scores
 docs/claimgate/host_parasite… → requirements, challenges, brainstorm, API sketch
-optional later                → HostParasiteEnv hooks (NOT implemented in this PR)
+Phase 1                      → declared intervention menu stub + hardened blocks
+Phase 2+                     → optional HostParasiteEnv outside engine core
 ```
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
@@ -59,7 +60,7 @@ from codontrace.claimgate.adapters.host_parasite import (
 ```
 
 See `API_SKETCH.md`, `REQUIREMENTS.md`, `EXPERT_BRAINSTORM.md` (consensus MVP),
-`CITATIONS.md`, and `README_FA.md`.
+`PHASE1_REVIEW.md`, `CITATIONS.md`, and `README_FA.md`.
 
 ## Honest limits
 

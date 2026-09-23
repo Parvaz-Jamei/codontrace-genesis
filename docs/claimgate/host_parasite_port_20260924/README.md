@@ -22,16 +22,32 @@ engine.py / genesis ticks     → domain-agnostic (unchanged)
 ClaimGate DomainProfile       → host_parasite blocked_claims + limitations
 adapters/host_parasite.py     → thin wrap of bundle_from_declared_scores
 docs/claimgate/host_parasite… → requirements, challenges, brainstorm, API sketch
-Phase 1                      → declared intervention menu stub + hardened blocks
-Phase 2                      → optional HostParasiteEnv outside engine core
-Phase 3                      → intervention falsification + honesty gates
-Phase 4                      → multi-seed campaign digests + ClaimGate factory
-Phase 5–6                    → spatial/vertical diagnostics; factorial/prereg
+Phase 1                      → intervention menu stub + hardened blocks (delivered)
+Phase 2                      → optional HostParasiteEnv + dual-null template (delivered)
+Phase 3                      → intervention falsification + honesty gates (delivered)
+Phase 4                      → multi-seed campaign digests + ClaimGate factory (delivered)
+Phase 5                      → spatial/vertical transmission + range diagnostics (delivered)
+Phase 6                      → factorial campaigns + network digests + preregistration (delivered)
+Phase 7                      → freeze/replay/reciprocal campaign + richness digests (delivered)
+Phase 8                      → interaction continuum + VT × spatial factorial (delivered)
+Phase 9                      → evolvability/Cornish assays + comparator + HE_HP digests (delivered)
 ```
+
+All Phases 1–9 are delivered on branch `feat/host-parasite-module-phases`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick
 semantics, grant a claim, or certify a device or therapy.
+
+## Scope lock
+
+This port uses digital **host** and **parasite** roles, as a microbe–virus
+analogy. It does not add separate `DomainProfile`s for bacteria, archaea, or
+wet-lab cells. Genesis cells remain the domain-agnostic ALife substrate;
+`host_parasite` only labels claims and provides optional environment/campaign
+protocols. CRISPR genetics, infection-in-engine, and taxonomic species packs
+remain out of scope. The additive HE_HP campaign pack is documented in
+[`docs/hard_experiment_hp/`](../../hard_experiment_hp/).
 
 ## Paper safety for BAIC / HE01
 

@@ -72,3 +72,5 @@ grounded source from `CITATIONS.md`.
    (separate domains; separate fail-closed sets).
 6. **WON'T** treat observational accuracy of a digital twin as counterfactual
    correctness (Cornish et al. arXiv:2301.07210 / JMLR 27(152) 2026).
+7. **WON'T** add separate `DomainProfile`s for bacteria, archaea, or wet-lab
+   cells; digital host–parasite roles are sufficient for this port.

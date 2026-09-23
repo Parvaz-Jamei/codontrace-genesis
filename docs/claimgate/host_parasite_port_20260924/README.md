@@ -41,7 +41,7 @@ Phase 16                     → virulence/resistance quality proxies (Wave 4; t
 Phase 17                     → Price≠causality refusal assay (Wave 4 earn-in; this PR)
 ```
 
-Phases 1–9 are on main; Wave 3 (Phases 10–13) stacks under Wave 4. Wave 4 (Phases 14–17) lands on `feat/host-parasite-wave4-modes`. See `DEPTH_BRAINSTORM_WAVE4.md` and `MODE_AUDIT_WAVE4.md`.
+Phases 1–9 are on main; Wave 3 (Phases 10–13) stacks under Wave 4. Wave 4 (Phases 14–17) lands on `feat/host-parasite-wave4-modes`. See `DEPTH_BRAINSTORM_WAVE4.md` and `MODE_AUDIT_WAVE4.md`. Wave 5 brainstorm (earn-in Phases 18–23 plan only): `DEPTH_BRAINSTORM_WAVE5.md` / `DEPTH_BRAINSTORM_WAVE5_FA.md`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick

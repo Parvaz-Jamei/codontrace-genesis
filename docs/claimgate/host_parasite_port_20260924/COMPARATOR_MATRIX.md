@@ -16,6 +16,13 @@ Queen dynamics, or a proved major transition.
 | Cornish intervention packs | Cornish et al. JMLR 27(152) 2026 / arXiv:2301.07210 | Observational vs interventional multi-arm; refusal of `intervention_supported` from observational match alone | Causal proof from digital scores alone; clinical decision support |
 | Scanlan / Buckling evolvability constraint | Challenge S5 humility | Evolvability falsification assay that can *fail* “parasites always raise repertoire” | Universal evolvability law; proved parasite-driven complexity |
 
+
+| Koskella & Brockhurst synthesis | doi:10.1111/1574-6976.12072 | Costs of generalism; ARD→FSD framing for digital transition protocols | Wet ARD→FSD proof; phage therapy guidance |
+| Lopez Pascua resource×FSD | doi:10.1111/ele.12337 | Resource/ATP × dynamics-label factorial (Wave 5 plan) | Wet resource–virulence clinical claim |
+| Scanlan mutator / abiotic constraint | doi:10.1093/molbev/msv032 | Elevated-mutation dual-null under coevolution (Wave 5 optional) | Wet mutator-gene identity; CRISPR |
+| Dolson MODES / Channon Type-1 | doi:10.1162/artl_a_00280; doi:10.1162/artl_a_00430 | Measurement-honesty *comparators* only | `modes_passed_proved` / `oee_type1_proved` |
+| Goldsby deme MLS | doi:10.1371/journal.pone.0102713 | Future CI-path comparator (docs only) | Major transition proved; MLS engine in Wave 5 |
+
 ## Reading rule
 
 If a manuscript cites this matrix, it must keep the “What is *not* claimed”

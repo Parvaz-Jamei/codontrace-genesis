@@ -28,10 +28,12 @@ ClaimGate / HE02 authorities). No invented titles.
 
 ## Empirical phage–bacteria / coevolution genomics
 
-5. Scanlan / Buckling line (2015). Genome-wide phage–bacteria coevolution
-   study in *Molecular Biology and Evolution* 32(6):1425…
-   URL: https://academic.oup.com/mbe/article/32/6/1425
-   (coevolution constrains abiotic-beneficial mutations.)
+5. Scanlan PD, Hall AR, Blackshields G, Friman V-P, Davis MR Jr, Goldberg
+   JB, Buckling A (2015). Coevolution with Bacteriophages Drives Genome-Wide
+   Host Evolution and Constrains the Acquisition of Abiotic-Beneficial
+   Mutations. *Molecular Biology and Evolution* 32(6):1425–1435.
+   doi:[10.1093/molbev/msv032](https://doi.org/10.1093/molbev/msv032)
+   (coevolution constrains abiotic-beneficial mutations; mutator association.)
 
 ## CRISPR–phage eco-evo models
 
@@ -104,3 +106,48 @@ If a claim cannot be tied to an item above, write
 See `docs/claimgate/host_parasite_port_20260924/evidence/` for DOI-linked
 comparator notes (Zaman 2014; Fortuna 2021; Hall 2011; Lopez Pascua 2014;
 Fortuna 2017; Cornish et al.). Notes are digital-scope only.
+
+## Wave 5 session-verified additions (Crossref-checked 2026-09-24)
+
+20. Koskella B & Brockhurst MA (2014). Bacteria–phage coevolution as a driver
+    of ecological and evolutionary processes in microbial communities.
+    *FEMS Microbiology Reviews*.
+    doi:[10.1111/1574-6976.12072](https://doi.org/10.1111/1574-6976.12072)
+    (synthesis: costs of generalism; ARD→FSD shift in SBW25–Φ2.)
+
+21. Hall AR, Scanlan PD, Morgan AD, Buckling A (2011). Host–parasite
+    coevolutionary arms races give way to fluctuating selection.
+    *Ecology Letters*.
+    doi:[10.1111/j.1461-0248.2011.01624.x](https://doi.org/10.1111/j.1461-0248.2011.01624.x)
+    (already used as ARD/FSD comparator in evidence/; DOI confirmed Crossref.)
+
+22. Lopez Pascua L, Hall AR, Best A, Morgan AD, Boots M, Buckling A (2014).
+    Higher resources decrease fluctuating selection during host–parasite
+    coevolution. *Ecology Letters*.
+    doi:[10.1111/ele.12337](https://doi.org/10.1111/ele.12337)
+    (resource supply modulates FSD; digital resource×dynamics factorial target.)
+
+23. Vostinar AE & Ofria C (2019). Spatial Structure Can Decrease Symbiotic
+    Cooperation. *Artificial Life*.
+    doi:[10.1162/artl_a_00273](https://doi.org/10.1162/artl_a_00273)
+    (Symbulation spatial result; VT×spatial already ported — comparator only.)
+
+24. Dolson EL, Vostinar AE, Wiser MJ, Ofria C (2019). The MODES Toolbox:
+    Measurements of Open-Ended Dynamics in Evolving Systems. *Artificial Life*.
+    doi:[10.1162/artl_a_00280](https://doi.org/10.1162/artl_a_00280)
+    (measurement honesty comparator; never claim `modes_passed_proved`.)
+
+25. Channon A (2024). A Procedure for Testing for Tokyo Type 1 Open-Ended
+    Evolution. *Artificial Life*.
+    doi:[10.1162/artl_a_00430](https://doi.org/10.1162/artl_a_00430)
+    (Type-1 OEE procedure comparator; `oee_type1_proved` refused.)
+
+26. Goldsby HJ, Knoester DB, Kerr B, Ofria C (2014). The Effect of Conflicting
+    Pressures on the Evolution of Division of Labor. *PLOS ONE*.
+    doi:[10.1371/journal.pone.0102713](https://doi.org/10.1371/journal.pone.0102713)
+    (deme MLS / DoL comparator for a *future* CI path only — not Wave-5 code.)
+
+27. Lu C, Beukman M, Matthews M, Foerster J (2024). JaxLife: An Open-Ended
+    Agentic Simulator. arXiv:2409.00853.
+    https://arxiv.org/abs/2409.00853
+    (ALife awareness; not a host–parasite ClaimGate platform.)

@@ -1,7 +1,7 @@
 # API sketch — `host_parasite` DomainProfile
 
-Status: **partially implemented** in this PR (profile + thin adapter + tests).
-Infection physics and `HostParasiteEnv` are **not** implemented.
+Status: **Phase 1 complete** (profile + hardened adapter + declared intervention menu stub + tests).
+Infection physics and `HostParasiteEnv` remain Phase 2+; not in engine core.
 
 ## Profile name
 
@@ -23,6 +23,10 @@ epidemic_forecast_certified
 phage_therapy_cleared
 virulence_optimized_for_humans
 biosafety_level_certified
+crispr_identity_proved
+crispr_therapy_validated
+red_queen_proved
+major_transition_proved
 intelligence
 collective_intelligence
 agi
@@ -40,7 +44,11 @@ Module: `codontrace.claimgate.adapters.host_parasite`
 | Symbol | Role |
 |---|---|
 | `BLOCKED_HOST_PARASITE_CLAIMS` | `frozenset` mirror of profile blocks |
+| `DECLARED_INTERVENTION_KINDS` | allowed digital falsification hook kinds |
 | `assert_claim_allowed(claimed)` | normalize + raise `ConfigurationError` if blocked |
+| `declared_cou_risk_labels(...)` | merge/validate declared COU risk labels |
+| `declared_intervention_menu(...)` | schema stub for later falsification planning |
+| `attach_declared_intervention_menu(...)` | store menu on a host_parasite bundle only |
 | `bundle_from_host_parasite_cou(...)` | wrap declared scores via `bundle_from_declared_scores(profile=HOST_PARASITE, ...)` |
 
 Docstring contract: **DomainProfile port, not a second engine / not clinical.**
@@ -62,7 +70,7 @@ bundle = bundle_from_host_parasite_cou(
     decision_consequence=2,
     treatment_scores=(0.4, 0.38, 0.42),
     control_scores=(0.2, 0.22, 0.19),
-    metric="task_overlap_toy",
+    metric="task_overlap_digital",
 )
 # bundle.extra["domain"] == "host_parasite"
 # bundle.extra["infection_physics"] == "not_implemented"
@@ -75,30 +83,34 @@ bundle_from_host_parasite_cou(..., claimed="phage_therapy_cleared")
 # ConfigurationError
 ```
 
-## Optional later hooks (NOT implemented)
+## Optional HostParasiteEnv (Phase 2 — outside engine core)
 
-Sketch only — do not treat as present API:
+Module: `codontrace.genesis.host_parasite_env` (does **not** import or modify
+`engine.py`).
 
 ```python
-# FUTURE — HostParasiteEnv (not in this PR)
-class HostParasiteEnv:
-    """Optional env wrapper; must not live inside engine.py tick core."""
+from codontrace.genesis.host_parasite_env import (
+    HostParasiteEnv,
+    dual_null_template,
+    run_dual_null_contrast,
+)
 
-    def infection_eligible(self, host_tasks, parasite_tasks) -> bool:
-        """Task-overlap rule (Fortuna et al. 2021) — future."""
-
-    def steal_cpu_fraction(self) -> float:
-        """Obligate resource draw; literature ~0.8 in Avida parasites — future."""
-
-    def transmission_mode(self) -> str:
-        """horizontal | vertical | mixed — Symbulation continuum — future."""
-
-    def content_null_parasite_payload(self) -> bytes:
-        """HE02-style shuffle control — future campaign wiring."""
+env = HostParasiteEnv(steal_fraction=0.8, transmission_mode="horizontal")
+env.add_host("H0", ("nand", "and"))
+env.try_horizontal_inject(
+    host_id="H0", parasite_id="P0", parasite_tasks=("and",), payload=(1, 2)
+)
+contrast = run_dual_null_contrast(
+    host_tasks=("nand", "and"),
+    parasite_tasks=("and", "or"),
+    payload=(1, 2, 3),
+)
+assert contrast["nulls_change_outcomes"] is True
 ```
 
-ClaimGate remains the evidence auditor; the env would only produce scores /
-artifacts for adapters to wrap.
+ClaimGate remains the evidence auditor; the env only produces digital-scope
+scores / snapshots for adapters to wrap. Vertical transmission physics stay
+implemented in Phase 5 (`mixed_mode_enabled` + `replicate_host`).
 
 ## COU / risk labels (declared only)
 
@@ -115,3 +127,88 @@ Same stance as biomedical:
 `tests/test_claimgate_host_parasite.py` — profile registration, domain label,
 parametrized blocked aliases, `assert_claim_allowed`, independence from
 `biomedical` domain string.
+
+
+## Phase 4 — campaign runner (outside engine)
+
+Module: `codontrace.genesis.host_parasite_campaign`
+
+```python
+from codontrace.genesis.host_parasite_campaign import run_host_parasite_campaign
+from codontrace.claimgate.adapters.host_parasite import (
+    bundle_from_host_parasite_campaign,
+)
+
+campaign = run_host_parasite_campaign(
+    seeds=(1, 2, 3),
+    request_claim_ceiling="candidate_evidence",
+)
+assert campaign.red_queen_proved is False
+assert campaign.falsification_rules_passed is True
+bundle = bundle_from_host_parasite_campaign(
+    campaign,
+    question_of_interest="Does freeze/replay change digital retained-CPU vs abiotic?",
+    context_of_use="Digital campaign only. No clinic. No Red Queen proof.",
+    claimed="candidate_evidence",
+)
+# Ceilings above candidate_evidence are refused.
+```
+
+Arms: intact, content_null, structure_null, dual_null, abiotic_only,
+freeze_replay_parasites. Per-arm and campaign digests are canonical.
+
+
+## Phase 5 — spatial, vertical, diagnostics
+
+```python
+from codontrace.genesis.host_parasite_env import HostParasiteEnv
+from codontrace.genesis.host_parasite_diagnostics import diagnose_coevolution_ranges
+
+env = HostParasiteEnv(
+    transmission_mode="mixed",
+    vertical_transmission_probability=0.8,
+    spatial_mode="local_neighborhood",
+    grid_rows=3,
+    grid_cols=3,
+    resource_productivity=1.5,
+)
+env.add_host("H0", ("and",), row=0, col=0)
+env.add_host("H1", ("and",), row=0, col=1)
+env.try_local_inject(
+    source_host_id="H0",
+    target_host_id="H1",
+    parasite_id="P0",
+    parasite_tasks=("and",),
+    payload=(1,),
+)
+child = env.replicate_host(parent_id="H1", child_id="H2", draw=0.1, child_row=1, child_col=1)
+diag = diagnose_coevolution_ranges([
+    {"time_index": 0, "infectivity_range": 0.1, "resistance_range": 0.1},
+    {"time_index": 1, "infectivity_range": 0.4, "resistance_range": 0.35},
+])
+assert diag.red_queen_proved is False
+```
+
+
+## Phase 6 — factorial, network, preregistration
+
+```python
+from codontrace.genesis.host_parasite_factorial import (
+    run_abiotic_biotic_factorial,
+    summarize_interaction_network,
+)
+from codontrace.claimgate.adapters.host_parasite_prereg import (
+    host_parasite_preregistration,
+    attach_host_parasite_preregistration,
+)
+
+factorial = run_abiotic_biotic_factorial(seeds=(1, 2), request_claim_ceiling="candidate_evidence")
+assert factorial.red_queen_proved is False
+prereg = host_parasite_preregistration(
+    question_of_interest="Does abiotic productivity change infected retained-CPU?",
+    context_of_use="Digital factorial only.",
+    arms=("intact", "abiotic_only"),
+    success_metrics=("mean_retained_cpu_contrast",),
+)
+# attach_host_parasite_campaign requires preregistration on the bundle first.
+```

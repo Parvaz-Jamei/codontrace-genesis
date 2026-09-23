@@ -97,3 +97,10 @@ ClaimGate / HE02 authorities). No invented titles.
 
 If a claim cannot be tied to an item above, write
 **OPEN — needs primary source** rather than inventing a citation.
+
+
+## Phase 6 evidence notes
+
+See `docs/claimgate/host_parasite_port_20260924/evidence/` for DOI-linked
+comparator notes (Zaman 2014; Fortuna 2021; Hall 2011; Lopez Pascua 2014;
+Fortuna 2017; Cornish et al.). Notes are digital-scope only.

@@ -108,6 +108,13 @@ HOST_PARASITE = DomainProfile(
             "phage_therapy_cleared",
             "virulence_optimized_for_humans",
             "biosafety_level_certified",
+            # CRISPR identity / therapy cosplay stays fail-closed even when
+            # external CRISPR–phage papers are cited as comparators only.
+            "crispr_identity_proved",
+            "crispr_therapy_validated",
+            # Dynamics labels may be declared later; "proved" stays blocked.
+            "red_queen_proved",
+            "major_transition_proved",
             # Reuse intelligence / replacement blocks so this port cannot
             # silently inherit ALife overclaims either.
             "intelligence",
@@ -121,7 +128,9 @@ HOST_PARASITE = DomainProfile(
         "DomainProfile port for digital host–parasite / microbe–virus claim labeling; not a second engine.",
         "Not a clinical pathogen model, vaccine, antiviral, phage-therapy, or epidemic-forecast certificate.",
         "Not a biosafety-level certification or virulence-optimization tool for humans.",
-        "Infection / transmission physics are not implemented here; optional HostParasiteEnv hooks are later work.",
+        "Not a CRISPR-identity or CRISPR-therapy proof; external CRISPR–phage papers are comparators only.",
+        "Not a Red Queen or major-transition proof; optional ARD/FSD labels stay undeclared until evidenced.",
+        "Infection / transmission physics are not implemented in the engine; optional HostParasiteEnv is outside core.",
         "A ClaimGate grade is a claim ceiling for declared digital coevolution evidence, not wet-lab validity.",
         "FDA 2023 CM&S / ASME V&V 40 language may be reused as COU risk labels only; not device clearance.",
     ),

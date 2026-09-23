@@ -15,11 +15,6 @@ from codontrace.claimgate.adapters.biomedical import (
     bundle_from_device_model_cou,
     credibility_worksheet,
 )
-from codontrace.claimgate.adapters.host_parasite import (
-    BLOCKED_HOST_PARASITE_CLAIMS,
-    assert_claim_allowed as assert_host_parasite_claim_allowed,
-    bundle_from_host_parasite_cou,
-)
 from codontrace.claimgate.adapters.codontrace import (
     bundle_from_hard_experiment_01,
     committed_results_v2_path,
@@ -56,12 +51,50 @@ from codontrace.claimgate.adapters.esp32_bridge import (
 )
 from codontrace.claimgate.adapters.he01_arm_roles import ARM_ROLES as HE01_ARM_ROLES
 from codontrace.claimgate.adapters.he01_arm_roles import canonical_role as he01_canonical_role
+from codontrace.claimgate.adapters.host_parasite import (
+    BLOCKED_HOST_PARASITE_CLAIMS,
+    DECLARED_INTERVENTION_KINDS,
+    DeclaredIntervention,
+    DeclaredInterventionMenu,
+    DynamicsLabels,
+    InterventionFalsificationResult,
+    MultilevelTransitionWorksheet,
+    assert_transition_claim_allowed,
+    attach_coevolution_diagnostics,
+    attach_declared_intervention_menu,
+    attach_host_parasite_campaign,
+    attach_phase3_honesty,
+    bundle_from_host_parasite_campaign,
+    bundle_from_host_parasite_cou,
+    declared_cou_risk_labels,
+    declared_dynamics_labels,
+    declared_intervention_menu,
+    multilevel_transition_worksheet,
+    run_intervention_falsification,
+)
+from codontrace.claimgate.adapters.host_parasite import (
+    assert_claim_allowed as assert_host_parasite_claim_allowed,
+)
+from codontrace.claimgate.adapters.host_parasite_prereg import (
+    HostParasitePreregistration,
+    attach_host_parasite_preregistration,
+    host_parasite_preregistration,
+    require_preregistration_before_campaign_attach,
+)
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, canonical_role
 
 __all__ = [
+    "attach_phase3_honesty",
+    "assert_transition_claim_allowed",
     "BLOCKED_BIOMEDICAL_CLAIMS",
     "BLOCKED_HOST_PARASITE_CLAIMS",
+    "DECLARED_INTERVENTION_KINDS",
+    "DeclaredIntervention",
+    "DeclaredInterventionMenu",
+    "MultilevelTransitionWorksheet",
+    "InterventionFalsificationResult",
+    "DynamicsLabels",
     "BiomedicalStudy",
     "CredibilityWorksheet",
     "RiskBar",
@@ -82,8 +115,21 @@ __all__ = [
     "SCHEMA_ROLES",
     "bundle_from_avida_runs",
     "assert_host_parasite_claim_allowed",
+    "attach_declared_intervention_menu",
     "bundle_from_biomedical_cou",
     "bundle_from_host_parasite_cou",
+    "bundle_from_host_parasite_campaign",
+    "attach_host_parasite_campaign",
+    "require_preregistration_before_campaign_attach",
+    "host_parasite_preregistration",
+    "attach_host_parasite_preregistration",
+    "HostParasitePreregistration",
+    "attach_coevolution_diagnostics",
+    "declared_cou_risk_labels",
+    "declared_dynamics_labels",
+    "declared_intervention_menu",
+    "multilevel_transition_worksheet",
+    "run_intervention_falsification",
     "bundle_from_device_model_cou",
     "bundle_from_hard_experiment_01",
     "bundle_from_hard_experiment_02",

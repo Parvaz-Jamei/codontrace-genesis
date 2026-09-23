@@ -18,3 +18,7 @@
 - دو null: محتوا و ساختار؛ Price≠علّیت (Okasha & Otsuka 2020).
 
 جزئیات مناظره: `EXPERT_BRAINSTORM.md` — کتابشناسی: `CITATIONS.md`.
+
+## گفت‌وگوی کارشناسان
+
+فایل `EXPERT_BRAINSTORM.md` دست‌کم **۵ دور کامل** گفت‌وگوی سه کارشناس (Avida/Symbulation، فاژ–باکتری/CRISPR، روش‌شناسی ClaimGate) را با استناد DOI دارد؛ دور ۵ روی ARD↔FSD و معیار موفقیت است.

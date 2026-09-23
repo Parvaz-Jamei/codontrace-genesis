@@ -63,7 +63,7 @@ def _stdev(values: Sequence[float]) -> float:
         return 0.0
     mean = sum(values) / len(values)
     var = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
-    return round(var**0.5, 10)
+    return float(round(var**0.5, 10))
 
 
 def _require_seeds(seeds: Sequence[int]) -> tuple[int, ...]:

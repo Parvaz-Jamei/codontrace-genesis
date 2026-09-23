@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
@@ -106,6 +107,8 @@ def summarize_interaction_network(
             raise ConfigurationError(f"edges[{index}].host_id is required.")
         if not isinstance(parasite, str) or not parasite.strip():
             raise ConfigurationError(f"edges[{index}].parasite_id is required.")
+        if isinstance(strength, bool) or not isinstance(strength, (int, float, str)):
+            raise ConfigurationError(f"edges[{index}].strength must be numeric.")
         number = float(strength)
         if number != number or number in (float("inf"), float("-inf")) or number < 0.0:
             raise ConfigurationError(f"edges[{index}].strength must be finite and >= 0.")
@@ -259,7 +262,8 @@ def run_abiotic_biotic_factorial(
                     mean_score=mean_score,
                     campaign_digest=str(payload["campaign_digest"]),
                     arm_digests={
-                        key: str(value) for key, value in payload["arm_digests"].items()
+                        key: str(value)
+                        for key, value in cast(dict[str, object], payload["arm_digests"]).items()
                     },
                 )
             )

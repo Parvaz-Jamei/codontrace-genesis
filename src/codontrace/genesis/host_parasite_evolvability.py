@@ -135,7 +135,7 @@ def _run_arm(
     resource_productivity: float,
     expansion_budget: int,
 ) -> EvolvabilityArmOutcome:
-    host_tasks = ("and", "or", "nand")
+    host_tasks: tuple[str, ...] = ("and", "or", "nand")
     initial = len(host_tasks)
     trajectory = [initial]
     steal = 0.8

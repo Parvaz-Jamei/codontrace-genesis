@@ -9,7 +9,18 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from codontrace.genesis.host_parasite_campaign import HostParasiteCampaignResult
+    from codontrace.genesis.host_parasite_continuum import ContinuumFactorialResult
+    from codontrace.genesis.host_parasite_cornish import CornishCampaignResult
+    from codontrace.genesis.host_parasite_diagnostics import CoevolutionDiagnostics
+    from codontrace.genesis.host_parasite_env import HostParasiteEnv
+    from codontrace.genesis.host_parasite_evolvability import (
+        EvolvabilityFalsificationResult,
+    )
+    from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
 from codontrace.claimgate.domain import HOST_PARASITE, bundle_from_declared_scores
@@ -512,7 +523,7 @@ def _env_pair(
     payload: Sequence[int],
     steal_fraction: float,
     null_kind: str,
-):
+) -> HostParasiteEnv:
     from codontrace.genesis.host_parasite_env import HostParasiteEnv, dual_null_template
 
     env = HostParasiteEnv(
@@ -706,7 +717,9 @@ _CAMPAIGN_NOTE = (
 _ALLOWED_CAMPAIGN_CEILINGS = frozenset({"runtime_observation", "candidate_evidence"})
 
 
-def _campaign_scores(campaign) -> tuple[tuple[float, ...], tuple[float, ...]]:
+def _campaign_scores(
+    campaign: HostParasiteCampaignResult,
+) -> tuple[tuple[float, ...], tuple[float, ...]]:
     """Derive treatment/control score vectors from campaign arm means."""
 
     by_arm = {item.arm: item.mean_score for item in campaign.arm_results}
@@ -741,7 +754,7 @@ def _campaign_scores(campaign) -> tuple[tuple[float, ...], tuple[float, ...]]:
 
 
 def bundle_from_host_parasite_campaign(
-    campaign,
+    campaign: HostParasiteCampaignResult,
     *,
     question_of_interest: str,
     context_of_use: str,
@@ -826,7 +839,7 @@ def bundle_from_host_parasite_campaign(
 
 def attach_host_parasite_campaign(
     bundle: ClaimgateBundle,
-    campaign,
+    campaign: HostParasiteCampaignResult,
 ) -> ClaimgateBundle:
     """Attach campaign digests to an existing host_parasite bundle.
 
@@ -914,7 +927,7 @@ _DIAGNOSTICS_NOTE = (
 
 def attach_coevolution_diagnostics(
     bundle: ClaimgateBundle,
-    diagnostics,
+    diagnostics: CoevolutionDiagnostics,
 ) -> ClaimgateBundle:
     """Attach ARD/FSD-like diagnostics without raising the public ladder."""
 
@@ -952,7 +965,7 @@ _ZAMAN_NOTE = (
 
 def attach_zaman_campaign(
     bundle: ClaimgateBundle,
-    campaign,
+    campaign: ZamanCampaignResult,
 ) -> ClaimgateBundle:
     """Attach Zaman three-arm digests without raising the public ladder."""
 
@@ -1063,7 +1076,7 @@ def attach_interaction_continuum(
 
 def attach_vt_spatial_factorial(
     bundle: ClaimgateBundle,
-    factorial,
+    factorial: ContinuumFactorialResult,
 ) -> ClaimgateBundle:
     """Attach VT × spatial factorial digests; mutualism never equals success."""
 
@@ -1124,7 +1137,7 @@ _CORNISH_NOTE = (
 
 def attach_evolvability_falsification(
     bundle: ClaimgateBundle,
-    assay,
+    assay: EvolvabilityFalsificationResult,
 ) -> ClaimgateBundle:
     """Attach evolvability assay without raising the public ladder."""
 
@@ -1152,7 +1165,7 @@ def attach_evolvability_falsification(
 
 def attach_cornish_campaign(
     bundle: ClaimgateBundle,
-    campaign,
+    campaign: CornishCampaignResult,
 ) -> ClaimgateBundle:
     """Attach Cornish campaign; refuse intervention_supported from obs match."""
 

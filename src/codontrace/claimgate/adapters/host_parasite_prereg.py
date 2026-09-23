@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import cast
 
@@ -128,9 +128,10 @@ def attach_host_parasite_preregistration(
         record = host_parasite_preregistration(
             question_of_interest=str(prereg.get("question_of_interest", "")),
             context_of_use=str(prereg.get("context_of_use", "")),
-            arms=tuple(prereg.get("arms") or ()),
-            success_metrics=tuple(prereg.get("success_metrics") or ()),
-            forbidden_claims=tuple(prereg.get("forbidden_claims") or ()) or None,
+            arms=tuple(cast(Iterable[str], prereg.get("arms") or ())),
+            success_metrics=tuple(cast(Iterable[str], prereg.get("success_metrics") or ())),
+            forbidden_claims=tuple(cast(Iterable[str], prereg.get("forbidden_claims") or ()))
+            or None,
             planned_claim_ceiling=str(
                 prereg.get("planned_claim_ceiling") or "runtime_observation"
             ),

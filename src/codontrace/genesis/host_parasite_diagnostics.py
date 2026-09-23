@@ -100,7 +100,7 @@ def _fluctuation(values: Sequence[float]) -> float:
         residuals.append(value - expected)
     mean = sum(residuals) / n
     var = sum((item - mean) ** 2 for item in residuals) / (n - 1)
-    return round(var**0.5, 10)
+    return float(round(var**0.5, 10))
 
 
 def diagnose_coevolution_ranges(
@@ -119,10 +119,10 @@ def diagnose_coevolution_ranges(
 
     if not observations:
         raise ConfigurationError("diagnose_coevolution_ranges needs observations.")
-    rows: list[RangeObservation] = []
+    rows_list: list[RangeObservation] = []
     for index, raw in enumerate(observations):
         if isinstance(raw, RangeObservation):
-            rows.append(raw)
+            rows_list.append(raw)
             continue
         if not isinstance(raw, dict) and not hasattr(raw, "get"):
             raise ConfigurationError(f"observations[{index}] must be a mapping.")
@@ -138,8 +138,8 @@ def diagnose_coevolution_ranges(
             f"observations[{index}].resistance_range",
             float(mapping["resistance_range"]),
         )
-        rows.append(RangeObservation(t, inf, res))
-    rows = tuple(sorted(rows, key=lambda item: item.time_index))
+        rows_list.append(RangeObservation(t, inf, res))
+    rows = tuple(sorted(rows_list, key=lambda item: item.time_index))
     inf_vals = [item.infectivity_range for item in rows]
     res_vals = [item.resistance_range for item in rows]
     inf_trend = _trend(inf_vals)

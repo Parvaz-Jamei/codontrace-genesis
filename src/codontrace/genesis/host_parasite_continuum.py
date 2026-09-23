@@ -256,16 +256,16 @@ def run_vt_spatial_factorial(
     if not spatial_modes:
         raise ConfigurationError("spatial_modes must be non-empty.")
     vt_tuple: list[float] = []
-    for index, raw in enumerate(vt_levels):
-        number = float(raw)
+    for index, vt_raw in enumerate(vt_levels):
+        number = float(vt_raw)
         if number != number or number < 0.0 or number > 1.0:
             raise ConfigurationError(f"vt_levels[{index}] must be in [0, 1].")
         vt_tuple.append(number)
     spatial_tuple: list[str] = []
-    for index, raw in enumerate(spatial_modes):
-        if not isinstance(raw, str) or not raw.strip():
+    for index, spatial_raw in enumerate(spatial_modes):
+        if not isinstance(spatial_raw, str) or not spatial_raw.strip():
             raise ConfigurationError(f"spatial_modes[{index}] must be a non-empty string.")
-        key = raw.strip().lower()
+        key = spatial_raw.strip().lower()
         if key not in _SPATIAL_MODES:
             raise ConfigurationError(
                 f"spatial_modes[{index}] must be one of {sorted(_SPATIAL_MODES)}."

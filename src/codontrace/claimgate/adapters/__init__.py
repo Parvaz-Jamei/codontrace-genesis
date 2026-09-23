@@ -15,25 +15,6 @@ from codontrace.claimgate.adapters.biomedical import (
     bundle_from_device_model_cou,
     credibility_worksheet,
 )
-from codontrace.claimgate.adapters.host_parasite import (
-    BLOCKED_HOST_PARASITE_CLAIMS,
-    DECLARED_INTERVENTION_KINDS,
-    DeclaredIntervention,
-    DeclaredInterventionMenu,
-    DynamicsLabels,
-    InterventionFalsificationResult,
-    MultilevelTransitionWorksheet,
-    assert_claim_allowed as assert_host_parasite_claim_allowed,
-    assert_transition_claim_allowed,
-    attach_declared_intervention_menu,
-    attach_phase3_honesty,
-    bundle_from_host_parasite_cou,
-    declared_cou_risk_labels,
-    declared_dynamics_labels,
-    declared_intervention_menu,
-    multilevel_transition_worksheet,
-    run_intervention_falsification,
-)
 from codontrace.claimgate.adapters.codontrace import (
     bundle_from_hard_experiment_01,
     committed_results_v2_path,
@@ -70,6 +51,27 @@ from codontrace.claimgate.adapters.esp32_bridge import (
 )
 from codontrace.claimgate.adapters.he01_arm_roles import ARM_ROLES as HE01_ARM_ROLES
 from codontrace.claimgate.adapters.he01_arm_roles import canonical_role as he01_canonical_role
+from codontrace.claimgate.adapters.host_parasite import (
+    BLOCKED_HOST_PARASITE_CLAIMS,
+    DECLARED_INTERVENTION_KINDS,
+    DeclaredIntervention,
+    DeclaredInterventionMenu,
+    DynamicsLabels,
+    InterventionFalsificationResult,
+    MultilevelTransitionWorksheet,
+    assert_transition_claim_allowed,
+    attach_declared_intervention_menu,
+    attach_phase3_honesty,
+    bundle_from_host_parasite_cou,
+    declared_cou_risk_labels,
+    declared_dynamics_labels,
+    declared_intervention_menu,
+    multilevel_transition_worksheet,
+    run_intervention_falsification,
+)
+from codontrace.claimgate.adapters.host_parasite import (
+    assert_claim_allowed as assert_host_parasite_claim_allowed,
+)
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, canonical_role
 

@@ -896,3 +896,41 @@ def attach_host_parasite_campaign(
     if _CAMPAIGN_NOTE not in limitations:
         limitations = limitations + (_CAMPAIGN_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — coevolution range diagnostics (ARD/FSD-like labels only)
+# ---------------------------------------------------------------------------
+
+_DIAGNOSTICS_NOTE = (
+    "Coevolution range diagnostics are digital ARD/FSD-like labels only; "
+    "Red Queen dynamics are not proved."
+)
+
+
+def attach_coevolution_diagnostics(
+    bundle: ClaimgateBundle,
+    diagnostics,
+) -> ClaimgateBundle:
+    """Attach ARD/FSD-like diagnostics without raising the public ladder."""
+
+    from codontrace.genesis.host_parasite_diagnostics import CoevolutionDiagnostics
+
+    if not isinstance(diagnostics, CoevolutionDiagnostics):
+        raise ConfigurationError(
+            "diagnostics must be a CoevolutionDiagnostics result."
+        )
+    if diagnostics.red_queen_proved:
+        raise ConfigurationError("diagnostics.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_coevolution_diagnostics requires a host_parasite domain bundle."
+        )
+    if "coevolution_diagnostics" in extra:
+        raise ConfigurationError("coevolution_diagnostics already attached.")
+    extra["coevolution_diagnostics"] = cast(JsonValue, diagnostics.to_dict())
+    limitations = bundle.limitations
+    if _DIAGNOSTICS_NOTE not in limitations:
+        limitations = limitations + (_DIAGNOSTICS_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

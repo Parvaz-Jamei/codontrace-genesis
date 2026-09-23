@@ -23,6 +23,7 @@ from codontrace.genesis.canonical import canonical_digest, canonical_payload
 
 DEFAULT_STEAL_FRACTION = 0.8
 _TRANSMISSION_MODES = frozenset({"horizontal", "vertical", "mixed"})
+_SPATIAL_MODES = frozenset({"well_mixed", "local_neighborhood"})
 _NULL_KINDS = frozenset({"none", "content_null", "structure_null", "dual_null"})
 
 
@@ -60,6 +61,8 @@ class HostState:
     parasite_id: str | None = None
     parasite_tasks: frozenset[str] = frozenset()
     parasite_payload: tuple[int, ...] = ()
+    row: int | None = None
+    col: int | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -69,6 +72,8 @@ class HostState:
             "parasite_tasks": sorted(self.parasite_tasks),
             "parasite_payload": list(self.parasite_payload),
             "occupied": self.parasite_id is not None,
+            "row": self.row,
+            "col": self.col,
         }
 
 
@@ -150,6 +155,12 @@ class HostParasiteEnv:
     hosts: dict[str, HostState] = field(default_factory=dict)
     attempts: list[InfectionAttempt] = field(default_factory=list)
     claim_ceiling: str = "runtime_observation"
+    spatial_mode: str = "well_mixed"
+    grid_rows: int = 1
+    grid_cols: int = 1
+    vertical_transmission_probability: float = 0.0
+    resource_productivity: float = 1.0
+    replication_events: list[dict[str, object]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.steal_fraction = _finite_unit_interval("steal_fraction", self.steal_fraction)
@@ -164,8 +175,32 @@ class HostParasiteEnv:
                 "HostParasiteEnv claim_ceiling is fixed at runtime_observation."
             )
         self.claim_ceiling = "runtime_observation"
+        spatial = self.spatial_mode.strip().lower()
+        if spatial not in _SPATIAL_MODES:
+            raise ConfigurationError(
+                f"spatial_mode must be one of {sorted(_SPATIAL_MODES)}."
+            )
+        self.spatial_mode = spatial
+        if isinstance(self.grid_rows, bool) or not isinstance(self.grid_rows, int) or self.grid_rows < 1:
+            raise ConfigurationError("grid_rows must be a positive int.")
+        if isinstance(self.grid_cols, bool) or not isinstance(self.grid_cols, int) or self.grid_cols < 1:
+            raise ConfigurationError("grid_cols must be a positive int.")
+        self.vertical_transmission_probability = _finite_unit_interval(
+            "vertical_transmission_probability", self.vertical_transmission_probability
+        )
+        prod = float(self.resource_productivity)
+        if prod != prod or prod in (float("inf"), float("-inf")) or prod <= 0.0:
+            raise ConfigurationError("resource_productivity must be a finite value > 0.")
+        self.resource_productivity = prod
 
-    def add_host(self, host_id: str, tasks: Sequence[str]) -> HostState:
+    def add_host(
+        self,
+        host_id: str,
+        tasks: Sequence[str],
+        *,
+        row: int | None = None,
+        col: int | None = None,
+    ) -> HostState:
         if not isinstance(host_id, str) or not host_id.strip():
             raise ConfigurationError("host_id is required.")
         key = host_id.strip()
@@ -174,7 +209,28 @@ class HostParasiteEnv:
         task_set = _task_set(tasks, "tasks")
         if not task_set:
             raise ConfigurationError("host tasks must contain at least one task.")
-        state = HostState(host_id=key, tasks=task_set)
+        if self.spatial_mode == "local_neighborhood":
+            if row is None or col is None:
+                raise ConfigurationError(
+                    "local_neighborhood spatial_mode requires row and col on add_host."
+                )
+            if isinstance(row, bool) or not isinstance(row, int) or row < 0 or row >= self.grid_rows:
+                raise ConfigurationError(f"row must be in [0, {self.grid_rows}).")
+            if isinstance(col, bool) or not isinstance(col, int) or col < 0 or col >= self.grid_cols:
+                raise ConfigurationError(f"col must be in [0, {self.grid_cols}).")
+            for existing in self.hosts.values():
+                if existing.row == row and existing.col == col:
+                    raise ConfigurationError(
+                        f"grid seat ({row}, {col}) already occupied by {existing.host_id!r}."
+                    )
+        elif row is not None or col is not None:
+            if row is None or col is None:
+                raise ConfigurationError("row and col must be provided together.")
+            if isinstance(row, bool) or not isinstance(row, int) or row < 0:
+                raise ConfigurationError("row must be a non-negative int.")
+            if isinstance(col, bool) or not isinstance(col, int) or col < 0:
+                raise ConfigurationError("col must be a non-negative int.")
+        state = HostState(host_id=key, tasks=task_set, row=row, col=col)
         self.hosts[key] = state
         return state
 
@@ -202,6 +258,48 @@ class HostParasiteEnv:
                 raise ConfigurationError(f"payload[{index}] must be an int.")
             out.append(item)
         return tuple(out)
+
+
+    def seed_parasite_seat(
+        self,
+        *,
+        host_id: str,
+        parasite_id: str,
+        parasite_tasks: Sequence[str],
+        payload: Sequence[int] = (),
+    ) -> HostState:
+        """Setup-only seat occupation for vertical-only assays.
+
+        Bypasses transmission_mode gates so vertical-only campaigns can start
+        from an occupied parent before replication. Does not count as a
+        horizontal infection attempt and does not raise claim ceilings.
+        """
+
+        if host_id not in self.hosts:
+            raise ConfigurationError(f"unknown host {host_id!r}.")
+        if not isinstance(parasite_id, str) or not parasite_id.strip():
+            raise ConfigurationError("parasite_id is required.")
+        pid = parasite_id.strip()
+        if pid == host_id:
+            raise ConfigurationError("parasite_id must differ from host_id.")
+        host = self.hosts[host_id]
+        if host.parasite_id is not None:
+            raise ConfigurationError(f"host {host_id!r} seat already occupied.")
+        if self.null_template.structure_null:
+            raise ConfigurationError("structure_null blocks seed_parasite_seat.")
+        eligible, overlap = self.infection_eligible(sorted(host.tasks), parasite_tasks)
+        if not eligible:
+            raise ConfigurationError(
+                "seed_parasite_seat requires task overlap with the host."
+            )
+        updated = replace(
+            host,
+            parasite_id=pid,
+            parasite_tasks=_task_set(parasite_tasks, "parasite_tasks"),
+            parasite_payload=self._payload(payload),
+        )
+        self.hosts[host_id] = updated
+        return updated
 
     def try_horizontal_inject(
         self,
@@ -281,7 +379,11 @@ class HostParasiteEnv:
         return attempt
 
     def host_retained_cpu(self, host_id: str) -> float:
-        """Fraction of CPU retained by the host after optional steal."""
+        """Fraction of CPU retained by the host after optional steal.
+
+        ``resource_productivity`` > 1 reduces relative steal impact (Lopez Pascua
+        2014 resource analogy); values in (0, 1) increase it. Clipped to [0, 1].
+        """
 
         if host_id not in self.hosts:
             raise ConfigurationError(f"unknown host {host_id!r}.")
@@ -292,7 +394,8 @@ class HostParasiteEnv:
         # payload-dependent drawdown is gone while structure remains.
         if self.null_template.content_null and not host.parasite_payload:
             return 1.0
-        return round(1.0 - self.steal_fraction, 10)
+        effective_steal = min(1.0, self.steal_fraction / self.resource_productivity)
+        return round(1.0 - effective_steal, 10)
 
     def population_outcome_score(self) -> float:
         """Digital-scope score: mean retained CPU across hosts.
@@ -306,21 +409,158 @@ class HostParasiteEnv:
         total = sum(self.host_retained_cpu(host_id) for host_id in self.hosts)
         return round(total / len(self.hosts), 10)
 
-    def snapshot(self) -> dict[str, object]:
-        vertical_component = (
-            "not_implemented"
-            if self.transmission_mode in {"mixed", "vertical"}
-            else "not_applicable_horizontal_only"
+
+    def _chebyshev_distance(self, a: HostState, b: HostState) -> int | None:
+        if a.row is None or a.col is None or b.row is None or b.col is None:
+            return None
+        return max(abs(a.row - b.row), abs(a.col - b.col))
+
+    def neighbors(self, host_id: str) -> tuple[str, ...]:
+        """Return hosts within Chebyshev distance 1 (local neighborhood)."""
+
+        if host_id not in self.hosts:
+            raise ConfigurationError(f"unknown host {host_id!r}.")
+        if self.spatial_mode != "local_neighborhood":
+            return tuple(sorted(h for h in self.hosts if h != host_id))
+        origin = self.hosts[host_id]
+        out: list[str] = []
+        for other_id, other in self.hosts.items():
+            if other_id == host_id:
+                continue
+            dist = self._chebyshev_distance(origin, other)
+            if dist is not None and dist <= 1:
+                out.append(other_id)
+        return tuple(sorted(out))
+
+    def try_local_inject(
+        self,
+        *,
+        source_host_id: str,
+        target_host_id: str,
+        parasite_id: str,
+        parasite_tasks: Sequence[str],
+        payload: Sequence[int] = (),
+    ) -> InfectionAttempt:
+        """Neighborhood-restricted inject (Symbulation / Brockhurst mixing knob).
+
+        In ``local_neighborhood`` mode, target must be within Chebyshev distance
+        1 of source. In ``well_mixed`` mode, any target is allowed (distance check
+        skipped). Vertical-only transmission still blocks horizontal inject.
+        """
+
+        if source_host_id not in self.hosts:
+            raise ConfigurationError(f"unknown source host {source_host_id!r}.")
+        if target_host_id not in self.hosts:
+            raise ConfigurationError(f"unknown target host {target_host_id!r}.")
+        if source_host_id == target_host_id:
+            raise ConfigurationError("source_host_id must differ from target_host_id.")
+        if self.spatial_mode == "local_neighborhood":
+            source = self.hosts[source_host_id]
+            target = self.hosts[target_host_id]
+            dist = self._chebyshev_distance(source, target)
+            if dist is None or dist > 1:
+                attempt = InfectionAttempt(
+                    host_id=target_host_id,
+                    parasite_id=parasite_id,
+                    eligible=False,
+                    injected=False,
+                    reason="outside_local_neighborhood",
+                    overlap_tasks=(),
+                )
+                self.attempts.append(attempt)
+                return attempt
+        return self.try_horizontal_inject(
+            host_id=target_host_id,
+            parasite_id=parasite_id,
+            parasite_tasks=parasite_tasks,
+            payload=payload,
         )
+
+    def replicate_host(
+        self,
+        *,
+        parent_id: str,
+        child_id: str,
+        draw: float,
+        child_row: int | None = None,
+        child_col: int | None = None,
+    ) -> HostState:
+        """Replicate a host; optionally transmit the parasite vertically.
+
+        ``draw`` is a deterministic unit-interval decision value supplied by the
+        caller (campaign seed stream). Vertical transmission occurs when
+        transmission_mode is ``vertical`` or ``mixed``, the parent is occupied,
+        and ``draw < vertical_transmission_probability``. Mixed mode keeps
+        horizontal inject available as well — it does not leave vertical as
+        ``not_implemented``.
+        """
+
+        if parent_id not in self.hosts:
+            raise ConfigurationError(f"unknown parent host {parent_id!r}.")
+        draw_u = _finite_unit_interval("draw", draw)
+        parent = self.hosts[parent_id]
+        child = self.add_host(
+            child_id,
+            sorted(parent.tasks),
+            row=child_row,
+            col=child_col,
+        )
+        transmitted = False
+        reason = "no_vertical_transmission"
+        if self.transmission_mode in {"vertical", "mixed"} and parent.parasite_id is not None:
+            if draw_u < self.vertical_transmission_probability:
+                if self.null_template.structure_null:
+                    reason = "structure_null_blocks_vertical"
+                else:
+                    payload = () if self.null_template.content_null else parent.parasite_payload
+                    child = replace(
+                        child,
+                        parasite_id=f"{parent.parasite_id}::v",
+                        parasite_tasks=parent.parasite_tasks,
+                        parasite_payload=payload,
+                    )
+                    self.hosts[child_id] = child
+                    transmitted = True
+                    reason = "vertical_transmitted"
+            else:
+                reason = "vertical_draw_missed"
+        elif self.transmission_mode == "horizontal":
+            reason = "horizontal_mode_skips_vertical"
+        event = {
+            "parent_id": parent_id,
+            "child_id": child_id,
+            "draw": draw_u,
+            "transmitted": transmitted,
+            "reason": reason,
+            "transmission_mode": self.transmission_mode,
+        }
+        self.replication_events.append(event)
+        return child
+
+    def snapshot(self) -> dict[str, object]:
+        if self.transmission_mode == "horizontal":
+            vertical_component = "not_applicable_horizontal_only"
+        elif self.transmission_mode == "vertical":
+            vertical_component = "vertical_mode_enabled"
+        else:
+            # Mode advertises both pathways; replication_events record whether
+            # vertical transmission actually fired in this run.
+            vertical_component = "mixed_mode_enabled"
         body: dict[str, object] = {
             "schema": "host_parasite_env_snapshot_v1",
             "steal_fraction": self.steal_fraction,
             "transmission_mode": self.transmission_mode,
             "vertical_component": vertical_component,
+            "spatial_mode": self.spatial_mode,
+            "grid_rows": self.grid_rows,
+            "grid_cols": self.grid_cols,
+            "vertical_transmission_probability": self.vertical_transmission_probability,
+            "resource_productivity": self.resource_productivity,
             "null_template": self.null_template.to_dict(),
             "claim_ceiling": self.claim_ceiling,
             "hosts": [self.hosts[key].to_dict() for key in sorted(self.hosts)],
             "attempts": [item.to_dict() for item in self.attempts],
+            "replication_events": list(self.replication_events),
             "population_outcome_score": (
                 self.population_outcome_score() if self.hosts else None
             ),

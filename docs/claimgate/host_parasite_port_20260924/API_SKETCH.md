@@ -110,7 +110,7 @@ assert contrast["nulls_change_outcomes"] is True
 
 ClaimGate remains the evidence auditor; the env only produces digital-scope
 scores / snapshots for adapters to wrap. Vertical transmission physics stay
-labeled `not_implemented` until Phase 5 implements mixed H+V blending.
+implemented in Phase 5 (`mixed_mode_enabled` + `replicate_host`).
 
 ## COU / risk labels (declared only)
 
@@ -156,3 +156,35 @@ bundle = bundle_from_host_parasite_campaign(
 
 Arms: intact, content_null, structure_null, dual_null, abiotic_only,
 freeze_replay_parasites. Per-arm and campaign digests are canonical.
+
+
+## Phase 5 — spatial, vertical, diagnostics
+
+```python
+from codontrace.genesis.host_parasite_env import HostParasiteEnv
+from codontrace.genesis.host_parasite_diagnostics import diagnose_coevolution_ranges
+
+env = HostParasiteEnv(
+    transmission_mode="mixed",
+    vertical_transmission_probability=0.8,
+    spatial_mode="local_neighborhood",
+    grid_rows=3,
+    grid_cols=3,
+    resource_productivity=1.5,
+)
+env.add_host("H0", ("and",), row=0, col=0)
+env.add_host("H1", ("and",), row=0, col=1)
+env.try_local_inject(
+    source_host_id="H0",
+    target_host_id="H1",
+    parasite_id="P0",
+    parasite_tasks=("and",),
+    payload=(1,),
+)
+child = env.replicate_host(parent_id="H1", child_id="H2", draw=0.1, child_row=1, child_col=1)
+diag = diagnose_coevolution_ranges([
+    {"time_index": 0, "infectivity_range": 0.1, "resistance_range": 0.1},
+    {"time_index": 1, "infectivity_range": 0.4, "resistance_range": 0.35},
+])
+assert diag.red_queen_proved is False
+```

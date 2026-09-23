@@ -168,11 +168,25 @@ def test_dual_null_contrast_tracks_injection_when_scores_tie() -> None:
     assert contrast["injected"]["structure_null"] is False
 
 
-def test_mixed_mode_declares_vertical_not_implemented() -> None:
-    env = HostParasiteEnv(transmission_mode="mixed")
-    env.add_host("H0", ("and",))
+def test_mixed_mode_blends_horizontal_and_vertical() -> None:
+    env = HostParasiteEnv(
+        transmission_mode="mixed",
+        vertical_transmission_probability=1.0,
+        steal_fraction=0.8,
+    )
+    env.add_host("H0", ("and", "or"))
+    injected = env.try_horizontal_inject(
+        host_id="H0",
+        parasite_id="P0",
+        parasite_tasks=("and",),
+        payload=(1, 2),
+    )
+    assert injected.injected is True
+    child = env.replicate_host(parent_id="H0", child_id="H1", draw=0.0)
+    assert child.parasite_id is not None
     snap = env.snapshot()
-    assert snap["vertical_component"] == "not_implemented"
+    assert snap["vertical_component"] == "mixed_mode_enabled"
+    assert snap["red_queen_proved"] is False
 
 
 def test_parasite_id_must_differ_from_host_id() -> None:

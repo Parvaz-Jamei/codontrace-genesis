@@ -1276,7 +1276,7 @@ def attach_genome_zaman_campaign(
     if "genome_zaman_campaign" in extra:
         raise ConfigurationError("genome_zaman_campaign already attached.")
     payload = campaign.to_dict()
-    if payload.get("schema") != "host_parasite_genome_vt_spatial_continuum_factorial_v1":
+    if payload.get("schema") != "host_parasite_genome_zaman_campaign_v1":
         raise ConfigurationError("genome Zaman campaign schema mismatch.")
     prereg = extra.get("host_parasite_preregistration")
     if not isinstance(prereg, Mapping) or "digest" not in prereg:
@@ -1351,7 +1351,7 @@ def attach_genome_diversity_campaign(
     if "genome_diversity_campaign" in extra:
         raise ConfigurationError("genome_diversity_campaign already attached.")
     payload = campaign.to_dict()
-    if payload.get("schema") != "host_parasite_genome_vt_spatial_continuum_factorial_v1":
+    if payload.get("schema") != "host_parasite_genome_diversity_campaign_v1":
         raise ConfigurationError("genome diversity campaign schema mismatch.")
     prereg = extra.get("host_parasite_preregistration")
     if not isinstance(prereg, Mapping) or "digest" not in prereg:

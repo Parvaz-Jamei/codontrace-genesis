@@ -20,7 +20,9 @@
   manuscript is four pages and includes the ranking table and the arm roles
   from the Persian text. Reference [10] is IMDRF N12 only. DOIs were added
   for the journal papers, MIRROR, and NovaFabric. Grade 5 lists the three
-  conditions required to leave grade 4.
+  conditions required to leave grade 4. The English manuscript also records
+  the strings the biomedical profile refuses, the three checkable files, and
+  that the ESP32 adapter is an engineering stub with no robot result.
 - BAIC manuscript is a measurement of the bundle, not a tool tour and not a
   literature percentage. `paper/baic/paper.md` states that the file label
   `intervention_supported` stays and does not grant public level 4, that

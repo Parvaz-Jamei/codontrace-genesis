@@ -469,6 +469,38 @@ def build() -> None:
         10,
     )
 
+    _p(doc, styles, "Heading1", "Refused strings and recorded files", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The biomedical profile refuses a string that would be a certificate. Refusal is not an audit grade. Table 8 lists four of those strings. The same profile still accepts a declared label, such as an IEC class or an IMDRF category, and that label does not raise the grade.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 8. Strings the configuration refuses", 8, "center", True)
+    _table(doc, [
+        ["String", "Result"],
+        ["fda_cleared", "Refused"],
+        ["clinical_validated", "Refused"],
+        ["iec_62304_certified", "Refused"],
+        ["asme_vv40_passed", "Refused"],
+    ], [2800, 1800])
+    _p(
+        doc, styles, "Normal",
+        "A reader can repeat three files. Table 9 gives the fingerprint prefix of each. The auditor writes the file. The three files were committed at c8db778, and those digests are unchanged. Code is at github.com/Parvaz-Jamei/codontrace-genesis. The package identity is 0.3.0b7 and is not a PyPI release. The published tip is 0.3.0b6. The DOI 10.5281/zenodo.20337435 archives the software, not the campaign.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 9. Files a reader can check", 8, "center", True)
+    _table(doc, [
+        ["File", "Prefix", "Record"],
+        ["HE01 study", "d176f0ab", "Grade 4, ceiling empty"],
+        ["Deletion grid", "3c8a8a1f", "Six deletions below 4"],
+        ["Risk bar", "b053e7f1", "Met only if the row ran"],
+    ], [1400, 1400, 1800])
+    _p(
+        doc, styles, "Normal",
+        "Hardware is a third profile on the same port, not a second engine. The ESP32 adapter is an engineering stub. It is implemented, and it is not one of the measurements above. No robot result is reported. A later measurement would use this auditor on that port.",
+        10,
+    )
+
     _p(doc, styles, "Heading", "Acknowledgment", 12, "left", True)
     _p(
         doc, styles, "Normal",

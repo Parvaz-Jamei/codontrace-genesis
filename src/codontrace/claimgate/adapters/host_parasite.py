@@ -1924,10 +1924,6 @@ def attach_ard_fsd_transition(
         require_preregistration_before_campaign_attach,
     )
     from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
-    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
-    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
-    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
-    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
 
     if not isinstance(campaign, ArdFsdTransitionResult):
         raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")

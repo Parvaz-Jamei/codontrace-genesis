@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
     from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
     from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
+    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
+    from codontrace.genesis.host_parasite_genome_factorial import GenomeFactorialResult
+    from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
+    from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -60,6 +64,7 @@ DECLARED_INTERVENTION_KINDS = frozenset(
         "steal_fraction_ablation",
         "transmission_mode_switch",
         "hgt_analogue_segment_copy",
+        "hgt_analogue_noise_transfer",
         "intracellular_seat_constraint",
         "free_living_horizontal_inject",
     }
@@ -1518,5 +1523,301 @@ def attach_task_gene_map(
     limitations = bundle.limitations
     if _TASK_GENE_NOTE not in limitations:
         limitations = limitations + (_TASK_GENE_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 14 — transmission-mode contrast + mode-completeness hardening
+# ---------------------------------------------------------------------------
+
+_MODE_CONTRAST_NOTE = (
+    "Transmission-mode contrast digests show horizontal / vertical / mixed "
+    "are distinct; mixed blends both pathways. Digital labels only."
+)
+
+
+def attach_transmission_mode_contrast(
+    bundle: ClaimgateBundle,
+    contrast: "ModeContrastResult",
+) -> ClaimgateBundle:
+    """Attach transmission-mode contrast digests without raising the ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
+
+    if not isinstance(contrast, ModeContrastResult):
+        raise ConfigurationError("contrast must be a ModeContrastResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if contrast.red_queen_proved:
+        raise ConfigurationError("contrast.red_queen_proved must remain False.")
+    if contrast.virulence_optimized_for_humans:
+        raise ConfigurationError("virulence_optimized_for_humans must remain False.")
+    if contrast.major_transition_proved:
+        raise ConfigurationError("major_transition_proved must remain False.")
+    if not contrast.mixed_blends_horizontal_and_vertical:
+        raise ConfigurationError("attach requires mixed mode to blend H+V.")
+    if not contrast.modes_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct mode digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_transmission_mode_contrast requires a host_parasite domain bundle."
+        )
+    if "transmission_mode_contrast" in extra:
+        raise ConfigurationError("transmission_mode_contrast already attached.")
+    payload = contrast.to_dict()
+    if payload.get("schema") != "host_parasite_transmission_mode_contrast_v1":
+        raise ConfigurationError("transmission-mode contrast schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_transmission_mode_contrast requires preregistration digest on the bundle."
+        )
+    extra["transmission_mode_contrast"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "mode_digests": payload["mode_digests"],
+            "seeds": payload["seeds"],
+            "modes": payload["modes"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "modes_are_distinct": True,
+            "mixed_blends_horizontal_and_vertical": True,
+            "red_queen_proved": False,
+            "virulence_optimized_for_humans": False,
+            "major_transition_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _MODE_CONTRAST_NOTE not in limitations:
+        limitations = limitations + (_MODE_CONTRAST_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 15 — genome × VT × spatial × continuum factorial
+# ---------------------------------------------------------------------------
+
+_GENOME_FACTORIAL_NOTE = (
+    "Genome×VT×spatial×continuum factorial digests are digital cross-wave "
+    "observables; mutualism is never success and major transition stays unproved."
+)
+
+
+def attach_genome_vt_spatial_continuum_factorial(
+    bundle: ClaimgateBundle,
+    factorial: "GenomeFactorialResult",
+) -> ClaimgateBundle:
+    """Attach genome×continuum factorial digests without raising the ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_genome_factorial import GenomeFactorialResult
+
+    if not isinstance(factorial, GenomeFactorialResult):
+        raise ConfigurationError("factorial must be a GenomeFactorialResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if factorial.red_queen_proved:
+        raise ConfigurationError("factorial.red_queen_proved must remain False.")
+    if factorial.major_transition_proved:
+        raise ConfigurationError("major_transition_proved must remain False.")
+    if factorial.mutualism_equals_success:
+        raise ConfigurationError("mutualism_equals_success must remain False.")
+    if not factorial.cells_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct factorial cell digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_genome_vt_spatial_continuum_factorial requires a host_parasite domain bundle."
+        )
+    if "genome_vt_spatial_continuum_factorial" in extra:
+        raise ConfigurationError("genome_vt_spatial_continuum_factorial already attached.")
+    payload = factorial.to_dict()
+    if payload.get("schema") != "host_parasite_genome_vt_spatial_continuum_factorial_v1":
+        raise ConfigurationError("genome factorial schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_genome_vt_spatial_continuum_factorial requires preregistration digest."
+        )
+    extra["genome_vt_spatial_continuum_factorial"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "factorial_digest": payload["factorial_digest"],
+            "cell_digests": payload["cell_digests"],
+            "seeds": payload["seeds"],
+            "vt_levels": payload["vt_levels"],
+            "spatial_modes": payload["spatial_modes"],
+            "interaction_values": payload["interaction_values"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "cells_are_distinct": True,
+            "mutualism_equals_success": False,
+            "red_queen_proved": False,
+            "major_transition_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "cross_wave": payload["cross_wave"],
+        },
+    )
+    limitations = bundle.limitations
+    if _GENOME_FACTORIAL_NOTE not in limitations:
+        limitations = limitations + (_GENOME_FACTORIAL_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 — virulence / resistance quality proxies (S7)
+# ---------------------------------------------------------------------------
+
+_VIRULENCE_QUALITY_NOTE = (
+    "Virulence/resistance quality proxies are digital labels only; "
+    "virulence_optimized_for_humans remains blocked."
+)
+
+
+def attach_virulence_resistance_quality(
+    bundle: ClaimgateBundle,
+    campaign: "VirulenceQualityResult",
+) -> ClaimgateBundle:
+    """Attach virulence-quality digests; keep human-virulence claim blocked."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
+
+    if not isinstance(campaign, VirulenceQualityResult):
+        raise ConfigurationError("campaign must be a VirulenceQualityResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if campaign.virulence_optimized_for_humans:
+        raise ConfigurationError("virulence_optimized_for_humans must remain False.")
+    if (not campaign.hypothesis_supported) and not str(campaign.failure_reason).strip():
+        raise ConfigurationError("falsified virulence campaign requires failure_reason.")
+    # Hard refuse: blocked claim must still raise if asserted at attach time.
+    blocked = False
+    try:
+        assert_claim_allowed("virulence_optimized_for_humans")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("virulence_optimized_for_humans must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_virulence_resistance_quality requires a host_parasite domain bundle."
+        )
+    if "virulence_resistance_quality" in extra:
+        raise ConfigurationError("virulence_resistance_quality already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_virulence_resistance_quality_v1":
+        raise ConfigurationError("virulence-quality schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_virulence_resistance_quality requires preregistration digest."
+        )
+    extra["virulence_resistance_quality"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "arms_are_distinct": payload["arms_are_distinct"],
+            "red_queen_proved": False,
+            "virulence_optimized_for_humans": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "challenge": payload["challenge"],
+        },
+    )
+    limitations = bundle.limitations
+    if _VIRULENCE_QUALITY_NOTE not in limitations:
+        limitations = limitations + (_VIRULENCE_QUALITY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 17 — Price≠causality refusal assay (S8, optional earn-in)
+# ---------------------------------------------------------------------------
+
+_PRICE_CAUTION_NOTE = (
+    "Price-style covariance summaries are diagnostics only; they do not prove "
+    "major transitions or causal multilevel selection."
+)
+
+
+def attach_price_causality_caution(
+    bundle: ClaimgateBundle,
+    assay: "PriceCautionResult",
+) -> ClaimgateBundle:
+    """Attach Price caution digests; never unlock major_transition_proved."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
+
+    if not isinstance(assay, PriceCautionResult):
+        raise ConfigurationError("assay must be a PriceCautionResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if assay.major_transition_proved or assay.price_summary_is_causal or assay.red_queen_proved:
+        raise ConfigurationError("Price caution flags must remain unproved/non-causal.")
+    if not assay.refusal_assay_passed:
+        raise ConfigurationError("Price refusal assay must pass before attach.")
+    blocked = False
+    try:
+        assert_claim_allowed("major_transition_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("major_transition_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_price_causality_caution requires a host_parasite domain bundle."
+        )
+    if "price_causality_caution" in extra:
+        raise ConfigurationError("price_causality_caution already attached.")
+    payload = assay.to_dict()
+    if payload.get("schema") != "host_parasite_price_causality_caution_v1":
+        raise ConfigurationError("Price caution schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_price_causality_caution requires preregistration digest."
+        )
+    extra["price_causality_caution"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "summary_digest": payload["summary_digest"],
+            "seeds": payload["seeds"],
+            "price_covariance": payload["price_covariance"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "price_summary_is_causal": False,
+            "major_transition_proved": False,
+            "red_queen_proved": False,
+            "refusal_assay_passed": True,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "challenge": payload["challenge"],
+        },
+    )
+    limitations = bundle.limitations
+    if _PRICE_CAUTION_NOTE not in limitations:
+        limitations = limitations + (_PRICE_CAUTION_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
 

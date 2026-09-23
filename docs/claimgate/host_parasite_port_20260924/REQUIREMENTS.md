@@ -74,3 +74,12 @@ grounded source from `CITATIONS.md`.
    correctness (Cornish et al. arXiv:2301.07210 / JMLR 27(152) 2026).
 7. **WON'T** add separate `DomainProfile`s for bacteria, archaea, or wet-lab
    cells; digital host–parasite roles are sufficient for this port.
+
+
+## Wave 4 delivery (Phases 14–17)
+
+- Phase 14: mode-completeness hardening (mixed blend digests; noise-transfer on declared menu; keep-mode registry).
+- Phase 15: genome × VT × spatial × continuum factorial digests.
+- Phase 16: virulence/resistance quality proxies; `virulence_optimized_for_humans` blocked.
+- Phase 17: Price≠causality refusal assay; `major_transition_proved` blocked.
+- See `MODE_AUDIT_WAVE4.md` and `DEPTH_BRAINSTORM_WAVE4.md`.

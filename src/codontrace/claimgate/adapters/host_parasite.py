@@ -938,3 +938,62 @@ def attach_coevolution_diagnostics(
     if _DIAGNOSTICS_NOTE not in limitations:
         limitations = limitations + (_DIAGNOSTICS_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 — Zaman freeze / replay / reciprocal attach (complexity unproved)
+# ---------------------------------------------------------------------------
+
+_ZAMAN_NOTE = (
+    "Zaman three-arm digests are digital freeze/replay/reciprocal analogues only; "
+    "complexity emergence and Red Queen dynamics are not proved."
+)
+
+
+def attach_zaman_campaign(
+    bundle: ClaimgateBundle,
+    campaign,
+) -> ClaimgateBundle:
+    """Attach Zaman three-arm digests without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
+
+    if not isinstance(campaign, ZamanCampaignResult):
+        raise ConfigurationError("campaign must be a ZamanCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.complexity_emergence_proved:
+        raise ConfigurationError("campaign.complexity_emergence_proved must remain False.")
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_zaman_campaign requires a host_parasite domain bundle."
+        )
+    if "zaman_three_arm_campaign" in extra:
+        raise ConfigurationError("zaman_three_arm_campaign already attached.")
+    payload = campaign.to_dict()
+    extra["zaman_three_arm_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "steps": payload["steps"],
+            "arms_are_distinct": payload["arms_are_distinct"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "zaman_scope": payload["zaman_scope"],
+        },
+    )
+    limitations = bundle.limitations
+    if _ZAMAN_NOTE not in limitations:
+        limitations = limitations + (_ZAMAN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

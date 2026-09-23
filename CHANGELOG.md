@@ -18,7 +18,9 @@
   template, and the package no longer contains a duplicate core-properties
   part. Word can open `paper/baic/BAIC2026_Jamei_en.docx`. The English
   manuscript is four pages and includes the ranking table and the arm roles
-  from the Persian text.
+  from the Persian text. Reference [10] is IMDRF N12 only. DOIs were added
+  for the journal papers, MIRROR, and NovaFabric. Grade 5 lists the three
+  conditions required to leave grade 4.
 - BAIC manuscript is a measurement of the bundle, not a tool tour and not a
   literature percentage. `paper/baic/paper.md` states that the file label
   `intervention_supported` stays and does not grant public level 4, that

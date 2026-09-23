@@ -93,6 +93,32 @@ ClaimGate / HE02 authorities). No invented titles.
     `src/codontrace/claimgate/domain.py`, `adapters/biomedical.py`; HE02
     content-null / capsules_shuffled campaign logic.
 
+
+## Red Queen / ARD–FSD / virulence–transmission (Round 5 grounding)
+
+20. Hall AR, Scanlan PD, Morgan AD, Buckling A (2011). Host–parasite
+    coevolutionary arms races give way to fluctuating selection.
+    *Ecology Letters* 14:635–642.
+    doi:[10.1111/j.1461-0248.2011.01624.x](https://doi.org/10.1111/j.1461-0248.2011.01624.x)
+
+21. Lopez Pascua L, Best A, Hall AR, Morgan AD, Boots M, Buckling A (2014).
+    Higher resources decrease fluctuating selection during host–parasite
+    coevolution. *Ecology Letters* 17:1380–1388.
+    doi:[10.1111/ele.12337](https://doi.org/10.1111/ele.12337)
+
+22. Brockhurst MA & Koskella B (2013). Experimental coevolution of species
+    interactions. *Trends in Ecology & Evolution* 28:367–375.
+    doi:[10.1016/j.tree.2013.02.009](https://doi.org/10.1016/j.tree.2013.02.009)
+
+23. Brockhurst MA, Morgan AD, Rainey PB, Buckling A (2003). Population mixing
+    accelerates coevolution. *Ecology Letters* 6:975–979.
+    doi:[10.1046/j.1461-0248.2003.00533.x](https://doi.org/10.1046/j.1461-0248.2003.00533.x)
+
+24. Alizon S, Hurford A, Mideo N, van Baalen M (2009). Virulence evolution and
+    the trade-off hypothesis: history, current state of affairs and the future.
+    *Journal of Evolutionary Biology* 22:245–259.
+    doi:[10.1111/j.1420-9101.2008.01658.x](https://doi.org/10.1111/j.1420-9101.2008.01658.x)
+
 ## Integrity note
 
 If a claim cannot be tied to an item above, write

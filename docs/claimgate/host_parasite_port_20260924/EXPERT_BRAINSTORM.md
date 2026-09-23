@@ -1,8 +1,9 @@
 # Expert brainstorm — CodonTrace Genesis host–parasite port
 
-Three personas debate in structured Q→A turns. Every substantive scientific
-claim cites a DOI/paper from the grounded list (or repo-already-cited
-authorities). Disagreement is encouraged. Ends with a **CONSENSUS DESIGN**.
+Three personas debate in **at least five full conversational rounds**
+(Q → A/B/C → rebuttals). Every substantive scientific claim cites a DOI/paper
+from the grounded list (or repo-already-cited authorities). Disagreement is
+encouraged. Ends with a **CONSENSUS DESIGN**.
 
 **Personas**
 
@@ -39,6 +40,17 @@ correctness. MVP should be: (1) profile + blocked claims, (2) a *declared*
 intervention menu for later falsification, (3) no clinical certificates. FDA
 2023 CM&S / ASME V&V 40-2018 risk commensurate evidence applies as **labels**,
 same biomedical port stance — not clearance.
+
+**A (rebuttal to B):** Theater would be shipping fake infection physics with
+therapy spin. A fail-closed profile is the opposite: it buys time to implement
+Fortuna-grade rules without marketing them as CRISPR.
+
+**B (rebuttal to C):** Declared intervention menus are fine on paper. Empiricists
+will ignore them unless ClaimGate *refuses* observational-only “coevolution
+proved” bundles. Otherwise the menu is decoration.
+
+**C (close):** Then MVP ships profile + refuse-list + empty declared menu
+schema. Physics waits for v1. That is useful hygiene, not theater.
 
 ---
 
@@ -81,6 +93,10 @@ shows coevolution can constrain abiotic-beneficial mutations — a digital port
 that only celebrates “parasites increase evolvability” would be one-sided
 relative to that empirical constraint result.
 
+**C (rebuttal):** Two controls + abiotic arm is the dual-null campaign template
+for v1. Do not implement it in the profile PR; declare it as a required
+falsification path before any “complexity from parasites” claim ladder step.
+
 ---
 
 ## Round 3 — Virulence, resistance, multilevel
@@ -90,11 +106,18 @@ relative to that empirical constraint result.
 **B:** Only as *digital* labels with blocked human/clinical aliases. Gandon
 (doi:10.1098/rspb.2000.1100) qualitative vs quantitative resistance and
 Alizon et al. (doi:10.1098/rstb.2013.0365) social infections are theory
-priors — not licenses for `virulence_optimized_for_humans`.
+priors — not licenses for `virulence_optimized_for_humans`. The classic
+virulence–transmission trade-off review (Alizon, Hurford, Mideo, van Baalen
+2009 *J Evol Biol* doi:10.1111/j.1420-9101.2008.01658.x) already warns that
+simple trade-offs are contested and context-dependent; a digital CPU-steal
+proxy must not inherit clinical virulence-management language.
 
 **A:** In Avida, “virulence” ≈ CPU stolen / host fecundity hit (Fortuna et al.
 2021). Fine as an internal metric name in a future env; ClaimGate must still
-block clinical re-labeling.
+block clinical re-labeling. Coinfection / within-host competition knobs (Alizon
+social infections doi:10.1098/rstb.2013.0365) map loosely to multi-seat
+infection — which Fortuna deliberately kept at one seat. Keep one seat in v1;
+treat multi-seat as an explicit intervention, not a default.
 
 **C:** Multilevel caution: host–parasite coupling can look like a major
 transition (Okasha Front EcoEvo 2022 doi:10.3389/fevo.2022.793824; Michod &
@@ -102,6 +125,18 @@ Nedelcu 2003 doi:10.1093/icb/43.1.64 fitness reorganization). Innovation:
 require an explicit *fitness-reorganization worksheet* (who’s fitness? host,
 parasite, collective?) before any “transition” claim — analogous to
 biomedical PIRT/weakest-submodel discipline, but for multilevel units.
+
+**B (rebuttal to A):** One seat is honest relative to Fortuna, but empiricists
+will ask about coinfection immediately. Document the non-goal: no
+within-host competition evolution claims until multi-seat + Alizon-style
+controls exist.
+
+**A (rebuttal to C):** Fitness worksheets are good ClaimGate paperwork. Do not
+block shipping the thin profile on worksheet completeness — only block
+*transition* claim strings until the worksheet is filled.
+
+**C (close):** Agreed. Profile blocks clinical virulence + transition strings;
+worksheet is a gate for ladder upgrades, not for MVP merge.
 
 ---
 
@@ -136,16 +171,78 @@ Symbulation already varies transmission and spatial structure (Zenodo
 tests, a digital “immune” module will be curve-fit to
 doi:10.1371/journal.pbio.3002122 figures and over-trusted.
 
+**A (push):** Auditable protocols need schemas in docs first (this pack), then
+runner hooks in a later PR. Do not invent Avida-parity infection in the same
+commit as ClaimGate schemas.
+
+**C (rebuttal):** Correct sequencing. This PR = schemas + blocks. v1 = env +
+dual-null campaign. v2 = Cornish intervention suite hooked to ClaimGate
+ladder grades.
+
+**B (close):** As long as README_FA and English README state “not CRISPR /
+not therapy,” I will not oppose the thin profile.
+
 ---
 
-## Round 5 — Disagreements to preserve
+## Round 5 — Red Queen modes, resources, and what “success” means
+
+**Q5.** If Genesis later runs digital host–parasite coevolution, what evidence
+shape should count as success — arms race escalation, fluctuating selection,
+or something else?
+
+**B:** Empirically, short-term phage–bacteria studies often look like arms-race
+dynamics (ARD), but longer Pseudomonas–Φ2 work shows ARD can give way to
+fluctuating selection dynamics (FSD) as costs of generalism rise (Hall,
+Scanlan, Morgan, Buckling 2011 *Ecology Letters*
+doi:10.1111/j.1461-0248.2011.01624.x). Nutrient / resource level can push the
+other way: higher resources shifted the same system from FSD toward ARD
+(Lopez Pascua et al. 2014 *Ecology Letters* doi:10.1111/ele.12337). A digital
+port that only celebrates monotonic infectivity/resistance escalation would
+oversell ARD and miss Red Queen FSD signatures Brockhurst & Koskella review
+as central (2013 *TREE* doi:10.1016/j.tree.2013.02.009).
+
+**A:** Avida coevolution demos (Zaman 2014 doi:10.1371/journal.pbio.1002023;
+Fortuna 2021 doi:10.3389/fevo.2021.750772) often emphasize complexity /
+evolvability under parasitism — closer to an ARD-flavored success aesthetic.
+That is fine as *one* reportable outcome, not the only pass criterion.
+Population mixing and spatial structure already change coevolutionary tempo
+in empirical systems (Brockhurst, Morgan, Rainey, Buckling 2003 *Ecol Lett*
+doi:10.1046/j.1461-0248.2003.00533.x); Symbulation’s spatial knobs (Zenodo
+10.5281/zenodo.6380543) are the digital place to put analogous levers — in v2,
+not MVP.
+
+**C:** Success must be ClaimGate-shaped: pre-register whether the campaign
+targets ARD markers, FSD markers, or a transition between them under a
+resource knob (Lopez Pascua 2014). Then require intervention falsification
+(Cornish arXiv:2301.07210) — e.g., does removing the resource treatment
+erase the ARD↔FSD shift? Observational “we saw escalation” is HE02-grade
+`candidate_evidence` at best, not a proved coevolution claim.
+
+**B (rebuttal to A):** If digital success = “hosts got more complex,” you will
+conflict with Scanlan/Buckling MBE 2015 constraint results
+(academic.oup.com/mbe/article/32/6/1425). Pair complexity gains with an
+abiotic-constraint arm every time.
+
+**A (rebuttal to B/C):** Agreed on pairing. Disagreement to preserve: I still
+want complexity/evolvability as a first-class *optional* endpoint metric;
+B wants punctuated / FSD signatures; C wants falsification pass/fail. All
+three can coexist as alternate claim ladders — ClaimGate should not force a
+single aesthetic.
+
+**C (close):** Round-5 consensus fragment: no single success aesthetic;
+resource and mixing knobs are v2 science; MVP still only labels and blocks.
+
+---
+
+## Round 5b — Disagreements to preserve (summary table)
 
 | Topic | A | B | C |
 |---|---|---|---|
 | MVP depth | Profile now; env later | Profile ok; no CRISPR cosplay | Profile + declared intervention menu |
 | Task-overlap | Core Avida analogy | Weak wet map | Keep, with structure-null |
 | Mutualism knobs | v2 Symbulation | Low priority vs phage eco-evo | Only with multilevel worksheet |
-| Success metric | Complexity/evolvability | Constraint & punctuated signatures | Falsification pass/fail under interventions |
+| Success metric | Complexity/evolvability | Constraint, FSD/ARD signatures | Falsification pass/fail under interventions |
+| Virulence word | Digital CPU-steal ok | Clinical aliases blocked; trade-off humility | Worksheet before transition claims |
 
 ---
 
@@ -177,7 +274,10 @@ doi:10.1371/journal.pbio.3002122 figures and over-trusted.
 ### v2
 
 1. Transmission-mode + spatial-structure knobs (Symbulation / Gupta–Vostinar
-   2021 doi:10.3389/fevo.2021.739047; Zenodo 10.5281/zenodo.6380543).
+   2021 doi:10.3389/fevo.2021.739047; Zenodo 10.5281/zenodo.6380543);
+   optional mixing/resource levers inspired by Brockhurst et al. 2003
+   doi:10.1046/j.1461-0248.2003.00533.x and Lopez Pascua et al. 2014
+   doi:10.1111/ele.12337.
 2. Intervention falsification protocol documented against Cornish et al.
    (arXiv:2301.07210 / JMLR 27(152) 2026).
 3. External comparator notebooks vs CRISPR–phage signatures
@@ -188,6 +288,8 @@ doi:10.1371/journal.pbio.3002122 figures and over-trusted.
    doi:10.3389/fevo.2022.793824).
 5. Explicit abiotic×biotic constraint assays inspired by Scanlan/Buckling MBE
    2015 (academic.oup.com/mbe/article/32/6/1425).
+6. Optional ARD↔FSD diagnostic reporting keyed to Hall et al. 2011
+   doi:10.1111/j.1461-0248.2011.01624.x (not a default “success = ARD” rule).
 
 ### Explicit non-goals (all versions unless separately certified elsewhere)
 
@@ -195,6 +297,7 @@ doi:10.1371/journal.pbio.3002122 figures and over-trusted.
   virulence-optimization claims.
 - Baking medicine or CRISPR genetics into `engine.py`.
 - Committing untracked `src/codontrace/genesis/population/` junk.
+- Claiming MVP “models CRISPR” or “proves Red Queen.”
 
 ---
 

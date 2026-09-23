@@ -22,8 +22,10 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.host_parasite_attach_registry import (
     BLOCKED_CLAIM_MATRIX,
     REQUIRED_ATTACH_KEYS,
+    WAVE5_ATTACH_CALLABLES,
     WAVE5_ATTACH_KEYS,
     assert_registry_covers_phases_1_to_17,
+    assert_wave5_attach_surface_wired,
     build_journal_attach_registry_packet,
 )
 
@@ -118,6 +120,22 @@ def test_attach_journal_registry_requires_prereg_and_keeps_ladder() -> None:
     with pytest.raises(ConfigurationError, match="already attached"):
         attach_journal_attach_registry(attached, packet)
 
+
+
+
+def test_wave5_attach_surface_wired_to_adapter_callables() -> None:
+    """Completeness hygiene: Wave-5 keys map to real attach_* callables."""
+
+    assert_wave5_attach_surface_wired()
+    assert set(WAVE5_ATTACH_KEYS) == set(WAVE5_ATTACH_CALLABLES)
+    assert set(WAVE5_ATTACH_CALLABLES.values()) == {
+        "attach_journal_attach_registry",
+        "attach_ard_fsd_transition",
+        "attach_resource_dynamics_factorial",
+        "attach_multi_seed_contingency",
+        "attach_sequential_cornish_campaign",
+        "attach_scanlan_mutator_campaign",
+    }
 
 def test_baic_pins_byte_identical() -> None:
     for rel, expected in PIN_SPECS:

@@ -321,7 +321,6 @@ The second call stays on the biomedical port. It does not start `GenesisEngine`.
 | [`docs/CLAIMGATE_STANDALONE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
 | [`docs/ARCHITECTURE_PORTS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile; not a second engine per domain |
 | [`docs/BIOMEDICAL_ENGINEERING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/BIOMEDICAL_ENGINEERING.md) | Biomedical analog (QOI/COU labels); not SaMD / FDA / ASME certification |
-| [`paper/baic/paper.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/paper/baic/paper.md) | BAIC 2026 Persian manuscript (evidence audit; not a device paper) |
 | [`docs/ENGINE_REPLAY_CONTRACT.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
 | [`CONTRIBUTING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CONTRIBUTING.md) / [`STYLE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
 | [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |

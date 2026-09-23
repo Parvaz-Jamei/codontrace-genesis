@@ -7,7 +7,12 @@ Paper files (ready now):
 
 - [`paper/paper.md`](paper.md)
 - [`paper/paper.bib`](paper.bib)
-- [`paper/baic/paper.md`](baic/paper.md) — BAIC 2026 Persian manuscript (not JOSS)
+
+The BAIC 2026 Persian manuscript is **not** in this repository. It is held
+outside the public tree while the congress reviews it, and `paper/baic/` is
+listed in `.gitignore`. The evidence it cites stays in the repository:
+`docs/claimgate/biomedical_study.json`, `docs/claimgate/defect_grid.json`,
+`docs/claimgate/risk_bar.json`, and `docs/hard_experiment_01/results_v7.json`.
 
 Submit URL when the date has passed and CI on `main` is green:
 

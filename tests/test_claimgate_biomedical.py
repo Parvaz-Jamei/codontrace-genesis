@@ -184,14 +184,21 @@ def test_device_table_without_execution_evidence_stays_at_zero() -> None:
 def test_papers_keep_biomedical_as_a_port_not_a_certificate() -> None:
     joss = Path("paper/paper.md").read_text(encoding="utf-8")
     bib = Path("paper/paper.bib").read_text(encoding="utf-8")
-    baic = Path("paper/baic/paper.md").read_text(encoding="utf-8")
-    baic_readme = Path("paper/baic/README.md").read_text(encoding="utf-8")
+    baic_path = Path("paper/baic/paper.md")
+    baic_readme_path = Path("paper/baic/README.md")
     assert "DomainProfile" in joss
     assert "not a device certification" in joss
     assert "SimEsp32Bridge" in joss
     assert "opt-in exact meet-in-the-middle" in joss
     assert "10.1109/TEVC.2025.3548438" in bib
     assert "10.1109/TEVC.2024.3462281" not in bib
+    if not (baic_path.is_file() and baic_readme_path.is_file()):
+        pytest.skip(
+            "BAIC 2026 manuscript pack is not distributed with the repository; "
+            "the manuscript is held outside the public tree"
+        )
+    baic = baic_path.read_text(encoding="utf-8")
+    baic_readme = baic_readme_path.read_text(encoding="utf-8")
     assert "DomainProfile" in baic
     assert "asme_vv40_passed" in baic
     assert "اختیاری" in baic
@@ -489,8 +496,10 @@ def test_committed_risk_bar_matches_the_live_audit() -> None:
     assert rows["he01_plus_declared_phenomenon"]["met"] is False
     assert "pirt:contact_stress" in rows["he01_plus_declared_phenomenon"]["blocking_gaps"]
     assert committed == live
-    baic = Path("paper/baic/paper.md").read_text(encoding="utf-8")
-    digest = str(live["digest"])
-    assert digest[:8] in baic
-    assert "risk_bar.json" in baic
-    assert "جدول FDA نیست" in baic
+    manuscript = Path("paper/baic/paper.md")
+    if manuscript.is_file():
+        baic = manuscript.read_text(encoding="utf-8")
+        digest = str(live["digest"])
+        assert digest[:8] in baic
+        assert "risk_bar.json" in baic
+        assert "جدول FDA نیست" in baic

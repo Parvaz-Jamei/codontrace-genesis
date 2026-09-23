@@ -4,6 +4,10 @@ The page, styles, and numbering come from the official congress file
 (paper/baic/baic_congress_template.docx), not from an IEEE template.
 English paragraphs are left-to-right. The saved package has one
 core-properties part, which is what Word requires.
+
+The template, the figure, and the output path under `paper/baic/` are held
+outside the public tree while the congress reviews the manuscript (see
+CHANGELOG.md), so this tool only runs where that local pack is present.
 """
 
 from __future__ import annotations

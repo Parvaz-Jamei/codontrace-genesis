@@ -34,6 +34,9 @@ reports/
 *_out/
 genesis_*_out/
 
+# BAIC 2026 manuscript pack — held outside the public tree during congress review
+paper/baic/
+
 # OS / editor
 .DS_Store
 .idea/

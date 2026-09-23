@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- The BAIC 2026 manuscript pack is no longer distributed in the public tree.
+  `paper/baic/` is held outside the repository and listed in `.gitignore`, so
+  the submitted Word and PDF files and the Persian source are not published
+  while the congress reviews them. Nothing that the manuscripts claim becomes
+  unverifiable: the three committed audit files and the HE01 campaign file
+  stay under `docs/claimgate/` and `docs/hard_experiment_01/`, and every
+  fingerprint printed in the paper is unchanged. `README.md` and
+  `paper/SUBMITTING.md` no longer link to the removed path. The two
+  manuscript-string checks in `tests/test_claimgate_biomedical.py` skip when
+  the pack is absent, and both files can be restored after review.
+
 - A declared model risk now has its own bar and still does not move the
   claim level. Risk is `max(influence, consequence)`. This port asks for
   public level 2, 3, or 4 at risk 1, 2, or 3. From risk 2 up, an open

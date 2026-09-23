@@ -3,6 +3,10 @@
 One-column title, then a two-column RTL body. B Nazanin, A4.
 Tables are fixed to a single column width so they do not paint over the
 other column. The embedded face is copied from the previous camera-ready file.
+
+The inputs under `paper/baic/` are held outside the public tree while the
+congress reviews the manuscript (see CHANGELOG.md), so this tool only runs
+where that local pack is present.
 """
 
 from __future__ import annotations

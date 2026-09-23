@@ -14,6 +14,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from docx import Document
+from docx.shared import Inches
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -22,8 +23,69 @@ from lxml import etree
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "paper" / "baic" / "baic_congress_template.docx"
 OUT = ROOT / "paper" / "baic" / "BAIC2026_Jamei_en.docx"
+FIG = ROOT / "paper" / "baic" / "figures" / "audit_flow.png"
 COL = 4600
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def _flow_png(path: Path) -> None:
+    """One-column flowchart. The last arrow is dashed: the bar does not extend the grade."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        if path.is_file():
+            return
+        raise
+    serif = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
+    bold = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
+    title_font = ImageFont.truetype(bold, 34)
+    sub_font = ImageFont.truetype(serif, 26)
+    width, height = 915, 640
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    boxes = [
+        ("Domain profile", "artificial life, biomedical, or hardware stub"),
+        ("Evidence bundle", "arms, replay, interval, and declared labels"),
+        ("Grade 0 to 5", "the auditor reads the bundle and does not call the engine"),
+        ("Risk bar", "declared risk is scored here and does not move the grade"),
+    ]
+    box_w, box_h, gap = 860, 112, 40
+    x = (width - box_w) // 2
+    y = 8
+    for index, (title, sub) in enumerate(boxes):
+        draw.rounded_rectangle((x, y, x + box_w, y + box_h), radius=10, outline="black", width=3 if index < 3 else 2)
+        if index == 3:
+            draw.rounded_rectangle((x + 6, y + 6, x + box_w - 6, y + box_h - 6), radius=8, outline="black", width=1)
+        tw = draw.textlength(title, font=title_font)
+        sw = draw.textlength(sub, font=sub_font)
+        draw.text(((width - tw) / 2, y + 22), title, fill="black", font=title_font)
+        draw.text(((width - sw) / 2, y + 64), sub, fill="black", font=sub_font)
+        if index < len(boxes) - 1:
+            ax = width // 2
+            y2 = y + box_h
+            if index == 2:
+                yy = y2 + 2
+                while yy < y2 + gap - 14:
+                    draw.line((ax, yy, ax, min(yy + 6, y2 + gap - 14)), fill="black", width=2)
+                    yy += 11
+            else:
+                draw.line((ax, y2, ax, y2 + gap - 10), fill="black", width=2)
+            draw.polygon(
+                [(ax - 7, y2 + gap - 12), (ax + 7, y2 + gap - 12), (ax, y2 + gap - 2)],
+                fill="black",
+            )
+        y += box_h + gap
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, "PNG", dpi=(300, 300))
+
+
+def _figure(doc: Document, path: Path) -> None:
+    paragraph = doc.add_paragraph()
+    _ltr(paragraph, "center")
+    paragraph.paragraph_format.space_before = 0
+    paragraph.paragraph_format.space_after = 0
+    run = paragraph.add_run()
+    run.add_picture(str(path), width=Inches(3.05))
 
 
 def _styles(doc: Document) -> dict:
@@ -289,6 +351,18 @@ def build() -> None:
     _p(
         doc, styles, "Normal",
         "The auditor, ClaimGate, is part of CodonTrace Genesis. The engine does not know a domain, and it was not rewritten for medicine. A domain profile names the port: artificial life, biomedical, or hardware. Records from Avida, a table from MABE2, and an Overview, Design concepts, and Details description are read through that port and are not the product of this paper. An ESP32 port is implemented and is not one of the measurements below. A configuration string that would claim an ASME V&V 40 pass is rejected. This tool does not issue an ASME, FDA, or IEC certificate. Viceconti and colleagues set an in silico trial on context, risk, and a verification chain [5]. Here that chain becomes a grade on one file, not a certificate for a product.",
+        10,
+    )
+    _flow_png(FIG)
+    _figure(doc, FIG)
+    _p(
+        doc, styles, "Caption",
+        "Fig. 1. The grade is computed from the bundle. The risk bar reads declared risk and does not move that grade.",
+        8, "center", True,
+    )
+    _p(
+        doc, styles, "Normal",
+        "Figure 1 is the path for every measurement below. Three profiles enter one auditor. The hardware profile is drawn because the port exists. It supplies none of the grades in the tables. The double box is not another grade. It answers only whether the evidence meets the declared risk.",
         10,
     )
     _p(

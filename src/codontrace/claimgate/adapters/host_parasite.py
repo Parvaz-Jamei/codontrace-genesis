@@ -30,6 +30,12 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_genome_factorial import GenomeFactorialResult
     from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
     from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
+    from codontrace.genesis.host_parasite_attach_registry import JournalAttachRegistryPacket
+    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -1821,3 +1827,451 @@ def attach_price_causality_caution(
         limitations = limitations + (_PRICE_CAUTION_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
 
+
+# ---------------------------------------------------------------------------
+# Phase 18 — soft-complete journal ClaimGate attach-registry packet
+# ---------------------------------------------------------------------------
+
+_JOURNAL_REGISTRY_NOTE = (
+    "Journal attach-registry soft-complete invents no biology claims; it "
+    "documents Phases 1–17 attach keys and the blocked-claim matrix only."
+)
+
+
+def attach_journal_attach_registry(
+    bundle: ClaimgateBundle,
+    packet: "JournalAttachRegistryPacket",
+) -> ClaimgateBundle:
+    """Attach Phase 18 soft-complete registry packet without raising the ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_attach_registry import (
+        JournalAttachRegistryPacket,
+        assert_registry_covers_phases_1_to_17,
+    )
+
+    if not isinstance(packet, JournalAttachRegistryPacket):
+        raise ConfigurationError("packet must be a JournalAttachRegistryPacket.")
+    require_preregistration_before_campaign_attach(bundle)
+    assert_registry_covers_phases_1_to_17(packet)
+    if packet.raises_claim_ladder or packet.red_queen_proved or packet.major_transition_proved:
+        raise ConfigurationError("journal registry packet must keep proved flags False.")
+    # Re-check a representative blocked claim stays fail-closed.
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked on host_parasite.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_journal_attach_registry requires a host_parasite domain bundle."
+        )
+    if "journal_attach_registry" in extra:
+        raise ConfigurationError("journal_attach_registry already attached.")
+    payload = packet.to_dict()
+    if payload.get("schema") != "host_parasite_journal_attach_registry_v1":
+        raise ConfigurationError("journal attach-registry schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_journal_attach_registry requires preregistration digest."
+        )
+    extra["journal_attach_registry"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "registry_digest": payload["registry_digest"],
+            "required_attach_keys": payload["required_attach_keys"],
+            "blocked_claim_matrix": payload["blocked_claim_matrix"],
+            "phases_covered": payload["phases_covered"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "soft_complete": True,
+            "raises_claim_ladder": False,
+            "red_queen_proved": False,
+            "major_transition_proved": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "wave": 5,
+            "phase": 18,
+        },
+    )
+    limitations = bundle.limitations
+    if _JOURNAL_REGISTRY_NOTE not in limitations:
+        limitations = limitations + (_JOURNAL_REGISTRY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 19 — ARD→FSD transition + cost-of-generalism digests
+# ---------------------------------------------------------------------------
+
+_ARD_FSD_TRANSITION_NOTE = (
+    "ARD→FSD transition digests and cost-of-generalism proxies are digital "
+    "protocol labels only; red_queen_proved remains blocked."
+)
+
+
+def attach_ard_fsd_transition(
+    bundle: ClaimgateBundle,
+    campaign: "ArdFsdTransitionResult",
+) -> ClaimgateBundle:
+    """Attach ARD→FSD transition digests without proving Red Queen."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+
+    if not isinstance(campaign, ArdFsdTransitionResult):
+        raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if not campaign.slices_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct slice digests.")
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_ard_fsd_transition requires a host_parasite domain bundle."
+        )
+    if "ard_fsd_transition" in extra:
+        raise ConfigurationError("ard_fsd_transition already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_ard_fsd_transition_v1":
+        raise ConfigurationError("ARD→FSD transition schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_ard_fsd_transition requires preregistration digest."
+        )
+    extra["ard_fsd_transition"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "slice_digests": payload["slice_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "transition_observed": payload["transition_observed"],
+            "slices_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "wet_ard_fsd_identity": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _ARD_FSD_TRANSITION_NOTE not in limitations:
+        limitations = limitations + (_ARD_FSD_TRANSITION_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 20 — resource × coevolution-dynamics factorial
+# ---------------------------------------------------------------------------
+
+_RESOURCE_DYNAMICS_NOTE = (
+    "Resource×dynamics factorial digests use outside-engine productivity knobs; "
+    "never a wet resource–virulence or clinical dosing claim."
+)
+
+
+def attach_resource_dynamics_factorial(
+    bundle: ClaimgateBundle,
+    factorial: "ResourceDynamicsResult",
+) -> ClaimgateBundle:
+    """Attach resource×dynamics factorial digests without wet claims."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+
+    if not isinstance(factorial, ResourceDynamicsResult):
+        raise ConfigurationError("factorial must be a ResourceDynamicsResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if factorial.red_queen_proved:
+        raise ConfigurationError("factorial.red_queen_proved must remain False.")
+    if not factorial.cells_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct factorial cell digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_resource_dynamics_factorial requires a host_parasite domain bundle."
+        )
+    if "resource_dynamics_factorial" in extra:
+        raise ConfigurationError("resource_dynamics_factorial already attached.")
+    payload = factorial.to_dict()
+    if payload.get("schema") != "host_parasite_resource_dynamics_factorial_v1":
+        raise ConfigurationError("resource-dynamics factorial schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_resource_dynamics_factorial requires preregistration digest."
+        )
+    extra["resource_dynamics_factorial"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "factorial_digest": payload["factorial_digest"],
+            "cell_digests": payload["cell_digests"],
+            "seeds": payload["seeds"],
+            "resource_levels": payload["resource_levels"],
+            "biotic_levels": payload["biotic_levels"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "cells_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "wet_resource_virulence_proof": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "literature_map": payload["literature_map"],
+        },
+    )
+    limitations = bundle.limitations
+    if _RESOURCE_DYNAMICS_NOTE not in limitations:
+        limitations = limitations + (_RESOURCE_DYNAMICS_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 21 — multi-seed contingency / repeatability under parasitism (S1)
+# ---------------------------------------------------------------------------
+
+_CONTINGENCY_NOTE = (
+    "Multi-seed contingency digests report variance under parasitism; "
+    "complexity_emergence_proved stays False and Zaman complexity is not a law."
+)
+
+
+def attach_multi_seed_contingency(
+    bundle: ClaimgateBundle,
+    campaign: "ContingencyCampaignResult",
+) -> ClaimgateBundle:
+    """Attach S1 contingency digests; never prove complexity emergence."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
+
+    if not isinstance(campaign, ContingencyCampaignResult):
+        raise ConfigurationError("campaign must be a ContingencyCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.complexity_emergence_proved or campaign.red_queen_proved:
+        raise ConfigurationError("contingency proved flags must remain False.")
+    if not campaign.seed_digests_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct seed digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_multi_seed_contingency requires a host_parasite domain bundle."
+        )
+    if "multi_seed_contingency" in extra:
+        raise ConfigurationError("multi_seed_contingency already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_multi_seed_contingency_v1":
+        raise ConfigurationError("multi-seed contingency schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_multi_seed_contingency requires preregistration digest."
+        )
+    extra["multi_seed_contingency"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seed_digests": payload["seed_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "seed_digests_are_distinct": True,
+            "cross_seed_variance": payload["cross_seed_variance"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "challenge": payload["challenge"],
+            "success_criterion": payload["success_criterion"],
+        },
+    )
+    limitations = bundle.limitations
+    if _CONTINGENCY_NOTE not in limitations:
+        limitations = limitations + (_CONTINGENCY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 22 — sequential Cornish multi-intervention deepening
+# ---------------------------------------------------------------------------
+
+_SEQUENTIAL_CORNISH_NOTE = (
+    "Sequential Cornish deepening: observational match alone never grants "
+    "intervention_supported; not clinical decision support."
+)
+
+
+def attach_sequential_cornish_campaign(
+    bundle: ClaimgateBundle,
+    campaign: "SequentialCornishResult",
+) -> ClaimgateBundle:
+    """Attach sequential Cornish digests; refuse intervention_supported from obs match."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
+
+    if not isinstance(campaign, SequentialCornishResult):
+        raise ConfigurationError("campaign must be a SequentialCornishResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if campaign.intervention_supported:
+        raise ConfigurationError(
+            "intervention_supported must remain False (observational match alone never grants it)."
+        )
+    if not campaign.observational_match:
+        raise ConfigurationError("attach requires observational baseline match record.")
+    if not campaign.interventions_executed:
+        raise ConfigurationError("attach requires at least one executed intervention step.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_sequential_cornish_campaign requires a host_parasite domain bundle."
+        )
+    if "cornish_sequential_campaign" in extra:
+        raise ConfigurationError("cornish_sequential_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_cornish_sequential_v1":
+        raise ConfigurationError("sequential Cornish schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_sequential_cornish_campaign requires preregistration digest."
+        )
+    # Bundle prereg digest should agree with campaign prereg when both present.
+    if str(prereg["digest"]).lower() != str(campaign.preregistration_digest).lower():
+        raise ConfigurationError(
+            "sequential Cornish preregistration_digest must match bundle prereg digest."
+        )
+    extra["cornish_sequential_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "step_digests": payload["step_digests"],
+            "seeds": payload["seeds"],
+            "schedule": payload["schedule"],
+            "observational_match": payload["observational_match"],
+            "later_intervention_failed": payload["later_intervention_failed"],
+            "interventions_executed": True,
+            "intervention_supported": False,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "clinical_decision_support": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "cornish_rule": payload["cornish_rule"],
+        },
+    )
+    limitations = bundle.limitations
+    if _SEQUENTIAL_CORNISH_NOTE not in limitations:
+        limitations = limitations + (_SEQUENTIAL_CORNISH_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 23 — Scanlan mutator / abiotic-constraint dual-null (earn-in)
+# ---------------------------------------------------------------------------
+
+_MUTATOR_NOTE = (
+    "Scanlan mutator dual-null digests are genome-layer digital assays; "
+    "gene_identity_proved and CRISPR identity stay False."
+)
+
+
+def attach_scanlan_mutator_campaign(
+    bundle: ClaimgateBundle,
+    campaign: "MutatorCampaignResult",
+) -> ClaimgateBundle:
+    """Attach Scanlan mutator digests; refuse gene identity / CRISPR claims."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
+
+    if not isinstance(campaign, MutatorCampaignResult):
+        raise ConfigurationError("campaign must be a MutatorCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.gene_identity_proved or campaign.red_queen_proved:
+        raise ConfigurationError("mutator proved flags must remain False.")
+    if not campaign.arms_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct mutator arm digests.")
+    blocked = False
+    try:
+        assert_claim_allowed("crispr_identity_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("crispr_identity_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_scanlan_mutator_campaign requires a host_parasite domain bundle."
+        )
+    if "scanlan_mutator_campaign" in extra:
+        raise ConfigurationError("scanlan_mutator_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_scanlan_mutator_dual_null_v1":
+        raise ConfigurationError("Scanlan mutator schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_scanlan_mutator_campaign requires preregistration digest."
+        )
+    extra["scanlan_mutator_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "arms_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "gene_identity_proved": False,
+            "crispr_identity_proved": False,
+            "red_queen_proved": False,
+            "wet_mutator_gene_identity": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "literature_map": payload["literature_map"],
+        },
+    )
+    limitations = bundle.limitations
+    if _MUTATOR_NOTE not in limitations:
+        limitations = limitations + (_MUTATOR_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

@@ -38,10 +38,16 @@ Phase 13                     → declared task–gene map digests (Wave 3 earn-i
 Phase 14                     → mode-completeness hardening (Wave 4; this PR)
 Phase 15                     → genome × VT × spatial × continuum factorial (Wave 4; this PR)
 Phase 16                     → virulence/resistance quality proxies (Wave 4; this PR)
-Phase 17                     → Price≠causality refusal assay (Wave 4 earn-in; this PR)
+Phase 17                     → Price≠causality refusal assay (Wave 4 earn-in)
+Phase 18                     → soft-complete journal attach-registry packet (Wave 5; this PR)
+Phase 19                     → ARD→FSD transition + cost-of-generalism (Wave 5; this PR)
+Phase 20                     → resource × coevolution-dynamics factorial (Wave 5; this PR)
+Phase 21                     → multi-seed contingency / repeatability S1 (Wave 5; this PR)
+Phase 22                     → sequential Cornish multi-intervention (Wave 5; this PR)
+Phase 23                     → Scanlan mutator dual-null (Wave 5 earn-in; this PR)
 ```
 
-Phases 1–9 are on main; Wave 3 (Phases 10–13) stacks under Wave 4. Wave 4 (Phases 14–17) lands on `feat/host-parasite-wave4-modes`. See `DEPTH_BRAINSTORM_WAVE4.md` and `MODE_AUDIT_WAVE4.md`. Wave 5 brainstorm (earn-in Phases 18–23 plan only): `DEPTH_BRAINSTORM_WAVE5.md` / `DEPTH_BRAINSTORM_WAVE5_FA.md`.
+Phases 1–9 are on main; Waves 3–4 stack under Wave 5. Wave 5 (Phases 18–22, optional 23) lands on `feat/host-parasite-wave5-phases`. See `DEPTH_BRAINSTORM_WAVE5.md`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick
@@ -121,6 +127,12 @@ Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/
 | genome × VT × spatial × continuum | delivered + digest | Phase 15 |
 | virulence/resistance quality proxies | delivered + digest | Phase 16 (`virulence_optimized_for_humans` blocked) |
 | Price≠causality refusal | delivered + digest | Phase 17 (`major_transition_proved` blocked) |
+| journal attach-registry soft-complete | delivered + digest | Phase 18 (hygiene; no ladder rise) |
+| ARD→FSD transition + cost-of-generalism | delivered + digest | Phase 19 (`red_queen_proved` blocked) |
+| resource × dynamics factorial | delivered + digest | Phase 20 (Lopez Pascua honesty) |
+| multi-seed contingency (S1) | delivered + digest | Phase 21 (`complexity_emergence_proved` False) |
+| sequential Cornish multi-intervention | delivered + digest | Phase 22 (obs≠intervention) |
+| Scanlan mutator / abiotic dual-null | delivered + digest | Phase 23 (`gene_identity_proved` False) |
 | bacteria/cell DomainProfiles | refused | one `host_parasite` profile only |
 | wet HGT / conjugation / CRISPR genetics | refused | flags always false |
 | infection physics in `engine.py` | refused | engine untouched |

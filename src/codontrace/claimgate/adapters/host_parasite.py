@@ -1920,6 +1920,7 @@ def attach_ard_fsd_transition(
     )
     from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
     from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
 
     if not isinstance(campaign, ArdFsdTransitionResult):
         raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
@@ -2043,4 +2044,75 @@ def attach_resource_dynamics_factorial(
     limitations = bundle.limitations
     if _RESOURCE_DYNAMICS_NOTE not in limitations:
         limitations = limitations + (_RESOURCE_DYNAMICS_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 21 — multi-seed contingency / repeatability under parasitism (S1)
+# ---------------------------------------------------------------------------
+
+_CONTINGENCY_NOTE = (
+    "Multi-seed contingency digests report variance under parasitism; "
+    "complexity_emergence_proved stays False and Zaman complexity is not a law."
+)
+
+
+def attach_multi_seed_contingency(
+    bundle: ClaimgateBundle,
+    campaign: "ContingencyCampaignResult",
+) -> ClaimgateBundle:
+    """Attach S1 contingency digests; never prove complexity emergence."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
+
+    if not isinstance(campaign, ContingencyCampaignResult):
+        raise ConfigurationError("campaign must be a ContingencyCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.complexity_emergence_proved or campaign.red_queen_proved:
+        raise ConfigurationError("contingency proved flags must remain False.")
+    if not campaign.seed_digests_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct seed digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_multi_seed_contingency requires a host_parasite domain bundle."
+        )
+    if "multi_seed_contingency" in extra:
+        raise ConfigurationError("multi_seed_contingency already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_multi_seed_contingency_v1":
+        raise ConfigurationError("multi-seed contingency schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_multi_seed_contingency requires preregistration digest."
+        )
+    extra["multi_seed_contingency"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seed_digests": payload["seed_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "seed_digests_are_distinct": True,
+            "cross_seed_variance": payload["cross_seed_variance"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "challenge": payload["challenge"],
+            "success_criterion": payload["success_criterion"],
+        },
+    )
+    limitations = bundle.limitations
+    if _CONTINGENCY_NOTE not in limitations:
+        limitations = limitations + (_CONTINGENCY_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)

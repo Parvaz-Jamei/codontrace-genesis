@@ -1921,6 +1921,7 @@ def attach_ard_fsd_transition(
     from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
     from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
     from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
 
     if not isinstance(campaign, ArdFsdTransitionResult):
         raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
@@ -2115,4 +2116,83 @@ def attach_multi_seed_contingency(
     limitations = bundle.limitations
     if _CONTINGENCY_NOTE not in limitations:
         limitations = limitations + (_CONTINGENCY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 22 — sequential Cornish multi-intervention deepening
+# ---------------------------------------------------------------------------
+
+_SEQUENTIAL_CORNISH_NOTE = (
+    "Sequential Cornish deepening: observational match alone never grants "
+    "intervention_supported; not clinical decision support."
+)
+
+
+def attach_sequential_cornish_campaign(
+    bundle: ClaimgateBundle,
+    campaign: "SequentialCornishResult",
+) -> ClaimgateBundle:
+    """Attach sequential Cornish digests; refuse intervention_supported from obs match."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
+
+    if not isinstance(campaign, SequentialCornishResult):
+        raise ConfigurationError("campaign must be a SequentialCornishResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if campaign.intervention_supported:
+        raise ConfigurationError(
+            "intervention_supported must remain False (observational match alone never grants it)."
+        )
+    if not campaign.observational_match:
+        raise ConfigurationError("attach requires observational baseline match record.")
+    if not campaign.interventions_executed:
+        raise ConfigurationError("attach requires at least one executed intervention step.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_sequential_cornish_campaign requires a host_parasite domain bundle."
+        )
+    if "cornish_sequential_campaign" in extra:
+        raise ConfigurationError("cornish_sequential_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_cornish_sequential_v1":
+        raise ConfigurationError("sequential Cornish schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_sequential_cornish_campaign requires preregistration digest."
+        )
+    # Bundle prereg digest should agree with campaign prereg when both present.
+    if str(prereg["digest"]).lower() != str(campaign.preregistration_digest).lower():
+        raise ConfigurationError(
+            "sequential Cornish preregistration_digest must match bundle prereg digest."
+        )
+    extra["cornish_sequential_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "step_digests": payload["step_digests"],
+            "seeds": payload["seeds"],
+            "schedule": payload["schedule"],
+            "observational_match": payload["observational_match"],
+            "later_intervention_failed": payload["later_intervention_failed"],
+            "interventions_executed": True,
+            "intervention_supported": False,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "clinical_decision_support": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "cornish_rule": payload["cornish_rule"],
+        },
+    )
+    limitations = bundle.limitations
+    if _SEQUENTIAL_CORNISH_NOTE not in limitations:
+        limitations = limitations + (_SEQUENTIAL_CORNISH_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)

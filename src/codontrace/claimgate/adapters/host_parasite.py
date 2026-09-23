@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_genome_factorial import GenomeFactorialResult
     from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
     from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
+    from codontrace.genesis.host_parasite_attach_registry import JournalAttachRegistryPacket
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -1821,3 +1822,79 @@ def attach_price_causality_caution(
         limitations = limitations + (_PRICE_CAUTION_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
 
+
+# ---------------------------------------------------------------------------
+# Phase 18 — soft-complete journal ClaimGate attach-registry packet
+# ---------------------------------------------------------------------------
+
+_JOURNAL_REGISTRY_NOTE = (
+    "Journal attach-registry soft-complete invents no biology claims; it "
+    "documents Phases 1–17 attach keys and the blocked-claim matrix only."
+)
+
+
+def attach_journal_attach_registry(
+    bundle: ClaimgateBundle,
+    packet: "JournalAttachRegistryPacket",
+) -> ClaimgateBundle:
+    """Attach Phase 18 soft-complete registry packet without raising the ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_attach_registry import (
+        JournalAttachRegistryPacket,
+        assert_registry_covers_phases_1_to_17,
+    )
+
+    if not isinstance(packet, JournalAttachRegistryPacket):
+        raise ConfigurationError("packet must be a JournalAttachRegistryPacket.")
+    require_preregistration_before_campaign_attach(bundle)
+    assert_registry_covers_phases_1_to_17(packet)
+    if packet.raises_claim_ladder or packet.red_queen_proved or packet.major_transition_proved:
+        raise ConfigurationError("journal registry packet must keep proved flags False.")
+    # Re-check a representative blocked claim stays fail-closed.
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked on host_parasite.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_journal_attach_registry requires a host_parasite domain bundle."
+        )
+    if "journal_attach_registry" in extra:
+        raise ConfigurationError("journal_attach_registry already attached.")
+    payload = packet.to_dict()
+    if payload.get("schema") != "host_parasite_journal_attach_registry_v1":
+        raise ConfigurationError("journal attach-registry schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_journal_attach_registry requires preregistration digest."
+        )
+    extra["journal_attach_registry"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "registry_digest": payload["registry_digest"],
+            "required_attach_keys": payload["required_attach_keys"],
+            "blocked_claim_matrix": payload["blocked_claim_matrix"],
+            "phases_covered": payload["phases_covered"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "soft_complete": True,
+            "raises_claim_ladder": False,
+            "red_queen_proved": False,
+            "major_transition_proved": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "wave": 5,
+            "phase": 18,
+        },
+    )
+    limitations = bundle.limitations
+    if _JOURNAL_REGISTRY_NOTE not in limitations:
+        limitations = limitations + (_JOURNAL_REGISTRY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

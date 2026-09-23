@@ -83,3 +83,13 @@ grounded source from `CITATIONS.md`.
 - Phase 16: virulence/resistance quality proxies; `virulence_optimized_for_humans` blocked.
 - Phase 17: Price≠causality refusal assay; `major_transition_proved` blocked.
 - See `MODE_AUDIT_WAVE4.md` and `DEPTH_BRAINSTORM_WAVE4.md`.
+
+## Wave 5 delivery (Phases 18–22, optional 23)
+
+- Phase 18: soft-complete journal ClaimGate attach-registry packet (hygiene).
+- Phase 19: ARD→FSD transition + cost-of-generalism digests; `red_queen_proved` blocked.
+- Phase 20: resource × coevolution-dynamics factorial (Lopez Pascua honesty).
+- Phase 21: multi-seed contingency / repeatability under parasitism (S1).
+- Phase 22: sequential Cornish multi-intervention deepening.
+- Phase 23 (optional): Scanlan mutator / abiotic-constraint dual-null.
+- See `DEPTH_BRAINSTORM_WAVE5.md`.

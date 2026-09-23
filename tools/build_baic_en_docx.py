@@ -29,7 +29,7 @@ PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 
 
 def _flow_png(path: Path) -> None:
-    """One-column flowchart. The last arrow is dashed: the bar does not extend the grade."""
+    """Column-width figure. Type is large enough to read at 3.05 inches."""
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
@@ -38,44 +38,67 @@ def _flow_png(path: Path) -> None:
         raise
     serif = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
     bold = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
-    title_font = ImageFont.truetype(bold, 34)
-    sub_font = ImageFont.truetype(serif, 26)
-    width, height = 915, 640
+    title_font = ImageFont.truetype(bold, 44)
+    sub_font = ImageFont.truetype(serif, 32)
+    label_font = ImageFont.truetype(bold, 36)
+    width, height = 980, 980
     image = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(image)
-    boxes = [
-        ("Domain profile", "artificial life, biomedical, or hardware stub"),
-        ("Evidence bundle", "arms, replay, interval, and declared labels"),
-        ("Grade 0 to 5", "the auditor reads the bundle and does not call the engine"),
-        ("Risk bar", "declared risk is scored here and does not move the grade"),
-    ]
-    box_w, box_h, gap = 860, 112, 40
+    steps = (
+        ("Domain profile", "life, biomedical, or hardware"),
+        ("Evidence bundle", "arms, replay, labels"),
+        ("Grade 0 to 5", "the bundle, not the engine"),
+        ("Risk bar", "does not move the grade"),
+    )
+    box_w, box_h, gap = 920, 118, 36
     x = (width - box_w) // 2
     y = 8
-    for index, (title, sub) in enumerate(boxes):
-        draw.rounded_rectangle((x, y, x + box_w, y + box_h), radius=10, outline="black", width=3 if index < 3 else 2)
+    for index, (title, sub) in enumerate(steps):
+        draw.rounded_rectangle((x, y, x + box_w, y + box_h), radius=12, outline="black", width=4)
         if index == 3:
-            draw.rounded_rectangle((x + 6, y + 6, x + box_w - 6, y + box_h - 6), radius=8, outline="black", width=1)
+            draw.rounded_rectangle((x + 8, y + 8, x + box_w - 8, y + box_h - 8), radius=8, outline="black", width=2)
         tw = draw.textlength(title, font=title_font)
         sw = draw.textlength(sub, font=sub_font)
-        draw.text(((width - tw) / 2, y + 22), title, fill="black", font=title_font)
-        draw.text(((width - sw) / 2, y + 64), sub, fill="black", font=sub_font)
-        if index < len(boxes) - 1:
+        draw.text(((width - tw) / 2, y + 16), title, fill="black", font=title_font)
+        draw.text(((width - sw) / 2, y + 68), sub, fill="black", font=sub_font)
+        if index < len(steps) - 1:
             ax = width // 2
             y2 = y + box_h
+            tip = y2 + gap - 2
             if index == 2:
-                yy = y2 + 2
-                while yy < y2 + gap - 14:
-                    draw.line((ax, yy, ax, min(yy + 6, y2 + gap - 14)), fill="black", width=2)
-                    yy += 11
+                yy = y2 + 3
+                while yy < tip - 12:
+                    draw.line((ax, yy, ax, min(yy + 8, tip - 12)), fill="black", width=4)
+                    yy += 14
             else:
-                draw.line((ax, y2, ax, y2 + gap - 10), fill="black", width=2)
-            draw.polygon(
-                [(ax - 7, y2 + gap - 12), (ax + 7, y2 + gap - 12), (ax, y2 + gap - 2)],
-                fill="black",
-            )
+                draw.line((ax, y2 + 2, ax, tip - 12), fill="black", width=4)
+            draw.polygon([(ax - 10, tip - 14), (ax + 10, tip - 14), (ax, tip)], fill="black")
         y += box_h + gap
+    top = y + 10
+    draw.line((x, top, x + box_w, top), fill="black", width=3)
+    head = "Recorded grades"
+    draw.text(((width - draw.textlength(head, font=title_font)) / 2, top + 12), head, fill="black", font=title_font)
+    bar_x, bar_max = 340, 480
+    base = top + 78
+    for name, grade in (("HE01", 4), ("Device table", 0)):
+        draw.text((x + 16, base), name, fill="black", font=label_font)
+        draw.rectangle((bar_x, base + 4, bar_x + bar_max, base + 40), outline="black", width=3)
+        fill_w = int(bar_max * grade / 5)
+        if fill_w:
+            draw.rectangle((bar_x + 3, base + 7, bar_x + fill_w - 3, base + 37), fill="black")
+        draw.text((bar_x + bar_max + 14, base), str(grade), fill="black", font=label_font)
+        base += 58
     path.parent.mkdir(parents=True, exist_ok=True)
+    mask = Image.eval(image.convert("L"), lambda pixel: 255 - pixel)
+    box = mask.getbbox()
+    if box:
+        pad = 8
+        image = image.crop((
+            max(0, box[0] - pad),
+            max(0, box[1] - pad),
+            min(width, box[2] + pad),
+            min(height, box[3] + pad),
+        ))
     image.save(path, "PNG", dpi=(300, 300))
 
 
@@ -86,6 +109,13 @@ def _figure(doc: Document, path: Path) -> None:
     paragraph.paragraph_format.space_after = 0
     run = paragraph.add_run()
     run.add_picture(str(path), width=Inches(3.05))
+    doc_pr = run._r.find(".//" + qn("wp:docPr"))
+    if doc_pr is not None:
+        doc_pr.set("name", "Figure 1")
+        doc_pr.set(
+            "descr",
+            "Flow from domain profile to grade, then the two recorded grades: HE01 is 4 and the device table is 0.",
+        )
 
 
 def _styles(doc: Document) -> dict:
@@ -357,12 +387,12 @@ def build() -> None:
     _figure(doc, FIG)
     _p(
         doc, styles, "Caption",
-        "Fig. 1. The grade is computed from the bundle. The risk bar reads declared risk and does not move that grade.",
+        "Fig. 1. Path from the profile to the grade, and the two recorded grades. The risk bar does not move the grade.",
         8, "center", True,
     )
     _p(
         doc, styles, "Normal",
-        "Figure 1 is the path for every measurement below. Three profiles enter one auditor. The hardware profile is drawn because the port exists. It supplies none of the grades in the tables. The double box is not another grade. It answers only whether the evidence meets the declared risk.",
+        "Figure 1 is the path for every measurement below. The lower panel repeats Table 3 as a chart: the executed campaign is grade 4 and the device score table is grade 0. A bar at zero is the result, not a missing drawing. The hardware profile is on the path because the port exists. It supplies none of these grades. The double box is not another grade.",
         10,
     )
     _p(

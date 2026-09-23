@@ -1922,6 +1922,7 @@ def attach_ard_fsd_transition(
     from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
     from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
     from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
 
     if not isinstance(campaign, ArdFsdTransitionResult):
         raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
@@ -2195,4 +2196,81 @@ def attach_sequential_cornish_campaign(
     limitations = bundle.limitations
     if _SEQUENTIAL_CORNISH_NOTE not in limitations:
         limitations = limitations + (_SEQUENTIAL_CORNISH_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 23 — Scanlan mutator / abiotic-constraint dual-null (earn-in)
+# ---------------------------------------------------------------------------
+
+_MUTATOR_NOTE = (
+    "Scanlan mutator dual-null digests are genome-layer digital assays; "
+    "gene_identity_proved and CRISPR identity stay False."
+)
+
+
+def attach_scanlan_mutator_campaign(
+    bundle: ClaimgateBundle,
+    campaign: "MutatorCampaignResult",
+) -> ClaimgateBundle:
+    """Attach Scanlan mutator digests; refuse gene identity / CRISPR claims."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
+
+    if not isinstance(campaign, MutatorCampaignResult):
+        raise ConfigurationError("campaign must be a MutatorCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.gene_identity_proved or campaign.red_queen_proved:
+        raise ConfigurationError("mutator proved flags must remain False.")
+    if not campaign.arms_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct mutator arm digests.")
+    blocked = False
+    try:
+        assert_claim_allowed("crispr_identity_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("crispr_identity_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_scanlan_mutator_campaign requires a host_parasite domain bundle."
+        )
+    if "scanlan_mutator_campaign" in extra:
+        raise ConfigurationError("scanlan_mutator_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_scanlan_mutator_dual_null_v1":
+        raise ConfigurationError("Scanlan mutator schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_scanlan_mutator_campaign requires preregistration digest."
+        )
+    extra["scanlan_mutator_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "arms_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "gene_identity_proved": False,
+            "crispr_identity_proved": False,
+            "red_queen_proved": False,
+            "wet_mutator_gene_identity": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "literature_map": payload["literature_map"],
+        },
+    )
+    limitations = bundle.limitations
+    if _MUTATOR_NOTE not in limitations:
+        limitations = limitations + (_MUTATOR_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)

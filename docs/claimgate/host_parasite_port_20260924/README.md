@@ -44,7 +44,7 @@ Phase 19                     → ARD→FSD transition + cost-of-generalism (Wave
 Phase 20                     → resource × coevolution-dynamics factorial (Wave 5; this PR)
 Phase 21                     → multi-seed contingency / repeatability S1 (Wave 5; this PR)
 Phase 22                     → sequential Cornish multi-intervention (Wave 5; this PR)
-Phase 23                     → Scanlan mutator dual-null (Wave 5 optional earn-in)
+Phase 23                     → Scanlan mutator dual-null (Wave 5 earn-in; this PR)
 ```
 
 Phases 1–9 are on main; Waves 3–4 stack under Wave 5. Wave 5 (Phases 18–22, optional 23) lands on `feat/host-parasite-wave5-phases`. See `DEPTH_BRAINSTORM_WAVE5.md`.
@@ -132,7 +132,7 @@ Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/
 | resource × dynamics factorial | delivered + digest | Phase 20 (Lopez Pascua honesty) |
 | multi-seed contingency (S1) | delivered + digest | Phase 21 (`complexity_emergence_proved` False) |
 | sequential Cornish multi-intervention | delivered + digest | Phase 22 (obs≠intervention) |
-| Scanlan mutator / abiotic dual-null | optional earn-in | Phase 23 if 18–22 solid |
+| Scanlan mutator / abiotic dual-null | delivered + digest | Phase 23 (`gene_identity_proved` False) |
 | bacteria/cell DomainProfiles | refused | one `host_parasite` profile only |
 | wet HGT / conjugation / CRISPR genetics | refused | flags always false |
 | infection physics in `engine.py` | refused | engine untouched |

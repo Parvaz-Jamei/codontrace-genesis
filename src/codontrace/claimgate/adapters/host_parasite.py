@@ -1919,6 +1919,7 @@ def attach_ard_fsd_transition(
         require_preregistration_before_campaign_attach,
     )
     from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
 
     if not isinstance(campaign, ArdFsdTransitionResult):
         raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
@@ -1973,4 +1974,73 @@ def attach_ard_fsd_transition(
     limitations = bundle.limitations
     if _ARD_FSD_TRANSITION_NOTE not in limitations:
         limitations = limitations + (_ARD_FSD_TRANSITION_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 20 — resource × coevolution-dynamics factorial
+# ---------------------------------------------------------------------------
+
+_RESOURCE_DYNAMICS_NOTE = (
+    "Resource×dynamics factorial digests use outside-engine productivity knobs; "
+    "never a wet resource–virulence or clinical dosing claim."
+)
+
+
+def attach_resource_dynamics_factorial(
+    bundle: ClaimgateBundle,
+    factorial: "ResourceDynamicsResult",
+) -> ClaimgateBundle:
+    """Attach resource×dynamics factorial digests without wet claims."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+
+    if not isinstance(factorial, ResourceDynamicsResult):
+        raise ConfigurationError("factorial must be a ResourceDynamicsResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if factorial.red_queen_proved:
+        raise ConfigurationError("factorial.red_queen_proved must remain False.")
+    if not factorial.cells_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct factorial cell digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_resource_dynamics_factorial requires a host_parasite domain bundle."
+        )
+    if "resource_dynamics_factorial" in extra:
+        raise ConfigurationError("resource_dynamics_factorial already attached.")
+    payload = factorial.to_dict()
+    if payload.get("schema") != "host_parasite_resource_dynamics_factorial_v1":
+        raise ConfigurationError("resource-dynamics factorial schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_resource_dynamics_factorial requires preregistration digest."
+        )
+    extra["resource_dynamics_factorial"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "factorial_digest": payload["factorial_digest"],
+            "cell_digests": payload["cell_digests"],
+            "seeds": payload["seeds"],
+            "resource_levels": payload["resource_levels"],
+            "biotic_levels": payload["biotic_levels"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "cells_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "wet_resource_virulence_proof": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "literature_map": payload["literature_map"],
+        },
+    )
+    limitations = bundle.limitations
+    if _RESOURCE_DYNAMICS_NOTE not in limitations:
+        limitations = limitations + (_RESOURCE_DYNAMICS_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)

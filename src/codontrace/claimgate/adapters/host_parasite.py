@@ -31,6 +31,11 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
     from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
     from codontrace.genesis.host_parasite_attach_registry import JournalAttachRegistryPacket
+    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue

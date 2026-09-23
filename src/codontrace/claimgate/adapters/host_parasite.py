@@ -1898,3 +1898,79 @@ def attach_journal_attach_registry(
     if _JOURNAL_REGISTRY_NOTE not in limitations:
         limitations = limitations + (_JOURNAL_REGISTRY_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 19 — ARD→FSD transition + cost-of-generalism digests
+# ---------------------------------------------------------------------------
+
+_ARD_FSD_TRANSITION_NOTE = (
+    "ARD→FSD transition digests and cost-of-generalism proxies are digital "
+    "protocol labels only; red_queen_proved remains blocked."
+)
+
+
+def attach_ard_fsd_transition(
+    bundle: ClaimgateBundle,
+    campaign: "ArdFsdTransitionResult",
+) -> ClaimgateBundle:
+    """Attach ARD→FSD transition digests without proving Red Queen."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+
+    if not isinstance(campaign, ArdFsdTransitionResult):
+        raise ConfigurationError("campaign must be an ArdFsdTransitionResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if not campaign.slices_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct slice digests.")
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_ard_fsd_transition requires a host_parasite domain bundle."
+        )
+    if "ard_fsd_transition" in extra:
+        raise ConfigurationError("ard_fsd_transition already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_ard_fsd_transition_v1":
+        raise ConfigurationError("ARD→FSD transition schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_ard_fsd_transition requires preregistration digest."
+        )
+    extra["ard_fsd_transition"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "slice_digests": payload["slice_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "transition_observed": payload["transition_observed"],
+            "slices_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "wet_ard_fsd_identity": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _ARD_FSD_TRANSITION_NOTE not in limitations:
+        limitations = limitations + (_ARD_FSD_TRANSITION_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

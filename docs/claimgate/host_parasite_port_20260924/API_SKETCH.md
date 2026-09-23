@@ -83,30 +83,34 @@ bundle_from_host_parasite_cou(..., claimed="phage_therapy_cleared")
 # ConfigurationError
 ```
 
-## Optional later hooks (NOT implemented)
+## Optional HostParasiteEnv (Phase 2 — outside engine core)
 
-Sketch only — do not treat as present API:
+Module: `codontrace.genesis.host_parasite_env` (does **not** import or modify
+`engine.py`).
 
 ```python
-# FUTURE — HostParasiteEnv (not in this PR)
-class HostParasiteEnv:
-    """Optional env wrapper; must not live inside engine.py tick core."""
+from codontrace.genesis.host_parasite_env import (
+    HostParasiteEnv,
+    dual_null_template,
+    run_dual_null_contrast,
+)
 
-    def infection_eligible(self, host_tasks, parasite_tasks) -> bool:
-        """Task-overlap rule (Fortuna et al. 2021) — future."""
-
-    def steal_cpu_fraction(self) -> float:
-        """Obligate resource draw; literature ~0.8 in Avida parasites — future."""
-
-    def transmission_mode(self) -> str:
-        """horizontal | vertical | mixed — Symbulation continuum — future."""
-
-    def content_null_parasite_payload(self) -> bytes:
-        """HE02-style shuffle control — future campaign wiring."""
+env = HostParasiteEnv(steal_fraction=0.8, transmission_mode="horizontal")
+env.add_host("H0", ("nand", "and"))
+env.try_horizontal_inject(
+    host_id="H0", parasite_id="P0", parasite_tasks=("and",), payload=(1, 2)
+)
+contrast = run_dual_null_contrast(
+    host_tasks=("nand", "and"),
+    parasite_tasks=("and", "or"),
+    payload=(1, 2, 3),
+)
+assert contrast["nulls_change_outcomes"] is True
 ```
 
-ClaimGate remains the evidence auditor; the env would only produce scores /
-artifacts for adapters to wrap.
+ClaimGate remains the evidence auditor; the env only produces digital toy
+scores / snapshots for adapters to wrap. Vertical transmission physics stay
+labeled `not_implemented`.
 
 ## COU / risk labels (declared only)
 

@@ -36,6 +36,17 @@ def _finite_unit_interval(name: str, value: float) -> float:
     return number
 
 
+def _finite_signed_unit(name: str, value: float) -> float:
+    """Validate interaction value in [-1, +1] (antagonism → mutualism)."""
+
+    number = float(value)
+    if number != number or number in (float("inf"), float("-inf")):
+        raise ConfigurationError(f"{name} must be finite.")
+    if number < -1.0 or number > 1.0:
+        raise ConfigurationError(f"{name} must be in [-1, +1].")
+    return number
+
+
 def _task_set(raw: Sequence[str], field: str) -> frozenset[str]:
     if isinstance(raw, (str, bytes)):
         raise ConfigurationError(f"{field} must be a sequence of task names.")
@@ -160,6 +171,7 @@ class HostParasiteEnv:
     grid_cols: int = 1
     vertical_transmission_probability: float = 0.0
     resource_productivity: float = 1.0
+    interaction_value: float = -1.0
     replication_events: list[dict[str, object]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -187,6 +199,9 @@ class HostParasiteEnv:
             raise ConfigurationError("grid_cols must be a positive int.")
         self.vertical_transmission_probability = _finite_unit_interval(
             "vertical_transmission_probability", self.vertical_transmission_probability
+        )
+        self.interaction_value = _finite_signed_unit(
+            "interaction_value", self.interaction_value
         )
         prod = float(self.resource_productivity)
         if prod != prod or prod in (float("inf"), float("-inf")) or prod <= 0.0:
@@ -379,10 +394,17 @@ class HostParasiteEnv:
         return attempt
 
     def host_retained_cpu(self, host_id: str) -> float:
-        """Fraction of CPU retained by the host after optional steal.
+        """Host digital outcome after interaction-value–modulated steal/benefit.
 
-        ``resource_productivity`` > 1 reduces relative steal impact (Lopez Pascua
-        2014 resource analogy); values in (0, 1) increase it. Clipped to [0, 1].
+        ``interaction_value`` in [-1, +1] spans antagonism → mutualism
+        (Symbulation / Gupta–Vostinar continuum analogy). Magnitude is
+        ``steal_fraction / resource_productivity``. Negative values subtract
+        from the uninfected baseline 1.0; positive values add (mutualism
+        benefit). Result is clipped to [0, 2]. Mutualism is not a success
+        narrative and does not raise claim ceilings.
+
+        Content-null occupied seats transfer nothing (structure without
+        payload drawdown/benefit).
         """
 
         if host_id not in self.hosts:
@@ -390,12 +412,18 @@ class HostParasiteEnv:
         host = self.hosts[host_id]
         if host.parasite_id is None:
             return 1.0
-        # Content-null infection still occupies the seat but steals nothing:
-        # payload-dependent drawdown is gone while structure remains.
+        # Content-null infection still occupies the seat but transfers nothing:
+        # payload-dependent drawdown/benefit is gone while structure remains.
         if self.null_template.content_null and not host.parasite_payload:
             return 1.0
-        effective_steal = min(1.0, self.steal_fraction / self.resource_productivity)
-        return round(1.0 - effective_steal, 10)
+        magnitude = min(1.0, self.steal_fraction / self.resource_productivity)
+        delta = self.interaction_value * magnitude
+        retained = 1.0 + delta
+        if retained < 0.0:
+            retained = 0.0
+        if retained > 2.0:
+            retained = 2.0
+        return round(retained, 10)
 
     def population_outcome_score(self) -> float:
         """Digital-scope score: mean retained CPU across hosts.
@@ -556,6 +584,9 @@ class HostParasiteEnv:
             "grid_cols": self.grid_cols,
             "vertical_transmission_probability": self.vertical_transmission_probability,
             "resource_productivity": self.resource_productivity,
+            "interaction_value": self.interaction_value,
+            "interaction_continuum": "antagonism_to_mutualism",
+            "mutualism_equals_success": False,
             "null_template": self.null_template.to_dict(),
             "claim_ceiling": self.claim_ceiling,
             "hosts": [self.hosts[key].to_dict() for key in sorted(self.hosts)],

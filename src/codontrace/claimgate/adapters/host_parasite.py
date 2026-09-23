@@ -997,3 +997,113 @@ def attach_zaman_campaign(
     if _ZAMAN_NOTE not in limitations:
         limitations = limitations + (_ZAMAN_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 8 — parasitism–mutualism continuum + VT × spatial factorial
+# ---------------------------------------------------------------------------
+
+_CONTINUUM_NOTE = (
+    "Interaction continuum declares antagonism→mutualism digitally; "
+    "mutualism is not success and does not raise the ClaimGate ladder."
+)
+
+
+def declare_interaction_continuum(
+    *,
+    interaction_value: float,
+) -> dict[str, object]:
+    """Declare continuum extras for ClaimGate. Mutualism ≠ success."""
+
+    number = float(interaction_value)
+    if number != number or number < -1.0 or number > 1.0:
+        raise ConfigurationError("interaction_value must be in [-1, +1].")
+    if number < -1e-12:
+        pole = "antagonism"
+    elif number > 1e-12:
+        pole = "mutualism"
+    else:
+        pole = "neutral"
+    return {
+        "schema": "host_parasite_interaction_continuum_v1",
+        "interaction_value": number,
+        "pole": pole,
+        "interaction_continuum": "antagonism_to_mutualism",
+        "mutualism_equals_success": False,
+        "raises_claim_ladder": False,
+        "red_queen_proved": False,
+        "blocked_claims_unchanged": True,
+    }
+
+
+def attach_interaction_continuum(
+    bundle: ClaimgateBundle,
+    *,
+    interaction_value: float,
+) -> ClaimgateBundle:
+    """Attach continuum declaration without changing blocked claims."""
+
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_interaction_continuum requires a host_parasite domain bundle."
+        )
+    if "interaction_continuum" in extra:
+        raise ConfigurationError("interaction_continuum already attached.")
+    record = declare_interaction_continuum(interaction_value=interaction_value)
+    extra["interaction_continuum"] = cast(JsonValue, record)
+    # Blocked claims must remain exactly the profile set.
+    if set(HOST_PARASITE.blocked_claims) != set(BLOCKED_HOST_PARASITE_CLAIMS):
+        raise ConfigurationError("blocked host_parasite claims drifted.")
+    limitations = bundle.limitations
+    if _CONTINUUM_NOTE not in limitations:
+        limitations = limitations + (_CONTINUUM_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+def attach_vt_spatial_factorial(
+    bundle: ClaimgateBundle,
+    factorial,
+) -> ClaimgateBundle:
+    """Attach VT × spatial factorial digests; mutualism never equals success."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_continuum import ContinuumFactorialResult
+
+    if not isinstance(factorial, ContinuumFactorialResult):
+        raise ConfigurationError("factorial must be a ContinuumFactorialResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if factorial.mutualism_equals_success:
+        raise ConfigurationError("mutualism_equals_success must remain False.")
+    if factorial.red_queen_proved:
+        raise ConfigurationError("factorial.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_vt_spatial_factorial requires a host_parasite domain bundle."
+        )
+    if "vt_spatial_factorial" in extra:
+        raise ConfigurationError("vt_spatial_factorial already attached.")
+    payload = factorial.to_dict()
+    extra["vt_spatial_factorial"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "factorial_digest": payload["factorial_digest"],
+            "cell_digests": payload["cell_digests"],
+            "seeds": payload["seeds"],
+            "vt_levels": payload["vt_levels"],
+            "spatial_modes": payload["spatial_modes"],
+            "interaction_value": payload["interaction_value"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "mutualism_equals_success": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+        },
+    )
+    limitations = bundle.limitations
+    if _CONTINUUM_NOTE not in limitations:
+        limitations = limitations + (_CONTINUUM_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

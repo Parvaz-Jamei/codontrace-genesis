@@ -31,9 +31,12 @@ Phase 6                      → factorial campaigns + network digests + preregi
 Phase 7                      → freeze/replay/reciprocal campaign + richness digests (delivered)
 Phase 8                      → interaction continuum + VT × spatial factorial (delivered)
 Phase 9                      → evolvability/Cornish assays + comparator + HE_HP digests (delivered)
+Phase 10                     → genome-aware Zaman dual digests (Wave 3; this PR)
+Phase 11                     → codon-entropy / Hamming dual-null (Wave 3; this PR)
+Phase 12                     → HGT-analogue + intracellular/free-living pack (Wave 3; this PR)
 ```
 
-All Phases 1–9 are delivered on branch `feat/host-parasite-module-phases`.
+Phases 1–9 are on main; Wave 3 (Phases 10–12) lands on `feat/host-parasite-wave3-genome`. See `DEPTH_BRAINSTORM_WAVE3.md`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick

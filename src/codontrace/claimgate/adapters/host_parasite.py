@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_evolvability import (
         EvolvabilityFalsificationResult,
     )
+    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -1225,3 +1226,72 @@ def attach_cornish_campaign(
     if _CORNISH_NOTE not in limitations:
         limitations = limitations + (_CORNISH_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 10 — genome-aware dual digests on Zaman arms
+# ---------------------------------------------------------------------------
+
+_GENOME_ZAMAN_NOTE = (
+    "Genome-aware Zaman digests layer SemanticGenome digests on freeze/replay/"
+    "reciprocal arms; complexity emergence and Red Queen remain unproved."
+)
+
+
+def attach_genome_zaman_campaign(
+    bundle: ClaimgateBundle,
+    campaign: GenomeZamanCampaignResult,
+) -> ClaimgateBundle:
+    """Attach genome Zaman digests without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
+
+    if not isinstance(campaign, GenomeZamanCampaignResult):
+        raise ConfigurationError("campaign must be a GenomeZamanCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.complexity_emergence_proved:
+        raise ConfigurationError("campaign.complexity_emergence_proved must remain False.")
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_genome_zaman_campaign requires a host_parasite domain bundle."
+        )
+    if "genome_zaman_campaign" in extra:
+        raise ConfigurationError("genome_zaman_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_genome_zaman_campaign_v1":
+        raise ConfigurationError("genome Zaman campaign schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_genome_zaman_campaign requires preregistration digest on the bundle."
+        )
+    extra["genome_zaman_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "steps": payload["steps"],
+            "genome_length": payload["genome_length"],
+            "arms_are_distinct": payload["arms_are_distinct"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "zaman_scope": payload["zaman_scope"],
+            "repertoire_campaign_digest": payload["repertoire_campaign_digest"],
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _GENOME_ZAMAN_NOTE not in limitations:
+        limitations = limitations + (_GENOME_ZAMAN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+

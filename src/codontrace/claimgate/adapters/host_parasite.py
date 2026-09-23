@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
     from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
     from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
+    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -60,6 +61,7 @@ DECLARED_INTERVENTION_KINDS = frozenset(
         "steal_fraction_ablation",
         "transmission_mode_switch",
         "hgt_analogue_segment_copy",
+        "hgt_analogue_noise_transfer",
         "intracellular_seat_constraint",
         "free_living_horizontal_inject",
     }
@@ -1518,5 +1520,77 @@ def attach_task_gene_map(
     limitations = bundle.limitations
     if _TASK_GENE_NOTE not in limitations:
         limitations = limitations + (_TASK_GENE_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 14 — transmission-mode contrast + mode-completeness hardening
+# ---------------------------------------------------------------------------
+
+_MODE_CONTRAST_NOTE = (
+    "Transmission-mode contrast digests show horizontal / vertical / mixed "
+    "are distinct; mixed blends both pathways. Digital labels only."
+)
+
+
+def attach_transmission_mode_contrast(
+    bundle: ClaimgateBundle,
+    contrast: "ModeContrastResult",
+) -> ClaimgateBundle:
+    """Attach transmission-mode contrast digests without raising the ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
+
+    if not isinstance(contrast, ModeContrastResult):
+        raise ConfigurationError("contrast must be a ModeContrastResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if contrast.red_queen_proved:
+        raise ConfigurationError("contrast.red_queen_proved must remain False.")
+    if contrast.virulence_optimized_for_humans:
+        raise ConfigurationError("virulence_optimized_for_humans must remain False.")
+    if contrast.major_transition_proved:
+        raise ConfigurationError("major_transition_proved must remain False.")
+    if not contrast.mixed_blends_horizontal_and_vertical:
+        raise ConfigurationError("attach requires mixed mode to blend H+V.")
+    if not contrast.modes_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct mode digests.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_transmission_mode_contrast requires a host_parasite domain bundle."
+        )
+    if "transmission_mode_contrast" in extra:
+        raise ConfigurationError("transmission_mode_contrast already attached.")
+    payload = contrast.to_dict()
+    if payload.get("schema") != "host_parasite_transmission_mode_contrast_v1":
+        raise ConfigurationError("transmission-mode contrast schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_transmission_mode_contrast requires preregistration digest on the bundle."
+        )
+    extra["transmission_mode_contrast"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "mode_digests": payload["mode_digests"],
+            "seeds": payload["seeds"],
+            "modes": payload["modes"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "modes_are_distinct": True,
+            "mixed_blends_horizontal_and_vertical": True,
+            "red_queen_proved": False,
+            "virulence_optimized_for_humans": False,
+            "major_transition_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _MODE_CONTRAST_NOTE not in limitations:
+        limitations = limitations + (_MODE_CONTRAST_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
 

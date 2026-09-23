@@ -10,7 +10,8 @@ dynamics, or major transitions.
 |------|--------|
 | `zaman_2014_freeze_replay.md` | Freeze/replay parasite history analogy |
 | `fortuna_2021_ecological_opportunity.md` | Task-overlap / steal / abiotic opportunity |
-| `hall_lopez_pascua_ard_fsd.md` | ARD/FSD range diagnostics (labels only) |
+| `hall_lopez_pascua_ard_fsd.md` | ARD/FSD labels; Phase 19 transition; Phase 20 resource×dynamics |
+| `scanlan_2015_mutator_abiotic.md` | Phase 23 mutator / abiotic-constraint dual-null |
 | `fortuna_2017_network_origin.md` | Adaptive-origin gate + network complexity |
 | `cornish_causal_falsification.md` | Observational vs interventional claim ceilings |
 

@@ -194,12 +194,58 @@ def assert_registry_covers_phases_1_to_17(packet: JournalAttachRegistryPacket) -
         raise ConfigurationError("soft_complete must be True for Phase 18 packet.")
 
 
+# Wave-5 attach extra-keys → ClaimGate adapter callables (Phases 18–23).
+# Hygiene only: documents the shipped surface without rewriting the Phase-18
+# Phases 1–17 soft-complete baseline contract.
+WAVE5_ATTACH_CALLABLES: dict[str, str] = {
+    "journal_attach_registry": "attach_journal_attach_registry",
+    "ard_fsd_transition": "attach_ard_fsd_transition",
+    "resource_dynamics_factorial": "attach_resource_dynamics_factorial",
+    "multi_seed_contingency": "attach_multi_seed_contingency",
+    "cornish_sequential_campaign": "attach_sequential_cornish_campaign",
+    "scanlan_mutator_campaign": "attach_scanlan_mutator_campaign",
+}
+
+
+def assert_wave5_attach_surface_wired() -> None:
+    """Fail closed if Wave-5 attach keys drift from adapter callables.
+
+    Does not raise the claim ladder or rewrite Phase-18 soft_complete=True for
+    Phases 1–17. Completeness auditors use this to confirm Phases 18–23 remain
+    attachable on the single host_parasite DomainProfile.
+    """
+
+    missing_keys = [k for k in WAVE5_ATTACH_KEYS if k not in WAVE5_ATTACH_CALLABLES]
+    if missing_keys:
+        raise ConfigurationError(
+            f"WAVE5_ATTACH_KEYS missing callable map entries: {missing_keys}"
+        )
+    orphan = [k for k in WAVE5_ATTACH_CALLABLES if k not in WAVE5_ATTACH_KEYS]
+    if orphan:
+        raise ConfigurationError(
+            f"WAVE5_ATTACH_CALLABLES has orphan keys not in WAVE5_ATTACH_KEYS: {orphan}"
+        )
+    # Import locally to avoid circular imports at module load.
+    from codontrace.claimgate.adapters import host_parasite as hp_adapter
+
+    missing_fns: list[str] = []
+    for key, fn_name in WAVE5_ATTACH_CALLABLES.items():
+        if not callable(getattr(hp_adapter, fn_name, None)):
+            missing_fns.append(f"{key}->{fn_name}")
+    if missing_fns:
+        raise ConfigurationError(
+            f"Wave-5 attach callables missing on host_parasite adapter: {missing_fns}"
+        )
+
+
 __all__ = [
     "BLOCKED_CLAIM_MATRIX",
     "REQUIRED_ATTACH_KEYS",
+    "WAVE5_ATTACH_CALLABLES",
     "WAVE5_ATTACH_KEYS",
     "SCHEMA",
     "JournalAttachRegistryPacket",
     "assert_registry_covers_phases_1_to_17",
+    "assert_wave5_attach_surface_wired",
     "build_journal_attach_registry_packet",
 ]

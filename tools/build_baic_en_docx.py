@@ -317,6 +317,28 @@ def build() -> None:
         10,
     )
 
+    _p(doc, styles, "Heading1", "Labels are not grades", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "Regulatory words on this port are labels, not grades. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit [8]. IEC 62304 assigns software safety class A, B, or C [9]. The International Medical Device Regulators Forum (IMDRF) fixes the wording for software in a medical device and for software as a medical device [10]. Recording that wording does not classify a product. If the model is not declared physics-based, the 2023 guidance places a standalone model outside that scope, and the note still does not raise the ladder.",
+        10,
+    )
+    _p(
+        doc, styles, "Normal",
+        "Phenomenon rank is taken from the nuclear-safety table: importance against knowledge [11]. High importance stays open unless knowledge is adequate and the row was measured. Medium importance is a gap only when knowledge is none. Low importance is screened out. A typed word, without a treatment arm, is not a measurement and does not close a high-importance gap. Table 2 is that rule. The cap on the weakest submodel follows the building-block rule [3]. A submodel that is not identifiable cannot contribute above 1. Evidence limited to calibration, plausibility, or emergent behavior, categories 2, 6, and 7 of the 2023 guidance, cannot contribute above 2. If a submodel was not executed, that cap is not reported as a measurement and does not move the claim grade.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 2. Ranking gap. A typed word is not a measurement", 8, "center", True)
+    _table(doc, [
+        ["Importance", "Knowledge", "Measured", "Gap"],
+        ["High", "None or partial", "Either", "Open"],
+        ["High", "Adequate", "No", "Open"],
+        ["High", "Adequate", "Yes", "Closes with treatment"],
+        ["Medium", "None", "Either", "Open"],
+        ["Medium", "Partial or adequate", "Either", "Screened"],
+        ["Low", "Any", "Either", "Screened"],
+    ], [1000, 1300, 1100, 1200])
+
     _p(doc, styles, "Heading1", "Two controls", 12, "left", True)
     _p(
         doc, styles, "Normal",
@@ -330,10 +352,10 @@ def build() -> None:
     )
     _p(
         doc, styles, "Normal",
-        "The negative control is a declared score table for a device model. The question was whether a size choice would be licensed. There is no ISO 14879-1 test and no implant. Model influence is 2 and decision consequence is 3. Treatment scores are 0.12, 0.11, and 0.13. Control scores are 0.20, 0.19, and 0.21. The declared labels are software in a medical device, class B of IEC 62304 [8], category II of the International Medical Device Regulators Forum (IMDRF) [9], and evidence categories 1, 3, and 8 of the 2023 guidance, with the model declared as physics-based. Replay is not verified, and the artifact manifest is among the conditions for leaving grade 0, so the grade is 0. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit, and that example is not run here [10]. Table 2 records the distance between the two controls.",
+        "The negative control is a declared score table for a device model. The question was whether a size choice would be licensed. There is no ISO 14879-1 test and no implant. Model influence is 2 and decision consequence is 3. Treatment scores are 0.12, 0.11, and 0.13. Control scores are 0.20, 0.19, and 0.21. The declared labels are software in a medical device, class B of IEC 62304 [9], category II of IMDRF [10], and evidence categories 1, 3, and 8 of the 2023 guidance, with the model declared as physics-based. Replay is not verified, and the artifact manifest is among the conditions for leaving grade 0, so the grade is 0. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit, and that example is not run here [8]. Table 3 records the distance between the two controls.",
         10,
     )
-    _p(doc, styles, "Caption", "Table 2. Positive and negative controls", 8, "center", True)
+    _p(doc, styles, "Caption", "Table 3. Positive and negative controls", 8, "center", True)
     _table(doc, [
         ["Bundle", "Declared", "Executed", "Grade"],
         ["HE01", "File label", "Replay, 30 seeds, interval", "4"],
@@ -356,7 +378,7 @@ def build() -> None:
         "On the study bound to HE01, source-fitness bias and the life-loop campaign both close. The life loop is a campaign, not a device, and it carries no FDA evidence category. Contact stress and patient geometry stay declared. Patient geometry remains at a usable level of 2. Because not every submodel was executed, the coupled ceiling is empty. The claim grade of the campaign is still 4. The primary interval is about 4.89 wide. A tolerance of 1.0 does not close source bias. A tolerance of 6.0 does. A closed channel is not a treatment arm. Two submodels that share a configuration fingerprint are not independent and do not form a ceiling. Two replayed bundles at grade 4 with different fingerprints can set a ceiling of 4, and that ceiling does not change the public grade. The ranking is the phenomena identification and ranking table used in nuclear safety [11]. A high-importance row stays open unless knowledge is adequate and the row was measured. A submodel that is not identifiable cannot contribute above 1. Evidence limited to calibration, plausibility, or emergent behavior, categories 2, 6, and 7 of the 2023 guidance, cannot contribute above 2 [1], [3].",
         10,
     )
-    _p(doc, styles, "Caption", "Table 3. Phenomenon closure on the HE01 study", 8, "center", True)
+    _p(doc, styles, "Caption", "Table 4. Phenomenon closure on the HE01 study", 8, "center", True)
     _table(doc, [
         ["Row", "Evidence", "Result"],
         ["Source bias", "Treatment, grade 4, replay", "Closed"],
@@ -371,10 +393,10 @@ def build() -> None:
     )
     _p(
         doc, styles, "Normal",
-        "Risk on this port is the maximum of declared influence and declared consequence. The question is the one ASME V&V 40 asks, whether the evidence is commensurate with model risk [2]. The numbers are this implementation, not an FDA table. Risk 1 asks for grade 2, risk 2 for grade 3, and risk 3 for grade 4. From risk 2 upward, an open high-importance phenomenon also blocks the bar. The bar does not call the auditor and does not change the grade. The device table is risk 3 at grade 0, so the bar is not met. HE01 with only the executed source-bias phenomenon meets risk 3 and stays at grade 4. The same campaign, with contact stress added and no arm for it, is still grade 4, and the bar is not met. Declaring the risk neither closes the open phenomenon nor lowers the grade. The committed result has fingerprint prefix b053e7f1. Table 4 is that comparison.",
+        "Risk on this port is the maximum of declared influence and declared consequence. The question is the one ASME V&V 40 asks, whether the evidence is commensurate with model risk [2]. The numbers are this implementation, not an FDA table. Risk 1 asks for grade 2, risk 2 for grade 3, and risk 3 for grade 4. From risk 2 upward, an open high-importance phenomenon also blocks the bar. The bar does not call the auditor and does not change the grade. The device table is risk 3 at grade 0, so the bar is not met. HE01 with only the executed source-bias phenomenon meets risk 3 and stays at grade 4. The same campaign, with contact stress added and no arm for it, is still grade 4, and the bar is not met. Declaring the risk neither closes the open phenomenon nor lowers the grade. The committed result has fingerprint prefix b053e7f1. Table 5 is that comparison.",
         10,
     )
-    _p(doc, styles, "Caption", "Table 4. Declared risk against the audit grade", 8, "center", True)
+    _p(doc, styles, "Caption", "Table 5. Declared risk against the audit grade", 8, "center", True)
     _table(doc, [
         ["Bundle", "Risk", "Grade", "Bar"],
         ["Device table", "3", "0", "Not met"],
@@ -385,10 +407,10 @@ def build() -> None:
     _p(doc, styles, "Heading1", "Requirement deletions", 12, "left", True)
     _p(
         doc, styles, "Normal",
-        "The intact reference is grade 4. Six bundles were built by removing one condition, and all six stayed below 4. Identical arms, a zero-width interval, and an unpaired comparison stay at grade 1. Missing replay, and an empty limitation, stay at grade 2. Three seeds stay at grade 3. The six bundles are not an independent random sample, so no binomial interval and no false-accept rate are reported. The count is not a percentage of papers. Table 5 lists the grades. A separate row changes the label of a sensitivity arm and still receives grade 4, because a confirmatory negative-control arm is still in the bundle. The row is a probe, not an escape trial. The deletion file prefix is 3c8a8a1f.",
+        "The intact reference is grade 4. Six bundles were built by removing one condition, and all six stayed below 4. Identical arms, a zero-width interval, and an unpaired comparison stay at grade 1. Missing replay, and an empty limitation, stay at grade 2. Three seeds stay at grade 3. The six bundles are not an independent random sample, so no binomial interval and no false-accept rate are reported. The count is not a percentage of papers. Table 6 lists the grades. A separate row changes the label of a sensitivity arm and still receives grade 4, because a confirmatory negative-control arm is still in the bundle. The row is a probe, not an escape trial. The deletion file prefix is 3c8a8a1f.",
         10,
     )
-    _p(doc, styles, "Caption", "Table 5. One condition removed from a grade-4 reference", 8, "center", True)
+    _p(doc, styles, "Caption", "Table 6. One condition removed from a grade-4 reference", 8, "center", True)
     _table(doc, [
         ["Deletion", "Grade"],
         ["Identical arms", "1"],
@@ -398,6 +420,29 @@ def build() -> None:
         ["Empty limitation", "2"],
         ["Three seeds instead of 16", "3"],
     ], [3200, 1400])
+
+    _p(doc, styles, "Heading1", "Arms in the positive control", 12, "left", True)
+    _p(
+        doc, styles, "Normal",
+        "The arm role is read from the campaign, and the results file is not rewritten. Treatment is only the arm with source bias on. Closure asks for that role. A dose arm, a negative control, and a channel that is off do not close a phenomenon, even when they sit in the same grade-4 file. Table 7 lists the roles.",
+        10,
+    )
+    _p(doc, styles, "Caption", "Table 7. Arm role in the positive control", 8, "center", True)
+    _table(doc, [
+        ["Arm", "Role"],
+        ["Source bias on", "Treatment"],
+        ["Source bias off", "Mechanism removed"],
+        ["Closed channel", "Channel off"],
+        ["Empty content", "Negative control"],
+        ["Matched content", "Negative control"],
+        ["Matched activity", "Negative control"],
+        ["Predictive capsule", "Dose"],
+    ], [2300, 2300])
+    _p(
+        doc, styles, "Normal",
+        "The difference 16.49 sets treatment against removal of the mechanism, and both settings change together. The difference 30.67 is the same number for the closed channel and for empty content, and those two baselines share one value fingerprint. The width of the first interval is 19.135 minus 14.249, about 4.89. An optional studentized interval on the same 30 differences runs from about 14.05 to 19.30 and leaves the results file unchanged. Each deletion stops at the rung that owns the removed condition. Identical arms, a zero-width interval, and an unpaired comparison do not leave grade 1. Missing replay, and an empty limitation, stay at grade 2. Three seeds pass the interval and stay at grade 3, because 16 seeds are the condition for grade 4. The role-change probe was kept out of the six, and no rate was built from it. A hash of the word placeholder is a valid digest and is not rejected on its own. The study file prefix is d176f0ab and the deletion-file prefix is 3c8a8a1f. Both files were produced by running the auditor.",
+        10,
+    )
 
     _p(doc, styles, "Heading1", "Discussion", 12, "left", True)
     _p(
@@ -438,9 +483,9 @@ def build() -> None:
         "M. Viceconti, F. Pappalardo, B. Rodriguez, M. Horner, J. Bischoff, and F. Musuamba Tshinanu, “In silico trials: verification, validation and uncertainty quantification of predictive models used in the regulatory evaluation of biomedical products,” Methods, vol. 185, pp. 120-127, 2021.",
         "A. Sokolov, “MIRROR: local evidence bundles for reproducible research software review,” Zenodo, May 2026, doi: 10.5281/zenodo.20463358.",
         "M. Seyedkazemi Ardebili, “NovaFabric: tamper-evident, replayable evidence for autonomous AI agent runs,” arXiv:2609.12582, 2026.",
+        "Tibial Tray Worst-Case Size Identification for Fatigue Testing, ASME VVUQ 40.1-2026. New York: ASME, 2026.",
         "IEC 62304:2006+AMD1:2015, Medical device software, Software life cycle processes. Geneva: IEC.",
         "Software as a Medical Device: Possible Framework for Risk Categorization and Characterization Considerations, IMDRF/SaMD WG/N12 and N81.",
-        "Tibial Tray Worst-Case Size Identification for Fatigue Testing, ASME VVUQ 40.1-2026. New York: ASME, 2026.",
         "Phenomena Identification and Ranking Table, NEA/CSNI/R(2017)18. Paris: OECD Nuclear Energy Agency, 2018.",
         "S. H. Hurlbert, “Pseudoreplication and the design of ecological field experiments,” Ecological Monographs, vol. 54, no. 2, pp. 187-211, 1984.",
     ]

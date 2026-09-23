@@ -6,7 +6,7 @@ Author: **Parvaz Jamei / پرواز جمیعی**.
 - Source: [`paper.md`](paper.md)
 - Word (قالب_مقاله, two-column RTL, B Nazanin, three A4 pages): [`BAIC2026_Jamei.docx`](BAIC2026_Jamei.docx)
 - Same bytes, previous filename: [`BAIC2026_Jamei_5p.docx`](BAIC2026_Jamei_5p.docx)
-- English manuscript in the congress template (not IEEE), same measurements, three A4 pages: [`BAIC2026_Jamei_en.docx`](BAIC2026_Jamei_en.docx). Rebuild with `python tools/build_baic_en_docx.py`. [`baic_congress_template.docx`](baic_congress_template.docx) is the style source, not the paper.
+- English manuscript in the congress template (not IEEE), same measurements, four A4 pages: [`BAIC2026_Jamei_en.docx`](BAIC2026_Jamei_en.docx). Rebuild with `python tools/build_baic_en_docx.py`. [`baic_congress_template.docx`](baic_congress_template.docx) is the style source, not the paper.
 
 [`SECTIONS_5_8.md`](SECTIONS_5_8.md) is a stub pointing at `paper.md` (do not edit two copies).
 

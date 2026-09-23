@@ -693,3 +693,206 @@ def attach_phase3_honesty(
             raise ConfigurationError("dynamics_labels cannot claim red_queen_proved.")
         extra["dynamics_labels"] = cast(JsonValue, dynamics.to_dict())
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — campaign digests + fail-closed ClaimGate bundle factory
+# ---------------------------------------------------------------------------
+
+_CAMPAIGN_NOTE = (
+    "Host–parasite campaign digests do not raise the public ClaimGate ladder "
+    "above the campaign claim_ceiling."
+)
+_ALLOWED_CAMPAIGN_CEILINGS = frozenset({"runtime_observation", "candidate_evidence"})
+
+
+def _campaign_scores(campaign) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Derive treatment/control score vectors from campaign arm means."""
+
+    by_arm = {item.arm: item.mean_score for item in campaign.arm_results}
+    if "intact" not in by_arm:
+        raise ConfigurationError(
+            "bundle_from_host_parasite_campaign requires an intact arm."
+        )
+    treatment = tuple(
+        float(outcome.mean_retained_cpu)
+        for arm in campaign.arm_results
+        if arm.arm == "intact"
+        for outcome in arm.seed_outcomes
+    )
+    control_arm = None
+    for name in ("abiotic_only", "dual_null", "content_null", "structure_null"):
+        if name in by_arm:
+            control_arm = name
+            break
+    if control_arm is None:
+        raise ConfigurationError(
+            "bundle_from_host_parasite_campaign needs an abiotic or null control arm."
+        )
+    control = tuple(
+        float(outcome.mean_retained_cpu)
+        for arm in campaign.arm_results
+        if arm.arm == control_arm
+        for outcome in arm.seed_outcomes
+    )
+    if not treatment or not control:
+        raise ConfigurationError("campaign score vectors must be non-empty.")
+    return treatment, control
+
+
+def bundle_from_host_parasite_campaign(
+    campaign,
+    *,
+    question_of_interest: str,
+    context_of_use: str,
+    model_influence: int = 2,
+    decision_consequence: int = 2,
+    claimed: str = "runtime_observation",
+    software_name: str = "codontrace-host-parasite-campaign",
+    software_version: str = "host_parasite_campaign_v1",
+) -> ClaimgateBundle:
+    """Build a ClaimGate bundle from a HostParasiteCampaignResult.
+
+    Attaches per-arm and campaign digests. Refuses public claim strings above
+    ``candidate_evidence``. ``candidate_evidence`` requires
+    ``falsification_rules_passed`` on the campaign. The factory never sets
+    ``red_queen_proved`` and never grants ``intervention_supported``.
+    """
+
+    from codontrace.genesis.host_parasite_campaign import HostParasiteCampaignResult
+
+    if not isinstance(campaign, HostParasiteCampaignResult):
+        raise ConfigurationError(
+            "campaign must be a HostParasiteCampaignResult from "
+            "run_host_parasite_campaign."
+        )
+    claim = assert_claim_allowed(claimed)
+    if claim not in _ALLOWED_CAMPAIGN_CEILINGS:
+        raise ConfigurationError(
+            f"campaign bundle refuses claim ceilings above candidate_evidence; "
+            f"got {claimed!r}."
+        )
+    if claim == "candidate_evidence" and not campaign.falsification_rules_passed:
+        raise ConfigurationError(
+            "candidate_evidence refused without passing campaign falsification rules."
+        )
+    if claim == "candidate_evidence" and campaign.claim_ceiling != "candidate_evidence":
+        raise ConfigurationError(
+            "candidate_evidence refused: campaign claim_ceiling is "
+            f"{campaign.claim_ceiling!r}."
+        )
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+
+    treatment, control = _campaign_scores(campaign)
+    bundle = bundle_from_host_parasite_cou(
+        question_of_interest=question_of_interest,
+        context_of_use=context_of_use,
+        model_influence=model_influence,
+        decision_consequence=decision_consequence,
+        treatment_scores=treatment,
+        control_scores=control,
+        metric="host_parasite_campaign_mean_retained_cpu",
+        software_name=software_name,
+        software_version=software_version,
+        claimed=claim,
+        device_software_kind="analog_table",
+        cou_risk_overrides={"infection_physics": "optional_env_outside_core"},
+    )
+    payload = campaign.to_dict()
+    extra = dict(bundle.extra or {})
+    if "host_parasite_campaign" in extra:
+        raise ConfigurationError("host_parasite_campaign already attached.")
+    extra["host_parasite_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "falsification_rules_passed": payload["falsification_rules_passed"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "grants_intervention_supported": False,
+            "raises_claim_ladder": False,
+        },
+    )
+    limitations = bundle.limitations
+    if _CAMPAIGN_NOTE not in limitations:
+        limitations = limitations + (_CAMPAIGN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+def attach_host_parasite_campaign(
+    bundle: ClaimgateBundle,
+    campaign,
+) -> ClaimgateBundle:
+    """Attach campaign digests to an existing host_parasite bundle.
+
+    Does not raise the public ladder. Refuses attach when the bundle's claimed
+    level is above the campaign ceiling or when falsification is required but
+    missing.
+    """
+
+    from codontrace.genesis.host_parasite_campaign import HostParasiteCampaignResult
+
+    if not isinstance(campaign, HostParasiteCampaignResult):
+        raise ConfigurationError(
+            "campaign must be a HostParasiteCampaignResult."
+        )
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_host_parasite_campaign requires a host_parasite domain bundle."
+        )
+    if "host_parasite_campaign" in extra:
+        raise ConfigurationError("host_parasite_campaign already attached.")
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    raw_claimed = extra.get("requested_claim")
+    if not isinstance(raw_claimed, str) or not raw_claimed.strip():
+        raise ConfigurationError(
+            "attach_host_parasite_campaign requires bundle.extra['requested_claim']."
+        )
+    payload_claimed = raw_claimed.strip().lower()
+    if payload_claimed not in _ALLOWED_CAMPAIGN_CEILINGS:
+        raise ConfigurationError(
+            "attach refuses ceilings above candidate_evidence; bundle requested_claim "
+            f"{raw_claimed!r}."
+        )
+    if (
+        payload_claimed == "candidate_evidence"
+        and not campaign.falsification_rules_passed
+    ):
+        raise ConfigurationError(
+            "attach refuses candidate_evidence without falsification_rules_passed."
+        )
+    if (
+        payload_claimed == "candidate_evidence"
+        and campaign.claim_ceiling != "candidate_evidence"
+    ):
+        raise ConfigurationError(
+            "attach refuses candidate_evidence when campaign claim_ceiling is "
+            f"{campaign.claim_ceiling!r}."
+        )
+    payload = campaign.to_dict()
+    extra["host_parasite_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "falsification_rules_passed": payload["falsification_rules_passed"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "grants_intervention_supported": False,
+            "raises_claim_ladder": False,
+        },
+    )
+    limitations = bundle.limitations
+    if _CAMPAIGN_NOTE not in limitations:
+        limitations = limitations + (_CAMPAIGN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

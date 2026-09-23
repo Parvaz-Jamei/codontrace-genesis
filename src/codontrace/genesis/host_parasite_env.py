@@ -9,8 +9,8 @@ Fortuna / Zaman-inspired digital rules for *optional* campaign wiring:
 
 This module does **not** modify ``engine.py`` tick semantics and does not
 certify vaccines, antivirals, phage therapy, epidemics, BSL, CRISPR identity,
-or Red Queen dynamics. Scores produced here are digital toys for ClaimGate
-labeling, not wet-lab validity.
+or Red Queen dynamics. Scores produced here are digital-scope outcomes for
+ClaimGate labeling, not wet-lab validity.
 """
 
 from __future__ import annotations
@@ -295,7 +295,7 @@ class HostParasiteEnv:
         return round(1.0 - self.steal_fraction, 10)
 
     def population_outcome_score(self) -> float:
-        """Toy digital score: mean retained CPU across hosts.
+        """Digital-scope score: mean retained CPU across hosts.
 
         Used only to show that null templates change outcomes relative to the
         intact interaction. Not a fitness certificate.
@@ -341,9 +341,9 @@ def run_dual_null_contrast(
     payload: Sequence[int],
     steal_fraction: float = DEFAULT_STEAL_FRACTION,
 ) -> dict[str, object]:
-    """Run intact / content-null / structure-null / dual-null toy contrasts.
+    """Run intact / content-null / structure-null / dual-null digital contrasts.
 
-    Returns scores that must differ when nulls bite, proving the template is
+    Returns scores that must differ when nulls bite, showing the template is
     not a no-op label. Requires task overlap so the intact arm can inject;
     otherwise the contrast cannot demonstrate a null effect.
     """

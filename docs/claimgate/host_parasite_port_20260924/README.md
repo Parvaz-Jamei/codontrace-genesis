@@ -23,7 +23,10 @@ ClaimGate DomainProfile       → host_parasite blocked_claims + limitations
 adapters/host_parasite.py     → thin wrap of bundle_from_declared_scores
 docs/claimgate/host_parasite… → requirements, challenges, brainstorm, API sketch
 Phase 1                      → declared intervention menu stub + hardened blocks
-Phase 2+                     → optional HostParasiteEnv outside engine core
+Phase 2                      → optional HostParasiteEnv outside engine core
+Phase 3                      → intervention falsification + honesty gates
+Phase 4                      → multi-seed campaign digests + ClaimGate factory
+Phase 5–6                    → spatial/vertical diagnostics; factorial/prereg
 ```
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and

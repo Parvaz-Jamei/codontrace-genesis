@@ -18,3 +18,7 @@
 - دو null: محتوا و ساختار؛ Price≠علّیت (Okasha & Otsuka 2020).
 
 جزئیات مناظره: `EXPERT_BRAINSTORM.md` — کتابشناسی: `CITATIONS.md`.
+
+## فاز ۴
+
+اجرای کمپین چندبذری با خلاصه‌های canonical و سقف ادعای fail-closed تا `candidate_evidence`؛ بدون اثبات Red Queen و بدون دست‌زدن به `engine.py`.

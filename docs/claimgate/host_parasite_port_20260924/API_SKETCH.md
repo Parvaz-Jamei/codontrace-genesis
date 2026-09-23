@@ -70,7 +70,7 @@ bundle = bundle_from_host_parasite_cou(
     decision_consequence=2,
     treatment_scores=(0.4, 0.38, 0.42),
     control_scores=(0.2, 0.22, 0.19),
-    metric="task_overlap_toy",
+    metric="task_overlap_digital",
 )
 # bundle.extra["domain"] == "host_parasite"
 # bundle.extra["infection_physics"] == "not_implemented"
@@ -108,9 +108,9 @@ contrast = run_dual_null_contrast(
 assert contrast["nulls_change_outcomes"] is True
 ```
 
-ClaimGate remains the evidence auditor; the env only produces digital toy
+ClaimGate remains the evidence auditor; the env only produces digital-scope
 scores / snapshots for adapters to wrap. Vertical transmission physics stay
-labeled `not_implemented`.
+labeled `not_implemented` until Phase 5 implements mixed H+V blending.
 
 ## COU / risk labels (declared only)
 
@@ -127,3 +127,32 @@ Same stance as biomedical:
 `tests/test_claimgate_host_parasite.py` — profile registration, domain label,
 parametrized blocked aliases, `assert_claim_allowed`, independence from
 `biomedical` domain string.
+
+
+## Phase 4 — campaign runner (outside engine)
+
+Module: `codontrace.genesis.host_parasite_campaign`
+
+```python
+from codontrace.genesis.host_parasite_campaign import run_host_parasite_campaign
+from codontrace.claimgate.adapters.host_parasite import (
+    bundle_from_host_parasite_campaign,
+)
+
+campaign = run_host_parasite_campaign(
+    seeds=(1, 2, 3),
+    request_claim_ceiling="candidate_evidence",
+)
+assert campaign.red_queen_proved is False
+assert campaign.falsification_rules_passed is True
+bundle = bundle_from_host_parasite_campaign(
+    campaign,
+    question_of_interest="Does freeze/replay change digital retained-CPU vs abiotic?",
+    context_of_use="Digital campaign only. No clinic. No Red Queen proof.",
+    claimed="candidate_evidence",
+)
+# Ceilings above candidate_evidence are refused.
+```
+
+Arms: intact, content_null, structure_null, dual_null, abiotic_only,
+freeze_replay_parasites. Per-arm and campaign digests are canonical.

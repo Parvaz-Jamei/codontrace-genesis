@@ -34,10 +34,14 @@ Phase 9                      → evolvability/Cornish assays + comparator + HE_H
 Phase 10                     → genome-aware Zaman dual digests (Wave 3; this PR)
 Phase 11                     → codon-entropy / Hamming dual-null (Wave 3; this PR)
 Phase 12                     → HGT-analogue + intracellular/free-living pack (Wave 3; this PR)
-Phase 13                     → declared task–gene map digests (Wave 3 earn-in; this PR)
+Phase 13                     → declared task–gene map digests (Wave 3 earn-in)
+Phase 14                     → mode-completeness hardening (Wave 4; this PR)
+Phase 15                     → genome × VT × spatial × continuum factorial (Wave 4; this PR)
+Phase 16                     → virulence/resistance quality proxies (Wave 4; this PR)
+Phase 17                     → Price≠causality refusal assay (Wave 4 earn-in; this PR)
 ```
 
-Phases 1–9 are on main; Wave 3 (Phases 10–12) lands on `feat/host-parasite-wave3-genome`. See `DEPTH_BRAINSTORM_WAVE3.md`.
+Phases 1–9 are on main; Wave 3 (Phases 10–13) stacks under Wave 4. Wave 4 (Phases 14–17) lands on `feat/host-parasite-wave4-modes`. See `DEPTH_BRAINSTORM_WAVE4.md` and `MODE_AUDIT_WAVE4.md`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick
@@ -95,3 +99,29 @@ See `API_SKETCH.md`, `REQUIREMENTS.md`, `EXPERT_BRAINSTORM.md` (consensus MVP),
   and must not be committed with this work.
 
 Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/`.
+
+## Brainstormed mode table (Waves 1–4)
+
+| Mode / arm | Status | Where exercised |
+|---|---|---|
+| `horizontal` | delivered + digest | env + Phase 14 contrast |
+| `vertical` | delivered + digest | env + Phase 14 contrast |
+| `mixed` (blends H+V) | delivered + digest | env + Phase 14 contrast |
+| `well_mixed` | delivered + digest | Phase 5/8 continuum |
+| `local_neighborhood` | delivered + digest | Phase 5/8 continuum |
+| continuum `interaction_value` | delivered + digest | Phase 8 + Phase 15 genome cross |
+| `freeze_parasites` | delivered + digest | Phase 7/10 |
+| `replay_parasite_schedule` | delivered + digest | Phase 7/10 |
+| `reciprocal_coevolution` | delivered + digest | Phase 7/10 |
+| dual-null content/structure/abiotic | delivered + digest | Phase 4/11 |
+| `hgt_analogue_segment_copy` | delivered + digest | Phase 12 |
+| `hgt_analogue_noise_transfer` | delivered + digest + menu | Phase 12/14 |
+| `intracellular_seat_constraint` | delivered + digest | Phase 12 |
+| `free_living_horizontal_inject` | delivered + digest | Phase 12 |
+| genome × VT × spatial × continuum | delivered + digest | Phase 15 |
+| virulence/resistance quality proxies | delivered + digest | Phase 16 (`virulence_optimized_for_humans` blocked) |
+| Price≠causality refusal | delivered + digest | Phase 17 (`major_transition_proved` blocked) |
+| bacteria/cell DomainProfiles | refused | one `host_parasite` profile only |
+| wet HGT / conjugation / CRISPR genetics | refused | flags always false |
+| infection physics in `engine.py` | refused | engine untouched |
+

@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_evolvability import (
         EvolvabilityFalsificationResult,
     )
+    from codontrace.genesis.host_parasite_genome_diversity import (
+        GenomeDiversityCampaignResult,
+    )
     from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
@@ -1293,5 +1296,78 @@ def attach_genome_zaman_campaign(
     limitations = bundle.limitations
     if _GENOME_ZAMAN_NOTE not in limitations:
         limitations = limitations + (_GENOME_ZAMAN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 11 — codon-entropy / Hamming dual-null (HE02 honesty)
+# ---------------------------------------------------------------------------
+
+_GENOME_DIVERSITY_NOTE = (
+    "Genome diversity dual-null can reject parasites_always_raise_codon_entropy; "
+    "it does not prove Red Queen dynamics."
+)
+
+
+def attach_genome_diversity_campaign(
+    bundle: ClaimgateBundle,
+    campaign: GenomeDiversityCampaignResult,
+) -> ClaimgateBundle:
+    """Attach genotype diversity assay without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_genome_diversity import (
+        GenomeDiversityCampaignResult,
+    )
+
+    if not isinstance(campaign, GenomeDiversityCampaignResult):
+        raise ConfigurationError("campaign must be a GenomeDiversityCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if campaign.hypothesis_supported and not campaign.failure_reason:
+        # Supported universal claim must not be attached as a falsification success.
+        pass
+    if (not campaign.hypothesis_supported) and not str(campaign.failure_reason).strip():
+        raise ConfigurationError(
+            "falsified diversity campaign requires a non-empty failure_reason."
+        )
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_genome_diversity_campaign requires a host_parasite domain bundle."
+        )
+    if "genome_diversity_campaign" in extra:
+        raise ConfigurationError("genome_diversity_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_genome_diversity_campaign_v1":
+        raise ConfigurationError("genome diversity campaign schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_genome_diversity_campaign requires preregistration digest on the bundle."
+        )
+    extra["genome_diversity_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "he02_honesty": payload["he02_honesty"],
+        },
+    )
+    limitations = bundle.limitations
+    if _GENOME_DIVERSITY_NOTE not in limitations:
+        limitations = limitations + (_GENOME_DIVERSITY_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
 

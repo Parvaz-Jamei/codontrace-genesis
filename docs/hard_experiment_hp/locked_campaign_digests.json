@@ -1,0 +1,69 @@
+{
+  "baic_pins_untouched": true,
+  "campaigns": {
+    "cornish_intervention": {
+      "arm_digests": {
+        "int_content_null": "c895cde343041042f147a7528d6390f6e027602b2058be02c020df572ddfff94",
+        "int_remove_parasites": "8f4f18ed22216c57955fd91aef28f388c9e3ca5decca0a7d50bcba437dba3e16",
+        "obs_intact": "4904c2002be2a3963f2e8199eba4c06df65d72e10240471ae9b7c68b010befb2"
+      },
+      "campaign_digest": "18c271dbe95a5531f9db17af0577eb12ec814325d56819514a83bb629717cb62",
+      "intervention_supported": false,
+      "observational_match": true,
+      "preregistration_digest": "faabd0d9b28e5462fb5511c6249c1fb9ef95e392130e2be912a261d868c2ef2b",
+      "schema": "host_parasite_cornish_campaign_v1",
+      "seeds": [
+        101,
+        202
+      ]
+    },
+    "evolvability_falsification": {
+      "assay_digest": "ac85ab6a83fbe419d1d94ea51051c5a3e44e56297cce6b827a25bfb47acea705",
+      "hypothesis": "parasites_always_raise_host_repertoire",
+      "hypothesis_supported": false,
+      "schema": "host_parasite_evolvability_falsification_v1",
+      "seeds": [
+        101,
+        202
+      ]
+    },
+    "vt_spatial_factorial": {
+      "cell_digests": {
+        "vt0.0|local_neighborhood": "b1cd14c6a449efb45c16562dae12aa2608a95fac4debb593bf2d4c51ac80ebb1",
+        "vt0.0|well_mixed": "56e406ed0813b5d8271adbdf14e41fed0cd29dd2c4e284e8e4c2ec49d64f1d18",
+        "vt1.0|local_neighborhood": "3323c63c8a34efc8ff26187dee10234d52451cc4b670f9e0f2892c572eefa7e2",
+        "vt1.0|well_mixed": "f6b8ef116ac0a0b610d495c7ebe6644402fe6f0d6fb021506e88799309f1b679"
+      },
+      "factorial_digest": "d94e18261aa8d1656e808d45285d267cddc23ad18de38e043080e35268d25f32",
+      "mutualism_equals_success": false,
+      "schema": "host_parasite_vt_spatial_factorial_v1",
+      "seeds": [
+        101,
+        202
+      ]
+    },
+    "zaman_three_arm": {
+      "arm_digests": {
+        "freeze_parasites": "7238e02281d52be59c06d8f460abf6f42ddf9a3ba9274bea877eeb5bd14a146f",
+        "reciprocal_coevolution": "ceda0b6c1fc03a2fd23c5ef30c2ebef0837eb044a39c2ce0caf01b3ed1293332",
+        "replay_parasite_schedule": "a04d98510be4da119fc41790ca92ccf5be692a212cd597454fa52ca2ff49df94"
+      },
+      "campaign_digest": "c5002ee5813f0495d6c39b5f4522e29f9b2c8b0ace460519d1ff5e19208022b2",
+      "complexity_emergence_proved": false,
+      "schema": "host_parasite_zaman_three_arm_v1",
+      "seeds": [
+        101,
+        202,
+        303
+      ]
+    }
+  },
+  "complexity_emergence_proved": false,
+  "engine_infection_physics": "not_in_engine_core",
+  "intervention_supported": false,
+  "locked_digest": "62fec73f9a5d720255391efd3eba59b7f63dd9da234060caa2368e8ac56d7349",
+  "mutualism_equals_success": false,
+  "red_queen_proved": false,
+  "schema": "hard_experiment_hp_locked_digests_v1",
+  "title": "Host\u2013parasite ClaimGate locked campaign digests (additive)"
+}

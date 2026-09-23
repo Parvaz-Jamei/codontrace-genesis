@@ -1107,3 +1107,108 @@ def attach_vt_spatial_factorial(
     if _CONTINUUM_NOTE not in limitations:
         limitations = limitations + (_CONTINUUM_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 9 — evolvability falsification + Cornish refusal + HE_HP attach
+# ---------------------------------------------------------------------------
+
+_EVOLVABILITY_NOTE = (
+    "Evolvability falsification can reject 'parasites always raise repertoire'; "
+    "it does not prove Red Queen dynamics."
+)
+_CORNISH_NOTE = (
+    "Observational match alone never grants intervention_supported (Cornish rule)."
+)
+
+
+def attach_evolvability_falsification(
+    bundle: ClaimgateBundle,
+    assay,
+) -> ClaimgateBundle:
+    """Attach evolvability assay without raising the public ladder."""
+
+    from codontrace.genesis.host_parasite_evolvability import (
+        EvolvabilityFalsificationResult,
+    )
+
+    if not isinstance(assay, EvolvabilityFalsificationResult):
+        raise ConfigurationError("assay must be an EvolvabilityFalsificationResult.")
+    if assay.red_queen_proved:
+        raise ConfigurationError("assay.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_evolvability_falsification requires a host_parasite domain bundle."
+        )
+    if "evolvability_falsification" in extra:
+        raise ConfigurationError("evolvability_falsification already attached.")
+    extra["evolvability_falsification"] = cast(JsonValue, assay.to_dict())
+    limitations = bundle.limitations
+    if _EVOLVABILITY_NOTE not in limitations:
+        limitations = limitations + (_EVOLVABILITY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+def attach_cornish_campaign(
+    bundle: ClaimgateBundle,
+    campaign,
+) -> ClaimgateBundle:
+    """Attach Cornish campaign; refuse intervention_supported from obs match."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_cornish import CornishCampaignResult
+
+    if not isinstance(campaign, CornishCampaignResult):
+        raise ConfigurationError("campaign must be a CornishCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.intervention_supported:
+        raise ConfigurationError(
+            "attach refuses intervention_supported=True on Cornish campaigns."
+        )
+    if campaign.observational_match and campaign.intervention_supported:
+        raise ConfigurationError(
+            "observational match alone must never grant intervention_supported."
+        )
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_cornish_campaign requires a host_parasite domain bundle."
+        )
+    if "cornish_intervention_campaign" in extra:
+        raise ConfigurationError("cornish_intervention_campaign already attached.")
+    # Cross-check prereg digest is present on the bundle.
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_cornish_campaign requires preregistration digest on the bundle."
+        )
+    if str(prereg["digest"]).lower() != campaign.preregistration_digest.lower():
+        raise ConfigurationError(
+            "Cornish campaign preregistration_digest must match bundle prereg digest."
+        )
+    payload = campaign.to_dict()
+    # Force honesty on the attached record.
+    attached_record = {
+        "schema": payload["schema"],
+        "campaign_digest": payload["campaign_digest"],
+        "arm_digests": payload["arm_digests"],
+        "seeds": payload["seeds"],
+        "observational_match": payload["observational_match"],
+        "interventions_executed": payload["interventions_executed"],
+        "intervention_supported": False,
+        "claim_ceiling": payload["claim_ceiling"],
+        "red_queen_proved": False,
+        "raises_claim_ladder": False,
+        "cornish_rule": payload["cornish_rule"],
+        "preregistration_digest": payload["preregistration_digest"],
+    }
+    extra["cornish_intervention_campaign"] = cast(JsonValue, attached_record)
+    limitations = bundle.limitations
+    if _CORNISH_NOTE not in limitations:
+        limitations = limitations + (_CORNISH_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)

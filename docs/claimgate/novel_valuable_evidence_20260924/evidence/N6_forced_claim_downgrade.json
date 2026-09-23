@@ -1,0 +1,34 @@
+{
+  "applied_rules": [
+    {
+      "from_ceiling": "EVIDENCE_SUPPORTED",
+      "reason": "Missing D0 evidence lowers claim ceiling.",
+      "rule_id": "missing_d0",
+      "to_ceiling": "CANDIDATE",
+      "trigger": "missing_d0"
+    },
+    {
+      "from_ceiling": "EVIDENCE_SUPPORTED",
+      "reason": "Missing ablation evidence lowers claim ceiling.",
+      "rule_id": "missing_ablation",
+      "to_ceiling": "CANDIDATE",
+      "trigger": "missing_ablation"
+    },
+    {
+      "from_ceiling": "EVIDENCE_SUPPORTED",
+      "reason": "Missing replay-backed witness lowers claim ceiling.",
+      "rule_id": "missing_replay",
+      "to_ceiling": "CANDIDATE",
+      "trigger": "missing_replay"
+    }
+  ],
+  "final_ceiling": "CANDIDATE",
+  "intervention_supported_constructor": "ConfigurationError: ScientificEvidencePack.claim_ceiling must be conservative.",
+  "note": "ScientificEvidencePack refuses non-conservative ceilings at construction; EVIDENCE_SUPPORTED without D0/ablation/replay is force-downgraded to CANDIDATE.",
+  "original_ceiling": "EVIDENCE_SUPPORTED",
+  "reasons": [
+    "missing_d0",
+    "missing_ablation",
+    "missing_replay"
+  ]
+}

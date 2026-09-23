@@ -1,0 +1,242 @@
+{
+  "generated_at_local_label": "Asia/Tehran (box-local)",
+  "generated_at_utc": "2026-09-23T21:09:10.079327+00:00",
+  "he03": {
+    "exists": false,
+    "note": "HE03 adapter present; research results JSON absent \u2014 remains unsolved/deferred.",
+    "results_path": "docs/hard_experiment_03/results_v1.json"
+  },
+  "honesty": {
+    "innovation": "claim\u2013evidence discrimination competitors lack",
+    "no_fda_claim": true,
+    "no_he02_communication_proof": true,
+    "no_intelligence_claim": true
+  },
+  "n_pass": 6,
+  "n_total": 6,
+  "pin_sha256": {
+    "docs/claimgate/biomedical_study.json": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce",
+    "docs/claimgate/risk_bar.json": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+    "docs/hard_experiment_01/results_v7.json": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6"
+  },
+  "pins_unchanged": true,
+  "product": "CodonTrace Genesis",
+  "product_version": "0.3.0b7",
+  "pythonpath": "src",
+  "repo_root_marker": "pyproject.toml",
+  "suite": "novel_valuable_evidence_20260924",
+  "suite_dir": "docs/claimgate/novel_valuable_evidence_20260924",
+  "tests": [
+    {
+      "expected": "HE01 level 4 replicated_effect replay=True CI=false; HE02 level 2 candidate_evidence replay=False ceiling=runtime_observation decision_rule_passed=false; levels differ",
+      "id": "N1_comparative_claimgate_portfolio",
+      "literature_gap": "reproducibility / claim\u2013evidence mismatch (BioModels-style crisis applied to ALife)",
+      "pass": true,
+      "portfolio": {
+        "HE01": {
+          "achieved_level": 4,
+          "artifact": "docs/hard_experiment_01/results_v7.json",
+          "audit_digest": "1d0509e20fc638fa685a975c7f5788463db0cf0b093467e520be5a9dacbaa1bb",
+          "claim_ceiling": "intervention_supported",
+          "collective_intelligence": false,
+          "decision_rule_passed": true,
+          "intelligence": false,
+          "missing_for_next": [
+            "archived_artifact_or_doi"
+          ],
+          "n_replay_digests": 29,
+          "public_name": "replicated_effect",
+          "replay_verified": true
+        },
+        "HE02": {
+          "achieved_level": 2,
+          "artifact": "docs/hard_experiment_02/results_v1.json",
+          "audit_digest": "d8067e72405406e7d9e43386a5ff210869be94af6bbd18768f41069470765a08",
+          "claim_ceiling": "runtime_observation",
+          "collective_intelligence": false,
+          "decision_rule_passed": false,
+          "intelligence": false,
+          "missing_for_next": [
+            "replay_audit"
+          ],
+          "n_replay_digests": 1,
+          "public_name": "candidate_evidence",
+          "replay_verified": false
+        }
+      },
+      "problem": "Cross-campaign claim portfolio: same auditor grades HE01 vs HE02 differently"
+    },
+    {
+      "bundle_traps": {
+        "baseline_level": 2,
+        "baseline_public_name": "candidate_evidence",
+        "ceiling_rename_to_intervention_supported": {
+          "achieved_level": 2,
+          "promoted": false,
+          "public_name": "candidate_evidence"
+        },
+        "collective_intelligence_true_in_extra": {
+          "achieved_level": 1,
+          "demoted": true,
+          "missing_for_next": [
+            "consistent_measured_difference"
+          ],
+          "public_name": "runtime_observation"
+        },
+        "rename_all_overclaims": {
+          "achieved_level": 1,
+          "note": "Cannot promote HE02 to intervention_supported by renaming extras",
+          "public_name": "runtime_observation"
+        }
+      },
+      "expected": "CI/intelligence blocked by ScientificClaimGate; renaming claim_ceiling does not promote; setting collective_intelligence=True demotes audit level",
+      "id": "N2_overclaim_trap",
+      "literature_gap": "Okasha / causal Price; collective-agent criteria",
+      "pass": true,
+      "problem": "When is a group a collective agent? / Price\u2260causality; ClaimGate blocks CI until earned",
+      "scientific_claim_gate_blocks": {
+        "agi": {
+          "allowed": false,
+          "decision": "rejected_overclaim_alias",
+          "failed_reasons": [
+            "overclaim_alias_forbidden"
+          ],
+          "final_claim": "agi_rejected"
+        },
+        "collective_intelligence": {
+          "allowed": false,
+          "decision": "rejected_overclaim_alias",
+          "failed_reasons": [
+            "overclaim_alias_forbidden"
+          ],
+          "final_claim": "collective_intelligence_rejected"
+        },
+        "communication": {
+          "allowed": false,
+          "decision": "rejected_unknown_claim",
+          "failed_reasons": [
+            "unknown_claim_not_whitelisted"
+          ],
+          "final_claim": "not_claimed"
+        },
+        "division_of_labor": {
+          "allowed": false,
+          "decision": "rejected_unknown_claim",
+          "failed_reasons": [
+            "unknown_claim_not_whitelisted"
+          ],
+          "final_claim": "not_claimed"
+        },
+        "intelligence": {
+          "allowed": false,
+          "decision": "rejected_unknown_claim",
+          "failed_reasons": [
+            "unknown_claim_not_whitelisted"
+          ],
+          "final_claim": "not_claimed"
+        },
+        "intervention_supported": {
+          "allowed": false,
+          "decision": "insufficient_evidence",
+          "failed_reasons": [
+            "missing_intervention_result_artifact",
+            "missing_intervention_result_digest",
+            "missing_baseline_digest",
+            "missing_treatment_digest",
+            "missing_intervention_protocol_digest",
+            "missing_effect_size",
+            "missing_paired_seed_protocol_digest",
+            "missing_claim_gate_decision_digest"
+          ],
+          "final_claim": "event_association_only"
+        }
+      }
+    },
+    {
+      "artifact": "evidence/N3_communication_content_null_pattern.json",
+      "content_null_pattern": true,
+      "decision_rule_failures": [
+        "information_control_not_separated"
+      ],
+      "decision_rule_passed": false,
+      "expected": "Holm survives vs off/null, fails vs shuffled; decision_rule_passed=false; information_control_not_separated; ceiling runtime_observation",
+      "id": "N3_right_answer_wrong_reason_communication",
+      "literature_gap": "Floreano/Knoester honesty; Price\u2260automatic causality",
+      "pass": true,
+      "problem": "Honest fail of communication/DoL claims when confirmatory evidence missing (HE02)"
+    },
+    {
+      "artifact": "evidence/N4_biomedical_alife_risk_bar.json",
+      "expected": "HE01 meets risk-3 bar; HE02 level 2 fails risk-3 bar (achieved_below_bar)",
+      "id": "N4_biomedical_alife_joint_risk_bar",
+      "joint": {
+        "he01": {
+          "achieved_level": 4,
+          "pin_row_met": true,
+          "risk_bar": {
+            "achieved_level": 4,
+            "blocking_gaps": [],
+            "decision_consequence": 3,
+            "met": true,
+            "model_influence": 3,
+            "model_risk": 3,
+            "raises_claim_ladder": false,
+            "required_level": 4,
+            "source": "port_bar_not_an_fda_score"
+          }
+        },
+        "he02": {
+          "achieved_level": 2,
+          "risk_bar": {
+            "achieved_level": 2,
+            "blocking_gaps": [
+              "achieved_below_bar"
+            ],
+            "decision_consequence": 3,
+            "met": false,
+            "model_influence": 3,
+            "model_risk": 3,
+            "raises_claim_ladder": false,
+            "required_level": 4,
+            "source": "port_bar_not_an_fda_score"
+          }
+        },
+        "not_a_device_certificate": true,
+        "not_an_fda_score": true,
+        "risk_bar_pin_digest": "b053e7f1bdbd0cd9e350cd322bf95695052c0cc46f8ec60ec243228bb83533d0",
+        "story": "Same risk-3 bar (required_level=4): HE01 executed phenomenon meets it; HE02 audited level 2 fails with achieved_below_bar. Biomedical risk discipline applied to ALife claims without FDA theater."
+      },
+      "literature_gap": "BioModels-style crisis; commensurate evidence (ASME V&V40 / FDA CM&S context)",
+      "pass": true,
+      "problem": "Biomedical + ALife joint story / claim\u2013evidence mismatch under risk discipline"
+    },
+    {
+      "artifact": "evidence/N5_causal_replay_demo.json",
+      "deterministic_match": true,
+      "expected": "Two identical runs match; baseline executed; low_atp and wall_inserted blocked",
+      "id": "N5_causal_replay_demo_smoke",
+      "literature_gap": "Okasha / causal Price literature",
+      "pass": true,
+      "perturbations_ok": true,
+      "problem": "Price equation \u2260 automatic causality \u2014 micro causal replay must match"
+    },
+    {
+      "artifact": "evidence/N6_forced_claim_downgrade.json",
+      "downgrade": {
+        "final": "CANDIDATE",
+        "original": "EVIDENCE_SUPPORTED",
+        "reasons": [
+          "missing_d0",
+          "missing_ablation",
+          "missing_replay"
+        ]
+      },
+      "expected": "EVIDENCE_SUPPORTED \u2192 CANDIDATE via missing_d0/ablation/replay; INTERVENTION refused",
+      "id": "N6_forced_claim_downgrade",
+      "literature_gap": "claim\u2013evidence mismatch / reproducibility crisis",
+      "non_conservative_ceiling_refused": true,
+      "pass": true,
+      "problem": "Overclaimed ceiling must be force-downgraded when evidence pack incomplete"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Action MOVE_EAST was selected because codon 101 decoded to MOVE_EAST. ATP before action was 5.0; action cost was 1.0; resource credit was 0.0; net ATP delta was -1.0; ledger entry refs were agent-1:0; raw ledger entry ids were 0. Status=executed; reason=moved; movement (1, 1)->(2, 1). Perturbations: low_atp:insufficient_atp, wall_inserted:wall_blocked.
+{'name': 'baseline', 'status': 'executed', 'reason': 'moved', 'position_after': [2, 1]}
+{'name': 'low_atp', 'status': 'blocked', 'reason': 'insufficient_atp', 'position_after': [1, 1]}
+{'name': 'wall_inserted', 'status': 'blocked', 'reason': 'wall_blocked', 'position_after': [1, 1]}

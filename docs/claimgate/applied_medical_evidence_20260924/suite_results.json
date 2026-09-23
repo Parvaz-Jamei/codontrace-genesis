@@ -1,0 +1,192 @@
+{
+  "suite": "applied_medical_evidence_20260924",
+  "tests": [
+    {
+      "id": "T1_high_risk_no_execution",
+      "problem": "Overclaiming / risk not commensurate with evidence (FDA 2023; ASME V&V40)",
+      "achieved_level": 0,
+      "public_name": "software_capability",
+      "model_risk": 3,
+      "fda_2023_scope": "physics_mechanistic",
+      "risk_bar_met": false,
+      "blocking_gaps": [
+        "achieved_below_bar",
+        "pirt:contact_stress"
+      ],
+      "expected": "level 0 and risk bar fail despite regulatory labels",
+      "pass": true
+    },
+    {
+      "id": "T2_standalone_ml_out_of_fda2023_scope",
+      "problem": "FDA 2023 CM&S excludes standalone AI/ML",
+      "achieved_level": 0,
+      "fda_2023_scope": "out_of_scope_standalone_ml",
+      "fda_2023_evidence": [
+        2,
+        5,
+        7
+      ],
+      "expected": "out_of_scope_standalone_ml and level 0",
+      "pass": true
+    },
+    {
+      "id": "T3_weakest_submodel_and_pirt_gaps",
+      "problem": "Right answer for wrong reason / hierarchical ISCT",
+      "open_gaps": [
+        "pirt:contact_stress",
+        "pirt:cohort_endpoint",
+        "supporting_evidence_only:outcome_map"
+      ],
+      "coupled_ceiling": 1,
+      "limiting_submodel": "patient_geometry",
+      "limiting_level": 1,
+      "raises_claim_ladder": false,
+      "expected": "PIRT gaps open; ceiling limited by weakest usable submodel; ladder not raised",
+      "pass": true
+    },
+    {
+      "id": "T4_calibration_plausibility_cap",
+      "problem": "Treating FDA cats 2/6/7 as full validation",
+      "worksheet": {
+        "open_gaps": [
+          "supporting_evidence_only:ml_calibrated"
+        ],
+        "limiting_submodel": "ml_calibrated",
+        "limiting_level": 2,
+        "coupled_ceiling": 2,
+        "raises_claim_ladder": false,
+        "sources": [
+          "oecd_nea_pirt",
+          "building_block_vvuq"
+        ]
+      },
+      "expected": "usable contribution capped at 2; supporting_evidence_only gap; coupled_ceiling=2",
+      "pass": true
+    },
+    {
+      "id": "T5_blocked_certification_strings",
+      "problem": "Certification / clinical-validity language without regulatory process",
+      "n_blocked_labels": 13,
+      "n_rejected": 13,
+      "failures": [],
+      "expected": "ConfigurationError on every blocked claimed string",
+      "pass": true
+    },
+    {
+      "id": "T6_study_typed_adequate_vs_executed_arm",
+      "problem": "Declaring knowledge/population validation without executed comparator",
+      "claim_level": 4,
+      "open_gaps": [
+        "pirt:contact_stress",
+        "pirt:population_endpoint",
+        "declared_only:contact_stress",
+        "declared_only:population_endpoint",
+        "declared_only:patient_geometry",
+        "declared_only:outcome_map"
+      ],
+      "coupled_ceiling": null,
+      "executed": [
+        "source_fitness_bias",
+        "life_loop"
+      ],
+      "declared_only": [
+        "contact_stress",
+        "population_endpoint",
+        "patient_geometry",
+        "outcome_map"
+      ],
+      "not_closed": [],
+      "ceiling_measured": false,
+      "expected": "typed adequate without executed arm stays declared_only with open PIRT gaps; executed HE01 arm closes source_fitness_bias/life_loop; no coupled ceiling; claim_level 4 from campaign only",
+      "pass": true,
+      "note": "Engine uses declared_only (not not_closed) when knowledge is typed without an arm; that is the honest fail-closed path."
+    },
+    {
+      "id": "T7_risk_bar_reproducibility_vs_paper_pin",
+      "problem": "Reproducibility of commensurate-evidence check without mutating published pins",
+      "rows_match": true,
+      "raises_claim_ladder_false": true,
+      "expected": "fresh rows match committed risk_bar; pins untouched",
+      "pass": true
+    },
+    {
+      "id": "T8_interval_width_gate",
+      "problem": "Significant interval still too wide for the decision threshold (FDA Step 8)",
+      "claim_level": 4,
+      "not_closed": [
+        "source_fitness_bias"
+      ],
+      "executed": [
+        "life_loop"
+      ],
+      "open_gaps": [
+        "pirt:source_fitness_bias",
+        "interval_too_wide:source_fitness_bias"
+      ],
+      "expected": "tight max_interval_width prevents closing source_fitness_bias",
+      "pass": true
+    }
+  ],
+  "pin_integrity": {
+    "before": {
+      "results_v7": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+      "risk_bar": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+      "biomedical_study": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce"
+    },
+    "after": {
+      "results_v7": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+      "risk_bar": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+      "biomedical_study": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce"
+    },
+    "unchanged": true
+  },
+  "literature_problems_mapped": [
+    {
+      "problem": "Vague/broad COU and risk not matched to evidence",
+      "tests": [
+        "T1",
+        "T7"
+      ]
+    },
+    {
+      "problem": "FDA 2023 excludes standalone ML from CM&S credibility framework",
+      "tests": [
+        "T2"
+      ]
+    },
+    {
+      "problem": "Right answer for wrong reason / hierarchical ISCT submodels",
+      "tests": [
+        "T3",
+        "T6"
+      ]
+    },
+    {
+      "problem": "Calibration/plausibility mistaken for validation",
+      "tests": [
+        "T4"
+      ]
+    },
+    {
+      "problem": "Certification language without regulatory process",
+      "tests": [
+        "T5"
+      ]
+    },
+    {
+      "problem": "Adequacy vs decision thresholds (interval width)",
+      "tests": [
+        "T8"
+      ]
+    }
+  ],
+  "summary": {
+    "n_tests": 8,
+    "n_pass": 8,
+    "failed_ids": [],
+    "pins_unchanged": true,
+    "code_modified": false,
+    "prior_evidence_modified": false,
+    "output_dir": "/workspace/applied_medical_evidence_20260924"
+  }
+}

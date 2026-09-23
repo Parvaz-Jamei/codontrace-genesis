@@ -1,0 +1,37 @@
+{
+  "he01": {
+    "achieved_level": 4,
+    "pin_row_met": true,
+    "risk_bar": {
+      "achieved_level": 4,
+      "blocking_gaps": [],
+      "decision_consequence": 3,
+      "met": true,
+      "model_influence": 3,
+      "model_risk": 3,
+      "raises_claim_ladder": false,
+      "required_level": 4,
+      "source": "port_bar_not_an_fda_score"
+    }
+  },
+  "he02": {
+    "achieved_level": 2,
+    "risk_bar": {
+      "achieved_level": 2,
+      "blocking_gaps": [
+        "achieved_below_bar"
+      ],
+      "decision_consequence": 3,
+      "met": false,
+      "model_influence": 3,
+      "model_risk": 3,
+      "raises_claim_ladder": false,
+      "required_level": 4,
+      "source": "port_bar_not_an_fda_score"
+    }
+  },
+  "not_a_device_certificate": true,
+  "not_an_fda_score": true,
+  "risk_bar_pin_digest": "b053e7f1bdbd0cd9e350cd322bf95695052c0cc46f8ec60ec243228bb83533d0",
+  "story": "Same risk-3 bar (required_level=4): HE01 executed phenomenon meets it; HE02 audited level 2 fails with achieved_below_bar. Biomedical risk discipline applied to ALife claims without FDA theater."
+}

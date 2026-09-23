@@ -41,6 +41,18 @@ REQUIRED_ATTACH_KEYS: dict[str, str] = {
     "price_causality_caution": "Phase 17 Price≠causality refusal (S8)",
 }
 
+# Follow-on Wave 5 attach keys (Phases 18–23). Soft-complete Phase 18 packet
+# still inventories 1–17; this map documents the Wave 5 surface without
+# rewriting the Phase 18 baseline contract.
+WAVE5_ATTACH_KEYS: dict[str, str] = {
+    "journal_attach_registry": "Phase 18 soft-complete journal attach-registry",
+    "ard_fsd_transition": "Phase 19 ARD→FSD transition + cost-of-generalism",
+    "resource_dynamics_factorial": "Phase 20 resource × dynamics factorial",
+    "multi_seed_contingency": "Phase 21 multi-seed contingency (S1)",
+    "cornish_sequential_campaign": "Phase 22 sequential Cornish multi-intervention",
+    "scanlan_mutator_campaign": "Phase 23 Scanlan mutator dual-null",
+}
+
 # Claims that must remain blocked or explicitly False on journal attach.
 BLOCKED_CLAIM_MATRIX: dict[str, str] = {
     "vaccine_efficacy_proved": "profile blocked_claims",
@@ -185,6 +197,7 @@ def assert_registry_covers_phases_1_to_17(packet: JournalAttachRegistryPacket) -
 __all__ = [
     "BLOCKED_CLAIM_MATRIX",
     "REQUIRED_ATTACH_KEYS",
+    "WAVE5_ATTACH_KEYS",
     "SCHEMA",
     "JournalAttachRegistryPacket",
     "assert_registry_covers_phases_1_to_17",

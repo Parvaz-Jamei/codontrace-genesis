@@ -72,3 +72,15 @@ def test_attach_ard_fsd_transition_requires_prereg() -> None:
     assert record["wet_ard_fsd_identity"] is False
     assert record["raises_claim_ladder"] is False
     assert audit_bundle(attached).achieved_level == before
+
+
+def test_dual_null_not_universally_ard() -> None:
+    result = run_ard_fsd_transition_campaign(seeds=(1, 2), n_slices=6)
+    null_labels = [
+        s.label
+        for s in result.slices
+        if s.arm in {"structure_null_shuffled", "abiotic_only"}
+    ]
+    assert null_labels
+    assert any(label != "ard_like" for label in null_labels)
+

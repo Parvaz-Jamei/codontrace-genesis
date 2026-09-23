@@ -4,6 +4,9 @@ Human research review of a time-sliced ARD→FSD *transition protocol* with
 cost-of-generalism proxies. Builds on Phase 5 labels without claiming wet
 ARD/FSD identity. ``red_queen_proved`` stays False forever.
 
+**Experts:** A — digital evolution / ALife · B — microbial / phage honesty ·
+C — ClaimGate / V&V / causal methodology.
+
 ## What Phase 19 delivers
 
 - `run_ard_fsd_transition_campaign` in `host_parasite_ard_fsd_transition.py`.
@@ -13,36 +16,58 @@ ARD/FSD identity. ``red_queen_proved`` stays False forever.
 - `attach_ard_fsd_transition` (prereg-bound).
 - Tests in `tests/test_host_parasite_phase19.py`.
 
-## Critique round 1
+## موج ۱ / Critique round 1 (experts A / B / C)
 
-### Flaws found
+### A — feasibility / testable innovation
 
 1. **Phase 5 shipped ARD/FSD enums only** — no temporal transition protocol
-   reviewers could attach.
-2. **Cost-of-generalism (Koskella & Brockhurst synthesis) had no digital proxy.**
+   reviewers could attach; without early/late windows this phase is taxonomy.
 
-### Fixes
+### B — microbial honesty
+
+2. **Cost-of-generalism (Koskella & Brockhurst synthesis) had no digital proxy**,
+   so ARD→FSD framing lacked the wet literature’s driver language (as labels).
+
+### C — ClaimGate honesty
+
+3. Transition digests must never set `red_queen_proved` or claim wet ARD/FSD
+   identity.
+
+### Fixes (round 1)
 
 - Added early/late windowed slice digests with pairwise distinctness.
 - Added non-negative cost-of-generalism proxy on every slice.
+- Forced `red_queen_proved=False` and `wet_ard_fsd_identity=False`.
 
-### Retest
+### Retest (round 1)
 
-Phase 19 green; hypothesis falsified under transition or dual-null; Red Queen
-unproved.
+Phase 19 green; hypothesis falsified under transition or dual-null.
 
-## Critique round 2
+## موج ۲ / Critique round 2 (experts A / B / C)
 
-### Flaws found
+### A
 
-1. **Without dual-null**, “always ARD” could not fail honestly.
-2. **Attach without re-checking blocked Red Queen** would be weak journal form.
+1. Dual-null arms must not all collapse to `ard_like`, or “always ARD” cannot
+   fail honestly.
 
-### Fixes
+### B
 
-- Structure-null + abiotic-only arms required; failure_reason recorded.
+2. Parasite coevolution arm should be able to show label change across windows
+   (transition_observed) without proving Red Queen.
+
+### C
+
+3. Attach without re-checking blocked Red Queen would be weak journal form;
+   prereg required.
+
+### Fixes (round 2)
+
+- Structure-null + abiotic-only arms required; tests assert dual-null labels are
+  not universally `ard_like`.
 - Attach re-asserts `red_queen_proved` block and forces wet identity False.
+- Preregistration digest required.
 
-### Retest
+### Retest (round 2) — sign-off
 
 Phase 19 green; BAIC pins and `engine.py` untouched; never proves Red Queen.
+A/B/C sign-off: proceed to Phase 20.

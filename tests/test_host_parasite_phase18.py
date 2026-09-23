@@ -22,6 +22,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.host_parasite_attach_registry import (
     BLOCKED_CLAIM_MATRIX,
     REQUIRED_ATTACH_KEYS,
+    WAVE5_ATTACH_KEYS,
     assert_registry_covers_phases_1_to_17,
     build_journal_attach_registry_packet,
 )
@@ -54,6 +55,14 @@ def test_registry_covers_phases_1_to_17_keys() -> None:
     assert packet.phases_covered == tuple(range(1, 18))
     assert "transmission_mode_contrast" in packet.required_attach_keys
     assert "price_causality_caution" in packet.required_attach_keys
+    assert {
+        "journal_attach_registry",
+        "ard_fsd_transition",
+        "resource_dynamics_factorial",
+        "multi_seed_contingency",
+        "cornish_sequential_campaign",
+        "scanlan_mutator_campaign",
+    } <= set(WAVE5_ATTACH_KEYS)
 
 
 def test_blocked_claim_matrix_covers_profile_and_refuse_list() -> None:

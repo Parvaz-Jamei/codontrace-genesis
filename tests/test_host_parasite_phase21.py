@@ -31,7 +31,7 @@ def test_contingency_falsifies_parasites_always_raise_complexity() -> None:
     assert result.complexity_emergence_proved is False
     assert result.red_queen_proved is False
     assert result.seed_digests_are_distinct is True
-    assert result.cross_seed_variance >= 0.0
+    assert result.cross_seed_variance > 0.0
     present = [o for o in result.seed_outcomes if o.arm == "parasite_present"]
     assert any(o.richness_delta <= 0 for o in present)
     assert any(o.contingent_seed for o in present)

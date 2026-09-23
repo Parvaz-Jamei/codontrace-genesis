@@ -380,7 +380,7 @@ def build() -> None:
     )
     _p(
         doc, styles, "Normal",
-        "The auditor, ClaimGate, is part of CodonTrace Genesis. The engine does not know a domain, and it was not rewritten for medicine. A domain profile names the port: artificial life, biomedical, or hardware. Records from Avida, a table from MABE2, and an Overview, Design concepts, and Details description are read through that port and are not the product of this paper. An ESP32 port is implemented and is not one of the measurements below. A configuration string that would claim an ASME V&V 40 pass is rejected. This tool does not issue an ASME, FDA, or IEC certificate. Viceconti and colleagues set an in silico trial on context, risk, and a verification chain [5]. Here that chain becomes a grade on one file, not a certificate for a product.",
+        "The auditor, ClaimGate, is part of CodonTrace Genesis. The engine does not know a domain, and it was not rewritten for medicine. A domain profile names the port: artificial life, biomedical, or hardware. Records from Avida [5], a table from MABE2 [6], and an Overview, Design concepts, and Details description [7] are read through that port and are not the product of this paper. An ESP32 port is implemented and is not one of the measurements below. A configuration string that would claim an ASME V&V 40 pass is rejected. This tool does not issue an ASME, FDA, or IEC certificate. Viceconti and colleagues set an in silico trial on context, risk, and a verification chain [8]. Here that chain becomes a grade on one file, not a certificate for a product.",
         10,
     )
     _flow_png(FIG)
@@ -397,7 +397,7 @@ def build() -> None:
     )
     _p(
         doc, styles, "Normal",
-        "MIRROR assembles a local evidence bundle for inspection before release and does not offer a regulatory guarantee [6]. NovaFabric records an agent run in a signed capsule [7]. The difference here is a grade computed from the conditions present in the bundle.",
+        "MIRROR assembles a local evidence bundle for inspection before release and does not offer a regulatory guarantee [9]. NovaFabric records an agent run in a signed capsule [10]. The difference here is a grade computed from the conditions present in the bundle.",
         10,
     )
 
@@ -418,19 +418,19 @@ def build() -> None:
     ], [1000, 3600])
     _p(
         doc, styles, "Normal",
-        "On a compared arm, more outcome rows than seeds void both the interval and the condition of 16 seeds. A subsample is not a new seed. The hash is taken from the file bytes and does not rewrite them. The default test is a sign-flip permutation with a Holm correction and a bias-corrected and accelerated interval, written BCa below. A studentized bootstrap is optional when there are at most 40 pairs.",
+        "On a compared arm, more outcome rows than seeds void both the interval and the condition of 16 seeds. A subsample is not a new seed. The hash is taken from the file bytes and does not rewrite them. The default test is a sign-flip permutation with a Holm correction [11] and a bias-corrected and accelerated interval, written BCa below. A studentized bootstrap is optional when there are at most 40 pairs.",
         10,
     )
 
     _p(doc, styles, "Heading1", "Labels are not grades", 12, "left", True)
     _p(
         doc, styles, "Normal",
-        "Regulatory words on this port are labels, not grades. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit [8]. IEC 62304 assigns software safety class A, B, or C [9]. The International Medical Device Regulators Forum document N12 sets categories I to IV for software as a medical device [10]. Recording a category does not classify a product. If the model is declared not physics-based, the port records that the 2023 guidance places a standalone model outside that scope. The note does not raise the ladder.",
+        "Regulatory words on this port are labels, not grades. ASME VVUQ 40.1-2026 is a worked tibial-tray example, not a pass bit [12]. IEC 62304 assigns software safety class A, B, or C [13]. The International Medical Device Regulators Forum document N12 sets categories I to IV for software as a medical device [14]. Recording a category does not classify a product. If the model is declared not physics-based, the port records that the 2023 guidance places a standalone model outside that scope. The note does not raise the ladder.",
         10,
     )
     _p(
         doc, styles, "Normal",
-        "Importance and knowledge are each scored on three levels, following Phenomena Identification and Ranking Table practice [11]. Table 2 is the gap rule on this port. It is not a result from the spent-fuel study in that report. High importance stays open unless knowledge is adequate and the row was measured. Medium importance is a gap only when knowledge is none. Low importance is screened out. A typed word, with no treatment arm, is not a measurement. On this port a coupled model does not rise above its weakest executed submodel. A submodel that is not identifiable cannot contribute above grade 1. Evidence limited to categories 2, 6, and 7 of the 2023 guidance, calibration, emergent behavior, and plausibility, cannot contribute above grade 2 [1]. If a submodel was not executed, that cap is not reported as a measurement and does not move the claim grade.",
+        "Importance and knowledge are each scored on three levels, following Phenomena Identification and Ranking Table practice [15]. Table 2 is the gap rule on this port. It is not a result from the spent-fuel study in that report. High importance stays open unless knowledge is adequate and the row was measured. Medium importance is a gap only when knowledge is none. Low importance is screened out. A typed word, with no treatment arm, is not a measurement. On this port a coupled model does not rise above its weakest executed submodel. A submodel that is not identifiable cannot contribute above grade 1. Evidence limited to categories 2, 6, and 7 of the 2023 guidance, calibration, emergent behavior, and plausibility, cannot contribute above grade 2 [1]. If a submodel was not executed, that cap is not reported as a measurement and does not move the claim grade.",
         10,
     )
     _p(doc, styles, "Caption", "Table 2. Ranking gap. A typed word is not a measurement", 8, "center", True)
@@ -457,7 +457,7 @@ def build() -> None:
     )
     _p(
         doc, styles, "Normal",
-        "The negative control is a declared score table for a device model. The question was whether a size choice would be licensed. There is no ISO 14879-1 test and no implant. Model influence is 2 and decision consequence is 3. Treatment scores are 0.12, 0.11, and 0.13. Control scores are 0.20, 0.19, and 0.21. The declared labels are software in a medical device, class B of IEC 62304 [9], category II of IMDRF [10], and evidence categories 1, 3, and 8 of the 2023 guidance, with the model declared as physics-based. Replay is not verified, and the artifact manifest is among the conditions for leaving grade 0, so the grade is 0. That tibial-tray example is not run here [8]. Table 3 records the distance between the two controls.",
+        "The negative control is a declared score table for a device model. The question was whether a size choice would be licensed. There is no ISO 14879-1 test and no implant. Model influence is 2 and decision consequence is 3. Treatment scores are 0.12, 0.11, and 0.13. Control scores are 0.20, 0.19, and 0.21. The declared labels are software in a medical device, class B of IEC 62304 [13], category II of IMDRF [14], and evidence categories 1, 3, and 8 of the 2023 guidance, with the model declared as physics-based. Replay is not verified, and the artifact manifest is among the conditions for leaving grade 0, so the grade is 0. That tibial-tray example is not run here [12]. Table 3 records the distance between the two controls.",
         10,
     )
     _p(doc, styles, "Caption", "Table 3. Positive and negative controls", 8, "center", True)
@@ -468,7 +468,7 @@ def build() -> None:
     ], [1000, 1200, 1600, 800])
     _p(
         doc, styles, "Normal",
-        "Grade 5 on HE01 lacks only an archived artifact or a DOI for the campaign itself. The software identifier 10.5281/zenodo.20337435 is not counted as that archive, so the positive control stays at grade 4. On these two bundles, changing only declared metadata did not raise the grade. The fields tried were model influence, decision consequence, the software-in-a-device flag, the IEC and IMDRF labels, the FDA evidence categories, and the typed word adequate. Declaring that a model is not physics-based records the scope note in the 2023 guidance and still does not move the ladder.",
+        "Grade 5 on HE01 lacks only an archived artifact or a DOI for the campaign itself. The software identifier stored with that file, 10.5281/zenodo.20337435, is archive version 0.3.0a2 [18], not a DOI for the campaign, so the positive control stays at grade 4. On these two bundles, changing only declared metadata did not raise the grade. The fields tried were model influence, decision consequence, the software-in-a-device flag, the IEC and IMDRF labels, the FDA evidence categories, and the typed word adequate. Declaring that a model is not physics-based records the scope note in the 2023 guidance and still does not move the ladder.",
         10,
     )
 
@@ -493,7 +493,7 @@ def build() -> None:
     ], [1300, 2100, 1200])
     _p(
         doc, styles, "Normal",
-        "The unit of analysis is the seed, not a row of subsamples. If a compared arm has more values than seeds, the interval and the 16-seed condition both fail, and a pseudoreplication warning is stored [12]. HE01 has one value per seed and remains at grade 4.",
+        "The unit of analysis is the seed, not a row of subsamples. If a compared arm has more values than seeds, the interval and the 16-seed condition both fail, and a pseudoreplication warning is stored [17]. HE01 has one value per seed and remains at grade 4.",
         10,
     )
     _p(
@@ -589,7 +589,7 @@ def build() -> None:
     ], [2800, 1800])
     _p(
         doc, styles, "Normal",
-        "A reader can repeat three files. Table 9 gives the fingerprint prefix of each. The auditor writes the file. The three files were committed at c8db778, and those digests are unchanged. Code is at github.com/Parvaz-Jamei/codontrace-genesis. The package identity is 0.3.0b7 and is not a PyPI release. The published tip is 0.3.0b6. The DOI 10.5281/zenodo.20337435 archives the software, not the campaign.",
+        "A reader can repeat three files. Table 9 gives the fingerprint prefix of each. The auditor writes the file. The three files were committed at c8db778, and those digests are unchanged. Code is at github.com/Parvaz-Jamei/codontrace-genesis. The package identity is 0.3.0b7 and is not a PyPI release. The published tip is 0.3.0b6 [16]. The identifier 10.5281/zenodo.20337435 is the earlier archive named above, not the campaign.",
         10,
     )
     _p(doc, styles, "Caption", "Table 9. Files a reader can check", 8, "center", True)
@@ -617,14 +617,20 @@ def build() -> None:
         "Assessing Credibility of Computational Modeling through Verification and Validation: Application to Medical Devices, ASME V&V 40-2018. New York: ASME, 2018.",
         "NASA-STD-7009B, Standard for Models and Simulations. Washington, DC: NASA, approved Mar. 5, 2024.",
         "P. Pathmanathan, K. Aycock, A. Badal, R. Bighamian, J. Bodner, B. A. Craven, and S. Niederer, “Credibility assessment of in silico clinical trials for medical devices,” PLoS Comput. Biol., vol. 20, no. 8, Art. no. e1012289, Aug. 2024, doi: 10.1371/journal.pcbi.1012289.",
+        "C. Ofria and C. O. Wilke, “Avida: a software platform for research in computational evolutionary biology,” Artificial Life, vol. 10, no. 2, pp. 191-229, 2004, doi: 10.1162/106454604773563612.",
+        "C. Bohm, A. Lalejini, J. Schossau, and C. Ofria, “MABE 2.0: an introduction to MABE and a road map for the future of MABE development,” in Proc. Genetic and Evolutionary Computation Conf. Companion, Prague, Czech Republic, Jul. 2019, pp. 1349-1356, doi: 10.1145/3319619.3326825.",
+        "V. Grimm, S. F. Railsback, C. E. Vincenot, et al., “The ODD protocol for describing agent-based and other simulation models: A second update to improve clarity, replication, and structural realism,” J. Artif. Soc. Social Simul., vol. 23, no. 2, Art. no. 7, 2020, doi: 10.18564/jasss.4259.",
         "M. Viceconti, F. Pappalardo, B. Rodriguez, M. Horner, J. Bischoff, and F. Musuamba Tshinanu, “In silico trials: verification, validation and uncertainty quantification of predictive models used in the regulatory evaluation of biomedical products,” Methods, vol. 185, pp. 120-127, Jan. 2021, doi: 10.1016/j.ymeth.2020.01.011.",
         "Anton Sokolov, “MIRROR: local evidence bundles for reproducible research software review,” Zenodo, May 30, 2026, doi: 10.5281/zenodo.20463358.",
         "M. Seyedkazemi Ardebili, “NovaFabric: tamper-evident, replayable evidence for autonomous AI agent runs,” arXiv:2609.12582, Sep. 11, 2026, doi: 10.48550/arXiv.2609.12582.",
+        "S. Holm, “A simple sequentially rejective multiple test procedure,” Scandinavian J. Statistics, vol. 6, no. 2, pp. 65-70, 1979.",
         "An Example of Assessing Computational Model Credibility Using the ASME V&V 40 Risk-Based Framework: Tibial Tray Component Worst-Case Size Identification for Fatigue Testing, ASME VVUQ 40.1-2026. New York: ASME, 2026.",
         "IEC 62304:2006+AMD1:2015, Medical device software, Software life cycle processes. Geneva: IEC, 2015.",
         "IMDRF/SaMD WG/N12FINAL:2014, “Software as a Medical Device”: Possible Framework for Risk Categorization and Corresponding Considerations. IMDRF, 2014.",
         "Nuclear Energy Agency, Phenomena Identification and Ranking Table: R&D Priorities for Loss-of-Cooling and Loss-of-Coolant Accidents in Spent Nuclear Fuel Pools, NEA/CSNI/R(2017)18. Paris: OECD, 2018.",
+        "P. Jamei, “CodonTrace Genesis,” version 0.3.0b6, Zenodo, Sep. 18, 2026, doi: 10.5281/zenodo.22822919.",
         "S. H. Hurlbert, “Pseudoreplication and the design of ecological field experiments,” Ecological Monographs, vol. 54, no. 2, pp. 187-211, 1984, doi: 10.2307/1942661.",
+        "P. Jamei, “CodonTrace Genesis,” version 0.3.0a2, Zenodo, May 22, 2026, doi: 10.5281/zenodo.20337435.",
     ]
     for ref in refs:
         _p(doc, styles, "References", ref, 8, "both")

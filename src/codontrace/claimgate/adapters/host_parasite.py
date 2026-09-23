@@ -20,6 +20,12 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_evolvability import (
         EvolvabilityFalsificationResult,
     )
+    from codontrace.genesis.host_parasite_genome_diversity import (
+        GenomeDiversityCampaignResult,
+    )
+    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
+    from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
+    from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -53,6 +59,9 @@ DECLARED_INTERVENTION_KINDS = frozenset(
         "abiotic_only_arm",
         "steal_fraction_ablation",
         "transmission_mode_switch",
+        "hgt_analogue_segment_copy",
+        "intracellular_seat_constraint",
+        "free_living_horizontal_inject",
     }
 )
 
@@ -1225,3 +1234,289 @@ def attach_cornish_campaign(
     if _CORNISH_NOTE not in limitations:
         limitations = limitations + (_CORNISH_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 10 — genome-aware dual digests on Zaman arms
+# ---------------------------------------------------------------------------
+
+_GENOME_ZAMAN_NOTE = (
+    "Genome-aware Zaman digests layer SemanticGenome digests on freeze/replay/"
+    "reciprocal arms; complexity emergence and Red Queen remain unproved."
+)
+
+
+def attach_genome_zaman_campaign(
+    bundle: ClaimgateBundle,
+    campaign: GenomeZamanCampaignResult,
+) -> ClaimgateBundle:
+    """Attach genome Zaman digests without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
+
+    if not isinstance(campaign, GenomeZamanCampaignResult):
+        raise ConfigurationError("campaign must be a GenomeZamanCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.complexity_emergence_proved:
+        raise ConfigurationError("campaign.complexity_emergence_proved must remain False.")
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_genome_zaman_campaign requires a host_parasite domain bundle."
+        )
+    if "genome_zaman_campaign" in extra:
+        raise ConfigurationError("genome_zaman_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_genome_zaman_campaign_v1":
+        raise ConfigurationError("genome Zaman campaign schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_genome_zaman_campaign requires preregistration digest on the bundle."
+        )
+    extra["genome_zaman_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "steps": payload["steps"],
+            "genome_length": payload["genome_length"],
+            "arms_are_distinct": payload["arms_are_distinct"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "zaman_scope": payload["zaman_scope"],
+            "repertoire_campaign_digest": payload["repertoire_campaign_digest"],
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _GENOME_ZAMAN_NOTE not in limitations:
+        limitations = limitations + (_GENOME_ZAMAN_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 11 — codon-entropy / Hamming dual-null (HE02 honesty)
+# ---------------------------------------------------------------------------
+
+_GENOME_DIVERSITY_NOTE = (
+    "Genome diversity dual-null can reject parasites_always_raise_codon_entropy; "
+    "it does not prove Red Queen dynamics."
+)
+
+
+def attach_genome_diversity_campaign(
+    bundle: ClaimgateBundle,
+    campaign: GenomeDiversityCampaignResult,
+) -> ClaimgateBundle:
+    """Attach genotype diversity assay without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_genome_diversity import (
+        GenomeDiversityCampaignResult,
+    )
+
+    if not isinstance(campaign, GenomeDiversityCampaignResult):
+        raise ConfigurationError("campaign must be a GenomeDiversityCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if campaign.hypothesis_supported and not campaign.failure_reason:
+        # Supported universal claim must not be attached as a falsification success.
+        pass
+    if (not campaign.hypothesis_supported) and not str(campaign.failure_reason).strip():
+        raise ConfigurationError(
+            "falsified diversity campaign requires a non-empty failure_reason."
+        )
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_genome_diversity_campaign requires a host_parasite domain bundle."
+        )
+    if "genome_diversity_campaign" in extra:
+        raise ConfigurationError("genome_diversity_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_genome_diversity_campaign_v1":
+        raise ConfigurationError("genome diversity campaign schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_genome_diversity_campaign requires preregistration digest on the bundle."
+        )
+    extra["genome_diversity_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "he02_honesty": payload["he02_honesty"],
+        },
+    )
+    limitations = bundle.limitations
+    if _GENOME_DIVERSITY_NOTE not in limitations:
+        limitations = limitations + (_GENOME_DIVERSITY_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 12 — HGT-analogue + intracellular / free-living pack
+# ---------------------------------------------------------------------------
+
+_HGT_NOTE = (
+    "HGT-analogue and compartment arms are digital labels only; wet HGT, "
+    "conjugation, and CRISPR spacer acquisition are not claimed."
+)
+
+
+def attach_hgt_compartment_campaign(
+    bundle: ClaimgateBundle,
+    campaign: HgtCampaignResult,
+) -> ClaimgateBundle:
+    """Attach HGT/compartment digests without raising the public ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
+
+    if not isinstance(campaign, HgtCampaignResult):
+        raise ConfigurationError("campaign must be a HgtCampaignResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if campaign.red_queen_proved:
+        raise ConfigurationError("campaign.red_queen_proved must remain False.")
+    if (not campaign.hypothesis_supported) and not str(campaign.failure_reason).strip():
+        raise ConfigurationError(
+            "falsified HGT campaign requires a non-empty failure_reason."
+        )
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_hgt_compartment_campaign requires a host_parasite domain bundle."
+        )
+    if "hgt_compartment_campaign" in extra:
+        raise ConfigurationError("hgt_compartment_campaign already attached.")
+    payload = campaign.to_dict()
+    if payload.get("schema") != "host_parasite_hgt_compartment_campaign_v1":
+        raise ConfigurationError("HGT compartment campaign schema mismatch.")
+    if payload.get("wet_hgt_claimed") or payload.get("crispr_identity_proved"):
+        raise ConfigurationError("attach refuses wet HGT or CRISPR identity claims.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_hgt_compartment_campaign requires preregistration digest on the bundle."
+        )
+    extra["hgt_compartment_campaign"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "arm_digests": payload["arm_digests"],
+            "seeds": payload["seeds"],
+            "arms": payload["arms"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "cou_labels": payload["cou_labels"],
+            "hgt_scope": payload["hgt_scope"],
+            "wet_hgt_claimed": False,
+            "crispr_identity_proved": False,
+            "preregistration_digest": str(prereg["digest"]),
+        },
+    )
+    limitations = bundle.limitations
+    if _HGT_NOTE not in limitations:
+        limitations = limitations + (_HGT_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+# ---------------------------------------------------------------------------
+# Phase 13 — declared task–gene map digests (optional earn-in)
+# ---------------------------------------------------------------------------
+
+_TASK_GENE_NOTE = (
+    "Task–gene map digests are declared digital phenotype links only; "
+    "gene identity and CRISPR identity remain unproved."
+)
+
+
+def attach_task_gene_map(
+    bundle: ClaimgateBundle,
+    mapping: TaskGeneMapResult,
+) -> ClaimgateBundle:
+    """Attach declared task–gene map; refuse gene-identity claims."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
+
+    if not isinstance(mapping, TaskGeneMapResult):
+        raise ConfigurationError("mapping must be a TaskGeneMapResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if mapping.gene_identity_proved:
+        raise ConfigurationError("gene_identity_proved must remain False.")
+    if mapping.red_queen_proved:
+        raise ConfigurationError("red_queen_proved must remain False.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_task_gene_map requires a host_parasite domain bundle."
+        )
+    if "task_gene_map" in extra:
+        raise ConfigurationError("task_gene_map already attached.")
+    payload = mapping.to_dict()
+    if payload.get("schema") != "host_parasite_task_gene_map_v1":
+        raise ConfigurationError("task–gene map schema mismatch.")
+    if not payload.get("windows"):
+        raise ConfigurationError("task–gene map requires at least one declared window.")
+    if not str(payload.get("map_digest") or "").strip():
+        raise ConfigurationError("task–gene map_digest must be non-empty.")
+    if payload.get("gene_identity_proved") or payload.get("crispr_identity_proved"):
+        raise ConfigurationError("attach refuses gene/CRISPR identity claims.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_task_gene_map requires preregistration digest on the bundle."
+        )
+    extra["task_gene_map"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "map_digest": payload["map_digest"],
+            "seed": payload["seed"],
+            "host_genome_digest": payload["host_genome_digest"],
+            "window_count": len(payload["windows"]),
+            "claim_ceiling": payload["claim_ceiling"],
+            "gene_identity_proved": False,
+            "crispr_identity_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "scope": payload["scope"],
+        },
+    )
+    limitations = bundle.limitations
+    if _TASK_GENE_NOTE not in limitations:
+        limitations = limitations + (_TASK_GENE_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+

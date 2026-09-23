@@ -97,10 +97,49 @@ HARDWARE = DomainProfile(
     extra_defaults={"engine": "optional_bridge", "certification": "none"},
 )
 
+HOST_PARASITE = DomainProfile(
+    name="host_parasite",
+    blocked_claims=frozenset(
+        {
+            "vaccine_efficacy_proved",
+            "antiviral_therapy_validated",
+            "clinical_pathogen_model",
+            "epidemic_forecast_certified",
+            "phage_therapy_cleared",
+            "virulence_optimized_for_humans",
+            "biosafety_level_certified",
+            # Reuse intelligence / replacement blocks so this port cannot
+            # silently inherit ALife overclaims either.
+            "intelligence",
+            "collective_intelligence",
+            "agi",
+            "tokyo_type1_passed",
+            "avida_replacement",
+        }
+    ),
+    limitations=(
+        "DomainProfile port for digital host–parasite / microbe–virus claim labeling; not a second engine.",
+        "Not a clinical pathogen model, vaccine, antiviral, phage-therapy, or epidemic-forecast certificate.",
+        "Not a biosafety-level certification or virulence-optimization tool for humans.",
+        "Infection / transmission physics are not implemented here; optional HostParasiteEnv hooks are later work.",
+        "A ClaimGate grade is a claim ceiling for declared digital coevolution evidence, not wet-lab validity.",
+        "FDA 2023 CM&S / ASME V&V 40 language may be reused as COU risk labels only; not device clearance.",
+    ),
+    extra_defaults={
+        "asme_vv40": "complement_only",
+        "fda_2023": "declared_labels_only",
+        "certification": "none",
+        "engine": "unused_for_table_wrap",
+        "infection_physics": "not_implemented",
+        "clinical_scope": "blocked",
+    },
+)
+
 PROFILES: dict[str, DomainProfile] = {
     ALIFE.name: ALIFE,
     BIOMEDICAL.name: BIOMEDICAL,
     HARDWARE.name: HARDWARE,
+    HOST_PARASITE.name: HOST_PARASITE,
 }
 
 # FDA 2023 CM&S guidance Table 2. Declared labels only; not a submission.

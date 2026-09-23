@@ -15,6 +15,11 @@ from codontrace.claimgate.adapters.biomedical import (
     bundle_from_device_model_cou,
     credibility_worksheet,
 )
+from codontrace.claimgate.adapters.host_parasite import (
+    BLOCKED_HOST_PARASITE_CLAIMS,
+    assert_claim_allowed as assert_host_parasite_claim_allowed,
+    bundle_from_host_parasite_cou,
+)
 from codontrace.claimgate.adapters.codontrace import (
     bundle_from_hard_experiment_01,
     committed_results_v2_path,
@@ -56,6 +61,7 @@ from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, cano
 
 __all__ = [
     "BLOCKED_BIOMEDICAL_CLAIMS",
+    "BLOCKED_HOST_PARASITE_CLAIMS",
     "BiomedicalStudy",
     "CredibilityWorksheet",
     "RiskBar",
@@ -75,7 +81,9 @@ __all__ = [
     "ROLE_ALIASES",
     "SCHEMA_ROLES",
     "bundle_from_avida_runs",
+    "assert_host_parasite_claim_allowed",
     "bundle_from_biomedical_cou",
+    "bundle_from_host_parasite_cou",
     "bundle_from_device_model_cou",
     "bundle_from_hard_experiment_01",
     "bundle_from_hard_experiment_02",

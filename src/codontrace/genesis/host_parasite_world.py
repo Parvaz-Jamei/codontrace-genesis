@@ -24,6 +24,11 @@ from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.host_parasite_he_hp_refresh import (
     validate_he_hp_locked_pack,
 )
+from codontrace.genesis.host_parasite_metrics import (
+    HostParasiteMetricSummary,
+    HostParasitePreregSpec,
+    build_metric_summary,
+)
 from codontrace.life_loop import (
     AblationTemplate,
     AttachmentBook,
@@ -38,6 +43,7 @@ from codontrace.life_loop import (
     apply_contact,
     apply_schedule_lock,
     resolve_member_state,
+    HookMeter,
 )
 
 SCHEMA_VERSION = "host_parasite_world_profile_v1"
@@ -361,6 +367,8 @@ class HostParasiteWorld:
     _contact_policy: ContactTransferPolicy = field(init=False)
     _inherit_policy: InheritAttachedPolicy = field(init=False)
     _match_rule: Callable[[str, str], bool] = field(init=False)
+    meter: HookMeter = field(init=False)
+    prereg: HostParasitePreregSpec | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         if not isinstance(self.profile, HostParasiteProfile):
@@ -424,6 +432,63 @@ class HostParasiteWorld:
             probability=self.profile.inherit_probability,
         )
         self._match_rule = _match_rule_for(self.profile.match_rule_id)
+        self.meter = HookMeter(meter_id=f"meter_{self.profile.profile_id}")
+        self.prereg = None
+        self._refresh_meter_densities()
+
+
+    def _refresh_meter_densities(self) -> None:
+        """Push opaque population densities + attachment stats into the meter."""
+
+        self.meter.set_tick(self.tick_index)
+        densities = {
+            self.profile.population_id("primary"): self.registry.census(
+                self.profile.population_id("primary")
+            ),
+            self.profile.population_id("secondary"): self.registry.census(
+                self.profile.population_id("secondary")
+            ),
+        }
+        self.meter.set_densities(densities)
+        occupancy = 0
+        capacity = 0
+        for sid in self.book.list_slot_ids():
+            slot = self.book.get(sid)
+            occupancy += len(slot.occupant_ids)
+            capacity += slot.capacity
+        self.meter.set_attachment_stats(occupancy=occupancy, capacity=capacity)
+
+    def attach_prereg(self, prereg: HostParasitePreregSpec) -> None:
+        """Attach a frozen prereg/spec; refuse overwrite."""
+
+        if not isinstance(prereg, HostParasitePreregSpec):
+            raise ConfigurationError("prereg must be a HostParasitePreregSpec.")
+        if self.prereg is not None:
+            raise ConfigurationError("prereg already attached; refuse overwrite.")
+        self.prereg = prereg
+
+    def metric_summary(
+        self, *, claim_role: str = "exploratory", summary_id: str | None = None
+    ) -> HostParasiteMetricSummary:
+        """Build a refuse-safe metric summary from the current meter snapshot."""
+
+        self._refresh_meter_densities()
+        snap = self.meter.snapshot()
+        unique_payloads = len({str(p.get("payload")) for p in self.payloads.values()})
+        sid = summary_id or f"sum_{self.profile.profile_id}_{self.tick_index}"
+        return build_metric_summary(
+            summary_id=sid,
+            meter=snap,
+            census=self.census(),
+            ablation_preset=self.profile.ablation_preset,
+            prereg=self.prereg,
+            claim_role=claim_role,
+            unique_payloads=unique_payloads,
+            labels={
+                "domain_profile": "host_parasite",
+                "physics_home": "codontrace.life_loop",
+            },
+        )
 
     def census(self) -> dict[str, int]:
         """Return census keyed by role (always both roles)."""
@@ -532,7 +597,7 @@ class HostParasiteWorld:
                         holder: list(secondary_ids),
                         occupant: list(primary_ids),
                     }
-                new_payloads, new_book, _, _, _ = apply_contact(
+                new_payloads, new_book, _event, reason, _census = apply_contact(
                     self._contact_policy,
                     actor_id=holder,
                     other_id=occupant,
@@ -546,10 +611,27 @@ class HostParasiteWorld:
                 self.payloads = new_payloads
                 if new_book is not None:
                     self.book = new_book
+                # Phase 7: observe contact outcome (no new physics).
+                self.meter.record_contact_outcome(
+                    reason, success=(reason == "success")
+                )
+
+            # Phase 7: observe resource/coupling transfer when linked.
+            if primary_ids and secondary_ids:
+                holder = primary_ids[0]
+                occupant = secondary_ids[0]
+                if self.book.any_link(holder, occupant):
+                    transferred = float(self.profile.coupling_amount)
+                    self.meter.record_hook("on_resource")
+                    self.meter.record_related_total("coupling_total", transferred)
+                    loss = transferred * float(self.profile.coupling_loss_fraction)
+                    if loss > 0.0:
+                        self.meter.record_related_total("coupling_loss_total", loss)
 
         self.registry = self.registry.advance_tick(self.tick_index + 1)
         self.book = self.book.advance_tick(self.tick_index + 1)
         self.tick_index += 1
+        self._refresh_meter_densities()
 
     def run(self, ticks: int) -> dict[str, JsonValue]:
         """Run ``ticks`` facade ticks; return honesty-forced summary."""
@@ -561,23 +643,30 @@ class HostParasiteWorld:
 
     def summary(self) -> dict[str, JsonValue]:
         census = self.census()
+        self._refresh_meter_densities()
+        meter_snap = self.meter.snapshot()
         extras = {
             "profile_digest": self.profile.digest,
             "registry_digest": self.registry.digest,
             "book_digest": self.book.digest,
+            "meter_digest": meter_snap.digest,
             "tick": self.tick_index,
             "census": dict(census),
         }
+        if self.prereg is not None:
+            extras["prereg_digest"] = self.prereg.digest
         digest = world_digest(
             self.profile.seed, self.profile.digest, extras=extras, prefix="hp_world"
         )
-        return {
+        out: dict[str, JsonValue] = {
             "schema_version": SCHEMA_VERSION,
             "profile_id": self.profile.profile_id,
             "profile_digest": self.profile.digest,
             "tick": self.tick_index,
             "census": dict(census),
             "world_digest": digest,
+            "meter_digest": meter_snap.digest,
+            "hook_counts": dict(meter_snap.hook_counts),
             "red_queen_proved": False,
             "raises_claim_ladder": False,
             "ablation_preset": self.profile.ablation_preset,
@@ -585,6 +674,9 @@ class HostParasiteWorld:
             "domain_profile": "host_parasite",
             "physics_home": "codontrace.life_loop",
         }
+        if self.prereg is not None:
+            out["prereg_digest"] = self.prereg.digest
+        return out
 
 
 @dataclass(frozen=True, slots=True)

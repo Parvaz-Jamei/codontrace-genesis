@@ -52,6 +52,12 @@ from codontrace.life_loop.populations import (
     PopulationRecord,
     PopulationRegistry,
 )
+from codontrace.life_loop.hook_meters import (
+    RELATED_TALLY_KEYS,
+    HookMeter,
+    HookMeterSnapshot,
+    merge_fail_reason_histogram,
+)
 from codontrace.life_loop.schedule_lock import (
     LOCK_MODES,
     SCHEDULE_LOCK_FAIL_REASONS,
@@ -120,4 +126,8 @@ __all__ = [
     "resolve_member_state",
     "resolve_target_members",
     "select_contact_candidates",
+    "RELATED_TALLY_KEYS",
+    "HookMeter",
+    "HookMeterSnapshot",
+    "merge_fail_reason_histogram",
 ]

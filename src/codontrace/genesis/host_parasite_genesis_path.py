@@ -1,17 +1,15 @@
-"""Single orchestrated path: HostParasiteWorld + PopulationRegistry + GenesisEngine.
+"""HostParasiteGenesisPath — dual-clock path retired under closed-loop P1.
 
-Architecture lock
------------------
-* ``HostParasiteWorld.tick`` is the **only** demographic / attachment / energy /
-  inherit stepper for HP populations.
-* ``PopulationRegistry`` is the membership book advanced *inside* that tick —
-  not a parallel second engine.
-* ``GenesisEngine`` remains the organism / world-physics spine. Infection /
-  attachment physics must **not** land in ``engine.py``.
-* This module is the documented bridge: run HP ticks alongside (or without)
-  GenesisEngine, and mirror opaque registry digests into evidence payloads.
+P1 lock (2026-09-25 specialist Pass 2 consensus):
+* Both roles live as ``GenesisOrganism`` under ``step_population`` /
+  ``PopulationRunner.step_generation`` via ``closed_loop_hp_life``.
+* ``HostParasiteWorld.tick`` / ``_birth_role`` / ``_death_role`` are **not**
+  the life authority for closed-loop accept.
+* ``engine_bound=True`` alone must never green P1.
+* Use ``codontrace.genesis.closed_loop_p1.ClosedLoopP1Session``.
 
 Claim ceiling stays ``runtime_observation`` / ``candidate_evidence``.
+``red_queen_proved`` remains refused.
 """
 
 from __future__ import annotations
@@ -22,25 +20,29 @@ from typing import Any
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.host_parasite_world import HostParasiteWorld
 
-SCHEMA_VERSION = "host_parasite_genesis_path_v1"
+SCHEMA_VERSION = "host_parasite_genesis_path_v2_retired_dual"
+
+_DUAL_PATH_MSG = (
+    "P1 closed-loop: dual HostParasiteGenesisPath.tick is retired. "
+    "Both roles must live as GenesisOrganism under step_population "
+    "(PopulationConfigs.closed_loop_hp_life). "
+    "engine_bound alone must never green P1. "
+    "Use codontrace.genesis.closed_loop_p1.ClosedLoopP1Session. "
+    "deprecated_dual_path fails closed — HostParasiteWorld.tick must not run."
+)
 
 
 @dataclass
 class HostParasiteGenesisPath:
-    """Orchestrate HP life-loop ticks; optionally lockstep with GenesisEngine.
-
-    Passing an engine is optional. When present, each ``tick`` advances the HP
-    world then asks the engine for one tick — without injecting infection into
-    the engine. Registry digests are recorded on this path's evidence log.
-    """
+    """Retired dual orchestrator. ``tick`` / ``run`` hard-raise (fail closed)."""
 
     world: HostParasiteWorld
     engine: Any | None = None
     evidence_log: list[dict[str, JsonValue]] = field(default_factory=list)
     path_id: str = "hp_genesis_path"
+    deprecated_dual_path: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.world, HostParasiteWorld):
@@ -49,7 +51,7 @@ class HostParasiteGenesisPath:
             raise ConfigurationError("path_id must be a non-empty string.")
 
     def bind_engine(self, engine: Any) -> None:
-        """Attach a GenesisEngine (duck-typed: must expose ``run_ticks``)."""
+        """Attach a GenesisEngine (duck-typed). Does not authorize dual tick."""
 
         if engine is None:
             raise ConfigurationError("engine must not be None.")
@@ -57,65 +59,30 @@ class HostParasiteGenesisPath:
             raise ConfigurationError("engine must expose run_ticks(ticks).")
         self.engine = engine
 
-    def tick(self) -> dict[str, JsonValue]:
-        """Advance HP world one tick; optionally advance bound GenesisEngine."""
+    def tick(self, *, deprecated_dual_path: bool | None = None) -> dict[str, JsonValue]:
+        """Hard-raise: dual path is not a closed-loop life authority."""
 
-        self.world.tick()
-        engine_tick: int | None = None
-        if self.engine is not None:
-            result = self.engine.run_ticks(1)
-            engine_tick = int(getattr(result, "ticks_executed", 1) or 1)
-        snap = self.world.life_loop_snapshot()
-        record: dict[str, JsonValue] = {
-            "schema_version": SCHEMA_VERSION,
-            "path_id": self.path_id,
-            "hp_tick": snap["tick"],
-            "registry_digest": snap["registry_digest"],
-            "book_digest": snap["book_digest"],
-            "census": dict(snap["census"]),  # type: ignore[arg-type]
-            "coexistence": snap["coexistence"],
-            "extinct_primary": snap["extinct_primary"],
-            "extinct_secondary": snap["extinct_secondary"],
-            "engine_bound": self.engine is not None,
-            "engine_ticks_advanced": engine_tick,
-        }
-        record["evidence_digest"] = canonical_digest(
-            {k: record[k] for k in record if k != "evidence_digest"},
-            prefix="hp_path",
-        )
-        self.evidence_log.append(record)
-        return record
+        flag = self.deprecated_dual_path if deprecated_dual_path is None else deprecated_dual_path
+        if flag:
+            raise ConfigurationError(
+                "deprecated_dual_path fails closed: HostParasiteWorld.tick must not "
+                "run under P1 (false engine-complete adjacent). " + _DUAL_PATH_MSG
+            )
+        raise ConfigurationError(_DUAL_PATH_MSG)
 
     def run(self, ticks: int) -> dict[str, JsonValue]:
         if not isinstance(ticks, int) or isinstance(ticks, bool) or ticks < 0:
             raise ConfigurationError("ticks must be a non-negative int.")
-        last: dict[str, JsonValue] = {}
-        for _ in range(ticks):
-            last = self.tick()
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "path_id": self.path_id,
-            "ticks": ticks,
-            "final": last,
-            "evidence_count": len(self.evidence_log),
-            "world_summary": self.world.summary(),
-            "claim_ceiling": "runtime_observation",
-            "red_queen_proved": False,
-            "raises_claim_ladder": False,
-            "note": (
-                "PopulationRegistry participates via HostParasiteWorld.tick; "
-                "GenesisEngine is the organism spine; no infection in engine.py."
-            ),
-        }
+        # Fail closed before any world demography advances.
+        self.tick()
+        return {}  # unreachable
 
     def evidence_digest_chain(self) -> str:
-        return canonical_digest(
-            {"entries": list(self.evidence_log)}, prefix="hp_path_chain"
-        )
+        raise ConfigurationError(_DUAL_PATH_MSG)
 
 
 def orchestrate_hp_tick(world: HostParasiteWorld) -> Mapping[str, JsonValue]:
-    """Module-level single-path entry: one HP tick through the orchestrator."""
+    """Retired entry: hard-raises (same as path.tick)."""
 
     return HostParasiteGenesisPath(world=world).tick()
 

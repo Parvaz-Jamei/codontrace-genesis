@@ -120,6 +120,10 @@ from codontrace.genesis.materials import (
 )
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.host_parasite_life_plugin import (
+    ClosedLoopHPLifeConfig,
+    apply_closed_loop_hp_life,
+)
 from codontrace.genesis.phase_e import (
     DemeMessage,
     DemeState,
@@ -1548,6 +1552,9 @@ class PopulationConfigs:
     phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
     logic9: Logic9ReactionConfig = field(default_factory=Logic9ReactionConfig)
     materials: MaterialsConfig = field(default_factory=MaterialsConfig)
+    closed_loop_hp_life: ClosedLoopHPLifeConfig = field(
+        default_factory=ClosedLoopHPLifeConfig
+    )
     food_patch_signal: FoodPatchSignalConfig = field(default_factory=FoodPatchSignalConfig)
     deme_selection: DemeSelectionConfig = field(default_factory=DemeSelectionConfig)
     stepping_stone_reward: SteppingStoneRewardConfig = field(
@@ -1628,6 +1635,8 @@ class PopulationConfigs:
             payload["logic9"] = self.logic9.to_dict()
         if self.materials.enabled:
             payload["materials"] = self.materials.to_dict()
+        if self.closed_loop_hp_life.enabled:
+            payload["closed_loop_hp_life"] = self.closed_loop_hp_life.to_dict()
         if self.food_patch_signal.enabled:
             payload["food_patch_signal"] = self.food_patch_signal.to_dict()
         if self.deme_selection.enabled:
@@ -1655,6 +1664,7 @@ class PopulationConfigs:
         phase_e_raw = data.get("phase_e")
         logic9_raw = data.get("logic9")
         materials_raw = data.get("materials")
+        closed_loop_hp_life_raw = data.get("closed_loop_hp_life")
         food_patch_signal_raw = data.get("food_patch_signal")
         deme_selection_raw = data.get("deme_selection")
         stepping_stone_reward_raw = data.get("stepping_stone_reward")
@@ -1718,6 +1728,9 @@ class PopulationConfigs:
             materials=MaterialsConfig.from_dict(materials_raw)
             if isinstance(materials_raw, Mapping)
             else MaterialsConfig(),
+            closed_loop_hp_life=ClosedLoopHPLifeConfig.from_dict(closed_loop_hp_life_raw)
+            if isinstance(closed_loop_hp_life_raw, Mapping)
+            else ClosedLoopHPLifeConfig(),
             food_patch_signal=FoodPatchSignalConfig.from_dict(food_patch_signal_raw)
             if isinstance(food_patch_signal_raw, Mapping)
             else FoodPatchSignalConfig(),
@@ -2799,6 +2812,16 @@ def step_population(
         organism_clones = list(attach_phase_e_to_organisms(organism_clones, configs.phase_e))
     if configs.materials.enabled:
         organism_clones = list(attach_materials_to_organisms(organism_clones, configs.materials))
+    # Closed-loop P1: optional HP life plugin (both roles mutate under this clock).
+    # Cut matches phase_e/materials optional config; never in engine.py.
+    if configs.closed_loop_hp_life.enabled:
+        resolved_seed = int(stream.seed if stream.seed is not None else 0)
+        organism_clones = apply_closed_loop_hp_life(
+            organism_clones,
+            config=configs.closed_loop_hp_life,
+            seed=resolved_seed,
+            tick=population.tick,
+        )
     working_deme_state = (
         DemeState.from_dict(population.deme.to_dict())
         if population.deme is not None

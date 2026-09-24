@@ -213,27 +213,31 @@ def test_gate5_inherit_attached_invoked_on_birth() -> None:
 # --- Gate 6: registry in GenesisEngine life-loop via single orchestrated path ---
 
 
-def test_gate6_registry_participates_via_genesis_path_not_second_engine() -> None:
+def test_gate6_dual_genesis_path_retired_engine_stays_domain_free() -> None:
+    """P1 closed-loop: dual HostParasiteGenesisPath.tick hard-raises (fail closed).
+
+    Registry/demography for closed-loop accept lives under step_population +
+    ClosedLoopP1Session — not world.tick beside engine.run_ticks.
+    engine.py must remain free of infection / HostParasiteEnv.
+    """
+    from codontrace.errors import ConfigurationError
+
     world = HostParasiteWorld(_profile(seed=13, birth_probability_primary=0.5))
     path = HostParasiteGenesisPath(world=world)
     spec = GenesisRuntimeProfile.life_loop_world(seed=13, tick_count=2, population=2)
     engine = GenesisEngine.from_spec(spec)
     path.bind_engine(engine)
-    record = path.tick()
-    assert record["engine_bound"] is True
-    assert record["registry_digest"] == world.registry.digest
-    assert record["hp_tick"] == world.tick_index
-    # Registry advanced only through world.tick (orchestrated path).
-    assert world.registry.tick == world.tick_index
-    # engine.py must remain free of infection / HostParasiteEnv.
+    with pytest.raises(ConfigurationError, match="dual HostParasiteGenesisPath"):
+        path.tick()
+    # engine_bound alone must never green a dual-path tick.
+    assert path.engine is not None
     engine_src = ENGINE_SRC.read_text(encoding="utf-8")
     lowered = engine_src.casefold()
     assert "HostParasiteEnv" not in engine_src
     assert "steal_fraction" not in engine_src
     assert "hostparasiteenv" not in lowered
-    # Module-level entry exists.
-    snap = orchestrate_hp_tick(HostParasiteWorld(_profile(seed=14)))
-    assert snap["registry_digest"]
+    with pytest.raises(ConfigurationError):
+        orchestrate_hp_tick(HostParasiteWorld(_profile(seed=14)))
 
 
 # --- Gate 7: bit-identical replay ---

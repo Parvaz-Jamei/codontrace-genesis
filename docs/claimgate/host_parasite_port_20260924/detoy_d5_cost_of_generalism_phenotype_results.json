@@ -1,0 +1,452 @@
+{
+  "aevol_identity": false,
+  "campaign_digest": "cd29f770e75cead42586875a6640c9615b891472cc187c8499352c36a46a31b4",
+  "claimgate_refuses": [
+    "red_queen_proved",
+    "phage_therapy_cleared",
+    "wet_ard_fsd_identity",
+    "clinical_pathogen_model",
+    "gene_identity_proved"
+  ],
+  "clinical_pathogen_model": false,
+  "cost_off_trials": [
+    {
+      "aevol_identity": false,
+      "apply_cost": false,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3131677405,
+        "V_ab": 0.3131677405,
+        "V_b": 0.3131677405
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 20,
+        "H_ab": 7,
+        "H_b": 26
+      },
+      "final_parasites": {
+        "V_a": 1,
+        "V_ab": 4,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 17.666667,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.0,
+        "V_b": 0.0
+      },
+      "seed": 11,
+      "superparasite_dominance": true,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": false,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.284928275,
+        "V_ab": 0.284928275,
+        "V_b": 0.284928275
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 26,
+        "H_ab": 10,
+        "H_b": 24
+      },
+      "final_parasites": {
+        "V_a": 2,
+        "V_ab": 6,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 20.0,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.0,
+        "V_b": 0.0
+      },
+      "seed": 22,
+      "superparasite_dominance": true,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": false,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.4225986621,
+        "V_ab": 0.4225986621,
+        "V_b": 0.4225986621
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 27,
+        "H_ab": 5,
+        "H_b": 13
+      },
+      "final_parasites": {
+        "V_a": 2,
+        "V_ab": 4,
+        "V_b": 1
+      },
+      "host_richness": 3,
+      "mean_host_n": 15.0,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.0,
+        "V_b": 0.0
+      },
+      "seed": 33,
+      "superparasite_dominance": true,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": false,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3600004068,
+        "V_ab": 0.3600004068,
+        "V_b": 0.3600004068
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 17,
+        "H_ab": 10,
+        "H_b": 25
+      },
+      "final_parasites": {
+        "V_a": 1,
+        "V_ab": 4,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 17.333333,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.0,
+        "V_b": 0.0
+      },
+      "seed": 44,
+      "superparasite_dominance": true,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": false,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3097139179,
+        "V_ab": 0.3097139179,
+        "V_b": 0.3097139179
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 25,
+        "H_ab": 10,
+        "H_b": 32
+      },
+      "final_parasites": {
+        "V_a": 2,
+        "V_ab": 6,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 22.333333,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.0,
+        "V_b": 0.0
+      },
+      "seed": 55,
+      "superparasite_dominance": true,
+      "wet_metabolism_claim": false
+    }
+  ],
+  "cost_on_trials": [
+    {
+      "aevol_identity": false,
+      "apply_cost": true,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3131677405,
+        "V_ab": 1.0,
+        "V_b": 0.3131677405
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 46,
+        "H_ab": 11,
+        "H_b": 34
+      },
+      "final_parasites": {
+        "V_a": 3,
+        "V_ab": 3,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 30.333333,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.7,
+        "V_b": 0.0
+      },
+      "seed": 11,
+      "superparasite_dominance": false,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": true,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.284928275,
+        "V_ab": 0.984928275,
+        "V_b": 0.284928275
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 48,
+        "H_ab": 19,
+        "H_b": 45
+      },
+      "final_parasites": {
+        "V_a": 3,
+        "V_ab": 3,
+        "V_b": 3
+      },
+      "host_richness": 3,
+      "mean_host_n": 37.333333,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.7,
+        "V_b": 0.0
+      },
+      "seed": 22,
+      "superparasite_dominance": false,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": true,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.4225986621,
+        "V_ab": 1.0,
+        "V_b": 0.4225986621
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 33,
+        "H_ab": 24,
+        "H_b": 45
+      },
+      "final_parasites": {
+        "V_a": 3,
+        "V_ab": 3,
+        "V_b": 3
+      },
+      "host_richness": 3,
+      "mean_host_n": 34.0,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.7,
+        "V_b": 0.0
+      },
+      "seed": 33,
+      "superparasite_dominance": false,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": true,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3600004068,
+        "V_ab": 1.0,
+        "V_b": 0.3600004068
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 37,
+        "H_ab": 10,
+        "H_b": 39
+      },
+      "final_parasites": {
+        "V_a": 2,
+        "V_ab": 3,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 28.666667,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.7,
+        "V_b": 0.0
+      },
+      "seed": 44,
+      "superparasite_dominance": false,
+      "wet_metabolism_claim": false
+    },
+    {
+      "aevol_identity": false,
+      "apply_cost": true,
+      "coexistence": true,
+      "cost_weight": 0.7,
+      "env_probe_occupied": true,
+      "errors": {
+        "V_a": 0.3097139179,
+        "V_ab": 1.0,
+        "V_b": 0.3097139179
+      },
+      "extinction_proxy": false,
+      "final_hosts": {
+        "H_a": 37,
+        "H_ab": 8,
+        "H_b": 27
+      },
+      "final_parasites": {
+        "V_a": 2,
+        "V_ab": 2,
+        "V_b": 2
+      },
+      "host_richness": 3,
+      "mean_host_n": 24.0,
+      "null_kind": "none",
+      "parasite_richness": 3,
+      "penalties": {
+        "V_a": 0.0,
+        "V_ab": 0.7,
+        "V_b": 0.0
+      },
+      "seed": 55,
+      "superparasite_dominance": false,
+      "wet_metabolism_claim": false
+    }
+  ],
+  "cost_weight": 0.7,
+  "doi_primary": "10.1098/rspb.2012.0769",
+  "doi_related": [
+    "10.1098/rspb.2014.2297",
+    "10.1098/rspb.2025.1157",
+    "10.1016/j.ijpara.2024.11.009"
+  ],
+  "domain_profile": "host_parasite",
+  "dual_null_trials": [
+    {
+      "content_null_penalty": 0.7,
+      "content_preserves_breadth": true,
+      "generalist_minus_specialist": 0.7,
+      "intact_minus_structure": 0.7,
+      "intact_penalty": 0.7,
+      "seed": 11,
+      "specialist_penalty": 0.0,
+      "structure_null_penalty": 0.0
+    },
+    {
+      "content_null_penalty": 0.7,
+      "content_preserves_breadth": true,
+      "generalist_minus_specialist": 0.7,
+      "intact_minus_structure": 0.7,
+      "intact_penalty": 0.7,
+      "seed": 22,
+      "specialist_penalty": 0.0,
+      "structure_null_penalty": 0.0
+    },
+    {
+      "content_null_penalty": 0.7,
+      "content_preserves_breadth": true,
+      "generalist_minus_specialist": 0.7,
+      "intact_minus_structure": 0.7,
+      "intact_penalty": 0.7,
+      "seed": 33,
+      "specialist_penalty": 0.0,
+      "structure_null_penalty": 0.0
+    },
+    {
+      "content_null_penalty": 0.7,
+      "content_preserves_breadth": true,
+      "generalist_minus_specialist": 0.7,
+      "intact_minus_structure": 0.7,
+      "intact_penalty": 0.7,
+      "seed": 44,
+      "specialist_penalty": 0.0,
+      "structure_null_penalty": 0.0
+    },
+    {
+      "content_null_penalty": 0.7,
+      "content_preserves_breadth": true,
+      "generalist_minus_specialist": 0.7,
+      "intact_minus_structure": 0.7,
+      "intact_penalty": 0.7,
+      "seed": 55,
+      "specialist_penalty": 0.0,
+      "structure_null_penalty": 0.0
+    }
+  ],
+  "engine_infection_physics": "not_in_engine_core",
+  "generations": 16,
+  "honesty": "Digital cost-of-generalism via abstract metabolic-error penalty on the host_parasite port; not wet ARD/FSD identity or phage therapy.",
+  "metrics": {
+    "coexistence_contrast_ok": true,
+    "cost_off_collapse_or_dominance_seeds": 5,
+    "cost_on_coexistence_seeds": 5,
+    "dual_null_ok": true,
+    "mean_generalist_minus_specialist_penalty": 0.7,
+    "mean_intact_minus_structure_penalty": 0.7
+  },
+  "min_seed_hits": 3,
+  "phage_therapy_cleared": false,
+  "red_queen_proved": false,
+  "result": "SUCCESS",
+  "schema": "host_parasite_cost_of_generalism_phenotype_v1",
+  "seeds": [
+    11,
+    22,
+    33,
+    44,
+    55
+  ],
+  "separation_threshold": 0.03,
+  "wet_ard_fsd_identity": false,
+  "wet_metabolism_claim": false
+}

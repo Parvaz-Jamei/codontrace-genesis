@@ -9,3 +9,10 @@ Canonical locked pack: `docs/hard_experiment_hp/locked_campaign_digests.json`
 - locked_digest: `62fec73f9a5d720255391efd3eba59b7f63dd9da234060caa2368e8ac56d7349`
 
 BAIC pins untouched. Comparison ≠ identity (see COMPARATOR_MATRIX.md).
+
+## Wave 6 refresh (Phase 25)
+
+After Waves 5–6 soft-complete protocols landed on main, Phase 25 re-ran the
+four HE_HP campaign entry points with the recorded seeds. Digests still match
+the locked pack. Wave-5/6 attach surfaces are additive ClaimGate hygiene and
+do **not** rewrite these locks or edit BAIC pin bytes.

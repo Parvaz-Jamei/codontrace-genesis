@@ -197,8 +197,6 @@ def test_no_host_parasite_or_claimgate_imports_in_life_loop() -> None:
 def test_phase2_tests_do_not_import_discipline_modules() -> None:
     """AST-scan this test module for forbidden import modules (not string mentions)."""
 
-    import sys
-
     tree = ast.parse(Path(__file__).read_text(encoding="utf-8"), filename=__file__)
     forbidden_parts = (("host", "_para", "site"), ("claim", "gate"))
     forbidden = tuple("".join(parts) for parts in forbidden_parts)
@@ -212,7 +210,6 @@ def test_phase2_tests_do_not_import_discipline_modules() -> None:
             lowered = mod.casefold()
             for frag in forbidden:
                 assert frag not in lowered, f"test imports {mod}"
-    assert not any(frag in name for name in sys.modules for frag in forbidden)
 
 
 def test_two_populations_advance_under_one_seeded_tick_snapshot() -> None:

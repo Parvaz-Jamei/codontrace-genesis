@@ -16,10 +16,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from dataclasses import replace
+
 from codontrace._types import JsonValue
 from codontrace.contracts import world_digest
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
+from codontrace.energy import ATPAccount
 from codontrace.errors import ConfigurationError
+from codontrace.genome import SemanticGenome
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.host_parasite_he_hp_refresh import (
     validate_he_hp_locked_pack,
@@ -29,6 +33,8 @@ from codontrace.genesis.host_parasite_metrics import (
     HostParasitePreregSpec,
     build_metric_summary,
 )
+from codontrace.mutation import Mutation
+from codontrace.rng import RNGManager
 from codontrace.life_loop import (
     AblationTemplate,
     AttachmentBook,
@@ -36,10 +42,12 @@ from codontrace.life_loop import (
     ContactTransferPolicy,
     EnergyCoupling,
     InheritAttachedPolicy,
+    InheritAttemptCensus,
     PopulationRegistry,
     ScheduleLock,
     ScheduleLockState,
     apply_ablation,
+    apply_birth_inherit,
     apply_contact,
     apply_schedule_lock,
     resolve_member_state,
@@ -135,14 +143,6 @@ def _check_digest(existing: str, computed: str, label: str) -> str:
     return computed
 
 
-def _deterministic_unit(seed: int, tick: int, salt: str) -> float:
-    raw = canonical_digest(
-        {"seed": seed, "tick": tick, "salt": salt}, prefix="hp_draw"
-    )
-    hexpart = raw.split(":", 1)[-1]
-    return (int(hexpart[:8], 16) % 10_000_000) / 10_000_000.0
-
-
 def _build_match_rule(
     profile: "HostParasiteProfile",
     phenotype_map: PhenotypeMap,
@@ -224,6 +224,17 @@ class HostParasiteProfile:
     match_threshold: float = 0.0
     match_score_scale: float = 1.0
     phenotype_tags: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    birth_probability_primary: float = 0.0
+    birth_probability_secondary: float = 0.0
+    death_probability_primary: float = 0.0
+    death_probability_secondary: float = 0.0
+    mutation_probability_primary: float = 0.0
+    mutation_probability_secondary: float = 0.0
+    max_population_primary: int = 64
+    max_population_secondary: int = 64
+    birth_energy_cost: float = 1.0
+    basal_energy_cost: float = 0.0
+    founder_genome_compact: str = "000000"
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -332,6 +343,56 @@ class HostParasiteProfile:
                     cleaned.append(t)
             cleaned_tags[mid] = tuple(sorted(cleaned))
         object.__setattr__(self, "phenotype_tags", cleaned_tags)
+        object.__setattr__(
+            self,
+            "birth_probability_primary",
+            _as_unit_interval(self.birth_probability_primary, "birth_probability_primary"),
+        )
+        object.__setattr__(
+            self,
+            "birth_probability_secondary",
+            _as_unit_interval(self.birth_probability_secondary, "birth_probability_secondary"),
+        )
+        object.__setattr__(
+            self,
+            "death_probability_primary",
+            _as_unit_interval(self.death_probability_primary, "death_probability_primary"),
+        )
+        object.__setattr__(
+            self,
+            "death_probability_secondary",
+            _as_unit_interval(self.death_probability_secondary, "death_probability_secondary"),
+        )
+        object.__setattr__(
+            self,
+            "mutation_probability_primary",
+            _as_unit_interval(self.mutation_probability_primary, "mutation_probability_primary"),
+        )
+        object.__setattr__(
+            self,
+            "mutation_probability_secondary",
+            _as_unit_interval(self.mutation_probability_secondary, "mutation_probability_secondary"),
+        )
+        object.__setattr__(
+            self,
+            "max_population_primary",
+            _as_int(self.max_population_primary, "max_population_primary", minimum=1),
+        )
+        object.__setattr__(
+            self,
+            "max_population_secondary",
+            _as_int(self.max_population_secondary, "max_population_secondary", minimum=1),
+        )
+        object.__setattr__(
+            self, "birth_energy_cost", _as_nonneg(self.birth_energy_cost, "birth_energy_cost")
+        )
+        object.__setattr__(
+            self, "basal_energy_cost", _as_nonneg(self.basal_energy_cost, "basal_energy_cost")
+        )
+        genome_compact = _as_str(self.founder_genome_compact, "founder_genome_compact")
+        # Validate genome early so profile construction fails closed.
+        SemanticGenome.from_compact(genome_compact)
+        object.__setattr__(self, "founder_genome_compact", genome_compact)
         computed = canonical_digest(self._body(), prefix="hp_profile")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "HostParasiteProfile")
@@ -363,6 +424,17 @@ class HostParasiteProfile:
                 key: list(vals)
                 for key, vals in sorted(self.phenotype_tags.items())
             },
+            "birth_probability_primary": self.birth_probability_primary,
+            "birth_probability_secondary": self.birth_probability_secondary,
+            "death_probability_primary": self.death_probability_primary,
+            "death_probability_secondary": self.death_probability_secondary,
+            "mutation_probability_primary": self.mutation_probability_primary,
+            "mutation_probability_secondary": self.mutation_probability_secondary,
+            "max_population_primary": self.max_population_primary,
+            "max_population_secondary": self.max_population_secondary,
+            "birth_energy_cost": self.birth_energy_cost,
+            "basal_energy_cost": self.basal_energy_cost,
+            "founder_genome_compact": self.founder_genome_compact,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -429,6 +501,59 @@ class HostParasiteProfile:
                 str(k): tuple(str(t) for t in (v if isinstance(v, (list, tuple)) else ()))
                 for k, v in dict(data.get("phenotype_tags") or {}).items()
             },
+            birth_probability_primary=float(
+                require_finite_float(
+                    "birth_probability_primary",
+                    data.get("birth_probability_primary", 0.0),
+                )
+            ),
+            birth_probability_secondary=float(
+                require_finite_float(
+                    "birth_probability_secondary",
+                    data.get("birth_probability_secondary", 0.0),
+                )
+            ),
+            death_probability_primary=float(
+                require_finite_float(
+                    "death_probability_primary",
+                    data.get("death_probability_primary", 0.0),
+                )
+            ),
+            death_probability_secondary=float(
+                require_finite_float(
+                    "death_probability_secondary",
+                    data.get("death_probability_secondary", 0.0),
+                )
+            ),
+            mutation_probability_primary=float(
+                require_finite_float(
+                    "mutation_probability_primary",
+                    data.get("mutation_probability_primary", 0.0),
+                )
+            ),
+            mutation_probability_secondary=float(
+                require_finite_float(
+                    "mutation_probability_secondary",
+                    data.get("mutation_probability_secondary", 0.0),
+                )
+            ),
+            max_population_primary=_as_int(
+                data.get("max_population_primary", 64), "max_population_primary", minimum=1
+            ),
+            max_population_secondary=_as_int(
+                data.get("max_population_secondary", 64),
+                "max_population_secondary",
+                minimum=1,
+            ),
+            birth_energy_cost=float(
+                require_finite_float("birth_energy_cost", data.get("birth_energy_cost", 1.0))
+            ),
+            basal_energy_cost=float(
+                require_finite_float("basal_energy_cost", data.get("basal_energy_cost", 0.0))
+            ),
+            founder_genome_compact=_as_str(
+                data.get("founder_genome_compact", "000000"), "founder_genome_compact"
+            ),
             digest=_as_str(data.get("digest", ""), "digest", allow_empty=True),
         )
 
@@ -441,12 +566,20 @@ class HostParasiteProfile:
 
 @dataclass
 class HostParasiteWorld:
-    """Facade: wires life_loop primitives from a profile; no private physics loop."""
+    """Facade: wires life_loop primitives from a profile; no private physics loop.
+
+    Demographics (birth/death), attachment, energy coupling, mutation, and
+    inherit-attached all run inside ``tick`` via life_loop + core RNG/mutation/
+    ATP ledger. ``PopulationRegistry`` is the membership book advanced here —
+    not a second engine (see ``life_loop.genesis_path``).
+    """
 
     profile: HostParasiteProfile
     registry: PopulationRegistry = field(init=False)
     book: AttachmentBook = field(init=False)
     balances: dict[str, float] = field(init=False)
+    accounts: dict[str, ATPAccount] = field(init=False)
+    genomes: dict[str, SemanticGenome] = field(init=False)
     payloads: dict[str, dict[str, JsonValue]] = field(init=False)
     state_bags: dict[str, dict[str, JsonValue]] = field(init=False)
     tick_index: int = field(init=False, default=0)
@@ -459,6 +592,16 @@ class HostParasiteWorld:
     _match_spec: MatchRuleSpec = field(init=False)
     meter: HookMeter = field(init=False)
     prereg: HostParasitePreregSpec | None = field(init=False, default=None)
+    rng: RNGManager = field(init=False)
+    attach_fail_census: dict[str, int] = field(init=False)
+    coupling_fail_census: dict[str, int] = field(init=False)
+    inherit_fail_census: dict[str, int] = field(init=False)
+    birth_counts: dict[str, int] = field(init=False)
+    death_counts: dict[str, int] = field(init=False)
+    mutation_counts: dict[str, int] = field(init=False)
+    outcome_log: list[dict[str, JsonValue]] = field(init=False)
+    _birth_seq: int = field(init=False, default=0)
+    _inherit_census: InheritAttemptCensus = field(init=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.profile, HostParasiteProfile):
@@ -490,7 +633,12 @@ class HostParasiteWorld:
         self.book = book
 
         members = list(self.profile.primary_members) + list(self.profile.secondary_members)
-        self.balances = {m: float(self.profile.initial_energy) for m in members}
+        founder = SemanticGenome.from_compact(self.profile.founder_genome_compact)
+        self.accounts = {
+            m: ATPAccount(float(self.profile.initial_energy)) for m in members
+        }
+        self.balances = {m: float(self.accounts[m].current_atp) for m in members}
+        self.genomes = {m: founder for m in members}
         self.payloads = {
             m: {"tag": m, "payload": f"p_{m}"} for m in members
         }
@@ -540,8 +688,41 @@ class HostParasiteWorld:
         self._match_rule = _build_match_rule(self.profile, self.phenotype_map)
         self.meter = HookMeter(meter_id=f"meter_{self.profile.profile_id}")
         self.prereg = None
+        self.rng = RNGManager(seed=self.profile.seed, namespace="hp_world")
+        self.attach_fail_census = {}
+        self.coupling_fail_census = {}
+        self.inherit_fail_census = {}
+        self.birth_counts = {"primary": 0, "secondary": 0}
+        self.death_counts = {"primary": 0, "secondary": 0}
+        self.mutation_counts = {"primary": 0, "secondary": 0}
+        self.outcome_log = []
+        self._birth_seq = 0
+        self._inherit_census = InheritAttemptCensus()
         self._refresh_meter_densities()
+        self._record_outcome()
 
+    def _sync_balances_from_accounts(self) -> None:
+        self.balances = {
+            mid: float(acct.current_atp) for mid, acct in self.accounts.items()
+        }
+
+    def _bump_census(self, bag: dict[str, int], reason: str) -> None:
+        bag[reason] = int(bag.get(reason, 0)) + 1
+
+    def _record_outcome(self) -> None:
+        pop_a = self.profile.population_id("primary")
+        pop_b = self.profile.population_id("secondary")
+        census = self.census()
+        self.outcome_log.append(
+            {
+                "tick": self.tick_index,
+                "census_primary": census["primary"],
+                "census_secondary": census["secondary"],
+                "extinct_primary": census["primary"] == 0,
+                "extinct_secondary": census["secondary"] == 0,
+                "coexistence": bool(self.registry.coexistence(pop_a, pop_b)),
+            }
+        )
 
     def _refresh_meter_densities(self) -> None:
         """Push opaque population densities + attachment stats into the meter."""
@@ -604,6 +785,57 @@ class HostParasiteWorld:
             "secondary": self.registry.census(self.profile.population_id("secondary")),
         }
 
+    def extinction_flags(self) -> dict[str, bool]:
+        census = self.census()
+        return {
+            "primary": census["primary"] == 0,
+            "secondary": census["secondary"] == 0,
+        }
+
+    def coexistence(self) -> bool:
+        return bool(
+            self.registry.coexistence(
+                self.profile.population_id("primary"),
+                self.profile.population_id("secondary"),
+            )
+        )
+
+    def life_loop_snapshot(self) -> dict[str, JsonValue]:
+        """Opaque digests for GenesisEngine evidence mirroring (no infection)."""
+
+        self._sync_balances_from_accounts()
+        return {
+            "tick": self.tick_index,
+            "registry_digest": self.registry.digest,
+            "book_digest": self.book.digest,
+            "census": dict(self.census()),
+            "extinct_primary": self.extinction_flags()["primary"],
+            "extinct_secondary": self.extinction_flags()["secondary"],
+            "coexistence": self.coexistence(),
+            "attach_fail_census": dict(sorted(self.attach_fail_census.items())),
+            "coupling_fail_census": dict(sorted(self.coupling_fail_census.items())),
+            "inherit_fail_census": dict(sorted(self.inherit_fail_census.items())),
+            "birth_counts": dict(self.birth_counts),
+            "death_counts": dict(self.death_counts),
+            "mutation_counts": dict(self.mutation_counts),
+            "rng_draw_count": self.rng.draw_count,
+            "rng_state_digest": self.rng.state_digest(),
+            "energy_ledger_digest": canonical_digest(
+                {
+                    mid: acct.ledger_digest()
+                    for mid, acct in sorted(self.accounts.items())
+                },
+                prefix="hp_energy",
+            ),
+            "genome_digest": canonical_digest(
+                {
+                    mid: g.to_compact()
+                    for mid, g in sorted(self.genomes.items())
+                },
+                prefix="hp_genomes",
+            ),
+        }
+
     def _apply_ablation_once(self) -> None:
         if self._ablation_applied:
             return
@@ -644,59 +876,149 @@ class HostParasiteWorld:
         )
         self._lock_state = state
 
-    def tick(self) -> None:
-        """Advance one tick by calling life_loop primitives only."""
-
-        self._apply_ablation_once()
-        self._ensure_schedule_lock()
-
-        # Resolve schedule-locked member bags (opaque snapshots).
-        if self._lock_state is not None and self._lock_state.lock_mode == "freeze":
-            for mid in list(self.state_bags):
-                resolved, _reason = resolve_member_state(
-                    self._lock_state, mid, self.state_bags[mid]
+    def _apply_basal_energy(self, member_ids: tuple[str, ...]) -> None:
+        cost = float(self.profile.basal_energy_cost)
+        if cost <= 0.0:
+            return
+        for mid in member_ids:
+            acct = self.accounts.get(mid)
+            if acct is None:
+                continue
+            if acct.can_pay(cost):
+                acct.debit(
+                    cost,
+                    tick=self.tick_index,
+                    agent_id=mid,
+                    codon="BAS",
+                    action="basal",
+                    reason="basal_energy_cost",
                 )
-                self.state_bags[mid] = dict(resolved)
-
-        primary_ids = self.registry.get(self.profile.population_id("primary")).member_ids
-        secondary_ids = self.registry.get(
-            self.profile.population_id("secondary")
-        ).member_ids
-        all_ids = tuple(sorted(set(primary_ids) | set(secondary_ids)))
-
-        # Attachment + energy coupling for first primary/secondary pair when linked.
-        if primary_ids and secondary_ids:
-            holder = primary_ids[0]
-            occupant = secondary_ids[0]
-            slot_id = f"slot_{holder}"
-            if slot_id in self.book.list_slot_ids():
-                slot = self.book.get(slot_id)
-                if not slot.has_occupant(occupant) and not slot.is_full:
-                    self.book, _ = self.book.attach(slot_id, occupant)
-                attached = self.book.any_link(holder, occupant)
-                if attached:
-                    coupling = EnergyCoupling(
-                        coupling_id=f"ec_{holder}_{occupant}",
-                        source_id=holder,
-                        target_id=occupant,
-                        amount=self.profile.coupling_amount,
-                        loss_fraction=self.profile.coupling_loss_fraction,
+            else:
+                # Drain remaining; starvation handled in death pass.
+                rem = float(acct.current_atp)
+                if rem > 0.0:
+                    acct.debit(
+                        rem,
+                        tick=self.tick_index,
+                        agent_id=mid,
+                        codon="BAS",
+                        action="basal",
+                        reason="basal_partial",
                     )
-                    try:
-                        new_balances, _, _, _ = coupling.apply(
-                            self.balances,
-                            tick=self.tick_index,
-                            require_attached=True,
-                            attached=True,
-                            allow_partial=True,
-                        )
-                        self.balances = new_balances
-                    except ConfigurationError:
-                        pass
+        self._sync_balances_from_accounts()
 
-            # Contact transfer (deterministic gate).
-            draw = _deterministic_unit(self.profile.seed, self.tick_index, "contact")
-            if draw <= self.profile.contact_probability:
+    def _attach_whole_population(
+        self, primary_ids: tuple[str, ...], secondary_ids: tuple[str, ...]
+    ) -> None:
+        """Quantitative attachment for every primary/secondary pair with fail census."""
+
+        for holder in primary_ids:
+            slot_id = f"slot_{holder}"
+            if slot_id not in self.book.list_slot_ids():
+                for occupant in secondary_ids:
+                    self._bump_census(self.attach_fail_census, "slot_missing")
+                continue
+            for occupant in secondary_ids:
+                slot = self.book.get(slot_id)
+                if slot.has_occupant(occupant):
+                    self._bump_census(self.attach_fail_census, "already_occupant")
+                    continue
+                if slot.is_full:
+                    self._bump_census(self.attach_fail_census, "seat_full")
+                    continue
+                try:
+                    self.book, _ = self.book.attach(slot_id, occupant)
+                    self._bump_census(self.attach_fail_census, "success")
+                except ConfigurationError as exc:
+                    reason = str(exc)
+                    if reason not in {"seat_full", "already_occupant", "self_attach"}:
+                        reason = "attach_refused"
+                    self._bump_census(self.attach_fail_census, reason)
+
+    def _couple_attached_pairs(
+        self, primary_ids: tuple[str, ...], secondary_ids: tuple[str, ...]
+    ) -> None:
+        """Energy trade for every attached pair via core ATP ledger + EnergyCoupling."""
+
+        self._sync_balances_from_accounts()
+        for holder in primary_ids:
+            for occupant in secondary_ids:
+                attached = self.book.any_link(holder, occupant)
+                if not attached:
+                    continue
+                if holder not in self.balances or occupant not in self.balances:
+                    self._bump_census(self.coupling_fail_census, "missing_balance")
+                    continue
+                coupling = EnergyCoupling(
+                    coupling_id=f"ec_{holder}_{occupant}",
+                    source_id=holder,
+                    target_id=occupant,
+                    amount=self.profile.coupling_amount,
+                    loss_fraction=self.profile.coupling_loss_fraction,
+                )
+                try:
+                    before = dict(self.balances)
+                    new_balances, _event, _entries, _cons = coupling.apply(
+                        self.balances,
+                        tick=self.tick_index,
+                        require_attached=True,
+                        attached=True,
+                        allow_partial=True,
+                    )
+                except ConfigurationError as exc:
+                    reason = str(exc)
+                    if reason not in {
+                        "not_attached",
+                        "insufficient_energy",
+                        "identical_endpoints",
+                    }:
+                        reason = "coupling_refused"
+                    self._bump_census(self.coupling_fail_census, reason)
+                    # Gate: never silent-swallow — census always updated.
+                    continue
+                # Mirror into core ATP ledger end-to-end.
+                src_paid = float(before[holder]) - float(new_balances[holder])
+                tgt_gain = float(new_balances[occupant]) - float(before[occupant])
+                if src_paid > 0.0:
+                    paid = self.accounts[holder].debit(
+                        src_paid,
+                        tick=self.tick_index,
+                        agent_id=holder,
+                        codon="CPL",
+                        action="energy_coupling",
+                        reason=f"couple_to_{occupant}",
+                    )
+                    if paid is None and src_paid > 0.0:
+                        self._bump_census(self.coupling_fail_census, "ledger_debit_failed")
+                        continue
+                if tgt_gain > 0.0:
+                    self.accounts[occupant].credit(
+                        tgt_gain,
+                        tick=self.tick_index,
+                        agent_id=occupant,
+                        codon="CPL",
+                        action="energy_coupling",
+                        reason=f"couple_from_{holder}",
+                    )
+                self._sync_balances_from_accounts()
+                self._bump_census(self.coupling_fail_census, "success")
+                transferred = float(self.profile.coupling_amount)
+                self.meter.record_hook("on_resource")
+                self.meter.record_related_total("coupling_total", transferred)
+                loss = transferred * float(self.profile.coupling_loss_fraction)
+                if loss > 0.0:
+                    self.meter.record_related_total("coupling_loss_total", loss)
+
+    def _contact_whole_population(
+        self, primary_ids: tuple[str, ...], secondary_ids: tuple[str, ...]
+    ) -> None:
+        all_ids = tuple(sorted(set(primary_ids) | set(secondary_ids)))
+        contact_rng = self.rng.fork(f"contact/{self.tick_index}")
+        for holder in primary_ids:
+            for occupant in secondary_ids:
+                draw = contact_rng.random()
+                if draw > self.profile.contact_probability:
+                    continue
                 neighbors = None
                 if self.profile.spatial_mode == "local_neighborhood":
                     neighbors = {
@@ -717,11 +1039,9 @@ class HostParasiteWorld:
                 self.payloads = new_payloads
                 if new_book is not None:
                     self.book = new_book
-                # Phase 7: observe contact outcome (no new physics).
                 self.meter.record_contact_outcome(
                     reason, success=(reason == "success")
                 )
-                # Phase 8: observe graded match channel (no new physics).
                 match_outcome = evaluate_match(
                     self._match_spec,
                     self.phenotype_map,
@@ -733,22 +1053,254 @@ class HostParasiteWorld:
                     score=match_outcome.score if match_outcome.passed else 0.0,
                 )
 
-            # Phase 7: observe resource/coupling transfer when linked.
-            if primary_ids and secondary_ids:
-                holder = primary_ids[0]
-                occupant = secondary_ids[0]
-                if self.book.any_link(holder, occupant):
-                    transferred = float(self.profile.coupling_amount)
-                    self.meter.record_hook("on_resource")
-                    self.meter.record_related_total("coupling_total", transferred)
-                    loss = transferred * float(self.profile.coupling_loss_fraction)
-                    if loss > 0.0:
-                        self.meter.record_related_total("coupling_loss_total", loss)
+    def _mutate_population(self, role: str, member_ids: tuple[str, ...], prob: float) -> None:
+        if prob <= 0.0 or not member_ids:
+            return
+        for mid in member_ids:
+            stream = self.rng.fork(f"mutate/{role}/{mid}/{self.tick_index}")
+            if stream.random() >= prob:
+                continue
+            mut = Mutation(operation="point", rng=stream)
+            parent = self.genomes[mid]
+            child = mut.apply(
+                parent,
+                parent_id=mid,
+                generation=self.tick_index,
+            )
+            self.genomes[mid] = child
+            self.mutation_counts[role] = int(self.mutation_counts.get(role, 0)) + 1
+
+    def _birth_role(
+        self,
+        role: str,
+        member_ids: tuple[str, ...],
+        *,
+        birth_prob: float,
+        max_pop: int,
+        owns_slots: bool,
+    ) -> None:
+        if birth_prob <= 0.0 or not member_ids:
+            return
+        pop_id = self.profile.population_id(role)
+        cost = float(self.profile.birth_energy_cost)
+        birth_rng = self.rng.fork(f"birth/{role}/{self.tick_index}")
+        # Snapshot parents; births append within this pass.
+        parents = list(member_ids)
+        for parent_id in parents:
+            if self.registry.census(pop_id) >= max_pop:
+                break
+            if parent_id not in self.accounts:
+                continue
+            if birth_rng.random() >= birth_prob:
+                continue
+            acct = self.accounts[parent_id]
+            if cost > 0.0 and not acct.can_pay(cost):
+                continue
+            if cost > 0.0:
+                acct.debit(
+                    cost,
+                    tick=self.tick_index,
+                    agent_id=parent_id,
+                    codon="BIR",
+                    action="birth",
+                    reason="birth_energy_cost",
+                )
+            self._birth_seq += 1
+            child_id = f"{parent_id}_c{self.tick_index}_{self._birth_seq}"
+            self.registry, _ = self.registry.add_member(pop_id, child_id)
+            # Inherit genome then maybe mutate child.
+            self.genomes[child_id] = self.genomes[parent_id]
+            child_stream = self.rng.fork(f"birth_mut/{role}/{child_id}")
+            mut_prob = (
+                self.profile.mutation_probability_primary
+                if role == "primary"
+                else self.profile.mutation_probability_secondary
+            )
+            if mut_prob > 0.0 and child_stream.random() < mut_prob:
+                mut = Mutation(operation="point", rng=child_stream)
+                self.genomes[child_id] = mut.apply(
+                    self.genomes[child_id],
+                    parent_id=parent_id,
+                    generation=self.tick_index,
+                )
+                self.mutation_counts[role] = int(self.mutation_counts.get(role, 0)) + 1
+            # Energy endowment for child from remaining parent split is not used;
+            # child starts at initial_energy (parameterized trade via coupling).
+            self.accounts[child_id] = ATPAccount(float(self.profile.initial_energy))
+            self.payloads[child_id] = {"tag": child_id, "payload": f"p_{child_id}"}
+            self.state_bags[child_id] = {
+                "payload": f"p_{child_id}",
+                "signal": 1,
+                "link_tag": "grid",
+                "overlap": True,
+            }
+            if owns_slots:
+                slot_id = f"slot_{child_id}"
+                if slot_id not in self.book.list_slot_ids():
+                    self.book = self.book.add_slot(
+                        AttachmentSlot(
+                            slot_id=slot_id,
+                            owner_id=child_id,
+                            capacity=self.profile.slot_capacity,
+                            tick=self.book.tick,
+                        )
+                    )
+            # Gate 5: InheritAttachedPolicy MUST be invoked on birth.
+            parent_slot = f"slot_{parent_id}" if owns_slots else None
+            offspring_slot = f"slot_{child_id}" if owns_slots else None
+            policy = replace(
+                self._inherit_policy,
+                parent_slot_id=parent_slot,
+                offspring_slot_id=offspring_slot,
+                digest="",
+            )
+            draws = None
+            if self.profile.inherit_probability < 1.0:
+                n_occ = 0
+                if parent_slot and parent_slot in self.book.list_slot_ids():
+                    n_occ = len(self.book.get(parent_slot).occupant_ids) or 1
+                draws = tuple(
+                    self.rng.fork(f"inherit/{child_id}/{i}").random()
+                    for i in range(max(1, n_occ))
+                )
+            self.book, _events, reasons, self._inherit_census = apply_birth_inherit(
+                policy,
+                self.book,
+                parent_id=parent_id,
+                offspring_id=child_id,
+                tick=self.tick_index,
+                draws=draws,
+                census=self._inherit_census,
+            )
+            for reason in reasons:
+                self._bump_census(self.inherit_fail_census, reason)
+            self.birth_counts[role] = int(self.birth_counts.get(role, 0)) + 1
+        self._sync_balances_from_accounts()
+
+    def _death_role(
+        self,
+        role: str,
+        member_ids: tuple[str, ...],
+        *,
+        death_prob: float,
+        owns_slots: bool,
+    ) -> None:
+        if not member_ids:
+            return
+        pop_id = self.profile.population_id(role)
+        death_rng = self.rng.fork(f"death/{role}/{self.tick_index}")
+        for mid in list(member_ids):
+            if mid not in self.accounts:
+                continue
+            energy = float(self.accounts[mid].current_atp)
+            # Starvation death only when basal metabolism is enabled (basal>0).
+            # Coupling drain alone must not wipe default static-census profiles.
+            starved = energy <= 0.0 and float(self.profile.basal_energy_cost) > 0.0
+            rolled = death_prob > 0.0 and death_rng.random() < death_prob
+            if not starved and not rolled:
+                continue
+            # Detach from any slots before remove.
+            for sid in list(self.book.list_slot_ids()):
+                slot = self.book.get(sid)
+                if slot.has_occupant(mid):
+                    try:
+                        self.book, _ = self.book.detach(sid, mid)
+                    except ConfigurationError:
+                        pass
+                if owns_slots and sid == f"slot_{mid}":
+                    # Clear occupants then leave slot bookkeeping; remove_slot N/A —
+                    # empty owned slots remain harmless; occupants already detached.
+                    for occ in list(slot.occupant_ids):
+                        try:
+                            self.book, _ = self.book.detach(sid, occ)
+                        except ConfigurationError:
+                            pass
+            self.registry, _ = self.registry.remove_member(pop_id, mid)
+            self.accounts.pop(mid, None)
+            self.genomes.pop(mid, None)
+            self.payloads.pop(mid, None)
+            self.state_bags.pop(mid, None)
+            self.balances.pop(mid, None)
+            self.death_counts[role] = int(self.death_counts.get(role, 0)) + 1
+        self._sync_balances_from_accounts()
+
+    def tick(self) -> None:
+        """Advance one tick: attach, couple, contact, mutate, birth, death."""
+
+        self._apply_ablation_once()
+        self._ensure_schedule_lock()
+
+        if self._lock_state is not None and self._lock_state.lock_mode == "freeze":
+            for mid in list(self.state_bags):
+                resolved, _reason = resolve_member_state(
+                    self._lock_state, mid, self.state_bags[mid]
+                )
+                self.state_bags[mid] = dict(resolved)
+
+        primary_ids = self.registry.get(self.profile.population_id("primary")).member_ids
+        secondary_ids = self.registry.get(
+            self.profile.population_id("secondary")
+        ).member_ids
+        living = tuple(sorted(set(primary_ids) | set(secondary_ids)))
+        self._apply_basal_energy(living)
+
+        # Re-read after basal (no membership change yet).
+        primary_ids = self.registry.get(self.profile.population_id("primary")).member_ids
+        secondary_ids = self.registry.get(
+            self.profile.population_id("secondary")
+        ).member_ids
+
+        self._attach_whole_population(primary_ids, secondary_ids)
+        self._couple_attached_pairs(primary_ids, secondary_ids)
+        self._contact_whole_population(primary_ids, secondary_ids)
+
+        self._mutate_population(
+            "primary", primary_ids, self.profile.mutation_probability_primary
+        )
+        self._mutate_population(
+            "secondary", secondary_ids, self.profile.mutation_probability_secondary
+        )
+
+        # Birth then death so both populations can change in one tick.
+        self._birth_role(
+            "primary",
+            primary_ids,
+            birth_prob=self.profile.birth_probability_primary,
+            max_pop=self.profile.max_population_primary,
+            owns_slots=True,
+        )
+        self._birth_role(
+            "secondary",
+            secondary_ids,
+            birth_prob=self.profile.birth_probability_secondary,
+            max_pop=self.profile.max_population_secondary,
+            owns_slots=False,
+        )
+
+        primary_ids = self.registry.get(self.profile.population_id("primary")).member_ids
+        secondary_ids = self.registry.get(
+            self.profile.population_id("secondary")
+        ).member_ids
+        self._death_role(
+            "primary",
+            primary_ids,
+            death_prob=self.profile.death_probability_primary,
+            owns_slots=True,
+        )
+        self._death_role(
+            "secondary",
+            secondary_ids,
+            death_prob=self.profile.death_probability_secondary,
+            owns_slots=False,
+        )
 
         self.registry = self.registry.advance_tick(self.tick_index + 1)
         self.book = self.book.advance_tick(self.tick_index + 1)
         self.tick_index += 1
+        self._sync_balances_from_accounts()
         self._refresh_meter_densities()
+        self._record_outcome()
+
 
     def run(self, ticks: int) -> dict[str, JsonValue]:
         """Run ``ticks`` facade ticks; return honesty-forced summary."""
@@ -775,6 +1327,7 @@ class HostParasiteWorld:
         digest = world_digest(
             self.profile.seed, self.profile.digest, extras=extras, prefix="hp_world"
         )
+        snap = self.life_loop_snapshot()
         out: dict[str, JsonValue] = {
             "schema_version": SCHEMA_VERSION,
             "profile_id": self.profile.profile_id,
@@ -790,6 +1343,16 @@ class HostParasiteWorld:
             "schedule_arm": self.profile.schedule_arm,
             "domain_profile": "host_parasite",
             "physics_home": "codontrace.life_loop",
+            "extinct_primary": snap["extinct_primary"],
+            "extinct_secondary": snap["extinct_secondary"],
+            "coexistence": snap["coexistence"],
+            "birth_counts": dict(self.birth_counts),
+            "death_counts": dict(self.death_counts),
+            "mutation_counts": dict(self.mutation_counts),
+            "attach_fail_census": dict(sorted(self.attach_fail_census.items())),
+            "coupling_fail_census": dict(sorted(self.coupling_fail_census.items())),
+            "inherit_fail_census": dict(sorted(self.inherit_fail_census.items())),
+            "life_loop_snapshot": snap,
         }
         if self.prereg is not None:
             out["prereg_digest"] = self.prereg.digest

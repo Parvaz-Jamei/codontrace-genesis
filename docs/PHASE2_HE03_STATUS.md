@@ -1,13 +1,14 @@
-# Phase 2 — HE03 (2026-09-17)
+# Phase 2 — HE03 (2026-09-24)
 
 Research `docs/hard_experiment_03/results_v1.json` is **not** committed.
-This phase locks that absence. It does not fabricate a 30-seed campaign.
+Pilot `docs/hard_experiment_03/pilot_v1.json` lands in the collective DoL wave
+(task-switch persistence + dual-action overlay + paired Holm). Ceiling stays
+`runtime_observation`. `collective_intelligence_candidate` is **REFUSED**.
 
 ```bash
 python -m codontrace.genesis.he03_status
 python examples/genesis_hard_experiment_03_status.py
 ```
 
-ClaimGate ceiling stays `runtime_observation`.
-Smoke exists in `tests/test_hard_experiment_03.py`.
-Pilot/research runs stay outside this wave.
+Smoke + dual-task tests: `tests/test_hard_experiment_03.py`.
+Pilot / research remain outside CI wall-clock.

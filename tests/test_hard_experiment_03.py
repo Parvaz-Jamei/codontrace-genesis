@@ -189,3 +189,38 @@ def test_invalid_task_switch_overlap_raises() -> None:
 
 def test_pilot_seeds_are_1000_to_1009() -> None:
     assert PILOT_SEEDS == tuple(range(1000, 1010))
+
+
+def test_he03_dual_task_overlay_enables_switches_and_refuses_ci() -> None:
+    """Dual-action genomes + persisted last_task make switches observable."""
+
+    campaign = run_hard_experiment_03(
+        seeds=(1000, 1001), scale="smoke", tick_count=8, population=6
+    )
+    assert campaign.assay_failed is False
+    assert campaign.collective_intelligence_candidate is False
+    assert campaign.claim_ceiling == CLAIM_CEILING
+    cost_high = [rec.cost_high for rec in campaign.seed_records]
+    assert all(item.n_switches > 0 for item in cost_high)
+    assert all(item.matrix_degenerate is False for item in cost_high)
+    assert len(campaign.paired_contrasts) == 3
+    claim = evaluate_hard_experiment_03_claim(campaign)
+    assert claim["collective_intelligence"] is False
+    assert claim["decision_rule_passed"] is False
+
+
+def test_he03_last_task_persists_across_ticks() -> None:
+    from codontrace.genesis.engine import GenesisEngine
+    from codontrace.genesis.hard_experiment_03 import build_hard_experiment_03_spec
+
+    spec = build_hard_experiment_03_spec(
+        seed=42, arm="cost_moderate", tick_count=12, population=4
+    )
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    n_switches = 0
+    for tick in result.ticks:
+        generation = tick.generation_result
+        if generation is None:
+            continue
+        n_switches += len(generation.task_switch_cost_records or ())
+    assert n_switches > 0

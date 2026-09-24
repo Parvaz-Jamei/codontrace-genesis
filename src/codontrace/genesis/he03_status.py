@@ -7,6 +7,7 @@ from typing import Any
 
 CLAIM_CEILING = "runtime_observation"
 RESEARCH_RELATIVE = "docs/hard_experiment_03/results_v1.json"
+PILOT_RELATIVE = "docs/hard_experiment_03/pilot_v1.json"
 PREREG_RELATIVE = "docs/HARD_EXPERIMENT_03_PREREG.md"
 
 
@@ -26,8 +27,18 @@ def research_results_path() -> Path:
     return cwd
 
 
+def pilot_results_path() -> Path:
+    root = _repo_root()
+    candidate = root / PILOT_RELATIVE
+    cwd = Path.cwd() / PILOT_RELATIVE
+    if candidate.is_file():
+        return candidate
+    return cwd
+
+
 def he03_phase2_status() -> dict[str, Any]:
     results = research_results_path()
+    pilot = pilot_results_path()
     prereg = _repo_root() / PREREG_RELATIVE
     if not prereg.is_file():
         prereg = Path.cwd() / PREREG_RELATIVE
@@ -35,12 +46,18 @@ def he03_phase2_status() -> dict[str, Any]:
         "experiment_id": "hard_experiment_03_task_switch_dol",
         "research_results_present": results.is_file(),
         "research_results_path": str(results),
+        "pilot_results_present": pilot.is_file(),
+        "pilot_results_path": str(pilot),
         "prereg_present": prereg.is_file(),
         "claim_ceiling": CLAIM_CEILING,
         "intervention_supported": False,
         "collective_intelligence": False,
+        "collective_intelligence_candidate": False,
         "fabricated": False,
-        "note": "research results_v1 is deferred; smoke/pilot code exists",
+        "note": (
+            "pilot_v1 may be present; research results_v1 remains deferred "
+            "and must not be invented"
+        ),
     }
 
 

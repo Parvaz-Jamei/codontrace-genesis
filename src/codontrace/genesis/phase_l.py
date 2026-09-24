@@ -294,7 +294,7 @@ def evaluate_organism_messaging_group(
     replicate_copy_germline: bool = True,
     germline_member_index: int | None = None,
 ) -> OrganismMessagingEvaluation:
-    """Lockstep Avida-like messaging analog on Phase E ``DemeState``.
+    """Lockstep peer-compatible messaging analog on Phase E ``DemeState``.
 
     Differences from the Phase K shared-inbox analog (honest, still not C++):
 

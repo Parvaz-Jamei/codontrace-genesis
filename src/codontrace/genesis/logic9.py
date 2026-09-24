@@ -74,7 +74,7 @@ def logic9_resource_name(task: str) -> str:
 
 
 def logic9_resource_specs(*, initial: float = 8.0, inflow: float = 0.25, outflow: float = 0.01) -> tuple[ResourceSpec, ...]:
-    """Avida-parity named resources for Logic-9 reactions (opt-in)."""
+    """peer-compatible named resources for Logic-9 reactions (opt-in)."""
 
     return tuple(
         ResourceSpec(name=logic9_resource_name(task), initial=initial, inflow=inflow, outflow=outflow)

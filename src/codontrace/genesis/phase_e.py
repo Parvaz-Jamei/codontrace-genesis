@@ -1,4 +1,4 @@
-"""Phase E capsule/memory/role/collective substrate and Avida-parity protocol hooks.
+"""Phase E capsule/memory/role/collective substrate and peer-compatible protocol hooks.
 
 Opt-in runtime effects for organism-local or lineage capsule memory, role /
 propagule-eligibility gates, deme containers with a messaging buffer, a
@@ -67,7 +67,7 @@ LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
     (
         "goldsby_coordination_instructions",
         "Goldsby et al. coordination instructions: send_message, retrieve_message, "
-        "broadcast_message, block_propagation (Avida-parity messaging subset).",
+        "broadcast_message, block_propagation (peer-compatible messaging subset).",
     ),
     (
         "gecco_2008_germline_replication",
@@ -111,7 +111,7 @@ class RoleKind(StrEnum):
 
 
 class MessageKind(StrEnum):
-    """Goldsby-style coordination instruction kinds (Avida-parity subset)."""
+    """Goldsby-style coordination instruction kinds (peer-compatible subset)."""
 
     SEND = "send_message"
     RETRIEVE = "retrieve_message"

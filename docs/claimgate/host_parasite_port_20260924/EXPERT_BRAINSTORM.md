@@ -20,7 +20,7 @@ authorities). Disagreement is encouraged. Ends with a **CONSENSUS DESIGN**.
 useful, or theater?
 
 **A:** Useful *if* it fails closed on therapy language and forces COU
-statements before anyone wires Avida-like parasites. Zaman et al. (2014,
+statements before anyone wires peer-style parasite analogs. Zaman et al. (2014,
 doi:10.1371/journal.pbio.1002023) and Fortuna et al. (2021,
 doi:10.3389/fevo.2021.750772) already show that *parameters* (CPU theft,
 task-overlap, one parasite per host) are load-bearing; labeling claims first

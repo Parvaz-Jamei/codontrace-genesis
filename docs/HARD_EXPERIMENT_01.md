@@ -196,7 +196,7 @@ fitness ≥ `min_source_fitness` (2.0) on ticks 0–1 (`max_fit` 3.0 / 9.0)
 before the crash. Last-tick `selection_mean_fitness` is 0 because the
 population is empty, not because a living channel had no effect.
 
-Root causes (Avida / digital-evolution ecology, not Avida-parity):
+Root causes (Avida / digital-evolution ecology, not peer-compatible):
 
 1. **Energy budget vs COPY_SELF.** Initial ATP 14.0, basal 1.2 / tick,
    `COPY_SELF` codon cost 8.0, eat credit 6.0. Even an eater on food has

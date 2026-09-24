@@ -346,10 +346,10 @@ class GenesisRuntimeProfile:
         This is an explicit research preset. It does not change global
         ``ReproductionConfig`` / ``ResourceConfig`` defaults. SAME_CELL placement
         remains available by passing ``offspring_placement=OffspringPlacementPolicy.SAME_CELL``.
-        ``REPLACE_OCCUPIED`` is an optional Avida-like overwrite policy and is
+        ``REPLACE_OCCUPIED`` is an optional peer-compatible overwrite policy and is
         not the life-loop default. Asexual COPY_SELF remains the default
         inheritance path; pass         ``reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER``
-        to enable Phase B Avida-parity sexual recombination (birth chamber +
+        to enable Phase B peer-compatible sexual recombination (birth chamber +
         positional continuous corresponding crossover). Direct
         ``reproduce(..., mate=...)`` remains a one-child library API.
         Pass ``environment=EnvironmentConfig(...)`` (or use

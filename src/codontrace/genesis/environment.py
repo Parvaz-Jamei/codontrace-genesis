@@ -1,6 +1,6 @@
 """Phase C dynamic / fluctuating environment substrate.
 
-Opt-in Avida-parity resource dynamics for GENESIS: chemostat pools
+Opt-in peer-compatible resource dynamics for GENESIS: chemostat pools
 (``RESOURCE`` initial/inflow/outflow), periodic/seasonal schedules,
 fluctuating regimes, and spatial patches with deterministic diffusion/decay
 hooks. Disabled by default so asexual and sexual research digests stay stable.

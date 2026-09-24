@@ -150,7 +150,7 @@ _BIRTH_CHAMBER_PAIRING_POLICIES = {"birth_chamber", "nearest_mate"}
 
 @dataclass(frozen=True, slots=True)
 class SexualRecombinationConfig:
-    """Avida-parity sexual recombination controls (opt-in).
+    """peer-compatible sexual recombination controls (opt-in).
 
     Field names follow ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP``
     (Misevic, Ofria, Lenski 2006 Proc B; Ofria & Wilke 2004):

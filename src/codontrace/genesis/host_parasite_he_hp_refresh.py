@@ -99,13 +99,32 @@ class HeHpLockedDigestRefreshNote:
         return body
 
 
-def build_he_hp_locked_digest_refresh_note() -> HeHpLockedDigestRefreshNote:
-    """Replay HE_HP locks and assert BAIC pins; return honesty refresh note."""
+_HE_HP_SCHEMA = "hard_experiment_hp_locked_digests_v1"
+_REQUIRED_HE_HP_CAMPAIGNS = (
+    "zaman_three_arm",
+    "vt_spatial_factorial",
+    "evolvability_falsification",
+    "cornish_intervention",
+)
 
-    _assert_baic_pins_untouched()
-    if not _HE_HP_PATH.is_file():
-        raise ConfigurationError(f"missing HE_HP locked pack: {_HE_HP_PATH}")
-    locked = json.loads(_HE_HP_PATH.read_text(encoding="utf-8"))
+
+def validate_he_hp_locked_pack(locked: Mapping[str, object]) -> None:
+    """Fail-closed schema / honesty checks for the HE_HP locked JSON pack.
+
+    Does not mutate BAIC pins. Rejects packs that claim engine infection
+    physics, flip honesty flags, or drop the locked schema identity.
+    """
+
+    if not isinstance(locked, Mapping):
+        raise ConfigurationError("HE_HP locked pack must be a mapping.")
+    if locked.get("schema") != _HE_HP_SCHEMA:
+        raise ConfigurationError(
+            f"HE_HP pack schema must be {_HE_HP_SCHEMA!r}; got {locked.get('schema')!r}."
+        )
+    if locked.get("engine_infection_physics") != "not_in_engine_core":
+        raise ConfigurationError(
+            "HE_HP pack must keep engine_infection_physics='not_in_engine_core'."
+        )
     if locked.get("baic_pins_untouched") is not True:
         raise ConfigurationError("HE_HP pack must declare baic_pins_untouched=True.")
     if locked.get("intervention_supported") is not False:
@@ -114,6 +133,26 @@ def build_he_hp_locked_digest_refresh_note() -> HeHpLockedDigestRefreshNote:
         raise ConfigurationError("HE_HP pack must keep red_queen_proved=False.")
     if locked.get("complexity_emergence_proved") is not False:
         raise ConfigurationError("HE_HP pack must keep complexity_emergence_proved=False.")
+    if locked.get("mutualism_equals_success") is not False:
+        raise ConfigurationError("HE_HP pack must keep mutualism_equals_success=False.")
+    campaigns = locked.get("campaigns")
+    if not isinstance(campaigns, Mapping):
+        raise ConfigurationError("HE_HP pack campaigns must be a mapping.")
+    missing = [name for name in _REQUIRED_HE_HP_CAMPAIGNS if name not in campaigns]
+    if missing:
+        raise ConfigurationError(f"HE_HP pack missing campaigns: {missing}")
+    if not isinstance(locked.get("locked_digest"), str) or not str(locked.get("locked_digest")).strip():
+        raise ConfigurationError("HE_HP pack locked_digest must be a non-empty string.")
+
+
+def build_he_hp_locked_digest_refresh_note() -> HeHpLockedDigestRefreshNote:
+    """Replay HE_HP locks and assert BAIC pins; return honesty refresh note."""
+
+    _assert_baic_pins_untouched()
+    if not _HE_HP_PATH.is_file():
+        raise ConfigurationError(f"missing HE_HP locked pack: {_HE_HP_PATH}")
+    locked = json.loads(_HE_HP_PATH.read_text(encoding="utf-8"))
+    validate_he_hp_locked_pack(locked)
 
     campaigns = locked["campaigns"]
     status: list[tuple[str, bool]] = []

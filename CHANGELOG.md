@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Host–parasite ClaimGate hard regressions close several honesty/wiring holes
+  that soft Wave-6 smoke did not stress: OEE/MODES / complexity / gene-identity
+  / intelligence aliases and `intervention_supported` are fail-closed on
+  `claimed=`; `candidate_evidence` requires a content-null arm (Floreano /
+  Knoester); HE_HP locked packs validate schema and
+  `engine_infection_physics='not_in_engine_core'`; sequential Cornish and
+  contingency supporting-seed edges stay non-proving. Suite:
+  `tests/test_host_parasite_hard_regressions.py`. Results:
+  `docs/claimgate/host_parasite_port_20260924/HARD_REGRESSION_RESULTS_20260924.md`.
+  BAIC pins and `engine.py` unchanged.
+
 - The BAIC 2026 manuscript pack is no longer distributed in the public tree.
   `paper/baic/` is held outside the repository and listed in `.gitignore`, so
   the submitted Word and PDF files and the Persian source are not published

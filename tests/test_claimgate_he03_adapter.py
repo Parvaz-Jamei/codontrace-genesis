@@ -3,16 +3,28 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
+from codontrace.claimgate.adapters import codontrace_he03 as he03_adapter
 from codontrace.claimgate.adapters.codontrace_he03 import bundle_from_hard_experiment_03
 from codontrace.errors import ConfigurationError
 
 
-def test_he03_adapter_refuses_missing_tree_artifact() -> None:
+def test_he03_adapter_refuses_when_no_pilot_or_research(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(he03_adapter, "committed_results_v1_path", lambda: tmp_path / "missing_v1.json")
+    monkeypatch.setattr(he03_adapter, "committed_pilot_v1_path", lambda: tmp_path / "missing_pilot.json")
     with pytest.raises(ConfigurationError, match="not in the tree"):
         bundle_from_hard_experiment_03()
+
+
+def test_he03_adapter_reads_pilot_when_research_absent() -> None:
+    bundle = bundle_from_hard_experiment_03()
+    extra = bundle.extra or {}
+    assert extra.get("he03_research_not_in_tree") is True
+    assert extra.get("claim_ceiling") == "runtime_observation"
+    assert extra.get("agi") is False
 
 
 def test_he03_in_memory_campaign_uses_schema_roles() -> None:

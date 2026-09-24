@@ -28,6 +28,12 @@ from codontrace.genesis.isolation_assay import (
 )
 from codontrace.genesis.metrics.division_of_labor import gorelick_nmi
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+from codontrace.genesis.statistical_protocol import (
+    bootstrap_ci_paired,
+    exact_sign_flip_permutation_p,
+    holm_correction,
+    paired_effect_size,
+)
 from codontrace.genesis.task_switch_cost import (
     SWITCH_COST_ATP_COST_0,
     SWITCH_COST_ATP_HIGH,
@@ -46,12 +52,21 @@ PRIMARY_OUTCOME = "d_sym"
 
 PILOT_SEEDS: tuple[int, ...] = tuple(range(1000, 1010))
 RESEARCH_SEED_COUNT = 30
-SMOKE_TICK_COUNT = 4
+SMOKE_TICK_COUNT = 8
 SMOKE_POPULATION = 6
+PILOT_TICK_COUNT = 16
+PILOT_POPULATION = 8
 RESEARCH_TICK_COUNT = 24
 RESEARCH_POPULATION = 12
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
+INFERENTIAL_SEED = 20260924
+ALPHA = 0.05
+BOOTSTRAP_RESAMPLES = 2000
+# Dual-action genome: EAT_LUMEN (TASK_A) + EMIT_NEXUS (TASK_B) so individuals
+# can switch. Substrate enablement for Goldsby-style measurement — not planted
+# evolved specialists. HE03 overlay only; plain life_loop pins unchanged.
+HE03_DUAL_TASK_GENOME = "101111000110000000"
 
 ArmName = Literal[
     "cost_0",
@@ -242,7 +257,14 @@ def build_hard_experiment_03_spec(
     configs = base.population_configs
     if configs is None:
         raise ConfigurationError("life_loop_world must supply population_configs.")
-    configs = replace(configs, task_switch_cost=task_switch)
+    # Dual-task substrate: enable nexus so EMIT_NEXUS (TASK_B) is meaningful
+    # alongside EAT_LUMEN (TASK_A). Overlay-only; default life_loop unchanged.
+    configs = replace(
+        configs,
+        task_switch_cost=task_switch,
+        enable_nexus_stigmergy=True,
+    )
+    dual_genomes = tuple(HE03_DUAL_TASK_GENOME for _ in range(int(population)))
     metadata = {
         **base.metadata,
         "runtime_profile": EXPERIMENT_ID,
@@ -256,9 +278,14 @@ def build_hard_experiment_03_spec(
         "avida_replacement": False,
         "switch_cost_atp": task_switch.switch_cost_atp if task_switch.enabled else None,
         "isolation_secondary": arm == "isolation_probe",
+        "dual_task_genome": HE03_DUAL_TASK_GENOME,
+        "substrate_note": (
+            "dual_action_genomes_enable_switching_not_evolved_specialists"
+        ),
     }
     return replace(
         base,
+        genome_bits=dual_genomes,
         population_configs=configs,
         metadata=metadata,
     )
@@ -360,6 +387,39 @@ class HardExperiment03ArmSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class HardExperiment03PairedContrast:
+    """Paired d_sym contrast (treatment − baseline) with Holm-ready fields."""
+
+    name: str
+    treatment_arm: str
+    baseline_arm: str
+    n: int
+    mean_delta: float | None
+    dz: float | None
+    ci_low: float | None
+    ci_high: float | None
+    p_raw: float | None
+    p_holm: float | None
+    claim_downgraded: bool
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "name": self.name,
+            "treatment_arm": self.treatment_arm,
+            "baseline_arm": self.baseline_arm,
+            "n": self.n,
+            "mean_delta": self.mean_delta,
+            "dz": self.dz,
+            "ci_low": self.ci_low,
+            "ci_high": self.ci_high,
+            "p_raw": self.p_raw,
+            "p_holm": self.p_holm,
+            "claim_downgraded": self.claim_downgraded,
+            "collective_intelligence": False,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class HardExperiment03Campaign:
     experiment_id: str
     schema_version: str
@@ -380,6 +440,8 @@ class HardExperiment03Campaign:
     decision_rule_passed: bool
     decision_rule_failures: tuple[str, ...]
     limitations: tuple[str, ...]
+    paired_contrasts: tuple[HardExperiment03PairedContrast, ...] = ()
+    collective_intelligence_candidate: bool = False
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -415,10 +477,16 @@ class HardExperiment03Campaign:
             "decision_rule_passed": self.decision_rule_passed,
             "decision_rule_failures": list(self.decision_rule_failures),
             "limitations": list(self.limitations),
+            "paired_contrasts": [item.to_dict() for item in self.paired_contrasts],
             "collective_intelligence": False,
+            "collective_intelligence_candidate": bool(
+                self.collective_intelligence_candidate
+            ),
             "intelligence": False,
             "agi": False,
-            "software": {"name": PRODUCT_NAME, "version": "0.3.0b4.dev0"},
+            "tokyo_type1_passed": False,
+            "modes_passed": False,
+            "software": {"name": PRODUCT_NAME, "version": "0.3.0b9"},
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -685,13 +753,175 @@ def evaluate_hard_experiment_03_claim(
         "assay_failed": campaign.assay_failed,
         "decision_rule_passed": campaign.decision_rule_passed,
         "collective_intelligence": False,
+        "collective_intelligence_candidate": False,
         "intelligence": False,
         "agi": False,
         "tokyo_type1_passed": False,
+        "modes_passed": False,
         "avida_replacement": False,
         "limitations": list(campaign.limitations),
+        "decision_rule_failures": list(campaign.decision_rule_failures),
         "digest": campaign.digest,
     }
+
+
+
+def _paired_d_sym_deltas(
+    seed_records: Sequence[HardExperiment03SeedRecord],
+    *,
+    treatment: ArmName,
+    baseline: ArmName,
+) -> list[float]:
+    deltas: list[float] = []
+    for record in seed_records:
+        left = record.arm_map()[treatment].d_sym
+        right = record.arm_map()[baseline].d_sym
+        deltas.append(round(float(left) - float(right), 12))
+    return deltas
+
+
+def _build_paired_contrast(
+    *,
+    name: str,
+    treatment: ArmName,
+    baseline: ArmName,
+    deltas: Sequence[float],
+) -> HardExperiment03PairedContrast:
+    n = len(deltas)
+    if n == 0:
+        return HardExperiment03PairedContrast(
+            name=name,
+            treatment_arm=treatment,
+            baseline_arm=baseline,
+            n=0,
+            mean_delta=None,
+            dz=None,
+            ci_low=None,
+            ci_high=None,
+            p_raw=None,
+            p_holm=None,
+            claim_downgraded=True,
+        )
+    mean_delta = round(sum(deltas) / n, 12)
+    dz: float | None = None
+    ci_low: float | None = None
+    ci_high: float | None = None
+    p_raw: float | None = None
+    if n >= 2:
+        try:
+            dz = float(paired_effect_size(deltas))
+        except ConfigurationError:
+            # Identical non-zero deltas → undefined Cohen dz; record mean only.
+            dz = None
+        ci_low, ci_high = bootstrap_ci_paired(
+            deltas,
+            method="bca",
+            resamples=BOOTSTRAP_RESAMPLES,
+            seed=INFERENTIAL_SEED,
+        )
+        p_raw = float(exact_sign_flip_permutation_p(deltas, seed=INFERENTIAL_SEED))
+    # Directional H1 (Goldsby): treatment d_sym should exceed baseline.
+    # CI excluding 0 with non-positive mean is statistically non-null but
+    # scientifically wrong-signed → stay claim_downgraded.
+    claim_downgraded = True
+    if (
+        ci_low is not None
+        and ci_high is not None
+        and mean_delta is not None
+        and mean_delta > 0.0
+        and not (ci_low <= 0.0 <= ci_high)
+    ):
+        claim_downgraded = False
+    return HardExperiment03PairedContrast(
+        name=name,
+        treatment_arm=treatment,
+        baseline_arm=baseline,
+        n=n,
+        mean_delta=mean_delta,
+        dz=None if dz is None else round(float(dz), 12),
+        ci_low=None if ci_low is None else round(float(ci_low), 12),
+        ci_high=None if ci_high is None else round(float(ci_high), 12),
+        p_raw=None if p_raw is None else round(float(p_raw), 12),
+        p_holm=None,
+        claim_downgraded=claim_downgraded,
+    )
+
+
+def _apply_holm_to_contrasts(
+    contrasts: Sequence[HardExperiment03PairedContrast],
+) -> tuple[HardExperiment03PairedContrast, ...]:
+    raw = [item.p_raw for item in contrasts]
+    if any(value is None for value in raw):
+        return tuple(replace(item, p_holm=None, claim_downgraded=True) for item in contrasts)
+    numeric = [float(value) for value in raw if value is not None]
+    if len(numeric) != len(raw):
+        return tuple(replace(item, p_holm=None, claim_downgraded=True) for item in contrasts)
+    adjusted = holm_correction(numeric)
+    out: list[HardExperiment03PairedContrast] = []
+    for item, p_holm in zip(contrasts, adjusted, strict=True):
+        downgraded = bool(item.claim_downgraded or float(p_holm) >= ALPHA)
+        out.append(replace(item, p_holm=round(float(p_holm), 12), claim_downgraded=downgraded))
+    return tuple(out)
+
+
+def build_hard_experiment_03_paired_contrasts(
+    seed_records: Sequence[HardExperiment03SeedRecord],
+) -> tuple[HardExperiment03PairedContrast, ...]:
+    """Primary paired contrasts on d_sym (prereg ≤3)."""
+
+    specs = (
+        ("cost_high_vs_cost_0", "cost_high", "cost_0"),
+        ("cost_moderate_vs_cost_0", "cost_moderate", "cost_0"),
+        ("cost_high_vs_channel_off", "cost_high", "channel_off"),
+    )
+    built = [
+        _build_paired_contrast(
+            name=name,
+            treatment=treatment,  # type: ignore[arg-type]
+            baseline=baseline,  # type: ignore[arg-type]
+            deltas=_paired_d_sym_deltas(
+                seed_records, treatment=treatment, baseline=baseline  # type: ignore[arg-type]
+            ),
+        )
+        for name, treatment, baseline in specs
+    ]
+    return _apply_holm_to_contrasts(built)
+
+
+def _decision_failures_from_contrasts(
+    *,
+    assay_failed: bool,
+    contrasts: Sequence[HardExperiment03PairedContrast],
+    scale: ScaleName,
+) -> tuple[bool, tuple[str, ...]]:
+    failures: list[str] = []
+    if assay_failed:
+        failures.append("assay_invalid")
+    by_name = {item.name: item for item in contrasts}
+    surviving = [
+        item
+        for item in contrasts
+        if item.p_holm is not None
+        and float(item.p_holm) < ALPHA
+        and not item.claim_downgraded
+        and item.mean_delta is not None
+        and float(item.mean_delta) > 0.0
+    ]
+    if not surviving:
+        failures.append("no_holm_surviving_primary_contrast")
+    ablation = by_name.get("cost_high_vs_channel_off")
+    if ablation is not None and (
+        ablation.mean_delta is None or float(ablation.mean_delta) <= 0.0
+    ):
+        failures.append("ablation_contrast_wrong_sign_or_null")
+    # Pilot/smoke never auto-pass the confirmatory decision rule.
+    if scale in {"smoke", "pilot"}:
+        failures.append("scale_not_research")
+    failures.append("collective_intelligence_candidate_refused")
+    # Confirmatory pass reserved for research artifact with surviving
+    # positive contrasts AND correct-signed ablation — not this wave.
+    passed = False
+    return passed, tuple(dict.fromkeys(failures))
 
 
 def run_hard_experiment_03(
@@ -705,8 +935,8 @@ def run_hard_experiment_03(
         raise ConfigurationError("scale must be smoke|pilot|research.")
     if scale == "pilot":
         seed_tuple = tuple(seeds) if seeds is not None else default_pilot_seeds()
-        resolved_ticks = SMOKE_TICK_COUNT if tick_count is None else int(tick_count)
-        resolved_pop = SMOKE_POPULATION if population is None else int(population)
+        resolved_ticks = PILOT_TICK_COUNT if tick_count is None else int(tick_count)
+        resolved_pop = PILOT_POPULATION if population is None else int(population)
     elif scale == "research":
         seed_tuple = tuple(seeds) if seeds is not None else default_research_seeds()
         resolved_ticks = RESEARCH_TICK_COUNT if tick_count is None else int(tick_count)
@@ -742,19 +972,24 @@ def run_hard_experiment_03(
         _arm_summary(arm, tuple(rec.arm_map()[arm] for rec in seed_records))
         for arm in ARMS
     )
-    summary_map = {item.arm: item for item in summaries}
+    summary_map: dict[str, HardExperiment03ArmSummary] = {
+        str(item.arm): item for item in summaries
+    }
     assay_failures = _manipulation_failures(summary_map, seed_records)
     assay_failed = bool(assay_failures)
-    decision_failures: list[str] = []
-    if assay_failed:
-        decision_failures.append("assay_invalid")
-    decision_failures.append("holm_contrasts_not_cleared")  # honest ceiling
+    paired_contrasts = build_hard_experiment_03_paired_contrasts(seed_records)
+    decision_rule_passed, decision_failures = _decision_failures_from_contrasts(
+        assay_failed=assay_failed, contrasts=paired_contrasts, scale=scale
+    )
     limitations = (
         "ClaimGate ceiling remains runtime_observation until Holm-surviving "
         "contrasts and manipulation checks clear on a committed research artifact.",
         "IsolationAssay is secondary only; not a collective_intelligence claim.",
         "Pure-Python scale is not claimed to match Avida / Goldsby update counts.",
-        "No results_v1.json fabricated in this implementation PR.",
+        "Dual-action genomes enable switching; they are not evolved specialists.",
+        "collective_intelligence_candidate refused: ClaimGate flag set incomplete.",
+        "Wrong-signed cost_high vs channel_off refuses the mechanism decision rule.",
+        "No results_v1.json fabricated; research remains deferred.",
     )
     protocol_digest = canonical_digest(
         {
@@ -787,9 +1022,11 @@ def run_hard_experiment_03(
         arm_summaries=summaries,
         assay_failed=assay_failed,
         assay_failures=assay_failures,
-        decision_rule_passed=False,
+        decision_rule_passed=decision_rule_passed,
         decision_rule_failures=tuple(decision_failures),
         limitations=limitations,
+        paired_contrasts=paired_contrasts,
+        collective_intelligence_candidate=False,
     )
 
 

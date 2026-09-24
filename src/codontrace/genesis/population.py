@@ -3146,7 +3146,9 @@ def step_population(
                     records=food_patch_signal_records,
                 )
             if configs.task_switch_cost.enabled:
-                prev_task = last_task_by_organism.get(str(organism.id))
+                prev_task = getattr(organism, "last_task_class", None)
+                if prev_task is None:
+                    prev_task = last_task_by_organism.get(str(organism.id))
                 current_task, switch_record = apply_task_switch_cost(
                     tick=int(current_tick),
                     organism_id=str(organism.id),
@@ -3157,6 +3159,7 @@ def step_population(
                 )
                 if current_task is not None:
                     last_task_by_organism[str(organism.id)] = current_task
+                    organism.last_task_class = current_task
                 if switch_record is not None:
                     task_switch_cost_records.append(switch_record)
             if capsule_action_coupling is not None:
@@ -4568,6 +4571,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         capsule_action_bias_substitutable=organism.capsule_action_bias_substitutable,
         capsule_last_executed_action=organism.capsule_last_executed_action,
         capsule_nav_target=organism.capsule_nav_target,
+        last_task_class=getattr(organism, "last_task_class", None),
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)

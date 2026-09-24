@@ -157,7 +157,8 @@ def bundle_from_hard_experiment_03(
         else:
             raise ConfigurationError(
                 "HE03 campaign artifact is not in the tree "
-                "(docs/hard_experiment_03/results_v1.json). Adapter will not invent it."
+                "(docs/hard_experiment_03/results_v1.json or pilot_v1.json). "
+                "Adapter will not invent it."
             )
     data, path = _campaign_mapping(source)
     seeds = _seeds(data)
@@ -179,6 +180,7 @@ def bundle_from_hard_experiment_03(
         "assay_invalid": assay_invalid,
         "assay_failures": list(manipulation_failures),
         "collective_intelligence": False,
+        "collective_intelligence_candidate": False,
         "intelligence": False,
         "agi": False,
         "isolation_probe_mapped_to_negative_control": True,

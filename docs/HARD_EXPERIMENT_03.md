@@ -1,15 +1,17 @@
 # HARD_EXPERIMENT_03 — task-switch costs and division of labor (E3)
 
-Product: **CodonTrace Genesis** (`0.3.0b4.dev0`).
+Product: **CodonTrace Genesis** (`0.3.0b9`).
 
 ## Status
 
 - Prereg draft-locked: [`HARD_EXPERIMENT_03_PREREG.md`](HARD_EXPERIMENT_03_PREREG.md)
 - Science brief: [`hard_experiment_03/HE03_SCIENCE_BRIEF.md`](hard_experiment_03/HE03_SCIENCE_BRIEF.md)
+- Pilot report: [`hard_experiment_03/PILOT_V1_REPORT.md`](hard_experiment_03/PILOT_V1_REPORT.md)
 - Knobs (default off): `TaskSwitchCostConfig`, `IsolationAssayConfig`
 - Metric: `codontrace.genesis.metrics.division_of_labor.gorelick_nmi` (confirmatory; non-NMI proxies remain **legacy**)
 - ClaimGate ceiling starts at **`runtime_observation`**
-- **Research `results_v1`: deferred** (no committed research artifact; do not invent one)
+- **Pilot `pilot_v1.json` committed** (assay pass; decision refused — ablation wrong-signed; CI candidate refused)
+- **Research `results_v1`: deferred** (do not invent one)
 - Phase-2 lock: `python -m codontrace.genesis.he03_status`
 - Phase A–E `life_loop_world(seed=7, tick_count=12, population=6)` pins unchanged
 

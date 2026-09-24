@@ -134,7 +134,7 @@ def error_under_resource(
         "harshness": harshness_from_resource(productivity)
         if null_kind != "structure_null"
         else 0.55,
-        "metabolic_error": float(ph["metabolic_error"]),
+        "metabolic_error": float(ph["metabolic_error"]),  # type: ignore[arg-type]
         "phenotype_digest": ph["phenotype_digest"],
         "aevol_identity": False,
         "wet_metabolism_claim": False,
@@ -146,7 +146,11 @@ def _resource_slope_trial(seed: int) -> dict[str, object]:
     low = error_under_resource(g, productivity=_RESOURCE_VALUES["low"], null_kind="none")
     high = error_under_resource(g, productivity=_RESOURCE_VALUES["high"], null_kind="none")
     # Expected: low resource (harsher) → higher error than high resource.
-    intact_delta = round(float(low["metabolic_error"]) - float(high["metabolic_error"]), 10)
+    intact_delta = round(
+        float(low["metabolic_error"])  # type: ignore[arg-type]
+        - float(high["metabolic_error"]),  # type: ignore[arg-type]
+        10,
+    )
 
     # structure_null: same harshness both arms → delta ≈ 0
     low_s = error_under_resource(
@@ -156,7 +160,9 @@ def _resource_slope_trial(seed: int) -> dict[str, object]:
         g, productivity=_RESOURCE_VALUES["high"], null_kind="structure_null"
     )
     structure_delta = round(
-        float(low_s["metabolic_error"]) - float(high_s["metabolic_error"]), 10
+        float(low_s["metabolic_error"])  # type: ignore[arg-type]
+        - float(high_s["metabolic_error"]),  # type: ignore[arg-type]
+        10,
     )
 
     # content_null: shuffled target — slope should collapse toward 0 vs intact
@@ -167,7 +173,9 @@ def _resource_slope_trial(seed: int) -> dict[str, object]:
         g, productivity=_RESOURCE_VALUES["high"], null_kind="content_null"
     )
     content_delta = round(
-        float(low_c["metabolic_error"]) - float(high_c["metabolic_error"]), 10
+        float(low_c["metabolic_error"])  # type: ignore[arg-type]
+        - float(high_c["metabolic_error"]),  # type: ignore[arg-type]
+        10,
     )
 
     return {
@@ -217,8 +225,10 @@ def run_measurement_resource_target_campaign(
 
     measurement = build_measurement_honesty_pack()
     # Hard assert refuse flags closed inside the builder result.
+    flags = measurement["flags"]
+    assert isinstance(flags, dict)
     for name in MEASUREMENT_REFUSED:
-        if measurement["flags"][name] is not False:
+        if flags[name] is not False:
             raise ConfigurationError(f"refuse flag must stay False: {name}")
         if measurement.get(name) not in (False, None) and name in (
             "tokyo_type1_passed",
@@ -227,15 +237,12 @@ def run_measurement_resource_target_campaign(
             raise ConfigurationError(f"top-level pass flag must stay False: {name}")
 
     trials = [_resource_slope_trial(int(s)) for s in seeds]
-    mean_intact = round(
-        sum(float(t["intact_delta_low_minus_high"]) for t in trials) / len(trials), 10
-    )
-    mean_sep_structure = round(
-        sum(float(t["intact_minus_structure"]) for t in trials) / len(trials), 10
-    )
-    mean_sep_content = round(
-        sum(float(t["intact_minus_content"]) for t in trials) / len(trials), 10
-    )
+    intact_vals = [float(t["intact_delta_low_minus_high"]) for t in trials]  # type: ignore[arg-type]
+    sep_s_vals = [float(t["intact_minus_structure"]) for t in trials]  # type: ignore[arg-type]
+    sep_c_vals = [float(t["intact_minus_content"]) for t in trials]  # type: ignore[arg-type]
+    mean_intact = round(sum(intact_vals) / len(intact_vals), 10)
+    mean_sep_structure = round(sum(sep_s_vals) / len(sep_s_vals), 10)
+    mean_sep_content = round(sum(sep_c_vals) / len(sep_c_vals), 10)
     # Intact slope should be positive (low resource → higher error) and separate.
     slope_ok = (
         mean_intact >= float(separation_threshold)
@@ -245,7 +252,7 @@ def run_measurement_resource_target_campaign(
     refuse_ok = (
         measurement["tokyo_type1_passed"] is False
         and measurement["modes_passed"] is False
-        and all(v is False for v in measurement["flags"].values())
+        and all(v is False for v in flags.values())
     )
     success = slope_ok and refuse_ok
     partial = refuse_ok and not success

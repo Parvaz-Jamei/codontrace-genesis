@@ -107,7 +107,7 @@ def coupled_metabolic_error(
     """Baseline D4 error + optional generalism penalty."""
 
     base = decode_abstract_phenotype(genome)
-    base_err = float(base["metabolic_error"])
+    base_err = float(base["metabolic_error"])  # type: ignore[arg-type]
     penalty = (
         0.0
         if not apply_cost
@@ -163,8 +163,8 @@ def _coexistence_trial(
             null_kind=null_kind,
             apply_cost=apply_cost,
         )
-        penalties[vid] = float(packed["generalism_penalty"])
-        errors[vid] = float(packed["coupled_metabolic_error"])
+        penalties[vid] = float(packed["generalism_penalty"])  # type: ignore[arg-type]
+        errors[vid] = float(packed["coupled_metabolic_error"])  # type: ignore[arg-type]
 
     history: list[dict[str, object]] = []
     for gen in range(int(generations)):
@@ -213,9 +213,9 @@ def _coexistence_trial(
         )
 
     final = history[-1]
-    host_rich = int(final["host_richness"])
-    para_rich = int(final["parasite_richness"])
-    mean_host = float(final["mean_host_n"])
+    host_rich = int(final["host_richness"])  # type: ignore[call-overload]
+    para_rich = int(final["parasite_richness"])  # type: ignore[call-overload]
+    mean_host = float(final["mean_host_n"])  # type: ignore[arg-type]
     extinction_proxy = host_rich <= 1 or mean_host < 2.0
     coexistence = host_rich >= 2 and para_rich >= 2 and mean_host >= 5.0 and not extinction_proxy
     late_p = history[-1]["parasites"]
@@ -287,13 +287,18 @@ def _dual_null_penalty_trial(
         "structure_null_penalty": structure["generalism_penalty"],
         "specialist_penalty": specialist["generalism_penalty"],
         "intact_minus_structure": round(
-            float(intact["generalism_penalty"]) - float(structure["generalism_penalty"]), 10
+            float(intact["generalism_penalty"])  # type: ignore[arg-type]
+            - float(structure["generalism_penalty"]),  # type: ignore[arg-type]
+            10,
         ),
         "generalist_minus_specialist": round(
-            float(intact["generalism_penalty"]) - float(specialist["generalism_penalty"]), 10
+            float(intact["generalism_penalty"])  # type: ignore[arg-type]
+            - float(specialist["generalism_penalty"]),  # type: ignore[arg-type]
+            10,
         ),
         "content_preserves_breadth": abs(
-            float(intact["generalism_penalty"]) - float(content["generalism_penalty"])
+            float(intact["generalism_penalty"])  # type: ignore[arg-type]
+            - float(content["generalism_penalty"])  # type: ignore[arg-type]
         )
         < 1e-9,
     }
@@ -334,18 +339,16 @@ def run_cost_of_generalism_phenotype_campaign(
     cost_off_collapse = sum(
         1 for t in cost_off if t["extinction_proxy"] or t["superparasite_dominance"]
     )
-    mean_sep = round(
-        sum(float(t["intact_minus_structure"]) for t in dual_null) / len(dual_null), 10
-    )
-    mean_gen_minus_spec = round(
-        sum(float(t["generalist_minus_specialist"]) for t in dual_null) / len(dual_null),
-        10,
-    )
+    sep_vals = [float(t["intact_minus_structure"]) for t in dual_null]  # type: ignore[arg-type]
+    gen_vals = [float(t["generalist_minus_specialist"]) for t in dual_null]  # type: ignore[arg-type]
+    struct_pen = [float(t["structure_null_penalty"]) for t in dual_null]  # type: ignore[arg-type]
+    mean_sep = round(sum(sep_vals) / len(sep_vals), 10)
+    mean_gen_minus_spec = round(sum(gen_vals) / len(gen_vals), 10)
     dual_null_ok = (
         mean_sep >= float(separation_threshold)
         and mean_gen_minus_spec >= float(separation_threshold)
         and all(bool(t["content_preserves_breadth"]) for t in dual_null)
-        and all(float(t["structure_null_penalty"]) == 0.0 for t in dual_null)
+        and all(v == 0.0 for v in struct_pen)
     )
     coexist_ok = cost_on_coexist >= int(min_seed_hits) and cost_off_collapse >= int(
         min_seed_hits

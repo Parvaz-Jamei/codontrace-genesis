@@ -346,7 +346,7 @@ def run_type3_rare_lock_trial(
         rare_lock_detected=bool(pattern["rare_lock_detected"]),
         phase_locked_rares=bool(pattern["phase_locked_rares"]),
         sf9_pattern=bool(pattern["sf9_pattern"]),
-        unique_dominants=int(pattern["unique_dominants"]),  # type: ignore[arg-type]
+        unique_dominants=int(pattern["unique_dominants"]),  # type: ignore[call-overload]
         final_hosts=tuple(round(h, 10) for h in series[-1]),
         params=params,
         matrix_digest=matrix_digest,

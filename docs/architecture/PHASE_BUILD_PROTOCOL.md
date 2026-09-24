@@ -16,14 +16,14 @@ Every numbered build phase for the modular platform (and for discipline profiles
 | B — Microbial ecology / coevolution science | Domain science that stays in module config and metrics |
 | C — Claim honesty / refuse discipline | ClaimGate ceilings; no soft-pass |
 | M — Senior program / architecture management | Anti–second-engine, reuse across future disciplines, delivery gates |
-| I — Cross-field innovation | Search for **capabilities not yet standard** in comparable platforms that would make processing or problem-solving in this phase novel; propose concrete affordances to adopt |
+| I — Cross-field innovation | Search for capabilities that would make processing or problem-solving in this phase novel **on CodonTrace**; peers are optional comparisons only, never the design baseline |
 
 ## Per-phase cycle (mandatory order)
 
 ### Stage 1 — Design storm (two rounds)
 
-1. Round 1: A/B/C/M/I each bring literature or repo evidence; I must search for unused affordances (pipelines, controls, measurement tricks, coupling patterns) that are rare or absent in Avida/Symbulation/MABE-class stacks and relevant to **this** phase.
-2. Round 2: Critique each other; consensus on what enters the phase brief (adopt / defer / reject). Novelty is scored by **process affordance**, not by buzzwords.
+1. Round 1: A/B/C/M/I each bring literature or repo evidence. **Baseline for design is always the CodonTrace life-loop and contracts already landed** (plus this phase’s goals). Role I searches for unused process affordances (pipelines, controls, measurement tricks, coupling patterns) that would be novel **on the CodonTrace stack** for **this** phase. Peer engines (Avida, Symbulation, MABE, and others) may appear only as optional peer comparisons or compatibility notes — **never** as the yardstick that defines novelty (“not in Avida ⇒ good”) and never as the conceptual foundation.
+2. Round 2: Critique each other; consensus on what enters the phase brief (adopt / defer / reject). Novelty is scored by **process affordance on CodonTrace**, not by buzzwords and not by distance from any single peer engine.
 
 ### Stage 2 — Integrator revision
 
@@ -40,10 +40,10 @@ Integrator applies agreed fixes, implements on a branch, runs phase accept tests
 
 ## Platform positioning
 
-CodonTrace Genesis is an **independent** ALife / validation engine with its own life-loop.
-It is **not** an Avida plugin or derivative baseline. Peer platforms (including Avida) may be
-compared or optionally supported for compatibility; design storms must not treat them as the
-foundation. Novelty is scored on process affordances on the CodonTrace stack.
+CodonTrace Genesis is an **independent** ALife / validation engine with its own life-loop and innovation path.
+It is **not** an Avida plugin, add-on, fork, or derivative baseline. Optional Avida support is compatibility only.
+Design storms must **not** define novelty as “absent from Avida/Symbulation/MABE.” Peer platforms may be cited as peers; the conceptual and novelty baseline is always CodonTrace.
+
 
 ## Standing constraints
 

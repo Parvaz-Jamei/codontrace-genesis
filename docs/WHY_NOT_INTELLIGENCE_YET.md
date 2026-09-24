@@ -46,8 +46,9 @@ claim gates so those failures cannot be papered over with vocabulary.
 The honest sentence is:
 
 > CodonTrace Genesis is a deterministic, replay/audit-first Python research
-> library for Avida-like ecology experiments. It is **not close to AGI**.
-> Measuring a barrier is not crossing it.
+> library — an **independent** ALife / digital-evolution engine with its own
+> life-loop. It is **not** an Avida plugin, add-on, or design baseline, and it
+> is **not close to AGI**. Measuring a barrier is not crossing it.
 
 Phase F/H work (collective/deme payoff campaigns, group-vs-individual
 contrasts and effect sizes, division-of-labor *metrics*, communication
@@ -75,7 +76,7 @@ forbids the corresponding claim.
 | Tokyo Type 1 procedure (Channon 2024) | Multi-step *test* of ongoing adaptive novelty, including shadow/normalization and multi-replicate decision | `TokyoType1MeasurementProtocol`, multi-seed campaign, opt-in shadow digest, window-sweep suite | A Type 1 **pass**. Measurement steps ≠ pass | `tokyo_type1_measurement_only`; `tokyo_type1_passed` **blocked** |
 | Vocabulary gap (arXiv 2607.09560) | Invent and *stabilize* new representational primitives that change the search space | ADF/macro *proposals*, codon-table extensions as auditable metadata | Endogenous vocabulary that alters the search frame and is reused because it pays | Not open-ended intelligence |
 | Verifier gap (arXiv 2607.09560) | Evaluate new primitives when payoff is only visible after future reuse; verifier may need to co-evolve | ClaimGate, contribution ledger, delayed-reward traces, instinct ablation hooks | A self-extending evaluator; future-reuse credit that is not an attribution estimate | Ledger is **not** causal proof |
-| Culture/tech vs ecology (JaxLife 2024) | Embodied NN agents accumulating culture/tech while abstracting physics/chemistry | Avida-like instruction ecology + audit/replay/ClaimGate | JaxLife NN agents, culture/tech accumulation, CLIP/ASAL OE search | Complementary; **not** a port; `avida_replacement` **blocked** |
+| Culture/tech vs ecology (JaxLife 2024) | Embodied NN agents accumulating culture/tech while abstracting physics/chemistry | Independent instruction/genome ecology + audit/replay/ClaimGate | JaxLife NN agents, culture/tech accumulation, CLIP/ASAL OE search | Complementary; **not** a port; `avida_replacement` **blocked** |
 | Collective intelligence (Goldsby; GECCO 2008; demes; major transitions) | Division of labor, multilevel selection, group-over-individual payoff, heldout partners, communication ablation | Messaging buffer, role gates, deme payoff + ledger, Phase F campaign metrics, Phase H ablation/effect-size *harnesses* + RAG corpus | Literature-grade multilevel experiments and heldout generalization as default evidence | Group fitness = `runtime_observation`; `collective_intelligence` **blocked** |
 
 None of these rows is a claim that CodonTrace Genesis is close to crossing
@@ -231,9 +232,10 @@ ingredient sitting one flag flip away.
 abstracts physics/chemistry** and uses embodied neural-network agents that
 seek culture/tech accumulation.
 
-**CodonTrace Genesis is the other cut:** instruction/genome ecology in the
-Avida tradition, plus a first-class **audit / replay / ClaimGate** evidence
-layer. Basal energy-budget *inspiration* is landed on the life-loop preset.
+**CodonTrace Genesis is the other cut:** an independent instruction/genome
+ecology engine with its own life-loop, plus a first-class **audit / replay /
+ClaimGate** evidence layer. Peer platforms such as Avida are comparators or
+optional compatibility targets — not the foundation. Basal energy-budget *inspiration* is landed on the life-loop preset.
 JaxLife-style culture/tech NN agents are **not** ported and are not a Phase F
 goal for core.
 

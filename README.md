@@ -73,7 +73,7 @@ Phases A–G remain the earlier `0.3.0b3` substrate. Phases H–L + HE01 SCHEMA 
 | Phase | What landed | Claim ceiling |
 |---|---|---|
 | **A** | Darwinian life-loop ecology preset (`life_loop_world`: eat → survive → asexual reproduce) | `runtime_observation` |
-| **B** | Avida-parity sexual recombination (opt-in; defaults stay asexual) | `runtime_observation` |
+| **B** | Sexual recombination substrate (opt-in; defaults stay asexual; optional avida.cfg-compatible knobs) | `runtime_observation` |
 | **C** | Dynamic / fluctuating environment (chemostat, regimes, patches) | `runtime_observation` |
 | **D** | Multi-generation evidence pack; Tokyo Type 1 *measurement* only | `oee_measurement_only` / `tokyo_type1_measurement_only` |
 | **E** | Capsule / memory / role / deme substrate (opt-in) | `runtime_observation` |

@@ -38,6 +38,13 @@ The integrator (maintainer executing the phase) re-searches with current sources
 
 Integrator applies agreed fixes, implements on a branch, runs phase accept tests, writes ordinary research notes (no tool-chain attribution), and lands the phase on `main` by direct push. Next phase does not start Stage 4 until Stage 3 consensus is recorded.
 
+## Platform positioning
+
+CodonTrace Genesis is an **independent** ALife / validation engine with its own life-loop.
+It is **not** an Avida plugin or derivative baseline. Peer platforms (including Avida) may be
+compared or optionally supported for compatibility; design storms must not treat them as the
+foundation. Novelty is scored on process affordances on the CodonTrace stack.
+
 ## Standing constraints
 
 - Engine remains a modular general ALife / validation platform; discipline modules configure primitives and do not reimplement tick / population / energy / replay.

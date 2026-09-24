@@ -12,7 +12,7 @@
 
 ## Digest
 
-JaxLife (arXiv 2409.00853, 2024) deliberately abstracts physics/chemistry and uses embodied neural-network agents that seek culture and technology accumulation. That is a complementary cut to CodonTrace Genesis, which is instruction/genome ecology in the Avida tradition plus a first-class audit/replay/ClaimGate evidence layer. A JaxLife culture result is not a CodonTrace Genesis intelligence result. A CodonTrace Genesis digest is not a JaxLife embodiment result. ASAL / CLIP foundation-model open-ended search (arXiv 2412.17799) remains out of the dependency-free core. Phase H does not port JaxLife agents. Basal energy-budget inspiration is already landed on the life-loop preset. Complementary means cite, do not clone, and do not race.
+JaxLife (arXiv 2409.00853, 2024) deliberately abstracts physics/chemistry and uses embodied neural-network agents that seek culture and technology accumulation. That is a complementary cut to CodonTrace Genesis, which is an independent instruction/genome ecology engine with its own life-loop plus a first-class audit/replay/ClaimGate evidence layer (Avida may appear only as a peer comparator or optional compatibility target — not as the foundation). A JaxLife culture result is not a CodonTrace Genesis intelligence result. A CodonTrace Genesis digest is not a JaxLife embodiment result. ASAL / CLIP foundation-model open-ended search (arXiv 2412.17799) remains out of the dependency-free core. Phase H does not port JaxLife agents. Basal energy-budget inspiration is already landed on the life-loop preset. Complementary means cite, do not clone, and do not race.
 
 ## Key claims
 
@@ -22,7 +22,7 @@ JaxLife (arXiv 2409.00853, 2024) deliberately abstracts physics/chemistry and us
 
 ## What CodonTrace Genesis has
 
-Avida-like instruction ecology; audit/replay/ClaimGate; basal energy-budget inspiration on life-loop; honesty docs naming JaxLife as complementary.
+Independent instruction/genome ecology (own life-loop); audit/replay/ClaimGate; basal energy-budget inspiration on life-loop; honesty docs naming JaxLife as complementary.
 
 ## What CodonTrace Genesis lacks
 

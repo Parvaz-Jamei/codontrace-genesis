@@ -34,8 +34,8 @@
   meeting the bar when contact stress is declared and has no arm.
 - README links to repository files are absolute GitHub URLs, so the PyPI
   rendering of the same file does not 404 them.
-- `0.3.0b7` is tagged `v0.3.0b7` and published on PyPI. Do not recut it.
-  Prior immutable tips: `0.3.0b4` / `0.3.0b5` / `0.3.0b6`.
+- `0.3.0b8` is tagged `v0.3.0b8` and published on PyPI. Do not recut it.
+  Prior immutable tips: `0.3.0b4` / `0.3.0b5` / `0.3.0b6` / `0.3.0b7`.
 - The English BAIC file is rebuilt in the congress template, not an IEEE
   template, and the package no longer contains a duplicate core-properties
   part. Word can open `paper/baic/BAIC2026_Jamei_en.docx`. The English
@@ -84,6 +84,35 @@
 - Extra outcome rows beyond the seed list do not count as replicates
   and do not carry a confidence interval (unit of analysis; Hurlbert
   1984). One value per seed, as in HE01, is unchanged.
+
+## [0.3.0b8] — 2026-09-24
+
+Research-beta cut. Tag `v0.3.0b8`. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, or `0.3.0b7`.
+
+### Host–parasite SF fidelity + DX differentiation campaigns
+
+Committed on `main` via PR #55 (`sim-fidelity-campaigns-20260924`). Runners:
+`host_parasite_sim_fidelity_campaigns.py`, `host_parasite_diff_campaigns.py`.
+Suite: `tests/test_host_parasite_sim_fidelity.py`. Results + prose:
+`docs/claimgate/host_parasite_port_20260924/` (`SIM_FIDELITY_CAMPAIGNS_20260924.md`,
+`sim_fidelity_campaigns_results.json`).
+
+- **SF tally:** 7 SUCCESS / 0 PARTIAL / **1 FAIL**. Intentional hard failure on
+  **SF4** (Rabajante multi-host Red Queen / rare-type NFD cycling,
+  DOI 10.1186/s12898-015-0055-7): `cycling_detected=False` on all seeds;
+  `red_queen_proved` stays False. Documented model limitation, not a fake win.
+- **DX tally:** 8 SUCCESS. Fail-closed highlights: DX1 (17/17 overclaims blocked
+  despite biotic Δentropy≈0.444); DX7 (obs 0.2 vs forced interventions 1.0/1.0/1.0
+  still `intervention_supported=False`); DX5 (content-null required for
+  `candidate_evidence`); DX3 (measurement-only ALLOWED, `*_passed` REFUSED);
+  DX2 (Price covariance diagnostic; `major_transition_proved` stays False).
+- Architecture locks unchanged: infection physics stays on the `host_parasite`
+  DomainProfile port — **not** baked into `engine.py`. BAIC pins A–C
+  byte-identical. ClaimGate refuse list not loosened.
+
+Also rides this cut from earlier main: cell↔microbe hard campaigns (#54) and
+host–parasite hard honesty regressions (#53). Runtime `__version__` reads
+`[project].version` (`0.3.0b8`).
 
 ## [0.3.0b7] — 2026-09-24
 

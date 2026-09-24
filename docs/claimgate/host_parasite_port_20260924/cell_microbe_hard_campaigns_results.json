@@ -1,0 +1,537 @@
+{
+  "campaign_digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "campaigns": [
+    {
+      "api": "run_multi_seed_contingency_campaign",
+      "arm_digests": {
+        "parasite_absent": "c50ba73eae4036b80a853c8c260a7c3b24e04a8ad7cc8913d4573a465bbbb63e",
+        "parasite_present": "8458aadf6cb37fedd429eadddd9a657b9f8b78075d9a55f029b6c7b36d0ccfbe"
+      },
+      "campaign_digest_edge": "7e44ba94d64806506cc5723a1c5bca39fe661afcc34befd4a7dad72403e5c7d6",
+      "campaign_digest_mixed": "56c8fc8db2b2ccb7fc47b010593ca63b41bea5e75ba6ce8ce290d7e2f8088163",
+      "claim_ceiling_edge": "runtime_observation",
+      "claim_ceiling_mixed": "runtime_observation",
+      "complexity_emergence_proved": false,
+      "cross_seed_variance_mixed": 1.1428571429,
+      "failure_reason_mixed": "parasites_do_not_always_raise_complexity_across_seeds",
+      "falsification_path": "parasite_absent dual-null + contingent seed collapses",
+      "honesty": "Support on edge seeds \u2260 complexity_emergence_proved; mixed pack falsifies universal rise law.",
+      "hypothesis": "parasites_always_raise_complexity_across_seeds",
+      "hypothesis_supported_edge": true,
+      "hypothesis_supported_mixed": false,
+      "id": "CM1_multi_seed_contingency",
+      "mean_delta_absent": 0.625,
+      "mean_delta_present": 0.5,
+      "n_failing_under_parasitism": 6,
+      "n_rising_under_parasitism": 2,
+      "parasite_present_heat": [
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 3
+        },
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 6
+        },
+        {
+          "contingent_seed": false,
+          "outcome_score": 0.2,
+          "richness_delta": 3,
+          "seed": 7
+        },
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 8
+        },
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 9
+        },
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 11
+        },
+        {
+          "contingent_seed": true,
+          "outcome_score": 0.0,
+          "richness_delta": 0,
+          "seed": 12
+        },
+        {
+          "contingent_seed": false,
+          "outcome_score": 0.2,
+          "richness_delta": 1,
+          "seed": 13
+        }
+      ],
+      "seed_digests_are_distinct": true,
+      "seeds_mixed": [
+        3,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13
+      ],
+      "seeds_supporting_edge": [
+        1,
+        2,
+        4
+      ],
+      "title": "Multi-seed contingency \u2014 when parasites fail to raise complexity",
+      "why_hard": "Zaman S1 honesty: mixed seeds include contingent collapses and rising seeds; supporting-edge pack still never unlocks complexity emergence."
+    },
+    {
+      "api": "run_genome_zaman_campaign",
+      "arm_digests": {
+        "freeze_parasites": "fa5ffc05a3f8f94022073112b86273708ff554777f820a1eb89079eca035a84f",
+        "reciprocal_coevolution": "015e657c2618163fbd19746d7b8ffc908e584d8672c4fd83aacd50a369241513",
+        "replay_parasite_schedule": "7c6c10a9e1e9f0947cdac86320bf10d898604606686a150dd6b742abb6e13887"
+      },
+      "arms_are_distinct": true,
+      "campaign_digest": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec",
+      "claim_ceiling": "runtime_observation",
+      "complexity_emergence_proved": false,
+      "falsification_path": "arm digest distinctness; frozen parasite trajectory flat",
+      "honesty": "Digital genome analogue only; CRISPR / gene identity unproved.",
+      "id": "CM2_dual_genome_zaman",
+      "per_arm": {
+        "freeze_parasites": {
+          "arm_digest": "fa5ffc05a3f8f94022073112b86273708ff554777f820a1eb89079eca035a84f",
+          "distinct_parasite_final_digests": 4,
+          "host_final_digests_prefix": [
+            "123854cdb87a66c9",
+            "91e1b4ade8581889",
+            "44fe9b6ef9156ef1",
+            "2b26357abbb41c37"
+          ],
+          "host_parasite_digest_pairs_distinct": true,
+          "mean_host_genome_length": 8.0,
+          "parasite_final_digests_prefix": [
+            "9345e0c217bd7e02",
+            "86316b9f46431687",
+            "b08961a46ad963b9",
+            "b3372ff59866375c"
+          ]
+        },
+        "reciprocal_coevolution": {
+          "arm_digest": "015e657c2618163fbd19746d7b8ffc908e584d8672c4fd83aacd50a369241513",
+          "distinct_parasite_final_digests": 4,
+          "host_final_digests_prefix": [
+            "014bb2a319f3b75c",
+            "3831659964883b4a",
+            "4df0ed10db632e6f",
+            "873b281a7b213cb0"
+          ],
+          "host_parasite_digest_pairs_distinct": true,
+          "mean_host_genome_length": 8.0,
+          "parasite_final_digests_prefix": [
+            "dfb9cbb3048e8092",
+            "10fb8c59a36c3b93",
+            "d26c331fb288d556",
+            "2a5d85987612d9e9"
+          ]
+        },
+        "replay_parasite_schedule": {
+          "arm_digest": "7c6c10a9e1e9f0947cdac86320bf10d898604606686a150dd6b742abb6e13887",
+          "distinct_parasite_final_digests": 4,
+          "host_final_digests_prefix": [
+            "fabb5d5513dbf8e6",
+            "1a95e078b38c40fc",
+            "43ad573ddac08c70",
+            "ec9c50b10b5f84a2"
+          ],
+          "host_parasite_digest_pairs_distinct": true,
+          "mean_host_genome_length": 8.0,
+          "parasite_final_digests_prefix": [
+            "5746d54c7b8fe332",
+            "8a09967be715d427",
+            "0ad06d41cf84da92",
+            "736d0435bac6de5a"
+          ]
+        }
+      },
+      "red_queen_proved": false,
+      "repertoire_campaign_digest": "bcbc872b7d8aa0689d20c0804f8795a2dbbf67605dd0ed90d90cf5af98799fd1",
+      "seeds": [
+        101,
+        202,
+        303,
+        404
+      ],
+      "steps": 5,
+      "title": "Dual-genome Zaman freeze / replay / reciprocal (cell vs microbe labels)",
+      "why_hard": "Host SemanticGenome (cell substrate) and parasite SemanticGenome (microbe label) digests must separate across freeze/replay/reciprocal arms without claiming Red Queen or complexity emergence."
+    },
+    {
+      "api": "run_genome_diversity_campaign",
+      "arm_stats": {
+        "abiotic_stress": {
+          "arm_digest": "cf23d9b65865f0ffe1b1b9821152c0842770dba403e8035468bad8f96316332f",
+          "mean_entropy": 2.4187263599,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        },
+        "biotic_intact": {
+          "arm_digest": "74cd2bf75680327e2faeeb39bdcdb818f72aa463be91dd38ab6ff1ff1224630e",
+          "mean_entropy": 2.8627525901,
+          "mean_entropy_delta_vs_baseline": 0.4440262302,
+          "mean_hamming": 0.387962963
+        },
+        "content_null": {
+          "arm_digest": "bd932675ba598a00e3e57185e167cade6107e34ab03ed3f283af82531a238dae",
+          "mean_entropy": 2.4187263599,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        },
+        "structure_null": {
+          "arm_digest": "ea8ced600a2d52471e42c31c02c44babda5fe4447c4fde6e5088bc0d7b491e1a",
+          "mean_entropy": 2.4187263599,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        }
+      },
+      "arms_are_distinct": true,
+      "biotic_minus_content_null_entropy_delta": 0.4440262302,
+      "campaign_digest": "dfbbd551f1c0e3a478b4dbf087bcf3b70841039e5d01b9b43c573acd6cd650ae",
+      "claim_ceiling": "runtime_observation",
+      "failure_reason": "parasites_do_not_always_raise_codon_entropy_under_abiotic_stress_content_null_structure_null",
+      "falsification_path": "content_null + structure_null + abiotic_stress deltas \u2264 0",
+      "honesty": "HE02 dual-null genotype observables; not wet CRISPR identity.",
+      "hypothesis": "parasites_always_raise_codon_entropy",
+      "hypothesis_supported": false,
+      "id": "CM3_entropy_hamming_dual_null",
+      "seeds": [
+        11,
+        22,
+        33,
+        44,
+        55
+      ],
+      "title": "Codon entropy / Hamming dual-null under cell\u2194microbe pressure",
+      "why_hard": "Hypothesis parasites_always_raise_codon_entropy must fail under abiotic / content-null / structure-null while biotic intact separates."
+    },
+    {
+      "api": "run_ard_fsd_transition_campaign",
+      "arm_digests": {
+        "abiotic_only": "49c1235eaa891512721cb2c812b5327d8bfbb6bc83e6df39ad4ec478ed165f08",
+        "parasite_coevolution": "31b4886715e9e68f47311c051e13631cd93ca0a2f8115d07418354a25744a8f5",
+        "structure_null_shuffled": "9d7465a9edef4330d411f2a58c34c0f41c5235edde51092d4ce8ae0cd7b9ebbf"
+      },
+      "campaign_digest": "ca7f340f448a4126a74784628446a0b46fdf914f2278a88c77255532946ff198",
+      "claim_ceiling": "runtime_observation",
+      "cost_spotlight": [
+        {
+          "arm": "parasite_coevolution",
+          "label": "ard_like",
+          "mean_cost_of_generalism": 0.2389837287,
+          "seed": 11,
+          "slice_digest": "bafefeafc913b745a3607b2fc16c98b2db3ce7a94c2431c0f7e5ad7326433c4d",
+          "slice_id": "parasite_coevolution:early:seed11"
+        },
+        {
+          "arm": "parasite_coevolution",
+          "label": "fsd_like",
+          "mean_cost_of_generalism": 0.4555775429,
+          "seed": 11,
+          "slice_digest": "ed69acaef4d63a2a0788142c9d7dda717d04b49f8985f2b54c40a09fc27b7512",
+          "slice_id": "parasite_coevolution:late:seed11"
+        },
+        {
+          "arm": "structure_null_shuffled",
+          "label": "undeclared",
+          "mean_cost_of_generalism": 0.0092652134,
+          "seed": 11,
+          "slice_digest": "0c37de5e9c2a553bdf699f931c50a5ee68918054b0bb6c27b0a6cdbbb47aa4a7",
+          "slice_id": "structure_null_shuffled:early:seed11"
+        },
+        {
+          "arm": "structure_null_shuffled",
+          "label": "undeclared",
+          "mean_cost_of_generalism": 0.0092652134,
+          "seed": 11,
+          "slice_digest": "9a6f6a96a030b0deed7c757eb88a492a52e81015ebdae9765909ccc2dd3b16e7",
+          "slice_id": "structure_null_shuffled:late:seed11"
+        },
+        {
+          "arm": "abiotic_only",
+          "label": "undeclared",
+          "mean_cost_of_generalism": 0.0116414145,
+          "seed": 11,
+          "slice_digest": "d31fde7a6069197bb469f3718be81d36616baeba2a13419649539d7281482a1b",
+          "slice_id": "abiotic_only:early:seed11"
+        },
+        {
+          "arm": "abiotic_only",
+          "label": "undeclared",
+          "mean_cost_of_generalism": 0.0568771011,
+          "seed": 11,
+          "slice_digest": "fc5448ae0b6543c64a7911d39972c8523d0cc4158c1c1f8fa74b8d68dc2ac76a",
+          "slice_id": "abiotic_only:late:seed11"
+        }
+      ],
+      "cost_spotlight_seed": 11,
+      "failure_reason": "transition_or_dual_null_falsifies_dynamics_always_ard_under_parasitism",
+      "falsification_path": "structure_null_shuffled + abiotic_only dual-null",
+      "honesty": "Digital transition protocol only; Red Queen dynamics unproved.",
+      "hypothesis": "dynamics_always_ard_under_parasitism",
+      "hypothesis_supported": false,
+      "id": "CM4_ard_fsd_cost_of_generalism",
+      "n_slices": 8,
+      "red_queen_proved": false,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "slices_are_distinct": true,
+      "title": "ARD\u2192FSD transition + cost-of-generalism under resource/partner stress",
+      "transition_observed": true,
+      "wet_ard_fsd_identity": false,
+      "why_hard": "Time-sliced range trajectories must show ARD-like\u2192FSD-like labels under parasite coevolution while dual-null arms stay undeclared; universal 'always ARD' law falsifies."
+    },
+    {
+      "api": "run_sequential_cornish_campaign",
+      "campaign_digest": "5647d342ee876b2d920333dd46b21612cad02b7d23a99d4b6ff901b0f5365150",
+      "claim_ceiling": "candidate_evidence",
+      "falsification_path": "later intervention order; ClaimGate attach refuse",
+      "honesty": "Observational twin match alone never grants intervention_supported; not clinical decision support.",
+      "id": "CM5_sequential_cornish",
+      "intervention_scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "intervention_supported": false,
+      "interventions_executed": true,
+      "later_intervention_failed": false,
+      "obs_score": 0.2,
+      "observational_match": true,
+      "preregistration_digest": "eac474f3ea1d8481cbbf540f5a2cb401de4d23b427b0cf32d1d8f33176eaa9b6",
+      "seeds": [
+        11,
+        22,
+        33,
+        44
+      ],
+      "steps": [
+        {
+          "intervention_effect_distinct": false,
+          "intervention_kind": null,
+          "intervention_supported": false,
+          "kind": "observational",
+          "matches_observational_baseline": true,
+          "score": 0.2,
+          "step_digest": "1b517eb7e345a2751c4f88b9acb53992b1c060150878ecc8fbf39a73c88c66a0",
+          "step_id": "obs_baseline"
+        },
+        {
+          "intervention_effect_distinct": true,
+          "intervention_kind": "remove_parasites",
+          "intervention_supported": false,
+          "kind": "intervention",
+          "matches_observational_baseline": false,
+          "score": 1.0,
+          "step_digest": "1be38cf8d4eb6102034794b3abc0e54b9ffc93f46a89e082d5169a76d66d02fd",
+          "step_id": "int_remove_parasites"
+        },
+        {
+          "intervention_effect_distinct": true,
+          "intervention_kind": "content_null_payload",
+          "intervention_supported": false,
+          "kind": "intervention",
+          "matches_observational_baseline": false,
+          "score": 1.0,
+          "step_digest": "bdef3f2d6495eb86617b3490d7fdb4d60f8f3d8f24ba9e09a95aab49a11b7f7c",
+          "step_id": "int_content_null"
+        },
+        {
+          "intervention_effect_distinct": true,
+          "intervention_kind": "steal_fraction_ablation",
+          "intervention_supported": false,
+          "kind": "intervention",
+          "matches_observational_baseline": false,
+          "score": 1.0,
+          "step_digest": "183bc9d402d26b2c71ab4407530e36096c51eab9ba8f50fa7856b6b77c1e3757",
+          "step_id": "int_steal_ablation"
+        }
+      ],
+      "title": "Sequential Cornish \u2014 observational match \u2260 intervention_supported",
+      "why_hard": "Ordered interventions on cell-level outcome scores can all be effect-distinct after observational match and still must refuse intervention_supported (Cornish rule)."
+    },
+    {
+      "abiotic_elevated_minus_coevo_elevated_fitness": 0.1157407407,
+      "api": "run_scanlan_mutator_campaign",
+      "arm_stats": {
+        "abiotic_elevated_mutation": {
+          "arm_digest": "23f99677a41c00e0583c83ca7a7ad20a02932aa3bdf147f3eaa932cd586bb201",
+          "mean_abiotic_fitness": 0.6574074074,
+          "mean_entropy": 2.7292549541,
+          "mean_hamming": 0.212962963,
+          "mutation_factor": 4.0
+        },
+        "coevolution_baseline_mutation": {
+          "arm_digest": "957a2ac51b7dd431e498ec1a7aa2bf7e9822a12cffcae4f58ad5f16962c733cc",
+          "mean_abiotic_fitness": 0.4861111111,
+          "mean_entropy": 2.680830585,
+          "mean_hamming": 0.1419753086,
+          "mutation_factor": 1.0
+        },
+        "coevolution_elevated_mutation": {
+          "arm_digest": "67ff88c61db08e859c98e202ee8e87d8d8b2bf6453607b62ff6d3af351e41f4c",
+          "mean_abiotic_fitness": 0.5416666667,
+          "mean_entropy": 2.858914782,
+          "mean_hamming": 0.4104938272,
+          "mutation_factor": 4.0
+        },
+        "content_null_elevated_mutation": {
+          "arm_digest": "852c1d3ecc09c399eec50ffa7094f42d8305ae952460603f4a1c75d287a0cc4e",
+          "mean_abiotic_fitness": 0.4861111111,
+          "mean_entropy": 2.8835022841,
+          "mean_hamming": 0.4598765432,
+          "mutation_factor": 4.0
+        }
+      },
+      "arms_are_distinct": true,
+      "campaign_digest": "68f1d47bda93dea02e53d20e1c82ba7a53e8cce19e44a21bc4ff02fbb0fdc42a",
+      "claim_ceiling": "candidate_evidence",
+      "crispr_identity_proved": false,
+      "failure_reason": "elevated_mutation_under_coevolution_does_not_always_improve_abiotic_scanlan_constraint",
+      "falsification_path": "abiotic_elevated + content_null_elevated dual-null",
+      "gene_identity_proved": false,
+      "honesty": "Digital mutator honesty map; wet mutator-gene identity unproved.",
+      "hypothesis": "elevated_mutation_under_coevolution_always_improves_abiotic",
+      "hypothesis_supported": false,
+      "id": "CM6_scanlan_mutator_dual_null",
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "title": "Scanlan mutator dual-null under abiotic constraint",
+      "why_hard": "Elevated mutation under coevolution must not always improve abiotic fitness vs abiotic-elevated / content-null arms (Scanlan constraint)."
+    },
+    {
+      "api": "build_task_gene_map",
+      "claim_ceiling": "runtime_observation",
+      "falsification_path": "content_null_proxy map digest must differ from intact cell map",
+      "gene_identity_proved": false,
+      "honesty": "Declared digital phenotype link only; not CRISPR / wet locus proof.",
+      "id": "CM7_task_gene_dual_null_panel",
+      "map_digests_pairwise_distinct": true,
+      "maps": {
+        "cell_host_substrate": {
+          "crispr_identity_proved": false,
+          "gene_identity_proved": false,
+          "host_genome_digest": "733ed3e9e6d6140b726fd3b2f8ff81d0b21eb3505ac6542dda2dbfe0fbee29b1",
+          "map_digest": "785233770d414cb470588eb8ff26c0483843f7007603ac5dba7568bacefeaa55",
+          "n_windows": 6,
+          "seed": 42,
+          "task_labels": [
+            "and",
+            "nand",
+            "or",
+            "xor",
+            "nor",
+            "equ"
+          ]
+        },
+        "content_null_proxy": {
+          "crispr_identity_proved": false,
+          "gene_identity_proved": false,
+          "host_genome_digest": "5d1626285320fd0b4adb974cdc6556054d3757c68b4e41e45acf614112d62879",
+          "map_digest": "96f0299a30e0130cf28b57212c1e7b8a4ca4ddfae8aa451573ab2d239da2a5d4",
+          "n_windows": 6,
+          "seed": 819,
+          "task_labels": [
+            "or",
+            "xor",
+            "nand",
+            "and",
+            "nor",
+            "equ"
+          ]
+        },
+        "microbe_parasite_label": {
+          "crispr_identity_proved": false,
+          "gene_identity_proved": false,
+          "host_genome_digest": "029764bd73378297d883de7297cf92631fd4378cb700096020ce194d673f0c9f",
+          "map_digest": "da8055d53b109cb670e73de4582135a77aff04e10a639ade0399e8e213272443",
+          "n_windows": 6,
+          "seed": 10049,
+          "task_labels": [
+            "nor",
+            "equ",
+            "or",
+            "nand",
+            "xor",
+            "and"
+          ]
+        }
+      },
+      "title": "Declared task\u2013gene map under cell vs microbe label + content-null proxy",
+      "why_hard": "Same declared phenotype-link API must produce distinct digests for cell-host substrate, microbe-parasite label, and content-null proxy without unlocking gene identity."
+    }
+  ],
+  "cell_role": "semantic_genome_genesis_substrate",
+  "claim_ceiling": "runtime_observation",
+  "claimgate_audit": {
+    "attached_campaign_digests": {
+      "ard_fsd": "ca7f340f448a4126a74784628446a0b46fdf914f2278a88c77255532946ff198",
+      "contingency": "56c8fc8db2b2ccb7fc47b010593ca63b41bea5e75ba6ce8ce290d7e2f8088163",
+      "cornish_sequential": "2f6f4cb9f6748b9d6bb8d1a5cd75ab509030b86dbd9622e11e0414eff98a6a72",
+      "genome_diversity": "dfbbd551f1c0e3a478b4dbf087bcf3b70841039e5d01b9b43c573acd6cd650ae",
+      "genome_zaman": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec",
+      "scanlan_mutator": "68f1d47bda93dea02e53d20e1c82ba7a53e8cce19e44a21bc4ff02fbb0fdc42a",
+      "task_gene_cell": "785233770d414cb470588eb8ff26c0483843f7007603ac5dba7568bacefeaa55"
+    },
+    "audit_achieved_level": 0,
+    "audit_passed": true,
+    "blocked_spot_check": {
+      "biosafety_level_certified": true,
+      "clinical_pathogen_model": true,
+      "complexity_emergence_proved": true,
+      "crispr_identity_proved": true,
+      "gene_identity_proved": true,
+      "intelligence_proved": true,
+      "intervention_supported": true,
+      "modes_passed_proved": true,
+      "oee_modes_passed": true,
+      "phage_therapy_cleared": true,
+      "red_queen_proved": true
+    },
+    "claim_ceiling_cap": "candidate_evidence",
+    "ladder_after": "0",
+    "ladder_before": "0",
+    "ladder_unchanged": true,
+    "preregistration_digest": "77850ab4501d61ef588eb702fd616b6184f33ed5b92ec5f355e87c5ff7d2d0b1"
+  },
+  "clinical_pathogen_model": false,
+  "complexity_emergence_proved": false,
+  "crispr_identity_proved": false,
+  "digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "domain_profile": "host_parasite",
+  "engine_infection_physics": "not_in_engine_core",
+  "gene_identity_proved": false,
+  "intervention_supported": false,
+  "microbe_role": "cou_semantic_label_only",
+  "note": "Hard cell\u2194microbe campaigns on ONE host_parasite DomainProfile. Falsification paths required; ClaimGate ceilings fail-closed. Not wet microbial cell biology; not Red Queen / phage therapy / BSL.",
+  "oee_modes_passed": false,
+  "pack_digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "phage_therapy_cleared": false,
+  "raises_claim_ladder": false,
+  "red_queen_proved": false,
+  "schema": "host_parasite_cell_microbe_hard_campaigns_v1"
+}

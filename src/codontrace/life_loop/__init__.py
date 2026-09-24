@@ -95,6 +95,35 @@ from codontrace.life_loop.schedule_lock import (
     resolve_target_members,
 )
 
+
+from codontrace.life_loop.topology_meters import (
+    TopologyMeterSnapshot,
+    betti_proxy,
+    topology_continuum_structure,
+)
+from codontrace.life_loop.info_geometry import (
+    InfoGeometryContrast,
+    contrast_phenotype_maps,
+    fisher_simplex_distance,
+    js_divergence,
+    phenotype_tag_frequencies,
+)
+from codontrace.life_loop.skyline_proxy import (
+    SkylineSeries,
+    SkylineWindow,
+    skyline_ne_proxy,
+)
+from codontrace.life_loop.farm_orchestrator import (
+    FarmApplyRecord,
+    FarmPlan,
+    apply_farm,
+)
+from codontrace.life_loop.allele_association import (
+    AlleleAssociationResult,
+    AlleleAssociationScore,
+    allele_outcome_association,
+)
+
 __all__ = [
     "ABLATION_FAIL_REASONS",
     "ABLATION_MODES",
@@ -167,4 +196,22 @@ __all__ = [
     "jaccard_overlap",
     "score_phenotypes",
     "spec_for_mode",
+
+    "TopologyMeterSnapshot",
+    "betti_proxy",
+    "topology_continuum_structure",
+    "InfoGeometryContrast",
+    "contrast_phenotype_maps",
+    "fisher_simplex_distance",
+    "js_divergence",
+    "phenotype_tag_frequencies",
+    "SkylineSeries",
+    "SkylineWindow",
+    "skyline_ne_proxy",
+    "FarmApplyRecord",
+    "FarmPlan",
+    "apply_farm",
+    "AlleleAssociationResult",
+    "AlleleAssociationScore",
+    "allele_outcome_association",
 ]

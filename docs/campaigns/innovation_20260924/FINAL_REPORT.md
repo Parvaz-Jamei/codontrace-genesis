@@ -2,7 +2,7 @@
 
 **Owner:** campaign binding 2026-09-24  
 **Repo:** codontrace-genesis `main` (local; do not push)  
-**Tip:** `2bbf459`  
+**Tip:** `ab2b082`  
 **Positioning:** CodonTrace independent engine; novelty = CodonTrace stack
 
 ## Success gates
@@ -40,6 +40,7 @@ Rejected: infection physics in `engine.py`, ClaimGate loosening, peer novelty ya
 ## Commits (local main since Phase10 tip `4df30bb`)
 
 ```
+ab2b082 docs(campaign): refresh FINAL_REPORT tip and commit list
 2bbf459 docs(campaign): Wave B feedback, Wave C battery, FINAL_REPORT
 20fbc48 test(campaign): Wave B units + Wave C hard battery for innovation_20260924
 508efdf fix(life_loop): domain-free refuse field names for banned-token scan
@@ -51,9 +52,18 @@ f637c88 feat(life_loop): park interdisciplinary innovation campaign modules
 
 ## Drive mirror
 
-Target folder id: `1F_x4x2JjTcWCVnq2BvHy7LccnzsUDp16`  
-Campaign subfolder: `innovation_20260924`  
-Artifacts: WAVE_A_STORM{1,2}.md, CONSENSUS.md, WAVE_B_FEEDBACK.md, WAVE_C_HARD_BATTERY.md, FINAL_REPORT.md
+Parent folder id: `1F_x4x2JjTcWCVnq2BvHy7LccnzsUDp16`  
+Campaign subfolder id: `1moaUfZXkKggQCVtx5PgWXB6wGNnHnURH`  
+View: https://drive.google.com/drive/folders/1moaUfZXkKggQCVtx5PgWXB6wGNnHnURH
+
+| Artifact | Drive file id |
+|---|---|
+| WAVE_A_STORM1.md | `1-ZkQSx__7jvAFLlxFN8XXTrxr2VT6J8A` |
+| WAVE_A_STORM2.md | `1LGQHG1CxskAC276pLZ75M5keVrcLyu0g` |
+| CONSENSUS.md | `1jG0mVJ41NCCwE4k5dVOfXFGneJqJC4dB` |
+| WAVE_B_FEEDBACK.md | `1WRN2_Z9Sazh9jCvcAf1exKdRpTtTU8Ne` |
+| WAVE_C_HARD_BATTERY.md | `1ZLTYym-V-3YMmXTVym2mXKeVI3kwL7xp` |
+| FINAL_REPORT.md | `1RHH9Skf_rHJfalFYfi582O0r9lGMX_Xx` (will refresh after this commit) |
 
 ## ClaimGate refuses retained (explicit)
 

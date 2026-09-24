@@ -1,5 +1,5 @@
 {
-  "campaign_digest": "1d53e990e0b14c6dd097b77e6e5bd71ba8ad574c9ca4a7923e546738b21a5ba7",
+  "campaign_digest": "46184d6d86782344905142c0db06595e20fcddb4bc0be3683be99e5244faa751",
   "campaigns": [
     {
       "claimgate_ceiling": "candidate_evidence",
@@ -237,25 +237,25 @@
     {
       "arm_stats": {
         "abiotic_stress": {
-          "arm_digest": "3446eeca124a01f64a7073d4a80174118be28cb502469d05ad1c695a740a7422",
+          "arm_digest": "f7789ff6cb09e2882ac1c4565d39c0655af797c55bece09c00f8f0e028871175",
           "mean_entropy": 2.4900319239,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
         },
         "biotic_intact": {
-          "arm_digest": "19d9e205b17240cb45620be370eb5536bc9a2fae6cbc2290427f11889a085ea6",
+          "arm_digest": "b02944d67757398e7e2ef9d319f50631879f0bc94a39f4187d5c2717aef3ad34",
           "mean_entropy": 2.8495038213,
           "mean_entropy_delta_vs_baseline": 0.3594718974,
           "mean_hamming": 0.3948412698
         },
         "content_null": {
-          "arm_digest": "0382e29d2934111b07cd4208287bb7ccd427de6da91cb08bfcca3cc9e7f798c1",
+          "arm_digest": "9b43d0828dca4f607673b3dd11033ddb74fed143c0229b1625ee5d948e5c457a",
           "mean_entropy": 2.4900319239,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
         },
         "structure_null": {
-          "arm_digest": "1622dafd0f5af3df5d06153501aa5b0defc8fb6747000b4950e4768c432d79b9",
+          "arm_digest": "0b26e401857016e6b1d93ed953b4b0d170f3c0dda4286bc6320120d05561cd25",
           "mean_entropy": 2.4900319239,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
@@ -264,7 +264,7 @@
       "arms_are_distinct": true,
       "biotic_minus_abiotic": 0.3594718974,
       "biotic_minus_content_null": 0.3594718974,
-      "campaign_digest": "a9343b410a5c7ffec8d1eb4ae0dd26a8df91e0fa451d528382bd216870f617c9",
+      "campaign_digest": "7cc8ebe2c62491ddaf290ba1b17f8459e07387413e6b7ffd58ff3cdbbfd32420",
       "claimgate_ceiling": "candidate_evidence",
       "claimgate_refuses": [
         "complexity_emergence_proved",
@@ -684,14 +684,14 @@
       ],
       "cross_seed_distinct": true,
       "diversity_digests_rep1": [
-        "ee04b6c48b65acedf6dee11fff14f1e792159b15aca90d716914115be86b2b2d",
-        "1da609649f3aa2bad20242f91e6349d4cd4bccfb4e30695f56621ce9d352fa9d",
-        "8e3250ca3167dd7494638b20f3d7d2beba307711262306684d9a7b76986b3701"
+        "0daedf10c345d73c7d32b7196957bf6c7424f11b880cf76b82e0ad71bbf00c20",
+        "0528d37f92d302e8e794e2c893a266276d0330e8813b2e29d4aaa680d7422686",
+        "dde1e45a8da80f72e9993cb0c2caf711243a98b010858d0821a1c792679202b2"
       ],
       "diversity_digests_rep2": [
-        "ee04b6c48b65acedf6dee11fff14f1e792159b15aca90d716914115be86b2b2d",
-        "1da609649f3aa2bad20242f91e6349d4cd4bccfb4e30695f56621ce9d352fa9d",
-        "8e3250ca3167dd7494638b20f3d7d2beba307711262306684d9a7b76986b3701"
+        "0daedf10c345d73c7d32b7196957bf6c7424f11b880cf76b82e0ad71bbf00c20",
+        "0528d37f92d302e8e794e2c893a266276d0330e8813b2e29d4aaa680d7422686",
+        "dde1e45a8da80f72e9993cb0c2caf711243a98b010858d0821a1c792679202b2"
       ],
       "doi": "internal:ENGINE_REPLAY_CONTRACT",
       "honesty": "Simulation reproducibility only; not scientific claim escalation.",
@@ -912,8 +912,8 @@
     },
     {
       "base_vs_mutated_prefixes": [
-        "ee04b6c48b65aced",
-        "0e15318cb3dd6198"
+        "0daedf10c345d73c",
+        "13283f3bff36c77f"
       ],
       "claimgate_ceiling": "runtime_observation",
       "claimgate_refuses": [
@@ -923,14 +923,14 @@
       "contrast_headline": "Identical seeds \u2192 identical digests; seed+1 \u2192 mismatch; forged intervention_supported attach \u2192 ConfigurationError",
       "cross_seed_distinct": true,
       "digest_rep1_prefixes": [
-        "ee04b6c48b65aced",
-        "1da609649f3aa2ba",
-        "8e3250ca3167dd74"
+        "0daedf10c345d73c",
+        "0528d37f92d302e8",
+        "dde1e45a8da80f72"
       ],
       "digest_rep2_prefixes": [
-        "ee04b6c48b65aced",
-        "1da609649f3aa2ba",
-        "8e3250ca3167dd74"
+        "0daedf10c345d73c",
+        "0528d37f92d302e8",
+        "dde1e45a8da80f72"
       ],
       "doi": "internal:ENGINE_REPLAY_CONTRACT",
       "honesty": "Replay/claim binding only; not scientific escalation.",
@@ -1122,7 +1122,7 @@
     "attached_campaign_digests": {
       "ard_fsd": "42e64f78cfd8adaaf2bb6a80eb89f3aee33c47686a007dd1b1850122de65d901",
       "cornish_sequential": "61b083e1a2a8c6db6a710bfe96155dd14bfd30b1008e8b0859db33768a3680a9",
-      "genome_diversity": "a9343b410a5c7ffec8d1eb4ae0dd26a8df91e0fa451d528382bd216870f617c9",
+      "genome_diversity": "7cc8ebe2c62491ddaf290ba1b17f8459e07387413e6b7ffd58ff3cdbbfd32420",
       "genome_zaman": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec"
     },
     "audit_achieved_level": 0,
@@ -1151,7 +1151,7 @@
   "clinical_pathogen_model": false,
   "complexity_emergence_proved": false,
   "crispr_identity_proved": false,
-  "digest": "1d53e990e0b14c6dd097b77e6e5bd71ba8ad574c9ca4a7923e546738b21a5ba7",
+  "digest": "46184d6d86782344905142c0db06595e20fcddb4bc0be3683be99e5244faa751",
   "domain_profile": "host_parasite",
   "engine_infection_physics": "not_in_engine_core",
   "gene_identity_proved": false,
@@ -1165,7 +1165,7 @@
   "n_success": 16,
   "note": "Scientific Simulation Fidelity (SF) + Differentiation (DX) campaigns on ONE host_parasite DomainProfile. Qualitative literature signatures only; ClaimGate ceilings fail-closed. Not wet biology, Red Queen proof, phage therapy, BSL, or CRISPR identity.",
   "oee_modes_passed": false,
-  "pack_digest": "1d53e990e0b14c6dd097b77e6e5bd71ba8ad574c9ca4a7923e546738b21a5ba7",
+  "pack_digest": "46184d6d86782344905142c0db06595e20fcddb4bc0be3683be99e5244faa751",
   "phage_therapy_cleared": false,
   "raises_claim_ladder": false,
   "red_queen_proved": false,

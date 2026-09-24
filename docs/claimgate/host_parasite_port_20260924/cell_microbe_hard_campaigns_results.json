@@ -1,5 +1,5 @@
 {
-  "campaign_digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "campaign_digest": "bd384b651e074478ef2c8fa904dbc19a40c02021294c193a8aaf4cf8ad6663fc",
   "campaigns": [
     {
       "api": "run_multi_seed_contingency_campaign",
@@ -179,25 +179,25 @@
       "api": "run_genome_diversity_campaign",
       "arm_stats": {
         "abiotic_stress": {
-          "arm_digest": "cf23d9b65865f0ffe1b1b9821152c0842770dba403e8035468bad8f96316332f",
+          "arm_digest": "ca267078ad50addb7d2f8f2cd2ac0d4ad845065bece23e8f4a647d4430f06dd4",
           "mean_entropy": 2.4187263599,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
         },
         "biotic_intact": {
-          "arm_digest": "74cd2bf75680327e2faeeb39bdcdb818f72aa463be91dd38ab6ff1ff1224630e",
+          "arm_digest": "6af15b90522186be78467c3cd18a39fdb3649ab000b8dde14b0c158289b81ec4",
           "mean_entropy": 2.8627525901,
           "mean_entropy_delta_vs_baseline": 0.4440262302,
           "mean_hamming": 0.387962963
         },
         "content_null": {
-          "arm_digest": "bd932675ba598a00e3e57185e167cade6107e34ab03ed3f283af82531a238dae",
+          "arm_digest": "f505bebb75afe0879983752866d9bdbbe2eb531aafcdfdff061048cabce6efad",
           "mean_entropy": 2.4187263599,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
         },
         "structure_null": {
-          "arm_digest": "ea8ced600a2d52471e42c31c02c44babda5fe4447c4fde6e5088bc0d7b491e1a",
+          "arm_digest": "9411c7129d10ad2b3e879bd06806bbe3212fdc8aab63a0b0b39a04abc36ebe01",
           "mean_entropy": 2.4187263599,
           "mean_entropy_delta_vs_baseline": 0.0,
           "mean_hamming": 0.0
@@ -205,7 +205,7 @@
       },
       "arms_are_distinct": true,
       "biotic_minus_content_null_entropy_delta": 0.4440262302,
-      "campaign_digest": "dfbbd551f1c0e3a478b4dbf087bcf3b70841039e5d01b9b43c573acd6cd650ae",
+      "campaign_digest": "482c7287696df2971e299de8c36279e6e4439f1c78b50e032ef5bfcbe7dc4908",
       "claim_ceiling": "runtime_observation",
       "failure_reason": "parasites_do_not_always_raise_codon_entropy_under_abiotic_stress_content_null_structure_null",
       "falsification_path": "content_null + structure_null + abiotic_stress deltas \u2264 0",
@@ -376,28 +376,28 @@
       "api": "run_scanlan_mutator_campaign",
       "arm_stats": {
         "abiotic_elevated_mutation": {
-          "arm_digest": "23f99677a41c00e0583c83ca7a7ad20a02932aa3bdf147f3eaa932cd586bb201",
+          "arm_digest": "29c8d96ac102962ed92dc0bacaa7c618973fab936cdbdc3840c598ba11cabb1c",
           "mean_abiotic_fitness": 0.6574074074,
           "mean_entropy": 2.7292549541,
           "mean_hamming": 0.212962963,
           "mutation_factor": 4.0
         },
         "coevolution_baseline_mutation": {
-          "arm_digest": "957a2ac51b7dd431e498ec1a7aa2bf7e9822a12cffcae4f58ad5f16962c733cc",
+          "arm_digest": "88890bebc598cbca609d32f23bf8ff8a3455668697534395a9009ce92fdf169c",
           "mean_abiotic_fitness": 0.4861111111,
           "mean_entropy": 2.680830585,
           "mean_hamming": 0.1419753086,
           "mutation_factor": 1.0
         },
         "coevolution_elevated_mutation": {
-          "arm_digest": "67ff88c61db08e859c98e202ee8e87d8d8b2bf6453607b62ff6d3af351e41f4c",
+          "arm_digest": "365237d5575ec18d4bf0acbec49e89176a68e0eebc0b2732f7a8f6f06718a762",
           "mean_abiotic_fitness": 0.5416666667,
           "mean_entropy": 2.858914782,
-          "mean_hamming": 0.4104938272,
+          "mean_hamming": 0.4104938271,
           "mutation_factor": 4.0
         },
         "content_null_elevated_mutation": {
-          "arm_digest": "852c1d3ecc09c399eec50ffa7094f42d8305ae952460603f4a1c75d287a0cc4e",
+          "arm_digest": "ae23ed914f91f5b34346348a2b9a5597ddf30825cbad2525f06ea4f4fc337095",
           "mean_abiotic_fitness": 0.4861111111,
           "mean_entropy": 2.8835022841,
           "mean_hamming": 0.4598765432,
@@ -405,7 +405,7 @@
         }
       },
       "arms_are_distinct": true,
-      "campaign_digest": "68f1d47bda93dea02e53d20e1c82ba7a53e8cce19e44a21bc4ff02fbb0fdc42a",
+      "campaign_digest": "8cee38a1304e2eef942375eecd087e375062e3a4f860d32c3996bfdbef4fef9c",
       "claim_ceiling": "candidate_evidence",
       "crispr_identity_proved": false,
       "failure_reason": "elevated_mutation_under_coevolution_does_not_always_improve_abiotic_scanlan_constraint",
@@ -492,9 +492,9 @@
       "ard_fsd": "ca7f340f448a4126a74784628446a0b46fdf914f2278a88c77255532946ff198",
       "contingency": "56c8fc8db2b2ccb7fc47b010593ca63b41bea5e75ba6ce8ce290d7e2f8088163",
       "cornish_sequential": "2f6f4cb9f6748b9d6bb8d1a5cd75ab509030b86dbd9622e11e0414eff98a6a72",
-      "genome_diversity": "dfbbd551f1c0e3a478b4dbf087bcf3b70841039e5d01b9b43c573acd6cd650ae",
+      "genome_diversity": "482c7287696df2971e299de8c36279e6e4439f1c78b50e032ef5bfcbe7dc4908",
       "genome_zaman": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec",
-      "scanlan_mutator": "68f1d47bda93dea02e53d20e1c82ba7a53e8cce19e44a21bc4ff02fbb0fdc42a",
+      "scanlan_mutator": "8cee38a1304e2eef942375eecd087e375062e3a4f860d32c3996bfdbef4fef9c",
       "task_gene_cell": "785233770d414cb470588eb8ff26c0483843f7007603ac5dba7568bacefeaa55"
     },
     "audit_achieved_level": 0,
@@ -521,7 +521,7 @@
   "clinical_pathogen_model": false,
   "complexity_emergence_proved": false,
   "crispr_identity_proved": false,
-  "digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "digest": "bd384b651e074478ef2c8fa904dbc19a40c02021294c193a8aaf4cf8ad6663fc",
   "domain_profile": "host_parasite",
   "engine_infection_physics": "not_in_engine_core",
   "gene_identity_proved": false,
@@ -529,7 +529,7 @@
   "microbe_role": "cou_semantic_label_only",
   "note": "Hard cell\u2194microbe campaigns on ONE host_parasite DomainProfile. Falsification paths required; ClaimGate ceilings fail-closed. Not wet microbial cell biology; not Red Queen / phage therapy / BSL.",
   "oee_modes_passed": false,
-  "pack_digest": "579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec",
+  "pack_digest": "bd384b651e074478ef2c8fa904dbc19a40c02021294c193a8aaf4cf8ad6663fc",
   "phage_therapy_cleared": false,
   "raises_claim_ladder": false,
   "red_queen_proved": false,

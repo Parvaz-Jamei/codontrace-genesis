@@ -5,7 +5,7 @@
 **Runner:** `src/codontrace/genesis/host_parasite_cell_microbe_hard_campaigns.py`  
 **Suite:** `tests/test_host_parasite_cell_microbe_hard_campaigns.py`  
 **Artifact:** `cell_microbe_hard_campaigns_results.json`  
-**pack_digest:** `579fa46b33a613c1dc1c3b23a9a68a92747015f2ccb0320483919776285415ec`
+**pack_digest:** `bd384b651e074478ef2c8fa904dbc19a40c02021294c193a8aaf4cf8ad6663fc`
 
 **Architecture locks (unchanged):** ONE `host_parasite` DomainProfile; **cell** =
 SemanticGenome / Genesis substrate (not a DomainProfile); microbe / bacterium /
@@ -69,7 +69,7 @@ Dolson et al. 2019 MODES doi:10.1162/artl_a_00280 (comparator, not a pass claim)
 | **Falsifier** | arm digest distinctness; frozen parasite trajectory flat |
 | **Measured** | `arms_are_distinct=True`; per-arm host≠parasite final digests for all seeds. |
 | **Honesty** | Digital genome analogue only; CRISPR / gene identity unproved. `red_queen_proved=False`, `complexity_emergence_proved=False`. |
-| **Digest** | `3a72e46caf269050cf119a02a8428cbb…` |
+| **Digest** | `bd384b651e074478ef2c8fa904dbc19a…` |
 
 **Arm digests:**  
 - `freeze_parasites`: `fa5ffc05a3f8f94022073112…`

@@ -20,10 +20,14 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_contingency import (
     SCHEMA as PHASE21_SCHEMA,
+)
+from codontrace.genesis.host_parasite_contingency import (
     run_multi_seed_contingency_campaign,
 )
 from codontrace.genesis.host_parasite_genome_diversity import (
     SCHEMA as PHASE11_SCHEMA,
+)
+from codontrace.genesis.host_parasite_genome_diversity import (
     run_genome_diversity_campaign,
 )
 

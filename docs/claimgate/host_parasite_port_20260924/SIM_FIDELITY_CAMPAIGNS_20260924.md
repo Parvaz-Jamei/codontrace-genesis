@@ -6,7 +6,7 @@
 **Runners:** `host_parasite_sim_fidelity_campaigns.py`, `host_parasite_diff_campaigns.py`  
 **Suite:** `tests/test_host_parasite_sim_fidelity.py`  
 **Artifact:** `sim_fidelity_campaigns_results.json`  
-**pack_digest:** `1d53e990e0b14c6dd097b77e6e5bd71ba8ad574c9ca4a7923e546738b21a5ba7`
+**pack_digest:** `46184d6d86782344905142c0db06595e20fcddb4bc0be3683be99e5244faa751`
 
 **Architecture locks (unchanged):** ONE `host_parasite` DomainProfile; **cell** =
 SemanticGenome / Genesis substrate; microbe / parasite = COU labels only; no

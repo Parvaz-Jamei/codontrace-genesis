@@ -2,7 +2,7 @@
 
 **پروژه:** CodonTrace Genesis  
 **شاخه:** `exp/cell-microbe-hard-campaigns` (روی #53 باز)  
-**digest بسته:** `579fa46b33a613c1dc1c3b23a9a68a92…`
+**digest بسته:** `bd384b651e074478ef2c8fa904dbc19a…`
 
 قفل معماری دست نخورده: یک `host_parasite`؛ **cell** = زیرگاه SemanticGenome؛
 microbe/باکتری/ویروس = فقط برچسب معنایی؛ بدون فیزیک عفونت در `engine.py`؛

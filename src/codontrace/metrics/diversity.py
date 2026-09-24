@@ -45,7 +45,7 @@ def mean_genome_distance(items: Sequence[GenomeMetricInput]) -> float:
             padded_right = right.ljust(width, "-")
             total += sum(a != b for a, b in zip(padded_left, padded_right, strict=True)) / width
             pairs += 1
-    return total / pairs
+    return round(total / pairs, 10)
 
 
 def codon_usage_entropy(items: Sequence[GenomeMetricInput]) -> float:
@@ -271,7 +271,12 @@ def _entropy(counts: Counter[str]) -> float:
     total = sum(counts.values())
     if total == 0:
         return 0.0
-    return -sum((count / total) * math.log2(count / total) for count in counts.values())
+    # Quantize to 10 dp so Shannon digests stay stable across CPython minor versions
+    # (math.log2 ULP drift otherwise breaks host–parasite pack digests on 3.11 vs 3.13).
+    return round(
+        -sum((count / total) * math.log2(count / total) for count in counts.values()),
+        10,
+    )
 
 
 def _area(world: World2D) -> float:

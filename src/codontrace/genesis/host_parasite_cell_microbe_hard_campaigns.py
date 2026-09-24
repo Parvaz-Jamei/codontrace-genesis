@@ -15,6 +15,7 @@ over hyped positives. Claim ceilings stay fail-closed.
 from __future__ import annotations
 
 import json
+import sys
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -214,7 +215,7 @@ def _panel_genome_zaman() -> dict[str, object]:
             "distinct_parasite_final_digests": arm["distinct_parasite_final_digests"],
             "host_final_digests_prefix": [h[:16] for h in hosts],
             "parasite_final_digests_prefix": [p[:16] for p in paras],
-            "host_parasite_digest_pairs_distinct": all(h != p for h, p in zip(hosts, paras)),
+            "host_parasite_digest_pairs_distinct": all(h != p for h, p in zip(hosts, paras, strict=False)),
         }
     return {
         "id": "CM2_dual_genome_zaman",
@@ -648,8 +649,9 @@ if __name__ == "__main__":
     default = Path("docs/claimgate/host_parasite_port_20260924/cell_microbe_hard_campaigns_results.json")
     written = write_results_json(default)
     pack = json.loads(written.read_text(encoding="utf-8"))
-    print(f"wrote {written}")
-    print(f"pack_digest={pack['pack_digest']}")
-    print(f"n_campaigns={len(pack['campaigns'])}")
+    sys.stdout.write(f"wrote {written}\n")
+    sys.stdout.write(f"pack_digest={pack['pack_digest']}\n")
+    sys.stdout.write(f"n_campaigns={len(pack['campaigns'])}\n")
     for c in pack["campaigns"]:
-        print(f"  {c['id']}: ceiling={c.get('claim_ceiling', c.get('claim_ceiling_mixed'))}")
+        ceiling = c.get("claim_ceiling", c.get("claim_ceiling_mixed"))
+        sys.stdout.write(f"  {c['id']}: ceiling={ceiling}\n")

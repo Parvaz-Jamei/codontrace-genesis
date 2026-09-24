@@ -224,3 +224,51 @@ def test_he03_last_task_persists_across_ticks() -> None:
             continue
         n_switches += len(generation.task_switch_cost_records or ())
     assert n_switches > 0
+
+
+def test_he03_mutational_overlay_raises_mutation_and_keeps_life_loop_pin() -> None:
+    from codontrace.genesis.hard_experiment_03 import (
+        HE03_MUTATION_BIT_FLIP_RATE,
+        build_hard_experiment_03_spec,
+    )
+
+    overlay = build_hard_experiment_03_spec(
+        seed=7, arm="cost_high", tick_count=4, population=4
+    )
+    assert overlay.population_configs is not None
+    assert overlay.population_configs.mutation.bit_flip_rate == HE03_MUTATION_BIT_FLIP_RATE
+    assert "mutational_specialization" in overlay.metadata
+    pinned = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=12, population=6)
+    assert pinned.digest() == LIFE_LOOP_SPEC_DIGEST
+    assert pinned.population_configs is not None
+    assert pinned.population_configs.mutation.bit_flip_rate != HE03_MUTATION_BIT_FLIP_RATE
+
+
+def test_he03_genome_task_width_counts_a_and_b() -> None:
+    from codontrace.genesis.hard_experiment_03 import (
+        HE03_DUAL_TASK_GENOME,
+        _genome_task_width,
+        _task_switch_for_arm,
+    )
+
+    config = _task_switch_for_arm("cost_high")
+    assert _genome_task_width(HE03_DUAL_TASK_GENOME, config) == 2.0
+    # EAT_LUMEN + COPY_SELF + WAIT only → TASK_A
+    assert _genome_task_width("101111000", config) == 1.0
+
+
+def test_he03_trace_samples_exclude_switch_endpoints() -> None:
+    from codontrace.genesis.hard_experiment_03 import (
+        _extract_task_samples,
+        _task_switch_for_arm,
+        build_hard_experiment_03_spec,
+    )
+
+    spec = build_hard_experiment_03_spec(
+        seed=1000, arm="cost_high", tick_count=6, population=4
+    )
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    config = _task_switch_for_arm("cost_high")
+    samples = _extract_task_samples(result, config)
+    # Ensure we still get TASK samples from traces under mutational overlay.
+    assert any(task == "TASK_A" for _, task in samples)

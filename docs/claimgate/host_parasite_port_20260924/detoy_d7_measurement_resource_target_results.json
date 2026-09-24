@@ -1,0 +1,168 @@
+{
+  "aevol_identity": false,
+  "campaign_digest": "b15ac160123c084e5056e962d04b53ade3916ff9aeba8dd4223cc73dbb0820e2",
+  "claimgate_refuses": [
+    "clinical_pathogen_model",
+    "collective_intelligence_proved",
+    "intelligence_proved",
+    "modes_passed",
+    "modes_passed_change",
+    "modes_passed_complexity",
+    "modes_passed_ecology",
+    "modes_passed_novelty",
+    "oee_proved",
+    "phage_therapy_cleared",
+    "red_queen_proved",
+    "tokyo_type1_passed"
+  ],
+  "clinical_pathogen_model": false,
+  "collective_intelligence_proved": false,
+  "doi_measurement": [
+    "10.1162/artl_a_00430",
+    "10.1162/artl_a_00280"
+  ],
+  "doi_resource": [
+    "10.1111/j.1420-9101.2008.01501.x",
+    "10.1111/ele.12337"
+  ],
+  "domain_profile": "host_parasite",
+  "engine_infection_physics": "not_in_engine_core",
+  "honesty": "Measurement-only ALLOWED pack with hard REFUSE for Tokyo/MODES pass; resource productivity modulates abstract phenotype target harshness with dual-null; not wet ecology or OEE proof.",
+  "intelligence_proved": false,
+  "measurement_honesty": {
+    "allowed_labels": [
+      "candidate_evidence",
+      "channon_tokyo_type1_procedure_cited",
+      "measurement_only",
+      "modes_toolbox_comparator_cited",
+      "pineau_seed_table_disclosed",
+      "runtime_observation"
+    ],
+    "channon_procedure_doi": "10.1162/artl_a_00430",
+    "flags": {
+      "clinical_pathogen_model": false,
+      "collective_intelligence_proved": false,
+      "intelligence_proved": false,
+      "modes_passed": false,
+      "modes_passed_change": false,
+      "modes_passed_complexity": false,
+      "modes_passed_ecology": false,
+      "modes_passed_novelty": false,
+      "oee_proved": false,
+      "phage_therapy_cleared": false,
+      "red_queen_proved": false,
+      "tokyo_type1_passed": false
+    },
+    "honesty": "Measurement-only comparator pack. Citing Channon Tokyo Type 1 procedure or MODES toolbox does not grant tokyo_type1_passed or modes_passed*.",
+    "measurement_only": true,
+    "modes_comparator_doi": "10.1162/artl_a_00280",
+    "modes_passed": false,
+    "refused_labels": [
+      "clinical_pathogen_model",
+      "collective_intelligence_proved",
+      "intelligence_proved",
+      "modes_passed",
+      "modes_passed_change",
+      "modes_passed_complexity",
+      "modes_passed_ecology",
+      "modes_passed_novelty",
+      "oee_proved",
+      "phage_therapy_cleared",
+      "red_queen_proved",
+      "tokyo_type1_passed"
+    ],
+    "tokyo_type1_passed": false
+  },
+  "metrics": {
+    "mean_intact_delta_low_minus_high": 0.0994795782,
+    "mean_intact_minus_content": 0.0994795782,
+    "mean_intact_minus_structure": 0.0994795782,
+    "refuse_ok": true,
+    "slope_ok": true
+  },
+  "modes_passed": false,
+  "phage_therapy_cleared": false,
+  "red_queen_proved": false,
+  "resource_levels": [
+    "low",
+    "high"
+  ],
+  "resource_trials": [
+    {
+      "content_null_delta": 0.0,
+      "harshness_high": 0.3833333333,
+      "harshness_low": 0.8214285714,
+      "intact_delta_low_minus_high": 0.1089840599,
+      "intact_high_error": 0.1750642361,
+      "intact_low_error": 0.284048296,
+      "intact_minus_content": 0.1089840599,
+      "intact_minus_structure": 0.1089840599,
+      "seed": 7,
+      "structure_null_delta": 0.0
+    },
+    {
+      "content_null_delta": 0.0,
+      "harshness_high": 0.3833333333,
+      "harshness_low": 0.8214285714,
+      "intact_delta_low_minus_high": 0.1175498197,
+      "intact_high_error": 0.2968730829,
+      "intact_low_error": 0.4144229026,
+      "intact_minus_content": 0.1175498197,
+      "intact_minus_structure": 0.1175498197,
+      "seed": 14,
+      "structure_null_delta": 0.0
+    },
+    {
+      "content_null_delta": 0.0,
+      "harshness_high": 0.3833333333,
+      "harshness_low": 0.8214285714,
+      "intact_delta_low_minus_high": 0.0836672241,
+      "intact_high_error": 0.216341467,
+      "intact_low_error": 0.3000086911,
+      "intact_minus_content": 0.0836672241,
+      "intact_minus_structure": 0.0836672241,
+      "seed": 21,
+      "structure_null_delta": 0.0
+    },
+    {
+      "content_null_delta": 0.0,
+      "harshness_high": 0.3833333333,
+      "harshness_low": 0.8214285714,
+      "intact_delta_low_minus_high": 0.0754759836,
+      "intact_high_error": 0.2544262937,
+      "intact_low_error": 0.3299022773,
+      "intact_minus_content": 0.0754759836,
+      "intact_minus_structure": 0.0754759836,
+      "seed": 28,
+      "structure_null_delta": 0.0
+    },
+    {
+      "content_null_delta": 0.0,
+      "harshness_high": 0.3833333333,
+      "harshness_low": 0.8214285714,
+      "intact_delta_low_minus_high": 0.1117208036,
+      "intact_high_error": 0.2599349966,
+      "intact_low_error": 0.3716558002,
+      "intact_minus_content": 0.1117208036,
+      "intact_minus_structure": 0.1117208036,
+      "seed": 35,
+      "structure_null_delta": 0.0
+    }
+  ],
+  "resource_values": {
+    "high": 2.0,
+    "low": 0.4
+  },
+  "result": "SUCCESS",
+  "schema": "host_parasite_measurement_resource_target_v1",
+  "seeds": [
+    7,
+    14,
+    21,
+    28,
+    35
+  ],
+  "separation_threshold": 0.015,
+  "tokyo_type1_passed": false,
+  "wet_metabolism_claim": false
+}

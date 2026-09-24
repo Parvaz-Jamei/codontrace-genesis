@@ -141,7 +141,21 @@ Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/
 | infection physics in `engine.py` | refused | engine untouched |
 
 
+## De-toy D5–D7 campaigns (2026-09-24)
+
+Delivered on port (see `PHASE_D5_D7_REVIEW.md`):
+
+| Phase | Campaign | Result |
+|---|---|---|
+| D5 | Cost-of-generalism on abstract phenotype + dual-null | SUCCESS |
+| D6 | Type-III phase-locked rares (SF9-candidate; separate from SF4) | SUCCESS |
+| D7 | Measurement honesty + resource→target dual-null | SUCCESS |
+
+Docs: `DETOY_D5_D7_BRAINSTORM_5ROUND_20260924.md` (+ FA). Digests:
+`detoy_d5_d7_campaign_digests.json`.
+
 ## De-toy brainstorm (2026-09-24)
+
 
 After SF campaigns (7 SUCCESS / 1 FAIL), a five-round three-expert workshop
 asks how to deepen the port without toy dynamics or loosened ClaimGate ceilings:

@@ -193,3 +193,18 @@ line; Pineau checklist.
 3. **Code PR “detoy-D2”** — region map.
 4. **Design stub then code** — D4/D3 phenotype coupling.
 5. Later — D5, D6, D7 as earned.
+
+---
+
+## Status (2026-09-24 D5–D7)
+
+| Phase | Status | Evidence |
+|---|---|---|
+| D0–D4 | **DONE** | prior PRs; type-II SF4′, d×K map, phenotype coupling |
+| D5 | **DONE** | `host_parasite_cost_of_generalism_phenotype.py` + results JSON |
+| D6 | **DONE** | `host_parasite_type3_rare_lock.py` SF9-candidate (separate from SF4) |
+| D7 | **DONE** | `host_parasite_measurement_resource_target.py` measurement + resource→target |
+
+Review: `PHASE_D5_D7_REVIEW.md`. Brainstorm: `DETOY_D5_D7_BRAINSTORM_5ROUND_20260924.md`.
+Suggested next: HE queue / OEE — not soft-pass SF4.
+

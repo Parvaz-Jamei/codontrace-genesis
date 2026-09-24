@@ -1,0 +1,45 @@
+{
+  "baic_pins_verified": true,
+  "campaigns": {
+    "D5": {
+      "campaign_digest": "cd29f770e75cead42586875a6640c9615b891472cc187c8499352c36a46a31b4",
+      "metrics": {
+        "coexistence_contrast_ok": true,
+        "cost_off_collapse_or_dominance_seeds": 5,
+        "cost_on_coexistence_seeds": 5,
+        "dual_null_ok": true,
+        "mean_generalist_minus_specialist_penalty": 0.7,
+        "mean_intact_minus_structure_penalty": 0.7
+      },
+      "red_queen_proved": false,
+      "result": "SUCCESS"
+    },
+    "D6": {
+      "campaign_digest": "c44ecb9edf90895ecd18a1492a5038e64113d62ba22ca864288fb2f7aec8c106",
+      "n_sf9_pattern_seeds": 5,
+      "n_type2_ablation_sf9_seeds": 1,
+      "panel_id": "SF9_type3_phase_locked_rares",
+      "red_queen_proved": false,
+      "result": "SUCCESS",
+      "soft_passes_sf4": false
+    },
+    "D7": {
+      "campaign_digest": "b15ac160123c084e5056e962d04b53ade3916ff9aeba8dd4223cc73dbb0820e2",
+      "metrics": {
+        "mean_intact_delta_low_minus_high": 0.0994795782,
+        "mean_intact_minus_content": 0.0994795782,
+        "mean_intact_minus_structure": 0.0994795782,
+        "refuse_ok": true,
+        "slope_ok": true
+      },
+      "modes_passed": false,
+      "red_queen_proved": false,
+      "result": "SUCCESS",
+      "tokyo_type1_passed": false
+    }
+  },
+  "domain_profile": "host_parasite",
+  "engine_infection_physics": "not_in_engine_core",
+  "local_time_irst": "2026-09-24 ~10:40 IRST (UTC+3:30)",
+  "schema": "detoy_d5_d7_campaign_digests_v1"
+}

@@ -1445,6 +1445,9 @@ _HOST_PARASITE_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.host_parasite_task_gene.TaskGeneWindow": ("window_digest",),
     "codontrace.genesis.host_parasite_virulence_quality.VirulenceArmOutcome": ("arm_digest",),
     "codontrace.genesis.host_parasite_wave6_smoke.Wave6JournalSmokeResult": ("smoke_digest",),
+    "codontrace.genesis.host_parasite_cell_microbe_hard_campaigns.CellMicrobeHardCampaignPack": (
+        "pack_digest",
+    ),
 }
 for _path, _fields in _HOST_PARASITE_PUBLIC_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields

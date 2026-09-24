@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -18,6 +17,7 @@ from codontrace.genesis.host_parasite_type2_rq import (
     run_type2_campaign,
     run_type2_cycling_trial,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
@@ -126,5 +126,5 @@ def test_engine_has_no_type2_infection_tokens() -> None:
 
 @pytest.mark.parametrize("path,expected", PIN_SPECS)
 def test_baic_pins_intact_type2(path: str, expected: str) -> None:
-    digest = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+    digest = sha256_text_file(ROOT / path)
     assert digest == expected

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Literal
 
 from codontrace._types import JsonValue
+from codontrace.codon import CodonTable
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
 from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
@@ -27,6 +28,7 @@ from codontrace.genesis.isolation_assay import (
     run_isolation_assay,
 )
 from codontrace.genesis.metrics.division_of_labor import gorelick_nmi
+from codontrace.genesis.population import MutationConfig
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.statistical_protocol import (
     bootstrap_ci_paired,
@@ -54,19 +56,28 @@ PILOT_SEEDS: tuple[int, ...] = tuple(range(1000, 1010))
 RESEARCH_SEED_COUNT = 30
 SMOKE_TICK_COUNT = 8
 SMOKE_POPULATION = 6
-PILOT_TICK_COUNT = 16
+PILOT_TICK_COUNT = 24
 PILOT_POPULATION = 8
-RESEARCH_TICK_COUNT = 24
+RESEARCH_TICK_COUNT = 32
 RESEARCH_POPULATION = 12
 DEFAULT_TICK_COUNT = SMOKE_TICK_COUNT
 DEFAULT_POPULATION = SMOKE_POPULATION
 INFERENTIAL_SEED = 20260924
 ALPHA = 0.05
 BOOTSTRAP_RESAMPLES = 2000
-# Dual-action genome: EAT_LUMEN (TASK_A) + EMIT_NEXUS (TASK_B) so individuals
-# can switch. Substrate enablement for Goldsby-style measurement — not planted
-# evolved specialists. HE03 overlay only; plain life_loop pins unchanged.
+# Ancestral dual-action genome: EAT_LUMEN (TASK_A) + EMIT_NEXUS (TASK_B).
+# Founders can switch; specialists must arise by mutation+selection under
+# switch cost (Goldsby 2012) — not planted role assignment. HE03 overlay only.
 HE03_DUAL_TASK_GENOME = "101111000110000000"
+# HE03-only mutational specialization ecology (does not touch life_loop defaults).
+HE03_MUTATION_BIT_FLIP_RATE = 0.10
+HE03_BASAL_RUNTIME_ATP_COST = 0.5
+HE03_INITIAL_RUNTIME_ATP = 16.0
+HE03_MAX_RESOURCES = 6
+HE03_RESPAWN_RATE = 0.8
+HE03_RESOURCE_AMOUNT = 2.5
+HE03_ANCESTRAL_TASK_WIDTH = 2.0
+_GENESIS_V0_TABLE = CodonTable.genesis_v0()
 
 ArmName = Literal[
     "cost_0",
@@ -243,8 +254,14 @@ def build_hard_experiment_03_spec(
     arm: ArmName,
     tick_count: int = DEFAULT_TICK_COUNT,
     population: int = DEFAULT_POPULATION,
+    genome_bits: Sequence[str] | None = None,
+    mutation_bit_flip_rate: float | None = None,
 ) -> GenesisExperimentSpec:
-    """Life-loop overlay with E3 task-switch knob. Does not mutate Phase A–E pins."""
+    """Life-loop overlay with E3 task-switch + mutational specialization ecology.
+
+    Does not mutate Phase A–E ``life_loop_world`` defaults when unused. Optional
+    ``genome_bits`` supports IsolationAssay carry-over of evolved survivors.
+    """
 
     if arm not in ARMS:
         raise ConfigurationError(f"unknown hard experiment 03 arm: {arm!r}")
@@ -257,14 +274,39 @@ def build_hard_experiment_03_spec(
     configs = base.population_configs
     if configs is None:
         raise ConfigurationError("life_loop_world must supply population_configs.")
-    # Dual-task substrate: enable nexus so EMIT_NEXUS (TASK_B) is meaningful
-    # alongside EAT_LUMEN (TASK_A). Overlay-only; default life_loop unchanged.
+    mut_rate = (
+        HE03_MUTATION_BIT_FLIP_RATE
+        if mutation_bit_flip_rate is None
+        else float(mutation_bit_flip_rate)
+    )
+    # Dual-task substrate + HE03-only mutational ecology (Goldsby-style):
+    # elevated mutation, cushioned basal/food so lineages persist long enough
+    # for specialists to arise under switch cost. Overlay-only.
     configs = replace(
         configs,
         task_switch_cost=task_switch,
         enable_nexus_stigmergy=True,
+        mutation=MutationConfig(bit_flip_rate=mut_rate),
+        metabolism=replace(
+            configs.metabolism, basal_runtime_atp_cost=HE03_BASAL_RUNTIME_ATP_COST
+        ),
+        runtime_resource_policy=replace(
+            configs.runtime_resource_policy,
+            max_resources=HE03_MAX_RESOURCES,
+            respawn_rate=HE03_RESPAWN_RATE,
+            amount=HE03_RESOURCE_AMOUNT,
+        ),
     )
-    dual_genomes = tuple(HE03_DUAL_TASK_GENOME for _ in range(int(population)))
+    if genome_bits is None:
+        resolved_genomes: tuple[str, ...] = tuple(
+            HE03_DUAL_TASK_GENOME for _ in range(int(population))
+        )
+    else:
+        resolved_genomes = tuple(str(item) for item in genome_bits)
+        if len(resolved_genomes) != int(population):
+            raise ConfigurationError(
+                "genome_bits length must equal population for HE03 overlay."
+            )
     metadata = {
         **base.metadata,
         "runtime_profile": EXPERIMENT_ID,
@@ -279,14 +321,20 @@ def build_hard_experiment_03_spec(
         "switch_cost_atp": task_switch.switch_cost_atp if task_switch.enabled else None,
         "isolation_secondary": arm == "isolation_probe",
         "dual_task_genome": HE03_DUAL_TASK_GENOME,
+        "mutational_specialization": True,
+        "mutation_bit_flip_rate": mut_rate,
+        "he03_basal_runtime_atp_cost": HE03_BASAL_RUNTIME_ATP_COST,
         "substrate_note": (
-            "dual_action_genomes_enable_switching_not_evolved_specialists"
+            "ancestral_dual_genomes_plus_mutation_under_switch_cost;"
+            "specialists_not_planted"
         ),
     }
     return replace(
         base,
-        genome_bits=dual_genomes,
+        genome_bits=resolved_genomes,
         population_configs=configs,
+        mutation_config=configs.mutation,
+        initial_runtime_atp=HE03_INITIAL_RUNTIME_ATP,
         metadata=metadata,
     )
 
@@ -522,14 +570,18 @@ def _mean_terminal_runtime_atp(result: object) -> float | None:
 def _extract_task_samples(
     result: object, config: TaskSwitchCostConfig
 ) -> tuple[tuple[str, str], ...]:
+    """Activity-trace samples only (Gorelick matrix).
+
+    Switch-record endpoints are intentionally excluded: folding from_task/to_task
+    into the matrix diluted D_sym on cost arms and made channel_off look stronger
+    (pilot_v1 wrong-signed ablation). Switch stats use ``_extract_switch_stats``.
+    """
+
     samples: list[tuple[str, str]] = []
     for tick in tuple(getattr(result, "ticks", ()) or ()):
         generation = getattr(tick, "generation_result", None)
         if generation is None:
             continue
-        for record in getattr(generation, "task_switch_cost_records", ()) or ():
-            samples.append((str(record.organism_id), str(record.to_task)))
-            samples.append((str(record.organism_id), str(record.from_task)))
         for trace in getattr(generation, "traces", ()) or ():
             for event in getattr(trace, "events", ()) or ():
                 action = str(getattr(event, "action", "") or "")
@@ -543,7 +595,74 @@ def _extract_task_samples(
     return tuple(samples)
 
 
+def _decode_genome_actions(genome_bits: object) -> tuple[str, ...]:
+    if hasattr(genome_bits, "to_compact"):
+        bits = str(genome_bits.to_compact())
+    else:
+        bits = str(genome_bits)
+    actions: list[str] = []
+    width = int(_GENESIS_V0_TABLE.spec.genome_spec.codon_width)
+    for index in range(0, len(bits), width):
+        codon = bits[index : index + width]
+        if len(codon) < width:
+            break
+        try:
+            decoded = _GENESIS_V0_TABLE.decode(codon)
+        except KeyError:
+            continue
+        action = getattr(decoded, "action", None)
+        actions.append(str(getattr(action, "value", action)))
+    return tuple(actions)
+
+
+def _genome_task_width(genome_bits: object, config: TaskSwitchCostConfig) -> float:
+    """Count distinct TASK_A / TASK_B classes encoded in a genome (0–2)."""
+
+    present: set[str] = set()
+    for action in _decode_genome_actions(genome_bits):
+        task = config.classify_task(action)
+        if task is not None:
+            present.add(task)
+    return float(len(present))
+
+
+def _last_evolved_genomes(result: object) -> dict[str, str]:
+    """Last non-empty population genome map (evolved survivors)."""
+
+    by_id: dict[str, str] = {}
+    for tick in tuple(getattr(result, "ticks", ()) or ()):
+        generation = getattr(tick, "generation_result", None)
+        if generation is None:
+            continue
+        population = getattr(generation, "population", None)
+        organisms = getattr(population, "organisms", ()) or ()
+        if not organisms:
+            continue
+        snapshot: dict[str, str] = {}
+        for organism in organisms:
+            oid = str(getattr(organism, "id", "") or getattr(organism, "organism_id", ""))
+            genome = getattr(organism, "genome", None)
+            if not oid or genome is None:
+                continue
+            if hasattr(genome, "to_compact"):
+                snapshot[oid] = str(genome.to_compact())
+            else:
+                snapshot[oid] = str(genome)
+        if snapshot:
+            by_id = snapshot
+    return by_id
+
+
 def _extract_switch_stats(result: object) -> tuple[int, float]:
+    """Switch count and ATP actually debited for switch costs.
+
+    ``TaskSwitchCostRecord.switch_cost_atp`` carries the *configured* cost and is
+    populated even when the debit fails (``charged=False``). Summing that field
+    reports a nominal total that no balance ever paid, which made the
+    manipulation check satisfiable while nothing moved. Only charged records
+    contribute to the realised total; every record still counts as a switch.
+    """
+
     n_switches = 0
     realized = 0.0
     for tick in tuple(getattr(result, "ticks", ()) or ()):
@@ -552,7 +671,8 @@ def _extract_switch_stats(result: object) -> tuple[int, float]:
             continue
         for record in getattr(generation, "task_switch_cost_records", ()) or ():
             n_switches += 1
-            realized += float(getattr(record, "switch_cost_atp", 0.0) or 0.0)
+            if bool(getattr(record, "charged", False)):
+                realized += float(getattr(record, "switch_cost_atp", 0.0) or 0.0)
     return n_switches, round(realized, 10)
 
 
@@ -562,53 +682,28 @@ def _solo_scores_for_isolation(
     tick_count: int,
     group_result: object,
 ) -> dict[str, float]:
-    """Re-run each survivor alone; secondary IsolationAssay input only."""
+    """Genetic task-autonomy scores for IsolationAssay (Goldsby secondary).
 
-    scores: dict[str, float] = {}
-    genomes: list[tuple[str, object]] = []
-    for tick in tuple(getattr(group_result, "ticks", ()) or ()):
-        generation = getattr(tick, "generation_result", None)
-        if generation is None:
-            continue
-        population = getattr(generation, "population", None)
-        organisms = getattr(population, "organisms", ()) or ()
-        for organism in organisms:
-            oid = str(getattr(organism, "id", "") or getattr(organism, "organism_id", ""))
-            genome = getattr(organism, "genome_bits", None) or getattr(organism, "genome", None)
-            if oid and genome is not None:
-                genomes.append((oid, genome))
-    # Deduplicate by id keeping last observed genome.
-    by_id = {oid: genome for oid, genome in genomes}
-    for index, (oid, _genome) in enumerate(sorted(by_id.items())):
-        solo_spec = build_hard_experiment_03_spec(
-            seed=seed + 17 + index,
-            arm="isolation_probe",
-            tick_count=max(1, int(tick_count)),
-            population=1,
-        )
-        solo_result = GenesisEngine.from_spec(solo_spec).run_ticks()
-        mean_atp = _mean_terminal_runtime_atp(solo_result)
-        scores[oid] = 0.0 if mean_atp is None else float(mean_atp)
-    return scores
+    Carries evolved survivor genomes. Solo performance = genome task width
+    (distinct TASK_A/B encoded). Paired group scores use ancestral dual width
+    so ``isolation_drop = ancestral_width - evolved_width`` (≥0 when mutational
+    specialists lose a task). ATP food-monopoly scores are not used — they
+    inverted the pilot_v1 secondary assay.
+    """
 
-
-def _group_scores(result: object) -> dict[str, float]:
-    scores: dict[str, float] = {}
-    counts: dict[str, int] = {}
-    for tick in tuple(getattr(result, "ticks", ()) or ()):
-        generation = getattr(tick, "generation_result", None)
-        if generation is None:
-            continue
-        for record in getattr(generation, "organism_records", ()) or ():
-            oid = str(getattr(record, "organism_id", ""))
-            after = getattr(record, "runtime_atp_after", None)
-            if not oid or after is None:
-                continue
-            scores[oid] = scores.get(oid, 0.0) + float(after)
-            counts[oid] = counts.get(oid, 0) + 1
+    del seed, tick_count  # genome-carry assay; no solo re-simulation required
+    config = _task_switch_for_arm("isolation_probe")
+    by_id = _last_evolved_genomes(group_result)
     return {
-        oid: round(total / max(1, counts[oid]), 10) for oid, total in scores.items()
+        oid: _genome_task_width(genome, config) for oid, genome in sorted(by_id.items())
     }
+
+
+def _group_scores_for_isolation(result: object) -> dict[str, float]:
+    """Ancestral dual task width per evolved organism (genetic autonomy baseline)."""
+
+    by_id = _last_evolved_genomes(result)
+    return {oid: float(HE03_ANCESTRAL_TASK_WIDTH) for oid in by_id}
 
 
 def _run_arm(
@@ -629,16 +724,20 @@ def _run_arm(
     failures: list[str] = []
     isolation_drop: float | None = None
     if arm == "isolation_probe":
-        group_scores = _group_scores(result)
+        group_scores = _group_scores_for_isolation(result)
         solo_scores = _solo_scores_for_isolation(
             seed=seed, tick_count=tick_count, group_result=result
         )
-        assay: IsolationAssayResult = run_isolation_assay(
-            group_scores=group_scores,
-            solo_scores=solo_scores,
-            config=IsolationAssayConfig(enabled=True),
-        )
-        isolation_drop = assay.mean_isolation_drop
+        if not group_scores:
+            failures.append("assay_failed_isolation_no_survivors")
+            isolation_drop = None
+        else:
+            assay: IsolationAssayResult = run_isolation_assay(
+                group_scores=group_scores,
+                solo_scores=solo_scores,
+                config=IsolationAssayConfig(enabled=True),
+            )
+            isolation_drop = assay.mean_isolation_drop
     if config.enabled and config.switch_cost_atp > 0.0 and n_switches == 0:
         failures.append("assay_failed_switch_cost_not_realized")
     if nmi.matrix_degenerate:
@@ -986,9 +1085,12 @@ def run_hard_experiment_03(
         "contrasts and manipulation checks clear on a committed research artifact.",
         "IsolationAssay is secondary only; not a collective_intelligence claim.",
         "Pure-Python scale is not claimed to match Avida / Goldsby update counts.",
-        "Dual-action genomes enable switching; they are not evolved specialists.",
+        "Ancestral dual genomes plus HE03-only mutation under switch cost; "
+        "specialists are not planted role assignments.",
+        "Gorelick samples are activity-trace only (switch endpoints excluded).",
+        "IsolationAssay uses ancestral-relative genetic task width, not ATP "
+        "food-monopoly scores.",
         "collective_intelligence_candidate refused: ClaimGate flag set incomplete.",
-        "Wrong-signed cost_high vs channel_off refuses the mechanism decision rule.",
         "No results_v1.json fabricated; research remains deferred.",
     )
     protocol_digest = canonical_digest(

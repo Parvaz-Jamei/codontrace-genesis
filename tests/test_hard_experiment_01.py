@@ -64,6 +64,7 @@ from codontrace.genesis.hard_experiment_01 import (
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.statistical_protocol import StatisticalTestPolicy
+from codontrace.genesis.text_digest import sha256_text_file
 
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
 LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
@@ -127,7 +128,7 @@ def test_hard_experiment_01_dag_and_prereg_are_frozen() -> None:
     prereg = root / "docs" / "HARD_EXPERIMENT_01_PREREG.md"
     assert prereg.is_file()
     digest = hard_experiment_01_prereg_digest()
-    assert digest == __import__("hashlib").sha256(prereg.read_bytes()).hexdigest()
+    assert digest == sha256_text_file(prereg)
     assert len(digest) == 64
     text = prereg.read_text(encoding="utf-8")
     assert "source_bias_on` > `source_bias_off" in text
@@ -735,13 +736,13 @@ def test_wave_1d_prime_amendment_03_and_schema_v5() -> None:
     root = Path(__file__).resolve().parents[1]
     amd03 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md"
     assert amd03.is_file()
-    expected03 = __import__("hashlib").sha256(amd03.read_bytes()).hexdigest()
+    expected03 = sha256_text_file(amd03)
     assert expected03 == "3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058"
     assert hard_experiment_01_prereg_amendment_03_digest() == expected03
     # Amd 02 remains a hashed trail (historical failed calibration).
     amd02 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md"
     assert amd02.is_file()
-    expected02 = __import__("hashlib").sha256(amd02.read_bytes()).hexdigest()
+    expected02 = sha256_text_file(amd02)
     assert hard_experiment_01_prereg_amendment_02_digest() == expected02
     assert expected02 == "14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f"
     assert (
@@ -950,7 +951,7 @@ def test_wave_1e_amendment_04_and_schema_v6() -> None:
     root = Path(__file__).resolve().parents[1]
     amd04 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md"
     assert amd04.is_file()
-    expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
+    expected04 = sha256_text_file(amd04)
     assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
     assert hard_experiment_01_prereg_amendment_04_digest() == expected04
     assert SCHEMA_VERSION == "hard_experiment_01_v7"
@@ -984,8 +985,8 @@ def test_wave_1e_amendment_05_digest_and_pilot_gate_demotion() -> None:
     amd05 = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md"
     assert amd04.is_file()
     assert amd05.is_file()
-    expected04 = __import__("hashlib").sha256(amd04.read_bytes()).hexdigest()
-    expected05 = __import__("hashlib").sha256(amd05.read_bytes()).hexdigest()
+    expected04 = sha256_text_file(amd04)
+    expected05 = sha256_text_file(amd05)
     assert expected04 == "6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60"
     assert expected05 == "d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7"
     assert hard_experiment_01_prereg_amendment_04_digest() == expected04
@@ -1315,7 +1316,7 @@ def test_schema_v7_lock_digest_and_seed_food_amounts() -> None:
     root = Path(__file__).resolve().parents[1]
     lock = root / "docs" / "HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md"
     assert lock.is_file()
-    expected = __import__("hashlib").sha256(lock.read_bytes()).hexdigest()
+    expected = sha256_text_file(lock)
     assert hard_experiment_01_prereg_amendment_lock_digest() == expected
     assert SCHEMA_VERSION == "hard_experiment_01_v7"
     assert FOOD_AMOUNT_MULTIPLIERS == (0.75, 1.0, 1.25)

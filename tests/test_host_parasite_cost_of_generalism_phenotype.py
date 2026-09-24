@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -15,6 +14,7 @@ from codontrace.genesis.host_parasite_cost_of_generalism_phenotype import (
     repertoire_shannon_entropy,
     run_cost_of_generalism_phenotype_campaign,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 _ENGINE = ROOT / "src" / "codontrace" / "genesis" / "engine.py"
@@ -79,4 +79,4 @@ def test_engine_untouched() -> None:
 
 @pytest.mark.parametrize("path,expected", PIN_SPECS)
 def test_baic_pins_d5(path: str, expected: str) -> None:
-    assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+    assert sha256_text_file(ROOT / path) == expected

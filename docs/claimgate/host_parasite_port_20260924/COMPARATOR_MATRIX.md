@@ -12,7 +12,7 @@ Queen dynamics, or a proved major transition.
 | Symbulation continuum | Gupta & Vostinar 2021 doi:10.3389/fevo.2021.739047; Zenodo 10.5281/zenodo.6380543 | `interaction_value` [-1,+1]; VT × spatial factorial | Mutualism = success; clinical symbiosis certificate |
 | CRISPR–phage models (literature only) | Empirical CRISPR–phage coevolution papers cited in evidence notes | Conceptual comparator for repertoire/immune-analogue *discussion* | CRISPR identity; CRISPR therapy validation; sequence-level genetics in engine |
 | ARD / FSD range labels | Hall et al. 2011 doi:10.1111/j.1461-0248.2011.01624.x; Lopez Pascua et al. 2014 doi:10.1111/ele.12337 | Digital ARD-like / FSD-like diagnostic enums; Phase 19 transition protocol | Proved Red Queen; wet infectivity/resistance proof |
-| Fortuna opportunity / adaptive origin | Fortuna et al. 2017; 2021 | Adaptive-origin gate; abiotic×biotic factorial | Wet adaptive-origin proof; exaptation certificate |
+| Ecological opportunity / necessity | Acosta & Zaman 2022 doi:10.3389/fevo.2021.750772; Fortuna et al. 2017 doi:10.1098/rstb.2016.0431 | Adaptive-origin gate; abiotic×biotic factorial; one-seat CPU-theft comparator | Wet adaptive-origin proof; exaptation certificate; co-infection multi-seat |
 | Cornish intervention packs | Cornish et al. JMLR 27(152) 2026 / arXiv:2301.07210 | Observational vs interventional multi-arm; refusal of `intervention_supported` from observational match alone | Causal proof from digital scores alone; clinical decision support |
 | Scanlan / Buckling evolvability constraint | Challenge S5 humility | Evolvability falsification assay that can *fail* “parasites always raise repertoire” | Universal evolvability law; proved parasite-driven complexity |
 
@@ -21,6 +21,8 @@ Queen dynamics, or a proved major transition.
 | Scanlan mutator / abiotic constraint | doi:10.1093/molbev/msv032 | Elevated-mutation dual-null under coevolution (Phase 23 delivered) | Wet mutator-gene identity; CRISPR |
 | Dolson MODES / Channon Type-1 | doi:10.1162/artl_a_00280; doi:10.1162/artl_a_00430 | Measurement-honesty *comparators* only | `modes_passed_proved` / `oee_type1_proved` |
 | Goldsby deme MLS | doi:10.1371/journal.pone.0102713 | Future CI-path comparator (docs only) | Major transition proved; MLS engine in Wave 5 |
+
+| Phase 11×21 entropy×contingency bridge (Wave 6) | Zaman et al. 2014 doi:10.1371/journal.pbio.1002023; Adami et al. 2000 doi:10.1073/pnas.97.9.4463 | Seed-stratified join of codon-entropy dual-null with multi-seed contingency; joint universal-rise refused | Complexity emergence proved; Red Queen proved; wet Shannon-law identity |
 
 ## Reading rule
 

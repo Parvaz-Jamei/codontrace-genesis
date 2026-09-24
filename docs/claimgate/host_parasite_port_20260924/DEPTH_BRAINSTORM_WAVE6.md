@@ -30,3 +30,8 @@ Each phase has two critique waves in `PHASE{N}_REVIEW.md` (موج ۱ defects →
 ## Explicit refuse list (unchanged)
 
 Same as Wave 5 completeness audit refuse list.
+
+## Post-merge status
+
+Wave 6 squash-merged to `main` as PR #48 @ `fa01873`. Soft-complete audit:
+`DEPTH_BRAINSTORM_WAVE6_COMPLETENESS.md` (+ FA).

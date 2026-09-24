@@ -45,12 +45,12 @@ Phase 20                     → resource × coevolution-dynamics factorial (Wav
 Phase 21                     → multi-seed contingency / repeatability S1 (Wave 5; this PR)
 Phase 22                     → sequential Cornish multi-intervention (Wave 5; this PR)
 Phase 23                     → Scanlan mutator dual-null (Wave 5 earn-in; this PR)
-Phase 24                     → Wave 6 journal attach smoke Phases 18–23 (Wave 6; this PR)
-Phase 25                     → HE_HP locked-digest refresh note (Wave 6; this PR)
-Phase 26                     → Phase 11×21 entropy×contingency bridge (Wave 6 earn-in; this PR)
+Phase 24                     → Wave 6 journal attach smoke Phases 18–23 (Wave 6; on main)
+Phase 25                     → HE_HP locked-digest refresh note (Wave 6; on main)
+Phase 26                     → Phase 11×21 entropy×contingency bridge (Wave 6 earn-in; on main)
 ```
 
-Phases 1–23 are on main after Waves 1–5. Wave 6 (Phases 24–25, optional 26) lands on `feat/host-parasite-wave6`. See `DEPTH_BRAINSTORM_WAVE5_COMPLETENESS.md` seeds W6-a/b/c.
+Phases 1–26 are on `main` after Waves 1–6 (Wave 6 squash-merged as PR #48 @ `fa01873`). See `DEPTH_BRAINSTORM_WAVE5_COMPLETENESS.md` seeds W6-a/b/c and `DEPTH_BRAINSTORM_WAVE6_COMPLETENESS.md`.
 
 Mirror of the biomedical pattern in `src/codontrace/claimgate/domain.py` and
 `adapters/biomedical.py`: the profile labels claims; it does not change tick

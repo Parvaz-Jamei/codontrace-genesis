@@ -10,12 +10,13 @@ ClaimGate / HE02 authorities). No invented titles.
    evolvability. *PLOS Biology*.
    doi:[10.1371/journal.pbio.1002023](https://doi.org/10.1371/journal.pbio.1002023)
 
-2. Fortuna MA, Zaman L, Ofria C, Wagner A (2021). Ecological Opportunity and
-   the Rise of Complexity in Digital Organisms. *Frontiers in Ecology and
-   Evolution*.
+2. Acosta MM, Zaman L (2022). Ecological Opportunity and Necessity: Biotic
+   and Abiotic Drivers Interact During Diversification of Digital
+   Host-Parasite Communities. *Frontiers in Ecology and Evolution* 9:750772.
    doi:[10.3389/fevo.2021.750772](https://doi.org/10.3389/fevo.2021.750772)
-   (Avida parasites: obligate, ~80% CPU theft, task-overlap infection, one
-   parasite per host, horizontal injection.)
+   (Avida parasites: obligate CPU-cycle theft, task-overlap infection, one
+   parasite per host, horizontal injection; abiotic opportunity × biotic
+   necessity. Earlier port drafts mis-labeled this DOI as “Fortuna 2021”.)
 
 3. Gupta A, Vostinar AE, et al. (2021). Symbiosis in Digital Evolution:
    Past, Present, and Future. *Frontiers in Ecology and Evolution*.
@@ -104,7 +105,7 @@ If a claim cannot be tied to an item above, write
 ## Phase 6 evidence notes
 
 See `docs/claimgate/host_parasite_port_20260924/evidence/` for DOI-linked
-comparator notes (Zaman 2014; Fortuna 2021; Hall 2011; Lopez Pascua 2014;
+comparator notes (Zaman 2014; Acosta & Zaman 2022; Hall 2011; Lopez Pascua 2014;
 Fortuna 2017; Cornish et al.). Notes are digital-scope only.
 
 ## Wave 5 session-verified additions (Crossref-checked 2026-09-24)

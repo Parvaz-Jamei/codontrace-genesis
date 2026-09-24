@@ -75,6 +75,11 @@ from codontrace.life_loop.match_rules import (
     score_phenotypes,
     spec_for_mode,
 )
+from codontrace.life_loop.export_csv import (
+    hook_meter_snapshot_to_rows,
+    write_hook_meter_csv,
+)
+
 from codontrace.life_loop.schedule_lock import (
     LOCK_MODES,
     SCHEDULE_LOCK_FAIL_REASONS,
@@ -145,6 +150,8 @@ __all__ = [
     "select_contact_candidates",
     "RELATED_TALLY_KEYS",
     "HookMeter",
+    "hook_meter_snapshot_to_rows",
+    "write_hook_meter_csv",
     "HookMeterSnapshot",
     "merge_fail_reason_histogram",
     "PhenotypeMap",

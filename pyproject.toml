@@ -95,6 +95,11 @@ Changelog = "https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CHANGE
 pythonpath = ["src", "."]
 testpaths = ["tests"]
 addopts = "-q --disable-plugin-autoload --import-mode=importlib"
+markers = [
+  "unit: fast domain-free or module unit tests (no long campaigns)",
+  "campaign: HostParasiteWorld / analytics / calibration campaign tests",
+  "pin: BAIC/HE01 pin integrity and static architecture audits",
+]
 
 [tool.ruff]
 line-length = 120

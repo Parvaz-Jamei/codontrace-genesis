@@ -10,7 +10,8 @@ References (grounded; no invented DOIs):
 - Zaman et al. 2014 PLOS Biology doi:10.1371/journal.pbio.1002023
 - Gómez, Ashby & Buckling 2015 Proc R Soc B doi:10.1098/rspb.2014.2297
 - Quigley et al. arXiv:1210.2320 (mode of interaction / cost of generalism)
-- Rabajante et al. 2015 BMC Ecol PMC4405699 (Red Queen multi-host cycles)
+- Rabajante et al. 2015 Sci Rep doi:10.1038/srep10004 PMC4405699 (multi-host RQ)
+- Rabajante et al. Sci Adv doi:10.1126/sciadv.1501548 (type-III rare-lock comparator)
 - Cornish et al. JMLR / arXiv:2301.07210 (observational ≠ interventional)
 """
 
@@ -48,12 +49,21 @@ from codontrace.genesis.host_parasite_cornish_sequential import (
     default_sequential_schedule,
     run_sequential_cornish_campaign,
 )
+from codontrace.genesis.host_parasite_diff_campaigns import run_diff_campaigns
 from codontrace.genesis.host_parasite_env import HostParasiteEnv
 from codontrace.genesis.host_parasite_genome_diversity import (
     run_genome_diversity_campaign,
 )
 from codontrace.genesis.host_parasite_genome_zaman import run_genome_zaman_campaign
-from codontrace.genesis.host_parasite_diff_campaigns import run_diff_campaigns
+from codontrace.genesis.host_parasite_type2_rq import (
+    DEFAULT_D,
+    DEFAULT_DT,
+    DEFAULT_K,
+    DEFAULT_N_TYPES,
+    DEFAULT_R,
+    DEFAULT_STEPS,
+    run_type2_campaign,
+)
 
 SCHEMA = "host_parasite_sim_fidelity_diff_campaigns_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -452,18 +462,14 @@ def _panel_sf3() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# SF4 — Rare-type advantage / NFD cycling (intentional hard FAIL / limitation)
+# SF4 — Multi-host type-II / diagonal-A cycling (De-toy D0+D1; structurally testable)
 # ---------------------------------------------------------------------------
 
 
 def _sf4_nfd_proxy(*, seed: int, generations: int = 40, n_types: int = 6) -> dict[str, object]:
-    """Attempt multi-type negative-frequency-dependence cycling.
+    """Legacy weak rare-type bonus proxy (pre-D1). Kept for regression contrast.
 
-    Literature (Rabajante et al. PMC4405699) predicts perpetual replacement of
-    dominant types under suitable regimes. Genesis HP port does not implement a
-    full multi-type RQ ODE/IBM; this proxy uses weak rare-type bonus only and
-    checks for dominance cycling. Expected: FAIL (no perpetual cycles) — honest
-    model limitation, not a ClaimGate unlock.
+    Not used by the live SF4 panel after De-toy D1; see run_type2_cycling_trial.
     """
 
     counts = [10.0 + (i % 3) for i in range(n_types)]
@@ -472,16 +478,14 @@ def _sf4_nfd_proxy(*, seed: int, generations: int = 40, n_types: int = 6) -> dic
         digest = _seed_bytes(seed, f"sf4_g{gen}")
         total = sum(counts) or 1.0
         freqs = [c / total for c in counts]
-        # Weak rare-type bonus (not enough for perpetual RQ cycles alone).
         growth = []
         for i, f in enumerate(freqs):
-            bonus = 0.05 * (1.0 - f)  # mild NFD
+            bonus = 0.05 * (1.0 - f)
             noise = 0.95 + 0.1 * (digest[i % len(digest)] / 255.0)
             growth.append(1.0 + bonus * noise - 0.02)
-        counts = [max(0.1, c * g) for c, g in zip(counts, growth)]
+        counts = [max(0.1, c * g) for c, g in zip(counts, growth, strict=True)]
         dominance_seq.append(max(range(n_types), key=lambda i: counts[i]))
 
-    # Cycle detection: ≥3 distinct dominants with return to an earlier dominant.
     unique_dom = len(set(dominance_seq))
     returns = 0
     seen: dict[int, int] = {}
@@ -490,7 +494,6 @@ def _sf4_nfd_proxy(*, seed: int, generations: int = 40, n_types: int = 6) -> dic
             returns += 1
         seen[dom] = gen
     cycling_detected = unique_dom >= 3 and returns >= 2
-    # Rare-type fitness bump once: early rare recovers? Soft signal.
     early_dom = dominance_seq[0]
     late_change = dominance_seq[-1] != early_dom
     return {
@@ -504,52 +507,81 @@ def _sf4_nfd_proxy(*, seed: int, generations: int = 40, n_types: int = 6) -> dic
         "dominance_seq_prefix": dominance_seq[:8],
         "dominance_seq_suffix": dominance_seq[-8:],
         "final_freqs": [round(c / sum(counts), 6) for c in counts],
+        "legacy_weak_nfd_proxy": True,
     }
 
 
 def _panel_sf4() -> dict[str, object]:
-    trials = [_sf4_nfd_proxy(seed=s) for s in SEEDS_SF4]
-    n_cycle = sum(1 for t in trials if t["cycling_detected"])
-    # Pre-registered SUCCESS would require ≥3/5 seeds with cycling_detected.
-    # Honest expectation: Genesis does NOT reproduce multi-host RQ cycles → FAIL.
-    success = n_cycle >= 3
-    partial = n_cycle >= 1 and not success
-    # Force honesty: if somehow cycles appear, still refuse red_queen_proved.
-    result = "SUCCESS" if success else ("PARTIAL" if partial else "FAIL")
+    """SF4′: type-II FR + diagonally dominant A on the HP port (De-toy D0+D1).
+
+    Primary DOI corrected to Sci Rep 10.1038/srep10004 (PMC4405699). SciAdv
+    10.1126/sciadv.1501548 is a related type-III comparator only — never used
+    to soft-pass multi-host RQ. red_queen_proved stays False even on SUCCESS.
+    """
+
+    camp = run_type2_campaign(seeds=SEEDS_SF4)
+    n_cycle = int(camp["n_cycling_seeds"])
+    result = str(camp["result"])
+    trials = list(camp["trials"])
+    # Legacy contrast: weak NFD alone still fails (documents D1 necessity).
+    legacy = [_sf4_nfd_proxy(seed=s) for s in SEEDS_SF4]
+    legacy_cycles = sum(1 for t in legacy if t["cycling_detected"])
     return {
-        "id": "SF4_rare_type_nfd_cycling",
-        "title": "Negative frequency dependence / rare-type advantage (RQ cycle candidate)",
-        "literature_prediction": (
-            "Under intermediate mortality / suitable carrying capacity and no "
-            "super-host/super-parasite, multi-host systems show perpetual "
-            "replacement of dominant types (Rabajante et al. 2015 PMC4405699)."
+        "id": "SF4_type2_diagonal_multihost_cycling",
+        "title": (
+            "Multi-host type-II / diagonally-dominant cycling "
+            "(Rabajante Sci Rep structural conditions on port)"
         ),
-        "doi": "10.1186/s12898-015-0055-7",
+        "literature_prediction": (
+            "Under type-II FR, diagonally dominant specificity, no super-host/"
+            "super-parasite, intermediate parasite mortality, and adequate host "
+            "K, multi-host systems can show perpetual replacement of dominant "
+            "types (Rabajante et al. 2015 Sci Rep doi:10.1038/srep10004)."
+        ),
+        "doi": "10.1038/srep10004",
         "pmc": "PMC4405699",
+        "related_comparator_doi": "10.1126/sciadv.1501548",
+        "related_comparator_note": (
+            "SciAdv type-III / phase-locked rares — separate panel candidate; "
+            "never a soft-pass for SF4 multi-host SUCCESS."
+        ),
+        "ghost_doi_rejected": "10.1186/s12898-015-0055-7",
         "setup": {
             "seeds": list(SEEDS_SF4),
-            "generations": 40,
-            "n_types": 6,
-            "api": "_sf4_nfd_proxy (weak NFD; no full RQ IBM)",
+            "n_types": DEFAULT_N_TYPES,
+            "steps": DEFAULT_STEPS,
+            "dt": DEFAULT_DT,
+            "r": DEFAULT_R,
+            "d": DEFAULT_D,
+            "K": DEFAULT_K,
+            "functional_response": "type_II",
+            "specificity": "diagonally_dominant_partial_matching_allele",
+            "api": "run_type2_cycling_trial (port-local; not engine.py)",
         },
-        "metric": "cycling_detected (unique dominants ≥3 with returns ≥2)",
-        "success_criterion": "≥3/5 seeds cycling_detected=True",
+        "metric": "cycling_detected (unique dominants ≥3 with returns ≥2, epoch view)",
+        "success_criterion": "≥3/5 seeds cycling_detected=True under declared capable defaults",
         "claimgate_ceiling": "runtime_observation",
         "claimgate_refuses": ["red_queen_proved", "complexity_emergence_proved"],
         "result": result,
         "n_cycling_seeds": n_cycle,
         "n_seeds": len(SEEDS_SF4),
         "trials": trials,
-        "intentional_hard_failure": result == "FAIL",
+        "legacy_weak_nfd_n_cycling_seeds": legacy_cycles,
+        "legacy_weak_nfd_still_fails": legacy_cycles == 0,
+        "intentional_hard_failure": False,
+        "structurally_testable": True,
         "limitation": (
-            "CodonTrace Genesis host_parasite port does not implement a full "
-            "multi-type Red Queen ODE/IBM with specialist infection networks. "
-            "A weak rare-type bonus alone does not produce perpetual dominance "
-            "cycles. Documented as model limitation — not a ClaimGate unlock. "
-            "red_queen_proved remains False forever."
+            "Digital Euler analogue of Sci Rep structural knobs on the "
+            "host_parasite port only. Qualitative cycling_detected is not wet "
+            "Red Queen proof; red_queen_proved remains False forever. SciAdv "
+            "binary oscillations are not used as SF4 SUCCESS."
         ),
-        "honesty": "FAIL is the honest scientific outcome here; do not fake RQ cycles.",
+        "honesty": (
+            "SUCCESS/PARTIAL/FAIL follows the prereg seed fraction. ClaimGate "
+            "still refuses red_queen_proved on SUCCESS."
+        ),
         "red_queen_proved": False,
+        "campaign_digest": camp["campaign_digest"],
     }
 
 
@@ -566,7 +598,7 @@ def _panel_sf5() -> dict[str, object]:
     for arm in d["arm_results"]:
         hosts = [o["genomes"]["host_genome_digest"] for o in arm["seed_outcomes"]]
         paras = [o["genomes"]["parasite_genome_digest"] for o in arm["seed_outcomes"]]
-        pairs_ok = all(h != p for h, p in zip(hosts, paras))
+        pairs_ok = all(h != p for h, p in zip(hosts, paras, strict=True))
         all_pairs_distinct = all_pairs_distinct and pairs_ok
         per_arm[arm["arm"]] = {
             "arm_digest": arm["digest"],
@@ -769,9 +801,7 @@ def _panel_sf8() -> dict[str, object]:
                 names.add(node.id)
             elif isinstance(node, ast.Attribute):
                 names.add(node.attr)
-            elif isinstance(node, ast.FunctionDef):
-                names.add(node.name)
-            elif isinstance(node, ast.ClassDef):
+            elif isinstance(node, (ast.FunctionDef, ast.ClassDef)):
                 names.add(node.name)
             elif isinstance(node, ast.ImportFrom):
                 for alias in node.names:

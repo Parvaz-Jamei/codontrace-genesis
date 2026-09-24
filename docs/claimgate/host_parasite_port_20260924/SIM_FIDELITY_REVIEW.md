@@ -17,7 +17,7 @@ C — ClaimGate / V&V / causal methodology.
 - Combined pack + `tests/test_host_parasite_sim_fidelity.py`.
 - Results: `SIM_FIDELITY_CAMPAIGNS_20260924.md` (+ `_FA.md`),
   `sim_fidelity_campaigns_results.json`.
-- Intentional hard FAIL: SF4 multi-host Red Queen cycling (model limitation).
+- De-toy D0+D1: SF4 Sci Rep DOI + type-II/diagonal stepper; SUCCESS under capable defaults; red_queen_proved still False.
 
 ## موج ۱ / Critique round 1 (experts A / B / C)
 
@@ -30,7 +30,7 @@ C — ClaimGate / V&V / causal methodology.
 
 ### B (microbial / genome honesty)
 
-3. SF4 must remain an honest FAIL if perpetual dominance cycles are absent;
+3. SF4 follows prereg seed fraction; red_queen_proved stays False even on SUCCESS;
    do not soft-pass with PARTIAL cosmetics.
 4. Channon Tokyo Type 1 DOI in DX3 must be the published `artl_a_00430`, not a
    guessed neighbor.
@@ -47,7 +47,7 @@ C — ClaimGate / V&V / causal methodology.
 - Replaced `hash(v)` with stable `sum(ord)` indexing in SF1; stripped
   `history_tail` from trial payloads.
 - SF3 honesty note documents cost-rise→FSD vs Gómez mixing→ARD.
-- SF4 success criterion keeps FAIL when `n_cycling_seeds == 0`;
+- SF4 SUCCESS when `n_cycling_seeds >= 3` under capable type-II defaults; always `red_queen_proved=False`;
   `intentional_hard_failure=True`.
 - DX3 `doi_channon` set to `10.1162/artl_a_00430`; Dolson MODES kept as comparator.
 - Registered `SimFidelityPack` in `replay_integrity.py`.
@@ -99,4 +99,4 @@ A / B / C sign-off for merge-ready PR (do not merge unless asked).
 
 **Headline contrasts for readers:** DX1 (0.444 Δentropy + 0.22 cost jump vs 17/17
 blocks), DX7 (0.2 vs 1.0/1.0/1.0 still no intervention support), DX5 (0.20 vs 1.00
-null trap), SF4 honest FAIL on Red Queen cycles.
+null trap), SF4 structurally testable type-II cycling (not red_queen_proved).

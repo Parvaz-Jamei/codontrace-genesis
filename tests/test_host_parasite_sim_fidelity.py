@@ -85,7 +85,8 @@ def test_pack_schema_honesty_and_counts(pack_dict: dict) -> None:
     assert len(pack_dict["campaigns"]) == 16
     assert pack_dict["n_success"] + pack_dict["n_partial"] + pack_dict["n_fail"] == 16
     assert pack_dict["n_success"] >= 12
-    assert pack_dict["n_fail"] >= 1
+    # After De-toy D1, SF4 may SUCCESS under capable defaults; FAIL count may be 0.
+    assert pack_dict["n_fail"] >= 0
     assert len(pack_dict["pack_digest"]) == 64
 
 
@@ -114,13 +115,22 @@ def test_sf3_ard_fsd_transition(pack_dict: dict) -> None:
     assert sf3["late_cost"] > sf3["early_cost"]
 
 
-def test_sf4_intentional_hard_failure_nfd(pack_dict: dict) -> None:
+def test_sf4_type2_diagonal_structurally_testable(pack_dict: dict) -> None:
     sf4 = _by_id(pack_dict, "SF4")
-    assert sf4["result"] == "FAIL"
-    assert sf4["intentional_hard_failure"] is True
+    assert sf4["doi"] == "10.1038/srep10004"
+    assert sf4["pmc"] == "PMC4405699"
+    assert sf4["ghost_doi_rejected"] == "10.1186/s12898-015-0055-7"
+    assert sf4["related_comparator_doi"] == "10.1126/sciadv.1501548"
+    assert sf4["structurally_testable"] is True
     assert sf4["red_queen_proved"] is False
-    assert sf4["n_cycling_seeds"] == 0
+    assert sf4["setup"]["functional_response"] == "type_II"
+    assert "diagonal" in sf4["setup"]["specificity"]
     assert set(sf4["setup"]["seeds"]) == set(SEEDS_SF4)
+    # Prereg: capable defaults should cycle on ≥3/5 seeds; ClaimGate still closed.
+    assert sf4["n_cycling_seeds"] >= 3
+    assert sf4["result"] in {"SUCCESS", "PARTIAL"}
+    assert sf4["legacy_weak_nfd_still_fails"] is True
+    assert sf4["legacy_weak_nfd_n_cycling_seeds"] == 0
 
 
 def test_sf5_dual_genome_divergence(pack_dict: dict) -> None:

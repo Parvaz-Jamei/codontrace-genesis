@@ -12,7 +12,7 @@
 1. در SF1، وقتی هزینهٔ generalism صفر است جمعیت‌ها ناپایدار می‌شوند؛ با هزینهٔ ۰٫۷، همزیستی دیجیتال برمی‌گردد (الگوی Quigley).
 2. در SF2، آنتروپی کدون زیر فشار زیستی حدود **۰٫۴۴** بالاتر از کنترل غیرزیستی است — ولی `complexity_emergence_proved` همچنان False است.
 3. در SF3 برچسب‌ها از ARD-like به FSD-like می‌روند و هزینهٔ generalism بالا می‌رود — بدون ادعای Red Queen ثابت‌شده.
-4. **SF4 عمداً FAIL شد:** چرخهٔ کامل Red Queen چندمیزبانه بازتولید نشد؛ این محدودیت مدل است، نه پیروزی جعلی.
+4. **SF4 پس از De-toy D1:** با type-II و ماتریس قطر-غالب روی پورت، چرخه در ۵/۵ بذر دیده شد؛ DOI درست Sci Rep است؛ `red_queen_proved` همچنان False است (موفقیت ساختاری ≠ اثبات).
 5. در DX1 همان اعداد «جذاب» (Δentropy≈۰٫۴۴، جهش هزینه≈۰٫۲۲) هنوز **۱۷ از ۱۷** ادعای افراطی (هوش، Red Queen، MODES-passed، فاژتراپی، …) را مسدود می‌کند.
 6. در DX7 امتیاز مشاهده‌ای **۰٫۲** است ولی مداخله‌های اجباری **۱٫۰ / ۱٫۰ / ۱٫۰**؛ با این حال `intervention_supported=False` می‌ماند (قاعدهٔ Cornish).
 7. در DX5 امتیاز intact **۰٫۲۰** در برابر content_null **۱٫۰۰** است؛ بدون بازوی content-null سقف `candidate_evidence` رد می‌شود.
@@ -29,7 +29,7 @@
 | SF1_coexistence_cost_of_generalism | **SUCCESS** | 10.1098/rspb.2012.0769 |
 | SF2_biotic_vs_abiotic_entropy | **SUCCESS** | 10.1371/journal.pbio.1002023 |
 | SF3_ard_fsd_cost_mixing_proxy | **SUCCESS** | 10.1098/rspb.2014.2297 |
-| SF4_rare_type_nfd_cycling | **FAIL** | 10.1186/s12898-015-0055-7 |
+| SF4_type2_diagonal_multihost_cycling | **SUCCESS** | 10.1038/srep10004 |
 | SF5_dual_genome_digest_divergence | **SUCCESS** | 10.1371/journal.pbio.1002023 |
 | SF6_cornish_intervention_refuse | **SUCCESS** | arXiv:2301.07210 |
 | SF7_replay_digest_stability | **SUCCESS** | internal:ENGINE_REPLAY_CONTRACT |

@@ -1,12 +1,12 @@
 # Scientific Simulation Fidelity + Differentiation — 2026-09-24
 
 **Project:** CodonTrace Genesis  
-**Branch:** `sim-fidelity-campaigns-20260924`  
-**Main tip:** `9bdad1f`  
+**Branch:** `feat/detoy-d0-d1-type2-diagonal`  
+**De-toy:** D0+D1 (CiteGate + type-II / diagonal A)  
 **Runners:** `host_parasite_sim_fidelity_campaigns.py`, `host_parasite_diff_campaigns.py`  
 **Suite:** `tests/test_host_parasite_sim_fidelity.py`  
 **Artifact:** `sim_fidelity_campaigns_results.json`  
-**pack_digest:** `6d2be6cf9a60acfea0dbbcf0bc608ba43930f35c0e94434ac4b578106e749e1a`
+**pack_digest:** `1d53e990e0b14c6dd097b77e6e5bd71ba8ad574c9ca4a7923e546738b21a5ba7`
 
 **Architecture locks (unchanged):** ONE `host_parasite` DomainProfile; **cell** =
 SemanticGenome / Genesis substrate; microbe / parasite = COU labels only; no
@@ -35,18 +35,20 @@ DomainProfile port (`host_parasite_env.py`); ALife engine remains domain-agnosti
 | SF1 | Coexistence requires cost-of-generalism | 10.1098/rspb.2012.0769 | **SUCCESS** | extinction_proxy / coexistence / superparasite_dominance |
 | SF2 | Biotic vs abiotic entropy / complexity contrast | 10.1371/journal.pbio.1002023 | **SUCCESS** | mean_entropy_delta_vs_baseline (biotic − abiotic; content_null) |
 | SF3 | ARD→FSD shift under increased cost-of-generalism | 10.1098/rspb.2014.2297 | **SUCCESS** | transition_observed + early/late cost_of_generalism + labels |
-| SF4 | Negative frequency dependence / rare-type advant | 10.1186/s12898-015-0055-7 | **FAIL** | cycling_detected (unique dominants ≥3 with returns ≥2) |
+| SF4 | Multi-host type-II / diagonal-A cycling (Sci Rep) | 10.1038/srep10004 | **SUCCESS** | cycling_detected ≥3/5 seeds; red_queen_proved=False |
 | SF5 | Dual-genome digest divergence under coevolution  | 10.1371/journal.pbio.1002023 | **SUCCESS** | arms_are_distinct + host≠parasite digests + coevo≠freeze |
 | SF6 | Sequential Cornish: obs match / forced success s | arXiv:2301.07210 | **SUCCESS** | observational_match ∧ interventions_executed ∧ ¬intervention_supported |
 | SF7 | Replay digest stability — same seed → same publi | internal:ENGINE_REPLAY_CONTRACT | **SUCCESS** | campaign_digest equality across repeats; cross-seed distinctness |
 | SF8 | Engine hygiene — infection logic never in engine | internal:ARCHITECTURE_PORTS | **SUCCESS** | zero forbidden infection tokens in engine modules; env has inject API |
 
-**SF tally:** 7 SUCCESS / 0 PARTIAL / 1 FAIL.
+**SF tally:** 8 SUCCESS / 0 PARTIAL / 0 FAIL (after De-toy D0+D1).
 
-**Intentional hard failure:** SF4 (Rabajante multi-host Red Queen cycles). Genesis
-does not implement a full multi-type RQ IBM; weak rare-type bonus alone yields
-`cycling_detected=False` on all seeds. Documented as model limitation;
-`red_queen_proved` remains False.
+**De-toy D0+D1:** SF4 retargeted to Sci Rep doi:10.1038/srep10004 (PMC4405699);
+ghost BMC Ecol DOI rejected. Port-local type-II FR + diagonally dominant A +
+intermediate d / adequate K makes multi-host cycling *structurally testable*.
+Under declared capable defaults, 5/5 seeds cycle. Legacy weak NFD proxy still
+0/5. SciAdv doi:10.1126/sciadv.1501548 is related comparator only.
+`red_queen_proved` remains False forever — SUCCESS ≠ proof.
 
 ---
 
@@ -100,7 +102,7 @@ several qualitative host–parasite / digital-evolution signatures (cost-of-gene
 coexistence, biotic vs abiotic entropy contrast, ARD→FSD cost-rise labels,
 dual-genome digest divergence, Cornish intervention refuse, replay stability,
 engine hygiene). It does **not** reproduce multi-host Red Queen perpetual cycles
-(SF4 FAIL — honest limitation). Differentiation tests show the product is not
+(SF4 SUCCESS under capable type-II defaults — still not red_queen_proved). Differentiation tests show the product is not
 “another Avida”: spectacular runtime metrics do not promote claims; Price is not
 causality; OEE can be measured without pass-washing; content-null is mandatory for
 candidate evidence; ClaimGate is DomainProfile-scoped; infection physics stay out
@@ -115,7 +117,7 @@ of `engine.py`.
 | Coevolution → complexity (Avida) | Zaman et al. 2014 *PLOS Biology* doi:10.1371/journal.pbio.1002023 |
 | Mixing → ARD | Gómez, Ashby & Buckling 2015 *Proc R Soc B* doi:10.1098/rspb.2014.2297 |
 | Cost of generalism / mode of interaction | Quigley et al. 2012 *Proc R Soc B* doi:10.1098/rspb.2012.0769 (arXiv:1210.2320) |
-| Multi-host Red Queen cycles | Rabajante et al. 2015 *BMC Ecol* doi:10.1186/s12898-015-0055-7 (PMC4405699) |
+| Multi-host Red Queen cycles | Rabajante et al. 2015 *Sci Rep* doi:10.1038/srep10004 (PMC4405699); SciAdv doi:10.1126/sciadv.1501548 related only |
 | Price ≠ causality | Okasha line, *Phil Trans R Soc B* doi:10.1098/rstb.2019.0365 |
 | MODES | Dolson et al. 2019 *Artificial Life* doi:10.1162/artl_a_00280 |
 | Tokyo Type 1 measurement procedure | Channon 2024 *Artificial Life* doi:10.1162/artl_a_00430 |

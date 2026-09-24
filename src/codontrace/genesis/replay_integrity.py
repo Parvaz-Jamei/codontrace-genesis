@@ -1455,6 +1455,10 @@ _HOST_PARASITE_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "matrix_digest",
         "trial_digest",
     ),
+    "codontrace.genesis.host_parasite_type3_rare_lock.Type3RareLockTrial": (
+        "matrix_digest",
+        "trial_digest",
+    ),
 }
 for _path, _fields in _HOST_PARASITE_PUBLIC_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields

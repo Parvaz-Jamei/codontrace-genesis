@@ -1987,6 +1987,12 @@ def can_reproduce(
         reasons.append("parent_atp_cost_not_payable")
     if organism.vitae_store < config.min_vitae_store:
         reasons.append("min_vitae_store_not_met")
+    # Block zero-endowment live births (Iy<=0): fraction→0 or residual×fraction rounds to 0.
+    if organism.atp_state.runtime_available >= config.parent_atp_cost:
+        remaining_after_cost = organism.atp_state.runtime_available - config.parent_atp_cost
+        projected_iy = round(remaining_after_cost * config.offspring_atp_fraction, 10)
+        if projected_iy <= 0:
+            reasons.append("offspring_atp_zero")
     phase_e_state = getattr(organism, "phase_e_state", None)
     if (
         phase_e_state is not None
@@ -2285,6 +2291,47 @@ def reproduce(
             else round(parent_after.atp_state.runtime_available * config.offspring_atp_fraction, 10)
         )
     else:
+        # Ip = runtime after basal settle (caller) and after parent_atp_cost;
+        # Iy = Ip * offspring_atp_fraction. Refuse zero-endowment live births.
+        available_before_cost = parent_after.atp_state.runtime_available
+        remaining_after_cost = available_before_cost - config.parent_atp_cost
+        offspring_atp = round(remaining_after_cost * config.offspring_atp_fraction, 10)
+        if config.parent_atp_cost > 0 and available_before_cost < config.parent_atp_cost:
+            blocked = ReproductionDecision(False, ("parent_atp_cost_not_payable",))
+            return ReproductionResult(
+                attempted=True,
+                succeeded=False,
+                parent_before_id=parent.id,
+                parent_after=parent_after,
+                child=None,
+                mutation=None,
+                lineage=None,
+                decision=blocked,
+                event_id=None,
+                ledger_entry_ids=(),
+                birth_intent=birth_intent,
+                birth_request=birth_request,
+                reproduction_gate_result=reproduction_gate_result,
+                ai_birth_intervention_records=ai_birth_records,
+            )
+        if offspring_atp <= 0:
+            blocked = ReproductionDecision(False, ("offspring_atp_zero",))
+            return ReproductionResult(
+                attempted=True,
+                succeeded=False,
+                parent_before_id=parent.id,
+                parent_after=parent_after,
+                child=None,
+                mutation=None,
+                lineage=None,
+                decision=blocked,
+                event_id=None,
+                ledger_entry_ids=(),
+                birth_intent=birth_intent,
+                birth_request=birth_request,
+                reproduction_gate_result=reproduction_gate_result,
+                ai_birth_intervention_records=ai_birth_records,
+            )
         debit_id = parent_after.atp_state.debit_runtime(
             config.parent_atp_cost,
             tick=birth_tick,
@@ -2313,20 +2360,16 @@ def reproduce(
             )
         if debit_id is not None:
             ledger_ids.append(debit_id)
-        offspring_atp = round(
-            parent_after.atp_state.runtime_available * config.offspring_atp_fraction, 10
+        transfer_id = parent_after.atp_state.debit_runtime(
+            offspring_atp,
+            tick=birth_tick,
+            organism_id=parent.id,
+            codon="111",
+            action="COPY_SELF",
+            reason="offspring_runtime_atp_transfer",
         )
-        if offspring_atp > 0:
-            transfer_id = parent_after.atp_state.debit_runtime(
-                offspring_atp,
-                tick=birth_tick,
-                organism_id=parent.id,
-                codon="111",
-                action="COPY_SELF",
-                reason="offspring_runtime_atp_transfer",
-            )
-            if transfer_id is not None:
-                ledger_ids.append(transfer_id)
+        if transfer_id is not None:
+            ledger_ids.append(transfer_id)
     recombination = recombination_record
     source_genome = parent.genome
     if recombination is not None:
@@ -5151,6 +5194,13 @@ def _apply_parent_reproduction_costs(
     birth_tick: int,
 ) -> tuple[list[int], float, str | None]:
     ledger_ids: list[int] = []
+    available_before_cost = organism.atp_state.runtime_available
+    if config.parent_atp_cost > 0 and available_before_cost < config.parent_atp_cost:
+        return [], 0.0, "parent_atp_cost_not_payable"
+    remaining_after_cost = available_before_cost - config.parent_atp_cost
+    offspring_atp = round(remaining_after_cost * config.offspring_atp_fraction, 10)
+    if offspring_atp <= 0:
+        return [], 0.0, "offspring_atp_zero"
     debit_id = organism.atp_state.debit_runtime(
         config.parent_atp_cost,
         tick=birth_tick,
@@ -5163,20 +5213,16 @@ def _apply_parent_reproduction_costs(
         return [], 0.0, "parent_atp_cost_not_payable"
     if debit_id is not None:
         ledger_ids.append(debit_id)
-    offspring_atp = round(
-        organism.atp_state.runtime_available * config.offspring_atp_fraction, 10
+    transfer_id = organism.atp_state.debit_runtime(
+        offspring_atp,
+        tick=birth_tick,
+        organism_id=organism.id,
+        codon="111",
+        action="COPY_SELF",
+        reason="offspring_runtime_atp_transfer",
     )
-    if offspring_atp > 0:
-        transfer_id = organism.atp_state.debit_runtime(
-            offspring_atp,
-            tick=birth_tick,
-            organism_id=organism.id,
-            codon="111",
-            action="COPY_SELF",
-            reason="offspring_runtime_atp_transfer",
-        )
-        if transfer_id is not None:
-            ledger_ids.append(transfer_id)
+    if transfer_id is not None:
+        ledger_ids.append(transfer_id)
     return ledger_ids, offspring_atp, None
 
 

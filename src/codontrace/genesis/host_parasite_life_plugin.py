@@ -1,14 +1,16 @@
-"""Closed-loop P1: optional HP life plugin hooked from step_population.
+"""Closed-loop HP life plugin hooked from step_population.
 
 Domain-free. Mutates GenesisOrganism genomes via population.mutate_genome + the
 live generation RNG stream (no parallel Mutation.point schedule, no parallel ATP bag).
 
-P1 scope (hard): unify + engine-mutate scaffold. Birth/energy-coupling = P2+.
+P1 scope (hard): unify + engine-mutate scaffold.
+P2 scope: opaque role_by_id map growth on birth (role inheritance).
+Birth energy partition itself lives in population.reproduce (engine-owned).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, replace
 from typing import Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
@@ -22,11 +24,12 @@ ROLE_TAG_PRIMARY = "clp1.role.primary"
 ROLE_TAG_SECONDARY = "clp1.role.secondary"
 
 P1_SCOPE = "unify_mutate_scaffold"
+P2_SCOPE = "smith_fretwell_n1_birth_partition"
 
 
 @dataclass(frozen=True, slots=True)
 class ClosedLoopHPLifeConfig:
-    """Opt-in closed-loop HP life plugin (P1 unify+mutate scaffold)."""
+    """Opt-in closed-loop HP life plugin (P1 unify+mutate; P2 role map growth)."""
 
     enabled: bool = False
     mutate_both_roles: bool = True
@@ -39,6 +42,7 @@ class ClosedLoopHPLifeConfig:
             "mutate_both_roles": self.mutate_both_roles,
             "role_by_id": {k: v for k, v in self.role_by_id},
             "p1_scope": P1_SCOPE,
+            "p2_scope": P2_SCOPE,
         }
 
     @classmethod
@@ -80,6 +84,37 @@ def assert_single_atp_owner(organisms: Sequence[GenesisOrganism]) -> None:
             )
 
 
+def inherit_roles_for_births(
+    role_by_id: Mapping[str, str],
+    births: Sequence[tuple[str, str]],
+) -> dict[str, str]:
+    """Grow opaque role map: each child inherits its parent's role.
+
+    ``births`` entries are ``(parent_id, child_id)``. Unmapped parents are skipped
+    (child stays unmapped). Existing child entries are left unchanged.
+    """
+
+    roles = dict(role_by_id)
+    for parent_id, child_id in births:
+        if child_id in roles:
+            continue
+        parent_role = role_of(parent_id, roles)
+        if parent_role is None:
+            continue
+        roles[child_id] = parent_role
+    return roles
+
+
+def with_inherited_birth_roles(
+    config: ClosedLoopHPLifeConfig,
+    births: Sequence[tuple[str, str]],
+) -> ClosedLoopHPLifeConfig:
+    """Return a new config whose role_by_id includes inherited child roles."""
+
+    grown = inherit_roles_for_births(config.role_map(), births)
+    return replace(config, role_by_id=tuple(sorted(grown.items())))
+
+
 def apply_closed_loop_hp_life(
     organisms: Sequence[GenesisOrganism],
     *,
@@ -91,7 +126,7 @@ def apply_closed_loop_hp_life(
     """Engine-mutate every role-tagged organism via mutate_genome + live stream.
 
     Must be invoked post-ATP-settle / pre-birth. Forks the generation stream;
-    does not construct a parallel RNGManager(seed=...).
+    does not construct a parallel RNGManager(seed=...). Unmapped ids are skipped.
     """
 
     if not config.enabled:
@@ -126,8 +161,11 @@ __all__ = [
     "ROLE_TAG_PRIMARY",
     "ROLE_TAG_SECONDARY",
     "P1_SCOPE",
+    "P2_SCOPE",
     "ClosedLoopHPLifeConfig",
     "role_of",
     "assert_single_atp_owner",
+    "inherit_roles_for_births",
+    "with_inherited_birth_roles",
     "apply_closed_loop_hp_life",
 ]

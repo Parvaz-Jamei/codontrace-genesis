@@ -72,7 +72,8 @@ def test_disabled_reproduction_blocks_copy_self() -> None:
 
 
 def test_parent_atp_never_goes_negative_after_reproduction() -> None:
-    parent = GenesisOrganism.from_bits("parent", "111", initial_runtime_atp=8.0)
+    # initial 16: after parent_atp_cost=8, Iy = 8 * 1.0 = 8 > 0 (zero-endowment blocked).
+    parent = GenesisOrganism.from_bits("parent", "111", initial_runtime_atp=16.0)
     config = ReproductionConfig(
         min_runtime_atp=1.0, parent_atp_cost=8.0, offspring_atp_fraction=1.0
     )
@@ -82,7 +83,9 @@ def test_parent_atp_never_goes_negative_after_reproduction() -> None:
     )
 
     assert result.succeeded
+    assert result.child is not None
     assert result.parent_after.atp_state.runtime_available == 0.0
+    assert result.child.atp_state.runtime_available == 8.0
 
 
 def test_reproduce_requires_alive_result_by_default() -> None:

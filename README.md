@@ -95,9 +95,8 @@ North star: eventually produce honest collective-work / intelligence-*pathway* o
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b7`. Identity in
-`pyproject.toml` on `main` and is not a PyPI release. Older public cuts
-`0.3.0b4` and `0.3.0b5` remain immutable and must not be recut. Phases A–G
+The published wheel is `codontrace==0.3.0b7` (tag `v0.3.0b7`). Older public cuts
+`0.3.0b4`, `0.3.0b5`, and `0.3.0b6` remain immutable and must not be recut. Phases A–G
 remain the `0.3.0b3` substrate; H–L + HE01 SCHEMA v7 shipped in `0.3.0b4`.
 
 Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.

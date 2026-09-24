@@ -3,8 +3,8 @@
 CodonTrace module: configures life_loop primitives; does not reimplement tick
 physics, ATP economy, or replay. Domain role labels stay on the profile map;
 life_loop ids remain opaque. ClaimGate compatibility is read-only and must not
-invent allows. Positioning: CodonTrace is an independent engine — this module
-is not a peer-engine plugin.
+invent allows. Positioning: CodonTrace is an independent engine — design and
+novelty baseline is our life_loop/contracts, not a peer platform.
 """
 
 from __future__ import annotations

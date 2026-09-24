@@ -150,11 +150,13 @@ def test_static_no_private_physics_audit() -> None:
     assert "steal_fraction" not in source
     assert "Simulation(" not in source
     assert "codontrace.life_loop" in source
-    # Positioning: no peer-engine-as-baseline phrasing.
+    # Positioning: no peer-as-novelty-yardstick / plugin framing.
     lowered = source.casefold()
     assert "like avida" not in lowered
     assert "avida plugin" not in lowered
     assert "avida add-on" not in lowered
+    assert "not in avida" not in lowered
+    assert "peer-engine plugin" not in lowered
 
 
 def test_claimgate_host_parasite_adapter_still_imports() -> None:

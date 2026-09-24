@@ -53,7 +53,7 @@ def _mean_hamming(genomes: Sequence[SemanticGenome]) -> float:
             width = min(len(left_c), len(right_c))
             if width == 0:
                 continue
-            diffs = sum(1 for a, b in zip(left_c[:width], right_c[:width]) if a != b)
+            diffs = sum(1 for a, b in zip(left_c[:width], right_c[:width], strict=False) if a != b)
             total += diffs / width
             pairs += 1
     return total / pairs if pairs else 0.0

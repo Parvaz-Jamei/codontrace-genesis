@@ -3,7 +3,7 @@
 **پروژه:** CodonTrace Genesis  
 **شاخه:** `sim-fidelity-campaigns-20260924`  
 **نوک main:** `9bdad1f`  
-**pack_digest:** `6d2be6cf9a60acfea0dbbcf0bc608ba43930f35c0e94434ac4b578106e749e1a`
+**pack_digest:** `46184d6d86782344905142c0db06595e20fcddb4bc0be3683be99e5244faa751`
 
 ## به زبان ساده (برای دانشجوی کارشناسی)
 

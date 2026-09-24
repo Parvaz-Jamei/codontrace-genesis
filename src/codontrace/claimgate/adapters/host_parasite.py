@@ -12,10 +12,17 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
+    from codontrace.genesis.host_parasite_attach_registry import JournalAttachRegistryPacket
     from codontrace.genesis.host_parasite_campaign import HostParasiteCampaignResult
+    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
     from codontrace.genesis.host_parasite_continuum import ContinuumFactorialResult
     from codontrace.genesis.host_parasite_cornish import CornishCampaignResult
+    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
     from codontrace.genesis.host_parasite_diagnostics import CoevolutionDiagnostics
+    from codontrace.genesis.host_parasite_entropy_contingency_bridge import (
+        EntropyContingencyBridgeResult,
+    )
     from codontrace.genesis.host_parasite_env import HostParasiteEnv
     from codontrace.genesis.host_parasite_evolvability import (
         EvolvabilityFalsificationResult,
@@ -23,24 +30,17 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_genome_diversity import (
         GenomeDiversityCampaignResult,
     )
-    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
-    from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
-    from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
-    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
     from codontrace.genesis.host_parasite_genome_factorial import GenomeFactorialResult
-    from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
-    from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
-    from codontrace.genesis.host_parasite_attach_registry import JournalAttachRegistryPacket
-    from codontrace.genesis.host_parasite_ard_fsd_transition import ArdFsdTransitionResult
-    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
-    from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
-    from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
-    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
-    from codontrace.genesis.host_parasite_wave6_smoke import Wave6JournalSmokeResult
+    from codontrace.genesis.host_parasite_genome_zaman import GenomeZamanCampaignResult
     from codontrace.genesis.host_parasite_he_hp_refresh import HeHpLockedDigestRefreshNote
-    from codontrace.genesis.host_parasite_entropy_contingency_bridge import (
-        EntropyContingencyBridgeResult,
-    )
+    from codontrace.genesis.host_parasite_hgt import HgtCampaignResult
+    from codontrace.genesis.host_parasite_mode_contrast import ModeContrastResult
+    from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
+    from codontrace.genesis.host_parasite_price_caution import PriceCautionResult
+    from codontrace.genesis.host_parasite_resource_dynamics import ResourceDynamicsResult
+    from codontrace.genesis.host_parasite_task_gene import TaskGeneMapResult
+    from codontrace.genesis.host_parasite_virulence_quality import VirulenceQualityResult
+    from codontrace.genesis.host_parasite_wave6_smoke import Wave6JournalSmokeResult
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -1548,7 +1548,7 @@ _MODE_CONTRAST_NOTE = (
 
 def attach_transmission_mode_contrast(
     bundle: ClaimgateBundle,
-    contrast: "ModeContrastResult",
+    contrast: ModeContrastResult,
 ) -> ClaimgateBundle:
     """Attach transmission-mode contrast digests without raising the ladder."""
 
@@ -1620,7 +1620,7 @@ _GENOME_FACTORIAL_NOTE = (
 
 def attach_genome_vt_spatial_continuum_factorial(
     bundle: ClaimgateBundle,
-    factorial: "GenomeFactorialResult",
+    factorial: GenomeFactorialResult,
 ) -> ClaimgateBundle:
     """Attach genome×continuum factorial digests without raising the ladder."""
 
@@ -1693,7 +1693,7 @@ _VIRULENCE_QUALITY_NOTE = (
 
 def attach_virulence_resistance_quality(
     bundle: ClaimgateBundle,
-    campaign: "VirulenceQualityResult",
+    campaign: VirulenceQualityResult,
 ) -> ClaimgateBundle:
     """Attach virulence-quality digests; keep human-virulence claim blocked."""
 
@@ -1771,7 +1771,7 @@ _PRICE_CAUTION_NOTE = (
 
 def attach_price_causality_caution(
     bundle: ClaimgateBundle,
-    assay: "PriceCautionResult",
+    assay: PriceCautionResult,
 ) -> ClaimgateBundle:
     """Attach Price caution digests; never unlock major_transition_proved."""
 
@@ -1845,7 +1845,7 @@ _JOURNAL_REGISTRY_NOTE = (
 
 def attach_journal_attach_registry(
     bundle: ClaimgateBundle,
-    packet: "JournalAttachRegistryPacket",
+    packet: JournalAttachRegistryPacket,
 ) -> ClaimgateBundle:
     """Attach Phase 18 soft-complete registry packet without raising the ladder."""
 
@@ -1921,7 +1921,7 @@ _ARD_FSD_TRANSITION_NOTE = (
 
 def attach_ard_fsd_transition(
     bundle: ClaimgateBundle,
-    campaign: "ArdFsdTransitionResult",
+    campaign: ArdFsdTransitionResult,
 ) -> ClaimgateBundle:
     """Attach ARD→FSD transition digests without proving Red Queen."""
 
@@ -1997,7 +1997,7 @@ _RESOURCE_DYNAMICS_NOTE = (
 
 def attach_resource_dynamics_factorial(
     bundle: ClaimgateBundle,
-    factorial: "ResourceDynamicsResult",
+    factorial: ResourceDynamicsResult,
 ) -> ClaimgateBundle:
     """Attach resource×dynamics factorial digests without wet claims."""
 
@@ -2066,7 +2066,7 @@ _CONTINGENCY_NOTE = (
 
 def attach_multi_seed_contingency(
     bundle: ClaimgateBundle,
-    campaign: "ContingencyCampaignResult",
+    campaign: ContingencyCampaignResult,
 ) -> ClaimgateBundle:
     """Attach S1 contingency digests; never prove complexity emergence."""
 
@@ -2137,7 +2137,7 @@ _SEQUENTIAL_CORNISH_NOTE = (
 
 def attach_sequential_cornish_campaign(
     bundle: ClaimgateBundle,
-    campaign: "SequentialCornishResult",
+    campaign: SequentialCornishResult,
 ) -> ClaimgateBundle:
     """Attach sequential Cornish digests; refuse intervention_supported from obs match."""
 
@@ -2216,7 +2216,7 @@ _MUTATOR_NOTE = (
 
 def attach_scanlan_mutator_campaign(
     bundle: ClaimgateBundle,
-    campaign: "MutatorCampaignResult",
+    campaign: MutatorCampaignResult,
 ) -> ClaimgateBundle:
     """Attach Scanlan mutator digests; refuse gene identity / CRISPR claims."""
 
@@ -2295,7 +2295,7 @@ _WAVE6_SMOKE_NOTE = (
 
 def attach_wave6_journal_smoke(
     bundle: ClaimgateBundle,
-    smoke: "Wave6JournalSmokeResult",
+    smoke: Wave6JournalSmokeResult,
 ) -> ClaimgateBundle:
     """Attach Phase 24 smoke digest without raising the ClaimGate ladder."""
 
@@ -2377,7 +2377,7 @@ _HE_HP_REFRESH_NOTE = (
 
 def attach_he_hp_locked_digest_refresh(
     bundle: ClaimgateBundle,
-    note: "HeHpLockedDigestRefreshNote",
+    note: HeHpLockedDigestRefreshNote,
 ) -> ClaimgateBundle:
     """Attach Phase 25 HE_HP refresh note; refuse pin edits and ladder rise."""
 
@@ -2445,7 +2445,7 @@ _ENTROPY_CONTINGENCY_NOTE = (
 
 def attach_entropy_contingency_bridge(
     bundle: ClaimgateBundle,
-    bridge: "EntropyContingencyBridgeResult",
+    bridge: EntropyContingencyBridgeResult,
 ) -> ClaimgateBundle:
     """Attach Phase 26 bridge digests without proving complexity emergence."""
 

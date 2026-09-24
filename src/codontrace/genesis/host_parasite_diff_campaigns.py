@@ -15,7 +15,6 @@ from __future__ import annotations
 import ast
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
 
 from codontrace.claimgate.adapters.host_parasite import (
     assert_claim_allowed,

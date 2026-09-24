@@ -20,6 +20,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import sys
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -1031,10 +1032,11 @@ if __name__ == "__main__":
     )
     written = write_results_json(default)
     pack = json.loads(written.read_text(encoding="utf-8"))
-    print(f"wrote {written}")
-    print(f"pack_digest={pack['pack_digest']}")
-    print(
-        f"n_success={pack['n_success']} n_partial={pack['n_partial']} n_fail={pack['n_fail']}"
+    sys.stdout.write(f"wrote {written}\n")
+    sys.stdout.write(f"pack_digest={pack['pack_digest']}\n")
+    sys.stdout.write(
+        f"n_success={pack['n_success']} n_partial={pack['n_partial']} "
+        f"n_fail={pack['n_fail']}\n"
     )
     for c in pack["campaigns"]:
-        print(f"  {c['id']}: {c['result']}")
+        sys.stdout.write(f"  {c['id']}: {c['result']}\n")

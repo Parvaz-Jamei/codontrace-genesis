@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -22,6 +21,7 @@ from codontrace.genesis.replay_integrity import (
     NON_REPLAY_CRITICAL_DIGEST_CLASSES,
     audit_replay_digest_policy_registry,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_JSON = (
@@ -246,7 +246,7 @@ def test_claimgate_ceilings_and_ladder(pack_dict: dict) -> None:
 
 @pytest.mark.parametrize("path,expected", PIN_SPECS)
 def test_baic_pins_intact(path: str, expected: str) -> None:
-    digest = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+    digest = sha256_text_file(ROOT / path)
     assert digest == expected
 
 

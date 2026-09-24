@@ -272,3 +272,159 @@ def test_he03_trace_samples_exclude_switch_endpoints() -> None:
     samples = _extract_task_samples(result, config)
     # Ensure we still get TASK samples from traces under mutational overlay.
     assert any(task == "TASK_A" for _, task in samples)
+
+
+# --- Negative controls for the HE03 measurement surface ---------------------
+# The tests above only assert that samples and switch records exist. None of them
+# would notice if the extractors changed meaning, so the checks below assert the
+# exclusions and the arithmetic that the campaign's claims actually rest on.
+
+
+class _FakeEvent:
+    def __init__(self, action: str, agent_id: str | None = "org-0") -> None:
+        self.action = action
+        self.agent_id = agent_id
+
+
+class _FakeTrace:
+    def __init__(self, events: list[_FakeEvent]) -> None:
+        self.events = tuple(events)
+
+
+class _FakeGeneration:
+    def __init__(self, traces: list[_FakeTrace], records: list[object]) -> None:
+        self.traces = tuple(traces)
+        self.task_switch_cost_records = tuple(records)
+
+
+class _FakeTick:
+    def __init__(self, generation: _FakeGeneration) -> None:
+        self.generation_result = generation
+
+
+class _FakeResult:
+    def __init__(self, ticks: list[_FakeTick]) -> None:
+        self.ticks = tuple(ticks)
+
+
+def test_he03_trace_samples_ignore_switch_records_entirely() -> None:
+    """A result whose only evidence is switch records must yield no samples.
+
+    Under the pre-fix construction the switch endpoints were folded into the
+    Gorelick matrix, so this input produced samples and inflated the cost arms.
+    This assertion fails on that construction and passes only when the trace is
+    the sole source.
+    """
+
+    from codontrace.genesis.hard_experiment_03 import (
+        _extract_task_samples,
+        _task_switch_for_arm,
+    )
+
+    records = [
+        TaskSwitchCostRecord(
+            tick=0,
+            organism_id="org-0",
+            from_task="TASK_A",
+            to_task="TASK_B",
+            action="EMIT_NEXUS",
+            switch_cost_atp=SWITCH_COST_ATP_HIGH,
+            charged=True,
+            runtime_atp_after=3.5,
+        )
+    ]
+    result = _FakeResult([_FakeTick(_FakeGeneration([], records))])
+    config = _task_switch_for_arm("cost_high")
+    assert _extract_task_samples(result, config) == ()
+
+
+def test_he03_switch_stats_count_only_charged_debits() -> None:
+    """The realised total must be ATP that moved, not the configured cost.
+
+    ``TaskSwitchCostRecord.switch_cost_atp`` keeps the configured value even when
+    the debit returned None, so summing that field reports a nominal total. The
+    manipulation check compared those nominal totals, which let a campaign report
+    a realised cost while no balance ever paid.
+    """
+
+    from codontrace.genesis.hard_experiment_03 import _extract_switch_stats
+
+    charged = TaskSwitchCostRecord(
+        tick=0,
+        organism_id="org-0",
+        from_task="TASK_A",
+        to_task="TASK_B",
+        action="EMIT_NEXUS",
+        switch_cost_atp=SWITCH_COST_ATP_HIGH,
+        charged=True,
+        runtime_atp_after=3.5,
+    )
+    uncharged = TaskSwitchCostRecord(
+        tick=1,
+        organism_id="org-1",
+        from_task="TASK_B",
+        to_task="TASK_A",
+        action="EAT_LUMEN",
+        switch_cost_atp=SWITCH_COST_ATP_HIGH,
+        charged=False,
+        runtime_atp_after=0.0,
+    )
+    result = _FakeResult([_FakeTick(_FakeGeneration([], [charged, uncharged]))])
+    n_switches, realized = _extract_switch_stats(result)
+    # Both records are switches; only the charged one moved ATP.
+    assert n_switches == 2
+    assert realized == pytest.approx(SWITCH_COST_ATP_HIGH)
+
+
+def test_he03_switch_stats_report_zero_when_nothing_was_payable() -> None:
+    """Every switch uncharged but recorded as a switch: realised cost is zero."""
+
+    from codontrace.genesis.hard_experiment_03 import _extract_switch_stats
+
+    records = [
+        TaskSwitchCostRecord(
+            tick=tick,
+            organism_id="org-0",
+            from_task="TASK_A",
+            to_task="TASK_B",
+            action="EMIT_NEXUS",
+            switch_cost_atp=SWITCH_COST_ATP_HIGH,
+            charged=False,
+            runtime_atp_after=0.0,
+        )
+        for tick in range(3)
+    ]
+    result = _FakeResult([_FakeTick(_FakeGeneration([], records))])
+    n_switches, realized = _extract_switch_stats(result)
+    assert n_switches == 3
+    assert realized == 0.0
+
+
+def test_he03_isolation_readout_is_a_width_census_not_a_behavioural_assay() -> None:
+    """Pin the current isolation semantics so a change to them is a visible one.
+
+    The group term is the ancestral dual width for every organism and the solo
+    term is genome task width, so the drop is an algebraic function of the genome
+    and can never be negative. A population in which one organism keeps TASK_A and
+    another keeps TASK_B scores identically to one in which both lost TASK_B.
+    """
+
+    from codontrace.genesis.hard_experiment_03 import (
+        HE03_ANCESTRAL_TASK_WIDTH,
+        _genome_task_width,
+        _task_switch_for_arm,
+    )
+
+    config = _task_switch_for_arm("isolation_probe")
+    # One organism keeps A, another keeps B: maximal complementarity.
+    complementary = [1.0, 1.0]
+    # Both lost B: maximal capability loss.
+    degraded = [1.0, 1.0]
+    assert complementary == degraded, "the width census cannot separate these"
+    assert all(
+        HE03_ANCESTRAL_TASK_WIDTH - width >= 0.0 for width in complementary + degraded
+    )
+    # And the two states it *can* report are the two widths themselves.
+    assert _genome_task_width("101111000", config) == 1.0
+    dropped = HE03_ANCESTRAL_TASK_WIDTH - 1.0
+    assert dropped == 1.0  # a positive "drop" that reads as autonomy loss

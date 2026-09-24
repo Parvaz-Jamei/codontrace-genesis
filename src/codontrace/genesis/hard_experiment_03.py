@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Literal
 
 from codontrace._types import JsonValue
+from codontrace.codon import CodonTable
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
-from codontrace.codon import CodonTable
 from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
 from codontrace.genesis.isolation_assay import (
     IsolationAssayConfig,
@@ -654,6 +654,15 @@ def _last_evolved_genomes(result: object) -> dict[str, str]:
 
 
 def _extract_switch_stats(result: object) -> tuple[int, float]:
+    """Switch count and ATP actually debited for switch costs.
+
+    ``TaskSwitchCostRecord.switch_cost_atp`` carries the *configured* cost and is
+    populated even when the debit fails (``charged=False``). Summing that field
+    reports a nominal total that no balance ever paid, which made the
+    manipulation check satisfiable while nothing moved. Only charged records
+    contribute to the realised total; every record still counts as a switch.
+    """
+
     n_switches = 0
     realized = 0.0
     for tick in tuple(getattr(result, "ticks", ()) or ()):
@@ -662,7 +671,8 @@ def _extract_switch_stats(result: object) -> tuple[int, float]:
             continue
         for record in getattr(generation, "task_switch_cost_records", ()) or ():
             n_switches += 1
-            realized += float(getattr(record, "switch_cost_atp", 0.0) or 0.0)
+            if bool(getattr(record, "charged", False)):
+                realized += float(getattr(record, "switch_cost_atp", 0.0) or 0.0)
     return n_switches, round(realized, 10)
 
 

@@ -1113,3 +1113,255 @@ def run_reciprocal_observational_contrast(
         claim_ceiling=claim_ceiling,
         smoke_only=smoke_only,
     )
+
+
+SCHEMA_DID = "host_parasite_did_intervention_v1"
+
+
+@dataclass(frozen=True, slots=True)
+class DidCellResult:
+    """One pre/post × treat/control cell on World meters."""
+
+    cell_id: str
+    period: str  # "pre" | "post"
+    treated: bool
+    schedule_arm: str
+    ablation_preset: str
+    channel_value: float
+    meter_digest: str
+    world_digest: str
+    cell_digest: str = ""
+
+    def __post_init__(self) -> None:
+        cid = _refuse_banned_fragment(_as_str(self.cell_id, "cell_id"), "cell_id")
+        object.__setattr__(self, "cell_id", cid)
+        period = _as_str(self.period, "period").casefold()
+        if period not in {"pre", "post"}:
+            raise ConfigurationError("period must be 'pre' or 'post'.")
+        object.__setattr__(self, "period", period)
+        object.__setattr__(self, "treated", _as_bool(self.treated, "treated"))
+        sched = _as_str(self.schedule_arm, "schedule_arm").casefold()
+        if sched not in SCHEDULE_ARMS:
+            raise ConfigurationError(f"unknown schedule_arm {self.schedule_arm!r}.")
+        object.__setattr__(self, "schedule_arm", sched)
+        abl = _as_str(self.ablation_preset, "ablation_preset").casefold()
+        if abl not in ABLATION_PRESETS:
+            raise ConfigurationError(f"unknown ablation_preset {self.ablation_preset!r}.")
+        object.__setattr__(self, "ablation_preset", abl)
+        object.__setattr__(
+            self,
+            "channel_value",
+            float(require_finite_float("channel_value", self.channel_value)),
+        )
+        object.__setattr__(self, "meter_digest", _as_str(self.meter_digest, "meter_digest"))
+        object.__setattr__(self, "world_digest", _as_str(self.world_digest, "world_digest"))
+        computed = canonical_digest(self._body(), prefix="hp_did_cell")
+        object.__setattr__(
+            self, "cell_digest", _check_digest(self.cell_digest, computed, "DidCellResult")
+        )
+
+    def _body(self) -> dict[str, JsonValue]:
+        return {
+            "cell_id": self.cell_id,
+            "period": self.period,
+            "treated": self.treated,
+            "schedule_arm": self.schedule_arm,
+            "ablation_preset": self.ablation_preset,
+            "channel_value": self.channel_value,
+            "meter_digest": self.meter_digest,
+            "world_digest": self.world_digest,
+        }
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {**self._body(), "cell_digest": self.cell_digest}
+
+
+@dataclass(frozen=True, slots=True)
+class DidInterventionContrast:
+    """Difference-in-differences contrast; observational_bounds only."""
+
+    contrast_id: str
+    cells: tuple[DidCellResult, ...]
+    did_estimate: float
+    effect_lower: float
+    effect_upper: float
+    dual_null_delta: float
+    identifiability: str = "observational_bounds"
+    claim_role: str = "exploratory"
+    claim_ceiling: str = "runtime_observation"
+    smoke_only: bool = True
+    refuse_list: tuple[str, ...] = ()
+    digest: str = ""
+    intervention_supported: bool = False
+    red_queen_proved: bool = False
+    price_as_causality: bool = False
+    raises_claim_ladder: bool = False
+
+    def __post_init__(self) -> None:
+        cid = _refuse_banned_fragment(
+            _as_str(self.contrast_id, "contrast_id"), "contrast_id"
+        )
+        object.__setattr__(self, "contrast_id", cid)
+        if len(self.cells) < 4:
+            raise ConfigurationError("DiD requires at least 4 cells (2x2 design).")
+        object.__setattr__(self, "cells", tuple(self.cells))
+        object.__setattr__(
+            self,
+            "did_estimate",
+            float(require_finite_float("did_estimate", self.did_estimate)),
+        )
+        object.__setattr__(
+            self,
+            "effect_lower",
+            float(require_finite_float("effect_lower", self.effect_lower)),
+        )
+        object.__setattr__(
+            self,
+            "effect_upper",
+            float(require_finite_float("effect_upper", self.effect_upper)),
+        )
+        if self.effect_lower > self.effect_upper:
+            raise ConfigurationError("effect_lower must be <= effect_upper.")
+        object.__setattr__(
+            self,
+            "dual_null_delta",
+            float(require_finite_float("dual_null_delta", self.dual_null_delta)),
+        )
+        ident = _as_str(self.identifiability, "identifiability")
+        if ident != "observational_bounds":
+            raise ConfigurationError(
+                "identifiability must be observational_bounds (no causal_proved)."
+            )
+        object.__setattr__(self, "identifiability", ident)
+        role = _as_str(self.claim_role, "claim_role").casefold()
+        if role not in {"primary", "exploratory", "smoke"}:
+            raise ConfigurationError("claim_role must be primary, exploratory, or smoke.")
+        object.__setattr__(self, "claim_role", role)
+        ceiling = _as_str(self.claim_ceiling, "claim_ceiling").casefold()
+        if ceiling not in {"runtime_observation", "candidate_evidence"}:
+            raise ConfigurationError(
+                "claim_ceiling must be runtime_observation or candidate_evidence."
+            )
+        object.__setattr__(self, "claim_ceiling", ceiling)
+        object.__setattr__(self, "smoke_only", _as_bool(self.smoke_only, "smoke_only"))
+        object.__setattr__(self, "refuse_list", _merge_refuses(self.refuse_list))
+        if self.intervention_supported:
+            raise ConfigurationError("refuses intervention_supported=True.")
+        if self.red_queen_proved:
+            raise ConfigurationError("refuses red_queen_proved=True.")
+        if self.price_as_causality:
+            raise ConfigurationError("refuses price_as_causality=True.")
+        if self.raises_claim_ladder:
+            raise ConfigurationError("refuses raises_claim_ladder=True.")
+        object.__setattr__(self, "intervention_supported", False)
+        object.__setattr__(self, "red_queen_proved", False)
+        object.__setattr__(self, "price_as_causality", False)
+        object.__setattr__(self, "raises_claim_ladder", False)
+        computed = canonical_digest(self._body(), prefix="hp_did_ctr")
+        object.__setattr__(
+            self,
+            "digest",
+            _check_digest(self.digest, computed, "DidInterventionContrast"),
+        )
+
+    def _body(self) -> dict[str, JsonValue]:
+        return {
+            "schema": SCHEMA_DID,
+            "contrast_id": self.contrast_id,
+            "cells": [c.to_dict() for c in self.cells],
+            "did_estimate": self.did_estimate,
+            "effect_lower": self.effect_lower,
+            "effect_upper": self.effect_upper,
+            "dual_null_delta": self.dual_null_delta,
+            "identifiability": self.identifiability,
+            "claim_role": self.claim_role,
+            "claim_ceiling": self.claim_ceiling,
+            "smoke_only": self.smoke_only,
+            "refuse_list": list(self.refuse_list),
+            "intervention_supported": False,
+            "red_queen_proved": False,
+            "price_as_causality": False,
+            "raises_claim_ladder": False,
+            "claim_status": "observational_bounds_only",
+        }
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {**self._body(), "digest": self.digest}
+
+
+def run_did_intervention_contrast(
+    *,
+    contrast_id: str,
+    seed: int = 0,
+    pre_ticks: int = 1,
+    post_ticks: int = 2,
+    control_schedule_arm: str = "none",
+    treat_schedule_arm: str = "freeze",
+    primary_channel: str = "coupling_total",
+    claim_role: str = "exploratory",
+    smoke_only: bool = True,
+    claim_ceiling: str = "runtime_observation",
+) -> DidInterventionContrast:
+    """2×2 DiD on ScheduleLock arms + dual_null post cell; never causal_proved.
+
+    Design:
+      pre-control, pre-treat (both schedule=none, short ticks),
+      post-control (control_schedule_arm), post-treat (treat_schedule_arm),
+      plus a dual_null post cell for honesty contrast.
+    did = (post_treat - pre_treat) - (post_control - pre_control)
+    """
+
+    channel = _refuse_banned_fragment(
+        _as_str(primary_channel, "primary_channel"), "primary_channel"
+    )
+    specs: list[tuple[str, str, bool, str, str, int]] = [
+        ("pre_control", "pre", False, "none", "none", pre_ticks),
+        ("pre_treat", "pre", True, "none", "none", pre_ticks),
+        ("post_control", "post", False, control_schedule_arm, "none", post_ticks),
+        ("post_treat", "post", True, treat_schedule_arm, "none", post_ticks),
+        ("post_dual_null", "post", False, "none", "dual_null", post_ticks),
+    ]
+    cells: list[DidCellResult] = []
+    values: dict[str, float] = {}
+    for cell_id, period, treated, sched, abl, ticks in specs:
+        raw = _run_world_cell(
+            profile_id=f"did_{contrast_id}_{cell_id}"[:48],
+            seed=seed,
+            ticks=ticks,
+            coupling_amount=0.25,
+            spatial_mode="well_mixed",
+            inherit_probability=0.0,
+            match_score_scale=1.0,
+            schedule_arm=sched,
+            ablation_preset=abl,
+        )
+        value = _channel_value(raw, channel)
+        values[cell_id] = value
+        cells.append(
+            DidCellResult(
+                cell_id=cell_id,
+                period=period,
+                treated=treated,
+                schedule_arm=sched,
+                ablation_preset=abl,
+                channel_value=value,
+                meter_digest=str(raw["meter_digest"]),
+                world_digest=str(raw["world_digest"]),
+            )
+        )
+    did = (values["post_treat"] - values["pre_treat"]) - (
+        values["post_control"] - values["pre_control"]
+    )
+    dual_delta = values["post_dual_null"] - values["post_control"]
+    half = abs(did)
+    return DidInterventionContrast(
+        contrast_id=contrast_id,
+        cells=tuple(cells),
+        did_estimate=did,
+        effect_lower=did - half,
+        effect_upper=did + half,
+        dual_null_delta=dual_delta,
+        claim_role=claim_role,
+        claim_ceiling=claim_ceiling,
+        smoke_only=smoke_only,
+    )

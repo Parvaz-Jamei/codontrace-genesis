@@ -197,6 +197,21 @@ def assert_registry_covers_phases_1_to_17(packet: JournalAttachRegistryPacket) -
 # Wave-5 attach extra-keys → ClaimGate adapter callables (Phases 18–23).
 # Hygiene only: documents the shipped surface without rewriting the Phase-18
 # Phases 1–17 soft-complete baseline contract.
+
+# Wave-6 attach keys (Phases 24–26). Hygiene / earned bridge only; does not
+# rewrite Phase-18 soft-complete Phases 1–17 baseline or Wave-5 contracts.
+WAVE6_ATTACH_KEYS: dict[str, str] = {
+    "wave6_journal_smoke": "Phase 24 Wave-5 one-bundle attach smoke + ladder audit",
+    "he_hp_locked_digest_refresh": "Phase 25 HE_HP locked-digest refresh note",
+    "entropy_contingency_bridge": "Phase 26 Phase 11×21 entropy×contingency bridge",
+}
+
+WAVE6_ATTACH_CALLABLES: dict[str, str] = {
+    "wave6_journal_smoke": "attach_wave6_journal_smoke",
+    "he_hp_locked_digest_refresh": "attach_he_hp_locked_digest_refresh",
+    "entropy_contingency_bridge": "attach_entropy_contingency_bridge",
+}
+
 WAVE5_ATTACH_CALLABLES: dict[str, str] = {
     "journal_attach_registry": "attach_journal_attach_registry",
     "ard_fsd_transition": "attach_ard_fsd_transition",
@@ -238,14 +253,44 @@ def assert_wave5_attach_surface_wired() -> None:
         )
 
 
+
+def assert_wave6_attach_surface_wired() -> None:
+    """Fail closed if Wave-6 attach keys drift from adapter callables."""
+
+    missing_keys = [k for k in WAVE6_ATTACH_KEYS if k not in WAVE6_ATTACH_CALLABLES]
+    if missing_keys:
+        raise ConfigurationError(
+            f"WAVE6_ATTACH_KEYS missing callable map entries: {missing_keys}"
+        )
+    orphan = [k for k in WAVE6_ATTACH_CALLABLES if k not in WAVE6_ATTACH_KEYS]
+    if orphan:
+        raise ConfigurationError(
+            f"WAVE6_ATTACH_CALLABLES has orphan keys not in WAVE6_ATTACH_KEYS: {orphan}"
+        )
+    from codontrace.claimgate.adapters import host_parasite as hp_adapter
+
+    missing_fns: list[str] = []
+    for key, fn_name in WAVE6_ATTACH_CALLABLES.items():
+        if not callable(getattr(hp_adapter, fn_name, None)):
+            missing_fns.append(f"{key}->{fn_name}")
+    if missing_fns:
+        raise ConfigurationError(
+            f"Wave-6 attach callables missing on host_parasite adapter: {missing_fns}"
+        )
+
+
+
 __all__ = [
     "BLOCKED_CLAIM_MATRIX",
     "REQUIRED_ATTACH_KEYS",
     "WAVE5_ATTACH_CALLABLES",
     "WAVE5_ATTACH_KEYS",
+    "WAVE6_ATTACH_CALLABLES",
+    "WAVE6_ATTACH_KEYS",
     "SCHEMA",
     "JournalAttachRegistryPacket",
     "assert_registry_covers_phases_1_to_17",
     "assert_wave5_attach_surface_wired",
+    "assert_wave6_attach_surface_wired",
     "build_journal_attach_registry_packet",
 ]

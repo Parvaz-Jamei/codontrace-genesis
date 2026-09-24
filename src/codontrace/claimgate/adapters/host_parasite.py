@@ -36,6 +36,11 @@ if TYPE_CHECKING:
     from codontrace.genesis.host_parasite_contingency import ContingencyCampaignResult
     from codontrace.genesis.host_parasite_cornish_sequential import SequentialCornishResult
     from codontrace.genesis.host_parasite_mutator import MutatorCampaignResult
+    from codontrace.genesis.host_parasite_wave6_smoke import Wave6JournalSmokeResult
+    from codontrace.genesis.host_parasite_he_hp_refresh import HeHpLockedDigestRefreshNote
+    from codontrace.genesis.host_parasite_entropy_contingency_bridge import (
+        EntropyContingencyBridgeResult,
+    )
     from codontrace.genesis.host_parasite_zaman import ZamanCampaignResult
 
 from codontrace._types import JsonValue
@@ -2274,4 +2279,235 @@ def attach_scanlan_mutator_campaign(
     limitations = bundle.limitations
     if _MUTATOR_NOTE not in limitations:
         limitations = limitations + (_MUTATOR_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 24 — Wave 6 journal packet integration smoke (Phases 18–23)
+# ---------------------------------------------------------------------------
+
+_WAVE6_SMOKE_NOTE = (
+    "Wave 6 journal smoke attaches Phases 18–23 digests on one prereg-bound "
+    "bundle for soft-complete inventory hygiene; ladder must not rise and "
+    "blocked claims stay fail-closed."
+)
+
+
+def attach_wave6_journal_smoke(
+    bundle: ClaimgateBundle,
+    smoke: "Wave6JournalSmokeResult",
+) -> ClaimgateBundle:
+    """Attach Phase 24 smoke digest without raising the ClaimGate ladder."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_wave6_smoke import Wave6JournalSmokeResult
+
+    if not isinstance(smoke, Wave6JournalSmokeResult):
+        raise ConfigurationError("smoke must be a Wave6JournalSmokeResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if smoke.raises_claim_ladder or smoke.red_queen_proved:
+        raise ConfigurationError("wave6 smoke must keep proved / ladder flags False.")
+    if not smoke.ladder_unchanged:
+        raise ConfigurationError("wave6 smoke requires ladder_unchanged=True.")
+    if not smoke.soft_complete_wave5_surface:
+        raise ConfigurationError("wave6 smoke requires soft_complete_wave5_surface.")
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_wave6_journal_smoke requires a host_parasite domain bundle."
+        )
+    if "wave6_journal_smoke" in extra:
+        raise ConfigurationError("wave6_journal_smoke already attached.")
+    payload = smoke.to_dict()
+    if payload.get("schema") != "host_parasite_wave6_journal_smoke_v1":
+        raise ConfigurationError("wave6 journal smoke schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_wave6_journal_smoke requires preregistration digest."
+        )
+    extra["wave6_journal_smoke"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "smoke_digest": payload["smoke_digest"],
+            "attach_order": payload["attach_order"],
+            "attached_keys": payload["attached_keys"],
+            "campaign_digests": payload["campaign_digests"],
+            "ladder_before": payload["ladder_before"],
+            "ladder_after": payload["ladder_after"],
+            "ladder_unchanged": True,
+            "blocked_spot_check": payload["blocked_spot_check"],
+            "claim_ceiling": payload["claim_ceiling"],
+            "raises_claim_ladder": False,
+            "red_queen_proved": False,
+            "complexity_emergence_proved": False,
+            "intervention_supported": False,
+            "gene_identity_proved": False,
+            "soft_complete_wave5_surface": True,
+            "preregistration_digest": str(prereg["digest"]),
+            "wave": 6,
+            "phase": 24,
+        },
+    )
+    limitations = bundle.limitations
+    if _WAVE6_SMOKE_NOTE not in limitations:
+        limitations = limitations + (_WAVE6_SMOKE_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 25 — HE_HP locked-digest refresh note (Wave 5 stack honesty)
+# ---------------------------------------------------------------------------
+
+_HE_HP_REFRESH_NOTE = (
+    "HE_HP locked-digest refresh confirms Phase 7–9 campaign digests still "
+    "replay after Waves 5–6; BAIC pins remain byte-identical."
+)
+
+
+def attach_he_hp_locked_digest_refresh(
+    bundle: ClaimgateBundle,
+    note: "HeHpLockedDigestRefreshNote",
+) -> ClaimgateBundle:
+    """Attach Phase 25 HE_HP refresh note; refuse pin edits and ladder rise."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_he_hp_refresh import HeHpLockedDigestRefreshNote
+
+    if not isinstance(note, HeHpLockedDigestRefreshNote):
+        raise ConfigurationError("note must be a HeHpLockedDigestRefreshNote.")
+    require_preregistration_before_campaign_attach(bundle)
+    if note.raises_claim_ladder or note.red_queen_proved:
+        raise ConfigurationError("HE_HP refresh must keep proved / ladder flags False.")
+    if not note.baic_pins_untouched:
+        raise ConfigurationError("HE_HP refresh requires baic_pins_untouched=True.")
+    if not note.locks_still_valid:
+        raise ConfigurationError("HE_HP refresh requires locks_still_valid=True.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_he_hp_locked_digest_refresh requires a host_parasite domain bundle."
+        )
+    if "he_hp_locked_digest_refresh" in extra:
+        raise ConfigurationError("he_hp_locked_digest_refresh already attached.")
+    payload = note.to_dict()
+    if payload.get("schema") != "host_parasite_he_hp_locked_digest_refresh_v1":
+        raise ConfigurationError("HE_HP refresh schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_he_hp_locked_digest_refresh requires preregistration digest."
+        )
+    extra["he_hp_locked_digest_refresh"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "refresh_digest": payload["refresh_digest"],
+            "locked_digest": payload["locked_digest"],
+            "campaign_lock_status": payload["campaign_lock_status"],
+            "baic_pins_untouched": True,
+            "locks_still_valid": True,
+            "wave5_does_not_invalidate_he_hp": True,
+            "raises_claim_ladder": False,
+            "red_queen_proved": False,
+            "preregistration_digest": str(prereg["digest"]),
+            "wave": 6,
+            "phase": 25,
+        },
+    )
+    limitations = bundle.limitations
+    if _HE_HP_REFRESH_NOTE not in limitations:
+        limitations = limitations + (_HE_HP_REFRESH_NOTE,)
+    return replace(bundle, extra=extra, limitations=limitations)
+
+
+# ---------------------------------------------------------------------------
+# Phase 26 — Phase 11×21 entropy × contingency bridge
+# ---------------------------------------------------------------------------
+
+_ENTROPY_CONTINGENCY_NOTE = (
+    "Entropy×contingency bridge pairs Phase 11 codon-entropy dual-null with "
+    "Phase 21 seed contingency; complexity_emergence_proved stays False."
+)
+
+
+def attach_entropy_contingency_bridge(
+    bundle: ClaimgateBundle,
+    bridge: "EntropyContingencyBridgeResult",
+) -> ClaimgateBundle:
+    """Attach Phase 26 bridge digests without proving complexity emergence."""
+
+    from codontrace.claimgate.adapters.host_parasite_prereg import (
+        require_preregistration_before_campaign_attach,
+    )
+    from codontrace.genesis.host_parasite_entropy_contingency_bridge import (
+        EntropyContingencyBridgeResult,
+    )
+
+    if not isinstance(bridge, EntropyContingencyBridgeResult):
+        raise ConfigurationError("bridge must be an EntropyContingencyBridgeResult.")
+    require_preregistration_before_campaign_attach(bundle)
+    if bridge.complexity_emergence_proved or bridge.red_queen_proved:
+        raise ConfigurationError("bridge proved flags must remain False.")
+    if not bridge.seed_digests_are_distinct:
+        raise ConfigurationError("attach requires pairwise-distinct bridge seed digests.")
+    blocked = False
+    try:
+        assert_claim_allowed("red_queen_proved")
+    except ConfigurationError:
+        blocked = True
+    if not blocked:
+        raise ConfigurationError("red_queen_proved must stay blocked.")
+    extra = dict(bundle.extra or {})
+    if extra.get("domain") != HOST_PARASITE.name:
+        raise ConfigurationError(
+            "attach_entropy_contingency_bridge requires a host_parasite domain bundle."
+        )
+    if "entropy_contingency_bridge" in extra:
+        raise ConfigurationError("entropy_contingency_bridge already attached.")
+    payload = bridge.to_dict()
+    if payload.get("schema") != "host_parasite_entropy_contingency_bridge_v1":
+        raise ConfigurationError("entropy×contingency bridge schema mismatch.")
+    prereg = extra.get("host_parasite_preregistration")
+    if not isinstance(prereg, Mapping) or "digest" not in prereg:
+        raise ConfigurationError(
+            "attach_entropy_contingency_bridge requires preregistration digest."
+        )
+    extra["entropy_contingency_bridge"] = cast(
+        JsonValue,
+        {
+            "schema": payload["schema"],
+            "campaign_digest": payload["campaign_digest"],
+            "seed_digests": payload["seed_digests"],
+            "seeds": payload["seeds"],
+            "hypothesis": payload["hypothesis"],
+            "hypothesis_supported": payload["hypothesis_supported"],
+            "failure_reason": payload["failure_reason"],
+            "seed_digests_are_distinct": True,
+            "claim_ceiling": payload["claim_ceiling"],
+            "complexity_emergence_proved": False,
+            "red_queen_proved": False,
+            "raises_claim_ladder": False,
+            "phase11_schema": payload["phase11_schema"],
+            "phase21_schema": payload["phase21_schema"],
+            "preregistration_digest": str(prereg["digest"]),
+            "wave": 6,
+            "phase": 26,
+        },
+    )
+    limitations = bundle.limitations
+    if _ENTROPY_CONTINGENCY_NOTE not in limitations:
+        limitations = limitations + (_ENTROPY_CONTINGENCY_NOTE,)
     return replace(bundle, extra=extra, limitations=limitations)

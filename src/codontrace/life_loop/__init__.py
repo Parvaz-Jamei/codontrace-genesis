@@ -118,6 +118,37 @@ from codontrace.life_loop.farm_orchestrator import (
     FarmPlan,
     apply_farm,
 )
+from codontrace.life_loop.persistent_entropy import (
+    PersistentEntropySnapshot,
+    persistent_entropy_proxy,
+)
+from codontrace.life_loop.mapper_cover import (
+    MapperCoverSnapshot,
+    mapper_cover_proxy,
+)
+from codontrace.life_loop.spectral_structure import (
+    SpectralStructureSnapshot,
+    spectral_laplacian_structure,
+)
+from codontrace.life_loop.transfer_entropy import (
+    TransferEntropyResult,
+    hook_meter_transfer_entropy,
+)
+from codontrace.life_loop.conformal_bands import (
+    ConformalBandResult,
+    conformal_risk_band,
+)
+from codontrace.life_loop.ess_invasion import (
+    EssInvasionResult,
+    InvasionScore,
+    ess_invasion_indicator,
+)
+from codontrace.life_loop.sparse_recovery import (
+    SparseCoefficient,
+    SparseRecoveryResult,
+    sparse_phenotype_recovery,
+)
+
 from codontrace.life_loop.allele_association import (
     AlleleAssociationResult,
     AlleleAssociationScore,
@@ -214,4 +245,21 @@ __all__ = [
     "AlleleAssociationResult",
     "AlleleAssociationScore",
     "allele_outcome_association",
+
+    "PersistentEntropySnapshot",
+    "persistent_entropy_proxy",
+    "MapperCoverSnapshot",
+    "mapper_cover_proxy",
+    "SpectralStructureSnapshot",
+    "spectral_laplacian_structure",
+    "TransferEntropyResult",
+    "hook_meter_transfer_entropy",
+    "ConformalBandResult",
+    "conformal_risk_band",
+    "EssInvasionResult",
+    "InvasionScore",
+    "ess_invasion_indicator",
+    "SparseCoefficient",
+    "SparseRecoveryResult",
+    "sparse_phenotype_recovery",
 ]

@@ -362,13 +362,41 @@ def _run_freeze_replay_arm(
     )
 
 
-def _evaluate_falsification(arm_results: Sequence[ArmCampaignResult]) -> bool:
+def _content_null_distinct(
+    intact: ArmCampaignResult, content: ArmCampaignResult
+) -> bool:
+    """Floreano/Knoester honesty: content-null must not collapse into intact.
+
+    Score-or-injection differences count. When steal_fraction=0 ties scores and
+    injection fractions, empty content-null payloads must still differ from
+    intact payloads so channel-off alone cannot stand in for content controls.
+    """
+
+    if content.mean_score != intact.mean_score:
+        return True
+    if content.injected_fraction != intact.injected_fraction:
+        return True
+    intact_payloads = {tuple(item.parasite_payload) for item in intact.seed_outcomes}
+    content_payloads = {tuple(item.parasite_payload) for item in content.seed_outcomes}
+    return intact_payloads != content_payloads
+
+
+def _evaluate_falsification(
+    arm_results: Sequence[ArmCampaignResult],
+    *,
+    require_content_null: bool = False,
+) -> bool:
     """Falsification rules for candidate_evidence ceiling.
 
     Require intact vs at least one null/abiotic arm with a mean-score *or*
     injected-fraction difference (steal_fraction=0 can tie scores while nulls
     still change injection). When freeze/replay and abiotic-only both exist,
     their arm digests must differ.
+
+    When ``require_content_null`` is True (candidate_evidence path), a
+    content-null arm must be present and payload/score/injection-distinct from
+    intact so structure-null / abiotic-only alone cannot clear the ceiling
+    (Floreano 2007 / Knoester 2008 content-control honesty).
     """
 
     by_arm = {item.arm: item for item in arm_results}
@@ -398,6 +426,12 @@ def _evaluate_falsification(arm_results: Sequence[ArmCampaignResult]) -> bool:
         freeze_digest = by_arm["freeze_replay_parasites"].to_dict()["digest"]
         abiotic_digest = by_arm["abiotic_only"].to_dict()["digest"]
         if freeze_digest == abiotic_digest:
+            return False
+    if require_content_null:
+        content = by_arm.get("content_null")
+        if content is None:
+            return False
+        if not _content_null_distinct(intact, content):
             return False
     return True
 
@@ -471,7 +505,9 @@ def run_host_parasite_campaign(
             )
         )
 
-    falsification_ok = _evaluate_falsification(arm_results)
+    falsification_ok = _evaluate_falsification(
+        arm_results, require_content_null=(ceiling_req == "candidate_evidence")
+    )
     if ceiling_req == "candidate_evidence" and not falsification_ok:
         raise ConfigurationError(
             "candidate_evidence refused: falsification rules did not pass "

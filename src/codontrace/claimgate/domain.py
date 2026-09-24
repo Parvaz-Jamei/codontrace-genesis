@@ -118,10 +118,23 @@ HOST_PARASITE = DomainProfile(
             # Reuse intelligence / replacement blocks so this port cannot
             # silently inherit ALife overclaims either.
             "intelligence",
+            "intelligence_proved",
             "collective_intelligence",
             "agi",
             "tokyo_type1_passed",
             "avida_replacement",
+            # Wave-5/6 matrix refuse-list must be fail-closed on claimed=, not
+            # documentation-only. OEE/MODES are comparators (Dolson/Channon);
+            # complexity/gene identity stay campaign flags, never claim ceilings.
+            "modes_passed_proved",
+            "modes_passed",
+            "oee_type1_proved",
+            "oee_modes_passed",
+            "complexity_emergence_proved",
+            "gene_identity_proved",
+            # Cornish intervention_supported is a campaign honesty flag, never
+            # a public claimed= ceiling string.
+            "intervention_supported",
         }
     ),
     limitations=(
@@ -130,6 +143,8 @@ HOST_PARASITE = DomainProfile(
         "Not a biosafety-level certification or virulence-optimization tool for humans.",
         "Not a CRISPR-identity or CRISPR-therapy proof; external CRISPR–phage papers are comparators only.",
         "Not a Red Queen or major-transition proof; optional ARD/FSD labels stay undeclared until evidenced.",
+        "Not an OEE Type-1 or MODES “passed” proof; Dolson/Channon rows stay comparators only.",
+        "Not a complexity-emergence or gene-identity proof; those flags stay False on digests.",
         "Infection / transmission physics are not implemented in the engine; optional HostParasiteEnv is outside core.",
         "A ClaimGate grade is a claim ceiling for declared digital coevolution evidence, not wet-lab validity.",
         "FDA 2023 CM&S / ASME V&V 40 language may be reused as COU risk labels only; not device clearance.",

@@ -67,14 +67,18 @@ BLOCKED_CLAIM_MATRIX: dict[str, str] = {
     "red_queen_proved": "profile blocked_claims + always False on digests",
     "major_transition_proved": "profile blocked_claims + always False on digests",
     "intelligence": "profile blocked_claims",
+    "intelligence_proved": "profile blocked_claims (alias)",
     "collective_intelligence": "profile blocked_claims",
     "agi": "profile blocked_claims",
     "tokyo_type1_passed": "profile blocked_claims",
     "avida_replacement": "profile blocked_claims",
-    "gene_identity_proved": "campaign flag always False (Phase 13)",
-    "complexity_emergence_proved": "campaign flag always False (S1 humility)",
-    "oee_type1_proved": "comparator only; never attach as proved",
-    "modes_passed_proved": "comparator only; never attach as proved",
+    "gene_identity_proved": "profile blocked_claims + always False on digests",
+    "complexity_emergence_proved": "profile blocked_claims + always False on digests",
+    "oee_type1_proved": "profile blocked_claims; Dolson/Channon comparator only",
+    "oee_modes_passed": "profile blocked_claims (alias)",
+    "modes_passed_proved": "profile blocked_claims; Dolson MODES comparator only",
+    "modes_passed": "profile blocked_claims (alias)",
+    "intervention_supported": "profile blocked_claims; Cornish flag never a claimed ceiling",
 }
 
 

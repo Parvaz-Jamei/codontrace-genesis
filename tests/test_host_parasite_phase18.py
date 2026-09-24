@@ -70,6 +70,8 @@ def test_registry_covers_phases_1_to_17_keys() -> None:
 def test_blocked_claim_matrix_covers_profile_and_refuse_list() -> None:
     for claim in BLOCKED_HOST_PARASITE_CLAIMS:
         assert claim in BLOCKED_CLAIM_MATRIX
+        with pytest.raises(ConfigurationError):
+            assert_claim_allowed(claim)
     for claim in (
         "gene_identity_proved",
         "complexity_emergence_proved",
@@ -77,14 +79,13 @@ def test_blocked_claim_matrix_covers_profile_and_refuse_list() -> None:
         "modes_passed_proved",
         "phage_therapy_cleared",
         "red_queen_proved",
+        "intelligence_proved",
+        "intervention_supported",
     ):
         assert claim in BLOCKED_CLAIM_MATRIX
+        assert claim in BLOCKED_HOST_PARASITE_CLAIMS
         with pytest.raises(ConfigurationError):
-            # profile-blocked ones raise; flag-only ones may not be in profile
-            if claim in BLOCKED_HOST_PARASITE_CLAIMS:
-                assert_claim_allowed(claim)
-            else:
-                raise ConfigurationError(claim)
+            assert_claim_allowed(claim)
 
 
 def test_attach_journal_registry_requires_prereg_and_keeps_ladder() -> None:

@@ -89,8 +89,8 @@ class TopologyMeterSnapshot:
     beta1_proxy: int
     mean_jaccard: float
     claim_ceiling: str = "runtime_observation"
-    red_queen_proved: bool = False
-    major_transition_proved: bool = False
+    arms_race_proved: bool = False
+    transition_proved: bool = False
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -114,12 +114,12 @@ class TopologyMeterSnapshot:
         if ceiling not in {"runtime_observation", "candidate_evidence"}:
             raise ConfigurationError("claim_ceiling must be runtime_observation or candidate_evidence.")
         object.__setattr__(self, "claim_ceiling", ceiling)
-        if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
-        if self.major_transition_proved:
-            raise ConfigurationError("refuses major_transition_proved=True.")
-        object.__setattr__(self, "red_queen_proved", False)
-        object.__setattr__(self, "major_transition_proved", False)
+        if self.arms_race_proved:
+            raise ConfigurationError("refuses arms_race_proved=True.")
+        if self.transition_proved:
+            raise ConfigurationError("refuses transition_proved=True.")
+        object.__setattr__(self, "arms_race_proved", False)
+        object.__setattr__(self, "transition_proved", False)
         computed = canonical_digest(self._body(), prefix="topo_meter")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "TopologyMeterSnapshot")
@@ -136,8 +136,8 @@ class TopologyMeterSnapshot:
             "beta1_proxy": self.beta1_proxy,
             "mean_jaccard": self.mean_jaccard,
             "claim_ceiling": self.claim_ceiling,
-            "red_queen_proved": False,
-            "major_transition_proved": False,
+            "arms_race_proved": False,
+            "transition_proved": False,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -204,7 +204,7 @@ def topology_continuum_structure(
         "min_beta0": min(beta0_vals),
         "max_beta0": max(beta0_vals),
         "mean_jaccard_max": max(s.mean_jaccard for s in snapshots),
-        "red_queen_proved": False,
+        "arms_race_proved": False,
         "claim_status": "topology_structure_observation",
     }
     body["digest"] = canonical_digest(body, prefix="topo_cont")

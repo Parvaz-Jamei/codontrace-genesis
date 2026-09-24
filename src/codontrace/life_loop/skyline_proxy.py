@@ -111,7 +111,7 @@ class SkylineSeries:
     windows: tuple[SkylineWindow, ...]
     claim_ceiling: str = "runtime_observation"
     epidemic_forecast_certified: bool = False
-    red_queen_proved: bool = False
+    arms_race_proved: bool = False
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -128,10 +128,10 @@ class SkylineSeries:
         object.__setattr__(self, "claim_ceiling", ceiling)
         if self.epidemic_forecast_certified:
             raise ConfigurationError("refuses epidemic_forecast_certified=True.")
-        if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+        if self.arms_race_proved:
+            raise ConfigurationError("refuses arms_race_proved=True.")
         object.__setattr__(self, "epidemic_forecast_certified", False)
-        object.__setattr__(self, "red_queen_proved", False)
+        object.__setattr__(self, "arms_race_proved", False)
         computed = canonical_digest(self._body(), prefix="sky_ser")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "SkylineSeries")
@@ -144,7 +144,7 @@ class SkylineSeries:
             "windows": [w.to_dict() for w in self.windows],
             "claim_ceiling": self.claim_ceiling,
             "epidemic_forecast_certified": False,
-            "red_queen_proved": False,
+            "arms_race_proved": False,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:

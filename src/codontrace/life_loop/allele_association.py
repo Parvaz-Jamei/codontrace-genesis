@@ -110,14 +110,14 @@ class AlleleAssociationScore:
 
 @dataclass(frozen=True, slots=True)
 class AlleleAssociationResult:
-    """Digest-stable association table; ClaimGate-honest."""
+    """Digest-stable association table; Honesty-ceiling pinned."""
 
     result_id: str
     outcome_key: str
     scores: tuple[AlleleAssociationScore, ...]
     claim_ceiling: str = "runtime_observation"
     gene_identity_proved: bool = False
-    crispr_identity_proved: bool = False
+    locus_identity_proved: bool = False
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -139,10 +139,10 @@ class AlleleAssociationResult:
         object.__setattr__(self, "claim_ceiling", ceiling)
         if self.gene_identity_proved:
             raise ConfigurationError("refuses gene_identity_proved=True.")
-        if self.crispr_identity_proved:
-            raise ConfigurationError("refuses crispr_identity_proved=True.")
+        if self.locus_identity_proved:
+            raise ConfigurationError("refuses locus_identity_proved=True.")
         object.__setattr__(self, "gene_identity_proved", False)
-        object.__setattr__(self, "crispr_identity_proved", False)
+        object.__setattr__(self, "locus_identity_proved", False)
         computed = canonical_digest(self._body(), prefix="allele_assoc")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "AlleleAssociationResult")
@@ -156,7 +156,7 @@ class AlleleAssociationResult:
             "scores": [s.to_dict() for s in self.scores],
             "claim_ceiling": self.claim_ceiling,
             "gene_identity_proved": False,
-            "crispr_identity_proved": False,
+            "locus_identity_proved": False,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:

@@ -27,7 +27,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "0.3.0b7 is the pyproject identity and is not tagged or on PyPI; do not recut 0.3.0b4 / 0.3.0b5 / 0.3.0b6; HE03 research results_v1 stays absent on purpose; no new tag until CI of that commit is green",
+        "next": "0.3.0b7 is tagged v0.3.0b7 and on PyPI; do not recut 0.3.0b4 / 0.3.0b5 / 0.3.0b6 / 0.3.0b7; HE03 research results_v1 stays absent on purpose; next public identity needs its own version",
     }
 
 

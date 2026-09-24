@@ -23,8 +23,8 @@
   meeting the bar when contact stress is declared and has no arm.
 - README links to repository files are absolute GitHub URLs, so the PyPI
   rendering of the same file does not 404 them.
-- `0.3.0b7` is the pyproject identity only. It is not tagged and not on PyPI.
-  The published tip remains `0.3.0b6`.
+- `0.3.0b7` is tagged `v0.3.0b7` and published on PyPI. Do not recut it.
+  Prior immutable tips: `0.3.0b4` / `0.3.0b5` / `0.3.0b6`.
 - The English BAIC file is rebuilt in the congress template, not an IEEE
   template, and the package no longer contains a duplicate core-properties
   part. Word can open `paper/baic/BAIC2026_Jamei_en.docx`. The English
@@ -74,9 +74,9 @@
   and do not carry a confidence interval (unit of analysis; Hurlbert
   1984). One value per seed, as in HE01, is unchanged.
 
-## [0.3.0b7] — 2026-09-22
+## [0.3.0b7] — 2026-09-24
 
-Pyproject identity only. Not tagged and not on PyPI. Published tip remains `0.3.0b6` (tag `v0.3.0b6`). Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.
+Tagged `v0.3.0b7` and published on PyPI (target commit includes Waves 3–6 host–parasite DomainProfile port + replay digest registration). Does not recut `0.3.0b4`, `0.3.0b5`, or `0.3.0b6`.
 
 ### DomainProfile — ports, not a second engine
 
@@ -86,7 +86,7 @@ port, not a medical engine: `samd_certified`, `fda_cleared`,
 `clinical_validated`, and `asme_vv40_passed` raise `ConfigurationError`.
 Runtime `__version__` reads `[project].version` from pyproject (no hardcoded
 identity). README / CLAIMS / CITATION now name the published PyPI tip
-`0.3.0b6` and say `main` may be ahead of tag `v0.3.0b6` without recutting.
+`0.3.0b7` (tag `v0.3.0b7`). Do not recut prior wheels.
 `sign_flip_permutation_detail` reports exhaustive / Monte Carlo /
 meet-in-the-middle and will not hide a censored p-floor; default
 `exact_sign_flip_permutation_p` is unchanged so published campaign pins stay

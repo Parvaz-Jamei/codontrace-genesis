@@ -140,3 +140,17 @@ Evidence comparator notes: `docs/claimgate/host_parasite_port_20260924/evidence/
 | wet HGT / conjugation / CRISPR genetics | refused | flags always false |
 | infection physics in `engine.py` | refused | engine untouched |
 
+
+## De-toy brainstorm (2026-09-24)
+
+After SF campaigns (7 SUCCESS / 1 FAIL), a five-round three-expert workshop
+asks how to deepen the port without toy dynamics or loosened ClaimGate ceilings:
+
+- `DETOY_BRAINSTORM_5ROUND_20260924.md` — full English rounds + موج ۱ / موج ۲
+- `DETOY_BRAINSTORM_5ROUND_20260924_FA.md` — Persian bachelor-level summary
+- `DETOY_PHASE_PLAN.md` — ordered phases D0–D7 (first code slice = D0 CiteGate
+  DOI fix + D1 type-II / diagonal-\(A\) port stepper)
+
+Honest SF4 limitation stands until a capable assay lands; `red_queen_proved`
+stays False. Primary Rabajante cite for multi-host RQ is Sci Rep
+doi:10.1038/srep10004 (not the BMC Ecol ghost string previously used in SF4).

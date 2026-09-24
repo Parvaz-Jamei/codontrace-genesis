@@ -34,8 +34,8 @@
   meeting the bar when contact stress is declared and has no arm.
 - README links to repository files are absolute GitHub URLs, so the PyPI
   rendering of the same file does not 404 them.
-- `0.3.0b8` is tagged `v0.3.0b8` and published on PyPI. Do not recut it.
-  Prior immutable tips: `0.3.0b4` / `0.3.0b5` / `0.3.0b6` / `0.3.0b7`.
+- `0.3.0b9` is tagged `v0.3.0b9` and published on PyPI. Do not recut it.
+  Prior immutable tips: `0.3.0b4` / `0.3.0b5` / `0.3.0b6` / `0.3.0b7` / `0.3.0b8`.
 - The English BAIC file is rebuilt in the congress template, not an IEEE
   template, and the package no longer contains a duplicate core-properties
   part. Word can open `paper/baic/BAIC2026_Jamei_en.docx`. The English
@@ -84,6 +84,28 @@
 - Extra outcome rows beyond the seed list do not count as replicates
   and do not carry a confidence interval (unit of analysis; Hurlbert
   1984). One value per seed, as in HE01, is unchanged.
+
+## [0.3.0b9] — 2026-09-24
+
+Research-beta cut. Tag `v0.3.0b9`. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, or `0.3.0b8`.
+
+### De-toy host–parasite structural deepening (D0–D4)
+
+Committed on `main` via PR #56 (docs brainstorm) and PR #57 (three build phases).
+
+- **D0 CiteGate:** SF4 primary DOI retargeted to Rabajante et al. 2015 *Sci Rep*
+  `10.1038/srep10004` (PMC4405699); BMC Ecol ghost DOI rejected; SciAdv
+  `10.1126/sciadv.1501548` related comparator only.
+- **D1:** Port-local type-II FR + diagonally dominant specificity stepper
+  (`host_parasite_type2_rq.py`). SF4 structurally testable; 5/5 seeds cycle under
+  capable defaults; legacy weak NFD still 0/5; `red_queen_proved` stays False.
+- **D2:** mortality d × carrying capacity K region map; mid-d/high-K capable;
+  tiny-K empty; honest note that epoch metric is wider than Sci Rep visual RQ on edges.
+- **D3+D4:** Aevol-inspired abstract phenotype from SemanticGenome + steal ×
+  metabolic-error dual-null coupling (not Aevol identity; not engine infection).
+
+Architecture locks unchanged. BAIC pins A–C byte-identical. Runtime `__version__`
+reads `[project].version` (`0.3.0b9`).
 
 ## [0.3.0b8] — 2026-09-24
 

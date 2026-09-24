@@ -3,6 +3,12 @@
 Seed-stratified digest that pairs Phase 11 codon-entropy dual-null with Phase 21
 multi-seed contingency without new biology claims. complexity_emergence_proved
 stays False; red_queen_proved stays False. ClaimGate-honest join only.
+
+Companion-seed honesty: Phase 21 requires ≥3 seeds, so for each outer
+stratification seed S this module runs contingency on (S, S+1000, S+2000) and
+entropy on (S,). The outer seed is a stratification key — not a claim that both
+campaigns share one identical single-seed object. See
+docs/claimgate/host_parasite_port_20260924/evidence/phase26_entropy_contingency_bridge.md.
 """
 
 from __future__ import annotations

@@ -21,7 +21,7 @@ grounded source from `CITATIONS.md`.
 4. **MUST** treat digital parasite CPU-theft / obligate infection as an
    *analogy* for claim labeling, grounded in Avida parasites that steal ~80%
    CPU cycles under a task-overlap infection rule (Fortuna, Zaman et al. 2021,
-   doi:10.3389/fevo.2021.750772; Zaman et al. 2014,
+   doi:10.3389/fevo.2021.750772 (Acosta & Zaman 2022); Zaman et al. 2014,
    doi:10.1371/journal.pbio.1002023).
 5. **MUST** acknowledge the parasitism–mutualism continuum and vertical vs
    horizontal transmission structure when naming future env hooks (Gupta,
@@ -41,7 +41,7 @@ grounded source from `CITATIONS.md`.
 
 1. **SHOULD** support later MVP metrics aligned with Avida parasite literature:
    task-overlap infection eligibility, single-parasite-per-host, horizontal
-   injection (Fortuna et al. 2021, doi:10.3389/fevo.2021.750772).
+   injection (Acosta & Zaman 2022, doi:10.3389/fevo.2021.750772).
 2. **SHOULD** plan optional spatial-structure and vertical-transmission knobs
    for a v2 env (Symbulation / Vostinar spatial interaction; Zenodo
    10.5281/zenodo.6380543) without implying mutualism is “solved.”

@@ -16,7 +16,7 @@ archives) map cleanly enough to claim “complexity emergence” without overcla
 
 ### S2. Obligate CPU theft vs biological resource drawdown
 
-Fortuna, Zaman et al. (2021, doi:10.3389/fevo.2021.750772) specify obligate
+Acosta & Zaman (2022, doi:10.3389/fevo.2021.750772) specify obligate
 parasites stealing ~80% CPU, task-overlap infection, one parasite per host,
 horizontal injection. Challenge: a thin ClaimGate port must not pretend those
 parameters are already encoded; choosing defaults later is a model COU decision

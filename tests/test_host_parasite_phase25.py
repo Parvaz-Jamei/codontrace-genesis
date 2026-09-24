@@ -77,6 +77,29 @@ def test_attach_he_hp_refresh_requires_prereg_and_keeps_ladder() -> None:
     assert audit_bundle(attached).achieved_level == before
 
 
+def test_attach_he_hp_refresh_refuses_double_attach() -> None:
+    note = build_he_hp_locked_digest_refresh_note()
+    bundle = bundle_from_host_parasite_cou(
+        question_of_interest="Do HE_HP locks still replay after Wave 5?",
+        context_of_use="Phase 25 refresh note; BAIC pins untouched.",
+        model_influence=1,
+        decision_consequence=1,
+        treatment_scores=(0.1,),
+        control_scores=(1.0,),
+    )
+    prereg = host_parasite_preregistration(
+        question_of_interest="Do HE_HP locks still replay after Wave 5?",
+        context_of_use="Phase 25 refresh note; BAIC pins untouched.",
+        arms=("he_hp_refresh",),
+        success_metrics=("refresh_digest", "locks_still_valid"),
+        forbidden_claims=("red_queen_proved",),
+    )
+    ready = attach_host_parasite_preregistration(bundle, prereg)
+    attached = attach_he_hp_locked_digest_refresh(ready, note)
+    with pytest.raises(ConfigurationError, match="already attached"):
+        attach_he_hp_locked_digest_refresh(attached, note)
+
+
 def test_baic_pins_byte_identical_phase25() -> None:
     for rel, expected in PIN_SPECS:
         digest = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()

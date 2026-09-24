@@ -2,7 +2,7 @@
 
 **Owner:** continue now, 2026-09-25  
 **Repo:** codontrace-genesis `main` (pushed)  
-**Tip:** `3138c02e6e9f282cde36daed99ea8c3bf98751fc`  
+**Tip:** `d1742016dd229e764747b50dd48ca1ef38df49c2`  
 **Baseline (Round 1 tip):** `b1fa79e`  
 **Positioning:** CodonTrace independent engine; novelty = CodonTrace stack beyond Round 1
 
@@ -14,7 +14,7 @@
 | New innovations implemented + tests green | YES — INN-07..14; 23 campaign tests PASS |
 | Hard battery green except ClaimGate refuses | YES — 7/7 hard tests PASS; refuses listed |
 | No open engineering failures | YES — 2 repair cycles, both closed |
-| Pushed to origin/main | YES — `b1fa79e..` tip below |
+| Pushed to origin/main | YES — tip `d174201` |
 | Docs mirrored in-repo + handoff | YES |
 | Drive r2 subfolder | YES — see Drive section |
 
@@ -45,7 +45,8 @@ Rejected: infection physics in `engine.py`, ClaimGate soft-pass, peer novelty ya
 ## Commits (main since Round 1 tip `b1fa79e`)
 
 ```
-3138c02e6e9f282cde36daed99ea8c3bf98751fc docs(campaign): Wave B feedback, Wave C battery, FINAL_REPORT (r2) [pre-Drive-id sync]
+d174201 docs(campaign): add Drive ids to FINAL_REPORT (r2)
+3138c02 docs(campaign): Wave B feedback, Wave C battery, FINAL_REPORT (r2)
 5799ae0 test(campaign): Wave B units + Wave C hard battery for innovation_20260925_r2
 7114f26 feat(life_loop,analytics): adopt Wave A Round-2 innovations INN-07..14
 78439ed docs(campaign): Wave A Round-2 innovation storm consensus (2026-09-25)

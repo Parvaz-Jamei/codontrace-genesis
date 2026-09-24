@@ -2812,16 +2812,6 @@ def step_population(
         organism_clones = list(attach_phase_e_to_organisms(organism_clones, configs.phase_e))
     if configs.materials.enabled:
         organism_clones = list(attach_materials_to_organisms(organism_clones, configs.materials))
-    # Closed-loop P1: optional HP life plugin (both roles mutate under this clock).
-    # Cut matches phase_e/materials optional config; never in engine.py.
-    if configs.closed_loop_hp_life.enabled:
-        resolved_seed = int(stream.seed if stream.seed is not None else 0)
-        organism_clones = apply_closed_loop_hp_life(
-            organism_clones,
-            config=configs.closed_loop_hp_life,
-            seed=resolved_seed,
-            tick=population.tick,
-        )
     working_deme_state = (
         DemeState.from_dict(population.deme.to_dict())
         if population.deme is not None
@@ -2995,6 +2985,17 @@ def step_population(
                         action="ENVIRONMENT_HAZARD",
                         reason="environment_hazard",
                     )
+            # Closed-loop P1: post-ATP settle / pre-birth (before nexus + reproduce).
+            # Forks the live generation stream; never a parallel RNG tree.
+            if configs.closed_loop_hp_life.enabled:
+                mutated = apply_closed_loop_hp_life(
+                    [organism],
+                    config=configs.closed_loop_hp_life,
+                    stream=stream,
+                    mutation_config=configs.mutation,
+                    tick=current_tick,
+                )
+                organism = mutated[0]
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
                 if configs.capsule_transfer is not None and configs.capsule_transfer.enabled:

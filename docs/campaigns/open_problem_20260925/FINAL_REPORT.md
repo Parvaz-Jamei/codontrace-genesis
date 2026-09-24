@@ -1,7 +1,8 @@
 # FINAL_REPORT — open_problem_20260925 (time-shift FRQ vs ERQ)
 
 **Date:** 2026-09-25 (Asia/Tehran)  
-**Repo tip before campaign:** `c56dada` (engine gates green)  
+**Repo tip before campaign:** `c56dada` (engine gates green)
+**Campaign tip:** `41ced3e1ba46d033ed9579322bb29026e09756c7`  
 **Chosen problem:** oscillatory Red Queen vs arms-race discrimination via in-loop time-shift assay  
 **Verified DOIs:** `10.1038/nature06291`, `10.1098/rspb.2014.1382`, `10.1111/jeb.13981`
 

@@ -1,0 +1,1161 @@
+{
+  "campaign_digest": "6d2be6cf9a60acfea0dbbcf0bc608ba43930f35c0e94434ac4b578106e749e1a",
+  "campaigns": [
+    {
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "phage_therapy_cleared",
+        "clinical_pathogen_model"
+      ],
+      "doi": "10.1098/rspb.2012.0769",
+      "doi_arxiv": "arXiv:1210.2320",
+      "honesty": "Digital GFG-style count assay on host_parasite DomainProfile helpers; not wet coexistence proof; Red Queen unproved.",
+      "id": "SF1_coexistence_cost_of_generalism",
+      "literature_prediction": "Without substantial cost of generalism, generalist (super)parasites destabilize / extinguish pairings; with cost, coexistence is stabilized (Quigley et al. arXiv:1210.2320).",
+      "mean_host_n_with_cost": 32.8333333333,
+      "mean_host_n_zero": 23.8333333333,
+      "metric": "extinction_proxy / coexistence / superparasite_dominance",
+      "n_seeds": 4,
+      "result": "SUCCESS",
+      "setup": {
+        "arms": [
+          "cost_0.0",
+          "cost_0.7"
+        ],
+        "generations": 12,
+        "host_types": [
+          "H_a",
+          "H_b",
+          "H_ab"
+        ],
+        "parasite_types": [
+          "V_a",
+          "V_b",
+          "V_ab"
+        ],
+        "seeds": [
+          11,
+          22,
+          33,
+          44
+        ]
+      },
+      "success_criterion": "\u22653/4 seeds: cost=0 shows extinction_proxy OR superparasite_dominance; \u22653/4 seeds: cost=0.7 shows coexistence",
+      "title": "Coexistence requires cost-of-generalism",
+      "with_cost_coexistence_count": 4,
+      "with_cost_trials": [
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.7,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 45,
+            "H_ab": 25,
+            "H_b": 43
+          },
+          "final_parasites": {
+            "V_a": 4,
+            "V_ab": 4,
+            "V_b": 3
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 37.6666666667,
+          "parasite_richness": 3,
+          "seed": 11,
+          "superparasite_dominance": false
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.7,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 39,
+            "H_ab": 15,
+            "H_b": 36
+          },
+          "final_parasites": {
+            "V_a": 3,
+            "V_ab": 3,
+            "V_b": 2
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 30.0,
+          "parasite_richness": 3,
+          "seed": 22,
+          "superparasite_dominance": false
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.7,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 40,
+            "H_ab": 18,
+            "H_b": 42
+          },
+          "final_parasites": {
+            "V_a": 3,
+            "V_ab": 3,
+            "V_b": 3
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 33.3333333333,
+          "parasite_richness": 3,
+          "seed": 33,
+          "superparasite_dominance": false
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.7,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 43,
+            "H_ab": 14,
+            "H_b": 34
+          },
+          "final_parasites": {
+            "V_a": 3,
+            "V_ab": 3,
+            "V_b": 3
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 30.3333333333,
+          "parasite_richness": 3,
+          "seed": 44,
+          "superparasite_dominance": false
+        }
+      ],
+      "zero_cost_extinction_or_dominance_count": 4,
+      "zero_cost_trials": [
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.0,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 26,
+            "H_ab": 10,
+            "H_b": 28
+          },
+          "final_parasites": {
+            "V_a": 2,
+            "V_ab": 6,
+            "V_b": 2
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 21.3333333333,
+          "parasite_richness": 3,
+          "seed": 11,
+          "superparasite_dominance": true
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.0,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 33,
+            "H_ab": 13,
+            "H_b": 35
+          },
+          "final_parasites": {
+            "V_a": 2,
+            "V_ab": 7,
+            "V_b": 2
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 27.0,
+          "parasite_richness": 3,
+          "seed": 22,
+          "superparasite_dominance": true
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.0,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 37,
+            "H_ab": 10,
+            "H_b": 28
+          },
+          "final_parasites": {
+            "V_a": 2,
+            "V_ab": 7,
+            "V_b": 2
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 25.0,
+          "parasite_richness": 3,
+          "seed": 33,
+          "superparasite_dominance": true
+        },
+        {
+          "coexistence": true,
+          "cost_of_generalism": 0.0,
+          "env_probe_occupied": true,
+          "env_probe_score": 0.2,
+          "extinction_proxy": false,
+          "final_hosts": {
+            "H_a": 26,
+            "H_ab": 10,
+            "H_b": 30
+          },
+          "final_parasites": {
+            "V_a": 2,
+            "V_ab": 6,
+            "V_b": 2
+          },
+          "generations": 12,
+          "host_richness": 3,
+          "mean_host_n": 22.0,
+          "parasite_richness": 3,
+          "seed": 44,
+          "superparasite_dominance": true
+        }
+      ]
+    },
+    {
+      "arm_stats": {
+        "abiotic_stress": {
+          "arm_digest": "3446eeca124a01f64a7073d4a80174118be28cb502469d05ad1c695a740a7422",
+          "mean_entropy": 2.4900319239,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        },
+        "biotic_intact": {
+          "arm_digest": "19d9e205b17240cb45620be370eb5536bc9a2fae6cbc2290427f11889a085ea6",
+          "mean_entropy": 2.8495038213,
+          "mean_entropy_delta_vs_baseline": 0.3594718974,
+          "mean_hamming": 0.3948412698
+        },
+        "content_null": {
+          "arm_digest": "0382e29d2934111b07cd4208287bb7ccd427de6da91cb08bfcca3cc9e7f798c1",
+          "mean_entropy": 2.4900319239,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        },
+        "structure_null": {
+          "arm_digest": "1622dafd0f5af3df5d06153501aa5b0defc8fb6747000b4950e4768c432d79b9",
+          "mean_entropy": 2.4900319239,
+          "mean_entropy_delta_vs_baseline": 0.0,
+          "mean_hamming": 0.0
+        }
+      },
+      "arms_are_distinct": true,
+      "biotic_minus_abiotic": 0.3594718974,
+      "biotic_minus_content_null": 0.3594718974,
+      "campaign_digest": "a9343b410a5c7ffec8d1eb4ae0dd26a8df91e0fa451d528382bd216870f617c9",
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "complexity_emergence_proved",
+        "red_queen_proved",
+        "crispr_identity_proved"
+      ],
+      "doi": "10.1371/journal.pbio.1002023",
+      "honesty": "Digital codon-entropy dual-null; complexity_emergence_proved stays False.",
+      "hypothesis_supported": false,
+      "id": "SF2_biotic_vs_abiotic_entropy",
+      "literature_prediction": "Coevolution (biotic) elevates functional/genomic complexity relative to parasite-free / abiotic controls (Zaman et al. 2014).",
+      "metric": "mean_entropy_delta_vs_baseline (biotic \u2212 abiotic; content_null)",
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_genome_diversity_campaign",
+        "arms": [
+          "biotic_intact",
+          "content_null",
+          "structure_null",
+          "abiotic_stress"
+        ],
+        "seeds": [
+          11,
+          22,
+          33,
+          44,
+          55,
+          66,
+          77
+        ]
+      },
+      "success_criterion": "biotic_delta > abiotic_delta AND biotic_delta > 0 AND content_null == 0 AND parasites_always_raise_codon_entropy hypothesis_supported=False",
+      "title": "Biotic vs abiotic entropy / complexity contrast"
+    },
+    {
+      "campaign_digest": "42e64f78cfd8adaaf2bb6a80eb89f3aee33c47686a007dd1b1850122de65d901",
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "wet_ard_fsd_identity"
+      ],
+      "cost_rise": true,
+      "doi": "10.1098/rspb.2014.2297",
+      "doi_related": "10.1086/674826",
+      "early_cost": 0.3173528816,
+      "early_label": "ard_like",
+      "honesty": "Digital transition protocol; not wet ARD/FSD identity; Red Queen unproved. Mixing\u2192ARD (G\u00f3mez) is the complementary ecological knob \u2014 this campaign tests the cost-rise\u2192FSD signature.",
+      "hypothesis_supported": false,
+      "id": "SF3_ard_fsd_cost_mixing_proxy",
+      "label_shift": true,
+      "late_cost": 0.6263741104,
+      "late_label": "fsd_like",
+      "literature_prediction": "Population mixing favors ARD (G\u00f3mez et al. 2015); rising fitness costs of generalism / Hall-style constraints favor return toward FSD. Genesis cost-rise trajectory should show ARD-like\u2192FSD-like labels.",
+      "metric": "transition_observed + early/late cost_of_generalism + labels",
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_ard_fsd_transition_campaign",
+        "arms": [
+          "parasite_coevolution",
+          "structure_null_shuffled",
+          "abiotic_only"
+        ],
+        "n_slices": 10,
+        "seeds": [
+          11,
+          22,
+          33,
+          44
+        ]
+      },
+      "slice_labels_seed11": {
+        "parasite_coevolution:early:seed11": "ard_like",
+        "parasite_coevolution:late:seed11": "fsd_like"
+      },
+      "success_criterion": "transition_observed=True AND late cost > early cost AND early label=ard_like AND late label=fsd_like AND dynamics_always_ard hypothesis_supported=False",
+      "title": "ARD\u2192FSD shift under increased cost-of-generalism",
+      "transition_observed": true
+    },
+    {
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "complexity_emergence_proved"
+      ],
+      "doi": "10.1186/s12898-015-0055-7",
+      "honesty": "FAIL is the honest scientific outcome here; do not fake RQ cycles.",
+      "id": "SF4_rare_type_nfd_cycling",
+      "intentional_hard_failure": true,
+      "limitation": "CodonTrace Genesis host_parasite port does not implement a full multi-type Red Queen ODE/IBM with specialist infection networks. A weak rare-type bonus alone does not produce perpetual dominance cycles. Documented as model limitation \u2014 not a ClaimGate unlock. red_queen_proved remains False forever.",
+      "literature_prediction": "Under intermediate mortality / suitable carrying capacity and no super-host/super-parasite, multi-host systems show perpetual replacement of dominant types (Rabajante et al. 2015 PMC4405699).",
+      "metric": "cycling_detected (unique dominants \u22653 with returns \u22652)",
+      "n_cycling_seeds": 0,
+      "n_seeds": 5,
+      "pmc": "PMC4405699",
+      "red_queen_proved": false,
+      "result": "FAIL",
+      "setup": {
+        "api": "_sf4_nfd_proxy (weak NFD; no full RQ IBM)",
+        "generations": 40,
+        "n_types": 6,
+        "seeds": [
+          101,
+          202,
+          303,
+          404,
+          505
+        ]
+      },
+      "success_criterion": "\u22653/5 seeds cycling_detected=True",
+      "title": "Negative frequency dependence / rare-type advantage (RQ cycle candidate)",
+      "trials": [
+        {
+          "cycling_detected": false,
+          "dominance_changed": true,
+          "dominance_returns": 1,
+          "dominance_seq_prefix": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "dominance_seq_suffix": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "final_freqs": [
+            0.155451,
+            0.166559,
+            0.179079,
+            0.154171,
+            0.166401,
+            0.178339
+          ],
+          "generations": 40,
+          "n_types": 6,
+          "seed": 101,
+          "unique_dominants": 2
+        },
+        {
+          "cycling_detected": false,
+          "dominance_changed": true,
+          "dominance_returns": 1,
+          "dominance_seq_prefix": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "dominance_seq_suffix": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "final_freqs": [
+            0.155786,
+            0.167112,
+            0.17662,
+            0.155393,
+            0.166518,
+            0.178571
+          ],
+          "generations": 40,
+          "n_types": 6,
+          "seed": 202,
+          "unique_dominants": 2
+        },
+        {
+          "cycling_detected": false,
+          "dominance_changed": false,
+          "dominance_returns": 3,
+          "dominance_seq_prefix": [
+            2,
+            2,
+            2,
+            2,
+            5,
+            5,
+            5,
+            5
+          ],
+          "dominance_seq_suffix": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            2,
+            2,
+            2
+          ],
+          "final_freqs": [
+            0.157132,
+            0.168664,
+            0.176709,
+            0.15513,
+            0.165784,
+            0.176581
+          ],
+          "generations": 40,
+          "n_types": 6,
+          "seed": 303,
+          "unique_dominants": 2
+        },
+        {
+          "cycling_detected": false,
+          "dominance_changed": true,
+          "dominance_returns": 2,
+          "dominance_seq_prefix": [
+            2,
+            5,
+            5,
+            5,
+            5,
+            2,
+            5,
+            5
+          ],
+          "dominance_seq_suffix": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "final_freqs": [
+            0.15639,
+            0.166626,
+            0.176655,
+            0.156113,
+            0.166444,
+            0.177772
+          ],
+          "generations": 40,
+          "n_types": 6,
+          "seed": 404,
+          "unique_dominants": 2
+        },
+        {
+          "cycling_detected": false,
+          "dominance_changed": true,
+          "dominance_returns": 2,
+          "dominance_seq_prefix": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            2
+          ],
+          "dominance_seq_suffix": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "final_freqs": [
+            0.156381,
+            0.16816,
+            0.177332,
+            0.155798,
+            0.166934,
+            0.175394
+          ],
+          "generations": 40,
+          "n_types": 6,
+          "seed": 505,
+          "unique_dominants": 2
+        }
+      ]
+    },
+    {
+      "all_host_parasite_pairs_distinct": true,
+      "arm_digests": {
+        "freeze_parasites": "fa5ffc05a3f8f94022073112b86273708ff554777f820a1eb89079eca035a84f",
+        "reciprocal_coevolution": "015e657c2618163fbd19746d7b8ffc908e584d8672c4fd83aacd50a369241513",
+        "replay_parasite_schedule": "7c6c10a9e1e9f0947cdac86320bf10d898604606686a150dd6b742abb6e13887"
+      },
+      "arms_are_distinct": true,
+      "campaign_digest": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec",
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "complexity_emergence_proved",
+        "gene_identity_proved"
+      ],
+      "coevo_vs_freeze_distinct": true,
+      "complexity_emergence_proved": false,
+      "doi": "10.1371/journal.pbio.1002023",
+      "honesty": "Digital SemanticGenome digests; CRISPR / gene identity unproved.",
+      "id": "SF5_dual_genome_digest_divergence",
+      "literature_prediction": "Coevolving hosts and parasites retain distinct genetic records; freeze / replay arms diverge from reciprocal coevolution (Zaman 2014).",
+      "metric": "arms_are_distinct + host\u2260parasite digests + coevo\u2260freeze",
+      "per_arm": {
+        "freeze_parasites": {
+          "arm_digest": "fa5ffc05a3f8f94022073112b86273708ff554777f820a1eb89079eca035a84f",
+          "distinct_parasite_final_digests": 4,
+          "host_parasite_digest_pairs_distinct": true
+        },
+        "reciprocal_coevolution": {
+          "arm_digest": "015e657c2618163fbd19746d7b8ffc908e584d8672c4fd83aacd50a369241513",
+          "distinct_parasite_final_digests": 4,
+          "host_parasite_digest_pairs_distinct": true
+        },
+        "replay_parasite_schedule": {
+          "arm_digest": "7c6c10a9e1e9f0947cdac86320bf10d898604606686a150dd6b742abb6e13887",
+          "distinct_parasite_final_digests": 4,
+          "host_parasite_digest_pairs_distinct": true
+        }
+      },
+      "red_queen_proved": false,
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_genome_zaman_campaign",
+        "arms": [
+          "freeze_parasites",
+          "replay_parasite_schedule",
+          "reciprocal_coevolution"
+        ],
+        "seeds": [
+          101,
+          202,
+          303,
+          404
+        ],
+        "steps": 5
+      },
+      "success_criterion": "arms_are_distinct AND all host/parasite digest pairs distinct AND reciprocal_coevolution digest \u2260 freeze_parasites digest",
+      "title": "Dual-genome digest divergence under coevolution vs freeze control"
+    },
+    {
+      "campaign_digest": "d684fcbb14e6cda3b60eb3abbaa2e5c4f05a600869a398bcad448781784f2c44",
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "intervention_supported",
+        "phage_therapy_cleared"
+      ],
+      "doi": "arXiv:2301.07210",
+      "honesty": "Cornish rule held; not clinical decision support.",
+      "id": "SF6_cornish_intervention_refuse",
+      "intervention_scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "intervention_supported": false,
+      "interventions_executed": true,
+      "literature_prediction": "Observational history match does not license interventional claims (Cornish et al. JMLR / arXiv:2301.07210).",
+      "metric": "observational_match \u2227 interventions_executed \u2227 \u00acintervention_supported",
+      "obs_score": 0.2,
+      "observational_match": true,
+      "preregistration_digest": "6815dcd9054acd6e8f8d0c46e5a608e12f99a7e5fbee9a97377a73813412e919",
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_sequential_cornish_campaign",
+        "schedule": [
+          "obs_baseline",
+          "int_remove_parasites",
+          "int_content_null",
+          "int_steal_ablation"
+        ],
+        "seeds": [
+          11,
+          22,
+          33,
+          44
+        ]
+      },
+      "success_criterion": "observational_match=True AND interventions_executed=True AND intervention_supported=False AND all intervention scores > obs score",
+      "title": "Sequential Cornish: obs match / forced success still refuses intervention_supported"
+    },
+    {
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "intelligence_proved",
+        "oee_modes_passed"
+      ],
+      "cross_seed_distinct": true,
+      "diversity_digests_rep1": [
+        "ee04b6c48b65acedf6dee11fff14f1e792159b15aca90d716914115be86b2b2d",
+        "1da609649f3aa2bad20242f91e6349d4cd4bccfb4e30695f56621ce9d352fa9d",
+        "8e3250ca3167dd7494638b20f3d7d2beba307711262306684d9a7b76986b3701"
+      ],
+      "diversity_digests_rep2": [
+        "ee04b6c48b65acedf6dee11fff14f1e792159b15aca90d716914115be86b2b2d",
+        "1da609649f3aa2bad20242f91e6349d4cd4bccfb4e30695f56621ce9d352fa9d",
+        "8e3250ca3167dd7494638b20f3d7d2beba307711262306684d9a7b76986b3701"
+      ],
+      "doi": "internal:ENGINE_REPLAY_CONTRACT",
+      "honesty": "Simulation reproducibility only; not scientific claim escalation.",
+      "id": "SF7_replay_digest_stability",
+      "literature_prediction": "Digital experiments must be bit-stable under identical seeds (reproducibility / replay integrity; Genesis ENGINE_REPLAY_CONTRACT).",
+      "metric": "campaign_digest equality across repeats; cross-seed distinctness",
+      "result": "SUCCESS",
+      "setup": {
+        "apis": [
+          "run_genome_diversity_campaign",
+          "run_genome_zaman_campaign"
+        ],
+        "reps": 2,
+        "seeds": [
+          7,
+          14,
+          21
+        ]
+      },
+      "success_criterion": "per-seed diversity digests identical across 2 reps AND pairwise distinct across seeds AND Zaman pack digest identical across 2 reps",
+      "title": "Replay digest stability \u2014 same seed \u2192 same public digest",
+      "within_seed_stable": true,
+      "zaman_digest": "f5385f82189b1b8cc2503bc681ffa23a4f8a47bd239868c986f425a9056321af",
+      "zaman_pack_stable": true
+    },
+    {
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "phage_therapy_cleared",
+        "biosafety_level_certified"
+      ],
+      "doi": "internal:ARCHITECTURE_PORTS",
+      "engine_infection_physics": "not_in_engine_core",
+      "env_has_inject": true,
+      "forbidden_hits": [],
+      "genesis_engine_thin_reexport": true,
+      "honesty": "Architecture regression only; not a biological claim.",
+      "id": "SF8_engine_hygiene_no_infection",
+      "literature_prediction": "Architecture lock: ALife = engine; host\u2013parasite = DomainProfile/port. Infection physics must not be baked into engine.py (CodonTrace Genesis ARCHITECTURE_PORTS / host_parasite port requirements).",
+      "metric": "zero forbidden infection tokens in engine modules; env has inject API",
+      "result": "SUCCESS",
+      "setup": {
+        "files_scanned": [
+          "src/codontrace/genesis/engine.py",
+          "src/codontrace/engine.py"
+        ],
+        "forbidden_tokens": [
+          "try_horizontal_inject",
+          "infection_eligible",
+          "seed_parasite_seat",
+          "steal_fraction",
+          "HostParasiteEnv",
+          "parasite_payload"
+        ],
+        "positive_control": "src/codontrace/genesis/host_parasite_env.py"
+      },
+      "success_criterion": "No HostParasiteEnv / inject / infection_eligible / steal_fraction in engine.py modules AND env module retains inject APIs AND genesis engine.py remains thin re-export",
+      "title": "Engine hygiene \u2014 infection logic never in engine.py"
+    },
+    {
+      "all_theatrical_claims_blocked": true,
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "intelligence_proved",
+        "intelligence",
+        "red_queen_proved",
+        "modes_passed_proved",
+        "modes_passed",
+        "oee_modes_passed",
+        "tokyo_type1_passed",
+        "collective_intelligence"
+      ],
+      "contrast_headline": "biotic \u0394entropy=0.444, ARD\u2192FSD cost jump=0.217, yet 17/17 overclaims still blocked",
+      "doi": "internal:CLAIM_LADDER + Pineau checklist spirit",
+      "honesty": "Runtime spectacle is real digital evidence at observation/candidate ceilings only; ClaimGate refuses intelligence / Red Queen / MODES-passed / phage therapy promotion.",
+      "id": "DX1_claimladder_theatrical_failclosed",
+      "literature_prediction": "Reproducible runtime metrics do not auto-promote scientific claims (ClaimGate ladder; Pineau reproducibility checklist spirit).",
+      "matrix_spot_check_ok": true,
+      "metric": "biotic entropy \u0394 + ARD\u2192FSD cost jump vs refuse-map all True",
+      "refuse_map": {
+        "biosafety_level_certified": true,
+        "clinical_pathogen_model": true,
+        "collective_intelligence": true,
+        "complexity_emergence_proved": true,
+        "crispr_identity_proved": true,
+        "gene_identity_proved": true,
+        "intelligence": true,
+        "intelligence_proved": true,
+        "intervention_supported": true,
+        "major_transition_proved": true,
+        "modes_passed": true,
+        "modes_passed_proved": true,
+        "oee_modes_passed": true,
+        "phage_therapy_cleared": true,
+        "red_queen_proved": true,
+        "tokyo_type1_passed": true,
+        "virulence_optimized_for_humans": true
+      },
+      "result": "SUCCESS",
+      "setup": {
+        "refuse_claims": [
+          "intelligence_proved",
+          "intelligence",
+          "red_queen_proved",
+          "modes_passed_proved",
+          "modes_passed",
+          "oee_modes_passed",
+          "tokyo_type1_passed",
+          "collective_intelligence",
+          "phage_therapy_cleared",
+          "complexity_emergence_proved",
+          "gene_identity_proved",
+          "crispr_identity_proved",
+          "intervention_supported",
+          "major_transition_proved",
+          "virulence_optimized_for_humans",
+          "biosafety_level_certified",
+          "clinical_pathogen_model"
+        ],
+        "seeds_ard": [
+          11,
+          22,
+          33
+        ],
+        "seeds_diversity": [
+          11,
+          22,
+          33,
+          44,
+          55
+        ]
+      },
+      "spectacular_metrics": {
+        "ard_cost_jump": 0.2165938142,
+        "ard_early_cost": 0.2389837287,
+        "ard_early_label": "ard_like",
+        "ard_late_cost": 0.4555775429,
+        "ard_late_label": "fsd_like",
+        "biotic_entropy_delta": 0.4440262302,
+        "content_null_entropy_delta": 0.0,
+        "transition_observed": true
+      },
+      "success_criterion": "biotic_entropy_delta > 0.3 AND content_null_delta == 0 AND ARD cost_jump > 0.2 AND transition_observed AND all theatrical claims blocked on assert_claim_allowed",
+      "title": "ClaimLadder theatrical fail-closed \u2014 spectacular runtime \u2260 claim promotion"
+    },
+    {
+      "attach_payload_causal_flag": false,
+      "between_group_term": 0.230412535977,
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "major_transition_proved",
+        "red_queen_proved"
+      ],
+      "contrast_headline": "Price covariance=0.147420 available as diagnostic; ClaimGate keeps major_transition_proved=False (Okasha)",
+      "doi": "10.1098/rstb.2019.0365",
+      "honesty": "Descriptive scaffold only; not causal mechanism support.",
+      "id": "DX2_okasha_price_not_causality",
+      "literature_prediction": "Price equation partitions are descriptive identities, not causal proofs of major transitions (Okasha multilevel caution).",
+      "major_transition_proved": false,
+      "metric": "price_covariance present \u2227 \u00acprice_summary_is_causal \u2227 refusal_assay_passed",
+      "price_covariance": 0.147419896604,
+      "price_summary_is_causal": false,
+      "refusal_assay_passed": true,
+      "refuse_map": {
+        "intervention_supported": true,
+        "major_transition_proved": true,
+        "red_queen_proved": true
+      },
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_price_causality_caution_assay + attach_price_causality_caution",
+        "seeds": [
+          11,
+          22,
+          33,
+          44
+        ]
+      },
+      "success_criterion": "nonzero price_covariance AND price_summary_is_causal=False AND major_transition_proved=False AND refusal_assay_passed AND major_transition_proved blocked on assert",
+      "summary_digest": "730ab79bd2f21f411db46612eeaa1ebc4ec3f9ecfc89691253e69bce76231023",
+      "title": "Okasha Price\u2260causality gate \u2014 descriptive Price present, causal promotion refused",
+      "within_group_term": -0.082992639373
+    },
+    {
+      "claimgate_ceiling": "tokyo_type1_measurement_only",
+      "claimgate_refuses": [
+        "tokyo_type1_passed",
+        "modes_passed",
+        "modes_passed_proved",
+        "oee_modes_passed"
+      ],
+      "contrast_headline": "measurement_only ALLOWED (tokyo_type1_measurement_only); tokyo_type1_passed / modes_passed* REFUSED",
+      "doi": "10.1162/artl_a_00280",
+      "doi_channon": "10.1162/artl_a_00430",
+      "honesty": "Measurement vocabulary \u2260 Type-1 / MODES pass verdict.",
+      "id": "DX3_channon_modes_measurement_only",
+      "literature_prediction": "Tokyo Type 1 / MODES surfaces can be *measured* without declaring pass (Channon 2024 procedure; Dolson et al. 2019 MODES).",
+      "measurement_allowed": true,
+      "measurement_final_claim": "tokyo_type1_measurement_only",
+      "measurement_status": "multi_seed_measurement_only_still_not_passed",
+      "metric": "measurement claim allowed \u2227 pass claims refused",
+      "modes_direct_allowed": false,
+      "pass_allowed": false,
+      "pass_final_claim": "tokyo_type1_passed_rejected",
+      "refuse_map": {
+        "modes_passed": true,
+        "modes_passed_proved": true,
+        "oee_modes_passed": true,
+        "tokyo_type1_passed": true
+      },
+      "result": "SUCCESS",
+      "setup": {
+        "api": "build_tokyo_type1_measurement_protocol",
+        "seed_count": 3
+      },
+      "success_criterion": "tokyo_type1_measurement_only allowed AND tokyo_type1_passed / modes_passed* refused",
+      "title": "Channon/MODES measurement-only \u2014 observe without pass-washing"
+    },
+    {
+      "base_vs_mutated_prefixes": [
+        "ee04b6c48b65aced",
+        "0e15318cb3dd6198"
+      ],
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "intervention_supported"
+      ],
+      "contrast_headline": "Identical seeds \u2192 identical digests; seed+1 \u2192 mismatch; forged intervention_supported attach \u2192 ConfigurationError",
+      "cross_seed_distinct": true,
+      "digest_rep1_prefixes": [
+        "ee04b6c48b65aced",
+        "1da609649f3aa2ba",
+        "8e3250ca3167dd74"
+      ],
+      "digest_rep2_prefixes": [
+        "ee04b6c48b65aced",
+        "1da609649f3aa2ba",
+        "8e3250ca3167dd74"
+      ],
+      "doi": "internal:ENGINE_REPLAY_CONTRACT",
+      "honesty": "Replay/claim binding only; not scientific escalation.",
+      "id": "DX4_replay_integrity_spectacle",
+      "literature_prediction": "Bit-stable digests under identical seeds; claim-bound attach refuses mutated honesty flags (Genesis ENGINE_REPLAY_CONTRACT).",
+      "metric": "digest equality / inequality / attach refuse on mutated flags",
+      "mutated_attach_refused": true,
+      "mutated_seed_mismatches": true,
+      "overclaim_assert_refused": true,
+      "result": "SUCCESS",
+      "setup": {
+        "apis": [
+          "run_genome_diversity_campaign",
+          "attach_sequential_cornish_campaign"
+        ],
+        "seeds": [
+          7,
+          14,
+          21
+        ]
+      },
+      "success_criterion": "within-seed digests identical AND mutated seed mismatches AND overclaim assert refuses AND evil intervention_supported attach refuses",
+      "title": "Replay integrity spectacle \u2014 same seed identical; mutated seed/claim diverge or refuse",
+      "within_seed_stable": true
+    },
+    {
+      "abiotic_only_refused": true,
+      "arm_mean_scores": {
+        "abiotic_only": 1.0,
+        "content_null": 1.0,
+        "intact": 0.2
+      },
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "red_queen_proved",
+        "phage_therapy_cleared"
+      ],
+      "contrast_headline": "intact mean_score=0.20 vs content_null=1.00; without content_null arm, candidate_evidence is refused",
+      "doi": "internal:HE02 dual-null + Floreano honesty",
+      "falsification_rules_passed": true,
+      "granted_ceiling": "candidate_evidence",
+      "honesty": "Low intact score is digital steal drawdown, not clinical harm; null proves the contrast is payload-dependent.",
+      "id": "DX5_content_null_he_trap",
+      "literature_prediction": "Candidate evidence requires content-null falsifiers (HE / Floreano honesty; Genesis host_parasite campaign ceiling rules).",
+      "metric": "candidate_evidence refuse without content_null; scores intact vs null",
+      "missing_content_null_refused": true,
+      "refusal_message_prefix": "candidate_evidence refused: falsification rules did not pass (intact must differ from a null/abiotic arm; arm digests mu",
+      "result": "SUCCESS",
+      "setup": {
+        "arms_fail": [
+          "intact+structure_null",
+          "intact+abiotic_only"
+        ],
+        "arms_pass": [
+          "intact",
+          "content_null",
+          "abiotic_only"
+        ],
+        "seeds": [
+          1,
+          2
+        ],
+        "steal_fraction": 0.8
+      },
+      "success_criterion": "structure/abiotic-only paths raise ConfigurationError AND intact+content_null clears candidate_evidence AND intact score << content_null",
+      "title": "Content-null HE-style trap \u2014 treatment looks dramatic until null required"
+    },
+    {
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "phage_therapy_cleared",
+        "red_queen_proved",
+        "biosafety_level_certified",
+        "clinical_pathogen_model"
+      ],
+      "contrast_headline": "host_parasite DomainProfile blocks phage_therapy_cleared; other profiles allow the string ({'alife': True, 'biomedical': True, 'hardware': True}); HP campaign attach refused on alife bundle",
+      "doi": "internal:ARCHITECTURE_PORTS + DomainProfile",
+      "honesty": "Profile-scoped refuse lists are an auditor feature, not a claim that other domains cleared phage therapy.",
+      "host_parasite_blocks": {
+        "biosafety_level_certified": true,
+        "clinical_pathogen_model": true,
+        "phage_therapy_cleared": true,
+        "red_queen_proved": true
+      },
+      "hp_attach_ok": true,
+      "id": "DX6_cross_domain_auditor_posture",
+      "literature_prediction": "Auditor-not-engine: the same ClaimGate refuse matrix applies to the host_parasite DomainProfile port; mismatched domain attaches refuse.",
+      "metric": "HP blocks clinical/RQ claims; wrong-domain attach refuses; HP attach OK",
+      "other_profiles_allow_phage_string": {
+        "alife": true,
+        "biomedical": true,
+        "hardware": true
+      },
+      "result": "SUCCESS",
+      "setup": {
+        "attach_api": "attach_genome_zaman_campaign",
+        "hp_blocked_probes": [
+          "phage_therapy_cleared",
+          "red_queen_proved",
+          "biosafety_level_certified",
+          "clinical_pathogen_model"
+        ],
+        "profiles": [
+          "alife",
+          "biomedical",
+          "hardware",
+          "host_parasite"
+        ]
+      },
+      "success_criterion": "host_parasite blocks phage/RQ/BSL/clinical AND at least one other profile does not share phage block AND HP attach works AND alife attach of HP campaign refuses",
+      "title": "Cross-simulator auditor posture \u2014 ClaimGate matrix is DomainProfile-scoped",
+      "wrong_domain_attach_refused": true
+    },
+    {
+      "claimgate_ceiling": "candidate_evidence",
+      "claimgate_refuses": [
+        "intervention_supported",
+        "phage_therapy_cleared"
+      ],
+      "contrast_headline": "obs_score=0.2 vs intervention_scores=[1.0, 1.0, 1.0] \u2014 looks fixed; ClaimGate intervention_supported=False",
+      "doi": "arXiv:2301.07210",
+      "honesty": "Cornish rule; not clinical decision support.",
+      "id": "DX7_cornish_looks_fixed_claimgate_says_no",
+      "intervention_scores": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "intervention_supported": false,
+      "interventions_executed": true,
+      "later_intervention_failed": false,
+      "literature_prediction": "Observational history match does not license interventional claims (Cornish et al. JMLR / arXiv:2301.07210).",
+      "metric": "obs_score \u2264 0.25 \u2227 all intervention scores \u2265 0.99 \u2227 \u00acintervention_supported",
+      "obs_score": 0.2,
+      "observational_match": true,
+      "result": "SUCCESS",
+      "setup": {
+        "api": "run_sequential_cornish_campaign",
+        "seeds": [
+          11,
+          22,
+          33,
+          44
+        ]
+      },
+      "success_criterion": "observational_match AND interventions_executed AND intervention_supported=False AND obs\u22640.25 AND ints all \u22650.99",
+      "title": "Cornish headline \u2014 obs 0.2 vs forced ints 1.0/1.0/1.0 still refuses intervention_supported"
+    },
+    {
+      "claimgate_ceiling": "runtime_observation",
+      "claimgate_refuses": [
+        "phage_therapy_cleared",
+        "biosafety_level_certified"
+      ],
+      "contrast_headline": "engine.py: zero infection tokens; host_parasite_env.py: inject APIs present",
+      "core_engine_bad_functions": [],
+      "doi": "internal:ARCHITECTURE_PORTS",
+      "env_has_infection_helpers": true,
+      "forbidden_hits": [],
+      "genesis_engine_thin_reexport": true,
+      "honesty": "Architecture regression; not a biological claim.",
+      "id": "DX8_engine_boundary_hard_lock",
+      "literature_prediction": "ALife = engine; host\u2013parasite = DomainProfile/port (CodonTrace Genesis ARCHITECTURE_PORTS).",
+      "metric": "zero forbidden tokens in engines; env retains inject; no infect* fn in core",
+      "result": "SUCCESS",
+      "setup": {
+        "forbidden_tokens": [
+          "try_horizontal_inject",
+          "infection_eligible",
+          "seed_parasite_seat",
+          "HostParasiteEnv",
+          "steal_fraction",
+          "parasite_payload",
+          "virulence_optimized_for_humans"
+        ],
+        "positive_control": "src/codontrace/genesis/host_parasite_env.py",
+        "scanned": [
+          "src/codontrace/genesis/engine.py",
+          "src/codontrace/engine.py"
+        ]
+      },
+      "success_criterion": "No infection/virulence helpers in engine modules AND env has inject APIs AND core engine has no infect*/parasite_inject functions",
+      "title": "Engine boundary hard lock \u2014 infection/virulence physics absent from engine.py"
+    }
+  ],
+  "cell_role": "semantic_genome_genesis_substrate",
+  "claim_ceiling": "runtime_observation",
+  "claimgate_audit": {
+    "attached_campaign_digests": {
+      "ard_fsd": "42e64f78cfd8adaaf2bb6a80eb89f3aee33c47686a007dd1b1850122de65d901",
+      "cornish_sequential": "30d0c5c11b68cc076c654732392e332169304e47391b49d150058fabc2e7c85e",
+      "genome_diversity": "a9343b410a5c7ffec8d1eb4ae0dd26a8df91e0fa451d528382bd216870f617c9",
+      "genome_zaman": "3a72e46caf269050cf119a02a8428cbb7b516b86fbfdc350217c707e9eed64ec"
+    },
+    "audit_achieved_level": 0,
+    "audit_passed": true,
+    "blocked_spot_check": {
+      "biosafety_level_certified": true,
+      "clinical_pathogen_model": true,
+      "complexity_emergence_proved": true,
+      "crispr_identity_proved": true,
+      "gene_identity_proved": true,
+      "intelligence_proved": true,
+      "intervention_supported": true,
+      "major_transition_proved": true,
+      "modes_passed_proved": true,
+      "oee_modes_passed": true,
+      "phage_therapy_cleared": true,
+      "red_queen_proved": true,
+      "virulence_optimized_for_humans": true
+    },
+    "claim_ceiling_cap": "candidate_evidence",
+    "ladder_after": "0",
+    "ladder_before": "0",
+    "ladder_unchanged": true,
+    "preregistration_digest": "a3ab43c8d4d0b48e0085f9803888074925000bb333780fcac0af152560bb52a8"
+  },
+  "clinical_pathogen_model": false,
+  "complexity_emergence_proved": false,
+  "crispr_identity_proved": false,
+  "digest": "6d2be6cf9a60acfea0dbbcf0bc608ba43930f35c0e94434ac4b578106e749e1a",
+  "domain_profile": "host_parasite",
+  "engine_infection_physics": "not_in_engine_core",
+  "gene_identity_proved": false,
+  "intervention_supported": false,
+  "major_transition_proved": false,
+  "microbe_role": "cou_semantic_label_only",
+  "n_dx": 8,
+  "n_fail": 1,
+  "n_partial": 0,
+  "n_sf": 8,
+  "n_success": 15,
+  "note": "Scientific Simulation Fidelity (SF) + Differentiation (DX) campaigns on ONE host_parasite DomainProfile. Qualitative literature signatures only; ClaimGate ceilings fail-closed. Not wet biology, Red Queen proof, phage therapy, BSL, or CRISPR identity.",
+  "oee_modes_passed": false,
+  "pack_digest": "6d2be6cf9a60acfea0dbbcf0bc608ba43930f35c0e94434ac4b578106e749e1a",
+  "phage_therapy_cleared": false,
+  "raises_claim_ladder": false,
+  "red_queen_proved": false,
+  "schema": "host_parasite_sim_fidelity_diff_campaigns_v1",
+  "virulence_optimized_for_humans": false
+}

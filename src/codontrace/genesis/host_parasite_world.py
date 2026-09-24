@@ -44,6 +44,11 @@ from codontrace.life_loop import (
     apply_schedule_lock,
     resolve_member_state,
     HookMeter,
+    MatchRuleSpec,
+    PhenotypeMap,
+    bind_match_rule,
+    evaluate_match,
+    spec_for_mode,
 )
 
 SCHEMA_VERSION = "host_parasite_world_profile_v1"
@@ -52,7 +57,7 @@ ADAPTER_SCHEMA = "host_parasite_locked_digest_adapter_v1"
 SpatialMode = Literal["well_mixed", "local_neighborhood"]
 AblationPreset = Literal["none", "content_null", "structure_null", "dual_null"]
 ScheduleArm = Literal["none", "freeze", "replay_schedule", "unlock"]
-MatchRuleId = Literal["always", "never"]
+MatchRuleId = Literal["always", "never", "feature_overlap", "allele_match"]
 InheritModeName = Literal["none", "copy", "share"]
 
 SPATIAL_MODES: frozenset[str] = frozenset({"well_mixed", "local_neighborhood"})
@@ -62,7 +67,7 @@ ABLATION_PRESETS: frozenset[str] = frozenset(
 SCHEDULE_ARMS: frozenset[str] = frozenset(
     {"none", "freeze", "replay_schedule", "unlock"}
 )
-MATCH_RULE_IDS: frozenset[str] = frozenset({"always", "never"})
+MATCH_RULE_IDS: frozenset[str] = frozenset({"always", "never", "feature_overlap", "allele_match"})
 INHERIT_MODES: frozenset[str] = frozenset({"none", "copy", "share"})
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -138,12 +143,49 @@ def _deterministic_unit(seed: int, tick: int, salt: str) -> float:
     return (int(hexpart[:8], 16) % 10_000_000) / 10_000_000.0
 
 
-def _match_rule_for(rule_id: str) -> Callable[[str, str], bool]:
+def _build_match_rule(
+    profile: "HostParasiteProfile",
+    phenotype_map: PhenotypeMap,
+) -> Callable[[str, str], bool | float]:
+    """Bind a contact MatchRule from profile match_rule_id + phenotype map."""
+
+    rule_id = profile.match_rule_id
     if rule_id == "always":
-        return lambda _a, _b: True
+        return bind_match_rule(spec_for_mode("always", spec_id=f"spec_{profile.profile_id}"))
     if rule_id == "never":
-        return lambda _a, _b: False
+        return bind_match_rule(spec_for_mode("never", spec_id=f"spec_{profile.profile_id}"))
+    if rule_id == "feature_overlap":
+        spec = MatchRuleSpec(
+            spec_id=f"spec_{profile.profile_id}_overlap",
+            mode="feature_overlap",
+            threshold=profile.match_threshold,
+            score_scale=profile.match_score_scale,
+            allele_mode_enabled=False,
+        )
+        return bind_match_rule(spec, phenotype_map)
+    if rule_id == "allele_match":
+        spec = MatchRuleSpec(
+            spec_id=f"spec_{profile.profile_id}_allele",
+            mode="allele_match",
+            threshold=profile.match_threshold,
+            score_scale=profile.match_score_scale,
+            allele_mode_enabled=True,
+        )
+        return bind_match_rule(spec, phenotype_map)
     raise ConfigurationError(f"unknown match_rule_id {rule_id!r}.")
+
+
+def _phenotype_map_for(profile: "HostParasiteProfile") -> PhenotypeMap:
+    """Build opaque PhenotypeMap from profile.phenotype_tags (labels stay out of kernel)."""
+
+    tags = dict(profile.phenotype_tags)
+    members = list(profile.primary_members) + list(profile.secondary_members)
+    for mid in members:
+        tags.setdefault(mid, ())
+    return PhenotypeMap.from_tag_mapping(
+        map_id=f"pheno_{profile.profile_id}",
+        tags_by_member=tags,
+    )
 
 
 def assert_baic_pins_untouched() -> None:
@@ -179,6 +221,9 @@ class HostParasiteProfile:
     primary_members: tuple[str, ...] = ("a0", "a1")
     secondary_members: tuple[str, ...] = ("b0",)
     initial_energy: float = 10.0
+    match_threshold: float = 0.0
+    match_score_scale: float = 1.0
+    phenotype_tags: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -262,6 +307,31 @@ class HostParasiteProfile:
         object.__setattr__(
             self, "initial_energy", _as_nonneg(self.initial_energy, "initial_energy")
         )
+        object.__setattr__(
+            self,
+            "match_threshold",
+            _as_unit_interval(self.match_threshold, "match_threshold"),
+        )
+        scale = float(require_finite_float("match_score_scale", self.match_score_scale))
+        if scale <= 0.0 or scale > 1.0:
+            raise ConfigurationError("match_score_scale must be in (0, 1].")
+        object.__setattr__(self, "match_score_scale", scale)
+        if not isinstance(self.phenotype_tags, Mapping):
+            raise ConfigurationError("phenotype_tags must be a mapping.")
+        cleaned_tags: dict[str, tuple[str, ...]] = {}
+        for member, tags in self.phenotype_tags.items():
+            mid = _refuse_banned_fragment(_as_str(member, "phenotype_tags.member"), "phenotype_tags.member")
+            if not isinstance(tags, (list, tuple)):
+                raise ConfigurationError("phenotype_tags values must be lists or tuples.")
+            cleaned: list[str] = []
+            seen: set[str] = set()
+            for tag in tags:
+                t = _refuse_banned_fragment(_as_str(tag, "phenotype_tag"), "phenotype_tag")
+                if t not in seen:
+                    seen.add(t)
+                    cleaned.append(t)
+            cleaned_tags[mid] = tuple(sorted(cleaned))
+        object.__setattr__(self, "phenotype_tags", cleaned_tags)
         computed = canonical_digest(self._body(), prefix="hp_profile")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "HostParasiteProfile")
@@ -287,6 +357,12 @@ class HostParasiteProfile:
             "primary_members": list(self.primary_members),
             "secondary_members": list(self.secondary_members),
             "initial_energy": self.initial_energy,
+            "match_threshold": self.match_threshold,
+            "match_score_scale": self.match_score_scale,
+            "phenotype_tags": {
+                key: list(vals)
+                for key, vals in sorted(self.phenotype_tags.items())
+            },
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -341,6 +417,18 @@ class HostParasiteProfile:
             initial_energy=float(
                 require_finite_float("initial_energy", data.get("initial_energy", 10.0))
             ),
+            match_threshold=float(
+                require_finite_float("match_threshold", data.get("match_threshold", 0.0))
+            ),
+            match_score_scale=float(
+                require_finite_float(
+                    "match_score_scale", data.get("match_score_scale", 1.0)
+                )
+            ),
+            phenotype_tags={
+                str(k): tuple(str(t) for t in (v if isinstance(v, (list, tuple)) else ()))
+                for k, v in dict(data.get("phenotype_tags") or {}).items()
+            },
             digest=_as_str(data.get("digest", ""), "digest", allow_empty=True),
         )
 
@@ -366,7 +454,9 @@ class HostParasiteWorld:
     _ablation_applied: bool = field(init=False, default=False)
     _contact_policy: ContactTransferPolicy = field(init=False)
     _inherit_policy: InheritAttachedPolicy = field(init=False)
-    _match_rule: Callable[[str, str], bool] = field(init=False)
+    _match_rule: Callable[[str, str], bool | float] = field(init=False)
+    phenotype_map: PhenotypeMap = field(init=False)
+    _match_spec: MatchRuleSpec = field(init=False)
     meter: HookMeter = field(init=False)
     prereg: HostParasitePreregSpec | None = field(init=False, default=None)
 
@@ -431,7 +521,23 @@ class HostParasiteWorld:
             mode=self.profile.inherit_mode,  # type: ignore[arg-type]
             probability=self.profile.inherit_probability,
         )
-        self._match_rule = _match_rule_for(self.profile.match_rule_id)
+        self.phenotype_map = _phenotype_map_for(self.profile)
+        self._match_spec = MatchRuleSpec(
+            spec_id=f"spec_{self.profile.profile_id}",
+            mode=(
+                "feature_overlap"
+                if self.profile.match_rule_id == "feature_overlap"
+                else (
+                    "allele_match"
+                    if self.profile.match_rule_id == "allele_match"
+                    else self.profile.match_rule_id
+                )
+            ),
+            threshold=self.profile.match_threshold,
+            score_scale=self.profile.match_score_scale,
+            allele_mode_enabled=(self.profile.match_rule_id == "allele_match"),
+        )
+        self._match_rule = _build_match_rule(self.profile, self.phenotype_map)
         self.meter = HookMeter(meter_id=f"meter_{self.profile.profile_id}")
         self.prereg = None
         self._refresh_meter_densities()
@@ -614,6 +720,17 @@ class HostParasiteWorld:
                 # Phase 7: observe contact outcome (no new physics).
                 self.meter.record_contact_outcome(
                     reason, success=(reason == "success")
+                )
+                # Phase 8: observe graded match channel (no new physics).
+                match_outcome = evaluate_match(
+                    self._match_spec,
+                    self.phenotype_map,
+                    holder,
+                    occupant,
+                )
+                self.meter.record_match_outcome(
+                    passed=match_outcome.passed,
+                    score=match_outcome.score if match_outcome.passed else 0.0,
                 )
 
             # Phase 7: observe resource/coupling transfer when linked.

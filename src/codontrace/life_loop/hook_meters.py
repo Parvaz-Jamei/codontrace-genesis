@@ -30,6 +30,9 @@ RELATED_TALLY_KEYS: frozenset[str] = frozenset(
         "contact_fail",
         "birth_count",
         "death_count",
+        "match_pass",
+        "match_fail",
+        "match_score_sum",
     }
 )
 
@@ -233,7 +236,21 @@ class HookMeter:
         self._related_counts["attach_occupancy"] = occ
         self._related_counts["attach_capacity"] = cap
 
+    def record_match_outcome(self, *, passed: bool, score: float = 0.0) -> None:
+        """Record a refuse-safe graded-match observation (Phase 8)."""
+
+        if passed:
+            self.record_related_count("match_pass")
+            amt = float(score)
+            if amt < 0.0:
+                raise ConfigurationError("match score must be >= 0.")
+            if amt > 0.0:
+                self.record_related_total("match_score_sum", amt)
+        else:
+            self.record_related_count("match_fail")
+
     def snapshot(self) -> HookMeterSnapshot:
+
         return HookMeterSnapshot(
             meter_id=self.meter_id,
             tick=self.tick,

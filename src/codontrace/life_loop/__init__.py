@@ -58,6 +58,23 @@ from codontrace.life_loop.hook_meters import (
     HookMeterSnapshot,
     merge_fail_reason_histogram,
 )
+from codontrace.life_loop.phenotype import (
+    PhenotypeMap,
+    PhenotypeRecord,
+)
+from codontrace.life_loop.match_rules import (
+    MATCH_FAIL_REASONS,
+    MATCH_MODES,
+    MatchFailReason,
+    MatchMode,
+    MatchOutcome,
+    MatchRuleSpec,
+    bind_match_rule,
+    evaluate_match,
+    jaccard_overlap,
+    score_phenotypes,
+    spec_for_mode,
+)
 from codontrace.life_loop.schedule_lock import (
     LOCK_MODES,
     SCHEDULE_LOCK_FAIL_REASONS,
@@ -130,4 +147,17 @@ __all__ = [
     "HookMeter",
     "HookMeterSnapshot",
     "merge_fail_reason_histogram",
+    "PhenotypeMap",
+    "PhenotypeRecord",
+    "MATCH_FAIL_REASONS",
+    "MATCH_MODES",
+    "MatchFailReason",
+    "MatchMode",
+    "MatchOutcome",
+    "MatchRuleSpec",
+    "bind_match_rule",
+    "evaluate_match",
+    "jaccard_overlap",
+    "score_phenotypes",
+    "spec_for_mode",
 ]

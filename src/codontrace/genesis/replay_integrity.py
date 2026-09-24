@@ -1380,3 +1380,78 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
         (*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS)
     )
 )
+
+# Host–parasite ClaimGate-port public digest dataclasses (Waves 3–6). Digests
+# identify campaign/cell/arm/journal artifacts on the DomainProfile port. They
+# do not grant clinical, SaMD, wet-lab, intelligence, AGI, tokyo_type1_passed,
+# or avida_replacement claims. Genesis engine.py and BAIC pins A–E unchanged.
+_HOST_PARASITE_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.host_parasite_ard_fsd_transition.TransitionSlice": ("slice_digest",),
+    "codontrace.genesis.host_parasite_attach_registry.JournalAttachRegistryPacket": (
+        "registry_digest",
+    ),
+    "codontrace.genesis.host_parasite_contingency.ContingencySeedOutcome": ("seed_digest",),
+    "codontrace.genesis.host_parasite_continuum.ContinuumCellResult": ("cell_digest",),
+    "codontrace.genesis.host_parasite_cornish.CornishCampaignResult": (
+        "preregistration_digest",
+    ),
+    "codontrace.genesis.host_parasite_cornish_sequential.SequentialCornishResult": (
+        "preregistration_digest",
+    ),
+    "codontrace.genesis.host_parasite_cornish_sequential.SequentialStepOutcome": (
+        "step_digest",
+    ),
+    "codontrace.genesis.host_parasite_entropy_contingency_bridge.EntropyContingencyBridgeResult": (
+        "campaign_digest",
+    ),
+    "codontrace.genesis.host_parasite_entropy_contingency_bridge.EntropyContingencySeedOutcome": (
+        "entropy_campaign_digest",
+        "contingency_campaign_digest",
+        "seed_digest",
+    ),
+    "codontrace.genesis.host_parasite_factorial.FactorialCellResult": ("campaign_digest",),
+    "codontrace.genesis.host_parasite_genome_factorial.GenomeFactorialCell": (
+        "host_genome_digest",
+        "parasite_genome_digest",
+        "cell_digest",
+    ),
+    "codontrace.genesis.host_parasite_genome_zaman.DualGenomeSummary": (
+        "host_genome_digest",
+        "parasite_genome_digest",
+        "parasite_schedule_digest",
+    ),
+    "codontrace.genesis.host_parasite_genome_zaman.GenomeZamanCampaignResult": (
+        "repertoire_campaign_digest",
+    ),
+    "codontrace.genesis.host_parasite_he_hp_refresh.HeHpLockedDigestRefreshNote": (
+        "locked_digest",
+        "refresh_digest",
+    ),
+    "codontrace.genesis.host_parasite_hgt.HgtArmOutcome": (
+        "transfer_digest",
+        "host_genome_digest",
+        "parasite_genome_digest",
+    ),
+    "codontrace.genesis.host_parasite_mode_contrast.ModeArmOutcome": ("mode_digest",),
+    "codontrace.genesis.host_parasite_mutator.MutatorArmOutcome": ("arm_digest",),
+    "codontrace.genesis.host_parasite_price_caution.PriceCautionResult": ("summary_digest",),
+    "codontrace.genesis.host_parasite_resource_dynamics.ResourceDynamicsCell": (
+        "cell_digest",
+    ),
+    "codontrace.genesis.host_parasite_task_gene.TaskGeneMapResult": (
+        "host_genome_digest",
+        "map_digest",
+    ),
+    "codontrace.genesis.host_parasite_task_gene.TaskGeneWindow": ("window_digest",),
+    "codontrace.genesis.host_parasite_virulence_quality.VirulenceArmOutcome": ("arm_digest",),
+    "codontrace.genesis.host_parasite_wave6_smoke.Wave6JournalSmokeResult": ("smoke_digest",),
+}
+for _path, _fields in _HOST_PARASITE_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys(
+        (*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_HOST_PARASITE_PUBLIC_DIGEST_FIELDS)
+    )
+)
+

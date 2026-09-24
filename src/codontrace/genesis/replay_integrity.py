@@ -1451,6 +1451,10 @@ _HOST_PARASITE_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.host_parasite_sim_fidelity_campaigns.SimFidelityPack": (
         "pack_digest",
     ),
+    "codontrace.genesis.host_parasite_type2_rq.Type2RQTrial": (
+        "matrix_digest",
+        "trial_digest",
+    ),
 }
 for _path, _fields in _HOST_PARASITE_PUBLIC_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields

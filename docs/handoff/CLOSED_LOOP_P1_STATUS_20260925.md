@@ -1,24 +1,26 @@
-# Closed-loop P1 status — 2026-09-25 (post-adversarial fix)
+# Closed-loop P1 status — 2026-09-25
 
 ## Verdict
-**P1 re-landed after adversarial ×1.** Scope hard-locked: **unify + engine-mutate scaffold** under one `step_population` clock. Not Morran-ready. Not P2 energy-partition. Not P4 dual-arm.
+P1 landed: both roles as `GenesisOrganism` under one `step_population` clock.
+Scope hard-locked to **unify + engine-mutate scaffold**. Not Morran-ready.
+Not P2 energy-partition. Not P4 dual-arm.
 
-Tip: see `git log -1 --oneline` on `main`.
+Tip: `git log --oneline --grep='closed-loop' -5` on `main`.
 
-## Adversarial fixes applied
-1. **Hook cut** — `apply_closed_loop_hp_life` moved to **post-ATP settle / pre-birth** (after basal+hazard debit, before nexus/reproduce) in `population.py`.
-2. **Engine mutation** — plugin calls `mutate_genome(..., rng=stream.fork(...))`; no parallel `Mutation.point` schedule; `MutationConfig.bit_flip_rate > 0`.
-3. **Live stream** — forks the generation `stream`, never `RNGManager(seed=seed)` side tree.
-4. **Opaque roles** — `role_by_id` map on config; `role_of(id)` without map returns `None` (no id-prefix parse).
-5. **Caller booleans dropped** — summary has measured `p1_scope`, `clock_api`, `hp_world_tick_calls`, `atp_moved` — no `one_clock` / `dual_path_used`.
-6. **`assert_single_atp_owner` called** on apply + boot + each tick.
-7. **ATP moves** — basal metabolism enabled so energy clock is not idle.
-8. **Runtime anti-cheat** — accept patches `HostParasiteWorld.tick` and asserts zero calls.
-9. **Hard scope** — reproduction still off; birth/partition = P2. Same-seed replay labeled Gate7-shaped, not P4.
-10. Dual `HostParasiteGenesisPath.tick` remains hard-raise.
+## Implementation notes
+1. Hook cut — HP life plugin at **post-ATP settle / pre-birth** in `population.py`.
+2. Engine mutation via `mutate_genome` + live generation `stream` (no parallel point schedule).
+3. Opaque `role_by_id` map (no id-prefix role parse).
+4. Summary uses measured fields only (`p1_scope`, `clock_api`, `hp_world_tick_calls`, `atp_moved`) — no caller-boolean clocks.
+5. `assert_single_atp_owner` called on apply/boot/tick; basal metabolism so ATP moves.
+6. Accept patches `HostParasiteWorld.tick` and asserts zero calls under the session.
+7. Reproduction remains off in P1 (birth/partition = P2).
+8. Dual `HostParasiteGenesisPath.tick` remains hard-raise.
+9. `engine.py` stays domain-free (no infection vocabulary).
+10. Claim ceiling ≤ `candidate_evidence`; `red_queen_proved` stays false.
 
 ## Accept
-`tests/closed_loop/test_closed_loop_p1_accept.py` + gate6 retired-path test.
+`tests/closed_loop/test_closed_loop_p1_accept.py` (+ gate6 retired-path test).
 
 ## Next
-P2 specialist Pass ×2 (Smith–Fretwell energy partition on birth) — only after owner/Gen greenlight.
+P2: Smith–Fretwell energy partition on birth (engine reproduction on).

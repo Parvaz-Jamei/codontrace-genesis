@@ -2,7 +2,7 @@
 
 **Owner:** campaign binding 2026-09-24  
 **Repo:** codontrace-genesis `main` (local; do not push)  
-**Tip:** `a617bf3`  
+**Tip:** `2bbf459`  
 **Positioning:** CodonTrace independent engine; novelty = CodonTrace stack
 
 ## Success gates
@@ -12,7 +12,7 @@
 | WAVE_A consensus recorded | YES — `CONSENSUS.md` |
 | Adopted innovations implemented + tests green | YES — 19 campaign tests PASS |
 | Hard battery green except ClaimGate refuses | YES — 6/6 hard tests PASS; refuses listed |
-| No open engineering “engine failed” | YES — repairs completed |
+| No open engineering “engine failed” | YES — repairs completed (2 cycles) |
 | Docs mirrored in-repo | YES — `docs/campaigns/innovation_20260924/` |
 
 ## Novelty (interdisciplinary → CodonTrace)
@@ -40,12 +40,14 @@ Rejected: infection physics in `engine.py`, ClaimGate loosening, peer novelty ya
 ## Commits (local main since Phase10 tip `4df30bb`)
 
 ```
+2bbf459 docs(campaign): Wave B feedback, Wave C battery, FINAL_REPORT
+20fbc48 test(campaign): Wave B units + Wave C hard battery for innovation_20260924
+508efdf fix(life_loop): domain-free refuse field names for banned-token scan
+56c78c5 feat(analytics): DiD intervention contrast (INN-03)
 a617bf3 feat(life_loop): adopt Wave A innovations INN-01..06
 1d02e0a docs(campaign): Wave A innovation storm consensus (2026-09-24)
 f637c88 feat(life_loop): park interdisciplinary innovation campaign modules
 ```
-
-(Plus this FINAL_REPORT / Wave B+C docs commit.)
 
 ## Drive mirror
 

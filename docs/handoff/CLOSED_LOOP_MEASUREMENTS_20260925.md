@@ -5,6 +5,43 @@ Four questions. Each one was run on this tree before the version cut.
 `red_queen_proved` is false. The host–parasite profile still raises on
 `assert_claim_allowed("red_queen_proved")`.
 
+Sections 3 through 5 measured `run_match_arm` under a survivor-modal update.
+After a hit, the single parasite window became the modal living host, which
+aims the parasite at the escape type. That rule is no longer used there.
+Those sections are the record of the defect. Section 6 is a separate
+single-antagonist census and still uses it. Section 7 is the passage
+`run_match_arm` uses now.
+
+## 7. Passage from the parasites that matched
+
+The current rule is in `run_match_arm`. Twelve hosts start as nine
+`000111` and three `111000`. Twelve parasites start on the ancestral
+modal window `000111`. Each host contacts one parasite. A match debits
+that host's own ATP. Under `coevolve`, the next parasite generation is
+drawn from the parasites that matched, or from the whole stock when
+nobody matched, and each offspring flips one recognition bit with
+probability 0.7. Under `frozen`, the stock stays on `000111` and does
+not mutate. `RNGManager` seed 7 and 48 generations are the declared
+replay. Seed 1 is not.
+
+On that replay the virulence grid `(0, 1, 4, 8, 16, 32, 64)` first meets
+the digital predicate at 32. Below that, selfing × coevolve is not
+extinct. At 32:
+
+| Passage | Outcross | Selfing |
+|---|---|---|
+| coevolve | alive, `cycles` true | extinct |
+| frozen | alive, `cycles` false | alive |
+| absent | alive | alive |
+
+`pattern_holds` is true. `low_debit_gap` is false. `debit_threshold` is
+32. `red_queen_proved` is false, and so is
+`biological_red_queen_proved`. The same grid at seed 1 does not meet the
+predicate (`pattern_holds` false, `debit_threshold` unset). Four
+generations at virulence 32 do not extinguish selfing. The predicate is
+one replay of the corrected passage, not a result that holds for every
+seed. Morran et al. (2011) is not repeated here.
+
 ## 1. Intelligence is not an output of this run
 
 The open problem is definitional before it is empirical. Legg and Hutter
@@ -213,6 +250,7 @@ mismatch against. `red_queen_proved` on every shared record is false.
 ## What this cut does not contain
 
 No diploid sex-modifier invasion of the kind in Agrawal (2009). No
-two-fold cost of sex. No claim that a parasite maintained sex. No change
+two-fold cost of sex. No claim that a parasite maintained sex: the
+digital predicate on seed 7 does not set `red_queen_proved`. No change
 to `engine.py`. Morran et al. (Science 333:216–218, 2011,
 doi:10.1126/science.1206360) is not repeated here.

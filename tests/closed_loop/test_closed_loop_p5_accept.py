@@ -7,7 +7,11 @@ from pathlib import Path
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import SexualRecombinationConfig
 from codontrace.genesis.closed_loop_p3 import replay_bit_identical as p3_replay
-from codontrace.genesis.closed_loop_p5 import ClosedLoopP5Session, replay_bit_identical
+from codontrace.genesis.closed_loop_p5 import (
+    ClosedLoopP5Session,
+    replay_bit_identical,
+    run_locus_story,
+)
 from codontrace.genesis.host_parasite_life_plugin import (
     OUTCROSS_BIT_START,
     OUTCROSS_BIT_WIDTH,
@@ -29,6 +33,23 @@ _REPO = Path(__file__).resolve().parents[2]
 
 def _quiet_outcross() -> str:
     return LIFE_LOOP_EATER_GENOME + "100000" + OUTCROSS_OUT_BITS
+
+
+def test_locus_story_is_silent_gene_not_red_queen() -> None:
+    story = run_locus_story(seed=11)
+    assert story["brains_match"] is True
+    assert story["locus_absent_from_brain"] is True
+    assert story["genome_still_has_locus"] is True
+    assert story["coding_brain"] == "101111000100000"
+    assert story["outcross_debits"] >= 1
+    assert story["selfing_debits"] == 0
+    assert story["ablation_debits"] == 0
+    assert story["selfing_asexual_births"] >= 1
+    assert story["ablation_asexual_births"] >= 1
+    assert story["outcross_births"] >= 1
+    assert story["red_queen_proved"] is False
+    assert story["morran_ready"] is False
+    assert story["claim_ceiling"] == "candidate_evidence"
 
 
 def test_window_does_not_move_kappa() -> None:

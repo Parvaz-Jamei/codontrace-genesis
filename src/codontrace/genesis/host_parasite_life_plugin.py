@@ -326,6 +326,34 @@ def resolve_copy_self_mode(genome_bits: str, config: ClosedLoopHPLifeConfig) -> 
     return "asexual"
 
 
+def coding_bits_for_execution(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
+    """Program the body runs. The outcross codon stays on the genome and off the brain."""
+
+    if not config.outcross_enabled:
+        return str(genome_bits)
+    start = config.outcross_bit_start
+    width = config.outcross_bit_width
+    bits = str(genome_bits)
+    if start < 0 or width <= 0 or len(bits) < start + width:
+        return bits
+    coding = bits[:start] + bits[start + width :]
+    if not coding or len(coding) % 3 != 0:
+        return bits
+    return coding
+
+
+def silence_outcross_locus(organism: GenesisOrganism, config: ClosedLoopHPLifeConfig) -> None:
+    """Recompile actions from the coding prefix. Genome bits, including the locus, stay."""
+
+    coding = coding_bits_for_execution(organism.genome.to_compact(), config)
+    current = "".join(token.bits for token in organism.compiled_brain.tokens)
+    if current == coding:
+        return
+    organism.compiled_brain = organism.ribosome.translate(coding).compiled_brain
+    if organism._cursor >= len(organism.compiled_brain.tokens):
+        organism._cursor = 0
+
+
 def outcross_mates_compatible(
     parent_a_id: str, parent_b_id: str, config: ClosedLoopHPLifeConfig
 ) -> bool:
@@ -416,6 +444,8 @@ __all__ = [
     "outcross_runtime_cost",
     "charge_outcross_runtime",
     "resolve_copy_self_mode",
+    "coding_bits_for_execution",
+    "silence_outcross_locus",
     "outcross_mates_compatible",
     "apply_closed_loop_hp_life",
 ]

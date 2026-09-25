@@ -34,6 +34,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     decode_kappa,
     decode_outcross,
     role_of,
+    silence_outcross_locus,
     with_inherited_birth_roles,
 )
 from codontrace.genesis.organism import GenesisOrganism
@@ -148,6 +149,18 @@ class ClosedLoopP5Session:
                 )
             )
             roles[oid] = ROLE_SECONDARY
+        life = ClosedLoopHPLifeConfig(
+            enabled=True,
+            mutate_both_roles=True,
+            role_by_id=tuple(sorted(roles.items())),
+            kappa_enabled=False,
+            outcross_enabled=True,
+            outcross_ablate=outcross_ablate,
+            outcross_runtime_atp=outcross_runtime_atp,
+            outcross_same_role_only=outcross_same_role_only,
+        )
+        for org in organisms:
+            silence_outcross_locus(org, life)
         assert_single_atp_owner(organisms)
         configs = PopulationConfigs(
             reproduction=ReproductionConfig(
@@ -168,16 +181,7 @@ class ClosedLoopP5Session:
                 two_fold_cost_sex=False,
                 diploid_meiosis=False,
             ),
-            closed_loop_hp_life=ClosedLoopHPLifeConfig(
-                enabled=True,
-                mutate_both_roles=True,
-                role_by_id=tuple(sorted(roles.items())),
-                kappa_enabled=False,
-                outcross_enabled=True,
-                outcross_ablate=outcross_ablate,
-                outcross_runtime_atp=outcross_runtime_atp,
-                outcross_same_role_only=outcross_same_role_only,
-            ),
+            closed_loop_hp_life=life,
         )
         world = World2D(width=world_size, height=world_size)
         if place_food:
@@ -239,6 +243,9 @@ class ClosedLoopP5Session:
             org.id: (role_of(org.id, role_map) or self.roles.get(org.id, "unknown"))
             for org in self.runner.population.organisms
         }
+        life = self.runner.configs.closed_loop_hp_life
+        for org in self.runner.population.organisms:
+            silence_outcross_locus(org, life)
 
     def run_ticks(self, ticks: int) -> dict[str, Any]:
         if ticks < 0:
@@ -307,6 +314,62 @@ class ClosedLoopP5Session:
                 self.runner.configs.closed_loop_hp_life.outcross_ablate
             ),
         }
+
+
+def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
+    """The experiment this phase actually is.
+
+    Question: does codon [15:18) change mating effort and the birth path,
+    without being executed as an action?
+
+    Three arms, one seed, one generation, two primaries so a pair exists.
+    Outcross pays and may recombine. Selfing and ablation do not pay the
+    sex line and birth asexually. The compiled program is the same in all
+    three, because the codon is not an instruction. This is not Morran and
+    does not set red_queen_proved.
+    """
+
+    def _arm(**kwargs: Any) -> ClosedLoopP5Session:
+        return ClosedLoopP5Session.boot(
+            seed=seed, n_primary=2, n_secondary=0, **kwargs
+        )
+
+    arms = {
+        "outcross": _arm(outcross_bits=OUTCROSS_OUT_BITS),
+        "selfing": _arm(outcross_bits=OUTCROSS_SELFING_BITS),
+        "ablation": _arm(outcross_bits=OUTCROSS_OUT_BITS, outcross_ablate=True),
+    }
+    summaries = {name: session.run_ticks(1) for name, session in arms.items()}
+
+    def _brain(session: ClosedLoopP5Session, organism_id: str) -> str:
+        org = next(item for item in session.runner.population.organisms if item.id == organism_id)
+        return "".join(token.bits for token in org.compiled_brain.tokens)
+
+    brains = {name: _brain(session, "org_a0") for name, session in arms.items()}
+    genome = next(item for item in arms["outcross"].runner.population.organisms if item.id == "org_a0")
+    genome_bits = genome.genome.to_compact()
+    coding = genome_bits[:15]
+    return {
+        "question": "Does bits [15:18) switch mating effort without running as an action?",
+        "brains_match": brains["outcross"] == brains["selfing"] == brains["ablation"] == coding,
+        "locus_absent_from_brain": all(bits == coding for bits in brains.values()),
+        "coding_brain": coding,
+        "genome_still_has_locus": genome_bits[15:18] == OUTCROSS_OUT_BITS,
+        "outcross_debits": summaries["outcross"]["outcross_debit_events"],
+        "selfing_debits": summaries["selfing"]["outcross_debit_events"],
+        "ablation_debits": summaries["ablation"]["outcross_debit_events"],
+        "selfing_asexual_births": summaries["selfing"]["asexual_births"],
+        "ablation_asexual_births": summaries["ablation"]["asexual_births"],
+        "outcross_births": summaries["outcross"]["births"],
+        "claim_ceiling": "candidate_evidence",
+        "red_queen_proved": False,
+        "morran_ready": False,
+        "story": (
+            "The codon is inherited and silent. 001 pays mating-effort ATP and "
+            "uses the birth chamber. 000 and ablation do not pay that line and "
+            "birth alone. Sex is not shown to beat parasites."
+        ),
+    }
 
 
 def replay_bit_identical(*, seed: int, ticks: int) -> tuple[str, str]:

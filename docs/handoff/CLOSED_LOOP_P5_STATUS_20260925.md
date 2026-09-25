@@ -1,6 +1,12 @@
 # Closed-loop P5 status — 2026-09-25
 
-Scope: `outcross_locus_mating_effort_cost`. Local only. Not pushed.
+Scope: `outcross_locus_mating_effort_cost`. On `main` at the P5 commit, plus the silent-locus story.
+
+## The experiment
+
+Question: does bits `[15:18)` change mating effort without running as an action?
+
+Three arms, one seed. `001` pays `outcross_runtime_cost` and uses the birth chamber. `000` and ablation pay no such line and birth alone. All three compile the same 15-bit program; the codon stays on the genome. `red_queen_proved` stays false. This is not Morran 2011.
 
 ## What this is
 
@@ -13,7 +19,7 @@ A heritable codon at genome bits `[15:18)`, after the 9-bit program and the 6-bi
 - Both recombinants are placed. `two_fold_cost_sex` stays false.
 - The 1.0 debit is taken only after the birth gate, the population cap, and the chamber have already accepted the parent, and only after the offspring share is calculated. A refused birth leaves no `outcross_runtime_cost` line. The share itself is not shrunk by the fee.
 - A waiting outcrosser who was accepted still pays. That is the entry cost. It is not a mate-found toll, and it is not the two-fold cost.
-- The three locus bits are still an executed codon (`001` is sense, `000` is wait). They are not a silent gene.
+- The three locus bits are not executed. The brain is the 15-bit prefix. The codon remains on the genome and is what children inherit.
 
 ## What this is not
 

@@ -1,8 +1,9 @@
 # Closed-loop P6 status — 2026-09-25
 
-The claim below that `red_queen_proved` is true is not accepted.
-See [CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md](CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md).
-The flag in code has not been retracted yet. That retraction is instruction A.
+Instruction A from
+[CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md](CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md)
+is in the code. `red_queen_proved` is false and is not copied from the
+predicate. Instruction B is not this change. `engine.py` is untouched.
 
 Scope: matching-allele contact on the existing ATP clock. The design lock is
 [CLOSED_LOOP_P6_STORM_20260925.md](CLOSED_LOOP_P6_STORM_20260925.md).
@@ -31,19 +32,14 @@ window. `frozen` keeps the ancestral window. `absent` does not debit.
 
 ## The measured answer
 
-Declared grid `0, 1, 4, 8, 16, 32, 64` on founders three `000111` and one
-`111000`, four generations, birth ATP 10, mating fee 1.
-
-- Below 32 the coevolution survival gap is absent.
-- At 32 and 64: selfing under passage goes extinct; outcross persists and its
-  type set cycles `({000000,111111}, {000111,111000})`.
-- The frozen antagonist does not cycle and does not kill the escape type.
-- Zero debit removes the gap.
-- `debit_threshold` is 32. `red_queen_proved` on this factorial is true because
-  the storm rule held, not because a gap alone was enough.
-- `biological_red_queen_proved` is false. `assert_claim_allowed("red_queen_proved")`
-  still raises. Ceiling is `runtime_observation`. This is not Morran's worm
-  result and not a proof of the biological Red Queen.
+The name-set at virulence 32 still alternates
+`({000000,111111}, {000111,111000})` under outcross × coevolve. Match debits
+on that arm are `2, 0, 0, 0`. `frequency_cycles` sees the names.
+`debit_backed_cycle` does not, because generations 1–3 pay nothing. That is
+the witness, not an onset. `debit_threshold` is unset. `pattern_holds` is
+false. `red_queen_proved` is false. `biological_red_queen_proved` is false.
+`assert_claim_allowed("red_queen_proved")` still raises. Ceiling is
+`runtime_observation`.
 
 ## Accept
 

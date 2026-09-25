@@ -25,11 +25,11 @@ the tape and pays no fee. A hit debits Holling type II,
 ``virulence * H / (1 + H)``, from that host's own account. A density-free flat
 α is not used.
 
-``red_queen_proved`` is the storm rule in
-``docs/handoff/CLOSED_LOOP_P6_STORM_20260925.md``: coevolution gap, both
-knockouts (freeze updates, and zero the debit), cycling only while types
-update, and no gap below a reported debit. ``biological_red_queen_proved``
-stays false. The host_parasite claim profile still blocks the biological claim.
+``pattern_holds`` is the storm rule in
+``docs/handoff/CLOSED_LOOP_P6_STORM_20260925.md``. It is not copied into
+``red_queen_proved``. A name-set that returns with no match debit inside the
+repeat is not that rule's cycle. ``biological_red_queen_proved`` stays false.
+The host_parasite claim profile still blocks the biological claim.
 """
 
 from __future__ import annotations
@@ -118,6 +118,44 @@ def frequency_cycles(history: tuple[tuple[str, ...], ...] | list[tuple[str, ...]
             return True
         seen.setdefault(state, index)
     return False
+
+
+def debit_backed_cycle(
+    history: tuple[tuple[str, ...], ...] | list[tuple[str, ...]],
+    match_debits: tuple[int, ...] | list[int],
+) -> bool:
+    """Name-set return counts only when a match debit lands inside the repeat.
+
+    The square of a forced exchange alternates two names and pays nothing on
+    the return. That orbit is not the cycle clause.
+    """
+
+    if len(match_debits) != len(history):
+        raise ConfigurationError("match debits must align with the type history")
+    seen: dict[tuple[str, ...], int] = {}
+    for index, state in enumerate(history):
+        previous = seen.get(state)
+        interior = range(previous + 1, index + 1) if previous is not None else ()
+        names_changed = previous is not None and any(history[cursor] != state for cursor in range(previous + 1, index))
+        paid = any(match_debits[cursor] > 0 for cursor in interior)
+        if names_changed and paid:
+            return True
+        seen.setdefault(state, index)
+    return False
+
+
+def _match_debit_count(organisms: list[GenesisOrganism], tick: int) -> int:
+    total = 0
+    for organism in organisms:
+        ledger = organism.atp_state.runtime.to_dict().get("ledger", [])
+        total += sum(
+            1
+            for entry in ledger
+            if isinstance(entry, dict)
+            and entry.get("reason") == MATCH_LEDGER_REASON
+            and entry.get("tick") == tick
+        )
+    return total
 
 
 def digital_red_queen_pattern(
@@ -297,6 +335,7 @@ class MatchArmRecord:
     extinct: bool
     cycles: bool
     mating_fee_debits: int
+    match_debits_by_generation: tuple[int, ...]
     parasite_window: str
     final_windows: tuple[str, ...]
     window_history: tuple[tuple[str, ...], ...]
@@ -311,6 +350,7 @@ class MatchArmRecord:
             "extinct": self.extinct,
             "cycles": self.cycles,
             "mating_fee_debits": self.mating_fee_debits,
+            "match_debits_by_generation": list(self.match_debits_by_generation),
             "parasite_window": self.parasite_window,
             "final_windows": list(self.final_windows),
             "window_history": [list(state) for state in self.window_history],
@@ -389,11 +429,13 @@ def run_match_arm(
     antagonist = _spawn("antagonist", _tape(OUTCROSS_SELFING_BITS, _modal(hosts)), birth_atp)
     ancestral = _window(antagonist)
     history: list[tuple[str, ...]] = []
+    match_debits: list[int] = []
     fee_debits = 0
     for generation in range(generations):
         assert_single_atp_owner([*hosts, antagonist])
         if not hosts:
             history.append(())
+            match_debits.append(0)
             continue
         if mating == "outcross":
             children = _outcross_children(hosts, generation=generation, atp=birth_atp)
@@ -407,9 +449,11 @@ def run_match_arm(
         if passage == "absent" or virulence == 0.0:
             hosts = [child for child in children if child.atp_state.runtime_available > 0.0]
             history.append(_type_state(hosts))
+            match_debits.append(0)
             continue
         hosts = _infect(children, _window(antagonist), tick=generation, virulence=virulence)
         history.append(_type_state(hosts))
+        match_debits.append(_match_debit_count(children, generation))
         if passage == "coevolve" and hosts:
             _set_window(antagonist, _modal(hosts))
         elif passage == "frozen":
@@ -421,8 +465,9 @@ def run_match_arm(
         virulence=virulence,
         final_hosts=len(hosts),
         extinct=len(hosts) == 0,
-        cycles=frequency_cycles(history),
+        cycles=debit_backed_cycle(history, match_debits),
         mating_fee_debits=fee_debits,
+        match_debits_by_generation=tuple(match_debits),
         parasite_window=_window(antagonist),
         final_windows=tuple(sorted(_window(host) for host in hosts)),
         window_history=tuple(history),
@@ -506,7 +551,7 @@ def run_matching_allele_factorial(*, generations: int = 4) -> MatchingAlleleFact
     return MatchingAlleleFactorial(
         arms=chosen,
         pattern_holds=pattern,
-        red_queen_proved=pattern,
+        red_queen_proved=False,
         biological_red_queen_proved=False,
         claim_ceiling="runtime_observation",
         predicate=P6_PREDICATE,

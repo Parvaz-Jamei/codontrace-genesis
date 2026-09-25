@@ -1,7 +1,7 @@
 """P6 accept: matching-allele debit on the existing ATP clock.
 
-The biological claim stays blocked. ``red_queen_proved`` on the factorial is
-only the digital knockout predicate.
+The biological claim stays blocked. ``red_queen_proved`` stays false.
+Virulence 32 is a witness of an unpaid name-set orbit, not a debit onset.
 """
 
 from __future__ import annotations
@@ -15,8 +15,11 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_p6 import (
     MATCH_LEDGER_REASON,
     ClosedLoopP6Clock,
+    debit_backed_cycle,
     digital_red_queen_pattern,
+    frequency_cycles,
     holling_type2_cost,
+    run_match_arm,
     run_matching_allele_factorial,
     strict_match_alpha,
 )
@@ -65,30 +68,36 @@ def test_predicate_is_the_storm_rule_not_the_gap_alone() -> None:
     assert not digital_red_queen_pattern(**{**full, "debit_threshold": None})
 
 
-def test_factorial_answers_above_a_debit_threshold() -> None:
+def test_factorial_does_not_set_the_flag() -> None:
     result = run_matching_allele_factorial(generations=4)
     by_key = {(arm.mating, arm.passage): arm for arm in result.arms}
-    assert result.debit_threshold == 32.0
-    assert by_key[("selfing", "coevolve")].extinct
-    assert not by_key[("outcross", "coevolve")].extinct
-    assert by_key[("outcross", "coevolve")].cycles
+    assert result.debit_threshold is None
     assert by_key[("outcross", "coevolve")].mating_fee_debits > 0
     assert by_key[("selfing", "coevolve")].mating_fee_debits == 0
-    assert not by_key[("selfing", "frozen")].extinct
-    assert not by_key[("outcross", "frozen")].extinct
-    assert not by_key[("outcross", "frozen")].cycles
-    assert not by_key[("selfing", "absent")].extinct
-    assert not by_key[("outcross", "absent")].extinct
-    assert result.low_debit_gap is False
-    assert result.zero_debit_gap is False
-    assert result.pattern_holds is True
-    assert result.red_queen_proved is True
+    assert by_key[("outcross", "coevolve")].cycles is False
+    assert result.red_queen_proved is False
+    assert result.pattern_holds is False
     assert result.biological_red_queen_proved is False
     assert result.claim_ceiling == "runtime_observation"
     assert result.to_dict()["euler_stepper_used"] is False
     assert result.to_dict()["holling"] == "type_ii"
     again = run_matching_allele_factorial(generations=4)
     assert [arm.to_dict() for arm in again.arms] == [arm.to_dict() for arm in result.arms]
+
+
+def test_unpaid_name_orbit_is_not_the_cycle_clause() -> None:
+    """Virulence 32 witnesses the exchange orbit. It is not an onset."""
+
+    arm = run_match_arm(mating="outcross", passage="coevolve", virulence=32.0, generations=4)
+    assert arm.match_debits_by_generation == (2, 0, 0, 0)
+    history = arm.window_history
+    assert history[0] == ("000000", "111111")
+    assert history[1] == ("000111", "111000")
+    assert history[2] == history[0]
+    assert history[3] == history[1]
+    assert frequency_cycles(history) is True
+    assert debit_backed_cycle(history, arm.match_debits_by_generation) is False
+    assert arm.cycles is False
 
 
 def test_biological_claim_stays_blocked() -> None:

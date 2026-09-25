@@ -76,6 +76,8 @@ def test_p4_dual_arm_elicit_then_kill_then_bit_replay() -> None:
     assert isinstance(result, DualArmResult)
     assert abs(result.net_transfer_a) > TRANSFER_EPS
     assert abs(result.net_transfer_b) <= TRANSFER_EPS
+    assert result.kill_mechanism in {"kappa_ablate", "both"}
+    assert result.kappa_ablate_b is True  # dual-arm default ≠ lock-only kill
     assert result.effect_killed is True
     # Digests alone are not the kill — measured kill already asserted above.
     assert result.bit_identical_a is True

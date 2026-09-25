@@ -40,3 +40,9 @@ Tip: `git log --oneline --grep='P4' -3` on `main`.
 ```bash
 uv run pytest tests/closed_loop/ -q
 ```
+
+
+## Adversarial fix (2026-09-25)
+
+- Dual-arm default kill is κ-ablate (`kill_mechanism`); mutation-stream lock is a separate witness.
+- Do not treat dual-arm as Morran static-genome / lock-kill.

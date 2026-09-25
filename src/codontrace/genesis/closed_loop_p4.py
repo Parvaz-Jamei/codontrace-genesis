@@ -5,7 +5,7 @@ post-ATP plugin (skip mutate for locked roles). Birth/death stay ON. FAIL if
 birth-time genome rewrite / mutate_genome / chamber rewrite bypasses the lock.
 FAIL if bag ScheduleLock.freeze is the green path. Dual-arm, one master seed:
   Arm A: κ-on → elicit measured E with |net_transfer|_A > ε
-  Arm B: ablate κ and/or lock mutation stream → |net_transfer|_B ≤ ε
+  Arm B default kill is κ-ablate (NOT mut-lock alone) → |net_transfer|_B ≤ ε. Mutation-stream lock is a separate witness (see mutation_stream_lock_freezes_role). Do not sell dual-arm as Morran static-genome / lock-kill.
 Then bit-identical self-replay both arms; digests include genomes + ATP + κ.
 Digests alone ≠ effect dies — measured kill first, then digests.
 Not Gate7 / P2 same-seed theater.
@@ -56,6 +56,7 @@ class DualArmResult:
     digest_b_replay: str
     locked_roles_b: tuple[str, ...]
     kappa_ablate_b: bool
+    kill_mechanism: str  # "kappa_ablate" | "mutation_lock" | "both" — hard-scoped
     effect_killed: bool  # measured: |net_transfer|_B ≤ ε after elicit on A
     bit_identical_a: bool
     bit_identical_b: bool
@@ -77,6 +78,7 @@ class DualArmResult:
             "digest_b_replay": self.digest_b_replay,
             "locked_roles_b": list(self.locked_roles_b),
             "kappa_ablate_b": self.kappa_ablate_b,
+            "kill_mechanism": self.kill_mechanism,
             "effect_killed": self.effect_killed,
             "bit_identical_a": self.bit_identical_a,
             "bit_identical_b": self.bit_identical_b,
@@ -170,7 +172,11 @@ def run_dual_arm(
     kappa_ablate_b: bool = True,
     transfer_eps: float = _TRANSFER_EPS,
 ) -> DualArmResult:
-    """Dual-arm elicit/ablate under one master seed, then bit-identical self-replay."""
+    """Dual-arm elicit/ablate under one master seed, then bit-identical self-replay.
+
+    Default Arm B kill is κ-ablate (+ optional locks). Measured E death must not be
+    marketed as mutation-lock / Morran static-genome unless kill_mechanism says so.
+    """
 
     locks_b = tuple(lock_roles_b)
 
@@ -253,6 +259,10 @@ def run_dual_arm(
         digest_b_replay=d_b2,
         locked_roles_b=locks_b,
         kappa_ablate_b=kappa_ablate_b,
+        kill_mechanism=(
+            "both" if (kappa_ablate_b and locks_b)
+            else ("kappa_ablate" if kappa_ablate_b else "mutation_lock")
+        ),
         effect_killed=effect_killed,
         bit_identical_a=d_a1 == d_a2,
         bit_identical_b=d_b1 == d_b2,

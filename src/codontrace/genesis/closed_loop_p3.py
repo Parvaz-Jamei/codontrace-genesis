@@ -1,7 +1,7 @@
 """Closed-loop P3: scalar genetic harm/help (κ) via EnergyCoupling on atp_state.
 
 Hard scope (2026-09-25): κ ∈ [-1,+1] from a mutable genome locus with fixed
-bit-window decode (both roles). Transfer only through life-loop EnergyCoupling
+bit-window decode (both roles). Magnitude f(κ_primary, κ_secondary)=product. Transfer only through life-loop EnergyCoupling
 mirrored onto organism.atp_state — never HostParasiteEnv.steal_fraction or
 profile coupling_amount. Clamp 0.8 is post-f(κ), never a gene default.
 Ablate κ→0 ⇒ |net_transfer|→0 and ATP skew dies. Not Morran. Not red-queen
@@ -56,8 +56,8 @@ _KAPPA_HIGH = "111111"  # → κ = +1.0
 _KAPPA_MID = "100000"  # → κ ≈ 0
 
 _FOUNDER_PRIMARY = (
-    LIFE_LOOP_EATER_GENOME + _KAPPA_MID,
-    "111101000" + _KAPPA_MID,
+    LIFE_LOOP_EATER_GENOME + _KAPPA_HIGH,
+    "111101000" + _KAPPA_HIGH,
 )
 _FOUNDER_SECONDARY_HIGH = (
     LIFE_LOOP_EATER_GENOME + _KAPPA_HIGH,
@@ -113,13 +113,14 @@ class ClosedLoopP3Session:
     offspring_atp_fraction: float = 0.25
     kappa_enabled: bool = True
     kappa_ablate: bool = False
+    kappa_ablate_primary: bool = False
+    kappa_ablate_secondary: bool = False
     kappa_bit_start: int = KAPPA_BIT_START
     kappa_bit_width: int = KAPPA_BIT_WIDTH
     net_transfer: float = 0.0  # secondary gains from primary → positive
     transfer_events: int = 0
     transfer_conserved_flags: list[bool] = field(default_factory=list)
-    steal_fraction_reads: int = 0
-    coupling_amount_reads: int = 0
+    atp_mirror_ok_flags: list[bool] = field(default_factory=list)
     attachment_pairs: int = 0
     peak_abs_atp_skew: float = 0.0
 
@@ -142,6 +143,8 @@ class ClosedLoopP3Session:
         place_food: bool = True,
         kappa_enabled: bool = True,
         kappa_ablate: bool = False,
+        kappa_ablate_primary: bool = False,
+        kappa_ablate_secondary: bool = False,
         kappa_bit_start: int = KAPPA_BIT_START,
         kappa_bit_width: int = KAPPA_BIT_WIDTH,
         secondary_kappa_high: bool = True,
@@ -230,6 +233,8 @@ class ClosedLoopP3Session:
             offspring_atp_fraction=offspring_atp_fraction,
             kappa_enabled=kappa_enabled,
             kappa_ablate=kappa_ablate,
+            kappa_ablate_primary=kappa_ablate_primary,
+            kappa_ablate_secondary=kappa_ablate_secondary,
             kappa_bit_start=kappa_bit_start,
             kappa_bit_width=kappa_bit_width,
         )
@@ -254,16 +259,12 @@ class ClosedLoopP3Session:
             expected_iy = round(
                 (parent_before - cost) * self.offspring_atp_fraction, 10
             )
-            parent_after_at_birth = parent_before - cost - iy
+            # Measured birth Iy consistency only (no invented parent_after algebra).
             conserved = (
                 iy > 0.0
                 and abs(iy - expected_iy) <= _PARTITION_EPS
                 and abs(child_runtime - iy) <= _PARTITION_EPS
                 and abs(child_learning) <= _PARTITION_EPS
-                and abs(
-                    (parent_after_at_birth + child_runtime) - (parent_before - cost)
-                )
-                <= _PARTITION_EPS
             )
             self.partition_ok_flags.append(conserved)
             self.birth_Iy.append(iy)
@@ -328,12 +329,22 @@ class ClosedLoopP3Session:
             slot, _ev = slot.attach(secondary.id)
             if not slot.linked(primary.id, secondary.id):
                 continue
-            kappa = _kappa_of(
-                secondary,
-                ablate=self.kappa_ablate,
+            # f(κ_primary, κ_secondary) = product; ablating either locus kills E.
+            ablate_p = self.kappa_ablate or self.kappa_ablate_primary
+            ablate_s = self.kappa_ablate or self.kappa_ablate_secondary
+            kappa_p = _kappa_of(
+                primary,
+                ablate=ablate_p,
                 bit_start=self.kappa_bit_start,
                 bit_width=self.kappa_bit_width,
             )
+            kappa_s = _kappa_of(
+                secondary,
+                ablate=ablate_s,
+                bit_start=self.kappa_bit_start,
+                bit_width=self.kappa_bit_width,
+            )
+            kappa = kappa_p * kappa_s
             if abs(kappa) <= _TRANSFER_EPS:
                 continue
             if kappa > 0.0:
@@ -361,6 +372,8 @@ class ClosedLoopP3Session:
                 donor.id: float(donor.atp_state.runtime_available),
                 recv.id: float(recv.atp_state.runtime_available),
             }
+            donor_before = balances[donor.id]
+            recv_before = balances[recv.id]
             new_bal, _event, _entries, conserved = coupling.apply(
                 balances,
                 tick=self.tick_index,
@@ -370,8 +383,10 @@ class ClosedLoopP3Session:
             )
             paid = balances[donor.id] - new_bal[donor.id]
             gained = new_bal[recv.id] - balances[recv.id]
+            debit_ok = True
+            credit_ok = True
             if paid > 0.0:
-                donor.atp_state.debit_runtime(
+                debit_tok = donor.atp_state.debit_runtime(
                     paid,
                     tick=self.tick_index,
                     organism_id=donor.id,
@@ -379,6 +394,7 @@ class ClosedLoopP3Session:
                     action="energy_coupling",
                     reason="kappa_xfer",
                 )
+                debit_ok = debit_tok is not None
             if gained > 0.0:
                 recv.atp_state.credit_runtime(
                     gained,
@@ -388,9 +404,19 @@ class ClosedLoopP3Session:
                     action="energy_coupling",
                     reason="kappa_xfer",
                 )
+            donor_after = float(donor.atp_state.runtime_available)
+            recv_after = float(recv.atp_state.runtime_available)
+            mirror_ok = (
+                debit_ok
+                and credit_ok
+                and abs((donor_before - donor_after) - paid) <= _TRANSFER_EPS
+                and abs((recv_after - recv_before) - gained) <= _TRANSFER_EPS
+            )
             self.net_transfer += sign * gained
             self.transfer_events += 1
-            self.transfer_conserved_flags.append(bool(conserved))
+            # Dict conserved alone is mint-blind; require atp_state delta match.
+            self.transfer_conserved_flags.append(bool(conserved) and mirror_ok)
+            self.atp_mirror_ok_flags.append(mirror_ok)
 
     def run_ticks(self, ticks: int) -> dict[str, Any]:
         if ticks < 0:
@@ -504,8 +530,15 @@ class ClosedLoopP3Session:
             "atp_skew": self.atp_skew(),
             "peak_abs_atp_skew": self.peak_abs_atp_skew,
             "attachment_pairs": self.attachment_pairs,
-            "steal_fraction_reads": self.steal_fraction_reads,
-            "coupling_amount_reads": self.coupling_amount_reads,
+            "atp_mirror_ok_count": sum(1 for f in self.atp_mirror_ok_flags if f),
+            "atp_mirror_ok_checks": len(self.atp_mirror_ok_flags),
+            "atp_mirror_ok": bool(
+                self.atp_mirror_ok_flags
+                and all(self.atp_mirror_ok_flags)
+            ),
+            "kappa_ablate_primary": self.kappa_ablate_primary,
+            "kappa_ablate_secondary": self.kappa_ablate_secondary,
+            "kappa_interaction": "product",
             "births": self.total_births,
             "partition_conserved_count": n_ok,
             "partition_conserved_checks": n_checks,

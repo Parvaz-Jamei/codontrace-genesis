@@ -28,7 +28,7 @@ TRANSFER_EPS = 1e-6
 def test_p3_kappa_from_fixed_bit_window_both_roles() -> None:
     session = ClosedLoopP3Session.boot(seed=3)
     assert session.mean_kappa("secondary") == pytest.approx(1.0)
-    assert abs(session.mean_kappa("primary")) < 0.05
+    assert session.mean_kappa("primary") == pytest.approx(1.0)
     # Clamp constant is outside decode.
     src = (REPO / "src/codontrace/genesis/host_parasite_life_plugin.py").read_text(
         encoding="utf-8"
@@ -89,8 +89,12 @@ def test_p3_steal_fraction_and_coupling_amount_unreachable() -> None:
     session = ClosedLoopP3Session.boot(seed=19)
     session.run_ticks(1)
     summary = session.summary()
-    assert summary["steal_fraction_reads"] == 0
-    assert summary["coupling_amount_reads"] == 0
+    # Dead theater counters removed — AST + mirror asserts carry the gate.
+    assert "steal_fraction_reads" not in summary
+    assert "coupling_amount_reads" not in summary
+    assert summary["atp_mirror_ok"] is True
+    assert summary["atp_mirror_ok_checks"] >= 1
+    assert summary["kappa_interaction"] == "product"
     src = (REPO / "src/codontrace/genesis/closed_loop_p3.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     for node in ast.walk(tree):
@@ -181,3 +185,29 @@ def test_p3_soft_green_refuses_empty_transfer() -> None:
         and summary["kappa_enabled"]
         and not summary["kappa_ablate"]
     )
+
+
+def test_p3_primary_ablate_alone_kills_transfer() -> None:
+    """Ablating primary κ locus alone must kill measured E (bilateral f)."""
+
+    on = ClosedLoopP3Session.boot(seed=41, bit_flip_rate=0.0)
+    on.run_ticks(2)
+    off = ClosedLoopP3Session.boot(
+        seed=41, bit_flip_rate=0.0, kappa_ablate_primary=True
+    )
+    off.run_ticks(2)
+    assert on.summary()["net_transfer"] > TRANSFER_EPS
+    assert abs(off.summary()["net_transfer"]) <= TRANSFER_EPS
+
+
+def test_p3_secondary_ablate_alone_kills_transfer() -> None:
+    """Ablating secondary κ locus alone must kill measured E (bilateral f)."""
+
+    on = ClosedLoopP3Session.boot(seed=43, bit_flip_rate=0.0)
+    on.run_ticks(2)
+    off = ClosedLoopP3Session.boot(
+        seed=43, bit_flip_rate=0.0, kappa_ablate_secondary=True
+    )
+    off.run_ticks(2)
+    assert on.summary()["net_transfer"] > TRANSFER_EPS
+    assert abs(off.summary()["net_transfer"]) <= TRANSFER_EPS

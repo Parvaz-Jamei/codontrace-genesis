@@ -42,3 +42,11 @@ uv run pytest tests/closed_loop/test_closed_loop_p3_accept.py \
   tests/closed_loop/test_closed_loop_p2_accept.py \
   tests/closed_loop/test_closed_loop_p1_accept.py -q
 ```
+
+
+## Adversarial fix (2026-09-25)
+
+- κ magnitude is `f(κ_primary, κ_secondary)=product` (ablating either locus kills E).
+- Accept asserts post-mirror `atp_state` deltas == paid/gained.
+- Birth check is measured child Iy consistency only (no invented parent_after algebra).
+- Dead steal/coupling read counters removed; AST bans remain.

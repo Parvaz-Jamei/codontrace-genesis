@@ -93,6 +93,32 @@ remains `runtime_observation`. The paid flip at virulence 16 is not
 not a pure zero-debit cut (Pearl, Biometrika 82:669–688, 1995,
 doi:10.1093/biomet/82.4.669). That split was not added.
 
+## 5. The chase kills selfing, and that is still not sex maintained
+
+This contrast was already on the virulence grid of the `0.3.0b10` code. The
+accept tests are what name it. No engine change.
+
+At virulence 20 and at 32 a one-copy hit costs at least the birth account
+of 10. Selfing × coevolve goes extinct. Generation 0 removes the three
+hosts on the ancestral window `000111`. The antagonist then moves onto the
+remaining `111000`, and generation 1 removes that last host. Debits are
+`3, 1, 0, 0`.
+
+The same selfing founders under a frozen window do not go extinct. The
+antagonist stays `000111`, misses `111000`, and the later debits are
+`3, 0, 0, 0`. One host is alive at generation 3. `absent` pays nothing
+and keeps all four founders' window types.
+
+The selfing extinction therefore needs the window update. That is the sign
+a chase has to show before anyone talks about maintaining sex. It is not
+the flag. Outcross × coevolve at these two virulences is the unpaid name
+orbit in section 3: not extinct, `cycles` false. Morran et al. (Science
+333:216–218, 2011, doi:10.1126/science.1206360) reported that obligate
+selfers were lost under a coevolving pathogen while outcrossers persisted,
+and that the difference went away when the pathogen was held fixed. Only
+the selfing half of that pattern is on this grid. The sexual arm is not
+paying inside the repeat, so `red_queen_proved` stays false.
+
 ## What this cut does not contain
 
 No mixed-population modifier trial. No claim that a parasite maintained

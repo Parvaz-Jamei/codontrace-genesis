@@ -235,6 +235,39 @@ def test_frozen_paid_flip_does_not_become_the_factorial_cycle() -> None:
     assert result.red_queen_proved is False
 
 
+def test_selfing_extinction_needs_the_chase_and_still_is_not_the_flag() -> None:
+    """A frozen miss keeps the rare window. Updating onto it removes the lineage."""
+
+    for virulence in (20.0, 32.0):
+        chased = run_match_arm(
+            mating="selfing", passage="coevolve", virulence=virulence, generations=4
+        )
+        held = run_match_arm(
+            mating="selfing", passage="frozen", virulence=virulence, generations=4
+        )
+        skipped = run_match_arm(
+            mating="selfing", passage="absent", virulence=virulence, generations=4
+        )
+        sexual = run_match_arm(
+            mating="outcross", passage="coevolve", virulence=virulence, generations=4
+        )
+        assert chased.extinct is True
+        assert chased.match_debits_by_generation == (3, 1, 0, 0)
+        assert chased.parasite_window == "111000"
+        assert chased.window_history[0] == ("111000",)
+        assert chased.window_history[1] == ()
+        assert held.extinct is False
+        assert held.final_hosts == 1
+        assert held.parasite_window == "000111"
+        assert held.match_debits_by_generation == (3, 0, 0, 0)
+        assert held.window_history == (("111000",), ("111000",), ("111000",), ("111000",))
+        assert skipped.match_debits_by_generation == (0, 0, 0, 0)
+        assert skipped.final_hosts == 4
+        assert sexual.extinct is False
+        assert sexual.cycles is False
+        assert sexual.match_debits_by_generation == (2, 0, 0, 0)
+
+
 def test_host_parasite_profile_blocks_intelligence_words() -> None:
     for claim in ("intelligence", "collective_intelligence", "agi", "tokyo_type1_passed"):
         with pytest.raises(ConfigurationError, match="blocked"):

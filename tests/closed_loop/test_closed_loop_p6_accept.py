@@ -24,6 +24,7 @@ from codontrace.genesis.closed_loop_p6 import (
     run_match_arm,
     run_matching_allele_factorial,
     run_shared_modifier,
+    specificity_weight,
     strict_match_alpha,
 )
 from codontrace.genesis.host_parasite_life_plugin import (
@@ -212,23 +213,26 @@ _RARE = (
 )
 
 
-def test_shared_passage_flips_which_codon_remains() -> None:
-    """This census still copies the living-host window. It is not ``run_match_arm``."""
+def test_shared_census_uses_the_match_passage_not_the_living_window() -> None:
+    """Coevolution does not copy the survivor window, and it does not reverse freeze."""
+
     chased = run_shared_modifier(_PAIR, passage="coevolve", virulence=20.0, generations=8)
     held = run_shared_modifier(_PAIR, passage="frozen", virulence=20.0, generations=8)
     quiet = run_shared_modifier(_PAIR, passage="absent", virulence=20.0, generations=8)
     assert chased.founding_outcross == 2 and chased.founding_selfing == 3
-    assert chased.outcross_by_generation == (2, 2, 2, 2, 2, 2, 2, 2)
-    assert chased.selfing_by_generation == (1, 1, 0, 0, 0, 0, 0, 0)
-    assert chased.match_debits_by_generation == (2, 0, 1, 0, 0, 0, 0, 0)
-    assert debit_backed_cycle(chased.window_history, chased.match_debits_by_generation) is True
+    assert chased.outcross_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
+    assert chased.selfing_by_generation == (1, 1, 1, 1, 1, 1, 1, 1)
+    assert chased.match_debits_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
+    assert chased.parasite_window == "001111"
+    assert chased.window_history[-1] == ("111000",)
+    assert chased.parasite_window != chased.window_history[-1][0]
     assert chased.two_fold_cost_applied is False
     assert chased.cost_name == "mating_effort_atp"
     assert chased.red_queen_proved is False
-    assert held.outcross_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
-    assert held.selfing_by_generation == (1,) * 8
+    assert chased.specificity == "strict"
+    assert held.outcross_by_generation == chased.outcross_by_generation
+    assert held.selfing_by_generation == chased.selfing_by_generation
     assert held.parasite_window == "000111"
-    assert held.window_history[-1] == ("111000",)
     assert held.red_queen_proved is False
     assert quiet.outcross_by_generation == (2,) * 8
     assert quiet.selfing_by_generation == (3,) * 8
@@ -242,12 +246,37 @@ def test_sublethal_shared_debit_is_not_specific_to_coevolution() -> None:
     held = run_shared_modifier(_PAIR, passage="frozen", virulence=16.0, generations=8)
     assert chased.outcross_by_generation == (2,) * 8
     assert chased.selfing_by_generation == (1,) * 8
-    assert chased.match_debits_by_generation == (2, 0, 1, 0, 1, 0, 1, 0)
+    assert chased.match_debits_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
     assert held.outcross_by_generation == (2,) * 8
     assert held.selfing_by_generation == (1,) * 8
     assert held.match_debits_by_generation == (2, 1, 0, 1, 0, 1, 0, 1)
+    assert held.parasite_window == "000111"
     assert chased.red_queen_proved is False
     assert held.red_queen_proved is False
+
+
+def test_graded_overlap_pays_nothing_on_a_total_mismatch() -> None:
+    assert specificity_weight("000111", "000111", "strict") == 1.0
+    assert specificity_weight("000111", "111000", "strict") == 0.0
+    assert specificity_weight("000111", "000111", "graded") == pytest.approx(0.99)
+    assert specificity_weight("000111", "111000", "graded") == 0.0
+    assert specificity_weight("000111", "000000", "graded") == pytest.approx(0.451)
+    with pytest.raises(ConfigurationError, match="specificity"):
+        specificity_weight("000111", "000111", "euler")
+    graded = run_match_arm(
+        mating="selfing",
+        passage="frozen",
+        virulence=32.0,
+        generations=1,
+        specificity="graded",
+    )
+    strict = run_match_arm(mating="selfing", passage="frozen", virulence=32.0, generations=1)
+    assert graded.specificity == "graded"
+    assert strict.specificity == "strict"
+    assert graded.match_debits_by_generation == strict.match_debits_by_generation == (9,)
+    assert "run_type2_campaign" not in (
+        _REPO / "src" / "codontrace" / "genesis" / "closed_loop_p6.py"
+    ).read_text(encoding="utf-8")
 
 
 def test_one_outcross_codon_is_unmated_and_identical_windows_do_not_escape() -> None:

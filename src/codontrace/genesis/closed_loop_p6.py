@@ -8,10 +8,12 @@ passage. Agrawal (PLoS Biol 2006, doi:10.1371/journal.pbio.0040265) showed the
 sign can flip when offspring meet the same antagonist their parent did.
 
 This module asks that question on GenesisOrganism, not on the type-II Euler
-stepper in ``host_parasite_type2_rq.py``. Exact window equality is the
-individual limit of that stepper's diagonal specificity (match α = 1, else 0).
-A hit debits the host's own ``atp_state``. There is no second energy bag and
-no separate world clock.
+stepper in ``host_parasite_type2_rq.py``. The default infection weight is
+exact window equality (match α = 1, else 0), the individual limit of that
+stepper's diagonal. ``specificity="graded"`` multiplies the same Holling
+debit by locus overlap and does not call the Euler step. A hit debits the
+host's own ``atp_state``. There is no second energy bag and no separate
+world clock.
 
 Passage modes
 - ``coevolve``: parasites that matched are the next parasite generation, then each
@@ -59,6 +61,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     outcross_runtime_cost,
     silence_outcross_locus,
 )
+from codontrace.genesis.host_parasite_type2_rq import graded_alpha_from_overlap
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import (
     MetabolicConfig,
@@ -352,6 +355,7 @@ class MatchArmRecord:
     window_history: tuple[tuple[str, ...], ...]
     seed: int
     parasite_mutation: float
+    specificity: str
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -369,6 +373,7 @@ class MatchArmRecord:
             "window_history": [list(state) for state in self.window_history],
             "seed": self.seed,
             "parasite_mutation": self.parasite_mutation,
+            "specificity": self.specificity,
         }
 
 
@@ -447,6 +452,29 @@ def _mutate_window(window: str, rng: RNGManager) -> str:
     return window[:bit] + flipped + window[bit + 1 :]
 
 
+def specificity_weight(host_window: str, parasite_window: str, mode: str = "strict") -> float:
+    """Strict equality, or locus overlap without the repertoire floor.
+
+    ``graded_alpha_from_overlap`` returns a positive floor when nothing matches.
+    A floor on the ATP clock would tax every host. Zero matched loci pay 0.
+    Kouyos, Salathé, and Bonhoeffer (Theor. Popul. Biol. 75:1–13, 2009,
+    doi:10.1016/j.tpb.2008.09.007) treat all-locus match as the strong
+    epistasis case and partial match as a different interaction.
+    """
+
+    if mode == "strict":
+        return strict_match_alpha(host_window, parasite_window)
+    if mode != "graded":
+        raise ConfigurationError("specificity must be strict or graded")
+    if len(host_window) != len(parasite_window) or not host_window:
+        return 0.0
+    if not any(left == right for left, right in zip(host_window, parasite_window, strict=True)):
+        return 0.0
+    host_tasks = tuple(f"{index}:{bit}" for index, bit in enumerate(host_window))
+    parasite_tasks = tuple(f"{index}:{bit}" for index, bit in enumerate(parasite_window))
+    return graded_alpha_from_overlap(host_tasks, parasite_tasks)
+
+
 def _contact(
     hosts: list[GenesisOrganism],
     parasites: list[GenesisOrganism],
@@ -454,6 +482,7 @@ def _contact(
     tick: int,
     virulence: float,
     rng: RNGManager,
+    specificity: str = "strict",
 ) -> tuple[list[GenesisOrganism], list[GenesisOrganism]]:
     """One seeded contact each. Returns living hosts and parasites that matched."""
 
@@ -466,10 +495,11 @@ def _contact(
     for index, host in enumerate(hosts):
         parasite = order[index % len(order)]
         window = _window(host)
-        if window != _window(parasite):
+        weight = specificity_weight(window, _window(parasite), specificity)
+        if weight <= 0.0:
             living.append(host)
             continue
-        cost = holling_type2_cost(virulence, counts[window])
+        cost = holling_type2_cost(virulence, counts[window]) * weight
         if cost <= 0.0:
             living.append(host)
             continue
@@ -532,6 +562,7 @@ def run_match_arm(
     virulence: float = 0.0,
     seed: int = P6_SEED,
     parasite_mutation: float = P6_PARASITE_MUTATION,
+    specificity: str = "strict",
 ) -> MatchArmRecord:
     """Semelparous generations. Parasites passage from matches, not survivors."""
 
@@ -545,6 +576,7 @@ def run_match_arm(
         raise ConfigurationError("virulence must be >= 0")
     if not 0.0 <= parasite_mutation <= 1.0:
         raise ConfigurationError("parasite_mutation must be in [0, 1]")
+    specificity_weight("0", "0", specificity)
     mating_bits = OUTCROSS_OUT_BITS if mating == "outcross" else OUTCROSS_SELFING_BITS
     hosts = _host_founders(mating_bits, birth_atp)
     ancestral = _modal(hosts)
@@ -574,7 +606,12 @@ def run_match_arm(
             match_debits.append(0)
             continue
         hosts, matched = _contact(
-            children, parasites, tick=generation, virulence=virulence, rng=rng
+            children,
+            parasites,
+            tick=generation,
+            virulence=virulence,
+            rng=rng,
+            specificity=specificity,
         )
         history.append(_type_state(hosts))
         match_debits.append(_match_debit_count(children, generation))
@@ -602,6 +639,7 @@ def run_match_arm(
         window_history=tuple(history),
         seed=seed,
         parasite_mutation=parasite_mutation,
+        specificity=specificity,
     )
 
 
@@ -654,6 +692,9 @@ class SharedModifierRecord:
     cost_name: str
     two_fold_cost_applied: bool
     red_queen_proved: bool
+    seed: int
+    parasite_mutation: float
+    specificity: str
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -672,6 +713,9 @@ class SharedModifierRecord:
             "two_fold_cost_applied": self.two_fold_cost_applied,
             "red_queen_proved": self.red_queen_proved,
             "atp_owner": "GenesisOrganism.atp_state",
+            "seed": self.seed,
+            "parasite_mutation": self.parasite_mutation,
+            "specificity": self.specificity,
         }
 
 
@@ -682,11 +726,15 @@ def run_shared_modifier(
     virulence: float,
     generations: int = 4,
     birth_atp: float = _BIRTH_ATP,
+    seed: int = P6_SEED,
+    parasite_mutation: float = P6_PARASITE_MUTATION,
+    specificity: str = "strict",
 ) -> SharedModifierRecord:
     """Shared matching-allele pressure on a mixed mating codon.
 
-    Selfing copies. Outcross pairs only with outcross. Both pools are hit by
-    one antagonist, then that window updates only under ``coevolve``.
+    Selfing copies. Outcross pairs only with outcross. Both pools meet the
+    same parasite stock used by ``run_match_arm``: passage from matches, not
+    from the hosts that escaped.
     """
 
     if passage not in {"coevolve", "frozen", "absent"}:
@@ -695,8 +743,11 @@ def run_shared_modifier(
         raise ConfigurationError("generations must be >= 1")
     if virulence < 0.0:
         raise ConfigurationError("virulence must be >= 0")
+    if not 0.0 <= parasite_mutation <= 1.0:
+        raise ConfigurationError("parasite_mutation must be in [0, 1]")
     if not founders:
         raise ConfigurationError("shared census requires a founder")
+    specificity_weight("0", "0", specificity)
     hosts = []
     for index, (mating, window) in enumerate(founders):
         if mating == "outcross":
@@ -708,15 +759,16 @@ def run_shared_modifier(
         hosts.append(_spawn(f"m{index}", _tape(mating_bits, window), birth_atp))
     founding_outcross = sum(1 for org in hosts if _mating_name(org) == "outcross")
     founding_selfing = len(hosts) - founding_outcross
-    antagonist = _spawn("antagonist", _tape(OUTCROSS_SELFING_BITS, _modal(hosts)), birth_atp)
-    ancestral = _window(antagonist)
+    ancestral = _modal(hosts)
+    parasites = _parasites_on(ancestral, birth_atp, "p0-")
+    rng = RNGManager(seed=seed, namespace="p6-shared")
     out_counts: list[int] = []
     self_counts: list[int] = []
     unmated_counts: list[int] = []
     match_debits: list[int] = []
     history: list[tuple[str, ...]] = []
     for generation in range(generations):
-        assert_single_atp_owner([*hosts, antagonist])
+        assert_single_atp_owner([*hosts, *parasites])
         if not hosts:
             out_counts.append(0)
             self_counts.append(0)
@@ -737,12 +789,24 @@ def run_shared_modifier(
             hosts = [child for child in children if child.atp_state.runtime_available > 0.0]
             match_debits.append(0)
         else:
-            hosts = _infect(children, _window(antagonist), tick=generation, virulence=virulence)
+            hosts, matched = _contact(
+                children,
+                parasites,
+                tick=generation,
+                virulence=virulence,
+                rng=rng,
+                specificity=specificity,
+            )
             match_debits.append(_match_debit_count(children, generation))
-            if passage == "coevolve" and hosts:
-                _set_window(antagonist, _modal(hosts))
-            elif passage == "frozen":
-                _set_window(antagonist, ancestral)
+            parasites = _passage(
+                parasites,
+                matched,
+                generation=generation,
+                passage=passage,
+                rng=rng,
+                mutation=parasite_mutation,
+                birth_atp=birth_atp,
+            )
         out_counts.append(sum(1 for org in hosts if _mating_name(org) == "outcross"))
         self_counts.append(sum(1 for org in hosts if _mating_name(org) == "selfing"))
         unmated_counts.append(unmated)
@@ -758,10 +822,13 @@ def run_shared_modifier(
         unmated_outcross_by_generation=tuple(unmated_counts),
         match_debits_by_generation=tuple(match_debits),
         window_history=tuple(history),
-        parasite_window=_window(antagonist),
+        parasite_window=_modal(parasites) if parasites else "",
         cost_name="mating_effort_atp",
         two_fold_cost_applied=False,
         red_queen_proved=False,
+        seed=seed,
+        parasite_mutation=parasite_mutation,
+        specificity=specificity,
     )
 
 

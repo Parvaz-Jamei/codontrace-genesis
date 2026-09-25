@@ -5,12 +5,17 @@ Four questions. Each one was run on this tree before the version cut.
 `red_queen_proved` is false. The host–parasite profile still raises on
 `assert_claim_allowed("red_queen_proved")`.
 
-Sections 3 through 5 measured `run_match_arm` under a survivor-modal update.
-After a hit, the single parasite window became the modal living host, which
-aims the parasite at the escape type. That rule is no longer used there.
-Those sections are the record of the defect. Section 6 is a separate
-single-antagonist census and still uses it. Section 7 is the passage
-`run_match_arm` uses now.
+Sections 3 through 6 measured a survivor-modal update. After a hit, the
+single parasite window became the modal living host, which aims the
+parasite at the escape type. `run_match_arm` left that rule earlier.
+`run_shared_modifier` left it in the same cut as the graded weight.
+Those sections are the record of the defect. The current shared census
+does not reverse which codon survives when the stock is frozen: at
+virulence 20 both passages leave one selfing host and lose the outcross
+codon. Frozen keeps paying at virulence 16 after coevolution has stopped.
+`red_queen_proved` stays false. The weight defaults to strict equality.
+`specificity="graded"` multiplies the same Holling debit by locus overlap
+and pays 0 when no locus matches. The Euler stepper is not called.
 
 ## 7. Passage from the parasites that matched
 

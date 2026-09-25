@@ -285,30 +285,27 @@ def outcross_runtime_cost(genome_bits: str, config: ClosedLoopHPLifeConfig) -> f
     return float(config.outcross_runtime_atp)
 
 
-def charge_outcross_runtime(
-    organism: GenesisOrganism,
-    *,
-    config: ClosedLoopHPLifeConfig,
-    tick: int,
-) -> bool:
-    """Debit the mating-effort cost. Cost 0 is success and does not touch the ledger."""
+def outcross_fee_debit(
+    genome_bits: str, config: ClosedLoopHPLifeConfig
+) -> tuple[float, str, str] | None:
+    """Fee, codon label, and ledger reason. The motor writes the ATP row."""
 
-    bits = organism.genome.to_compact()
-    cost = outcross_runtime_cost(bits, config)
+    cost = outcross_runtime_cost(genome_bits, config)
     if cost <= 0.0:
-        return True
-    if float(organism.atp_state.runtime_available) < cost:
-        return False
-    window = bits[config.outcross_bit_start : config.outcross_bit_start + config.outcross_bit_width]
-    token = organism.atp_state.debit_runtime(
-        cost,
-        tick=tick,
-        organism_id=organism.id,
-        codon=window or OUTCROSS_SELFING_BITS,
-        action="COPY_SELF",
-        reason="outcross_runtime_cost",
-    )
-    return token is not None
+        return None
+    window = genome_bits[config.outcross_bit_start : config.outcross_bit_start + config.outcross_bit_width]
+    codon = window or OUTCROSS_SELFING_BITS
+    return cost, codon, "outcross_runtime_cost"
+
+
+def copy_self_chamber_refusal(
+    genome_bits: str, config: ClosedLoopHPLifeConfig, *, chamber_available: bool
+) -> str | None:
+    """Locus policy only. The motor decides how a refusal is recorded."""
+
+    if resolve_copy_self_mode(genome_bits, config) == "chamber" and not chamber_available:
+        return "outcross_chamber_required"
+    return None
 
 
 def resolve_copy_self_mode(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
@@ -330,19 +327,20 @@ def outcross_entry_plan(
     organism: GenesisOrganism,
     config: ClosedLoopHPLifeConfig,
     *,
-    parent_atp_cost: float,
-    offspring_atp_fraction: float,
+    remaining_after_parent_cost: float,
+    projected_offspring_atp: float,
 ) -> tuple[float, str | None]:
-    """Module-owned mating-effort check. The motor only sees a fee and a reason."""
+    """Compare the mating fee with ATP the motor has already projected."""
 
     if resolve_copy_self_mode(organism.genome.to_compact(), config) != "chamber":
         return 0.0, None
     fee = outcross_runtime_cost(organism.genome.to_compact(), config)
     if fee <= 0.0:
         return 0.0, None
-    remaining = float(organism.atp_state.runtime_available) - float(parent_atp_cost)
-    projected = round(remaining * float(offspring_atp_fraction), 10)
-    if projected <= 0.0 or remaining - projected + 1e-12 < fee:
+    if (
+        projected_offspring_atp <= 0.0
+        or remaining_after_parent_cost - projected_offspring_atp + 1e-12 < fee
+    ):
         return fee, "outcross_runtime_cost_not_payable"
     return fee, None
 
@@ -466,7 +464,8 @@ __all__ = [
     "kappa_transfer_amount",
     "decode_outcross",
     "outcross_runtime_cost",
-    "charge_outcross_runtime",
+    "outcross_fee_debit",
+    "copy_self_chamber_refusal",
     "resolve_copy_self_mode",
     "outcross_entry_plan",
     "coding_bits_for_execution",

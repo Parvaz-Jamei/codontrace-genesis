@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0b10] — 2026-09-25
+
+Research-beta cut. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, `0.3.0b8`, or `0.3.0b9`. The PyPI wheel stays `0.3.0b9`.
+
+- Closed-loop matching-allele contact stays on `GenesisOrganism.atp_state`. `red_queen_proved` is false and is not copied from the survival predicate. A name-set that returns with no match debit inside the repeat is not the cycle clause. Virulence 32 is a witness (match debits `2, 0, 0, 0`), not an onset. `debit_threshold` is unset.
+- The same census does not score intelligence. `intelligence`, `collective_intelligence`, and `agi` stay blocked. A mixed mating codon was not measured: one session still stamps one codon.
+- Numbers and citations: `docs/handoff/CLOSED_LOOP_MEASUREMENTS_20260925.md`.
+- `engine.py` is unchanged. HE03 `results_v1` stays absent.
+
 ## Unreleased
 
 - Host–parasite ClaimGate hard regressions close several honesty/wiring holes

@@ -18,7 +18,7 @@ def wave_status() -> dict[str, Any]:
         "product": "CodonTrace Genesis",
         "package_identity": package_version(),
         "pypi_cut": True,
-        "proposed_tag": "v0.3.0b9",
+        "proposed_tag": "v0.3.0b10",
         "tag_created_in_this_wave": False,
         "phase1_wrapper_present": helper.is_file()
         and "run_hard_experiment_02_v1b" in helper.read_text(encoding="utf-8"),
@@ -27,7 +27,7 @@ def wave_status() -> dict[str, Any]:
         "phase2_he03_research_present": he03["research_results_present"],
         "claim_ceiling": "runtime_observation",
         "intervention_supported": False,
-        "next": "0.3.0b9 is tagged v0.3.0b9 and on PyPI; do not recut 0.3.0b4 / 0.3.0b5 / 0.3.0b6 / 0.3.0b7 / 0.3.0b8 / 0.3.0b9; HE03 research results_v1 stays absent on purpose; next public identity needs its own version",
+        "next": "0.3.0b10 is the pyproject identity; do not recut 0.3.0b4 / 0.3.0b5 / 0.3.0b6 / 0.3.0b7 / 0.3.0b8 / 0.3.0b9; PyPI wheel remains 0.3.0b9 until a later upload; HE03 research results_v1 stays absent on purpose",
     }
 
 

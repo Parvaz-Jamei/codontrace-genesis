@@ -1,9 +1,6 @@
 # Closed-loop P6 status — 2026-09-25
 
-Instruction A from
-[CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md](CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md)
-is in the code. `red_queen_proved` is false and is not copied from the
-predicate. Instruction B is not this change. `engine.py` is untouched.
+Numbers from this tree: [CLOSED_LOOP_MEASUREMENTS_20260925.md](CLOSED_LOOP_MEASUREMENTS_20260925.md).
 
 Scope: matching-allele contact on the existing ATP clock. The design lock is
 [CLOSED_LOOP_P6_STORM_20260925.md](CLOSED_LOOP_P6_STORM_20260925.md).

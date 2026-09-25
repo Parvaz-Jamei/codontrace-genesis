@@ -85,12 +85,12 @@ def test_factorial_does_not_set_the_flag() -> None:
     assert result.threshold_kind == "first_tested_grid_value"
     assert result.development_seed is True
     assert result.low_debit_gap is False
-    assert result.unqualified_survival_gap is True
+    assert result.unqualified_survival_gap is False
     assert result.coevo_cycles is False
     assert by_key[("outcross", "coevolve")].cycles is False
-    assert by_key[("outcross", "coevolve")].oscillation != "stable"
+    assert by_key[("outcross", "coevolve")].oscillation == "extinct"
     assert by_key[("selfing", "coevolve")].extinct is True
-    assert by_key[("outcross", "coevolve")].extinct is False
+    assert by_key[("outcross", "coevolve")].extinct is True
     assert len(result.grid) == 7
     assert result.grid[0][0].virulence == 0.0
     assert result.grid[-1][0].virulence == 64.0
@@ -321,9 +321,25 @@ def test_generation_zero_is_the_ancestral_window_for_every_seed() -> None:
         assert selfing.final_hosts == 3
         assert selfing.extinct is False
         assert selfing.mating_fee_debits == 0
-        assert outcross.match_debits_by_generation == (8,)
-        assert outcross.mating_fee_debits > 0
         assert outcross.extinct is False
+        assert outcross.mating_fee_debits > 0
+        assert outcross.to_dict() == run_match_arm(
+            mating="outcross", passage="coevolve", virulence=32.0, generations=1, seed=seed
+        ).to_dict()
+    assert run_match_arm(
+        mating="outcross", passage="coevolve", virulence=32.0, generations=1, seed=1
+    ).match_debits_by_generation == (8,)
+    assert run_match_arm(
+        mating="outcross", passage="coevolve", virulence=32.0, generations=1, seed=7
+    ).match_debits_by_generation == (6,)
+    assert run_match_arm(
+        mating="outcross",
+        passage="coevolve",
+        virulence=32.0,
+        generations=1,
+        seed=7,
+        mate_choice="ordered",
+    ).match_debits_by_generation == (8,)
 
 
 def test_frozen_stock_stays_ancestral_when_mutation_is_on() -> None:
@@ -402,20 +418,25 @@ def test_refused_mating_and_passage_do_not_run() -> None:
 
 def test_one_mating_rule_covers_a_singleton_an_odd_count_and_a_pair() -> None:
     from codontrace.genesis.closed_loop_p6 import _spawn, _tape
+    from codontrace.rng import RNGManager
 
     def parent(index: int, window: str):
         return _spawn(f"h{index}", _tape(OUTCROSS_OUT_BITS, window), 10.0)
 
-    alone, unmated = mate_outcross([parent(0, "000111")], generation=0, atp=10.0)
+    stream = RNGManager(seed=1, namespace="accept-mating")
+    alone, unmated = mate_outcross(
+        [parent(0, "000111")], generation=0, atp=10.0, rng=stream
+    )
     assert alone == [] and unmated == 1
     odd, odd_unmated = mate_outcross(
         [parent(0, "000111"), parent(1, "000111"), parent(2, "111000")],
         generation=0,
         atp=10.0,
+        rng=stream,
     )
     assert len(odd) == 2 and odd_unmated == 1
     pair, pair_unmated = mate_outcross(
-        [parent(0, "000111"), parent(1, "111000")], generation=0, atp=10.0
+        [parent(0, "000111"), parent(1, "111000")], generation=0, atp=10.0, rng=stream
     )
     assert len(pair) == 2 and pair_unmated == 0
     assert pair[0].atp_state.runtime_available == 10.0
@@ -424,6 +445,7 @@ def test_one_mating_rule_covers_a_singleton_an_odd_count_and_a_pair() -> None:
         generation=0,
         atp=10.0,
         recombine=False,
+        rng=stream,
     )
     assert [child.genome.to_compact()[-6:] for child in copied] == ["000111", "111000"]
     preferred, _ = mate_outcross(
@@ -465,7 +487,7 @@ def test_one_paid_return_is_transient_not_a_stable_cycle() -> None:
     repeated = hosts + ((("b", 2),), (("a", 2),))
     parasite_path = parasites + ((("r", 2),), (("p", 2),))
     assert classify_oscillation(repeated, parasite_path, (0, 1, 0, 1, 0)) == "stable"
-    assert classify_oscillation(hosts, parasites, (0, 0, 0)) == "forced"
+    assert classify_oscillation(hosts, parasites, (0, 0, 0)) == "forced_unpaid"
     assert debit_backed_cycle((("a",), ("b",), ("a",)), (0, 1, 0)) is True
     assert run_match_arm(
         mating="outcross", passage="coevolve", virulence=32.0, generations=4
@@ -473,15 +495,16 @@ def test_one_paid_return_is_transient_not_a_stable_cycle() -> None:
 
 
 def test_costless_passage_keeps_mutation_and_charges_nothing() -> None:
-    costless = run_match_arm(mating="outcross", passage="costless", virulence=32.0, generations=2)
-    zero = run_match_arm(mating="outcross", passage="coevolve", virulence=0.0, generations=2)
-    absent = run_match_arm(mating="outcross", passage="absent", virulence=32.0, generations=2)
-    assert costless.match_debits_by_generation == (0, 0)
-    assert zero.match_debits_by_generation == (0, 0)
-    assert absent.match_debits_by_generation == (0, 0)
+    costless = run_match_arm(mating="outcross", passage="costless", virulence=32.0, generations=8)
+    zero = run_match_arm(mating="outcross", passage="coevolve", virulence=0.0, generations=8)
+    absent = run_match_arm(mating="outcross", passage="absent", virulence=32.0, generations=8)
+    assert costless.match_debits_by_generation == (0,) * 8
+    assert zero.match_debits_by_generation == (0,) * 8
+    assert absent.match_debits_by_generation == (0,) * 8
     assert absent.parasite_window == "000111"
-    assert costless.parasite_window != absent.parasite_window
-    assert zero.parasite_frequencies != absent.parasite_frequencies
+    assert costless.host_frequencies == zero.host_frequencies
+    assert costless.parasite_frequencies == zero.parasite_frequencies
+    assert costless.parasite_frequencies != absent.parasite_frequencies
     assert costless.energy_reset is True
     assert costless.parasite_stock_fixed is True
     assert costless.parasite_n == 12
@@ -519,8 +542,19 @@ def test_disassortative_pairing_is_a_separate_rule() -> None:
         recombine=False,
     )
     assert default.mate_choice == "random"
-    assert default.extinct is False and default.oscillation == "forced"
-    assert preferred.extinct is True and preferred.oscillation == "none"
+    assert default.extinct is True and default.oscillation == "extinct"
+    ordered = run_match_arm(
+        mating="outcross",
+        passage="coevolve",
+        virulence=32.0,
+        generations=48,
+        seed=7,
+        mate_choice="ordered",
+    )
+    assert ordered.mate_choice == "ordered"
+    assert ordered.extinct is False and ordered.oscillation == "forced_unpaid"
+    assert ordered.final_hosts == 4
+    assert preferred.mate_choice == "disassortative" and preferred.extinct is True
     assert copied.recombine is False and copied.oscillation == "none"
     assert default.to_dict()["sexual_maintenance_claimed"] is False
 

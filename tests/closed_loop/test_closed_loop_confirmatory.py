@@ -74,7 +74,7 @@ def test_sensitivity_shifts_with_birth_atp_and_stays_under_the_bar() -> None:
         assert plateau.outcross_coevolve_cycles == 0
         assert plateau.conjunction == 0
     low = next(cell for cell in cells if cell.birth_atp == 10.0 and cell.virulence == 8.0)
-    assert low.outcross_coevolve_cycles == 8
+    assert low.outcross_coevolve_cycles == 4
     assert low.selfing_coevolve_extinct == 0
     assert low.conjunction == 0
     assert locked_flag(0, 0, 0) is False

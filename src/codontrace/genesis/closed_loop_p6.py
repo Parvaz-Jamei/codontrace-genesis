@@ -100,7 +100,7 @@ P6_OPEN_PROBLEM = (
 )
 MATCH_LEDGER_REASON = "p6_match_cost"
 _KAPPA_QUIET = "100000"
-CLOSED_LOOP_REVISION = "p6-review-20260925"
+CLOSED_LOOP_REVISION = "p6-review-20260925b"
 _BIRTH_ATP = 10.0
 _PROGRAM = f"{LIFE_LOOP_EATER_GENOME}{_KAPPA_QUIET}"
 
@@ -159,28 +159,27 @@ def _frequency_state(organisms: list[GenesisOrganism]) -> tuple[tuple[str, int],
     return tuple(sorted(counts.items()))
 
 
-def classify_oscillation(
+def classify_oscillation_v1(
     host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
     parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
     match_debits: tuple[int, ...] | list[int],
 ) -> str:
-    """Pre-declared classes. One paid return is not a stable oscillation.
+    """Detector used before the terminal-window rule. Kept for comparison.
 
-    ``stable`` needs two paid returns of the same host count-vector and a
-    parasite count-vector that is not constant. ``transient`` is one paid
-    return while the parasite moved. ``forced`` is a host repeat under a
-    fixed parasite, or a return with no match debit. ``none`` is anything else.
+    Two paid returns and any parasite change, anywhere on the path, were
+    enough. A path that later went extinct was still called stable.
     """
 
     if len(match_debits) != len(host_frequencies):
-        raise ConfigurationError("match debits must align with the frequency history")
+        raise ConfigurationError("match debits must align with the type history")
     seen: dict[tuple, int] = {}
     paid_returns = 0
     unpaid_returns = 0
     for index, state in enumerate(host_frequencies):
-        previous = seen.get(state)
+        key = tuple(state)
+        previous = seen.get(key)
         changed = previous is not None and any(
-            host_frequencies[cursor] != state for cursor in range(previous + 1, index)
+            tuple(host_frequencies[cursor]) != key for cursor in range(previous + 1, index)
         )
         if changed:
             paid = any(match_debits[cursor] > 0 for cursor in range(previous + 1, index + 1))
@@ -188,8 +187,8 @@ def classify_oscillation(
                 paid_returns += 1
             else:
                 unpaid_returns += 1
-        seen[state] = index
-    parasite_moved = len(set(parasite_frequencies)) > 1
+        seen[key] = index
+    parasite_moved = len({tuple(state) for state in parasite_frequencies}) > 1
     if paid_returns >= 2 and parasite_moved:
         return "stable"
     if paid_returns >= 1 and not parasite_moved:
@@ -198,6 +197,95 @@ def classify_oscillation(
         return "transient"
     if unpaid_returns >= 1:
         return "forced"
+    return "none"
+
+
+def _frequency_entry(state: object, name: str) -> tuple[tuple[str, int], ...]:
+    if isinstance(state, str) or not isinstance(state, (tuple, list)):
+        raise ConfigurationError(f"{name} frequency must be a sequence of window, count")
+    items: list[tuple[str, int]] = []
+    for item in state:
+        if not isinstance(item, (tuple, list)) or len(item) != 2:
+            raise ConfigurationError(f"{name} frequency must be a sequence of window, count")
+        window, count = item
+        if not isinstance(window, str) or isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            raise ConfigurationError(f"{name} counts must be non-negative integers")
+        items.append((window, count))
+    return tuple(items)
+
+
+def _debit_entry(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ConfigurationError("match debits must be non-negative integers")
+    return value
+
+
+def classify_oscillation(
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    match_debits: tuple[int, ...] | list[int],
+) -> str:
+    """Terminal-window classes. A prefix that later dies is not stable.
+
+    ``stable`` needs two paid returns whose intervals contain a parasite
+    change, and the latest of those returns must land on the last generation.
+    ``decoupled`` is a host return whose interval does not contain a parasite
+    change. ``forced_fixed_antagonist`` is a host return under a parasite
+    that never moves. ``forced_unpaid`` is a return with no match debit while
+    the parasite did move. ``extinct`` is a host count of zero at the end.
+    Buckingham and Ashby (J. Evol. Biol., 2022, doi:10.1111/jeb.13981) separate
+    sustained fluctuating selection from a transient that damps or ends.
+    """
+
+    if len(host_frequencies) != len(parasite_frequencies) or len(host_frequencies) != len(match_debits):
+        raise ConfigurationError("host, parasite, and debit histories must have the same length")
+    hosts = [_frequency_entry(state, "host") for state in host_frequencies]
+    parasites = [_frequency_entry(state, "parasite") for state in parasite_frequencies]
+    debits = [_debit_entry(value) for value in match_debits]
+    if not hosts:
+        return "none"
+
+    def occupied(state: tuple[tuple[str, int], ...]) -> bool:
+        return sum(count for _window, count in state) > 0
+
+    for index, state in enumerate(hosts):
+        if not occupied(state) and any(occupied(later) for later in hosts[index + 1 :]):
+            return "revived"
+    if not occupied(hosts[-1]):
+        return "extinct"
+    seen: dict[tuple[tuple[str, int], ...], int] = {}
+    contemporaneous_paid: list[int] = []
+    other_returns = 0
+    unpaid_returns = 0
+    for index, state in enumerate(hosts):
+        previous = seen.get(state)
+        changed = previous is not None and any(hosts[cursor] != state for cursor in range(previous + 1, index))
+        if changed:
+            paid = any(debits[cursor] > 0 for cursor in range(previous + 1, index + 1))
+            parasite_interval = parasites[previous + 1 : index + 1]
+            moved_inside = len(set(parasite_interval)) > 1
+            if paid and moved_inside:
+                contemporaneous_paid.append(index)
+            elif not paid:
+                unpaid_returns += 1
+            else:
+                other_returns += 1
+        seen[state] = index
+    parasite_constant = len(set(parasites)) <= 1
+    if len(contemporaneous_paid) >= 2 and contemporaneous_paid[-1] == len(hosts) - 1:
+        return "stable"
+    if len(contemporaneous_paid) >= 2:
+        return "damped"
+    if len(contemporaneous_paid) == 1:
+        return "transient"
+    if parasite_constant and (unpaid_returns or other_returns):
+        return "forced_fixed_antagonist"
+    if other_returns:
+        return "decoupled"
+    if unpaid_returns and not parasite_constant:
+        return "forced_unpaid"
+    if unpaid_returns and parasite_constant:
+        return "forced_fixed_antagonist"
     return "none"
 
 
@@ -389,25 +477,34 @@ def mate_outcross(
     atp: float,
     mate_choice: str = "random",
     recombine: bool = True,
+    rng: RNGManager | None = None,
 ) -> tuple[list[GenesisOrganism], int]:
     """One mating rule for pure arms and the mixed census.
 
-    A leftover parent has no child. It is not paired with itself. A mated pair
-    still yields two offspring: the two-fold cost of sex is not applied.
-    ``random`` pairs by identity. ``disassortative`` prefers a different
-    recognition window and is a separate comparison, not the default.
-    ``recombine`` False copies the two parental tapes.
+    A leftover parent has no child and is not paired with itself. A mated
+    pair still yields two offspring. ``random`` is a Fisher–Yates shuffle on
+    the seeded stream (Durstenfeld 1964; Knuth 1998): the last position of an
+    odd population is a uniform draw, not the highest identity. ``ordered``
+    is the identity sort under its own name. ``disassortative`` prefers
+    a different recognition window and does not use the mating stream.
     """
 
-    if mate_choice not in {"random", "disassortative"}:
-        raise ConfigurationError("mate_choice must be random or disassortative")
+    if mate_choice not in {"random", "ordered", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random, ordered, or disassortative")
     if not isinstance(recombine, bool):
         raise ConfigurationError("recombine must be a bool")
     if mate_choice == "random":
-        ordered = sorted(parents, key=lambda org: org.id)
-        unmated = len(ordered) % 2
-        pool = ordered if unmated == 0 else ordered[:-1]
-        pairs = [(pool[index], pool[index + 1]) for index in range(0, len(pool), 2)]
+        if rng is None:
+            raise ConfigurationError("random mating requires a seeded stream")
+        pool = _shuffle(list(parents), rng)
+        unmated = len(pool) % 2
+        usable = pool if unmated == 0 else pool[:-1]
+        pairs = [(usable[index], usable[index + 1]) for index in range(0, len(usable), 2)]
+    elif mate_choice == "ordered":
+        pool = sorted(parents, key=lambda org: org.id)
+        unmated = len(pool) % 2
+        usable = pool if unmated == 0 else pool[:-1]
+        pairs = [(usable[index], usable[index + 1]) for index in range(0, len(usable), 2)]
     else:
         pool = sorted(parents, key=lambda org: (_window(org), org.id))
         pairs = []
@@ -632,10 +729,12 @@ def _record_digest(payload: dict[str, object]) -> str:
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
-def digest_matches(record: MatchArmRecord) -> bool:
+def digest_matches(record: object) -> bool:
     """True when the stored digest is the hash of the record without itself."""
 
-    return _record_digest(record.to_dict()) == record.digest
+    payload = record.to_dict()  # type: ignore[attr-defined]
+    digest = payload.get("digest")
+    return isinstance(digest, str) and digest != "" and _record_digest(payload) == digest
 
 
 def _contact(
@@ -750,8 +849,8 @@ def run_match_arm(
     virulence = _require_finite("virulence", virulence, minimum=0.0)
     seed = _require_int("seed", seed, minimum=0)
     parasite_mutation = _require_finite("parasite_mutation", parasite_mutation, minimum=0.0, maximum=1.0)
-    if mate_choice not in {"random", "disassortative"}:
-        raise ConfigurationError("mate_choice must be random or disassortative")
+    if mate_choice not in {"random", "ordered", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random, ordered, or disassortative")
     if not isinstance(recombine, bool):
         raise ConfigurationError("recombine must be a bool")
     parasite_n = _require_int("parasite_n", parasite_n, minimum=1)
@@ -762,6 +861,7 @@ def run_match_arm(
     ancestral = _modal(hosts)
     parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-passage")
+    mating_rng = rng.fork("mating")
     history: list[tuple[str, ...]] = []
     host_frequencies: list[tuple[tuple[str, int], ...]] = []
     parasite_frequencies: list[tuple[tuple[str, int], ...]] = []
@@ -785,6 +885,7 @@ def run_match_arm(
                 atp=birth_atp,
                 mate_choice=mate_choice,
                 recombine=recombine,
+                rng=mating_rng,
             )
         else:
             children = _selfing_children(hosts, generation=generation, atp=birth_atp)
@@ -928,10 +1029,12 @@ class SharedModifierRecord:
     oscillation: str
     energy_reset: bool
     parasite_stock_fixed: bool
+    founders: tuple[tuple[str, str], ...]
     revision: str
+    digest: str
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "passage": self.passage,
             "virulence": self.virulence,
             "generations": self.generations,
@@ -963,9 +1066,12 @@ class SharedModifierRecord:
             "oscillation": self.oscillation,
             "energy_reset": self.energy_reset,
             "parasite_stock_fixed": self.parasite_stock_fixed,
+            "founders": [list(item) for item in self.founders],
             "revision": self.revision,
             "sexual_maintenance_claimed": False,
         }
+        payload["digest"] = self.digest
+        return payload
 
 
 def run_shared_modifier(
@@ -1000,8 +1106,8 @@ def run_shared_modifier(
     parasite_mutation = _require_finite(
         "parasite_mutation", parasite_mutation, minimum=0.0, maximum=1.0
     )
-    if mate_choice not in {"random", "disassortative"}:
-        raise ConfigurationError("mate_choice must be random or disassortative")
+    if mate_choice not in {"random", "ordered", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random, ordered, or disassortative")
     if not isinstance(recombine, bool):
         raise ConfigurationError("recombine must be a bool")
     parasite_n = _require_int("parasite_n", parasite_n, minimum=1)
@@ -1022,6 +1128,7 @@ def run_shared_modifier(
     ancestral = _modal(hosts)
     parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-shared")
+    mating_rng = rng.fork("mating")
     out_counts: list[int] = []
     self_counts: list[int] = []
     unmated_counts: list[int] = []
@@ -1049,6 +1156,7 @@ def run_shared_modifier(
             atp=birth_atp,
             mate_choice=mate_choice,
             recombine=recombine,
+            rng=mating_rng,
         )
         children.extend(paired)
         for child in children:
@@ -1083,7 +1191,8 @@ def run_shared_modifier(
         host_frequencies.append(_frequency_state(hosts))
         parasite_frequencies.append(_frequency_state(parasites))
     oscillation = classify_oscillation(host_frequencies, parasite_frequencies, match_debits)
-    return SharedModifierRecord(
+    founder_rows = tuple((mating, window) for mating, window in founders)
+    record = SharedModifierRecord(
         passage=passage,
         virulence=float(virulence),
         generations=generations,
@@ -1104,13 +1213,46 @@ def run_shared_modifier(
         birth_atp=birth_atp,
         mate_choice=mate_choice,
         recombine=recombine,
-        parasite_n=len(parasites),
+        parasite_n=parasite_n,
         host_frequencies=tuple(host_frequencies),
         parasite_frequencies=tuple(parasite_frequencies),
         oscillation=oscillation,
         energy_reset=True,
         parasite_stock_fixed=len(parasites) == parasite_n,
+        founders=founder_rows,
         revision=CLOSED_LOOP_REVISION,
+        digest="",
+    )
+    return SharedModifierRecord(
+        passage=record.passage,
+        virulence=record.virulence,
+        generations=record.generations,
+        founding_outcross=record.founding_outcross,
+        founding_selfing=record.founding_selfing,
+        outcross_by_generation=record.outcross_by_generation,
+        selfing_by_generation=record.selfing_by_generation,
+        unmated_outcross_by_generation=record.unmated_outcross_by_generation,
+        match_debits_by_generation=record.match_debits_by_generation,
+        window_history=record.window_history,
+        parasite_window=record.parasite_window,
+        cost_name=record.cost_name,
+        two_fold_cost_applied=record.two_fold_cost_applied,
+        red_queen_proved=record.red_queen_proved,
+        seed=record.seed,
+        parasite_mutation=record.parasite_mutation,
+        specificity=record.specificity,
+        birth_atp=record.birth_atp,
+        mate_choice=record.mate_choice,
+        recombine=record.recombine,
+        parasite_n=record.parasite_n,
+        host_frequencies=record.host_frequencies,
+        parasite_frequencies=record.parasite_frequencies,
+        oscillation=record.oscillation,
+        energy_reset=record.energy_reset,
+        parasite_stock_fixed=record.parasite_stock_fixed,
+        founders=record.founders,
+        revision=record.revision,
+        digest=_record_digest(record.to_dict()),
     )
 
 

@@ -979,6 +979,23 @@ _PHASE_G_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
 for _path, _fields in _PHASE_G_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields
 
+_CLOSED_LOOP_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.genesis.closed_loop_p6.MatchArmRecord": ("digest",),
+    "codontrace.genesis.closed_loop_p6.SharedModifierRecord": ("digest",),
+}
+for _path, _fields in _CLOSED_LOOP_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys(
+        (
+            *NON_REPLAY_CRITICAL_DIGEST_CLASSES,
+            "codontrace.genesis.closed_loop_p6.MatchArmRecord",
+            "codontrace.genesis.closed_loop_p6.SharedModifierRecord",
+        )
+    )
+)
+
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys(
         (

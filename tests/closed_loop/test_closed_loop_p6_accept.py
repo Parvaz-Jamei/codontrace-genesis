@@ -1,7 +1,7 @@
 """P6 accept: matching-allele debit on the existing ATP clock.
 
 The biological claim stays blocked. ``red_queen_proved`` stays false.
-``pattern_holds`` on the default factorial is the seed-7 replay only.
+``pattern_holds`` on the development seed is not an evaluation result.
 Generation 0 is the same for every seed, because every parasite still
 carries the ancestral window. A frozen stock never leaves that window.
 """
@@ -17,10 +17,12 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_p6 import (
     MATCH_LEDGER_REASON,
     ClosedLoopP6Clock,
+    classify_oscillation,
     debit_backed_cycle,
     digital_red_queen_pattern,
     frequency_cycles,
     holling_type2_cost,
+    mate_outcross,
     run_match_arm,
     run_matching_allele_factorial,
     run_shared_modifier,
@@ -29,6 +31,7 @@ from codontrace.genesis.closed_loop_p6 import (
 )
 from codontrace.genesis.host_parasite_life_plugin import (
     MATCH_BIT_START,
+    OUTCROSS_OUT_BITS,
     ClosedLoopHPLifeConfig,
     coding_bits_for_execution,
 )
@@ -75,21 +78,26 @@ def test_predicate_is_the_storm_rule_not_the_gap_alone() -> None:
 def test_factorial_does_not_set_the_flag() -> None:
     result = run_matching_allele_factorial()
     by_key = {(arm.mating, arm.passage): arm for arm in result.arms}
-    assert result.pattern_holds is True
-    assert result.debit_threshold == 32.0
-    assert result.low_debit_gap is False
-    assert result.coevo_cycles is True
-    assert result.frozen_cycles is False
+    assert result.pattern_holds is False
+    assert result.debit_threshold is None
+    assert result.first_tested_success is None
+    assert result.threshold_kind == "first_tested_grid_value"
+    assert result.development_seed is True
+    assert result.low_debit_gap is True
+    assert result.coevo_cycles is False
+    assert by_key[("outcross", "coevolve")].cycles is False
+    assert by_key[("outcross", "coevolve")].oscillation != "stable"
     assert by_key[("selfing", "coevolve")].extinct is True
     assert by_key[("outcross", "coevolve")].extinct is False
-    assert by_key[("outcross", "coevolve")].cycles is True
-    assert by_key[("selfing", "frozen")].extinct is False
-    assert by_key[("outcross", "frozen")].cycles is False
-    assert by_key[("selfing", "absent")].extinct is False
-    assert by_key[("outcross", "coevolve")].mating_fee_debits > 0
-    assert by_key[("selfing", "coevolve")].mating_fee_debits == 0
+    assert len(result.grid) == 7
+    assert result.grid[0][0].virulence == 0.0
+    assert result.grid[-1][0].virulence == 64.0
+    assert by_key[("outcross", "coevolve")].birth_atp == 10.0
+    assert by_key[("outcross", "coevolve")].digest
     assert result.red_queen_proved is False
     assert result.biological_red_queen_proved is False
+    assert result.to_dict()["sexual_maintenance_claimed"] is False
+    assert result.to_dict()["energy_model"] == "passage_reset_not_ecological_closure"
     assert result.claim_ceiling == "runtime_observation"
     assert result.to_dict()["euler_stepper_used"] is False
     assert result.to_dict()["holling"] == "type_ii"
@@ -246,7 +254,7 @@ def test_sublethal_shared_debit_is_not_specific_to_coevolution() -> None:
     held = run_shared_modifier(_PAIR, passage="frozen", virulence=16.0, generations=8)
     assert chased.outcross_by_generation == (2,) * 8
     assert chased.selfing_by_generation == (1,) * 8
-    assert chased.match_debits_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
+    assert chased.match_debits_by_generation == (2, 1, 0, 0, 0, 1, 0, 0)
     assert held.outcross_by_generation == (2,) * 8
     assert held.selfing_by_generation == (1,) * 8
     assert held.match_debits_by_generation == (2, 1, 0, 1, 0, 1, 0, 1)
@@ -311,7 +319,7 @@ def test_generation_zero_is_the_ancestral_window_for_every_seed() -> None:
         assert selfing.final_hosts == 3
         assert selfing.extinct is False
         assert selfing.mating_fee_debits == 0
-        assert outcross.match_debits_by_generation == (6,)
+        assert outcross.match_debits_by_generation == (8,)
         assert outcross.mating_fee_debits > 0
         assert outcross.extinct is False
 
@@ -388,3 +396,91 @@ def test_refused_mating_and_passage_do_not_run() -> None:
         run_match_arm(mating="selfing", passage="knockout", virulence=0.0)
     with pytest.raises(ConfigurationError, match="virulence"):
         run_match_arm(mating="selfing", passage="absent", virulence=-0.1)
+
+
+def test_one_mating_rule_covers_a_singleton_an_odd_count_and_a_pair() -> None:
+    from codontrace.genesis.closed_loop_p6 import _spawn, _tape
+
+    def parent(index: int, window: str):
+        return _spawn(f"h{index}", _tape(OUTCROSS_OUT_BITS, window), 10.0)
+
+    alone, unmated = mate_outcross([parent(0, "000111")], generation=0, atp=10.0)
+    assert alone == [] and unmated == 1
+    odd, odd_unmated = mate_outcross(
+        [parent(0, "000111"), parent(1, "000111"), parent(2, "111000")],
+        generation=0,
+        atp=10.0,
+    )
+    assert len(odd) == 2 and odd_unmated == 1
+    pair, pair_unmated = mate_outcross(
+        [parent(0, "000111"), parent(1, "111000")], generation=0, atp=10.0
+    )
+    assert len(pair) == 2 and pair_unmated == 0
+    assert pair[0].atp_state.runtime_available == 10.0
+    copied, _ = mate_outcross(
+        [parent(0, "000111"), parent(1, "111000")],
+        generation=0,
+        atp=10.0,
+        recombine=False,
+    )
+    assert [child.genome.to_compact()[-6:] for child in copied] == ["000111", "111000"]
+    preferred, _ = mate_outcross(
+        [parent(0, "000111"), parent(1, "000111"), parent(2, "111000")],
+        generation=0,
+        atp=10.0,
+        mate_choice="disassortative",
+    )
+    assert [child.genome.to_compact()[-6:] for child in odd] != [
+        child.genome.to_compact()[-6:] for child in preferred
+    ]
+    rare = run_shared_modifier(
+        (("outcross", "000111"),), passage="absent", virulence=0.0, generations=1
+    )
+    assert rare.unmated_outcross_by_generation == (1,)
+    assert rare.outcross_by_generation == (0,)
+    source = (_REPO / "src" / "codontrace" / "genesis" / "closed_loop_p6.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def _outcross_children" not in source
+    assert "def _paired_outcross_children" not in source
+
+
+def test_non_finite_inputs_are_refused() -> None:
+    with pytest.raises(ConfigurationError, match="virulence"):
+        run_match_arm(mating="selfing", passage="absent", virulence=float("nan"))
+    with pytest.raises(ConfigurationError, match="birth_atp"):
+        run_match_arm(mating="selfing", passage="absent", birth_atp=float("inf"))
+    with pytest.raises(ConfigurationError, match="generations"):
+        run_match_arm(mating="selfing", passage="absent", generations=True)  # type: ignore[arg-type]
+    with pytest.raises(ConfigurationError, match="parasite_mutation"):
+        run_match_arm(mating="selfing", passage="absent", parasite_mutation=float("nan"))
+
+
+def test_one_paid_return_is_transient_not_a_stable_cycle() -> None:
+    hosts = ((("a", 2),), (("b", 2),), (("a", 2),))
+    parasites = ((("p", 2),), (("q", 2),), (("p", 2),))
+    assert classify_oscillation(hosts, parasites, (0, 1, 0)) == "transient"
+    repeated = hosts + ((("b", 2),), (("a", 2),))
+    parasite_path = parasites + ((("r", 2),), (("p", 2),))
+    assert classify_oscillation(repeated, parasite_path, (0, 1, 0, 1, 0)) == "stable"
+    assert classify_oscillation(hosts, parasites, (0, 0, 0)) == "forced"
+    assert debit_backed_cycle((("a",), ("b",), ("a",)), (0, 1, 0)) is True
+    assert run_match_arm(
+        mating="outcross", passage="coevolve", virulence=32.0, generations=4
+    ).to_dict()["sexual_maintenance_claimed"] is False
+
+
+def test_costless_passage_keeps_mutation_and_charges_nothing() -> None:
+    costless = run_match_arm(mating="outcross", passage="costless", virulence=32.0, generations=2)
+    zero = run_match_arm(mating="outcross", passage="coevolve", virulence=0.0, generations=2)
+    absent = run_match_arm(mating="outcross", passage="absent", virulence=32.0, generations=2)
+    assert costless.match_debits_by_generation == (0, 0)
+    assert zero.match_debits_by_generation == (0, 0)
+    assert absent.match_debits_by_generation == (0, 0)
+    assert absent.parasite_window == "000111"
+    assert costless.parasite_window != absent.parasite_window
+    assert zero.parasite_frequencies != absent.parasite_frequencies
+    assert costless.energy_reset is True
+    assert costless.parasite_stock_fixed is True
+    assert costless.parasite_n == 12
+    assert len(costless.initial_frequencies) > 0

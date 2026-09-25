@@ -21,17 +21,8 @@ def test_confirmatory_blocks_fail_and_the_flag_stays_false() -> None:
     report = run_confirmatory_partial()
     assert tuple(row.seed for row in report.separate) == CONFIRMATORY_SEEDS
     assert tuple(row.seed for row in report.mixed) == CONFIRMATORY_SEEDS
-    assert tuple(row.passed for row in report.separate) == (
-        False,
-        True,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-    )
-    assert report.separate_passes == 1
+    assert tuple(row.passed for row in report.separate) == (False,) * 8
+    assert report.separate_passes == 0
     assert report.separate_block is False
     assert tuple(row.passed for row in report.mixed) == (False,) * 8
     assert report.mixed_passes == 0
@@ -62,7 +53,7 @@ def test_graded_overlap_removes_the_outcross_arm() -> None:
 
 def test_sensitivity_shifts_with_birth_atp_and_stays_under_the_bar() -> None:
     cells = run_sensitivity()
-    assert max(cell.conjunction for cell in cells) == 1
+    assert max(cell.conjunction for cell in cells) == 0
     assert not any(cell.conjunction >= 6 for cell in cells)
 
     def first_majority(birth_atp: float) -> float:
@@ -76,12 +67,14 @@ def test_sensitivity_shifts_with_birth_atp_and_stays_under_the_bar() -> None:
     assert first_majority(10.0) == 20.0
     assert first_majority(12.0) == 24.0
     for birth_atp in (8.0, 10.0, 12.0):
-        plateau = next(cell for cell in cells if cell.birth_atp == birth_atp and cell.virulence == 32.0)
+        plateau = next(
+            cell for cell in cells if cell.birth_atp == birth_atp and cell.virulence == 32.0
+        )
         assert plateau.selfing_coevolve_extinct == 6
-        assert plateau.outcross_coevolve_cycles == 2
-        assert plateau.conjunction == 1
-    spike = next(cell for cell in cells if cell.birth_atp == 12.0 and cell.virulence == 14.0)
-    assert spike.outcross_coevolve_cycles == 8
-    assert spike.selfing_coevolve_extinct == 0
-    assert spike.conjunction == 0
-    assert locked_flag(1, 0, 0) is False
+        assert plateau.outcross_coevolve_cycles == 0
+        assert plateau.conjunction == 0
+    low = next(cell for cell in cells if cell.birth_atp == 10.0 and cell.virulence == 8.0)
+    assert low.outcross_coevolve_cycles == 8
+    assert low.selfing_coevolve_extinct == 0
+    assert low.conjunction == 0
+    assert locked_flag(0, 0, 0) is False

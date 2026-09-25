@@ -41,6 +41,9 @@ The host_parasite claim profile still blocks the biological claim.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import math
 from collections import Counter
 from dataclasses import dataclass
 
@@ -97,6 +100,7 @@ P6_OPEN_PROBLEM = (
 )
 MATCH_LEDGER_REASON = "p6_match_cost"
 _KAPPA_QUIET = "100000"
+CLOSED_LOOP_REVISION = "p6-review-20260925"
 _BIRTH_ATP = 10.0
 _PROGRAM = f"{LIFE_LOOP_EATER_GENOME}{_KAPPA_QUIET}"
 
@@ -114,12 +118,87 @@ def strict_match_alpha(host_window: str, antagonist_window: str) -> float:
 def holling_type2_cost(virulence: float, type_count: int) -> float:
     """Saturating per-host debit. A flat α, independent of density, is refused."""
 
-    if virulence < 0.0:
-        raise ConfigurationError("virulence must be >= 0")
+    virulence = _require_finite("virulence", virulence, minimum=0.0)
+    if isinstance(type_count, bool) or not isinstance(type_count, int):
+        raise ConfigurationError("type_count must be an integer")
     if type_count <= 0 or virulence == 0.0:
         return 0.0
     count = float(type_count)
-    return float(virulence) * (count / (1.0 + count))
+    return virulence * (count / (1.0 + count))
+
+
+def _require_finite(
+    name: str,
+    value: object,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigurationError(f"{name} must be a finite number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ConfigurationError(f"{name} must be a finite number")
+    if minimum is not None and number < minimum:
+        raise ConfigurationError(f"{name} must be >= {minimum}")
+    if maximum is not None and number > maximum:
+        raise ConfigurationError(f"{name} must be <= {maximum}")
+    return number
+
+
+def _require_int(name: str, value: object, *, minimum: int) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ConfigurationError(f"{name} must be an integer")
+    if value < minimum:
+        raise ConfigurationError(f"{name} must be >= {minimum}")
+    return value
+
+
+def _frequency_state(organisms: list[GenesisOrganism]) -> tuple[tuple[str, int], ...]:
+    counts = Counter(_window(org) for org in organisms)
+    return tuple(sorted(counts.items()))
+
+
+def classify_oscillation(
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    match_debits: tuple[int, ...] | list[int],
+) -> str:
+    """Pre-declared classes. One paid return is not a stable oscillation.
+
+    ``stable`` needs two paid returns of the same host count-vector and a
+    parasite count-vector that is not constant. ``transient`` is one paid
+    return while the parasite moved. ``forced`` is a host repeat under a
+    fixed parasite, or a return with no match debit. ``none`` is anything else.
+    """
+
+    if len(match_debits) != len(host_frequencies):
+        raise ConfigurationError("match debits must align with the frequency history")
+    seen: dict[tuple, int] = {}
+    paid_returns = 0
+    unpaid_returns = 0
+    for index, state in enumerate(host_frequencies):
+        previous = seen.get(state)
+        changed = previous is not None and any(
+            host_frequencies[cursor] != state for cursor in range(previous + 1, index)
+        )
+        if changed:
+            paid = any(match_debits[cursor] > 0 for cursor in range(previous + 1, index + 1))
+            if paid:
+                paid_returns += 1
+            else:
+                unpaid_returns += 1
+        seen[state] = index
+    parasite_moved = len(set(parasite_frequencies)) > 1
+    if paid_returns >= 2 and parasite_moved:
+        return "stable"
+    if paid_returns >= 1 and not parasite_moved:
+        return "forced"
+    if paid_returns == 1:
+        return "transient"
+    if unpaid_returns >= 1:
+        return "forced"
+    return "none"
 
 
 def frequency_cycles(history: tuple[tuple[str, ...], ...] | list[tuple[str, ...]]) -> bool:
@@ -303,43 +382,65 @@ def _selfing_children(
     return children
 
 
-def _outcross_children(
-    parents: list[GenesisOrganism], *, generation: int, atp: float
-) -> list[GenesisOrganism]:
-    pool = sorted(parents, key=lambda org: (_window(org), org.id))
-    pairs: list[tuple[GenesisOrganism, GenesisOrganism]] = []
-    while len(pool) >= 2:
-        left = pool.pop(0)
-        different = next(
-            (i for i, other in enumerate(pool) if _window(other) != _window(left)),
-            None,
-        )
-        if different is None:
-            right = pool.pop(0)
-        else:
-            right = pool.pop(different)
-        pairs.append((left, right))
-    if pool:
-        pairs.append((pool[0], pool[0]))
+def mate_outcross(
+    parents: list[GenesisOrganism],
+    *,
+    generation: int,
+    atp: float,
+    mate_choice: str = "random",
+    recombine: bool = True,
+) -> tuple[list[GenesisOrganism], int]:
+    """One mating rule for pure arms and the mixed census.
+
+    A leftover parent has no child. It is not paired with itself. A mated pair
+    still yields two offspring: the two-fold cost of sex is not applied.
+    ``random`` pairs by identity. ``disassortative`` prefers a different
+    recognition window and is a separate comparison, not the default.
+    ``recombine`` False copies the two parental tapes.
+    """
+
+    if mate_choice not in {"random", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random or disassortative")
+    if not isinstance(recombine, bool):
+        raise ConfigurationError("recombine must be a bool")
+    if mate_choice == "random":
+        ordered = sorted(parents, key=lambda org: org.id)
+        unmated = len(ordered) % 2
+        pool = ordered if unmated == 0 else ordered[:-1]
+        pairs = [(pool[index], pool[index + 1]) for index in range(0, len(pool), 2)]
+    else:
+        pool = sorted(parents, key=lambda org: (_window(org), org.id))
+        pairs = []
+        while len(pool) >= 2:
+            left = pool.pop(0)
+            different = next(
+                (i for i, other in enumerate(pool) if _window(other) != _window(left)),
+                None,
+            )
+            right = pool.pop(0 if different is None else different)
+            pairs.append((left, right))
+        unmated = len(pool)
     children: list[GenesisOrganism] = []
     serial = 0
     for left, right in pairs:
-        first, second = apply_positional_segment_exchange(
-            left.genome.to_compact(),
-            right.genome.to_compact(),
-            MATCH_BIT_START,
-            MATCH_BIT_START + 3,
-        )
-        children.append(_spawn(f"x{generation}-{serial}", first, atp))
-        serial += 1
-        children.append(_spawn(f"x{generation}-{serial}", second, atp))
-        serial += 1
-    return children
+        if recombine:
+            tapes = apply_positional_segment_exchange(
+                left.genome.to_compact(),
+                right.genome.to_compact(),
+                MATCH_BIT_START,
+                MATCH_BIT_START + 3,
+            )
+        else:
+            tapes = (left.genome.to_compact(), right.genome.to_compact())
+        for tape in tapes:
+            children.append(_spawn(f"x{generation}-{serial}", tape, atp))
+            serial += 1
+    return children, unmated
 
 
 @dataclass(frozen=True, slots=True)
 class MatchArmRecord:
-    """One mating system under one antagonist passage. No digest field."""
+    """One mating system under one antagonist passage."""
 
     mating: str
     passage: str
@@ -356,9 +457,22 @@ class MatchArmRecord:
     seed: int
     parasite_mutation: float
     specificity: str
+    birth_atp: float
+    mate_choice: str
+    recombine: bool
+    parasite_n: int
+    oscillation: str
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...]
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...]
+    unmated_by_generation: tuple[int, ...]
+    initial_frequencies: tuple[tuple[str, int], ...]
+    energy_reset: bool
+    parasite_stock_fixed: bool
+    revision: str
+    digest: str
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload = {
             "mating": self.mating,
             "passage": self.passage,
             "generations": self.generations,
@@ -374,7 +488,25 @@ class MatchArmRecord:
             "seed": self.seed,
             "parasite_mutation": self.parasite_mutation,
             "specificity": self.specificity,
+            "birth_atp": self.birth_atp,
+            "mate_choice": self.mate_choice,
+            "recombine": self.recombine,
+            "parasite_n": self.parasite_n,
+            "oscillation": self.oscillation,
+            "host_frequencies": [[list(item) for item in state] for state in self.host_frequencies],
+            "parasite_frequencies": [
+                [list(item) for item in state] for state in self.parasite_frequencies
+            ],
+            "unmated_by_generation": list(self.unmated_by_generation),
+            "initial_frequencies": [list(item) for item in self.initial_frequencies],
+            "energy_reset": self.energy_reset,
+            "parasite_stock_fixed": self.parasite_stock_fixed,
+            "revision": self.revision,
+            "development_seed": self.seed == P6_SEED,
+            "sexual_maintenance_claimed": False,
         }
+        payload["digest"] = self.digest
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -382,6 +514,7 @@ class MatchingAlleleFactorial:
     """Digital answer. The extinct/persist gap alone does not set the flag."""
 
     arms: tuple[MatchArmRecord, ...]
+    grid: tuple[tuple[MatchArmRecord, ...], ...]
     pattern_holds: bool
     red_queen_proved: bool
     biological_red_queen_proved: bool
@@ -389,28 +522,40 @@ class MatchingAlleleFactorial:
     predicate: str
     open_problem: str
     debit_threshold: float | None
+    first_tested_success: float | None
+    threshold_kind: str
     coevo_cycles: bool
     frozen_cycles: bool
     low_debit_gap: bool
     zero_debit_gap: bool
+    development_seed: bool
+    revision: str
 
     def to_dict(self) -> dict[str, object]:
         return {
             "arms": [arm.to_dict() for arm in self.arms],
+            "grid": [[arm.to_dict() for arm in row] for row in self.grid],
+            "virulence_grid": list(_VIRULENCE_GRID),
             "pattern_holds": self.pattern_holds,
             "red_queen_proved": self.red_queen_proved,
             "biological_red_queen_proved": self.biological_red_queen_proved,
+            "sexual_maintenance_claimed": False,
             "claim_ceiling": self.claim_ceiling,
             "predicate": self.predicate,
             "open_problem": self.open_problem,
             "debit_threshold": self.debit_threshold,
+            "first_tested_success": self.first_tested_success,
+            "threshold_kind": self.threshold_kind,
             "coevo_cycles": self.coevo_cycles,
             "frozen_cycles": self.frozen_cycles,
             "low_debit_gap": self.low_debit_gap,
             "zero_debit_gap": self.zero_debit_gap,
+            "development_seed": self.development_seed,
+            "revision": self.revision,
             "euler_stepper_used": False,
             "holling": "type_ii",
             "atp_owner": "GenesisOrganism.atp_state",
+            "energy_model": "passage_reset_not_ecological_closure",
         }
 
 
@@ -475,6 +620,12 @@ def specificity_weight(host_window: str, parasite_window: str, mode: str = "stri
     return graded_alpha_from_overlap(host_tasks, parasite_tasks)
 
 
+def _record_digest(payload: dict[str, object]) -> str:
+    body = {key: value for key, value in payload.items() if key != "digest"}
+    encoded = json.dumps(body, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
 def _contact(
     hosts: list[GenesisOrganism],
     parasites: list[GenesisOrganism],
@@ -483,10 +634,11 @@ def _contact(
     virulence: float,
     rng: RNGManager,
     specificity: str = "strict",
+    charge: bool = True,
 ) -> tuple[list[GenesisOrganism], list[GenesisOrganism]]:
-    """One seeded contact each. Returns living hosts and parasites that matched."""
+    """One seeded contact each. ``charge`` False still records the match."""
 
-    if not hosts or not parasites or virulence <= 0.0:
+    if not hosts or not parasites:
         return list(hosts), []
     order = _shuffle(parasites, rng)
     counts = Counter(_window(host) for host in hosts)
@@ -499,21 +651,19 @@ def _contact(
         if weight <= 0.0:
             living.append(host)
             continue
-        cost = holling_type2_cost(virulence, counts[window]) * weight
-        if cost <= 0.0:
-            living.append(host)
-            continue
-        payable = min(cost, host.atp_state.runtime_available)
-        if payable > 0.0:
-            host.atp_state.debit_runtime(
-                payable,
-                tick=tick,
-                organism_id=host.id,
-                codon=window[:3] or "000",
-                action="match_hit",
-                reason=MATCH_LEDGER_REASON,
-            )
-            matched.append(parasite)
+        matched.append(parasite)
+        cost = holling_type2_cost(virulence, counts[window]) * weight if charge else 0.0
+        if cost > 0.0:
+            payable = min(cost, host.atp_state.runtime_available)
+            if payable > 0.0:
+                host.atp_state.debit_runtime(
+                    payable,
+                    tick=tick,
+                    organism_id=host.id,
+                    codon=window[:3] or "000",
+                    action="match_hit",
+                    reason=MATCH_LEDGER_REASON,
+                )
         if host.atp_state.runtime_available > 0.0:
             living.append(host)
     return living, matched
@@ -536,7 +686,7 @@ def _passage(
     coevolving cases then flip one bit with probability ``mutation``.
     """
 
-    if passage != "coevolve":
+    if passage not in {"coevolve", "costless"}:
         return parasites
     if not 0.0 <= mutation <= 1.0:
         raise ConfigurationError("parasite_mutation must be in [0, 1]")
@@ -563,36 +713,63 @@ def run_match_arm(
     seed: int = P6_SEED,
     parasite_mutation: float = P6_PARASITE_MUTATION,
     specificity: str = "strict",
+    mate_choice: str = "random",
+    recombine: bool = True,
 ) -> MatchArmRecord:
-    """Semelparous generations. Parasites passage from matches, not survivors."""
+    """Semelparous passage. Offspring and the next parasite stock are refilled.
+
+    ``absent`` removes the antagonist. ``costless`` keeps passage and mutation
+    and charges no match debit. A zero virulence on ``coevolve`` is the same
+    cost knockout, not parasite removal. Energy is reset to ``birth_atp`` each
+    birth. That is a passage experiment, not ecological closure.
+    """
 
     if mating not in {"outcross", "selfing"}:
         raise ConfigurationError("mating must be outcross or selfing")
-    if passage not in {"coevolve", "frozen", "absent"}:
-        raise ConfigurationError("passage must be coevolve, frozen, or absent")
-    if generations < 1:
-        raise ConfigurationError("generations must be >= 1")
-    if virulence < 0.0:
-        raise ConfigurationError("virulence must be >= 0")
-    if not 0.0 <= parasite_mutation <= 1.0:
-        raise ConfigurationError("parasite_mutation must be in [0, 1]")
+    if passage not in {"coevolve", "frozen", "absent", "costless"}:
+        raise ConfigurationError("passage must be coevolve, frozen, absent, or costless")
+    generations = _require_int("generations", generations, minimum=1)
+    birth_atp = _require_finite("birth_atp", birth_atp, minimum=0.0)
+    if birth_atp <= 0.0:
+        raise ConfigurationError("birth_atp must be > 0")
+    virulence = _require_finite("virulence", virulence, minimum=0.0)
+    seed = _require_int("seed", seed, minimum=0)
+    parasite_mutation = _require_finite("parasite_mutation", parasite_mutation, minimum=0.0, maximum=1.0)
+    if mate_choice not in {"random", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random or disassortative")
+    if not isinstance(recombine, bool):
+        raise ConfigurationError("recombine must be a bool")
     specificity_weight("0", "0", specificity)
     mating_bits = OUTCROSS_OUT_BITS if mating == "outcross" else OUTCROSS_SELFING_BITS
     hosts = _host_founders(mating_bits, birth_atp)
+    initial_windows = _frequency_state(hosts)
     ancestral = _modal(hosts)
     parasites = _parasites_on(ancestral, birth_atp, "p0-")
     rng = RNGManager(seed=seed, namespace="p6-passage")
     history: list[tuple[str, ...]] = []
+    host_frequencies: list[tuple[tuple[str, int], ...]] = []
+    parasite_frequencies: list[tuple[tuple[str, int], ...]] = []
     match_debits: list[int] = []
+    unmated_counts: list[int] = []
     fee_debits = 0
     for generation in range(generations):
         assert_single_atp_owner([*hosts, *parasites])
         if not hosts:
             history.append(())
+            host_frequencies.append(())
+            parasite_frequencies.append(_frequency_state(parasites))
             match_debits.append(0)
+            unmated_counts.append(0)
             continue
+        unmated = 0
         if mating == "outcross":
-            children = _outcross_children(hosts, generation=generation, atp=birth_atp)
+            children, unmated = mate_outcross(
+                hosts,
+                generation=generation,
+                atp=birth_atp,
+                mate_choice=mate_choice,
+                recombine=recombine,
+            )
         else:
             children = _selfing_children(hosts, generation=generation, atp=birth_atp)
         for child in children:
@@ -600,38 +777,43 @@ def run_match_arm(
             _charge_mating_fee(child, tick=generation)
             if child.atp_state.runtime_available < before:
                 fee_debits += 1
-        if passage == "absent" or virulence == 0.0:
+        charge = passage != "costless" and virulence > 0.0
+        if passage == "absent":
             hosts = [child for child in children if child.atp_state.runtime_available > 0.0]
-            history.append(_type_state(hosts))
             match_debits.append(0)
-            continue
-        hosts, matched = _contact(
-            children,
-            parasites,
-            tick=generation,
-            virulence=virulence,
-            rng=rng,
-            specificity=specificity,
-        )
+        else:
+            hosts, matched = _contact(
+                children,
+                parasites,
+                tick=generation,
+                virulence=virulence,
+                rng=rng,
+                specificity=specificity,
+                charge=charge,
+            )
+            match_debits.append(_match_debit_count(children, generation))
+            parasites = _passage(
+                parasites,
+                matched,
+                generation=generation,
+                passage=passage,
+                rng=rng,
+                mutation=parasite_mutation,
+                birth_atp=birth_atp,
+            )
         history.append(_type_state(hosts))
-        match_debits.append(_match_debit_count(children, generation))
-        parasites = _passage(
-            parasites,
-            matched,
-            generation=generation,
-            passage=passage,
-            rng=rng,
-            mutation=parasite_mutation,
-            birth_atp=birth_atp,
-        )
-    return MatchArmRecord(
+        host_frequencies.append(_frequency_state(hosts))
+        parasite_frequencies.append(_frequency_state(parasites))
+        unmated_counts.append(unmated)
+    oscillation = classify_oscillation(host_frequencies, parasite_frequencies, match_debits)
+    record = MatchArmRecord(
         mating=mating,
         passage=passage,
         generations=generations,
         virulence=virulence,
         final_hosts=len(hosts),
         extinct=len(hosts) == 0,
-        cycles=debit_backed_cycle(history, match_debits),
+        cycles=oscillation == "stable",
         mating_fee_debits=fee_debits,
         match_debits_by_generation=tuple(match_debits),
         parasite_window=_modal(parasites) if parasites else "",
@@ -640,6 +822,50 @@ def run_match_arm(
         seed=seed,
         parasite_mutation=parasite_mutation,
         specificity=specificity,
+        birth_atp=birth_atp,
+        mate_choice=mate_choice,
+        recombine=recombine,
+        parasite_n=len(parasites),
+        oscillation=oscillation,
+        host_frequencies=tuple(host_frequencies),
+        parasite_frequencies=tuple(parasite_frequencies),
+        unmated_by_generation=tuple(unmated_counts),
+        initial_frequencies=initial_windows,
+        energy_reset=True,
+        parasite_stock_fixed=len(parasites) == _PARASITE_N,
+        revision=CLOSED_LOOP_REVISION,
+        digest="",
+    )
+    digest = _record_digest(record.to_dict())
+    return MatchArmRecord(
+        mating=record.mating,
+        passage=record.passage,
+        generations=record.generations,
+        virulence=record.virulence,
+        final_hosts=record.final_hosts,
+        extinct=record.extinct,
+        cycles=record.cycles,
+        mating_fee_debits=record.mating_fee_debits,
+        match_debits_by_generation=record.match_debits_by_generation,
+        parasite_window=record.parasite_window,
+        final_windows=record.final_windows,
+        window_history=record.window_history,
+        seed=record.seed,
+        parasite_mutation=record.parasite_mutation,
+        specificity=record.specificity,
+        birth_atp=record.birth_atp,
+        mate_choice=record.mate_choice,
+        recombine=record.recombine,
+        parasite_n=record.parasite_n,
+        oscillation=record.oscillation,
+        host_frequencies=record.host_frequencies,
+        parasite_frequencies=record.parasite_frequencies,
+        unmated_by_generation=record.unmated_by_generation,
+        initial_frequencies=record.initial_frequencies,
+        energy_reset=record.energy_reset,
+        parasite_stock_fixed=record.parasite_stock_fixed,
+        revision=record.revision,
+        digest=digest,
     )
 
 
@@ -650,24 +876,6 @@ def _mating_name(organism: GenesisOrganism) -> str:
     if codon == OUTCROSS_SELFING_BITS:
         return "selfing"
     raise ConfigurationError("shared census requires selfing 000 or outcross 001")
-
-
-def _paired_outcross_children(
-    outcrossers: list[GenesisOrganism], *, generation: int, atp: float
-) -> tuple[list[GenesisOrganism], int]:
-    """Even pairs only. An unmated outcross codon leaves no child.
-
-    ``_outcross_children`` self-pairs a leftover and would double it. That
-    artifact is not mate limitation. Maynard Smith's two-fold cost is not
-    applied either: a mated pair still yields two offspring.
-    """
-
-    ordered = sorted(outcrossers, key=lambda org: org.id)
-    if len(ordered) < 2:
-        return [], len(ordered)
-    unmated = len(ordered) % 2
-    paired = ordered if unmated == 0 else ordered[:-1]
-    return _outcross_children(paired, generation=generation, atp=atp), unmated
 
 
 @dataclass(frozen=True, slots=True)
@@ -729,6 +937,8 @@ def run_shared_modifier(
     seed: int = P6_SEED,
     parasite_mutation: float = P6_PARASITE_MUTATION,
     specificity: str = "strict",
+    mate_choice: str = "random",
+    recombine: bool = True,
 ) -> SharedModifierRecord:
     """Shared matching-allele pressure on a mixed mating codon.
 
@@ -737,14 +947,21 @@ def run_shared_modifier(
     from the hosts that escaped.
     """
 
-    if passage not in {"coevolve", "frozen", "absent"}:
-        raise ConfigurationError("passage must be coevolve, frozen, or absent")
-    if generations < 1:
-        raise ConfigurationError("generations must be >= 1")
-    if virulence < 0.0:
-        raise ConfigurationError("virulence must be >= 0")
-    if not 0.0 <= parasite_mutation <= 1.0:
-        raise ConfigurationError("parasite_mutation must be in [0, 1]")
+    if passage not in {"coevolve", "frozen", "absent", "costless"}:
+        raise ConfigurationError("passage must be coevolve, frozen, absent, or costless")
+    generations = _require_int("generations", generations, minimum=1)
+    birth_atp = _require_finite("birth_atp", birth_atp, minimum=0.0)
+    if birth_atp <= 0.0:
+        raise ConfigurationError("birth_atp must be > 0")
+    virulence = _require_finite("virulence", virulence, minimum=0.0)
+    seed = _require_int("seed", seed, minimum=0)
+    parasite_mutation = _require_finite(
+        "parasite_mutation", parasite_mutation, minimum=0.0, maximum=1.0
+    )
+    if mate_choice not in {"random", "disassortative"}:
+        raise ConfigurationError("mate_choice must be random or disassortative")
+    if not isinstance(recombine, bool):
+        raise ConfigurationError("recombine must be a bool")
     if not founders:
         raise ConfigurationError("shared census requires a founder")
     specificity_weight("0", "0", specificity)
@@ -779,13 +996,17 @@ def run_shared_modifier(
         selfers = [org for org in hosts if _mating_name(org) == "selfing"]
         outcrossers = [org for org in hosts if _mating_name(org) == "outcross"]
         children = _selfing_children(selfers, generation=generation, atp=birth_atp)
-        paired, unmated = _paired_outcross_children(
-            outcrossers, generation=generation, atp=birth_atp
+        paired, unmated = mate_outcross(
+            outcrossers,
+            generation=generation,
+            atp=birth_atp,
+            mate_choice=mate_choice,
+            recombine=recombine,
         )
         children.extend(paired)
         for child in children:
             _charge_mating_fee(child, tick=generation)
-        if passage == "absent" or virulence == 0.0:
+        if passage == "absent":
             hosts = [child for child in children if child.atp_state.runtime_available > 0.0]
             match_debits.append(0)
         else:
@@ -796,6 +1017,7 @@ def run_shared_modifier(
                 virulence=virulence,
                 rng=rng,
                 specificity=specificity,
+                charge=passage != "costless" and virulence > 0.0,
             )
             match_debits.append(_match_debit_count(children, generation))
             parasites = _passage(
@@ -914,6 +1136,7 @@ def run_matching_allele_factorial(
         pattern = False
     return MatchingAlleleFactorial(
         arms=chosen,
+        grid=tuple(arms for _virulence, arms in rows),
         pattern_holds=pattern,
         red_queen_proved=False,
         biological_red_queen_proved=False,
@@ -921,10 +1144,14 @@ def run_matching_allele_factorial(
         predicate=P6_PREDICATE,
         open_problem=P6_OPEN_PROBLEM,
         debit_threshold=threshold,
+        first_tested_success=threshold,
+        threshold_kind="first_tested_grid_value",
         coevo_cycles=by_key[("outcross", "coevolve")].cycles,
         frozen_cycles=by_key[("outcross", "frozen")].cycles,
         low_debit_gap=low_gap,
         zero_debit_gap=zero_gap,
+        development_seed=seed == P6_SEED,
+        revision=CLOSED_LOOP_REVISION,
     )
 
 

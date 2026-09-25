@@ -8,7 +8,9 @@ Literature seeds (verified DOIs):
 Mechanism innovation lives in codontrace.life_loop.time_shift_assay
 (CohortArchive + cross-temporal match + match_linked_cycle /
 trait_escalation). HostParasiteWorld is a thin live witness only —
-no infection physics in engine.py. Claim ceiling: candidate_evidence /
+no infection physics in engine.py. A panel that passes on a mechanism
+built to cycle tests the detector. It is not a measurement of the
+closed-loop population. Claim ceiling: candidate_evidence /
 runtime_observation. red_queen_proved and arms_race_proved stay False.
 """
 

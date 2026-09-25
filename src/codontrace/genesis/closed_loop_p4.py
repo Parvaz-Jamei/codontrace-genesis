@@ -16,17 +16,16 @@ _birth_role. engine.py stays domain-free.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from typing import Any, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
+from typing import Any
 
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.closed_loop_p3 import ClosedLoopP3Session
 from codontrace.genesis.host_parasite_life_plugin import (
     P4_SCOPE,
     ROLE_PRIMARY,
     ROLE_SECONDARY,
-    ClosedLoopHPLifeConfig,
     role_of,
 )
 from codontrace.genesis.population import MutationConfig

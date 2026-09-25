@@ -6,8 +6,6 @@ import ast
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from codontrace.genesis.closed_loop_p1 import ClosedLoopP1Session
 from codontrace.genesis.closed_loop_p2 import ClosedLoopP2Session, replay_bit_identical
 from codontrace.genesis.host_parasite_life_plugin import P2_SCOPE, role_of

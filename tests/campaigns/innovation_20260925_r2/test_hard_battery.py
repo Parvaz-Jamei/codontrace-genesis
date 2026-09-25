@@ -42,7 +42,6 @@ from codontrace.life_loop import (
     apply_farm,
     betti_proxy,
     conformal_risk_band,
-    contrast_phenotype_maps,
     ess_invasion_indicator,
     hook_meter_transfer_entropy,
     mapper_cover_proxy,
@@ -357,8 +356,8 @@ def test_hard_r2_full_stack_world_farm_export_calib(tmp_path: Path) -> None:
 def test_hard_r2_claimgate_refuses_still_hard() -> None:
     """Scientific refuses remain hard — no soft-pass."""
 
-    from codontrace.life_loop.persistent_entropy import PersistentEntropySnapshot
     from codontrace.genesis.host_parasite_analytics import FrontDoorMediationContrast
+    from codontrace.life_loop.persistent_entropy import PersistentEntropySnapshot
 
     with pytest.raises(ConfigurationError, match="arms_race_proved"):
         PersistentEntropySnapshot(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
@@ -10,7 +11,16 @@ from codontrace.claimgate.adapters.codontrace_he03 import bundle_from_hard_exper
 from codontrace.errors import ConfigurationError
 
 
-def test_he03_adapter_refuses_missing_tree_artifact() -> None:
+def test_he03_adapter_refuses_missing_tree_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
+    missing = Path("/tmp/codontrace-he03-not-in-tree.json")
+    monkeypatch.setattr(
+        "codontrace.claimgate.adapters.codontrace_he03.committed_results_v1_path",
+        lambda: missing,
+    )
+    monkeypatch.setattr(
+        "codontrace.claimgate.adapters.codontrace_he03.committed_pilot_v1_path",
+        lambda: missing,
+    )
     with pytest.raises(ConfigurationError, match="not in the tree"):
         bundle_from_hard_experiment_03()
 

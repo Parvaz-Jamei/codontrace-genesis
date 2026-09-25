@@ -9,7 +9,6 @@ Targets phenomena peers struggle with, ClaimGate-honest:
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -288,9 +287,9 @@ def test_hard_claimgate_ceilings_intact() -> None:
 
     assert_baic_pins_untouched()
     # Attempting proved flips must raise
-    from codontrace.life_loop.topology_meters import TopologyMeterSnapshot
     from codontrace.life_loop.allele_association import AlleleAssociationResult
     from codontrace.life_loop.skyline_proxy import SkylineSeries, SkylineWindow
+    from codontrace.life_loop.topology_meters import TopologyMeterSnapshot
 
     with pytest.raises(ConfigurationError):
         TopologyMeterSnapshot(

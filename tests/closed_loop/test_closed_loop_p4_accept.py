@@ -6,8 +6,6 @@ import ast
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from codontrace.genesis.closed_loop_p3 import ClosedLoopP3Session
 from codontrace.genesis.closed_loop_p4 import (
     DualArmResult,

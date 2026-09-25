@@ -12,7 +12,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, TextIO
 
-from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest

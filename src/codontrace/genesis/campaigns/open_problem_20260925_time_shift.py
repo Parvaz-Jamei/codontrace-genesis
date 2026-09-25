@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any
 
 from codontrace._types import JsonValue
-from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.host_parasite_world import HostParasiteProfile, HostParasiteWorld
 from codontrace.life_loop.time_shift_assay import (

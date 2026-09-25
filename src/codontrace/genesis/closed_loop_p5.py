@@ -22,7 +22,6 @@ from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.host_parasite_life_plugin import (
     KAPPA_BIT_START,
     KAPPA_BIT_WIDTH,
-    OUTCROSS_BIT_START,
     OUTCROSS_BIT_WIDTH,
     OUTCROSS_OUT_BITS,
     OUTCROSS_SELFING_BITS,
@@ -31,10 +30,10 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_SECONDARY,
     ClosedLoopHPLifeConfig,
     assert_single_atp_owner,
+    coding_bits_for_execution,
     decode_kappa,
     decode_outcross,
     role_of,
-    coding_bits_for_execution,
     silence_outcross_locus,
     with_inherited_birth_roles,
 )

@@ -7,7 +7,6 @@ all tested mutants have invasion_score <= 0. Never ess_proved.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue

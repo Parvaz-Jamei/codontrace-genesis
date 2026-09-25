@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from codontrace.contracts import (
-    AblationArmEvent,
     BANNED_DOMAIN_TOKENS,
+    AblationArmEvent,
     ScheduleLockEvent,
     world_digest,
 )

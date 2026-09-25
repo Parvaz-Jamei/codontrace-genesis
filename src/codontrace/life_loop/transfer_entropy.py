@@ -7,7 +7,7 @@ Observation / predictive association only — never causality_proved.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
@@ -134,7 +134,7 @@ def transfer_entropy_lite(
         cyx[(ytm, xtm)] = cyx.get((ytm, xtm), 0) + c
     # also need p(y_{t-1})
     c_ytm: dict[int, int] = {}
-    for (yt, ytm, xtm), c in counts.items():
+    for (_yt, ytm, _xtm), c in counts.items():
         c_ytm[ytm] = c_ytm.get(ytm, 0) + c
     te = 0.0
     for (yt, ytm, xtm), c in cyyx.items():

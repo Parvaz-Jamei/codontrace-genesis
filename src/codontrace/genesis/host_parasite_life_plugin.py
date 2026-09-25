@@ -12,8 +12,8 @@ Birth energy partition itself lives in population.reproduce (engine-owned).
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.organism import GenesisOrganism

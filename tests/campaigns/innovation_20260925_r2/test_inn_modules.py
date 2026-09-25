@@ -5,6 +5,10 @@ from __future__ import annotations
 import pytest
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.host_parasite_analytics import (
+    FrontDoorMediationContrast,
+    run_front_door_mediation_contrast,
+)
 from codontrace.life_loop import (
     PhenotypeMap,
     PhenotypeRecord,
@@ -21,10 +25,6 @@ from codontrace.life_loop.ess_invasion import EssInvasionResult
 from codontrace.life_loop.persistent_entropy import PersistentEntropySnapshot
 from codontrace.life_loop.sparse_recovery import SparseRecoveryResult
 from codontrace.life_loop.transfer_entropy import TransferEntropyResult
-from codontrace.genesis.host_parasite_analytics import (
-    FrontDoorMediationContrast,
-    run_front_door_mediation_contrast,
-)
 
 
 def _triangle_map() -> PhenotypeMap:

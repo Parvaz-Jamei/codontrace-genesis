@@ -22,8 +22,8 @@ from codontrace.genesis.host_parasite_life_plugin import (
     coding_bits_for_execution,
     decode_kappa,
     decode_outcross,
-    outcross_runtime_cost,
     outcross_mates_compatible,
+    outcross_runtime_cost,
     resolve_copy_self_mode,
 )
 from codontrace.genesis.population import ReproductionConfig

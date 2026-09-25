@@ -10,10 +10,12 @@ import pytest
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.host_parasite_world import (
+    _BAIC_PINS as _BAIC,
+)
+from codontrace.genesis.host_parasite_world import (
     MATCH_RULE_IDS,
     HostParasiteProfile,
     HostParasiteWorld,
-    _BAIC_PINS as _BAIC,
 )
 from codontrace.life_loop import (
     ContactTransferPolicy,

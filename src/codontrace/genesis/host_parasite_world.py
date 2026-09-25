@@ -11,19 +11,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
-
-from dataclasses import replace
 
 from codontrace._types import JsonValue
 from codontrace.contracts import world_digest
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.energy import ATPAccount
 from codontrace.errors import ConfigurationError
-from codontrace.genome import SemanticGenome
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.host_parasite_he_hp_refresh import (
     validate_he_hp_locked_pack,
@@ -33,16 +30,18 @@ from codontrace.genesis.host_parasite_metrics import (
     HostParasitePreregSpec,
     build_metric_summary,
 )
-from codontrace.mutation import Mutation
-from codontrace.rng import RNGManager
+from codontrace.genome import SemanticGenome
 from codontrace.life_loop import (
     AblationTemplate,
     AttachmentBook,
     AttachmentSlot,
     ContactTransferPolicy,
     EnergyCoupling,
+    HookMeter,
     InheritAttachedPolicy,
     InheritAttemptCensus,
+    MatchRuleSpec,
+    PhenotypeMap,
     PopulationRegistry,
     ScheduleLock,
     ScheduleLockState,
@@ -50,14 +49,13 @@ from codontrace.life_loop import (
     apply_birth_inherit,
     apply_contact,
     apply_schedule_lock,
-    resolve_member_state,
-    HookMeter,
-    MatchRuleSpec,
-    PhenotypeMap,
     bind_match_rule,
     evaluate_match,
+    resolve_member_state,
     spec_for_mode,
 )
+from codontrace.mutation import Mutation
+from codontrace.rng import RNGManager
 
 SCHEMA_VERSION = "host_parasite_world_profile_v1"
 ADAPTER_SCHEMA = "host_parasite_locked_digest_adapter_v1"
@@ -144,7 +142,7 @@ def _check_digest(existing: str, computed: str, label: str) -> str:
 
 
 def _build_match_rule(
-    profile: "HostParasiteProfile",
+    profile: HostParasiteProfile,
     phenotype_map: PhenotypeMap,
 ) -> Callable[[str, str], bool | float]:
     """Bind a contact MatchRule from profile match_rule_id + phenotype map."""
@@ -175,7 +173,7 @@ def _build_match_rule(
     raise ConfigurationError(f"unknown match_rule_id {rule_id!r}.")
 
 
-def _phenotype_map_for(profile: "HostParasiteProfile") -> PhenotypeMap:
+def _phenotype_map_for(profile: HostParasiteProfile) -> PhenotypeMap:
     """Build opaque PhenotypeMap from profile.phenotype_tags (labels stay out of kernel)."""
 
     tags = dict(profile.phenotype_tags)
@@ -915,7 +913,7 @@ class HostParasiteWorld:
         for holder in primary_ids:
             slot_id = f"slot_{holder}"
             if slot_id not in self.book.list_slot_ids():
-                for occupant in secondary_ids:
+                for _occupant in secondary_ids:
                     self._bump_census(self.attach_fail_census, "slot_missing")
                 continue
             for occupant in secondary_ids:

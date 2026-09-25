@@ -97,6 +97,16 @@ from codontrace.genesis.food_patch_signal import (
     encode_patch_payload,
     spawn_patches_for_tick,
 )
+from codontrace.genesis.host_parasite_life_plugin import (
+    ClosedLoopHPLifeConfig,
+    apply_closed_loop_hp_life,
+    copy_self_chamber_refusal,
+    outcross_entry_plan,
+    outcross_fee_debit,
+    outcross_mates_compatible,
+    resolve_copy_self_mode,
+    silence_outcross_locus,
+)
 from codontrace.genesis.learning import LearningATPConfig
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
 from codontrace.genesis.logic9 import (
@@ -120,16 +130,6 @@ from codontrace.genesis.materials import (
 )
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
-from codontrace.genesis.host_parasite_life_plugin import (
-    ClosedLoopHPLifeConfig,
-    apply_closed_loop_hp_life,
-    copy_self_chamber_refusal,
-    outcross_entry_plan,
-    outcross_fee_debit,
-    outcross_mates_compatible,
-    resolve_copy_self_mode,
-    silence_outcross_locus,
-)
 from codontrace.genesis.phase_e import (
     DemeMessage,
     DemeState,
@@ -5486,9 +5486,11 @@ def _drain_chamber_pairs(
         life = configs.closed_loop_hp_life
         compatible = None
         if life.outcross_enabled and life.outcross_same_role_only:
-            compatible = lambda first, second, _life=life: outcross_mates_compatible(
-                first.parent_id, second.parent_id, _life
-            )
+
+            def _same_role(first, second, _life=life):
+                return outcross_mates_compatible(first.parent_id, second.parent_id, _life)
+
+            compatible = _same_role
         pair = select_chamber_pair(
             waiting,
             same_length_only=sexual_cfg.same_length_only,

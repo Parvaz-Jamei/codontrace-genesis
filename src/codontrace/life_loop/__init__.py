@@ -13,11 +13,20 @@ from codontrace.life_loop.ablation_template import (
     he02_axis_mode,
     mode_axes,
 )
+from codontrace.life_loop.allele_association import (
+    AlleleAssociationResult,
+    AlleleAssociationScore,
+    allele_outcome_association,
+)
 from codontrace.life_loop.attachment import (
     ATTACH_FAIL_REASONS,
     AttachFailReason,
     AttachmentBook,
     AttachmentSlot,
+)
+from codontrace.life_loop.conformal_bands import (
+    ConformalBandResult,
+    conformal_risk_band,
 )
 from codontrace.life_loop.contact import (
     CANDIDATE_MODES,
@@ -38,6 +47,33 @@ from codontrace.life_loop.energy_coupling import (
     EnergyCoupling,
     EnergyTransferLedgerEntry,
 )
+from codontrace.life_loop.ess_invasion import (
+    EssInvasionResult,
+    InvasionScore,
+    ess_invasion_indicator,
+)
+from codontrace.life_loop.export_csv import (
+    hook_meter_snapshot_to_rows,
+    write_hook_meter_csv,
+)
+from codontrace.life_loop.farm_orchestrator import (
+    FarmApplyRecord,
+    FarmPlan,
+    apply_farm,
+)
+from codontrace.life_loop.hook_meters import (
+    RELATED_TALLY_KEYS,
+    HookMeter,
+    HookMeterSnapshot,
+    merge_fail_reason_histogram,
+)
+from codontrace.life_loop.info_geometry import (
+    InfoGeometryContrast,
+    contrast_phenotype_maps,
+    fisher_simplex_distance,
+    js_divergence,
+    phenotype_tag_frequencies,
+)
 from codontrace.life_loop.inherit_attached import (
     INHERIT_FAIL_REASONS,
     INHERIT_MODES,
@@ -47,26 +83,13 @@ from codontrace.life_loop.inherit_attached import (
     InheritMode,
     apply_birth_inherit,
 )
-from codontrace.life_loop.populations import (
-    SCHEMA_VERSION,
-    PopulationRecord,
-    PopulationRegistry,
-)
-from codontrace.life_loop.hook_meters import (
-    RELATED_TALLY_KEYS,
-    HookMeter,
-    HookMeterSnapshot,
-    merge_fail_reason_histogram,
-)
-from codontrace.life_loop.phenotype import (
-    PhenotypeMap,
-    PhenotypeRecord,
+from codontrace.life_loop.mapper_cover import (
+    MapperCoverSnapshot,
+    mapper_cover_proxy,
 )
 from codontrace.life_loop.match_rules import (
     MATCH_FAIL_REASONS,
-    MATCH_MODES,
     MatchFailReason,
-    MatchMode,
     MatchOutcome,
     MatchRuleSpec,
     bind_match_rule,
@@ -75,11 +98,19 @@ from codontrace.life_loop.match_rules import (
     score_phenotypes,
     spec_for_mode,
 )
-from codontrace.life_loop.export_csv import (
-    hook_meter_snapshot_to_rows,
-    write_hook_meter_csv,
+from codontrace.life_loop.persistent_entropy import (
+    PersistentEntropySnapshot,
+    persistent_entropy_proxy,
 )
-
+from codontrace.life_loop.phenotype import (
+    PhenotypeMap,
+    PhenotypeRecord,
+)
+from codontrace.life_loop.populations import (
+    SCHEMA_VERSION,
+    PopulationRecord,
+    PopulationRegistry,
+)
 from codontrace.life_loop.schedule_lock import (
     LOCK_MODES,
     SCHEDULE_LOCK_FAIL_REASONS,
@@ -94,67 +125,20 @@ from codontrace.life_loop.schedule_lock import (
     resolve_member_state,
     resolve_target_members,
 )
-
-
-from codontrace.life_loop.topology_meters import (
-    TopologyMeterSnapshot,
-    betti_proxy,
-    topology_continuum_structure,
-)
-from codontrace.life_loop.info_geometry import (
-    InfoGeometryContrast,
-    contrast_phenotype_maps,
-    fisher_simplex_distance,
-    js_divergence,
-    phenotype_tag_frequencies,
-)
 from codontrace.life_loop.skyline_proxy import (
     SkylineSeries,
     SkylineWindow,
     skyline_ne_proxy,
-)
-from codontrace.life_loop.farm_orchestrator import (
-    FarmApplyRecord,
-    FarmPlan,
-    apply_farm,
-)
-from codontrace.life_loop.persistent_entropy import (
-    PersistentEntropySnapshot,
-    persistent_entropy_proxy,
-)
-from codontrace.life_loop.mapper_cover import (
-    MapperCoverSnapshot,
-    mapper_cover_proxy,
-)
-from codontrace.life_loop.spectral_structure import (
-    SpectralStructureSnapshot,
-    spectral_laplacian_structure,
-)
-from codontrace.life_loop.transfer_entropy import (
-    TransferEntropyResult,
-    hook_meter_transfer_entropy,
-)
-from codontrace.life_loop.conformal_bands import (
-    ConformalBandResult,
-    conformal_risk_band,
-)
-from codontrace.life_loop.ess_invasion import (
-    EssInvasionResult,
-    InvasionScore,
-    ess_invasion_indicator,
 )
 from codontrace.life_loop.sparse_recovery import (
     SparseCoefficient,
     SparseRecoveryResult,
     sparse_phenotype_recovery,
 )
-
-from codontrace.life_loop.allele_association import (
-    AlleleAssociationResult,
-    AlleleAssociationScore,
-    allele_outcome_association,
+from codontrace.life_loop.spectral_structure import (
+    SpectralStructureSnapshot,
+    spectral_laplacian_structure,
 )
-
 from codontrace.life_loop.time_shift_assay import (
     ABLATION_ARMS,
     MATCH_MODES,
@@ -177,6 +161,15 @@ from codontrace.life_loop.time_shift_assay import (
     run_time_shift_panel,
     step_match_linked_cycle,
     step_trait_escalation,
+)
+from codontrace.life_loop.topology_meters import (
+    TopologyMeterSnapshot,
+    betti_proxy,
+    topology_continuum_structure,
+)
+from codontrace.life_loop.transfer_entropy import (
+    TransferEntropyResult,
+    hook_meter_transfer_entropy,
 )
 
 __all__ = [

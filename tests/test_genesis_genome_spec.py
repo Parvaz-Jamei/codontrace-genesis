@@ -29,8 +29,8 @@ def test_binary4_and_ternary2_work() -> None:
 
 
 def test_mention_spans_stay_off_the_default_tape() -> None:
-    from codontrace.genome import BitSpan
     from codontrace.genesis.population import MutationConfig, mutate_genome
+    from codontrace.genome import BitSpan
 
     plain = SemanticGenome.from_compact("101111000")
     assert "spans" not in plain.to_dict()

@@ -8,7 +8,6 @@ LAPSTRUCT / Spectral-GEM — observation only.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
@@ -83,7 +82,7 @@ def _jacobi_eigenvalues(matrix: list[list[float]], *, max_sweeps: int = 64) -> l
         c = 1.0 / math.sqrt(1.0 + t * t)
         s = t * c
         for i in range(n):
-            if i == p or i == q:
+            if i in (p, q):
                 continue
             aip, aiq = a[i][p], a[i][q]
             a[i][p] = a[p][i] = c * aip - s * aiq

@@ -5,6 +5,10 @@ from __future__ import annotations
 import pytest
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.host_parasite_analytics import (
+    DidInterventionContrast,
+    run_did_intervention_contrast,
+)
 from codontrace.life_loop import (
     AblationTemplate,
     FarmPlan,
@@ -21,10 +25,6 @@ from codontrace.life_loop import (
     phenotype_tag_frequencies,
     skyline_ne_proxy,
     topology_continuum_structure,
-)
-from codontrace.genesis.host_parasite_analytics import (
-    DidInterventionContrast,
-    run_did_intervention_contrast,
 )
 
 

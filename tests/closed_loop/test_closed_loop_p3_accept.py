@@ -16,7 +16,6 @@ from codontrace.genesis.closed_loop_p3 import (
 from codontrace.genesis.host_parasite_life_plugin import (
     KAPPA_TRANSFER_CLAMP,
     P3_SCOPE,
-    decode_kappa,
     kappa_transfer_amount,
 )
 from codontrace.genesis.host_parasite_world import HostParasiteWorld
@@ -40,7 +39,6 @@ def test_p3_kappa_from_fixed_bit_window_both_roles() -> None:
         for n in tree.body
         if isinstance(n, ast.FunctionDef) and n.name == "decode_kappa"
     )
-    body_src = ast.get_source_segment(src, fn) or ""
     # Docstring may mention 0.8; executable constants inside decode must not.
     for node in ast.walk(fn):
         if isinstance(node, ast.Constant) and node.value == 0.8:

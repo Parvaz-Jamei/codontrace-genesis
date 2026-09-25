@@ -16,7 +16,6 @@ from codontrace.genesis.host_parasite_metrics import (
     HostParasiteMetricSummary,
     HostParasitePreregSpec,
     SeedPlanSpec,
-    build_metric_summary,
 )
 from codontrace.genesis.host_parasite_world import (
     HostParasiteProfile,
@@ -242,9 +241,6 @@ def test_static_audit_no_physics_no_claimgate_in_meters() -> None:
             assert "host_para" + "site" not in low
     assert "HostParasiteEnv" not in meter_src
     assert "steal_fraction" not in meter_src
-    for banned in ("parasite", "infection", "virulence", "host_state"):
-        # allow comments? keep module free of domain nouns in identifiers — check AST names
-        pass
     tree = ast.parse(meter_src)
     names: set[str] = set()
     for node in ast.walk(tree):

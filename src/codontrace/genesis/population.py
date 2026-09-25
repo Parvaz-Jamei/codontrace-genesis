@@ -3078,8 +3078,9 @@ def step_population(
                     tick=current_tick,
                 )
                 organism = mutated[0]
-                if configs.closed_loop_hp_life.outcross_enabled:
-                    silence_outcross_locus(organism, configs.closed_loop_hp_life)
+                life = configs.closed_loop_hp_life
+                if life.outcross_enabled or life.match_locus_enabled:
+                    silence_outcross_locus(organism, life)
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
                 if configs.capsule_transfer is not None and configs.capsule_transfer.enabled:
@@ -3661,8 +3662,9 @@ def step_population(
                     if child is None:
                         raise RuntimeError("finalized reproduction unexpectedly lost child")
                     children.append(child)
-                    if configs.closed_loop_hp_life.outcross_enabled:
-                        silence_outcross_locus(child, configs.closed_loop_hp_life)
+                    life = configs.closed_loop_hp_life
+                    if life.outcross_enabled or life.match_locus_enabled:
+                        silence_outcross_locus(child, life)
                     live_positions[child.id] = child.position
                     if reproduction_result.lineage is not None:
                         lineage += (reproduction_result.lineage,)
@@ -5448,8 +5450,9 @@ def _commit_newborn(
     if child is None:
         raise RuntimeError("finalized reproduction unexpectedly lost child")
     children.append(child)
-    if configs.closed_loop_hp_life.outcross_enabled:
-        silence_outcross_locus(child, configs.closed_loop_hp_life)
+    life = configs.closed_loop_hp_life
+    if life.outcross_enabled or life.match_locus_enabled:
+        silence_outcross_locus(child, life)
     live_positions[child.id] = child.position
     placements.append(_birth_placement_record(parent, child))
     if reproduction_result.lineage is not None:

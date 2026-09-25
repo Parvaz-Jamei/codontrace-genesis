@@ -30,6 +30,7 @@ P2_SCOPE = "smith_fretwell_n1_birth_partition"
 P3_SCOPE = "scalar_genetic_harm_help_kappa"
 P4_SCOPE = "mutation_stream_lock_dual_arm_replay"
 P5_SCOPE = "outcross_locus_mating_effort_cost"
+P6_SCOPE = "matching_allele_passage_on_existing_atp"
 
 # Fixed bit-window for kappa decode (both roles). Post-f(κ) clamp is NOT a gene.
 KAPPA_BIT_START = 9
@@ -43,6 +44,10 @@ OUTCROSS_BIT_START = KAPPA_BIT_START + KAPPA_BIT_WIDTH
 OUTCROSS_BIT_WIDTH = 3
 OUTCROSS_SELFING_BITS = "000"
 OUTCROSS_OUT_BITS = "001"
+# Two codons after the mating locus. Silent when match_locus_enabled.
+# Exact equality of this window is the individual matching-allele test.
+MATCH_BIT_START = OUTCROSS_BIT_START + OUTCROSS_BIT_WIDTH
+MATCH_BIT_WIDTH = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,10 +77,16 @@ class ClosedLoopHPLifeConfig:
     outcross_bit_width: int = OUTCROSS_BIT_WIDTH
     outcross_runtime_atp: float = 1.0
     outcross_same_role_only: bool = True
+    # P6: silent recognition window. Off leaves P1–P5 byte-identical.
+    match_locus_enabled: bool = False
+    match_bit_start: int = MATCH_BIT_START
+    match_bit_width: int = MATCH_BIT_WIDTH
 
     def __post_init__(self) -> None:
         if self.outcross_runtime_atp < 0.0:
             raise ConfigurationError("outcross_runtime_atp must be >= 0")
+        if self.match_bit_start < 0 or self.match_bit_width <= 0:
+            raise ConfigurationError("match window must start at >= 0 and have width > 0")
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -109,6 +120,16 @@ class ClosedLoopHPLifeConfig:
             payload["outcross_runtime_atp"] = self.outcross_runtime_atp
             payload["outcross_same_role_only"] = self.outcross_same_role_only
             payload["p5_scope"] = P5_SCOPE
+        match_nondefault = (
+            self.match_locus_enabled
+            or self.match_bit_start != MATCH_BIT_START
+            or self.match_bit_width != MATCH_BIT_WIDTH
+        )
+        if match_nondefault:
+            payload["match_locus_enabled"] = self.match_locus_enabled
+            payload["match_bit_start"] = self.match_bit_start
+            payload["match_bit_width"] = self.match_bit_width
+            payload["p6_scope"] = P6_SCOPE
         return payload
 
     def locked_roles(self) -> frozenset[str]:
@@ -148,6 +169,9 @@ class ClosedLoopHPLifeConfig:
             outcross_bit_width=int(data.get("outcross_bit_width", OUTCROSS_BIT_WIDTH)),
             outcross_runtime_atp=float(data.get("outcross_runtime_atp", 1.0)),
             outcross_same_role_only=bool(data.get("outcross_same_role_only", True)),
+            match_locus_enabled=bool(data.get("match_locus_enabled", False)),
+            match_bit_start=int(data.get("match_bit_start", MATCH_BIT_START)),
+            match_bit_width=int(data.get("match_bit_width", MATCH_BIT_WIDTH)),
         )
 
     def role_map(self) -> dict[str, str]:
@@ -345,16 +369,35 @@ def outcross_entry_plan(
     return fee, None
 
 
-def coding_bits_for_execution(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
-    """Program the body runs. The outcross codon stays on the genome and off the brain."""
+def decode_recognition(
+    genome_bits: str,
+    *,
+    bit_start: int = MATCH_BIT_START,
+    bit_width: int = MATCH_BIT_WIDTH,
+) -> str:
+    """Silent recognition window. Empty when the tape is too short or not binary."""
 
-    if not config.outcross_enabled:
-        return str(genome_bits)
+    if bit_width <= 0 or bit_start < 0:
+        raise ConfigurationError("recognition window is invalid")
+    window = str(genome_bits)[bit_start : bit_start + bit_width]
+    if len(window) < bit_width or any(ch not in "01" for ch in window):
+        return ""
+    return window
+
+
+def coding_bits_for_execution(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
+    """Program the body runs. Mating and recognition windows stay off the brain."""
+
     bits = str(genome_bits)
-    # Drop from the right. Kappa is not an action unless that coupling is on.
-    windows = [(config.outcross_bit_start, config.outcross_bit_width)]
-    if not config.kappa_enabled:
-        windows.append((config.kappa_bit_start, config.kappa_bit_width))
+    windows: list[tuple[int, int]] = []
+    if config.outcross_enabled:
+        windows.append((config.outcross_bit_start, config.outcross_bit_width))
+        if not config.kappa_enabled:
+            windows.append((config.kappa_bit_start, config.kappa_bit_width))
+    if config.match_locus_enabled:
+        windows.append((config.match_bit_start, config.match_bit_width))
+    if not windows:
+        return bits
     for start, width in sorted(windows, reverse=True):
         if start < 0 or width <= 0 or len(bits) < start + width:
             continue
@@ -448,6 +491,7 @@ __all__ = [
     "P3_SCOPE",
     "P4_SCOPE",
     "P5_SCOPE",
+    "P6_SCOPE",
     "KAPPA_BIT_START",
     "KAPPA_BIT_WIDTH",
     "KAPPA_TRANSFER_CLAMP",
@@ -455,6 +499,8 @@ __all__ = [
     "OUTCROSS_BIT_WIDTH",
     "OUTCROSS_SELFING_BITS",
     "OUTCROSS_OUT_BITS",
+    "MATCH_BIT_START",
+    "MATCH_BIT_WIDTH",
     "ClosedLoopHPLifeConfig",
     "role_of",
     "assert_single_atp_owner",
@@ -463,6 +509,7 @@ __all__ = [
     "decode_kappa",
     "kappa_transfer_amount",
     "decode_outcross",
+    "decode_recognition",
     "outcross_runtime_cost",
     "outcross_fee_debit",
     "copy_self_chamber_refusal",

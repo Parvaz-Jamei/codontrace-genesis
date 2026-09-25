@@ -52,22 +52,42 @@ Outcross × coevolve, virulence 32, four generations, birth ATP 10:
 
 `frequency_cycles` on that history is true. `debit_backed_cycle` is false,
 and the arm's `cycles` flag is false. Holling type II at H=1 is
-`virulence / 2`: 16 at virulence 32, 10 at 20, 8 at 16. Birth ATP is 10, so
-virulence 32 kills every match. The density shape is not identified there.
+`virulence / 2`: 16 at virulence 32, 10 at 20, 8 at 16. Birth ATP is 10.
+A one-copy hit at virulence 32 empties the account. The same unpaid orbit
+is already present at virulence 16 on outcross × coevolve: debits
+`2, 0, 0, 0`, not extinct, `cycles` false. Virulence 32 is not a separate
+onset, and the density shape is not identified on that outcross arm.
 
-Selfing × coevolve goes extinct at virulence 20 and at 32, and not at 16.
-Outcross × coevolve does not go extinct at those three values, and its
-`cycles` flag stays false. A survival gap without a debit inside the repeat
-is not the maintenance of sex.
+Density does separate selfing at virulence 16. Holling type II on three
+copies is `16 * 3/4 = 12`, above the birth account, and on one copy is 8,
+below it. Generation 0 removes the common window. The survivor is
+`111000`. Under coevolve the antagonist moves to that window and debits it
+on generations 1–3 (`3, 1, 1, 1`) without emptying the account, so the arm
+is not extinct and the type-set does not return through a different set.
+Under frozen the antagonist stays `000111`, which misses `111000`, and
+later debits are `3, 0, 0, 0`. At virulence 20 the one-copy cost equals
+10, the hit drains the birth account, and selfing × coevolve is extinct
+(`3, 1, 0, 0`). The same extinction holds at 32. Outcross × coevolve is
+not extinct at 16, 20, or 32, and its `cycles` flag stays false. A
+survival gap without a debit inside the repeat is not the maintenance of
+sex.
 
 ## 4. A paid name flip under a frozen window is still not the flag
 
 Frozen passage, virulence 16, outcross: match debits are `2, 1, 0, 1`.
 The same two window sets alternate, and `debit_backed_cycle` is true because
-generations 0, 1, and 3 pay. The antagonist window is not updated. A cycle
-clause that ignores whether types update would accept this arm. The
-factorial therefore leaves `pattern_holds` false, `debit_threshold` unset,
-and `red_queen_proved` false. Ceiling remains `runtime_observation`.
+generations 0, 1, and 3 pay. The antagonist window stays `000111`. A cycle
+clause that ignores whether types update would accept this arm.
+
+The factorial does not select that arm. No cell on the declared grid
+clears the full rule, so the chosen row is the last survival gap,
+virulence 64. On that row the frozen outcross debits are `2, 1, 0, 0` and
+`cycles` is false, so `frozen_cycles` on the factorial is false.
+`low_debit_gap` is true because selfing × coevolve is already extinct at
+20, 32, and 64 while outcross × coevolve is not. `pattern_holds` is false,
+`debit_threshold` is unset, and `red_queen_proved` is false. Ceiling
+remains `runtime_observation`. The paid flip at virulence 16 is not
+`factorial.frozen_cycles`.
 
 `absent` still skips the window update together with the debit, so it is
 not a pure zero-debit cut (Pearl, Biometrika 82:669–688, 1995,

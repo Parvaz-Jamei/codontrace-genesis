@@ -158,3 +158,93 @@ def test_recognition_stays_off_the_brain_and_out_of_the_default_config() -> None
     )
     assert "HostParasiteWorld" not in source
     assert "run_type2_campaign" not in source
+
+
+def test_debit_inside_the_repeat_is_the_cycle_not_the_first_visit() -> None:
+    orbit = (("000000",), ("111111",), ("000000",))
+    assert frequency_cycles(orbit) is True
+    assert frequency_cycles((("000000",), ("000000",))) is False
+    assert debit_backed_cycle(orbit, (1, 0, 0)) is False
+    assert debit_backed_cycle(orbit, (0, 1, 0)) is True
+    with pytest.raises(ConfigurationError, match="match debits"):
+        debit_backed_cycle(orbit, (0, 0))
+
+
+def test_holling_crosses_the_birth_account_with_density() -> None:
+    """Birth ATP is 10. H=1 is virulence/2. Three copies use 3/4 of virulence."""
+
+    assert holling_type2_cost(16.0, 1) == 8.0
+    assert holling_type2_cost(16.0, 3) == 12.0
+    assert holling_type2_cost(20.0, 1) == 10.0
+    assert holling_type2_cost(32.0, 1) == 16.0
+    with pytest.raises(ConfigurationError, match="virulence"):
+        holling_type2_cost(-1.0, 1)
+
+
+def test_density_keeps_one_selfing_host_at_16_and_kills_the_arm_at_20() -> None:
+    lived = run_match_arm(mating="selfing", passage="coevolve", virulence=16.0, generations=4)
+    assert lived.extinct is False
+    assert lived.final_hosts == 1
+    assert lived.cycles is False
+    assert lived.match_debits_by_generation == (3, 1, 1, 1)
+    assert lived.window_history == (("111000",), ("111000",), ("111000",), ("111000",))
+    assert lived.parasite_window == "111000"
+    frozen = run_match_arm(mating="selfing", passage="frozen", virulence=16.0, generations=4)
+    assert frozen.extinct is False
+    assert frozen.parasite_window == "000111"
+    assert frozen.match_debits_by_generation == (3, 0, 0, 0)
+    for virulence in (20.0, 32.0):
+        dead = run_match_arm(
+            mating="selfing", passage="coevolve", virulence=virulence, generations=4
+        )
+        assert dead.extinct is True
+        assert dead.cycles is False
+        assert dead.match_debits_by_generation == (3, 1, 0, 0)
+
+
+def test_outcross_survival_gap_is_an_unpaid_orbit_from_16_through_32() -> None:
+    for virulence in (16.0, 20.0, 32.0):
+        arm = run_match_arm(
+            mating="outcross", passage="coevolve", virulence=virulence, generations=4
+        )
+        assert arm.extinct is False
+        assert arm.cycles is False
+        assert arm.match_debits_by_generation == (2, 0, 0, 0)
+        assert frequency_cycles(arm.window_history) is True
+
+
+def test_frozen_paid_flip_does_not_become_the_factorial_cycle() -> None:
+    paid = run_match_arm(mating="outcross", passage="frozen", virulence=16.0, generations=4)
+    assert paid.match_debits_by_generation == (2, 1, 0, 1)
+    assert paid.cycles is True
+    assert paid.parasite_window == "000111"
+    assert paid.window_history[2] == paid.window_history[0]
+    absent = run_match_arm(mating="outcross", passage="absent", virulence=32.0, generations=4)
+    assert absent.match_debits_by_generation == (0, 0, 0, 0)
+    assert absent.final_hosts == 4
+    assert absent.parasite_window == "000111"
+    assert "000111" in absent.window_history[0]
+    result = run_matching_allele_factorial(generations=4)
+    assert result.arms[0].virulence == 64.0
+    assert result.low_debit_gap is True
+    assert result.frozen_cycles is False
+    assert result.coevo_cycles is False
+    assert result.zero_debit_gap is False
+    assert result.pattern_holds is False
+    assert result.debit_threshold is None
+    assert result.red_queen_proved is False
+
+
+def test_host_parasite_profile_blocks_intelligence_words() -> None:
+    for claim in ("intelligence", "collective_intelligence", "agi", "tokyo_type1_passed"):
+        with pytest.raises(ConfigurationError, match="blocked"):
+            assert_claim_allowed(claim)
+
+
+def test_refused_mating_and_passage_do_not_run() -> None:
+    with pytest.raises(ConfigurationError, match="mating"):
+        run_match_arm(mating="mixed", passage="absent", virulence=0.0)
+    with pytest.raises(ConfigurationError, match="passage"):
+        run_match_arm(mating="selfing", passage="knockout", virulence=0.0)
+    with pytest.raises(ConfigurationError, match="virulence"):
+        run_match_arm(mating="selfing", passage="absent", virulence=-0.1)

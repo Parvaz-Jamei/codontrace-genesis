@@ -1,5 +1,9 @@
 # Closed-loop P6 status — 2026-09-25
 
+The claim below that `red_queen_proved` is true is not accepted.
+See [CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md](CLOSED_LOOP_P6_ROUND5_INSTRUCTION_20260925.md).
+The flag in code has not been retracted yet. That retraction is instruction A.
+
 Scope: matching-allele contact on the existing ATP clock. The design lock is
 [CLOSED_LOOP_P6_STORM_20260925.md](CLOSED_LOOP_P6_STORM_20260925.md).
 

@@ -71,6 +71,42 @@ def test_tail_is_not_executed_for_two_generations() -> None:
                 assert entry.get("codon") not in {"001", "100"}
 
 
+def test_unpaid_copy_does_not_enter_birth() -> None:
+    session = ClosedLoopP5Session.boot(
+        seed=11,
+        n_primary=2,
+        n_secondary=0,
+        initial_atp=5.0,
+        place_food=False,
+        basal_atp_cost=0.0,
+    )
+    summary = session.run_ticks(1)
+    assert summary["births"] == 0
+    assert summary["outcross_debit_events"] == 0
+    assert session.runner.population.birth_chamber.waiting == ()
+
+
+def test_digest_sees_a_waiting_slot() -> None:
+    from dataclasses import replace
+
+    session = ClosedLoopP5Session.boot(
+        seed=11, n_primary=1, n_secondary=1, outcross_same_role_only=True
+    )
+    session.run_ticks(1)
+    waiting = session.runner.population.birth_chamber.waiting
+    assert waiting
+    before = session.snapshot_digest()
+    slot = waiting[0]
+    session.runner.population = replace(
+        session.runner.population,
+        birth_chamber=replace(
+            session.runner.population.birth_chamber,
+            waiting=(replace(slot, offspring_runtime_atp=slot.offspring_runtime_atp + 1.0),),
+        ),
+    )
+    assert session.snapshot_digest() != before
+
+
 def test_window_does_not_move_kappa() -> None:
     bits = _quiet_outcross()
     assert bits[:9] == "101111000"

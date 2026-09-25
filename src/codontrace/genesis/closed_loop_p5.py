@@ -34,6 +34,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     decode_kappa,
     decode_outcross,
     role_of,
+    coding_bits_for_execution,
     silence_outcross_locus,
     with_inherited_birth_roles,
 )
@@ -288,6 +289,14 @@ class ClosedLoopP5Session:
             "debits": self.outcross_debit_events,
             "recomb": self.recombination_births,
             "asex": self.asexual_births,
+            "chamber": [
+                {
+                    "parent": slot.parent_id,
+                    "genome": slot.genome_digest,
+                    "atp": float(slot.offspring_runtime_atp),
+                }
+                for slot in self.runner.population.birth_chamber.waiting
+            ],
         }
         return canonical_digest(payload, prefix="clp5snap")
 
@@ -345,6 +354,14 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
         org = next(item for item in session.runner.population.organisms if item.id == organism_id)
         return "".join(token.bits for token in org.compiled_brain.tokens)
 
+    def _every_brain_is_coding(session: ClosedLoopP5Session) -> bool:
+        life = session.runner.configs.closed_loop_hp_life
+        for org in session.runner.population.organisms:
+            brain = "".join(token.bits for token in org.compiled_brain.tokens)
+            if brain != coding_bits_for_execution(org.genome.to_compact(), life):
+                return False
+        return True
+
     brains = {name: _brain(session, "org_a0") for name, session in arms.items()}
     brains_b = {name: _brain(session, "org_a1") for name, session in arms.items()}
     genome = next(item for item in arms["outcross"].runner.population.organisms if item.id == "org_a0")
@@ -356,6 +373,7 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
     bodies_match = (
         brains["outcross"] == brains["selfing"] == brains["ablation"] == coding
         and brains_b["outcross"] == brains_b["selfing"] == brains_b["ablation"] == mate_coding
+        and all(_every_brain_is_coding(session) for session in arms.values())
     )
     sex_line_only_on_outcross = (
         summaries["outcross"]["outcross_debit_events"] >= 1

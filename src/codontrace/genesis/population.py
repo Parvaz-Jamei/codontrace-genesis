@@ -3409,9 +3409,17 @@ def step_population(
                     blocked_ratio=0.0,
                 )
             if event.action == "COPY_SELF":
-                attempts += 1
                 life = configs.closed_loop_hp_life
                 copy_mode = resolve_copy_self_mode(organism.genome.to_compact(), life)
+                codon_ran = (
+                    event.world_delta.get("reproduction") == "population_lifecycle_required"
+                )
+                enters_chamber = copy_mode == "chamber" or (
+                    copy_mode != "asexual" and sexual_cfg.uses_birth_chamber
+                )
+                if enters_chamber and not codon_ran:
+                    continue
+                attempts += 1
                 if copy_mode == "chamber" and not sexual_cfg.uses_birth_chamber:
                     blocked_reproduction += 1
                     reproduction_result = _blocked_reproduction_result(
@@ -3614,6 +3622,8 @@ def step_population(
                     if child is None:
                         raise RuntimeError("finalized reproduction unexpectedly lost child")
                     children.append(child)
+                    if configs.closed_loop_hp_life.outcross_enabled:
+                        silence_outcross_locus(child, configs.closed_loop_hp_life)
                     live_positions[child.id] = child.position
                     if reproduction_result.lineage is not None:
                         lineage += (reproduction_result.lineage,)
@@ -5357,6 +5367,8 @@ def _commit_newborn(
     if child is None:
         raise RuntimeError("finalized reproduction unexpectedly lost child")
     children.append(child)
+    if configs.closed_loop_hp_life.outcross_enabled:
+        silence_outcross_locus(child, configs.closed_loop_hp_life)
     live_positions[child.id] = child.position
     placements.append(_birth_placement_record(parent, child))
     if reproduction_result.lineage is not None:

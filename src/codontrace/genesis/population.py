@@ -125,8 +125,8 @@ from codontrace.genesis.host_parasite_life_plugin import (
     apply_closed_loop_hp_life,
     charge_outcross_runtime,
     outcross_mates_compatible,
-    outcross_runtime_cost,
     resolve_copy_self_mode,
+    outcross_entry_plan,
     silence_outcross_locus,
 )
 from codontrace.genesis.phase_e import (
@@ -1797,6 +1797,17 @@ def mutate_genome(
         raise ConfigurationError(msg)
     compact = "".join(symbols[:complete_len])
     mutated = SemanticGenome.from_compact(compact, spec=spec)
+    if genome.spans:
+        from codontrace.genome import rebase_spans
+
+        mutated = mutated.with_spans(
+            rebase_spans(
+                genome.spans,
+                tuple(operations),
+                codon_width=spec.codon_width,
+                original_length=len(genome.to_compact()),
+            )
+        )
     return MutationResult(
         original_genome=genome,
         mutated_genome=mutated,
@@ -2108,6 +2119,24 @@ def _blocked_reproduction_result(
     )
 
 
+def _genome_after_swap(parent, mate, recombination) -> SemanticGenome:
+    """Bits from the swap. Spans are spliced only when a parent actually has them."""
+
+    genome = SemanticGenome.from_compact(
+        recombination.child_genome_bits, spec=parent.genome.spec
+    )
+    outer = parent.genome.spans
+    inner = mate.genome.spans if mate is not None else ()
+    if not outer and not inner:
+        return genome
+    from codontrace.genome import splice_spans
+
+    spliced = splice_spans(outer, inner, recombination.start_index, recombination.end_index)
+    if not spliced:
+        return genome
+    return genome.with_spans(spliced)
+
+
 def reproduce(
     parent: GenesisOrganism,
     config: ReproductionConfig,
@@ -2378,9 +2407,7 @@ def reproduce(
     recombination = recombination_record
     source_genome = parent.genome
     if recombination is not None:
-        source_genome = SemanticGenome.from_compact(
-            recombination.child_genome_bits, spec=parent.genome.spec
-        )
+        source_genome = _genome_after_swap(parent, mate, recombination)
     elif config.is_sexual and not skip_parent_costs:
         if mate is None:
             return _blocked_reproduction_result(
@@ -2420,9 +2447,7 @@ def reproduce(
                     reason="recombination_no_overlapping_codon",
                     capacity_available=True,
                 )
-            source_genome = SemanticGenome.from_compact(
-                recombination.child_genome_bits, spec=parent.genome.spec
-            )
+            source_genome = _genome_after_swap(parent, mate, recombination)
     mutation_plan = build_mutation_plan(
         plan_id=_reproduction_event_id(
             parent.id, "mutation_plan", birth_tick, stream.state_digest()
@@ -2445,6 +2470,10 @@ def reproduce(
             ),
         )
     if structural_mutation_config is not None:
+        if source_genome.spans:
+            raise ConfigurationError(
+                "mention spans cannot be combined with structural mutation"
+            )
         program = build_genome_program(
             source_genome.to_compact(),
             codon_width=parent.genome.spec.codon_width,
@@ -2563,7 +2592,11 @@ def reproduce(
     resolved_child_id = child_id or (
         f"{parent.id}-g{generation + 1}-{mutation.mutated_genome.digest()[:10]}"
     )
-    translation = parent.ribosome.translate(mutation.mutated_genome)
+    translation = parent.ribosome.translate(
+        mutation.mutated_genome.executable_bits()
+        if mutation.mutated_genome.spans
+        else mutation.mutated_genome
+    )
     child_learning_enabled = (
         parent.atp_state.learning_enabled
         or parent.learning_config.learning_enabled
@@ -4860,6 +4893,8 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         "memory_config": organism.memory_config.to_dict(),
         "learning_config": organism.learning_config.to_dict(),
     }
+    if organism.genome.spans:
+        payload["genome_spans"] = [span.to_dict() for span in organism.genome.spans]
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
@@ -4872,6 +4907,13 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
 def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     organism_id = _str(data, "id")
     genome = SemanticGenome.from_compact(_str(data, "genome"))
+    raw_spans = data.get("genome_spans")
+    if isinstance(raw_spans, list) and raw_spans:
+        from codontrace.genome import BitSpan
+
+        genome = genome.with_spans(
+            tuple(BitSpan.from_dict(item) for item in raw_spans if isinstance(item, dict))
+        )
     ribosome = Ribosome.genesis_v0()
     compiled_brain = ribosome.translate(genome).compiled_brain
     atp_raw = data.get("atp_state")
@@ -5491,6 +5533,14 @@ def _drain_chamber_pairs(
                 if record is not None
                 else replace(configs.reproduction, reproduction_mode=ReproductionMode.ASEXUAL)
             )
+            other = second if slot is first else first
+            mate_org = _lookup_step_organism(
+                other.parent_id,
+                current=current_organism,
+                survivors=survivors,
+                pending=pending,
+                children=children,
+            )
             result = reproduce(
                 parent,
                 birth_config,
@@ -5502,6 +5552,7 @@ def _drain_chamber_pairs(
                 structural_mutation_config=configs.structural_mutation,
                 world=working_world,
                 live_positions=live_positions,
+                mate=mate_org,
                 sexual=sexual_cfg,
                 skip_parent_costs=True,
                 recombination_record=record,
@@ -5757,14 +5808,13 @@ def _handle_chamber_copy_self(
             ),
         )
     life = configs.closed_loop_hp_life
-    fee = 0.0
-    if resolve_copy_self_mode(organism.genome.to_compact(), life) == "chamber":
-        fee = outcross_runtime_cost(organism.genome.to_compact(), life)
-        available = float(organism.atp_state.runtime_available)
-        parent_cost = float(configs.reproduction.parent_atp_cost)
-        remaining = available - parent_cost
-        projected_iy = round(remaining * float(configs.reproduction.offspring_atp_fraction), 10)
-        if fee > 0.0 and (projected_iy <= 0.0 or remaining - projected_iy + 1e-12 < fee):
+    fee, refusal = outcross_entry_plan(
+        organism,
+        life,
+        parent_atp_cost=float(configs.reproduction.parent_atp_cost),
+        offspring_atp_fraction=float(configs.reproduction.offspring_atp_fraction),
+    )
+    if refusal is not None:
             blocked_reproduction += 1
             reproduction_result = _blocked_reproduction_result(
                 parent=organism,

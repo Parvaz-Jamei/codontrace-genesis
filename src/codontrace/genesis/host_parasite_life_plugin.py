@@ -326,6 +326,27 @@ def resolve_copy_self_mode(genome_bits: str, config: ClosedLoopHPLifeConfig) -> 
     return "asexual"
 
 
+def outcross_entry_plan(
+    organism: GenesisOrganism,
+    config: ClosedLoopHPLifeConfig,
+    *,
+    parent_atp_cost: float,
+    offspring_atp_fraction: float,
+) -> tuple[float, str | None]:
+    """Module-owned mating-effort check. The motor only sees a fee and a reason."""
+
+    if resolve_copy_self_mode(organism.genome.to_compact(), config) != "chamber":
+        return 0.0, None
+    fee = outcross_runtime_cost(organism.genome.to_compact(), config)
+    if fee <= 0.0:
+        return 0.0, None
+    remaining = float(organism.atp_state.runtime_available) - float(parent_atp_cost)
+    projected = round(remaining * float(offspring_atp_fraction), 10)
+    if projected <= 0.0 or remaining - projected + 1e-12 < fee:
+        return fee, "outcross_runtime_cost_not_payable"
+    return fee, None
+
+
 def coding_bits_for_execution(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
     """Program the body runs. The outcross codon stays on the genome and off the brain."""
 
@@ -447,6 +468,7 @@ __all__ = [
     "outcross_runtime_cost",
     "charge_outcross_runtime",
     "resolve_copy_self_mode",
+    "outcross_entry_plan",
     "coding_bits_for_execution",
     "silence_outcross_locus",
     "outcross_mates_compatible",

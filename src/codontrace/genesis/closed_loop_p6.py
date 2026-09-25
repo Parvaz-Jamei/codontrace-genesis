@@ -42,6 +42,8 @@ from codontrace.genesis.birth import apply_positional_segment_exchange
 from codontrace.genesis.host_parasite_life_plugin import (
     MATCH_BIT_START,
     MATCH_BIT_WIDTH,
+    OUTCROSS_BIT_START,
+    OUTCROSS_BIT_WIDTH,
     OUTCROSS_OUT_BITS,
     OUTCROSS_SELFING_BITS,
     ROLE_PRIMARY,
@@ -471,6 +473,166 @@ def run_match_arm(
         parasite_window=_window(antagonist),
         final_windows=tuple(sorted(_window(host) for host in hosts)),
         window_history=tuple(history),
+    )
+
+
+def _mating_name(organism: GenesisOrganism) -> str:
+    codon = organism.genome.to_compact()[OUTCROSS_BIT_START : OUTCROSS_BIT_START + OUTCROSS_BIT_WIDTH]
+    if codon == OUTCROSS_OUT_BITS:
+        return "outcross"
+    if codon == OUTCROSS_SELFING_BITS:
+        return "selfing"
+    raise ConfigurationError("shared census requires selfing 000 or outcross 001")
+
+
+def _paired_outcross_children(
+    outcrossers: list[GenesisOrganism], *, generation: int, atp: float
+) -> tuple[list[GenesisOrganism], int]:
+    """Even pairs only. An unmated outcross codon leaves no child.
+
+    ``_outcross_children`` self-pairs a leftover and would double it. That
+    artifact is not mate limitation. Maynard Smith's two-fold cost is not
+    applied either: a mated pair still yields two offspring.
+    """
+
+    ordered = sorted(outcrossers, key=lambda org: org.id)
+    if len(ordered) < 2:
+        return [], len(ordered)
+    unmated = len(ordered) % 2
+    paired = ordered if unmated == 0 else ordered[:-1]
+    return _outcross_children(paired, generation=generation, atp=atp), unmated
+
+
+@dataclass(frozen=True, slots=True)
+class SharedModifierRecord:
+    """One antagonist, both mating codons. Not an Agrawal diploid modifier.
+
+    The codon is inherited, not converted. Haploid exchange of the recognition
+    window is not segregation. ``red_queen_proved`` stays false.
+    """
+
+    passage: str
+    virulence: float
+    generations: int
+    founding_outcross: int
+    founding_selfing: int
+    outcross_by_generation: tuple[int, ...]
+    selfing_by_generation: tuple[int, ...]
+    unmated_outcross_by_generation: tuple[int, ...]
+    match_debits_by_generation: tuple[int, ...]
+    window_history: tuple[tuple[str, ...], ...]
+    parasite_window: str
+    cost_name: str
+    two_fold_cost_applied: bool
+    red_queen_proved: bool
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "passage": self.passage,
+            "virulence": self.virulence,
+            "generations": self.generations,
+            "founding_outcross": self.founding_outcross,
+            "founding_selfing": self.founding_selfing,
+            "outcross_by_generation": list(self.outcross_by_generation),
+            "selfing_by_generation": list(self.selfing_by_generation),
+            "unmated_outcross_by_generation": list(self.unmated_outcross_by_generation),
+            "match_debits_by_generation": list(self.match_debits_by_generation),
+            "window_history": [list(state) for state in self.window_history],
+            "parasite_window": self.parasite_window,
+            "cost_name": self.cost_name,
+            "two_fold_cost_applied": self.two_fold_cost_applied,
+            "red_queen_proved": self.red_queen_proved,
+            "atp_owner": "GenesisOrganism.atp_state",
+        }
+
+
+def run_shared_modifier(
+    founders: tuple[tuple[str, str], ...] | list[tuple[str, str]],
+    *,
+    passage: str,
+    virulence: float,
+    generations: int = 4,
+    birth_atp: float = _BIRTH_ATP,
+) -> SharedModifierRecord:
+    """Shared matching-allele pressure on a mixed mating codon.
+
+    Selfing copies. Outcross pairs only with outcross. Both pools are hit by
+    one antagonist, then that window updates only under ``coevolve``.
+    """
+
+    if passage not in {"coevolve", "frozen", "absent"}:
+        raise ConfigurationError("passage must be coevolve, frozen, or absent")
+    if generations < 1:
+        raise ConfigurationError("generations must be >= 1")
+    if virulence < 0.0:
+        raise ConfigurationError("virulence must be >= 0")
+    if not founders:
+        raise ConfigurationError("shared census requires a founder")
+    hosts = []
+    for index, (mating, window) in enumerate(founders):
+        if mating == "outcross":
+            mating_bits = OUTCROSS_OUT_BITS
+        elif mating == "selfing":
+            mating_bits = OUTCROSS_SELFING_BITS
+        else:
+            raise ConfigurationError("mating must be outcross or selfing")
+        hosts.append(_spawn(f"m{index}", _tape(mating_bits, window), birth_atp))
+    founding_outcross = sum(1 for org in hosts if _mating_name(org) == "outcross")
+    founding_selfing = len(hosts) - founding_outcross
+    antagonist = _spawn("antagonist", _tape(OUTCROSS_SELFING_BITS, _modal(hosts)), birth_atp)
+    ancestral = _window(antagonist)
+    out_counts: list[int] = []
+    self_counts: list[int] = []
+    unmated_counts: list[int] = []
+    match_debits: list[int] = []
+    history: list[tuple[str, ...]] = []
+    for generation in range(generations):
+        assert_single_atp_owner([*hosts, antagonist])
+        if not hosts:
+            out_counts.append(0)
+            self_counts.append(0)
+            unmated_counts.append(0)
+            match_debits.append(0)
+            history.append(())
+            continue
+        selfers = [org for org in hosts if _mating_name(org) == "selfing"]
+        outcrossers = [org for org in hosts if _mating_name(org) == "outcross"]
+        children = _selfing_children(selfers, generation=generation, atp=birth_atp)
+        paired, unmated = _paired_outcross_children(
+            outcrossers, generation=generation, atp=birth_atp
+        )
+        children.extend(paired)
+        for child in children:
+            _charge_mating_fee(child, tick=generation)
+        if passage == "absent" or virulence == 0.0:
+            hosts = [child for child in children if child.atp_state.runtime_available > 0.0]
+            match_debits.append(0)
+        else:
+            hosts = _infect(children, _window(antagonist), tick=generation, virulence=virulence)
+            match_debits.append(_match_debit_count(children, generation))
+            if passage == "coevolve" and hosts:
+                _set_window(antagonist, _modal(hosts))
+            elif passage == "frozen":
+                _set_window(antagonist, ancestral)
+        out_counts.append(sum(1 for org in hosts if _mating_name(org) == "outcross"))
+        self_counts.append(sum(1 for org in hosts if _mating_name(org) == "selfing"))
+        unmated_counts.append(unmated)
+        history.append(_type_state(hosts))
+    return SharedModifierRecord(
+        passage=passage,
+        virulence=float(virulence),
+        generations=generations,
+        founding_outcross=founding_outcross,
+        founding_selfing=founding_selfing,
+        outcross_by_generation=tuple(out_counts),
+        selfing_by_generation=tuple(self_counts),
+        unmated_outcross_by_generation=tuple(unmated_counts),
+        match_debits_by_generation=tuple(match_debits),
+        window_history=tuple(history),
+        parasite_window=_window(antagonist),
+        cost_name="mating_effort_atp",
+        two_fold_cost_applied=False,
+        red_queen_proved=False,
     )
 
 

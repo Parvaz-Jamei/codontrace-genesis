@@ -119,8 +119,100 @@ and that the difference went away when the pathogen was held fixed. Only
 the selfing half of that pattern is on this grid. The sexual arm is not
 paying inside the repeat, so `red_queen_proved` stays false.
 
+## 6. Four follow-ups on the same clock
+
+These four runs use `run_match_arm` and `run_shared_modifier`. They do not
+edit `engine.py`. Ashby (J. Evol. Biol. 33:1795–1805, 2020,
+doi:10.1111/jeb.13718) showed that a diversity advantage can keep sex
+without Red Queen dynamics. Agrawal (Evolution 63:2131–2141, 2009,
+doi:10.1111/j.1558-5646.2009.00695.x) showed that a diploid modifier of sex
+is usually segregation, not recombination. The census below is a haploid
+mating codon. It is not that diploid invasion, and Maynard Smith's
+two-fold cost is not applied (`two_fold_cost_applied` is false; the only
+sex debit is `mating_effort_atp`).
+
+### The extinction gap closes when the window is held fixed
+
+At virulence 20 and at 32, four generations:
+
+| Passage | Outcross extinct | Selfing extinct |
+|---|---|---|
+| coevolve | no | yes |
+| frozen | no | no |
+| absent | no | no |
+
+The gap "outcross lives and selfing does not" is present only while the
+antagonist window updates. Freezing the window, or skipping the debit,
+removes it. Outcross itself does not die under the freeze, and its
+`cycles` flag under coevolve stays false. At virulence 18 the one-copy
+Holling cost is 9, below the birth account, and selfing × coevolve is not
+extinct, so there is no gap there either. This is the passage contrast in
+Morran et al. (2011) for the selfing death. It is not the flag.
+
+### Twenty generations do not make the pure outcross arm start paying
+
+Outcross × coevolve, virulence 20, 20 generations: match debits are `2`
+followed by nineteen zeros. The two window sets still alternate, so
+`frequency_cycles` is true and `debit_backed_cycle` is false. The unpaid
+orbit is the exchange, not a short horizon. The same shape holds at
+virulence 16 and 32.
+
+### The extinction step is the Holling edge, not a fitted threshold
+
+Birth ATP is 10. Holling type II on three copies is `virulence * 3/4`, and
+on one copy is `virulence / 2`. A step of 2 from 8 through 32:
+
+| Virulence | H=3 cost | H=1 cost | Selfing × coevolve | Selfing × frozen | Outcross × coevolve |
+|---|---|---|---|---|---|
+| 12 | 9 | 6 | 4 hosts | 4 hosts | alive, not a debit-backed cycle |
+| 14 | 10.5 | 7 | 1 host | 1 host | alive |
+| 18 | 13.5 | 9 | 1 host | 1 host | alive |
+| 20 | 15 | 10 | extinct | 1 host | alive, `cycles` false |
+| 22 through 32 | above 16 | at least 11 | extinct | 1 host | alive, `cycles` false |
+
+The common window drops out once three-copy cost exceeds 10, which is
+first seen at virulence 14. The chased selfing lineage dies once one-copy
+cost reaches 10, which is virulence 20, and not at 18. No intermediate
+regime sits between those two even steps. Outcross does not go extinct
+anywhere on this step.
+
+### A shared antagonist flips which codon remains, and the late orbit is unpaid
+
+Founders in one population: three selfing tapes (`000111`, `000111`,
+`111000`) and two outcross tapes (`000111`, `111000`). Eight generations.
+Outcross pairs only with outcross. A single leftover outcross codon leaves
+no child. That is mate limitation, not the two-fold cost.
+
+At virulence 20:
+
+| Passage | Outcross counts | Selfing counts | Match debits |
+|---|---|---|---|
+| coevolve | `2,2,2,2,2,2,2,2` | `1,1,0,0,0,0,0,0` | `2,0,1,0,0,0,0,0` |
+| frozen | `2,1,0,0,0,0,0,0` | `1` eight times | window stays `000111`; the last host is `111000` |
+| absent | `2` eight times | `3` eight times | all zero |
+
+Under coevolution the selfing codon is gone by generation 2 and the
+outcross count stays 2. Under a frozen window the outcross codon is gone
+by generation 2 and one selfing host remains. With no debit, neither count
+moves. `debit_backed_cycle` is true on the coevolve row because the debit
+at generation 2 sits inside the first return of a window set. Generations
+3 through 7 pay nothing. That true value is the transitional debit that
+removes the last selfer, not a cost the sexual codon keeps paying.
+
+At virulence 16 both codons stay (outcross 2, selfing 1) and match debits
+continue under coevolve (`2,0,1,0,1,0,1,0`) and under frozen
+(`2,1,0,1,0,1,0,1`). Ongoing payment here is not specific to a moving
+window. That is the separation Ashby (2020) requires.
+
+A lone outcross codon among selfers is unmated in generation 0 and its
+count stays 0 even with the debit off. Four founders on one window
+(`000111` twice selfing and twice outcross) all die at virulence 20 under
+coevolve, and all four remain under `absent`. Exchange has nothing to
+mismatch against. `red_queen_proved` on every shared record is false.
+
 ## What this cut does not contain
 
-No mixed-population modifier trial. No claim that a parasite maintained
-sex. No change to `engine.py`. Morran et al. (Science 333:216–218, 2011,
+No diploid sex-modifier invasion of the kind in Agrawal (2009). No
+two-fold cost of sex. No claim that a parasite maintained sex. No change
+to `engine.py`. Morran et al. (Science 333:216–218, 2011,
 doi:10.1126/science.1206360) is not repeated here.

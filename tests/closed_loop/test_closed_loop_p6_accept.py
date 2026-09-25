@@ -21,6 +21,7 @@ from codontrace.genesis.closed_loop_p6 import (
     holling_type2_cost,
     run_match_arm,
     run_matching_allele_factorial,
+    run_shared_modifier,
     strict_match_alpha,
 )
 from codontrace.genesis.host_parasite_life_plugin import (
@@ -272,6 +273,131 @@ def test_host_parasite_profile_blocks_intelligence_words() -> None:
     for claim in ("intelligence", "collective_intelligence", "agi", "tokyo_type1_passed"):
         with pytest.raises(ConfigurationError, match="blocked"):
             assert_claim_allowed(claim)
+
+
+_PAIR = (
+    ("selfing", "000111"),
+    ("selfing", "000111"),
+    ("selfing", "111000"),
+    ("outcross", "000111"),
+    ("outcross", "111000"),
+)
+_RARE = (
+    ("selfing", "000111"),
+    ("selfing", "000111"),
+    ("selfing", "111000"),
+    ("outcross", "111000"),
+)
+
+
+def test_extinction_gap_closes_when_the_window_is_not_updated() -> None:
+    """Outcross stays alive either way. Only the selfing death is passage-specific."""
+
+    for virulence in (20.0, 32.0):
+        arms = {
+            (mating, passage): run_match_arm(
+                mating=mating, passage=passage, virulence=virulence, generations=4
+            )
+            for mating in ("outcross", "selfing")
+            for passage in ("coevolve", "frozen", "absent")
+        }
+        assert arms[("selfing", "coevolve")].extinct is True
+        assert arms[("outcross", "coevolve")].extinct is False
+        assert arms[("outcross", "coevolve")].cycles is False
+        assert arms[("selfing", "frozen")].extinct is False
+        assert arms[("outcross", "frozen")].extinct is False
+        assert arms[("selfing", "absent")].extinct is False
+        assert arms[("outcross", "absent")].extinct is False
+    below = run_match_arm(mating="selfing", passage="coevolve", virulence=18.0, generations=4)
+    assert below.extinct is False
+
+
+def test_unpaid_outcross_orbit_is_still_unpaid_at_generation_20() -> None:
+    arm = run_match_arm(mating="outcross", passage="coevolve", virulence=20.0, generations=20)
+    assert arm.match_debits_by_generation[0] == 2
+    assert set(arm.match_debits_by_generation[1:]) == {0}
+    assert len(arm.match_debits_by_generation) == 20
+    assert arm.cycles is False
+    assert frequency_cycles(arm.window_history) is True
+    assert arm.extinct is False
+    assert arm.window_history[19] == arm.window_history[1]
+
+
+def test_extinction_step_is_where_holling_meets_the_birth_account() -> None:
+    assert holling_type2_cost(12.0, 3) == 9.0
+    assert holling_type2_cost(14.0, 3) == 10.5
+    assert holling_type2_cost(18.0, 1) == 9.0
+    assert holling_type2_cost(20.0, 1) == 10.0
+    still_common = run_match_arm(mating="selfing", passage="coevolve", virulence=12.0, generations=4)
+    culled = run_match_arm(mating="selfing", passage="coevolve", virulence=14.0, generations=4)
+    one_copy_lives = run_match_arm(mating="selfing", passage="coevolve", virulence=18.0, generations=4)
+    assert still_common.extinct is False and still_common.final_hosts == 4
+    assert culled.extinct is False and culled.final_hosts == 1
+    assert one_copy_lives.extinct is False and one_copy_lives.final_hosts == 1
+    for virulence in (20.0, 22.0, 32.0):
+        dead = run_match_arm(mating="selfing", passage="coevolve", virulence=virulence, generations=4)
+        held = run_match_arm(mating="selfing", passage="frozen", virulence=virulence, generations=4)
+        sexual = run_match_arm(mating="outcross", passage="coevolve", virulence=virulence, generations=4)
+        assert dead.extinct is True
+        assert held.extinct is False and held.final_hosts == 1
+        assert sexual.extinct is False and sexual.cycles is False
+
+
+def test_shared_passage_flips_which_codon_remains() -> None:
+    chased = run_shared_modifier(_PAIR, passage="coevolve", virulence=20.0, generations=8)
+    held = run_shared_modifier(_PAIR, passage="frozen", virulence=20.0, generations=8)
+    quiet = run_shared_modifier(_PAIR, passage="absent", virulence=20.0, generations=8)
+    assert chased.founding_outcross == 2 and chased.founding_selfing == 3
+    assert chased.outcross_by_generation == (2, 2, 2, 2, 2, 2, 2, 2)
+    assert chased.selfing_by_generation == (1, 1, 0, 0, 0, 0, 0, 0)
+    assert chased.match_debits_by_generation == (2, 0, 1, 0, 0, 0, 0, 0)
+    assert debit_backed_cycle(chased.window_history, chased.match_debits_by_generation) is True
+    assert chased.two_fold_cost_applied is False
+    assert chased.cost_name == "mating_effort_atp"
+    assert chased.red_queen_proved is False
+    assert held.outcross_by_generation == (2, 1, 0, 0, 0, 0, 0, 0)
+    assert held.selfing_by_generation == (1,) * 8
+    assert held.parasite_window == "000111"
+    assert held.window_history[-1] == ("111000",)
+    assert held.red_queen_proved is False
+    assert quiet.outcross_by_generation == (2,) * 8
+    assert quiet.selfing_by_generation == (3,) * 8
+    assert quiet.match_debits_by_generation == (0,) * 8
+    again = run_shared_modifier(_PAIR, passage="coevolve", virulence=20.0, generations=8)
+    assert again.to_dict() == chased.to_dict()
+
+
+def test_sublethal_shared_debit_is_not_specific_to_coevolution() -> None:
+    chased = run_shared_modifier(_PAIR, passage="coevolve", virulence=16.0, generations=8)
+    held = run_shared_modifier(_PAIR, passage="frozen", virulence=16.0, generations=8)
+    assert chased.outcross_by_generation == (2,) * 8
+    assert chased.selfing_by_generation == (1,) * 8
+    assert chased.match_debits_by_generation == (2, 0, 1, 0, 1, 0, 1, 0)
+    assert held.outcross_by_generation == (2,) * 8
+    assert held.selfing_by_generation == (1,) * 8
+    assert held.match_debits_by_generation == (2, 1, 0, 1, 0, 1, 0, 1)
+    assert chased.red_queen_proved is False
+    assert held.red_queen_proved is False
+
+
+def test_one_outcross_codon_is_unmated_and_identical_windows_do_not_escape() -> None:
+    rare = run_shared_modifier(_RARE, passage="absent", virulence=0.0, generations=4)
+    assert rare.founding_outcross == 1
+    assert rare.unmated_outcross_by_generation == (1, 0, 0, 0)
+    assert rare.outcross_by_generation == (0, 0, 0, 0)
+    assert rare.red_queen_proved is False
+    same = (
+        ("selfing", "000111"),
+        ("selfing", "000111"),
+        ("outcross", "000111"),
+        ("outcross", "000111"),
+    )
+    caught = run_shared_modifier(same, passage="coevolve", virulence=20.0, generations=4)
+    spared = run_shared_modifier(same, passage="absent", virulence=20.0, generations=4)
+    assert caught.outcross_by_generation == (0, 0, 0, 0)
+    assert caught.selfing_by_generation == (0, 0, 0, 0)
+    assert spared.outcross_by_generation == (2, 2, 2, 2)
+    assert spared.selfing_by_generation == (2, 2, 2, 2)
 
 
 def test_refused_mating_and_passage_do_not_run() -> None:

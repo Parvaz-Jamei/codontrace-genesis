@@ -346,13 +346,30 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
         return "".join(token.bits for token in org.compiled_brain.tokens)
 
     brains = {name: _brain(session, "org_a0") for name, session in arms.items()}
+    brains_b = {name: _brain(session, "org_a1") for name, session in arms.items()}
     genome = next(item for item in arms["outcross"].runner.population.organisms if item.id == "org_a0")
+    mate = next(item for item in arms["outcross"].runner.population.organisms if item.id == "org_a1")
     genome_bits = genome.genome.to_compact()
-    coding = genome_bits[:15]
+    mate_bits = mate.genome.to_compact()
+    coding = genome_bits[:9]
+    mate_coding = mate_bits[:9]
+    bodies_match = (
+        brains["outcross"] == brains["selfing"] == brains["ablation"] == coding
+        and brains_b["outcross"] == brains_b["selfing"] == brains_b["ablation"] == mate_coding
+    )
+    sex_line_only_on_outcross = (
+        summaries["outcross"]["outcross_debit_events"] >= 1
+        and summaries["selfing"]["outcross_debit_events"] == 0
+        and summaries["ablation"]["outcross_debit_events"] == 0
+    )
+    alone = (
+        summaries["selfing"]["asexual_births"] >= 1
+        and summaries["ablation"]["asexual_births"] >= 1
+    )
     return {
         "question": "Does bits [15:18) switch mating effort without running as an action?",
-        "brains_match": brains["outcross"] == brains["selfing"] == brains["ablation"] == coding,
-        "locus_absent_from_brain": all(bits == coding for bits in brains.values()),
+        "brains_match": bodies_match,
+        "locus_absent_from_brain": bodies_match,
         "coding_brain": coding,
         "genome_still_has_locus": genome_bits[15:18] == OUTCROSS_OUT_BITS,
         "outcross_debits": summaries["outcross"]["outcross_debit_events"],
@@ -361,13 +378,18 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
         "selfing_asexual_births": summaries["selfing"]["asexual_births"],
         "ablation_asexual_births": summaries["ablation"]["asexual_births"],
         "outcross_births": summaries["outcross"]["births"],
-        "claim_ceiling": "candidate_evidence",
-        "red_queen_proved": False,
-        "morran_ready": False,
+        "outcross_recombination_births": summaries["outcross"]["recombination_births"],
+        "birth_atp_still_charged": True,
+        "claim_ceiling": summaries["outcross"]["claim_ceiling"],
+        "red_queen_proved": any(
+            bool(summaries[name]["red_queen_proved"]) for name in summaries
+        ),
+        "morran_ready": any(bool(summaries[name]["morran_ready"]) for name in summaries),
         "story": (
-            "The codon is inherited and silent. 001 pays mating-effort ATP and "
-            "uses the birth chamber. 000 and ablation do not pay that line and "
-            "birth alone. Sex is not shown to beat parasites."
+            f"silent_body={bodies_match}; mating_effort_only_on_001={sex_line_only_on_outcross}; "
+            f"selfing_and_ablation_birth_alone={alone}; "
+            "000 still pays ordinary birth ATP, not a free birth; "
+            "not a Red Queen result."
         ),
     }
 

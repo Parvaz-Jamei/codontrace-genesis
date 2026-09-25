@@ -331,15 +331,18 @@ def coding_bits_for_execution(genome_bits: str, config: ClosedLoopHPLifeConfig) 
 
     if not config.outcross_enabled:
         return str(genome_bits)
-    start = config.outcross_bit_start
-    width = config.outcross_bit_width
     bits = str(genome_bits)
-    if start < 0 or width <= 0 or len(bits) < start + width:
-        return bits
-    coding = bits[:start] + bits[start + width :]
-    if not coding or len(coding) % 3 != 0:
-        return bits
-    return coding
+    # Drop from the right. Kappa is not an action unless that coupling is on.
+    windows = [(config.outcross_bit_start, config.outcross_bit_width)]
+    if not config.kappa_enabled:
+        windows.append((config.kappa_bit_start, config.kappa_bit_width))
+    for start, width in sorted(windows, reverse=True):
+        if start < 0 or width <= 0 or len(bits) < start + width:
+            continue
+        bits = bits[:start] + bits[start + width :]
+    if not bits or len(bits) % 3 != 0:
+        return str(genome_bits)
+    return bits
 
 
 def silence_outcross_locus(organism: GenesisOrganism, config: ClosedLoopHPLifeConfig) -> None:

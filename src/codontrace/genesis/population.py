@@ -127,6 +127,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     outcross_mates_compatible,
     outcross_runtime_cost,
     resolve_copy_self_mode,
+    silence_outcross_locus,
 )
 from codontrace.genesis.phase_e import (
     DemeMessage,
@@ -3043,6 +3044,8 @@ def step_population(
                     tick=current_tick,
                 )
                 organism = mutated[0]
+                if configs.closed_loop_hp_life.outcross_enabled:
+                    silence_outcross_locus(organism, configs.closed_loop_hp_life)
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
                 if configs.capsule_transfer is not None and configs.capsule_transfer.enabled:

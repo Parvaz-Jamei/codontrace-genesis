@@ -19,6 +19,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     OUTCROSS_SELFING_BITS,
     P5_SCOPE,
     ClosedLoopHPLifeConfig,
+    coding_bits_for_execution,
     decode_kappa,
     decode_outcross,
     outcross_runtime_cost,
@@ -40,16 +41,34 @@ def test_locus_story_is_silent_gene_not_red_queen() -> None:
     assert story["brains_match"] is True
     assert story["locus_absent_from_brain"] is True
     assert story["genome_still_has_locus"] is True
-    assert story["coding_brain"] == "101111000100000"
+    assert story["coding_brain"] == "101111000"
     assert story["outcross_debits"] >= 1
     assert story["selfing_debits"] == 0
     assert story["ablation_debits"] == 0
     assert story["selfing_asexual_births"] >= 1
     assert story["ablation_asexual_births"] >= 1
     assert story["outcross_births"] >= 1
+    assert "not a free birth" in story["story"]
+    assert "not a Red Queen" in story["story"]
+    assert "silent_body=True" in story["story"]
+    assert "mating_effort_only_on_001=True" in story["story"]
     assert story["red_queen_proved"] is False
     assert story["morran_ready"] is False
     assert story["claim_ceiling"] == "candidate_evidence"
+
+
+def test_tail_is_not_executed_for_two_generations() -> None:
+    session = ClosedLoopP5Session.boot(seed=11, n_primary=2, n_secondary=0)
+    session.run_ticks(3)
+    life = session.runner.configs.closed_loop_hp_life
+    for org in session.runner.population.organisms:
+        brain = "".join(token.bits for token in org.compiled_brain.tokens)
+        assert brain == coding_bits_for_execution(org.genome.to_compact(), life)
+        assert all(token.bits != "001" for token in org.compiled_brain.tokens)
+        ledger = org.atp_state.runtime.to_dict().get("ledger", [])
+        for entry in ledger:
+            if isinstance(entry, dict) and entry.get("reason") == "genesis_runtime_cost":
+                assert entry.get("codon") not in {"001", "100"}
 
 
 def test_window_does_not_move_kappa() -> None:

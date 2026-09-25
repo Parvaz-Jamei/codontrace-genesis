@@ -19,6 +19,7 @@ from codontrace.genesis.closed_loop_p6 import (
     ClosedLoopP6Clock,
     classify_oscillation,
     debit_backed_cycle,
+    digest_matches,
     digital_red_queen_pattern,
     frequency_cycles,
     holling_type2_cost,
@@ -83,7 +84,8 @@ def test_factorial_does_not_set_the_flag() -> None:
     assert result.first_tested_success is None
     assert result.threshold_kind == "first_tested_grid_value"
     assert result.development_seed is True
-    assert result.low_debit_gap is True
+    assert result.low_debit_gap is False
+    assert result.unqualified_survival_gap is True
     assert result.coevo_cycles is False
     assert by_key[("outcross", "coevolve")].cycles is False
     assert by_key[("outcross", "coevolve")].oscillation != "stable"
@@ -483,4 +485,71 @@ def test_costless_passage_keeps_mutation_and_charges_nothing() -> None:
     assert costless.energy_reset is True
     assert costless.parasite_stock_fixed is True
     assert costless.parasite_n == 12
+    assert digest_matches(costless)
     assert len(costless.initial_frequencies) > 0
+    small = run_match_arm(
+        mating="outcross", passage="coevolve", virulence=32.0, generations=2, parasite_n=6
+    )
+    assert small.parasite_n == 6
+    assert small.parasite_stock_fixed is True
+    assert len(small.parasite_frequencies[-1]) >= 1
+    assert sum(count for _window, count in small.parasite_frequencies[-1]) == 6
+
+
+def test_disassortative_pairing_is_a_separate_rule() -> None:
+    """Seed 7 is the development seed. It does not choose the mating rule."""
+
+    default = run_match_arm(
+        mating="outcross", passage="coevolve", virulence=32.0, generations=48, seed=7
+    )
+    preferred = run_match_arm(
+        mating="outcross",
+        passage="coevolve",
+        virulence=32.0,
+        generations=48,
+        seed=7,
+        mate_choice="disassortative",
+    )
+    copied = run_match_arm(
+        mating="outcross",
+        passage="coevolve",
+        virulence=32.0,
+        generations=48,
+        seed=7,
+        recombine=False,
+    )
+    assert default.mate_choice == "random"
+    assert default.extinct is False and default.oscillation == "forced"
+    assert preferred.extinct is True and preferred.oscillation == "none"
+    assert copied.recombine is False and copied.oscillation == "none"
+    assert default.to_dict()["sexual_maintenance_claimed"] is False
+
+
+def test_parasite_stock_size_is_kept_and_does_not_set_the_flag() -> None:
+    seen: dict[int, tuple[int, int]] = {}
+    for stock in (6, 12, 24):
+        selfing_extinct = 0
+        stable = 0
+        for seed in range(101, 109):
+            outcross = run_match_arm(
+                mating="outcross",
+                passage="coevolve",
+                virulence=32.0,
+                generations=48,
+                seed=seed,
+                parasite_n=stock,
+            )
+            selfing = run_match_arm(
+                mating="selfing",
+                passage="coevolve",
+                virulence=32.0,
+                generations=48,
+                seed=seed,
+                parasite_n=stock,
+            )
+            assert outcross.parasite_n == stock and outcross.parasite_stock_fixed
+            assert selfing.parasite_stock_fixed
+            selfing_extinct += int(selfing.extinct)
+            stable += int(outcross.oscillation == "stable")
+        seen[stock] = (selfing_extinct, stable)
+    assert seen == {6: (3, 0), 12: (6, 0), 24: (5, 0)}

@@ -527,6 +527,7 @@ class MatchingAlleleFactorial:
     coevo_cycles: bool
     frozen_cycles: bool
     low_debit_gap: bool
+    unqualified_survival_gap: bool
     zero_debit_gap: bool
     development_seed: bool
     revision: str
@@ -549,6 +550,7 @@ class MatchingAlleleFactorial:
             "coevo_cycles": self.coevo_cycles,
             "frozen_cycles": self.frozen_cycles,
             "low_debit_gap": self.low_debit_gap,
+            "unqualified_survival_gap": self.unqualified_survival_gap,
             "zero_debit_gap": self.zero_debit_gap,
             "development_seed": self.development_seed,
             "revision": self.revision,
@@ -576,10 +578,14 @@ def _host_founders(mating_bits: str, birth_atp: float) -> list[GenesisOrganism]:
     ]
 
 
-def _parasites_on(window: str, birth_atp: float, prefix: str) -> list[GenesisOrganism]:
+def _parasites_on(
+    window: str, birth_atp: float, prefix: str, n: int = _PARASITE_N
+) -> list[GenesisOrganism]:
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+        raise ConfigurationError("parasite_n must be an integer >= 1")
     return [
         _spawn(f"{prefix}{index}", _tape(OUTCROSS_SELFING_BITS, window), birth_atp)
-        for index in range(_PARASITE_N)
+        for index in range(n)
     ]
 
 
@@ -624,6 +630,12 @@ def _record_digest(payload: dict[str, object]) -> str:
     body = {key: value for key, value in payload.items() if key != "digest"}
     encoded = json.dumps(body, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def digest_matches(record: MatchArmRecord) -> bool:
+    """True when the stored digest is the hash of the record without itself."""
+
+    return _record_digest(record.to_dict()) == record.digest
 
 
 def _contact(
@@ -688,11 +700,13 @@ def _passage(
 
     if passage not in {"coevolve", "costless"}:
         return parasites
+    if not parasites:
+        return parasites
     if not 0.0 <= mutation <= 1.0:
         raise ConfigurationError("parasite_mutation must be in [0, 1]")
     source = matched or parasites
     nxt: list[GenesisOrganism] = []
-    for index in range(_PARASITE_N):
+    for index in range(len(parasites)):
         parent = source[rng.randrange(0, len(source))]
         window = _window(parent)
         if mutation > 0.0 and rng.random() < mutation:
@@ -715,6 +729,7 @@ def run_match_arm(
     specificity: str = "strict",
     mate_choice: str = "random",
     recombine: bool = True,
+    parasite_n: int = _PARASITE_N,
 ) -> MatchArmRecord:
     """Semelparous passage. Offspring and the next parasite stock are refilled.
 
@@ -739,12 +754,13 @@ def run_match_arm(
         raise ConfigurationError("mate_choice must be random or disassortative")
     if not isinstance(recombine, bool):
         raise ConfigurationError("recombine must be a bool")
+    parasite_n = _require_int("parasite_n", parasite_n, minimum=1)
     specificity_weight("0", "0", specificity)
     mating_bits = OUTCROSS_OUT_BITS if mating == "outcross" else OUTCROSS_SELFING_BITS
     hosts = _host_founders(mating_bits, birth_atp)
     initial_windows = _frequency_state(hosts)
     ancestral = _modal(hosts)
-    parasites = _parasites_on(ancestral, birth_atp, "p0-")
+    parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-passage")
     history: list[tuple[str, ...]] = []
     host_frequencies: list[tuple[tuple[str, int], ...]] = []
@@ -825,14 +841,14 @@ def run_match_arm(
         birth_atp=birth_atp,
         mate_choice=mate_choice,
         recombine=recombine,
-        parasite_n=len(parasites),
+        parasite_n=parasite_n,
         oscillation=oscillation,
         host_frequencies=tuple(host_frequencies),
         parasite_frequencies=tuple(parasite_frequencies),
         unmated_by_generation=tuple(unmated_counts),
         initial_frequencies=initial_windows,
         energy_reset=True,
-        parasite_stock_fixed=len(parasites) == _PARASITE_N,
+        parasite_stock_fixed=len(parasites) == parasite_n,
         revision=CLOSED_LOOP_REVISION,
         digest="",
     )
@@ -903,6 +919,16 @@ class SharedModifierRecord:
     seed: int
     parasite_mutation: float
     specificity: str
+    birth_atp: float
+    mate_choice: str
+    recombine: bool
+    parasite_n: int
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...]
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...]
+    oscillation: str
+    energy_reset: bool
+    parasite_stock_fixed: bool
+    revision: str
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -924,6 +950,21 @@ class SharedModifierRecord:
             "seed": self.seed,
             "parasite_mutation": self.parasite_mutation,
             "specificity": self.specificity,
+            "birth_atp": self.birth_atp,
+            "mate_choice": self.mate_choice,
+            "recombine": self.recombine,
+            "parasite_n": self.parasite_n,
+            "host_frequencies": [
+                [list(item) for item in state] for state in self.host_frequencies
+            ],
+            "parasite_frequencies": [
+                [list(item) for item in state] for state in self.parasite_frequencies
+            ],
+            "oscillation": self.oscillation,
+            "energy_reset": self.energy_reset,
+            "parasite_stock_fixed": self.parasite_stock_fixed,
+            "revision": self.revision,
+            "sexual_maintenance_claimed": False,
         }
 
 
@@ -939,6 +980,7 @@ def run_shared_modifier(
     specificity: str = "strict",
     mate_choice: str = "random",
     recombine: bool = True,
+    parasite_n: int = _PARASITE_N,
 ) -> SharedModifierRecord:
     """Shared matching-allele pressure on a mixed mating codon.
 
@@ -962,6 +1004,7 @@ def run_shared_modifier(
         raise ConfigurationError("mate_choice must be random or disassortative")
     if not isinstance(recombine, bool):
         raise ConfigurationError("recombine must be a bool")
+    parasite_n = _require_int("parasite_n", parasite_n, minimum=1)
     if not founders:
         raise ConfigurationError("shared census requires a founder")
     specificity_weight("0", "0", specificity)
@@ -977,13 +1020,15 @@ def run_shared_modifier(
     founding_outcross = sum(1 for org in hosts if _mating_name(org) == "outcross")
     founding_selfing = len(hosts) - founding_outcross
     ancestral = _modal(hosts)
-    parasites = _parasites_on(ancestral, birth_atp, "p0-")
+    parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-shared")
     out_counts: list[int] = []
     self_counts: list[int] = []
     unmated_counts: list[int] = []
     match_debits: list[int] = []
     history: list[tuple[str, ...]] = []
+    host_frequencies: list[tuple[tuple[str, int], ...]] = []
+    parasite_frequencies: list[tuple[tuple[str, int], ...]] = []
     for generation in range(generations):
         assert_single_atp_owner([*hosts, *parasites])
         if not hosts:
@@ -992,6 +1037,8 @@ def run_shared_modifier(
             unmated_counts.append(0)
             match_debits.append(0)
             history.append(())
+            host_frequencies.append(())
+            parasite_frequencies.append(_frequency_state(parasites))
             continue
         selfers = [org for org in hosts if _mating_name(org) == "selfing"]
         outcrossers = [org for org in hosts if _mating_name(org) == "outcross"]
@@ -1033,6 +1080,9 @@ def run_shared_modifier(
         self_counts.append(sum(1 for org in hosts if _mating_name(org) == "selfing"))
         unmated_counts.append(unmated)
         history.append(_type_state(hosts))
+        host_frequencies.append(_frequency_state(hosts))
+        parasite_frequencies.append(_frequency_state(parasites))
+    oscillation = classify_oscillation(host_frequencies, parasite_frequencies, match_debits)
     return SharedModifierRecord(
         passage=passage,
         virulence=float(virulence),
@@ -1051,6 +1101,16 @@ def run_shared_modifier(
         seed=seed,
         parasite_mutation=parasite_mutation,
         specificity=specificity,
+        birth_atp=birth_atp,
+        mate_choice=mate_choice,
+        recombine=recombine,
+        parasite_n=len(parasites),
+        host_frequencies=tuple(host_frequencies),
+        parasite_frequencies=tuple(parasite_frequencies),
+        oscillation=oscillation,
+        energy_reset=True,
+        parasite_stock_fixed=len(parasites) == parasite_n,
+        revision=CLOSED_LOOP_REVISION,
     )
 
 
@@ -1097,6 +1157,7 @@ def run_matching_allele_factorial(
 
     threshold: float | None = None
     chosen = rows[-1][1]
+    unqualified = False
     for virulence, arms in rows:
         if virulence <= 0.0:
             continue
@@ -1106,10 +1167,9 @@ def run_matching_allele_factorial(
             break
     low_gap = False
     if threshold is None:
-        low_gap = any(
+        unqualified = any(
             virulence > 0.0 and _survival_gap(arms, "coevolve") for virulence, arms in rows
         )
-        # No virulence cleared the full rule. Keep the strongest coevo gap, if any.
         for _virulence, arms in rows:
             if _survival_gap(arms, "coevolve"):
                 chosen = arms
@@ -1149,6 +1209,7 @@ def run_matching_allele_factorial(
         coevo_cycles=by_key[("outcross", "coevolve")].cycles,
         frozen_cycles=by_key[("outcross", "frozen")].cycles,
         low_debit_gap=low_gap,
+        unqualified_survival_gap=unqualified,
         zero_debit_gap=zero_gap,
         development_seed=seed == P6_SEED,
         revision=CLOSED_LOOP_REVISION,

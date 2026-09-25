@@ -29,12 +29,20 @@ P1_SCOPE = "unify_mutate_scaffold"
 P2_SCOPE = "smith_fretwell_n1_birth_partition"
 P3_SCOPE = "scalar_genetic_harm_help_kappa"
 P4_SCOPE = "mutation_stream_lock_dual_arm_replay"
+P5_SCOPE = "outcross_locus_mating_effort_cost"
 
 # Fixed bit-window for kappa decode (both roles). Post-f(κ) clamp is NOT a gene.
 KAPPA_BIT_START = 9
 KAPPA_BIT_WIDTH = 6
 # Clamp applied after f(κ); never written into gene decode as a default.
 KAPPA_TRANSFER_CLAMP = 0.8
+# One codon after κ. Width 3 so mutate_genome cannot trim a partial codon.
+# "000" is selfing (WAIT). "001" is outcross (SENSE_FOOD). Never "111":
+# that codon is COPY_SELF and would add an 8.0 action debit.
+OUTCROSS_BIT_START = KAPPA_BIT_START + KAPPA_BIT_WIDTH
+OUTCROSS_BIT_WIDTH = 3
+OUTCROSS_SELFING_BITS = "000"
+OUTCROSS_OUT_BITS = "001"
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,9 +63,22 @@ class ClosedLoopHPLifeConfig:
     # When locks are active, engine MutationConfig should be rate 0 at birth;
     # unlocked roles mutate here at this rate (None → use mutation_config as-is).
     plugin_bit_flip_rate: float | None = None
+    # P5: heritable outcross locus. Off leaves P1–P4 byte-identical.
+    # Cost is mating-effort ATP, NOT Maynard Smith's two-fold cost
+    # (that remains SexualRecombinationConfig.two_fold_cost_sex, default off).
+    outcross_enabled: bool = False
+    outcross_ablate: bool = False
+    outcross_bit_start: int = OUTCROSS_BIT_START
+    outcross_bit_width: int = OUTCROSS_BIT_WIDTH
+    outcross_runtime_atp: float = 1.0
+    outcross_same_role_only: bool = True
+
+    def __post_init__(self) -> None:
+        if self.outcross_runtime_atp < 0.0:
+            raise ConfigurationError("outcross_runtime_atp must be >= 0")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "enabled": self.enabled,
             "mutate_both_roles": self.mutate_both_roles,
             "role_by_id": {k: v for k, v in self.role_by_id},
@@ -72,6 +93,23 @@ class ClosedLoopHPLifeConfig:
             "p3_scope": P3_SCOPE,
             "p4_scope": P4_SCOPE,
         }
+        outcross_nondefault = (
+            self.outcross_enabled
+            or self.outcross_ablate
+            or self.outcross_bit_start != OUTCROSS_BIT_START
+            or self.outcross_bit_width != OUTCROSS_BIT_WIDTH
+            or self.outcross_runtime_atp != 1.0
+            or self.outcross_same_role_only is not True
+        )
+        if outcross_nondefault:
+            payload["outcross_enabled"] = self.outcross_enabled
+            payload["outcross_ablate"] = self.outcross_ablate
+            payload["outcross_bit_start"] = self.outcross_bit_start
+            payload["outcross_bit_width"] = self.outcross_bit_width
+            payload["outcross_runtime_atp"] = self.outcross_runtime_atp
+            payload["outcross_same_role_only"] = self.outcross_same_role_only
+            payload["p5_scope"] = P5_SCOPE
+        return payload
 
     def locked_roles(self) -> frozenset[str]:
         return frozenset(self.mutation_stream_lock_roles)
@@ -104,6 +142,12 @@ class ClosedLoopHPLifeConfig:
             kappa_bit_width=int(data.get("kappa_bit_width", KAPPA_BIT_WIDTH)),
             mutation_stream_lock_roles=locks,
             plugin_bit_flip_rate=rate,
+            outcross_enabled=bool(data.get("outcross_enabled", False)),
+            outcross_ablate=bool(data.get("outcross_ablate", False)),
+            outcross_bit_start=int(data.get("outcross_bit_start", OUTCROSS_BIT_START)),
+            outcross_bit_width=int(data.get("outcross_bit_width", OUTCROSS_BIT_WIDTH)),
+            outcross_runtime_atp=float(data.get("outcross_runtime_atp", 1.0)),
+            outcross_same_role_only=bool(data.get("outcross_same_role_only", True)),
         )
 
     def role_map(self) -> dict[str, str]:
@@ -205,6 +249,95 @@ def kappa_transfer_amount(kappa: float, donor_available: float) -> float:
     return min(raw, ceiling)
 
 
+def decode_outcross(
+    genome_bits: str,
+    *,
+    bit_start: int = OUTCROSS_BIT_START,
+    bit_width: int = OUTCROSS_BIT_WIDTH,
+    ablate: bool = False,
+) -> bool:
+    """True when the outcross codon is non-zero. Ablate or a short window is selfing."""
+
+    if ablate:
+        return False
+    if bit_width <= 0:
+        raise ConfigurationError("outcross bit_width must be > 0")
+    if bit_start < 0:
+        raise ConfigurationError("outcross bit_start must be >= 0")
+    window = str(genome_bits)[bit_start : bit_start + bit_width]
+    if len(window) < bit_width or any(ch not in "01" for ch in window):
+        return False
+    return int(window, 2) != 0
+
+
+def outcross_runtime_cost(genome_bits: str, config: ClosedLoopHPLifeConfig) -> float:
+    """Mating-effort ATP. Zero unless the locus is on. Not the two-fold cost."""
+
+    if not config.outcross_enabled:
+        return 0.0
+    if not decode_outcross(
+        genome_bits,
+        bit_start=config.outcross_bit_start,
+        bit_width=config.outcross_bit_width,
+        ablate=config.outcross_ablate,
+    ):
+        return 0.0
+    return float(config.outcross_runtime_atp)
+
+
+def charge_outcross_runtime(
+    organism: GenesisOrganism,
+    *,
+    config: ClosedLoopHPLifeConfig,
+    tick: int,
+) -> bool:
+    """Debit the mating-effort cost. Cost 0 is success and does not touch the ledger."""
+
+    bits = organism.genome.to_compact()
+    cost = outcross_runtime_cost(bits, config)
+    if cost <= 0.0:
+        return True
+    if float(organism.atp_state.runtime_available) < cost:
+        return False
+    window = bits[config.outcross_bit_start : config.outcross_bit_start + config.outcross_bit_width]
+    token = organism.atp_state.debit_runtime(
+        cost,
+        tick=tick,
+        organism_id=organism.id,
+        codon=window or OUTCROSS_SELFING_BITS,
+        action="COPY_SELF",
+        reason="outcross_runtime_cost",
+    )
+    return token is not None
+
+
+def resolve_copy_self_mode(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
+    """'default' when P5 is off. 'chamber' if the locus is on. Else 'asexual'."""
+
+    if not config.outcross_enabled:
+        return "default"
+    if decode_outcross(
+        genome_bits,
+        bit_start=config.outcross_bit_start,
+        bit_width=config.outcross_bit_width,
+        ablate=config.outcross_ablate,
+    ):
+        return "chamber"
+    return "asexual"
+
+
+def outcross_mates_compatible(
+    parent_a_id: str, parent_b_id: str, config: ClosedLoopHPLifeConfig
+) -> bool:
+    if not config.outcross_same_role_only:
+        return True
+    role_a = role_of(parent_a_id, config.role_map())
+    role_b = role_of(parent_b_id, config.role_map())
+    if role_a is None or role_b is None:
+        return False
+    return role_a == role_b
+
+
 def apply_closed_loop_hp_life(
     organisms: Sequence[GenesisOrganism],
     *,
@@ -264,9 +397,14 @@ __all__ = [
     "P2_SCOPE",
     "P3_SCOPE",
     "P4_SCOPE",
+    "P5_SCOPE",
     "KAPPA_BIT_START",
     "KAPPA_BIT_WIDTH",
     "KAPPA_TRANSFER_CLAMP",
+    "OUTCROSS_BIT_START",
+    "OUTCROSS_BIT_WIDTH",
+    "OUTCROSS_SELFING_BITS",
+    "OUTCROSS_OUT_BITS",
     "ClosedLoopHPLifeConfig",
     "role_of",
     "assert_single_atp_owner",
@@ -274,5 +412,10 @@ __all__ = [
     "with_inherited_birth_roles",
     "decode_kappa",
     "kappa_transfer_amount",
+    "decode_outcross",
+    "outcross_runtime_cost",
+    "charge_outcross_runtime",
+    "resolve_copy_self_mode",
+    "outcross_mates_compatible",
     "apply_closed_loop_hp_life",
 ]

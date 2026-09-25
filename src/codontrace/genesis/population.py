@@ -123,6 +123,10 @@ from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.host_parasite_life_plugin import (
     ClosedLoopHPLifeConfig,
     apply_closed_loop_hp_life,
+    charge_outcross_runtime,
+    outcross_mates_compatible,
+    outcross_runtime_cost,
+    resolve_copy_self_mode,
 )
 from codontrace.genesis.phase_e import (
     DemeMessage,
@@ -3403,7 +3407,34 @@ def step_population(
                 )
             if event.action == "COPY_SELF":
                 attempts += 1
-                if sexual_cfg.uses_birth_chamber:
+                life = configs.closed_loop_hp_life
+                copy_mode = resolve_copy_self_mode(organism.genome.to_compact(), life)
+                if copy_mode == "chamber" and not sexual_cfg.uses_birth_chamber:
+                    blocked_reproduction += 1
+                    reproduction_result = _blocked_reproduction_result(
+                        parent=organism,
+                        config=configs.reproduction,
+                        alive_result=alive_result,
+                        birth_tick=current_tick,
+                        generation=population.generation,
+                        reason="outcross_chamber_required",
+                        capacity_available=True,
+                    )
+                    _replace_last_event(
+                        trace,
+                        _with_reproduction_delta(
+                            event,
+                            parent_after=organism,
+                            reproduction_result=reproduction_result,
+                            succeeded=False,
+                            reason="outcross_chamber_required",
+                            parent_id=organism.id,
+                            child_id=None,
+                            event_id=reproduction_result.event_id,
+                        ),
+                    )
+                    continue
+                if copy_mode != "asexual" and sexual_cfg.uses_birth_chamber:
                     (
                         organism,
                         reproduction_result,
@@ -3438,7 +3469,13 @@ def step_population(
                     _replace_last_event(trace, queued_event)
                     continue
                 mate = None
-                if configs.reproduction.is_sexual:
+                repro = configs.reproduction
+                if copy_mode == "asexual":
+                    repro = replace(
+                        configs.reproduction,
+                        reproduction_mode=ReproductionMode.ASEXUAL,
+                    )
+                elif configs.reproduction.is_sexual:
                     mate = _select_viable_mate(
                         parent=organism,
                         candidates=_live_mate_candidates(
@@ -3502,7 +3539,7 @@ def step_population(
                     continue
                 reproduction_result = reproduce(
                     organism,
-                    configs.reproduction,
+                    repro,
                     configs.mutation,
                     alive_result=alive_result,
                     generation=population.generation,
@@ -5350,7 +5387,17 @@ def _drain_chamber_pairs(
         pending[0] if pending else None
     )
     while True:
-        pair = select_chamber_pair(waiting, same_length_only=sexual_cfg.same_length_only)
+        life = configs.closed_loop_hp_life
+        compatible = None
+        if life.outcross_enabled and life.outcross_same_role_only:
+            compatible = lambda first, second, _life=life: outcross_mates_compatible(
+                first.parent_id, second.parent_id, _life
+            )
+        pair = select_chamber_pair(
+            waiting,
+            same_length_only=sexual_cfg.same_length_only,
+            compatible=compatible,
+        )
         if pair is None:
             break
         needed = 1 if sexual_cfg.two_fold_cost_sex else 2
@@ -5694,6 +5741,44 @@ def _handle_chamber_copy_self(
                 event_id=reproduction_result.event_id,
             ),
         )
+    life = configs.closed_loop_hp_life
+    fee = 0.0
+    if resolve_copy_self_mode(organism.genome.to_compact(), life) == "chamber":
+        fee = outcross_runtime_cost(organism.genome.to_compact(), life)
+        available = float(organism.atp_state.runtime_available)
+        parent_cost = float(configs.reproduction.parent_atp_cost)
+        remaining = available - parent_cost
+        projected_iy = round(remaining * float(configs.reproduction.offspring_atp_fraction), 10)
+        if fee > 0.0 and (projected_iy <= 0.0 or remaining - projected_iy + 1e-12 < fee):
+            blocked_reproduction += 1
+            reproduction_result = _blocked_reproduction_result(
+                parent=organism,
+                config=configs.reproduction,
+                alive_result=alive_result,
+                birth_tick=birth_tick,
+                generation=generation,
+                reason="outcross_runtime_cost_not_payable",
+                capacity_available=True,
+            )
+            return (
+                organism,
+                reproduction_result,
+                waiting,
+                lineage,
+                births,
+                deaths,
+                blocked_reproduction,
+                _with_reproduction_delta(
+                    event,
+                    parent_after=organism,
+                    reproduction_result=reproduction_result,
+                    succeeded=False,
+                    reason="outcross_runtime_cost_not_payable",
+                    parent_id=organism.id,
+                    child_id=None,
+                    event_id=reproduction_result.event_id,
+                ),
+            )
     ledger_ids, offspring_atp, cost_reason = _apply_parent_reproduction_costs(
         organism, configs.reproduction, birth_tick
     )
@@ -5722,6 +5807,54 @@ def _handle_chamber_copy_self(
                 reproduction_result=reproduction_result,
                 succeeded=False,
                 reason=cost_reason,
+                parent_id=organism.id,
+                child_id=None,
+                event_id=reproduction_result.event_id,
+            ),
+        )
+    if fee > 0.0 and not charge_outcross_runtime(organism, config=life, tick=birth_tick):
+        if configs.reproduction.parent_atp_cost > 0.0:
+            organism.atp_state.credit_runtime(
+                configs.reproduction.parent_atp_cost,
+                tick=birth_tick,
+                organism_id=organism.id,
+                codon="111",
+                action="COPY_SELF",
+                reason="outcross_cost_reversal",
+            )
+        if offspring_atp > 0.0:
+            organism.atp_state.credit_runtime(
+                offspring_atp,
+                tick=birth_tick,
+                organism_id=organism.id,
+                codon="111",
+                action="COPY_SELF",
+                reason="outcross_cost_reversal",
+            )
+        blocked_reproduction += 1
+        reproduction_result = _blocked_reproduction_result(
+            parent=organism,
+            config=configs.reproduction,
+            alive_result=alive_result,
+            birth_tick=birth_tick,
+            generation=generation,
+            reason="outcross_runtime_cost_not_payable",
+            capacity_available=True,
+        )
+        return (
+            organism,
+            reproduction_result,
+            waiting,
+            lineage,
+            births,
+            deaths,
+            blocked_reproduction,
+            _with_reproduction_delta(
+                event,
+                parent_after=organism,
+                reproduction_result=reproduction_result,
+                succeeded=False,
+                reason="outcross_runtime_cost_not_payable",
                 parent_id=organism.id,
                 child_id=None,
                 event_id=reproduction_result.event_id,

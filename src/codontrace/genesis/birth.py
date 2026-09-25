@@ -9,7 +9,7 @@ claims.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 
@@ -1590,6 +1590,7 @@ def select_chamber_pair(
     waiting: Sequence[IncipientOffspring],
     *,
     same_length_only: bool,
+    compatible: Callable[[IncipientOffspring, IncipientOffspring], bool] | None = None,
 ) -> tuple[int, int] | None:
     """Return FIFO indices of the oldest compatible waiting pair, if any."""
 
@@ -1599,6 +1600,8 @@ def select_chamber_pair(
             if same_length_only and len(first.genome_bits) != len(second.genome_bits):
                 continue
             if first.parent_id == second.parent_id:
+                continue
+            if compatible is not None and not compatible(first, second):
                 continue
             return (i, j)
     return None

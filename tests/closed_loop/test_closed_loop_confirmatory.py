@@ -6,8 +6,12 @@ from pathlib import Path
 
 from codontrace.genesis.closed_loop_confirmatory import (
     CONFIRMATORY_SEEDS,
+    graded_block,
+    locked_flag,
     mixed_seed,
     run_confirmatory_partial,
+    run_sensitivity,
+    separate_seed,
 )
 
 _REPO = Path(__file__).resolve().parents[2]
@@ -42,3 +46,42 @@ def test_confirmatory_blocks_fail_and_the_flag_stays_false() -> None:
     engine = (_REPO / "src" / "codontrace" / "engine.py").read_text(encoding="utf-8").lower()
     for token in ("outcross", "infection", "parasite", "red_queen", "matching_allele"):
         assert token not in engine
+
+
+def test_graded_overlap_removes_the_outcross_arm() -> None:
+    rows = graded_block()
+    assert tuple(row.seed for row in rows) == CONFIRMATORY_SEEDS
+    assert all(row.specificity == "graded" for row in rows)
+    assert all(row.passed is False for row in rows)
+    assert all(row.outcross_coevolve_extinct for row in rows)
+    assert all(row.outcross_frozen_cycles is False for row in rows)
+    assert locked_flag(1, 0, 0) is False
+    one = separate_seed(101, specificity="graded")
+    assert one.to_dict() == separate_seed(101, specificity="graded").to_dict()
+
+
+def test_sensitivity_shifts_with_birth_atp_and_stays_under_the_bar() -> None:
+    cells = run_sensitivity()
+    assert max(cell.conjunction for cell in cells) == 1
+    assert not any(cell.conjunction >= 6 for cell in cells)
+
+    def first_majority(birth_atp: float) -> float:
+        return min(
+            cell.virulence
+            for cell in cells
+            if cell.birth_atp == birth_atp and cell.selfing_coevolve_extinct >= 6
+        )
+
+    assert first_majority(8.0) == 16.0
+    assert first_majority(10.0) == 20.0
+    assert first_majority(12.0) == 24.0
+    for birth_atp in (8.0, 10.0, 12.0):
+        plateau = next(cell for cell in cells if cell.birth_atp == birth_atp and cell.virulence == 32.0)
+        assert plateau.selfing_coevolve_extinct == 6
+        assert plateau.outcross_coevolve_cycles == 2
+        assert plateau.conjunction == 1
+    spike = next(cell for cell in cells if cell.birth_atp == 12.0 and cell.virulence == 14.0)
+    assert spike.outcross_coevolve_cycles == 8
+    assert spike.selfing_coevolve_extinct == 0
+    assert spike.conjunction == 0
+    assert locked_flag(1, 0, 0) is False

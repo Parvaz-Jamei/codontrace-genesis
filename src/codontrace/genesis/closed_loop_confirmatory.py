@@ -2,10 +2,12 @@
 
 The rule is in ``docs/handoff/CLOSED_LOOP_P7_ROADMAP_PREREG_20260925.md``.
 Seeds 101–108 are not seed 7. Mutation stays 0.7, the horizon stays 48
-generations, and birth ATP stays 10. The primary virulence is 32. Virulence
-8 is only the low-debit check. This module runs the separate-population
-block and the mixed census. It does not run the graded clause, so
-``red_queen_proved`` stays false even if both blocks pass.
+generations, and birth ATP stays 10 on the primary endpoint. The primary
+virulence is 32. Virulence 8 is only the low-debit check. The strict
+separate block and the mixed census are ``run_confirmatory_partial``.
+``graded_block`` repeats that block with locus overlap. ``run_sensitivity``
+is the virulence and birth-ATP table, and it is not a new endpoint.
+``red_queen_proved`` stays false unless every block clears 6 of 8.
 """
 
 from __future__ import annotations
@@ -47,6 +49,7 @@ class SeparateSeed:
     outcross_absent_extinct: bool
     selfing_absent_extinct: bool
     selfing_coevolve_extinct_at_8: bool
+    specificity: str
     passed: bool
 
     def to_dict(self) -> dict[str, object]:
@@ -61,6 +64,7 @@ class SeparateSeed:
             "outcross_absent_extinct": self.outcross_absent_extinct,
             "selfing_absent_extinct": self.selfing_absent_extinct,
             "selfing_coevolve_extinct_at_8": self.selfing_coevolve_extinct_at_8,
+            "specificity": self.specificity,
             "passed": self.passed,
         }
 
@@ -133,7 +137,7 @@ def _frequency(outcross: int, selfing: int) -> float | None:
     return outcross / living
 
 
-def separate_seed(seed: int) -> SeparateSeed:
+def separate_seed(seed: int, *, specificity: str = "strict") -> SeparateSeed:
     """One confirmatory seed at the locked primary endpoint."""
 
     def arm(mating: str, passage: str, virulence: float) -> MatchArmRecord:
@@ -145,7 +149,7 @@ def separate_seed(seed: int) -> SeparateSeed:
             birth_atp=CONFIRMATORY_BIRTH_ATP,
             seed=seed,
             parasite_mutation=CONFIRMATORY_MUTATION,
-            specificity="strict",
+            specificity=specificity,
         )
 
     oc = arm("outcross", "coevolve", PRIMARY_VIRULENCE)
@@ -177,6 +181,7 @@ def separate_seed(seed: int) -> SeparateSeed:
         outcross_absent_extinct=oa.extinct,
         selfing_absent_extinct=sa.extinct,
         selfing_coevolve_extinct_at_8=low.extinct,
+        specificity=specificity,
         passed=passed,
     )
 
@@ -243,3 +248,97 @@ def run_confirmatory_partial() -> ConfirmatoryReport:
         red_queen_proved=False,
         biological_red_queen_proved=False,
     )
+
+
+VIRULENCE_STEP = tuple(float(value) for value in range(8, 42, 2))
+BIRTH_ATPS = (8.0, 10.0, 12.0)
+
+
+@dataclass(frozen=True, slots=True)
+class SensitivityCell:
+    """Descriptive count across the eight confirmatory seeds. Not a new endpoint."""
+
+    virulence: float
+    birth_atp: float
+    selfing_coevolve_extinct: int
+    outcross_coevolve_cycles: int
+    conjunction: int
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "virulence": self.virulence,
+            "birth_atp": self.birth_atp,
+            "selfing_coevolve_extinct": self.selfing_coevolve_extinct,
+            "outcross_coevolve_cycles": self.outcross_coevolve_cycles,
+            "conjunction": self.conjunction,
+        }
+
+
+def graded_block() -> tuple[SeparateSeed, ...]:
+    """The same six lines as the strict block, with graded overlap. Not a refit."""
+
+    return tuple(separate_seed(seed, specificity="graded") for seed in CONFIRMATORY_SEEDS)
+
+
+def _sensitivity_cell(virulence: float, birth_atp: float) -> SensitivityCell:
+    extinct = 0
+    cycles = 0
+    conjunction = 0
+    for seed in CONFIRMATORY_SEEDS:
+        def arm(mating: str, passage: str, seed: int = seed) -> MatchArmRecord:
+            return run_match_arm(
+                mating=mating,
+                passage=passage,
+                virulence=virulence,
+                generations=CONFIRMATORY_GENERATIONS,
+                birth_atp=birth_atp,
+                seed=seed,
+                parasite_mutation=CONFIRMATORY_MUTATION,
+                specificity="strict",
+            )
+
+        oc = arm("outcross", "coevolve")
+        sc = arm("selfing", "coevolve")
+        of_ = arm("outcross", "frozen")
+        sf = arm("selfing", "frozen")
+        if sc.extinct:
+            extinct += 1
+        if oc.cycles:
+            cycles += 1
+        if (
+            (not oc.extinct)
+            and oc.cycles
+            and sc.extinct
+            and (not of_.extinct)
+            and (not of_.cycles)
+            and (not sf.extinct)
+        ):
+            conjunction += 1
+    return SensitivityCell(
+        virulence=virulence,
+        birth_atp=birth_atp,
+        selfing_coevolve_extinct=extinct,
+        outcross_coevolve_cycles=cycles,
+        conjunction=conjunction,
+    )
+
+
+def run_sensitivity() -> tuple[SensitivityCell, ...]:
+    """Virulence every 2 from 8 to 40, birth ATP 8, 10, and 12. Strict weight."""
+
+    return tuple(
+        _sensitivity_cell(virulence, birth_atp)
+        for birth_atp in BIRTH_ATPS
+        for virulence in VIRULENCE_STEP
+    )
+
+
+def locked_flag(separate_passes: int, mixed_passes: int, graded_passes: int) -> bool:
+    """The flag needs every block. A sensitivity cell cannot reopen it."""
+
+    return (
+        separate_passes >= PASS_BAR
+        and mixed_passes >= PASS_BAR
+        and graded_passes >= PASS_BAR
+    )
+

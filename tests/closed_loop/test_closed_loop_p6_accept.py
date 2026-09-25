@@ -1,7 +1,9 @@
 """P6 accept: matching-allele debit on the existing ATP clock.
 
 The biological claim stays blocked. ``red_queen_proved`` stays false.
-Virulence 32 is a witness of an unpaid name-set orbit, not a debit onset.
+``pattern_holds`` on the default factorial is the seed-7 replay only.
+Generation 0 is the same for every seed, because every parasite still
+carries the ancestral window. A frozen stock never leaves that window.
 """
 
 from __future__ import annotations
@@ -211,6 +213,7 @@ _RARE = (
 
 
 def test_shared_passage_flips_which_codon_remains() -> None:
+    """This census still copies the living-host window. It is not ``run_match_arm``."""
     chased = run_shared_modifier(_PAIR, passage="coevolve", virulence=20.0, generations=8)
     held = run_shared_modifier(_PAIR, passage="frozen", virulence=20.0, generations=8)
     quiet = run_shared_modifier(_PAIR, passage="absent", virulence=20.0, generations=8)
@@ -265,6 +268,88 @@ def test_one_outcross_codon_is_unmated_and_identical_windows_do_not_escape() -> 
     assert caught.selfing_by_generation == (0, 0, 0, 0)
     assert spared.outcross_by_generation == (2, 2, 2, 2)
     assert spared.selfing_by_generation == (2, 2, 2, 2)
+
+
+def test_generation_zero_is_the_ancestral_window_for_every_seed() -> None:
+    for seed in (1, 7, 42):
+        selfing = run_match_arm(
+            mating="selfing", passage="coevolve", virulence=32.0, generations=1, seed=seed
+        )
+        outcross = run_match_arm(
+            mating="outcross", passage="coevolve", virulence=32.0, generations=1, seed=seed
+        )
+        assert selfing.match_debits_by_generation == (9,)
+        assert selfing.final_hosts == 3
+        assert selfing.extinct is False
+        assert selfing.mating_fee_debits == 0
+        assert outcross.match_debits_by_generation == (6,)
+        assert outcross.mating_fee_debits > 0
+        assert outcross.extinct is False
+
+
+def test_frozen_stock_stays_ancestral_when_mutation_is_on() -> None:
+    for seed in (1, 7, 42):
+        for mating in ("selfing", "outcross"):
+            frozen = run_match_arm(
+                mating=mating,
+                passage="frozen",
+                virulence=32.0,
+                generations=8,
+                seed=seed,
+                parasite_mutation=0.7,
+            )
+            quiet = run_match_arm(
+                mating=mating, passage="absent", virulence=32.0, generations=8, seed=seed
+            )
+            assert frozen.parasite_window == "000111"
+            assert frozen.extinct is False
+            assert sum(quiet.match_debits_by_generation) == 0
+            assert quiet.final_hosts == 12
+            assert quiet.parasite_window == "000111"
+        assert run_match_arm(
+            mating="selfing", passage="frozen", virulence=32.0, generations=8, seed=seed
+        ).mating_fee_debits == 0
+
+
+def test_zero_mutation_does_not_leave_the_ancestral_window() -> None:
+    for seed in (1, 7):
+        chased = run_match_arm(
+            mating="selfing",
+            passage="coevolve",
+            virulence=32.0,
+            generations=8,
+            seed=seed,
+            parasite_mutation=0.0,
+        )
+        held = run_match_arm(
+            mating="selfing", passage="frozen", virulence=32.0, generations=8, seed=seed
+        )
+        assert chased.parasite_window == "000111"
+        assert chased.final_hosts == held.final_hosts == 3
+        assert chased.match_debits_by_generation == held.match_debits_by_generation
+        again = run_match_arm(
+            mating="outcross",
+            passage="coevolve",
+            virulence=32.0,
+            generations=6,
+            seed=seed,
+            parasite_mutation=0.0,
+        )
+        assert again.to_dict() == run_match_arm(
+            mating="outcross",
+            passage="coevolve",
+            virulence=32.0,
+            generations=6,
+            seed=seed,
+            parasite_mutation=0.0,
+        ).to_dict()
+
+
+def test_refused_mutation_and_generation_do_not_run() -> None:
+    with pytest.raises(ConfigurationError, match="parasite_mutation"):
+        run_match_arm(mating="selfing", passage="absent", parasite_mutation=1.1)
+    with pytest.raises(ConfigurationError, match="generations"):
+        run_match_arm(mating="selfing", passage="absent", generations=0)
 
 
 def test_refused_mating_and_passage_do_not_run() -> None:

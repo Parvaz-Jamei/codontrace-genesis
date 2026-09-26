@@ -65,8 +65,7 @@ doi:10.1038/nrg1088) spirit: refill density scales with world / \(N\), not
 a post-hoc rescue of typed fails.
 
 HP / infection vocabulary stays in plugin / env / closed_loop modules.
-`engine.py` stays domain-free. No second population registry. BAIC pins
-stay byte-identical.
+`engine.py` stays domain-free. No second population registry. BAIC pins are no longer byte-frozen (owner policy 2026-09-26); engine stays general — see OWNER_ENGINE_MODULE_UPDATE_POLICY_20260926.md.
 
 ## 2. Typed outcomes (mutually exclusive per seed)
 

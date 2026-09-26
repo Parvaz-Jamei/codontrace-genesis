@@ -1,6 +1,6 @@
 # Engine-complete gates — HostParasiteWorld / life_loop (2026-09-25)
 
-**Constraint:** life_loop + `engine.py` stay domain-free ALife. HP is a thin profile that *calls* primitives. No infection / vaccine / CRISPR / ARD vocabulary, `steal_fraction`, or HP physics in `engine.py` or kernel types. ClaimGate + BAIC pins untouched.
+**Constraint:** life_loop + `engine.py` stay **domain-free / general** ALife (HP is a thin profile that *calls* primitives; no infection / vaccine / CRISPR / ARD vocabulary, `steal_fraction`, or HP physics in `engine.py` or kernel types). Engine and modules **may be updated** for fidelity; see `OWNER_ENGINE_MODULE_UPDATE_POLICY_20260926.md`. BAIC pin freezes are lifted (venue dropped). ClaimGate honesty bars unchanged.
 
 **Tests:** `tests/engine_complete/test_engine_complete_gates.py`
 
@@ -24,7 +24,7 @@
 ## Explicit non-goals (still locked)
 
 - No unsolved-challenge / literature SF tests yet
-- ClaimGate refuses / BAIC pins unchanged
+- ClaimGate refuses unchanged; BAIC pins no longer frozen (see OWNER_ENGINE_MODULE_UPDATE_POLICY_20260926.md)
 - No infection physics in `engine.py`
 - No Round-3 innovation-meter campaigns as template
 - No “best-in-world” claims

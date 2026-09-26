@@ -105,7 +105,7 @@ Typed outcomes (non-exhaustive):
 | Hold / floor | reuse structural confirm conjunctive + min_viable logic |
 | Design digest | pin this prereg path + numeric table in `rq_earn_confirm_design_dict()` |
 | Tests | assert `red_queen_proved is False` on SUCCESS smoke; assert hostile_ne excluded; assert avi ignored for lag credit; assert freeze≠absent |
-| `engine.py` | **no domain HP** |
+| `engine.py` | **general / domain-free only** — may be edited for life-loop fidelity; no HP/infection physics in kernel (see `OWNER_ENGINE_MODULE_UPDATE_POLICY_20260926.md`) |
 
 ---
 

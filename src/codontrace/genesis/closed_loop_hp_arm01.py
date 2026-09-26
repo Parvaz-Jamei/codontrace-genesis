@@ -611,6 +611,10 @@ class LifeLoopEcologyArm:
     food_patches: tuple[tuple[int, int], ...] = _DEFAULT_FOOD_PATCHES
     cumulative_resource_bolus_placed: float = 0.0
     passage_refill_sync: str = "none"
+    mating_locus_lock: bool = False
+    selfing_birth_atp_endowment: float = 0.0
+    mate_search_radius: int | None = None
+    outcross_mates_per_generation_cap: int | None = None
 
     @classmethod
     def boot(
@@ -632,6 +636,13 @@ class LifeLoopEcologyArm:
         resource_bolus_amount: float = _DEFAULT_RESOURCE_BOLUS_AMOUNT,
         food_patches: Sequence[tuple[int, int]] | None = None,
         founder_spatial_policy: str = "legacy_row",
+        two_fold_cost_sex: bool = False,
+        mating_locus_lock: bool = False,
+        selfing_birth_atp_endowment: float = 0.0,
+        mate_search_radius: int | None = None,
+        outcross_mates_per_generation_cap: int | None = None,
+        chamber_max_birth_wait_ticks: int | None = None,
+        chamber_timeout_policy: str = "asexual_fallback",
     ) -> LifeLoopEcologyArm:
         passage = ecology_arm_to_passage(arm)
         founder_rows = tuple(founders) if founders is not None else _INVASION_FOUNDERS
@@ -691,12 +702,16 @@ class LifeLoopEcologyArm:
             outcross_same_role_only=True,
             match_locus_enabled=True,
             mutation_stream_lock_roles=(),
+            mating_locus_lock=bool(mating_locus_lock),
+            selfing_birth_atp_endowment=float(selfing_birth_atp_endowment),
+            mate_search_radius=mate_search_radius,
+            outcross_mates_per_generation_cap=outcross_mates_per_generation_cap,
         )
         for org in organisms:
             silence_outcross_locus(org, life)
         assert_single_atp_owner(organisms)
 
-        two_fold = False  # unpaid; document honestly — not Hamilton two-fold.
+        two_fold = bool(two_fold_cost_sex)
         soft_k = int(soft_carrying_capacity)
         if soft_k < 1:
             raise ConfigurationError("soft_carrying_capacity must be >= 1")
@@ -735,6 +750,8 @@ class LifeLoopEcologyArm:
                 recombination_prob=1.0,
                 two_fold_cost_sex=two_fold,
                 diploid_meiosis=False,
+                max_birth_wait_ticks=chamber_max_birth_wait_ticks,
+                timeout_policy=str(chamber_timeout_policy),
             ),
             closed_loop_hp_life=life,
         )
@@ -783,6 +800,10 @@ class LifeLoopEcologyArm:
             food_patches=patches,
             cumulative_resource_bolus_placed=0.0,
             passage_refill_sync=sync,
+            mating_locus_lock=bool(mating_locus_lock),
+            selfing_birth_atp_endowment=float(selfing_birth_atp_endowment),
+            mate_search_radius=mate_search_radius,
+            outcross_mates_per_generation_cap=outcross_mates_per_generation_cap,
         )
 
     def _hosts(self) -> list[GenesisOrganism]:

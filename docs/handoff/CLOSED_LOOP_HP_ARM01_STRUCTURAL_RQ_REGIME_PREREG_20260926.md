@@ -155,7 +155,7 @@ same 16 windows until \(N_p=64\) (4 copies of each founder window).
 | Sub-locus bit ranges (0-indexed within window) | \(L_0=[0,2)\), \(L_1=[2,4)\), \(L_2=[4,6)\) | Fixed; no post-hoc repartition |
 | Affinity rule | `feature_overlap` | Graded allele channels (Engelstädter) |
 | Affinity score | mean over **independent bit-disjoint** sub-loci of (sub-locus Hamming agreement / 2) | \(\in[0,1]\); sub-scores never collapsed before averaging |
-| Debit | graded \(f(\text{independent bit-disjoint sub-scores})\) → magnitude path with virulence × steal | Graded debit; partial match pays partial debit |
+| Debit | graded \(f(\text{independent bit-disjoint sub-scores})\) → virulence × steal × affinity; **one parasite–host pair per seat per generation** (no multi-hit pile-on) | Graded debit; partial match pays partial debit; load must not erase mid-d |
 | AND-exact composite sold as multi-locus | **forbidden** (Engelstädter theater) | Exact full-window AND required for any debit is rejected |
 | Match-class identity for clocks | Per-sub-locus 2-bit allele string (and joint tuple digest) | Observation digests |
 
@@ -169,8 +169,8 @@ not a binary exact-window AND.
 |---|---|---|
 | Parasite keep-fraction \(\kappa\) | **0.5** | Mid-\(\kappa\) = partial keep-fraction \(\in(0,1)\); not wipe/freeze |
 | Parasite mutation rate | **0.25** | Mid mut band; **co-preregistered with** \(\kappa\) (not retuned separately after peek) |
-| Virulence | **16.0** | Mid load (between sealed 8 and harsh 32) |
-| Steal fraction | **0.40** | Mid steal band |
+| Virulence | **8.0** | Mid load band (sealed exploratory 8; harsh 32 reserved); must not erase mid-d |
+| Steal fraction | **0.20** | Mid steal band; co-locked with virulence so graded contact does not erase mid-d (Rabajante) |
 | Birth ATP | **48.0** | Reproductive assurance under soft \(K\) |
 | Basal runtime ATP cost | **0.05** | Unchanged spirit |
 | Resource bolus amount | **20.0** per patch at generation boundary | Elena–Lenski refill |

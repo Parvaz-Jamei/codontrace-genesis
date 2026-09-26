@@ -129,6 +129,7 @@ digests as observation only.
 | Food patch set | 4×4: \((x,y)\) for \(x,y\in\{0,1,2,3\}\) | Expanded with world / \(N\) |
 | Resource bolus (see Stage C) | **20.0** × 16 patches | Scaled with patch count / \(N\) |
 | Substrate | `population_runner_phase_b_host_parasite_env` | Unchanged life-loop bind; no second registry |
+| Reproduction mode | **asexual** (`ReproductionMode.ASEXUAL`) | Mating / Slowinski **DEFER**; allelic clocks do not require sexual chamber |
 | Min viable census (demographic gate only) | **16** living hosts with mating mode, per debit-active arm, at each locked window | **Never** soft-\(K\) body census as \(N_e\) proxy; allelic gates use match-class / per-sublocus freqs + founder richness |
 
 ### Match-state founder multiset (16 distinct 6-bit windows)

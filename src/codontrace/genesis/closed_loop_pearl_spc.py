@@ -1,4 +1,4 @@
-"""XF-WP-1: Pearl-pair knockouts and debit-stream capability gates.
+"""Pearl-pair and debit-stream gates: Pearl-pair knockouts and debit-stream capability gates.
 
 Sealed confirmatory seeds 101–108 used ``frozen`` and ``absent`` under the
 P7 prereg and returned an honest FAIL (0/8 separate, 0/8 mixed) at tip
@@ -359,7 +359,7 @@ class XfWp1ClauseReport:
         }
 
 
-def evaluate_xf_wp1_clauses(
+def evaluate_pearl_spc_clauses(
     *,
     history: Sequence[Sequence[str]] | Sequence[tuple[str, ...]],
     match_debits: Sequence[object],
@@ -466,7 +466,7 @@ __all__ = [
     "assert_passage_taxonomy",
     "cusum_onset_declared",
     "debit_backed_cycle_capability",
-    "evaluate_xf_wp1_clauses",
+    "evaluate_pearl_spc_clauses",
     "observer_residual_coherent",
     "pearl_knockout_passages",
     "pearl_pair_survival_gap_absent",

@@ -1,4 +1,4 @@
-"""XF-WP-1: Pearl-pair taxonomy and fail-closed debit-stream gates.
+"""Pearl-pair and debit-stream gates: Pearl-pair taxonomy and fail-closed debit-stream gates.
 
 Anchored to sealed confirmatory 101–108 honest FAIL at tip 610f46f.
 Does not promote red_queen_proved. Does not loosen ClaimGate.
@@ -13,7 +13,7 @@ import pytest
 from codontrace.claimgate.adapters.host_parasite import assert_claim_allowed
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_p6 import debit_backed_cycle, run_match_arm
-from codontrace.genesis.closed_loop_xf_wp1 import (
+from codontrace.genesis.closed_loop_pearl_spc import (
     CLAIM_CEILING,
     PASSAGE_ABSENT,
     PASSAGE_COSTLESS,
@@ -22,7 +22,7 @@ from codontrace.genesis.closed_loop_xf_wp1 import (
     assert_passage_taxonomy,
     cusum_onset_declared,
     debit_backed_cycle_capability,
-    evaluate_xf_wp1_clauses,
+    evaluate_pearl_spc_clauses,
     observer_residual_coherent,
     pearl_knockout_passages,
     pearl_pair_survival_gap_absent,
@@ -39,7 +39,7 @@ def test_claimgate_still_refuses_red_queen_proved() -> None:
         assert_claim_allowed("red_queen_proved")
     # Harness keeps the biological flag false by construction; ClaimGate
     # blocks the digital claim name on the host_parasite profile.
-    report = evaluate_xf_wp1_clauses(
+    report = evaluate_pearl_spc_clauses(
         history=(("a",), ("b",), ("a",)),
         match_debits=(0, 1, 0),
         frozen_outcross_extinct=False,
@@ -149,7 +149,7 @@ def test_capability_gates_cannot_invent_a_cycle_or_grant_rq() -> None:
         )
         is False
     )
-    report = evaluate_xf_wp1_clauses(
+    report = evaluate_pearl_spc_clauses(
         history=paid,
         match_debits=paid_debits,
         frozen_outcross_extinct=False,

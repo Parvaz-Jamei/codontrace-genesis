@@ -49,8 +49,8 @@ does not set `red_queen_proved`.
 
 ## Code
 
-Additive module: `src/codontrace/genesis/closed_loop_xf_wp1.py`.
-Accept tests: `tests/closed_loop/test_closed_loop_xf_wp1.py`.
+Additive module: `src/codontrace/genesis/closed_loop_pearl_spc.py`.
+Accept tests: `tests/closed_loop/test_closed_loop_pearl_spc.py`.
 
 Out of scope here: frequency clocks and Slowinski invasion (later
 ecology path), graded soft-refit of 101–108, MFA / CRN / R2R / ATP

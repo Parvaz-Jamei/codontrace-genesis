@@ -4,8 +4,9 @@ Extracted from ``codontrace.engine`` so tick, snapshot, and run identity
 objects have a named module boundary. Digests go through
 ``codontrace.engine_digest._digest`` and must remain byte-stable.
 
-``GenesisRunResult`` stays in ``codontrace.engine`` because it owns the
-heavy evidence-surface properties. See ``docs/ENGINE_REPLAY_CONTRACT.md``.
+``GenesisRunResult`` lives in ``codontrace.engine_run_result`` and is
+re-exported from the ``codontrace.engine`` facade. See
+``docs/ENGINE_REPLAY_CONTRACT.md``.
 """
 
 from __future__ import annotations

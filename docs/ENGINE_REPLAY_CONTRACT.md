@@ -12,7 +12,11 @@ that replay is complete simulation re-execution.
 |---|---|---|
 | `codontrace.engine_digest` | Spec/result hashing (`_digest`, registry/object hashes) | Canonical JSON separators, key order, float encoding, default action-registry manifest version |
 | `codontrace.engine_results` | `GenesisTickResult`, `GenesisSnapshot`, `GenesisRun`, `GenesisRunSummary`, `ConsistencyValidationResult` | `to_dict()` field names and types used in digests |
-| `codontrace.engine` | `GenesisEngine`, `GenesisExperimentSpec`, `GenesisRunResult` | Default life-loop run semantics |
+| `codontrace.engine_spec` | `GenesisEngineConfig`, `GenesisExperimentSpec`, `GenerationBoundaryObserver` | Spec `to_dict()` field names used in digests |
+| `codontrace.engine_runtime` | `GenesisEngine` orchestrator (+ `_effective_evolution_config`, `_default_qd_archive`) | Default life-loop run semantics; observer call site is domain-free |
+| `codontrace.engine_run_result` | `GenesisRunResult` evidence / maturity surface | Result `to_dict()` / digest payload |
+| `codontrace.engine_claims` | Claim ladder, protocol statuses, review attach, phase2 hashes | ClaimGate honesty; no soft-pass labels in helpers |
+| `codontrace.engine` | Thin facade re-exports only | Public import surface / `__all__` |
 
 Historical imports (`from codontrace.engine import …` and
 `from codontrace.genesis.engine import …`) stay valid. The split is a

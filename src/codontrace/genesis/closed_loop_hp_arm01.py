@@ -29,7 +29,7 @@ selfing-rate / allele-frequency series). Accept path: selfing invades under
 avirulent and fixed, stays rarer under copassaged. Morran outcrossing
 maintenance is secondary, not a substitute PASS. Shared-modifier terminal
 inequality is refused as a Slowinski PASS. Honest FAIL on short CI horizons
-is recorded; confirmatory length is deferred without locked prereg.
+is recorded; confirmatory length is locked in closed_loop_hp_arm01_confirm.
 
 Claim ceiling stays ``runtime_observation`` until life-loop bind + per-arm
 clocks + the invasion contrast all hold, then at most ``candidate_evidence``.
@@ -1024,6 +1024,10 @@ def run_three_arm_frequency_campaign(
     seed: int = 101,
     attach_pearl_measurement: bool = False,
     handling_time: float = _DEFAULT_HANDLING_TIME,
+    parasite_mutation: float = 0.5,
+    birth_atp: float = _DEFAULT_BIRTH_ATP,
+    parasite_n: int = _DEFAULT_PARASITE_N,
+    founders: Sequence[tuple[str, str]] | None = None,
 ) -> ThreeArmCampaignReport:
     """Run three ecology arms on life-loop + Phase B + HostParasiteEnv.
 
@@ -1031,9 +1035,9 @@ def run_three_arm_frequency_campaign(
     clock) with Phase B sexual crossover and per-arm ``HostParasiteEnv``
     contact. ``run_shared_modifier`` is not the primary substrate.
 
-    Short generation counts are scaffolding; confirmatory horizon is deferred
-    without a locked prereg. Prefer honest FAIL on the Slowinski invasion
-    contrast over soft-pass theater.
+    Short generation counts are scaffolding; confirmatory horizon requires the
+    locked prereg in ``closed_loop_hp_arm01_confirm``. Prefer honest FAIL on
+    the Slowinski invasion contrast over soft-pass theater.
     """
 
     assert_ecology_arm_taxonomy()
@@ -1049,6 +1053,10 @@ def run_three_arm_frequency_campaign(
             virulence=virulence,
             seed=seed,
             handling_time=handling_time,
+            parasite_mutation=parasite_mutation,
+            birth_atp=birth_atp,
+            parasite_n=parasite_n,
+            founders=founders,
         )
         arm.run_generations(generations)
         arms[arm_name] = arm

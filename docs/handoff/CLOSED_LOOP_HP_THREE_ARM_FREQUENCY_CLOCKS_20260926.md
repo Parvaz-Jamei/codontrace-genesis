@@ -73,8 +73,10 @@ Legacy three-frequency terminal inequality is **not** the accept path and
 must never be reported as Slowinski PASS for a shared-modifier substrate.
 
 Short scaffolding runs may honestly fail the invasion contrast; the miss is
-recorded. Confirmatory horizon is deferred without a locked prereg — do not
-soft-green by lengthening generations alone.
+recorded. The confirmatory invasion horizon is locked in
+`CLOSED_LOOP_HP_ARM01_SLOWINSKI_INVASION_PREREG_20260926.md` (48 generations,
+virulence 32, parasite mutation 0.5, intro 0.2, seeds 201–208, pass bar 6/8)
+before outcomes. Do not soft-green by retuning after inspection.
 
 Pearl `frozen`+`costless` knockouts and SPC/CUSUM/observer predicates may
 attach as thin **fail-closed measurement clauses** only after per-arm

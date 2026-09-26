@@ -72,27 +72,35 @@ HP / infection vocabulary stays in plugin / env / closed_loop modules.
 
 ## 2. Typed outcomes (mutually exclusive per seed)
 
-Every pilot seed receives exactly one typed outcome. Slowinski / mating
-estimands are **unscored** this wave (do not emit `invasion_pass`,
-`invasion_fail`, or `selfing_nonviable` as campaign Result for this cell).
+Storm four-role ladder (locked). Every pilot seed receives exactly one label
+from:
+
+`sweep_fixation` | `polymorphism_hold` | `cycle_candidate` | `horizon_insufficient` | `parasite_extinct` | `selfing_nonviable` | `Slowinski_unscored`
+
+Plus regime-hostile auxiliaries when demography / turnover contracts fail before
+allelic scoring is interpretable.
 
 | Typed outcome | Meaning |
 |---|---|
 | `parasite_extinct` | On any debit-active arm (`fixed` or `copassaged`), parasite stock empties before the terminal locked window, so allelic clocks cannot be scored. |
-| `regime_hostile_ne` | Living host mating census on debit-active arms falls below `min_viable_census` at any locked mid or terminal window, **or** founder / bit-flip / soft-\(K\) contract fails so allelic \(N_e\) cannot be interpreted. Body census alone never grants `polymorphism_hold`. |
-| `regime_hostile_turnover` | Debit-active arms survive demographically, but `turnover_audit` shows bang-bang or frozen stock (effective keep-fraction outside the locked mid band, or mut/churn audit miss) so mid-diversity cannot be attributed to Stage C. |
-| `sweep_fixation` | At any locked mid or terminal window on a debit-active arm, match-class (or per-sub-locus class) richness \(< R_{\min}\) **or** a single class frequency \(> 1-\varepsilon\). Sweep / fixation dominates (Gokhale–Traulsen regime). |
-| `horizon_insufficient` | Polymorphism criteria are met at mid windows but collapse only at terminal, **or** series length / locked windows are too short to classify sweep vs hold vs cycle under the pre-reg rules; Critic may not promote. Not a soft-green of sealed FAILS. |
-| `polymorphism_hold` | **Primary success this wave.** On each debit-active arm used for scoring (`fixed` and `copassaged`): at **every** locked mid window **and** terminal, (a) match-class richness (union across independently scored sub-loci, or per-sub-locus min — see §6) \(\ge R_{\min}\), **and** (b) no single class frequency \(> 1-\varepsilon\). Mid+terminal multi-class series required — not one-shot diversity / bump. `avirulent` / `absent` is a **no-antagonist control only**; it is never the RQ null for mid-diversity and never decides `polymorphism_hold` alone. |
-| `cycle_candidate` | **Secondary.** Requires `polymorphism_hold` criteria **plus** pre-registered oscillation / turnover of the dominant match-class (or dominant sub-locus class) across ≥2 locked windows on debit-active arms, with multi-seed concordance rule in §7. Not automatic from a long series. Never equals `red_queen_proved`. |
+| `regime_hostile_ne` | Founder richness / host bit-flip / soft-\(K\) contract fails, **or** living host mating census on debit-active arms falls below `min_viable_census` at a locked window so series cannot be read. **Gates use match-class / per-sublocus frequencies + founder richness — never soft-\(K\) body census as \(N_e\) proxy.** Body census alone never grants `polymorphism_hold`. |
+| `regime_hostile_turnover` | Debit-active arms survive demographically, but `turnover_audit` shows bang-bang wipe or freeze (effective keep-fraction outside the locked mid band, or mut/churn audit miss co-prereg'd with \(\kappa\)) so mid-diversity cannot be attributed to Stage C. |
+| `sweep_fixation` | At any locked mid or terminal window on a debit-active arm, match-class (or per-sub-locus) richness \(< R_{\min}\) **or** a single class frequency \(> 1-\varepsilon\). Sweep / fixation dominates (Gokhale–Traulsen). |
+| `horizon_insufficient` | Polymorphism criteria hold at mid windows but collapse only at terminal, **or** locked windows are too short to classify sweep vs hold vs cycle; Critic may not promote. Not a soft-green of sealed FAILS. |
+| `polymorphism_hold` | **Primary success THIS wave (only).** On each debit-active score arm (`fixed` and `copassaged`): at **every** locked mid window **and** terminal, (a) match-class richness \(\ge R_{\min}\), **and** (b) no single class frequency \(> 1-\varepsilon\). Mid+terminal multi-class series — not one-shot diversity / bump. `avirulent` / `absent` = no-antagonist control only; never RQ null for mid-\(d\). |
+| `cycle_candidate` | **Observation-only / secondary.** Recorded only after `polymorphism_hold` criteria hold, plus pre-registered dominant-class turnover across ≥2 locked windows with multi-seed concordance (§7). SPC/CUSUM / oscillation detectors are observation-only **after** hold — never accept path / RQ grant. Never equals `red_queen_proved`. |
+| `selfing_nonviable` | Reserved mating/selfing label; **DEFER** — not scored as campaign Result this wave (mating deferred). |
+| `Slowinski_unscored` | Slowinski invasion estimand left unscored this wave (DEFER). Emit when a seed would otherwise only be narrated as Slowinski ecology; do not unlock Slowinski. |
 
-Priority when multiple labels could apply (first match wins):
+Priority (first match wins):
 `parasite_extinct` → `regime_hostile_ne` → `regime_hostile_turnover` →
 `sweep_fixation` → `horizon_insufficient` → `polymorphism_hold` →
-`cycle_candidate` (upgrade from hold only when oscillation rule holds).
+`cycle_candidate` (observation upgrade only when oscillation rule holds).
+If mating/Slowinski paths are accidentally invoked, label `selfing_nonviable`
+or `Slowinski_unscored` rather than inventing an invasion PASS/FAIL.
 
-Refuse packaging as Slowinski PASS. Refuse `red_queen_proved`.
-Refuse soft-green of `214df20` / `91ab0c6` / `7171d19`.
+Refuse packaging as Slowinski PASS. Refuse `red_queen_proved` (always false
+this wave). Refuse soft-green of `214df20` / `91ab0c6` / `7171d19`.
 
 ## 3. Ecology arms (retained contrast; Slowinski unscored)
 
@@ -113,13 +121,15 @@ digests as observation only.
 | Host soft carrying capacity \(K\) | **64** | Large-\(N\) floor in 50–100 band (Gokhale) |
 | Host founder count \(N_h\) | **64** | Equals soft \(K\) at \(t_0\) (saturated start) |
 | Parasite stock \(N_p\) | **64** | Matched large-\(N\) parasite pool |
-| Distinct match-state founders at \(t_0\) | **16** | Not just `000111` / `111000` |
+| Distinct match-state founders at \(t_0\) | **16** | Founder richness ≫2 (not just `000111`/`111000`) |
 | Host bit-flip rate | **0.02** | Non-zero locked rate (was 0.0 on sealed paths) |
-| World size | **16** | Fits soft \(K=64\) |
+| Stage A co-requirement | **ALL** of \(N\in[50,100]\), founder richness ≫2, host bit-flip >0 on the **same** `PopulationRunner` / `GenesisEngine` / `HostParasiteEnv` | No second population registry |
+| World size | **16** | Scaled with \(N\) so large-\(N\) does not starve (Elena & Lenski) |
 | Founder spatial policy | `food_patch_interleaved` | Avoid off-patch starve artifact |
-| Food patch set | 4×4: \((x,y)\) for \(x,y\in\{0,1,2,3\}\) | Expanded with world |
-| Substrate | `population_runner_phase_b_host_parasite_env` | Unchanged life-loop bind |
-| Min viable census (demographic gate only) | **16** living hosts with mating mode, per debit-active arm, at each locked window | Body census ≠ allelic \(N_e\) |
+| Food patch set | 4×4: \((x,y)\) for \(x,y\in\{0,1,2,3\}\) | Expanded with world / \(N\) |
+| Resource bolus (see Stage C) | **20.0** × 16 patches | Scaled with patch count / \(N\) |
+| Substrate | `population_runner_phase_b_host_parasite_env` | Unchanged life-loop bind; no second registry |
+| Min viable census (demographic gate only) | **16** living hosts with mating mode, per debit-active arm, at each locked window | **Never** soft-\(K\) body census as \(N_e\) proxy; allelic gates use match-class / per-sublocus freqs + founder richness |
 
 ### Match-state founder multiset (16 distinct 6-bit windows)
 
@@ -143,10 +153,10 @@ same 16 windows until \(N_p=64\) (4 copies of each founder window).
 | Recognition window width | **6** bits (unchanged layout) | Plugin match locus |
 | Sub-locus partition | **3** independent sub-loci × **2** bits | Engelstädter multi-locus |
 | Sub-locus bit ranges (0-indexed within window) | \(L_0=[0,2)\), \(L_1=[2,4)\), \(L_2=[4,6)\) | Fixed; no post-hoc repartition |
-| Affinity rule | `feature_overlap` | Graded allele channels |
-| Affinity score | mean over sub-loci of (sub-locus Hamming agreement / 2) | \(\in[0,1]\) |
-| Debit fraction | `affinity × virulence × steal_fraction` magnitude path | Graded debit; partial match pays partial debit |
-| AND-collapse to one exact-match bit | **forbidden** | Exact full-window match required for any debit is rejected |
+| Affinity rule | `feature_overlap` | Graded allele channels (Engelstädter) |
+| Affinity score | mean over **independent bit-disjoint** sub-loci of (sub-locus Hamming agreement / 2) | \(\in[0,1]\); sub-scores never collapsed before averaging |
+| Debit | graded \(f(\text{independent bit-disjoint sub-scores})\) → magnitude path with virulence × steal | Graded debit; partial match pays partial debit |
+| AND-exact composite sold as multi-locus | **forbidden** (Engelstädter theater) | Exact full-window AND required for any debit is rejected |
 | Match-class identity for clocks | Per-sub-locus 2-bit allele string (and joint tuple digest) | Observation digests |
 
 `HostParasiteEnv` may still gate inject eligibility; **debit magnitude** on
@@ -157,8 +167,8 @@ not a binary exact-window AND.
 
 | Parameter | Locked value | Role |
 |---|---|---|
-| Parasite keep-fraction \(\kappa\) | **0.5** | Partial replace each generation on `copassaged`; not full wipe |
-| Parasite mutation rate | **0.25** | Mid mut band |
+| Parasite keep-fraction \(\kappa\) | **0.5** | Mid-\(\kappa\) = partial keep-fraction \(\in(0,1)\); not wipe/freeze |
+| Parasite mutation rate | **0.25** | Mid mut band; **co-preregistered with** \(\kappa\) (not retuned separately after peek) |
 | Virulence | **16.0** | Mid load (between sealed 8 and harsh 32) |
 | Steal fraction | **0.40** | Mid steal band |
 | Birth ATP | **48.0** | Reproductive assurance under soft \(K\) |
@@ -193,7 +203,7 @@ outside \([\kappa-0.15,\kappa+0.15]\) over the mid windows →
 | \(\varepsilon\) (dominance) | **0.15** so single-class frequency \(>1-\varepsilon=0.85\) fails hold |
 | Oscillation rule (`cycle_candidate`) | Dominant joint match-class identity changes across ≥2 consecutive locked windows on **both** debit-active arms; and ≥2 of 3 pilot seeds agree on that change pattern (multi-seed concordance) |
 | Confirmatory bar | **not this wave** (no 8×500); pilot only |
-| Pass reporting (primary) | count seeds with `polymorphism_hold` or `cycle_candidate`; no soft-green |
+| Pass reporting (primary) | count seeds with `polymorphism_hold` only; `cycle_candidate` is secondary observation; no soft-green |
 
 Clocks: per-sub-locus frequency series **and** joint match-class series at
 the locked windows only. No post-hoc window pick. Digests are observation
@@ -207,8 +217,9 @@ only; they never write `red_queen_proved`.
 | `biological_red_queen_proved` | **false** |
 | ClaimGate refuse | must still raise on `red_queen_proved` |
 | Ceiling default | `runtime_observation` |
-| Ceiling after ≥1 seed `polymorphism_hold` (and no sealed soft-green) | at most `candidate_evidence` for reporting `cycle_candidate` discussion |
-| Ceiling for `cycle_candidate` | ≤ `candidate_evidence`; never authorizes RQ proved |
+| Ceiling climb | ≤ `runtime_observation` until pre-reg `polymorphism_hold` across locked windows/seeds; then ≤ `candidate_evidence` for `cycle_candidate` **only** |
+| Ceiling hard stop | never climb past `candidate_evidence`; never equate hold or living clocks with RQ proved / Slowinski unlock |
+| Ceiling for `cycle_candidate` | ≤ `candidate_evidence`; observation-only; never authorizes RQ proved |
 | Soft-pass \(N=1\) as campaign RQ | **rejected** |
 | Body census as allelic \(N_e\) | **rejected** |
 | `avirulent` as RQ null for mid-\(d\) | **rejected** |

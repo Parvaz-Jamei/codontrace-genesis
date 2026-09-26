@@ -171,7 +171,7 @@ not a binary exact-window AND.
 | Parasite keep-fraction \(\kappa\) | **0.5** | Mid-\(\kappa\) = partial keep-fraction \(\in(0,1)\); not wipe/freeze |
 | Parasite mutation rate | **0.25** | Mid mut band; **co-preregistered with** \(\kappa\) (not retuned separately after peek) |
 | Virulence | **8.0** | Mid load band (sealed exploratory 8; harsh 32 reserved); must not erase mid-d |
-| Steal fraction | **0.20** | Mid steal band; co-locked with virulence so graded contact does not erase mid-d (Rabajante) |
+| Steal fraction | **0.15** | Mid steal band; co-locked with virulence so graded contact does not erase mid-d (Rabajante) |
 | Birth ATP | **48.0** | Reproductive assurance under soft \(K\) |
 | Basal runtime ATP cost | **0.05** | Unchanged spirit |
 | Resource bolus amount | **20.0** per patch at generation boundary | Elena–Lenski refill |

@@ -631,6 +631,7 @@ class LifeLoopEcologyArm:
         passage_refill_mode: str = _DEFAULT_PASSAGE_REFILL_MODE,
         resource_bolus_amount: float = _DEFAULT_RESOURCE_BOLUS_AMOUNT,
         food_patches: Sequence[tuple[int, int]] | None = None,
+        founder_spatial_policy: str = "legacy_row",
     ) -> LifeLoopEcologyArm:
         passage = ecology_arm_to_passage(arm)
         founder_rows = tuple(founders) if founders is not None else _INVASION_FOUNDERS
@@ -659,6 +660,21 @@ class LifeLoopEcologyArm:
                 )
             )
             roles[oid] = ROLE_PRIMARY
+        spatial = str(founder_spatial_policy).strip() or "legacy_row"
+        if spatial not in {"legacy_row", "food_patch_interleaved"}:
+            raise ConfigurationError(
+                "founder_spatial_policy must be legacy_row or food_patch_interleaved"
+            )
+        if spatial == "food_patch_interleaved":
+            patch_list = list(
+                food_patches if food_patches is not None else _DEFAULT_FOOD_PATCHES
+            )
+            if not patch_list:
+                raise ConfigurationError(
+                    "food_patch_interleaved requires a non-empty food patch set"
+                )
+            for index, org in enumerate(organisms):
+                org.position = patch_list[index % len(patch_list)]
         intro = self_n / max(1, out_n + self_n)
         ancestral = _modal_window([window for _, window in founder_rows])
         parasite_windows = [ancestral for _ in range(parasite_n)]

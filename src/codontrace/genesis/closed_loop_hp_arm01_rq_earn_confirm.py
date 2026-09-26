@@ -91,6 +91,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     StructuralRQArm,
     _DISTINCT_WINDOWS,
     collect_dense_snaps,
+    collect_lag_clock_snaps,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (
     CONFIRM_SEEDS,
@@ -120,7 +121,8 @@ RQ_EARN_CONFIRM_GENERATIONS = 500
 RQ_EARN_CONFIRM_LOCKED_WINDOWS: tuple[int, ...] = (125, 250, 500)
 RQ_EARN_CONFIRM_MID_WINDOWS: tuple[int, ...] = (125, 250)
 RQ_EARN_CONFIRM_TERMINAL_WINDOW = 500
-RQ_EARN_CONFIRM_SNAP_STRIDE = CONFIRM_SNAP_STRIDE  # 25
+RQ_EARN_CONFIRM_SNAP_STRIDE = CONFIRM_SNAP_STRIDE  # 25 (Floquet/phase subsample)
+RQ_EARN_CONFIRM_LAG_CLOCK_STRIDE = 1  # every gen so τ pairs exist (WAVE8 wiring)
 RQ_EARN_CONFIRM_PASS_BAR = 12  # ≥12/16
 RQ_EARN_CONFIRM_N = 16
 RQ_EARN_CONFIRM_WORLD_SIZE = 20
@@ -204,6 +206,8 @@ def rq_earn_confirm_design_dict() -> dict[str, object]:
         "generations": RQ_EARN_CONFIRM_GENERATIONS,
         "locked_windows": list(RQ_EARN_CONFIRM_LOCKED_WINDOWS),
         "snap_stride": RQ_EARN_CONFIRM_SNAP_STRIDE,
+        "lag_clock_stride": RQ_EARN_CONFIRM_LAG_CLOCK_STRIDE,
+        "lag_clock_uses_every_generation": True,
         "parasite_class_memory_L": STRUCT_PARASITE_CLASS_MEMORY_L,
         "lag_tau": RQ_EARN_CONFIRM_LAG_TAU,
         "lagged_nfds_threshold": RQ_EARN_CONFIRM_NFDS_THRESHOLD,
@@ -232,6 +236,8 @@ def rq_earn_confirm_design_dict() -> dict[str, object]:
         "debit_active_arms": list(DEBIT_ACTIVE_ARMS),
         "lag_scoring_arms": list(RQ_EARN_DEBIT_ARMS),
         "avi_absent_never_grant_rq_earn_credit": True,
+        "primary_lag_gate_coevolve_only": True,
+        "debit_all_pass_diagnostic_only": True,
         "pearl_passage_modes": list(PEARL_PASSAGE_MODES),
         "pearl_freeze_neq_absent": True,
         "ecology_arm_fixed_is_not_pearl_frozen_alone": True,
@@ -550,7 +556,8 @@ def classify_rq_earn_confirm_outcome(
     if not (mid_all_hold and terminal_all_hold):
         return _outcome_payload(OUTCOME_HORIZON_INSUFFICIENT)
 
-    # Hold achieved — now lag + Pearl
+    # Hold achieved — primary lag = coevolve/copassaged only (WAVE8 P1).
+    # Debit-arm all_pass stays diagnostic; frozen must not be required to track.
     lagged = score_lagged_nfds_on_debit_arms(
         dense_snaps_by_arm,
         lag=RQ_EARN_CONFIRM_LAG_TAU,
@@ -562,14 +569,27 @@ def classify_rq_earn_confirm_outcome(
     if ARM_AVIRULENT in (lagged.get("arm_scores") or {}):
         raise ConfigurationError("avirulent must not receive lag credit")
 
+    coevolve_lag = score_pearl_passage_lag(
+        dense_snaps_by_arm.get(ARM_COPASSAGED) or {},
+        lag=RQ_EARN_CONFIRM_LAG_TAU,
+        min_points=RQ_EARN_CONFIRM_MIN_POINTS,
+        threshold=RQ_EARN_CONFIRM_NFDS_THRESHOLD,
+    )
     pearl = evaluate_pearl_contrasts(dense_snaps_by_arm)
+    lag_obs = lag_observability(
+        pearl=pearl,
+        dense_snaps_by_arm=dense_snaps_by_arm,
+        coevolve_lag=coevolve_lag,
+    )
 
-    if lagged.get("pass_prelim") is not True:
+    if coevolve_lag.get("pass_prelim") is not True:
         return _outcome_payload(
             OUTCOME_LAG_FAIL,
             polymorphism_hold=True,
             lagged_nfds=lagged,
             pearl=pearl,
+            lag_observability=lag_obs,
+            primary_coevolve_lag=coevolve_lag,
         )
 
     if pearl.get("pearl_ok") is not True:
@@ -578,6 +598,8 @@ def classify_rq_earn_confirm_outcome(
             polymorphism_hold=True,
             lagged_nfds=lagged,
             pearl=pearl,
+            lag_observability=lag_obs,
+            primary_coevolve_lag=coevolve_lag,
         )
 
     return _outcome_payload(
@@ -586,7 +608,93 @@ def classify_rq_earn_confirm_outcome(
         lagged_nfds=lagged,
         pearl=pearl,
         rq_earn_seed_pass=True,
+        lag_observability=lag_obs,
+        primary_coevolve_lag=coevolve_lag,
     )
+
+
+def lag_observability(
+    *,
+    pearl: Mapping[str, object],
+    dense_snaps_by_arm: Mapping[str, Mapping[int, Mapping[str, object]]],
+    coevolve_lag: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    """Emit corr/n/pass_prelim for Pearl passages + parasite_hist_empty (WAVE8 P2)."""
+
+    scores = pearl.get("passage_scores") if isinstance(pearl, Mapping) else None
+    if not isinstance(scores, Mapping):
+        scores = {}
+    coevo = dict(coevolve_lag or scores.get(PASSAGE_COEVOLVE) or {})
+    frozen = dict(scores.get(PASSAGE_FROZEN) or {})
+    absent = dict(scores.get(PASSAGE_ABSENT) or {})
+
+    def _triple(score: Mapping[str, object]) -> dict[str, object]:
+        return {
+            "corr": score.get("corr"),
+            "n": int(score.get("n") or 0),
+            "pass_prelim": bool(score.get("pass_prelim") is True),
+        }
+
+    # parasite_hist_empty: True if copassaged dense snaps lack any non-empty hist
+    hist_empty = True
+    cop_snaps = dense_snaps_by_arm.get(ARM_COPASSAGED) or {}
+    for snap in cop_snaps.values():
+        ph = snap.get("parasite_class_hist") if isinstance(snap, Mapping) else None
+        if isinstance(ph, Mapping) and len(ph) > 0:
+            hist_empty = False
+            break
+
+    return {
+        "coevolve": _triple(coevo),
+        "frozen": _triple(frozen),
+        "absent": _triple(absent),
+        "parasite_hist_empty": bool(hist_empty),
+        "primary_lag_arm": ARM_COPASSAGED,
+        "debit_all_pass_diagnostic_only": True,
+        "red_queen_proved": False,
+        "biological_red_queen_proved": False,
+    }
+
+
+def seed_done_live_metrics(
+    *,
+    seed: int,
+    typed_outcome: str,
+    rq_earn_seed_pass: bool,
+    census: Mapping[str, int] | None = None,
+    lag_obs: Mapping[str, object] | None = None,
+    wall_s: float | None = None,
+    pid: int | None = None,
+) -> dict[str, object]:
+    """Build seed_done / lag_fail live_metrics row with lag autopsy fields."""
+
+    row: dict[str, object] = {
+        "event": "seed_done",
+        "seed": int(seed),
+        "typed_outcome": str(typed_outcome),
+        "rq_earn_seed_pass": bool(rq_earn_seed_pass),
+        "red_queen_proved": False,
+        "biological_red_queen_proved": False,
+    }
+    if census is not None:
+        row["census"] = dict(census)
+    if wall_s is not None:
+        row["wall_s"] = float(wall_s)
+    if pid is not None:
+        row["pid"] = int(pid)
+    obs = dict(lag_obs or {})
+    for key in ("coevolve", "frozen", "absent"):
+        if key in obs:
+            row[key] = obs[key]
+    if "parasite_hist_empty" in obs:
+        row["parasite_hist_empty"] = bool(obs["parasite_hist_empty"])
+    # Flatten corr/n/pass for coevolve convenience on lag_fail autopsy
+    coevo = obs.get("coevolve") if isinstance(obs.get("coevolve"), Mapping) else {}
+    if coevo:
+        row["corr"] = coevo.get("corr")
+        row["n"] = coevo.get("n")
+        row["pass_prelim"] = coevo.get("pass_prelim")
+    return row
 
 
 def _outcome_payload(
@@ -597,6 +705,8 @@ def _outcome_payload(
     lagged_nfds: dict[str, object] | None = None,
     pearl: dict[str, object] | None = None,
     rq_earn_seed_pass: bool = False,
+    lag_observability: dict[str, object] | None = None,
+    primary_coevolve_lag: dict[str, object] | None = None,
 ) -> dict[str, object]:
     return {
         "typed_outcome": typed,
@@ -605,6 +715,8 @@ def _outcome_payload(
         "excluded_from_lag_fraction": bool(excluded_from_lag_fraction),
         "lagged_nfds": lagged_nfds or {},
         "pearl": pearl or {},
+        "lag_observability": lag_observability or {},
+        "primary_coevolve_lag": primary_coevolve_lag or {},
         "red_queen_proved": False,
         "biological_red_queen_proved": False,
     }
@@ -625,6 +737,8 @@ class RQEarnConfirmSeedResult:
     lagged_nfds: dict[str, object]
     pearl: dict[str, object]
     digest: str
+    lag_observability: dict[str, object] = field(default_factory=dict)
+    primary_coevolve_lag: dict[str, object] = field(default_factory=dict)
     red_queen_proved: bool = False
     biological_red_queen_proved: bool = False
 
@@ -642,6 +756,8 @@ class RQEarnConfirmSeedResult:
             "terminal_census_by_arm": dict(self.terminal_census_by_arm),
             "lagged_nfds": self.lagged_nfds,
             "pearl": self.pearl,
+            "lag_observability": self.lag_observability,
+            "primary_coevolve_lag": self.primary_coevolve_lag,
             "digest": self.digest,
             "red_queen_proved": False,
             "biological_red_queen_proved": False,
@@ -751,9 +867,9 @@ def run_rq_earn_confirm_seed(
         snaps_by_arm[arm_name] = {
             int(g): arm.window_snapshot(int(g)) for g in RQ_EARN_CONFIRM_LOCKED_WINDOWS
         }
-        dense_snaps_by_arm[arm_name] = collect_dense_snaps(
-            arm, horizon=gens, snap_stride=RQ_EARN_CONFIRM_SNAP_STRIDE
-        )
+        # Lag clock: every generation (τ=4 needs t and t+τ). Floquet may
+        # still subsample via RQ_EARN_CONFIRM_SNAP_STRIDE elsewhere.
+        dense_snaps_by_arm[arm_name] = collect_lag_clock_snaps(arm, horizon=gens)
         turnover_by_arm[arm_name] = arm.turnover_audit()
         census[arm_name] = int(arm.living_host_census())
 
@@ -794,6 +910,8 @@ def run_rq_earn_confirm_seed(
         lagged_nfds=classified.get("lagged_nfds") or {},  # type: ignore[arg-type]
         pearl=classified.get("pearl") or {},  # type: ignore[arg-type]
         digest=digest,
+        lag_observability=classified.get("lag_observability") or {},  # type: ignore[arg-type]
+        primary_coevolve_lag=classified.get("primary_coevolve_lag") or {},  # type: ignore[arg-type]
         red_queen_proved=False,
         biological_red_queen_proved=False,
     )
@@ -892,6 +1010,8 @@ __all__ = [
     "assemble_rq_earn_confirm_campaign",
     "assert_rq_earn_confirm_seed_policy",
     "classify_rq_earn_confirm_outcome",
+    "lag_observability",
+    "seed_done_live_metrics",
     "evaluate_pearl_contrasts",
     "pin_stage0_winner",
     "prereg_document_path",

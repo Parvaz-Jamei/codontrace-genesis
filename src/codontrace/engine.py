@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, cast
+from typing import Any, cast, Protocol
 
 from codontrace._types import JsonValue
 from codontrace.actions import (
@@ -220,8 +220,19 @@ class GenesisEngineConfig:
         }
 
 
+class GenerationBoundaryObserver(Protocol):
+    """Domain-free hook: one call per completed generation after ATP/bolus boundary.
+
+    Signature is generation_index only. Keep domain-specific payload out of the
+    general engine kernel; attach domain measurements in env/plugin callers.
+    """
+
+    def __call__(self, *, generation_index: int) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class GenesisExperimentSpec:
+
     """Unified experiment spec for library/UI consumers.
 
     The defaults remain intentionally simple, but UI/API callers can now supply

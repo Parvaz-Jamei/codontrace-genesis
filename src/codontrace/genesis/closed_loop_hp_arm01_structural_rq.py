@@ -19,7 +19,7 @@ import json
 from collections import Counter
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -330,6 +330,47 @@ def dense_snap_generations(
     return tuple(range(stride, horizon_i + 1, stride))
 
 
+
+def assert_census_series_len(arm: "StructuralRQArm", *, generations: int) -> None:
+    """Domain-free tick fidelity: host/parasite hist series length == generations.
+
+    Falsifier for engine/arm off-by-one masking lagged clocks (WAVE8 P3).
+    HP vocabulary is not introduced into ``engine.py`` by this assert.
+    """
+
+    g = int(generations)
+    host_n = len(arm.host_joint_class_series)
+    para_n = len(arm.parasite_class_hist_series)
+    if host_n != g or para_n != g:
+        raise ConfigurationError(
+            f"census series length mismatch: host={host_n} parasite={para_n} "
+            f"expected_generations={g}"
+        )
+    if arm.bolus_sync_before_census and len(arm.bolus_sync_before_census) != g:
+        raise ConfigurationError(
+            "bolus_sync_before_census length must equal generations"
+        )
+
+
+
+def collect_lag_clock_snaps(
+    arm: "StructuralRQArm",
+    *,
+    horizon: int,
+) -> dict[int, dict[str, object]]:
+    """Every-generation snaps for lagged NFDS (τ in generations).
+
+    Floquet/phase may subsample with ``snap_stride``; the lag clock requires
+    generations ``t`` and ``t+τ`` both present. With stride=25 and τ=4, no
+    pairs exist (n=0) even when parasite hist is non-empty — a wiring defect.
+    """
+
+    horizon_i = int(horizon)
+    if horizon_i < 1:
+        return {}
+    return {int(g): arm.window_snapshot(int(g)) for g in range(1, horizon_i + 1)}
+
+
 def collect_dense_snaps(
     arm: "StructuralRQArm",
     *,
@@ -405,6 +446,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
     parasite_class_hist_series: list[tuple[tuple[str, int], ...]] = field(
         default_factory=list
     )
+    # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
+    generation_boundary_observer: Callable[..., None] | None = None
+    bolus_sync_before_census: list[bool] = field(default_factory=list)
 
     @classmethod
     def boot_structural(
@@ -488,7 +532,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
         rng = RNGManager(seed=self.seed, namespace=f"hp-struct-rq-{self.arm}")
         with _population_unique_id_guard():
             for _ in range(generations):
+                # Bolus/refill at generation boundary BEFORE census append (probe).
                 self._apply_passage_refill()
+                bolus_before = True  # refill precedes census on this path
                 result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
                 self._record_births(result)
                 for org in self.runner.population.organisms:
@@ -498,7 +544,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 self.match_debits_by_generation.append(int(debit_count))
                 self._passage_update(matched, rng.fork(f"passage/{self.tick_index}"))
                 self._census()
+                self.bolus_sync_before_census.append(bool(bolus_before))
                 self.tick_index += 1
+                observer = self.generation_boundary_observer
+                if observer is not None:
+                    # Domain-free: generation index only (no HP args).
+                    observer(generation_index=int(self.tick_index))
+        assert_census_series_len(self, generations=generations)
         return self.summary()
 
     def _apply_hp_env_contact(self) -> tuple[int, list[str]]:
@@ -704,6 +756,27 @@ class StructuralRQArm(LifeLoopEcologyArm):
         parasite_n = 0
         if idx < len(self.parasite_frequencies):
             parasite_n = sum(c for _, c in self.parasite_frequencies[idx])
+        # Parasite class hist + lag ring (Zaman memory analog; arm/plugin only).
+        parasite_class_hist: dict[str, float] = {}
+        if idx < len(self.parasite_class_hist_series):
+            p_pairs = self.parasite_class_hist_series[idx]
+            p_total = sum(c for _, c in p_pairs)
+            parasite_class_hist = (
+                {k: c / p_total for k, c in p_pairs} if p_total > 0 else {}
+            )
+        mem_l = int(self.parasite_class_memory_L)
+        if mem_l < 1:
+            mem_l = int(STRUCT_PARASITE_CLASS_MEMORY_L)
+        lag_start = max(0, idx + 1 - mem_l)
+        parasite_class_hist_lag: list[dict[str, float]] = []
+        for j in range(lag_start, idx + 1):
+            if j >= len(self.parasite_class_hist_series):
+                break
+            pairs = self.parasite_class_hist_series[j]
+            tot = sum(c for _, c in pairs)
+            parasite_class_hist_lag.append(
+                {k: c / tot for k, c in pairs} if tot > 0 else {}
+            )
         return {
             "generation": int(generation),
             "census": census,
@@ -714,6 +787,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "dominant_joint": _dominant_class(joint_freq),
             "sub_locus_freqs": sub_freqs,
             "sub_locus_richness": sub_rich,
+            "parasite_class_hist": parasite_class_hist,
+            "parasite_class_hist_lag": parasite_class_hist_lag,
         }
 
     def turnover_audit(self) -> dict[str, object]:
@@ -1156,7 +1231,9 @@ __all__ = [
     "apply_cycle_candidate_upgrade",
     "assert_pilot_seed_policy",
     "classify_structural_outcome",
+    "assert_census_series_len",
     "collect_dense_snaps",
+    "collect_lag_clock_snaps",
     "dense_snap_generations",
     "graded_affinity",
     "joint_match_class",

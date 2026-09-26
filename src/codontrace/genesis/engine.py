@@ -8,6 +8,7 @@ source of truth. This module keeps the historical
 from __future__ import annotations
 
 from codontrace.engine import (
+    GenerationBoundaryObserver,
     GenesisEngine,
     GenesisEngineConfig,
     GenesisExperimentSpec,
@@ -24,6 +25,7 @@ from codontrace.engine import (
 )
 
 __all__ = [
+    "GenerationBoundaryObserver",
     "GenesisEngine",
     "GenesisEngineConfig",
     "GenesisExperimentSpec",

@@ -172,7 +172,9 @@ class HostParasiteEnv:
     vertical_transmission_probability: float = 0.0
     resource_productivity: float = 1.0
     interaction_value: float = -1.0
+    handling_time: float = 0.0
     replication_events: list[dict[str, object]] = field(default_factory=list)
+    _handling_busy_remaining: float = field(default=0.0, repr=False)
 
     def __post_init__(self) -> None:
         self.steal_fraction = _finite_unit_interval("steal_fraction", self.steal_fraction)
@@ -203,6 +205,16 @@ class HostParasiteEnv:
         self.interaction_value = _finite_signed_unit(
             "interaction_value", self.interaction_value
         )
+        ht = float(self.handling_time)
+        if ht != ht or ht in (float("inf"), float("-inf")):
+            raise ConfigurationError("handling_time must be finite.")
+        if ht < 0.0:
+            raise ConfigurationError("handling_time must be >= 0.")
+        self.handling_time = ht
+        busy = float(self._handling_busy_remaining)
+        if busy != busy or busy in (float("inf"), float("-inf")) or busy < 0.0:
+            raise ConfigurationError("_handling_busy_remaining must be a finite >= 0 value.")
+        self._handling_busy_remaining = busy
         prod = float(self.resource_productivity)
         if prod != prod or prod in (float("inf"), float("-inf")) or prod <= 0.0:
             raise ConfigurationError("resource_productivity must be a finite value > 0.")
@@ -338,6 +350,23 @@ class HostParasiteEnv:
             )
             self.attempts.append(attempt)
             return attempt
+        # Thin Holling handling-time gate (Holling 1959): while the digital
+        # antagonist is busy handling a prior capture, further inject attempts
+        # are refused. handling_time=0 disables the gate (ablation off).
+        if self.handling_time > 0.0 and self._handling_busy_remaining > 0.0:
+            self._handling_busy_remaining = max(
+                0.0, self._handling_busy_remaining - 1.0
+            )
+            attempt = InfectionAttempt(
+                host_id=host_id,
+                parasite_id=parasite_id if isinstance(parasite_id, str) else "",
+                eligible=False,
+                injected=False,
+                reason="handling_busy",
+                overlap_tasks=(),
+            )
+            self.attempts.append(attempt)
+            return attempt
         if not isinstance(parasite_id, str) or not parasite_id.strip():
             raise ConfigurationError("parasite_id is required.")
         pid = parasite_id.strip()
@@ -391,6 +420,8 @@ class HostParasiteEnv:
             overlap_tasks=overlap,
         )
         self.attempts.append(attempt)
+        if self.handling_time > 0.0:
+            self._handling_busy_remaining = float(self.handling_time)
         return attempt
 
     def host_retained_cpu(self, host_id: str) -> float:
@@ -416,7 +447,10 @@ class HostParasiteEnv:
         # payload-dependent drawdown/benefit is gone while structure remains.
         if self.null_template.content_null and not host.parasite_payload:
             return 1.0
-        magnitude = min(1.0, self.steal_fraction / self.resource_productivity)
+        # Optional Holling handling: divide productivity by (1+Th) so steal
+        # saturates when handling_time > 0. Ablation Th=0 restores the prior law.
+        productivity = self.resource_productivity * (1.0 + self.handling_time)
+        magnitude = min(1.0, self.steal_fraction / productivity)
         delta = self.interaction_value * magnitude
         retained = 1.0 + delta
         if retained < 0.0:
@@ -585,6 +619,8 @@ class HostParasiteEnv:
             "vertical_transmission_probability": self.vertical_transmission_probability,
             "resource_productivity": self.resource_productivity,
             "interaction_value": self.interaction_value,
+            "handling_time": self.handling_time,
+            "handling_busy_remaining": self._handling_busy_remaining,
             "interaction_continuum": "antagonism_to_mutualism",
             "mutualism_equals_success": False,
             "null_template": self.null_template.to_dict(),

@@ -81,12 +81,28 @@ class ClosedLoopHPLifeConfig:
     match_locus_enabled: bool = False
     match_bit_start: int = MATCH_BIT_START
     match_bit_width: int = MATCH_BIT_WIDTH
+    # Transmission contract / density mate-limitation (default off = prior digests).
+    mating_locus_lock: bool = False
+    selfing_birth_atp_endowment: float = 0.0
+    mate_search_radius: int | None = None
+    outcross_mates_per_generation_cap: int | None = None
 
     def __post_init__(self) -> None:
         if self.outcross_runtime_atp < 0.0:
             raise ConfigurationError("outcross_runtime_atp must be >= 0")
         if self.match_bit_start < 0 or self.match_bit_width <= 0:
             raise ConfigurationError("match window must start at >= 0 and have width > 0")
+        if self.selfing_birth_atp_endowment < 0.0:
+            raise ConfigurationError("selfing_birth_atp_endowment must be >= 0")
+        if self.mate_search_radius is not None and int(self.mate_search_radius) < 0:
+            raise ConfigurationError("mate_search_radius must be >= 0 when set")
+        if (
+            self.outcross_mates_per_generation_cap is not None
+            and int(self.outcross_mates_per_generation_cap) < 1
+        ):
+            raise ConfigurationError(
+                "outcross_mates_per_generation_cap must be >= 1 when set"
+            )
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -130,6 +146,19 @@ class ClosedLoopHPLifeConfig:
             payload["match_bit_start"] = self.match_bit_start
             payload["match_bit_width"] = self.match_bit_width
             payload["p6_scope"] = P6_SCOPE
+        tx_nondefault = (
+            self.mating_locus_lock
+            or self.selfing_birth_atp_endowment != 0.0
+            or self.mate_search_radius is not None
+            or self.outcross_mates_per_generation_cap is not None
+        )
+        if tx_nondefault:
+            payload["mating_locus_lock"] = self.mating_locus_lock
+            payload["selfing_birth_atp_endowment"] = self.selfing_birth_atp_endowment
+            payload["mate_search_radius"] = self.mate_search_radius
+            payload["outcross_mates_per_generation_cap"] = (
+                self.outcross_mates_per_generation_cap
+            )
         return payload
 
     def locked_roles(self) -> frozenset[str]:
@@ -172,6 +201,20 @@ class ClosedLoopHPLifeConfig:
             match_locus_enabled=bool(data.get("match_locus_enabled", False)),
             match_bit_start=int(data.get("match_bit_start", MATCH_BIT_START)),
             match_bit_width=int(data.get("match_bit_width", MATCH_BIT_WIDTH)),
+            mating_locus_lock=bool(data.get("mating_locus_lock", False)),
+            selfing_birth_atp_endowment=float(
+                data.get("selfing_birth_atp_endowment", 0.0)
+            ),
+            mate_search_radius=(
+                None
+                if data.get("mate_search_radius", None) is None
+                else int(data.get("mate_search_radius"))
+            ),
+            outcross_mates_per_generation_cap=(
+                None
+                if data.get("outcross_mates_per_generation_cap", None) is None
+                else int(data.get("outcross_mates_per_generation_cap"))
+            ),
         )
 
     def role_map(self) -> dict[str, str]:
@@ -481,6 +524,98 @@ def apply_closed_loop_hp_life(
     return out
 
 
+def mating_codon_of(genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
+    """Return the mating-locus codon (selfing 000 or outcross 001 window)."""
+
+    start = config.outcross_bit_start
+    width = config.outcross_bit_width
+    window = str(genome_bits)[start : start + width]
+    if len(window) < width:
+        return OUTCROSS_SELFING_BITS
+    return window
+
+
+def lock_mating_locus_bits(
+    genome_bits: str, *, parent_bits: str, config: ClosedLoopHPLifeConfig
+) -> str:
+    """Overwrite child mating codon with the declaring parent's codon."""
+
+    if not config.mating_locus_lock or not config.outcross_enabled:
+        return str(genome_bits)
+    start = config.outcross_bit_start
+    width = config.outcross_bit_width
+    bits = str(genome_bits)
+    parent = str(parent_bits)
+    if len(bits) < start + width or len(parent) < start + width:
+        return bits
+    codon = parent[start : start + width]
+    return bits[:start] + codon + bits[start + width :]
+
+
+def apply_mating_locus_lock(
+    child: GenesisOrganism,
+    *,
+    parent: GenesisOrganism,
+    config: ClosedLoopHPLifeConfig,
+) -> None:
+    """Restore declaring parent's mating codon onto the child genome in place."""
+
+    if not config.mating_locus_lock or not config.outcross_enabled:
+        return
+    parent_bits = parent.genome.to_compact()
+    child_bits = child.genome.to_compact()
+    locked = lock_mating_locus_bits(child_bits, parent_bits=parent_bits, config=config)
+    if locked == child_bits:
+        return
+    from codontrace.genome import SemanticGenome
+
+    child.genome = SemanticGenome.from_compact(locked, spec=child.genome.spec)
+    silence_outcross_locus(child, config)
+
+
+def apply_selfing_birth_endowment(
+    child: GenesisOrganism,
+    *,
+    config: ClosedLoopHPLifeConfig,
+    tick: int,
+) -> None:
+    """Top up selfing offspring ATP to the locked endowment (reproductive assurance)."""
+
+    endowment = float(config.selfing_birth_atp_endowment)
+    if endowment <= 0.0:
+        return
+    if resolve_copy_self_mode(child.genome.to_compact(), config) != "asexual":
+        return
+    current = float(child.atp_state.runtime_available)
+    if current + 1e-12 >= endowment:
+        return
+    child.atp_state.credit_runtime(
+        endowment - current,
+        tick=tick,
+        organism_id=child.id,
+        codon="000",
+        action="SELFING_BIRTH_ENDOWMENT",
+        reason="reproductive_assurance_selfing_birth_atp",
+    )
+
+
+def mates_within_search_radius(
+    position_a: tuple[int, int],
+    position_b: tuple[int, int],
+    *,
+    radius: int | None,
+) -> bool:
+    """Manhattan neighborhood test; ``None`` radius means unlimited."""
+
+    if radius is None:
+        return True
+    dist = abs(int(position_a[0]) - int(position_b[0])) + abs(
+        int(position_a[1]) - int(position_b[1])
+    )
+    return dist <= int(radius)
+
+
+
 __all__ = [
     "ROLE_PRIMARY",
     "ROLE_SECONDARY",
@@ -519,4 +654,5 @@ __all__ = [
     "silence_outcross_locus",
     "outcross_mates_compatible",
     "apply_closed_loop_hp_life",
+    "mating_codon_of",
 ]

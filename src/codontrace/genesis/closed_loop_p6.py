@@ -20,8 +20,12 @@ Passage modes
   offspring flips one recognition bit with probability ``parasite_mutation``.
   The next window is taken from the infected hosts' parasites, not from the
   hosts that escaped.
-- ``frozen``: every parasite stays on the ancestral modal host window.
-- ``absent``: no debit.
+- ``frozen``: every parasite stays on the ancestral modal host window
+  (update off, debit on).
+- ``costless``: stock may still update; match debit is not charged
+  (update on, debit off). Not the same cut as ``absent``.
+- ``absent``: antagonist removal; no debit and no update. Not a pure
+  zero-debit intervention.
 
 A survivor-modal update points the parasite at the escape type and stops the
 chase. That rule is not used.

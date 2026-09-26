@@ -100,7 +100,10 @@ from codontrace.genesis.food_patch_signal import (
 from codontrace.genesis.host_parasite_life_plugin import (
     ClosedLoopHPLifeConfig,
     apply_closed_loop_hp_life,
+    apply_mating_locus_lock,
+    apply_selfing_birth_endowment,
     copy_self_chamber_refusal,
+    mates_within_search_radius,
     outcross_entry_plan,
     outcross_fee_debit,
     outcross_mates_compatible,
@@ -3537,6 +3540,7 @@ def step_population(
                             live_positions=live_positions,
                         ),
                         min_runtime_atp=configs.reproduction.min_runtime_atp,
+                        mate_search_radius=configs.closed_loop_hp_life.mate_search_radius,
                     )
                     if mate is None:
                         blocked_reproduction += 1
@@ -3665,6 +3669,11 @@ def step_population(
                     life = configs.closed_loop_hp_life
                     if life.outcross_enabled or life.match_locus_enabled:
                         silence_outcross_locus(child, life)
+                    apply_mating_locus_lock(child, parent=organism, config=life)
+                    if copy_mode == "asexual":
+                        apply_selfing_birth_endowment(
+                            child, config=life, tick=current_tick
+                        )
                     live_positions[child.id] = child.position
                     if reproduction_result.lineage is not None:
                         lineage += (reproduction_result.lineage,)
@@ -5453,6 +5462,8 @@ def _commit_newborn(
     life = configs.closed_loop_hp_life
     if life.outcross_enabled or life.match_locus_enabled:
         silence_outcross_locus(child, life)
+    apply_mating_locus_lock(child, parent=parent, config=life)
+    apply_selfing_birth_endowment(child, config=life, tick=current_tick)
     live_positions[child.id] = child.position
     placements.append(_birth_placement_record(parent, child))
     if reproduction_result.lineage is not None:
@@ -5485,15 +5496,28 @@ def _drain_chamber_pairs(
     template = current_organism or (survivors[0] if survivors else None) or (
         pending[0] if pending else None
     )
+    mate_counts: dict[str, int] = {}
     while True:
         life = configs.closed_loop_hp_life
-        compatible = None
-        if life.outcross_enabled and life.outcross_same_role_only:
+        radius = life.mate_search_radius
+        cap = life.outcross_mates_per_generation_cap
 
-            def _same_role(first, second, _life=life):
-                return outcross_mates_compatible(first.parent_id, second.parent_id, _life)
+        def _mate_ok(first, second, _life=life, _radius=radius, _cap=cap, _counts=mate_counts):
+            if _life.outcross_enabled and _life.outcross_same_role_only:
+                if not outcross_mates_compatible(first.parent_id, second.parent_id, _life):
+                    return False
+            if not mates_within_search_radius(
+                first.parent_position, second.parent_position, radius=_radius
+            ):
+                return False
+            if _cap is not None:
+                if int(_counts.get(first.parent_id, 0)) >= int(_cap):
+                    return False
+                if int(_counts.get(second.parent_id, 0)) >= int(_cap):
+                    return False
+            return True
 
-            compatible = _same_role
+        compatible = _mate_ok
         pair = select_chamber_pair(
             waiting,
             same_length_only=sexual_cfg.same_length_only,
@@ -5508,6 +5532,9 @@ def _drain_chamber_pairs(
         second = waiting[pair[1]]
         for index in sorted(pair, reverse=True):
             del waiting[index]
+        if cap is not None:
+            mate_counts[first.parent_id] = int(mate_counts.get(first.parent_id, 0)) + 1
+            mate_counts[second.parent_id] = int(mate_counts.get(second.parent_id, 0)) + 1
         if sexual_cfg.diploid_meiosis:
             first = reduce_incipient_to_haploid_gamete(
                 first, stream.fork(f"meiosis/{first.slot_id}")
@@ -6065,6 +6092,7 @@ def _select_viable_mate(
     parent: GenesisOrganism,
     candidates: Sequence[GenesisOrganism],
     min_runtime_atp: float,
+    mate_search_radius: int | None = None,
 ) -> GenesisOrganism | None:
     """Pick the nearest live mate; ties break by organism id (no extra RNG)."""
 
@@ -6077,6 +6105,8 @@ def _select_viable_mate(
         distance = abs(other.position[0] - parent.position[0]) + abs(
             other.position[1] - parent.position[1]
         )
+        if mate_search_radius is not None and distance > int(mate_search_radius):
+            continue
         viable.append((distance, other.id, other))
     if not viable:
         return None

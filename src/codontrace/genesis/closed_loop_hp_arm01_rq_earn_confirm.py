@@ -135,7 +135,7 @@ RQ_EARN_CONFIRM_SOFT_K = STRUCT_SOFT_K  # 64
 # Stage 0 winner pin — overwritten after demography PASS (placeholder 24×20).
 STAGE0_WINNER_BOLUS: float = 24.0
 STAGE0_WINNER_N_PATCHES: int = 20
-STAGE0_WINNER_PINNED: bool = False  # flipped True when Stage 0 paste lands
+STAGE0_WINNER_PINNED: bool = True  # Stage 0 PASS 2026-09-26: 24.0 × 20 (8/8)
 
 OUTCOME_RQ_EARN_SEED_PASS = "rq_earn_seed_pass"
 OUTCOME_LAG_FAIL = "lag_fail"

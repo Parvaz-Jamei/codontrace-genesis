@@ -43,7 +43,7 @@ Nosek et al. (2018) DOI `10.1073/pnas.1708274114`; Kriegeskorte et al. (2009) DO
 | Founders / host bit-flip | **16** distinct / **0.02** |
 | Sub-loci | **3×2** graded feature-overlap; **refuse AND-exact** |
 | κ / p-mut / vir / steal | **0.5 / 0.25 / 8.0 / 0.15** unless Stage 0 pinned otherwise (then paste Stage 0 winner here before run) |
-| Bolus × patches | **Stage 0 winner**; placeholder until Stage 0 lands: **24.0 × 20** |
+| Bolus × patches | **Stage 0 winner pinned 2026-09-26: 24.0 × 20** (demography_ok 8/8; grid all 8/8; tie-break lower bolus then fewer patches) |
 | Birth ATP / basal / handling | structural confirm defaults |
 | `min_viable` floor | **12** (typed `regime_hostile_ne`; **never** hold; **excluded** from lag pass fraction) |
 | Primary R_min / ε | **3 / 0.15** |

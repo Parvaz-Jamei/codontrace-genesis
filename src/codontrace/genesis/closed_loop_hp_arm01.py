@@ -131,6 +131,15 @@ _PROGRAM = f"{LIFE_LOOP_EATER_GENOME}{_KAPPA_QUIET}"
 _DEFAULT_BIRTH_ATP = 40.0
 _DEFAULT_PARASITE_N = 8
 _DEFAULT_HANDLING_TIME = 0.0
+_DEFAULT_BASAL_ATP_COST = 0.05
+_DEFAULT_SOFT_CARRYING_CAPACITY = 64
+_DEFAULT_RESOURCE_BOLUS_AMOUNT = 0.0  # off: sealed Slowinski path unchanged
+_DEFAULT_PASSAGE_REFILL_MODE = "off"
+_DEFAULT_FOOD_PATCHES: tuple[tuple[int, int], ...] = tuple(
+    (x, y) for x in range(4) for y in range(2)
+)
+PASSAGE_REFILL_GENERATION_BOUNDARY = "generation_boundary_resource_bolus"
+PASSAGE_REFILL_OFF = "off"
 _ALLELE_TASK_PREFIX = "allele_"
 
 # Slowinski invasion founders: resident obligate outcross + rare selfing intro.
@@ -594,6 +603,14 @@ class LifeLoopEcologyArm:
     parasite_frequencies: list[tuple[tuple[str, int], ...]] = field(default_factory=list)
     intro_selfing_freq: float = 0.0
     two_fold_cost_sex_applied: bool = False
+    birth_atp: float = _DEFAULT_BIRTH_ATP
+    basal_runtime_atp_cost: float = _DEFAULT_BASAL_ATP_COST
+    soft_carrying_capacity: int = _DEFAULT_SOFT_CARRYING_CAPACITY
+    passage_refill_mode: str = _DEFAULT_PASSAGE_REFILL_MODE
+    resource_bolus_amount: float = _DEFAULT_RESOURCE_BOLUS_AMOUNT
+    food_patches: tuple[tuple[int, int], ...] = _DEFAULT_FOOD_PATCHES
+    cumulative_resource_bolus_placed: float = 0.0
+    passage_refill_sync: str = "none"
 
     @classmethod
     def boot(
@@ -609,6 +626,11 @@ class LifeLoopEcologyArm:
         founders: Sequence[tuple[str, str]] | None = None,
         world_size: int = 12,
         steal_fraction: float = 0.8,
+        soft_carrying_capacity: int = _DEFAULT_SOFT_CARRYING_CAPACITY,
+        basal_runtime_atp_cost: float = _DEFAULT_BASAL_ATP_COST,
+        passage_refill_mode: str = _DEFAULT_PASSAGE_REFILL_MODE,
+        resource_bolus_amount: float = _DEFAULT_RESOURCE_BOLUS_AMOUNT,
+        food_patches: Sequence[tuple[int, int]] | None = None,
     ) -> LifeLoopEcologyArm:
         passage = ecology_arm_to_passage(arm)
         founder_rows = tuple(founders) if founders is not None else _INVASION_FOUNDERS
@@ -659,6 +681,26 @@ class LifeLoopEcologyArm:
         assert_single_atp_owner(organisms)
 
         two_fold = False  # unpaid; document honestly — not Hamilton two-fold.
+        soft_k = int(soft_carrying_capacity)
+        if soft_k < 1:
+            raise ConfigurationError("soft_carrying_capacity must be >= 1")
+        basal = float(basal_runtime_atp_cost)
+        if basal < 0.0:
+            raise ConfigurationError("basal_runtime_atp_cost must be >= 0")
+        refill_mode = str(passage_refill_mode).strip() or PASSAGE_REFILL_OFF
+        bolus = float(resource_bolus_amount)
+        if bolus < 0.0:
+            raise ConfigurationError("resource_bolus_amount must be >= 0")
+        patches = tuple(food_patches) if food_patches is not None else _DEFAULT_FOOD_PATCHES
+        if refill_mode not in {PASSAGE_REFILL_OFF, PASSAGE_REFILL_GENERATION_BOUNDARY}:
+            raise ConfigurationError(
+                f"passage_refill_mode must be {PASSAGE_REFILL_OFF!r} or "
+                f"{PASSAGE_REFILL_GENERATION_BOUNDARY!r}"
+            )
+        if refill_mode == PASSAGE_REFILL_OFF and bolus > 0.0:
+            raise ConfigurationError(
+                "resource_bolus_amount requires generation_boundary_resource_bolus mode"
+            )
         configs = PopulationConfigs(
             reproduction=ReproductionConfig(
                 enabled=True,
@@ -666,10 +708,10 @@ class LifeLoopEcologyArm:
                 min_runtime_atp=1.0,
                 parent_atp_cost=1.0,
                 offspring_atp_fraction=0.25,
-                max_population=64,
+                max_population=soft_k,
             ),
             mutation=MutationConfig(bit_flip_rate=0.0),
-            metabolism=MetabolicConfig(enabled=True, basal_runtime_atp_cost=0.05),
+            metabolism=MetabolicConfig(enabled=True, basal_runtime_atp_cost=basal),
             ticks_per_generation=2,
             sexual_recombination=SexualRecombinationConfig(
                 enabled=True,
@@ -699,6 +741,11 @@ class LifeLoopEcologyArm:
             steal_fraction=steal_fraction,
             handling_time=float(handling_time),
         )
+        sync = (
+            "generation_boundary"
+            if refill_mode == PASSAGE_REFILL_GENERATION_BOUNDARY
+            else "none"
+        )
         return cls(
             arm=arm,
             passage=passage,
@@ -712,6 +759,14 @@ class LifeLoopEcologyArm:
             parasite_mutation=float(parasite_mutation),
             intro_selfing_freq=float(intro),
             two_fold_cost_sex_applied=two_fold,
+            birth_atp=float(birth_atp),
+            basal_runtime_atp_cost=basal,
+            soft_carrying_capacity=soft_k,
+            passage_refill_mode=refill_mode,
+            resource_bolus_amount=bolus,
+            food_patches=patches,
+            cumulative_resource_bolus_placed=0.0,
+            passage_refill_sync=sync,
         )
 
     def _hosts(self) -> list[GenesisOrganism]:
@@ -847,12 +902,31 @@ class LifeLoopEcologyArm:
         self.host_frequencies.append(_frequency_state(hosts))
         self.parasite_frequencies.append(_parasite_freq(self.parasite_windows))
 
+    def _apply_passage_refill(self) -> None:
+        """Elena–Lenski generation-boundary resource bolus (plugin/env only)."""
+
+        if self.passage_refill_mode != PASSAGE_REFILL_GENERATION_BOUNDARY:
+            return
+        if self.resource_bolus_amount <= 0.0:
+            return
+        placed = 0.0
+        for pos in self.food_patches:
+            self.runner.world.place_resource(pos, float(self.resource_bolus_amount))
+            placed += float(self.resource_bolus_amount)
+        self.cumulative_resource_bolus_placed += placed
+
+    def living_host_census(self) -> int:
+        hosts = self._hosts()
+        return sum(1 for org in hosts if _mating_name(org) in {"outcross", "selfing"})
+
     def run_generations(self, generations: int) -> dict[str, object]:
         generations = int(generations)
         if generations < 1:
             raise ConfigurationError("generations must be >= 1")
         rng = RNGManager(seed=self.seed, namespace=f"hp-arm01-{self.arm}")
         for _ in range(generations):
+            # CPS refill sync: bolus at generation boundary before population step.
+            self._apply_passage_refill()
             result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
             self._record_births(result)
             debit_count, matched = self._apply_hp_env_contact()
@@ -911,6 +985,15 @@ class LifeLoopEcologyArm:
             ),
             "intro_selfing_freq": self.intro_selfing_freq,
             "terminal_selfing_freq": self.terminal_selfing_freq(),
+            "terminal_host_census": self.living_host_census(),
+            "birth_atp": self.birth_atp,
+            "basal_runtime_atp_cost": self.basal_runtime_atp_cost,
+            "soft_carrying_capacity": self.soft_carrying_capacity,
+            "passage_refill_mode": self.passage_refill_mode,
+            "resource_bolus_amount": self.resource_bolus_amount,
+            "passage_refill_sync": self.passage_refill_sync,
+            "cumulative_resource_bolus_placed": self.cumulative_resource_bolus_placed,
+            "food_patches": [list(p) for p in self.food_patches],
             "outcross_by_generation": list(self.outcross_by_generation),
             "selfing_by_generation": list(self.selfing_by_generation),
             "match_debits_by_generation": list(self.match_debits_by_generation),
@@ -1028,6 +1111,11 @@ def run_three_arm_frequency_campaign(
     birth_atp: float = _DEFAULT_BIRTH_ATP,
     parasite_n: int = _DEFAULT_PARASITE_N,
     founders: Sequence[tuple[str, str]] | None = None,
+    soft_carrying_capacity: int = _DEFAULT_SOFT_CARRYING_CAPACITY,
+    basal_runtime_atp_cost: float = _DEFAULT_BASAL_ATP_COST,
+    passage_refill_mode: str = _DEFAULT_PASSAGE_REFILL_MODE,
+    resource_bolus_amount: float = _DEFAULT_RESOURCE_BOLUS_AMOUNT,
+    food_patches: Sequence[tuple[int, int]] | None = None,
 ) -> ThreeArmCampaignReport:
     """Run three ecology arms on life-loop + Phase B + HostParasiteEnv.
 
@@ -1057,6 +1145,11 @@ def run_three_arm_frequency_campaign(
             birth_atp=birth_atp,
             parasite_n=parasite_n,
             founders=founders,
+            soft_carrying_capacity=soft_carrying_capacity,
+            basal_runtime_atp_cost=basal_runtime_atp_cost,
+            passage_refill_mode=passage_refill_mode,
+            resource_bolus_amount=resource_bolus_amount,
+            food_patches=food_patches,
         )
         arm.run_generations(generations)
         arms[arm_name] = arm
@@ -1276,6 +1369,8 @@ __all__ = [
     "HP_ARM01_ESTIMAND",
     "HP_ARM01_REVISION",
     "INVASION_CLOCKS",
+    "PASSAGE_REFILL_GENERATION_BOUNDARY",
+    "PASSAGE_REFILL_OFF",
     "REQUIRED_CLOCKS",
     "SUBSTRATE_FORBIDDEN_PRIMARY",
     "SUBSTRATE_LIFE_LOOP",

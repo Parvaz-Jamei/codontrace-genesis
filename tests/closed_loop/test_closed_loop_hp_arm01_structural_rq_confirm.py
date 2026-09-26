@@ -12,6 +12,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (
     CONFIRM_PASS_BAR,
     CONFIRM_RESOURCE_BOLUS_AMOUNT,
     CONFIRM_SEEDS,
+    CONFIRM_SNAP_STRIDE,
     CONFIRM_WORLD_SIZE,
     StructuralRQConfirmArm,
     _polymorphism_ok_conjunctive,
@@ -47,6 +48,7 @@ def test_confirm_horizon_windows_bolus_patches() -> None:
     assert len(CONFIRM_FOOD_PATCHES) == 20
     assert CONFIRM_WORLD_SIZE == 20
     assert CONFIRM_PASS_BAR == 6
+    assert CONFIRM_SNAP_STRIDE == 25
 
 
 def test_conjunctive_hold_rejects_or_soft_path() -> None:
@@ -103,6 +105,8 @@ def test_design_and_document_digests_stable_shape() -> None:
     assert design["resource_bolus_amount"] == 24.0
     assert design["n_food_patches"] == 20
     assert design["red_queen_proved_allowed"] is False
+    assert design["snap_stride"] == 25
+    assert design["parasite_class_memory_L"] == 8
     assert "601" not in str(design["seeds"])
     d1 = structural_rq_confirm_design_digest()
     d2 = structural_rq_confirm_design_digest()

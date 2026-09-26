@@ -98,6 +98,10 @@ STRUCT_GENERATIONS = 250
 STRUCT_MID_WINDOWS: tuple[int, ...] = (50, 125)
 STRUCT_TERMINAL_WINDOW = 250
 STRUCT_LOCKED_WINDOWS: tuple[int, ...] = (50, 125, 250)
+
+# None = locked-windows-only (pilot backward-compatible API).
+STRUCT_SNAP_STRIDE: int | None = None
+STRUCT_PARASITE_CLASS_MEMORY_L = 8
 STRUCT_R_MIN = 3
 STRUCT_EPSILON = 0.15  # single class > 1-ε = 0.85 fails hold
 STRUCT_VIRULENCE = 8.0
@@ -175,6 +179,8 @@ def locked_design_dict() -> dict[str, object]:
         "sealed_selfing_hold_seeds_untouched": list(SEALED_SELFING_HOLD_SEEDS),
         "generations": STRUCT_GENERATIONS,
         "locked_windows": list(STRUCT_LOCKED_WINDOWS),
+        "snap_stride": STRUCT_SNAP_STRIDE,
+        "parasite_class_memory_L": STRUCT_PARASITE_CLASS_MEMORY_L,
         "mid_windows": list(STRUCT_MID_WINDOWS),
         "terminal_window": STRUCT_TERMINAL_WINDOW,
         "r_min": STRUCT_R_MIN,
@@ -306,6 +312,40 @@ def _dominant_class(freq: Mapping[str, float]) -> str | None:
 
 
 
+def dense_snap_generations(
+    horizon: int, snap_stride: int | None
+) -> tuple[int, ...]:
+    """Generations for dense lag/phase series; empty when stride is None/<=0.
+
+    Locked windows remain the sole hold-clause inputs. Dense generations feed
+    lagged NFDS / phase clocks only and never soften the conjunctive hold.
+    """
+
+    if snap_stride is None:
+        return ()
+    stride = int(snap_stride)
+    if stride <= 0:
+        return ()
+    horizon_i = int(horizon)
+    return tuple(range(stride, horizon_i + 1, stride))
+
+
+def collect_dense_snaps(
+    arm: "StructuralRQArm",
+    *,
+    horizon: int,
+    snap_stride: int | None,
+) -> dict[int, dict[str, object]]:
+    """Record window_snapshot every snap_stride generation (measurement only)."""
+
+    return {
+        int(g): arm.window_snapshot(int(g))
+        for g in dense_snap_generations(horizon, snap_stride)
+    }
+
+
+
+
 @contextmanager
 def _population_unique_id_guard():
     """Closed-loop guard: asexual twin births can collide on digest-based ids.
@@ -361,6 +401,10 @@ class StructuralRQArm(LifeLoopEcologyArm):
     )
     graded_affinity_sum: list[float] = field(default_factory=list)
     graded_contact_count: list[int] = field(default_factory=list)
+    parasite_class_memory_L: int = STRUCT_PARASITE_CLASS_MEMORY_L
+    parasite_class_hist_series: list[tuple[tuple[str, int], ...]] = field(
+        default_factory=list
+    )
 
     @classmethod
     def boot_structural(
@@ -611,6 +655,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 alleles.append(sub_loci(w)[locus_i])
             sub_tables.append(tuple(sorted(Counter(alleles).items())))
         self.host_sub_locus_series.append(tuple(sub_tables))
+        # Parasite match-class histogram (plugin/arm only; not engine.py).
+        p_counts = Counter(
+            joint_match_class(w)
+            for w in self.parasite_windows
+            if len(w) == MATCH_BIT_WIDTH
+        )
+        self.parasite_class_hist_series.append(tuple(sorted(p_counts.items())))
 
     def window_snapshot(self, generation: int) -> dict[str, object]:
         """Allelic snapshot at 1-indexed generation (locked windows only)."""
@@ -626,6 +677,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "dominant_joint": None,
             "sub_locus_freqs": [],
             "sub_locus_richness": [],
+            "parasite_class_hist": {},
+            "parasite_class_hist_lag": [],
         }
         if idx < 0 or idx >= len(self.host_joint_class_series):
             return empty
@@ -833,6 +886,9 @@ class StructuralRQSeedResult:
     digest: str
     slowinski_scored: bool
     red_queen_proved: bool
+    dense_snaps_by_arm: dict[str, dict[int, dict[str, object]]] = field(
+        default_factory=dict
+    )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -840,6 +896,7 @@ class StructuralRQSeedResult:
             "typed_outcome": self.typed_outcome,
             "claim_ceiling": self.claim_ceiling,
             "snaps_by_arm": self.snaps_by_arm,
+            "dense_snaps_by_arm": self.dense_snaps_by_arm,
             "turnover_by_arm": self.turnover_by_arm,
             "terminal_census_by_arm": dict(self.terminal_census_by_arm),
             "digest": self.digest,
@@ -890,6 +947,8 @@ class StructuralRQCampaignReport:
             "digest": self.digest,
             "generations": STRUCT_GENERATIONS,
             "locked_windows": list(STRUCT_LOCKED_WINDOWS),
+            "snap_stride": STRUCT_SNAP_STRIDE,
+            "parasite_class_memory_L": STRUCT_PARASITE_CLASS_MEMORY_L,
             "r_min": STRUCT_R_MIN,
             "epsilon": STRUCT_EPSILON,
             "kappa": STRUCT_KEEP_FRACTION,
@@ -934,6 +993,7 @@ def run_structural_rq_pilot(
     for seed in chosen:
         arms: dict[str, StructuralRQArm] = {}
         snaps_by_arm: dict[str, dict[int, dict[str, object]]] = {}
+        dense_snaps_by_arm: dict[str, dict[int, dict[str, object]]] = {}
         turnover_by_arm: dict[str, dict[str, object]] = {}
         census: dict[str, int] = {}
         for arm_name in ECOLOGY_ARMS:
@@ -966,6 +1026,7 @@ def run_structural_rq_pilot(
                 "seed": seed,
                 "typed_raw": typed,
                 "snaps_by_arm": snaps_by_arm,
+                "dense_snaps_by_arm": dense_snaps_by_arm,
                 "turnover_by_arm": turnover_by_arm,
                 "terminal_census_by_arm": census,
             }
@@ -1028,6 +1089,7 @@ def run_structural_rq_pilot(
                 digest=digest,
                 slowinski_scored=False,
                 red_queen_proved=False,
+                dense_snaps_by_arm=payload.get("dense_snaps_by_arm", {}),  # type: ignore[arg-type]
             )
         )
 
@@ -1094,6 +1156,8 @@ __all__ = [
     "apply_cycle_candidate_upgrade",
     "assert_pilot_seed_policy",
     "classify_structural_outcome",
+    "collect_dense_snaps",
+    "dense_snap_generations",
     "graded_affinity",
     "joint_match_class",
     "locked_design_dict",

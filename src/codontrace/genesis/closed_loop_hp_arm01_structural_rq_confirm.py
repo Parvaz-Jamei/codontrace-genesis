@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -37,6 +37,8 @@ from codontrace.genesis.closed_loop_hp_arm01 import (
 from codontrace.genesis.closed_loop_hp_arm01 import LifeLoopEcologyArm
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     DEBIT_ACTIVE_ARMS,
+    STRUCT_PARASITE_CLASS_MEMORY_L,
+    collect_dense_snaps,
     OUTCOME_CYCLE_CANDIDATE,
     OUTCOME_HORIZON_INSUFFICIENT,
     OUTCOME_PARASITE_EXTINCT,
@@ -95,6 +97,7 @@ CONFIRM_GENERATIONS = 500
 CONFIRM_MID_WINDOWS: tuple[int, ...] = (125, 250)
 CONFIRM_TERMINAL_WINDOW = 500
 CONFIRM_LOCKED_WINDOWS: tuple[int, ...] = (125, 250, 500)
+CONFIRM_SNAP_STRIDE = 25
 CONFIRM_PASS_BAR = 6
 CONFIRM_RESOURCE_BOLUS_AMOUNT = 24.0
 CONFIRM_WORLD_SIZE = 20
@@ -125,6 +128,8 @@ def locked_design_dict() -> dict[str, object]:
         "pilot_seeds_never_reused": list(PILOT_SEEDS),
         "generations": CONFIRM_GENERATIONS,
         "locked_windows": list(CONFIRM_LOCKED_WINDOWS),
+        "snap_stride": CONFIRM_SNAP_STRIDE,
+        "parasite_class_memory_L": STRUCT_PARASITE_CLASS_MEMORY_L,
         "mid_windows": list(CONFIRM_MID_WINDOWS),
         "terminal_window": CONFIRM_TERMINAL_WINDOW,
         "r_min": STRUCT_R_MIN,
@@ -446,6 +451,9 @@ class StructuralRQConfirmSeedResult:
     digest: str
     slowinski_scored: bool
     red_queen_proved: bool
+    dense_snaps_by_arm: dict[str, dict[int, dict[str, object]]] = field(
+        default_factory=dict
+    )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -453,6 +461,7 @@ class StructuralRQConfirmSeedResult:
             "typed_outcome": self.typed_outcome,
             "claim_ceiling": self.claim_ceiling,
             "snaps_by_arm": self.snaps_by_arm,
+            "dense_snaps_by_arm": self.dense_snaps_by_arm,
             "turnover_by_arm": self.turnover_by_arm,
             "terminal_census_by_arm": dict(self.terminal_census_by_arm),
             "digest": self.digest,
@@ -512,6 +521,8 @@ class StructuralRQConfirmCampaignReport:
             "digest": self.digest,
             "generations": CONFIRM_GENERATIONS,
             "locked_windows": list(CONFIRM_LOCKED_WINDOWS),
+            "snap_stride": CONFIRM_SNAP_STRIDE,
+            "parasite_class_memory_L": STRUCT_PARASITE_CLASS_MEMORY_L,
             "r_min": STRUCT_R_MIN,
             "epsilon": STRUCT_EPSILON,
             "hold_clause": "conjunctive",
@@ -566,6 +577,7 @@ def run_structural_rq_confirm(
 
     for seed in chosen:
         snaps_by_arm: dict[str, dict[int, dict[str, object]]] = {}
+        dense_snaps_by_arm: dict[str, dict[int, dict[str, object]]] = {}
         turnover_by_arm: dict[str, dict[str, object]] = {}
         census: dict[str, int] = {}
         for arm_name in ECOLOGY_ARMS:
@@ -582,9 +594,14 @@ def run_structural_rq_confirm(
             if len(arm.food_patches) != 20:
                 raise ConfigurationError("confirmatory patch digest-pin mismatch")
             arm.run_generations(gens)
+            # Hold clause: locked windows only (conjunctive; no OR soft-path).
             snaps_by_arm[arm_name] = {
                 int(g): arm.window_snapshot(int(g)) for g in CONFIRM_LOCKED_WINDOWS
             }
+            # Dense series for lag/phase clocks only — never softens hold.
+            dense_snaps_by_arm[arm_name] = collect_dense_snaps(
+                arm, horizon=gens, snap_stride=CONFIRM_SNAP_STRIDE
+            )
             turnover_by_arm[arm_name] = arm.turnover_audit()
             census[arm_name] = int(arm.living_host_census())
 
@@ -600,6 +617,7 @@ def run_structural_rq_confirm(
                 "seed": seed,
                 "typed_raw": typed,
                 "snaps_by_arm": snaps_by_arm,
+                "dense_snaps_by_arm": dense_snaps_by_arm,
                 "turnover_by_arm": turnover_by_arm,
                 "terminal_census_by_arm": census,
             }
@@ -647,6 +665,7 @@ def run_structural_rq_confirm(
                 digest=digest,
                 slowinski_scored=False,
                 red_queen_proved=False,
+                dense_snaps_by_arm=payload.get("dense_snaps_by_arm", {}),  # type: ignore[arg-type]
             )
         )
 
@@ -709,6 +728,7 @@ __all__ = [
     "CONFIRM_PASS_BAR",
     "CONFIRM_RESOURCE_BOLUS_AMOUNT",
     "CONFIRM_SEEDS",
+    "CONFIRM_SNAP_STRIDE",
     "CONFIRM_WORLD_SIZE",
     "ESTIMAND",
     "HP_ARM01_STRUCTURAL_RQ_CONFIRM_REVISION",

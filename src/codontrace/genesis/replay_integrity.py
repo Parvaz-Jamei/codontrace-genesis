@@ -982,6 +982,59 @@ for _path, _fields in _PHASE_G_DIGEST_FIELDS.items():
 _CLOSED_LOOP_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     "codontrace.genesis.closed_loop_p6.MatchArmRecord": ("digest",),
     "codontrace.genesis.closed_loop_p6.SharedModifierRecord": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01.FrequencyClock": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01.ThreeArmCampaignReport": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_confirm.SlowinskiSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_confirm.SlowinskiConfirmReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_demography_tune.DemographySeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_demography_tune.DemographyCellReport": (
+        "design_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_mating.MatingSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_mating.MatingConfirmReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_persistence.PersistenceSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_persistence.PersistenceConfirmReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_rq_earn.RQEarnReportStub": ("design_digest", "digest"),
+    "codontrace.genesis.closed_loop_hp_arm01_rq_earn_confirm.RQEarnConfirmSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_rq_earn_confirm.RQEarnConfirmCampaignReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_selfing_hold.SelfingHoldSeedResult": (
+        "digest",
+        "baseline_series_digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_selfing_hold.SelfingHoldConfirmReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_structural_rq.StructuralRQSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_structural_rq.StructuralRQCampaignReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
+    "codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm.StructuralRQConfirmSeedResult": ("digest",),
+    "codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm.StructuralRQConfirmCampaignReport": (
+        "design_digest",
+        "document_digest",
+        "digest",
+    ),
 }
 for _path, _fields in _CLOSED_LOOP_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields
@@ -990,8 +1043,7 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys(
         (
             *NON_REPLAY_CRITICAL_DIGEST_CLASSES,
-            "codontrace.genesis.closed_loop_p6.MatchArmRecord",
-            "codontrace.genesis.closed_loop_p6.SharedModifierRecord",
+            *_CLOSED_LOOP_DIGEST_FIELDS,
         )
     )
 )

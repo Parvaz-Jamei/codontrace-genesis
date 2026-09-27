@@ -135,6 +135,10 @@ def _has_source_record(bundle: ClaimgateBundle) -> bool:
 def _ci_excludes_zero(low: float | None, high: float | None) -> bool:
     if low is None or high is None:
         return False
+    if low >= high:
+        # A zero-width interval is not uncertainty information; it must not be
+        # readable as evidence of a difference.
+        return False
     return low > 0.0 or high < 0.0
 
 
@@ -147,7 +151,9 @@ def _comparison_has_difference(item: ClaimgateComparison) -> bool:
         return _ci_excludes_zero(item.ci_low, item.ci_high)
     if item.p is not None:
         return item.p < ALPHA
-    return True
+    # No interval and no p-value: fail closed. An effect size alone is not
+    # evidence of a difference.
+    return False
 
 
 def _has_consistent_difference(bundle: ClaimgateBundle) -> bool:

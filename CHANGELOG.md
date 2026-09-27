@@ -11,6 +11,33 @@ Research-beta cut. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, `0
 
 ## Unreleased
 
+- Causal-evidence intervals and claim-gate comparisons fail closed. The
+  paired-delta report no longer fabricates a zero-width interval at the mean: it
+  returns a 95 per cent t interval over the paired deltas when at least two pairs
+  exist and a zero-width interval at the origin otherwise, which cannot be read
+  as excluding zero. A comparison with a non-zero effect size and neither an
+  interval nor a p-value is no longer treated as evidence of a difference, and a
+  zero-width interval no longer counts as excluding zero. Regression tests:
+  `tests/science_gates/test_causal_interval_guard.py`.
+
+- Replay digest policy registry covers the closed-loop arm reports that landed
+  with the wave 7–8 work, so the digest sweep in
+  `tests/science_gates/test_replay_digest_policy_sweep.py` is green again.
+
+- New campaign record: `docs/campaigns/causal_tape_20260927/` holds the design
+  consensus, the pre-registered brief, the adversarial review log, the
+  acceptance-test record and the reference list for three counterfactual
+  experiments on the deterministic life loop. Headlines: the exact
+  interventional effect of a single substitution is computable and the
+  regression estimator recovers it to machine precision on an additive
+  landscape, while naive conditioning is biased by tens of per cent before any
+  epistasis is present; the two-fold cost of sex is not recovered by coevolution
+  in this model, with the critical cost bracketed in (1.0, 1.5]; and a coevolving
+  antagonist accounts for a larger share of genotype turnover than an aperiodic
+  resource pulse at every window length tested, with a genotype-blind tax
+  control showing the factor is frequency-dependent selection. No existing
+  ClaimGate refusal is relaxed.
+
 - Host–parasite ClaimGate hard regressions close several honesty/wiring holes
   that soft Wave-6 smoke did not stress: OEE/MODES / complexity / gene-identity
   / intelligence aliases and `intervention_supported` are fail-closed on

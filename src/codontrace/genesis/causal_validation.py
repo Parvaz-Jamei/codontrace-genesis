@@ -744,6 +744,36 @@ class CausalEvidenceReport:
         return canonical_digest(self.to_dict())
 
 
+_T975_BY_DF: dict[int, float] = {
+    1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365,
+    8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145,
+    15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086, 21: 2.080,
+    22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048,
+    29: 2.045, 30: 2.042,
+}
+
+
+def _paired_interval(deltas: Sequence[float]) -> tuple[float, float]:
+    """Return a 95% t interval for the mean paired delta.
+
+    A single pair carries no information about dispersion, so it returns a
+    zero-width interval at the origin rather than at the mean. The zero-width
+    interval cannot be read as excluding zero, so a one-pair report can never
+    look like evidence of a difference (see claimgate.auditor).
+    """
+
+    if len(deltas) < 2:
+        return (0.0, 0.0)
+    mean = sum(deltas) / len(deltas)
+    variance = sum((value - mean) ** 2 for value in deltas) / (len(deltas) - 1)
+    if variance <= 0.0:
+        return (0.0, 0.0)
+    standard_error = (variance / len(deltas)) ** 0.5
+    critical = _T975_BY_DF.get(len(deltas) - 1, 1.96)
+    half_width = critical * standard_error
+    return (round(mean - half_width, 10), round(mean + half_width, 10))
+
+
 def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair]) -> CausalEvidenceReport:
     pairs = tuple(run_pairs)
     if not pairs:
@@ -751,7 +781,7 @@ def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair])
         return CausalEvidenceReport((), effect, "not_run")
     deltas = [pair.paired_delta for pair in pairs]
     mean = round(sum(deltas) / len(deltas), 10)
-    effect = CausalEffectEstimate(mean, (mean, mean), len(pairs))
+    effect = CausalEffectEstimate(mean, _paired_interval(deltas), len(pairs))
     isolated = all(pair.spec.isolated_factor for pair in pairs)
     return CausalEvidenceReport(pairs, effect, "passed" if isolated else "intervention_not_isolated")
 

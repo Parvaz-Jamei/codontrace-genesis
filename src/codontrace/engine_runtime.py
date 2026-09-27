@@ -12,8 +12,19 @@ from collections.abc import Sequence
 from dataclasses import replace
 from typing import Any, cast
 
-
 from codontrace._types import JsonValue
+from codontrace.engine_claims import (
+    _claim_evidence_flags,
+    _contribution_ledgers_from_raw_events,
+    _execution_source_digest,
+    _phase2_hashes,
+    _protocol_statuses,
+    _qd_scheduler_manifest_digest,
+    _raw_events,
+    _scientific_protocol_executed,
+    _strong_claim_ladder_records_for_result,
+    _summarize_run,
+)
 from codontrace.engine_digest import (
     _action_registry_hash,
     _adf_vocabulary_hash,
@@ -28,6 +39,11 @@ from codontrace.engine_results import (
     GenesisRun,
     GenesisSnapshot,
     GenesisTickResult,
+)
+from codontrace.engine_run_result import GenesisRunResult
+from codontrace.engine_spec import (
+    GenerationBoundaryObserver,
+    GenesisExperimentSpec,
 )
 from codontrace.genesis.api_audit import export_action_wiring_matrix
 from codontrace.genesis.artifacts import (
@@ -92,24 +108,6 @@ from codontrace.genesis.substrate import (
 from codontrace.genesis.translation_profile import build_semantic_proxy_report
 from codontrace.rng import RNGManager
 from codontrace.world import World2D
-
-from codontrace.engine_claims import (
-    _claim_evidence_flags,
-    _contribution_ledgers_from_raw_events,
-    _execution_source_digest,
-    _phase2_hashes,
-    _protocol_statuses,
-    _qd_scheduler_manifest_digest,
-    _raw_events,
-    _scientific_protocol_executed,
-    _strong_claim_ladder_records_for_result,
-    _summarize_run,
-)
-from codontrace.engine_run_result import GenesisRunResult
-from codontrace.engine_spec import (
-    GenerationBoundaryObserver,
-    GenesisExperimentSpec,
-)
 
 
 def _effective_evolution_config(spec: GenesisExperimentSpec) -> EvolutionConfig | None:

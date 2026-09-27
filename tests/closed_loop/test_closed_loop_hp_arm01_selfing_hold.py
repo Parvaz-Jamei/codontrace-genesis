@@ -12,6 +12,7 @@ from codontrace.genesis.closed_loop_hp_arm01 import (
     PASSAGE_REFILL_GENERATION_BOUNDARY,
     SUBSTRATE_LIFE_LOOP,
 )
+from codontrace.genesis.closed_loop_hp_arm01_mating import assay_validity_gate
 from codontrace.genesis.closed_loop_hp_arm01_selfing_hold import (
     HOLD_EPSILON,
     HOLD_GENERATIONS,
@@ -38,7 +39,6 @@ from codontrace.genesis.closed_loop_hp_arm01_selfing_hold import (
     selfing_hold_design_digest,
     selfing_hold_document_digest,
 )
-from codontrace.genesis.closed_loop_hp_arm01_mating import assay_validity_gate
 
 
 def test_prereg_file_exists_and_digests_stable() -> None:

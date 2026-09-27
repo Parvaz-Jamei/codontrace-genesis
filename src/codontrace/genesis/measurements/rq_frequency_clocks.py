@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 DEFAULT_NFDS_THRESHOLD = 0.3
 

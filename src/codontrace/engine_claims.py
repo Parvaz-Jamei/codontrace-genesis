@@ -8,8 +8,7 @@ objects as arguments; they must not soft-pass scientific claims.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, cast
-
+from typing import TYPE_CHECKING, cast
 
 from codontrace._types import JsonValue
 from codontrace.actions import (

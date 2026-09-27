@@ -16,15 +16,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.closed_loop_hp_arm01 import (
-    ARM_COPASSAGED,
-    ARM_FIXED,
     CLAIM_CEILING_OBSERVATION,
     PASSAGE_REFILL_GENERATION_BOUNDARY,
     SUBSTRATE_LIFE_LOOP,
@@ -32,6 +30,7 @@ from codontrace.genesis.closed_loop_hp_arm01 import (
     assert_ecology_arm_taxonomy,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    _DISTINCT_WINDOWS,
     DEBIT_ACTIVE_ARMS,
     OUTCOME_HORIZON_INSUFFICIENT,
     OUTCOME_PARASITE_EXTINCT,
@@ -57,7 +56,6 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_STEAL_FRACTION,
     STRUCT_VIRULENCE,
     StructuralRQArm,
-    _DISTINCT_WINDOWS,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (
     CONFIRM_SEEDS,

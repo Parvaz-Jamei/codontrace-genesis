@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -400,6 +400,9 @@ def run_persistence_confirm_campaign(
     results: list[PersistenceSeedResult] = []
     for seed in chosen_seeds:
         # Import arm class locally to collect census without changing sealed path.
+        import hashlib as _hashlib
+        import json as _json
+
         from codontrace.genesis.closed_loop_hp_arm01 import (
             ARM_TO_PASSAGE,
             INVASION_CLOCKS,
@@ -413,8 +416,6 @@ def run_persistence_confirm_campaign(
             slowinski_selfing_invasion_contrast,
         )
         from codontrace.genesis.closed_loop_hp_arm01 import ThreeArmCampaignReport as _TAR
-        import hashlib as _hashlib
-        import json as _json
 
         assert_ecology_arm_taxonomy()
         arms: dict[str, LifeLoopEcologyArm] = {}

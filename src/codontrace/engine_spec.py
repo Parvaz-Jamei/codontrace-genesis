@@ -12,7 +12,6 @@ import json
 from dataclasses import dataclass, field
 from typing import Protocol
 
-
 from codontrace._types import JsonValue
 from codontrace.actions import (
     ActionRegistry,

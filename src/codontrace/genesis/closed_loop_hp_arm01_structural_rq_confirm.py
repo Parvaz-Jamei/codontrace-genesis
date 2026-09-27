@@ -16,36 +16,32 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.closed_loop_hp_arm01 import (
-    ARM_AVIRULENT,
     ARM_COPASSAGED,
-    ARM_FIXED,
     CLAIM_CEILING_CANDIDATE,
     CLAIM_CEILING_OBSERVATION,
     ECOLOGY_ARMS,
     PASSAGE_REFILL_GENERATION_BOUNDARY,
     SUBSTRATE_LIFE_LOOP,
+    LifeLoopEcologyArm,
     assert_ecology_arm_taxonomy,
 )
-from codontrace.genesis.closed_loop_hp_arm01 import LifeLoopEcologyArm
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    _DISTINCT_WINDOWS,
     DEBIT_ACTIVE_ARMS,
-    STRUCT_PARASITE_CLASS_MEMORY_L,
-    collect_dense_snaps,
     OUTCOME_CYCLE_CANDIDATE,
     OUTCOME_HORIZON_INSUFFICIENT,
     OUTCOME_PARASITE_EXTINCT,
     OUTCOME_POLYMORPHISM_HOLD,
     OUTCOME_REGIME_HOSTILE_NE,
     OUTCOME_REGIME_HOSTILE_TURNOVER,
-    OUTCOME_SELFING_NONVIABLE,
     OUTCOME_SLOWINSKI_UNSCORED,
     OUTCOME_SWEEP_FIXATION,
     PILOT_SEEDS,
@@ -62,10 +58,11 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_HANDLING_TIME,
     STRUCT_HOST_BIT_FLIP,
     STRUCT_HOST_N,
-    STRUCT_KEEP_FRACTION,
     STRUCT_KAPPA_TOLERANCE,
+    STRUCT_KEEP_FRACTION,
     STRUCT_MIN_VIABLE_CENSUS,
     STRUCT_N_SUB_LOCI,
+    STRUCT_PARASITE_CLASS_MEMORY_L,
     STRUCT_PARASITE_MUTATION,
     STRUCT_PARASITE_N,
     STRUCT_PASSAGE_REFILL_MODE,
@@ -73,10 +70,10 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_SOFT_K,
     STRUCT_STEAL_FRACTION,
     STRUCT_VIRULENCE,
-    StructuralRQArm,
     TYPED_OUTCOMES,
-    _DISTINCT_WINDOWS,
+    StructuralRQArm,
     _dominant_class,
+    collect_dense_snaps,
 )
 from codontrace.genesis.closed_loop_pearl_spc import (
     PASSAGE_COEVOLVE,

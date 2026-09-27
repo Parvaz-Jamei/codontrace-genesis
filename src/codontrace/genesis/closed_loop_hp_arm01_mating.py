@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -459,6 +459,9 @@ def run_mating_confirm_campaign(
     design = mating_ledger_design_digest()
     document = mating_ledger_document_digest()
 
+    import hashlib as _hashlib
+    import json as _json
+
     from codontrace.genesis.closed_loop_hp_arm01 import (
         ARM_TO_PASSAGE,
         INVASION_CLOCKS,
@@ -472,8 +475,6 @@ def run_mating_confirm_campaign(
         slowinski_selfing_invasion_contrast,
     )
     from codontrace.genesis.closed_loop_hp_arm01 import ThreeArmCampaignReport as _TAR
-    import hashlib as _hashlib
-    import json as _json
 
     results: list[MatingSeedResult] = []
     for seed in chosen_seeds:

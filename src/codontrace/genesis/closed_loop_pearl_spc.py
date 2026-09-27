@@ -24,8 +24,8 @@ queue-timing stacks are out of scope. ``engine.py`` is untouched.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_p6 import (
@@ -80,7 +80,7 @@ def assert_passage_taxonomy(*, refuse_aliases: bool = True) -> dict[str, str]:
     frozen_m = PASSAGE_MEANING[PASSAGE_FROZEN]
     costless_m = PASSAGE_MEANING[PASSAGE_COSTLESS]
     absent_m = PASSAGE_MEANING[PASSAGE_ABSENT]
-    if frozen_m == costless_m or frozen_m == absent_m or costless_m == absent_m:
+    if frozen_m in (costless_m, absent_m) or costless_m == absent_m:
         raise ConfigurationError("passage meanings must stay distinct")
     if PASSAGE_ABSENT in PEARL_KNOCKOUTS:
         raise ConfigurationError("absent must not sit in the Pearl knockout set")
@@ -172,7 +172,7 @@ def cusum_onset_declared(
     series = _as_float_series(match_debits, name="match_debits")
     if not series:
         return False
-    for label, raw in (
+    for _label, raw in (
         ("reference", reference),
         ("slack_k", slack_k),
         ("decision_h", decision_h),
@@ -232,7 +232,7 @@ def observer_residual_coherent(
     width = float(band)
     if not math.isfinite(width) or width < 0.0:
         return False
-    return all(abs(r - p) <= width for r, p in zip(real, pred))
+    return all(abs(r - p) <= width for r, p in zip(real, pred, strict=True))
 
 
 def debit_backed_cycle_capability(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from codontrace.engine import GenerationBoundaryObserver
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import ARM_AVIRULENT, ARM_COPASSAGED, ARM_FIXED
 from codontrace.genesis.closed_loop_hp_arm01_rq_earn_confirm import (
@@ -14,13 +15,11 @@ from codontrace.genesis.closed_loop_hp_arm01_rq_earn_confirm import (
     RQ_EARN_CONFIRM_LOCKED_WINDOWS,
     RQ_EARN_CONFIRM_MIN_POINTS,
     RQ_EARN_CONFIRM_NFDS_THRESHOLD,
+    _freq_maps_from_dense,
     classify_rq_earn_confirm_outcome,
     lag_observability,
-    seed_done_live_metrics,
     score_pearl_passage_lag,
-)
-from codontrace.genesis.closed_loop_hp_arm01_rq_earn_confirm import (
-    _freq_maps_from_dense,
+    seed_done_live_metrics,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_PARASITE_CLASS_MEMORY_L,
@@ -33,7 +32,6 @@ from codontrace.genesis.closed_loop_pearl_spc import (
     PASSAGE_COEVOLVE,
     PASSAGE_FROZEN,
 )
-from codontrace.engine import GenerationBoundaryObserver
 
 
 def _poly_snap(*, parasite_n: int = 8, census: int = 40) -> dict[str, object]:

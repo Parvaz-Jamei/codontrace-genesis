@@ -43,8 +43,8 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Iterable, Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
@@ -59,7 +59,6 @@ from codontrace.genesis.closed_loop_pearl_spc import (
 )
 from codontrace.genesis.host_parasite_env import HostParasiteEnv
 from codontrace.genesis.host_parasite_life_plugin import (
-    MATCH_BIT_START,
     MATCH_BIT_WIDTH,
     OUTCROSS_OUT_BITS,
     OUTCROSS_SELFING_BITS,
@@ -83,7 +82,6 @@ from codontrace.genesis.population import (
 )
 from codontrace.genesis.population_runner import PopulationRunner
 from codontrace.genesis.runtime_profiles import LIFE_LOOP_EATER_GENOME
-from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
 from codontrace.world import World2D
 
@@ -307,7 +305,7 @@ def mating_mode_clock_from_counts(
         raise ConfigurationError("mating-mode clock requires a non-empty series")
     series = [
         (("outcross", int(out_n)), ("selfing", int(self_n)))
-        for out_n, self_n in zip(outcross_by_generation, selfing_by_generation)
+        for out_n, self_n in zip(outcross_by_generation, selfing_by_generation, strict=True)
     ]
     return build_frequency_clock(CLOCK_MATING_MODE, series)
 
@@ -353,7 +351,7 @@ def selfing_rate_clock_from_counts(
     if not outcross_by_generation:
         raise ConfigurationError("selfing-rate clock requires a non-empty series")
     series: list[tuple[tuple[str, int], ...]] = []
-    for out_n, self_n in zip(outcross_by_generation, selfing_by_generation):
+    for out_n, self_n in zip(outcross_by_generation, selfing_by_generation, strict=True):
         denom = int(out_n) + int(self_n)
         if denom <= 0:
             series.append(())

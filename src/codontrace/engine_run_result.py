@@ -7,10 +7,8 @@ byte-stable. See ``docs/ENGINE_REPLAY_CONTRACT.md``.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, cast
-
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable

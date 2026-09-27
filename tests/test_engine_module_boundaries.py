@@ -39,8 +39,8 @@ from codontrace.engine_spec import (
 )
 from codontrace.engine_spec import GenesisEngineConfig as SpecGenesisEngineConfig
 from codontrace.engine_spec import GenesisExperimentSpec as SpecGenesisExperimentSpec
-from codontrace.genesis.engine import GenesisEngine as GenesisEngineReexport
 from codontrace.genesis.engine import GenerationBoundaryObserver as GenesisObserverReexport
+from codontrace.genesis.engine import GenesisEngine as GenesisEngineReexport
 from codontrace.genesis.engine import _action_registry_hash as genesis_action_registry_hash
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 

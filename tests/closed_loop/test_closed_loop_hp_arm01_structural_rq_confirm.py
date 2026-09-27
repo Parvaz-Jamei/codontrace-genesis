@@ -5,6 +5,16 @@ from __future__ import annotations
 import pytest
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    ARM_COPASSAGED,
+    ARM_FIXED,
+    OUTCOME_POLYMORPHISM_HOLD,
+    OUTCOME_REGIME_HOSTILE_NE,
+    OUTCOME_SWEEP_FIXATION,
+)
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    PILOT_SEEDS as STRUCT_PILOT_SEEDS,
+)
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (
     CONFIRM_FOOD_PATCHES,
     CONFIRM_GENERATIONS,
@@ -21,14 +31,6 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (
     locked_design_dict,
     structural_rq_confirm_design_digest,
     structural_rq_confirm_document_digest,
-)
-from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
-    ARM_COPASSAGED,
-    ARM_FIXED,
-    OUTCOME_POLYMORPHISM_HOLD,
-    OUTCOME_REGIME_HOSTILE_NE,
-    OUTCOME_SWEEP_FIXATION,
-    PILOT_SEEDS as STRUCT_PILOT_SEEDS,
 )
 
 

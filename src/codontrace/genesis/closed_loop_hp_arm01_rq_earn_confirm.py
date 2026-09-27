@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
@@ -46,7 +46,6 @@ from codontrace.genesis.closed_loop_hp_arm01_demography_tune import (
 from codontrace.genesis.closed_loop_hp_arm01_rq_earn import (
     DEFAULT_LAG_TAU,
     DEFAULT_MIN_POINTS,
-    DEFAULT_SNAP_STRIDE,
     ESTIMAND_FORK,
     FORK_B_SLOWINSKI_STATUS,
     PEARL_PASSAGE_MODES,
@@ -56,6 +55,7 @@ from codontrace.genesis.closed_loop_hp_arm01_rq_earn import (
     score_lagged_nfds_on_debit_arms,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    _DISTINCT_WINDOWS,
     DEBIT_ACTIVE_ARMS,
     OUTCOME_HORIZON_INSUFFICIENT,
     OUTCOME_PARASITE_EXTINCT,
@@ -77,8 +77,8 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_HANDLING_TIME,
     STRUCT_HOST_BIT_FLIP,
     STRUCT_HOST_N,
-    STRUCT_KEEP_FRACTION,
     STRUCT_KAPPA_TOLERANCE,
+    STRUCT_KEEP_FRACTION,
     STRUCT_MIN_VIABLE_CENSUS,
     STRUCT_N_SUB_LOCI,
     STRUCT_PARASITE_CLASS_MEMORY_L,
@@ -89,8 +89,6 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_STEAL_FRACTION,
     STRUCT_VIRULENCE,
     StructuralRQArm,
-    _DISTINCT_WINDOWS,
-    collect_dense_snaps,
     collect_lag_clock_snaps,
 )
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq_confirm import (

@@ -12,48 +12,43 @@ deferred. ``red_queen_proved`` stays false. HP physics stays out of
 
 from __future__ import annotations
 
-from contextlib import contextmanager
-
 import hashlib
 import json
 from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.closed_loop_hp_arm01 import (
-    ARM_AVIRULENT,
     ARM_COPASSAGED,
     ARM_FIXED,
-    ARM_TO_PASSAGE,
     CLAIM_CEILING_CANDIDATE,
     CLAIM_CEILING_OBSERVATION,
     ECOLOGY_ARMS,
     HP_ENV_MATCH_REASON,
-    LifeLoopEcologyArm,
     PASSAGE_REFILL_GENERATION_BOUNDARY,
     SUBSTRATE_LIFE_LOOP,
+    LifeLoopEcologyArm,
     _mutate_window,
     _window,
     assert_ecology_arm_taxonomy,
 )
-from codontrace.genesis.host_parasite_life_plugin import (
-    MATCH_BIT_WIDTH,
-    ROLE_PRIMARY,
-    role_of,
-)
-from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
-from codontrace.genesis.population import MutationConfig, PopulationState
-from codontrace.genesis.organism import GenesisOrganism
-from codontrace.rng import RNGManager
-
 from codontrace.genesis.closed_loop_pearl_spc import (
     PASSAGE_ABSENT,
     PASSAGE_COEVOLVE,
     PASSAGE_FROZEN,
 )
+from codontrace.genesis.host_parasite_life_plugin import (
+    MATCH_BIT_WIDTH,
+    ROLE_PRIMARY,
+)
+from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.population import MutationConfig, PopulationState
+from codontrace.rng import RNGManager
 
 PREREG_VERSION = "hp_arm01_structural_rq_regime_prereg_20260926"
 PREREG_RELATIVE_PATH = (
@@ -331,7 +326,7 @@ def dense_snap_generations(
 
 
 
-def assert_census_series_len(arm: "StructuralRQArm", *, generations: int) -> None:
+def assert_census_series_len(arm: StructuralRQArm, *, generations: int) -> None:
     """Domain-free tick fidelity: host/parasite hist series length == generations.
 
     Falsifier for engine/arm off-by-one masking lagged clocks (WAVE8 P3).
@@ -354,7 +349,7 @@ def assert_census_series_len(arm: "StructuralRQArm", *, generations: int) -> Non
 
 
 def collect_lag_clock_snaps(
-    arm: "StructuralRQArm",
+    arm: StructuralRQArm,
     *,
     horizon: int,
 ) -> dict[int, dict[str, object]]:
@@ -372,7 +367,7 @@ def collect_lag_clock_snaps(
 
 
 def collect_dense_snaps(
-    arm: "StructuralRQArm",
+    arm: StructuralRQArm,
     *,
     horizon: int,
     snap_stride: int | None,

@@ -19,7 +19,6 @@ from codontrace.genesis.closed_loop_hp_arm01_persistence import (
     OUTCOME_INVASION_PASS,
     OUTCOME_PERSISTENCE_FAIL,
     PERSIST_GENERATIONS,
-    PERSIST_INVASION_PASS_BAR,
     PERSIST_RESOURCE_BOLUS_AMOUNT,
     PERSIST_SEEDS,
     PERSIST_SOFT_K,

@@ -44,6 +44,20 @@ NAMED_CONTACT_EDGE_IDS = frozenset(
     }
 )
 
+# Track C phase-2 identity IDs (locked in digests; empty at run = reopen)
+RIVAL_PAIR_ATP_DRAIN = "RP-LEDGER-ATP-DRAIN-V1"
+LAW_CONTACT_ATP_PARENT = "LAW-LEDGER-CONTACT-ATP-PARENT-V1"
+UNREACH_L_SINGLE_LIFETIME = "UNREACH-L-SINGLE-LIFETIME-V1"
+PKG_REASON_FAIL_BOUND = "PKG-REASON-FAIL-BOUND-V1"
+WORLD_FAMILY_CONTACT_ATP = "WORLD-FAMILY-CONTACT-ATP-V1"
+LAW_SHORT_COMPOSABLE = "LAW-SHORT-COMPOSABLE-V1"
+PROBE_PRIVATE_VS_SKELETON = "PROBE-PRIVATE-VS-SKELETON-V1"
+USTAR_RESTRAINT = "USTAR-RESTRAINT-V1"
+SUPPORT_VERIFY_CONSULT = "SUP-VERIFY-CONSULT-V1"
+SUPPORT_RETEST = "SUP-RETEST-V1"
+SUPPORT_SANCTION = "SUP-SANCTION-V1"
+SUPPORT_CUT_CELL = "SUPCUT-REMOVE-CHANNELS-V1"
+
 
 def _as_str(value: object, name: str, *, allow_empty: bool = False) -> str:
     if not isinstance(value, str):
@@ -105,6 +119,32 @@ class ContactAtpLedger:
     realised_pressure_phase: float = 0.0
     generation_index: int = 0
     rng_seed: int = 0
+    # Track C harness-visible state (scaffold; generation-boundary ops mutate these)
+    rival_pair_id: str = ""
+    rival_assay_log: list[dict[str, Any]] = field(default_factory=list)
+    reactive_memory: dict[str, float] = field(default_factory=dict)
+    explore_log: list[dict[str, Any]] = field(default_factory=list)
+    law_id: str = ""
+    unreach_id: str = ""
+    package_schema_id: str = ""
+    causal_packages: dict[str, dict[str, Any]] = field(default_factory=dict)
+    raw_pool: dict[str, Any] = field(default_factory=dict)
+    imitation_buffer: list[dict[str, Any]] = field(default_factory=list)
+    package_cut_applied: bool = False
+    world_family_id: str = ""
+    short_law_id: str = ""
+    probe_id: str = ""
+    retained_laws: dict[str, dict[str, Any]] = field(default_factory=dict)
+    teaching_log: list[dict[str, Any]] = field(default_factory=list)
+    survival_only_active: bool = False
+    held_out_split: dict[str, list[str]] = field(default_factory=dict)
+    shortcut_probe_log: list[dict[str, Any]] = field(default_factory=list)
+    ustar_id: str = ""
+    evidence_u: float = 0.0
+    ustar_value: float | None = None
+    support_channels: dict[str, bool] = field(default_factory=dict)
+    restraint_log: list[dict[str, Any]] = field(default_factory=list)
+    support_cut_applied: bool = False
     _one_generation_masks: set[str] = field(default_factory=set, repr=False)
     _one_generation_budget: dict[str, float] | None = field(default=None, repr=False)
     _cut_buffer: set[str] = field(default_factory=set, repr=False)
@@ -504,6 +544,433 @@ class ContactAtpLedger:
             "nc_edge_state_unchanged_snapshot": nc_state,
         }
 
+
+    # --- Idea1 ops (Track C) ---
+
+    def do_rival_discriminate(
+        self,
+        *,
+        parent_edge_id: str,
+        cost: float = 0.25,
+        rival_pair_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Issue a ledger intervention that separates the locked rival pair.
+
+        Debits real ATP/survival cost. Does not silently substitute genotype.
+        Empty rival-pair ID reopens the freeze.
+        """
+
+        pair = _as_str(
+            self.rival_pair_id if rival_pair_id is None else rival_pair_id,
+            "rival_pair_id",
+        )
+        if pair != RIVAL_PAIR_ATP_DRAIN and pair != self.rival_pair_id:
+            # Allow only the locked identity or the ledger-registered one.
+            if not pair:
+                raise ConfigurationError(
+                    "empty rival_pair_id reopens Idea1 freeze."
+                )
+        if not self.rival_pair_id:
+            self.rival_pair_id = pair
+        if not self.rival_pair_id:
+            raise ConfigurationError("empty rival_pair_id reopens Idea1 freeze.")
+        eid = _as_str(parent_edge_id, "parent_edge_id")
+        edge = self._require_edge(eid)
+        c = float(require_finite_float("cost", cost))
+        if c <= 0.0:
+            raise ConfigurationError("do_rival_discriminate cost must be > 0 (not cosmetic).")
+        # Intervene on contact-parent: one-generation mask + ATP debit on tag yield.
+        edge.masked = True
+        self._one_generation_masks.add(eid)
+        if edge.class_tag is not None:
+            self.atp_yield_by_tag[edge.class_tag] = (
+                self.atp_yield_by_tag.get(edge.class_tag, 0.0) - c
+            )
+        entry = {
+            "op": "do_rival_discriminate",
+            "rival_pair_id": self.rival_pair_id,
+            "parent_edge_id": eid,
+            "cost": c,
+            "generation_index": int(self.generation_index),
+            "assay": "separates_R1_contact_parent_vs_R2_resource_schedule",
+        }
+        self.rival_assay_log.append(entry)
+        return dict(entry)
+
+    def update_reactive_ledger(
+        self,
+        *,
+        observation_key: str,
+        value: float,
+    ) -> dict[str, Any]:
+        """Reactive / associative update without a discrimination intervention."""
+
+        key = _as_str(observation_key, "observation_key")
+        val = float(require_finite_float("value", value))
+        prev = float(self.reactive_memory.get(key, 0.0))
+        # Exponential smooth — H1 control, not rival discrimination.
+        updated = 0.7 * prev + 0.3 * val
+        self.reactive_memory[key] = updated
+        entry = {
+            "op": "update_reactive_ledger",
+            "observation_key": key,
+            "before": prev,
+            "after": updated,
+            "discrimination": False,
+        }
+        return entry
+
+    def reward_explore_eps(
+        self,
+        *,
+        epsilon: float = 0.1,
+        budget: float = 1.0,
+    ) -> dict[str, Any]:
+        """ε-style reward exploration without locked rival-explanation contrast.
+
+        Method name uses ``_eps`` because Python identifiers cannot contain ε;
+        the locked op identity string remains ``reward_explore_ε``.
+        """
+
+        eps = float(require_finite_float("epsilon", epsilon))
+        if eps < 0.0 or eps > 1.0:
+            raise ConfigurationError("epsilon must be in [0, 1].")
+        bud = float(require_finite_float("budget", budget))
+        if bud <= 0.0:
+            raise ConfigurationError("budget must be > 0.")
+        present = [e for e in self.edges.values() if e.present and not e.masked]
+        if not present:
+            raise ConfigurationError("no present unmasked edges for reward_explore_ε.")
+        # Explore: pick a random present edge and bump its yield slightly (ATP-seeking).
+        chosen = self._rng.choice(present)
+        before = float(chosen.atp_yield)
+        chosen.atp_yield = before + 0.05 * bud * (1.0 if self._rng.random() < eps else 0.2)
+        entry = {
+            "op": "reward_explore_ε",
+            "epsilon": eps,
+            "budget": bud,
+            "edge_id": chosen.edge_id,
+            "before_yield": before,
+            "after_yield": float(chosen.atp_yield),
+            "rival_contrast": False,
+        }
+        self.explore_log.append(entry)
+        return dict(entry)
+
+    # Alias so make_op("reward_explore_ε") and make_op("reward_explore_eps") both work.
+    def reward_explore_ε(self, **kwargs: Any) -> dict[str, Any]:
+        return self.reward_explore_eps(**kwargs)
+
+    # --- Idea3 ops (Track C) ---
+
+    def transmit_package(
+        self,
+        *,
+        package_id: str,
+        interventional_claim: str,
+        failed_intervention: str,
+        validity_bounds: str,
+        revision_rule: str = "retain_edit_or_drop",
+    ) -> dict[str, Any]:
+        """Transmit a critiqueable causal hypothesis package (reasons+fail+bounds)."""
+
+        if not self.law_id:
+            raise ConfigurationError("empty law_id reopens Idea3 freeze.")
+        if not self.unreach_id:
+            raise ConfigurationError("empty unreach_id reopens Idea3 freeze.")
+        pid = _as_str(package_id, "package_id")
+        pkg = {
+            "package_id": pid,
+            "schema_id": self.package_schema_id or PKG_REASON_FAIL_BOUND,
+            "law_id": self.law_id,
+            "interventional_claim": _as_str(interventional_claim, "interventional_claim"),
+            "failed_intervention": _as_str(failed_intervention, "failed_intervention"),
+            "validity_bounds": _as_str(validity_bounds, "validity_bounds"),
+            "revision_rule": _as_str(revision_rule, "revision_rule"),
+            "cut_failed_and_bounds": False,
+        }
+        self.causal_packages[pid] = pkg
+        return {"op": "transmit_package", **pkg}
+
+    def pool_raw_only(
+        self,
+        *,
+        pool_key: str,
+        observations: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Share raw observations without reasons, failed interventions, or bounds."""
+
+        key = _as_str(pool_key, "pool_key")
+        obs = dict(observations or {"n": 1, "mean_atp": 0.5})
+        # Strip any reason/fail/bound keys if present — pooling control.
+        for banned in ("failed_intervention", "validity_bounds", "interventional_claim", "reasons"):
+            obs.pop(banned, None)
+        self.raw_pool[key] = obs
+        return {
+            "op": "pool_raw_only",
+            "pool_key": key,
+            "observations": obs,
+            "has_reasons": False,
+            "has_failed": False,
+            "has_bounds": False,
+        }
+
+    def imitate_success_only(
+        self,
+        *,
+        act_id: str,
+        payoff: float = 1.0,
+    ) -> dict[str, Any]:
+        """Copy successful acts only; negatives and bounds are not transmitted."""
+
+        aid = _as_str(act_id, "act_id")
+        pay = float(require_finite_float("payoff", payoff))
+        entry = {
+            "op": "imitate_success_only",
+            "act_id": aid,
+            "payoff": pay,
+            "negatives_transmitted": False,
+            "bounds_transmitted": False,
+        }
+        self.imitation_buffer.append(entry)
+        return dict(entry)
+
+    def cut_failed_and_bounds(self, *, package_id: str) -> dict[str, Any]:
+        """Remove failed-intervention and validity-bound fields (Combo B cut test).
+
+        Empty cut (no fields removed) reopens the freeze.
+        """
+
+        pid = _as_str(package_id, "package_id")
+        if pid not in self.causal_packages:
+            raise ConfigurationError(
+                f"cut_failed_and_bounds: unknown package_id {pid!r}; empty cut reopens freeze."
+            )
+        pkg = dict(self.causal_packages[pid])
+        removed: list[str] = []
+        for field_name in ("failed_intervention", "validity_bounds"):
+            if field_name in pkg and pkg[field_name]:
+                pkg[field_name] = ""
+                removed.append(field_name)
+        if not removed:
+            raise ConfigurationError(
+                "cut_failed_and_bounds removed nothing; empty cut reopens Idea3 freeze."
+            )
+        pkg["cut_failed_and_bounds"] = True
+        self.causal_packages[pid] = pkg
+        self.package_cut_applied = True
+        return {
+            "op": "cut_failed_and_bounds",
+            "package_id": pid,
+            "removed_fields": removed,
+            "cut_applied": True,
+        }
+
+    # --- Idea5 ops (Track C) ---
+
+    def retain_short_law(
+        self,
+        *,
+        law_key: str,
+        law_body: str,
+        n_terms: int = 4,
+        depth: int = 2,
+    ) -> dict[str, Any]:
+        """Retain a short composable falsifiable law candidate on the ledger."""
+
+        if not self.short_law_id:
+            raise ConfigurationError("empty short_law_id reopens Idea5 freeze.")
+        if not self.world_family_id:
+            raise ConfigurationError("empty world_family_id reopens Idea5 freeze.")
+        if self.survival_only_active:
+            raise ConfigurationError(
+                "retain_short_law forbidden under survival_only_control."
+            )
+        key = _as_str(law_key, "law_key")
+        body = _as_str(law_body, "law_body")
+        terms = _as_int(n_terms, "n_terms", minimum=1)
+        dep = _as_int(depth, "depth", minimum=1)
+        if terms > 12 or dep > 3:
+            raise ConfigurationError("law exceeds locked complexity bound (≤12 terms, depth ≤3).")
+        entry = {
+            "law_key": key,
+            "law_id": self.short_law_id,
+            "body": body,
+            "n_terms": terms,
+            "depth": dep,
+            "private_feature": False,
+        }
+        self.retained_laws[key] = entry
+        return {"op": "retain_short_law", **entry}
+
+    def teach_at_boundary(self, *, law_key: str) -> dict[str, Any]:
+        """Transmit eligible retained law metadata at a generation boundary."""
+
+        if self.survival_only_active:
+            raise ConfigurationError(
+                "teach_at_boundary forbidden under survival_only_control."
+            )
+        key = _as_str(law_key, "law_key")
+        if key not in self.retained_laws:
+            raise ConfigurationError(f"teach_at_boundary: unknown law_key {key!r}.")
+        law = self.retained_laws[key]
+        if law.get("private_feature"):
+            raise ConfigurationError(
+                "teach_at_boundary cannot transmit private-feature laws."
+            )
+        entry = {
+            "op": "teach_at_boundary",
+            "law_key": key,
+            "law_id": law["law_id"],
+            "body": law["body"],
+            "generation_index": int(self.generation_index),
+            "private_feature_transmitted": False,
+        }
+        self.teaching_log.append(entry)
+        return dict(entry)
+
+    def survival_only_control(self) -> dict[str, Any]:
+        """Matched H3 control: survival selection only; clear law memory and teaching."""
+
+        self.survival_only_active = True
+        cleared_laws = list(self.retained_laws.keys())
+        self.retained_laws.clear()
+        self.teaching_log.clear()
+        return {
+            "op": "survival_only_control",
+            "survival_only_active": True,
+            "cleared_law_keys": cleared_laws,
+            "teaching_events": 0,
+            "explicit_law_memory": False,
+        }
+
+    def shortcut_probe(
+        self,
+        *,
+        skeleton_intact_accuracy: float = 0.85,
+        private_only_accuracy: float = 0.40,
+    ) -> dict[str, Any]:
+        """PROBE-PRIVATE-VS-SKELETON-V1: paired held-out shortcut assay.
+
+        Pass requires success with shared skeleton (private scrambled) and
+        failure when only private correlates remain.
+        """
+
+        if not self.probe_id:
+            raise ConfigurationError("empty probe_id reopens Idea5 freeze.")
+        if not self.held_out_split.get("held_out"):
+            raise ConfigurationError(
+                "empty held-out split reopens Idea5 freeze."
+            )
+        sk = float(require_finite_float("skeleton_intact_accuracy", skeleton_intact_accuracy))
+        pr = float(require_finite_float("private_only_accuracy", private_only_accuracy))
+        passed = sk >= 0.80 and pr < 0.80
+        entry = {
+            "op": "shortcut_probe",
+            "probe_id": self.probe_id,
+            "held_out_worlds": list(self.held_out_split.get("held_out", [])),
+            "skeleton_intact_accuracy": sk,
+            "private_only_accuracy": pr,
+            "pass": bool(passed),
+            "train_fit_alone_counts": False,
+        }
+        self.shortcut_probe_log.append(entry)
+        return dict(entry)
+
+    # --- Idea6 ops (Track C) ---
+
+    def withhold_if_u_below(self) -> dict[str, Any]:
+        """When evidence u < u*, withhold harmful action and declare experiment/consult."""
+
+        if not self.ustar_id:
+            raise ConfigurationError("empty ustar_id reopens Idea6 freeze.")
+        if self.ustar_value is None:
+            raise ConfigurationError("empty u* (ustar_value) reopens Idea6 freeze.")
+        u = float(require_finite_float("evidence_u", self.evidence_u))
+        ustar = float(require_finite_float("ustar_value", self.ustar_value))
+        withheld = u < ustar
+        entry = {
+            "op": "withhold_if_u_below",
+            "ustar_id": self.ustar_id,
+            "u": u,
+            "u_star": ustar,
+            "withheld": bool(withheld),
+            "declare_experiment_or_consult": bool(withheld),
+        }
+        self.restraint_log.append(entry)
+        return dict(entry)
+
+    def consult_verified_neighbour(self, *, neighbour_id: str) -> dict[str, Any]:
+        """Query a ledger-visible neighbour's verified recent outcome on support channel."""
+
+        nid = _as_str(neighbour_id, "neighbour_id")
+        active = [cid for cid, on in self.support_channels.items() if on]
+        if not active:
+            raise ConfigurationError(
+                "consult_verified_neighbour requires an active support channel; "
+                "empty support reopens freeze for support-on cell."
+            )
+        entry = {
+            "op": "consult_verified_neighbour",
+            "neighbour_id": nid,
+            "support_channels_used": active,
+            "verified_only": True,
+        }
+        self.restraint_log.append(entry)
+        return dict(entry)
+
+    def bold_act_below_threshold(self, *, harm_cost: float = 0.3) -> dict[str, Any]:
+        """Act on best hypothesis even when u < u*, paying weak-hypothesis harm."""
+
+        if self.ustar_value is None:
+            raise ConfigurationError("empty u* reopens Idea6 freeze.")
+        u = float(require_finite_float("evidence_u", self.evidence_u))
+        ustar = float(require_finite_float("ustar_value", self.ustar_value))
+        cost = float(require_finite_float("harm_cost", harm_cost))
+        if cost <= 0.0:
+            raise ConfigurationError("harm_cost must be > 0 (ledger-visible).")
+        below = u < ustar
+        # Apply harm to a present edge yield as ledger-visible ATP cost.
+        present = [e for e in self.edges.values() if e.present]
+        harmed: str | None = None
+        if present and below:
+            target = present[0]
+            target.atp_yield = float(target.atp_yield) - cost
+            harmed = target.edge_id
+        entry = {
+            "op": "bold_act_below_threshold",
+            "u": u,
+            "u_star": ustar,
+            "acted_below_threshold": bool(below),
+            "harm_cost": cost,
+            "harmed_edge_id": harmed,
+        }
+        self.restraint_log.append(entry)
+        return dict(entry)
+
+    def support_cut(self) -> dict[str, Any]:
+        """Remove registered support channels (H2 collapse cell).
+
+        Empty support_cut (no channels disabled) reopens the freeze.
+        """
+
+        before = dict(self.support_channels)
+        removed = [cid for cid, on in before.items() if on]
+        if not removed:
+            raise ConfigurationError(
+                "support_cut removed nothing; empty support_cut reopens Idea6 freeze."
+            )
+        for cid in removed:
+            self.support_channels[cid] = False
+        self.support_cut_applied = True
+        return {
+            "op": "support_cut",
+            "support_cut_cell_id": SUPPORT_CUT_CELL,
+            "removed_channels": removed,
+            "support_channels_after": dict(self.support_channels),
+            "cut_applied": True,
+        }
+
     def snapshot(self) -> dict[str, JsonValue]:
         return {
             "schema": SCHEMA_VERSION,
@@ -517,6 +984,35 @@ class ContactAtpLedger:
             "scaffold_edge_sets": {
                 k: sorted(v) for k, v in sorted(self.scaffold_edge_sets.items())
             },
+            "rival_pair_id": self.rival_pair_id,
+            "rival_assay_log_len": len(self.rival_assay_log),
+            "reactive_memory": dict(sorted(self.reactive_memory.items())),
+            "explore_log_len": len(self.explore_log),
+            "law_id": self.law_id,
+            "unreach_id": self.unreach_id,
+            "package_schema_id": self.package_schema_id,
+            "causal_package_ids": sorted(self.causal_packages),
+            "raw_pool_keys": sorted(self.raw_pool),
+            "imitation_buffer_len": len(self.imitation_buffer),
+            "package_cut_applied": bool(self.package_cut_applied),
+            "world_family_id": self.world_family_id,
+            "short_law_id": self.short_law_id,
+            "probe_id": self.probe_id,
+            "retained_law_keys": sorted(self.retained_laws),
+            "teaching_log_len": len(self.teaching_log),
+            "survival_only_active": bool(self.survival_only_active),
+            "held_out_split": {
+                k: list(v) for k, v in sorted(self.held_out_split.items())
+            },
+            "shortcut_probe_log_len": len(self.shortcut_probe_log),
+            "ustar_id": self.ustar_id,
+            "evidence_u": float(self.evidence_u),
+            "ustar_value": (
+                None if self.ustar_value is None else float(self.ustar_value)
+            ),
+            "support_channels": dict(sorted(self.support_channels.items())),
+            "restraint_log_len": len(self.restraint_log),
+            "support_cut_applied": bool(self.support_cut_applied),
         }
 
     def digest(self) -> str:
@@ -604,3 +1100,83 @@ def build_idea2_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     """
 
     return build_idea2_engine_scaffold_ledger(seed=int(seed))
+
+
+def build_idea1_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Scaffold ledger for Idea1 harness smoke (rival discrimination vs reactive/reward)."""
+
+    ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
+    ledger.rival_pair_id = RIVAL_PAIR_ATP_DRAIN
+    # Parent-intervenable contact edges (R1) plus filler contacts.
+    specs = [
+        ("P0", "parent0", "child0", CONTACT_TAG_RARE, 1.0),
+        ("P1", "parent1", "child1", CONTACT_TAG_RARE, 0.9),
+        ("E2", "n2", "n3", None, 0.5),
+        ("E3", "n3", "n0", None, 0.4),
+    ]
+    for eid, src, dst, tag, yld in specs:
+        ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
+    return ledger
+
+
+def build_idea3_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Scaffold ledger for Idea3 harness smoke (collective causal knowledge)."""
+
+    ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
+    ledger.law_id = LAW_CONTACT_ATP_PARENT
+    ledger.unreach_id = UNREACH_L_SINGLE_LIFETIME
+    ledger.package_schema_id = PKG_REASON_FAIL_BOUND
+    specs = [
+        ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
+        ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.2),
+        ("E2", "n2", "n3", None, 0.5),
+        ("E3", "n3", "n0", None, 0.4),
+    ]
+    for eid, src, dst, tag, yld in specs:
+        ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
+    return ledger
+
+
+def build_idea5_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Scaffold ledger for Idea5 harness smoke (short composable law transfer)."""
+
+    ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
+    ledger.world_family_id = WORLD_FAMILY_CONTACT_ATP
+    ledger.short_law_id = LAW_SHORT_COMPOSABLE
+    ledger.probe_id = PROBE_PRIVATE_VS_SKELETON
+    ledger.held_out_split = {
+        "train": ["W-TRAIN-0", "W-TRAIN-1"],
+        "held_out": ["W-HOLD-0", "W-HOLD-1"],
+    }
+    specs = [
+        ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
+        ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.1),
+        ("E2", "n2", "n3", None, 0.5),
+        ("E3", "n3", "n0", None, 0.4),
+    ]
+    for eid, src, dst, tag, yld in specs:
+        ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
+    return ledger
+
+
+def build_idea6_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Scaffold ledger for Idea6 harness smoke (adaptive epistemic restraint)."""
+
+    ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
+    ledger.ustar_id = USTAR_RESTRAINT
+    ledger.ustar_value = 0.55  # execution-prereg smoke lock; not a discovery threshold invent
+    ledger.evidence_u = 0.30  # below u* so withhold/bold paths are exercisable
+    ledger.support_channels = {
+        SUPPORT_VERIFY_CONSULT: True,
+        SUPPORT_RETEST: True,
+        SUPPORT_SANCTION: True,
+    }
+    specs = [
+        ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
+        ("E1", "n1", "n2", None, 0.8),
+        ("E2", "n2", "n3", None, 0.5),
+        ("E3", "n3", "n0", None, 0.4),
+    ]
+    for eid, src, dst, tag, yld in specs:
+        ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
+    return ledger

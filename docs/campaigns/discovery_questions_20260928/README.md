@@ -23,6 +23,8 @@ Ambitious track (ideas 1, 3, 5) and medium (idea 6):
 
 - [`IDEA4_PHASE2_DESIGN_DIGEST.md`](IDEA4_PHASE2_DESIGN_DIGEST.md) — Branching-history recovery window (claim ceiling `phase2_design`; runners off).
 - [`IDEA2_PHASE2_DESIGN_DIGEST.md`](IDEA2_PHASE2_DESIGN_DIGEST.md) — Gene / pattern / causal competition under coevolving antagonist pressure (claim ceiling `phase2_design`; runners off).
+- [`IDEA1_PHASE2_DESIGN_DIGEST.md`](IDEA1_PHASE2_DESIGN_DIGEST.md) — Costly causal experimentation vs reactive learning (claim ceiling `phase2_design`; runners off).
+- [`IDEA1_PHASE2_PRIOR_ART_20260928.md`](IDEA1_PHASE2_PRIOR_ART_20260928.md) — Idea 1 live prior-art support (not a discovery claim).
 
 All phase-1 files share claim ceiling `phase1_problem_boundary`. Phase-2 digests share claim ceiling `phase2_design`. Runners and campaigns remain off until explicitly authorised.
 

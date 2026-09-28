@@ -4,6 +4,21 @@ Dybdahl & Lively (1998) style lagged association between host class
 frequencies and parasite class pressure, plus dense-series extractors and a
 simple phase/lag summary. Ashby (2020): polymorphism / cycle ≠ RQD.
 
+Measurement vocabulary (2026-09-28 split)
+----------------------------------------
+Two quantities that were previously conflated are now separate:
+
+1. **Parasite class frequency** — the class histogram of the parasite
+   population (``parasite_class_hist`` / ``parasite_class_hist_series`` in the
+   structural arm, consumed here as ``parasite_infect_by_class``). It is a
+   *parasite genotype/class frequency*: it counts antagonists, it is **not**
+   the pressure acting on a host class, and it is blind to the contact rule.
+2. **Realised conditional pressure on a host class** — computed from the
+   actual contact/effect rules (graded affinity, ATP debit, survival) over the
+   full host × parasite interaction under equal exposure. See
+   :func:`realised_conditional_host_pressure` and
+   :func:`host_realised_pressure_from_contacts` for the exact formula.
+
 Invariants
 ----------
 * Pure functions: no ClaimGate side effects; never set ``red_queen_proved``.
@@ -64,6 +79,323 @@ def _pearson(xs: Sequence[float], ys: Sequence[float]) -> float | None:
     return cov / math.sqrt(var_x * var_y)
 
 
+# --- Realised conditional host pressure (P0.1 measurement separation) --------
+
+#: Bits per sub-locus in the recognition window (3 sub-loci × 2 bits = 6 bits).
+_SUB_LOCUS_BIT_WIDTH = 2
+#: Number of sub-loci in the recognition window.
+_N_SUB_LOCI = 3
+#: Default per-contact ATP debit per unit affinity (structural arm locks).
+_DEFAULT_VIRULENCE = 8.0
+#: Default fraction of host runtime ATP taken per unit affinity (structural arm locks).
+_DEFAULT_STEAL_FRACTION = 0.15
+#: Rounding used for reported pressure values (10 dp, repo convention).
+_PRESSURE_DP = 10
+
+#: Engine-exact one-seat-per-pair rule (``StructuralRQArm._apply_hp_env_contact``).
+CONTACT_MODE_ENGINE_SEATS = "engine_seats"
+#: Full host × parasite cross product with uniform per-pair multiplicity.
+CONTACT_MODE_FULL_MATRIX = "full_matrix"
+CONTACT_MODES = (CONTACT_MODE_ENGINE_SEATS, CONTACT_MODE_FULL_MATRIX)
+
+
+def reference_graded_affinity(host_window: str, parasite_window: str) -> float:
+    """Reference affinity law: mean over sub-loci of per-locus bit agreement.
+
+    ``A(h, p) = (1/L) * Σ_l (agree_l(h, p) / w)`` with ``L = 3`` sub-loci of
+    ``w = 2`` bits, so ``A ∈ {0, 1/6, …, 1}``. This is a measurement-side
+    mirror of ``closed_loop_hp_arm01_structural_rq.graded_affinity``; that
+    function stays the engine authority. Raises ``ValueError`` on a window
+    whose width is not ``L * w``.
+    """
+
+    width = _N_SUB_LOCI * _SUB_LOCUS_BIT_WIDTH
+    if len(host_window) != width or len(parasite_window) != width:
+        raise ValueError(f"recognition windows must be {width} bits")
+    scores: list[float] = []
+    for offset in range(0, width, _SUB_LOCUS_BIT_WIDTH):
+        h = host_window[offset : offset + _SUB_LOCUS_BIT_WIDTH]
+        p = parasite_window[offset : offset + _SUB_LOCUS_BIT_WIDTH]
+        agree = sum(1 for a, b in zip(h, p, strict=True) if a == b)
+        scores.append(agree / float(_SUB_LOCUS_BIT_WIDTH))
+    return float(sum(scores) / len(scores))
+
+
+def affinity_matrix(
+    host_windows: Mapping[str, str],
+    parasite_windows: Mapping[str, str],
+) -> dict[str, dict[str, float]]:
+    """Full host-class × parasite-class contact-quality matrix ``A[h][p]``."""
+
+    return {
+        str(h): {
+            str(p): reference_graded_affinity(str(hw), str(pw))
+            for p, pw in parasite_windows.items()
+        }
+        for h, hw in host_windows.items()
+    }
+
+
+def realised_conditional_host_pressure(
+    host_class_windows: Mapping[str, str],
+    parasite_class_windows: Mapping[str, str],
+    *,
+    parasite_class_counts: Mapping[str, int | float] | None = None,
+    contact_mode: str = CONTACT_MODE_FULL_MATRIX,
+    virulence: float = _DEFAULT_VIRULENCE,
+    steal_fraction: float = _DEFAULT_STEAL_FRACTION,
+    host_per_contact_units: float | Mapping[str, float] = 1.0,
+    host_capacity_units: float | Mapping[str, float] | None = None,
+    contact_matrix: Mapping[str, Mapping[str, float]] | None = None,
+    affinity: Mapping[str, Mapping[str, float]] | None = None,
+) -> dict[str, object]:
+    """Realised conditional pressure on a host class under equal exposure.
+
+    Definition (directive P0.1(b))
+    -----------------------------
+    Let ``H`` be the host classes with recognition windows ``h``, ``P`` the
+    parasite classes with windows ``p``, ``A(h, p)`` the graded affinity of the
+    model's contact rule (default: :func:`reference_graded_affinity`, injectable
+    through ``affinity``/``contact_matrix`` for a different affinity family),
+    ``κ`` the per-contact ATP debit per unit affinity
+    (``κ = virulence × steal_fraction``), and ``R(h)`` the per-host ATP reserve
+    available before the contact round. The contact matrix used is
+    *exposure-fixed*: under ``contact_mode='full_matrix'`` every host class
+    faces every parasite class with uniform multiplicity,
+
+        C(h, p) = E     for all (h, p)     (equal exposure; E = 1 by default),
+
+    and under ``contact_mode='engine_seats'`` ``C`` is the one-seat-per-pair
+    matrix reproduced from ``StructuralRQArm._apply_hp_env_contact`` (host
+    classes registered in address order, each parasite seat meeting exactly one
+    host). The engine rotates that register per tick to avoid index-0 bias; the
+    measurement kernel keeps the unrotated register so ``C`` is a function of
+    the class tally under equal exposure rather than of one run's tick phase.
+
+    The **realised conditional pressure** on host class ``h`` is the mean ATP
+    actually debited per host of class ``h`` over that contact matrix,
+    normalised per host generation:
+
+        P(h) = Π(h) × ( Σ_p C(h, p) × min[ c(h), κ × A(h, p) ] )
+                         / ( Σ_p C(h, p) )
+
+    where
+
+        Π(h)  = host_per_contact_units(h)   (default 1 contact per host per round)
+        c(h)  = R(h) when ``host_capacity_units`` is given, else ∞
+                (``host_capacity_units`` is the per-host ATP reserve available
+                before the contact round; the engine uses the observed
+                pre-contact ``runtime_available`` of each host)
+
+    Units: ATP per host per generation (reserve-currency units; ``0`` when the
+    host class is never contacted, ``min[R(h), Π κ]`` at saturation).
+
+    Survivorship is encoded in the ``min``: a host of class ``h`` survives the
+    round iff its pre-contact reserve exceeds the debit, i.e. iff
+    ``c(h) > κ A(h, p)``; the branch ``min = κ A`` is the surviving branch and
+    the branch ``min = c`` is the lethal branch. Because a dead host's loss is
+    capped at its reserve, the pressure is *not* proportional to ``κ A`` and
+    the survival signal cannot be read off the affinity sum alone.
+
+    Explicit non-dependence
+    -----------------------
+    ``parasite_class_counts`` enters only through the *classes present*; it is
+    the engine's own class multiset (counts of antagonists). The returned
+    pressure is **invariant to any rescaling of the counts** (duplicating every
+    parasite class leaves the per-host mean effect unchanged), so the parasite
+    class histogram — including its normalised shape — is not the estimand.
+    Class frequencies are neither an input nor an output of this function.
+
+    The contact matrix ``C``, the affinity matrix ``A`` and the reserve
+    ``R(h)`` are the only determinants of ``P``: two worlds with the same
+    ``C``/``A``/``R`` but different parasite class histograms give identical
+    pressure, and two worlds with the same histogram but different ``A``/``R``
+    give different pressure.
+    """
+
+    if contact_mode not in CONTACT_MODES:
+        raise ValueError(f"contact_mode must be one of {CONTACT_MODES!r}")
+
+    host_ids = [str(h) for h in host_class_windows]
+    para_ids = [str(p) for p in parasite_class_windows]
+    # Counts are validated but never enter the law; they only label the multiset
+    # of parasite classes actually present. No frequency is computed here.
+    counts = (
+        {str(p): float(c) for p, c in parasite_class_counts.items()}
+        if parasite_class_counts is not None
+        else {p: 1.0 for p in para_ids}
+    )
+    unknown = sorted(set(counts) - set(para_ids))
+    if unknown:
+        raise ValueError(f"parasite_class_counts has unknown classes: {unknown}")
+
+    aff = (
+        {
+            str(h): {str(p): float(v) for p, v in row.items()}
+            for h, row in affinity.items()
+        }
+        if affinity is not None
+        else affinity_matrix(host_class_windows, parasite_class_windows)
+    )
+    if contact_matrix is not None:
+        cm = {
+            str(h): {str(p): float(v) for p, v in row.items()}
+            for h, row in contact_matrix.items()
+        }
+    elif contact_mode == CONTACT_MODE_FULL_MATRIX:
+        cm = {h: {p: 1.0 for p in para_ids} for h in host_ids}
+    else:  # CONTACT_MODE_ENGINE_SEATS
+        cm = _engine_seat_contact_matrix(host_ids, para_ids)
+
+    if isinstance(host_per_contact_units, Mapping):
+        per_host = {h: float(host_per_contact_units.get(h, 0.0)) for h in host_ids}
+    else:
+        per_host = {h: float(host_per_contact_units) for h in host_ids}
+    if host_capacity_units is None:
+        cap = {h: math.inf for h in host_ids}
+    elif isinstance(host_capacity_units, Mapping):
+        cap = {h: float(host_capacity_units.get(h, 0.0)) for h in host_ids}
+    else:
+        cap = {h: float(host_capacity_units) for h in host_ids}
+
+    kappa = float(virulence) * float(steal_fraction)
+    pressure: dict[str, float] = {}
+    affinity_sum: dict[str, float] = {}
+    contact_count: dict[str, float] = {}
+    survival: dict[str, float] = {}
+    for h in host_ids:
+        row = {str(p): float(c) for p, c in cm.get(h, {}).items()}
+        total_contacts = sum(row.values())
+        if total_contacts <= 0.0:
+            pressure[h] = 0.0
+            affinity_sum[h] = 0.0
+            contact_count[h] = 0.0
+            survival[h] = 0.0
+            continue
+        reserve = cap[h]
+        # Preregistered "no budget competition in the measurement kernel" clause:
+        # every contact of a host class is evaluated against its own pre-contact
+        # reserve (each contact is the host's whole round), so no cumulative
+        # saturation artefact is introduced here. The engine's one-seat rule
+        # gives exactly one contact per host per round anyway.
+        debited = 0.0
+        aff_product = 0.0
+        lethal_weight = 0.0
+        for p, multiplicity in sorted(row.items()):
+            a_hp = float(aff.get(h, {}).get(p, 0.0))
+            per_contact_effect = min(reserve, kappa * a_hp)
+            debited += multiplicity * per_contact_effect
+            aff_product += multiplicity * a_hp
+            if per_contact_effect >= reserve:
+                lethal_weight += multiplicity
+        policy = per_host[h]
+        pressure[h] = round(policy * debited / total_contacts, _PRESSURE_DP)
+        affinity_sum[h] = round(aff_product / total_contacts, _PRESSURE_DP)
+        contact_count[h] = total_contacts
+        survival[h] = round(1.0 - lethal_weight / total_contacts, _PRESSURE_DP)
+
+    return {
+        "pressure": pressure,
+        "pressure_units": "atp_per_host_per_generation",
+        "affinity_sum": affinity_sum,
+        "contact_count": contact_count,
+        "survival_fraction": survival,
+        "contact_matrix": cm,
+        "affinity": aff,
+        "kappa": kappa,
+        "contact_mode": contact_mode,
+        "equal_exposure": {
+            "full_matrix": contact_mode == CONTACT_MODE_FULL_MATRIX,
+            "per_host_contact_policy": dict(per_host),
+            "host_capacity_units": {
+                h: (None if math.isinf(cap[h]) else cap[h]) for h in host_ids
+            },
+        },
+        "host_classes": list(host_ids),
+        "parasite_classes": list(para_ids),
+        "host_class_windows": {str(h): str(w) for h, w in host_class_windows.items()},
+        "parasite_class_windows": {
+            str(p): str(w) for p, w in parasite_class_windows.items()
+        },
+        "parasite_class_counts": dict(counts),
+        "histogram_used": False,
+        "class_frequency_used": False,
+        "red_queen_proved": False,
+    }
+
+
+def _engine_seat_contact_matrix(
+    host_ids: Sequence[str],
+    para_ids: Sequence[str],
+) -> dict[str, dict[str, float]]:
+    """Contact multiplicities of the engine's one-seat-per-pair rule.
+
+    Mirrors ``StructuralRQArm._apply_hp_env_contact``: ``pair_n =
+    min(len(hosts), len(parasites))`` and seat ``i`` pairs host ``i`` with
+    parasite ``i``. Under equal exposure the host-class register is *not*
+    rotated (every host class would otherwise see a different slice of the
+    parasite multiset, so the class-level contact matrix could not be written
+    down without the class sizes); rotation is an engine-side sampling device,
+    not part of the estimand. This reproduces the engine matrix exactly when
+    the host list is class-contiguous with equal multiplicities.
+    """
+
+    pair_n = min(len(host_ids), len(para_ids))
+    cm: dict[str, dict[str, float]] = {h: {} for h in host_ids}
+    for seat in range(pair_n):
+        host = host_ids[seat]
+        para = para_ids[seat]
+        cm[host][para] = cm[host].get(para, 0.0) + 1.0
+    return cm
+
+
+def host_realised_pressure_from_contacts(
+    *,
+    host_affinity_sums: Mapping[str, float],
+    host_contact_counts: Mapping[str, int | float],
+    host_min_available: Mapping[str, float] | None = None,
+    host_per_contact_units: float | Mapping[str, float] = 1.0,
+    virulence: float = _DEFAULT_VIRULENCE,
+    steal_fraction: float = _DEFAULT_STEAL_FRACTION,
+) -> dict[str, float]:
+    """Per-class realised pressure from observed contacts (engine-callable).
+
+    Applies the same law as :func:`realised_conditional_host_pressure` to the
+    generation's *observed* contact records instead of a synthetic matrix:
+
+        P_obs(h) = Π(h) × min[ c(h), κ × Ā(h) ]
+
+    with ``κ = virulence × steal_fraction``, ``c(h) = host_min_available(h)``
+    the per-host ATP reserve observed before the contact round (omit it to use
+    the cap-free branch ``c(h) = ∞``), and
+    ``Ā(h) = host_affinity_sums(h) / host_contact_counts(h)`` the mean realised
+    affinity over that class's contacts. Host classes come from
+    ``host_affinity_sums``; ``host_contact_counts`` must be accumulated over the
+    same contact round and for the same classes. Units: ATP per host per
+    generation. ``0.0`` for a class with no recorded contact.
+    """
+
+    per_host_map = host_per_contact_units if isinstance(host_per_contact_units, Mapping) else None
+    reserve = {str(h): float(v) for h, v in (host_min_available or {}).items()}
+    kappa = float(virulence) * float(steal_fraction)
+    out: dict[str, float] = {}
+    for key in sorted({str(h) for h in host_affinity_sums} | {str(h) for h in host_contact_counts}):
+        cls = str(key)
+        if per_host_map is not None:
+            policy = float(per_host_map.get(cls, 0.0))
+        else:
+            policy = float(host_per_contact_units)
+        aff_sum = float(host_affinity_sums.get(cls, 0.0))
+        contacts = float(host_contact_counts.get(cls, 0) or 0.0)
+        if contacts <= 0.0:
+            out[cls] = 0.0
+            continue
+        a_obs = aff_sum / contacts
+        capacity = reserve[cls] if cls in reserve else math.inf
+        out[cls] = round(policy * min(capacity, kappa * a_obs), _PRESSURE_DP)
+    return out
+
+
 def lagged_nfds_score(
     host_class_freq: Mapping[int, Mapping[str, float]],
     parasite_infect_by_class: Mapping[int, Mapping[str, float]],
@@ -80,10 +412,18 @@ def lagged_nfds_score(
     ``t + lag``, and for every class ``c`` present in either map at those
     times, pair:
 
-        x = host frequency of ``c`` at ``t``
-        y = parasite pressure on ``c`` at ``t + lag``
+        x = host class frequency of ``c`` at ``t``
+        y = **parasite class frequency** of ``c`` at ``t + lag``
 
     then compute Pearson ``corr(x, y)`` across all such pairs.
+
+    ``parasite_infect_by_class`` is a *parasite class frequency* (how many
+    antagonists carry class ``c``), **not** the realised pressure acting on a
+    host class. The empirical pressure estimand is
+    :func:`realised_conditional_host_pressure` /
+    :func:`host_realised_pressure_from_contacts`; it is deliberately not
+    derived from this histogram. The argument name is retained for backward
+    compatibility of the public signature.
 
     ``pass_prelim`` is True only when ``n >= min_points``, ``corr`` is
     finite, and ``corr <= -threshold`` (default threshold 0.3).
@@ -249,16 +589,28 @@ def phase_lag_host_parasite(
     }
 
 
-def parasite_pressure_from_hist(
+def parasite_class_frequency_from_hist(
     hist: Mapping[str, float] | Mapping[str, object],
 ) -> dict[str, float]:
-    """Normalize a class histogram into a pressure map (sums to 1 if nonempty)."""
+    """Normalize a **parasite class histogram** into a class-frequency map.
+
+    Compatibility alias ``parasite_pressure_from_hist`` is retained, but this
+    is a frequency normaliser: the result is the parasite class frequency
+    (sums to 1 when non-empty) and carries **no** contact/ATP/survival
+    information, so it is not a pressure on any host class. The pressure
+    estimand is :func:`realised_conditional_host_pressure`.
+    """
 
     raw = {str(k): float(v) for k, v in hist.items()}
     total = sum(raw.values())
     if total <= 0.0:
         return {}
     return {k: v / total for k, v in raw.items()}
+
+
+#: Deprecated name — kept so existing callers keep working. Semantics are
+#: *parasite class frequency*, not pressure on a host class.
+parasite_pressure_from_hist = parasite_class_frequency_from_hist
 
 
 def joint_freq_counter_to_map(
@@ -276,11 +628,19 @@ def joint_freq_counter_to_map(
 
 
 __all__ = [
+    "CONTACT_MODE_ENGINE_SEATS",
+    "CONTACT_MODE_FULL_MATRIX",
+    "CONTACT_MODES",
     "DEFAULT_NFDS_THRESHOLD",
+    "affinity_matrix",
     "dominant_class_series",
+    "host_realised_pressure_from_contacts",
     "joint_freq_counter_to_map",
     "lagged_nfds_score",
+    "parasite_class_frequency_from_hist",
     "parasite_pressure_from_hist",
     "per_sublocus_richness_series",
     "phase_lag_host_parasite",
+    "realised_conditional_host_pressure",
+    "reference_graded_affinity",
 ]

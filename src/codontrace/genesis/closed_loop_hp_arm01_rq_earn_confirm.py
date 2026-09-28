@@ -418,8 +418,21 @@ class RQEarnConfirmArm(StructuralRQArm):
 def _freq_maps_from_dense(
     dense_snaps: Mapping[int, Mapping[str, object]],
 ) -> tuple[dict[int, dict[str, float]], dict[int, dict[str, float]]]:
+    """Extract host class freq and **parasite class freq** series from dense snaps.
+
+    The second map is the parasite class histogram (``parasite_class_hist``),
+    i.e. the parasite class *frequency* — how many antagonists carry each
+    match class. It is **not** the realised pressure on a host class: it does
+    not depend on the contact matrix, graded affinity, ATP debit, or host
+    survival. ``lagged_nfds_score`` therefore scores host-class frequency
+    against parasite-class frequency. The contact-rule-based estimand is
+    ``window_snapshot['host_realised_pressure']`` (see
+    ``measurements/rq_frequency_clocks.py`` and MEASUREMENT_NOTE.md). Neither
+    the recorded numbers nor any threshold changes here.
+    """
+
     host: dict[int, dict[str, float]] = {}
-    para: dict[int, dict[str, float]] = {}
+    para_class_freq: dict[int, dict[str, float]] = {}
     for gen, snap in dense_snaps.items():
         g = int(gen)
         jf = snap.get("joint_freq") or {}
@@ -427,8 +440,8 @@ def _freq_maps_from_dense(
             host[g] = {str(k): float(v) for k, v in jf.items()}
         ph = snap.get("parasite_class_hist") or {}
         if isinstance(ph, Mapping):
-            para[g] = {str(k): float(v) for k, v in ph.items()}
-    return host, para
+            para_class_freq[g] = {str(k): float(v) for k, v in ph.items()}
+    return host, para_class_freq
 
 
 def score_pearl_passage_lag(
@@ -438,11 +451,19 @@ def score_pearl_passage_lag(
     min_points: int = RQ_EARN_CONFIRM_MIN_POINTS,
     threshold: float = RQ_EARN_CONFIRM_NFDS_THRESHOLD,
 ) -> dict[str, object]:
-    """Lag score for a single true Pearl passage run (not ecology-arm alias)."""
+    """Lag score for a single true Pearl passage run (not ecology-arm alias).
 
-    host, para = _freq_maps_from_dense(dense_snaps)
+    Scaffold v1 convention: host class frequency at ``t`` vs **parasite class
+    frequency** at ``t + lag`` (the histogram), evaluated against the locked
+    threshold. This is the WAVE7/WAVE8 pre-registered statistic and is left
+    numerically unchanged; the pressure estimand that uses contact affinity,
+    ATP debit and survival is ``host_realised_pressure`` and is *not* an input
+    to this function.
+    """
+
+    host, para_class_freq = _freq_maps_from_dense(dense_snaps)
     score = lagged_nfds_score(
-        host, para, lag=lag, min_points=min_points, threshold=threshold
+        host, para_class_freq, lag=lag, min_points=min_points, threshold=threshold
     )
     out = dict(score)
     out["red_queen_proved"] = False

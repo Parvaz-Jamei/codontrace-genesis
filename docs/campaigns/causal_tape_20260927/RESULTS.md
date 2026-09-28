@@ -57,16 +57,35 @@ for every configuration, so estimators can be recomputed without re-simulating.
 It adds a quadratic plug-in estimator under `do(locus = 1)` versus
 `do(locus = 0)`, using all main effects and all pairwise products.
 
-That comparison splits the reported quantity in two, and the split matters. At
-`eps = 0.8` the linear estimator's median absolute deviation from the exact
-contrast is 0.754 while the quadratic estimator's is 0.113, so about six
-sevenths of it is misspecification of a linear outcome model. The remaining
-seventh is not a modelling failure: suppressing a substitution re-routes the
-whole downstream acceptance path, so the exact contrast is a whole-tape effect
-while `beta - w` on a single locus describes a one-bit effect. The two are only
-equal when the later trajectory is unaffected. The report therefore labels the
-first component specification bias and reports the residual separately as the
-one-bit-to-whole-tape gap rather than attributing all of it to the estimator.
+That comparison splits the reported quantity in two, and the split matters. The
+per-seed datasets make the split computable without re-simulating: write
+`beta - ATT_whole_tape` as `(beta - ATT_onebit) + (ATT_onebit - ATT_whole_tape)`,
+where the first term is misspecification of a one-bit outcome model and the
+second is the re-routing gap between a one-bit contrast and the whole-tape
+contrast that suppression actually produces. On this substrate the quadratic
+plug-in model is exactly correctly specified (rank 172, residual 6e-13), so its
+one-bit prediction coincides with the exact one-bit contrast and the second term
+is pure re-routing rather than further misspecification.
+
+| epistasis level | median absolute misspecification | median absolute re-routing | re-routing share of the total |
+|---|---|---|---|
+| 0.0 | 1.2e-14 | 1.2e-14 | not defined (both zero) |
+| 0.05 | -- | -- | 0.01 |
+| 0.1 | -- | -- | 0.02 |
+| 0.2 | -- | -- | 0.60 |
+| 0.4 | -- | -- | 0.44 |
+| 0.8 | 1.141 | 0.403 | 0.641, 95 per cent interval [0.558, 0.733] |
+
+The re-routing share is negligible below `eps = 0.2` and dominant above it. At
+`eps = 0.8` roughly two thirds of the quantity previously reported as estimator
+bias is the estimand mismatch, which no better one-bit model can remove; the
+remaining third is linear-model misspecification and is fixable. The two
+components are separable conditional on the coupling draw (within-configuration
+median correlation +0.03); the strongly negative pooled correlation is an
+artefact of pooling across epistasis levels. One caveat is recorded: at
+`eps = 0.8`, 5.5 per cent of exposed seeds (up to 38 per cent for one locus) had
+the locus cleared by a later accepted reversal, so the one-bit proxy and the
+whole-tape contrast differ in what they hold fixed there.
 
 ## 2. Two-fold cost of sex
 

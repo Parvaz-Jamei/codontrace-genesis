@@ -46,6 +46,9 @@ from codontrace.genesis.host_parasite_life_plugin import (
     MATCH_BIT_WIDTH,
     ROLE_PRIMARY,
 )
+from codontrace.genesis.measurements.rq_frequency_clocks import (
+    host_realised_pressure_from_contacts,
+)
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import MutationConfig, PopulationState
 from codontrace.rng import RNGManager
@@ -438,7 +441,22 @@ class StructuralRQArm(LifeLoopEcologyArm):
     graded_affinity_sum: list[float] = field(default_factory=list)
     graded_contact_count: list[int] = field(default_factory=list)
     parasite_class_memory_L: int = STRUCT_PARASITE_CLASS_MEMORY_L
+    # Parasite **class frequency** series (antagonist genotype counts). Despite
+    # the historical name this is not pressure on a host class; see
+    # ``measurements/rq_frequency_clocks.py`` header and MEASUREMENT_NOTE.md.
     parasite_class_hist_series: list[tuple[tuple[str, int], ...]] = field(
+        default_factory=list
+    )
+    # Opt-in (additive) realised conditional pressure: per-contact affinity sums
+    # and contact counts keyed by host match class, from the actual contact rule.
+    collect_realised_host_pressure: bool = False
+    host_contact_affinity_series: list[tuple[tuple[str, float, int], ...]] = field(
+        default_factory=list
+    )
+    host_realised_pressure_series: list[tuple[tuple[str, float, int], ...]] = field(
+        default_factory=list
+    )
+    host_contact_available_series: list[tuple[tuple[str, float, ...], ...]] = field(
         default_factory=list
     )
     # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
@@ -549,7 +567,17 @@ class StructuralRQArm(LifeLoopEcologyArm):
         return self.summary()
 
     def _apply_hp_env_contact(self) -> tuple[int, list[str]]:
-        """Graded feature-overlap debit; forbid AND-exact composite as multi-locus."""
+        """Graded feature-overlap debit; forbid AND-exact composite as multi-locus.
+
+        When ``collect_realised_host_pressure`` is True the round additionally
+        records, per host match class, the realised contact evidence used by the
+        debit rule (Σ affinity over that class's contacts, contact count, and Σ
+        over contacts of the per-contact ATP reserve available before the round).
+        The realised conditional pressure is derived from that evidence by
+        ``host_realised_pressure_from_contacts`` — never from the parasite class
+        histogram. Recording is additive and changes no debit, survival,
+        threshold, or digest input.
+        """
 
         if self.passage == PASSAGE_ABSENT:
             self.graded_affinity_sum.append(0.0)
@@ -571,6 +599,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
         debit_count = 0
         aff_sum = 0.0
         contacts = 0
+        pressure_aff_sum: dict[str, float] = {}
+        pressure_contacts: dict[str, int] = {}
+        pressure_available: dict[str, list[float]] = {}
         # One parasite–host pair per seat per generation (no multi-hit pile-on).
         pair_n = min(len(hosts), len(self.parasite_windows))
         host_order = list(range(len(hosts)))
@@ -584,6 +615,15 @@ class StructuralRQArm(LifeLoopEcologyArm):
             affinity = graded_affinity(host_window, p_window)
             contacts += 1
             aff_sum += affinity
+            if self.collect_realised_host_pressure:
+                h_class = joint_match_class(host_window)
+                pressure_aff_sum[h_class] = pressure_aff_sum.get(h_class, 0.0) + float(
+                    affinity
+                )
+                pressure_contacts[h_class] = pressure_contacts.get(h_class, 0) + 1
+                pressure_available.setdefault(h_class, []).append(
+                    float(host.atp_state.runtime_available)
+                )
             if affinity <= 0.0:
                 continue
             self.hp_env.try_horizontal_inject(
@@ -620,7 +660,52 @@ class StructuralRQArm(LifeLoopEcologyArm):
         )
         self.graded_affinity_sum.append(aff_sum)
         self.graded_contact_count.append(contacts)
+        if self.collect_realised_host_pressure:
+            self._record_realised_host_pressure(
+                pressure_aff_sum, pressure_contacts, pressure_available
+            )
         return debit_count, matched_windows
+
+    def _record_realised_host_pressure(
+        self,
+        pressure_aff_sum: Mapping[str, float],
+        pressure_contacts: Mapping[str, int],
+        pressure_available: Mapping[str, Sequence[float]],
+    ) -> None:
+        """Append realised-contact evidence + derived pressure for this round.
+
+        ``host_realised_pressure_series`` holds ``(class, affinity_sum, contacts)``;
+        ``host_contact_available_series`` holds ``(class, min_pre_contact_atp)``.
+        ``host_realised_pressure_series`` is the *derived* quantity (present only
+        when collection is enabled), so a plain run's recorded series stay
+        byte-identical and empty.
+        """
+
+        classes = sorted(pressure_contacts)
+        self.host_contact_affinity_series.append(
+            tuple(
+                (cls, float(pressure_aff_sum.get(cls, 0.0)), int(pressure_contacts[cls]))
+                for cls in classes
+            )
+        )
+        self.host_contact_available_series.append(
+            tuple(
+                (cls, min(pressure_available.get(cls, (0.0,))))
+                for cls in classes
+            )
+        )
+        measured = host_realised_pressure_from_contacts(
+            host_affinity_sums=pressure_aff_sum,
+            host_contact_counts=pressure_contacts,
+            host_min_available={
+                cls: min(pressure_available.get(cls, (0.0,))) for cls in classes
+            },
+            virulence=float(self.virulence),
+            steal_fraction=float(self.hp_env.steal_fraction),
+        )
+        self.host_realised_pressure_series.append(
+            tuple((cls, float(measured[cls]), int(pressure_contacts[cls])) for cls in classes)
+        )
 
     def _passage_update(self, matched_windows: Sequence[str], rng: RNGManager) -> None:
         """Mid-κ partial keep-fraction on copassaged; freeze on fixed; empty on absent."""
@@ -702,16 +787,34 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 alleles.append(sub_loci(w)[locus_i])
             sub_tables.append(tuple(sorted(Counter(alleles).items())))
         self.host_sub_locus_series.append(tuple(sub_tables))
-        # Parasite match-class histogram (plugin/arm only; not engine.py).
+        # Parasite match-class **frequency** histogram (plugin/arm only; not engine.py).
+        # Counts antagonist classes; it is not pressure on a host class. The
+        # host-side estimand is ``host_realised_pressure_series`` below.
         p_counts = Counter(
             joint_match_class(w)
             for w in self.parasite_windows
             if len(w) == MATCH_BIT_WIDTH
         )
         self.parasite_class_hist_series.append(tuple(sorted(p_counts.items())))
+        if not self.collect_realised_host_pressure:
+            return
+        if not self.host_realised_pressure_series:
+            self.host_realised_pressure_series.append(())
+        if not self.host_contact_affinity_series:
+            self.host_contact_affinity_series.append(())
+        if not self.host_contact_available_series:
+            self.host_contact_available_series.append(())
 
     def window_snapshot(self, generation: int) -> dict[str, object]:
-        """Allelic snapshot at 1-indexed generation (locked windows only)."""
+        """Allelic snapshot at 1-indexed generation (locked windows only).
+
+        ``parasite_class_hist`` is a **parasite class frequency** map (counts of
+        antagonist classes normalised to 1) — not pressure on a host class.
+        ``host_realised_pressure`` is the realised conditional pressure on each
+        host match class (ATP per host per generation), available only when
+        ``collect_realised_host_pressure`` is enabled; runs that do not enable it
+        emit the key with an empty map and record nothing new.
+        """
 
         idx = int(generation) - 1
         empty = {
@@ -726,6 +829,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "sub_locus_richness": [],
             "parasite_class_hist": {},
             "parasite_class_hist_lag": [],
+            "host_realised_pressure": {},
+            "host_realised_pressure_lag": [],
+            "parasite_class_hist_is_class_frequency_not_host_pressure": True,
         }
         if idx < 0 or idx >= len(self.host_joint_class_series):
             return empty
@@ -751,7 +857,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
         parasite_n = 0
         if idx < len(self.parasite_frequencies):
             parasite_n = sum(c for _, c in self.parasite_frequencies[idx])
-        # Parasite class hist + lag ring (Zaman memory analog; arm/plugin only).
+        # Parasite class **frequency** hist + lag ring (Zaman memory analog;
+        # arm/plugin only). Counts of antagonist classes — not host pressure.
         parasite_class_hist: dict[str, float] = {}
         if idx < len(self.parasite_class_hist_series):
             p_pairs = self.parasite_class_hist_series[idx]
@@ -772,6 +879,23 @@ class StructuralRQArm(LifeLoopEcologyArm):
             parasite_class_hist_lag.append(
                 {k: c / tot for k, c in pairs} if tot > 0 else {}
             )
+        # Realised conditional pressure on host classes (ATP per host per
+        # generation). Derived from the contact rule's affinity/debit/survival
+        # evidence, never from the parasite class histogram.
+        host_realised_pressure: dict[str, float] = {}
+        if idx < len(self.host_realised_pressure_series):
+            for cls, value, _contacts in self.host_realised_pressure_series[idx]:
+                host_realised_pressure[str(cls)] = float(value)
+        host_realised_pressure_lag: list[dict[str, float]] = []
+        for j in range(lag_start, idx + 1):
+            if j >= len(self.host_realised_pressure_series):
+                break
+            host_realised_pressure_lag.append(
+                {
+                    str(cls): float(value)
+                    for cls, value, _contacts in self.host_realised_pressure_series[j]
+                }
+            )
         return {
             "generation": int(generation),
             "census": census,
@@ -784,6 +908,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "sub_locus_richness": sub_rich,
             "parasite_class_hist": parasite_class_hist,
             "parasite_class_hist_lag": parasite_class_hist_lag,
+            "host_realised_pressure": host_realised_pressure,
+            "host_realised_pressure_lag": host_realised_pressure_lag,
+            "parasite_class_hist_is_class_frequency_not_host_pressure": True,
         }
 
     def turnover_audit(self) -> dict[str, object]:
@@ -1231,6 +1358,7 @@ __all__ = [
     "collect_lag_clock_snaps",
     "dense_snap_generations",
     "graded_affinity",
+    "host_realised_pressure_from_contacts",
     "joint_match_class",
     "locked_design_dict",
     "prereg_document_path",

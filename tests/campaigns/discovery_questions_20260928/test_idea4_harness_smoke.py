@@ -30,7 +30,7 @@ def test_idea4_constants_locked() -> None:
     assert c["horizon_T"] == 40 == HORIZON_T
     assert c["slope_threshold"] == 0.15
     assert c["delta_p_threshold"] == 0.20
-    assert c["claim_ceiling"] == "phase2_harness" == CLAIM_CEILING
+    assert c["claim_ceiling"] == "phase2_design" == CLAIM_CEILING
     assert c["red_queen_proved"] is False
     assert "CKPT-REMOVE-PREDFAIL-DIGEST-MID-V1" in REJECTED_CHECKPOINT_ALIASES
     assert "CKPT-CUT-SCAF-MEMBERSHIP-FREEZE-V1" in REJECTED_CHECKPOINT_ALIASES
@@ -41,7 +41,7 @@ def test_idea4_smoke_pack() -> None:
     assert pack["engineering_green"] is True
     assert pack["hypothesis_supported"] is False
     assert pack["red_queen_proved"] is False
-    assert pack["claim_ceiling"] == "phase2_harness"
+    assert pack["claim_ceiling"] == "phase2_design"
     assert pack["checkpoint_id"] == "CKPT-RELOCATE-RECOVERY-TOKEN-V1"
     assert pack["competence_id"] == "FI-RARECLASS-CONTACT-YIELD-V1"
     assert len(pack["t_tilde_grid"]) >= 3

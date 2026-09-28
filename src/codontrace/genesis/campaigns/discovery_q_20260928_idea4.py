@@ -3,7 +3,7 @@
 Branching-history recovery window under sealed phase-2 design digest.
 Harness only: ledger ops + generation-boundary observer wiring.
 Full T=40 campaigns are not authorised by this smoke pack.
-Claim ceiling: phase2_harness. red_queen_proved stays False.
+Claim ceiling: phase2_design. red_queen_proved stays False.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from codontrace.life_loop.contact_atp_ledger import (
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
 SCHEMA = "discovery_q_20260928_idea4_harness_v1"
-CLAIM_CEILING = "phase2_harness"
+CLAIM_CEILING = "phase2_design"
 COMPETENCE_ID = "FI-RARECLASS-CONTACT-YIELD-V1"
 CHECKPOINT_ID = "CKPT-RELOCATE-RECOVERY-TOKEN-V1"
 SCAFFOLD_ID = "SCAF-CONTACT-SRC-PATH-V1"

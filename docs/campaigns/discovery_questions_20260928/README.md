@@ -28,7 +28,7 @@ All phase-1 files share claim ceiling `phase1_problem_boundary`. Phase-2 digests
 
 ## Phase-2 harness (implementation under sealed digests; smoke only)
 
-Claim ceiling for harness code and these notes: `phase2_harness`. This is implementation under the sealed digests — not a discovery claim and not a “first” claim.
+Claim ceiling remains `phase2_design` (no elevation above the sealed digests). Harness code is implementation under those digests — not a discovery claim and not a “first” claim.
 
 Harness modules:
 

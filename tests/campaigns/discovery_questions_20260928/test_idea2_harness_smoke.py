@@ -29,7 +29,7 @@ def test_idea2_constants_locked() -> None:
     assert abs(c["deception_phase"] - DECEPTION_PHASE) < 1e-12
     assert c["kappa_smoke"] == KAPPA_SMOKE == 1.0
     assert c["sham_id"] == "SHAM-CUE-PREDPHASE-V1" == SHAM_ID
-    assert c["claim_ceiling"] == "phase2_harness" == CLAIM_CEILING
+    assert c["claim_ceiling"] == "phase2_design" == CLAIM_CEILING
     assert c["red_queen_proved"] is False
 
 
@@ -46,7 +46,7 @@ def test_idea2_smoke_pack() -> None:
     assert pack["engineering_green"] is True
     assert pack["hypothesis_supported"] is False
     assert pack["red_queen_proved"] is False
-    assert pack["claim_ceiling"] == "phase2_harness"
+    assert pack["claim_ceiling"] == "phase2_design"
     assert pack["sham_id"] == "SHAM-CUE-PREDPHASE-V1"
     assert set(pack["named_contact_edge_ids"]) == set(NAMED_CONTACT_EDGE_IDS)
     assert pack["kappa"] == 1.0

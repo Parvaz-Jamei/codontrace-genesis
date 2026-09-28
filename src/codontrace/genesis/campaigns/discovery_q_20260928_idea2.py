@@ -3,7 +3,7 @@
 Gene / pattern / causal competition under coevolving antagonist pressure
 on the contact/ATP ledger (sealed phase-2 design digest). Harness only:
 ledger do-ops + SHAM-CUE-PREDPHASE-V1 wiring. Full campaigns are not
-authorised by this smoke pack. Claim ceiling: phase2_harness.
+authorised by this smoke pack. Claim ceiling: phase2_design.
 red_queen_proved stays False.
 """
 
@@ -25,7 +25,7 @@ from codontrace.life_loop.contact_atp_ledger import (
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
 SCHEMA = "discovery_q_20260928_idea2_harness_v1"
-CLAIM_CEILING = "phase2_harness"
+CLAIM_CEILING = "phase2_design"
 NAMED_CONTACT_SET = tuple(sorted(NAMED_CONTACT_EDGE_IDS))
 DECISION_BUDGET = 1.0
 CAUSAL_SPEND = (0.5, 0.5)  # revision + one do

@@ -100,3 +100,5 @@ Authorised engine path distinct from harness `jsonl_campaign/`:
 
 - **Pilot** (default / tip `cb4f88d`): 12 seeds, reduced factorial — honesty note [`PHASE2_ENGINE_PILOT_GATE.md`](PHASE2_ENGINE_PILOT_GATE.md).
 - **Full N≥64:** `.venv/bin/python scripts/run_discovery_q_20260928_jsonl_engine.py --full --max-workers 8` uses seeds `301–364`, full OPS_CELLS (5) × T grid (≥3) and all 4 Idea2 cells. Same honesty ceiling; volume ≠ discovery. See scale note in the pilot gate doc and `outputs/.../jsonl_engine/README.md`.
+
+Engine N≥64 post-data gate: [`PHASE2_ENGINE_N64_POSTDATA_GATE.md`](PHASE2_ENGINE_N64_POSTDATA_GATE.md) — `24fc048` HOLD released as engine wiring only; FAIL window/G2/discovery; honest pattern×pi collapse and high extinction rate retained; soft-pass forbidden.

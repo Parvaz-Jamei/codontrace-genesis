@@ -37,7 +37,12 @@ from codontrace.genesis.population import MetabolicConfig, RuntimeResourcePolicy
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.substrate import world2d_to_element_grid
 from codontrace.life_loop.contact_atp_ledger import build_engine_scaffold_ledger
-from codontrace.life_loop.engine_ledger_coupler import EngineCoupledLedgerObserver
+from codontrace.life_loop.engine_ledger_coupler import (
+    EngineCoupledLedgerObserver,
+    engine_pop_path_digest_from_ecology,
+    population_path_fingerprint,
+    pre_intervene_pop_digest_from_ecology,
+)
 from codontrace.world import World2D
 
 SCHEMA = "discovery_q_20260928_idea4_engine_cell_v1"
@@ -136,6 +141,7 @@ def run_idea4_engine_cell(
     tick_count = t_int + t_hor
     ledger = build_engine_scaffold_ledger(seed=int(seed))
     holder: dict[str, Any] = {"engine": None}
+    cell_holder: dict[str, Any] = {"cell": None, "ckpt": None}
 
     def _ckpt_and_cell(led: Any, generation_index: int) -> dict[str, Any]:
         del generation_index
@@ -143,6 +149,8 @@ def run_idea4_engine_cell(
             RECOVERY_TOKEN_KEY, remove=False, new_payload="relocated_engine"
         )
         cell = _apply_ops_cell(led, ops_cell)
+        cell_holder["ckpt"] = ckpt
+        cell_holder["cell"] = cell
         return {"ckpt": ckpt, "cell": cell}
 
     schedule = {t_int: [_ckpt_and_cell]}
@@ -152,6 +160,7 @@ def run_idea4_engine_cell(
         schedule=schedule,
         harvest_fn=harvest_rare_class_yield,
         auto_advance=True,
+        feedback_enabled=True,
     )
     spec = build_idea4_engine_spec(
         seed=int(seed), tick_count=tick_count, population=int(population)
@@ -188,6 +197,46 @@ def run_idea4_engine_cell(
     n_alive_series = [float(e["n_alive"]) for e in observer.ecology_history]
     mean_atp_series = [float(e["mean_atp"]) for e in observer.ecology_history]
 
+    pre_pop = pre_intervene_pop_digest_from_ecology(
+        observer.ecology_history, t_intervene=t_int
+    )
+    eng_pop = engine_pop_path_digest_from_ecology(
+        observer.ecology_history, t_intervene=t_int
+    )
+    pop_fp = population_path_fingerprint(engine)
+    feedback_applied = any(
+        bool(h.get("effect_applied")) for h in observer.feedback_history
+    )
+    # Per-cell coupler flag: feedback ran. Paired PASS still requires different
+    # engine_pop_path_digest across arms (see paired test).
+    coupler_affects_engine = bool(feedback_applied)
+    ledger_only_warn = not coupler_affects_engine
+
+    cell_result = cell_holder.get("cell") or {}
+    match_report = None
+    match_exact = None
+    exclude_from_combo_e = None
+    if str(ops_cell) == "cut_matched_random" and isinstance(cell_result, dict):
+        match_report = cell_result.get("match_report")
+        match_exact = bool(cell_result.get("match_exact", False))
+        exclude_from_combo_e = bool(
+            cell_result.get("exclude_from_combo_e", not match_exact)
+        )
+    elif str(ops_cell) == "cut_named_scaffold" and isinstance(cell_result, dict):
+        # Scaffold arm: record cut stats; match_exact is only defined vs matched.
+        match_report = {
+            "scaffold_cut_edge_ids": list(cell_result.get("cut_edge_ids", [])),
+            "n_edges_cut_scaffold": int(cell_result.get("n_edges_cut", 0)),
+            "degree_sum_scaffold": int(cell_result.get("degree_sum", 0)),
+            "contact_weight_sum_scaffold": float(
+                cell_result.get("contact_weight_sum", 0.0)
+            ),
+            "atp_lost_scaffold": float(cell_result.get("atp_lost", 0.0)),
+        }
+
+    # P4: pre-placed rare/scaffold markers are not genotype innovation; no real
+    # lineage branch checkpoint yet → opportunity meters stay false on the cell.
+    # Aggregate sets control_recover_rate / window_test_valid from the cohort.
     return {
         "schema": SCHEMA,
         "idea_id": 4,
@@ -215,9 +264,9 @@ def run_idea4_engine_cell(
         "honesty": (
             "Engine closed-loop Idea4 cell under phase2_design. "
             "GenerationBoundaryObserver coupled to ContactAtpLedger on "
-            "GenesisEngine life-loop. Not sealed recovery-window evidence; "
-            "hypothesis_supported stays false. Volume ≠ discovery. "
-            "Distinct from harness jsonl_campaign."
+            "GenesisEngine life-loop with ledger→engine contact-energy feedback. "
+            "Not sealed recovery-window evidence; hypothesis_supported stays false. "
+            "Volume ≠ discovery. Distinct from harness jsonl_campaign."
         ),
         "n_unit": "run",
         "engine_result_digest": result.snapshot.digest(),
@@ -229,6 +278,31 @@ def run_idea4_engine_cell(
         ),
         "ecology_tail": eco_tail,
         "recovery_progress_multiplier_used": False,
+        "pre_intervene_pop_digest": pre_pop,
+        "engine_pop_path_digest": eng_pop,
+        "population_path_fingerprint": pop_fp,
+        "coupler_affects_engine": coupler_affects_engine,
+        "ledger_only_warn": ledger_only_warn,
+        "match_report": match_report,
+        "match_exact": match_exact,
+        "exclude_from_combo_e": exclude_from_combo_e,
+        "n_edges_cut": (
+            int(cell_result.get("n_edges_cut"))
+            if isinstance(cell_result, dict) and "n_edges_cut" in cell_result
+            else None
+        ),
+        "cut_edge_ids": (
+            list(cell_result.get("cut_edge_ids", []))
+            if isinstance(cell_result, dict) and "cut_edge_ids" in cell_result
+            else None
+        ),
+        "control_recover_rate": None,
+        "window_test_valid": False,
+        "lineage_branching_real": False,
+        "innovation_observable": False,
+        "feedback_event_count": sum(
+            1 for h in observer.feedback_history if h.get("effect_applied")
+        ),
     }
 
 
@@ -299,6 +373,32 @@ def aggregate_idea4_engine_rates(
         rate = float(sum(1 for v in vals if v) / len(vals))
         delta_p[f"{cell}|t_tilde={tt:.4f}"] = abs(rate - control_rates[tt])
 
+    # P4 recovery-opportunity preflight (diagnostic; not a window law claim).
+    control_vals = [
+        bool(rec["recover"])
+        for rec in records
+        if int(rec.get("idea_id", -1)) == 4 and str(rec.get("ops_cell")) == "control"
+    ]
+    control_recover_rate = (
+        float(sum(1 for v in control_vals if v) / len(control_vals))
+        if control_vals
+        else 0.0
+    )
+    lineage_branching_real = any(
+        bool(rec.get("lineage_branching_real"))
+        for rec in records
+        if int(rec.get("idea_id", -1)) == 4
+    )
+    innovation_observable = any(
+        bool(rec.get("innovation_observable"))
+        for rec in records
+        if int(rec.get("idea_id", -1)) == 4
+    )
+    # recover=0 everywhere (including control) ⇒ window_test_valid=false.
+    window_test_valid = bool(
+        control_recover_rate > 0.0 and lineage_branching_real and innovation_observable
+    )
+
     return {
         "p_recover_given_t_cell": p_recover,
         "slope_by_cell": slopes,
@@ -306,8 +406,14 @@ def aggregate_idea4_engine_rates(
         "slope_threshold": SLOPE_THRESHOLD,
         "delta_p_threshold": DELTA_P_THRESHOLD,
         "hypothesis_supported": False,
+        "control_recover_rate": float(control_recover_rate),
+        "window_test_valid": bool(window_test_valid),
+        "lineage_branching_real": bool(lineage_branching_real),
+        "innovation_observable": bool(innovation_observable),
         "note": (
             "Aggregates are descriptive under phase2_design only. "
-            "Soft-pass near 0.15 slope remains FAIL; no discovery claim."
+            "Soft-pass near 0.15 slope remains FAIL; no discovery claim. "
+            "window_test_valid=false when control recover rate is 0 or "
+            "lineage/innovation opportunity is absent (preflight diagnostic)."
         ),
     }

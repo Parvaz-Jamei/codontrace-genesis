@@ -3,7 +3,7 @@
 **تاریخ ساخت:** 2026-09-29 ~01:10 Asia/Tehran  
 **آخرین به‌روزرسانی:** 2026-09-29 ~01:15 Asia/Tehran  
 **Repo:** `Parvaz-Jamei/codontrace-genesis`  
-**Tip فعلی (origin/main):** `d73cb0d`  
+**Tip فعلی (origin/main):** `b81a47b`  
 **منبع دستورات مالک:** `DISCOVERY_QUESTIONS_evolution_causal_collective_20260928.md` (+ چرخهٔ مشترک ۵+۲+۲)
 
 این فایل **گزارش وضعیت عملیاتی** است، نه ادعای کشف. هر گام تمام‌شده اینجا به‌روز می‌شود. سقف ادعا تا اطلاع ثانوی: `phase2_design`. تست سبز ≠ تأیید علمی شش پرسش.
@@ -67,7 +67,7 @@
 | ایدهٔ ۱/۳/۵/۶ | فاز۲ digest+smoke؛ **کشف نتیجه/انتقال‌پذیری نشده** (P5) | سنجه از رفتار عامل؛ بعد JSONL علمی |
 | فرایند | گزارش پیشینه/طرح خوب؛ ممیزی چرخه ناقص (P6) | trail قابل ممیزی هر فاز + RQ fix |
 
-**مسیر فعال الان:** توقف گسترش seed؛ کار روی P1→P4 به ترتیب؛ Track C smoke علمی قلمداد نشود.
+**مسیر فعال الان:** P1 مسیر بازخورد coupler land (اندازه‌گیری؛ hyp=false). P2–P6 متر ADOPT/freeze؛ کد بعدی pause تا دستور مالک. Track C seed خاموش.
 
 ---
 
@@ -164,6 +164,7 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع).
 - **2026-09-29 01:12 +0330:** ADOPT — ClaimCritic GATE؛ XFieldInnov P5/P6 (metric redesign storm)؛ EcoEvo P2 (ecology redesign R1). Land فقط بعد از Critic freeze.
 - **2026-09-29 01:16 +0330:** tip=`c9b26b5`؛ ADOPT P2/P5/P6 روی STATUS+Drive ثبت شد.
 - **2026-09-29 01:13 +0330:** Research P1 ADOPT (Track C engine WIP discarded). ALife meters locked: P1 paired `engine_pop_path_digest` must differ across arms; P3 `match_exact` required (E0+E1 ⇒ 2 edges); P4 `window_test_valid` false if control recover=0.
+- **2026-09-29 01:16 +0330:** جمع‌بندی مالک (صرفه‌جویی): P1 coupler+matched-control WIP روی tree؛ discovery tests سبز؛ land به‌عنوان مسیر اندازه‌گیری؛ طوفان اضافه pause تا دستور بعدی؛ Track C seed خاموش.
 
 ---
 
@@ -219,6 +220,8 @@ CRITIC_GATE_TRACK_C_SCORED=d565e49
 ALIFE_P1_METER=engine_pop_path_digest,coupler_affects_engine
 ALIFE_P3_METER=match_exact,n_edges_cut
 ALIFE_P4_METER=window_test_valid,control_recover_rate
+COUPLER_FEEDBACK_PATH=landed_measurement_only
+PAUSED_STORMS_FOR_COST=true
 PRIORITY_ORDER=P1_coupler,P2_idea2_survival,P3_matched_control,P4_lineage_ckpt,P5_behavioral_metrics,P6_process_audit_RQ
-TIP_MAIN=d73cb0d
+TIP_MAIN=b81a47b
 ```

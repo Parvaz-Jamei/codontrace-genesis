@@ -9,6 +9,7 @@ population engine; no engine.py physics.
 
 from __future__ import annotations
 
+import itertools
 import math
 import random
 from collections.abc import Iterable, Mapping, Sequence
@@ -313,41 +314,228 @@ class ContactAtpLedger:
         for eid in sorted(self.scaffold_edge_sets[key]):
             edge = self._require_edge(eid)
             if edge.present:
-                edge.present = False
                 cut.append(eid)
-                self._cut_buffer.add(eid)
-        return {"op": "cut_named_scaffold", "scaffold_id": sid, "cut_edge_ids": cut}
+        degree_sum = int(sum(self.edge_degree(eid) for eid in cut)) if cut else 0
+        # Contact weight ≡ atp_yield (ledger has no separate weight field).
+        weight_sum = float(sum(float(self.edges[eid].atp_yield) for eid in cut))
+        atp_lost = float(weight_sum)
+        for eid in cut:
+            self.edges[eid].present = False
+            self._cut_buffer.add(eid)
+        return {
+            "op": "cut_named_scaffold",
+            "scaffold_id": sid,
+            "cut_edge_ids": cut,
+            "n_edges_cut": len(cut),
+            "degree_sum": degree_sum,
+            "contact_weight_sum": weight_sum,
+            "atp_lost": atp_lost,
+        }
 
-    def cut_matched_random(self, degree: int) -> dict[str, Any]:
-        """Cut one present non-scaffold edge whose endpoint-degree sum matches."""
+    def cut_matched_random(
+        self,
+        degree: int,
+        *,
+        n_edges: int = 1,
+        target_degree_sum: int | None = None,
+        target_atp_sum: float | None = None,
+        target_weight_sum: float | None = None,
+    ) -> dict[str, Any]:
+        """Cut ``n_edges`` present non-scaffold edges matched on degree/ATP.
+
+        Prefer exact endpoint-degree matches. If the exact-degree pool cannot
+        supply ``n_edges``, fall back to nearest-degree edges and set
+        ``used_nearest_fallback=True``. Never labels a nearest fallback as
+        ``match_exact=True``.
+        """
 
         deg = _as_int(degree, "degree", minimum=0)
+        n_cut = _as_int(n_edges, "n_edges", minimum=1)
         scaffold_members: set[str] = set()
         for members in self.scaffold_edge_sets.values():
             scaffold_members |= members
-        candidates = [
+        exact_pool = sorted(
             eid
             for eid, edge in self.edges.items()
             if edge.present and eid not in scaffold_members and self.edge_degree(eid) == deg
-        ]
-        if not candidates:
-            # Fall back to any present non-scaffold edge closest in degree.
-            pool = [
-                eid
-                for eid, edge in self.edges.items()
-                if edge.present and eid not in scaffold_members
-            ]
-            if not pool:
-                raise ConfigurationError("no present non-scaffold edges for matched random cut.")
-            candidates = sorted(pool, key=lambda e: abs(self.edge_degree(e) - deg))
-            candidates = [candidates[0]]
-        chosen = self._rng.choice(candidates)
-        self.edges[chosen].present = False
-        self._cut_buffer.add(chosen)
+        )
+        used_nearest_fallback = False
+        if len(exact_pool) >= n_cut:
+            candidates = exact_pool
+        else:
+            used_nearest_fallback = True
+            pool = sorted(
+                (
+                    eid
+                    for eid, edge in self.edges.items()
+                    if edge.present and eid not in scaffold_members
+                ),
+                key=lambda e: (abs(self.edge_degree(e) - deg), e),
+            )
+            if len(pool) < n_cut:
+                raise ConfigurationError(
+                    f"need {n_cut} present non-scaffold edges for matched random cut; "
+                    f"found {len(pool)}."
+                )
+            candidates = pool
+
+        tgt_deg = (
+            int(target_degree_sum)
+            if target_degree_sum is not None
+            else int(deg) * int(n_cut)
+        )
+        tgt_atp = float(target_atp_sum) if target_atp_sum is not None else None
+        tgt_w = (
+            float(target_weight_sum)
+            if target_weight_sum is not None
+            else tgt_atp
+        )
+
+        # Enumerate combinations when small; otherwise greedy by ATP error.
+        chosen: tuple[str, ...]
+        if len(candidates) <= 12 and n_cut <= 6:
+            best: tuple[str, ...] | None = None
+            best_key: tuple[Any, ...] | None = None
+            for combo in itertools.combinations(candidates, n_cut):
+                deg_sum = int(sum(self.edge_degree(e) for e in combo))
+                atp_sum = float(sum(float(self.edges[e].atp_yield) for e in combo))
+                deg_err = abs(deg_sum - tgt_deg)
+                atp_err = abs(atp_sum - tgt_atp) if tgt_atp is not None else 0.0
+                key = (deg_err, atp_err, combo)
+                if best_key is None or key < best_key:
+                    best_key = key
+                    best = combo
+            assert best is not None
+            chosen = best
+        else:
+            # Deterministic greedy: sort by degree error then yield proximity.
+            remaining = list(candidates)
+            picked: list[str] = []
+            for _ in range(n_cut):
+                def _score(eid: str) -> tuple[float, float, str]:
+                    return (
+                        float(abs(self.edge_degree(eid) - deg)),
+                        float(abs(float(self.edges[eid].atp_yield) - (tgt_atp or 0.0) / n_cut))
+                        if tgt_atp is not None
+                        else 0.0,
+                        eid,
+                    )
+
+                remaining.sort(key=_score)
+                picked.append(remaining.pop(0))
+            chosen = tuple(sorted(picked))
+
+        cut_ids = list(chosen)
+        # Snapshot degree/weight BEFORE mutating present flags (degree counts present only).
+        degree_sum = int(sum(self.edge_degree(eid) for eid in cut_ids))
+        weight_sum = float(sum(float(self.edges[eid].atp_yield) for eid in cut_ids))
+        atp_lost = float(weight_sum)
+        n_edges_cut = len(cut_ids)
+        for eid in cut_ids:
+            self.edges[eid].present = False
+            self._cut_buffer.add(eid)
+
+        atp_exact = tgt_atp is not None and abs(atp_lost - float(tgt_atp)) <= 1e-9
+        weight_exact = tgt_w is not None and abs(weight_sum - float(tgt_w)) <= 1e-9
+        # Targets omitted → judge only on n_edges and degree (legacy single-edge callers).
+        if tgt_atp is None and tgt_w is None:
+            match_exact = (
+                (not used_nearest_fallback)
+                and n_edges_cut == n_cut
+                and degree_sum == tgt_deg
+            )
+        else:
+            match_exact = (
+                (not used_nearest_fallback)
+                and n_edges_cut == n_cut
+                and degree_sum == tgt_deg
+                and atp_exact
+                and weight_exact
+            )
+
         return {
             "op": "cut_matched_random",
             "degree": deg,
-            "cut_edge_ids": [chosen],
+            "n_edges_requested": n_cut,
+            "cut_edge_ids": cut_ids,
+            "n_edges_cut": n_edges_cut,
+            "degree_sum": degree_sum,
+            "contact_weight_sum": weight_sum,
+            "atp_lost": atp_lost,
+            "target_degree_sum": tgt_deg,
+            "target_atp_sum": tgt_atp,
+            "target_weight_sum": tgt_w,
+            "used_nearest_fallback": bool(used_nearest_fallback),
+            "match_exact": bool(match_exact),
+        }
+
+    def scaffold_cut_profile(self, scaffold_id: str) -> dict[str, Any]:
+        """Describe what ``cut_named_scaffold`` would cut without mutating."""
+
+        sid = _as_str(scaffold_id, "scaffold_id")
+        key = sid if sid.startswith(SCAFFOLD_EDGES_PREFIX) else f"{SCAFFOLD_EDGES_PREFIX}{sid}"
+        if key not in self.scaffold_edge_sets:
+            raise ConfigurationError(f"unknown scaffold_id: {sid!r}.")
+        cut = [
+            eid
+            for eid in sorted(self.scaffold_edge_sets[key])
+            if eid in self.edges and self.edges[eid].present
+        ]
+        degree_sum = int(sum(self.edge_degree(eid) for eid in cut)) if cut else 0
+        weight_sum = float(sum(float(self.edges[eid].atp_yield) for eid in cut))
+        return {
+            "scaffold_id": sid,
+            "cut_edge_ids": cut,
+            "n_edges_cut": len(cut),
+            "degree_sum": degree_sum,
+            "contact_weight_sum": weight_sum,
+            "atp_lost": weight_sum,
+            "per_edge_degree": (
+                int(self.edge_degree(cut[0])) if cut else 0
+            ),
+        }
+
+    @staticmethod
+    def build_cut_match_report(
+        scaffold_profile: Mapping[str, Any],
+        matched_result: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Emit OWNER P3 match report for a scaffold vs matched cut pair."""
+
+        s_ids = list(scaffold_profile.get("cut_edge_ids", []))
+        m_ids = list(matched_result.get("cut_edge_ids", []))
+        s_n = int(scaffold_profile.get("n_edges_cut", len(s_ids)))
+        m_n = int(matched_result.get("n_edges_cut", len(m_ids)))
+        s_deg = int(scaffold_profile.get("degree_sum", 0))
+        m_deg = int(matched_result.get("degree_sum", 0))
+        s_w = float(scaffold_profile.get("contact_weight_sum", 0.0))
+        m_w = float(matched_result.get("contact_weight_sum", 0.0))
+        s_atp = float(scaffold_profile.get("atp_lost", s_w))
+        m_atp = float(matched_result.get("atp_lost", m_w))
+        used_fallback = bool(matched_result.get("used_nearest_fallback", False))
+        # Never promote nearest fallback to exact.
+        match_exact = (
+            (not used_fallback)
+            and s_n == m_n
+            and s_deg == m_deg
+            and abs(s_w - m_w) <= 1e-9
+            and abs(s_atp - m_atp) <= 1e-9
+        )
+        return {
+            "scaffold_cut_edge_ids": s_ids,
+            "matched_cut_edge_ids": m_ids,
+            "n_edges_cut_scaffold": s_n,
+            "n_edges_cut_matched": m_n,
+            "n_edges_cut_equal": s_n == m_n,
+            "degree_sum_scaffold": s_deg,
+            "degree_sum_matched": m_deg,
+            "contact_weight_sum_scaffold": s_w,
+            "contact_weight_sum_matched": m_w,
+            "atp_lost_scaffold": s_atp,
+            "atp_lost_matched": m_atp,
+            "used_nearest_fallback": used_fallback,
+            "match_exact": bool(match_exact),
+            "exclude_from_combo_e": not bool(match_exact),
         }
 
     def ablate_knowledge_digest(self, digest_key: str) -> dict[str, Any]:
@@ -1050,6 +1238,8 @@ def build_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     # Generic contact edges with some rare-class tags (ledger tags only).
+    # Primary K4 (scaffold E0/E1 live here). Secondary K4 supplies
+    # degree- and ATP-matched non-scaffold edges for cut_matched_random.
     specs = [
         ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
         ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.2),
@@ -1057,6 +1247,12 @@ def build_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
         ("E3", "n3", "n0", None, 0.4),
         ("E4", "n0", "n2", CONTACT_TAG_RARE, 0.8),
         ("E5", "n1", "n3", None, 0.6),
+        ("E6", "n4", "n5", None, 1.0),
+        ("E7", "n5", "n6", None, 1.2),
+        ("E8", "n6", "n7", None, 0.5),
+        ("E9", "n7", "n4", None, 0.4),
+        ("E10", "n4", "n6", None, 0.8),
+        ("E11", "n5", "n7", None, 0.6),
     ]
     for eid, src, dst, tag, yld in specs:
         ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)

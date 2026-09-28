@@ -276,8 +276,26 @@ def _apply_ops_cell(ledger: ContactAtpLedger, ops_cell: str) -> dict[str, Any]:
     if cell == "cut_named_scaffold":
         return ledger.cut_named_scaffold(SCAFFOLD_ID)
     if cell == "cut_matched_random":
-        deg = ledger.edge_degree("E0") if "E0" in ledger.edges else 2
-        return ledger.cut_matched_random(deg)
+        # Match n_edges / degree / ATP targets to what the named scaffold would cut.
+        profile = ledger.scaffold_cut_profile(SCAFFOLD_ID)
+        n_edges = int(profile["n_edges_cut"])
+        if n_edges < 1:
+            raise ConfigurationError("scaffold cut profile has no present edges to match.")
+        deg = int(profile["per_edge_degree"])
+        matched = ledger.cut_matched_random(
+            deg,
+            n_edges=n_edges,
+            target_degree_sum=int(profile["degree_sum"]),
+            target_atp_sum=float(profile["atp_lost"]),
+            target_weight_sum=float(profile["contact_weight_sum"]),
+        )
+        report = ContactAtpLedger.build_cut_match_report(profile, matched)
+        matched["match_report"] = report
+        matched["match_exact"] = bool(report["match_exact"])
+        matched["exclude_from_combo_e"] = bool(report["exclude_from_combo_e"])
+        matched["scaffold_cut_edge_ids"] = list(profile["cut_edge_ids"])
+        matched["n_edges_cut_scaffold"] = int(profile["n_edges_cut"])
+        return matched
     if cell == "ablate_knowledge_digest":
         return ledger.ablate_knowledge_digest(PRED_FAIL_DIGEST_KEY)
     raise ConfigurationError(f"unknown Idea4 ops_cell {ops_cell!r}.")

@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from codontrace.genesis.campaigns.discovery_q_20260928_jsonl_engine import (
+    DEFAULT_FULL_SEEDS,
     DEFAULT_PILOT_SEEDS,
     run_jsonl_engine_campaign,
 )
@@ -27,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         nargs="+",
         default=None,
-        help="campaign seeds (default pilot 301–312; not 801–816)",
+        help="campaign seeds (default: pilot 301–312, or full 301–364 with --full; not 801–816)",
     )
     parser.add_argument(
         "--out-dir",
@@ -60,8 +61,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    if args.seeds is not None:
+        use_seeds = args.seeds
+    elif args.full:
+        use_seeds = DEFAULT_FULL_SEEDS
+    else:
+        use_seeds = DEFAULT_PILOT_SEEDS
+
     summary = run_jsonl_engine_campaign(
-        seeds=args.seeds if args.seeds is not None else DEFAULT_PILOT_SEEDS,
+        seeds=use_seeds,
         idea_ids=args.ideas,
         out_dir=args.out_dir,
         max_workers=args.max_workers,

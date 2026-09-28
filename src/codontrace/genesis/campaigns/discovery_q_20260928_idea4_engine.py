@@ -36,7 +36,7 @@ from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.population import MetabolicConfig, RuntimeResourcePolicy
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.substrate import world2d_to_element_grid
-from codontrace.life_loop.contact_atp_ledger import build_smoke_ledger
+from codontrace.life_loop.contact_atp_ledger import build_engine_scaffold_ledger
 from codontrace.life_loop.engine_ledger_coupler import EngineCoupledLedgerObserver
 from codontrace.world import World2D
 
@@ -134,7 +134,7 @@ def run_idea4_engine_cell(
     t_int = int(t_intervene)
     t_hor = int(t_horizon)
     tick_count = t_int + t_hor
-    ledger = build_smoke_ledger(seed=int(seed))
+    ledger = build_engine_scaffold_ledger(seed=int(seed))
     holder: dict[str, Any] = {"engine": None}
 
     def _ckpt_and_cell(led: Any, generation_index: int) -> dict[str, Any]:

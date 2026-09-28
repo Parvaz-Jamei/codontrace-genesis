@@ -34,7 +34,7 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.life_loop.contact_atp_ledger import (
     NAMED_CONTACT_EDGE_IDS,
-    build_idea2_smoke_ledger,
+    build_idea2_engine_scaffold_ledger,
 )
 from codontrace.life_loop.engine_ledger_coupler import ecology_scale, sample_ecology
 
@@ -137,7 +137,7 @@ def run_idea2_engine_cell(
         raise ConfigurationError("engine Idea2 generations must be >= 4.")
 
     gens = int(generations)
-    ledger = build_idea2_smoke_ledger(seed=int(seed))
+    ledger = build_idea2_engine_scaffold_ledger(seed=int(seed))
     holder: dict[str, Any] = {"engine": None}
     pressure_series: list[float] = []
     predicted_series: list[float] = []
@@ -166,7 +166,7 @@ def run_idea2_engine_cell(
             ledger.sham_cue_predphase(offset=DECEPTION_PHASE)
             predicted = float(ledger.predicted_pressure_phase)
         else:
-            # Small ecology-tied cue noise (not independent smoke RNG stream).
+            # Small ecology-tied cue noise (not independent harness smoke RNG stream).
             predicted = realised + 0.05 * math.sin(float(eco.get("resource_loc_fp", 0.0)))
         ledger.realised_pressure_phase = float(realised)
         ledger.predicted_pressure_phase = float(predicted)

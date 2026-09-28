@@ -523,8 +523,14 @@ class ContactAtpLedger:
         return canonical_digest(self.snapshot(), prefix="contact_atp_ledger")
 
 
-def build_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Small deterministic ledger for harness smoke (not a campaign run)."""
+def build_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea4 engine scaffold ledger (edge skeleton for observer coupling).
+
+    Scaffold-only: provides rare-class contact edges, named scaffold set, and
+    recovery *token placement* for checkpoint relocate. Does **not** implement
+    or enable any harness ``recovery_progress`` multiplier path — engine Idea4
+    FI recover is scored from ecology-coupled rare-class ATP yields alone.
+    """
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     # Generic contact edges with some rare-class tags (ledger tags only).
@@ -543,6 +549,8 @@ def build_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     ledger.place_recovery_token(
         "token:recovery:FI-RARECLASS-CONTACT-YIELD-V1", payload="eligible"
     )
+    # Key id "smoke_v1" is locked for ablate_knowledge_digest / PRED_FAIL_DIGEST_KEY
+    # compatibility across harness+engine; it is NOT a recovery_progress path.
     ledger.place_failed_prediction_digest(
         "digest:pred_fail:smoke_v1",
         digest=canonical_digest({"kind": "pred_fail", "id": "smoke_v1"}, prefix="digest"),
@@ -550,8 +558,13 @@ def build_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     return ledger
 
 
-def build_idea2_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Ledger with the locked NC-* named-contact edge set for Idea2 smoke."""
+def build_idea2_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea2 engine scaffold ledger with locked NC-* named-contact edge set.
+
+    Scaffold-only skeleton for engine closed-loop arms. Realised antagonist
+    pressure comes from GenesisEngine ecology via GenerationBoundaryObserver —
+    not from an independent smoke-ledger RNG stream. No recovery_progress path.
+    """
 
     ledger = ContactAtpLedger(
         rng_seed=int(seed),
@@ -570,3 +583,24 @@ def build_idea2_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     for eid, src, dst in slots:
         ledger.add_edge(eid, src=src, dst=dst, class_tag=None, atp_yield=0.5)
     return ledger
+
+
+def build_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_engine_scaffold_ledger`.
+
+    Kept for harness smoke / scored jsonl_campaign paths. Engine closed-loop
+    modules must call :func:`build_engine_scaffold_ledger` by name (no bare
+    smoke symbol on the engine path).
+    """
+
+    return build_engine_scaffold_ledger(seed=int(seed))
+
+
+def build_idea2_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_idea2_engine_scaffold_ledger`.
+
+    Kept for harness smoke / scored jsonl_campaign. Engine Idea2 must call
+    :func:`build_idea2_engine_scaffold_ledger` by name.
+    """
+
+    return build_idea2_engine_scaffold_ledger(seed=int(seed))

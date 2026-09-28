@@ -35,6 +35,11 @@ def test_engine_constants_locked() -> None:
     assert len(c["pilot_t_intervene"]) >= 3
     for seed in c["default_pilot_seeds"]:
         assert not (801 <= int(seed) <= 816)
+    full = c["default_full_seeds"]
+    assert len(full) >= 64
+    assert full == list(range(301, 365))
+    for seed in full:
+        assert not (801 <= int(seed) <= 816)
 
 
 def test_refuses_sealed_seeds() -> None:
@@ -134,3 +139,55 @@ def test_mini_engine_campaign_writes_jsonl_engine(tmp_path: Path) -> None:
     rec = json.loads(lines[0])
     assert rec["engine_path"] == "genesis_life_loop_observer_coupled"
     assert rec["hypothesis_supported"] is False
+
+
+def test_default_full_seeds_length_and_range() -> None:
+    from codontrace.genesis.campaigns.discovery_q_20260928_jsonl_engine import (
+        DEFAULT_FULL_SEEDS,
+    )
+
+    assert len(DEFAULT_FULL_SEEDS) >= 64
+    assert DEFAULT_FULL_SEEDS == tuple(range(301, 365))
+    assert validate_engine_seeds(DEFAULT_FULL_SEEDS) == DEFAULT_FULL_SEEDS
+
+
+def test_engine_modules_use_scaffold_ledger_not_smoke_symbol() -> None:
+    """WARN1: engine path must not call bare build_*smoke_ledger by name."""
+
+    from pathlib import Path as _Path
+
+    root = _Path(__file__).resolve().parents[3]
+    idea4 = (
+        root
+        / "src"
+        / "codontrace"
+        / "genesis"
+        / "campaigns"
+        / "discovery_q_20260928_idea4_engine.py"
+    ).read_text(encoding="utf-8")
+    idea2 = (
+        root
+        / "src"
+        / "codontrace"
+        / "genesis"
+        / "campaigns"
+        / "discovery_q_20260928_idea2_engine.py"
+    ).read_text(encoding="utf-8")
+    assert "build_engine_scaffold_ledger" in idea4
+    assert "build_smoke_ledger" not in idea4
+    assert "build_idea2_engine_scaffold_ledger" in idea2
+    assert "build_idea2_smoke_ledger" not in idea2
+    assert "build_smoke_ledger" not in idea2
+
+
+def test_engine_scaffold_ledger_has_no_recovery_progress_attr() -> None:
+    from codontrace.life_loop.contact_atp_ledger import (
+        build_engine_scaffold_ledger,
+        build_idea2_engine_scaffold_ledger,
+    )
+
+    a = build_engine_scaffold_ledger(seed=301)
+    b = build_idea2_engine_scaffold_ledger(seed=301)
+    assert not hasattr(a, "recovery_progress")
+    assert not hasattr(b, "recovery_progress")
+    assert "token:recovery:FI-RARECLASS-CONTACT-YIELD-V1" in a.recovery_tokens

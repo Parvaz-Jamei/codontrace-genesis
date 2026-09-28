@@ -38,7 +38,7 @@ SCHEMA = "discovery_q_20260928_jsonl_engine_v1"
 CLAIM_CEILING = "phase2_design"
 # Pilot seeds: non-sealed, small N to prove observer fires + seed variance.
 DEFAULT_PILOT_SEEDS: tuple[int, ...] = tuple(range(301, 313))  # 12 seeds
-DEFAULT_FULL_SEEDS: tuple[int, ...] = tuple(range(301, 333))  # 32 seeds
+DEFAULT_FULL_SEEDS: tuple[int, ...] = tuple(range(301, 365))  # 64 seeds (301–364)
 SEALED_SEED_LO = 801
 SEALED_SEED_HI = 816
 IDEA_IDS: tuple[Literal[4, 2], ...] = (4, 2)
@@ -56,6 +56,8 @@ PILOT_IDEA2_CELLS: tuple[str, ...] = ("baseline", "pi_deception")
 HONESTY = (
     "Engine closed-loop JSONL under sealed Idea4+Idea2 phase-2 design meters. "
     "GenerationBoundaryObserver on GenesisEngine life-loop; not harness theater. "
+    "Ledger skeleton via build_engine_scaffold_ledger / "
+    "build_idea2_engine_scaffold_ledger (scaffold-only; no recovery_progress path). "
     "Volume ≠ discovery. claim_ceiling remains phase2_design; "
     "hypothesis_supported and red_queen_proved stay false. "
     "Distinct from outputs/.../jsonl_campaign/ (ecf7148 harness-only)."
@@ -140,6 +142,66 @@ def _run_job(job: tuple[Any, ...]) -> list[dict[str, JsonValue]]:
         _, seed, cell = job
         return list(run_idea2_engine_cell(seed=int(seed), cell=str(cell)))
     raise ConfigurationError(f"unknown job kind {kind!r}.")
+
+
+
+def _idea2_arm_cell_survival_stats(
+    idea2_recs: list[dict[str, JsonValue]],
+    *,
+    cell: str,
+    arm: str,
+) -> dict[str, Any]:
+    """Unique survival_to_T values for one (cell, arm); collapse when n_unique==1."""
+
+    subset = [
+        r
+        for r in idea2_recs
+        if str(r.get("cell")) == cell and str(r.get("arm")) == arm
+    ]
+    vals = sorted({round(float(r["survival_to_T"]), 8) for r in subset})
+    return {
+        "cell": cell,
+        "arm": arm,
+        "n_records": len(subset),
+        "n_unique_survival_to_T": len(vals),
+        "min_survival_to_T": vals[0] if vals else None,
+        "max_survival_to_T": vals[-1] if vals else None,
+        "collapse_unique_surv_eq_1": bool(vals) and len(vals) == 1,
+        "soft_pass": False,  # never soft-pass a collapse
+        "note": (
+            "Honest collapse report under phase2_design; "
+            "unique_surv==1 is FAIL evidence, not a soft-pass."
+            if vals and len(vals) == 1
+            else "Descriptive unique-survival stats only; not a discovery claim."
+        ),
+    }
+
+
+def _idea4_alive_end_stats(idea4_recs: list[dict[str, JsonValue]]) -> dict[str, Any]:
+    """Honest n_alive_end==0 rate (ecology extinction / empty end state)."""
+
+    n = len(idea4_recs)
+    if n == 0:
+        return {
+            "n_records": 0,
+            "n_alive_end_eq_0": 0,
+            "rate_alive_end_eq_0": None,
+            "note": "no idea4 records",
+        }
+    n_zero = sum(1 for r in idea4_recs if float(r.get("n_alive_end", 0.0)) == 0.0)
+    rate = float(n_zero) / float(n)
+    return {
+        "n_records": n,
+        "n_alive_end_eq_0": n_zero,
+        "rate_alive_end_eq_0": rate,
+        "high_rate_warn": rate >= 0.5,
+        "note": (
+            "High n_alive_end==0 rate reported honestly under phase2_design; "
+            "not soft-passed as recovery evidence."
+            if rate >= 0.5
+            else "Descriptive n_alive_end==0 rate only; not a discovery claim."
+        ),
+    }
 
 
 def run_jsonl_engine_campaign(
@@ -251,6 +313,18 @@ def run_jsonl_engine_campaign(
             "observer_fires_expected": int(idea4_recs[0]["tick_count"]),
         }
 
+    pattern_pi_survival = _idea2_arm_cell_survival_stats(
+        idea2_recs, cell="pi_deception", arm="pattern"
+    )
+    alive_end_stats = _idea4_alive_end_stats(idea4_recs)
+    idea2_unique_surv_by_arm_cell: dict[str, Any] = {}
+    for cell_name in use_i2 if 2 in use_ideas else ():
+        for arm_name in ("gene", "pattern", "causal"):
+            key = f"{cell_name}|{arm_name}"
+            idea2_unique_surv_by_arm_cell[key] = _idea2_arm_cell_survival_stats(
+                idea2_recs, cell=str(cell_name), arm=arm_name
+            )
+
     manifest: dict[str, Any] = {
         "schema": SCHEMA,
         "claim_ceiling": CLAIM_CEILING,
@@ -275,6 +349,15 @@ def run_jsonl_engine_campaign(
         "wall_time_s": wall,
         "aggregates_idea4": aggregates,
         "variance_proof": variance_proof,
+        "idea2_pattern_pi_unique_survival": pattern_pi_survival,
+        "idea2_unique_survival_by_arm_cell": idea2_unique_surv_by_arm_cell,
+        "idea4_n_alive_end_stats": alive_end_stats,
+        "ledger_builders": {
+            "idea4": "build_engine_scaffold_ledger",
+            "idea2": "build_idea2_engine_scaffold_ledger",
+            "smoke_aliases_harness_only": True,
+            "recovery_progress_multiplier_used": False,
+        },
         "harness_jsonl_campaign_not_discovery": True,
         "output_subdir": "jsonl_engine",
     }
@@ -291,6 +374,7 @@ def jsonl_engine_constants() -> Mapping[str, Any]:
         "hypothesis_supported": False,
         "red_queen_proved": False,
         "default_pilot_seeds": list(DEFAULT_PILOT_SEEDS),
+        "default_full_seeds": list(DEFAULT_FULL_SEEDS),
         "pilot_ops_cells": list(PILOT_OPS_CELLS),
         "pilot_t_intervene": list(PILOT_T_INTERVENE),
         "pilot_idea2_cells": list(PILOT_IDEA2_CELLS),

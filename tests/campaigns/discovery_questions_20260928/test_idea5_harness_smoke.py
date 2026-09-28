@@ -43,8 +43,10 @@ def test_idea5_smoke_pack() -> None:
     assert pack["distinction_locks"]["shortcut_pair_present"] is True
     assert pack["distinction_locks"]["train_fit_alone_is_fail"] is True
     assert pack["distinction_locks"]["survival_only_neq_teach"] is True
-    assert pack["shortcut_probe_pass"] is True
+    assert pack["shortcut_probe_pass"] is False
+    assert pack["shortcut_measured_from_behavior"] is False
     assert isinstance(pack["pack_digest"], str) and pack["pack_digest"]
+
 
 def test_idea5_scaffold_alias() -> None:
     from codontrace.life_loop.contact_atp_ledger import (

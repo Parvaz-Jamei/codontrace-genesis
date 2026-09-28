@@ -43,6 +43,16 @@ Test-gate honesty note: [`PHASE2_HARNESS_TEST_GATE.md`](PHASE2_HARNESS_TEST_GATE
 
 **Runners stay off** until the owner explicitly allows full campaigns. Harness smoke and unit tests only; do not treat smoke packs as authorisation for JSONL campaigns. Full campaigns preferably need ≥6 cores when allowed. Sealed seeds `801–816` remain untouched. `red_queen_proved` stays false.
 
+## JSONL smoke path (honest wiring dump; not a campaign)
+
+A thin multi-seed writer exists for the sealed Idea 4 + Idea 2 phase-2 harness:
+
+- Module: `src/codontrace/genesis/campaigns/discovery_q_20260928_jsonl_smoke.py`
+- CLI: `scripts/run_discovery_q_20260928_jsonl_smoke.py`
+- Output: `outputs/campaigns/discovery_questions_20260928/jsonl_smoke/`
+
+Claim ceiling remains `phase2_design`. Every record sets `hypothesis_supported=False` and `red_queen_proved=False`. This path is still **not** a full campaign and still **not** measurement evidence: it is not a recovery-window result (Idea 4) and not G2/M0–M3 evidence (Idea 2). Default live smoke uses 48 non-sealed seeds (`101–148`; outside `801–816`) with up to 8 parallel workers. Track C phase-2 digests are not invented here.
+
 ## Phase-2 result records (sealed; engineering only)
 
 - [`IDEA4_PHASE2_RESULT.md`](IDEA4_PHASE2_RESULT.md) — Idea 4: harness + distinction pass; **not** a recovery-window measurement.

@@ -2,7 +2,7 @@
 
 **تاریخ ساخت:** 2026-09-29 ~01:10 Asia/Tehran  
 **Repo:** `Parvaz-Jamei/codontrace-genesis`  
-**Tip فعلی (origin/main):** `64ab1c5`  
+**Tip فعلی (origin/main):** `3806a15`  
 **منبع دستورات مالک:** `DISCOVERY_QUESTIONS_evolution_causal_collective_20260928.md` (+ چرخهٔ مشترک ۵+۲+۲)
 
 این فایل **گزارش وضعیت عملیاتی** است، نه ادعای کشف. هر گام تمام‌شده اینجا به‌روز می‌شود. سقف ادعا تا اطلاع ثانوی: `phase2_design`.
@@ -97,6 +97,7 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع ا
 | `9a6aff2` | Track C scored JSONL (harness-class) |
 | `d565e49` | Critic post-data Track C |
 | `64ab1c5` | Live STATUS_SIX_IDEAS board |
+| `3806a15` | STATUS tip refresh + Drive sync note |
 
 ---
 
@@ -104,6 +105,7 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع ا
 
 - **2026-09-29 01:10 +0330:** فایل ساخته شد؛ tip=`d565e49`؛ Track C در مسیر موتور بسته‌حلقه.
 - **2026-09-29 01:12 +0330:** board روی main رفت (`64ab1c5`)؛ آپلود Drive handoff؛ DISCOVERY_QUESTIONS از قبل روی Drive بود؛ fast-push standing order فعال.
+- **2026-09-29 01:13 +0330:** tip refresh روی main (`3806a15`)؛ Drive STATUS آپلود شد.
 
 ---
 
@@ -141,5 +143,5 @@ HARNESS_ONLY_TIPS=ecf7148,9a6aff2
 ENGINE_JSONL_TIP_42=24fc048
 CRITIC_GATE_42=5610878
 CRITIC_GATE_TRACK_C_SCORED=d565e49
-TIP_MAIN=64ab1c5
+TIP_MAIN=3806a15
 ```

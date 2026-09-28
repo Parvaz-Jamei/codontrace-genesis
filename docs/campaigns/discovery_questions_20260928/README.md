@@ -42,3 +42,10 @@ Tests: `tests/campaigns/discovery_questions_20260928/` (distinction locks + harn
 Test-gate honesty note: [`PHASE2_HARNESS_TEST_GATE.md`](PHASE2_HARNESS_TEST_GATE.md) — engineering pass on `ab8e5d6`; smoke is not Idea-4 window evidence and not Idea-2 G2/M2 evidence; claim ceiling remains `phase2_design`.
 
 **Runners stay off** until the owner explicitly allows full campaigns. Harness smoke and unit tests only; do not treat smoke packs as authorisation for JSONL campaigns. Full campaigns preferably need ≥6 cores when allowed. Sealed seeds `801–816` remain untouched. `red_queen_proved` stays false.
+
+## Phase-2 result records (sealed; engineering only)
+
+- [`IDEA4_PHASE2_RESULT.md`](IDEA4_PHASE2_RESULT.md) — Idea 4: harness + distinction pass; **not** a recovery-window measurement.
+- [`IDEA2_PHASE2_RESULT.md`](IDEA2_PHASE2_RESULT.md) — Idea 2: harness + sham/do distinction pass; **not** G2/M0–M3 scored evidence.
+
+Claim ceiling remains `phase2_design`. `hypothesis_supported=False`; `red_queen_proved=False`. JSONL campaigns remain off until explicitly authorised.

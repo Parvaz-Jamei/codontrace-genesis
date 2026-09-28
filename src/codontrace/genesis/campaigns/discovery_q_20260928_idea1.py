@@ -17,7 +17,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.life_loop.contact_atp_ledger import (
     RIVAL_PAIR_ATP_DRAIN,
-    build_idea1_smoke_ledger,
+    build_idea1_scaffold_ledger,
 )
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
@@ -60,7 +60,7 @@ def run_idea1_smoke(
 ) -> dict[str, JsonValue]:
     """Deterministic Idea1 harness smoke — not a discovery campaign run."""
 
-    ledger = build_idea1_smoke_ledger(seed=int(seed))
+    ledger = build_idea1_scaffold_ledger(seed=int(seed))
     rival = _require_rival_pair(ledger.rival_pair_id)
 
     schedule = {

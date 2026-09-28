@@ -19,7 +19,7 @@ from codontrace.life_loop.contact_atp_ledger import (
     LAW_SHORT_COMPOSABLE,
     PROBE_PRIVATE_VS_SKELETON,
     WORLD_FAMILY_CONTACT_ATP,
-    build_idea5_smoke_ledger,
+    build_idea5_scaffold_ledger,
 )
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
@@ -61,7 +61,7 @@ def run_idea5_smoke(
     """Deterministic Idea5 harness smoke — not a discovery campaign run."""
 
     # Primary path: retain + teach + shortcut probe (memory/teaching arm).
-    ledger = build_idea5_smoke_ledger(seed=int(seed))
+    ledger = build_idea5_scaffold_ledger(seed=int(seed))
     world = _require_nonempty(ledger.world_family_id, "world_family_id")
     law = _require_nonempty(ledger.short_law_id, "short_law_id")
     probe = _require_nonempty(ledger.probe_id, "probe_id")
@@ -98,7 +98,7 @@ def run_idea5_smoke(
     history = run_boundary_loop(ledger, generations=int(generations), schedule=schedule)
 
     # Matched survival-only control on a separate ledger (H3 contrast wiring).
-    control = build_idea5_smoke_ledger(seed=int(seed) + 1)
+    control = build_idea5_scaffold_ledger(seed=int(seed) + 1)
     control_schedule = {
         0: [make_op("survival_only_control")],
     }

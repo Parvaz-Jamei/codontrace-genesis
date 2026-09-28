@@ -18,8 +18,9 @@ from codontrace.genesis.canonical import canonical_digest
 from codontrace.life_loop.contact_atp_ledger import (
     LAW_CONTACT_ATP_PARENT,
     PKG_REASON_FAIL_BOUND,
+    REV_HIGH_NOISE_BLIND_ACCEPT,
     UNREACH_L_SINGLE_LIFETIME,
-    build_idea3_smoke_ledger,
+    build_idea3_scaffold_ledger,
 )
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
@@ -28,6 +29,7 @@ CLAIM_CEILING = "phase2_design"
 LAW_ID = LAW_CONTACT_ATP_PARENT
 UNREACH_ID = UNREACH_L_SINGLE_LIFETIME
 PACKAGE_SCHEMA_ID = PKG_REASON_FAIL_BOUND
+REVERSAL_CELL_ID = REV_HIGH_NOISE_BLIND_ACCEPT
 DISCOVERY_MARGIN = 0.15
 OPS = (
     "transmit_package",
@@ -57,13 +59,16 @@ def run_idea3_smoke(
 ) -> dict[str, JsonValue]:
     """Deterministic Idea3 harness smoke — not a discovery campaign run."""
 
-    ledger = build_idea3_smoke_ledger(seed=int(seed))
+    ledger = build_idea3_scaffold_ledger(seed=int(seed))
     law = _require_nonempty(ledger.law_id, "law_id")
     unreach = _require_nonempty(ledger.unreach_id, "unreach_id")
     if law != LAW_ID:
         raise ConfigurationError(f"law_id must be {LAW_ID!r}.")
     if unreach != UNREACH_ID:
         raise ConfigurationError(f"unreach_id must be {UNREACH_ID!r}.")
+    reversal = _require_nonempty(ledger.reversal_cell_id, "reversal_cell_id")
+    if reversal != REVERSAL_CELL_ID:
+        raise ConfigurationError(f"reversal_cell_id must be {REVERSAL_CELL_ID!r}.")
 
     schedule = {
         0: [
@@ -93,7 +98,10 @@ def run_idea3_smoke(
         pkg.get("failed_intervention") == "" and pkg.get("validity_bounds") == ""
     )
     unreach_in_every_run = bool(unreach)  # criterion identity present in this run pack
-    ids_nonempty = bool(law) and bool(unreach) and all(bool(op) for op in OPS)
+    ids_nonempty = (
+        bool(law) and bool(unreach) and bool(reversal)
+        and all(bool(op) for op in OPS)
+    )
     engineering_green = bool(
         history
         and cut_ok
@@ -111,6 +119,7 @@ def run_idea3_smoke(
         "law_id": law,
         "unreach_id": unreach,
         "package_schema_id": PACKAGE_SCHEMA_ID,
+        "reversal_cell_id": reversal,
         "ops": list(OPS),
         "discovery_margin": DISCOVERY_MARGIN,
         "n_unit": "run",
@@ -123,7 +132,7 @@ def run_idea3_smoke(
         "honesty": (
             "Harness smoke only under sealed phase-2 design digest. "
             "No discovery claim. Full campaigns remain off until owner allows. "
-            "cut_failed_and_bounds and unreachability criterion required every run."
+            "cut_failed_and_bounds, unreachability criterion, and REV-HIGH-NOISE-BLIND-ACCEPT-V1 required every run."
         ),
         "ledger_digest": ledger.digest(),
         "history_len": len(history),
@@ -137,6 +146,7 @@ def run_idea3_smoke(
             "imitation_without_negatives": True,
             "identity_ids_nonempty": ids_nonempty,
             "empty_cut_reopens": True,
+            "reversal_cell_identity_present": bool(reversal),
         },
     }
     pack["pack_digest"] = canonical_digest(
@@ -151,6 +161,7 @@ def idea3_constants() -> Mapping[str, Any]:
         "law_id": LAW_ID,
         "unreach_id": UNREACH_ID,
         "package_schema_id": PACKAGE_SCHEMA_ID,
+        "reversal_cell_id": REVERSAL_CELL_ID,
         "ops": list(OPS),
         "discovery_margin": DISCOVERY_MARGIN,
         "claim_ceiling": CLAIM_CEILING,

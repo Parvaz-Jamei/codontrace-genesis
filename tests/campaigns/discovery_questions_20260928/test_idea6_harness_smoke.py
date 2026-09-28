@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from codontrace.genesis.campaigns.discovery_q_20260928_idea6 import (
     CLAIM_CEILING,
+    EVIDENCE_MEASURE_ID,
     OPS,
     SUPPORT_CUT_CELL_ID,
     USTAR_ID,
@@ -11,11 +12,20 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea6 import (
     idea6_constants,
     run_idea6_smoke,
 )
+from codontrace.life_loop.contact_atp_ledger import (
+    build_idea6_scaffold_ledger,
+    build_idea6_smoke_ledger,
+)
 
 
 def test_idea6_constants_locked() -> None:
     c = idea6_constants()
     assert c["ustar_id"] == "USTAR-RESTRAINT-V1" == USTAR_ID
+    assert (
+        c["evidence_measure_id"]
+        == "U-LEDGER-EVIDENCE-STRENGTH-V1"
+        == EVIDENCE_MEASURE_ID
+    )
     assert c["ustar_smoke_value"] == 0.55 == USTAR_SMOKE_VALUE
     assert c["support_cut_cell_id"] == "SUPCUT-REMOVE-CHANNELS-V1" == SUPPORT_CUT_CELL_ID
     assert "SUP-VERIFY-CONSULT-V1" in c["support_channel_ids"]
@@ -38,10 +48,24 @@ def test_idea6_smoke_pack() -> None:
     assert pack["freeze_reopen"] is False
     assert pack["claim_ceiling"] == "phase2_design"
     assert pack["ustar_id"] == USTAR_ID and pack["ustar_id"]
+    assert (
+        pack["evidence_measure_id"] == EVIDENCE_MEASURE_ID
+        and pack["evidence_measure_id"]
+    )
     assert pack["ustar_value"] == USTAR_SMOKE_VALUE
     assert pack["support_cut_applied"] is True
+    assert pack["distinction_locks"]["evidence_measure_identity_present"] is True
     assert pack["distinction_locks"]["claimgate_neq_u"] is True
     assert pack["distinction_locks"]["claimgate_neq_trait"] is True
     assert pack["distinction_locks"]["support_on_then_cut"] is True
     assert pack["distinction_locks"]["identity_ids_nonempty"] is True
     assert isinstance(pack["pack_digest"], str) and pack["pack_digest"]
+
+
+def test_idea6_scaffold_alias_and_evidence_measure_locked() -> None:
+    scaffold = build_idea6_scaffold_ledger(seed=11)
+    alias = build_idea6_smoke_ledger(seed=11)
+    assert scaffold.evidence_measure_id == "U-LEDGER-EVIDENCE-STRENGTH-V1"
+    assert alias.evidence_measure_id == scaffold.evidence_measure_id
+    assert scaffold.digest() == alias.digest()
+

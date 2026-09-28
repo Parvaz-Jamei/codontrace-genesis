@@ -45,3 +45,15 @@ def test_idea5_smoke_pack() -> None:
     assert pack["distinction_locks"]["survival_only_neq_teach"] is True
     assert pack["shortcut_probe_pass"] is True
     assert isinstance(pack["pack_digest"], str) and pack["pack_digest"]
+
+def test_idea5_scaffold_alias() -> None:
+    from codontrace.life_loop.contact_atp_ledger import (
+        build_idea5_scaffold_ledger,
+        build_idea5_smoke_ledger,
+    )
+
+    scaffold = build_idea5_scaffold_ledger(seed=11)
+    alias = build_idea5_smoke_ledger(seed=11)
+    assert scaffold.world_family_id == "WORLD-FAMILY-CONTACT-ATP-V1"
+    assert scaffold.digest() == alias.digest()
+

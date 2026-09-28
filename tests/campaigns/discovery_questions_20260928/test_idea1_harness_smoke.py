@@ -43,3 +43,15 @@ def test_idea1_smoke_pack() -> None:
     assert pack["distinction_locks"]["margin_without_assay_is_not_h2"] is True
     assert pack["distinction_locks"]["identity_ids_nonempty"] is True
     assert isinstance(pack["pack_digest"], str) and pack["pack_digest"]
+
+def test_idea1_scaffold_alias() -> None:
+    from codontrace.life_loop.contact_atp_ledger import (
+        build_idea1_scaffold_ledger,
+        build_idea1_smoke_ledger,
+    )
+
+    scaffold = build_idea1_scaffold_ledger(seed=11)
+    alias = build_idea1_smoke_ledger(seed=11)
+    assert scaffold.rival_pair_id == "RP-LEDGER-ATP-DRAIN-V1"
+    assert scaffold.digest() == alias.digest()
+

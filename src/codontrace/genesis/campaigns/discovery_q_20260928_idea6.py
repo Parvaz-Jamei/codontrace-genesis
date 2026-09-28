@@ -20,14 +20,16 @@ from codontrace.life_loop.contact_atp_ledger import (
     SUPPORT_RETEST,
     SUPPORT_SANCTION,
     SUPPORT_VERIFY_CONSULT,
+    U_LEDGER_EVIDENCE_STRENGTH,
     USTAR_RESTRAINT,
-    build_idea6_smoke_ledger,
+    build_idea6_scaffold_ledger,
 )
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
 
 SCHEMA = "discovery_q_20260928_idea6_harness_v1"
 CLAIM_CEILING = "phase2_design"
 USTAR_ID = USTAR_RESTRAINT
+EVIDENCE_MEASURE_ID = U_LEDGER_EVIDENCE_STRENGTH
 SUPPORT_CHANNELS = (
     SUPPORT_VERIFY_CONSULT,
     SUPPORT_RETEST,
@@ -67,10 +69,17 @@ def run_idea6_smoke(
 ) -> dict[str, JsonValue]:
     """Deterministic Idea6 harness smoke — not a discovery campaign run."""
 
-    ledger = build_idea6_smoke_ledger(seed=int(seed))
+    ledger = build_idea6_scaffold_ledger(seed=int(seed))
     ustar_id = _require_nonempty(ledger.ustar_id, "ustar_id")
     if ustar_id != USTAR_ID:
         raise ConfigurationError(f"ustar_id must be {USTAR_ID!r}.")
+    evidence_measure = _require_nonempty(
+        ledger.evidence_measure_id, "evidence_measure_id"
+    )
+    if evidence_measure != EVIDENCE_MEASURE_ID:
+        raise ConfigurationError(
+            f"evidence_measure_id must be {EVIDENCE_MEASURE_ID!r}."
+        )
     if ledger.ustar_value is None:
         raise ConfigurationError("empty u* (ustar_value) reopens Idea6 freeze.")
     if float(ledger.ustar_value) != float(USTAR_SMOKE_VALUE):
@@ -100,7 +109,10 @@ def run_idea6_smoke(
     # ClaimGate is researcher/software claim audit only — not ledger state and not u.
     # Distinction is pack-level (ledger must not store ClaimGate as trait/u).
     claimgate_distinct = True
-    ids_nonempty = bool(ustar_id) and ledger.ustar_value is not None
+    ids_nonempty = (
+        bool(ustar_id) and bool(evidence_measure)
+        and ledger.ustar_value is not None
+    )
     engineering_green = bool(
         history
         and withhold_ok
@@ -116,6 +128,7 @@ def run_idea6_smoke(
         "schema": SCHEMA,
         "claim_ceiling": CLAIM_CEILING,
         "ustar_id": ustar_id,
+        "evidence_measure_id": evidence_measure,
         "ustar_value": float(ledger.ustar_value),
         "support_channel_ids": list(SUPPORT_CHANNELS),
         "support_cut_cell_id": SUPPORT_CUT_CELL_ID,
@@ -131,7 +144,7 @@ def run_idea6_smoke(
         "honesty": (
             "Harness smoke only under sealed phase-2 design digest. "
             "No discovery claim. Full campaigns remain off until owner allows. "
-            "ClaimGate logs are not u and not a lineage restraint trait. "
+            "Evidence strength uses U-LEDGER-EVIDENCE-STRENGTH-V1 (not ClaimGate). ClaimGate logs are not u and not a lineage restraint trait. "
             "Empty support_cut reopens the freeze."
         ),
         "ledger_digest": ledger.digest(),
@@ -141,6 +154,7 @@ def run_idea6_smoke(
         "support_channels_after": dict(ledger.support_channels),
         "distinction_locks": {
             "ustar_identity_present": bool(ustar_id),
+            "evidence_measure_identity_present": bool(evidence_measure),
             "support_on_then_cut": cut_ok,
             "claimgate_neq_u": claimgate_distinct,
             "claimgate_neq_trait": claimgate_distinct,
@@ -158,6 +172,7 @@ def run_idea6_smoke(
 def idea6_constants() -> Mapping[str, Any]:
     return {
         "ustar_id": USTAR_ID,
+        "evidence_measure_id": EVIDENCE_MEASURE_ID,
         "ustar_smoke_value": USTAR_SMOKE_VALUE,
         "support_channel_ids": list(SUPPORT_CHANNELS),
         "support_cut_cell_id": SUPPORT_CUT_CELL_ID,

@@ -57,6 +57,8 @@ SUPPORT_VERIFY_CONSULT = "SUP-VERIFY-CONSULT-V1"
 SUPPORT_RETEST = "SUP-RETEST-V1"
 SUPPORT_SANCTION = "SUP-SANCTION-V1"
 SUPPORT_CUT_CELL = "SUPCUT-REMOVE-CHANNELS-V1"
+REV_HIGH_NOISE_BLIND_ACCEPT = "REV-HIGH-NOISE-BLIND-ACCEPT-V1"
+U_LEDGER_EVIDENCE_STRENGTH = "U-LEDGER-EVIDENCE-STRENGTH-V1"
 
 
 def _as_str(value: object, name: str, *, allow_empty: bool = False) -> str:
@@ -127,6 +129,7 @@ class ContactAtpLedger:
     law_id: str = ""
     unreach_id: str = ""
     package_schema_id: str = ""
+    reversal_cell_id: str = ""
     causal_packages: dict[str, dict[str, Any]] = field(default_factory=dict)
     raw_pool: dict[str, Any] = field(default_factory=dict)
     imitation_buffer: list[dict[str, Any]] = field(default_factory=list)
@@ -140,6 +143,7 @@ class ContactAtpLedger:
     held_out_split: dict[str, list[str]] = field(default_factory=dict)
     shortcut_probe_log: list[dict[str, Any]] = field(default_factory=list)
     ustar_id: str = ""
+    evidence_measure_id: str = ""
     evidence_u: float = 0.0
     ustar_value: float | None = None
     support_channels: dict[str, bool] = field(default_factory=dict)
@@ -678,11 +682,16 @@ class ContactAtpLedger:
             raise ConfigurationError("empty law_id reopens Idea3 freeze.")
         if not self.unreach_id:
             raise ConfigurationError("empty unreach_id reopens Idea3 freeze.")
+        if not self.reversal_cell_id:
+            raise ConfigurationError(
+                "empty reversal_cell_id reopens Idea3 freeze."
+            )
         pid = _as_str(package_id, "package_id")
         pkg = {
             "package_id": pid,
             "schema_id": self.package_schema_id or PKG_REASON_FAIL_BOUND,
             "law_id": self.law_id,
+            "reversal_cell_id": self.reversal_cell_id,
             "interventional_claim": _as_str(interventional_claim, "interventional_claim"),
             "failed_intervention": _as_str(failed_intervention, "failed_intervention"),
             "validity_bounds": _as_str(validity_bounds, "validity_bounds"),
@@ -884,6 +893,10 @@ class ContactAtpLedger:
 
         if not self.ustar_id:
             raise ConfigurationError("empty ustar_id reopens Idea6 freeze.")
+        if not self.evidence_measure_id:
+            raise ConfigurationError(
+                "empty evidence_measure_id reopens Idea6 freeze."
+            )
         if self.ustar_value is None:
             raise ConfigurationError("empty u* (ustar_value) reopens Idea6 freeze.")
         u = float(require_finite_float("evidence_u", self.evidence_u))
@@ -892,6 +905,7 @@ class ContactAtpLedger:
         entry = {
             "op": "withhold_if_u_below",
             "ustar_id": self.ustar_id,
+            "evidence_measure_id": self.evidence_measure_id,
             "u": u,
             "u_star": ustar,
             "withheld": bool(withheld),
@@ -922,6 +936,10 @@ class ContactAtpLedger:
     def bold_act_below_threshold(self, *, harm_cost: float = 0.3) -> dict[str, Any]:
         """Act on best hypothesis even when u < u*, paying weak-hypothesis harm."""
 
+        if not self.evidence_measure_id:
+            raise ConfigurationError(
+                "empty evidence_measure_id reopens Idea6 freeze."
+            )
         if self.ustar_value is None:
             raise ConfigurationError("empty u* reopens Idea6 freeze.")
         u = float(require_finite_float("evidence_u", self.evidence_u))
@@ -991,6 +1009,7 @@ class ContactAtpLedger:
             "law_id": self.law_id,
             "unreach_id": self.unreach_id,
             "package_schema_id": self.package_schema_id,
+            "reversal_cell_id": self.reversal_cell_id,
             "causal_package_ids": sorted(self.causal_packages),
             "raw_pool_keys": sorted(self.raw_pool),
             "imitation_buffer_len": len(self.imitation_buffer),
@@ -1006,6 +1025,7 @@ class ContactAtpLedger:
             },
             "shortcut_probe_log_len": len(self.shortcut_probe_log),
             "ustar_id": self.ustar_id,
+            "evidence_measure_id": self.evidence_measure_id,
             "evidence_u": float(self.evidence_u),
             "ustar_value": (
                 None if self.ustar_value is None else float(self.ustar_value)
@@ -1102,8 +1122,13 @@ def build_idea2_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     return build_idea2_engine_scaffold_ledger(seed=int(seed))
 
 
-def build_idea1_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Scaffold ledger for Idea1 harness smoke (rival discrimination vs reactive/reward)."""
+def build_idea1_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea1 scaffold ledger (rival discrimination vs reactive/reward).
+
+    Scaffold-only edge skeleton with locked rival-pair identity. Harness smoke
+    and scored campaign paths may call this by name; the smoke alias is retained
+    for harness-only callers and must not be cited as campaign evidence.
+    """
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     ledger.rival_pair_id = RIVAL_PAIR_ATP_DRAIN
@@ -1119,13 +1144,28 @@ def build_idea1_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     return ledger
 
 
-def build_idea3_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Scaffold ledger for Idea3 harness smoke (collective causal knowledge)."""
+def build_idea1_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_idea1_scaffold_ledger`.
+
+    Kept for harness smoke paths. Scored campaign / engine evidence paths must
+    call :func:`build_idea1_scaffold_ledger` by name.
+    """
+
+    return build_idea1_scaffold_ledger(seed=int(seed))
+
+
+def build_idea3_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea3 scaffold ledger (collective causal knowledge).
+
+    Scaffold-only with locked law, unreachability, package schema, and reversal
+    cell identities. Empty reversal_cell_id reopens the freeze.
+    """
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     ledger.law_id = LAW_CONTACT_ATP_PARENT
     ledger.unreach_id = UNREACH_L_SINGLE_LIFETIME
     ledger.package_schema_id = PKG_REASON_FAIL_BOUND
+    ledger.reversal_cell_id = REV_HIGH_NOISE_BLIND_ACCEPT
     specs = [
         ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
         ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.2),
@@ -1137,8 +1177,22 @@ def build_idea3_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     return ledger
 
 
-def build_idea5_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Scaffold ledger for Idea5 harness smoke (short composable law transfer)."""
+def build_idea3_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_idea3_scaffold_ledger`.
+
+    Kept for harness smoke paths. Scored campaign paths must call
+    :func:`build_idea3_scaffold_ledger` by name.
+    """
+
+    return build_idea3_scaffold_ledger(seed=int(seed))
+
+
+def build_idea5_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea5 scaffold ledger (short composable law transfer).
+
+    Scaffold-only with locked world-family, short-law, and shortcut-probe
+    identities plus a held-out split. Harness smoke alias retained separately.
+    """
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     ledger.world_family_id = WORLD_FAMILY_CONTACT_ATP
@@ -1159,11 +1213,28 @@ def build_idea5_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     return ledger
 
 
-def build_idea6_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
-    """Scaffold ledger for Idea6 harness smoke (adaptive epistemic restraint)."""
+def build_idea5_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_idea5_scaffold_ledger`.
+
+    Kept for harness smoke paths. Scored campaign paths must call
+    :func:`build_idea5_scaffold_ledger` by name.
+    """
+
+    return build_idea5_scaffold_ledger(seed=int(seed))
+
+
+def build_idea6_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Idea6 scaffold ledger (adaptive epistemic restraint).
+
+    Scaffold-only with locked u* identity, evidence-measure identity
+    ``U-LEDGER-EVIDENCE-STRENGTH-V1`` (ledger evidence strength, not audit
+    logs), and support channels. Empty evidence_measure_id or empty u*
+    reopens the freeze.
+    """
 
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     ledger.ustar_id = USTAR_RESTRAINT
+    ledger.evidence_measure_id = U_LEDGER_EVIDENCE_STRENGTH
     ledger.ustar_value = 0.55  # execution-prereg smoke lock; not a discovery threshold invent
     ledger.evidence_u = 0.30  # below u* so withhold/bold paths are exercisable
     ledger.support_channels = {
@@ -1180,3 +1251,13 @@ def build_idea6_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
     for eid, src, dst, tag, yld in specs:
         ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
     return ledger
+
+
+def build_idea6_smoke_ledger(*, seed: int = 0) -> ContactAtpLedger:
+    """Harness-only alias of :func:`build_idea6_scaffold_ledger`.
+
+    Kept for harness smoke paths. Scored campaign paths must call
+    :func:`build_idea6_scaffold_ledger` by name.
+    """
+
+    return build_idea6_scaffold_ledger(seed=int(seed))

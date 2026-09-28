@@ -16,8 +16,14 @@ The ESP32 only executes `move(left, right, duration)` and reports
 
 ## Sketches
 
-- `main.py` — MicroPython stub (UART JSON lines).
-- `sketch_arduino.ino` — Arduino-style stub with the same protocol notes.
+- `main.py` — MicroPython reference (UART JSON lines). Implements PWM zero,
+  timed drive, and ADC/GPIO sense via a HAL that binds `machine` when present
+  and otherwise runs as an in-process sim for host loopback/CI.
+- `sketch_arduino.ino` — Arduino-style port of the same safety defaults and
+  protocol notes (MicroPython remains the CI reference).
 
-Neither sketch claims a completed hardware campaign. Wire to
-`codontrace.claimgate.adapters.esp32_bridge` on the host.
+Wire the host to `codontrace.claimgate.adapters.esp32_bridge`
+(`TransportEsp32Bridge` + Serial/MQTT, or `LoopbackEsp32Transport` in CI).
+Bring-up steps: `docs/design/ESP32_BRINGUP_CHECKLIST.md`.
+
+Neither sketch claims a completed hardware campaign.

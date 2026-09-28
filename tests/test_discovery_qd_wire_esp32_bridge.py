@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from codontrace.claimgate.adapters.esp32_bridge import (
+    LoopbackEsp32Transport,
     MoveCommand,
     MqttEsp32Transport,
     SensorReading,
@@ -18,6 +19,7 @@ from codontrace.claimgate.adapters.esp32_bridge import (
     STRDisparityResult,
     TransportEsp32Bridge,
     compute_str_disparity,
+    execute_sense,
     parse_sensor_payload,
     str_stop_criterion_met,
 )
@@ -222,7 +224,94 @@ def test_docs_and_firmware_safety_markers_exist() -> None:
     doc = (root / "docs/design/ESP32_BRIDGE_v0.1.md").read_text(encoding="utf-8")
     assert "20 real tests" in doc
     assert "Zero claim that physical robots ran" in doc or "physical robots ran" in doc
+    checklist = (root / "docs/design/ESP32_BRINGUP_CHECKLIST.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Verified in simulation" in checklist
+    assert "Not verified on physical hardware" in checklist
+    assert "Separate motor PSU" in checklist
     fw = (root / "firmware/esp32/main.py").read_text(encoding="utf-8")
     assert "Separate motor PSU" in fw or "Separate motor" in fw
     assert "Physical e-stop" in fw or "e-stop" in fw
     assert "DISARMED" in fw or "disarmed" in fw.lower()
+    # No leftover TODO stubs on the documented execute+sense path.
+    assert "TODO:" not in fw
+
+
+def _firmware_module():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "firmware" / "esp32" / "main.py"
+    spec = importlib.util.spec_from_file_location("esp32_fw_test", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_firmware_pwm_zero_and_disarmed_move_is_noop() -> None:
+    fw = _firmware_module()
+    fw.disarm_motors()
+    assert fw.MOTORS.left_duty == 0.0
+    assert fw.MOTORS.right_duty == 0.0
+    assert fw.ARMED is False
+    fw.apply_move(0.2, 0.2, 0.05)
+    assert fw.MOTORS.left_duty == 0.0
+    assert fw.MOTORS.right_duty == 0.0
+    assert fw.ARMED is False
+
+
+def test_firmware_arm_drive_auto_disarm_and_adc_sim() -> None:
+    fw = _firmware_module()
+    fw.SENSORS.set_sim(distance=1.25, light=0.4, bump=True)
+    armed = fw.handle_line('{"cmd":"arm","token":"bench-1"}')
+    assert '"armed"' in armed
+    assert fw.ARMED is True
+    # Zero-duration move still exercises drive→zero without sleeping.
+    moved = fw.handle_line(
+        '{"cmd":"move","left":0.2,"right":0.1,"duration":0.0}'
+    )
+    assert '"ok": true' in moved or '"ok":true' in moved.replace(" ", "")
+    assert fw.ARMED is False
+    assert fw.MOTORS.left_duty == 0.0
+    assert fw.MOTORS.right_duty == 0.0
+    sense = fw.handle_line('{"cmd":"sense"}')
+    reading = parse_sensor_payload(__import__("json").loads(sense))
+    assert reading.distance == pytest.approx(1.25)
+    assert reading.light == pytest.approx(0.4)
+    assert reading.bump is True
+
+
+def test_loopback_transport_bridge_arm_move_sense() -> None:
+    transport = LoopbackEsp32Transport()
+    transport.reset()
+    transport.set_sim_sensors(distance=0.8, light=0.3, bump=False)
+    bridge = TransportEsp32Bridge(transport=transport)
+    with pytest.raises(ConfigurationError, match="DISARMED"):
+        bridge.move(0.1, 0.1, 0.0)
+    bridge.arm("ci-token")
+    assert bridge.host_armed is True
+    bridge.move(0.1, 0.1, 0.0)
+    assert bridge.host_armed is False  # firmware auto-disarm mirrored on host
+    assert len(bridge.history) == 1
+    reading = bridge.read_sensor()
+    assert reading.distance == pytest.approx(0.8)
+    assert reading.light == pytest.approx(0.3)
+
+
+def test_execute_sense_helper_with_sim_bridge() -> None:
+    bridge = SimEsp32Bridge(distance=1.0, light=0.5)
+    reading = execute_sense(bridge, left=0.2, right=0.2, duration=1.0)
+    assert isinstance(reading, SensorReading)
+    assert reading.distance >= 0.0
+    assert len(bridge.history) == 1
+
+
+def test_serial_mqtt_transact_fail_closed() -> None:
+    with pytest.raises(ConfigurationError, match="fails closed"):
+        SerialEsp32Transport().transact('{"cmd":"sense"}')
+    with pytest.raises(ConfigurationError, match="fails closed"):
+        MqttEsp32Transport().transact('{"cmd":"sense"}')
+    with pytest.raises(ConfigurationError):
+        TransportEsp32Bridge().arm("token")

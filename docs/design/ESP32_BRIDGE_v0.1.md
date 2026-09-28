@@ -70,3 +70,10 @@ Documented in `firmware/esp32/` comments and README:
 ## Firmware
 
 Minimal sketches under `firmware/esp32/` (MicroPython + Arduino stub). Bring-up requires explicit host `arm` with token.
+
+## Bring-up checklist
+
+See [`ESP32_BRINGUP_CHECKLIST.md`](ESP32_BRINGUP_CHECKLIST.md) for the split
+between CI/sim verification and physical bench steps. Physical robots are not
+claimed by software completion alone.
+

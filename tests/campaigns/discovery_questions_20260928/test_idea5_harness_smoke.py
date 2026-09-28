@@ -57,3 +57,4 @@ def test_idea5_scaffold_alias() -> None:
     alias = build_idea5_smoke_ledger(seed=11)
     assert scaffold.world_family_id == "WORLD-FAMILY-CONTACT-ATP-V1"
     assert scaffold.digest() == alias.digest()
+

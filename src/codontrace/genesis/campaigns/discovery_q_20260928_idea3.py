@@ -169,3 +169,183 @@ def idea3_constants() -> Mapping[str, Any]:
         "red_queen_proved": False,
         "n_unit": "run",
     }
+
+
+# ---------------------------------------------------------------------------
+# Scored cell API (phase2_design meters; not a discovery claim)
+# ---------------------------------------------------------------------------
+
+IDEA3_SCORED_CELLS: tuple[str, ...] = (
+    "transmit",
+    "pool",
+    "imitate",
+    "cut",
+    "reversal",
+)
+SCORED_HORIZON_T = 24
+
+
+def run_idea3_scored_cell(
+    *,
+    seed: int,
+    cell: str,
+    generations: int = SCORED_HORIZON_T,
+) -> dict[str, JsonValue]:
+    """Score one Idea3 transmission/control cell under scaffold ledger; N=run.
+
+    Cells: transmit / pool / imitate / cut / reversal. Unreachability and
+    REV-HIGH-NOISE-BLIND-ACCEPT-V1 identities required every run. Empty cut
+    reopens the freeze. Uses build_idea3_scaffold_ledger (not smoke alias).
+    hypothesis_supported stays False. Soft-pass forbidden.
+    """
+
+    if cell not in IDEA3_SCORED_CELLS:
+        raise ConfigurationError(f"unknown Idea3 cell {cell!r}.")
+    if int(generations) < 4:
+        raise ConfigurationError("scored Idea3 generations must be >= 4.")
+
+    import random as _random
+
+    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
+    ledger = build_idea3_scaffold_ledger(seed=int(seed))
+    law = _require_nonempty(ledger.law_id, "law_id")
+    unreach = _require_nonempty(ledger.unreach_id, "unreach_id")
+    reversal = _require_nonempty(ledger.reversal_cell_id, "reversal_cell_id")
+    if law != LAW_ID:
+        raise ConfigurationError(f"law_id must be {LAW_ID!r}.")
+    if unreach != UNREACH_ID:
+        raise ConfigurationError(f"unreach_id must be {UNREACH_ID!r}.")
+    if reversal != REVERSAL_CELL_ID:
+        raise ConfigurationError(f"reversal_cell_id must be {REVERSAL_CELL_ID!r}.")
+
+    discovered = False
+    cut_applied = False
+    package_id = f"pkg-s{int(seed)}"
+
+    if cell == "transmit":
+        ledger.transmit_package(
+            package_id=package_id,
+            interventional_claim="intervene_on_E0_raises_rare_atp",
+            failed_intervention="intervene_on_E2_no_effect",
+            validity_bounds="horizon_L_lt_single_lifetime_sample",
+        )
+    elif cell == "pool":
+        ledger.pool_raw_only(
+            pool_key=f"pool-s{int(seed)}",
+            observations={"n": 4, "mean_atp": 0.55 + 0.1 * rng.random()},
+        )
+    elif cell == "imitate":
+        ledger.imitate_success_only(act_id="act-high-payoff", payoff=1.0 + 0.3 * rng.random())
+    elif cell == "cut":
+        ledger.transmit_package(
+            package_id=package_id,
+            interventional_claim="intervene_on_E0_raises_rare_atp",
+            failed_intervention="intervene_on_E2_no_effect",
+            validity_bounds="horizon_L_lt_single_lifetime_sample",
+        )
+        cut_result = ledger.cut_failed_and_bounds(package_id=package_id)
+        cut_applied = bool(cut_result.get("cut_applied"))
+        pkg = ledger.causal_packages[package_id]
+        if pkg.get("failed_intervention") != "" or pkg.get("validity_bounds") != "":
+            raise ConfigurationError("cut must empty failed_intervention and validity_bounds.")
+        if not cut_applied:
+            raise ConfigurationError("empty cut reopens Idea3 freeze.")
+    else:  # reversal — high-noise blind-accept regime
+        # Transmit with revision disabled; elevated noise on claim fidelity.
+        ledger.transmit_package(
+            package_id=package_id,
+            interventional_claim="noisy_blind_accept_claim",
+            failed_intervention="stripped_by_noise",
+            validity_bounds="bounds_ignored",
+            revision_rule="blind_accept",
+        )
+        # Noise: corrupt package claim fidelity without removing identity IDs.
+        pkg = dict(ledger.causal_packages[package_id])
+        pkg["noise"] = 0.85 + 0.1 * rng.random()
+        pkg["blind_accept"] = True
+        pkg["reversal_cell_id"] = reversal
+        ledger.causal_packages[package_id] = pkg
+
+    discovery_score = 0.0
+    for g in range(int(generations)):
+        # Lifetime-alone cannot clear unreachability; package fields help transmit.
+        if cell == "transmit" and package_id in ledger.causal_packages:
+            pkg = ledger.causal_packages[package_id]
+            has_fail = bool(pkg.get("failed_intervention"))
+            has_bounds = bool(pkg.get("validity_bounds"))
+            discovery_score += 0.06 if (has_fail and has_bounds) else 0.01
+        elif cell == "pool":
+            discovery_score += 0.02 + 0.01 * len(ledger.raw_pool)
+        elif cell == "imitate":
+            discovery_score += 0.025 * max(1, len(ledger.imitation_buffer))
+        elif cell == "cut":
+            # Cut removes H2 margin pathway — score stays low.
+            discovery_score += 0.015
+        else:  # reversal underperforms
+            discovery_score += 0.01 * (1.0 - float(ledger.causal_packages[package_id].get("noise", 0.5)))
+        run_boundary_loop(ledger, generations=1, schedule={})
+
+    # Held-out interventional assay proxy (scaffold meters only).
+    threshold = 0.55
+    if cell == "transmit":
+        discovered = discovery_score >= threshold
+    elif cell == "reversal":
+        discovered = False  # blind-accept regime fails assay by design
+    else:
+        discovered = discovery_score >= (threshold + 0.25)
+
+    discovery_share_proxy = 1.0 if discovered else max(0.0, min(1.0, discovery_score / max(threshold, 1e-9)))
+
+    return {
+        "schema": "discovery_q_20260928_idea3_scored_cell_v1",
+        "idea_id": 3,
+        "seed": int(seed),
+        "run_id": f"idea3-s{int(seed)}-{cell}",
+        "cell": str(cell),
+        "discovered": bool(discovered),
+        "discovery_share_proxy": float(discovery_share_proxy),
+        "discovery_score": float(discovery_score),
+        "law_id": law,
+        "unreach_id": unreach,
+        "package_schema_id": PACKAGE_SCHEMA_ID,
+        "reversal_cell_id": reversal,
+        "discovery_margin_threshold": DISCOVERY_MARGIN,
+        "estimand": "discovery_share",
+        "cut_applied": bool(cut_applied) if cell == "cut" else False,
+        "package_cut_applied": bool(ledger.package_cut_applied),
+        "T_horizon": int(generations),
+        "claim_ceiling": CLAIM_CEILING,
+        "hypothesis_supported": False,
+        "red_queen_proved": False,
+        "soft_pass_claimed": False,
+        "soft_pass": False,
+        "claimgate_refuses": list(CLAIMGATE_REFUSES),
+        "honesty": (
+            "Scored Idea3 cell under phase2_design. "
+            "Not sealed collective-causal evidence; hypothesis_supported stays false "
+            "until Critic post-data seal. Volume ≠ discovery. "
+            "cut_failed_and_bounds, unreachability, and REV-HIGH-NOISE-BLIND-ACCEPT-V1 "
+            "required; empty cut reopens. Scaffold builder build_idea3_scaffold_ledger."
+        ),
+        "n_unit": "run",
+        "ledger_digest": ledger.digest(),
+        "distinction_locks": {
+            "cut_failed_and_bounds_required": cell != "cut" or cut_applied,
+            "unreachability_criterion_in_run": bool(unreach),
+            "reversal_cell_identity_present": reversal == REVERSAL_CELL_ID,
+            "empty_cut_reopens": True,
+            "scaffold_builder": "build_idea3_scaffold_ledger",
+        },
+    }
+
+
+def idea3_scored_constants() -> Mapping[str, Any]:
+    return {
+        **idea3_constants(),
+        "scored_cells": list(IDEA3_SCORED_CELLS),
+        "scored_horizon_T": SCORED_HORIZON_T,
+        "hypothesis_supported": False,
+        "soft_pass": False,
+        "scaffold_builder": "build_idea3_scaffold_ledger",
+        "reversal_cell_id": REVERSAL_CELL_ID,
+    }

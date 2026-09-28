@@ -7,7 +7,16 @@ Working priority near the current engine: idea 4 (evolutionary reversibility win
 
 ## Phase-1 problem boundaries (landed)
 
+Near-engine track:
+
 - [`IDEA4_PHASE1_PROBLEM_BOUNDARY.md`](IDEA4_PHASE1_PROBLEM_BOUNDARY.md) — Evolutionary reversibility window (claim ceiling `phase1_problem_boundary`; runners off).
 - [`IDEA2_PHASE1_PROBLEM_BOUNDARY.md`](IDEA2_PHASE1_PROBLEM_BOUNDARY.md) — Causality under coevolving antagonist pressure (claim ceiling `phase1_problem_boundary`; runners off).
 
-Track C is not landed in this folder yet.
+Ambitious track (ideas 1, 3, 5) and medium (idea 6):
+
+- [`IDEA1_PHASE1_PROBLEM_BOUNDARY.md`](IDEA1_PHASE1_PROBLEM_BOUNDARY.md) — Evolutionary selection of costly causal experimentation.
+- [`IDEA3_PHASE1_PROBLEM_BOUNDARY.md`](IDEA3_PHASE1_PROBLEM_BOUNDARY.md) — Collective causal knowledge.
+- [`IDEA5_PHASE1_PROBLEM_BOUNDARY.md`](IDEA5_PHASE1_PROBLEM_BOUNDARY.md) — Transferable symbolic laws.
+- [`IDEA6_PHASE1_PROBLEM_BOUNDARY.md`](IDEA6_PHASE1_PROBLEM_BOUNDARY.md) — Adaptive epistemic restraint.
+
+All six phase-1 files share claim ceiling `phase1_problem_boundary`. Runners and campaigns remain off until explicitly authorised.

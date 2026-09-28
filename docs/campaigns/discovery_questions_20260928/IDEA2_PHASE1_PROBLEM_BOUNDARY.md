@@ -37,7 +37,7 @@ The question is not Red Queen cycling, sex-advantage, or time-shift signature al
 | Place in argument | Citation | DOI |
 |---|---|---|
 | Host–parasite coevolution / digital networks | Zaman et al. 2014 *PLOS Biology* | `10.1371/journal.pbio.1002023` |
-| Digital coevolution / ALife | Luo & Ofria 2020 *Artif. Life* | `10.1162/artl_a_00305` |
+| Digital coevolution / ALife | Luo, Zhu, Reitan & Yedid 2020 *Artif. Life* | `10.1162/artl_a_00305` |
 | Pathogen evolution / inference limits | Barrat-Charlaix & Neher 2024 *eLife* | `10.7554/elife.97350` |
 | Time-shift / coevolution assays (review context) | Gaba & Ebert 2009 *Trends Ecol. Evol.* | `10.1016/j.tree.2008.11.005` |
 | Cyclic causation / Pearl-style framing | Watson et al. | `10.1007/s10539-020-09753-3` |

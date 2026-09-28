@@ -86,3 +86,14 @@ Claim ceiling remains `phase2_design`. Every record sets `hypothesis_supported=F
 Claim ceiling remains `phase2_design`. `hypothesis_supported=False`; `red_queen_proved=False`. JSONL campaigns remain off until explicitly authorised.
 
 Post-data gate: [`PHASE2_JSONL_POSTDATA_GATE.md`](PHASE2_JSONL_POSTDATA_GATE.md) — `ecf7148` PASS as harness evidence only; FAIL discovery/window/G2 claims; WARN thin wall-time / low Idea4 seed variance / Idea2 smoke-ledger RNG.
+
+## Engine closed-loop JSONL (pilot; not a discovery claim)
+
+Authorised engine path distinct from harness `jsonl_campaign/`:
+
+- Coupler: `src/codontrace/life_loop/engine_ledger_coupler.py`
+- Modules: `discovery_q_20260928_idea4_engine.py`, `discovery_q_20260928_idea2_engine.py`, `discovery_q_20260928_jsonl_engine.py`
+- CLI: `scripts/run_discovery_q_20260928_jsonl_engine.py`
+- Output: `outputs/campaigns/discovery_questions_20260928/jsonl_engine/`
+
+`GenerationBoundaryObserver` fires on `GenesisEngine` life-loop; Idea4 FI recover has no `recovery_progress` multiplier; Idea2 pressure comes from engine ecology (not smoke-ledger RNG). Claim ceiling remains `phase2_design`. Pilot honesty note: [`PHASE2_ENGINE_PILOT_GATE.md`](PHASE2_ENGINE_PILOT_GATE.md).

@@ -1,0 +1,102 @@
+{
+  "aggregates_idea4": {
+    "abs_delta_p_vs_control": {
+      "ablate_knowledge_digest|t_tilde=0.2500": 0.0,
+      "ablate_knowledge_digest|t_tilde=0.5000": 0.0,
+      "ablate_knowledge_digest|t_tilde=0.7500": 0.0,
+      "cut_named_scaffold|t_tilde=0.2500": 0.0,
+      "cut_named_scaffold|t_tilde=0.5000": 0.0,
+      "cut_named_scaffold|t_tilde=0.7500": 0.0,
+      "scramble_contacts|t_tilde=0.2500": 0.0,
+      "scramble_contacts|t_tilde=0.5000": 0.0,
+      "scramble_contacts|t_tilde=0.7500": 0.0
+    },
+    "delta_p_threshold": 0.2,
+    "hypothesis_supported": false,
+    "note": "Aggregates are descriptive under phase2_design only. Soft-pass near 0.15 slope remains FAIL; no discovery claim.",
+    "p_recover_given_t_cell": {
+      "ablate_knowledge_digest|t_tilde=0.2500": 0.0,
+      "ablate_knowledge_digest|t_tilde=0.5000": 0.0,
+      "ablate_knowledge_digest|t_tilde=0.7500": 0.0,
+      "control|t_tilde=0.2500": 0.0,
+      "control|t_tilde=0.5000": 0.0,
+      "control|t_tilde=0.7500": 0.0,
+      "cut_named_scaffold|t_tilde=0.2500": 0.0,
+      "cut_named_scaffold|t_tilde=0.5000": 0.0,
+      "cut_named_scaffold|t_tilde=0.7500": 0.0,
+      "scramble_contacts|t_tilde=0.2500": 0.0,
+      "scramble_contacts|t_tilde=0.5000": 0.0,
+      "scramble_contacts|t_tilde=0.7500": 0.0
+    },
+    "slope_by_cell": {
+      "ablate_knowledge_digest": 0.0,
+      "control": 0.0,
+      "cut_named_scaffold": 0.0,
+      "scramble_contacts": 0.0
+    },
+    "slope_threshold": 0.15
+  },
+  "claim_ceiling": "phase2_design",
+  "harness_jsonl_campaign_not_discovery": true,
+  "honesty": "Engine closed-loop JSONL under sealed Idea4+Idea2 phase-2 design meters. GenerationBoundaryObserver on GenesisEngine life-loop; not harness theater. Volume \u2260 discovery. claim_ceiling remains phase2_design; hypothesis_supported and red_queen_proved stay false. Distinct from outputs/.../jsonl_campaign/ (ecf7148 harness-only).",
+  "hypothesis_supported": false,
+  "idea2_cells": [
+    "baseline",
+    "pi_deception"
+  ],
+  "idea4_ops_cells": [
+    "control",
+    "scramble_contacts",
+    "cut_named_scaffold",
+    "ablate_knowledge_digest"
+  ],
+  "idea4_t_intervene": [
+    10,
+    20,
+    30
+  ],
+  "idea_ids": [
+    4,
+    2
+  ],
+  "jsonl_path": "/workspace/codontrace-genesis/outputs/campaigns/discovery_questions_20260928/jsonl_engine/idea4_idea2_jsonl_engine.jsonl",
+  "max_workers": 8,
+  "n_records": 216,
+  "n_records_idea2": 72,
+  "n_records_idea4": 144,
+  "n_runs_seeds": 12,
+  "nproc_reported": 8,
+  "output_subdir": "jsonl_engine",
+  "pilot": true,
+  "red_queen_proved": false,
+  "schema": "discovery_q_20260928_jsonl_engine_v1",
+  "seed_hi": 312,
+  "seed_lo": 301,
+  "seeds": [
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312
+  ],
+  "variance_proof": {
+    "max": 2.22338596,
+    "metric": "baseline_mean_rare_yield",
+    "min": 2.0392401,
+    "n_seeds_in_subset": 12,
+    "n_unique": 12,
+    "observer_fires_expected": 50,
+    "observer_fires_min": 50,
+    "ok": true,
+    "ops_cell": "control",
+    "t_intervene": 10
+  },
+  "wall_time_s": 26.70076110000082
+}

@@ -18,15 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
     (
         "docs/hard_experiment_01/results_v7.json",
-        "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+        "4a5987c2ed0f09d1088b3c1bca6d81fe2310f3867fa84f22a33fbeee7b5d7efd",
     ),
     (
         "docs/claimgate/risk_bar.json",
-        "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+        "b7091921bf00c350fa286caf117fa46af81e9760b1b6d4d135eefd042dabd404",
     ),
     (
         "docs/claimgate/biomedical_study.json",
-        "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce",
+        "2e5193639aad58ceda68ef9bc33943f8eae2c45f042209a060af890c93785079",
     ),
 )
 

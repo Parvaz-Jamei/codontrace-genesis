@@ -37,6 +37,7 @@ Invariants
 from __future__ import annotations
 
 import math
+import random
 from collections import Counter
 from collections.abc import Mapping, Sequence
 
@@ -396,6 +397,180 @@ def host_realised_pressure_from_contacts(
     return out
 
 
+# --- Frequency-swap mechanism statistic (campaign rq_redesign_20260928) ------
+#
+# The campaign's mechanism estimand is the swap-signal
+# (`SCIENTIFIC_QUESTION_AND_DAG.md` section 6.1, `PREREG_V2.md` section 4.2):
+#
+#     S = pi_A(swap) - pi_A(swap^-1)
+#
+# where `pi_A` is the realised conditional pressure on the designated class `A`
+# (:func:`realised_conditional_host_pressure`), `swap` is the counterfactual in
+# which the host class frequencies of the designated common and designated rare
+# class are exchanged in place while the census, the resource state, the host
+# genotype multiset, the contact count and the random stream are held fixed, and
+# `swap^-1` is the matched inverse counterfactual. The exchange is an
+# involution, so applying `swap^-1` to the swapped assignment restores the
+# baseline and the inverse counterfactual is the unswapped world.
+#
+# The pre-registered expectation is `S < 0` with `|S| >= 0.20` ATP per host per
+# contact opportunity (T9); every counter-sample must give `S = 0`.
+#
+# These helpers are additive. They do not touch `lagged_nfds_score`, any
+# pre-registered threshold, any recorded number or any decision branch.
+
+#: Pre-registered run-level cluster-bootstrap resample count (`PREREG_V2.md` T17).
+DEFAULT_CLUSTER_BOOTSTRAP_RESAMPLES = 10_000
+#: Pre-registered cluster-bootstrap seed (`PREREG_V2.md` T18).
+DEFAULT_CLUSTER_BOOTSTRAP_SEED = 20260928
+#: Units of the swap-signal (same currency as :func:`realised_conditional_host_pressure`).
+SWAP_SIGNAL_UNITS = "atp_per_host_per_contact_opportunity"
+
+
+def exchange_class_shares(
+    shares: Mapping[str, float],
+    class_a: str,
+    class_b: str,
+) -> dict[str, float]:
+    """Exchange the shares of two classes in place, leaving the rest untouched.
+
+    This is the frequency-swap intervention: population size (`sum(shares)`),
+    every other class share, the resource state, the host genotype multiset and
+    the contact count are unchanged; only which class carries which share moves.
+    The exchange is an involution, so applying it to its own output returns the
+    input.
+    """
+
+    a, b = str(class_a), str(class_b)
+    if a == b:
+        raise ValueError("class_a and class_b must be distinct")
+    out = {str(k): float(v) for k, v in shares.items()}
+    out[a], out[b] = out.get(b, 0.0), out.get(a, 0.0)
+    return out
+
+
+def frequency_swap_signal(
+    pressure_swap: Mapping[int, float],
+    pressure_inverse: Mapping[int, float],
+    *,
+    window: Sequence[int] | None = None,
+    instantaneous_generation: int | None = None,
+) -> dict[str, object]:
+    """Swap-signal ``S = pi_A(swap) - pi_A(swap^-1)`` on one run's paired series.
+
+    Parameters
+    ----------
+    pressure_swap, pressure_inverse
+        Per-generation realised conditional pressure on the *designated* class
+        `A` in the swapped and in the inverse (unswapped) counterfactual, keyed
+        by generation boundary. The two counterfactuals must share the same
+        census, resource state, host genotype multiset, contact count and random
+        stream; only the frequency assignment differs.
+    window
+        Generations averaged over. Defaults to the sorted intersection of the
+        two key sets. The mechanism acts through the delayed adaptation channel
+        (`SCIENTIFIC_QUESTION_AND_DAG.md` L5-L8), so a window strictly after the
+        swap boundary is what carries the signal.
+    instantaneous_generation
+        Optional generation at which the lag-0 component is also reported.
+
+    Returns a mapping with `s`, the two window means, the window used, the
+    optional `instantaneous_component` (zero whenever the contact matrix is
+    held fixed, because under equal exposure the per-opportunity pressure on a
+    class does not depend on that class' own share) and the literal definition.
+    """
+
+    swap = {int(g): float(v) for g, v in pressure_swap.items()}
+    inverse = {int(g): float(v) for g, v in pressure_inverse.items()}
+    if window is None:
+        used = sorted(set(swap) & set(inverse))
+    else:
+        used = sorted(int(g) for g in window)
+    if not used:
+        raise ValueError("the swap window is empty")
+    missing = [g for g in used if g not in swap or g not in inverse]
+    if missing:
+        raise ValueError(f"swap window generations missing from a series: {missing}")
+    mean_swap = sum(swap[g] for g in used) / len(used)
+    mean_inverse = sum(inverse[g] for g in used) / len(used)
+
+    out: dict[str, object] = {
+        "s": mean_swap - mean_inverse,
+        "mean_swap": mean_swap,
+        "mean_inverse": mean_inverse,
+        "window": used,
+        "n_generations": len(used),
+        "units": SWAP_SIGNAL_UNITS,
+        "definition": "s = pi_A(swap) - pi_A(swap^-1)",
+        "instantaneous_generation": None,
+        "instantaneous_component": None,
+    }
+    if instantaneous_generation is not None:
+        g0 = int(instantaneous_generation)
+        out["instantaneous_generation"] = g0
+        out["instantaneous_component"] = swap.get(g0, 0.0) - inverse.get(g0, 0.0)
+    return out
+
+
+def run_level_cluster_bootstrap_interval(
+    run_values: Sequence[float],
+    *,
+    n_resamples: int = DEFAULT_CLUSTER_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_CLUSTER_BOOTSTRAP_SEED,
+    alpha: float = 0.05,
+) -> dict[str, object]:
+    """Percentile cluster bootstrap over runs (the unit of replication).
+
+    A run is one cluster and contributes one summary value, so resampling runs
+    with replacement is the pre-registered interval method
+    (`STATS_AND_NULL_DESIGN.md` section 2, `PREREG_V2.md` T17/T18). Generation-
+    level values are never resampled here: they are dependent within a run.
+    """
+
+    values = [float(v) for v in run_values]
+    if not values:
+        raise ValueError("run_values is empty")
+    if n_resamples < 1:
+        raise ValueError("n_resamples must be >= 1")
+    if not 0.0 < alpha < 1.0:
+        raise ValueError("alpha must be in (0, 1)")
+
+    n = len(values)
+    point = sum(values) / n
+    rng = random.Random(int(seed))
+    samples: list[float] = []
+    for _ in range(n_resamples):
+        total = 0.0
+        for _ in range(n):
+            total += values[rng.randrange(n)]
+        samples.append(total / n)
+    samples.sort()
+
+    def _percentile(q: float) -> float:
+        if len(samples) == 1:
+            return samples[0]
+        pos = q * (len(samples) - 1)
+        lo = int(math.floor(pos))
+        hi = min(lo + 1, len(samples) - 1)
+        frac = pos - lo
+        return samples[lo] * (1.0 - frac) + samples[hi] * frac
+
+    lo = _percentile(alpha / 2.0)
+    hi = _percentile(1.0 - alpha / 2.0)
+    return {
+        "point": point,
+        "lo": lo,
+        "hi": hi,
+        "n_runs": n,
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "alpha": float(alpha),
+        "excludes_zero": bool(lo > 0.0 or hi < 0.0),
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run",
+    }
+
+
 def lagged_nfds_score(
     host_class_freq: Mapping[int, Mapping[str, float]],
     parasite_infect_by_class: Mapping[int, Mapping[str, float]],
@@ -631,9 +806,14 @@ __all__ = [
     "CONTACT_MODE_ENGINE_SEATS",
     "CONTACT_MODE_FULL_MATRIX",
     "CONTACT_MODES",
+    "DEFAULT_CLUSTER_BOOTSTRAP_RESAMPLES",
+    "DEFAULT_CLUSTER_BOOTSTRAP_SEED",
     "DEFAULT_NFDS_THRESHOLD",
+    "SWAP_SIGNAL_UNITS",
     "affinity_matrix",
     "dominant_class_series",
+    "exchange_class_shares",
+    "frequency_swap_signal",
     "host_realised_pressure_from_contacts",
     "joint_freq_counter_to_map",
     "lagged_nfds_score",
@@ -643,4 +823,5 @@ __all__ = [
     "phase_lag_host_parasite",
     "realised_conditional_host_pressure",
     "reference_graded_affinity",
+    "run_level_cluster_bootstrap_interval",
 ]

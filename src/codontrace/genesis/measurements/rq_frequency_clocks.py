@@ -37,9 +37,10 @@ Invariants
 from __future__ import annotations
 
 import math
-import random
 from collections import Counter
 from collections.abc import Mapping, Sequence
+
+from codontrace.rng import RNGManager
 
 DEFAULT_NFDS_THRESHOLD = 0.3
 
@@ -537,7 +538,7 @@ def run_level_cluster_bootstrap_interval(
 
     n = len(values)
     point = sum(values) / n
-    rng = random.Random(int(seed))
+    rng = RNGManager(seed=int(seed), namespace="run_level_cluster_bootstrap")
     samples: list[float] = []
     for _ in range(n_resamples):
         total = 0.0

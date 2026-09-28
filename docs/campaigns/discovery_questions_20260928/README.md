@@ -76,3 +76,5 @@ Claim ceiling remains `phase2_design`. Every record sets `hypothesis_supported=F
 - [`IDEA2_PHASE2_RESULT.md`](IDEA2_PHASE2_RESULT.md) — Idea 2: harness + sham/do distinction pass; **not** G2/M0–M3 scored evidence.
 
 Claim ceiling remains `phase2_design`. `hypothesis_supported=False`; `red_queen_proved=False`. JSONL campaigns remain off until explicitly authorised.
+
+Post-data gate: [`PHASE2_JSONL_POSTDATA_GATE.md`](PHASE2_JSONL_POSTDATA_GATE.md) — `ecf7148` PASS as harness evidence only; FAIL discovery/window/G2 claims; WARN thin wall-time / low Idea4 seed variance / Idea2 smoke-ledger RNG.

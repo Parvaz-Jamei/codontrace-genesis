@@ -39,6 +39,7 @@ from codontrace.claimgate.adapters.codontrace_he03 import (
     committed_results_v1_path as committed_he03_results_v1_path,
 )
 from codontrace.claimgate.adapters.esp32_bridge import (
+    LoopbackEsp32Transport,
     MqttEsp32Transport,
     SensorReading,
     SerialEsp32Transport,
@@ -46,6 +47,7 @@ from codontrace.claimgate.adapters.esp32_bridge import (
     STRDisparityResult,
     TransportEsp32Bridge,
     compute_str_disparity,
+    execute_sense,
     parse_sensor_payload,
     str_stop_criterion_met,
 )
@@ -104,6 +106,8 @@ __all__ = [
     "audit_biomedical_study_file",
     "biomedical_risk_bar_payload",
     "credibility_worksheet",
+    "LoopbackEsp32Transport",
+    "execute_sense",
     "MqttEsp32Transport",
     "SensorReading",
     "SerialEsp32Transport",

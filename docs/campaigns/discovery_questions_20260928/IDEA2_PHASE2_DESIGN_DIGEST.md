@@ -1,7 +1,7 @@
 # Idea 2 — Phase-2 design digest: gene / pattern / causal competition under coevolving antagonist pressure
 
 **Date:** 2026-09-28  
-**Base commit:** `4a5ab88` (`4a5ab88`), `main`  
+**Base commit:** `1f77d5c` (`1f77d5c`), `main` (distinction patch on this tip)  
 **Campaign folder:** `docs/campaigns/discovery_questions_20260928/`  
 **Status:** phase-2 design freeze only; not a discovery claim; not authorisation to run  
 **Claim ceiling:** `phase2_design`  
@@ -88,9 +88,19 @@ Absolute ATP costs are not free parameters invented per arm; environment-depende
 |---|---|
 | **Phase offset** | Predicted cue is exactly **half a period (\(\pi\))** out of phase with realised antagonist pressure. |
 | **Shared pressure** | All three arms face the **same** realised pressure process; only the causal arm may issue `do`. |
-| **Required controls** | (i) `do` ablation; (ii) cue-parent sham — if sham produces a G2-like win, channel FAIL. |
+| **Required controls** | (i) `do` ablation; (ii) cue-parent sham `SHAM-CUE-PREDPHASE-V1`. |
+
+### 6.1 Locked sham identity (distinct from named contacts)
+
+| Field | Locked value |
+|---|---|
+| **Sham ID** | `SHAM-CUE-PREDPHASE-V1` |
+| **Target** | The ledger field for **predicted pressure phase** (the antiphase cue), at a generation boundary. |
+| **Must not target** | Any edge in the `NC-*` named-contact set. Sham on `NC-*` collapses into `mask_named_contacts` and makes M2 / ablation unidentifiable. |
+| **Fail condition** | If sham produces a G2-like win, channel FAIL. If sham is implemented as masking or cutting `NC-*` edges → distinction FAIL. |
 
 Time-shift or cycling signatures alone never pass a channel.
+
 
 ---
 
@@ -114,6 +124,7 @@ Time-shift or cycling signatures alone never pass a channel.
 4. Pattern stored as heritable genotype → collapses to gene; M1 contaminated.  
 5. `do` on correlated cue parent yields G2-like claim → FAIL → M0.  
 6. `named_contact` implemented as genotype class → FAIL.
+7. Sham implemented on `NC-*` edges (rather than `SHAM-CUE-PREDPHASE-V1`) → distinction FAIL; M2 unidentifiable.
 
 ---
 

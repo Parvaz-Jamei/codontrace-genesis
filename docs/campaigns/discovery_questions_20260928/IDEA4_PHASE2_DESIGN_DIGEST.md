@@ -1,7 +1,7 @@
 # Idea 4 — Phase-2 design digest: branching-history recovery window
 
 **Date:** 2026-09-28  
-**Base commit:** `4a5ab88` (`4a5ab88`), `main`  
+**Base commit:** `1f77d5c` (`1f77d5c`), `main` (distinction patch on this tip)  
 **Campaign folder:** `docs/campaigns/discovery_questions_20260928/`  
 **Status:** phase-2 design freeze only; not a discovery claim; not authorisation to run  
 **Claim ceiling:** `phase2_design`  
@@ -61,19 +61,23 @@ Resource schedules and Combo-D-style rescue controls are **negative controls onl
 | Field | Locked value |
 |---|---|
 | **Competence ID** | `FI-RARECLASS-CONTACT-YIELD-V1` |
-| **Success rule** | Within horizon \(T\) generation boundaries after the checkpoint intervention, the run recovers a **rare-class contact yield advantage**: mean ATP obtained per generation boundary from contacts tagged `class=rare` is at least **1.25×** the run’s own pre-checkpoint baseline for that class, sustained for **≥3 consecutive** generation boundaries ending at or before \(T\). |
+| **Success rule** | Within horizon \(T\) generation boundaries after the checkpoint intervention, the run recovers a **rare-class contact yield advantage**: mean ATP obtained per generation boundary from contacts tagged with the **ledger contact label** `class=rare` (a contact-ledger tag only — **never** a genotype class) is at least **1.25×** the run’s own pre-checkpoint baseline for that label, sustained for **≥3 consecutive** generation boundaries ending at or before \(T\). |
 | **Horizon \(T\)** | `T = 40` generation boundaries after checkpoint (inclusive of the first post-checkpoint boundary). |
 | **Unit** | Scored **per run**. Contact pairs are not N. |
 
 Fitness raw score, EQU, or Cit+-style proxies are **not** this competence.
 
-### 4.2 Checkpoint event
+`class=rare` is a **contact-ledger tag** on edges/contacts only. Mapping it to a genotype class is FAIL.
+
+### 4.2 Checkpoint event (third ledger object — distinct from knowledge and scaffold)
 
 | Field | Locked value |
 |---|---|
-| **Checkpoint ID** | `CKPT-REMOVE-PREDFAIL-DIGEST-MID-V1` |
-| **Event** | At generation-boundary index \(t\) on the mid-history series, remove the ledger object `digest:pred_fail:FI-RARECLASS-CONTACT-YIELD-V1` (the accumulated failed-prediction / failed-intervention digest tied to this competence) and freeze a multi-seed replay from that boundary. |
-| **Not allowed** | Deleting an anonymous random bit string; undocumented mid-run edits. |
+| **Checkpoint ID** | `CKPT-RELOCATE-RECOVERY-TOKEN-V1` |
+| **Event** | At generation-boundary index \(t\) on the mid-history series, remove or relocate the pre-registered **recovery-eligibility token** `token:recovery:FI-RARECLASS-CONTACT-YIELD-V1` on the generation ledger, then freeze a multi-seed replay from that boundary. |
+| **Must be distinct from** | (i) `ablate_knowledge_digest` / any `digest:pred_fail:*` object (Combo B); (ii) `cut_named_scaffold` / `SCAF-CONTACT-SRC-PATH-V1` membership (Combo E). |
+| **Rejected aliases** | `CKPT-REMOVE-PREDFAIL-DIGEST-MID-V1` (collapsed into knowledge ablation); `CKPT-CUT-SCAF-MEMBERSHIP-FREEZE-V1` (collapsed into named-scaffold cut). |
+| **Not allowed** | Deleting an anonymous random bit string; undocumented mid-run edits; using max-degree contacts as the token. |
 
 ### 4.3 Named scaffold (≠ max degree)
 
@@ -107,6 +111,8 @@ Post-hoc threshold moves reopen the freeze.
 3. `cut_matched_random` ≈ `cut_named_scaffold` on recovery → Combo E dies.  
 4. Combo D used as the core estimand for \(P(\mathrm{recover})\) → REJECT.  
 5. Infection physics or domain RNG opened in `engine.py` → design FAIL; discard.
+6. Checkpoint equals `ablate_knowledge_digest` or equals `cut_named_scaffold` → distinction FAIL; R2/Combo E unidentifiable.
+7. `class=rare` implemented as a genotype class → class-shortcut FAIL.
 
 ---
 

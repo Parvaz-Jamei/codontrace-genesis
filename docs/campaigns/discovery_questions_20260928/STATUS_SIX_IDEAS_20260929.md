@@ -3,7 +3,7 @@
 **تاریخ ساخت:** 2026-09-29 ~01:10 Asia/Tehran  
 **آخرین به‌روزرسانی:** 2026-09-29 ~01:15 Asia/Tehran  
 **Repo:** `Parvaz-Jamei/codontrace-genesis`  
-**Tip فعلی (origin/main):** `bf060e5`  
+**Tip فعلی (origin/main):** `c9b26b5`  
 **منبع دستورات مالک:** `DISCOVERY_QUESTIONS_evolution_causal_collective_20260928.md` (+ چرخهٔ مشترک ۵+۲+۲)
 
 این فایل **گزارش وضعیت عملیاتی** است، نه ادعای کشف. هر گام تمام‌شده اینجا به‌روز می‌شود. سقف ادعا تا اطلاع ثانوی: `phase2_design`. تست سبز ≠ تأیید علمی شش پرسش.
@@ -162,6 +162,7 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع).
 ---
 
 - **2026-09-29 01:12 +0330:** ADOPT — ClaimCritic GATE؛ XFieldInnov P5/P6 (metric redesign storm)؛ EcoEvo P2 (ecology redesign R1). Land فقط بعد از Critic freeze.
+- **2026-09-29 01:16 +0330:** tip=`c9b26b5`؛ ADOPT P2/P5/P6 روی STATUS+Drive ثبت شد.
 
 ---
 
@@ -205,5 +206,5 @@ ENGINE_JSONL_TIP_42=24fc048
 CRITIC_GATE_42=5610878
 CRITIC_GATE_TRACK_C_SCORED=d565e49
 PRIORITY_ORDER=P1_coupler,P2_idea2_survival,P3_matched_control,P4_lineage_ckpt,P5_behavioral_metrics,P6_process_audit_RQ
-TIP_MAIN=27b14c0
+TIP_MAIN=c9b26b5
 ```

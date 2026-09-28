@@ -25,3 +25,18 @@ Ambitious track (ideas 1, 3, 5) and medium (idea 6):
 - [`IDEA2_PHASE2_DESIGN_DIGEST.md`](IDEA2_PHASE2_DESIGN_DIGEST.md) — Gene / pattern / causal competition under coevolving antagonist pressure (claim ceiling `phase2_design`; runners off).
 
 All phase-1 files share claim ceiling `phase1_problem_boundary`. Phase-2 digests share claim ceiling `phase2_design`. Runners and campaigns remain off until explicitly authorised.
+
+## Phase-2 harness (implementation under sealed digests; smoke only)
+
+Claim ceiling for harness code and these notes: `phase2_harness`. This is implementation under the sealed digests — not a discovery claim and not a “first” claim.
+
+Harness modules:
+
+- `src/codontrace/life_loop/contact_atp_ledger.py` — mutable contact/ATP ledger and generation-boundary ops (Idea4 + Idea2).
+- `src/codontrace/life_loop/discovery_boundary_hooks.py` — `GenerationBoundaryObserver` wiring for scheduled ledger interventions.
+- `src/codontrace/genesis/campaigns/discovery_q_20260928_idea4.py` — Idea4 constants + `run_idea4_smoke`.
+- `src/codontrace/genesis/campaigns/discovery_q_20260928_idea2.py` — Idea2 constants + `run_idea2_smoke`.
+
+Tests: `tests/campaigns/discovery_questions_20260928/` (distinction locks + harness smoke).
+
+**Runners stay off** until the owner explicitly allows full campaigns. Harness smoke and unit tests only; do not treat smoke packs as authorisation for JSONL campaigns. Full campaigns preferably need ≥6 cores when allowed. Sealed seeds `801–816` remain untouched. `red_queen_proved` stays false.

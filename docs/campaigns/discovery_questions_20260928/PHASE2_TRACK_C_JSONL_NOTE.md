@@ -39,3 +39,7 @@ This note records that Track C Ideas 1, 3, 5, and 6 have a scored JSONL campaign
 - Not Critic-sealed post-data evidence.
 - Not authorisation to raise `hypothesis_supported`.
 - Not a revision of sealed seeds or of Ideas 2 / 4 campaign results.
+
+## Post-data gate
+
+See [`PHASE2_TRACK_C_JSONL_POSTDATA_GATE.md`](PHASE2_TRACK_C_JSONL_POSTDATA_GATE.md) on tip `9a6aff2`: wiring PASS; measurement/discovery FAIL; HOLD until closed-loop engine JSONL.

@@ -107,10 +107,12 @@ def run_idea5_smoke(
     )
 
     teach_ok = len(ledger.teaching_log) >= 1 and "law-smoke-1" in ledger.retained_laws
-    probe_ok = (
+    last_probe = ledger.shortcut_probe_log[-1] if ledger.shortcut_probe_log else {}
+    probe_refused_constants = (
         len(ledger.shortcut_probe_log) >= 1
-        and ledger.shortcut_probe_log[-1].get("pass") is True
-        and ledger.shortcut_probe_log[-1].get("train_fit_alone_counts") is False
+        and last_probe.get("measured_from_behavior") is False
+        and last_probe.get("pass") is False
+        and last_probe.get("injected_constants_ignored") is True
     )
     survival_distinct = (
         control.survival_only_active
@@ -123,7 +125,7 @@ def run_idea5_smoke(
         history
         and control_history
         and teach_ok
-        and probe_ok
+        and probe_refused_constants
         and survival_distinct
         and ids_nonempty
     )
@@ -161,10 +163,11 @@ def run_idea5_smoke(
         "history_len": len(history),
         "control_history_len": len(control_history),
         "teaching_log_len": len(ledger.teaching_log),
-        "shortcut_probe_pass": bool(probe_ok),
+        "shortcut_probe_pass": False,
+        "shortcut_measured_from_behavior": False,
         "distinction_locks": {
             "held_out_split_present": bool(held_out),
-            "shortcut_pair_present": probe_ok,
+            "shortcut_pair_present": bool(ledger.shortcut_probe_log) and bool(held_out),
             "train_fit_alone_is_fail": True,
             "survival_only_neq_teach": survival_distinct,
             "dreamcoder_deferred": DREAMCODER_STATUS == "DEFER",

@@ -33,6 +33,18 @@ _FEEDBACK_TOKEN_ATP = 0.35
 _FEEDBACK_RESTORE_FRAC = 0.45
 
 
+def _population_census(engine: Any) -> list[dict[str, str]]:
+    """Ids and genome digests of the live population. Not a ledger tag."""
+
+    rows: list[dict[str, str]] = []
+    for org in engine.runner.population.organisms:
+        genome = getattr(org, "genome", None)
+        digest = genome.digest() if genome is not None and hasattr(genome, "digest") else ""
+        rows.append({"id": str(getattr(org, "id", "")), "genome": str(digest)})
+    rows.sort(key=lambda row: row["id"])
+    return rows
+
+
 def sample_ecology(engine: Any) -> dict[str, float]:
     """Sample domain-free ecology meters from a live GenesisEngine."""
 
@@ -367,6 +379,7 @@ class EngineCoupledLedgerObserver:
     base_rare_yields: dict[str, float] = field(default_factory=dict)
     yield_history: list[float] = field(default_factory=list)
     ecology_history: list[dict[str, float]] = field(default_factory=list)
+    census_history: list[list[dict[str, str]]] = field(default_factory=list)
     feedback_history: list[dict[str, Any]] = field(default_factory=list)
     observer_fire_count: int = 0
     auto_advance: bool = True
@@ -390,6 +403,7 @@ class EngineCoupledLedgerObserver:
         g = int(generation_index)
         eco = sample_ecology(engine)
         self.ecology_history.append(dict(eco))
+        self.census_history.append(_population_census(engine))
         scale = ecology_scale(eco)
         # Update rare-class edge yields from live ecology (closed-loop variance).
         for eid, base in self.base_rare_yields.items():
@@ -397,6 +411,14 @@ class EngineCoupledLedgerObserver:
             if edge is None:
                 continue
             edge.atp_yield = float(base) * float(scale)
+        # Mirror edges carry the scaffold twin's yield so a matched cut can
+        # share edge count, degree, contact weight, and ATP lost.
+        for src_eid, mirror_eid in self.ledger.match_mirrors.items():
+            src = self.ledger.edges.get(src_eid)
+            mirror = self.ledger.edges.get(mirror_eid)
+            if src is None or mirror is None or not mirror.present:
+                continue
+            mirror.atp_yield = float(src.atp_yield)
         # Refresh tag aggregate.
         rare_sum = 0.0
         for eid in self.ledger.edges_with_tag(CONTACT_TAG_RARE):

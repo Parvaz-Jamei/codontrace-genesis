@@ -110,6 +110,65 @@ def build_idea4_engine_spec(
     )
 
 
+def _lineage_after_checkpoint(
+    census_history: list[list[dict[str, str]]],
+    *,
+    t_intervene: int,
+) -> dict[str, Any]:
+    """Births and new genome digests after the checkpoint census.
+
+    The rare ledger tag is not an innovation. A birth is an organism id that
+    was absent at the checkpoint. An innovation is a birth whose genome digest
+    was also absent at the checkpoint.
+    """
+
+    idx = int(t_intervene) - 1
+    if idx < 0 or idx >= len(census_history):
+        return {
+            "lineage_branching_real": False,
+            "innovation_observable": False,
+            "n_births_after_checkpoint": 0,
+            "n_novel_genomes_after_checkpoint": 0,
+            "n_regained_genomes": 0,
+            "lost_then_regained": False,
+            "checkpoint_organism_ids": [],
+            "checkpoint_genome_digests": [],
+        }
+    checkpoint = census_history[idx]
+    ck_ids = {row["id"] for row in checkpoint}
+    ck_genomes = {row["genome"] for row in checkpoint}
+    birth_ids: set[str] = set()
+    novel_genomes: set[str] = set()
+    missing: set[str] = set()
+    regained: set[str] = set()
+    for later in census_history[idx + 1 :]:
+        present = {row["genome"] for row in later}
+        for genome in ck_genomes:
+            if genome not in present:
+                missing.add(genome)
+            elif genome in missing:
+                regained.add(genome)
+        for row in later:
+            if row["id"] in ck_ids:
+                continue
+            birth_ids.add(row["id"])
+            if row["genome"] not in ck_genomes:
+                novel_genomes.add(row["genome"])
+    # A new genome is ordinary reproduction. Recovery is a checkpoint genome
+    # that disappears and is present again later. Background births do not open
+    # the window gate.
+    return {
+        "lineage_branching_real": bool(birth_ids),
+        "innovation_observable": bool(novel_genomes),
+        "lost_then_regained": bool(regained),
+        "n_births_after_checkpoint": len(birth_ids),
+        "n_novel_genomes_after_checkpoint": len(novel_genomes),
+        "n_regained_genomes": len(regained),
+        "checkpoint_organism_ids": sorted(ck_ids),
+        "checkpoint_genome_digests": sorted(ck_genomes),
+    }
+
+
 def run_idea4_engine_cell(
     *,
     seed: int,
@@ -190,7 +249,14 @@ def run_idea4_engine_cell(
     baseline_mean = (
         float(sum(pre_yields) / len(pre_yields)) if pre_yields else 0.0
     )
-    recover = _score_recover(baseline_mean=baseline_mean, post_yields=post_yields)
+    recover_lineage = _lineage_after_checkpoint(
+        observer.census_history, t_intervene=t_int
+    )
+    # Rare-class yield rebound is not recovery of a genotype innovation.
+    rare_yield_rebound = _score_recover(
+        baseline_mean=baseline_mean, post_yields=post_yields
+    )
+    recover = bool(recover_lineage["lost_then_regained"])
     tt = t_tilde_of(t_int, t_horizon=t_hor)
 
     eco_tail = observer.ecology_history[-5:] if observer.ecology_history else []
@@ -248,6 +314,7 @@ def run_idea4_engine_cell(
         "T_horizon": t_hor,
         "t_tilde": float(tt),
         "recover": bool(recover),
+        "rare_yield_rebound": bool(rare_yield_rebound),
         "baseline_mean_rare_yield": float(baseline_mean),
         "post_rare_yield_tail": [float(y) for y in post_yields[-5:]],
         "n_post_obs": len(post_yields),
@@ -298,8 +365,17 @@ def run_idea4_engine_cell(
         ),
         "control_recover_rate": None,
         "window_test_valid": False,
-        "lineage_branching_real": False,
-        "innovation_observable": False,
+        "window_law_tested": False,
+        "lineage_branching_real": bool(recover_lineage["lineage_branching_real"]),
+        "innovation_observable": bool(recover_lineage["innovation_observable"]),
+        "n_births_after_checkpoint": int(recover_lineage["n_births_after_checkpoint"]),
+        "n_novel_genomes_after_checkpoint": int(
+            recover_lineage["n_novel_genomes_after_checkpoint"]
+        ),
+        "n_regained_genomes": int(recover_lineage["n_regained_genomes"]),
+        "lost_then_regained": bool(recover_lineage["lost_then_regained"]),
+        "checkpoint_organism_ids": list(recover_lineage["checkpoint_organism_ids"]),
+        "checkpoint_genome_digests": list(recover_lineage["checkpoint_genome_digests"]),
         "feedback_event_count": sum(
             1 for h in observer.feedback_history if h.get("effect_applied")
         ),
@@ -367,8 +443,13 @@ def aggregate_idea4_engine_rates(
         for (cell, tt), vals in buckets.items()
         if cell == "control" and vals
     }
+    inexact_cells = {
+        str(rec.get("ops_cell"))
+        for rec in records
+        if rec.get("match_exact") is False
+    }
     for (cell, tt), vals in buckets.items():
-        if cell == "control" or tt not in control_rates or not vals:
+        if cell == "control" or cell in inexact_cells or tt not in control_rates or not vals:
             continue
         rate = float(sum(1 for v in vals if v) / len(vals))
         delta_p[f"{cell}|t_tilde={tt:.4f}"] = abs(rate - control_rates[tt])
@@ -408,6 +489,8 @@ def aggregate_idea4_engine_rates(
         "hypothesis_supported": False,
         "control_recover_rate": float(control_recover_rate),
         "window_test_valid": bool(window_test_valid),
+        "window_law_tested": False,
+        "inexact_match_cells_excluded": sorted(inexact_cells),
         "lineage_branching_real": bool(lineage_branching_real),
         "innovation_observable": bool(innovation_observable),
         "note": (

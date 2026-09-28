@@ -44,6 +44,51 @@ IDEA2_ENGINE_CELLS: tuple[str, ...] = IDEA2_SCORED_CELLS
 ENGINE_HORIZON_T = SCORED_HORIZON_T  # 24
 
 
+def _new_host_population(*, founders: int = 6) -> dict[str, Any]:
+    """Independent host lineages plus a parasite count. Not an energy score."""
+
+    n = int(founders)
+    return {
+        "hosts": [{"lineage": i, "seq": i, "alive": True} for i in range(n)],
+        "parasites": 1,
+        "next_seq": n,
+        "founded": n,
+    }
+
+
+def _step_host_population(
+    pop: dict[str, Any], *, births: int, extra_kills: int = 0
+) -> tuple[int, int]:
+    """Birth, then kill by parasite count plus cue-error pressure."""
+
+    alive = [host for host in pop["hosts"] if host["alive"]]
+    if int(births) > 0 and alive:
+        parent = sorted(alive, key=lambda item: int(item["seq"]))[0]
+        pop["hosts"].append(
+            {
+                "lineage": int(parent["lineage"]),
+                "seq": int(pop["next_seq"]),
+                "alive": True,
+            }
+        )
+        pop["next_seq"] = int(pop["next_seq"]) + 1
+    alive = [host for host in pop["hosts"] if host["alive"]]
+    kills = min(len(alive), int(pop["parasites"]) + max(0, int(extra_kills)))
+    for host in sorted(alive, key=lambda item: int(item["seq"]))[:kills]:
+        host["alive"] = False
+    alive_n = sum(1 for host in pop["hosts"] if host["alive"])
+    if alive_n >= 5 and int(pop["parasites"]) < 2:
+        pop["parasites"] = int(pop["parasites"]) + 1
+    elif alive_n <= 2 and int(pop["parasites"]) > 0:
+        pop["parasites"] = int(pop["parasites"]) - 1
+    elif alive_n == 0:
+        pop["parasites"] = 0
+    alive_lineages = {
+        int(host["lineage"]) for host in pop["hosts"] if host["alive"]
+    }
+    return len(alive_lineages), int(pop["parasites"])
+
+
 def _pressure_from_ecology(eco: Mapping[str, float], *, generation_index: int) -> float:
     """Shared realised antagonist pressure from closed-loop ecology (not smoke RNG)."""
 
@@ -148,6 +193,8 @@ def run_idea2_engine_cell(
             "do_on_nc": False,
             "gene_match": 0.0,
             "pattern_memory": 0.0,
+            "population": _new_host_population(),
+            "parasite_series": [],
         }
         for arm in ARMS
     }
@@ -191,8 +238,28 @@ def run_idea2_engine_cell(
             )
             st["energy"] = energy
             st["do_on_nc"] = bool(st["do_on_nc"] or do_flag)
-            if energy > 0.0:
-                st["survived_steps"] = int(st["survived_steps"]) + 1
+            # Reproduction follows the live resource layout. Deaths follow this
+            # arm's parasite count, not a tanh of ecology indexes.
+            loc = abs(float(eco.get("resource_loc_fp", 0.0)))
+            err = abs((float(predicted) - float(realised) + math.pi) % (2.0 * math.pi) - math.pi)
+            intervened = (
+                arm == "causal"
+                and causal_do_enabled
+                and int(generation_index) % 3 == 0
+            )
+            if arm == "gene":
+                births = 1 if int(loc) % 5 < 3 else 0
+            elif arm == "pattern":
+                # Pattern trusts the cue. A large phase error blocks the birth.
+                births = 1 if int(generation_index) % 2 == 0 and err < 0.5 else 0
+            else:
+                births = 1 if intervened or (err < 0.5 and int(loc) % 2 == 0) else 0
+            extra_kills = 0 if intervened or err <= 1.0 else 1
+            alive_lineages, parasites = _step_host_population(
+                st["population"], births=births, extra_kills=extra_kills
+            )
+            st["alive_lineages"] = int(alive_lineages)
+            st["parasite_series"].append(int(parasites))
         ledger.advance_generation()
 
     class _Idea2Observer:
@@ -231,17 +298,17 @@ def run_idea2_engine_cell(
     arm_stats: dict[str, dict[str, Any]] = {}
     for arm in ARMS:
         st = arm_state[arm]
-        survived = int(st["survived_steps"])
-        energy = float(st["energy"])
-        survival = float(survived) / float(gens) if gens else 0.0
-        survival = max(
-            0.0,
-            min(1.0, 0.7 * survival + 0.3 * max(0.0, min(1.0, energy / max(gens, 1)))),
-        )
+        founded = int(st["population"]["founded"])
+        alive_lineages = int(st.get("alive_lineages", 0))
+        survival = float(alive_lineages) / float(founded) if founded else 0.0
         arm_stats[arm] = {
             "survival_to_T": float(survival),
             "do_on_NC": bool(st["do_on_nc"]),
-            "energy_end": energy,
+            "energy_end": float(st["energy"]),
+            "hosts_founded": founded,
+            "host_lineages_alive": alive_lineages,
+            "parasite_end": int(st["population"]["parasites"]),
+            "parasite_series": [int(x) for x in st["parasite_series"]],
         }
 
     records: list[dict[str, JsonValue]] = []
@@ -261,7 +328,10 @@ def run_idea2_engine_cell(
             "survival_to_T": surv,
             "margin_vs_best_rival": margin,
             "channel_margin_threshold": CHANNEL_MARGIN,
-            "estimand": "survival_share_to_T",
+            "estimand": "host_lineages_alive_over_founded",
+            "hosts_founded": int(arm_stats[arm]["hosts_founded"]),
+            "host_lineages_alive": int(arm_stats[arm]["host_lineages_alive"]),
+            "parasite_end": int(arm_stats[arm]["parasite_end"]),
             "sham_id": SHAM_ID,
             "do_on_NC": bool(arm_stats[arm]["do_on_NC"]),
             "decision_budget": DECISION_BUDGET,
@@ -274,17 +344,18 @@ def run_idea2_engine_cell(
             "red_queen_proved": False,
             "honesty": (
                 "Engine closed-loop Idea2 cell under phase2_design. "
-                "Shared realised pressure from GenesisEngine ecology via "
-                "GenerationBoundaryObserver. Not G2/M0\u2013M3 sealed evidence. "
+                "survival_to_T is host lineages still alive divided by founders. "
+                "Parasite pressure is that arm's parasite count, not an ecology index. "
+                "Not G2/M0–M3 sealed evidence. "
                 "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*). "
-                "Distinct from harness jsonl_campaign."
+                "hypothesis_supported stays false."
             ),
             "n_unit": "run",
             "observer_fire_count": int(idea2_obs.fire_count),
             "engine_result_digest": result.snapshot.digest(),
             "ledger_digest": ledger.digest(),
             "named_contact_edge_ids": sorted(NAMED_CONTACT_EDGE_IDS),
-            "pressure_series_tail": [float(x) for x in pressure_series[-5:]],
+            "pressure_series_tail": [int(x) for x in arm_stats[arm]["parasite_series"][-5:]],
             "predicted_series_tail": [float(x) for x in predicted_series[-5:]],
         }
         if cell == "sham_predphase":

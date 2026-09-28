@@ -35,3 +35,19 @@ Authorised JSONL campaigns (prefer ≥6 cores) remain off until the owner allows
 ## Gap wording (ceiling)
 
 We are not aware of a published precedent for the sealed digest’s mid-history branching-history estimand with the locked ledger ops. Absence of a search hit is not proof of uniqueness. This result record does not claim that estimand was demonstrated.
+
+---
+
+## Addendum — engine closed-loop N≥64 (2026-09-28)
+
+**Engine tip:** `24fc048`  
+**Post-data gate tip:** `5610878` ([`PHASE2_ENGINE_N64_POSTDATA_GATE.md`](PHASE2_ENGINE_N64_POSTDATA_GATE.md))  
+**Claim ceiling:** `phase2_design` (unchanged)
+
+### Sealed wiring outcome
+
+Engine closed-loop campaign under sealed meters: scaffold-only ledger builders + `GenerationBoundaryObserver` on the life-loop; five OPS cells including `cut_matched_random`; N=64 independent runs (seeds 301–364); seed variance proved. Identity locks retained: FI / `CKPT-RELOCATE-RECOVERY-TOKEN-V1` / `SCAF-CONTACT-SRC-PATH-V1`, with `recovery_progress_multiplier_used=false` on scored records. Harness tip `ecf7148` remains harness-only.
+
+### Explicit non-outcomes
+
+Window FAIL: \(P(\mathrm{recover})=0\); slope and \(|\Delta P|\) = 0. Honest diagnostic: `n_alive_end==0` rate ≈0.89. `hypothesis_supported=false`. Soft-pass forbidden. Not a discovery claim.

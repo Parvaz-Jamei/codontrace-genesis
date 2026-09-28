@@ -19,7 +19,6 @@ from codontrace.genesis.canonical import canonical_digest
 from codontrace.life_loop.contact_atp_ledger import (
     NAMED_CONTACT_EDGE_IDS,
     SHAM_CUE_PREDPHASE,
-    ContactAtpLedger,
     build_idea2_smoke_ledger,
 )
 from codontrace.life_loop.discovery_boundary_hooks import make_op, run_boundary_loop
@@ -205,4 +204,193 @@ def idea2_constants() -> Mapping[str, Any]:
         "claim_ceiling": CLAIM_CEILING,
         "red_queen_proved": False,
         "channel_margin": CHANNEL_MARGIN,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Scored cell API (phase2_design meters; not a discovery claim)
+# ---------------------------------------------------------------------------
+
+IDEA2_SCORED_CELLS: tuple[str, ...] = (
+    "baseline",
+    "pi_deception",
+    "do_ablation",
+    "sham_predphase",
+)
+MECHANISM_COMPETITORS: tuple[str, ...] = ("M0", "M1", "M2", "M3")
+SCORED_HORIZON_T = 24
+
+
+def _arm_survival_series(
+    *,
+    seed: int,
+    cell: str,
+    arm: str,
+    generations: int,
+    kappa: float,
+) -> dict[str, Any]:
+    """Simulate one arm under a scored cell; return survival_to_T and flags."""
+
+    import random as _random
+
+    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell + arm))
+    ledger = build_idea2_smoke_ledger(seed=int(seed))
+    realised = 0.25
+    predicted = realised
+    if cell == "pi_deception":
+        predicted = realised + DECEPTION_PHASE
+    ledger.realised_pressure_phase = float(realised)
+    ledger.predicted_pressure_phase = float(predicted)
+
+    # Arm state
+    gene_match = 0.0
+    pattern_memory = float(predicted)
+    causal_do_enabled = cell != "do_ablation"
+    do_on_nc = False
+    energy = 1.0
+    survived_steps = 0
+
+    for g in range(int(generations)):
+        # Shared realised pressure walk
+        realised = (realised + 0.35 + 0.05 * rng.random()) % (2.0 * math.pi)
+        if cell == "pi_deception":
+            predicted = realised + DECEPTION_PHASE
+        elif cell == "sham_predphase":
+            # Sham retargets predicted phase only (never NC-*).
+            ledger.sham_cue_predphase(offset=DECEPTION_PHASE)
+            predicted = float(ledger.predicted_pressure_phase)
+            realised = (realised + 0.0) % (2.0 * math.pi)
+        else:
+            predicted = realised + 0.05 * (rng.random() - 0.5)
+        ledger.realised_pressure_phase = float(realised)
+        ledger.predicted_pressure_phase = float(predicted)
+
+        pressure = 0.5 + 0.5 * abs(math.sin(realised))
+        atp_debit = float(DECISION_BUDGET) * float(kappa)
+
+        if arm == "gene":
+            # Slow genotype tracking of realised pressure.
+            gene_match += 0.08 * (math.sin(realised) - gene_match)
+            fit = max(0.0, 1.0 - abs(gene_match - math.sin(realised)))
+            energy += fit * 0.35 - atp_debit * 0.15 - pressure * 0.2
+        elif arm == "pattern":
+            pattern_memory = 0.7 * pattern_memory + 0.3 * predicted
+            # Pattern pays when predicted aligns with realised (fails under π).
+            align = 1.0 - min(1.0, abs((predicted - realised + math.pi) % (2 * math.pi) - math.pi) / math.pi)
+            energy += align * 0.45 - atp_debit * 0.15 - pressure * 0.25
+        else:  # causal
+            fit = 0.25
+            if causal_do_enabled and g % 3 == 0:
+                # Allowed do on NC-* parents of pressure (not sham).
+                target = sorted(NAMED_CONTACT_SET)[g % len(NAMED_CONTACT_SET)]
+                ledger.mask_named_contacts([target], one_generation=True)
+                do_on_nc = True
+                fit = 0.55 + 0.2 * (1.0 - abs(math.sin(realised)))
+            elif cell == "sham_predphase":
+                # Sham available but is cue-parent only → weak causal signal.
+                fit = 0.22
+            else:
+                # do ablated: revision only, no ledger do.
+                fit = 0.28
+            energy += fit * 0.5 - atp_debit * 0.2 - pressure * 0.15
+
+        # Harvest present unmasked NC ATP as weak survival buffer
+        nc_atp = sum(
+            ledger.edges[eid].atp_yield
+            for eid in NAMED_CONTACT_SET
+            if eid in ledger.edges and ledger.edges[eid].present and not ledger.edges[eid].masked
+        )
+        energy += 0.02 * nc_atp
+        if energy > 0.0:
+            survived_steps += 1
+        run_boundary_loop(ledger, generations=1, schedule={})
+
+    survival = float(survived_steps) / float(generations) if generations else 0.0
+    # Soft clip with energy residual
+    survival = max(0.0, min(1.0, 0.7 * survival + 0.3 * max(0.0, min(1.0, energy / generations))))
+    return {
+        "survival_to_T": float(survival),
+        "do_on_NC": bool(do_on_nc),
+        "energy_end": float(energy),
+        "ledger_digest": ledger.digest(),
+    }
+
+
+def run_idea2_scored_cell(
+    *,
+    seed: int,
+    cell: str,
+    kappa: float | None = KAPPA_SMOKE,
+    generations: int = SCORED_HORIZON_T,
+) -> list[dict[str, JsonValue]]:
+    """Score all three arms for one cell; N=run; one record per arm.
+
+    Records margin_vs_best_rival and locked estimand threshold, but keeps
+    hypothesis_supported=False (M0–M3 are labels only; no post-data seal).
+    """
+
+    k = require_kappa(kappa)
+    if cell not in IDEA2_SCORED_CELLS:
+        raise ConfigurationError(f"unknown Idea2 cell {cell!r}.")
+    if int(generations) < 4:
+        raise ConfigurationError("scored Idea2 generations must be >= 4.")
+
+    arm_stats: dict[str, dict[str, Any]] = {}
+    for arm in ARMS:
+        arm_stats[arm] = _arm_survival_series(
+            seed=int(seed), cell=str(cell), arm=arm, generations=int(generations), kappa=k
+        )
+
+    records: list[dict[str, JsonValue]] = []
+    for arm in ARMS:
+        surv = float(arm_stats[arm]["survival_to_T"])
+        rivals = [float(arm_stats[a]["survival_to_T"]) for a in ARMS if a != arm]
+        best_rival = max(rivals) if rivals else 0.0
+        margin = float(surv - best_rival)
+        rec: dict[str, JsonValue] = {
+            "schema": "discovery_q_20260928_idea2_scored_cell_v1",
+            "idea_id": 2,
+            "seed": int(seed),
+            "run_id": f"idea2-s{int(seed)}-{cell}-{arm}",
+            "cell": str(cell),
+            "arm": str(arm),
+            "survival_to_T": surv,
+            "margin_vs_best_rival": margin,
+            "channel_margin_threshold": CHANNEL_MARGIN,
+            "estimand": "survival_share_to_T",
+            "sham_id": SHAM_ID,
+            "do_on_NC": bool(arm_stats[arm]["do_on_NC"]),
+            "decision_budget": DECISION_BUDGET,
+            "kappa": k,
+            "T_horizon": int(generations),
+            "mechanism_competitors": list(MECHANISM_COMPETITORS),
+            "mechanism_label_deferred": True,
+            "claim_ceiling": CLAIM_CEILING,
+            "hypothesis_supported": False,
+            "red_queen_proved": False,
+            "honesty": (
+                "Scored Idea2 cell under phase2_design. "
+                "Not G2/M0–M3 sealed evidence; hypothesis_supported stays false "
+                "until Critic post-data seal. Volume ≠ discovery. "
+                "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*)."
+            ),
+            "n_unit": "run",
+            "ledger_digest": arm_stats[arm]["ledger_digest"],
+        }
+        # Distinction lock: sham cell must not set do_on_NC via sham path as NC mask claim
+        if cell == "sham_predphase":
+            rec["sham_targets_nc"] = False
+        records.append(rec)
+    return records
+
+
+def idea2_scored_constants() -> Mapping[str, Any]:
+    return {
+        **idea2_constants(),
+        "scored_cells": list(IDEA2_SCORED_CELLS),
+        "arms": list(ARMS),
+        "mechanism_competitors": list(MECHANISM_COMPETITORS),
+        "scored_horizon_T": SCORED_HORIZON_T,
+        "channel_margin": CHANNEL_MARGIN,
+        "hypothesis_supported": False,
     }

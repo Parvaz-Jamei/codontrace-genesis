@@ -53,6 +53,23 @@ A thin multi-seed writer exists for the sealed Idea 4 + Idea 2 phase-2 harness:
 
 Claim ceiling remains `phase2_design`. Every record sets `hypothesis_supported=False` and `red_queen_proved=False`. This path is still **not** a full campaign and still **not** measurement evidence: it is not a recovery-window result (Idea 4) and not G2/M0–M3 evidence (Idea 2). Default live smoke uses 48 non-sealed seeds (`101–148`; outside `801–816`) with up to 8 parallel workers. Track C phase-2 digests are not invented here.
 
+
+## Scored JSONL campaign (meters under phase2_design; not a discovery claim)
+
+Authorised scored multi-cell N=run path (structurally distinct from `jsonl_smoke`):
+
+- Module: `src/codontrace/genesis/campaigns/discovery_q_20260928_jsonl_campaign.py`
+- Idea4/Idea2 scored cell APIs in `discovery_q_20260928_idea4.py` / `discovery_q_20260928_idea2.py`
+- CLI: `scripts/run_discovery_q_20260928_jsonl_campaign.py`
+- Output: `outputs/campaigns/discovery_questions_20260928/jsonl_campaign/`
+
+Idea4: mid-history `t_tilde` on T=40 (intervene 10/20/30); factorial cells control / scramble_contacts / cut_named_scaffold / cut_matched_random / ablate_knowledge_digest; FI recover bool; checkpoint `CKPT-RELOCATE-RECOVERY-TOKEN-V1`.
+
+Idea2: cells baseline / pi_deception / do_ablation / sham_predphase; arms gene / pattern / causal; `survival_to_T` + `margin_vs_best_rival`; sham `SHAM-CUE-PREDPHASE-V1` ≠ NC-*.
+
+Claim ceiling remains `phase2_design`. Every record sets `hypothesis_supported=False` and `red_queen_proved=False`. **Volume ≠ discovery.** Default seeds `201–264` (64); sealed `801–816` refused. Track C stays standby.
+
+
 ## Phase-2 result records (sealed; engineering only)
 
 - [`IDEA4_PHASE2_RESULT.md`](IDEA4_PHASE2_RESULT.md) — Idea 4: harness + distinction pass; **not** a recovery-window measurement.

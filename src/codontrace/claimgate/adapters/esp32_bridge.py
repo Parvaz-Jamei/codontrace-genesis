@@ -30,7 +30,7 @@ try:
 except ImportError:  # pragma: no cover - optional at install time
     BaseModel = None  # type: ignore[misc, assignment]
     ConfigDict = None  # type: ignore[misc, assignment]
-    Field = None  # type: ignore[misc, assignment]
+    Field = None  # type: ignore[assignment]
     ValidationError = Exception  # type: ignore[misc, assignment]
 
 
@@ -220,7 +220,18 @@ class Esp32LineTransport(Protocol):
     def transact(self, request_line: str) -> str: ...
 
 
-def _load_firmware_session():
+@runtime_checkable
+class _SerialLineIO(Protocol):
+    """Minimal pyserial-like surface used by SerialEsp32Transport.transact."""
+
+    def write(self, data: bytes) -> int: ...
+
+    def flush(self) -> None: ...
+
+    def readline(self) -> bytes: ...
+
+
+def _load_firmware_session() -> object:
     """Import ``firmware/esp32/main.py`` for in-process loopback (CI only)."""
 
     import importlib.util
@@ -252,7 +263,7 @@ class LoopbackEsp32Transport:
 
     _firmware: object | None = field(default=None, repr=False, compare=False)
 
-    def _session(self):
+    def _session(self) -> object:
         if self._firmware is None:
             self._firmware = _load_firmware_session()
         return self._firmware
@@ -308,7 +319,7 @@ class SerialEsp32Transport:
     baudrate: int = 115200
     allow_open: bool = False
     timeout_s: float = 1.0
-    _io: object | None = field(default=None, repr=False, compare=False)
+    _io: _SerialLineIO | None = field(default=None, repr=False, compare=False)
 
     def connect(self) -> None:
         if not self.allow_open or not self.port:
@@ -326,9 +337,10 @@ class SerialEsp32Transport:
                 f"port={self.port!r} (fail closed; no fabricated hardware session)."
             ) from exc
         try:
-            self._io = serial.Serial(
+            opened = serial.Serial(
                 self.port, self.baudrate, timeout=float(self.timeout_s)
             )
+            self._io = opened  # pyserial Serial satisfies _SerialLineIO at runtime
         except Exception as exc:
             self._io = None
             raise ConfigurationError(

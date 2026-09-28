@@ -25,6 +25,12 @@ Ambitious track (ideas 1, 3, 5) and medium (idea 6):
 - [`IDEA2_PHASE2_DESIGN_DIGEST.md`](IDEA2_PHASE2_DESIGN_DIGEST.md) — Gene / pattern / causal competition under coevolving antagonist pressure (claim ceiling `phase2_design`; runners off).
 - [`IDEA1_PHASE2_DESIGN_DIGEST.md`](IDEA1_PHASE2_DESIGN_DIGEST.md) — Costly causal experimentation vs reactive learning (claim ceiling `phase2_design`; runners off).
 - [`IDEA1_PHASE2_PRIOR_ART_20260928.md`](IDEA1_PHASE2_PRIOR_ART_20260928.md) — Idea 1 live prior-art support (not a discovery claim).
+- [`IDEA3_PHASE2_DESIGN_DIGEST.md`](IDEA3_PHASE2_DESIGN_DIGEST.md) — Collective causal knowledge (claim ceiling `phase2_design`; runners off).
+- [`IDEA3_PHASE2_PRIOR_ART_20260928.md`](IDEA3_PHASE2_PRIOR_ART_20260928.md) — Idea 3 live prior-art support (not a discovery claim).
+- [`IDEA5_PHASE2_DESIGN_DIGEST.md`](IDEA5_PHASE2_DESIGN_DIGEST.md) — Transferable short composable falsifiable causal symbolic laws (claim ceiling `phase2_design`; runners off).
+- [`IDEA5_PHASE2_PRIOR_ART_20260928.md`](IDEA5_PHASE2_PRIOR_ART_20260928.md) — Idea 5 live prior-art support (not a discovery claim).
+- [`IDEA6_PHASE2_DESIGN_DIGEST.md`](IDEA6_PHASE2_DESIGN_DIGEST.md) — Adaptive epistemic restraint (claim ceiling `phase2_design`; runners off).
+- [`IDEA6_PHASE2_PRIOR_ART_20260928.md`](IDEA6_PHASE2_PRIOR_ART_20260928.md) — Idea 6 live prior-art support (not a discovery claim).
 
 All phase-1 files share claim ceiling `phase1_problem_boundary`. Phase-2 digests share claim ceiling `phase2_design`. Runners and campaigns remain off until explicitly authorised.
 

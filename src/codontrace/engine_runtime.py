@@ -9,7 +9,9 @@ See ``docs/ENGINE_REPLAY_CONTRACT.md``.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import replace
+from types import MappingProxyType
 from typing import Any, cast
 
 from codontrace._types import JsonValue
@@ -45,6 +47,7 @@ from codontrace.engine_spec import (
     GenerationBoundaryObserver,
     GenesisExperimentSpec,
 )
+from codontrace.errors import ConfigurationError
 from codontrace.genesis.api_audit import export_action_wiring_matrix
 from codontrace.genesis.artifacts import (
     PopulationSnapshot,
@@ -129,6 +132,65 @@ def _default_qd_archive() -> QDArchive:
         max_values={"survival_ticks": 16.0, "blocked_ratio": 1.0},
     )
     return QDArchive.empty(QDArchiveConfig(schema=schema))
+
+
+# --- fork isolation -----------------------------------------------------------
+#
+# ``copy.deepcopy`` cannot pickle ``mappingproxy`` objects, and the element /
+# action / ribosome / causal-graph registries are read-only mappingproxy views.
+# That is why the original fork restore fell back to sharing the live
+# ``PopulationState`` and ``ElementGrid``: the copy raised, the exception was
+# swallowed, and two branches silently aliased each other (reviewer finding,
+# task-14).  The registries are immutable, so sharing *them* is safe; what must
+# never be shared is the mutable container around them.  ``_isolated_copy``
+# therefore pre-seeds the deepcopy memo with the reachable read-only tables (they
+# are copied by reference) while every mutable container is copied for real.
+
+_ABSENT = "absent"
+_DEEP_COPIED = "deepcopy"
+_SHARED_REFERENCE = "shared_reference"
+
+
+def _immutable_tables(value: Any) -> dict[int, Any]:
+    """Return ``{id(obj): obj}`` for every ``MappingProxyType`` reachable from value."""
+
+    memo: dict[int, Any] = {}
+    seen: set[int] = set()
+    stack: list[Any] = [value]
+    while stack:
+        item = stack.pop()
+        marker = id(item)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        if isinstance(item, MappingProxyType):
+            memo[marker] = item
+            continue
+        if isinstance(item, Mapping):
+            stack.extend(item.keys())
+            stack.extend(item.values())
+            continue
+        if isinstance(item, (list, tuple, set, frozenset)):
+            stack.extend(item)
+            continue
+        slots = getattr(type(item), "__slots__", ())
+        if isinstance(slots, str):
+            slots = (slots,)
+        for slot in slots:
+            try:
+                stack.append(object.__getattribute__(item, slot))
+            except (AttributeError, TypeError):
+                continue
+        namespace = getattr(item, "__dict__", None)
+        if isinstance(namespace, dict):
+            stack.extend(namespace.values())
+    return memo
+
+
+def _isolated_copy(value: Any) -> Any:
+    """Deep-copy a fork live object, sharing only immutable read-only tables."""
+
+    return deepcopy(value, _immutable_tables(value))
 
 
 class GenesisEngine:
@@ -341,21 +403,67 @@ class GenesisEngine:
                 "qd_archive": self.qd_archive,
                 "element_grid": self.element_grid,
             },
-            "exact_state": True,
+            # No exactness claim is recorded here: a constant `True` was the
+            # reviewer's false report.  Exactness is measured where it actually
+            # happens -- by `from_fork` at restore time, and reported by
+            # `fork_audit_payload` from the branch's real state.
         }
+
+    def _fork_live_objects(self) -> dict[str, Any]:
+        """The live objects a fork carries, keyed by the names used in the payload."""
+
+        return {
+            "population": self.runner.population,
+            "world": self.runner.world,
+            "nexus_layer": self.runner.nexus_layer,
+            "qd_archive": self.qd_archive,
+            "element_grid": self.element_grid,
+        }
+
+    def _fork_isolation_map(self) -> dict[str, str]:
+        """Actual isolation outcome for this engine's live fork objects.
+
+        Computed by trial from the live objects -- never a constant -- so the
+        audit payload and a restored branch cannot disagree, and so a payload
+        cannot claim an isolation the restore would not achieve.
+        """
+
+        status: dict[str, str] = {}
+        for name, value in self._fork_live_objects().items():
+            if value is None:
+                status[name] = _ABSENT
+                continue
+            try:
+                clone = _isolated_copy(value)
+            except Exception:
+                status[name] = _SHARED_REFERENCE
+                continue
+            status[name] = _SHARED_REFERENCE if clone is value else _DEEP_COPIED
+        return status
 
     def fork_audit_payload(
         self, *, parent_snapshot_id: str | None = None
     ) -> dict[str, JsonValue]:
         """Serialisable audit view of the fork point, with no live objects.
 
-        Pins the documented contract: ``json.dumps`` on this payload succeeds and
-        the payload carries ``fork_isolation`` and ``fork_state_exact``.  The
-        in-memory payload from :meth:`capture_fork` is deliberately not
-        serialisable and is marked as such here.
+        ``fork_isolation`` and ``fork_state_exact`` are read from the actual
+        state of the branch being described: a restored branch reports the
+        isolation map its own restore achieved, and a live engine reports the
+        outcome of an isolation trial over its own objects.  Neither value is a
+        constant, so the audit can never claim an exactness the engine does not
+        have.  The in-memory payload from :meth:`capture_fork` is deliberately
+        not serialisable and is marked as such here.
         """
 
         fork = self.capture_fork(parent_snapshot_id=parent_snapshot_id)
+        isolation = dict(
+            getattr(self, "fork_isolation", None) or self._fork_isolation_map()
+        )
+        state_exact = getattr(self, "fork_state_exact", None)
+        if state_exact is None:
+            state_exact = all(
+                value in (_DEEP_COPIED, _ABSENT) for value in isolation.values()
+            )
         return {
             "fork_version": int(fork["fork_version"]),
             "run_id": str(fork["run_id"]),
@@ -365,8 +473,8 @@ class GenesisEngine:
             "population_digest": str(self.runner.population.digest()),
             "world_digest": str(self.runner.world.digest()),
             "parent_snapshot_id": fork["parent_snapshot_id"],
-            "fork_isolation": "shared_reference:population,element_grid",
-            "fork_state_exact": bool(fork["exact_state"]),
+            "fork_isolation": isolation,
+            "fork_state_exact": bool(state_exact),
             "live_payload_is_in_memory_only": True,
         }
 
@@ -381,10 +489,12 @@ class GenesisEngine:
         """Rebuild a live engine from :meth:`capture_fork` output (full fork).
 
         Restores the population multiset (with parent/child ids), the world
-        resources, and the tick offset that drives the RNG stream.  No
-        process-serialisation protocol or ``deepcopy`` is used, so the
-        unforgeable ``mappingproxy`` registries that block ``copy.deepcopy``
-        are irrelevant here.
+        resources, and the tick offset that drives the RNG stream.  Every live
+        object carried by the payload is copied through :func:`_isolated_copy`,
+        which shares only the immutable ``mappingproxy`` registries, so two
+        branches restored from one payload are independent.  If any object
+        cannot be copied the restore refuses loudly instead of silently sharing
+        state.
         """
 
         if int(fork.get("fork_version", 0)) != 1:
@@ -393,40 +503,61 @@ class GenesisEngine:
         engine = cls.from_spec(spec, generation_boundary_observers=generation_boundary_observers)
         source = fork.get("live_objects") or {}
         if source:
-            # Exact fork: attach the captured live objects so every per-object
+            # Exact fork: copy the captured live objects so every per-object
             # field (organism action config, causal graph, ribosome, stigmergy
-            # layer, QD archive, world bookkeeping) matches the checkpoint.
-            # Each object is deep-copied per restore so two arms branched from
-            # one checkpoint payload cannot alias each other.  Where deepcopy is
-            # impossible (a mappingproxy inside the graph) the live reference is
-            # attached and the isolation map records it explicitly.
-            import copy as _copy
-
+            # layer, QD archive, world bookkeeping) matches the checkpoint while
+            # two arms branched from one checkpoint payload stay independent.
             isolation: dict[str, str] = {}
+            taken: dict[str, Any] = {}
 
-            def _take(name: str, value: Any) -> Any:
+            for name, value in (
+                ("population", source["population"]),
+                ("world", source["world"]),
+                ("nexus_layer", source.get("nexus_layer")),
+                ("qd_archive", source.get("qd_archive")),
+                ("element_grid", source.get("element_grid")),
+            ):
+                if value is None:
+                    isolation[name] = _ABSENT
+                    continue
                 try:
-                    taken = _copy.deepcopy(value)
-                except Exception:
-                    isolation[name] = "shared_reference"
-                    return value
-                isolation[name] = "deepcopy"
-                return taken
+                    clone = _isolated_copy(value)
+                except Exception as exc:
+                    msg = (
+                        f"fork isolation refused: cannot copy live object {name!r} "
+                        f"({type(exc).__name__}: {exc}).  A branch must not be built "
+                        "from a payload whose state would be shared."
+                    )
+                    raise ConfigurationError(msg) from exc
+                if clone is value:
+                    msg = (
+                        f"fork isolation refused: live object {name!r} was not copied."
+                    )
+                    raise ConfigurationError(msg)
+                isolation[name] = _DEEP_COPIED
+                taken[name] = clone
 
-            engine.runner.population = _take("population", source["population"])
-            engine.runner.world = _take("world", source["world"])
-            if source.get("nexus_layer") is not None:
-                engine.runner.nexus_layer = _take("nexus_layer", source["nexus_layer"])
-            if source.get("qd_archive") is not None:
-                engine.qd_archive = _take("qd_archive", source["qd_archive"])
-            if source.get("element_grid") is not None:
-                engine.element_grid = _take("element_grid", source["element_grid"])
+            engine.runner.population = taken["population"]
+            engine.runner.world = taken["world"]
+            if "nexus_layer" in taken:
+                engine.runner.nexus_layer = taken["nexus_layer"]
+            if "qd_archive" in taken:
+                engine.qd_archive = taken["qd_archive"]
+            if "element_grid" in taken:
+                engine.element_grid = taken["element_grid"]
             engine.fork_isolation = isolation
-            engine.fork_state_exact = all(value == "deepcopy" for value in isolation.values())
+            engine.fork_state_exact = all(
+                value in (_DEEP_COPIED, _ABSENT) for value in isolation.values()
+            )
         else:
             # Reduced fallback: serialisable payload only.  Documented as lossy.
             engine.runner.population = PopulationState.from_dict(dict(fork["population"]))
             engine.runner.world = World2D.from_dict(dict(fork["world"]))
+            engine.fork_isolation = {
+                "population": "rebuilt_from_serialisable_payload",
+                "world": "rebuilt_from_serialisable_payload",
+            }
+            engine.fork_state_exact = False
         engine._tick_offset = int(fork["tick_index"])
         engine._tick_results = []
         engine._snapshots = []

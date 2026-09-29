@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-try:
-    from codontrace.engine import GenesisEngine, GenesisExperimentSpec
-except Exception:  # pragma: no cover - import-path fallback
-    from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
+from codontrace.engine import GenesisEngine, GenesisExperimentSpec
 
 
 def _engine():
@@ -22,7 +17,10 @@ def test_fork_audit_payload_is_json_serialisable_and_carries_the_flags() -> None
     audit = _engine().fork_audit_payload(parent_snapshot_id="audit-1")
     encoded = json.dumps(audit)
     assert isinstance(encoded, str)
-    assert audit["fork_isolation"] == "shared_reference:population,element_grid"
+    # The isolation map is the actual, computed outcome -- never a constant.
+    assert isinstance(audit["fork_isolation"], dict)
+    assert audit["fork_isolation"]["population"] == "deepcopy"
+    assert audit["fork_isolation"]["element_grid"] in {"deepcopy", "absent"}
     assert audit["fork_state_exact"] is True
     assert audit["live_payload_is_in_memory_only"] is True
     assert audit["tick_index"] == 3
@@ -35,8 +33,12 @@ def test_live_fork_payload_is_documented_in_memory_only() -> None:
     live = _engine().capture_fork()
     assert "live_objects" in live
     assert type(live["live_objects"]["population"]).__name__ == "PopulationState"
-    with pytest.raises(TypeError):
+    try:
         json.dumps(live)
+    except TypeError:
+        pass
+    else:  # pragma: no cover - the live payload must not silently become serialisable
+        raise AssertionError("live fork payload unexpectedly serialisable")
     assert "Not JSON-serialisable" in GenesisEngine.capture_fork.__doc__
 
 
@@ -48,4 +50,5 @@ def test_fork_audit_flags_survive_a_fork_round_trip() -> None:
     audit = restored.fork_audit_payload()
     assert audit["tick_index"] == 4
     assert audit["fork_state_exact"] is True
+    assert audit["fork_isolation"] == restored.fork_isolation
     assert json.dumps(audit)

@@ -1,12 +1,10 @@
 1c882dcd86e2ac2f7f6356ea4e63842cbc8d88403a065ecc60c0bc9847b836dd         18729  rq3_adaptation_route/_off_pressure.py
 843b0434c8b767ec5547c862484cd25dd763e23544de9c66542f5c695b17ccbf         12240  rq3_adaptation_route/_off_wave8.py
-8d5da68c44ecd1d17e6ff49e6db4123fe9c3ea61413596f66d3a2fece8569da8         11130  rq3_adaptation_route/_patch_extract.py
-b616cd2d813ec88342217c698930a8995655f178e597a6b825d0e59374930b60         19178  rq3_adaptation_route/_patch_module.py
 7a67d00f13378a7d99f35f7b3caf57c6d4644c231c924eaaaad7b5191a54206a         22556  rq3_adaptation_route/antagonist_population.py
 faa4e1c8b6b9b1b50fb7f1cc3e4f27648e00a6598e7f4eddc0c3c68896eae6bd         23426  rq3_adaptation_route/build_patch.py
 0c6254d37fee461705bd4cb3d6beebc591e4e3666381d352fb22646bdd3114b2          5859  rq3_adaptation_route/decision.md
 c6eb2e7d2d91eb6cb3c04af0d59fbacf2dba18271df307b446a652c79799c3c6          5857  rq3_adaptation_route/design.md
-03a0819a2d30780027961069455df3d47ac914951997ba091e246f3f6f2edf0c         12610  rq3_adaptation_route/evidence_files.sha256
+00a6f268ae1a62247b3da3aff35849aaf9737c58fa33b7eb8ca116233cf2a712         12610  rq3_adaptation_route/evidence_files.sha256
 bfe077d322cf4525c51a9661b4069b6ddbafb05a0a64c1ea4b022288aaa4e032           228  rq3_adaptation_route/out_aff.txt
 e5a6beb414a004b0a8892fb884f402f869cc9f0708f530ea32784904d009eed0          6006  rq3_adaptation_route/out_analyze1.txt
 67544cb826e2931b54355fcb84622b3b2737acc269b29b1c8ef2875aed678742          6076  rq3_adaptation_route/out_analyze_pilot.txt
@@ -18,8 +16,6 @@ ce624c10d55fe0f25fea37c2aa0c74a36eb95331704bd8abbe16be64c64ab601           576  
 cbf0ce56c809f23526274e8822af44cb61216333e625cf494fc1a0756b2ca30a            25  rq3_adaptation_route/out_buildpatch.txt
 0b0b098180b05864f46c1d9c81d707714fbfc94dbe74a26fd737318bde099137           859  rq3_adaptation_route/out_credit_chain.txt
 9eae5a5e754629521e296141bb41022de4739fb40b1618c26a7dee745569e0e2         21401  rq3_adaptation_route/out_d2pack.txt
-fc415ac0e690dc30d2dee3d9913f057db5b2e4a2c0cd676d827930c6998dcc70           204  rq3_adaptation_route/out_dbg.txt
-73d81e8e486ee98daf9851358cd9c5c48235bf786adb588c4235a8c6891576e4           201  rq3_adaptation_route/out_dbg2.txt
 f064a78dcd9c433e645583b92c2fb66fd6769a1ef2868ba2bcecc924455e023c           604  rq3_adaptation_route/out_hand.txt
 5eaef4678b29fb48ed2951547f03dd6474d9047691c42d8708b33101d30832b1            31  rq3_adaptation_route/out_patchsyntax.txt
 17e4432f1c2343dffadab99ae8494cf94345d5d2e954837e6c5719b17a01ff9d            31  rq3_adaptation_route/out_patchsyntax2.txt
@@ -27,8 +23,6 @@ f064a78dcd9c433e645583b92c2fb66fd6769a1ef2868ba2bcecc924455e023c           604  
 dd7b5ef8ba74efc75a400c4363c6329d5fb1ea766169858a5c7ce02e9c7ebd8d          2313  rq3_adaptation_route/out_pilot.txt
 0b3e1ecbb4e154ad3d4b986880d4d03eb0af54a97293c5c1641f76da0e9cfc5c           216  rq3_adaptation_route/out_pilotA.txt
 fdb2f5dd1548c185a7d85bcd9d60704b4a413463ff7f9b9db73cac974ea13a02           101  rq3_adaptation_route/out_pilotB.txt
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855             0  rq3_adaptation_route/out_probe.txt
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855             0  rq3_adaptation_route/out_pytest1.txt
 709207581061bfd7f6bafa8aba8f5b2a91caf8db0f952640bb367fccfc7cd329          2274  rq3_adaptation_route/out_r3_off_tests.txt
 5ef3afbf419113ffb145902014d68cc058588f60a1d5fa4237ef04045aa9c7c3           152  rq3_adaptation_route/out_r3_regression.txt
 93566ba197ce7477d00e12152fa8df855127cf47ae4ae179d863f654b547920a           236  rq3_adaptation_route/out_r3_regression_tip.txt
@@ -48,7 +42,7 @@ c11f5c5f49ff6b9c8bdec73e04554ed8862f394e0eb48474f50d31f1f9debf52          5750  
 b43fc49a926284b148eaeea15b48611bd7342e871f7ac0380b994cb4c40b931b          2239  rq3_adaptation_route/PROPOSED_CHANGE_2_gap.md
 6a853e14e6c6ad7991ddb359b20fecb64e5af73b16a7b6977437f1947ab73b92         38439  rq3_adaptation_route/PROPOSED_CHANGE_3.patch
 adbee818951fb93d47110bf52a7711c4238c67ae060db095c0fcfad3c205f408          1758  rq3_adaptation_route/PROPOSED_CHANGE_4.patch
-bade2973c470e03bbaef7acaf7daa938e08c1f11b48caed631fc6775e51b13e0          2697  rq3_adaptation_route/README.md
+879efc6cdaa5f08bfa948090eec96d0a463e74015f1a471fdfe01c91fdd4e049         17128  rq3_adaptation_route/README.md
 bcd0457e7f0fbb38d8b6ee35133f4c1ad7c3d64b1d05ba8e3bb084b1cf111a43          1168  rq3_adaptation_route/regen_module_from_patch.py
 c15a156397a1b21996df352e697becf80f84e51111578b49a5b1cc8123243a08          4980  rq3_adaptation_route/round3_contrast.py
 cef8c717f0e368a44bab4dca3d8cfd01887b1737ef625dc45af34071fac9877f         10203  rq3_adaptation_route/rq3_analyze.py

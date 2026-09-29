@@ -231,9 +231,9 @@ def _arm_survival_series(
 ) -> dict[str, Any]:
     """Simulate one arm under a scored cell; return survival_to_T and flags."""
 
-    import random as _random
+    from codontrace.rng import StdlibSeedRNG
 
-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell + arm))
+    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell + arm))
     ledger = build_idea2_smoke_ledger(seed=int(seed))
     realised = 0.25
     predicted = realised

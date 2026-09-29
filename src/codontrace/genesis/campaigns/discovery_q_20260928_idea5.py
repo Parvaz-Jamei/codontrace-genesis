@@ -234,9 +234,9 @@ def run_idea5_scored_cell(
     if int(generations) < 8:
         raise ConfigurationError("scored Idea5 generations must be >= 8.")
 
-    import random as _random
+    from codontrace.rng import StdlibSeedRNG
 
-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
+    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
     ledger = build_idea5_scaffold_ledger(seed=int(seed))
     world = _require_nonempty(ledger.world_family_id, "world_family_id")
     law = _require_nonempty(ledger.short_law_id, "short_law_id")

@@ -218,9 +218,9 @@ def run_idea6_scored_cell(
     if int(generations) < 4:
         raise ConfigurationError("scored Idea6 generations must be >= 4.")
 
-    import random as _random
+    from codontrace.rng import StdlibSeedRNG
 
-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
+    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
     ledger = build_idea6_scaffold_ledger(seed=int(seed))
     ustar_id = _require_nonempty(ledger.ustar_id, "ustar_id")
     if ustar_id != USTAR_ID:

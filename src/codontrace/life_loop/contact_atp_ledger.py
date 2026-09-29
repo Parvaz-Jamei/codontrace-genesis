@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import itertools
 import math
-import random
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -19,6 +18,7 @@ from typing import Any
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
+from codontrace.rng import StdlibSeedRNG
 
 SCHEMA_VERSION = "life_loop_contact_atp_ledger_v1"
 
@@ -156,10 +156,10 @@ class ContactAtpLedger:
     _one_generation_masks: set[str] = field(default_factory=set, repr=False)
     _one_generation_budget: dict[str, float] | None = field(default=None, repr=False)
     _cut_buffer: set[str] = field(default_factory=set, repr=False)
-    _rng: random.Random = field(default_factory=random.Random, repr=False)
+    _rng: StdlibSeedRNG = field(default_factory=StdlibSeedRNG, repr=False)
 
     def __post_init__(self) -> None:
-        self._rng = random.Random(int(self.rng_seed))
+        self._rng = StdlibSeedRNG(seed=int(self.rng_seed))
         require_finite_float("predicted_pressure_phase", self.predicted_pressure_phase)
         require_finite_float("realised_pressure_phase", self.realised_pressure_phase)
 
@@ -1356,7 +1356,7 @@ def build_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
     # Generic contact edges with some rare-class tags (ledger tags only).
     # Primary K4 (scaffold E0/E1 live here). Secondary K4 supplies
-    # degree- and ATP-matched non-scaffold edges for cut_matched_random.
+    # degree- and ATP-matched non-scaffold edges for the matched cut op.
     specs = [
         ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
         ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.2),

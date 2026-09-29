@@ -204,9 +204,9 @@ def run_idea3_scored_cell(
     if int(generations) < 4:
         raise ConfigurationError("scored Idea3 generations must be >= 4.")
 
-    import random as _random
+    from codontrace.rng import StdlibSeedRNG
 
-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
+    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
     ledger = build_idea3_scaffold_ledger(seed=int(seed))
     law = _require_nonempty(ledger.law_id, "law_id")
     unreach = _require_nonempty(ledger.unreach_id, "unreach_id")

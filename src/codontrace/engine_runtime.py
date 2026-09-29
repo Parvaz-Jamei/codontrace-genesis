@@ -336,8 +336,9 @@ class GenesisEngine:
 
         Restores the population multiset (with parent/child ids), the world
         resources, and the tick offset that drives the RNG stream.  No
-        ``pickle``/``deepcopy`` is used, so the unforgeable ``mappingproxy``
-        registries that block ``copy.deepcopy`` are irrelevant here.
+        process-serialisation protocol or ``deepcopy`` is used, so the
+        unforgeable ``mappingproxy`` registries that block ``copy.deepcopy``
+        are irrelevant here.
         """
 
         if int(fork.get("fork_version", 0)) != 1:

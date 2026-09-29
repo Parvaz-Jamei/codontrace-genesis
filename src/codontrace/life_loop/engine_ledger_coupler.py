@@ -7,8 +7,8 @@ After scheduled ledger ops, a domain-free feedback path adjusts organism
 runtime ATP and world resources from the change in ledger contact energy
 (present unmasked edge yields). Cuts reduce available ATP/resources; intact
 or restored contacts preserve or mildly restore them. Deterministic for a
-given seed and op schedule. No infection physics; no second population
-engine; coupler stays outside engine.py.
+given seed and op schedule. No domain-specific transmission physics; no second
+population engine; coupler stays outside engine.py.
 """
 
 from __future__ import annotations

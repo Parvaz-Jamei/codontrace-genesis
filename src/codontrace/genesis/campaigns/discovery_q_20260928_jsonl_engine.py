@@ -269,7 +269,7 @@ def run_jsonl_engine_campaign(
             records.extend(_run_job(job))
     else:
         # Process pool: GenesisEngine is CPU-bound under the GIL; threads do not
-        # scale. _run_job is a top-level function so it pickles cleanly.
+        # scale. _run_job is a top-level function so workers can receive it.
         with ProcessPoolExecutor(max_workers=workers) as pool:
             for batch in pool.map(_run_job, jobs, chunksize=1):
                 records.extend(batch)

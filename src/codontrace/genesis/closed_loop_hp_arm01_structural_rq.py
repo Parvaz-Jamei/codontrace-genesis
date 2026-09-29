@@ -46,6 +46,13 @@ from codontrace.genesis.host_parasite_life_plugin import (
     MATCH_BIT_WIDTH,
     ROLE_PRIMARY,
 )
+from codontrace.genesis.measurements.antagonist_population import (
+    ANTAGONIST_ECOLOGIES,
+    ANTAGONIST_ECOLOGY_POPULATION,
+    ANTAGONIST_ECOLOGY_STANDING,
+    ANTAGONIST_PASSAGE_SHUFFLED_LABELS,
+    AntagonistPopulation,
+)
 from codontrace.genesis.measurements.rq_frequency_clocks import (
     host_realised_pressure_from_contacts,
 )
@@ -460,6 +467,20 @@ class StructuralRQArm(LifeLoopEcologyArm):
     host_contact_available_series: list[tuple[tuple[str, float, ...], ...]] = field(
         default_factory=list
     )
+    # RQ-3 opt-in: the arm-level switch for the heritable antagonist population.
+    # The standing value leaves this arm byte-identical to the pre-patch build.
+    antagonist_ecology: str = ANTAGONIST_ECOLOGY_STANDING
+    # RQ-3: antagonist population with identity, reproduction and death. ``None`` on
+    # the standing path, so ``parasite_windows`` and every recorded series are unchanged.
+    antagonist_pop: object | None = None
+    # ``(kept, replaced, mut_events, churn)`` per generation for the ancestry log.
+    antagonist_ledger: list[tuple[int, int, int, int]] = field(default_factory=list)
+    # RQ-3: one row per realised contact pair (host class, antagonist class, affinity,
+    # intended debit, realised debit) when pressure collection is enabled, so realised
+    # pressure is reconstructable from raw events for every class that was contacted.
+    contact_pair_records: list[tuple[tuple[str, str, float, float, float], ...]] = field(
+        default_factory=list
+    )
     # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
     generation_boundary_observer: Callable[..., None] | None = None
     bolus_sync_before_census: list[bool] = field(default_factory=list)
@@ -470,7 +491,21 @@ class StructuralRQArm(LifeLoopEcologyArm):
         *,
         arm: str,
         seed: int,
+        antagonist_ecology: str = ANTAGONIST_ECOLOGY_STANDING,
+        antagonist_maintenance_cost: float | None = None,
     ) -> StructuralRQArm:
+        """Build a structural arm.
+
+        ``antagonist_ecology`` is the arm-level opt-in for the RQ-3 antagonist
+        population. The standing value leaves the arm byte-identical to the
+        pre-patch build: the antagonist stays the anonymous window list and
+        ``_passage_update`` keeps its recorded keep/replace/mutate behaviour, so
+        every locked expectation is untouched. ``"population"`` selects the
+        heritable genotype population. ``antagonist_maintenance_cost`` is the
+        pre-declared substrate knob inside that opt-in; it is fixed before the runs,
+        must be the same in every compared arm, and is never chosen, raised or
+        lowered after seeing an arm result.
+        """
         base = LifeLoopEcologyArm.boot(
             arm=arm,
             virulence=STRUCT_VIRULENCE,
@@ -536,6 +571,27 @@ class StructuralRQArm(LifeLoopEcologyArm):
             host_bit_flip_rate=float(STRUCT_HOST_BIT_FLIP),
             parasite_keep_fraction=float(STRUCT_KEEP_FRACTION),
         )
+        structural.antagonist_ecology = str(antagonist_ecology)
+        if structural.antagonist_ecology not in ANTAGONIST_ECOLOGIES:
+            raise ConfigurationError(
+                f"unknown antagonist ecology {antagonist_ecology!r}"
+            )
+        if structural.antagonist_ecology == ANTAGONIST_ECOLOGY_POPULATION:
+            if antagonist_maintenance_cost is None:
+                structural.antagonist_pop = AntagonistPopulation.founders(
+                    parasite_windows,
+                    keep_fraction=float(STRUCT_KEEP_FRACTION),
+                    mutation_rate=float(STRUCT_PARASITE_MUTATION),
+                )
+            else:
+                structural.antagonist_pop = AntagonistPopulation.founders(
+                    parasite_windows,
+                    keep_fraction=float(STRUCT_KEEP_FRACTION),
+                    mutation_rate=float(STRUCT_PARASITE_MUTATION),
+                    maintenance_cost=float(antagonist_maintenance_cost),
+                )
+        else:
+            structural.antagonist_pop = None
         return structural
 
 
@@ -556,7 +612,34 @@ class StructuralRQArm(LifeLoopEcologyArm):
                         self.roles[org.id] = ROLE_PRIMARY
                 debit_count, matched = self._apply_hp_env_contact()
                 self.match_debits_by_generation.append(int(debit_count))
-                self._passage_update(matched, rng.fork(f"passage/{self.tick_index}"))
+                served: tuple[tuple[str, float], ...] = ()
+                if self.antagonist_pop is not None:
+                    # The record list grows only on paths that append one for the current
+                    # generation, so it is empty on the first generation of an arm that
+                    # does not collect pressure. Reading it defensively keeps the
+                    # population path independent of a flag the boot path does not set.
+                    records = (
+                        self.contact_pair_records[-1]
+                        if self.contact_pair_records
+                        else ()
+                    )
+                    served = tuple((record[1], record[4]) for record in records)
+                self._passage_update(
+                    matched,
+                    served_contacts=served,
+                    rng=rng.fork(f"passage/{self.tick_index}"),
+                )
+                if self.antagonist_pop is not None:
+                    ledger = self.antagonist_pop.ledgers[-1]
+                    self.antagonist_ledger = [
+                        (
+                            len(ledger.kept),
+                            len(ledger.newborns),
+                            int(ledger.mutation_events),
+                            len(ledger.deaths),
+                        )
+                    ]
+                    self.parasite_windows = self.antagonist_pop.windows()
                 self._census()
                 self.bolus_sync_before_census.append(bool(bolus_before))
                 self.tick_index += 1
@@ -578,16 +661,27 @@ class StructuralRQArm(LifeLoopEcologyArm):
         ``host_realised_pressure_from_contacts`` — never from the parasite class
         histogram. Recording is additive and changes no debit, survival,
         threshold, or digest input.
+
+        RQ-3 additionally credits each participating antagonist unit with the ATP its
+        contact actually took through the passage ledger (``served_contacts``) and,
+        when pressure collection is enabled, keeps the per-pair records in
+        ``contact_pair_records`` so pressure can be recomputed from raw events.
         """
 
+        if self.antagonist_pop is not None:
+            self.antagonist_pop.begin_round()
         if self.passage == PASSAGE_ABSENT:
             self.graded_affinity_sum.append(0.0)
             self.graded_contact_count.append(0)
+            if self.collect_realised_host_pressure:
+                self.contact_pair_records.append(())
             return 0, []
         hosts = self._hosts()
         if not hosts or not self.parasite_windows:
             self.graded_affinity_sum.append(0.0)
             self.graded_contact_count.append(0)
+            if self.collect_realised_host_pressure:
+                self.contact_pair_records.append(())
             return 0, []
         self._reset_env_hosts()
         # Register a shared always-present task so inject seat is available;
@@ -609,6 +703,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
         # Deterministic rotate by tick so pairing is not always index-0 biased.
         rot = int(self.tick_index) % max(1, len(host_order))
         host_order = host_order[rot:] + host_order[:rot]
+        pair_records: list[tuple[str, str, float, float, float]] = []
         for p_index in range(pair_n):
             host = hosts[host_order[p_index]]
             p_window = self.parasite_windows[p_index]
@@ -616,6 +711,18 @@ class StructuralRQArm(LifeLoopEcologyArm):
             affinity = graded_affinity(host_window, p_window)
             contacts += 1
             aff_sum += affinity
+            intended = float(self.virulence) * float(self.hp_env.steal_fraction) * float(
+                affinity
+            )
+            pair_records.append(
+                (
+                    joint_match_class(host_window),
+                    str(p_window),
+                    float(affinity),
+                    float(intended),
+                    float(min(host.atp_state.runtime_available, intended)),
+                )
+            )
             if self.collect_realised_host_pressure:
                 h_class = joint_match_class(host_window)
                 pressure_aff_sum[h_class] = pressure_aff_sum.get(h_class, 0.0) + float(
@@ -665,6 +772,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
             self._record_realised_host_pressure(
                 pressure_aff_sum, pressure_contacts, pressure_available
             )
+        if self.antagonist_pop is not None:
+            # The antagonist income record must not depend on the pressure-collection
+            # flag: the population path needs the realised seats to credit units, and a
+            # default-booted arm does not set that flag. This list is a separate field
+            # from ``host_realised_pressure_series``, so turning the flag off still
+            # leaves every recorded pressure series empty and byte-identical.
+            self.contact_pair_records.append(tuple(pair_records))
         return debit_count, matched_windows
 
     def _record_realised_host_pressure(
@@ -708,8 +822,56 @@ class StructuralRQArm(LifeLoopEcologyArm):
             tuple((cls, float(measured[cls]), int(pressure_contacts[cls])) for cls in classes)
         )
 
-    def _passage_update(self, matched_windows: Sequence[str], rng: RNGManager) -> None:
-        """Mid-κ partial keep-fraction on copassaged; freeze on fixed; empty on absent."""
+    def _passage_update(
+        self,
+        matched_windows: Sequence[str],
+        *,
+        served_contacts: Sequence[tuple[str, float]] = (),
+        rng: RNGManager,
+    ) -> None:
+        """Advance the antagonist one generation.
+
+        Two paths, selected by the arm-level opt-in ``antagonist_ecology``:
+
+        * the standing path (default) is the recorded behaviour, unchanged: keep a
+          random ``int(kappa * n)`` by index, replenish the rest by uniform sampling of
+          the realised contact set with per-draw mutation, and keep the four
+          ``turnover_*`` series;
+        * ``"population"`` delegates to :class:`AntagonistPopulation`, where the
+          antagonist is a heritable genotype population with per-unit identity, contact
+          income, maintenance, starvation death, energy-proportional reproduction and
+          selection under a fixed seat budget.
+
+        The ``turnover_*`` series keep their names and meanings on both paths.
+        """
+
+        if self.antagonist_pop is None:
+            self._passage_update_standing(matched_windows, rng)
+            return
+        if self.passage == PASSAGE_ABSENT:
+            matched_windows = []
+            served_contacts = ()
+        mode = self.passage
+        if mode not in (PASSAGE_COEVOLVE, PASSAGE_FROZEN, PASSAGE_ABSENT):
+            mode = ANTAGONIST_PASSAGE_SHUFFLED_LABELS
+        ledger = self.antagonist_pop.advance(
+            matched_windows=matched_windows,
+            served_contacts=served_contacts,
+            mode=mode,
+            generation=int(self.tick_index) + 1,
+            rng=rng,
+            mutate_window=_mutate_window,
+        )
+        self.parasite_windows = self.antagonist_pop.windows()
+        self.turnover_kept.append(len(ledger.kept))
+        self.turnover_replaced.append(len(ledger.newborns))
+        self.turnover_mut_events.append(int(ledger.mutation_events))
+        self.turnover_churn.append(len(ledger.deaths))
+
+    def _passage_update_standing(
+        self, matched_windows: Sequence[str], rng: RNGManager
+    ) -> None:
+        """The recorded passage behaviour, byte-identical to the pre-RQ-3 build."""
 
         if self.passage == PASSAGE_ABSENT:
             self.parasite_windows = []
@@ -720,7 +882,6 @@ class StructuralRQArm(LifeLoopEcologyArm):
             return
         n = len(self.parasite_windows) or STRUCT_PARASITE_N
         if self.passage == PASSAGE_FROZEN:
-            # Frozen stock: restore ancestral multiset (16-cycle), no κ replace.
             self.parasite_windows = [
                 _DISTINCT_WINDOWS[i % len(_DISTINCT_WINDOWS)] for i in range(n)
             ]
@@ -735,7 +896,6 @@ class StructuralRQArm(LifeLoopEcologyArm):
             self.turnover_mut_events.append(0)
             self.turnover_churn.append(0)
             return
-
         kappa = float(self.parasite_keep_fraction)
         keep_n = int(kappa * n)
         if keep_n < 0:
@@ -745,7 +905,6 @@ class StructuralRQArm(LifeLoopEcologyArm):
         replace_n = n - keep_n
         current = list(self.parasite_windows)
         before_unique = len(set(current))
-        # Keep a random subset (partial replace, not wipe/freeze).
         order = list(range(len(current)))
         for i in range(len(order) - 1, 0, -1):
             j = rng.randrange(0, i + 1)
@@ -763,7 +922,6 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 window = _mutate_window(window, rng)
                 mut_events += 1
             nxt.append(window)
-        # Pad if keep/replace rounding left short (should not).
         while len(nxt) < n:
             nxt.append(source[rng.randrange(0, len(source))])
         self.parasite_windows = nxt[:n]
@@ -833,6 +991,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "host_realised_pressure": {},
             "host_realised_pressure_lag": [],
             "parasite_class_hist_is_class_frequency_not_host_pressure": True,
+            "antagonist_units": [],
+            "antagonist_ledger": None,
         }
         if idx < 0 or idx >= len(self.host_joint_class_series):
             return empty
@@ -911,6 +1071,34 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "parasite_class_hist_lag": parasite_class_hist_lag,
             "host_realised_pressure": host_realised_pressure,
             "host_realised_pressure_lag": host_realised_pressure_lag,
+            "antagonist_units": [
+                {
+                    "unit_id": unit.unit_id,
+                    "window": unit.window,
+                    "class": joint_match_class(unit.window),
+                    "parent_id": unit.parent_id,
+                    "energy": round(float(unit.energy), 9),
+                }
+                for unit in (
+                    self.antagonist_pop.units if self.antagonist_pop is not None else []
+                )
+            ],
+            "antagonist_ledger": (
+                None if not self.antagonist_pop or not self.antagonist_pop.ledgers
+                else {
+                    "mode": self.antagonist_pop.ledgers[-1].mode,
+                    "kept": len(self.antagonist_pop.ledgers[-1].kept),
+                    "newborns": len(self.antagonist_pop.ledgers[-1].newborns),
+                    "deaths": len(self.antagonist_pop.ledgers[-1].deaths),
+                    "mutation_events": int(
+                        self.antagonist_pop.ledgers[-1].mutation_events
+                    ),
+                    "contacts": int(self.antagonist_pop.ledgers[-1].contacts),
+                    "mean_energy": round(
+                        float(self.antagonist_pop.ledgers[-1].mean_energy), 9
+                    ),
+                }
+            ),
             "parasite_class_hist_is_class_frequency_not_host_pressure": True,
         }
 

@@ -294,8 +294,14 @@ class GenesisEngine:
         return self._last_result
 
 
-    def capture_fork(self, *, parent_snapshot_id: str | None = None) -> dict[str, JsonValue]:
-        """Full generation-boundary fork state: population, world, tick index, RNG.
+    def capture_fork(self, *, parent_snapshot_id: str | None = None) -> dict[str, Any]:
+        """In-memory fork payload: population, world, tick index, RNG, live objects.
+
+        **Not JSON-serialisable.** ``live_objects`` embeds live ``PopulationState``,
+        ``World2D``, ``NexusLayer``, QD archive and element-grid instances so that a
+        fork is exact, and ``json.dumps`` on this payload raises ``TypeError``.  For
+        an audit or persistence hand-off that must serialise, use
+        :meth:`fork_audit_payload`, which returns the serialisable summary.
 
         Every random draw of the life loop is derived from ``spec.seed`` and the
         absolute tick index (``PopulationRunner.step_generation(seed=spec.seed +
@@ -336,6 +342,32 @@ class GenesisEngine:
                 "element_grid": self.element_grid,
             },
             "exact_state": True,
+        }
+
+    def fork_audit_payload(
+        self, *, parent_snapshot_id: str | None = None
+    ) -> dict[str, JsonValue]:
+        """Serialisable audit view of the fork point, with no live objects.
+
+        Pins the documented contract: ``json.dumps`` on this payload succeeds and
+        the payload carries ``fork_isolation`` and ``fork_state_exact``.  The
+        in-memory payload from :meth:`capture_fork` is deliberately not
+        serialisable and is marked as such here.
+        """
+
+        fork = self.capture_fork(parent_snapshot_id=parent_snapshot_id)
+        return {
+            "fork_version": int(fork["fork_version"]),
+            "run_id": str(fork["run_id"]),
+            "spec_digest": str(fork["spec_digest"]),
+            "seed": int(fork["seed"]),
+            "tick_index": int(fork["tick_index"]),
+            "population_digest": str(self.runner.population.digest()),
+            "world_digest": str(self.runner.world.digest()),
+            "parent_snapshot_id": fork["parent_snapshot_id"],
+            "fork_isolation": "shared_reference:population,element_grid",
+            "fork_state_exact": bool(fork["exact_state"]),
+            "live_payload_is_in_memory_only": True,
         }
 
     @classmethod

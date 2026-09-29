@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def _class_counts(path: str) -> dict[str, int]:
-    tree = ast.parse((ROOT / path).read_text(), filename=path)
+    tree = ast.parse((ROOT / path).read_text(encoding="utf-8"), filename=path)
     counts: dict[str, int] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):

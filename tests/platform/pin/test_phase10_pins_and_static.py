@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 from pathlib import Path
 
 import pytest
 
 from codontrace.genesis.host_parasite_world import _BAIC_PINS, assert_baic_pins_untouched
+from codontrace.genesis.text_digest import sha256_text_file
 
 REPO = Path(__file__).resolve().parents[3]
 ENGINE = REPO / "src" / "codontrace" / "engine.py"
@@ -20,7 +20,7 @@ _BANNED_MARKERS = ("HostParasiteEnv", "codontrace.engine", "Infection")
 
 
 def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def _assert_no_banned_imports(path: Path) -> None:

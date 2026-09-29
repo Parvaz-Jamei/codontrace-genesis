@@ -9,7 +9,6 @@ novelty baseline is our life_loop/contracts, not a peer platform.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
@@ -30,6 +29,7 @@ from codontrace.genesis.host_parasite_metrics import (
     HostParasitePreregSpec,
     build_metric_summary,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.genome import SemanticGenome
 from codontrace.life_loop import (
     AblationTemplate,
@@ -191,7 +191,7 @@ def assert_baic_pins_untouched() -> None:
 
     for rel, expected in _BAIC_PINS:
         path = _REPO_ROOT / rel
-        got = hashlib.sha256(path.read_bytes()).hexdigest()
+        got = sha256_text_file(path)
         if got != expected:
             raise ConfigurationError(f"BAIC pin drift for {rel}: got {got}")
 

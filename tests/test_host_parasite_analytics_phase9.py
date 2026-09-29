@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -20,6 +19,7 @@ from codontrace.genesis.host_parasite_analytics import (
     run_reciprocal_observational_contrast,
 )
 from codontrace.genesis.host_parasite_world import _BAIC_PINS as _BAIC
+from codontrace.genesis.text_digest import sha256_text_file
 
 REPO = Path(__file__).resolve().parents[1]
 ANALYTICS_SRC = (
@@ -35,7 +35,7 @@ _BANNED_IMPORT_MARKERS = (
 
 
 def _sha(rel: str) -> str:
-    return hashlib.sha256((REPO / rel).read_bytes()).hexdigest()
+    return sha256_text_file(REPO / rel)
 
 
 def test_continuum_digest_sensitivity_on_coupling() -> None:

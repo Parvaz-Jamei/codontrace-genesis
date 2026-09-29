@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -28,6 +27,7 @@ from codontrace.genesis.host_parasite_attach_registry import (
     assert_wave5_attach_surface_wired,
     build_journal_attach_registry_packet,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
@@ -140,5 +140,5 @@ def test_wave5_attach_surface_wired_to_adapter_callables() -> None:
 
 def test_baic_pins_byte_identical() -> None:
     for rel, expected in PIN_SPECS:
-        digest = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+        digest = sha256_text_file(ROOT / rel)
         assert digest == expected, rel

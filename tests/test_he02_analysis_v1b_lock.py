@@ -10,9 +10,13 @@ from codontrace.genesis.he02_contrasts import contrasts_from_seed_dicts
 
 def test_he02_v1b_contrasts_match_frozen_rows() -> None:
     root = Path(__file__).resolve().parents[1]
-    raw = json.loads((root / "docs/hard_experiment_02/results_v1.json").read_text())
+    raw = json.loads(
+        (root / "docs/hard_experiment_02/results_v1.json").read_text(encoding="utf-8")
+    )
     expected = json.loads(
-        (root / "docs/hard_experiment_02/analysis_v1b_contrasts.json").read_text()
+        (root / "docs/hard_experiment_02/analysis_v1b_contrasts.json").read_text(
+            encoding="utf-8"
+        )
     )
     computed = contrasts_from_seed_dicts(raw["seed_records"], assay_failed=False)
     assert expected["source_digest"] == raw["digest"]

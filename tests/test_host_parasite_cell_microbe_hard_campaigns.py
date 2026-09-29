@@ -7,7 +7,6 @@ dual-null panels with fail-closed ClaimGate ceilings. Not Wave-6 soft smoke.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -26,6 +25,7 @@ from codontrace.genesis.replay_integrity import (
     NON_REPLAY_CRITICAL_DIGEST_CLASSES,
     audit_replay_digest_policy_registry,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_JSON = (
@@ -189,8 +189,7 @@ def test_results_json_matches_live_pack(pack_dict: dict, tmp_path: Path) -> None
 
 def test_baic_pins_byte_identical() -> None:
     for rel, expected in PIN_SPECS:
-        raw = (ROOT / rel).read_bytes()
-        got = hashlib.sha256(raw).hexdigest()
+        got = sha256_text_file(ROOT / rel)
         assert got == expected, rel
 
 

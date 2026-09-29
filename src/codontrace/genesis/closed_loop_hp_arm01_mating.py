@@ -31,6 +31,7 @@ from codontrace.genesis.closed_loop_hp_arm01 import (
     ThreeArmCampaignReport,
     max_allowed_claim_ceiling,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 PREREG_VERSION = "hp_arm01_mating_ledger_prereg_20260926"
 PREREG_RELATIVE_PATH = (
@@ -179,7 +180,7 @@ def mating_ledger_document_digest() -> str:
     path = prereg_document_path()
     if not path.is_file():
         raise ConfigurationError(f"missing preregistration file: {PREREG_RELATIVE_PATH}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def assert_mating_seed_policy(seeds: Sequence[int] | None = None) -> None:

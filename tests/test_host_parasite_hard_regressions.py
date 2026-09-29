@@ -9,7 +9,6 @@ edges, and replay-digest registration drift (#50).
 from __future__ import annotations
 
 import ast
-import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -44,6 +43,7 @@ from codontrace.genesis.replay_integrity import (
     STRICT_REPLAY_CRITICAL_DIGEST_CLASSES,
     audit_replay_digest_policy_registry,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
@@ -317,7 +317,7 @@ def test_hc7_host_parasite_digest_classes_stay_registered() -> None:
 
 def test_baic_pins_and_engine_untouched() -> None:
     for rel, expected in PIN_SPECS:
-        digest = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+        digest = sha256_text_file(ROOT / rel)
         assert digest == expected, rel
     engine = (ROOT / "src" / "codontrace" / "engine.py").read_text(encoding="utf-8")
     # Infection physics must stay out of engine.py (hard lock).

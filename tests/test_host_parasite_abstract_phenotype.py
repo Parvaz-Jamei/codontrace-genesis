@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,6 +12,7 @@ from codontrace.genesis.host_parasite_abstract_phenotype import (
     default_target_phenotype,
     metabolic_error_for_genome,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.genome import SemanticGenome
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,4 +59,4 @@ def test_target_deterministic() -> None:
 
 @pytest.mark.parametrize("path,expected", PIN_SPECS)
 def test_baic_pins_d4(path: str, expected: str) -> None:
-    assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+    assert sha256_text_file(ROOT / path) == expected

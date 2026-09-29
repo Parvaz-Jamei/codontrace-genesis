@@ -28,6 +28,7 @@ from codontrace.genesis.closed_loop_hp_arm01 import (
     max_allowed_claim_ceiling,
     run_three_arm_frequency_campaign,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 PREREG_VERSION = "hp_arm01_slowinski_invasion_prereg_20260926"
 PREREG_RELATIVE_PATH = (
@@ -109,8 +110,7 @@ def slowinski_confirm_document_digest() -> str:
     path = prereg_document_path()
     if not path.is_file():
         raise ConfigurationError(f"missing preregistration file: {PREREG_RELATIVE_PATH}")
-    raw = path.read_bytes()
-    return hashlib.sha256(raw).hexdigest()
+    return sha256_text_file(path)
 
 
 def assert_confirm_seed_policy(seeds: Sequence[int] | None = None) -> None:

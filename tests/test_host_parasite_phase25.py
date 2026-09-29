@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -20,6 +19,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.host_parasite_he_hp_refresh import (
     build_he_hp_locked_digest_refresh_note,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
@@ -102,5 +102,5 @@ def test_attach_he_hp_refresh_refuses_double_attach() -> None:
 
 def test_baic_pins_byte_identical_phase25() -> None:
     for rel, expected in PIN_SPECS:
-        digest = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+        digest = sha256_text_file(ROOT / rel)
         assert digest == expected, rel

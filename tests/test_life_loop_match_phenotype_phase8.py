@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -17,6 +16,7 @@ from codontrace.genesis.host_parasite_world import (
     HostParasiteProfile,
     HostParasiteWorld,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.life_loop import (
     ContactTransferPolicy,
     HookMeter,
@@ -51,7 +51,7 @@ _BANNED_CONTIGUOUS = (
 
 
 def _sha(rel: str) -> str:
-    return hashlib.sha256((REPO / rel).read_bytes()).hexdigest()
+    return sha256_text_file(REPO / rel)
 
 
 def test_phenotype_round_trip_and_digest() -> None:

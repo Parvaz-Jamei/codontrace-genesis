@@ -7,7 +7,6 @@ physics in engine.py, pins byte-identical forever.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -19,6 +18,7 @@ from codontrace.genesis.host_parasite_continuum import run_vt_spatial_factorial
 from codontrace.genesis.host_parasite_cornish import run_cornish_intervention_campaign
 from codontrace.genesis.host_parasite_evolvability import run_evolvability_falsification
 from codontrace.genesis.host_parasite_zaman import run_zaman_three_arm_campaign
+from codontrace.genesis.text_digest import sha256_text_file
 
 SCHEMA = "host_parasite_he_hp_locked_digest_refresh_v1"
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -46,7 +46,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 def _assert_baic_pins_untouched() -> None:
     for rel, expected in _BAIC_PINS:
         path = _REPO_ROOT / rel
-        got = hashlib.sha256(path.read_bytes()).hexdigest()
+        got = sha256_text_file(path)
         if got != expected:
             raise ConfigurationError(f"BAIC pin drift for {rel}: got {got}")
 

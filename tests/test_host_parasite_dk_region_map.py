@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,6 +12,7 @@ from codontrace.genesis.host_parasite_dk_region_map import (
     SCHEMA,
     run_dk_region_map,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_SPECS = (
@@ -70,5 +70,5 @@ def test_digest_stable(region_map: dict) -> None:
 
 @pytest.mark.parametrize("path,expected", PIN_SPECS)
 def test_baic_pins_intact_d2(path: str, expected: str) -> None:
-    digest = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+    digest = sha256_text_file(ROOT / path)
     assert digest == expected

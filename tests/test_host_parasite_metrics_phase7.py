@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 from pathlib import Path
 
 import pytest
@@ -21,6 +20,7 @@ from codontrace.genesis.host_parasite_world import (
     HostParasiteProfile,
     HostParasiteWorld,
 )
+from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.life_loop import HookMeter, HookMeterSnapshot
 
 REPO = Path(__file__).resolve().parents[1]
@@ -267,7 +267,7 @@ def test_static_audit_no_physics_no_claimgate_in_meters() -> None:
     # spot-check file still exists and BAIC pins unchanged.
     assert ENGINE_SRC.is_file()
     for rel, expected in _BAIC:
-        got = hashlib.sha256((REPO / rel).read_bytes()).hexdigest()
+        got = sha256_text_file(REPO / rel)
         assert got == expected, rel
 
 

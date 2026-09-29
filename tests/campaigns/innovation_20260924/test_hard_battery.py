@@ -333,7 +333,7 @@ def test_hard_no_engine_infection_physics() -> None:
         "farm_orchestrator.py",
         "allele_association.py",
     ):
-        text = (life_loop / name).read_text()
+        text = (life_loop / name).read_text(encoding="utf-8")
         assert "codontrace.engine" not in text
         assert "HostParasiteEnv" not in text
         lowered = text.casefold()

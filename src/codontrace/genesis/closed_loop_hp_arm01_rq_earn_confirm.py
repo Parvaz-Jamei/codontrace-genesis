@@ -107,6 +107,7 @@ from codontrace.genesis.measurements.rq_frequency_clocks import (
     lagged_nfds_score,
 )
 from codontrace.genesis.population import MutationConfig
+from codontrace.genesis.text_digest import sha256_text_file
 
 PREREG_VERSION = "hp_arm01_rq_earn_confirm_prereg_20260926"
 PREREG_RELATIVE_PATH = "docs/handoff/WAVE7_RQ_EARN_CONFIRM_PREREG_20260926.md"
@@ -267,7 +268,7 @@ def rq_earn_confirm_document_digest() -> str:
     path = prereg_document_path()
     if not path.is_file():
         raise ConfigurationError(f"missing preregistration file: {PREREG_RELATIVE_PATH}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_text_file(path)
 
 
 def assert_rq_earn_confirm_seed_policy(seeds: Sequence[int] | None = None) -> None:

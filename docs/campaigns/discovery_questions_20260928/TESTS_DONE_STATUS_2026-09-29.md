@@ -54,11 +54,16 @@ These are recorded separately and are not part of the eight program tests:
   conditioning is biased before any epistasis is present, and at high epistasis
   about **64 per cent** of the quantity previously labelled estimator bias is a
   whole-tape re-routing gap rather than model misspecification.
-* **Two-fold cost of sex** (`causal-tape-experiment/results/sex_arms_results.json`,
-  `phase_results.json`): coevolution does not maintain costly sex in that model;
-  the critical cost is bracketed in (1.0, 1.5] and further to about 1.1–1.2;
-  antagonist turnover from 1 to 12 generations per host generation does not raise
-  it. Reported as a negative.
+* **Two-fold cost of sex** (`causal-tape-experiment/results/sex_arms_results.json`):
+  coevolution does not maintain costly sex in that model; the critical cost is
+  bracketed in (1.0, 1.5]. The finer bracket `c* ≈ 1.1–1.2` is a **single-seed
+  probe** (`causal-tape-experiment/phase_probe.txt`, seed 9000) and must not be
+  cited as a confirmatory narrowing; a ≥100-paired-seed sweep is in progress
+  (owner: `scale-designer`, output `test-runs/sex_cost/`). Antagonist turnover
+  from 1 to 12 generations per host generation does not raise it. Reported as a
+  negative. The former `phase_results.json` citation is removed: no such file
+  exists anywhere in the workspace, and no claim here may cite a file that is not
+  in the tree.
 * **Biotic versus abiotic turnover** (`causal-tape-experiment/results/rjcj_results.json`):
   antagonist-dominant within the model world, stable across window lengths, with
   a genotype-blind tax control passing.
@@ -81,3 +86,9 @@ These are recorded separately and are not part of the eight program tests:
 chain and the evidence map are recorded in
 [`docs/ci/CI_REPAIR_AND_TEST_STATUS_2026-09-29.md`](../../ci/CI_REPAIR_AND_TEST_STATUS_2026-09-29.md);
 no locked pin was re-locked for those fixes.
+
+**Novelty and results synthesis (2026-09-29):** the reviewed claim-discipline synthesis is committed
+as [`NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md`](NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md)
+(RQ-1 `INCONCLUSIVE` in flight, D-2 `FALSIFIED_IN_MODEL` on the calibration tier, RQ-3
+`SUPPORTED_IN_MODEL` with the small-effect caveat, the CausalTape share only with its estimator
+label, and `c*` flagged probe-level).

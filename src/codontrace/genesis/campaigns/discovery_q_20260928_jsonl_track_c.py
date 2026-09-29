@@ -19,9 +19,6 @@ from typing import Any, Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
-    assert_record_not_a_discovery,
-)
 from codontrace.genesis.campaigns.discovery_q_20260928_idea1 import (
     CLAIM_CEILING as IDEA1_CLAIM_CEILING,
 )
@@ -53,6 +50,9 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea6 import (
     IDEA6_SCORED_CELLS,
     USTAR_ID,
     run_idea6_scored_cell,
+)
+from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
+    assert_record_not_a_discovery,
 )
 
 SCHEMA = "discovery_q_20260928_jsonl_track_c_v1"

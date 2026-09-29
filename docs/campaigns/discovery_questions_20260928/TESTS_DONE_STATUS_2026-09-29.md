@@ -89,3 +89,21 @@ as [`NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md`](NOVELTY_AND_RESULTS_SYNTHESIS
 (RQ-1 `INCONCLUSIVE` in flight, D-2 `FALSIFIED_IN_MODEL` on the calibration tier, RQ-3
 `INCONCLUSIVE` (energy-confounded single-pilot behavioural separation; corrected controls at n = 3 show no reliable separation and the pre-selection-parity contract is an open precondition), the CausalTape share only with its estimator
 label, and `c*` flagged probe-level).
+
+## Confirmed results superseding the stage-0 rows (2026-09-29)
+
+The stage-0 status map above is the sealed record of the stage-0 decision and is left as written;
+this section records the confirmed results that now supersede the `BLOCKED_MEASUREMENT` / "not run"
+wording in its RQ-1, RQ-3 and D-2 rows and in its "Next actions" list.
+
+| Test | Standing result | Evidence |
+|---|---|---|
+| **RQ-1** time-shift | **`INCONCLUSIVE`** at the full **8/8** locked confirmatory seeds (seeds 5701-5708, 200 generations, never shortened). Support labels 3/8, so the locked pattern is not met. Contemporary vs frozen: mean **+0.006457182525**, paired interval **[0.0007107158, 0.0122036492]** (excludes zero, positive). Lagged vs frozen: mean **-0.0046115291625**, paired interval **[-0.0072590741, -0.0019639842]** (excludes zero, negative). The frozen arm is **exactly flat 0.0 on all eight seeds**; the shuffled-label control gives **0/24**. `hypothesis_supported = false`, `red_queen_proved = false`. The earlier 2/8 in-flight state is **superseded history**. | `docs/experiments/2026-09-29/rq1_time_shift/README.md`, `.../confirmatory/analysis_confirmatory_rq1.py`, `.../confirmatory/analysis_confirmatory.json` |
+| **RQ-3** adaptation-route cut | **`INCONCLUSIVE`**, parity-controlled. The controls were rebuilt to run the identical credit/maintenance/reproduction/selection pipeline and to cut only the information path; the parity contract holds the **design terms asserted** (seats offered, per-unit maintenance charged, contact budget offered before selection) while the **realised income and post-selection divergence are logged** as the treatment effect. Corrected contrast at three independent seeds (21061-21063, 40 generations, maintenance 0.15 in every arm): coevolve 0.15625 / 0.265625 / 0.03125 vs frozen 0.0625 on all three and shuffled 0.078125 / 0.046875 / 0.09375; paired intervals coevolve-frozen **+0.0885 [-0.03125, +0.203125]** and coevolve-shuffled **+0.0781 [-0.0625, +0.21875]**, both containing zero. The earlier `SUPPORTED_IN_MODEL` wording is **withdrawn and superseded**. | `docs/experiments/2026-09-29/rq3_adaptation_route/README.md`, upstream `decision.md` |
+| **D-2** recovery window | **Endpoint not measurably reachable** at the measurement level. The positive control ran **before** any arm contrast (2 seeds x 3 checkpoints x horizon 40, 302.26 s): `positive_keep_eligible` and `positive_restore_token` both reach a maximum ratio of **1.036** with best streak **0**, `control_relocated` **0.570**, and **0 of 6** recoveries in every control, against the locked 1.25x for three consecutive boundaries. The earlier round-4 `FALSIFIED_IN_MODEL` reading is superseded by this measurement verdict, and the topology identification flags are forced `False` in `incident_endpoints_realised` until endpoints come from real engine contact events. | `test-runs/d2/logs/task16_positive_control.json`, `test-runs/d2/analysis_task16.json`, `src/codontrace/life_loop/engine_ledger_coupler.py` |
+
+Consequences for the "Next actions" list above: RQ-1 is no longer in flight, RQ-3 is no longer
+blocked and no longer supported, and D-2's live test is no longer blocked for lack of a fork or a
+topology identification - it is a measurement-level negative with a positive control reported first.
+The remaining blocks of that list stay as written for D-1, D-3 and D-4. No threshold, seed, lock,
+claim ceiling or flag is changed here.

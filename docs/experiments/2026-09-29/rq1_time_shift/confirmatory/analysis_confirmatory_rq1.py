@@ -22,6 +22,70 @@ mod = importlib.util.module_from_spec(spec)
 sys.modules["conf_mod"] = mod
 spec.loader.exec_module(mod)
 
+
+def _t_critical(df: int, conf: float = 0.95) -> tuple[float, str]:
+    """Exact Student-t 0.975 quantile; falls back to the repo table if scipy is absent."""
+
+    try:
+        from scipy.stats import t as _student_t
+
+        return float(_student_t.ppf(0.5 + conf / 2.0, int(df))), "scipy.stats.t.ppf"
+    except Exception:  # noqa: BLE001
+        from codontrace.genesis.causal_validation import _T975_BY_DF
+
+        return float(_T975_BY_DF.get(int(df), 1.96)), "causal_validation._T975_BY_DF"
+
+
+def exact_paired_interval(deltas, *, conf: float = 0.95):
+    """The same paired-t interval as causal_validation but with the exact quantile.
+
+    Returns (lo, hi, critical). Used only to quantify the endpoint shift caused
+    by the repo's three-decimal lookup table; the locked verdict uses the repo
+    function.
+    """
+
+    vals = [float(v) for v in deltas]
+    if len(vals) < 2:
+        return (0.0, 0.0, 0.0)
+    mean = sum(vals) / len(vals)
+    var = sum((v - mean) ** 2 for v in vals) / (len(vals) - 1)
+    if var <= 0.0:
+        return (0.0, 0.0, 0.0)
+    se = (var / len(vals)) ** 0.5
+    crit, _src = _t_critical(len(vals) - 1, conf)
+    return (round(mean - crit * se, 10), round(mean + crit * se, 10), crit)
+
+
+def t_star_comparison() -> dict:
+    """Repo lookup table vs the exact quantile, and the endpoint shift at n=8."""
+
+    from codontrace.genesis.causal_validation import _T975_BY_DF
+
+    rows = []
+    for df in (1, 2, 3, 4, 5, 6, 7):
+        exact, src = _t_critical(df)
+        table = float(_T975_BY_DF[df])
+        rows.append(
+            {
+                "df": df,
+                "repo_table": table,
+                "exact": exact,
+                "exact_minus_table": exact - table,
+                "source": src,
+            }
+        )
+    return {
+        "note": (
+            "causal_validation._paired_interval uses the three-decimal lookup "
+            "_T975_BY_DF; the exact quantile is reported for the archived copy. "
+            "df=1 is the 12.706 -> 12.7062047361747 case."
+        ),
+        "rows": rows,
+        "confirmatory_df": 7,
+        "confirmatory_repo_table": float(_T975_BY_DF[7]),
+        "confirmatory_exact": _t_critical(7)[0],
+    }
+
 RAW = HERE / "raw"
 TIMES = mod.TIMES
 SLOTS = mod.SLOTS
@@ -159,6 +223,7 @@ def main() -> int:
 
     def interval(vals):
         lo, hi = mod._paired_interval(vals)
+        ex_lo, ex_hi, crit = exact_paired_interval(vals)
         return {
             "n_pairs": len(vals),
             "mean": (sum(vals) / len(vals)) if vals else None,
@@ -166,7 +231,14 @@ def main() -> int:
             "hi": hi,
             "excludes_zero": bool(vals) and (lo > 0.0 or hi < 0.0),
             "method": "causal_validation._paired_interval (95% paired t)",
+            "exact_t_lo": ex_lo,
+            "exact_t_hi": ex_hi,
+            "exact_t_critical": crit,
+            "exact_minus_repo_lo": (ex_lo - lo) if vals else None,
+            "exact_minus_repo_hi": (ex_hi - hi) if vals else None,
         }
+
+    t_star = t_star_comparison()
 
     stats = {
         "contemporary": {
@@ -194,6 +266,25 @@ def main() -> int:
         },
     }
     report["statistics"] = stats
+    report["interval_exact_quantile"] = {
+        "t_star": t_star,
+        "intervals": {
+            "contemporary_vs_frozen": stats["contemporary"]["interval_vs_frozen"],
+            "lagged_vs_frozen": stats["lagged"]["interval_vs_frozen"],
+            "contemporary_vs_lagged": stats["paired_contemporary_vs_lagged"],
+        },
+        "confirmatory_endpoint_shift": {
+            k: {
+                "exact_minus_repo_lo": v.get("exact_minus_repo_lo"),
+                "exact_minus_repo_hi": v.get("exact_minus_repo_hi"),
+            }
+            for k, v in (
+                ("contemporary_vs_frozen", stats["contemporary"]["interval_vs_frozen"]),
+                ("lagged_vs_frozen", stats["lagged"]["interval_vs_frozen"]),
+                ("contemporary_vs_lagged", stats["paired_contemporary_vs_lagged"]),
+            )
+        },
+    }
     report["integrity"] = {
         "raw_recompute_matches_all_seeds": raw_recompute_matches,
         "all_seed_gates_ok": gates_ok_all,
@@ -301,6 +392,24 @@ def main() -> int:
         "round": 3,
         "commit": mod.COMMIT,
         "commit_source": "git archive of 6187ff4 at test-runs/verify/full6187ff4",
+        "provenance": {
+            "pin": mod.COMMIT,
+            "seeds_5701_5702": mod.COMMIT,
+            "seeds_5703_5708": mod.COMMIT,
+            "engine_changes_after_pin": [
+                "40138c9 RNG migration",
+                "913f18e from_fork restoration",
+                "02cc725 docs-only",
+            ],
+            "comparability": (
+                "All eight seeds ran against the same pinned extraction "
+                "(test-runs/verify/full6187ff4, commit 6187ff4), so the pack is "
+                "single-revision and the two groups are comparable by construction. "
+                "The post-6187ff4 commits are absent from the pin and touch the RNG "
+                "migration and from_fork restoration paths, which these arm runs do "
+                "not use. No mixed-revision claim is made."
+            ),
+        },
         "config_digest": mod.CONFIG_DIGEST,
         "locked_config": mod.LOCKED_CONFIG,
         "seeds_locked": list(SEEDS),
@@ -376,6 +485,21 @@ result. {('Seeds ' + str(report['seeds_remaining']) + ' remain; the pack is resu
     print(
         json.dumps(
             {"verdict": verdict, "reason": reason, "integrity": report["integrity"]},
+            indent=2,
+        )
+    )
+    print(
+        json.dumps(
+            {
+                "t_star_df7": {
+                    "repo_table": t_star["confirmatory_repo_table"],
+                    "exact": t_star["confirmatory_exact"],
+                },
+                "t_star_df1": next(r for r in t_star["rows"] if r["df"] == 1),
+                "endpoint_shift": report["interval_exact_quantile"][
+                    "confirmatory_endpoint_shift"
+                ],
+            },
             indent=2,
         )
     )

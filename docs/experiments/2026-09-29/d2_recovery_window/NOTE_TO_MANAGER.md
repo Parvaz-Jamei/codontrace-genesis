@@ -1,9 +1,9 @@
-# D-2 → manager: unblocking patch `test-runs/d2/PROPOSED_CHANGE.patch`
+# D-2 → manager: unblocking patch `docs/experiments/2026-09-29/d2_recovery_window/PROPOSED_CHANGE.patch`
 
 **From:** D-2 test agent (`mechanism-test`) · **Round:** 1 · **Date:** 2026-09-29
-**Patch:** `test-runs/d2/PROPOSED_CHANGE.patch` (231 diff lines, sha256 prefix `1398050ecf16fddd`)
-**Evidence:** `test-runs/d2/patch_evidence.json`, `test-runs/d2/logs/make_patch.txt`
-**Script that generates both:** `test-runs/d2/harness/d2_make_patch.py` (the patch text and the
+**Patch:** `docs/experiments/2026-09-29/d2_recovery_window/PROPOSED_CHANGE.patch` (231 diff lines, sha256 prefix `1398050ecf16fddd`)
+**Evidence:** `docs/experiments/2026-09-29/d2_recovery_window/patch_evidence.json`, `docs/experiments/2026-09-29/d2_recovery_window/logs/make_patch.txt`
+**Script that generates both:** `docs/experiments/2026-09-29/d2_recovery_window/harness/d2_make_patch.py` (the patch text and the
 code exercised for evidence are the *same source strings*).
 
 The patch touches two files and nothing else. It is additive: no existing constant,
@@ -19,7 +19,7 @@ threshold, recorded number or decision branch is modified.
   element_grid_digest, substrate_bridge_mode`; there is **no restore entry point**
   (`[n for n in dir(GenesisEngine) if restore|fork|from_snapshot] == []`) and
   `copy.deepcopy(engine)` raises `TypeError: cannot pickle 'mappingproxy' object`.
-  Probe: `test-runs/d2/logs/probe7.txt`, `stage0_report.json → fork_precondition`.
+  Probe: `docs/experiments/2026-09-29/d2_recovery_window/logs/probe7.txt`, `stage0_report.json → fork_precondition`.
   The unforgeable proxies are in `spec.element_grid.registry._definitions`,
   `spec.population_configs.{alive_gate,fitness}.status_registry._definitions`,
   each organism's `action_registry._handlers`,
@@ -60,7 +60,7 @@ threshold, recorded number or decision branch is modified.
 * **Defect (measured, not inferred):** the named-scaffold cut (`E0,E1`) and the degree/ATP
   matched random cut (`E6,E7`) produce **identical burden, identical realised contacts and an
   identical engine population trajectory** under `global_smear`. Raw runs:
-  `test-runs/d2/logs/probe4.txt`, `probe6.txt`:
+  `docs/experiments/2026-09-29/d2_recovery_window/logs/probe4.txt`, `probe6.txt`:
   `control=d3084e8b…`, `cut_named_scaffold=39762884025d7aad`,
   `cut_matched_random=39762884025d7aad`, both `burden=3.2202197309490583`. Every arm
   difference versus control is exactly the fixed count penalty (`n_edge_changes × 0.35`).
@@ -101,10 +101,10 @@ D-2 pack will report it as an opportunity/attrition finding rather than tune it 
 
 ## What to do after landing
 
-1. `git apply test-runs/d2/PROPOSED_CHANGE.patch` (or apply by hand; the two hunks are
+1. `git apply docs/experiments/2026-09-29/d2_recovery_window/PROPOSED_CHANGE.patch` (or apply by hand; the two hunks are
    independent).
 2. Run `python -c "import codontrace.engine_runtime, codontrace.life_loop.engine_ledger_coupler"`.
-3. Tell me it landed. I will re-run `python test-runs/d2/harness/d2_pack.py all` against the
+3. Tell me it landed. I will re-run `python docs/experiments/2026-09-29/d2_recovery_window/harness/d2_pack.py all` against the
    real files and record `decision.md` with a real verdict, plus `d2_replay.py` from the
    manifest. Round 2 of my budget is reserved for that.
 

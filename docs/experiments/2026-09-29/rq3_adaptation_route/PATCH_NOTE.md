@@ -1,9 +1,9 @@
 # RQ-3 PROPOSED_CHANGE — handover note
 
 **Round:** 1 (manifest round field is written by `rq3_harness.py`, `ROUND = 1`)
-**Patch:** `test-runs/rq3/PROPOSED_CHANGE.patch` (752 lines, unified diff, LF endings only)
+**Patch:** `docs/experiments/2026-09-29/rq3_adaptation_route/PROPOSED_CHANGE.patch` (752 lines, unified diff, LF endings only)
 **Repository writes by this agent:** none. Everything below was produced inside
-`test-runs/rq3/`.
+`docs/experiments/2026-09-29/rq3_adaptation_route/`.
 
 ## What the patch contains
 
@@ -22,7 +22,7 @@ keep their names and are filled from the ledger.
 `C:\Program Files\Git\cmd\git.exe`, `C:\Program Files (x86)\Git\cmd\git.exe`,
 `C:\Program Files\Git\usr\bin\patch.exe`; all absent), so `git apply --check` could not be
 executed here. The patch was verified by two equivalent checks instead, both run by
-`test-runs/rq3/verify_patch.py`:
+`docs/experiments/2026-09-29/rq3_adaptation_route/verify_patch.py`:
 
 1. **Structural parse and exact context match.** Every hunk header is read; the declared old
    and new line counts are compared against the lines the hunk actually carries; and every

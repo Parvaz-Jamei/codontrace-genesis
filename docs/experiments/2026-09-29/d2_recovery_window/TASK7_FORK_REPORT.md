@@ -2,8 +2,8 @@
 
 **Agent:** mechanism-test (D-2) · **Date:** 2026-09-29 · **Verdict:** root cause found, minimal fix
 delivered, fix proven with a discriminating test **and** a negative control.
-**Patch:** `test-runs/d2/PROPOSED_CHANGE_fork.patch` — 68 diff lines, sha256 prefix `9d7e070d90aaf5d2`
-**Raw evidence:** `test-runs/d2/logs/task7_fork_identity.json`, `logs/task7_fork_proof.json`,
+**Patch:** `docs/experiments/2026-09-29/d2_recovery_window/PROPOSED_CHANGE_fork.patch` — 68 diff lines, sha256 prefix `9d7e070d90aaf5d2`
+**Raw evidence:** `docs/experiments/2026-09-29/d2_recovery_window/logs/task7_fork_identity.json`, `logs/task7_fork_proof.json`,
 `logs/task7_probe.txt`, `logs/fork_patch_proof.txt`
 **Generators:** `harness/d2_make_fork_patch.py` (patch text and the code exercised by the proof are
 the same source strings), `probes/task7_fork_identity.py`

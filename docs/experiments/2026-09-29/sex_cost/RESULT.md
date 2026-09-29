@@ -22,20 +22,20 @@ Fixed before the sweep finished and never changed: level is "maintained" iff **L
 
 | artefact | path |
 |---|---|
-| raw per-seed records (2,100 rows, 828 KB) | `test-runs/sex_cost/raw.jsonl` |
+| raw per-seed records (2,100 rows, 828 KB) | `docs/experiments/2026-09-29/sex_cost/raw.jsonl` |
 | raw bytes frozen for verification | `sha256(raw.jsonl) = 036451239d35dcab6a23b627bcfecd6b1db44ac81b39a5a4f90566a65ce9661c` |
-| run manifest (sha, config digest, harness sha256, grid, environment) | `test-runs/sex_cost/manifest.json` |
-| analysis derived from raw only | `test-runs/sex_cost/analysis.json`, `test-runs/sex_cost/analysis.txt` |
-| analysis stdout | `test-runs/sex_cost/analysis.log` |
-| sweeper (resumable) | `test-runs/sex_cost/sweep_sex_cost.py` |
-| analyser | `test-runs/sex_cost/analyze_sex_cost.py` |
-| sweep + resume wall time | `test-runs/sex_cost/sweep.log`, `test-runs/sex_cost/fill_gap.log` |
+| run manifest (sha, config digest, harness sha256, grid, environment) | `docs/experiments/2026-09-29/sex_cost/manifest.json` |
+| analysis derived from raw only | `docs/experiments/2026-09-29/sex_cost/analysis.json`, `docs/experiments/2026-09-29/sex_cost/analysis.txt` |
+| analysis stdout | `docs/experiments/2026-09-29/sex_cost/analysis.log` |
+| sweeper (resumable) | `docs/experiments/2026-09-29/sex_cost/sweep_sex_cost.py` |
+| analyser | `docs/experiments/2026-09-29/sex_cost/analyze_sex_cost.py` |
+| sweep + resume wall time | `docs/experiments/2026-09-29/sex_cost/sweep.log`, `docs/experiments/2026-09-29/sex_cost/fill_gap.log` |
 
 Wall time: 3,198.8 s main sweep (2,097 runs) + 14.9 s resumable gap-fill (3 runs) = **3,213.7 s ≈ 53.6 min at 4 workers**, run while a redundant pytest process was still consuming CPU. 8 workers would cut this to roughly 38 min at the measured ~1.4× factor.
 
 ## Honesty notes the manager must carry into the repair
 
-1. **The claim survives, so do not re-word it as superseded.** What changes is the *citation*: the missing `phase_results.json` and the single-seed `phase_probe.txt` narrowing are replaced by `test-runs/sex_cost/`. Cite the bracket as interval-derived from 100 paired seeds per level per turnover.
+1. **The claim survives, so do not re-word it as superseded.** What changes is the *citation*: the missing `phase_results.json` and the single-seed `phase_probe.txt` narrowing are replaced by `docs/experiments/2026-09-29/sex_cost/`. Cite the bracket as interval-derived from 100 paired seeds per level per turnover.
 2. **`origin/main` was moving during this session** because other teammates were pushing (reflog: `01ee4a2 → 1355b6` at 16:17:25 "docs(campaign): repair a dangling citation and commit the novelty synthesis", then a further push to `74d98cb`). 2,097 of 2,100 runs executed at `1355b6` and the last 3 at `74d98cb`. The load-bearing guarantee is not the moving ref but the harness hashes: the four audited files (`sex_phase.py`, `sex_arms.py`, `telemetry.py`, `codontrace/rng.py`) were hash-identical at run time and are unchanged now (`harness_unchanged_since_run: true` in `analysis.json`). The manifest's sha field reflects the last fill invocation, and `manifest.json` states this explicitly.
 3. **The 3-run gap is disclosed.** Killed in-flight work in an earlier attempt lost three replicates (turnover 6, c = 0.9, seeds 8021–8023). They were re-run with the identical script and configuration, not substituted; the raw file now contains exactly the pre-registered 2,100 keys with zero duplicates.
 4. **Scope limits.** infection_cost is fixed at 0.4, parasite_mutation at 0.005, fail_death 0.9, generations 400, host cap 400, loci 6 — the parameter values of the original probe, held fixed so the new sweep tests the old claim rather than a new one. c* is therefore conditional on that regime; the wider phase diagram over infection_cost ∈ {0.4, 0.9, 1.6, 2.4} remains a separate run.

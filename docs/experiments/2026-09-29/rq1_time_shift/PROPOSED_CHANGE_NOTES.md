@@ -68,7 +68,7 @@ and identical initial parasite-window digests across the three arms for a seed
 labelled RNG namespace (`hp-struct-rq-{arm}`). The 3×3 cross-time matrix is
 assembled outside evolution from the archived class tables with the existing
 measurement kernel (`realised_conditional_host_pressure`, `full_matrix` equal
-exposure). Verified with the live run in `test-runs/rq1/rq1_live_run.py`.
+exposure). Verified with the live run in `docs/experiments/2026-09-29/rq1_time_shift/rq1_live_run.py`.
 
 **Risk if the addendum is applied.** None to code: it adds one markdown file and
 edits nothing. The sealed stage-0 record is left untouched, as the program

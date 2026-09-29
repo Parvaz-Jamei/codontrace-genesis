@@ -52,7 +52,7 @@ hashes did.
 ## Replay
 
 ```
-cd test-runs/rq1
+cd docs/experiments/2026-09-29/rq1_time_shift
 C:\Users\parvaz\AppData\Local\Programs\Python\Python314\python.exe replay_rq1.py --from-manifest run_manifest.json
 ```
 

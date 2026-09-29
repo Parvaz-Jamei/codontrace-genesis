@@ -1,8 +1,8 @@
 5d2791967e8e831ca8f8c92d5dae98ff701b2d95e65b925058059b8acbb912e3          9351  apply_rng_patch.py
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  campaigns_after.json
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  campaigns_before.json
-bfcda6c648eb47512a4b3e0a7238b1328d1bf0f5c39ca58011e00e654896a02d          1814  evidence_files.sha256
-8a078eacf4812d9e822187c5962111e5387bb21954568bf530a8ac90a9c9bdbc          7342  INVENTORY.md
+a9c6e23946fd40f5e5eedebcd496ef5c3ccb72763c27ecf539f226ec4416d145          1654  evidence_files.sha256
+3da1d84f622dd469ce7f339394b10fde191a86ee45d1aa596bec3034a2119e26          7776  INVENTORY.md
 ee763c7d1243f5416b505ae7343a9745e3b14a2acda733c7d0681045bc0c63f4          1822  make_rng_patch.py
 f821cd6038da4daf4d030423f21052fde3d66d0d70666f9417214768c7461145          2918  paatched_scratch_full_pytest.txt
 3d4266dc084568a8cfb04740d3c8497bb9bc2e2386f480b6e88ca7fc54ef6b72         11101  PROPOSED_CHANGE_rng_backend.patch

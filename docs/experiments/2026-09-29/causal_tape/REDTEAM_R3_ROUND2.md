@@ -1,6 +1,6 @@
 # ROUND-2 RED TEAM — verdict: REJECT AS PREREGISTERED
 
-Three probes were run against the real code (all in `causal-tape-experiment/`): `rt2_aj_check.py` (env 20260927, G40, 300 seeds, natural + 8–16 suppressed tapes per eps), `rt2_boot_coverage.py` (Monte Carlo coverage, calibrated to heavy1's three observed slopes), `rt2_agent_resolution.py` (agent outcome resolution and per-step cost). Numbers below are measured, not asserted.
+Three probes were run against the real code (all in `docs/experiments/2026-09-29/causal_tape/`): `rt2_aj_check.py` (env 20260927, G40, 300 seeds, natural + 8–16 suppressed tapes per eps), `rt2_boot_coverage.py` (Monte Carlo coverage, calibrated to heavy1's three observed slopes), `rt2_agent_resolution.py` (agent outcome resolution and per-step cost). Numbers below are measured, not asserted.
 
 ## 1. A_j(eps): not circular — self-refuting
 

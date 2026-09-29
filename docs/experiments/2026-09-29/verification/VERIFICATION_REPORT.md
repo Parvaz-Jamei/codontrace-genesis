@@ -1,6 +1,6 @@
 # task-6 — independent verification of the tick-index fix
 
-Verifier: teammate `ci-green` (independent; no repo writes, write scope `test-runs/verify` only).
+Verifier: teammate `ci-green` (independent; no repo writes, write scope `docs/experiments/2026-09-29/verification` only).
 Repo: `codontrace-genesis` at **HEAD `6187ff4`**, clean working tree.
 Environment for every command: `PYTHONPATH=<repo>\src`, `PYTHONIOENCODING=utf-8`,
 `PYTHONUTF8=1`, output captured with `cmd.exe /c "... > file 2>&1"` and read back.
@@ -21,15 +21,15 @@ python -m pytest -q tests/genesis_gates/test_post_review_manifest_replay_review_
 exit=0
 ```
 
-Raw output: `test-runs/verify/check1_gates.txt` (7 passed, whole file green).
+Raw output: `docs/experiments/2026-09-29/verification/check1_gates.txt` (7 passed, whole file green).
 
 ## 2. Adversarial probes — PASS
 
-Script: `test-runs/verify/probe_tick_index.py`
-Raw output: `test-runs/verify/probe_out.txt`, machine-readable `test-runs/verify/probe_report.json`.
+Script: `docs/experiments/2026-09-29/verification/probe_tick_index.py`
+Raw output: `docs/experiments/2026-09-29/verification/probe_out.txt`, machine-readable `docs/experiments/2026-09-29/verification/probe_report.json`.
 
 ```
-python test-runs/verify/probe_tick_index.py
+python docs/experiments/2026-09-29/verification/probe_tick_index.py
 exit=0
 asserted failures: none
 ```
@@ -64,8 +64,8 @@ sequence equals the original engine's tail at the same absolute indices.
 
 ## 3. Pins byte-identical to HEAD `434bbd1` — PASS, 12/12, no pin moved
 
-Script `test-runs/verify/check_pins_vs_434bbd1.py`, raw output `test-runs/verify/check3_pin_identity.txt`
-(`exit=0`), plus the live suites in `test-runs/verify/check3_pins.txt`:
+Script `docs/experiments/2026-09-29/verification/check_pins_vs_434bbd1.py`, raw output `docs/experiments/2026-09-29/verification/check3_pin_identity.txt`
+(`exit=0`), plus the live suites in `docs/experiments/2026-09-29/verification/check3_pins.txt`:
 
 ```
 python -m pytest -q tests/platform/pin tests/test_host_parasite_phase9.py \
@@ -106,7 +106,7 @@ python -m ruff check src tests        -> exit=0, "All checks passed!"
 python -m compileall -q src tests examples tools -> exit=0, no output
 ```
 
-Raw: `test-runs/verify/check4_ruff.txt`, `test-runs/verify/check4_compileall.txt`.
+Raw: `docs/experiments/2026-09-29/verification/check4_ruff.txt`, `docs/experiments/2026-09-29/verification/check4_compileall.txt`.
 
 ## 5. Commit inspection — PASS, no unrelated edits
 
@@ -121,7 +121,7 @@ git show --stat 6187ff4   ->  src/codontrace/genesis/campaigns/discovery_q_20260
 * `6187ff4` touches one file only. `ecology: str = "standing"` is the default, and I verified the
   default path is **byte-identical** to the parent `44a06f4` by building the spec in a pristine
   `git worktree` checkout of `44a06f4` and in the live tree
-  (`test-runs/verify/check_standing_identity.py`, raw output `test-runs/verify/check5_standing.txt`,
+  (`docs/experiments/2026-09-29/verification/check_standing_identity.py`, raw output `docs/experiments/2026-09-29/verification/check5_standing.txt`,
   `exit=0`):
 
   | probe | live `6187ff4` | parent `44a06f4` | result |

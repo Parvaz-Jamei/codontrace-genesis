@@ -1,6 +1,6 @@
 # SCALE_DESIGN — large-scale runs for CausalTape Tests 1–3
 
-Workspace: `causal-tape-experiment/`. Host: 8 logical cores (4 physical + HT), Windows, Python 3.14, numpy 2.4.4, pandas available. Telemetry backend: `telemetry.py` (smoke-tested). Nothing here is code; no experiments were run for this design beyond the timing micro-benchmarks named below.
+Workspace: `docs/experiments/2026-09-29/causal_tape/`. Host: 8 logical cores (4 physical + HT), Windows, Python 3.14, numpy 2.4.4, pandas available. Telemetry backend: `telemetry.py` (smoke-tested). Nothing here is code; no experiments were run for this design beyond the timing micro-benchmarks named below.
 
 ## 0. Cost model (basis for every estimate)
 

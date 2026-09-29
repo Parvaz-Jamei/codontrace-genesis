@@ -1,7 +1,7 @@
 # CLAIM C — ACCEPT
 
-**Claim.** In `causal-tape-experiment/results/estimand_split.json` and the datasets under
-`causal-tape-experiment/datasets/*.npz`, the re-routing share of the previously reported
+**Claim.** In `docs/experiments/2026-09-29/causal_tape/results/estimand_split.json` and the datasets under
+`docs/experiments/2026-09-29/causal_tape/datasets/*.npz`, the re-routing share of the previously reported
 specification bias at the highest epistasis level is **64.1 %** with a 95 % interval of
 **[55.8, 73.3]**.
 
@@ -12,7 +12,7 @@ endpoints reproduced *bit-exactly*. The pooled **ratio of means** at `eps = 0.8`
 
 ## What was recomputed, from what
 
-`test-runs/verify/claim_c_estimand.py` — own code path; it does **not** import
+`docs/experiments/2026-09-29/verification/claim_c_estimand.py` — own code path; it does **not** import
 `estimand_split.py` and does not read any cached number before computing. Inputs are the
 raw arrays of the three highest-epistasis configurations:
 
@@ -125,8 +125,8 @@ components and their ratio, which are reproduced above from the raw arrays.
 
 ## Artifacts
 
-- `test-runs/verify/claim_c_estimand.py` (recompute + bootstrap), `claim_c_out.txt`, `claim_c_raw.json`
-- `test-runs/verify/claim_c_rankcheck_out.txt`, `claim_c_raw_rankcheck.json`
-- `test-runs/verify/claim_c_py312_out.txt`, `claim_c_raw_py312.json`
-- `test-runs/verify/claim_c_inspect.py`, `claim_c_inspect_out.txt`
-- `test-runs/verify/compare_c_runs.py`, `compare_c_out.txt`
+- `docs/experiments/2026-09-29/verification/claim_c_estimand.py` (recompute + bootstrap), `claim_c_out.txt`, `claim_c_raw.json`
+- `docs/experiments/2026-09-29/verification/claim_c_rankcheck_out.txt`, `claim_c_raw_rankcheck.json`
+- `docs/experiments/2026-09-29/verification/claim_c_py312_out.txt`, `claim_c_raw_py312.json`
+- `docs/experiments/2026-09-29/verification/claim_c_inspect.py`, `claim_c_inspect_out.txt`
+- `docs/experiments/2026-09-29/verification/compare_c_runs.py`, `compare_c_out.txt`

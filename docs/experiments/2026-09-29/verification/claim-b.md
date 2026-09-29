@@ -13,7 +13,7 @@ observed during verification.
 (`winget`/`scoop`/`chocolatey` locations also checked; a recursive `C:\` scan was abandoned
 after a 300 s timeout). The three requested commands therefore could not be shelled out to.
 
-Instead, `test-runs/verify/claim_b_git.py` reproduces them **from the repository's own
+Instead, `docs/experiments/2026-09-29/verification/claim_b_git.py` reproduces them **from the repository's own
 object database**, reading raw artifacts:
 
 - loose objects: `zlib.decompress(.git/objects/xx/yyyy…)`, parse `"<type> <size>\0"` header;
@@ -80,6 +80,6 @@ is used. The reflog independently shows `8238459f` committed directly on top of 
 
 ## Artifacts
 
-- `test-runs/verify/claim_b_git.py` (reader + emulated commands), `claim_b_out.txt`, `claim_b_raw.json`
-- `test-runs/verify/claim_b_validate_reader.py`, `claim_b_validate_out.txt`, `claim_b_reader_validation.json`
-- `test-runs/verify/claim_b_recheck.py`, `claim_b_recheck_out.txt`, `claim_b_recheck.json`
+- `docs/experiments/2026-09-29/verification/claim_b_git.py` (reader + emulated commands), `claim_b_out.txt`, `claim_b_raw.json`
+- `docs/experiments/2026-09-29/verification/claim_b_validate_reader.py`, `claim_b_validate_out.txt`, `claim_b_reader_validation.json`
+- `docs/experiments/2026-09-29/verification/claim_b_recheck.py`, `claim_b_recheck_out.txt`, `claim_b_recheck.json`

@@ -12,11 +12,11 @@ d1dc6502958d1960cc9f1fd80fcb11a57cca5be28a14b128ece98655b8964d10          3681  
 eb465798df8628b31386d7de49871dccdabdd9999adfc8095b899dcd5a1042db            13  check_rng_equality.txt
 1c071563d700dafc911be5f570bf33b141aa503949bae627bf68ab7c5bd89b76          4718  check_rng_equality_out.txt
 51d21938e28b1f6a6318a0d52f91d8f736d34d4c336ae38f13079aa5f012acce          3483  check_standing_identity.py
-b6284de7d5fa08d2fbb0ee9e6e42c14d215c0724e1ab7dabf0105c97ad2c6837          3788  claim-a.md
-cfdc0c2991f4fcef8782ca1f44e3f8d96126e16fc0095ebfae253702ebe6d072          3857  claim-b.md
-47cecbe08466839267d4343507063ac38ba861c81be14a0088d42866232d05dc          7155  claim-c.md
+fd0b4201cc1c4fb8cbaa824cf6de80a36a5bac0dc53f09975c6c5f1784494c50          3990  claim-a.md
+9f6d4a9d100e6f205e0d9e5856b120d28deb00cb52ba70dd78663fbe12df003e          4038  claim-b.md
+836abdb634f6054480bce7b511bbec368082b0c8892ba70f6b3f2595bde689d9          7465  claim-c.md
 a27aabd65c2bb512d8ca654d8e110d7964a6932b1834709adbcf5e71d349ace8         18947  CLAIMS.json
-02fcf53ce6b795ee12e98cfab05db5da875e49d9143a2cd33d659cce9a8d4537          5120  evidence_files.sha256
+da7554b3c3369f99b2d94269ea7d0d56d3264df90ebf0b903c4c5994fb00a16c          4561  evidence_files.sha256
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  full44a06f4/src/codontrace/genesis/checkpointing.py
 44fb4aa52bb9e7b3ef534e3ae150fdae8abeee8bf8e2e29edf4ad673d7352b89          7155  full44a06f4/tools/check_core_boundary.py
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  full6187ff4/src/codontrace/genesis/checkpointing.py
@@ -39,5 +39,5 @@ b3f363fc61420f83576b0b639aab5a098ce98c454c3e4a81afd953f4bc98ad23            81  
 2bcd22eeecf36cf2f472ffe84eeabeb6dc7e7e001d157f0ddfa7bbfd248d827b           849  task10_B4_fork_isolation.txt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855             0  task10_C_compile.txt
 82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18            19  task10_C_ruff.txt
-c095e3069e20f4f25365ea7ec0260c03d0c688175388a62e9540434a80d39096          8161  VERIFICATION_REPORT.md
-521d8738c78d3be342080cd0e6a4486e22b6cf7d98d26472af1742bfaaacf5f9         12331  VERIFICATION_TASK10_REPORT.md
+b9f8d1674baebe74bf4d53808b3f9f205cb472c40f5b020dad3d099f394bbc4e          8636  VERIFICATION_REPORT.md
+89f263360467b7e084688cd40c59624f43113efc932e7e1b8314073b0110feb3         12875  VERIFICATION_TASK10_REPORT.md

@@ -1,6 +1,6 @@
 # task-10 — independent verification of `40138c9` (RNG migration) and `913f18e` (fork restoration)
 
-Verifier: teammate `ci-green` (independent; no repo writes, write scope `test-runs/verify` only).
+Verifier: teammate `ci-green` (independent; no repo writes, write scope `docs/experiments/2026-09-29/verification` only).
 Tree under test: **`913f18e`** (code) with `HEAD=02cc725`, whose only delta over `913f18e` is two
 docs files (`docs/ci/CI_REPAIR_AND_TEST_STATUS_2026-09-29.md`,
 `docs/campaigns/discovery_questions_20260928/TESTS_DONE_STATUS_2026-09-29.md`) — `git diff --stat
@@ -26,7 +26,7 @@ Offender list computed by me from the same rule as
 (`forbidden = ("import random", "from random", "random.", "Random(", "pickle")`, `rng.py` exempt):
 
 ```
-test-runs/verify/scan_rng_offenders.py
+docs/experiments/2026-09-29/verification/scan_rng_offenders.py
 scanned=321 files under src\codontrace
 exempt=rng.py
 offenders=0
@@ -37,7 +37,7 @@ Raw: `task10_A1_test_rng.txt`, `task10_A1_offenders.txt`. Offender list is **emp
 ### A2. Re-ran the author's proof script into my own output file
 
 ```
-python test-runs/ci_repair/prove_rng_equality.py test-runs/verify/task10_A2_author_equality.json
+python docs/experiments/2026-09-29/ci_repair/prove_rng_equality.py docs/experiments/2026-09-29/verification/task10_A2_author_equality.json
 -> exit=0 ; stdout ends "ALL_EQUAL"
 ```
 
@@ -46,15 +46,15 @@ scaffold_digests, unseeded_path`. Raw: `task10_A2_author_equality.txt`, `task10_
 
 ### A3. My own bit-for-bit reconstruction of the pre-commit stream
 
-I did **not** use the author's harness for this. `test-runs/verify/check_rng_equality.py` extracts the
+I did **not** use the author's harness for this. `docs/experiments/2026-09-29/verification/check_rng_equality.py` extracts the
 pre-commit module with
 `git show 40138c9^:src/codontrace/life_loop/contact_atp_ledger.py` into
-`test-runs/verify/_old_contact_atp_ledger.py`, loads it under a distinct module name with
+`docs/experiments/2026-09-29/verification/_old_contact_atp_ledger.py`, loads it under a distinct module name with
 `importlib.util.spec_from_file_location`, and drives old and new in lockstep:
 
 ```
-python test-runs/verify/check_rng_equality.py   -> exit=0
-extracted pre-commit module -> test-runs/verify/_old_contact_atp_ledger.py
+python docs/experiments/2026-09-29/verification/check_rng_equality.py   -> exit=0
+extracted pre-commit module -> docs/experiments/2026-09-29/verification/_old_contact_atp_ledger.py
 pre-commit source sha256 = <printed>
 === RNG EQUALITY SUMMARY ===
 failures: none
@@ -97,11 +97,11 @@ identity check in B3 confirms the current values.)
 
 ### B1. Identity cells at `913f18e` — 6/6 PASS
 
-`test-runs/verify/check_fork_identity.py` (seed 31), K ∈ {0, 3} × N ∈ {1, 2, 5}, comparing the
+`docs/experiments/2026-09-29/verification/check_fork_identity.py` (seed 31), K ∈ {0, 3} × N ∈ {1, 2, 5}, comparing the
 `from_fork` continuation against the original engine's tail on four axes:
 
 ```
-python test-runs/verify/check_fork_identity.py --tree 913f18e   -> exit=0
+python docs/experiments/2026-09-29/verification/check_fork_identity.py --tree 913f18e   -> exit=0
 === identity cells 6/6 PASS ===
   K=0 N=1 index=True tick=True gen=True pop=True
   K=0 N=2 index=True tick=True gen=True pop=True
@@ -120,7 +120,7 @@ I extracted a pristine tree at the parent commit and ran the **same** script aga
 ```
 git worktree add --detach E:\_ci_verify\neg40138c9 40138c9
 set PYTHONPATH=E:\_ci_verify\neg40138c9\src
-python test-runs/verify/check_fork_identity.py --tree 40138c9_UNPATCHED  -> exit=1
+python docs/experiments/2026-09-29/verification/check_fork_identity.py --tree 40138c9_UNPATCHED  -> exit=1
 === identity cells 0/6 PASS ===
   K=0 N=1 index=True  tick=False gen=False pop=False
   K=0 N=2 index=True  tick=False gen=False pop=False
@@ -150,7 +150,7 @@ python -m pytest -q tests/test_replay.py tests/test_replay_hash.py \
   tests/genesis_gates/test_post_review_manifest_replay_review_rule_contracts.py tests/test_rng.py
 -> .........................................  [100%], exit=0   (41 passed)
 
-python test-runs/verify/check_pins_vs_434bbd1.py   -> exit=0, "=== PINS: 12/12 PASS ===", failures: none
+python docs/experiments/2026-09-29/verification/check_pins_vs_434bbd1.py   -> exit=0, "=== PINS: 12/12 PASS ===", failures: none
 ```
 
 Raw: `task10_B3_pins.txt`, `task10_B3_replay_manifest.txt`, `task10_B3_pin_identity.txt`.
@@ -163,7 +163,7 @@ still match their committed constants. **No locked pin moved and none was re-loc
 
 ### B4. Documented residual — probed honestly, plus one contract regression I found
 
-`test-runs/verify/check_fork_isolation_residual.py` (raw `task10_B4_fork_isolation.txt`), one captured
+`docs/experiments/2026-09-29/verification/check_fork_isolation_residual.py` (raw `task10_B4_fork_isolation.txt`), one captured
 payload, two arms built from it:
 
 ```json

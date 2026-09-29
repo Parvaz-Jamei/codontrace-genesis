@@ -2,7 +2,7 @@
 
 Design only. No experiments were run for this document.
 
-## 1. Minimal code changes (`causal-tape-experiment/sex_arms.py`)
+## 1. Minimal code changes (`docs/experiments/2026-09-29/causal_tape/sex_arms.py`)
 
 New constants: `ANTAG_GENS_PER_HOST = 1`, `ANTAG_FAIL_DEATH = 0.5`, `ANTAG_SAMPLE_FRAC = 1.0`.
 

@@ -2,7 +2,7 @@
 
 **Author:** teammate `prior-art` (novelty-verification member)
 **Date of search:** 2026-09-27 (Asia/Tehran)
-**Subject:** the three experiments in `causal-tape-experiment/` on `codontrace-genesis` @ `5a161081`
+**Subject:** the three experiments in `docs/experiments/2026-09-29/causal_tape/` on `codontrace-genesis` @ `5a161081`
 **Scope:** verification only. No new experiments were run.
 
 **Method.** `web_search` is broken in this environment (as reported by the prior audits), so every
@@ -21,7 +21,7 @@ permitted form — "we are not aware of a published precedent for X" — is used
 
 Read in full or in the relevant sections:
 
-* `causal-tape-experiment/RESULTS3.md`, `RESULTS4.md`, `PREREG.md`
+* `docs/experiments/2026-09-29/causal_tape/RESULTS3.md`, `RESULTS4.md`, `PREREG.md`
 * `codontrace_scm_novelty_audit.md` (workspace root)
 * `contingency_replay_state_of_art.md` (workspace root)
 * `order-effect-literature-verdict.md` (workspace root)

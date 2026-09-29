@@ -7,7 +7,7 @@ checkout the raw-byte hash differs.
 
 ## Reproduction
 
-Own code path: `test-runs/verify/claim_a_hash.py` reads each file with `Path.read_bytes()`
+Own code path: `docs/experiments/2026-09-29/verification/claim_a_hash.py` reads each file with `Path.read_bytes()`
 (no text decoding, no universal-newline translation), hashes the raw bytes, then hashes
 `raw.replace(b"\r\n", b"\n")`. Counts come from `bytes.count` on the raw buffer.
 The pins were taken from the claim statement, not from any file in the repository.
@@ -24,7 +24,7 @@ All three files are *uniformly* CRLF: 10 201/61/40 CRLF pairs and **zero** lone 
 
 ## Two independent confirmations
 
-1. **The repository's own digest helper agrees.** `test-runs/verify/claim_a_crosscheck.py`
+1. **The repository's own digest helper agrees.** `docs/experiments/2026-09-29/verification/claim_a_crosscheck.py`
    imports `codontrace-genesis/src/codontrace/genesis/text_digest.py::sha256_text_file`
    and calls it on each file. It returns exactly the pins. That function's implementation is
    `read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")`, and its docstring states the
@@ -34,7 +34,7 @@ All three files are *uniformly* CRLF: 10 201/61/40 CRLF pairs and **zero** lone 
    Because there are no lone CRs, the CRLF→LF-only and CRLF/CR→LF normalisations give
    identical digests here (verified per file).
 
-2. **The pins are the SHA-256 of the git blobs.** `test-runs/verify/claim_a_blob_identity.py`
+2. **The pins are the SHA-256 of the git blobs.** `docs/experiments/2026-09-29/verification/claim_a_blob_identity.py`
    resolves each path through the repository's own object database (HEAD commit → trees →
    blob), reads the blob bytes, and verifies both that the blob re-hashes to its own git
    SHA-1 and that the LF-normalised working-tree bytes are *byte-identical* to the blob:
@@ -53,6 +53,6 @@ files themselves were last modified 2026-09-24 and did not change between runs.
 
 ## Artifacts
 
-- `test-runs/verify/claim_a_hash.py`, `claim_a_out.txt`, `claim_a_raw.json`
-- `test-runs/verify/claim_a_crosscheck.py`, `claim_a_crosscheck_out.txt`, `claim_a_crosscheck.json`
-- `test-runs/verify/claim_a_blob_identity.py`, `claim_a_blob_out.txt`, `claim_a_blob_identity.json`
+- `docs/experiments/2026-09-29/verification/claim_a_hash.py`, `claim_a_out.txt`, `claim_a_raw.json`
+- `docs/experiments/2026-09-29/verification/claim_a_crosscheck.py`, `claim_a_crosscheck_out.txt`, `claim_a_crosscheck.json`
+- `docs/experiments/2026-09-29/verification/claim_a_blob_identity.py`, `claim_a_blob_out.txt`, `claim_a_blob_identity.json`

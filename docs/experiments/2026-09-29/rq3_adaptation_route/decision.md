@@ -61,13 +61,13 @@ test and no re-baselining. The standing default path is separately checked:
 `pytest` on the two locked test files with `PYTHONPATH` at the snapshot: **22 passed, 1 failed**.
 The failure is `test_p3_engine_has_no_hp_domain_physics_tokens`, a `FileNotFoundError` because
 that test reads `src/codontrace/engine.py` relative to the repository working directory while
-the run's cwd was `test-runs/rq3`. It is a path artefact of this harness, not a code defect, and
+the run's cwd was `docs/experiments/2026-09-29/rq3_adaptation_route`. It is a path artefact of this harness, not a code defect, and
 the same test is reported green by the manager on the repository cwd. No threshold, seed or pin
 was touched.
 
 ## 5. Calibration tier
 
-`python test-runs/d2/harness/d2_pack.py all` ran to completion; the harness recorded
+`python docs/experiments/2026-09-29/d2_recovery_window/harness/d2_pack.py all` ran to completion; the harness recorded
 `verdict=BLOCKED_MEASUREMENT` with `blocking=2` (raw log `out_d2pack.txt`). That is the pack's
 own verdict on its own subject, reported verbatim; this agent changed nothing to alter it.
 
@@ -79,7 +79,7 @@ earlier attempts in this campaign failed with `CommandNotFoundException`. The ar
 could not be executed and no git object identity can be cited.
 
 Substitute, with full disclosure: a filesystem snapshot of the live `src` tree taken at
-2026-09-29 15:44, copied to `test-runs/rq3/tip913f18e/src/src`, with the runs driven through
+2026-09-29 15:44, copied to `docs/experiments/2026-09-29/rq3_adaptation_route/tip913f18e/src/src`, with the runs driven through
 `RQ3_REPO`/`PYTHONPATH` at that snapshot. It is pinned by checksum, not by commit hash. A reader
 reproducing this record must checksum-compare the two files carrying the change
 (`closed_loop_hp_arm01_structural_rq.py`, `measurements/antagonist_population.py`) against the

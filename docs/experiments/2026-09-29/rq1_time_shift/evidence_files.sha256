@@ -6,7 +6,7 @@ bc53dce2f242d00f6aa4eed03800d5403e2d8ede75f80d427c1ee8608ec79008         17550  
 799da458108616327b4bf3cd66ada7f128dba9d26d4a85be9d0d152ae0fec5b0         14735  confirmatory/analysis_confirmatory_rq1.py
 68ac5c6f0fd0c9475a7b147fc11a37b9cf5315413e68bd5b8cefd946a8d387b0           473  confirmatory/analysis_out.txt
 0a4fe7d4726f5abff02e3be86bb0e90fa794cedb7ff10f5280aa7b0ef256e676         17163  confirmatory/confirmatory_rq1.py
-40223be5b2664cdbc6a472f79f3363aaebb80b47d36ad466925eac93fa7e993e          1918  confirmatory/decision.md
+9259cb092549518dd329bddb2a388aca4f3561a72808bcdec26dbf55f91bb7c4          1942  confirmatory/decision.md
 9862cf78ec35e5afe33d30e6ea6130631de75dbcaa650fa26d49a7b18dbb74cf          1386  confirmatory/effect_table_confirmatory.json
 3dbdb5a27e68792c08994d9b0bad20a80c338b6ab4622b21078856129874e4da           169  confirmatory/exclusions.md
 f0dde7d3086dabc71cb30ee653ca59bc61792b1f3b1db1ceb4ca8d2d0b6fbb19          1083  confirmatory/extract_confirmatory.py
@@ -41,7 +41,7 @@ e90141c7afbbbd9eaae2b7909c229206cfee74ccfd4e3e40e460cf5f4eb1a1cb          2215  
 0129c552495a0b36d0dd32835cd1be1b82c0824f191bc731524e236e57eb0d91          4804  decision.md
 ce28e2605205b26fea2064f38a4db9e84f531d9c764497eb54c684c4d4625ed3         10046  design.md
 959e34640bf4f36fb82f9efe7086cfef08c71a24335e7270a5506bb5e25443fc          3692  effect_table.json
-c29ab0d57cd5b53ace9a1d2de8684f22e313393810eda02100b31394378bdc65         11873  evidence_files.sha256
+385bb670151032ea84f3dfff6615ce6a969929f57fec251cfb73fbdb5075c3e2         10433  evidence_files.sha256
 af965d1843892b9bbfaf7611cba3b731a41ca11a50814f0bdb597411fef25365          4577  EXCLUSIONS.md
 d34f73cbc7ad009ca768a54f042de3481121c3b57836608e4318e44dc462a505          1400  extract_live_analysis.py
 72ff2d6ea0b5e68397f198cc0f8c6f69c4148a6493f30823e313d114187abce1          1876  extract_live_rq1.py
@@ -66,11 +66,11 @@ a60db13fe43d3c769ec0f3d0e0c57543dc1ddafe0e4b9c1fdb8c932f72d497f9          2848  
 2faf473129ad1427f9f7c14fdefacde6d43ec8dae8da326a0d50fbc5738d801f           517  logs/pytest_stage0.txt
 89cb63f89be606ba50d4f17ba1cc7ed5faa325de9385bc5b3878132941cdf7dc          1699  logs/replay_out.txt
 2f30febbdb6b17f9a0334bd5e07c3d7fcaec00d9ef01fe0f3c177ac998084c5a         10458  make_manifest_rq1.py
-d7029ada67e14017fc16cad3fbb32eb4c502a461cd69f8427f84bd5f8c9a154f          2737  NOTES.md
+e4ab29be1234de408824383589d5b04b3440bd6f48a3d7b960cf3047ba7ca301          2825  NOTES.md
 4d7b8d14122060dce9133511bc2a8e3265935268bedad8cb13c0f151b1e98a27          4403  prior_art.md
 8e69568d65fca3025866ee9ee0270d83d0efa354b7cb569e14dcab1729bccdc7         40410  probe_rq1.py
 ea68d2a131e53265fb5becaa1b3ddd59ab173578b2d32a70c358d589d9b01f39          1912  PROPOSED_CHANGE.patch
-afc01ff730ea7c5b456aa18986eedc8850bc50c7fb048701b899f0d7d815fbb6          4343  PROPOSED_CHANGE_NOTES.md
+67f7dea5d1050f8fda16992b6cc4fabb5c1325d8a6c606d9b84c085217b80ee6          4455  PROPOSED_CHANGE_NOTES.md
 4ca87f284345ddcaddcb1528e08fab1e022ee820e30fa0509baad3b8bd01be21         23328  raw/events.jsonl
 5f4cbdfd3720bdbd2d1214c039b94389adc05c6837bd358ad38f7621a39e77a7          4545  raw/feasibility_structural.json
 b2362af6cccd1982d297bc28658fe45d176ace6d342029860bbffda7dd17852b         14302  raw/live_events.jsonl.gz

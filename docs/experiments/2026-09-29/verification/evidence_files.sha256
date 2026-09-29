@@ -16,7 +16,7 @@ b6284de7d5fa08d2fbb0ee9e6e42c14d215c0724e1ab7dabf0105c97ad2c6837          3788  
 cfdc0c2991f4fcef8782ca1f44e3f8d96126e16fc0095ebfae253702ebe6d072          3857  verification/claim-b.md
 47cecbe08466839267d4343507063ac38ba861c81be14a0088d42866232d05dc          7155  verification/claim-c.md
 a27aabd65c2bb512d8ca654d8e110d7964a6932b1834709adbcf5e71d349ace8         18947  verification/CLAIMS.json
-f5f556545f55627e9be2502ac78c0b9f36652143a142a3ce6db94f86b18f53e2          6598  verification/evidence_files.sha256
+09a51e4a8a592b1b81d2ddfb7f89e51b2ba93f4fc3cc796a2060f7e89a57a724          5120  verification/evidence_files.sha256
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  verification/full44a06f4/src/codontrace/genesis/checkpointing.py
 44fb4aa52bb9e7b3ef534e3ae150fdae8abeee8bf8e2e29edf4ad673d7352b89          7155  verification/full44a06f4/tools/check_core_boundary.py
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  verification/full6187ff4/src/codontrace/genesis/checkpointing.py
@@ -26,7 +26,7 @@ f5f556545f55627e9be2502ac78c0b9f36652143a142a3ce6db94f86b18f53e2          6598  
 2a0e1bc8105ece53af29fbc110219651178127c23990c2c7024938d66073e7ed         23761  verification/probe_head17a12f6.json
 114e3d2b1353557d23a32506d270789f8a85e4dc14c25e22d1bbfc243ea2db14         11157  verification/probe_out.txt
 c25f820ea79783ce9fa0175e9c3ad5a1486cf60a9729d64dad133d099d1b5d0e         16114  verification/probe_report.json
-f5771236fbb8f6cdfc98c1e8a8db0bfce0491a325c97204f574e77da634f3a4c          2951  verification/README.md
+dc86f2be0f645707d7f44c9b66ac9bf6e3ecabf0d692e0675f204fb6145214c8          3081  verification/README.md
 d0c9a2f50af841bc8c6b253586b68767fbeb57a6df3ffaa35066a9ae63dea8b5            68  verification/task10_A1_offenders.txt
 9d5a2646cfea101970d3c6e3eb8c2650770734a095b2562b4c25cf9f554c913c            81  verification/task10_A1_test_rng.txt
 016142cf20b0e90bb27083f4d66dea827268c4b6ae411c201a631846294aa170          6230  verification/task10_A2_author_equality.json

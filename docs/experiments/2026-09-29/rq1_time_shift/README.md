@@ -51,7 +51,7 @@ is prior art (Decaestecker et al. 2007).
 
 ## Replay
 
-`python test-runs/rq1/replay_rq1.py --from-manifest run_manifest.json`
+`python docs/experiments/2026-09-29/rq1_time_shift/replay_rq1.py --from-manifest run_manifest.json`
 
 ## References
 

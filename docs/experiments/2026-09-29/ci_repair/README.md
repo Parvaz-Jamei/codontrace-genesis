@@ -49,7 +49,7 @@ unchanged.
 
 ## Replay
 
-`python test-runs/ci_repair/prove_rng_equality.py <out.json>`
+`python docs/experiments/2026-09-29/ci_repair/prove_rng_equality.py <out.json>`
 
 ## References
 

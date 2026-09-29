@@ -53,7 +53,7 @@ number may be quoted.
 
 ## Replay
 
-`python causal-tape-experiment/heavy1.py` (see `RESULTS.md` for the exact invocation)
+`python docs/experiments/2026-09-29/causal_tape/heavy1.py` (see `RESULTS.md` for the exact invocation)
 
 ## References
 

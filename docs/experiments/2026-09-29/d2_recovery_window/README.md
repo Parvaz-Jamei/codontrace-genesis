@@ -8,10 +8,10 @@ All paths below are relative to `docs/experiments/2026-09-29/d2_recovery_window/
 
 ## Excluded large artifacts (sha256 recorded, not imported)
 
-* `test-runs/d2/provenance/tip.tar` - `e4ba113bbc5858f90f579309cc5c7510771d1c25e221b06d96e01f0043926c7e`
-* `test-runs/verify/full44a06f4.tar` - `a20845bca785959d7849a6bf9e4d4e4daf33e8d6945b763682033367fbff1cbe`
-* `test-runs/verify/full6187ff4.tar` - `416fae0f4af225e1f6029c881c49612ab10f45a6dd9f49612c5b00823ff80a82`
-* `test-runs/verify/base49750b1.tar` - `236de879e12c7c020588d0e1f46bebb969856d35914012f91659adb766870075`
+* `docs/experiments/2026-09-29/d2_recovery_window/provenance/tip.tar` - `e4ba113bbc5858f90f579309cc5c7510771d1c25e221b06d96e01f0043926c7e`
+* `docs/experiments/2026-09-29/verification/full44a06f4.tar` - `a20845bca785959d7849a6bf9e4d4e4daf33e8d6945b763682033367fbff1cbe`
+* `docs/experiments/2026-09-29/verification/full6187ff4.tar` - `416fae0f4af225e1f6029c881c49612ab10f45a6dd9f49612c5b00823ff80a82`
+* `docs/experiments/2026-09-29/verification/base49750b1.tar` - `236de879e12c7c020588d0e1f46bebb969856d35914012f91659adb766870075`
 
 ## Question and hypothesis
 
@@ -31,7 +31,7 @@ unchanged.
 
 `run_manifest.json`, `analysis_round3.json`, `analysis_round4.json`, `raw/round3/`, `raw/round4/`.
 Fork diagnostic and identity proof: `logs/task7_*`. The 20 MB provenance tarball
-`test-runs/d2/provenance/tip.tar` is **excluded** from this archive by the size rule; its sha256 is
+`docs/experiments/2026-09-29/d2_recovery_window/provenance/tip.tar` is **excluded** from this archive by the size rule; its sha256 is
 recorded below.
 
 ## What was executed
@@ -60,7 +60,7 @@ fork is not fully isolated for consumers that need a self-contained serialisable
 
 ## Replay
 
-`python test-runs/d2/harness/d2_pack.py all`
+`python docs/experiments/2026-09-29/d2_recovery_window/harness/d2_pack.py all`
 
 ## References
 

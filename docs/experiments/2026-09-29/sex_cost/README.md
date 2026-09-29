@@ -47,7 +47,7 @@ cost of sex in this model.
 
 ## Replay
 
-`python test-runs/sex_cost/sweep_sex_cost.py` then `python test-runs/sex_cost/analyze_sex_cost.py`
+`python docs/experiments/2026-09-29/sex_cost/sweep_sex_cost.py` then `python docs/experiments/2026-09-29/sex_cost/analyze_sex_cost.py`
 
 ## References
 

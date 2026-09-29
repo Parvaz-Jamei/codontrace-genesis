@@ -53,7 +53,7 @@ claim.
 
 ## Replay
 
-`python test-runs/rq3/rq3_harness.py`; patch evidence `out_verify3.txt`.
+`python docs/experiments/2026-09-29/rq3_adaptation_route/rq3_harness.py`; patch evidence `out_verify3.txt`.
 
 ## References
 

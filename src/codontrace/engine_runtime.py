@@ -280,7 +280,7 @@ class GenesisEngine:
             if self.spec.substrate_bridge_mode == "world2d_mirror":
                 self.element_grid = world2d_to_element_grid(self.runner.world)
             tick_result = GenesisTickResult(
-                index=base + len(self._tick_results), generation_result=generation, qd_update=qd_update
+                index=base + index, generation_result=generation, qd_update=qd_update
             )
             self._tick_results.append(tick_result)
             self._snapshots.append(

@@ -26,7 +26,11 @@ from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
     process_cycle_complete,
     red_queen_proved_from_score,
     rq_barrier_holds,
+    rq_claim_inputs_sufficient,
+    rq_controls_present,
+    rq_model_decision,
     rq_positive_direction_reaches_threshold,
+    rq_preregistered_direction_reaches_threshold,
     same_genotype_counts,
     same_genotype_set,
 )
@@ -42,7 +46,12 @@ def test_p1_paired_population_path_diverges() -> None:
     posts = {row["ops_cell"]: row["engine_pop_path_digest"] for row in rows}
     assert len(pres) == 1
     assert posts["control"] != posts["cut_named_scaffold"]
+    # Equal aggregate digests are the null: global smear hides which edges moved.
     assert posts["cut_named_scaffold"] == posts["cut_matched_random"]
+    assert all(row["feedback_allocation"] == "global_smear" for row in rows)
+    assert all(row["endpoints_enter_debit"] is False for row in rows)
+    assert all(row["topology_effect_identified"] is False for row in rows)
+    assert rows[2]["independent_control"] is False
     assert all(row["hypothesis_supported"] is False for row in rows)
     checkpoints = {tuple(row["checkpoint_organism_ids"]) for row in rows}
     assert len(checkpoints) == 1
@@ -54,8 +63,16 @@ def test_p2_survival_is_host_census_not_energy_blend() -> None:
         assert row["estimand"] == "host_lineages_alive_over_founded"
         assert row["score_role"] == "host_lineage_census"
         assert row["hypothesis_test_eligible"] is False
+        assert row["record_role"] == "calibration"
+        assert row["output_version_id"] == "IDEA2-HOST-CENSUS-CALIBRATION-V1"
+        assert row["output_version_date"] == "2026-09-29"
+        assert row["fresh_hypothesis_sample"] is False
         assert row["parasite_is_independent_population"] is False
+        assert row["parasite_is_genotype_population"] is False
         assert row["births_open_new_lineage"] is False
+        assert row["births_copy_oldest_living_lineage"] is True
+        assert row["do_is_coded_rule"] is True
+        assert row["parent_child_lineage_recorded"] is False
         assert row["hosts_founded"] == 6
         assert 0.0 <= float(row["survival_to_T"]) <= 1.0
         assert isinstance(row["parasite_end"], int)
@@ -122,6 +139,303 @@ def test_p3_unmatched_arm_is_excluded_from_delta() -> None:
     assert summary["inexact_match_cells_excluded"] == ["cut_matched_random"]
     assert summary["hypothesis_supported"] is False
     assert summary["window_law_tested"] is False
+    assert summary["n_excluded_inexact_by_t"]["0.2500"] == 1
+    assert summary["nonindependent_cells_excluded"] == []
+    assert summary["n_excluded_recover_definition_mismatch"] == 2
+    assert summary["p_recover_given_t_cell"] == {}
+
+
+def test_window_gate_does_not_mix_rows() -> None:
+    split = [
+        {
+            "idea_id": 4,
+            "ops_cell": "control",
+            "seed": 1,
+            "t_tilde": 0.25,
+            "recover": True,
+            "lineage_branching_real": False,
+            "innovation_observable": False,
+            "match_exact": None,
+        },
+        {
+            "idea_id": 4,
+            "ops_cell": "cut_named_scaffold",
+            "seed": 2,
+            "t_tilde": 0.25,
+            "recover": False,
+            "lineage_branching_real": True,
+            "innovation_observable": False,
+            "match_exact": True,
+        },
+        {
+            "idea_id": 4,
+            "ops_cell": "scramble_contacts",
+            "seed": 3,
+            "t_tilde": 0.25,
+            "recover": False,
+            "lineage_branching_real": False,
+            "innovation_observable": True,
+            "match_exact": None,
+        },
+    ]
+    summary = aggregate_idea4_engine_rates(split)
+    assert summary["window_test_valid"] is False
+    assert summary["window_law_tested"] is False
+    assert summary["lineage_recovery_established"] is False
+    assert summary["lineage_branching_real"] is False
+    assert summary["lineage_branching_real_any_row"] is True
+    assert summary["innovation_observable_any_row"] is True
+    untagged = [
+        {
+            "idea_id": 4,
+            "ops_cell": "control",
+            "seed": 9,
+            "t_tilde": 0.25,
+            "recover": True,
+            "lineage_branching_real": True,
+            "innovation_observable": True,
+            "match_exact": None,
+        },
+        {
+            "idea_id": 4,
+            "ops_cell": "cut_named_scaffold",
+            "seed": 9,
+            "t_tilde": 0.25,
+            "recover": False,
+            "lineage_branching_real": False,
+            "innovation_observable": False,
+            "match_exact": True,
+        },
+    ]
+    assert aggregate_idea4_engine_rates(untagged)["window_test_valid"] is False
+    def _dated(row: dict) -> dict:
+        row["recover_definition_id"] = "GENOME-DIGEST-LOST-THEN-REGAINED-V1"
+        row["recover_definition_date"] = "2026-09-29"
+        row["recover_role"] = "exploratory"
+        return row
+    together = [
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "control",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "rare_yield_rebound": False,
+                "primary_estimand_id": "FI-RARECLASS-CONTACT-YIELD-V1",
+                "primary_estimand_date": "2026-09-28",
+                "primary_estimand_value": False,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": None,
+            }
+        ),
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "cut_named_scaffold",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": False,
+                "rare_yield_rebound": True,
+                "primary_estimand_id": "FI-RARECLASS-CONTACT-YIELD-V1",
+                "primary_estimand_date": "2026-09-28",
+                "primary_estimand_value": True,
+                "lineage_branching_real": False,
+                "innovation_observable": False,
+                "match_exact": True,
+            }
+        ),
+    ]
+    opened = aggregate_idea4_engine_rates(together)
+    assert opened["window_test_valid"] is True
+    assert opened["window_law_tested"] is False
+    assert opened["lineage_recovery_established"] is False
+    assert opened["hypothesis_supported"] is False
+    assert opened["p_recover_not_preregistered"] is True
+    assert opened["p_recover_given_t_cell"]["control|t_tilde=0.2500"] == 1.0
+    assert opened["p_rare_yield_rebound_given_t_cell"]["control|t_tilde=0.2500"] == 0.0
+    assert opened["p_rare_yield_rebound_given_t_cell"]["cut_named_scaffold|t_tilde=0.2500"] == 1.0
+    mixed_old_arm = [
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "control",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": None,
+            }
+        ),
+        {
+            "idea_id": 4,
+            "ops_cell": "cut_named_scaffold",
+            "seed": 9,
+            "t_tilde": 0.25,
+            "recover": False,
+            "lineage_branching_real": False,
+            "innovation_observable": False,
+            "match_exact": True,
+        },
+    ]
+    assert aggregate_idea4_engine_rates(mixed_old_arm)["window_test_valid"] is False
+    wrong_definition = [
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "control",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": None,
+            }
+        ),
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "cut_named_scaffold",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": False,
+                "lineage_branching_real": False,
+                "innovation_observable": False,
+                "match_exact": True,
+            }
+        ),
+    ]
+    wrong_definition[1]["recover_definition_id"] = "OTHER-RECOVER"
+    assert aggregate_idea4_engine_rates(wrong_definition)["window_test_valid"] is False
+    blocked_control = [
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "control",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": None,
+                "design_failure": True,
+            }
+        ),
+        together[1],
+    ]
+    assert aggregate_idea4_engine_rates(blocked_control)["window_test_valid"] is False
+    mirror_pair = [
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "control",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": None,
+            }
+        ),
+        _dated(
+            {
+                "idea_id": 4,
+                "ops_cell": "cut_matched_random",
+                "seed": 9,
+                "t_tilde": 0.25,
+                "recover": True,
+                "lineage_branching_real": True,
+                "innovation_observable": True,
+                "match_exact": True,
+                "match_is_planted_mirror": True,
+                "independent_control": False,
+                "scientific_contrast_eligible": False,
+            }
+        ),
+    ]
+    mirror_summary = aggregate_idea4_engine_rates(mirror_pair)
+    assert mirror_summary["window_test_valid"] is False
+    assert mirror_summary["abs_delta_p_vs_control"] == {}
+    assert mirror_summary["nonindependent_cells_excluded"] == ["cut_matched_random"]
+    assert mirror_summary["n_excluded_nonindependent_by_t"]["0.2500"] == 1
+    assert "cut_matched_random|t_tilde=0.2500" not in mirror_summary["p_recover_given_t_cell"]
+
+
+def test_independent_match_miss_is_a_design_failure() -> None:
+    from codontrace.life_loop.contact_atp_ledger import build_engine_scaffold_ledger
+
+    ledger = build_engine_scaffold_ledger(seed=301)
+    before = ledger.digest()
+    design = ledger.independent_match_design("SCAF-CONTACT-SRC-PATH-V1")
+    assert ledger.digest() == before
+    assert design["mutated"] is False
+    assert design["design_failure"] is True
+    assert design["match_exact"] is False
+    assert design["planned_edge_ids"] == []
+    assert "E6" in design["blocked_edge_ids"] and "E7" in design["blocked_edge_ids"]
+    result = ledger.cut_independent_of_mirrors("SCAF-CONTACT-SRC-PATH-V1")
+    report = result["match_report"]
+    assert report["independent_of_planted_mirrors"] is True
+    assert "E6" in report["blocked_edge_ids"] and "E7" in report["blocked_edge_ids"]
+    assert report["match_exact"] is False
+    assert report["design_failure"] is True
+    assert report["exclude_from_combo_e"] is True
+    assert "E6" not in result["cut_edge_ids"] and "E7" not in result["cut_edge_ids"]
+
+
+def test_incident_debit_is_sensitive_and_global_smear_is_not() -> None:
+    named = run_idea4_engine_cell(
+        seed=301,
+        ops_cell="cut_named_scaffold",
+        t_intervene=2,
+        t_horizon=5,
+        population=8,
+        feedback_allocation="incident_endpoints",
+    )
+    matched = run_idea4_engine_cell(
+        seed=301,
+        ops_cell="cut_matched_random",
+        t_intervene=2,
+        t_horizon=5,
+        population=8,
+        feedback_allocation="incident_endpoints",
+    )
+    named_ids = set(named["intervention_feedback"]["recipient_ids"])
+    matched_ids = set(matched["intervention_feedback"]["recipient_ids"])
+    assert named["endpoints_enter_debit"] is True
+    assert matched["endpoints_enter_debit"] is True
+    assert named_ids != matched_ids
+    assert named["intervention_feedback"]["pop_fingerprint"] != (
+        matched["intervention_feedback"]["pop_fingerprint"]
+    )
+    assert named["topology_effect_identified"] is False
+    assert matched["topology_effect_identified"] is False
+    assert named["endpoint_map_is_contact_physics"] is False
+    assert named["lineage_resource_transfer"] is False
+    assert named["intervention_feedback"]["endpoint_map_is_contact_physics"] is False
+    assert named["intervention_feedback"]["food_follows_endpoints"] is False
+    smear_named = run_idea4_engine_cell(
+        seed=301,
+        ops_cell="cut_named_scaffold",
+        t_intervene=2,
+        t_horizon=5,
+        population=8,
+    )
+    smear_matched = run_idea4_engine_cell(
+        seed=301,
+        ops_cell="cut_matched_random",
+        t_intervene=2,
+        t_horizon=5,
+        population=8,
+    )
+    assert smear_named["engine_pop_path_digest"] == smear_matched["engine_pop_path_digest"]
+    assert smear_named["intervention_feedback"]["recipient_ids"] == (
+        smear_matched["intervention_feedback"]["recipient_ids"]
+    )
+    assert smear_named["topology_effect_identified"] is False
+    assert smear_matched["hypothesis_supported"] is False
 
 
 def test_p4_background_birth_does_not_open_the_window() -> None:
@@ -178,9 +492,41 @@ def test_p6_genotype_set_is_presence_and_rq_magnitude_stays_shut() -> None:
     assert rq_barrier_holds(0.21) is False
     assert rq_positive_direction_reaches_threshold(-0.245) is False
     assert rq_positive_direction_reaches_threshold(0.20) is True
+    assert rq_preregistered_direction_reaches_threshold(-0.245) is True
+    assert rq_preregistered_direction_reaches_threshold(-0.20) is True
+    assert rq_preregistered_direction_reaches_threshold(RQ_SYNTHETIC_SCORE) is False
+    assert rq_preregistered_direction_reaches_threshold(0.20) is False
+    assert rq_controls_present(None) is False
+    assert rq_claim_inputs_sufficient(-0.245, None) is False
+    assert rq_claim_inputs_sufficient(
+        -0.245,
+        {
+            "delay_control": True,
+            "frozen_antagonist_arm": True,
+            "population_conditions": True,
+        },
+    ) is True
+    assert rq_claim_inputs_sufficient(
+        0.25,
+        {
+            "delay_control": True,
+            "frozen_antagonist_arm": True,
+            "population_conditions": True,
+        },
+    ) is False
     assert red_queen_proved_from_score(-0.245) is False
     assert red_queen_proved_from_score(0.20) is False
     assert red_queen_proved_from_score(RQ_SYNTHETIC_SCORE) is False
+    model_negative = rq_model_decision(-0.245)
+    assert model_negative["preregistered_direction_reaches_threshold"] is True
+    assert model_negative["positive_direction_is_acceptance"] is False
+    assert model_negative["controls_recorded_in_model"] is False
+    assert model_negative["claim_inputs_sufficient"] is False
+    assert model_negative["red_queen_proved"] is False
+    model_locked = rq_model_decision(RQ_SYNTHETIC_SCORE)
+    assert model_locked["barrier_holds"] is True
+    assert model_locked["claim_inputs_sufficient"] is False
+    assert model_locked["red_queen_proved"] is False
     stub = {
         "pre_rounds": ["a", "b", "c", "d", "e"],
         "post_build": ["p1", "p2"],
@@ -290,6 +636,13 @@ def test_p3_four_quantities_match_and_stay_a_planted_mirror() -> None:
         assert row["match_exact"] is True
         assert row["exclude_from_combo_e"] is False
         assert row["match_is_planted_mirror"] is True
+        assert row["independent_control"] is False
+        assert row["scientific_contrast_eligible"] is False
+        assert row["design_failure"] is True
+        design = row["independent_match_design"]
+        assert design["mutated"] is False
+        assert design["design_failure"] is True
+        assert design["planned_edge_ids"] == []
         assert row["hypothesis_supported"] is False
         assert row["window_law_tested"] is False
         if seed == 301:

@@ -338,9 +338,18 @@ def run_idea2_engine_cell(
             "channel_margin_threshold": CHANNEL_MARGIN,
             "estimand": "host_lineages_alive_over_founded",
             "score_role": "host_lineage_census",
+            "record_role": "calibration",
+            "output_version_id": "IDEA2-HOST-CENSUS-CALIBRATION-V1",
+            "output_version_date": "2026-09-29",
+            "fresh_hypothesis_sample": False,
             "hypothesis_test_eligible": False,
             "parasite_is_independent_population": False,
+            "parasite_is_genotype_population": False,
             "births_open_new_lineage": False,
+            "births_copy_oldest_living_lineage": True,
+            "death_order": "oldest_seq_first",
+            "do_is_coded_rule": True,
+            "parent_child_lineage_recorded": False,
             "hosts_founded": int(arm_stats[arm]["hosts_founded"]),
             "host_lineages_alive": int(arm_stats[arm]["host_lineages_alive"]),
             "parasite_end": int(arm_stats[arm]["parasite_end"]),
@@ -356,11 +365,11 @@ def run_idea2_engine_cell(
             "red_queen_proved": False,
             "honesty": (
                 "Engine closed-loop Idea2 cell under phase2_design. "
-                "survival_to_T is a host-lineage census: lineages still alive "
-                "divided by founders. Births copy the oldest living lineage id. "
-                "The parasite value is a capped counter, not an independent "
-                "population, so this record is not a host-parasite hypothesis "
-                "test. Not G2/M0–M3 sealed evidence. "
+                "survival_to_T is a side census for calibration only. Births copy "
+                "the oldest living lineage id and deaths take that order. The "
+                "parasite value is a capped counter, not a genotype population. "
+                "The do step is a coded rule. Parent-child ids are not recorded. "
+                "Not a host-parasite hypothesis test. Not G2/M0–M3 sealed evidence. "
                 "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*). "
                 "hypothesis_supported stays false."
             ),

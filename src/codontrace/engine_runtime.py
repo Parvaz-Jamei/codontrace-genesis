@@ -1,4 +1,4 @@
-"""GenesisEngine orchestrator — population stepping, QD, and result build.
+﻿"""GenesisEngine orchestrator — population stepping, QD, and result build.
 
 Extracted from ``codontrace.engine`` for debuggability. Public imports stay on
 the ``codontrace.engine`` facade. GenerationBoundaryObserver is invoked once
@@ -136,7 +136,7 @@ def _default_qd_archive() -> QDArchive:
 
 # --- fork isolation -----------------------------------------------------------
 #
-# ``copy.deepcopy`` cannot pickle ``mappingproxy`` objects, and the element /
+# ``copy.deepcopy`` cannot deep-copy ``mappingproxy`` objects, and the element /
 # action / ribosome / causal-graph registries are read-only mappingproxy views.
 # That is why the original fork restore fell back to sharing the live
 # ``PopulationState`` and ``ElementGrid``: the copy raised, the exception was

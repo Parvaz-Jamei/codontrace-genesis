@@ -170,6 +170,7 @@ class AntagonistPopulation:
         keep_fraction: float = 0.5,
         mutation_rate: float = 0.25,
         fecundity: float = 1.0,
+        maintenance_cost: float | None = None,
     ) -> AntagonistPopulation:
         if not windows:
             raise ConfigurationError("antagonist population requires founder windows")
@@ -183,7 +184,7 @@ class AntagonistPopulation:
             )
             for seat, window in enumerate(windows)
         ]
-        return cls(
+        built = cls(
             units=founder_units,
             seat_cap=len(founder_units),
             ancestral_windows=[str(window) for window in windows],
@@ -191,6 +192,9 @@ class AntagonistPopulation:
             mutation_rate=float(mutation_rate),
             fecundity=float(fecundity),
         )
+        if maintenance_cost is None:
+            return built
+        return replace(built, maintenance_cost=float(maintenance_cost))
 
     # -- accounting ---------------------------------------------------------
 

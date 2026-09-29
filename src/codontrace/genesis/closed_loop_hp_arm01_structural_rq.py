@@ -484,6 +484,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
     # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
     generation_boundary_observer: Callable[..., None] | None = None
     bolus_sync_before_census: list[bool] = field(default_factory=list)
+    # Resume contract: created once on the first ``run_generations`` call and reused, so
+    # repeated calls continue the same deterministic history instead of re-seeding.
+    generation_rng: RNGManager | None = None
 
     @classmethod
     def boot_structural(
@@ -596,10 +599,25 @@ class StructuralRQArm(LifeLoopEcologyArm):
 
 
     def run_generations(self, generations: int) -> dict[str, object]:
+        """Advance the arm by ``generations``, resuming from the current state.
+
+        Resume contract (reviewer finding, 2026-09-29): calling this method repeatedly on
+        the same arm is supported. The generation counter and every recorded series are
+        persistent, so a second call continues the same history instead of raising
+        "census series length mismatch". The per-arm RNG is created once on the first call
+        and reused, with the passage stream forked per generation, so a resumed run is a
+        continuation of the same deterministic history rather than a re-seeded one.
+        """
+
         generations = int(generations)
         if generations < 1:
             raise ConfigurationError("generations must be >= 1")
-        rng = RNGManager(seed=self.seed, namespace=f"hp-struct-rq-{self.arm}")
+        if self.generation_rng is None:
+            self.generation_rng = RNGManager(
+                seed=self.seed, namespace=f"hp-struct-rq-{self.arm}"
+            )
+        rng = self.generation_rng
+        start_records = len(self.host_joint_class_series)
         with _population_unique_id_guard():
             for _ in range(generations):
                 # Bolus/refill at generation boundary BEFORE census append (probe).
@@ -647,7 +665,11 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 if observer is not None:
                     # Domain-free: generation index only (no HP args).
                     observer(generation_index=int(self.tick_index))
-        assert_census_series_len(self, generations=generations)
+        # Resume-aware invariant: the series grew by exactly the generations requested,
+        # and the arm's total history is the sum of every call made on it.
+        assert_census_series_len(
+            self, generations=start_records + generations
+        )
         return self.summary()
 
     def _apply_hp_env_contact(self) -> tuple[int, list[str]]:

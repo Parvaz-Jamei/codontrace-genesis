@@ -58,7 +58,7 @@ the digest builder) keeps working unchanged.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from codontrace.errors import ConfigurationError
 from codontrace.rng import RNGManager
@@ -149,6 +149,9 @@ class AntagonistPopulation:
     # its derivation is hashed into the run manifest.
     maintenance_cost: float = 0.15
     ledgers: list[PassageLedger] = None  # type: ignore[assignment]
+    #: Pre-selection energy checkpoint per generation (controlled quantity, asserted
+    #: equal across arms by the harness; see the comment inside ``advance``).
+    pre_selection_signatures: list[dict[str, float | str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.ledgers is None:
@@ -223,6 +226,13 @@ class AntagonistPopulation:
         energy a unit holds is exactly what it took from host contacts.
         """
 
+        # Contract note (reviewer finding, 2026-09-29): the frozen and shuffled-label
+        # controls deliberately do NOT take an early return. They run the same contact
+        # credit, maintenance, reproduction and seat-cap selection as the coevolving arm,
+        # so the non-heritable energy budget is identical across arms and only the
+        # information path is cut. An earlier revision reset control energy to
+        # ``ENERGY_PER_SEAT`` every generation, which removed the energy accounting too and
+        # confounded the primary contrast.
         gen = int(generation)
         roster = list(self.units)
         if mode == "absent":
@@ -230,28 +240,6 @@ class AntagonistPopulation:
                 gen, mode, (), (), tuple(u.unit_id for u in roster), 0, 0, 0.0, 0
             )
             self.units = []
-            self.ledgers.append(ledger)
-            return ledger
-        if mode == "frozen":
-            # Frozen stock: the same windows are re-seeded each generation, so no
-            # heritable change can accumulate. The units keep identity and are
-            # re-energised to a flat reserve.
-            re_seeded = [
-                replace(unit, energy=ENERGY_PER_SEAT, alive=True, contacts_served=0, inherited_mutation=False)
-                for unit in roster
-            ]
-            ledger = PassageLedger(
-                gen,
-                mode,
-                tuple(u.unit_id for u in re_seeded),
-                (),
-                (),
-                0,
-                0,
-                1.0,
-                len(re_seeded),
-            )
-            self.units = re_seeded
             self.ledgers.append(ledger)
             return ledger
 
@@ -283,6 +271,45 @@ class AntagonistPopulation:
             )
         roster = credited
 
+        # PRE-SELECTION PARITY CHECKPOINT (reviewer requirement, 2026-09-29).
+        #
+        # Controlled quantity: the pre-selection energy budget of this generation. The
+        # contact budget offered per seat, the per-seat payment rule and the maintenance
+        # charged per unit are identical in every arm by construction, and the energy
+        # distribution recorded here is the one the identical pipeline produced before any
+        # reproduction or seat-cap selection acts.
+        #
+        # Outcome, not confound: after this point the arms may and should diverge. The
+        # heritable cut changes which windows the roster carries, hence which contacts are
+        # realised in the next generation and hence the realised income. Post-selection
+        # divergence is part of the treatment effect and is logged as such; it is not a
+        # parity failure.
+        #
+        # The checkpoint exists so the claim "the arms differ only in the information path"
+        # can be asserted and audited rather than assumed.
+        self.pre_selection_signatures.append(
+            {
+                "generation": gen,
+                "mode": mode,
+                "roster": float(len(roster)),
+                "maintenance_charged": float(len(roster))
+                * float(self.maintenance_cost),
+                "energy_total": float(sum(float(u.energy) for u in roster)),
+                "energy_mean": (
+                    float(sum(float(u.energy) for u in roster)) / len(roster)
+                    if roster
+                    else 0.0
+                ),
+                "energy_min": (
+                    float(min(float(u.energy) for u in roster)) if roster else 0.0
+                ),
+                "energy_max": (
+                    float(max(float(u.energy) for u in roster)) if roster else 0.0
+                ),
+                "seats_offered": float(len(served_contacts)),
+            }
+        )
+
         # 1. Maintenance and mortality. Every living unit pays a fixed maintenance cost
         #    per generation, so energy earned by contact decays and a unit that has run
         #    its reserve down dies. Extinction is a real outcome of this mechanism, not
@@ -311,6 +338,9 @@ class AntagonistPopulation:
         #    after one generation's delay.
         newborns: list[AntagonistUnit] = []
         mutation_events = 0
+        # Frozen stock must not mutate: its windows are fixed at the founder set, so a
+        # mutation would be a heritable change that the control is supposed to exclude.
+        effective_mutation = 0.0 if mode == "frozen" else float(self.mutation_rate)
         for unit in survivors:
             expected = float(self.fecundity) * float(unit.energy)
             draws = int(expected) + (1 if rng.random() < (expected - int(expected)) else 0)
@@ -318,7 +348,7 @@ class AntagonistPopulation:
             for child_seat in range(draws):
                 window = unit.window
                 mutated = False
-                if float(self.mutation_rate) > 0.0 and rng.random() < float(self.mutation_rate):
+                if effective_mutation > 0.0 and rng.random() < effective_mutation:
                     window = mutate_window(window, rng)
                     mutation_events += 1
                     mutated = True
@@ -334,56 +364,25 @@ class AntagonistPopulation:
                 )
 
         if mode == ANTAGONIST_PASSAGE_SHUFFLED_LABELS:
-            # The negative control. Two ingredients are required to cut the route
-            # without touching contact or cost:
-            #   (a) the whole roster is re-drawn each generation from the *ancestral*
-            #       window pool, so the next generation's composition is independent
-            #       of which host class was common;
-            #   (b) offspring windows are permuted against the parent that earned the
-            #       energy, so per-unit ancestry is broken.
-            # Without (a) a label shuffle alone leaves the multiset of windows
-            # unchanged -- permuting strings cannot change a multiset -- and the
-            # frequency-to-composition channel would survive the control. That failure
-            # mode is why the pilot must show the negative control removes the effect
-            # before any confirmatory seed is opened.
-            windows = [unit.window for unit in newborns]
-            for i in range(len(windows) - 1, 0, -1):
-                j = rng.randrange(0, i + 1)
-                windows[i], windows[j] = windows[j], windows[i]
+            # The negative control: cut ONLY the heritable information path, keep the
+            # energy accounting. Offspring are born through the same reproduction step as
+            # the coevolving arm, but each newborn's window is drawn from the ancestral
+            # pool rather than inherited from the parent that earned the energy, so the
+            # window a unit carries is independent of the contact evidence its parent
+            # accumulated. Contact, payment, maintenance, starvation death and seat-cap
+            # selection are untouched and identical to the coevolving arm.
             newborns = [
-                replace(unit, window=windows[seat], inherited_mutation=False)
-                for seat, unit in enumerate(newborns)
-            ]
-            # Deterministic equal-seat re-seeding from the ancestral pool: the number
-            # of seats each ancestral window receives is fixed by construction, so no
-            # contact-derived frequency information can reach the next generation.
-            re_seeded: list[AntagonistUnit] = []
-            for seat in range(self.seat_cap):
-                parent_window = self.ancestral_windows[seat % len(self.ancestral_windows)]
-                re_seeded.append(
-                    AntagonistUnit(
-                        unit_id=f"a{gen}-sham-{seat}",
-                        window=str(parent_window),
-                        parent_id=None,
-                        born_generation=gen,
-                        energy=ENERGY_PER_SEAT,
-                        inherited_mutation=False,
-                    )
+                replace(
+                    unit,
+                    window=str(
+                        self.ancestral_windows[
+                            rng.randrange(0, len(self.ancestral_windows))
+                        ]
+                    ),
+                    inherited_mutation=False,
                 )
-            self.units = re_seeded
-            ledger = PassageLedger(
-                gen,
-                mode,
-                (),
-                tuple(re_seeded),
-                deaths,
-                mutation_events,
-                len(matched_windows),
-                ENERGY_PER_SEAT,
-                len(self.units),
-            )
-            self.ledgers.append(ledger)
-            return ledger
+                for unit in newborns
+            ]
 
         # 3. Selection under a fixed seat budget. The pool of survivors and offspring
         #    exceeds the seat cap, so this is the step that removes genotypes, and its
@@ -405,6 +404,31 @@ class AntagonistPopulation:
         pool.sort(key=lambda unit: (-float(unit.energy), rng_by_unit[unit.unit_id]))
         selected = pool[: self.seat_cap]
         dropped = tuple(u.unit_id for u in pool[self.seat_cap :])
+        if mode == "frozen":
+            # Cut ONLY the information path: the roster keeps the founder window set in
+            # seat order, while the energy values that the identical credit, maintenance,
+            # reproduction and selection steps produced are carried through unchanged.
+            # The frequency-to-composition channel is therefore dead, but the energy
+            # accounting is not.
+            units_by_window: dict[str, list[AntagonistUnit]] = {}
+            for unit in selected:
+                units_by_window.setdefault(unit.window, []).append(unit)
+            frozen_selected: list[AntagonistUnit] = []
+            for seat, unit in enumerate(selected):
+                founder_window = (
+                    roster[seat].window
+                    if seat < len(roster)
+                    else unit.window
+                )
+                candidates = units_by_window.get(founder_window) or []
+                if candidates:
+                    picked = candidates.pop(0)
+                    frozen_selected.append(replace(picked, window=founder_window))
+                else:
+                    frozen_selected.append(
+                        replace(unit, window=founder_window, inherited_mutation=False)
+                    )
+            selected = frozen_selected
         self.units = [replace(unit, alive=True) for unit in selected]
         newborn_ids = {unit.unit_id for unit in newborns}
         selected_newborns = tuple(
@@ -436,6 +460,53 @@ class AntagonistPopulation:
             if self.units
             else 0.0
         )
+
+    def energy_signature(self) -> dict[str, float]:
+        """Logged, asserted quantity: the post-contact energy budget of one generation.
+
+        The RQ-3 claim is that the arms differ only in the heritable information path, so
+        the non-heritable energy budget must be identical across the arms of a seed. This
+        signature is the ledger's own account of that budget: roster size, total and mean
+        energy, the energy floor, and the number of units at or below zero. A comparison
+        that differs here is confounded and must not be reported as a mechanism result.
+        """
+
+        energies = sorted(float(u.energy) for u in self.units)
+        return {
+            "roster": float(len(energies)),
+            "energy_total": float(sum(energies)),
+            "energy_mean": float(sum(energies) / len(energies)) if energies else 0.0,
+            "energy_min": float(energies[0]) if energies else 0.0,
+            "energy_max": float(energies[-1]) if energies else 0.0,
+            "at_or_below_zero": float(sum(1 for e in energies if e <= 0.0)),
+        }
+
+    @staticmethod
+    def energy_budget_equal(
+        signature_a: dict[str, float],
+        signature_b: dict[str, float],
+        *,
+        tolerance: float = 1e-9,
+    ) -> dict[str, object]:
+        """Compare two arms' energy signatures; report every field that differs."""
+
+        fields = (
+            "roster",
+            "energy_total",
+            "energy_mean",
+            "energy_min",
+            "energy_max",
+            "at_or_below_zero",
+        )
+        differences = {
+            field: float(signature_a.get(field, 0.0)) - float(signature_b.get(field, 0.0))
+            for field in fields
+            if abs(
+                float(signature_a.get(field, 0.0)) - float(signature_b.get(field, 0.0))
+            )
+            > tolerance
+        }
+        return {"equal": not differences, "differences": differences}
 
     def ancestry_rows(
         self, ledger: PassageLedger, *, run_id: str, seed: int, arm: str

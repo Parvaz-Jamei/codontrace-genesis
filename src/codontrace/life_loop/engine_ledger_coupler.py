@@ -262,6 +262,33 @@ def _organisms_for_nodes(organisms: Sequence[Any], nodes: set[str]) -> list[Any]
     return chosen
 
 
+
+def bind_nodes_to_organisms(
+    engine: Any,
+    pre_snap: Mapping[str, Any],
+    post_snap: Mapping[str, Any],
+) -> dict[str, str]:
+    """Bind declared ledger contact nodes to live organism ids.
+
+    The binding is the declared node order of the contact ledger against the
+    sorted live organisms, and it is *complete or refused*: a partial binding
+    returns ``{}`` so the caller cannot silently fall back to a modular index
+    map.  This is the endpoint identity the D-2 refusal test needs, and it is a
+    structural claim about which organism holds which contact slot, not an
+    arithmetic smear.
+    """
+
+    nodes: set[str] = set()
+    for snap in (pre_snap, post_snap):
+        for part in snap.get("parts", ()) or ():
+            nodes.add(str(part["src"]))
+            nodes.add(str(part["dst"]))
+    ordered_nodes = sorted(nodes)
+    ordered = sorted(engine.runner.population.organisms, key=lambda org: str(getattr(org, "id", "")))
+    if not ordered_nodes or len(ordered) < len(ordered_nodes):
+        return {}
+    return {node: str(ordered[index].id) for index, node in enumerate(ordered_nodes)}
+
 def _structural_delta(pre: Mapping[str, Any], post: Mapping[str, Any]) -> dict[str, float]:
     """Count domain-free structural deltas between ledger snapshots."""
 
@@ -317,7 +344,11 @@ def apply_ledger_feedback_to_engine(
     """
 
     allocation_name = str(allocation)
-    if allocation_name not in ("global_smear", "incident_endpoints"):
+    if allocation_name not in (
+        "global_smear",
+        "incident_endpoints",
+        "incident_endpoints_realised",
+    ):
         raise ConfigurationError(
             "feedback allocation must be global_smear or incident_endpoints."
         )
@@ -343,6 +374,96 @@ def apply_ledger_feedback_to_engine(
     total_debited = 0.0
     total_credited = 0.0
     g = int(generation_index)
+
+    if allocation_name == "incident_endpoints_realised":
+        # Realised-contact allocation: the debit is the ATP of the contact edges
+        # that actually changed, charged to the organisms bound to those edges'
+        # endpoints.  The global count penalty (n_edge_changes x coeff) is NOT
+        # added here, so a difference between two equally-sized cuts can only
+        # come from which contacts were cut and who held them.
+        binding = bind_nodes_to_organisms(engine, pre_snap, post_snap)
+        pre_parts = {str(p["edge_id"]): p for p in pre_snap.get("parts", ())}
+        post_parts = {str(p["edge_id"]): p for p in post_snap.get("parts", ())}
+        live = {str(org.id): org for org in engine.runner.population.organisms}
+        per_organism: dict[str, float] = {}
+        unbound: list[str] = []
+        changed_edges = [
+            eid
+            for eid in sorted(set(pre_parts) | set(post_parts))
+            if pre_parts.get(eid) != post_parts.get(eid)
+        ]
+        for eid in changed_edges:
+            before = pre_parts.get(eid)
+            after = post_parts.get(eid)
+            before_present = bool(before is not None and before.get("present") and not before.get("masked"))
+            after_present = bool(after is not None and after.get("present") and not after.get("masked"))
+            if before_present and not after_present:
+                realised = float(before.get("atp_yield", 0.0))
+            elif before is not None and after is not None:
+                realised = max(
+                    0.0,
+                    float(before.get("atp_yield", 0.0)) - float(after.get("atp_yield", 0.0)),
+                )
+            elif before is not None:
+                realised = float(before.get("atp_yield", 0.0))
+            else:
+                realised = 0.0
+            part = before if before is not None else after
+            assert part is not None
+            for node in (str(part["src"]), str(part["dst"])):
+                oid = binding.get(node)
+                if oid is None or oid not in live:
+                    unbound.append(node)
+                    continue
+                org = live[oid]
+                payable = min(realised / 2.0, float(org.atp_state.runtime_available))
+                if payable <= 0.0:
+                    continue
+                org.atp_state.debit_runtime(
+                    payable,
+                    tick=g,
+                    organism_id=oid,
+                    codon="ledger_fb",
+                    action="contact_ledger_feedback",
+                    reason="realised_contact_edge_cut",
+                )
+                per_organism[oid] = per_organism.get(oid, 0.0) + payable
+        identified = bool(changed_edges) and not unbound and bool(binding)
+        total = float(sum(per_organism.values()))
+        return {
+            "energy_delta": energy_delta,
+            "burden": total,
+            "burden_lost_energy": 0.0,
+            "burden_edge_changes": 0.0,
+            "burden_digest": 0.0,
+            "burden_token": 0.0,
+            "restore": 0.0,
+            "total_debited": total,
+            "total_credited": 0.0,
+            "food_removed": 0.0,
+            "food_added": 0.0,
+            "food_from_lost_energy": 0.0,
+            "food_from_edge_count": 0.0,
+            "n_alive_before": int(len(live)),
+            "n_alive_after": int(len(list(engine.runner.population.organisms))),
+            "effect_applied": bool(total > 0.0),
+            "n_edge_changes": float(len(changed_edges)),
+            "digest_changed": float(deltas["digest_changed"]),
+            "token_changed": float(deltas["token_changed"]),
+            "allocation": allocation_name,
+            "recipient_ids": sorted(per_organism),
+            "per_organism_realised_debit": per_organism,
+            "unbound_nodes": sorted(set(unbound)),
+            "endpoints_enter_debit": True,
+            "food_follows_endpoints": False,
+            "endpoint_map": "declared_node_order_to_sorted_live_organisms",
+            "endpoint_map_is_contact_physics": identified,
+            "lineage_resource_transfer": False,
+            "contact_structure_effect_identified": identified,
+            "knowledge_effect_identified": False,
+            "topology_effect_identified": identified,
+        }
+
 
     def _debit(targets: Sequence[Any], amount: float) -> None:
         nonlocal total_debited

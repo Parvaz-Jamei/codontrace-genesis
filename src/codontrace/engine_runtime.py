@@ -8,7 +8,7 @@ See ``docs/ENGINE_REPLAY_CONTRACT.md``.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any, cast
 
@@ -272,7 +272,7 @@ class GenesisEngine:
         if count < 0:
             msg = "ticks must be >= 0."
             raise ValueError(msg)
-        base = len(self._tick_results)
+        base = int(getattr(self, "_tick_offset", 0)) + len(self._tick_results)
         for index in range(count):
             generation = self.runner.step_generation(seed=self.spec.seed + base + index)
             self._apply_qd_parent_feedback(generation)
@@ -280,7 +280,7 @@ class GenesisEngine:
             if self.spec.substrate_bridge_mode == "world2d_mirror":
                 self.element_grid = world2d_to_element_grid(self.runner.world)
             tick_result = GenesisTickResult(
-                index=len(self._tick_results), generation_result=generation, qd_update=qd_update
+                index=base + len(self._tick_results), generation_result=generation, qd_update=qd_update
             )
             self._tick_results.append(tick_result)
             self._snapshots.append(
@@ -292,6 +292,64 @@ class GenesisEngine:
                 observer(generation_index=generation_index)
         self._last_result = self._build_result()
         return self._last_result
+
+
+    def capture_fork(self, *, parent_snapshot_id: str | None = None) -> dict[str, JsonValue]:
+        """Full generation-boundary fork state: population, world, tick index, RNG.
+
+        Every random draw of the life loop is derived from ``spec.seed`` and the
+        absolute tick index (``PopulationRunner.step_generation(seed=spec.seed +
+        base + index)`` with ``base`` the number of completed ticks), so the RNG
+        stream is a pure function of ``(spec.seed, tick_index)``.  It is captured
+        explicitly for audit and restored by restoring ``tick_index``.  Organism
+        ids already encode parent and generation, so ``population.to_dict()``
+        carries parent/child identity.
+        """
+
+        tick_index = int(getattr(self, "_tick_offset", 0)) + len(self._tick_results)
+        return {
+            "fork_version": 1,
+            "run_id": self.run.run_id,
+            "spec_digest": self.spec.digest(),
+            "seed": int(self.spec.seed),
+            "tick_index": tick_index,
+            "population": self.runner.population.to_dict(),
+            "world": self.runner.world.to_dict(),
+            "rng": RNGManager(seed=self.spec.seed, namespace="engine_fork").snapshot(include_state=True),
+            "rng_derivation": {
+                "seed": int(self.spec.seed),
+                "next_tick_seed": int(self.spec.seed) + tick_index,
+                "note": "per-generation seed = spec.seed + completed_ticks",
+            },
+            "parent_snapshot_id": parent_snapshot_id,
+        }
+
+    @classmethod
+    def from_fork(
+        cls,
+        spec: Any,
+        fork: Mapping[str, Any],
+        *,
+        generation_boundary_observers: Sequence[Any] | None = None,
+    ) -> GenesisEngine:
+        """Rebuild a live engine from :meth:`capture_fork` output (full fork).
+
+        Restores the population multiset (with parent/child ids), the world
+        resources, and the tick offset that drives the RNG stream.  No
+        ``pickle``/``deepcopy`` is used, so the unforgeable ``mappingproxy``
+        registries that block ``copy.deepcopy`` are irrelevant here.
+        """
+
+        if int(fork.get("fork_version", 0)) != 1:
+            msg = "fork payload must carry fork_version == 1."
+            raise ValueError(msg)
+        engine = cls.from_spec(spec, generation_boundary_observers=generation_boundary_observers)
+        engine.runner.population = PopulationState.from_dict(dict(fork["population"]))
+        engine.runner.world = World2D.from_dict(dict(fork["world"]))
+        engine._tick_offset = int(fork["tick_index"])
+        engine._tick_results = []
+        engine._snapshots = []
+        return engine
 
     def snapshot(self) -> GenesisSnapshot:
         return GenesisSnapshot(

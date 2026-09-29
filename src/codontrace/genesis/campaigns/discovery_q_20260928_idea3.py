@@ -267,7 +267,7 @@ def run_idea3_scored_cell(
         ledger.causal_packages[package_id] = pkg
 
     discovery_score = 0.0
-    for g in range(int(generations)):
+    for _g in range(int(generations)):
         # Lifetime-alone cannot clear unreachability; package fields help transmit.
         if cell == "transmit" and package_id in ledger.causal_packages:
             pkg = ledger.causal_packages[package_id]

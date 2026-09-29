@@ -300,7 +300,7 @@ control separates. Absolute margin: **0.109 share after 60 generations** — exp
 `parasite_n` at generation 25 = 64, histogram non-empty, final distinct classes 28
 (`out_r3_regression_tip.txt`).
 
-Decision: **`SUPPORTED_IN_MODEL` (small effect)** · claim ceiling **`phase2_design`** ·
+Decision: **`INCONCLUSIVE`** (behavioural separation in one pilot contrast, energy-confounded; corrected controls at n = 3 give intervals containing zero) · claim ceiling **`phase2_design`** ·
 `hypothesis_supported = false` · `red_queen_proved = false`.
 
 **Limitations the pack states and this document repeats.** The single contrast seed is 21051 (plus
@@ -394,7 +394,7 @@ Verdict: **`FALSIFIED_IN_MODEL`** (calibration tier; 6 histories cannot exclude 
 | 1 | CausalTape exact `do()` on the mutation draw + estimand split | **Novel (narrow)** for the RNG-stream-preserving `do()`; **partially occupied** for "estimand mismatch ≠ misspecification" | **Moderate, estimator-sensitive**; instrument verification is strong (bit-exact, 121,500 paired seeds) | **Strengthens** the instrument claim; **weakens** quoting "64.1 %" unlabelled (4 estimators: 62.97 / 63.75 / 64.1 / 64.8 %); **untouched** conceptually |
 | 2 | Two-fold cost in an audited closed ATP ledger | **Partially novel / partially occupied** | **Negative** (no rescue; δ makes it worse) | **Weakens** the scientific payload; **leaves the method claim untouched**; **flags** the probe-only `c* ≈ 1.1–1.2` |
 | 3 | RQ-1 time-shift | **None claimed** (standard assay) | **INCONCLUSIVE, in flight** — 2/8 seeds, interval contains zero at n = 2 | **Untouched** |
-| 4 | RQ-3 adaptation-route cut | **Novel (narrow)** — the matched-cost heritable-route cut | **Weak but decisive separation** — 0.172 vs 0.0625, one contrast seed, no interval | **Strengthens weakly**; **weakens** any effect-size framing |
+| 4 | RQ-3 adaptation-route cut | **Novel (narrow)** — the matched-cost heritable-route cut | **INCONCLUSIVE** — one pilot contrast, energy-confounded; at n = 3 both paired intervals include zero | **Strengthens weakly**; **weakens** any effect-size framing |
 | 5 | D-2 recovery window | **Potentially novel, unevidenced** | **FALSIFIED_IN_MODEL** (calibration tier) — 0/18, max yield ratio 0.573 vs the locked 1.25×; isolation passes with per-arm re-simulation | **Weakens** (no recovery evidence to attach) |
 
 **One-line honest summary.** Across the five items the pattern is consistent: **method novelty is

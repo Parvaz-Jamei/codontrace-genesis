@@ -87,5 +87,5 @@ no locked pin was re-locked for those fixes.
 **Novelty and results synthesis (2026-09-29):** the reviewed claim-discipline synthesis is committed
 as [`NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md`](NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md)
 (RQ-1 `INCONCLUSIVE` in flight, D-2 `FALSIFIED_IN_MODEL` on the calibration tier, RQ-3
-`SUPPORTED_IN_MODEL` with the small-effect caveat, the CausalTape share only with its estimator
+`INCONCLUSIVE` (energy-confounded single-pilot behavioural separation; corrected controls at n = 3 show no reliable separation and the pre-selection-parity contract is an open precondition), the CausalTape share only with its estimator
 label, and `c*` flagged probe-level).

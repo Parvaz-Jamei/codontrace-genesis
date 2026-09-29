@@ -3,7 +3,7 @@
 **Experiment record, 2026-09-29.** All paths in this README are relative to the repository root
 `codontrace-genesis/`; raw evidence lives in
 `docs/experiments/2026-09-29/rq3_adaptation_route/` and in `docs/experiments/2026-09-29/rq3_adaptation_route/`.
-**Verdict label:** `SUPPORTED_IN_MODEL` (small effect), recorded in `decision.md`.
+**Verdict label:** `INCONCLUSIVE` (behavioural separation in one pilot contrast, energy-confounded; corrected controls at n = 3 show no reliable separation). See the correction section (i-b); the `SUPPORTED_IN_MODEL` label in the archived `decision.md` is withdrawn.
 **Claim ceiling:** `phase2_design`; `hypothesis_supported=false`, `red_queen_proved=false`.
 
 ---
@@ -267,3 +267,43 @@ python docs/experiments/2026-09-29/d2_recovery_window/harness/d2_pack.py all
 
 Checksums for every file listed above are in `evidence_files.sha256`; verify with
 `sha256sum -c evidence_files.sha256` from the record directory.
+
+
+## (i-b) Correction, 2026-09-29 — verdict downgraded to `INCONCLUSIVE`
+
+The `SUPPORTED_IN_MODEL` reading above is **withdrawn**. A review of the control arms found an energy
+confound: the frozen and shuffled controls reset unit energy while the coevolving arm carried income
+minus maintenance, so the comparison was not energy-matched. The controls were then rebuilt to run
+the identical credit/maintenance/reproduction/selection pipeline and to cut only the information
+path (frozen restores founder windows after selection with mutation forced to zero; shuffled draws
+each newborn's window from the ancestral pool at birth), and the arm resume path was fixed
+(`run_generations(2)` repeated gives series lengths 2, 4, 6 with no abort).
+
+With the corrected controls the published single-contrast shares are superseded. The corrected
+contrast uses three independent seeds (21061-21063), 40 generations, maintenance 0.15 in every arm:
+
+| Arm | share, seed 21061 | seed 21062 | seed 21063 |
+|---|---|---|---|
+| `coevolve` | 0.15625 | 0.265625 | 0.03125 |
+| `frozen` | 0.0625 | 0.0625 | 0.0625 |
+| `shuffled_labels` | 0.078125 | 0.046875 | 0.09375 |
+
+Paired bootstrap intervals: `coevolve - frozen` mean +0.0885 with interval [-0.031, +0.203];
+`coevolve - shuffled_labels` mean +0.0781 with interval [-0.063, +0.219]. **Both intervals contain
+zero**, and seed 21063 reverses the direction.
+
+Energy parity across arms was asserted per generation and **fails in 40 of 40 generations on every
+seed, for both pairings** — by construction, not by error: cutting the heritable path changes the
+window composition, and composition determines which contacts are served and therefore the income.
+Post-selection parity is therefore unmeasurable as a confound check. **Open precondition:** parity
+must be asserted *pre-selection*, within each generation, while both rosters still present the same
+windows, with the post-selection divergence reported as treatment effect. Until that contract lands,
+the record claims only a behavioural separation in one pilot contrast.
+
+**Verdict:** `INCONCLUSIVE`. Claim ceiling `phase2_design`; `hypothesis_supported = false`;
+`red_queen_proved = false`. No threshold, seed or maintenance value was tuned.
+
+**Superseded records retained as history:** the archived `decision.md` and `run_manifest.json` in
+this directory still carry the withdrawn `SUPPORTED_IN_MODEL` label; their sha256 values are in
+`evidence_files.sha256`. They are kept as the pre-correction record and are superseded by this
+section and by the corrected `decision.md` in the upstream pack, which will be imported.

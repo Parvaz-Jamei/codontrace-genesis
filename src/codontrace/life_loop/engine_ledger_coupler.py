@@ -30,7 +30,20 @@ _FEEDBACK_FOOD_PER_ENERGY = 0.8
 _FEEDBACK_STRUCT_ATP = 0.35
 _FEEDBACK_DIGEST_ATP = 0.50
 _FEEDBACK_TOKEN_ATP = 0.35
+_FEEDBACK_EDGE_FOOD = 0.15
 _FEEDBACK_RESTORE_FRAC = 0.45
+
+
+def _population_census(engine: Any) -> list[dict[str, str]]:
+    """Ids and genome digests of the live population. Not a ledger tag."""
+
+    rows: list[dict[str, str]] = []
+    for org in engine.runner.population.organisms:
+        genome = getattr(org, "genome", None)
+        digest = genome.digest() if genome is not None and hasattr(genome, "digest") else ""
+        rows.append({"id": str(getattr(org, "id", "")), "genome": str(digest)})
+    rows.sort(key=lambda row: row["id"])
+    return rows
 
 
 def sample_ecology(engine: Any) -> dict[str, float]:
@@ -252,12 +265,14 @@ def apply_ledger_feedback_to_engine(
     energy_delta = float(deltas["energy_delta"])
     lost_energy = max(0.0, -energy_delta)
     gained_energy = max(0.0, energy_delta)
-    # Positive burden when contacts are cut/masked/rewired/ablated/relocated.
+    # Fixed coefficients. The edge and token terms count changes; they are
+    # not a measured local consequence of contact structure.
+    burden_lost_energy = lost_energy * _FEEDBACK_ATP_PER_ENERGY
+    burden_edge_changes = float(deltas["n_edge_changes"]) * _FEEDBACK_STRUCT_ATP
+    burden_digest = float(deltas["digest_changed"]) * _FEEDBACK_DIGEST_ATP
+    burden_token = float(deltas["token_changed"]) * _FEEDBACK_TOKEN_ATP
     burden = (
-        lost_energy * _FEEDBACK_ATP_PER_ENERGY
-        + float(deltas["n_edge_changes"]) * _FEEDBACK_STRUCT_ATP
-        + float(deltas["digest_changed"]) * _FEEDBACK_DIGEST_ATP
-        + float(deltas["token_changed"]) * _FEEDBACK_TOKEN_ATP
+        burden_lost_energy + burden_edge_changes + burden_digest + burden_token
     )
     restore = gained_energy * _FEEDBACK_ATP_PER_ENERGY * _FEEDBACK_RESTORE_FRAC
 
@@ -301,10 +316,12 @@ def apply_ledger_feedback_to_engine(
     resources = getattr(world, "resources", None)
     food_removed = 0.0
     food_added = 0.0
+    food_from_lost_energy = 0.0
+    food_from_edge_count = 0.0
     if isinstance(resources, dict):
-        food_burden = lost_energy * _FEEDBACK_FOOD_PER_ENERGY + float(
-            deltas["n_edge_changes"]
-        ) * 0.15
+        food_from_lost_energy = lost_energy * _FEEDBACK_FOOD_PER_ENERGY
+        food_from_edge_count = float(deltas["n_edge_changes"]) * _FEEDBACK_EDGE_FOOD
+        food_burden = food_from_lost_energy + food_from_edge_count
         if food_burden > 0.0 and resources:
             total_mass = float(sum(float(v) for v in resources.values()))
             if total_mass > 0.0:
@@ -343,17 +360,26 @@ def apply_ledger_feedback_to_engine(
     return {
         "energy_delta": energy_delta,
         "burden": float(burden),
+        "burden_lost_energy": float(burden_lost_energy),
+        "burden_edge_changes": float(burden_edge_changes),
+        "burden_digest": float(burden_digest),
+        "burden_token": float(burden_token),
         "restore": float(restore),
         "total_debited": float(total_debited),
         "total_credited": float(total_credited),
         "food_removed": float(food_removed),
         "food_added": float(food_added),
+        "food_from_lost_energy": float(food_from_lost_energy),
+        "food_from_edge_count": float(food_from_edge_count),
         "n_alive_before": int(n_alive_before),
         "n_alive_after": int(n_alive_after),
         "effect_applied": effect_applied,
         "n_edge_changes": float(deltas["n_edge_changes"]),
         "digest_changed": float(deltas["digest_changed"]),
         "token_changed": float(deltas["token_changed"]),
+        # Count and token coefficients are not an identified contact effect.
+        "contact_structure_effect_identified": False,
+        "knowledge_effect_identified": False,
     }
 
 
@@ -367,6 +393,7 @@ class EngineCoupledLedgerObserver:
     base_rare_yields: dict[str, float] = field(default_factory=dict)
     yield_history: list[float] = field(default_factory=list)
     ecology_history: list[dict[str, float]] = field(default_factory=list)
+    census_history: list[list[dict[str, str]]] = field(default_factory=list)
     feedback_history: list[dict[str, Any]] = field(default_factory=list)
     observer_fire_count: int = 0
     auto_advance: bool = True
@@ -390,6 +417,7 @@ class EngineCoupledLedgerObserver:
         g = int(generation_index)
         eco = sample_ecology(engine)
         self.ecology_history.append(dict(eco))
+        self.census_history.append(_population_census(engine))
         scale = ecology_scale(eco)
         # Update rare-class edge yields from live ecology (closed-loop variance).
         for eid, base in self.base_rare_yields.items():
@@ -397,6 +425,14 @@ class EngineCoupledLedgerObserver:
             if edge is None:
                 continue
             edge.atp_yield = float(base) * float(scale)
+        # Mirror edges carry the scaffold twin's yield so a matched cut can
+        # share edge count, degree, contact weight, and ATP lost.
+        for src_eid, mirror_eid in self.ledger.match_mirrors.items():
+            src = self.ledger.edges.get(src_eid)
+            mirror = self.ledger.edges.get(mirror_eid)
+            if src is None or mirror is None or not mirror.present:
+                continue
+            mirror.atp_yield = float(src.atp_yield)
         # Refresh tag aggregate.
         rare_sum = 0.0
         for eid in self.ledger.edges_with_tag(CONTACT_TAG_RARE):

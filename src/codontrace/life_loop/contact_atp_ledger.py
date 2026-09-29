@@ -122,6 +122,9 @@ class ContactAtpLedger:
     realised_pressure_phase: float = 0.0
     generation_index: int = 0
     rng_seed: int = 0
+    # Scaffold edge → non-scaffold twin. Not part of the ledger digest.
+    # Twins are scaled with the scaffold so a matched cut can be exact.
+    match_mirrors: dict[str, str] = field(default_factory=dict)
     # Track C harness-visible state (scaffold; generation-boundary ops mutate these)
     rival_pair_id: str = ""
     rival_assay_log: list[dict[str, Any]] = field(default_factory=list)
@@ -354,30 +357,16 @@ class ContactAtpLedger:
         scaffold_members: set[str] = set()
         for members in self.scaffold_edge_sets.values():
             scaffold_members |= members
-        exact_pool = sorted(
+        pool = sorted(
             eid
             for eid, edge in self.edges.items()
-            if edge.present and eid not in scaffold_members and self.edge_degree(eid) == deg
+            if edge.present and eid not in scaffold_members
         )
-        used_nearest_fallback = False
-        if len(exact_pool) >= n_cut:
-            candidates = exact_pool
-        else:
-            used_nearest_fallback = True
-            pool = sorted(
-                (
-                    eid
-                    for eid, edge in self.edges.items()
-                    if edge.present and eid not in scaffold_members
-                ),
-                key=lambda e: (abs(self.edge_degree(e) - deg), e),
+        if len(pool) < n_cut:
+            raise ConfigurationError(
+                f"need {n_cut} present non-scaffold edges for matched random cut; "
+                f"found {len(pool)}."
             )
-            if len(pool) < n_cut:
-                raise ConfigurationError(
-                    f"need {n_cut} present non-scaffold edges for matched random cut; "
-                    f"found {len(pool)}."
-                )
-            candidates = pool
 
         tgt_deg = (
             int(target_degree_sum)
@@ -391,39 +380,45 @@ class ContactAtpLedger:
             else tgt_atp
         )
 
-        # Enumerate combinations when small; otherwise greedy by ATP error.
-        chosen: tuple[str, ...]
-        if len(candidates) <= 12 and n_cut <= 6:
+        def _sums(combo: tuple[str, ...]) -> tuple[int, float, float]:
+            deg_sum = int(sum(self.edge_degree(e) for e in combo))
+            atp_sum = float(sum(float(self.edges[e].atp_yield) for e in combo))
+            return deg_sum, atp_sum, atp_sum
+
+        exact: list[tuple[str, ...]] = []
+        if len(pool) <= 16 and n_cut <= 4:
+            for combo in itertools.combinations(pool, n_cut):
+                deg_sum, atp_sum, weight_sum = _sums(combo)
+                atp_ok = tgt_atp is None or abs(atp_sum - float(tgt_atp)) <= 1e-9
+                weight_ok = tgt_w is None or abs(weight_sum - float(tgt_w)) <= 1e-9
+                if deg_sum == tgt_deg and atp_ok and weight_ok:
+                    exact.append(tuple(sorted(combo)))
+        used_nearest_fallback = False
+        if exact:
+            exact.sort()
+            chosen = exact[0]
+        else:
+            used_nearest_fallback = True
             best: tuple[str, ...] | None = None
             best_key: tuple[Any, ...] | None = None
-            for combo in itertools.combinations(candidates, n_cut):
-                deg_sum = int(sum(self.edge_degree(e) for e in combo))
-                atp_sum = float(sum(float(self.edges[e].atp_yield) for e in combo))
-                deg_err = abs(deg_sum - tgt_deg)
-                atp_err = abs(atp_sum - tgt_atp) if tgt_atp is not None else 0.0
-                key = (deg_err, atp_err, combo)
+            search = (
+                list(itertools.combinations(pool, n_cut))
+                if len(pool) <= 16 and n_cut <= 4
+                else [tuple(pool[:n_cut])]
+            )
+            for combo in search:
+                deg_sum, atp_sum, weight_sum = _sums(tuple(combo))
+                key = (
+                    abs(deg_sum - tgt_deg),
+                    abs(atp_sum - float(tgt_atp)) if tgt_atp is not None else 0.0,
+                    abs(weight_sum - float(tgt_w)) if tgt_w is not None else 0.0,
+                    tuple(sorted(combo)),
+                )
                 if best_key is None or key < best_key:
                     best_key = key
-                    best = combo
+                    best = tuple(sorted(combo))
             assert best is not None
             chosen = best
-        else:
-            # Deterministic greedy: sort by degree error then yield proximity.
-            remaining = list(candidates)
-            picked: list[str] = []
-            for _ in range(n_cut):
-                def _score(eid: str) -> tuple[float, float, str]:
-                    return (
-                        float(abs(self.edge_degree(eid) - deg)),
-                        float(abs(float(self.edges[eid].atp_yield) - (tgt_atp or 0.0) / n_cut))
-                        if tgt_atp is not None
-                        else 0.0,
-                        eid,
-                    )
-
-                remaining.sort(key=_score)
-                picked.append(remaining.pop(0))
-            chosen = tuple(sorted(picked))
 
         cut_ids = list(chosen)
         # Snapshot degree/weight BEFORE mutating present flags (degree counts present only).
@@ -521,6 +516,9 @@ class ContactAtpLedger:
             and abs(s_w - m_w) <= 1e-9
             and abs(s_atp - m_atp) <= 1e-9
         )
+        weight_aliases_atp = (
+            abs(s_w - s_atp) <= 1e-9 and abs(m_w - m_atp) <= 1e-9
+        )
         return {
             "scaffold_cut_edge_ids": s_ids,
             "matched_cut_edge_ids": m_ids,
@@ -533,6 +531,9 @@ class ContactAtpLedger:
             "contact_weight_sum_matched": m_w,
             "atp_lost_scaffold": s_atp,
             "atp_lost_matched": m_atp,
+            # Ledger contact weight is the edge ATP yield. Matching both
+            # names is not two independent quantities.
+            "contact_weight_is_atp_yield": bool(weight_aliases_atp),
             "used_nearest_fallback": used_fallback,
             "match_exact": bool(match_exact),
             "exclude_from_combo_e": not bool(match_exact),
@@ -1044,13 +1045,14 @@ class ContactAtpLedger:
     def shortcut_probe(
         self,
         *,
-        skeleton_intact_accuracy: float = 0.85,
-        private_only_accuracy: float = 0.40,
+        skeleton_intact_accuracy: float | None = None,
+        private_only_accuracy: float | None = None,
     ) -> dict[str, Any]:
-        """PROBE-PRIVATE-VS-SKELETON-V1: paired held-out shortcut assay.
+        """Record a held-out probe. Injected accuracies are not measurements.
 
-        Pass requires success with shared skeleton (private scrambled) and
-        failure when only private correlates remain.
+        World ids in the held-out split carry no behaviour outcomes, so this
+        op cannot report a scientific pass. Constants such as 0.85 / 0.40 are
+        ignored.
         """
 
         if not self.probe_id:
@@ -1059,17 +1061,30 @@ class ContactAtpLedger:
             raise ConfigurationError(
                 "empty held-out split reopens Idea5 freeze."
             )
-        sk = float(require_finite_float("skeleton_intact_accuracy", skeleton_intact_accuracy))
-        pr = float(require_finite_float("private_only_accuracy", private_only_accuracy))
-        passed = sk >= 0.80 and pr < 0.80
+        injected = (
+            skeleton_intact_accuracy is not None or private_only_accuracy is not None
+        )
+        if injected:
+            require_finite_float(
+                "skeleton_intact_accuracy",
+                0.0 if skeleton_intact_accuracy is None else skeleton_intact_accuracy,
+            )
+            require_finite_float(
+                "private_only_accuracy",
+                0.0 if private_only_accuracy is None else private_only_accuracy,
+            )
         entry = {
             "op": "shortcut_probe",
             "probe_id": self.probe_id,
             "held_out_worlds": list(self.held_out_split.get("held_out", [])),
-            "skeleton_intact_accuracy": sk,
-            "private_only_accuracy": pr,
-            "pass": bool(passed),
+            "skeleton_intact_accuracy": None,
+            "private_only_accuracy": None,
+            "injected_constants_ignored": True,
+            "measured_from_behavior": False,
+            "pass": False,
+            "scientific_pass": False,
             "train_fit_alone_counts": False,
+            "genealogical_consequence": False,
         }
         self.shortcut_probe_log.append(entry)
         return dict(entry)
@@ -1258,6 +1273,8 @@ def build_engine_scaffold_ledger(*, seed: int = 0) -> ContactAtpLedger:
         ledger.add_edge(eid, src=src, dst=dst, class_tag=tag, atp_yield=yld)
     # Pre-register named scaffold by edge ID (NOT max-degree rule).
     ledger.register_scaffold("SCAF-CONTACT-SRC-PATH-V1", ["E0", "E1"])
+    # E6/E7 mirror E0/E1 (same base yield, isomorphic K4). Scaled with them.
+    ledger.match_mirrors = {"E0": "E6", "E1": "E7"}
     ledger.place_recovery_token(
         "token:recovery:FI-RARECLASS-CONTACT-YIELD-V1", payload="eligible"
     )

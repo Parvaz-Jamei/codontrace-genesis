@@ -1,9 +1,10 @@
 # CodonTrace Genesis — وضعیت شش ایده کشف (به‌روز زنده)
 
 **تاریخ ساخت:** 2026-09-29 ~01:10 Asia/Tehran  
-**آخرین به‌روزرسانی:** 2026-09-29 ~01:15 Asia/Tehran  
+**آخرین به‌روزرسانی:** 2026-09-29 ~11:10 Asia/Tehran  
 **Repo:** `Parvaz-Jamei/codontrace-genesis`  
-**Tip فعلی (origin/main):** `b81a47b`  
+**Tip قبلی origin/main:** `d8b431b`  
+کامیت `d8b431b` سنجهٔ تبار میزبان را ندارد. این فایل با همین بازبینی می‌آید. فاز ۳ بسته است. `hypothesis_supported` و `red_queen_proved` false می‌مانند.  
 **منبع دستورات مالک:** `DISCOVERY_QUESTIONS_evolution_causal_collective_20260928.md` (+ چرخهٔ مشترک ۵+۲+۲)
 
 این فایل **گزارش وضعیت عملیاتی** است، نه ادعای کشف. هر گام تمام‌شده اینجا به‌روز می‌شود. سقف ادعا تا اطلاع ثانوی: `phase2_design`. تست سبز ≠ تأیید علمی شش پرسش.
@@ -24,6 +25,8 @@
 ---
 
 ## اولویت اصلاح (مالک → تیم)
+
+متن زیر نقد اولیه است و وضعیت زندهٔ کد نیست. وضعیت زنده در جدول «کجا هستیم» و در به‌روزرسانی ۱۰:۳۰ همین روز است. `main` هنوز `d8b431b` است.
 
 ### P1 — مداخله باید به خود موتور برگردد (بالاترین)
 - در `engine_ledger_coupler.py`: موتور وضعیت را به دفتر می‌دهد، اما تغییر یال/دانش/نشانگر دفتر مسیر بقای جمعیت موتور را عوض نمی‌کند.
@@ -62,10 +65,11 @@
 
 | مسیر | وضعیت صادق | بعدی (پس از P1–P4) |
 |------|------------|---------------------|
-| ایدهٔ ۴ | طراحی+harness+JSONL+نتیجهٔ منفی؛ **آزمون فرضیه کامل نیست** (P1,P3,P4) | coupler علی + کنترل هم‌سنگ + checkpoint تبار |
-| ایدهٔ ۲ | همان؛ سنجه بقا/انگل کافی نیست (P2) | بقا از جمعیت واقعی + انگل هم‌فرگشت |
-| ایدهٔ ۱/۳/۵/۶ | فاز۲ digest+smoke؛ **کشف نتیجه/انتقال‌پذیری نشده** (P5) | سنجه از رفتار عامل؛ بعد JSONL علمی |
-| فرایند | گزارش پیشینه/طرح خوب؛ ممیزی چرخه ناقص (P6) | trail قابل ممیزی هر فاز + RQ fix |
+| ایدهٔ ۴ | روی `d8b431b` کنترل ATP هم‌سنگ نیست. در این بازبینی seedهای ۳۰۱–۳۰۳ یال و درجه و بازده را با دوقلوی `E6`/`E7` جفت می‌کنند. وزن تماس همان `atp_yield` است، نه کمیت چهارم مستقل. این کشف نیست. جریمهٔ token و جریمهٔ تعداد یال جدا حساب می‌شوند؛ اثر ساختار تماس شناسایی نشده. پنجره ساخته نشده. | کنترلِ بدون جریمهٔ شمارشی؛ checkpoint واقعی |
+| ایدهٔ ۲ | روی `d8b431b` فایل موتور هنوز ترکیب ۰٫۷/۰٫۳ است. در این بازبینی سرشماری تبار است و `hypothesis_test_eligible=false`؛ انگل جمعیت مستقل نیست. | فقط اگر انگل تولد و مرگِ مستقل داشته باشد |
+| ایدهٔ ۱/۳/۵/۶ | فاز۲ digest+smoke؛ داده scaffold است و نتیجهٔ علمی نیست | جهان ندیده و رفتار عامل؛ نه seed بیشتر روی سنجهٔ ساختگی |
+| فرایند | پنج متن متفاوت ممیزی نیست. چکِ ترتیب و ارجاع اضافه شده؛ خود کمپین ممیزی‌شده علامت نخورده | رکورد تاریخ‌دار واقعی، نه مثال شِمای تست |
+| Red Queen | مانع = قدرمطلق زیر ۰٫۲۰. −۰٫۱۴۸ برقرار است. −۰٫۲۴۵ از نظر قدرمطلق برقرار نیست و جهت مثبت را قبول نمی‌کند. `red_queen_proved=false`. مجموعهٔ ژنوتیپ حضور است، نه فراوانی | مولد −۰٫۱۴۸ دوباره اجرا نشود تا مانع را بالا ببرد |
 
 **مسیر فعال الان:** P1 مسیر بازخورد coupler land (اندازه‌گیری؛ hyp=false). P2–P6 متر ADOPT/freeze؛ کد بعدی pause تا دستور مالک. Track C seed خاموش.
 
@@ -101,15 +105,15 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع).
 
 ### ایدهٔ ۴ — reversibility window
 - Phase1+2 digest / distinction `CKPT-RELOCATE-RECOVERY-TOKEN-V1` / harness / engine JSONL N≥64 / Critic / RESULT: **ثبت شده**
-- **اما:** coupler یک‌طرفه؛ کنترل ناهم‌سنگ؛ recover=0 بدون فرصت بازیابی تبار → **فاز ۳/۴ علمی کامل نیست**
+- **اما:** روی `d8b431b` کنترل ATP هم‌سنگ نیست. روی درخت محلی چهار کمیت با دوقلوی کاشته‌شده جفت است و کشف نیست. تفاوت مسیر، اثر دانش یا داربست نیست. پنجره ساخته نشده → **فاز ۳ بسته است**
 
 ### ایدهٔ ۲ — causality under parasite pressure
 - Sham `SHAM-CUE-PREDPHASE-V1`؛ JSONL چهار سلول؛ G2 FAIL صادق ثبت شده
-- **اما:** survival/فشار انگل از جمعیت واقعی نیست → **آزمون نهایی فرضیه نیست**
+- **اما:** روی `d8b431b` سنجه هنوز ترکیب انرژی است. سرشماری محلی آزمون میزبان–انگل نیست → **فاز ۳ بسته است**
 
 ### Track C — ۱ / ۳ / ۵ / ۶
 - Phase1+2 digests؛ harness smoke؛ scored harness-class JSONL؛ Critic HOLD wiring
-- **smoke ≠ نتیجه علمی** (P5)؛ موتور بسته‌حلقه تا رفع P1 و سنجه‌های رفتاری متوقف از ادعای کشف
+- **smoke ≠ نتیجه علمی** (P5). برچسب داده `scaffold` است. ۶۴ seed جایگزین اجرای بسته‌حلقه نشد.
 
 ---
 
@@ -165,6 +169,7 @@ Land هر فاز تمام‌شده همان روز به `main` (push سریع).
 - **2026-09-29 01:16 +0330:** tip=`c9b26b5`؛ ADOPT P2/P5/P6 روی STATUS+Drive ثبت شد.
 - **2026-09-29 01:13 +0330:** Research P1 ADOPT (Track C engine WIP discarded). ALife meters locked: P1 paired `engine_pop_path_digest` must differ across arms; P3 `match_exact` required (E0+E1 ⇒ 2 edges); P4 `window_test_valid` false if control recover=0.
 - **2026-09-29 01:16 +0330:** جمع‌بندی مالک (صرفه‌جویی): P1 coupler+matched-control WIP روی tree؛ discovery tests سبز؛ land به‌عنوان مسیر اندازه‌گیری؛ طوفان اضافه pause تا دستور بعدی؛ Track C seed خاموش.
+- **2026-09-29 ~10:30 +0330:** tip زندهٔ main همان `d8b431b` است، نه `b81a47b`. سنجهٔ تبار میزبان روی آن tip نیست. مانع Red Queen با قدرمطلق سنجیده می‌شود؛ −۰٫۱۴۸ بالا نرفت. پنج متن، ممیزی کمپین نیست. فاز ۳ بسته ماند.
 
 ---
 
@@ -195,10 +200,10 @@ SMOKE_IS_NOT_SCIENCE=true
 
 IDEA4_TOKEN=CKPT-RELOCATE-RECOVERY-TOKEN-V1
 IDEA4_OPS=control,scramble_contacts,cut_named_scaffold,cut_matched_random,ablate_knowledge_digest
-IDEA4_BLOCKERS=coupler_one_way,unmatched_control_E5_vs_E0E1,recover0_no_lineage_opportunity
+IDEA4_BLOCKERS=local_mirror_is_not_discovery,token_penalty_not_identified,window_unbuilt,not_on_d8b431b
 IDEA2_SHAM=SHAM-CUE-PREDPHASE-V1
 IDEA2_CELLS=baseline,pi_deception,do_ablation,sham_predphase
-IDEA2_BLOCKERS=survival_not_from_host_pop,parasite_pressure_not_coevo
+IDEA2_BLOCKERS=main_d8b431b_still_energy_blend,local_census_not_hypothesis_test,parasite_counter_not_population
 
 IDEA1_RIVAL=RP-LEDGER-ATP-DRAIN-V1
 IDEA3_LAW=LAW-LEDGER-CONTACT-ATP-PARENT-V1
@@ -223,5 +228,11 @@ ALIFE_P4_METER=window_test_valid,control_recover_rate
 COUPLER_FEEDBACK_PATH=landed_measurement_only
 PAUSED_STORMS_FOR_COST=true
 PRIORITY_ORDER=P1_coupler,P2_idea2_survival,P3_matched_control,P4_lineage_ckpt,P5_behavioral_metrics,P6_process_audit_RQ
-TIP_MAIN=b81a47b
+TIP_MAIN_BEFORE_THIS_REVISION=d8b431b
+HOST_LINEAGE_CENSUS_ON_MAIN=false
+RQ_BARRIER=abs(score)<0.20
+RQ_SYNTHETIC=-0.148
+RQ_PROVED=false
+GENOTYPE_SET=presence_not_abundance
+PROCESS_CAMPAIGN_AUDITED=false
 ```

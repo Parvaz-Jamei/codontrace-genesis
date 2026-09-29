@@ -36,6 +36,9 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea4 import (
     run_idea4_scored_cell,
     t_tilde_of,
 )
+from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
+    assert_record_not_a_discovery,
+)
 
 SCHEMA = "discovery_q_20260928_jsonl_campaign_v1"
 CLAIM_CEILING = "phase2_design"
@@ -190,6 +193,7 @@ def run_jsonl_campaign(
             raise ConfigurationError("campaign must keep claim_ceiling=phase2_design.")
         if SEALED_SEED_LO <= int(rec["seed"]) <= SEALED_SEED_HI:
             raise ConfigurationError("sealed seed leaked into campaign records.")
+        assert_record_not_a_discovery(rec)
 
     target = Path(out_dir) if out_dir is not None else default_output_dir()
     target.mkdir(parents=True, exist_ok=True)

@@ -169,18 +169,21 @@ in multiples of `1/6`.
 ### 4.1 Affinity table
 
 The host windows are the design's distinct 6-bit founders; antagonist classes are represented
-by their match windows. Affinity values follow from the mean-of-sub-loci rule:
+by their match windows. Affinity values follow from the mean-of-sub-loci rule.
+On 2026-09-29 three rows of this table, and the example-1 difference 0.700, did not
+match that rule. The contact rule was not changed. The corrected difference is 0.800.
+The withdrawn 0.700 is not a threshold and is not a result.
 
 | Pair (host window, antagonist window) | Sub-locus agreements | Affinity | Debit per contact (ATP) |
 |---|---|---|---|
 | `000000` vs `000000` | 2/2, 2/2, 2/2 | 3/3 = 1.000 | 1.200 |
 | `000000` vs `000001` | 2/2, 2/2, 1/2 | 5/6 = 0.833 | 1.000 |
 | `000000` vs `000011` | 2/2, 2/2, 0/2 | 4/6 = 0.667 | 0.800 |
-| `000000` vs `010101` | 2/2, 0/2, 0/2 | 2/6 = 0.333 | 0.400 |
-| `000000` vs `100000` | 0/2, 2/2, 2/2 | 4/6 = 0.667 | 0.800 |
+| `000000` vs `010101` | 1/2, 1/2, 1/2 | 3/6 = 0.500 | 0.600 |
+| `000000` vs `100000` | 1/2, 2/2, 2/2 | 5/6 = 0.833 | 1.000 |
 | `000000` vs `111100` | 0/2, 0/2, 2/2 | 2/6 = 0.333 | 0.400 |
 | `111100` vs `000001` | 1/2, 0/2, 0/2 | 1/6 = 0.167 | 0.200 |
-| `111100` vs `000011` | 1/2, 0/2, 0/2 | 1/6 = 0.167 | 0.200 |
+| `111100` vs `000011` | 0/2, 0/2, 0/2 | 0/6 = 0.000 | 0.000 |
 | `111100` vs `111100` | 2/2, 2/2, 2/2 | 3/3 = 1.000 | 1.200 |
 
 ### 4.2 Example 1 — the antagonist histogram is constant, the realised pressure is not
@@ -206,19 +209,19 @@ Realised debit, host `B`:
 
 ```
 contact 1: affinity(111100, 000001) = 1/6 = 0.167   →  1.2 × 0.167 = 0.200 ATP
-contact 2: affinity(111100, 000011) = 1/6 = 0.167   →  1.2 × 0.167 = 0.200 ATP
-total d_B = 0.400 ATP over o_B = 2 contacts
-π_B = 0.400 / 2 = 0.200 ATP per host per contact opportunity
+contact 2: affinity(111100, 000011) = 0/6 = 0.000   →  1.2 × 0.000 = 0.000 ATP
+total d_B = 0.200 ATP over o_B = 2 contacts
+π_B = 0.200 / 2 = 0.100 ATP per host per contact opportunity
 ```
 
 ```
-π_A − π_B = 0.900 − 0.200 = 0.700 ATP per host per contact opportunity
+π_A − π_B = 0.900 − 0.100 = 0.800 ATP per host per contact opportunity
 F_(P_a) − F_(P_b) = 0.5 − 0.5 = 0.000
 ```
 
 Both host classes had the same exposure and the antagonist histogram was exactly balanced,
-yet the realised pressure on class `A` is 4.5 times the realised pressure on class `B`, a
-difference of 0.700 ATP per contact opportunity. The histogram cannot represent that
+yet the realised pressure on class `A` is 9 times the realised pressure on class `B`, a
+difference of 0.800 ATP per contact opportunity. The histogram cannot represent that
 difference at all, because it contains no host information: `P_a` and `P_b` are equally
 frequent and the asymmetry lives entirely in the affinity of each pairing.
 

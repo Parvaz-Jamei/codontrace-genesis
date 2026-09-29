@@ -74,18 +74,41 @@ is pure re-routing rather than further misspecification.
 | 0.1 | -- | -- | 0.02 |
 | 0.2 | -- | -- | 0.60 |
 | 0.4 | -- | -- | 0.44 |
-| 0.8 | 1.141 | 0.403 | 0.641, 95 per cent interval [0.558, 0.733] |
+| 0.8 | 1.141 | 0.403 | 0.641 (bootstrap median of the ratio of medians), 95 per cent interval [0.558, 0.733] (ratio-of-medians estimator) |
 
 The re-routing share is negligible below `eps = 0.2` and dominant above it. At
-`eps = 0.8` roughly two thirds of the quantity previously reported as estimator
-bias is the estimand mismatch, which no better one-bit model can remove; the
-remaining third is linear-model misspecification and is fixable. The two
-components are separable conditional on the coupling draw (within-configuration
-median correlation +0.03); the strongly negative pooled correlation is an
-artefact of pooling across epistasis levels. One caveat is recorded: at
-`eps = 0.8`, 5.5 per cent of exposed seeds (up to 38 per cent for one locus) had
-the locus cleared by a later accepted reversal, so the one-bit proxy and the
-whole-tape contrast differ in what they hold fixed there.
+`eps = 0.8` the reported **64.1 per cent is the bootstrap median of the ratio of
+medians**, not a point estimate: the raw pooled ratio of medians is **62.97 per
+cent**, the mean over coupling draws of the per-draw ratio of medians is **63.75
+per cent**, and the ratio of means is **64.8 per cent**. The 95 per cent interval
+**[55.8, 73.3]** belongs to the ratio-of-medians estimator; the ratio-of-means
+bootstrap interval is narrower, **[59.9, 69.2]**. Pairing a ratio of means with
+the wider interval would be an estimator mismatch and does not appear anywhere in
+this record.
+
+The interval is knife-edge sensitive to the rank tolerance used to reject
+rank-deficient bootstrap resamples: under a Cholesky rank test it is **[56.02,
+73.25]**, and switching only the rank criterion to the published **1e-8 SVD**
+test restores **[55.78, 73.33]** exactly. Six of 1500 resamples sit on that
+boundary, so the tolerance is stated wherever the interval is quoted.
+
+Roughly two thirds of the quantity previously reported as estimator bias is the
+estimand mismatch, which no better one-bit model can remove; the remaining third
+is linear-model misspecification and is fixable. The two components are
+separable conditional on the coupling draw (within-configuration median
+correlation +0.03); the strongly negative pooled correlation is an artefact of
+pooling across epistasis levels. One caveat is recorded: at `eps = 0.8`, 5.5 per
+cent of exposed seeds (up to 38 per cent for one locus) had the locus cleared by
+a later accepted reversal, so the one-bit proxy and the whole-tape contrast
+differ in what they hold fixed there.
+
+**Verification provenance.** These numbers were independently recomputed from the
+raw `.npz` arrays by a separate code path: fit health rank 172/172 with
+R² = 1.000000000000000 and maximum residual 3.3e-13, cross-checked on Python 3.12
+and 3.14 agreeing to 4.2e-14; evidence at `test-runs/verify/CLAIMS.json` and
+`test-runs/verify/claim-c.md`. Local environment note: there is no `git`
+executable on `PATH` in this session, so any documented git command must name the
+GitHub Desktop binary path or be marked as read from the object database.
 
 ## 2. Two-fold cost of sex
 

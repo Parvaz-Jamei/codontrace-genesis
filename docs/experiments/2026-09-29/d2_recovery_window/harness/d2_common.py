@@ -1,4 +1,4 @@
-"""D-2 (idea 4) population test pack — stage 0 + measurement diagnostic + refusal test.
+﻿"""D-2 (idea 4) population test pack — stage 0 + measurement diagnostic + refusal test.
 
 Owner: teammate ``mechanism-test`` (D-2 test agent).  Write scope: ``test-runs/d2/``.
 This pack never writes inside ``codontrace-genesis``.  Code changes needed by the
@@ -38,8 +38,8 @@ try:  # POSIX only; Windows has no resource module
 except ImportError:  # pragma: no cover - Windows
     resource = None  # type: ignore[assignment]
 
-REPO = Path(r"E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis")
-ROOT = Path(r"E:\مقاله پزشکی شبیه سازی ویروس")
+REPO = Path(__file__).resolve().parents[5]
+ROOT = Path(__file__).resolve().parents[6]
 D2 = ROOT / "test-runs" / "d2"
 RAW = D2 / "raw"
 LOGS = D2 / "logs"

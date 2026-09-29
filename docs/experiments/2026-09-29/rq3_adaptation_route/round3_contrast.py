@@ -1,4 +1,4 @@
-"""RQ-3 round-3 acceptance probe: the same contrast through the landed arm API.
+﻿"""RQ-3 round-3 acceptance probe: the same contrast through the landed arm API.
 
 Runs the arm-level opt-in (`antagonist_ecology="population"`) with the SAME maintenance
 value in every arm on the landed commit, and reports the common-window share of the
@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 # RQ3_REPO points at the extraction root whose "src" holds the codontrace package.
 REPO = Path(
     __import__("os").environ.get(
-        "RQ3_REPO", r"E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis"
+        "RQ3_REPO", str(HERE.parents[3])
     )
 )
 sys.path.insert(0, str(REPO / "src"))

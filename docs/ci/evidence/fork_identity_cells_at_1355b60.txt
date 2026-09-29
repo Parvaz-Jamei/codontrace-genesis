@@ -1,0 +1,7 @@
+K=0 N=1 index=True tick=True gen=True pop=True -> PASS
+K=0 N=2 index=True tick=True gen=True pop=True -> PASS
+K=0 N=5 index=True tick=True gen=True pop=True -> PASS
+K=3 N=1 index=True tick=True gen=True pop=True -> PASS
+K=3 N=2 index=True tick=True gen=True pop=True -> PASS
+K=3 N=5 index=True tick=True gen=True pop=True -> PASS
+CELLS_FAILED=0

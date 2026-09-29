@@ -40,16 +40,32 @@ not restored; fixed by `913f18e`.
 
 ## 3. Evidence file map
 
-| Evidence | File |
+**Artifact note:** the root-level scratch evidence produced during the repair (`jobA_*.txt`,
+`roundD_*.txt`, `e1_*.txt`, `e2_*.txt`, `e3_*.txt`, `reconcile_on.txt`, `rd2_on50.txt`,
+`mgr_pin_verify.txt`, `fork_audit_*.txt`, `jobC_*.txt`, `rq3_ruff3.txt`) was deleted during a Lead
+cleanup of the workspace root. The claims it backed are not in doubt — CI and independent
+verification reproduced them — but those files no longer exist, so every regenerable command was
+re-run at commit `1355b60` and its raw output stored **in the repository** under
+`docs/ci/evidence/`. Where a pre-fix or mid-round intermediate output cannot be regenerated, the
+surviving independent evidence is cited instead and the deletion is stated.
+
+| Evidence | File (repository-relative; in-repo regenerations were run at `1355b60`) |
 |---|---|
-| Independent verification and ACCEPT of `44a06f4` (batch(N) == N × `run_ticks(1)` for N = 1, 5, 17; fork offset honoured; 12/12 pins byte-identical) | `test-runs/verify/VERIFICATION_REPORT.md` |
-| RNG equality proof (8 call sites × 32 draws, mixed-method sequences, ledger schedule and scaffold digests, `all_equal`) | `test-runs/ci_repair/rng_equality_out.json`; manager re-run `test-runs/ci_repair/rng_equality_manager.json`, `e1_equality.txt` |
+| Tick-index test, whole file (batch == sequential stepping) | `docs/ci/evidence/tick_index_test_at_1355b60.txt` |
+| Three banned-token gates | `docs/ci/evidence/banned_tokens_at_1355b60.txt` |
+| `tests/test_rng.py` after the migration | `docs/ci/evidence/rng_scan_at_1355b60.txt` |
+| Exact remaining RNG offender list | `docs/ci/evidence/rng_offenders_at_1355b60.txt` (`offender_count=0`) |
+| RNG equality proof, raw output and JSON | `docs/ci/evidence/rng_equality_at_1355b60.txt`, `docs/ci/evidence/rng_equality_at_1355b60.json` (`all_equal: true`) |
+| 6/6 fork identity cells (K ∈ {0,3} × N ∈ {1,2,5}) | `docs/ci/evidence/fork_identity_cells_at_1355b60.txt` (`CELLS_FAILED=0`) |
+| Fork audit-payload tests | `docs/ci/evidence/fork_audit_tests_at_1355b60.txt` |
+| Pin / replay / manifest suites | `docs/ci/evidence/pin_replay_manifest_suites_at_1355b60.txt` (52 passed, 0 failed) |
+| Ruff and compileall | `docs/ci/evidence/ruff_at_1355b60.txt` (all checks passed), `docs/ci/evidence/compileall_at_1355b60.txt` (empty = clean) |
+| Independent ACCEPT of `44a06f4` (batch(N) == N × `run_ticks(1)` for N = 1, 5, 17; fork offset honoured; 12/12 pins byte-identical) | `test-runs/verify/VERIFICATION_REPORT.md` |
+| Pre-fix fork diagnostic and the unpatched negative control — **not regenerable without a revert**, original root-level scratch output removed | `test-runs/verify/task10_B1_identity_913f18e.txt`, `test-runs/verify/task10_B2_identity_40138c9_negctrl.txt`, `test-runs/verify/task10_B4_fork_isolation.txt`, `test-runs/d2/logs/task7_fork_proof.json`, `test-runs/verify/probe_report.json` |
+| Independent task-10 verification (pins, RNG equality, isolation) | `test-runs/verify/VERIFICATION_TASK10_REPORT.md`, `test-runs/verify/task10_B3_pin_identity.txt`, `test-runs/verify/task10_A2_author_equality.json` |
 | Persistence opt-in measurement (standing `final_n_alive 0`, 11 zero-census boundaries → `persistence_safe` 2, 0) | `test-runs/d2/logs/manager_persistence_probe_20260929.txt` |
-| Fork identity proof and its negative control | `test-runs/d2/logs/task7_fork_proof.json`; manager re-run `e3_proof.txt` (6/6 cells, `CELLS_FAILED=0`) |
-| Pin/replay byte-identity after the tick-index fix and after the fork fix | `jobA_pins.txt` (66 passed, 0 failed), `e3_suites.txt` (52 passed, 0 failed) |
-| Banned-token gates and the exact remaining-offender list | `roundD_banned.txt`, `roundD_offenders.txt`, `e1_rng.txt` |
-| RQ-3 opt-in ledger: surplus realised, 50 generations, zero empty rosters | `rd2_on.txt`, `rd2_on50.txt`, `reconcile_on.txt` |
-| Canonical LF pin proof | `mgr_pin_verify.txt` |
+| RQ-3 opt-in ledger: surplus realised, 50 generations, zero empty rosters — mid-round intermediate output removed, recomputable | re-run `jobC_instrument.py` / `reconcile_on_path.py`; surviving pack `test-runs/rq3/out_verify3.txt` |
+| Canonical LF pin proof — root-level output removed | re-run `verify_pins_lf.py`; independent counterpart `test-runs/verify/task10_B3_pin_identity.txt` |
 
 ## 4. Executed-test inventory
 

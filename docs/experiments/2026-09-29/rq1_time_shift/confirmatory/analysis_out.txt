@@ -1,0 +1,11 @@
+{
+  "verdict": "INCONCLUSIVE",
+  "reason": "pattern not met at the locked threshold: completed 2/8 seeds, support labels 1/2, contemporary vs frozen interval [-0.0558017386, 0.0693853373] excludes_zero=False, lagged vs frozen [-0.0345598529, 0.0312625394] excludes_zero=False",
+  "integrity": {
+    "raw_recompute_matches_all_seeds": true,
+    "all_seed_gates_ok": true,
+    "frozen_exactly_zero": true,
+    "n_seeds_completed": 2,
+    "n_seeds_locked": 8
+  }
+}

@@ -1,0 +1,105 @@
+planned=2100 done=0 missing=2100
+{
+  "origin_main_at_run_time": "1355b60099f62a8352ba867575e5bab7565c4518",
+  "expected_origin_main": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+  "sha_matches_expected": false,
+  "git_exe_available": false,
+  "sha_source": "codontrace-genesis/.git/refs/remotes/origin/main (read directly; git.exe not on PATH)"
+}
+[   13.9s] 1/2100 key=t1_ic0.4_c0.90_s8000 sexual=0.9938 extinct=False ledger=9.12e-11
+[   29.6s] 25/2100 key=t1_ic0.4_c0.90_s8024 sexual=0.5530 extinct=False ledger=1.22e-10
+[   49.5s] 50/2100 key=t1_ic0.4_c0.90_s8049 sexual=0.8345 extinct=False ledger=1.20e-10
+planned=2100 done=50 missing=2050
+{
+  "origin_main_at_run_time": "1355b60099f62a8352ba867575e5bab7565c4518",
+  "local_main_at_run_time": "1355b60099f62a8352ba867575e5bab7565c4518",
+  "expected_origin_main_at_task_issue": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+  "sha_matches_expected": false,
+  "note": "origin/main advanced from 01ee4a2 to 1355b6 at 16:17:25 local during this session (reflog: 'docs(campaign): repair a dangling citation and commit the novelty synthesis'); the sweep therefore ran against the newer ref, which is a descendant of the pinned one. The harness files listed below are unchanged from the first sweep start.",
+  "git_exe_available": false,
+  "sha_source": "codontrace-genesis/.git reflog + refs/remotes/origin/main (git.exe not on PATH)"
+}
+[   11.9s] 1/2050 key=t1_ic0.4_c0.90_s8050 sexual=0.9949 extinct=False ledger=5.48e-11
+[   22.5s] 25/2050 key=t1_ic0.4_c0.90_s8074 sexual=0.6756 extinct=False ledger=1.22e-10
+[   32.4s] 50/2050 key=t1_ic0.4_c0.90_s8099 sexual=0.9541 extinct=False ledger=3.57e-11
+[   63.0s] 75/2050 key=t6_ic0.4_c0.90_s8024 sexual=0.8828 extinct=False ledger=4.59e-11
+[   92.6s] 100/2050 key=t6_ic0.4_c0.90_s8049 sexual=0.9694 extinct=False ledger=4.00e-11
+[  121.3s] 125/2050 key=t6_ic0.4_c0.90_s8074 sexual=0.9469 extinct=False ledger=1.04e-10
+[  156.0s] 150/2050 key=t6_ic0.4_c0.90_s8099 sexual=0.8407 extinct=False ledger=4.46e-11
+[  234.7s] 175/2050 key=t12_ic0.4_c0.90_s8024 sexual=0.8955 extinct=False ledger=5.43e-11
+[  310.9s] 200/2050 key=t12_ic0.4_c0.90_s8049 sexual=0.9384 extinct=False ledger=6.78e-11
+[  391.8s] 225/2050 key=t12_ic0.4_c0.90_s8074 sexual=0.9369 extinct=False ledger=7.64e-11
+[  469.1s] 250/2050 key=t12_ic0.4_c0.90_s8099 sexual=0.9132 extinct=False ledger=3.27e-11
+[  486.0s] 275/2050 key=t1_ic0.4_c1.00_s8024 sexual=0.3745 extinct=False ledger=6.64e-11
+[  502.0s] 300/2050 key=t1_ic0.4_c1.00_s8049 sexual=0.1911 extinct=False ledger=5.75e-11
+[  515.9s] 325/2050 key=t1_ic0.4_c1.00_s8074 sexual=0.2481 extinct=False ledger=8.09e-11
+[  531.6s] 350/2050 key=t1_ic0.4_c1.00_s8099 sexual=0.8380 extinct=False ledger=4.30e-11
+[  581.9s] 375/2050 key=t6_ic0.4_c1.00_s8024 sexual=0.2052 extinct=False ledger=4.91e-11
+[  624.8s] 400/2050 key=t6_ic0.4_c1.00_s8049 sexual=0.5589 extinct=False ledger=5.73e-11
+[  669.0s] 425/2050 key=t6_ic0.4_c1.00_s8074 sexual=0.2357 extinct=False ledger=4.57e-11
+[  713.5s] 450/2050 key=t6_ic0.4_c1.00_s8099 sexual=0.5579 extinct=False ledger=5.73e-11
+[  797.4s] 475/2050 key=t12_ic0.4_c1.00_s8024 sexual=0.2547 extinct=False ledger=5.78e-11
+[  872.0s] 500/2050 key=t12_ic0.4_c1.00_s8049 sexual=0.6696 extinct=False ledger=3.43e-11
+[  945.3s] 525/2050 key=t12_ic0.4_c1.00_s8074 sexual=0.6982 extinct=False ledger=4.73e-11
+[ 1026.7s] 550/2050 key=t12_ic0.4_c1.00_s8099 sexual=0.3661 extinct=False ledger=3.84e-11
+[ 1034.4s] 575/2050 key=t1_ic0.4_c1.10_s8024 sexual=0.1538 extinct=False ledger=5.91e-11
+[ 1045.6s] 600/2050 key=t1_ic0.4_c1.10_s8049 sexual=0.0057 extinct=True ledger=2.57e-11
+[ 1056.7s] 625/2050 key=t1_ic0.4_c1.10_s8074 sexual=0.0002 extinct=True ledger=6.32e-11
+[ 1067.8s] 650/2050 key=t1_ic0.4_c1.10_s8099 sexual=0.0128 extinct=True ledger=2.56e-10
+[ 1102.9s] 675/2050 key=t6_ic0.4_c1.10_s8024 sexual=0.1198 extinct=False ledger=8.39e-11
+[ 1130.8s] 700/2050 key=t6_ic0.4_c1.10_s8049 sexual=0.2921 extinct=False ledger=3.57e-11
+[ 1162.8s] 725/2050 key=t6_ic0.4_c1.10_s8074 sexual=0.0022 extinct=True ledger=9.82e-11
+[ 1193.4s] 750/2050 key=t6_ic0.4_c1.10_s8099 sexual=0.3415 extinct=False ledger=8.21e-11
+[ 1262.9s] 775/2050 key=t12_ic0.4_c1.10_s8024 sexual=0.1191 extinct=False ledger=8.25e-11
+[ 1329.1s] 800/2050 key=t12_ic0.4_c1.10_s8049 sexual=0.1706 extinct=False ledger=7.96e-11
+[ 1394.6s] 825/2050 key=t12_ic0.4_c1.10_s8074 sexual=0.1544 extinct=False ledger=4.59e-11
+[ 1460.8s] 850/2050 key=t12_ic0.4_c1.10_s8099 sexual=0.1043 extinct=False ledger=3.46e-11
+[ 1472.4s] 875/2050 key=t1_ic0.4_c1.20_s8024 sexual=0.0004 extinct=True ledger=4.57e-11
+[ 1484.4s] 900/2050 key=t1_ic0.4_c1.20_s8049 sexual=0.0707 extinct=False ledger=5.18e-11
+[ 1495.0s] 925/2050 key=t1_ic0.4_c1.20_s8074 sexual=0.0163 extinct=False ledger=1.83e-10
+[ 1506.3s] 950/2050 key=t1_ic0.4_c1.20_s8099 sexual=0.0163 extinct=False ledger=8.09e-11
+[ 1550.9s] 975/2050 key=t6_ic0.4_c1.20_s8024 sexual=0.0187 extinct=False ledger=8.21e-11
+[ 1590.5s] 1000/2050 key=t6_ic0.4_c1.20_s8049 sexual=0.0245 extinct=False ledger=6.03e-11
+[ 1627.0s] 1025/2050 key=t6_ic0.4_c1.20_s8074 sexual=0.0619 extinct=False ledger=8.37e-11
+[ 1663.0s] 1050/2050 key=t6_ic0.4_c1.20_s8099 sexual=0.0136 extinct=True ledger=1.16e-10
+[ 1734.1s] 1075/2050 key=t12_ic0.4_c1.20_s8024 sexual=0.0229 extinct=True ledger=1.26e-10
+[ 1799.7s] 1100/2050 key=t12_ic0.4_c1.20_s8049 sexual=0.0326 extinct=False ledger=8.91e-11
+[ 1868.3s] 1125/2050 key=t12_ic0.4_c1.20_s8074 sexual=0.0000 extinct=True ledger=7.37e-11
+[ 1948.3s] 1150/2050 key=t12_ic0.4_c1.20_s8099 sexual=0.0413 extinct=False ledger=1.90e-10
+[ 1958.0s] 1175/2050 key=t1_ic0.4_c1.25_s8024 sexual=0.0112 extinct=True ledger=5.75e-11
+[ 1971.7s] 1200/2050 key=t1_ic0.4_c1.25_s8049 sexual=0.0354 extinct=False ledger=7.21e-11
+[ 1985.5s] 1225/2050 key=t1_ic0.4_c1.25_s8074 sexual=0.0000 extinct=True ledger=3.73e-11
+[ 1999.5s] 1250/2050 key=t1_ic0.4_c1.25_s8099 sexual=0.0000 extinct=True ledger=5.75e-11
+[ 2042.7s] 1275/2050 key=t6_ic0.4_c1.25_s8024 sexual=0.0383 extinct=False ledger=4.43e-11
+[ 2082.5s] 1300/2050 key=t6_ic0.4_c1.25_s8049 sexual=0.0809 extinct=False ledger=4.16e-11
+[ 2119.5s] 1325/2050 key=t6_ic0.4_c1.25_s8074 sexual=0.0202 extinct=False ledger=3.59e-11
+[ 2157.0s] 1350/2050 key=t6_ic0.4_c1.25_s8099 sexual=0.0000 extinct=True ledger=3.37e-11
+[ 2232.3s] 1375/2050 key=t12_ic0.4_c1.25_s8024 sexual=0.0000 extinct=True ledger=1.07e-10
+[ 2306.2s] 1400/2050 key=t12_ic0.4_c1.25_s8049 sexual=0.0000 extinct=True ledger=7.32e-11
+[ 2361.2s] 1425/2050 key=t12_ic0.4_c1.25_s8074 sexual=0.0000 extinct=True ledger=4.91e-11
+[ 2421.2s] 1450/2050 key=t12_ic0.4_c1.25_s8099 sexual=0.0203 extinct=False ledger=4.73e-11
+[ 2429.4s] 1475/2050 key=t1_ic0.4_c1.50_s8024 sexual=0.0000 extinct=True ledger=8.78e-11
+[ 2439.0s] 1500/2050 key=t1_ic0.4_c1.50_s8049 sexual=0.0000 extinct=True ledger=7.94e-11
+[ 2448.0s] 1525/2050 key=t1_ic0.4_c1.50_s8074 sexual=0.0000 extinct=True ledger=6.62e-11
+[ 2456.9s] 1550/2050 key=t1_ic0.4_c1.50_s8099 sexual=0.0000 extinct=True ledger=6.46e-11
+[ 2487.3s] 1575/2050 key=t6_ic0.4_c1.50_s8024 sexual=0.0000 extinct=True ledger=4.59e-11
+[ 2514.9s] 1600/2050 key=t6_ic0.4_c1.50_s8049 sexual=0.0017 extinct=True ledger=7.05e-11
+[ 2541.7s] 1625/2050 key=t6_ic0.4_c1.50_s8074 sexual=0.0000 extinct=True ledger=6.21e-11
+[ 2562.8s] 1650/2050 key=t6_ic0.4_c1.50_s8099 sexual=0.0000 extinct=True ledger=4.87e-11
+[ 2631.1s] 1675/2050 key=t12_ic0.4_c1.50_s8024 sexual=0.0000 extinct=True ledger=3.12e-11
+[ 2685.5s] 1700/2050 key=t12_ic0.4_c1.50_s8049 sexual=0.0000 extinct=True ledger=7.37e-11
+[ 2742.7s] 1725/2050 key=t12_ic0.4_c1.50_s8074 sexual=0.0000 extinct=True ledger=5.30e-11
+[ 2799.2s] 1750/2050 key=t12_ic0.4_c1.50_s8099 sexual=0.0000 extinct=True ledger=6.18e-11
+[ 2809.8s] 1775/2050 key=t1_ic0.4_c1.75_s8024 sexual=0.0000 extinct=True ledger=7.66e-11
+[ 2819.5s] 1800/2050 key=t1_ic0.4_c1.75_s8049 sexual=0.0000 extinct=True ledger=7.75e-11
+[ 2829.3s] 1825/2050 key=t1_ic0.4_c1.75_s8074 sexual=0.0000 extinct=True ledger=8.23e-11
+[ 2838.7s] 1850/2050 key=t1_ic0.4_c1.75_s8099 sexual=0.0000 extinct=True ledger=5.00e-11
+[ 2870.3s] 1875/2050 key=t6_ic0.4_c1.75_s8024 sexual=0.0000 extinct=True ledger=7.64e-11
+[ 2899.8s] 1900/2050 key=t6_ic0.4_c1.75_s8049 sexual=0.0000 extinct=True ledger=5.59e-11
+[ 2931.8s] 1925/2050 key=t6_ic0.4_c1.75_s8074 sexual=0.0000 extinct=True ledger=3.14e-11
+[ 2962.1s] 1950/2050 key=t6_ic0.4_c1.75_s8099 sexual=0.0000 extinct=True ledger=7.21e-11
+[ 3026.5s] 1975/2050 key=t12_ic0.4_c1.75_s8024 sexual=0.0000 extinct=True ledger=4.46e-11
+[ 3081.1s] 2000/2050 key=t12_ic0.4_c1.75_s8049 sexual=0.0000 extinct=True ledger=7.19e-11
+[ 3142.5s] 2025/2050 key=t12_ic0.4_c1.75_s8074 sexual=0.0000 extinct=True ledger=2.23e-11
+[ 3197.6s] 2050/2050 key=t12_ic0.4_c1.75_s8099 sexual=0.0000 extinct=True ledger=6.78e-11
+SWEEP_COMPLETE runs=2097 wall=3198.2s

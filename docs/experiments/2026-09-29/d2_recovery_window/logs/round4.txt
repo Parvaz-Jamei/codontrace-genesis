@@ -1,0 +1,53 @@
+d2r4-s5501-t10-cut_named_scaffold: recover=False ratio=0.059 n_end=2
+d2r4-s5501-t10-cut_matched_random: recover=False ratio=0.573 n_end=2
+d2r4-s5501-t10-sham: recover=False ratio=0.570 n_end=2
+d2r4-s5501-t20-cut_named_scaffold: recover=False ratio=0.055 n_end=2
+d2r4-s5501-t20-cut_matched_random: recover=False ratio=0.519 n_end=2
+d2r4-s5501-t20-sham: recover=False ratio=0.519 n_end=2
+d2r4-s5501-t30-cut_named_scaffold: recover=False ratio=0.051 n_end=2
+d2r4-s5501-t30-cut_matched_random: recover=False ratio=0.478 n_end=2
+d2r4-s5501-t30-sham: recover=False ratio=0.478 n_end=2
+d2r4-s5502-t10-cut_named_scaffold: recover=False ratio=0.054 n_end=2
+d2r4-s5502-t10-cut_matched_random: recover=False ratio=0.493 n_end=2
+d2r4-s5502-t10-sham: recover=False ratio=0.516 n_end=2
+d2r4-s5502-t20-cut_named_scaffold: recover=False ratio=0.051 n_end=2
+d2r4-s5502-t20-cut_matched_random: recover=False ratio=0.482 n_end=2
+d2r4-s5502-t20-sham: recover=False ratio=0.482 n_end=2
+d2r4-s5502-t30-cut_named_scaffold: recover=False ratio=0.048 n_end=2
+d2r4-s5502-t30-cut_matched_random: recover=False ratio=0.451 n_end=2
+d2r4-s5502-t30-sham: recover=False ratio=0.451 n_end=2
+{
+ "verdict": "BLOCKED_MEASUREMENT",
+ "isolation_holds": false,
+ "table": {
+  "cut_named_scaffold": {
+   "n_runs": 6,
+   "n_recover_preregistered": 0,
+   "p_recover_preregistered": 0.0,
+   "p_digest_return_exploratory": 0.0,
+   "max_yield_over_baseline": 0.058505964742045356,
+   "n_alive_end_zero_rate": 0.0,
+   "mean_n_alive_end": 2.0
+  },
+  "cut_matched_random": {
+   "n_runs": 6,
+   "n_recover_preregistered": 0,
+   "p_recover_preregistered": 0.0,
+   "p_digest_return_exploratory": 0.0,
+   "max_yield_over_baseline": 0.5734268359401935,
+   "n_alive_end_zero_rate": 0.0,
+   "mean_n_alive_end": 2.0
+  },
+  "sham": {
+   "n_runs": 6,
+   "n_recover_preregistered": 0,
+   "p_recover_preregistered": 0.0,
+   "p_digest_return_exploratory": 0.0,
+   "max_yield_over_baseline": 0.569536548513374,
+   "n_alive_end_zero_rate": 0.0,
+   "mean_n_alive_end": 2.0
+  }
+ },
+ "config_digest": "20a38187cb61b12e47d3418e4c5609cd",
+ "wall_seconds": 294.85
+}

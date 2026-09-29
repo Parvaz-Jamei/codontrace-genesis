@@ -1,0 +1,51 @@
+{
+ "all_equal": true,
+ "draws_per_site": 32,
+ "ledger_op_schedule_equal": true,
+ "ledger_ops": [
+  "'E7'",
+  "'E0'",
+  "'E1'",
+  "(('E0', 0.22611401422500366), ('E1', 0.2181152785674396), ('E10', 0.1854489831717237), ('E11', 0.020274180479913733), ('E2', 0.21788497457946113), ('E3', 0.10769382378632192), ('E4', 0.26176470561035836), ('E5', 0.05140801953379895), ('E6', 0.21717828782076554), ('E7', 0.1836802087341361), ('E8', 0.05144949622338249), ('E9', 0.2589880272676948))"
+ ],
+ "scaffold_digests": {
+  "0": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  },
+  "1": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  },
+  "11": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  },
+  "401": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  },
+  "5501": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  },
+  "7": {
+   "equal": true,
+   "legacy": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+   "new": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064"
+  }
+ },
+ "unseeded_path": {
+  "draw_count_a": 8,
+  "matches_random_dot_Random_none_semantics": true,
+  "re_seeded_path_equal": true,
+  "seed_field_default": null,
+  "two_instances_differ": true
+ }
+}
+ALL_EQUAL

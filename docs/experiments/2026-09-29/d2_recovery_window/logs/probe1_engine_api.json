@@ -1,0 +1,659 @@
+{
+  "boundary_events": [
+    {
+      "atp": [
+        26.8,
+        26.8,
+        26.8,
+        18.8,
+        18.8,
+        18.8,
+        19.5,
+        19.5
+      ],
+      "gen": 1,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 8,
+      "tick": -1
+    },
+    {
+      "atp": [
+        13.425,
+        13.425,
+        13.425,
+        7.425,
+        7.425,
+        7.425,
+        19.0,
+        19.0,
+        4.475,
+        4.475,
+        4.475,
+        2.475,
+        2.475,
+        2.475
+      ],
+      "gen": 2,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "d7e27ec35d7e6a42be3e211bb3b0c6d6b8bf5915b0e05565995a8b207f103686"
+      ],
+      "ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7",
+        "org-0-g2-1edd0641fd",
+        "org-1-g2-10b8a352c7",
+        "org-2-g2-544e468030",
+        "org-3-g2-1edd0641fd",
+        "org-4-g2-1edd0641fd",
+        "org-5-g2-d7e27ec35d"
+      ],
+      "n_alive": 14,
+      "tick": -1
+    },
+    {
+      "atp": [
+        12.925,
+        11.275,
+        12.925,
+        2.575,
+        12.925,
+        4.075,
+        6.925,
+        9.275,
+        6.925,
+        1.275,
+        6.925,
+        9.275,
+        18.5,
+        18.5
+      ],
+      "gen": 3,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "d7e27ec35d7e6a42be3e211bb3b0c6d6b8bf5915b0e05565995a8b207f103686",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-3-g2-1edd0641fd",
+        "org-4",
+        "org-4-g2-1edd0641fd",
+        "org-5",
+        "org-5-g2-d7e27ec35d",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 14,
+      "tick": -1
+    },
+    {
+      "atp": [
+        11.725,
+        2.875,
+        11.725,
+        2.175,
+        11.725,
+        3.675,
+        5.725,
+        0.875,
+        5.725,
+        0.875,
+        5.725,
+        0.875,
+        18.0,
+        18.0
+      ],
+      "gen": 4,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "d7e27ec35d7e6a42be3e211bb3b0c6d6b8bf5915b0e05565995a8b207f103686",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-3-g2-1edd0641fd",
+        "org-4",
+        "org-4-g2-1edd0641fd",
+        "org-5",
+        "org-5-g2-d7e27ec35d",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 14,
+      "tick": -1
+    },
+    {
+      "atp": [
+        3.325,
+        2.375,
+        3.325,
+        1.675,
+        3.325,
+        3.175,
+        5.325,
+        0.375,
+        5.325,
+        0.375,
+        5.325,
+        0.475,
+        17.5,
+        17.5
+      ],
+      "gen": 5,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "d7e27ec35d7e6a42be3e211bb3b0c6d6b8bf5915b0e05565995a8b207f103686",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-3-g2-1edd0641fd",
+        "org-4",
+        "org-4-g2-1edd0641fd",
+        "org-5",
+        "org-5-g2-d7e27ec35d",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 14,
+      "tick": -1
+    },
+    {
+      "atp": [
+        2.825,
+        1.175,
+        2.825,
+        1.275,
+        2.825,
+        2.775,
+        4.825,
+        4.825,
+        4.825,
+        0.075,
+        17.0,
+        17.0
+      ],
+      "gen": 6,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "d7e27ec35d7e6a42be3e211bb3b0c6d6b8bf5915b0e05565995a8b207f103686",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-5-g2-d7e27ec35d",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 12,
+      "tick": -1
+    },
+    {
+      "atp": [
+        1.625,
+        0.775,
+        1.625,
+        0.875,
+        1.625,
+        2.375,
+        3.625,
+        3.625,
+        3.625,
+        16.5,
+        16.5
+      ],
+      "gen": 7,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 11,
+      "tick": -1
+    },
+    {
+      "atp": [
+        1.225,
+        0.275,
+        1.225,
+        0.375,
+        1.225,
+        1.875,
+        3.225,
+        3.225,
+        3.225,
+        16.0,
+        16.0
+      ],
+      "gen": 8,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "10b8a352c7c85bc3c211a7e80c3745aab6cadc3b61fd6891df6b923d1eb42d19",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-0-g2-1edd0641fd",
+        "org-1",
+        "org-1-g2-10b8a352c7",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 11,
+      "tick": -1
+    },
+    {
+      "atp": [
+        0.725,
+        0.725,
+        0.725,
+        1.475,
+        2.725,
+        2.725,
+        2.725,
+        15.5,
+        15.5
+      ],
+      "gen": 9,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 9,
+      "tick": -1
+    },
+    {
+      "atp": [
+        0.325,
+        0.325,
+        0.325,
+        1.075,
+        1.525,
+        1.525,
+        1.525,
+        15.0,
+        15.0
+      ],
+      "gen": 10,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 9,
+      "tick": -1
+    },
+    {
+      "atp": [
+        0.575,
+        1.125,
+        1.125,
+        1.125,
+        14.5,
+        14.5
+      ],
+      "gen": 11,
+      "genomes": [
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 6,
+      "tick": -1
+    },
+    {
+      "atp": [
+        0.175,
+        0.625,
+        0.625,
+        0.625,
+        14.0,
+        14.0
+      ],
+      "gen": 12,
+      "genomes": [
+        "544e4680305a092d9e6fe79ac1d52ab60b86dd486884bf59f9cbcc5ae452dd30",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-2-g2-544e468030",
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 6,
+      "tick": -1
+    },
+    {
+      "atp": [
+        0.225,
+        0.225,
+        0.225,
+        13.5,
+        13.5
+      ],
+      "gen": 13,
+      "genomes": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-3",
+        "org-4",
+        "org-5",
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 5,
+      "tick": -1
+    },
+    {
+      "atp": [
+        13.0,
+        13.0
+      ],
+      "gen": 14,
+      "genomes": [
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 2,
+      "tick": -1
+    },
+    {
+      "atp": [
+        12.5,
+        12.5
+      ],
+      "gen": 15,
+      "genomes": [
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 2,
+      "tick": -1
+    },
+    {
+      "atp": [
+        12.0,
+        12.0
+      ],
+      "gen": 16,
+      "genomes": [
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "ids": [
+        "org-6",
+        "org-7"
+      ],
+      "n_alive": 2,
+      "tick": -1
+    }
+  ],
+  "fork": {
+    "deepcopy_error": "TypeError: cannot pickle 'mappingproxy' object",
+    "deepcopy_ok": false
+  },
+  "probe": "engine_api_and_fork",
+  "steps": [
+    {
+      "engine_module": "codontrace.engine_runtime"
+    },
+    {
+      "engine_public": [
+        "build_review_request",
+        "export_evidence_pack",
+        "export_replay_bundle",
+        "from_spec",
+        "record_review_result",
+        "run_ticks",
+        "snapshot"
+      ]
+    },
+    {
+      "from_spec_sig": "(spec: 'GenesisExperimentSpec', *, generation_boundary_observers: 'Sequence[GenerationBoundaryObserver] | None' = None) -> 'GenesisEngine'"
+    },
+    {
+      "run_ticks_sig": "(self, ticks: 'int | None' = None) -> 'GenesisRunResult'"
+    },
+    {
+      "spec_build_seconds": 0.0082
+    },
+    {
+      "from_spec_seconds": 0.0195
+    },
+    {
+      "run_ticks_seconds": 7.8619
+    },
+    {
+      "observer_fires": 16
+    },
+    {
+      "expected_ticks": 16
+    },
+    {
+      "result_type": "GenesisRunResult"
+    },
+    {
+      "engine_attrs_after": [
+        "_last_result",
+        "_qd_parent_feedback_applied",
+        "_snapshots",
+        "_tick_results",
+        "element_grid",
+        "generation_boundary_observers",
+        "qd_archive",
+        "review_status",
+        "run",
+        "runner",
+        "spec"
+      ]
+    }
+  ],
+  "wall_seconds_per_tick": 0.491372,
+  "wall_seconds_ticks": 7.861945600000126
+}

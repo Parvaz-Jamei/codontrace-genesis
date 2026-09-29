@@ -1,0 +1,56 @@
+[
+  {
+    "arm": "contemporary",
+    "interval_vs_frozen": {
+      "excludes_zero": false,
+      "hi": 0.0693853373,
+      "lo": -0.0558017386,
+      "mean": 0.00679179935,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 2
+    },
+    "mean": 0.00679179935,
+    "n": 2,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "lagged",
+    "interval_vs_frozen": {
+      "excludes_zero": false,
+      "hi": 0.0312625394,
+      "lo": -0.0345598529,
+      "mean": -0.00164865675,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 2
+    },
+    "mean": -0.00164865675,
+    "n": 2,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "frozen",
+    "exactly_zero": true,
+    "interval_vs_frozen": {
+      "excludes_zero": false,
+      "hi": 0.0,
+      "lo": 0.0
+    },
+    "mean": 0.0,
+    "n": 2,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "contemporary_minus_lagged",
+    "interval_vs_frozen": {
+      "excludes_zero": false,
+      "hi": 0.1039451902,
+      "lo": -0.087064278,
+      "mean": 0.0084404561,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 2
+    },
+    "mean": 0.0084404561,
+    "n": 2,
+    "unit": "independent population history (seed)"
+  }
+]

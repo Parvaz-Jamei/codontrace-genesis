@@ -1,0 +1,66 @@
+True | score_recover::three consecutive at exactly 1.25 | baseline=1.0 post=[1.25, 1.25, 1.25] -> True (hand-expected True)
+True | score_recover::two consecutive then a dip | baseline=1.0 post=[1.25, 1.25, 1.24, 1.25, 1.25] -> False (hand-expected False)
+True | score_recover::dip first, then three consecutive | baseline=1.0 post=[1.24, 1.26, 1.26, 1.26] -> True (hand-expected True)
+True | score_recover::three consecutive at the end | baseline=1.0 post=[1.26, 1.26, 1.25, 1.25, 1.25] -> True (hand-expected True)
+True | score_recover::1.3,1.3,1.24,1.3,1.3 | baseline=1.0 post=[1.3, 1.3, 1.24, 1.3, 1.3] -> False (hand-expected False)
+True | score_recover::zero baseline is undefined, not a pass | baseline=0.0 post=[9.0, 9.0, 9.0] -> False (hand-expected False)
+False | yield_arithmetic::eligible_token | raw=0.000000000 scaffold_factor=1.000000 digest_factor=1.0 -> 3.000000000
+True | yield_arithmetic::relocated_token_is_0.55x | relocated=1.650000000 expected=1.650000000
+False | yield_arithmetic::scaffold_cut_multiplier | cut=['E0', 'E1'] yield 3.000000000 -> 0.320000000 (expected 0.000000000)
+True | yield_arithmetic::scaffold_cut_lowers_yield | 3.000000000 -> 0.320000000: cutting the named scaffold cannot raise the endpoint
+
+fork: {
+ "conclusion": "no full fork: the live engine cannot be copied or restored at a generation boundary",
+ "deepcopy_error": "TypeError: cannot pickle 'mappingproxy' object",
+ "deepcopy_ok": false,
+ "engine_has_rng_attribute": false,
+ "engine_restore_entry_points": [],
+ "fork_available": false,
+ "rng_restore_available_somewhere": "codontrace.rng.RNGManager.restore",
+ "runner_has_rng_attribute": false,
+ "snapshot_fields": [
+  "element_grid_digest",
+  "population",
+  "qd_archive_digest",
+  "run_id",
+  "substrate_bridge_mode",
+  "world_digest"
+ ],
+ "snapshot_payload_keys": [
+  "element_grid_digest",
+  "population",
+  "qd_archive_digest",
+  "run_id",
+  "substrate_bridge_mode",
+  "world_digest"
+ ],
+ "snapshot_type": "codontrace.engine_results.GenesisSnapshot"
+}
+
+determinism: {
+ "arms_diverge_after_intervention": true,
+ "control_burden": 0.35,
+ "control_post_yield_series": [
+  1.1175616878453558,
+  1.1737882662058152,
+  1.1418907209847038,
+  1.1116621667924673,
+  1.0110759749869749,
+  1.0049646229929339,
+  0.9981129624889082
+ ],
+ "intervention_generation": 10,
+ "named_burden": 3.2851233756907123,
+ "named_post_yield_series": [
+  0.11920658003683796,
+  0.12065017589205781,
+  0.11710510841347783,
+  0.10617514230583218,
+  0.10555367707948733,
+  0.10485669667500627,
+  0.10407604859466422
+ ],
+ "pre_intervention_generations": 9,
+ "pre_intervention_paths_identical_across_arms": true,
+ "replay_same_process_identical": true
+}

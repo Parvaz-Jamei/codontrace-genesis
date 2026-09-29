@@ -1,0 +1,32 @@
+s5501 t10: baseline=2.274129 cut_named_scaf=- cut_matched_ra=- sham=-
+s5501 t20: baseline=2.132319 cut_named_scaf=- cut_matched_ra=- sham=-
+s5501 t30: baseline=2.036751 cut_named_scaf=- cut_matched_ra=- sham=-
+s5502 t10: baseline=2.471991 cut_named_scaf=- cut_matched_ra=- sham=-
+s5502 t20: baseline=2.220213 cut_named_scaf=- cut_matched_ra=- sham=-
+s5502 t30: baseline=2.080744 cut_named_scaf=- cut_matched_ra=- sham=-
+{
+ "verdict": "INCONCLUSIVE",
+ "isolation_holds": true,
+ "table": {
+  "cut_matched_random": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.5734268359401935
+  },
+  "cut_named_scaffold": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.058505964742045356
+  },
+  "sham": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.569536548513374
+  }
+ },
+ "config_digest": "24da55a1cd765a4c00682c6ec092a0ce",
+ "wall_seconds": 149.0
+}

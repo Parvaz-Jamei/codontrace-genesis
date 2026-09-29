@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 572, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 562, in main
+    out = stage_time(args.seed, args.gens)
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 522, in stage_time
+    run.step(generation)
+    ~~~~~~~~^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 262, in step
+    host_counts = Counter(
+        joint_match_class(organism_window(org)) for org in self.arm._hosts()
+    )
+  File "C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\collections\__init__.py", line 614, in __init__
+    self.update(iterable, **kwds)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\collections\__init__.py", line 709, in update
+    _count_elements(self, iterable)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 263, in <genexpr>
+    joint_match_class(organism_window(org)) for org in self.arm._hosts()
+                      ~~~~~~~~~~~~~~~^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 115, in organism_window
+    from codontrace.genesis.host_parasite_life_plugin import window_of
+ImportError: cannot import name 'window_of' from 'codontrace.genesis.host_parasite_life_plugin' (E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\host_parasite_life_plugin.py)

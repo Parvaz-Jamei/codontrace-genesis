@@ -1,0 +1,5 @@
+{
+  "generations": 150,
+  "run_id": "rq3-absent-s21011-1790679862",
+  "stop_code": "COMPLETE"
+}

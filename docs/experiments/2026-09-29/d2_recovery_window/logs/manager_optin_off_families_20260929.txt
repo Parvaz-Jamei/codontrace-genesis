@@ -1,0 +1,15 @@
+........................................................................ [ 25%]
+........................................................................ [ 50%]
+........................................................................ [ 76%]
+....................................................................     [100%]
+============================== warnings summary ===============================
+tests\closed_loop\test_closed_loop_hp_arm01_confirm.py:90
+  E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis\tests\closed_loop\test_closed_loop_hp_arm01_confirm.py:90: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\closed_loop\test_closed_loop_hp_arm01_persistence.py:129
+  E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis\tests\closed_loop\test_closed_loop_hp_arm01_persistence.py:129: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+DONE=0 

@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 571, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 563, in main
+    out = stage_arm(args.seed, args.gens, args.arm)
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 537, in stage_arm
+    run.step(generation)
+    ~~~~~~~~^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\rq3\rq3_harness.py", line 223, in step
+    result = self.arm.runner.step_generation(
+        seed=self.seed + self.arm.tick_index + 1
+    )
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\population_runner.py", line 39, in step_generation
+    result = step_population(
+        self.population,
+    ...<4 lines>...
+        nexus_layer=self.nexus_layer,
+    )
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\population.py", line 4145, in step_population
+    next_population = PopulationState(
+        generation=population.generation + 1,
+    ...<7 lines>...
+        materials=mat_state if mat_cfg.enabled else None,
+    )
+  File "<string>", line 12, in __init__
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\population.py", line 834, in __post_init__
+    raise ConfigurationError(msg)
+codontrace.errors.ConfigurationError: Population organism ids must be unique.

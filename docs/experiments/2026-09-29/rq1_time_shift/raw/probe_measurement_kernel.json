@@ -1,0 +1,44 @@
+{
+  "affinity_grid_example": {
+    "future": {
+      "future": 1.0,
+      "now": 0.5,
+      "past": 0.5
+    },
+    "now": {
+      "future": 0.5,
+      "now": 1.0,
+      "past": 0.0
+    },
+    "past": {
+      "future": 0.5,
+      "now": 0.0,
+      "past": 1.0
+    }
+  },
+  "example_histogram_blind": {
+    "affinity_a_000000_000001": 0.8333333333333334,
+    "affinity_b_against_000011": 0.0
+  },
+  "flat_affinity": {
+    "kappa": 1.2,
+    "pressure": {
+      "A": 0.6
+    }
+  },
+  "truncation": {
+    "kappa": 1.2,
+    "pressure": {
+      "A": 0.5
+    }
+  },
+  "two_host_classes": {
+    "class_frequency_used": false,
+    "equal_exposure": true,
+    "histogram_used": false,
+    "pressure": {
+      "A": 0.9,
+      "B": 0.1
+    }
+  }
+}

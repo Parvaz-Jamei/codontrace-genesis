@@ -1,0 +1,44 @@
+diff --git a/src/codontrace/genesis/measurements/antagonist_population.py b/src/codontrace/genesis/measurements/antagonist_population.py
+--- a/src/codontrace/genesis/measurements/antagonist_population.py
++++ b/src/codontrace/genesis/measurements/antagonist_population.py
+@@ -166,11 +166,17 @@ class AntagonistPopulation:
+     def founders(
+         cls,
+         windows: Sequence[str],
+         *,
+         keep_fraction: float = 0.5,
+         mutation_rate: float = 0.25,
+         fecundity: float = 1.0,
++        maintenance_cost: float | None = None,
+     ) -> AntagonistPopulation:
++        """Founder roster.
++
++        ``maintenance_cost`` is the pre-declared RQ-3 substrate knob passed in from
++        ``StructuralRQArm.boot_structural``. ``None`` keeps the class default, so the
++        standing call is byte-identical.
++        """
++
+         if not windows:
+             raise ConfigurationError("antagonist population requires founder windows")
+         founder_units = [
+             AntagonistUnit(
+                 unit_id=f"a0-{seat}",
+                 window=str(window),
+                 parent_id=None,
+                 born_generation=0,
+                 energy=ENERGY_PER_SEAT,
+             )
+             for seat, window in enumerate(windows)
+         ]
+-        return cls(
++        built = cls(
+             units=founder_units,
+             seat_cap=len(founder_units),
+             ancestral_windows=[str(window) for window in windows],
+             keep_fraction=float(keep_fraction),
+             mutation_rate=float(mutation_rate),
+             fecundity=float(fecundity),
+         )
++        if maintenance_cost is not None:
++            built = replace(built, maintenance_cost=float(maintenance_cost))
++        return built

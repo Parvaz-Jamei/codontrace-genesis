@@ -1,0 +1,176 @@
+{
+  "experiment": "CausalTape-2 (order arm)",
+  "depth": 40,
+  "permutations_per_seed": 4,
+  "order_seeds": [
+    3000,
+    3119,
+    120
+  ],
+  "gate_e": {
+    "gate": "E_schedule_reproduces_natural_tape",
+    "passed": true,
+    "checks": [
+      {
+        "seed": 1000,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "digest": "ef69d2b2219ffb1b"
+      },
+      {
+        "seed": 1001,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "digest": "72aad1c67f0ebe5b"
+      },
+      {
+        "seed": 1002,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "digest": "2df7fb1068791a3d"
+      }
+    ]
+  },
+  "gate_f": {
+    "gate": "F_order_effect_zero_on_commuting_landscape",
+    "passed": true,
+    "max_abs_tau_order": 0.0,
+    "n_seeds": 40,
+    "permuted_schedules_that_differ": 160,
+    "permutations_per_seed": 4
+  },
+  "gate_g": {
+    "gate": "G_order_effect_nonzero_under_epistasis",
+    "passed": true,
+    "median_abs_tau_order": 3.5549117485151527,
+    "mean_tau_order": 2.976220015008375,
+    "sd_tau_order": 3.3066052047055616,
+    "distinct_schedules": 80,
+    "n_seeds": 20
+  },
+  "configs": {
+    "eps0.0": {
+      "eps": 0.0,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 16.041401647205415,
+      "permuted_mean": 16.041401647205415,
+      "tau_order_mean": 0.0,
+      "tau_order_median_abs": 0.0,
+      "tau_order_sd": 0.0,
+      "tau_order_ci": [
+        0.0,
+        0.0
+      ],
+      "fraction_seeds_nonzero": 0.0,
+      "tau_order_over_fmax_median_abs": 0.0,
+      "fraction_above_detection_floor_0p01": 0.0,
+      "fraction_above_strong_floor_0p1": 0.0,
+      "unmatched_effect_abs": 0.1298142418656898,
+      "unmatched_over_matched_inflation": Infinity
+    },
+    "eps0.05": {
+      "eps": 0.05,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 16.246818313872083,
+      "permuted_mean": 16.246818313872083,
+      "tau_order_mean": 0.0,
+      "tau_order_median_abs": 0.0,
+      "tau_order_sd": 0.0,
+      "tau_order_ci": [
+        0.0,
+        0.0
+      ],
+      "fraction_seeds_nonzero": 0.0,
+      "tau_order_over_fmax_median_abs": 0.0,
+      "fraction_above_detection_floor_0p01": 0.0,
+      "fraction_above_strong_floor_0p1": 0.0,
+      "unmatched_effect_abs": 0.10731424186569072,
+      "unmatched_over_matched_inflation": Infinity
+    },
+    "eps0.1": {
+      "eps": 0.1,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 16.452234980538748,
+      "permuted_mean": 16.452234980538748,
+      "tau_order_mean": 0.0,
+      "tau_order_median_abs": 0.0,
+      "tau_order_sd": 0.0,
+      "tau_order_ci": [
+        0.0,
+        0.0
+      ],
+      "fraction_seeds_nonzero": 0.0,
+      "tau_order_over_fmax_median_abs": 0.0,
+      "fraction_above_detection_floor_0p01": 0.0,
+      "fraction_above_strong_floor_0p1": 0.0,
+      "unmatched_effect_abs": 0.08481424186568631,
+      "unmatched_over_matched_inflation": Infinity
+    },
+    "eps0.2": {
+      "eps": 0.2,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 16.864687893311046,
+      "permuted_mean": 16.794790526270184,
+      "tau_order_mean": 0.06989736704086076,
+      "tau_order_median_abs": 0.10332687592645406,
+      "tau_order_sd": 0.2234411401740628,
+      "tau_order_ci": [
+        0.02720114596353759,
+        0.10831135625519593
+      ],
+      "fraction_seeds_nonzero": 0.8416666666666667,
+      "tau_order_over_fmax_median_abs": 0.0065325791202308706,
+      "fraction_above_detection_floor_0p01": 0.4166666666666667,
+      "fraction_above_strong_floor_0p1": 0.0,
+      "unmatched_effect_abs": 0.10941196230236017,
+      "unmatched_over_matched_inflation": 1.5653230863245517
+    },
+    "eps0.4": {
+      "eps": 0.4,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 19.03665827483679,
+      "permuted_mean": 17.988392573774263,
+      "tau_order_mean": 1.0482657010625234,
+      "tau_order_median_abs": 1.171699033456889,
+      "tau_order_sd": 1.150431331629967,
+      "tau_order_ci": [
+        0.8319957362971926,
+        1.2483608889653253
+      ],
+      "fraction_seeds_nonzero": 1.0,
+      "tau_order_over_fmax_median_abs": 0.06301382237872225,
+      "fraction_above_detection_floor_0p01": 0.95,
+      "fraction_above_strong_floor_0p1": 0.225,
+      "unmatched_effect_abs": 1.1446283051053783,
+      "unmatched_over_matched_inflation": 1.0919257435831218
+    },
+    "eps0.8": {
+      "eps": 0.8,
+      "depth": 40,
+      "n_seeds": 120,
+      "natural_mean": 25.32674764995771,
+      "permuted_mean": 22.021491286477666,
+      "tau_order_mean": 3.305256363480051,
+      "tau_order_median_abs": 3.7713095163742842,
+      "tau_order_sd": 3.07065632280649,
+      "tau_order_ci": [
+        2.7272081226416343,
+        3.8391262927030283
+      ],
+      "fraction_seeds_nonzero": 1.0,
+      "tau_order_over_fmax_median_abs": 0.14641166075033368,
+      "fraction_above_detection_floor_0p01": 0.9833333333333333,
+      "fraction_above_strong_floor_0p1": 0.7,
+      "unmatched_effect_abs": 3.503323043911312,
+      "unmatched_over_matched_inflation": 1.0599247557979798
+    }
+  }
+}

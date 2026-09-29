@@ -1,0 +1,36 @@
+diff --git a/docs/campaigns/discovery_questions_20260928/DISCOVERY_PROGRAM_STAGE0_ADDENDUM_20260929_RQ1_ROUTE.md b/docs/campaigns/discovery_questions_20260928/DISCOVERY_PROGRAM_STAGE0_ADDENDUM_20260929_RQ1_ROUTE.md
+new file mode 100644
+--- /dev/null
++++ b/docs/campaigns/discovery_questions_20260928/DISCOVERY_PROGRAM_STAGE0_ADDENDUM_20260929_RQ1_ROUTE.md
+@@ -0,0 +1,31 @@
++# Stage-0 addendum — the RQ-1 blocker is route-specific
++
++**Date:** 2026-09-29
++**Scope:** clarifies `DISCOVERY_PROGRAM_STAGE0_20260929.md`; the sealed record is
++not edited.
++
++## Finding
++
++Stage 0 records `BLOCKED_MEASUREMENT` for RQ-1 because "the antagonist is not a
++genotype population" and "the checkpoint is not a full fork". Both statements are
++true of the Idea-2 live cell (`discovery_q_20260928_idea2_engine`), whose
++antagonist is a capped scalar counter with `parasite_is_genotype_population=false`.
++
++They are **not** true of `StructuralRQArm`
++(`closed_loop_hp_arm01_structural_rq.py`), which is a live life-loop
++host/antagonist coevolutionary route: host match windows are genomes under a
++bit-flip mutation regime, and the antagonist is a 64-window stock that is partly
++kept and partly re-drawn each generation from that generation's *matched* windows
++and mutated (`passage=coevolve`), with frozen (`fixed`) and absent (`avirulent`)
++controls. It archives per generation the host joint match classes with counts,
++the antagonist class counts, and the realised pressure per host class, and it
++exposes `window_snapshot(generation)`.
++
++All three arms boot from the same seed and the same initial state (identical
++founder genome digest and identical initial parasite-window digest), each with a
++separately labelled RNG namespace.
++
++## Consequence
++
++RQ-1 is runnable on this route without a repository change: the 3x3 cross-time
++matrix is built outside evolution from the archived per-generation class tables.

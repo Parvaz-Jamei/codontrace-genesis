@@ -1,0 +1,22 @@
+control                  final=d3084e8b99a7d649 repeat_identical=True burden=0.35
+cut_named_scaffold       final=39762884025d7aad repeat_identical=True burden=3.2202197309490583
+cut_matched_random       final=39762884025d7aad repeat_identical=True burden=3.2202197309490583
+scramble_contacts        final=febd16e9f6db8732 repeat_identical=True burden=4.549999999999999
+Traceback (most recent call last):
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\d2\probes\probe4_matched_arm_identity.py", line 128, in <module>
+    a = run_arm(arm)
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\d2\probes\probe4_matched_arm_identity.py", line 84, in run_arm
+    engine.run_ticks()
+    ~~~~~~~~~~~~~~~~^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\engine_runtime.py", line 292, in run_ticks
+    observer(generation_index=generation_index)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\life_loop\engine_ledger_coupler.py", line 539, in __call__
+    op(self.ledger, g)
+    ~~^^^^^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\d2\probes\probe4_matched_arm_identity.py", line 52, in _op
+    return {"ckpt": ckpt, "cell": _apply_ops_cell(led, arm)}
+                                  ~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\campaigns\discovery_q_20260928_idea4.py", line 308, in _apply_ops_cell
+    raise ConfigurationError(f"unknown Idea4 ops_cell {ops_cell!r}.")
+codontrace.errors.ConfigurationError: unknown Idea4 ops_cell 'ablate_knowledge_digest '.

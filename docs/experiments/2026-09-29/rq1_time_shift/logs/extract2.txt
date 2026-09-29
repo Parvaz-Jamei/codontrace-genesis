@@ -1,0 +1,19 @@
+integrity={"all_stored_contrasts_match_recompute": true, "arm_match_at_generation_0_all": true, "calibration_gate_ok": true, "live_run_sha256": "4e7f370e1fe6748cf8641c678d2f210c794a28579aebc85e7b4fddc0db91e496", "pilot_gate_ok": true}
+avirulent: n=6 labels=['flat', 'flat', 'flat', 'flat', 'flat', 'flat'] n_support=0 i_c_mean=0.0 i_l_mean=0.0
+   i_contemp_interval: point=0.000000 lo=0.000000 hi=0.000000 excl0=False n_runs=6
+   i_lag_interval: point=0.000000 lo=0.000000 hi=0.000000 excl0=False n_runs=6
+copassaged: n=6 labels=['lagged_match', 'contemporary_match', 'other', 'other', 'other', 'other'] n_support=0 i_c_mean=0.005395585833333333 i_l_mean=-0.0034544257666666665
+   i_contemp_interval: point=0.005396 lo=0.003430 hi=0.007602 excl0=True n_runs=6
+   i_lag_interval: point=-0.003454 lo=-0.005321 hi=-0.001438 excl0=True n_runs=6
+fixed: n=6 labels=['flat', 'flat', 'flat', 'flat', 'flat', 'flat'] n_support=0 i_c_mean=0.0 i_l_mean=0.0
+   i_contemp_interval: point=0.000000 lo=0.000000 hi=0.000000 excl0=False n_runs=6
+   i_lag_interval: point=0.000000 lo=0.000000 hi=0.000000 excl0=False n_runs=6
+rotation={"fraction": 0.0, "n": 18, "n_support_label": 0}
+decision={"coevolve_labels_all_support": false, "confirmatory_run": false, "frozen_also_supports": false, "host_only_is_zero": true, "reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds", "rotation_control_clean": true, "verdict": "INCONCLUSIVE"}
+flags={"hypothesis_supported": false, "population_run": true, "red_queen_proved": false}
+seed=5501 phase=calibration co_label=lagged_match co_supports=False i_c=0.0017380914 i_l=0.000428224 imax=['past', 'past']
+seed=5502 phase=calibration co_label=contemporary_match co_supports=False i_c=0.0039446078 i_l=-0.0015180005 imax=['future', 'future']
+seed=5601 phase=pilot co_label=other co_supports=False i_c=0.0098738023 i_l=-0.0045372061 imax=['now', 'now']
+seed=5602 phase=pilot co_label=other co_supports=False i_c=0.0038191776 i_l=-0.0055852537 imax=['future', 'future']
+seed=5603 phase=pilot co_label=other co_supports=False i_c=0.0073493109 i_l=-0.0067044366 imax=['future', 'future']
+seed=5604 phase=pilot co_label=other co_supports=False i_c=0.005648525 i_l=-0.0028098817 imax=['future', 'future']

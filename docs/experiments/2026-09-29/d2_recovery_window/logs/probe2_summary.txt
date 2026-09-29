@@ -1,0 +1,36 @@
+P1: snapshot fields      : ['element_grid_digest', 'population', 'qd_archive_digest', 'run_id', 'substrate_bridge_mode', 'world_digest']
+P1: engine restore entry : []
+P1: runner attrs (n)     : 5
+P1: runner rng attrs     : []
+P1: engine rng attrs     : []
+P1: population type      : codontrace.genesis.population.PopulationState
+P1: population restore   : ['from_dict', 'to_dict']
+P1: snapshot has rng     : False
+P1: deepcopy engine ok   : False TypeError: cannot pickle 'mappingproxy' object
+
+P2: path identity groups : {}
+
+gen | ablate_knowledge | control          | cut_matched_rand | cut_named_scaffo | scramble_contact
+  1 | cec20c16b375c729 | cec20c16b375c729 | cec20c16b375c729 | cec20c16b375c729 | cec20c16b375c729
+  2 | 9968e543c6466648 | 9968e543c6466648 | 9968e543c6466648 | 9968e543c6466648 | 9968e543c6466648
+  3 | 755c52815db85b22 | 755c52815db85b22 | 755c52815db85b22 | 755c52815db85b22 | 755c52815db85b22
+  4 | 6b2fd12a12b0d660 | 6b2fd12a12b0d660 | 6b2fd12a12b0d660 | 6b2fd12a12b0d660 | 6b2fd12a12b0d660
+  5 | 6774a03fbe703339 | 6774a03fbe703339 | 6774a03fbe703339 | 6774a03fbe703339 | 6774a03fbe703339
+  6 | 6e1046dd43ae8f4a | 6e1046dd43ae8f4a | 6e1046dd43ae8f4a | 6e1046dd43ae8f4a | 6e1046dd43ae8f4a
+  7 | 2c347e99675c8511 | 2c347e99675c8511 | 2c347e99675c8511 | 2c347e99675c8511 | 2c347e99675c8511
+  8 | f15596ed13efa3bf | f15596ed13efa3bf | f15596ed13efa3bf | f15596ed13efa3bf | f15596ed13efa3bf
+  9 | 2252c20cc905b08a | 2252c20cc905b08a | 2252c20cc905b08a | 2252c20cc905b08a | 2252c20cc905b08a
+ 10 | 295ab266eee36161 | 255a7ad2a5705184 | 0886282cac8c87a3 | 020d0042a869c481 | 35150755254407d6
+ 11 | f18b54151d0bd002 | 2461999df200d08f | 753d345c1bdd0b6e | 8091f4df18c45b12 | 1be0002d35c1b78e
+ 12 | 9688369c2319f955 | c650ab619983cc41 | 3f06a77a774b8ae0 | 64dc13b187e23eaf | e38f8821b8a5c485
+ 13 | 909be15dbc5763c4 | 3c43107bd3a3ad33 | 1cba6394135715c8 | 6d7a5d4dbc496cb9 | eeb50f0c8ea78784
+ 14 | 93db04291830a554 | 47400214b71158bf | 03e39255d5be2d64 | 60fa0b053ecc46bf | 080a5dc85556a8e6
+ 15 | 525d58ad07572c50 | a3375e2efca66573 | 18fa3103e8653884 | 5f5914a7f163d6df | e9185b6ba467c47f
+ 16 | 155d94c4333150c4 | d3084e8b99a7d649 | 38c736b4e401ba46 | 39762884025d7aad | eca78434ab660b6e
+
+first divergence generation per arm vs control:
+Traceback (most recent call last):
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\d2\probes\summarise_probe2.py", line 32, in <module>
+    ctrl = {row["generation_index"]: row["path"] for row in cells["control"]["per_generation"]}
+                                     ~~~^^^^^^^^
+KeyError: 'path'

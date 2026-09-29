@@ -1,0 +1,8 @@
+{
+  "manifest": "run_manifest.json",
+  "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+  "stop_code": "INCONCLUSIVE",
+  "decision": "INCONCLUSIVE",
+  "n_artifacts": 28,
+  "within_budget": true
+}

@@ -1,0 +1,209 @@
+{
+  "analysis_version": "rq3-analysis-v1",
+  "runs": [
+    {
+      "antagonist_ancestry_rows": 0,
+      "antagonist_classes_last": 32,
+      "antagonist_composition_changes": 149,
+      "antagonist_kept_events": 4800,
+      "antagonist_mutation_events_per_gen": 8.413333333333334,
+      "antagonist_pool_size_last": 64,
+      "antagonist_replacement_events": 4800,
+      "arm": "coevolve",
+      "census_first": 64,
+      "census_last": 28,
+      "census_min": 18,
+      "checksums_ok": {
+        "ancestry.jsonl": true,
+        "contact_events.jsonl": true,
+        "events.jsonl": true,
+        "population.jsonl": true,
+        "summary.json": true
+      },
+      "contact_event_rows": 3313,
+      "contacts_total": 4613,
+      "delayed_contrast_interval": {
+        "bootstrap_seed": 20260928,
+        "hi": 0.02932936775925927,
+        "lo": -0.1569252504074074,
+        "mean": -0.06251701679629629,
+        "n": 54,
+        "resamples": 10000
+      },
+      "delayed_pressure_contrast": {
+        "mean": -0.06251701679629629,
+        "n_generations": 54
+      },
+      "delayed_pressure_link": {
+        "corr": -0.03560419295241562,
+        "cov": -0.0002754166049701213,
+        "n_pairs": 1774
+      },
+      "event_rows": 3220,
+      "generations": 150,
+      "host_birth_events": 1684,
+      "host_classes_first": 27,
+      "host_classes_last": 24,
+      "host_death_events": 37,
+      "host_dominance_changes": 66,
+      "host_mutation_events_logged": 0,
+      "opportunities_total": 4685,
+      "rareness_effect": {
+        "mean": 0.22523605557568713,
+        "n_generations": 144
+      },
+      "rareness_interval": {
+        "bootstrap_seed": 20260928,
+        "hi": 0.30159133242666114,
+        "lo": 0.15161499419800717,
+        "mean": 0.22523605557568713,
+        "n": 144,
+        "resamples": 10000
+      },
+      "raw_rows": {
+        "ancestry": 1721,
+        "contact_events": 3313,
+        "events": 3220,
+        "population": 150
+      },
+      "run_id": "rq3-coevolve-s21011-1790679862",
+      "seed": 21011,
+      "stop_code": "COMPLETE"
+    },
+    {
+      "antagonist_ancestry_rows": 0,
+      "antagonist_classes_last": 16,
+      "antagonist_composition_changes": 0,
+      "antagonist_kept_events": 9600,
+      "antagonist_mutation_events_per_gen": 0.0,
+      "antagonist_pool_size_last": 64,
+      "antagonist_replacement_events": 0,
+      "arm": "fixed",
+      "census_first": 64,
+      "census_last": 37,
+      "census_min": 19,
+      "checksums_ok": {
+        "ancestry.jsonl": true,
+        "contact_events.jsonl": true,
+        "events.jsonl": true,
+        "population.jsonl": true,
+        "summary.json": true
+      },
+      "contact_event_rows": 3321,
+      "contacts_total": 4542,
+      "delayed_contrast_interval": {
+        "bootstrap_seed": 20260928,
+        "hi": -0.0299802155,
+        "lo": -0.22021718316666666,
+        "mean": -0.1265176731060606,
+        "n": 66,
+        "resamples": 10000
+      },
+      "delayed_pressure_contrast": {
+        "mean": -0.1265176731060606,
+        "n_generations": 66
+      },
+      "delayed_pressure_link": {
+        "corr": -0.0753755383215544,
+        "cov": -0.0004522693260178675,
+        "n_pairs": 1860
+      },
+      "event_rows": 3247,
+      "generations": 150,
+      "host_birth_events": 1512,
+      "host_classes_first": 27,
+      "host_classes_last": 28,
+      "host_death_events": 34,
+      "host_dominance_changes": 87,
+      "host_mutation_events_logged": 0,
+      "opportunities_total": 4626,
+      "rareness_effect": {
+        "mean": 0.37229275000825107,
+        "n_generations": 144
+      },
+      "rareness_interval": {
+        "bootstrap_seed": 20260928,
+        "hi": 0.45081280126907713,
+        "lo": 0.29501759411273165,
+        "mean": 0.37229275000825107,
+        "n": 144,
+        "resamples": 10000
+      },
+      "raw_rows": {
+        "ancestry": 1546,
+        "contact_events": 3321,
+        "events": 3247,
+        "population": 150
+      },
+      "run_id": "rq3-fixed-s21011-1790680277",
+      "seed": 21011,
+      "stop_code": "COMPLETE"
+    },
+    {
+      "antagonist_ancestry_rows": 0,
+      "antagonist_classes_last": 0,
+      "antagonist_composition_changes": 0,
+      "antagonist_kept_events": 0,
+      "antagonist_mutation_events_per_gen": 0.0,
+      "antagonist_pool_size_last": 0,
+      "antagonist_replacement_events": 0,
+      "arm": "absent",
+      "census_first": 64,
+      "census_last": 52,
+      "census_min": 23,
+      "checksums_ok": {
+        "ancestry.jsonl": true,
+        "contact_events.jsonl": true,
+        "events.jsonl": true,
+        "population.jsonl": true,
+        "summary.json": true
+      },
+      "contact_event_rows": 0,
+      "contacts_total": 0,
+      "delayed_contrast_interval": {
+        "hi": null,
+        "lo": null,
+        "mean": null,
+        "n": 0
+      },
+      "delayed_pressure_contrast": {
+        "mean": null,
+        "n_generations": 0
+      },
+      "delayed_pressure_link": {
+        "cov": null,
+        "n_pairs": 0
+      },
+      "event_rows": 4137,
+      "generations": 150,
+      "host_birth_events": 2317,
+      "host_classes_first": 27,
+      "host_classes_last": 27,
+      "host_death_events": 287,
+      "host_dominance_changes": 63,
+      "host_mutation_events_logged": 0,
+      "opportunities_total": 0,
+      "rareness_effect": {
+        "mean": 0.26512130526871946,
+        "n_generations": 144
+      },
+      "rareness_interval": {
+        "bootstrap_seed": 20260928,
+        "hi": 0.34006321430270164,
+        "lo": 0.19379832666344526,
+        "mean": 0.26512130526871946,
+        "n": 144,
+        "resamples": 10000
+      },
+      "raw_rows": {
+        "ancestry": 2604,
+        "contact_events": 0,
+        "events": 4137,
+        "population": 150
+      },
+      "run_id": "rq3-absent-s21011-1790679862",
+      "seed": 21011,
+      "stop_code": "COMPLETE"
+    }
+  ]
+}

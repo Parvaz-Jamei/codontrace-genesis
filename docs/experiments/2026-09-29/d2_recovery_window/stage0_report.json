@@ -1,0 +1,175 @@
+{
+  "controls": {
+    "injected_positive_control": {
+      "injected": true,
+      "note": "yield series scaled by 1.5x by hand after the checkpoint. This proves the scorer can fire; it is not a discovery and is excluded from every effect table.",
+      "recover": true,
+      "scientific_result": false
+    },
+    "negative_control": {
+      "arm": "ablate_knowledge_digest",
+      "note": "a cut that must remove, not create, the endpoint (multiplier 0.75 when the digest is gone)",
+      "post_yields": [
+        0.8381712658840168,
+        0.8823427279749282,
+        0.8585889629555677,
+        0.8360694214782709,
+        0.7586834783928665,
+        0.7541458630217214,
+        0.7490580114899811,
+        0.7433608244823042,
+        0.7369908701003418,
+        0.7298806138238145,
+        0.7219588321258149,
+        0.7131512506971803,
+        0.7033814501410387
+      ],
+      "recover_preregistered": false
+    },
+    "neutral_control": {
+      "arm": "control",
+      "note": "checkpoint only; no scaffold cut, no knowledge ablation",
+      "post_yields": [
+        1.1175616878453558,
+        1.1764569706332375,
+        1.144785283940757,
+        1.1147592286376946,
+        1.0115779711904886,
+        1.005527817362295,
+        0.9987440153199748,
+        0.9911477659764056,
+        0.9826544934671224,
+        0.973174151765086,
+        0.9626117761677533,
+        0.9508683342629071,
+        0.937841933521385
+      ],
+      "recover_preregistered": false
+    }
+  },
+  "determinism_and_arms": {
+    "arms_diverge_after_intervention": true,
+    "control_burden": 0.0,
+    "control_post_yield_series": [
+      1.1175616878453558,
+      1.1764569706332375,
+      1.144785283940757,
+      1.1147592286376946,
+      1.0115779711904886,
+      1.005527817362295,
+      0.9987440153199748
+    ],
+    "intervention_generation": 10,
+    "named_burden": 0.9750000000000001,
+    "named_post_yield_series": [
+      0.11920658003683796,
+      0.125488743534212,
+      0.12211043028701409,
+      0.11890765105468744,
+      0.10790165026031881,
+      0.10725630051864482,
+      0.106532694967464
+    ],
+    "pre_intervention_generations": 9,
+    "pre_intervention_paths_identical_across_arms": true,
+    "replay_same_process_identical": true
+  },
+  "fork_available": true,
+  "fork_precondition": {
+    "capture_fork_available": true,
+    "conclusion": "restorable full fork verified byte-identical (capture_fork/from_fork)",
+    "continuation_identical": true,
+    "deepcopy_error": "TypeError: cannot pickle 'mappingproxy' object",
+    "deepcopy_fork_available": false,
+    "deepcopy_ok": false,
+    "engine_has_rng_attribute": false,
+    "engine_restore_entry_points": [
+      "capture_fork",
+      "from_fork"
+    ],
+    "fork_available": true,
+    "fork_has_rng_state": true,
+    "fork_tick_index": 10,
+    "from_fork_available": true,
+    "parent_child_ids_preserved": true,
+    "rng_restore_available_somewhere": "codontrace.rng.RNGManager.restore",
+    "runner_has_rng_attribute": false,
+    "snapshot_fields": [
+      "element_grid_digest",
+      "population",
+      "qd_archive_digest",
+      "run_id",
+      "substrate_bridge_mode",
+      "world_digest"
+    ],
+    "snapshot_payload_keys": [
+      "element_grid_digest",
+      "population",
+      "qd_archive_digest",
+      "run_id",
+      "substrate_bridge_mode",
+      "world_digest"
+    ],
+    "snapshot_type": "codontrace.engine_results.GenesisSnapshot"
+  },
+  "hand_computed_failures": [],
+  "hand_computed_tests": [
+    {
+      "detail": "baseline=1.0 post=[1.25, 1.25, 1.25] -> True (hand-expected True)",
+      "pass": true,
+      "test": "score_recover::three consecutive at exactly 1.25"
+    },
+    {
+      "detail": "baseline=1.0 post=[1.25, 1.25, 1.24, 1.25, 1.25] -> False (hand-expected False)",
+      "pass": true,
+      "test": "score_recover::two consecutive then a dip"
+    },
+    {
+      "detail": "baseline=1.0 post=[1.24, 1.26, 1.26, 1.26] -> True (hand-expected True)",
+      "pass": true,
+      "test": "score_recover::dip first, then three consecutive"
+    },
+    {
+      "detail": "baseline=1.0 post=[1.26, 1.26, 1.25, 1.25, 1.25] -> True (hand-expected True)",
+      "pass": true,
+      "test": "score_recover::three consecutive at the end"
+    },
+    {
+      "detail": "baseline=1.0 post=[1.3, 1.3, 1.24, 1.3, 1.3] -> False (hand-expected False)",
+      "pass": true,
+      "test": "score_recover::1.3,1.3,1.24,1.3,1.3"
+    },
+    {
+      "detail": "baseline=0.0 post=[9.0, 9.0, 9.0] -> False (hand-expected False)",
+      "pass": true,
+      "test": "score_recover::zero baseline is undefined, not a pass"
+    },
+    {
+      "detail": "raw=3.000000000 scaffold_factor=1.000000 digest_factor=1.0 -> 3.000000000",
+      "pass": true,
+      "test": "yield_arithmetic::eligible_token"
+    },
+    {
+      "detail": "relocated=1.650000000 expected=1.650000000",
+      "pass": true,
+      "test": "yield_arithmetic::relocated_token_is_0.55x"
+    },
+    {
+      "detail": "cut=['E0', 'E1'] yield 3.000000000 -> 0.320000000 (expected 0.320000000)",
+      "pass": true,
+      "test": "yield_arithmetic::scaffold_cut_multiplier"
+    },
+    {
+      "detail": "3.000000000 -> 0.320000000: cutting the named scaffold cannot raise the endpoint",
+      "pass": true,
+      "test": "yield_arithmetic::scaffold_cut_lowers_yield"
+    }
+  ],
+  "hypothesis_supported": false,
+  "red_queen_proved": false,
+  "schema": "d2-pack-v1",
+  "stage": "stage0",
+  "stage0_pass": true,
+  "stop_code": "CONTINUE",
+  "wall_seconds": 36.789
+}

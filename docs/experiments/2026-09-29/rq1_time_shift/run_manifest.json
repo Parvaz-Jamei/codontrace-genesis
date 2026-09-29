@@ -1,0 +1,549 @@
+{
+  "analysis_digest": "sha256:2f5b24b79b34e855343bf5a659d0b930095364dbf17d0ebc68f370d817658f0c",
+  "arms": [
+    {
+      "arm": "copassaged",
+      "is_rq1_arm": true,
+      "passage": "coevolve",
+      "status": "ran"
+    },
+    {
+      "arm": "fixed",
+      "is_rq1_arm": false,
+      "passage": "frozen",
+      "status": "ran"
+    },
+    {
+      "arm": "avirulent",
+      "is_rq1_arm": false,
+      "passage": "absent",
+      "status": "ran"
+    },
+    {
+      "arm": "shuffled_time_labels",
+      "is_rq1_arm": false,
+      "status": "ran_as_matrix_control"
+    },
+    {
+      "arm": "live_generation_probe",
+      "is_rq1_arm": false,
+      "status": "ran_as_precondition_probe"
+    }
+  ],
+  "artifacts": {
+    "EXCLUSIONS.md": {
+      "bytes": 3208,
+      "sha256": "80948f311cb5f939d39230f678a16a923146973ad0171151d53afdf41f06b7ca"
+    },
+    "NOTES.md": {
+      "bytes": 2737,
+      "sha256": "d7029ada67e14017fc16cad3fbb32eb4c502a461cd69f8427f84bd5f8c9a154f"
+    },
+    "PROPOSED_CHANGE.patch": {
+      "bytes": 1912,
+      "sha256": "ea68d2a131e53265fb5becaa1b3ddd59ab173578b2d32a70c358d589d9b01f39"
+    },
+    "PROPOSED_CHANGE_NOTES.md": {
+      "bytes": 4343,
+      "sha256": "afc01ff730ea7c5b456aa18986eedc8850bc50c7fb048701b899f0d7d815fbb6"
+    },
+    "analysis.json": {
+      "bytes": 20960,
+      "sha256": "aa4fb261917f0cf37aae621da9fd6f5c520c25ff0e96d7d693c1271cf5b779f7"
+    },
+    "analysis_live.json": {
+      "bytes": 33494,
+      "sha256": "4c53d2791a82f115e9b8855bb8db09b4a469115c7e51f2ebbdd98b4150baf391"
+    },
+    "decision.md": {
+      "bytes": 4804,
+      "sha256": "0129c552495a0b36d0dd32835cd1be1b82c0824f191bc731524e236e57eb0d91"
+    },
+    "design.md": {
+      "bytes": 10046,
+      "sha256": "ce28e2605205b26fea2064f38a4db9e84f531d9c764497eb54c684c4d4625ed3"
+    },
+    "effect_table.json": {
+      "bytes": 3692,
+      "sha256": "959e34640bf4f36fb82f9efe7086cfef08c71a24335e7270a5506bb5e25443fc"
+    },
+    "events.jsonl": {
+      "bytes": 23328,
+      "sha256": "4ca87f284345ddcaddcb1528e08fab1e022ee820e30fa0509baad3b8bd01be21"
+    },
+    "feasibility_structural.json": {
+      "bytes": 4545,
+      "sha256": "5f4cbdfd3720bdbd2d1214c039b94389adc05c6837bd358ad38f7621a39e77a7"
+    },
+    "live_events.jsonl": {
+      "bytes": 879996,
+      "sha256": "d762a64f9ad82e6606e65e23dbdec8ef968313455b0159303ea16ebff66b7896"
+    },
+    "live_population.jsonl": {
+      "bytes": 1658433,
+      "sha256": "98d151dac91dc161a8094b692e5170f9d307f732850ac45be1b3cf97f8d3fce4"
+    },
+    "live_run.json": {
+      "bytes": 101567,
+      "sha256": "4e7f370e1fe6748cf8641c678d2f210c794a28579aebc85e7b4fddc0db91e496"
+    },
+    "live_summary.json": {
+      "bytes": 4687,
+      "sha256": "c88e03d86d30aa5a66fd9a621c5e727298cdc0127fab6c324d4b30283b537a3b"
+    },
+    "population.jsonl": {
+      "bytes": 14695,
+      "sha256": "7e06e674d6aede7d27c4a0e2dab4aac035b7ba6768b24605fc96f2908dfd897d"
+    },
+    "prior_art.md": {
+      "bytes": 4403,
+      "sha256": "4d7b8d14122060dce9133511bc2a8e3265935268bedad8cb13c0f151b1e98a27"
+    },
+    "probe_checkpoint_fork.json": {
+      "bytes": 2241,
+      "sha256": "e51c8f867ef20cad0ad964a050cd3df9c2a6bee852c4c5f10854b5f110d21ca0"
+    },
+    "probe_cross_time_matrix.json": {
+      "bytes": 4473,
+      "sha256": "5ae77fc41e973f05676431e40c0568a65bc23319825ccf6aa12087a149257ee7"
+    },
+    "probe_determinism.json": {
+      "bytes": 651,
+      "sha256": "815cb8eb2d9d9588cdd3946e3ea6caf02cedfce1545cd55d87bec92ddead4dbc"
+    },
+    "probe_engine_antagonist.json": {
+      "bytes": 9439,
+      "sha256": "d2d3fdf55c6d47118db3421f88c94da74498be5052514946ac0231057c8600d2"
+    },
+    "probe_live_generations.json": {
+      "bytes": 1146,
+      "sha256": "98649e35c19d3cdf096d43ce0ea38048e3f16622bf65cfd69cfc2bff859aabf9"
+    },
+    "probe_measurement_kernel.json": {
+      "bytes": 779,
+      "sha256": "e456b28bf0e50ad5246968319980f44c1dcc19543a4924bb1f8c5752999a4b99"
+    },
+    "probe_meter_reachability.json": {
+      "bytes": 2662,
+      "sha256": "805516ccb3dc1990443f66b4547981d75d94de7253e7e1c7f4eb94ea83dbc668"
+    },
+    "probe_run.json": {
+      "bytes": 1646,
+      "sha256": "586281a77997cf91c43b3828da82121a776eef6a6037c84d7521d321bd0bace7"
+    },
+    "probe_source_scan.json": {
+      "bytes": 2232,
+      "sha256": "930c62b2574de9bb32bb6ce49a561f6dc141ff651089a7d86bc0277a7623bdba"
+    },
+    "stage0_fixture_events.jsonl": {
+      "bytes": 1671,
+      "sha256": "3cc71a6f1c233cc950929337607da94280236dcb355a60251b2d4b294f71cc0c"
+    },
+    "stage0_fixtures.json": {
+      "bytes": 13462,
+      "sha256": "1fdf01e3936b8d77efba6331afb9d2765e0a624017f955517e6cb186175ff253"
+    }
+  },
+  "budget": {
+    "cap_wall_s_first_pack": 2700,
+    "cap_wall_s_per_test": 480,
+    "fixture_wall_s": null,
+    "pack_cpu_s": 44.734,
+    "pack_wall_s": 46.8,
+    "peak_rss_bytes": null,
+    "soft_stop_memory_bytes": 3758096384,
+    "step_walls": {
+      "checkpoint_fork": 3.464,
+      "cross_time_matrix": 11.739,
+      "determinism": 4.435,
+      "engine_antagonist": 20.844,
+      "measurement_kernel": 0.001,
+      "meter_reachability": 0.294,
+      "source_scan": 0.01
+    },
+    "target_memory_bytes": 4294967296,
+    "within_budget": true
+  },
+  "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+  "config_hashes": {
+    "PROPOSED_CHANGE.patch": "ea68d2a131e53265fb5becaa1b3ddd59ab173578b2d32a70c358d589d9b01f39",
+    "analysis_rq1.py": "bc53dce2f242d00f6aa4eed03800d5403e2d8ede75f80d427c1ee8608ec79008",
+    "design.md": "ce28e2605205b26fea2064f38a4db9e84f531d9c764497eb54c684c4d4625ed3",
+    "make_manifest_rq1.py": "2f30febbdb6b17f9a0334bd5e07c3d7fcaec00d9ef01fe0f3c177ac998084c5a",
+    "probe_rq1.py": "8e69568d65fca3025866ee9ee0270d83d0efa354b7cb569e14dcab1729bccdc7",
+    "replay_rq1.py": "13f63e41fd80c1c5ffa910de6fed2919471543a28cd53bfbc29c52ddbffd3251",
+    "stage0_fixtures_rq1.py": "209e8f2a0f2f0f3e500660657a64cf39e1485ef2d84a3b611d40d8d0391e4449",
+    "verify_patch_rq1.py": "c82b96a3883f6eb5e11852f188fcf6c87627e14556c99304325b3ea0e7f20a9b"
+  },
+  "created_utc_date": "2026-09-29",
+  "decision": "INCONCLUSIVE",
+  "design_hash": "ce28e2605205b26fea2064f38a4db9e84f531d9c764497eb54c684c4d4625ed3",
+  "design_locked_before_confirmatory_seed": true,
+  "dirty_flag": null,
+  "dirty_flag_reason": "git executable is not on PATH in this session; the dirty flag cannot be computed and is recorded as null rather than guessed.",
+  "events_jsonl_fields": [
+    "run_id",
+    "seed",
+    "arm",
+    "generation",
+    "event_id",
+    "organism_id",
+    "parent_id",
+    "genotype_digest",
+    "antagonist_digest",
+    "contact_edge_id",
+    "opportunity",
+    "matched",
+    "intended_debit",
+    "realised_debit",
+    "atp_before",
+    "atp_after",
+    "birth",
+    "death",
+    "mutation",
+    "intervention_id"
+  ],
+  "events_jsonl_null_reasons_present": true,
+  "instrument_decision_after_precondition_probe": "BLOCKED_MEASUREMENT",
+  "live_parameters": {
+    "arms": {
+      "avirulent": "absent",
+      "copassaged": "coevolve",
+      "fixed": "frozen"
+    },
+    "contact_mode": "full_matrix",
+    "generations": 40,
+    "kappa": 1.2,
+    "lag": 10,
+    "pack_wall_s": 2041.116,
+    "route": "StructuralRQArm",
+    "seeds": {
+      "calibration": [
+        5501,
+        5502
+      ],
+      "pilot": [
+        5601,
+        5602,
+        5603,
+        5604
+      ],
+      "reserved_not_drawn": [
+        5701,
+        5702,
+        5703,
+        5704,
+        5705,
+        5706,
+        5707,
+        5708
+      ]
+    },
+    "slots": {
+      "future": 40,
+      "now": 30,
+      "past": 20
+    }
+  },
+  "live_route": {
+    "calibration_gate_ok": true,
+    "design": {
+      "budget": {
+        "cap_wall_s_first_pack": 2700,
+        "cap_wall_s_per_test": 480,
+        "measured_s_per_generation_per_arm": 1.6
+      },
+      "calibration_seeds": [
+        5501,
+        5502
+      ],
+      "cap_atp_secondary": 1.2,
+      "generations": 40,
+      "kappa": 1.2,
+      "pilot_seeds": [
+        5601,
+        5602,
+        5603,
+        5604
+      ],
+      "primary": "frequency-weighted population realised pressure",
+      "reserved_seeds_not_drawn": [
+        5701,
+        5702,
+        5703,
+        5704,
+        5705,
+        5706,
+        5707,
+        5708
+      ],
+      "secondary": "dominant host class realised pressure",
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "times": [
+        "past",
+        "now",
+        "future"
+      ]
+    },
+    "integrity": {
+      "all_stored_contrasts_match_recompute": true,
+      "arm_match_at_generation_0_all": true,
+      "calibration_gate_ok": true,
+      "live_run_sha256": "4e7f370e1fe6748cf8641c678d2f210c794a28579aebc85e7b4fddc0db91e496",
+      "pilot_gate_ok": true
+    },
+    "n_seeds_completed": 6,
+    "pilot_gate_ok": true,
+    "rotation_control": {
+      "fraction": 0.0,
+      "n": 18,
+      "n_support_label": 0
+    },
+    "route": "StructuralRQArm (closed_loop_hp_arm01_structural_rq)",
+    "summary": {
+      "avirulent": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.0,
+        "i_contemp_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": 0.0,
+        "i_lag_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "labels": [
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      },
+      "copassaged": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "hi": 0.007602452483333334,
+          "lo": 0.003430373433333333,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.005395585833333333,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.005395585833333333,
+        "i_contemp_values": [
+          0.0017380914,
+          0.0039446078,
+          0.0098738023,
+          0.0038191776,
+          0.0073493109,
+          0.005648525
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "hi": -0.001438077316666667,
+          "lo": -0.005321078066666666,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": -0.0034544257666666665,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": -0.0034544257666666665,
+        "i_lag_values": [
+          0.000428224,
+          -0.0015180005,
+          -0.0045372061,
+          -0.0055852537,
+          -0.0067044366,
+          -0.0028098817
+        ],
+        "labels": [
+          "lagged_match",
+          "contemporary_match",
+          "other",
+          "other",
+          "other",
+          "other"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      },
+      "fixed": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.0,
+        "i_contemp_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": 0.0,
+        "i_lag_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "labels": [
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      }
+    },
+    "verdict": "INCONCLUSIVE",
+    "wall_s": 2041.116
+  },
+  "manifest_created_wall_s": 6291.438955,
+  "pack_id": "RQ1-TIME-SHIFT-20260929",
+  "parameters": {
+    "contact_rule": "reference_graded_affinity, 3 sub-loci x 2 bits",
+    "host_parasite_lag": 10,
+    "host_parasite_ticks": 30,
+    "host_parasite_time_slots": {
+      "future": 30,
+      "now": 20,
+      "past": 10
+    },
+    "kappa": 1.2,
+    "live_probe_generations": 8,
+    "live_probe_population": 4,
+    "locked_thresholds_not_used_for_rq1": [
+      0.2,
+      -0.148
+    ],
+    "steal_fraction": 0.15,
+    "virulence": 8.0
+  },
+  "parent_snapshot_id": null,
+  "parent_snapshot_null_reason": "no full-state fork exists; RunCheckpoint carries digests only (run_id, tick, manifest_digest, snapshot_digest, rng_state_digest)",
+  "replay_command": "C:\\Users\\parvaz\\AppData\\Local\\Programs\\Python\\Python314\\python.exe replay_rq1.py --from-manifest run_manifest.json",
+  "repo_head": {
+    "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+    "dirty_flag": null,
+    "dirty_flag_reason": "git executable is not on PATH in this session; the dirty flag cannot be computed and is recorded as null rather than guessed.",
+    "git_executable_available": false,
+    "head_file": "ref: refs/heads/main",
+    "packed_refs_present": false,
+    "ref": "refs/heads/main"
+  },
+  "rng_streams": {
+    "arms": null,
+    "arms_null_reason": "no frozen / host-only / shuffled arm was launched: no fork point and no antagonist genotype population exist",
+    "engine": "GenesisEngine RNG derived from the built spec seed (one stream per seed)",
+    "host_parasite_world": "RNGManager(seed=profile.seed) with labelled forks contact/<tick>, mutate/<role>/<mid>/<tick>, birth/<role>/<tick>"
+  },
+  "round": 2,
+  "schema_version": "rq1_run_manifest_v1",
+  "schema_versions": {
+    "analysis": "rq1_analysis_v1",
+    "events": "rq1_probe_v1",
+    "population": "rq1_probe_v1",
+    "probe": "rq1_probe_v1",
+    "run_manifest": "rq1_run_manifest_v1",
+    "stage0_fixtures": "rq1_stage0_fixtures_v1"
+  },
+  "seeds": {
+    "cluster_bootstrap_seed": 20260928,
+    "confirmatory_seeds_reserved_unseen": [
+      901,
+      902,
+      903,
+      904,
+      905,
+      906,
+      907,
+      908
+    ],
+    "host_parasite_history_seeds": [
+      11,
+      22
+    ],
+    "live_probe_seeds": [
+      301,
+      302
+    ],
+    "randomisation_seed": 20260929
+  },
+  "stop_code": "INCONCLUSIVE",
+  "stop_reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds",
+  "test_id": "RQ-1",
+  "working_tree_note": "The git executable is not on PATH, so the dirty flag is null. The working tree was observed to change during this session (the manager is the single writer): host_parasite_world.py moved from sha256 88f5acf41832d8e5fb4f837d7695187d3ed3d0bec956e5bf08ae86de189027bb to 17e3ffbd397a7e9dbea04568c07d039b9d9a872c2935aa96ee28f257309320a8. PROPOSED_CHANGE.patch was rebased onto the newer file and re-verified (logs/patch_verify.txt = PATCH_OK). Source hashes below are the ones recorded by the probe run."
+}

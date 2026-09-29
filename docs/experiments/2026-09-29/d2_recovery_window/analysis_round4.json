@@ -1,0 +1,99 @@
+{
+  "arm_table": {
+    "cut_matched_random": {
+      "max_yield_over_baseline": 0.5734268359401935,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "cut_named_scaffold": {
+      "max_yield_over_baseline": 0.058505964742045356,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "sham": {
+      "max_yield_over_baseline": 0.569536548513374,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    }
+  },
+  "config_digest": "20a38187cb61b12e47d3418e4c5609cd",
+  "controls": {
+    "injected_positive": "scorer check only",
+    "negative": "ablate_knowledge_digest (round 2)",
+    "sham": "token relocated, no other change"
+  },
+  "derived_from_raw_only": true,
+  "design": "independent re-simulation per arm; no fork payload used",
+  "endpoint_moved": false,
+  "endpoints": {
+    "FI-RARECLASS-CONTACT-YIELD-V1": {
+      "date": "2026-09-28",
+      "role": "pre-registered",
+      "rule": "yield >= 1.25x baseline for >= 3 consecutive boundaries within T=40"
+    },
+    "GENOME-DIGEST-LOST-THEN-REGAINED-V1": {
+      "date": "2026-09-29",
+      "role": "exploratory",
+      "rule": "a checkpoint genome digest disappears and is present again later"
+    }
+  },
+  "endpoints_versioned_separately": true,
+  "exclusions": [
+    "none: every assigned history and arm is reported"
+  ],
+  "hypothesis_supported": false,
+  "isolation": {
+    "all_population_objects_distinct": true,
+    "fork_used": false,
+    "holds": true,
+    "probe": [
+      {
+        "advanced_to_checkpoint_first": true,
+        "different_arm_z_differs": true,
+        "engines_built_independently": true,
+        "fork_used": false,
+        "interleaved_same_arm_x_equals_y": true,
+        "isolation_holds": true,
+        "population_objects_distinct": true,
+        "x": [
+          "ed2602ed74a5",
+          "509bb9cabae2",
+          "4471e2ed2c74"
+        ],
+        "y": [
+          "ed2602ed74a5",
+          "509bb9cabae2",
+          "4471e2ed2c74"
+        ],
+        "z": [
+          "ccf9e19b2bff",
+          "c7d49cdc9b04",
+          "bf2330f6832b"
+        ]
+      }
+    ],
+    "rule": "every arm engine rebuilt from spec independently; advancing one arm must not change another arm's digests"
+  },
+  "n_arm_runs": 18,
+  "n_histories": 6,
+  "raw_file": "test-runs/d2/raw/round4/round4_raw.json",
+  "reason": "isolated re-simulation design; pre-registered retention endpoint 0/18, largest yield ratio 0.573 against the locked 1.25x, and the named-vs-matched mediation contrast is 0. Calibration tier (2 development seeds): a rare-recovery falsification would need the 4-seed pilot, and no threshold or seed was moved.",
+  "recovery_opportunity_present": true,
+  "red_queen_proved": false,
+  "round": 4,
+  "tip": "02cc725",
+  "unit_of_replication": "independent population history (seed x checkpoint)",
+  "verdict": "FALSIFIED_IN_MODEL"
+}

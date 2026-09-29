@@ -1,0 +1,54 @@
+{
+ "first_record_first_tuple": [
+  "00|00|00",
+  "000000",
+  1.0,
+  1.2,
+  1.2
+ ],
+ "first_record_len": 64,
+ "ledger_alive": 64,
+ "ledger_contacts": 62,
+ "ledger_deaths": 72,
+ "ledger_mean_energy": 1.225,
+ "ledger_newborns": 26,
+ "ledgers": 1,
+ "maintenance_cost": 0.15,
+ "parasite_windows_after": 64,
+ "records_after_one_generation": 1,
+ "records_before": 0,
+ "roster_after": 64,
+ "roster_at_boot": 64,
+ "seat_window_distinct": 16,
+ "seat_window_sample": [
+  "000000",
+  "000001",
+  "000010",
+  "000011",
+  "000100",
+  "000101",
+  "000110",
+  "000111"
+ ],
+ "unit_energies_after": [
+  1.45,
+  1.45,
+  1.45,
+  1.35,
+  1.35,
+  1.35,
+  1.35,
+  1.35
+ ],
+ "unit_windows_sample": [
+  "000000",
+  "000001",
+  "000010",
+  "000011",
+  "000100",
+  "000101",
+  "000110",
+  "000111"
+ ],
+ "units_served_gt_zero": 38
+}

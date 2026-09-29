@@ -1,0 +1,30 @@
+{
+  "arm": "scramble_contacts",
+  "checksums": {
+    "events.jsonl": "540137ba31aefaaad7a3610862fc4aa9083dc6cf4d8682cb691a190c5350ea46",
+    "population.jsonl": "99daf7714e50d92bae7932665c454c99acdcec1b37eae67c0c729656ae99352d"
+  },
+  "commit": "",
+  "cpu_seconds": 192.656,
+  "dirty": false,
+  "feedback_allocation": "incident_endpoints_realised",
+  "horizon": 40,
+  "params_hash": "b43d1876a6a120db8867a2ca82072fdca1762f1327ea23c0e4dd53b462386c94",
+  "parent_snapshot": null,
+  "parent_snapshot_reason": "no restorable checkpoint exists in this revision",
+  "population": 8,
+  "replay_command": "python test-runs/d2/harness/d2_replay.py --run-dir test-runs/d2/raw/d2-s5502-t10-scramble_contacts --out test-runs/d2/raw/d2-s5502-t10-scramble_contacts/replay.json",
+  "rng_streams": {
+    "engine": "seed=5502; per-generation seed = spec.seed + index",
+    "ledger": "random.Random(seed=5502)"
+  },
+  "rss_bytes": 0,
+  "run_id": "d2-s5502-t10-scramble_contacts",
+  "schema": "d2-pack-v1",
+  "seed": 5502,
+  "stop_code": "ZERO_POPULATION",
+  "stop_detail": "n_alive reached 0 at generation 50",
+  "t_intervene": 10,
+  "wall_seconds": 5.953,
+  "workers": 1
+}

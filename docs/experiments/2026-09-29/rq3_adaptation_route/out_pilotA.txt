@@ -1,0 +1,11 @@
+{
+  "generations": 150,
+  "run_id": "rq3-coevolve-s21011-1790679862",
+  "stop_code": "COMPLETE"
+}
+{
+  "generations": 150,
+  "run_id": "rq3-fixed-s21011-1790680277",
+  "stop_code": "COMPLETE"
+}
+JOB_A_DONE 

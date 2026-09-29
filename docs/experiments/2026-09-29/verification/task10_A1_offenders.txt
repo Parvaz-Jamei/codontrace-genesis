@@ -1,0 +1,3 @@
+scanned=321 files under src\codontrace
+exempt=rng.py
+offenders=0

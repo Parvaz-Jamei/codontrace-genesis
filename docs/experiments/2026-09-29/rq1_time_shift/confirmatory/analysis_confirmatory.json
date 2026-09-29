@@ -1,0 +1,455 @@
+{
+  "commit": "6187ff4",
+  "config_digest": "rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807",
+  "decision": {
+    "confirmatory_complete": false,
+    "hypothesis_supported": false,
+    "reason": "pattern not met at the locked threshold: completed 2/8 seeds, support labels 1/2, contemporary vs frozen interval [-0.0558017386, 0.0693853373] excludes_zero=False, lagged vs frozen [-0.0345598529, 0.0312625394] excludes_zero=False",
+    "red_queen_proved": false,
+    "verdict": "INCONCLUSIVE"
+  },
+  "effect_table": [
+    {
+      "arm": "contemporary",
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.0693853373,
+        "lo": -0.0558017386,
+        "mean": 0.00679179935,
+        "method": "causal_validation._paired_interval (95% paired t)",
+        "n_pairs": 2
+      },
+      "mean": 0.00679179935,
+      "n": 2,
+      "unit": "independent population history (seed)"
+    },
+    {
+      "arm": "lagged",
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.0312625394,
+        "lo": -0.0345598529,
+        "mean": -0.00164865675,
+        "method": "causal_validation._paired_interval (95% paired t)",
+        "n_pairs": 2
+      },
+      "mean": -0.00164865675,
+      "n": 2,
+      "unit": "independent population history (seed)"
+    },
+    {
+      "arm": "frozen",
+      "exactly_zero": true,
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.0,
+        "lo": 0.0
+      },
+      "mean": 0.0,
+      "n": 2,
+      "unit": "independent population history (seed)"
+    },
+    {
+      "arm": "contemporary_minus_lagged",
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.1039451902,
+        "lo": -0.087064278,
+        "mean": 0.0084404561,
+        "method": "causal_validation._paired_interval (95% paired t)",
+        "n_pairs": 2
+      },
+      "mean": 0.0084404561,
+      "n": 2,
+      "unit": "independent population history (seed)"
+    }
+  ],
+  "errors": [],
+  "exclusions": [
+    "no seed was dropped on the basis of its result",
+    "the confirmatory generation count was not shortened",
+    "seeds not yet complete: [5703, 5704, 5705, 5706, 5707, 5708]"
+  ],
+  "generations": 200,
+  "integrity": {
+    "all_seed_gates_ok": true,
+    "frozen_exactly_zero": true,
+    "n_seeds_completed": 2,
+    "n_seeds_locked": 8,
+    "raw_recompute_matches_all_seeds": true
+  },
+  "per_seed": [
+    {
+      "coevolve_label": "other",
+      "contemporary": 0.0018655017,
+      "errors": [],
+      "frozen_contemporary": 0.0,
+      "frozen_lagged": 0.0,
+      "lagged": 0.0009415523,
+      "regimes": {
+        "copassaged": {
+          "contrast": {
+            "i_contemp": 0.0018655017,
+            "i_lag": 0.0009415523,
+            "i_max": 0.0023528418,
+            "i_max_cell": [
+              "past",
+              "future"
+            ],
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "label": "other",
+          "matrix": {
+            "future": {
+              "future": 0.6340740741,
+              "now": 0.6375308642,
+              "past": 0.6174712644
+            },
+            "now": {
+              "future": 0.6351851852,
+              "now": 0.6453703704,
+              "past": 0.6267241379
+            },
+            "past": {
+              "future": 0.6366843034,
+              "now": 0.637037037,
+              "past": 0.6200328407
+            }
+          },
+          "recomputed_from_raw_matches": true,
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 27,
+              "antagonist_n": 64,
+              "census": 15,
+              "dominant_host": "01|01|10",
+              "host_classes": 14,
+              "host_richness": 14
+            },
+            "now": {
+              "antagonist_classes": 27,
+              "antagonist_n": 64,
+              "census": 16,
+              "dominant_host": "00|01|10",
+              "host_classes": 12,
+              "host_richness": 12
+            },
+            "past": {
+              "antagonist_classes": 29,
+              "antagonist_n": 64,
+              "census": 21,
+              "dominant_host": "00|10|00",
+              "host_classes": 17,
+              "host_richness": 17
+            }
+          },
+          "wall_s": 380.445
+        },
+        "fixed": {
+          "contrast": {
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": 0.0,
+            "i_max_cell": [
+              "past",
+              "past"
+            ],
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "recomputed_from_raw_matches": true,
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 17,
+              "dominant_host": "01|01|00",
+              "host_classes": 13,
+              "host_richness": 13
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 18,
+              "dominant_host": "10|01|01",
+              "host_classes": 14,
+              "host_richness": 14
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 25,
+              "dominant_host": "00|11|11",
+              "host_classes": 18,
+              "host_richness": 18
+            }
+          },
+          "wall_s": 312.879
+        }
+      },
+      "seed": 5701
+    },
+    {
+      "coevolve_label": "contemporary_match",
+      "contemporary": 0.011718097,
+      "errors": [],
+      "frozen_contemporary": 0.0,
+      "frozen_lagged": 0.0,
+      "lagged": -0.0042388658,
+      "regimes": {
+        "copassaged": {
+          "contrast": {
+            "i_contemp": 0.011718097,
+            "i_lag": -0.0042388658,
+            "i_max": 0.011718097,
+            "i_max_cell": [
+              "now",
+              "now"
+            ],
+            "n_negative_cells": 6,
+            "n_positive_cells": 3,
+            "uniform_increase": false
+          },
+          "label": "contemporary_match",
+          "matrix": {
+            "future": {
+              "future": 0.6113459399,
+              "now": 0.6059453032,
+              "past": 0.6019396552
+            },
+            "now": {
+              "future": 0.6058651026,
+              "now": 0.6313479624,
+              "past": 0.6119318182
+            },
+            "past": {
+              "future": 0.6050933786,
+              "now": 0.6054446461,
+              "past": 0.6200657895
+            }
+          },
+          "recomputed_from_raw_matches": true,
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 31,
+              "antagonist_n": 64,
+              "census": 29,
+              "dominant_host": "10|01|11",
+              "host_classes": 24,
+              "host_richness": 24
+            },
+            "now": {
+              "antagonist_classes": 29,
+              "antagonist_n": 64,
+              "census": 22,
+              "dominant_host": "00|11|10",
+              "host_classes": 20,
+              "host_richness": 20
+            },
+            "past": {
+              "antagonist_classes": 32,
+              "antagonist_n": 64,
+              "census": 19,
+              "dominant_host": "00|11|10",
+              "host_classes": 17,
+              "host_richness": 17
+            }
+          },
+          "wall_s": 473.425
+        },
+        "fixed": {
+          "contrast": {
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": 0.0,
+            "i_max_cell": [
+              "past",
+              "past"
+            ],
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "recomputed_from_raw_matches": true,
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 16,
+              "dominant_host": "00|01|11",
+              "host_classes": 13,
+              "host_richness": 13
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 17,
+              "dominant_host": "00|11|01",
+              "host_classes": 15,
+              "host_richness": 15
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "antagonist_n": 64,
+              "census": 20,
+              "dominant_host": "00|00|00",
+              "host_classes": 15,
+              "host_richness": 15
+            }
+          },
+          "wall_s": 383.024
+        }
+      },
+      "seed": 5702
+    }
+  ],
+  "schema_version": "rq1_confirmatory_analysis_v1",
+  "seeds_completed": [
+    5701,
+    5702
+  ],
+  "seeds_locked": [
+    5701,
+    5702,
+    5703,
+    5704,
+    5705,
+    5706,
+    5707,
+    5708
+  ],
+  "seeds_remaining": [
+    5703,
+    5704,
+    5705,
+    5706,
+    5707,
+    5708
+  ],
+  "slots": {
+    "future": 110,
+    "now": 100,
+    "past": 90
+  },
+  "statistics": {
+    "contemporary": {
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.0693853373,
+        "lo": -0.0558017386,
+        "mean": 0.00679179935,
+        "method": "causal_validation._paired_interval (95% paired t)",
+        "n_pairs": 2
+      },
+      "mean": 0.00679179935,
+      "values": [
+        0.0018655017,
+        0.011718097
+      ]
+    },
+    "frozen": {
+      "contemporary_values": [
+        0.0,
+        0.0
+      ],
+      "exactly_zero": true,
+      "lagged_values": [
+        0.0,
+        0.0
+      ]
+    },
+    "labels": [
+      "other",
+      "contemporary_match"
+    ],
+    "lagged": {
+      "interval_vs_frozen": {
+        "excludes_zero": false,
+        "hi": 0.0312625394,
+        "lo": -0.0345598529,
+        "mean": -0.00164865675,
+        "method": "causal_validation._paired_interval (95% paired t)",
+        "n_pairs": 2
+      },
+      "mean": -0.00164865675,
+      "values": [
+        0.0009415523,
+        -0.0042388658
+      ]
+    },
+    "n_support_label": 1,
+    "paired_contemporary_vs_lagged": {
+      "excludes_zero": false,
+      "hi": 0.1039451902,
+      "lo": -0.087064278,
+      "mean": 0.0084404561,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 2
+    },
+    "rotation_control": {
+      "fraction": 0.0,
+      "n": 6,
+      "n_support_label": 0
+    }
+  },
+  "status": "partial"
+}

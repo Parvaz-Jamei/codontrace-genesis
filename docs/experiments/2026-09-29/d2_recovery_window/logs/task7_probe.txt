@@ -1,0 +1,158 @@
+{
+ "cells": {
+  "K0N1": {
+   "tick_idx_ok": true,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     0
+    ],
+    "n_snapshots": [
+     1,
+     0
+    ]
+   }
+  },
+  "K0N2": {
+   "tick_idx_ok": true,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     0
+    ],
+    "n_snapshots": [
+     1,
+     0
+    ]
+   }
+  },
+  "K0N5": {
+   "tick_idx_ok": true,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     0
+    ],
+    "n_snapshots": [
+     1,
+     0
+    ]
+   }
+  },
+  "K3N1": {
+   "tick_idx_ok": false,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     3
+    ],
+    "n_tick_results": [
+     3,
+     0
+    ],
+    "n_snapshots": [
+     4,
+     0
+    ],
+    "qd_digest": [
+     "dfbb2e32fe0a3778f4dd1fd3521e270310e3a74e0df87f65299ba4e76d427bc7",
+     "d712008fee16edfd7d06dba02d4e0c7320253ff43478c8e12f486fdd29335fd8"
+    ],
+    "nexus_digest": [
+     "cb4b46bd5806cfb2ec0539db6db032e53c32fdfef9b94e1be84a13c54e795bd3",
+     "fa61b715f1cdc0739a17e293eef51922db0b721c14f0fbcedd4c966af6c18e30"
+    ]
+   }
+  },
+  "K3N2": {
+   "tick_idx_ok": false,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     3
+    ],
+    "n_tick_results": [
+     3,
+     0
+    ],
+    "n_snapshots": [
+     4,
+     0
+    ],
+    "qd_digest": [
+     "dfbb2e32fe0a3778f4dd1fd3521e270310e3a74e0df87f65299ba4e76d427bc7",
+     "d712008fee16edfd7d06dba02d4e0c7320253ff43478c8e12f486fdd29335fd8"
+    ],
+    "nexus_digest": [
+     "cb4b46bd5806cfb2ec0539db6db032e53c32fdfef9b94e1be84a13c54e795bd3",
+     "fa61b715f1cdc0739a17e293eef51922db0b721c14f0fbcedd4c966af6c18e30"
+    ]
+   }
+  },
+  "K3N5": {
+   "tick_idx_ok": false,
+   "tick_digests_equal": false,
+   "generation_digests_equal": false,
+   "state_diff": {
+    "tick_index_offset": [
+     -1,
+     3
+    ],
+    "n_tick_results": [
+     3,
+     0
+    ],
+    "n_snapshots": [
+     4,
+     0
+    ],
+    "qd_digest": [
+     "dfbb2e32fe0a3778f4dd1fd3521e270310e3a74e0df87f65299ba4e76d427bc7",
+     "d712008fee16edfd7d06dba02d4e0c7320253ff43478c8e12f486fdd29335fd8"
+    ],
+    "nexus_digest": [
+     "cb4b46bd5806cfb2ec0539db6db032e53c32fdfef9b94e1be84a13c54e795bd3",
+     "fa61b715f1cdc0739a17e293eef51922db0b721c14f0fbcedd4c966af6c18e30"
+    ]
+   }
+  }
+ },
+ "bisect_differing": [
+  "action_runtime_config",
+  "causal_graph",
+  "ribosome"
+ ],
+ "bisect_population_to_dict_equal": true,
+ "repairs": [
+  {
+   "repair": "none",
+   "tick_digests_equal": false,
+   "generation_digests_equal": false
+  },
+  {
+   "repair": "nexus+qd+grid",
+   "tick_digests_equal": false,
+   "generation_digests_equal": false
+  },
+  {
+   "repair": "replace_population_object",
+   "tick_digests_equal": false,
+   "generation_digests_equal": false
+  },
+  {
+   "repair": "replace_world+population+nexus",
+   "tick_digests_equal": false,
+   "generation_digests_equal": false
+  }
+ ]
+}

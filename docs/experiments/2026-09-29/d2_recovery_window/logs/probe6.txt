@@ -1,0 +1,7 @@
+none                   matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+scramble_first         matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+named_first            matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+ablate_first           matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+control_first          matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+scramble_then_named    matched final=39762884025d7aad burden=3.220219731 detail=[{'profile_cut_edge_ids': ['E0', 'E1'], 'matched_cut_edge_ids': ['E6', 'E7'], 'design_failure': True, 'match_exact': True, 'independent_control': False}]
+distinct matched paths: 1 order_dependent: False

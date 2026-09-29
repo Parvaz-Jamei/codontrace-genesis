@@ -1,0 +1,6 @@
+[P2.control] "pop_path:30a89ef32b88cbe607bea5588f96229e3c6c88813123cd4bd3084e8b99a7d649"
+[P2.scramble_contacts] "pop_path:25989a6b8d84b226c63b3b659e0892a5f33906e98851ef34eca78434ab660b6e"
+[P2.cut_named_scaffold] "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+[P2.cut_matched_random] "pop_path:9d15db0c8d268a876fb15f41c00570771186fc185cbda50338c736b4e401ba46"
+[P2.ablate_knowledge_digest] "pop_path:6a37ef44d371253039049f61aca23ea539debea330422ec3155d94c4333150c4"
+WROTE probe2_fork_and_op_effect.json

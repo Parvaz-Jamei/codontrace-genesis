@@ -1,0 +1,10 @@
+BISECT differing: ['action_runtime_config', 'causal_graph', 'ribosome']
+pop_to_dict_equal True
+ids_equal True
+nattrs 29
+REPAIR none tick_eq False gen_eq False ['38ad850f646a', '7c45870ff9f5', 'aa15718ffe11', 'b08885d7a4b1', '36e2a715fb40'] ['13fb2cf7e2fa', '1b432e538781']
+REPAIR nexus+qd+grid tick_eq False gen_eq False ['38ad850f646a', '7c45870ff9f5', 'aa15718ffe11', 'b08885d7a4b1', '36e2a715fb40'] ['3c5a5602bfbb', '74c47d6c0263']
+REPAIR replace_population_object tick_eq False gen_eq False ['38ad850f646a', '7c45870ff9f5', 'aa15718ffe11', 'b08885d7a4b1', '36e2a715fb40'] ['28e9b22f911e', '2112dca034e8']
+REPAIR replace_world+population+nexus tick_eq False gen_eq False ['38ad850f646a', '7c45870ff9f5', 'aa15718ffe11', 'b08885d7a4b1', '36e2a715fb40'] ['b08885d7a4b1', '36e2a715fb40']
+K3N1 idx orig [0, 1, 2, 3] rest [3]
+nexus at fork/rest cb4b46bd5806 fa61b715f1cd

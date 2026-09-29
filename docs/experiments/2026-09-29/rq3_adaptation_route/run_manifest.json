@@ -1,0 +1,73 @@
+{
+  "schema_version": "rq3-manifest-v2",
+  "round": 3,
+  "test": "RQ-3",
+  "question": "does the apparent cycle need heritable antagonist feedback?",
+  "agent_id": "dag-prereg",
+  "pinned_commit": "913f18e",
+  "provenance": {
+    "required_by_lead": "git archive of 913f18e into a scratch dir",
+    "executed": "git is not installed in this environment (no git.exe anywhere on PATH or under Program Files); archive command could not run",
+    "substitute": "checksummed filesystem snapshot of the live src tree taken at 2026-09-29 15:44, extracted to test-runs/rq3/tip913f18e/src/src, used via RQ3_REPO/PYTHONPATH; snapshot checksums recorded in PATCH_NOTE.md and decision.md",
+    "limitation": "the snapshot is a copy, not a commit checkout, so it is pinned by checksum rather than by git object identity"
+  },
+  "opt_in": {
+    "argument": "antagonist_ecology",
+    "value": "population",
+    "standing_value": "standing",
+    "population_is_opt_in": true,
+    "standing_path": "_passage_update_standing verbatim; antagonist_pop is None",
+    "engine_py_touched": false,
+    "knob_fix_included": "cc675a4 founders(maintenance_cost)"
+  },
+  "antagonist_maintenance_cost": {
+    "value": 0.15,
+    "declared_before_runs": true,
+    "same_in_every_arm": true,
+    "derivation": "debit at full affinity = virulence 8.0 * steal_fraction 0.15 = 1.2 ATP; affinity uniform on [0,1] so mean 0.5; mean ATP per contact 0.6; assimilation (EARNED_YIELD - PAIRING_COST) = 0.5; maintenance = half the assimilated income = 0.15 ATP per unit per generation",
+    "not_tuned_after_results": true,
+    "no_sweep_performed": true
+  },
+  "seeds": {
+    "contrast_seed": 21051,
+    "regression_seed": 43,
+    "generations_contrast": 60,
+    "generations_regression": 50
+  },
+  "primary_outcome": {
+    "quantity": "common-window share of the antagonist roster at generation 60",
+    "coevolve": 0.171875,
+    "frozen": 0.0625,
+    "shuffled_labels": 0.0625,
+    "coevolve_above_frozen": true,
+    "coevolve_above_shuffled": true,
+    "effect_is_small": true,
+    "note": "separation is real and directionally as predicted but the absolute margin is 0.109 share over 60 generations"
+  },
+  "secondary_outcomes": {
+    "regression_empty_hist_generations": 0,
+    "regression_hist_at_25_nonempty": true,
+    "regression_final_classes": 28,
+    "rosters_alive": {"coevolve": 64, "frozen": 64, "shuffled_labels": 64},
+    "extinctions": 0
+  },
+  "locked_off_path": {
+    "command": "pytest _off_wave8.py _off_pressure.py with PYTHONPATH pointing at the snapshot",
+    "result": "22 passed, 1 failed",
+    "failure": "_off_wave8.py::test_p3_engine_has_no_hp_domain_physics_tokens -- FileNotFoundError because that test reads engine paths relative to the repository working directory, not to the snapshot; environmental, not a code defect",
+    "standing_default_checks": {"antagonist_pop_is_none": true, "standing_hist_nonempty": true}
+  },
+  "calibration_tier": {
+    "command": "python test-runs/d2/harness/d2_pack.py all",
+    "harness_verdict": "BLOCKED_MEASUREMENT",
+    "blocking_count": 2,
+    "note": "the D-2 pack reported its own verdict; this agent did not tune anything to change it"
+  },
+  "workers": 1,
+  "replay_command": "set RQ3_REPO=<extraction> && python test-runs/rq3/round3_contrast.py",
+  "stop_code": "COMPLETE",
+  "verdict": "SUPPORTED_IN_MODEL_SMALL_EFFECT",
+  "claim_ceiling": "phase2_design",
+  "hypothesis_supported": false,
+  "red_queen_proved": false
+}

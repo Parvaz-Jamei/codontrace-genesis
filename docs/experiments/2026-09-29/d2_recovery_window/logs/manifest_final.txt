@@ -1,0 +1,10 @@
+{
+ "round": 4,
+ "tip": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+ "verdict": "FALSIFIED_IN_MODEL",
+ "isolation_holds": true,
+ "config_digest": "20a38187cb61b12e47d3418e4c5609cd",
+ "n_runs": 18,
+ "wall_seconds_total": 294.85,
+ "archive_sha256": "e4ba113bbc5858f90f579309cc5c7510771d1c25e221b06d96e01f0043926c7e"
+}

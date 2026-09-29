@@ -1,0 +1,52 @@
+{
+  "events_written": 3,
+  "first_event_keys": [
+    "antagonist_classes",
+    "antagonist_digest",
+    "atp_after",
+    "atp_before",
+    "birth",
+    "census",
+    "contact_edge_id",
+    "death"
+  ],
+  "config_digest": "rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807",
+  "slots": {
+    "past": 90,
+    "now": 100,
+    "future": 110
+  },
+  "matrix_3gen": {
+    "past": {
+      "past": 0.0,
+      "now": 0.0,
+      "future": 0.0
+    },
+    "now": {
+      "past": 0.0,
+      "now": 0.0,
+      "future": 0.0
+    },
+    "future": {
+      "past": 0.0,
+      "now": 0.0,
+      "future": 0.0
+    }
+  },
+  "contrast": {
+    "i_contemp": 0.0,
+    "i_lag": 0.0,
+    "i_max_cell": [
+      "past",
+      "past"
+    ],
+    "i_max": 0.0,
+    "n_positive_cells": 0,
+    "n_negative_cells": 0,
+    "uniform_increase": false
+  },
+  "paired_interval_two": [
+    -10.706,
+    14.706
+  ]
+}

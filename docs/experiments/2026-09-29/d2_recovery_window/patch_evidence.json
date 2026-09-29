@@ -1,0 +1,66 @@
+{
+  "fork_evidence": {
+    "branch_matched_paths": [
+      "pop_path:b605c29a2f54ee96f9f5775bd5f1d171317673050ae48b6b42b17b0a9c97cb91",
+      "pop_path:72103260b99e19ecbe28c94cbb01a6f73c8c4942bd71b134ea04d5dfb764dade",
+      "pop_path:43ff5264c4621e7e02c900213e003cab808187a961b3bb4328d39a7914bdb40c",
+      "pop_path:88dbf9dcbd9cf98d8adac5f4a086882846c099aee03a66504cfdb6a1ea08fbdc",
+      "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61"
+    ],
+    "branch_named_paths": [
+      "pop_path:b605c29a2f54ee96f9f5775bd5f1d171317673050ae48b6b42b17b0a9c97cb91",
+      "pop_path:72103260b99e19ecbe28c94cbb01a6f73c8c4942bd71b134ea04d5dfb764dade",
+      "pop_path:43ff5264c4621e7e02c900213e003cab808187a961b3bb4328d39a7914bdb40c",
+      "pop_path:88dbf9dcbd9cf98d8adac5f4a086882846c099aee03a66504cfdb6a1ea08fbdc",
+      "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61"
+    ],
+    "branches_differ": false,
+    "continuation_identical": true,
+    "fork_after_original": 10,
+    "fork_capture_ok": true,
+    "fork_has_population": true,
+    "fork_has_rng_state": true,
+    "fork_tick_index": 10,
+    "n_continuation_ticks": 5,
+    "n_organisms_forked": 8,
+    "parent_child_ids_preserved": true
+  },
+  "patch": {
+    "coupler_insert_lines": 116,
+    "engine_insert_lines": 57,
+    "patch_lines": 231,
+    "patch_path": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\d2\\PROPOSED_CHANGE.patch",
+    "patch_sha256": "1398050ecf16fdddd514e435e7075b5a9f926ad721aecad9137f93667889cab3"
+  },
+  "probe": "d2_unblocking_patch",
+  "round": 1,
+  "seconds": 116.67,
+  "topology_evidence": {
+    "after_patch": {
+      "count_penalty_terms_identical": true,
+      "differ": true,
+      "identical": false,
+      "matched_final": "pop_path:7423ad40962bdc59c986a1fdfb8685cdff1844aed90c6a22fd25b94e7c43a06d",
+      "matched_identified": true,
+      "matched_recipients": [
+        "org-4",
+        "org-5",
+        "org-6"
+      ],
+      "named_final": "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61",
+      "named_identified": true,
+      "named_recipients": [
+        "org-0",
+        "org-1",
+        "org-2"
+      ],
+      "named_unbound": []
+    },
+    "before_patch": {
+      "count_penalty_terms_identical": true,
+      "identical": true,
+      "matched_final": "pop_path:bb30d043a807ae8d3d1c5a83a17e95bea291ada1254d64318116459bbc5dddf9",
+      "named_final": "pop_path:bb30d043a807ae8d3d1c5a83a17e95bea291ada1254d64318116459bbc5dddf9"
+    }
+  }
+}

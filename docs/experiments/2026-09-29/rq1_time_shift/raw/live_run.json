@@ -1,0 +1,3705 @@
+{
+  "arm_passage_map": {
+    "avirulent": "absent",
+    "copassaged": "coevolve",
+    "fixed": "frozen"
+  },
+  "calibration_gate_ok": true,
+  "design": {
+    "budget": {
+      "cap_wall_s_first_pack": 2700,
+      "cap_wall_s_per_test": 480,
+      "measured_s_per_generation_per_arm": 1.6
+    },
+    "calibration_seeds": [
+      5501,
+      5502
+    ],
+    "cap_atp_secondary": 1.2,
+    "generations": 40,
+    "kappa": 1.2,
+    "pilot_seeds": [
+      5601,
+      5602,
+      5603,
+      5604
+    ],
+    "primary": "frequency-weighted population realised pressure",
+    "reserved_seeds_not_drawn": [
+      5701,
+      5702,
+      5703,
+      5704,
+      5705,
+      5706,
+      5707,
+      5708
+    ],
+    "secondary": "dominant host class realised pressure",
+    "slots": {
+      "future": 40,
+      "now": 30,
+      "past": 20
+    },
+    "times": [
+      "past",
+      "now",
+      "future"
+    ]
+  },
+  "errors": [],
+  "pilot_gate_ok": true,
+  "route": "StructuralRQArm (closed_loop_hp_arm01_structural_rq)",
+  "schema_version": "rq1_live_run_v1",
+  "seeds": [
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 1.8597,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 32,
+              "dominant_host": "11|10|11",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 36,
+              "dominant_host": "11|00|10",
+              "host_classes": 29,
+              "host_richness": 29,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 39,
+              "dominant_host": "01|00|01",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 74.389
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.6141975309,
+            "i_contemp": 0.0097001764,
+            "i_lag": -0.0114638448,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0218694885
+            },
+            "interaction": {
+              "future": {
+                "future": -0.0130511464,
+                "now": 0.0059964727,
+                "past": 0.0070546737
+              },
+              "now": {
+                "future": 0.0192239859,
+                "now": 0.0097001764,
+                "past": -0.0289241623
+              },
+              "past": {
+                "future": -0.0061728395,
+                "now": -0.015696649,
+                "past": 0.0218694885
+              }
+            },
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6087847485,
+            "i_contemp": 0.0017380914,
+            "i_lag": 0.000428224,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0054417951
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0033637585,
+                "now": 0.0014672423,
+                "past": -0.0048310009
+              },
+              "now": {
+                "future": -0.0011272972,
+                "now": 0.0017380914,
+                "past": -0.0006107943
+              },
+              "past": {
+                "future": -0.0022364614,
+                "now": -0.0032053338,
+                "past": 0.0054417951
+              }
+            },
+            "n_negative_cells": 5,
+            "n_positive_cells": 4,
+            "uniform_increase": false
+          },
+          "label": "lagged_match",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6214285714,
+              "now": 0.6176870748,
+              "past": 0.6021164021
+            },
+            "now": {
+              "future": 0.6137755102,
+              "now": 0.6147959184,
+              "past": 0.6031746032
+            },
+            "past": {
+              "future": 0.6041125541,
+              "now": 0.6012987013,
+              "past": 0.6006734007
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6071428571,
+              "now": 0.6142857143,
+              "past": 0.5888888889
+            },
+            "now": {
+              "future": 0.6642857143,
+              "now": 0.6428571429,
+              "past": 0.5777777778
+            },
+            "past": {
+              "future": 0.6214285714,
+              "now": 0.6,
+              "past": 0.6111111111
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6214285714,
+              "now": 0.6176870748,
+              "past": 0.6021164021
+            },
+            "now": {
+              "future": 0.6137755102,
+              "now": 0.6147959184,
+              "past": 0.6031746032
+            },
+            "past": {
+              "future": 0.6041125541,
+              "now": 0.6012987013,
+              "past": 0.6006734007
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 2.2507,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 28,
+              "census": 21,
+              "dominant_host": "00|00|10",
+              "host_classes": 19,
+              "host_richness": 19,
+              "model_realised_pressure_classes": 19,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 28,
+              "census": 28,
+              "dominant_host": "00|00|11",
+              "host_classes": 21,
+              "host_richness": 21,
+              "model_realised_pressure_classes": 22,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 36,
+              "census": 33,
+              "dominant_host": "01|11|11",
+              "host_classes": 28,
+              "host_richness": 28,
+              "model_realised_pressure_classes": 29,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              4,
+              4,
+              8,
+              8,
+              5
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 90.027
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.0195,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 22,
+              "dominant_host": "00|00|00",
+              "host_classes": 18,
+              "host_richness": 18,
+              "model_realised_pressure_classes": 18,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 35,
+              "dominant_host": "00|00|11",
+              "host_classes": 29,
+              "host_richness": 29,
+              "model_realised_pressure_classes": 30,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 40,
+              "dominant_host": "01|01|00",
+              "host_classes": 30,
+              "host_richness": 30,
+              "model_realised_pressure_classes": 31,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 80.782
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "calibration",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5501,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 247.074
+    },
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 3.8233,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 42,
+              "dominant_host": "00|10|10",
+              "host_classes": 28,
+              "host_richness": 28,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 48,
+              "dominant_host": "01|10|10",
+              "host_classes": 34,
+              "host_richness": 34,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 55,
+              "dominant_host": "01|10|10",
+              "host_classes": 35,
+              "host_richness": 35,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 152.932
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.620714374,
+            "i_contemp": -0.0138160566,
+            "i_lag": 0.0294939704,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0410120592
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0272030652,
+                "now": 0.0363984674,
+                "past": -0.0636015326
+              },
+              "now": {
+                "future": -0.0087734167,
+                "now": -0.0138160566,
+                "past": 0.0225894734
+              },
+              "past": {
+                "future": -0.0184296484,
+                "now": -0.0225824108,
+                "past": 0.0410120592
+              }
+            },
+            "n_negative_cells": 5,
+            "n_positive_cells": 4,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6054815018,
+            "i_contemp": 0.0039446078,
+            "i_lag": -0.0015180005,
+            "i_max": {
+              "cell": [
+                "future",
+                "future"
+              ],
+              "value": 0.0078749661
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0078749661,
+                "now": -0.0029454599,
+                "past": -0.0049295062
+              },
+              "now": {
+                "future": -0.0038540667,
+                "now": 0.0039446078,
+                "past": -9.05411e-05
+              },
+              "past": {
+                "future": -0.0040208994,
+                "now": -0.0009991479,
+                "past": 0.0050200474
+              }
+            },
+            "n_negative_cells": 6,
+            "n_positive_cells": 3,
+            "uniform_increase": false
+          },
+          "label": "contemporary_match",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6090517241,
+              "now": 0.597983871,
+              "past": 0.596875
+            },
+            "now": {
+              "future": 0.602955665,
+              "now": 0.6105069124,
+              "past": 0.6073469388
+            },
+            "past": {
+              "future": 0.6040567951,
+              "now": 0.6068311195,
+              "past": 0.6137254902
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6206896552,
+              "now": 0.6322580645,
+              "past": 0.5
+            },
+            "now": {
+              "future": 0.6413793103,
+              "now": 0.6387096774,
+              "past": 0.6428571429
+            },
+            "past": {
+              "future": 0.6275862069,
+              "now": 0.6258064516,
+              "past": 0.6571428571
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6090517241,
+              "now": 0.597983871,
+              "past": 0.596875
+            },
+            "now": {
+              "future": 0.602955665,
+              "now": 0.6105069124,
+              "past": 0.6073469388
+            },
+            "past": {
+              "future": 0.6040567951,
+              "now": 0.6068311195,
+              "past": 0.6137254902
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 3.9242,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 29,
+              "census": 32,
+              "dominant_host": "01|11|00",
+              "host_classes": 22,
+              "host_richness": 22,
+              "model_realised_pressure_classes": 23,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 31,
+              "census": 35,
+              "dominant_host": "01|01|11",
+              "host_classes": 26,
+              "host_richness": 26,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 28,
+              "census": 51,
+              "dominant_host": "01|10|11",
+              "host_classes": 32,
+              "host_richness": 32,
+              "model_realised_pressure_classes": 33,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              10,
+              8,
+              8,
+              10,
+              11
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 156.968
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 3.8887,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 37,
+              "dominant_host": "10|10|11",
+              "host_classes": 25,
+              "host_richness": 25,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 39,
+              "dominant_host": "11|00|10",
+              "host_classes": 30,
+              "host_richness": 30,
+              "model_realised_pressure_classes": 31,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 36,
+              "dominant_host": "00|10|01",
+              "host_classes": 26,
+              "host_richness": 26,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 155.547
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "calibration",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5502,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 467.85
+    },
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 4.1413,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 35,
+              "dominant_host": "00|10|10",
+              "host_classes": 19,
+              "host_richness": 19,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 30,
+              "dominant_host": "00|00|10",
+              "host_classes": 23,
+              "host_richness": 23,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 47,
+              "dominant_host": "11|00|10",
+              "host_classes": 35,
+              "host_richness": 35,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 165.651
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.6139170507,
+            "i_contemp": 0.0473527905,
+            "i_lag": -0.0139477726,
+            "i_max": {
+              "cell": [
+                "now",
+                "now"
+              ],
+              "value": 0.0473527905
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0324014337,
+                "now": -0.0295340502,
+                "past": -0.0028673835
+              },
+              "now": {
+                "future": -0.0489912954,
+                "now": 0.0473527905,
+                "past": 0.0016385049
+              },
+              "past": {
+                "future": 0.0165898617,
+                "now": -0.0178187404,
+                "past": 0.0012288786
+              }
+            },
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.604481167,
+            "i_contemp": 0.0098738023,
+            "i_lag": -0.0045372061,
+            "i_max": {
+              "cell": [
+                "now",
+                "now"
+              ],
+              "value": 0.0098738023
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0067074067,
+                "now": -0.0064213236,
+                "past": -0.0002860832
+              },
+              "now": {
+                "future": -0.0072207137,
+                "now": 0.0098738023,
+                "past": -0.0026530887
+              },
+              "past": {
+                "future": 0.0005133069,
+                "now": -0.0034524788,
+                "past": 0.0029391719
+              }
+            },
+            "n_negative_cells": 5,
+            "n_positive_cells": 4,
+            "uniform_increase": false
+          },
+          "label": "other",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6090322581,
+              "now": 0.6046666667,
+              "past": 0.6051428571
+            },
+            "now": {
+              "future": 0.5947772657,
+              "now": 0.6206349206,
+              "past": 0.6024489796
+            },
+            "past": {
+              "future": 0.5977667494,
+              "now": 0.6025641026,
+              "past": 0.6032967033
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6322580645,
+              "now": 0.5666666667,
+              "past": 0.5714285714
+            },
+            "now": {
+              "future": 0.5806451613,
+              "now": 0.6733333333,
+              "past": 0.6057142857
+            },
+            "past": {
+              "future": 0.6580645161,
+              "now": 0.62,
+              "past": 0.6171428571
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6090322581,
+              "now": 0.6046666667,
+              "past": 0.6051428571
+            },
+            "now": {
+              "future": 0.5947772657,
+              "now": 0.6206349206,
+              "past": 0.6024489796
+            },
+            "past": {
+              "future": 0.5977667494,
+              "now": 0.6025641026,
+              "past": 0.6032967033
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 2.4571,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 31,
+              "census": 20,
+              "dominant_host": "00|01|01",
+              "host_classes": 17,
+              "host_richness": 17,
+              "model_realised_pressure_classes": 17,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 30,
+              "census": 21,
+              "dominant_host": "00|00|00",
+              "host_classes": 19,
+              "host_richness": 19,
+              "model_realised_pressure_classes": 19,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 35,
+              "census": 26,
+              "dominant_host": "01|01|00",
+              "host_classes": 23,
+              "host_richness": 23,
+              "model_realised_pressure_classes": 23,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              8,
+              10,
+              8,
+              12,
+              8
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 98.284
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 3.4156,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 38,
+              "dominant_host": "00|01|10",
+              "host_classes": 24,
+              "host_richness": 24,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 40,
+              "dominant_host": "10|10|00",
+              "host_classes": 25,
+              "host_richness": 25,
+              "model_realised_pressure_classes": 25,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 39,
+              "dominant_host": "11|00|00",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 27,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 136.624
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "pilot",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5601,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 402.271
+    },
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 3.5197,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 44,
+              "dominant_host": "11|00|11",
+              "host_classes": 30,
+              "host_richness": 30,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 41,
+              "dominant_host": "10|01|00",
+              "host_classes": 35,
+              "host_richness": 35,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 48,
+              "dominant_host": "00|01|10",
+              "host_classes": 38,
+              "host_richness": 38,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 140.788
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.6098035311,
+            "i_contemp": 0.0467011815,
+            "i_lag": -0.0036373291,
+            "i_max": {
+              "cell": [
+                "future",
+                "future"
+              ],
+              "value": 0.073383778
+            },
+            "interaction": {
+              "future": {
+                "future": 0.073383778,
+                "now": -0.0268153458,
+                "past": -0.0465684322
+              },
+              "now": {
+                "future": -0.0662418691,
+                "now": 0.0467011815,
+                "past": 0.0195406876
+              },
+              "past": {
+                "future": -0.0071419089,
+                "now": -0.0198858357,
+                "past": 0.0270277446
+              }
+            },
+            "n_negative_cells": 5,
+            "n_positive_cells": 4,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6028542073,
+            "i_contemp": 0.0038191776,
+            "i_lag": -0.0055852537,
+            "i_max": {
+              "cell": [
+                "future",
+                "future"
+              ],
+              "value": 0.0272099339
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0272099339,
+                "now": -0.01333136,
+                "past": -0.0138785739
+              },
+              "now": {
+                "future": -0.0059800302,
+                "now": 0.0038191776,
+                "past": 0.0021608526
+              },
+              "past": {
+                "future": -0.0212299037,
+                "now": 0.0095121824,
+                "past": 0.0117177213
+              }
+            },
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "label": "other",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6383064516,
+              "now": 0.5930555556,
+              "past": 0.5930555556
+            },
+            "now": {
+              "future": 0.5993548387,
+              "now": 0.6044444445,
+              "past": 0.6033333333
+            },
+            "past": {
+              "future": 0.5797733217,
+              "now": 0.6058058058,
+              "past": 0.6085585586
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6709677419,
+              "now": 0.6148148148,
+              "past": 0.5944444444
+            },
+            "now": {
+              "future": 0.5096774194,
+              "now": 0.6666666667,
+              "past": 0.6388888889
+            },
+            "past": {
+              "future": 0.5612903226,
+              "now": 0.5925925926,
+              "past": 0.6388888889
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6383064516,
+              "now": 0.5930555556,
+              "past": 0.5930555556
+            },
+            "now": {
+              "future": 0.5993548387,
+              "now": 0.6044444445,
+              "past": 0.6033333333
+            },
+            "past": {
+              "future": 0.5797733217,
+              "now": 0.6058058058,
+              "past": 0.6085585586
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 1.9468,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 31,
+              "census": 32,
+              "dominant_host": "00|00|01",
+              "host_classes": 21,
+              "host_richness": 21,
+              "model_realised_pressure_classes": 21,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 27,
+              "census": 20,
+              "dominant_host": "00|11|00",
+              "host_classes": 16,
+              "host_richness": 16,
+              "model_realised_pressure_classes": 16,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 36,
+              "census": 37,
+              "dominant_host": "00|11|11",
+              "host_classes": 24,
+              "host_richness": 24,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              10,
+              7,
+              9,
+              5,
+              7
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 77.871
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.4867,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 24,
+              "dominant_host": "01|10|01",
+              "host_classes": 16,
+              "host_richness": 16,
+              "model_realised_pressure_classes": 16,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 22,
+              "dominant_host": "01|10|00",
+              "host_classes": 19,
+              "host_richness": 19,
+              "model_realised_pressure_classes": 19,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 31,
+              "dominant_host": "00|11|01",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 27,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 99.469
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "pilot",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5602,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 319.632
+    },
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.5511,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 48,
+              "dominant_host": "11|01|10",
+              "host_classes": 38,
+              "host_richness": 38,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 50,
+              "dominant_host": "10|00|10",
+              "host_classes": 29,
+              "host_richness": 29,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 57,
+              "dominant_host": "11|00|00",
+              "host_classes": 34,
+              "host_richness": 34,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 102.046
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.6082611644,
+            "i_contemp": 0.0177429042,
+            "i_lag": -0.0360786593,
+            "i_max": {
+              "cell": [
+                "past",
+                "now"
+              ],
+              "value": 0.0219393587
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0218231134,
+                "now": -0.0396822629,
+                "past": 0.0178591494
+              },
+              "now": {
+                "future": 0.0147321515,
+                "now": 0.0177429042,
+                "past": -0.0324750557
+              },
+              "past": {
+                "future": -0.036555265,
+                "now": 0.0219393587,
+                "past": 0.0146159062
+              }
+            },
+            "n_negative_cells": 3,
+            "n_positive_cells": 6,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6086282568,
+            "i_contemp": 0.0073493109,
+            "i_lag": -0.0067044366,
+            "i_max": {
+              "cell": [
+                "future",
+                "future"
+              ],
+              "value": 0.0080976121
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0080976121,
+                "now": -0.0098264312,
+                "past": 0.0017288191
+              },
+              "now": {
+                "future": -0.0037668688,
+                "now": 0.0073493109,
+                "past": -0.003582442
+              },
+              "past": {
+                "future": -0.0043307433,
+                "now": 0.0024771203,
+                "past": 0.001853623
+              }
+            },
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "label": "other",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6271604938,
+              "now": 0.6109916368,
+              "past": 0.6142142142
+            },
+            "now": {
+              "future": 0.6083950617,
+              "now": 0.6212664277,
+              "past": 0.602002002
+            },
+            "past": {
+              "future": 0.5951515151,
+              "now": 0.603714565,
+              "past": 0.5947583948
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6533333333,
+              "now": 0.5935483871,
+              "past": 0.6324324324
+            },
+            "now": {
+              "future": 0.6533333333,
+              "now": 0.6580645161,
+              "past": 0.5891891892
+            },
+            "past": {
+              "future": 0.5333333333,
+              "now": 0.5935483871,
+              "past": 0.5675675676
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6271604938,
+              "now": 0.6109916368,
+              "past": 0.6142142142
+            },
+            "now": {
+              "future": 0.6083950617,
+              "now": 0.6212664277,
+              "past": 0.602002002
+            },
+            "past": {
+              "future": 0.5951515151,
+              "now": 0.603714565,
+              "past": 0.5947583948
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 2.2361,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 30,
+              "census": 27,
+              "dominant_host": "11|11|01",
+              "host_classes": 20,
+              "host_richness": 20,
+              "model_realised_pressure_classes": 21,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 31,
+              "census": 27,
+              "dominant_host": "01|01|01",
+              "host_classes": 23,
+              "host_richness": 23,
+              "model_realised_pressure_classes": 23,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 37,
+              "census": 33,
+              "dominant_host": "10|00|00",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 29,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              5,
+              5,
+              10,
+              4,
+              7
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 89.443
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.1058,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 32,
+              "dominant_host": "00|10|10",
+              "host_classes": 21,
+              "host_richness": 21,
+              "model_realised_pressure_classes": 21,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 30,
+              "dominant_host": "00|11|01",
+              "host_classes": 21,
+              "host_richness": 21,
+              "model_realised_pressure_classes": 21,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 37,
+              "dominant_host": "10|10|10",
+              "host_classes": 24,
+              "host_richness": 24,
+              "model_realised_pressure_classes": 25,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 84.234
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "pilot",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5603,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 277.651
+    },
+    {
+      "arm_initial_state": [
+        {
+          "arm": "avirulent",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "fixed",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        },
+        {
+          "arm": "copassaged",
+          "census": 64,
+          "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+          "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+        }
+      ],
+      "arm_match_at_generation_0": true,
+      "arms": {
+        "avirulent": {
+          "contrast_dominant": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.0,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "now": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            },
+            "past": {
+              "future": 0.0,
+              "now": 0.0,
+              "past": 0.0
+            }
+          },
+          "passage": "absent",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.4638,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 0,
+              "census": 38,
+              "dominant_host": "00|00|00",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "now": {
+              "antagonist_classes": 0,
+              "census": 30,
+              "dominant_host": "00|00|11",
+              "host_classes": 25,
+              "host_richness": 25,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            },
+            "past": {
+              "antagonist_classes": 0,
+              "census": 44,
+              "dominant_host": "00|00|01",
+              "host_classes": 33,
+              "host_richness": 33,
+              "model_realised_pressure_classes": 0,
+              "parasite_n": 0
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 98.552
+        },
+        "copassaged": {
+          "contrast_dominant": {
+            "grand_mean": 0.6499945473,
+            "i_contemp": 0.0071233833,
+            "i_lag": -0.0035813213,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0082444547
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0023381099,
+                "now": -0.0006281489,
+                "past": -0.001709961
+              },
+              "now": {
+                "future": -0.0005888896,
+                "now": 0.0071233833,
+                "past": -0.0065344937
+              },
+              "past": {
+                "future": -0.0017492203,
+                "now": -0.0064952344,
+                "past": 0.0082444547
+              }
+            },
+            "n_negative_cells": 6,
+            "n_positive_cells": 3,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6187237861,
+            "i_contemp": 0.005648525,
+            "i_lag": -0.0028098817,
+            "i_max": {
+              "cell": [
+                "future",
+                "future"
+              ],
+              "value": 0.0103666986
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0103666986,
+                "now": -0.0064912004,
+                "past": -0.0038754983
+              },
+              "now": {
+                "future": -0.006519962,
+                "now": 0.005648525,
+                "past": 0.0008714369
+              },
+              "past": {
+                "future": -0.0038467367,
+                "now": 0.0008426753,
+                "past": 0.0030040614
+              }
+            },
+            "n_negative_cells": 4,
+            "n_positive_cells": 5,
+            "uniform_increase": false
+          },
+          "label": "other",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.635401158,
+              "now": 0.6086648983,
+              "past": 0.6051282051
+            },
+            "now": {
+              "future": 0.6273244782,
+              "now": 0.6296146045,
+              "past": 0.6186851211
+            },
+            "past": {
+              "future": 0.6193548387,
+              "now": 0.61416589,
+              "past": 0.6101748808
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.7096774194,
+              "now": 0.6689655172,
+              "past": 0.6352941176
+            },
+            "now": {
+              "future": 0.664516129,
+              "now": 0.6344827586,
+              "past": 0.5882352941
+            },
+            "past": {
+              "future": 0.6838709677,
+              "now": 0.6413793103,
+              "past": 0.6235294118
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.635401158,
+              "now": 0.6086648983,
+              "past": 0.6051282051
+            },
+            "now": {
+              "future": 0.6273244782,
+              "now": 0.6296146045,
+              "past": 0.6186851211
+            },
+            "past": {
+              "future": 0.6193548387,
+              "now": 0.61416589,
+              "past": 0.6101748808
+            }
+          },
+          "passage": "coevolve",
+          "rotation_labels": {
+            "future": "other",
+            "now": "other",
+            "past": "other"
+          },
+          "s_per_generation": 2.6353,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 31,
+              "census": 39,
+              "dominant_host": "00|10|00",
+              "host_classes": 26,
+              "host_richness": 26,
+              "model_realised_pressure_classes": 26,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 29,
+              "census": 34,
+              "dominant_host": "00|00|00",
+              "host_classes": 25,
+              "host_richness": 25,
+              "model_realised_pressure_classes": 25,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 34,
+              "census": 37,
+              "dominant_host": "10|10|10",
+              "host_classes": 28,
+              "host_richness": 28,
+              "model_realised_pressure_classes": 29,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ],
+            "mut_events": [
+              10,
+              7,
+              8,
+              7,
+              8
+            ],
+            "replaced": [
+              32,
+              32,
+              32,
+              32,
+              32
+            ]
+          },
+          "wall_s": 105.413
+        },
+        "fixed": {
+          "contrast_dominant": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "contrast_population": {
+            "grand_mean": 0.6,
+            "i_contemp": 0.0,
+            "i_lag": 0.0,
+            "i_max": {
+              "cell": [
+                "past",
+                "past"
+              ],
+              "value": 0.0
+            },
+            "interaction": {
+              "future": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "now": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              },
+              "past": {
+                "future": 0.0,
+                "now": 0.0,
+                "past": 0.0
+              }
+            },
+            "n_negative_cells": 0,
+            "n_positive_cells": 0,
+            "uniform_increase": false
+          },
+          "label": "flat",
+          "matrix_capped_at_1p2atp": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_dominant_host": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "matrix_population_pressure": {
+            "future": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "now": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            },
+            "past": {
+              "future": 0.6,
+              "now": 0.6,
+              "past": 0.6
+            }
+          },
+          "passage": "frozen",
+          "rotation_labels": {
+            "future": "flat",
+            "now": "flat",
+            "past": "flat"
+          },
+          "s_per_generation": 2.9427,
+          "slot_diagnostics": {
+            "future": {
+              "antagonist_classes": 16,
+              "census": 25,
+              "dominant_host": "11|01|10",
+              "host_classes": 19,
+              "host_richness": 19,
+              "model_realised_pressure_classes": 19,
+              "parasite_n": 64
+            },
+            "now": {
+              "antagonist_classes": 16,
+              "census": 27,
+              "dominant_host": "00|01|01",
+              "host_classes": 22,
+              "host_richness": 22,
+              "model_realised_pressure_classes": 22,
+              "parasite_n": 64
+            },
+            "past": {
+              "antagonist_classes": 16,
+              "census": 44,
+              "dominant_host": "00|01|11",
+              "host_classes": 27,
+              "host_richness": 27,
+              "model_realised_pressure_classes": 28,
+              "parasite_n": 64
+            }
+          },
+          "supports": false,
+          "turnover_tail": {
+            "kept": [
+              64,
+              64,
+              64,
+              64,
+              64
+            ],
+            "mut_events": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "replaced": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "wall_s": 117.708
+        }
+      },
+      "errors": [],
+      "generations": 40,
+      "phase": "pilot",
+      "schema_version": "rq1_live_run_v1",
+      "seed": 5604,
+      "seed_gate_ok": true,
+      "slots": {
+        "future": 40,
+        "now": 30,
+        "past": 20
+      },
+      "wall_s": 323.528
+    }
+  ],
+  "summary": {
+    "arms": {
+      "avirulent": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.0,
+        "i_contemp_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": 0.0,
+        "i_lag_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "labels": [
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      },
+      "copassaged": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "hi": 0.007602452483333334,
+          "lo": 0.003430373433333333,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.005395585833333333,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.005395585833333333,
+        "i_contemp_values": [
+          0.0017380914,
+          0.0039446078,
+          0.0098738023,
+          0.0038191776,
+          0.0073493109,
+          0.005648525
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "hi": -0.001438077316666667,
+          "lo": -0.005321078066666666,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": -0.0034544257666666665,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": -0.0034544257666666665,
+        "i_lag_values": [
+          0.000428224,
+          -0.0015180005,
+          -0.0045372061,
+          -0.0055852537,
+          -0.0067044366,
+          -0.0028098817
+        ],
+        "labels": [
+          "lagged_match",
+          "contemporary_match",
+          "other",
+          "other",
+          "other",
+          "other"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      },
+      "fixed": {
+        "i_contemp_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_contemp_mean": 0.0,
+        "i_contemp_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "i_lag_interval": {
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0,
+          "method": "run_level_cluster_bootstrap_percentile",
+          "n_resamples": 10000,
+          "n_runs": 6,
+          "point": 0.0,
+          "seed": 20260928,
+          "unit_of_replication": "run"
+        },
+        "i_lag_mean": 0.0,
+        "i_lag_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "labels": [
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat",
+          "flat"
+        ],
+        "n_seeds": 6,
+        "n_support": 0
+      }
+    },
+    "decision": {
+      "coevolve_labels_all_support": false,
+      "confirmatory_run": false,
+      "frozen_also_supports": false,
+      "host_only_is_zero": true,
+      "reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds, or the effect is not positive",
+      "verdict": "INCONCLUSIVE"
+    },
+    "flags": {
+      "hypothesis_supported": false,
+      "population_run": true,
+      "red_queen_proved": false
+    },
+    "rotation_control": {
+      "fraction_support_label": 0.0,
+      "labels": [
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other",
+        "other"
+      ],
+      "n": 18,
+      "n_support_label": 0
+    }
+  },
+  "wall_s": 2041.116
+}

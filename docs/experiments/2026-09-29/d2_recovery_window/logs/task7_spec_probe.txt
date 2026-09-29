@@ -1,0 +1,3 @@
+['GenesisEngine', 'GenesisEngineConfig', 'GenesisExperimentSpec']
+E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis\src\codontrace\engine_spec.py
+['GenesisExperimentSpec', 'GenomeSpec']

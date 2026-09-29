@@ -1,0 +1,30 @@
+{
+  "arm": "ablate_knowledge_digest",
+  "checksums": {
+    "events.jsonl": "1ae8de0b83f2f6a8ea052dd1bce7c92b26425a0377be95d7bcbaf0534d68b045",
+    "population.jsonl": "7860722f26b98ca5b8482df85ac9061dda6d9ec77a32ffe9a17e758d7193f083"
+  },
+  "commit": "",
+  "cpu_seconds": 295.328,
+  "dirty": false,
+  "feedback_allocation": "incident_endpoints_realised",
+  "horizon": 40,
+  "params_hash": "a59439cd451ff0fe7d6387ffaf231f580f6040eceb0c16f9153d9039081e00ca",
+  "parent_snapshot": null,
+  "parent_snapshot_reason": "no restorable checkpoint exists in this revision",
+  "population": 8,
+  "replay_command": "python test-runs/d2/harness/d2_replay.py --run-dir test-runs/d2/raw/d2-s5502-t30-ablate_knowledge_digest --out test-runs/d2/raw/d2-s5502-t30-ablate_knowledge_digest/replay.json",
+  "rng_streams": {
+    "engine": "seed=5502; per-generation seed = spec.seed + index",
+    "ledger": "random.Random(seed=5502)"
+  },
+  "rss_bytes": 0,
+  "run_id": "d2-s5502-t30-ablate_knowledge_digest",
+  "schema": "d2-pack-v1",
+  "seed": 5502,
+  "stop_code": "ZERO_POPULATION",
+  "stop_detail": "n_alive reached 0 at generation 70",
+  "t_intervene": 30,
+  "wall_seconds": 10.701,
+  "workers": 1
+}

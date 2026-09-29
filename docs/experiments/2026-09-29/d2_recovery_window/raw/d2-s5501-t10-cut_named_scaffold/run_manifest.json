@@ -1,0 +1,30 @@
+{
+  "arm": "cut_named_scaffold",
+  "checksums": {
+    "events.jsonl": "b1de13b9da054b2ba402bf8db16f57c53838be4967514a8a46463a11701476d0",
+    "population.jsonl": "b1eab0d2dcb10746cc7ca3864597f099ef2ae844129adac94bb458f77f99924c"
+  },
+  "commit": "",
+  "cpu_seconds": 54.109,
+  "dirty": false,
+  "feedback_allocation": "incident_endpoints_realised",
+  "horizon": 40,
+  "params_hash": "161dd8b3c3ba992aacecde285ffd22d592fccd075873a01e601141dacdfbc163",
+  "parent_snapshot": null,
+  "parent_snapshot_reason": "no restorable checkpoint exists in this revision",
+  "population": 8,
+  "replay_command": "python test-runs/d2/harness/d2_replay.py --run-dir test-runs/d2/raw/d2-s5501-t10-cut_named_scaffold --out test-runs/d2/raw/d2-s5501-t10-cut_named_scaffold/replay.json",
+  "rng_streams": {
+    "engine": "seed=5501; per-generation seed = spec.seed + index",
+    "ledger": "random.Random(seed=5501)"
+  },
+  "rss_bytes": 0,
+  "run_id": "d2-s5501-t10-cut_named_scaffold",
+  "schema": "d2-pack-v1",
+  "seed": 5501,
+  "stop_code": "ZERO_POPULATION",
+  "stop_detail": "n_alive reached 0 at generation 50",
+  "t_intervene": 10,
+  "wall_seconds": 6.386,
+  "workers": 1
+}

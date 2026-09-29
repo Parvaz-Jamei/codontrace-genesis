@@ -1,0 +1,11 @@
+{
+  "fixtures": {
+    "coevolve_contemporary": "contemporary_match",
+    "lagged": "lagged_match",
+    "directional_arms_race": "directional_increase",
+    "frozen_flat": "flat",
+    "host_only_zero": "flat"
+  },
+  "randomisation_n_support_label": 1,
+  "hypothesis_supported": false
+}

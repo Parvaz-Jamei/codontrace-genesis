@@ -1,0 +1,166 @@
+{
+  "schema_version": "rq1_feasibility_v1",
+  "ecology_arms": [
+    "avirulent",
+    "fixed",
+    "copassaged"
+  ],
+  "passage_constants": {
+    "coevolve": "coevolve",
+    "frozen": "frozen",
+    "absent": "absent"
+  },
+  "arms": [
+    {
+      "arm": "avirulent",
+      "passage": "absent",
+      "boot_s": 0.038,
+      "run_10_gens_s": 16.242,
+      "s_per_generation": 1.6242,
+      "parasite_windows_n": 0,
+      "host_sub_locus_series_len": 10,
+      "host_joint_series_len": 10,
+      "parasite_class_hist_series_len": 10,
+      "host_realised_pressure_series_len": 1,
+      "snapshot_5_keys": [
+        "census",
+        "dominant_joint",
+        "generation",
+        "host_realised_pressure",
+        "host_realised_pressure_lag",
+        "joint_freq",
+        "joint_max_freq",
+        "joint_richness",
+        "parasite_class_hist",
+        "parasite_class_hist_is_class_frequency_not_host_pressure",
+        "parasite_class_hist_lag",
+        "parasite_n",
+        "sub_locus_freqs",
+        "sub_locus_richness"
+      ],
+      "snapshot_5_host_classes": 35,
+      "snapshot_5_parasite_classes": 0,
+      "snapshot_5_host_pressure_classes": 0,
+      "snapshot_5_census": 64,
+      "snapshot_5_parasite_n": 0,
+      "sample_host_classes": [
+        "00|00|00",
+        "00|00|01",
+        "00|00|10",
+        "00|00|11",
+        "00|01|00"
+      ],
+      "sample_parasite_classes": [],
+      "sample_host_pressure": {}
+    },
+    {
+      "arm": "fixed",
+      "passage": "frozen",
+      "boot_s": 0.061,
+      "run_10_gens_s": 16.965,
+      "s_per_generation": 1.6965,
+      "parasite_windows_n": 64,
+      "host_sub_locus_series_len": 10,
+      "host_joint_series_len": 10,
+      "parasite_class_hist_series_len": 10,
+      "host_realised_pressure_series_len": 10,
+      "snapshot_5_keys": [
+        "census",
+        "dominant_joint",
+        "generation",
+        "host_realised_pressure",
+        "host_realised_pressure_lag",
+        "joint_freq",
+        "joint_max_freq",
+        "joint_richness",
+        "parasite_class_hist",
+        "parasite_class_hist_is_class_frequency_not_host_pressure",
+        "parasite_class_hist_lag",
+        "parasite_n",
+        "sub_locus_freqs",
+        "sub_locus_richness"
+      ],
+      "snapshot_5_host_classes": 35,
+      "snapshot_5_parasite_classes": 16,
+      "snapshot_5_host_pressure_classes": 35,
+      "snapshot_5_census": 64,
+      "snapshot_5_parasite_n": 64,
+      "sample_host_classes": [
+        "00|00|00",
+        "00|00|01",
+        "00|00|10",
+        "00|00|11",
+        "00|01|00"
+      ],
+      "sample_parasite_classes": [
+        "00|00|00",
+        "00|00|01",
+        "00|00|10",
+        "00|00|11",
+        "00|01|00"
+      ],
+      "sample_host_pressure": {
+        "00|00|00": 0.4666666667,
+        "00|00|01": 0.4,
+        "00|00|10": 0.5,
+        "00|00|11": 0.6,
+        "00|01|00": 0.6
+      }
+    },
+    {
+      "arm": "copassaged",
+      "passage": "coevolve",
+      "boot_s": 0.082,
+      "run_10_gens_s": 16.107,
+      "s_per_generation": 1.6107,
+      "parasite_windows_n": 64,
+      "host_sub_locus_series_len": 10,
+      "host_joint_series_len": 10,
+      "parasite_class_hist_series_len": 10,
+      "host_realised_pressure_series_len": 10,
+      "snapshot_5_keys": [
+        "census",
+        "dominant_joint",
+        "generation",
+        "host_realised_pressure",
+        "host_realised_pressure_lag",
+        "joint_freq",
+        "joint_max_freq",
+        "joint_richness",
+        "parasite_class_hist",
+        "parasite_class_hist_is_class_frequency_not_host_pressure",
+        "parasite_class_hist_lag",
+        "parasite_n",
+        "sub_locus_freqs",
+        "sub_locus_richness"
+      ],
+      "snapshot_5_host_classes": 35,
+      "snapshot_5_parasite_classes": 29,
+      "snapshot_5_host_pressure_classes": 35,
+      "snapshot_5_census": 64,
+      "snapshot_5_parasite_n": 64,
+      "sample_host_classes": [
+        "00|00|00",
+        "00|00|01",
+        "00|00|10",
+        "00|00|11",
+        "00|01|00"
+      ],
+      "sample_parasite_classes": [
+        "00|00|00",
+        "00|00|01",
+        "00|00|10",
+        "00|00|11",
+        "00|01|00"
+      ],
+      "sample_host_pressure": {
+        "00|00|00": 0.8666666667,
+        "00|00|01": 0.8,
+        "00|00|10": 0.4,
+        "00|00|11": 0.6666666667,
+        "00|01|00": 0.3
+      }
+    }
+  ],
+  "errors": []
+}

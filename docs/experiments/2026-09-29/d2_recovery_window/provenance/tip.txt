@@ -1,0 +1,16 @@
+01ee4a23489a63bc8073a43a82c2037c73b7bbff
+fatal: could not open 'test-runs/d2/provenance/tip.tar' for writing: No such file or directory
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import hashlib,pathlib;print('archive_sha256',hashlib.sha256(pathlib.Path('test-runs/d2/provenance/tip.tar').read_bytes()).hexdigest());print('archive_bytes',pathlib.Path('test-runs/d2/provenance/tip.tar').stat().st_size)
+                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py", line 777, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'test-runs\\d2\\provenance\\tip.tar'
+01ee4a23489a63bc8073a43a82c2037c73b7bbff
+archive_sha256 e4ba113bbc5858f90f579309cc5c7510771d1c25e221b06d96e01f0043926c7e
+archive_bytes 21032960

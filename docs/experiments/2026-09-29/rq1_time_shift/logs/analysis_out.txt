@@ -1,0 +1,7 @@
+{
+  "decision": "BLOCKED_MEASUREMENT",
+  "stage0_passed": true,
+  "missing_preconditions": 3,
+  "admissible_pi_realised_matrices": 0,
+  "analysis_digest": "sha256:2f5b24b79b34e855343bf5a659d0b930095364dbf17d0ebc68f370d817658f0c"
+}

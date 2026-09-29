@@ -1,0 +1,18 @@
+== seed 5701 wall=693.846 gates=True frozen_zero=False match0=True
+  copassaged: label=other i_c=0.0018655017 i_l=0.0009415523 imax=0.0023528418@['past', 'future'] min=0.6174712644 max=0.6453703704
+    matrix={"future": {"future": 0.6340740741, "now": 0.6375308642, "past": 0.6174712644}, "now": {"future": 0.6351851852, "now": 0.6453703704, "past": 0.6267241379}, "past": {"future": 0.6366843034, "now": 0.637037037, "past": 0.6200328407}}
+    rotations={"future": "other", "now": "other", "past": "other"}
+    diag={"future": {"antagonist_classes": 27, "antagonist_n": 64, "census": 15, "dominant_host": "01|01|10", "host_classes": 14, "host_richness": 14}, "now": {"antagonist_classes": 27, "antagonist_n": 64, "census": 16, "dominant_host": "00|01|10", "host_classes": 12, "host_richness": 12}, "past": {"antagonist_classes": 29, "antagonist_n": 64, "census": 21, "dominant_host": "00|10|00", "host_classes": 17, "host_richness": 17}}
+  fixed: label=flat i_c=0.0 i_l=0.0 imax=0.0@['past', 'past'] min=0.6 max=0.6
+    matrix={"future": {"future": 0.6, "now": 0.6, "past": 0.6}, "now": {"future": 0.6, "now": 0.6, "past": 0.6}, "past": {"future": 0.6, "now": 0.6, "past": 0.6}}
+    rotations={"future": "flat", "now": "flat", "past": "flat"}
+    diag={"future": {"antagonist_classes": 16, "antagonist_n": 64, "census": 17, "dominant_host": "01|01|00", "host_classes": 13, "host_richness": 13}, "now": {"antagonist_classes": 16, "antagonist_n": 64, "census": 18, "dominant_host": "10|01|01", "host_classes": 14, "host_richness": 14}, "past": {"antagonist_classes": 16, "antagonist_n": 64, "census": 25, "dominant_host": "00|11|11", "host_classes": 18, "host_richness": 18}}
+== seed 5702 wall=856.821 gates=True frozen_zero=False match0=True
+  copassaged: label=contemporary_match i_c=0.011718097 i_l=-0.0042388658 imax=0.011718097@['now', 'now'] min=0.6019396552 max=0.6313479624
+    matrix={"future": {"future": 0.6113459399, "now": 0.6059453032, "past": 0.6019396552}, "now": {"future": 0.6058651026, "now": 0.6313479624, "past": 0.6119318182}, "past": {"future": 0.6050933786, "now": 0.6054446461, "past": 0.6200657895}}
+    rotations={"future": "other", "now": "other", "past": "other"}
+    diag={"future": {"antagonist_classes": 31, "antagonist_n": 64, "census": 29, "dominant_host": "10|01|11", "host_classes": 24, "host_richness": 24}, "now": {"antagonist_classes": 29, "antagonist_n": 64, "census": 22, "dominant_host": "00|11|10", "host_classes": 20, "host_richness": 20}, "past": {"antagonist_classes": 32, "antagonist_n": 64, "census": 19, "dominant_host": "00|11|10", "host_classes": 17, "host_richness": 17}}
+  fixed: label=flat i_c=0.0 i_l=0.0 imax=0.0@['past', 'past'] min=0.6 max=0.6
+    matrix={"future": {"future": 0.6, "now": 0.6, "past": 0.6}, "now": {"future": 0.6, "now": 0.6, "past": 0.6}, "past": {"future": 0.6, "now": 0.6, "past": 0.6}}
+    rotations={"future": "flat", "now": "flat", "past": "flat"}
+    diag={"future": {"antagonist_classes": 16, "antagonist_n": 64, "census": 16, "dominant_host": "00|01|11", "host_classes": 13, "host_richness": 13}, "now": {"antagonist_classes": 16, "antagonist_n": 64, "census": 17, "dominant_host": "00|11|01", "host_classes": 15, "host_richness": 15}, "past": {"antagonist_classes": 16, "antagonist_n": 64, "census": 20, "dominant_host": "00|00|00", "host_classes": 15, "host_richness": 15}}

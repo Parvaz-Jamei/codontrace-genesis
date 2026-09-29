@@ -1,0 +1,63 @@
+PASS  docs/hard_experiment_01/results_v7.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6
+      LF digest at 434bbd1            : 35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6
+      committed constant matches     : True (35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6)
+PASS  docs/claimgate/risk_bar.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7
+      LF digest at 434bbd1            : 4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7
+      committed constant matches     : True (4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7)
+PASS  docs/claimgate/biomedical_study.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce
+      LF digest at 434bbd1            : 9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce
+      committed constant matches     : True (9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce)
+PASS  docs/hard_experiment_hp/locked_campaign_digests.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : f65bcf826b81ad88007c7d58c2ef0362b59234f2dc72fa6e13d964baa13cec49
+      LF digest at 434bbd1            : f65bcf826b81ad88007c7d58c2ef0362b59234f2dc72fa6e13d964baa13cec49
+      committed constant matches     : True
+PASS  docs/HARD_EXPERIMENT_01_PREREG.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40
+      LF digest at 434bbd1            : cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40
+      committed constant matches     : True (cb4643a305a48a17250b4e38af3f423afc0c040b4ffac039c8b0ec1413b4fc40)
+PASS  docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_02.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f
+      LF digest at 434bbd1            : 14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f
+      committed constant matches     : True (14c111af81e415c8a381411a3520294e8bbdec311e4ffe3bc421d46992202f2f)
+PASS  docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_03.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058
+      LF digest at 434bbd1            : 3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058
+      committed constant matches     : True (3a9d4fd441f71f5f60ef5b5b1496148ae4178a9126170765a76d712465b87058)
+PASS  docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_04.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60
+      LF digest at 434bbd1            : 6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60
+      committed constant matches     : True (6a1facb02ba502299a17fc856c7ece611ca1854bc906d921729186ae1421fd60)
+PASS  docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_05.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7
+      LF digest at 434bbd1            : d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7
+      committed constant matches     : True (d363533ba564757d5645fe53080aebf493357286cd1e33e19584f9f1dac5e6d7)
+PASS  docs/HARD_EXPERIMENT_01_PREREG_AMENDMENT_LOCK.md
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 818b4efe364d5248fc0f1bd52e28e0e860579f4934a6e047e69730171e39159c
+      LF digest at 434bbd1            : 818b4efe364d5248fc0f1bd52e28e0e860579f4934a6e047e69730171e39159c
+      committed constant matches     : True (818b4efe364d5248fc0f1bd52e28e0e860579f4934a6e047e69730171e39159c)
+PASS  docs/hard_experiment_02/results_v1.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 58fd456656af71206b3d9677a6d29236f591a38b8791038a3f30c40599d76418
+      LF digest at 434bbd1            : 58fd456656af71206b3d9677a6d29236f591a38b8791038a3f30c40599d76418
+      committed constant matches     : True
+PASS  docs/hard_experiment_02/analysis_v1b_contrasts.json
+      LF-normalised bytes == 434bbd1    : True
+      LF digest now                  : 0572e10635804db6c39f125ada682b75ab4cf334d8c354ea80478c14564ecf58
+      LF digest at 434bbd1            : 0572e10635804db6c39f125ada682b75ab4cf334d8c354ea80478c14564ecf58
+      committed constant matches     : True
+
+=== PINS: 12/12 PASS ===
+failures: none

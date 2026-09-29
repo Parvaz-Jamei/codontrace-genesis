@@ -1,0 +1,163 @@
+tree under test : 913f18e
+engine module   : E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis\src\codontrace\engine_runtime.py
+seed            : 31
+{
+  "K": 0,
+  "N": 1,
+  "all_four_ok": true,
+  "child_indices": [
+    0
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    0
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+{
+  "K": 0,
+  "N": 2,
+  "all_four_ok": true,
+  "child_indices": [
+    0,
+    1
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    0,
+    1
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+{
+  "K": 0,
+  "N": 5,
+  "all_four_ok": true,
+  "child_indices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+{
+  "K": 3,
+  "N": 1,
+  "all_four_ok": true,
+  "child_indices": [
+    3
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    3
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+{
+  "K": 3,
+  "N": 2,
+  "all_four_ok": true,
+  "child_indices": [
+    3,
+    4
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    3,
+    4
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+{
+  "K": 3,
+  "N": 5,
+  "all_four_ok": true,
+  "child_indices": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "generation_digest_ok": true,
+  "index_ok": true,
+  "original_tail_indices": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "population_digest_ok": true,
+  "tick_digest_ok": true
+}
+
+=== identity cells 6/6 PASS ===
+  K=0 N=1 index=True tick=True gen=True pop=True
+  K=0 N=2 index=True tick=True gen=True pop=True
+  K=0 N=5 index=True tick=True gen=True pop=True
+  K=3 N=1 index=True tick=True gen=True pop=True
+  K=3 N=2 index=True tick=True gen=True pop=True
+  K=3 N=5 index=True tick=True gen=True pop=True

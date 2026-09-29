@@ -1,0 +1,252 @@
+{
+  "patch": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\PROPOSED_CHANGE.patch",
+  "patch_sha256": "6a853e14e6c6ad7991ddb359b20fecb64e5af73b16a7b6977437f1947ab73b92",
+  "line_endings_lf_only": true,
+  "files": [
+    {
+      "diff": "diff --git a/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py b/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "old": "a/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "new": "b/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "hunks": 16,
+      "declared_old": [
+        6,
+        6,
+        7,
+        6,
+        7,
+        16,
+        6,
+        6,
+        6,
+        8,
+        7,
+        7,
+        7,
+        7,
+        6,
+        6
+      ],
+      "declared_new": [
+        13,
+        20,
+        21,
+        27,
+        34,
+        27,
+        7,
+        18,
+        13,
+        56,
+        6,
+        6,
+        6,
+        6,
+        8,
+        34
+      ],
+      "applied": true,
+      "compiles": true,
+      "patched_line_count": 1558
+    },
+    {
+      "diff": "diff --git a/src/codontrace/genesis/measurements/antagonist_population.py b/src/codontrace/genesis/measurements/antagonist_population.py",
+      "old": "/dev/null",
+      "new": "b/src/codontrace/genesis/measurements/antagonist_population.py",
+      "hunks": 1,
+      "declared_old": [
+        0
+      ],
+      "declared_new": [
+        482
+      ],
+      "applied": true,
+      "compiles": true,
+      "patched_line_count": 482
+    }
+  ],
+  "errors": [],
+  "target_sha256": "e7e061acb69dcf0e37700d590ce15a7952581099d7b95bea63326daf1f9dcece",
+  "target_lf_only": false,
+  "isolated_module_origin": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\applycheck\\src\\codontrace\\genesis\\measurements\\antagonist_population.py",
+  "patched_arm_origin": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\applycheck\\patched\\src\\codontrace\\genesis\\closed_loop_hp_arm01_structural_rq.py",
+  "optin_first_generation": {
+    "census": 64,
+    "parasite_n": 64,
+    "population_built": true,
+    "contact_pair_records_len": 1
+  },
+  "functional": {
+    "coevolve": {
+      "arm": "copassaged",
+      "seed": 21051,
+      "generations": 12,
+      "antagonist_composition_changes": 11,
+      "turnover_kept_sum": 384,
+      "turnover_replaced_sum": 384,
+      "turnover_mut_events_sum": 97,
+      "turnover_churn_sum": 34,
+      "final_classes": 36,
+      "has_ancestry": true
+    },
+    "fixed": {
+      "arm": "fixed",
+      "seed": 21051,
+      "generations": 12,
+      "antagonist_composition_changes": 0,
+      "turnover_kept_sum": 768,
+      "turnover_replaced_sum": 0,
+      "turnover_mut_events_sum": 0,
+      "turnover_churn_sum": 0,
+      "final_classes": 16,
+      "has_ancestry": true
+    }
+  },
+  "energy_ledger": {
+    "units_first": 64,
+    "energy_series_head": [
+      [
+        1.45,
+        1.35,
+        1.35,
+        1.35,
+        1.25
+      ],
+      [
+        1.6,
+        1.5,
+        1.5,
+        1.5,
+        1.5
+      ],
+      [
+        1.75,
+        1.75,
+        1.65,
+        1.65,
+        1.55
+      ]
+    ],
+    "deaths_head": [
+      72,
+      85,
+      96
+    ],
+    "newborns_head": [
+      26,
+      22,
+      20
+    ],
+    "mean_energy_head": [
+      1.225,
+      1.4719,
+      1.6188
+    ],
+    "alive_head": [
+      64,
+      64,
+      64
+    ],
+    "contacts_head": [
+      62,
+      63,
+      60
+    ],
+    "first_ledger_units": [
+      {
+        "unit_id": "a1-a0-9-0",
+        "window": "111001",
+        "served": 1,
+        "energy": 11.0844
+      },
+      {
+        "unit_id": "a3-a0-24-0",
+        "window": "111100",
+        "served": 1,
+        "energy": 10.9547
+      },
+      {
+        "unit_id": "a3-a2-a0-40-0-0",
+        "window": "011000",
+        "served": 1,
+        "energy": 10.779
+      },
+      {
+        "unit_id": "a0-40",
+        "window": "111000",
+        "served": 1,
+        "energy": 10.6684
+      },
+      {
+        "unit_id": "a1-a0-15-0",
+        "window": "111111",
+        "served": 1,
+        "energy": 10.6509
+      },
+      {
+        "unit_id": "a3-a2-a0-6-0-0",
+        "window": "000110",
+        "served": 1,
+        "energy": 10.4768
+      }
+    ],
+    "record_len_series_head": [
+      64,
+      64,
+      64
+    ],
+    "alive_series_head": [
+      64,
+      64,
+      64,
+      64,
+      64,
+      64,
+      64,
+      64
+    ],
+    "mean_energy_series_head": [
+      1.225,
+      1.4719,
+      1.6188,
+      1.7859,
+      1.9391,
+      2.1016,
+      2.2422,
+      2.3547
+    ],
+    "deaths_series_head": [
+      72,
+      85,
+      96,
+      112,
+      120,
+      137,
+      147,
+      151
+    ],
+    "newborns_series_head": [
+      26,
+      22,
+      20,
+      11,
+      6,
+      0,
+      0,
+      0
+    ],
+    "ledger_count": 50
+  },
+  "p0_invariant": {
+    "arm": "copassaged",
+    "seed": 43,
+    "generations": 50,
+    "hist_at_25_nonempty": true,
+    "hist_at_25_classes": 24,
+    "parasite_n_at_25": 64,
+    "hist_series_len": 50,
+    "empty_hist_generations": 0,
+    "turnover_replaced_sum": 710,
+    "turnover_mut_events_sum": 2769,
+    "window_snapshot_units_at_25": 64
+  }
+}

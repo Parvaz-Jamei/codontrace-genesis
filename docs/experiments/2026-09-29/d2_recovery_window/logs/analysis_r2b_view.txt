@@ -1,0 +1,4 @@
+verdict INCONCLUSIVE
+pre {'full_fork_available': True, 'recovery_opportunity_observed': False, 'refusal_fired': False, 'topology_identified': True}
+ - TOPOLOGY IDENTIFIED: the named and matched arms now differ in burden and in population path, and the global count penalt
+ - PRE-OPPORTUNITY: every arm finished at n_alive = 0 (extinction rate 1.0) and the pre-registered endpoint never reached 1

@@ -1,0 +1,7 @@
+fork_available True
+continuation_identical True
+ids_preserved True
+rng True
+deepcopy_ok False
+hand_failures 0
+det {"arms_diverge_after_intervention": true, "control_burden": 0.0, "control_post_yield_series": [1.1175616878453558, 1.1764569706332375, 1.144785283940757, 1.1147592286376946, 1.0115779711904886, 1.005527817362295, 0.9987440153199748], "intervention_generation": 10, "named_burden": 0.9750000000000001, "named_post_yield_series": [0.11920658003683796, 0.125488743534212, 0.12211043028701409, 0.11890765

@@ -1,0 +1,204 @@
+{
+  "arms": {
+    "avirulent": {
+      "i_contemp_interval": {
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "hi": 0.0,
+        "lo": 0.0,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": 0.0,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_contemp_mean": 0.0,
+      "i_contemp_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "i_lag_interval": {
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "hi": 0.0,
+        "lo": 0.0,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": 0.0,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_lag_mean": 0.0,
+      "i_lag_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "labels": [
+        "flat",
+        "flat",
+        "flat",
+        "flat",
+        "flat",
+        "flat"
+      ],
+      "n_seeds": 6,
+      "n_support": 0
+    },
+    "copassaged": {
+      "i_contemp_interval": {
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "hi": 0.007602452483333334,
+        "lo": 0.003430373433333333,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": 0.005395585833333333,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_contemp_mean": 0.005395585833333333,
+      "i_contemp_values": [
+        0.0017380914,
+        0.0039446078,
+        0.0098738023,
+        0.0038191776,
+        0.0073493109,
+        0.005648525
+      ],
+      "i_lag_interval": {
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "hi": -0.001438077316666667,
+        "lo": -0.005321078066666666,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": -0.0034544257666666665,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_lag_mean": -0.0034544257666666665,
+      "i_lag_values": [
+        0.000428224,
+        -0.0015180005,
+        -0.0045372061,
+        -0.0055852537,
+        -0.0067044366,
+        -0.0028098817
+      ],
+      "labels": [
+        "lagged_match",
+        "contemporary_match",
+        "other",
+        "other",
+        "other",
+        "other"
+      ],
+      "n_seeds": 6,
+      "n_support": 0
+    },
+    "fixed": {
+      "i_contemp_interval": {
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "hi": 0.0,
+        "lo": 0.0,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": 0.0,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_contemp_mean": 0.0,
+      "i_contemp_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "i_lag_interval": {
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "hi": 0.0,
+        "lo": 0.0,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "n_resamples": 10000,
+        "n_runs": 6,
+        "point": 0.0,
+        "seed": 20260928,
+        "unit_of_replication": "run"
+      },
+      "i_lag_mean": 0.0,
+      "i_lag_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "labels": [
+        "flat",
+        "flat",
+        "flat",
+        "flat",
+        "flat",
+        "flat"
+      ],
+      "n_seeds": 6,
+      "n_support": 0
+    }
+  },
+  "decision": {
+    "coevolve_labels_all_support": false,
+    "confirmatory_run": false,
+    "frozen_also_supports": false,
+    "host_only_is_zero": true,
+    "reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds, or the effect is not positive",
+    "verdict": "INCONCLUSIVE"
+  },
+  "flags": {
+    "hypothesis_supported": false,
+    "population_run": true,
+    "red_queen_proved": false
+  },
+  "rotation_control": {
+    "fraction_support_label": 0.0,
+    "labels": [
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other"
+    ],
+    "n": 18,
+    "n_support_label": 0
+  }
+}

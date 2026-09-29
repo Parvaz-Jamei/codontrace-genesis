@@ -1,0 +1,76 @@
+{
+  "experiment": "CausalTape-6b",
+  "workers": 4,
+  "seeds": 100,
+  "cells": {
+    "b0_s0": {
+      "v_diff_mean": 0.0,
+      "v_null_mean": 0.0,
+      "eff_genotypes_mean": 25.083458024316556,
+      "infectable_occupancy_mean": 0.0
+    },
+    "b1_s0": {
+      "v_diff_mean": 0.1323634145969245,
+      "v_null_mean": 0.01772571364017987,
+      "eff_genotypes_mean": 24.798917728975923,
+      "infectable_occupancy_mean": 0.8315829888727562
+    },
+    "b1_s1": {
+      "v_diff_mean": 0.13132757410659887,
+      "v_null_mean": 0.01717492028552237,
+      "eff_genotypes_mean": 24.110851400938163,
+      "infectable_occupancy_mean": 0.8333173627703296
+    },
+    "tax_s0": {
+      "v_diff_mean": 0.026388543609475672,
+      "v_null_mean": 0.026435643565086583,
+      "eff_genotypes_mean": 27.783613270046036,
+      "infectable_occupancy_mean": 0.0
+    }
+  },
+  "decomposition": {
+    "5": {
+      "eta2_biotic": 0.020576584719193165,
+      "eta2_abiotic": 0.003215711234107263,
+      "eta2_interaction": 0.016964130881746028
+    },
+    "10": {
+      "eta2_biotic": 0.2474887356285857,
+      "eta2_abiotic": 0.005407573047091206,
+      "eta2_interaction": 0.031768767446224214
+    },
+    "20": {
+      "eta2_biotic": 0.5339747602937537,
+      "eta2_abiotic": 0.008279341282124951,
+      "eta2_interaction": 0.031475289105409664
+    },
+    "25": {
+      "eta2_biotic": 0.700332173080919,
+      "eta2_abiotic": 0.010715446269531038,
+      "eta2_interaction": 0.04021132670354142
+    },
+    "50": {
+      "eta2_biotic": 1.247962191449512,
+      "eta2_abiotic": 0.02227017345346729,
+      "eta2_interaction": 0.05411915523347652
+    }
+  },
+  "power": {
+    "interaction_sd": 0.0017453342975427488,
+    "mde_at_n100": 0.0004886936033119696,
+    "n": 100
+  },
+  "verdicts": {
+    "differential_infection_signal": {
+      "b0_s0": false,
+      "b1_s0": true,
+      "b1_s1": true,
+      "tax_s0": false
+    },
+    "biotic_is_not_uniform_tax": true,
+    "effective_genotypes_far_below_cap": true,
+    "biotic_eta2_exceeds_abiotic": true,
+    "mde_at_n100": 0.0004886936033119696
+  },
+  "elapsed_seconds": 1065.9
+}

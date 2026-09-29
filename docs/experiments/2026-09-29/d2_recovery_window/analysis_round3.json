@@ -1,0 +1,164 @@
+{
+  "arm_table": {
+    "cut_matched_random": {
+      "max_yield_over_baseline": 0.5734268359401935,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "cut_named_scaffold": {
+      "max_yield_over_baseline": 0.058505964742045356,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "sham": {
+      "max_yield_over_baseline": 0.569536548513374,
+      "mean_n_alive_end": 2.0,
+      "n_alive_end_zero_rate": 0.0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    }
+  },
+  "config_digest": "24da55a1cd765a4c00682c6ec092a0ce",
+  "controls": {
+    "injected_positive": "scorer check only, scientific_result=false",
+    "negative": "ablate_knowledge_digest (round 2)",
+    "sham": "token relocated, no other change"
+  },
+  "derived_from_raw_only": true,
+  "endpoint_moved": false,
+  "endpoints": {
+    "FI-RARECLASS-CONTACT-YIELD-V1": {
+      "date": "2026-09-28",
+      "role": "pre-registered",
+      "rule": "yield >= 1.25x baseline for >= 3 consecutive boundaries within T=40"
+    },
+    "GENOME-DIGEST-LOST-THEN-REGAINED-V1": {
+      "date": "2026-09-29",
+      "role": "exploratory",
+      "rule": "a checkpoint genome digest disappears and is present again later"
+    }
+  },
+  "endpoints_versioned_separately": true,
+  "exclusions": [
+    "none: every assigned history and arm is reported"
+  ],
+  "hypothesis_supported": false,
+  "isolation": {
+    "any_arm_shares_history_population_object": true,
+    "evidence": [
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "fork_state_exact": false,
+        "n_alive_after_horizon": {
+          "cut_matched_random": 2,
+          "cut_named_scaffold": 2,
+          "sham": 2
+        },
+        "n_arms_restored_from_one_payload": 3,
+        "population_isolation_holds": true,
+        "population_object_shared_between_arms": false,
+        "population_object_shared_with_history": true,
+        "seed": 5502,
+        "t_intervene": 30
+      }
+    ],
+    "fork_state_exact": false,
+    "isolation_map": {
+      "element_grid": "shared_reference",
+      "nexus_layer": "deepcopy",
+      "population": "shared_reference",
+      "world": "deepcopy"
+    },
+    "population_isolation_holds": false,
+    "rule": "isolated only when the arm population object is neither a peer arm's nor the history engine's object"
+  },
+  "n_arm_runs": 18,
+  "n_histories": 6,
+  "raw_file": "test-runs/d2/raw/round3/round3_raw.json",
+  "reason": "fork_state_exact is false and the population object is a shared reference with the history engine, so the three forked arms of one checkpoint are not isolated; per the Lead's rule the affected forked contrasts are reported as BLOCKED_MEASUREMENT with raw evidence rather than as a confounded contrast",
+  "recovery_opportunity_present": true,
+  "red_queen_proved": false,
+  "round": 3,
+  "tip": "913f18e",
+  "unit_of_replication": "independent population history (seed x checkpoint)",
+  "verdict": "BLOCKED_MEASUREMENT"
+}

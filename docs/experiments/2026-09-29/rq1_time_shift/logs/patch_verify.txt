@@ -1,0 +1,126 @@
+{
+  "files": [
+    {
+      "path": "src/codontrace/life_loop/contact_pressure.py",
+      "mode": "new_file",
+      "declared_new_len": 58,
+      "actual_new_len": 58,
+      "len_matches": true,
+      "compiles": true
+    },
+    {
+      "path": "src/codontrace/genesis/host_parasite_world.py",
+      "mode": "modified",
+      "hunks": 6,
+      "n_original_lines": 1448,
+      "n_patched_lines": 1485,
+      "compiles": true
+    },
+    {
+      "path": "tests/campaigns/discovery_questions_20260928/test_rq1_contact_pressure.py",
+      "mode": "new_file",
+      "declared_new_len": 70,
+      "actual_new_len": 70,
+      "len_matches": true,
+      "compiles": true
+    }
+  ],
+  "errors": [],
+  "contact_pressure_checks": {
+    "values": {
+      "kappa": 1.2,
+      "intended_000000_000001": 1.0,
+      "intended_111100_000011": 0.0,
+      "realised_capped": 0.5,
+      "realised_full": 1.2
+    },
+    "kappa_approx_1_2": true,
+    "intended_approx_1_0": true,
+    "zero_affinity": true,
+    "cap_ok": true,
+    "affinity_mismatches_vs_reference": []
+  },
+  "debug": {
+    "src/codontrace/genesis/host_parasite_world.py": {
+      "hunk0_lines": [
+        {
+          "tag": " ",
+          "body": "from __future__ import annotations"
+        },
+        {
+          "tag": " ",
+          "body": ""
+        },
+        {
+          "tag": "+",
+          "body": "import copy"
+        },
+        {
+          "tag": " ",
+          "body": "import json"
+        },
+        {
+          "tag": " ",
+          "body": "from collections.abc import Callable, Mapping"
+        }
+      ],
+      "original_head": [
+        {
+          "i": 9,
+          "line": "from __future__ import annotations"
+        },
+        {
+          "i": 10,
+          "line": ""
+        },
+        {
+          "i": 11,
+          "line": "import json"
+        },
+        {
+          "i": 12,
+          "line": "from collections.abc import Callable, Mapping"
+        },
+        {
+          "i": 13,
+          "line": "from dataclasses import dataclass, field, replace"
+        },
+        {
+          "i": 14,
+          "line": "from pathlib import Path"
+        },
+        {
+          "i": 15,
+          "line": "from typing import Any, Literal"
+        }
+      ],
+      "hunk_headers": [
+        {
+          "old_start": 10,
+          "old_len": 4
+        },
+        {
+          "old_start": 52,
+          "old_len": 8
+        },
+        {
+          "old_start": 583,
+          "old_len": 7
+        },
+        {
+          "old_start": 661,
+          "old_len": 7
+        },
+        {
+          "old_start": 833,
+          "old_len": 7
+        },
+        {
+          "old_start": 1034,
+          "old_len": 9
+        }
+      ]
+    }
+  },
+  "result": "PATCH_OK"
+}

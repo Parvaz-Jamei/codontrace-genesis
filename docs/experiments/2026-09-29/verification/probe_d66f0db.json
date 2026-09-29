@@ -1,0 +1,568 @@
+{
+  "cornish_intervention": {
+    "arm_digests": {
+      "int_content_null": "c895cde343041042f147a7528d6390f6e027602b2058be02c020df572ddfff94",
+      "int_remove_parasites": "8f4f18ed22216c57955fd91aef28f388c9e3ca5decca0a7d50bcba437dba3e16",
+      "obs_intact": "4904c2002be2a3963f2e8199eba4c06df65d72e10240471ae9b7c68b010befb2"
+    },
+    "campaign_digest": "18c271dbe95a5531f9db17af0577eb12ec814325d56819514a83bb629717cb62",
+    "locked_arm_digests": {
+      "int_content_null": "c895cde343041042f147a7528d6390f6e027602b2058be02c020df572ddfff94",
+      "int_remove_parasites": "8f4f18ed22216c57955fd91aef28f388c9e3ca5decca0a7d50bcba437dba3e16",
+      "obs_intact": "4904c2002be2a3963f2e8199eba4c06df65d72e10240471ae9b7c68b010befb2"
+    },
+    "locked_campaign_digest": "18c271dbe95a5531f9db17af0577eb12ec814325d56819514a83bb629717cb62",
+    "matches": true
+  },
+  "evolvability_falsification": {
+    "assay_digest": "ac85ab6a83fbe419d1d94ea51051c5a3e44e56297cce6b827a25bfb47acea705",
+    "locked_assay_digest": "ac85ab6a83fbe419d1d94ea51051c5a3e44e56297cce6b827a25bfb47acea705",
+    "matches": true
+  },
+  "locked_pack_bytes": 2931,
+  "locked_pack_has_crlf": true,
+  "locked_pack_sha256_lf_normalised": "e012409bb5a2bf955e7037255975432bdadef101f02283c00fadf106eacffa5e",
+  "locked_pack_sha256_raw_bytes": "a16b7f5cd4205d4696ac9e30f3a2817dae6f0447f78573be7b726dd8cfbed270",
+  "python": "3.14.4",
+  "repo_root": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\verify\\rv\\d66f0db",
+  "revision": "d66f0db",
+  "vt_spatial_factorial": {
+    "added_keys_present_in_snapshot": [],
+    "cell_digest_matches": {
+      "vt0.0|local_neighborhood": true,
+      "vt0.0|well_mixed": true,
+      "vt1.0|local_neighborhood": true,
+      "vt1.0|well_mixed": true
+    },
+    "cell_digests": {
+      "vt0.0|local_neighborhood": "b1cd14c6a449efb45c16562dae12aa2608a95fac4debb593bf2d4c51ac80ebb1",
+      "vt0.0|well_mixed": "56e406ed0813b5d8271adbdf14e41fed0cd29dd2c4e284e8e4c2ec49d64f1d18",
+      "vt1.0|local_neighborhood": "3323c63c8a34efc8ff26187dee10234d52451cc4b670f9e0f2892c572eefa7e2",
+      "vt1.0|well_mixed": "f6b8ef116ac0a0b610d495c7ebe6644402fe6f0d6fb021506e88799309f1b679"
+    },
+    "cells_aggregate_raw": [
+      {
+        "host_count": 4,
+        "injected_or_transmitted": 4,
+        "key": "vt0.0|well_mixed",
+        "mean_score": 0.4
+      },
+      {
+        "host_count": 4,
+        "injected_or_transmitted": 2,
+        "key": "vt0.0|local_neighborhood",
+        "mean_score": 0.6
+      },
+      {
+        "host_count": 4,
+        "injected_or_transmitted": 6,
+        "key": "vt1.0|well_mixed",
+        "mean_score": 0.2
+      },
+      {
+        "host_count": 4,
+        "injected_or_transmitted": 4,
+        "key": "vt1.0|local_neighborhood",
+        "mean_score": 0.4
+      }
+    ],
+    "factorial_digest": "d94e18261aa8d1656e808d45285d267cddc23ad18de38e043080e35268d25f32",
+    "factorial_digest_from_narrowed": "d94e18261aa8d1656e808d45285d267cddc23ad18de38e043080e35268d25f32",
+    "factorial_matches": true,
+    "factorial_narrowed_matches_locked": true,
+    "factorial_snapshots": [
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "0a3bf54c9d286617d2fc14f71fc96bceaa5f40b985a690661c306f4ec96bd6b8",
+        "snapshot_digest": "0a3bf54c9d286617d2fc14f71fc96bceaa5f40b985a690661c306f4ec96bd6b8",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "well_mixed",
+        "vertical_transmission_probability": 0.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "764fec75871ed3abfd842d72d2adba6f2563aa2715baa872cd568c1df3838047",
+        "snapshot_digest": "764fec75871ed3abfd842d72d2adba6f2563aa2715baa872cd568c1df3838047",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "well_mixed",
+        "vertical_transmission_probability": 0.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "a5b336586de97f9e50d98c82e90d509ca6ff4e1d638e49f28ec841008b77fb18",
+        "snapshot_digest": "a5b336586de97f9e50d98c82e90d509ca6ff4e1d638e49f28ec841008b77fb18",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "local_neighborhood",
+        "vertical_transmission_probability": 0.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "410599b0e8e004b7aefad12e8952d4049ff6ad1d87b3b39ac57c02cfb795f5f4",
+        "snapshot_digest": "410599b0e8e004b7aefad12e8952d4049ff6ad1d87b3b39ac57c02cfb795f5f4",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "local_neighborhood",
+        "vertical_transmission_probability": 0.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "a2f809ee960e21847648a47253ec2cb92fde340a5b6e4a42860bc25be38b0749",
+        "snapshot_digest": "a2f809ee960e21847648a47253ec2cb92fde340a5b6e4a42860bc25be38b0749",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "well_mixed",
+        "vertical_transmission_probability": 1.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "a3910fefdebafdd9427981169da88d9a1cf4db835a8d3404bc1bff963f46e91d",
+        "snapshot_digest": "a3910fefdebafdd9427981169da88d9a1cf4db835a8d3404bc1bff963f46e91d",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "well_mixed",
+        "vertical_transmission_probability": 1.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "ecbef8aeb4f9a15da03c4aae6753c614c2efe0f9748ae68553ca9b738861e5ac",
+        "snapshot_digest": "ecbef8aeb4f9a15da03c4aae6753c614c2efe0f9748ae68553ca9b738861e5ac",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "local_neighborhood",
+        "vertical_transmission_probability": 1.0
+      },
+      {
+        "added_keys_present": [],
+        "handling_busy_remaining": "<absent>",
+        "handling_time": "<absent>",
+        "narrowed_snapshot_digest": "a6f4b9a4b1acbe78eb75ea114fb142fb2824cc8956af23f30cb84bb80d7e69f8",
+        "snapshot_digest": "a6f4b9a4b1acbe78eb75ea114fb142fb2824cc8956af23f30cb84bb80d7e69f8",
+        "snapshot_keys": [
+          "attempts",
+          "claim_ceiling",
+          "engine_infection_physics",
+          "grid_cols",
+          "grid_rows",
+          "hosts",
+          "interaction_continuum",
+          "interaction_value",
+          "mutualism_equals_success",
+          "null_template",
+          "population_outcome_score",
+          "raises_claim_ladder",
+          "red_queen_proved",
+          "replication_events",
+          "resource_productivity",
+          "schema",
+          "spatial_mode",
+          "steal_fraction",
+          "transmission_mode",
+          "vertical_component",
+          "vertical_transmission_probability"
+        ],
+        "spatial_mode": "local_neighborhood",
+        "vertical_transmission_probability": 1.0
+      }
+    ],
+    "handling_busy_remaining_default_value": "<absent>",
+    "handling_time_default_value": "<absent>",
+    "locked_cell_digests": {
+      "vt0.0|local_neighborhood": "b1cd14c6a449efb45c16562dae12aa2608a95fac4debb593bf2d4c51ac80ebb1",
+      "vt0.0|well_mixed": "56e406ed0813b5d8271adbdf14e41fed0cd29dd2c4e284e8e4c2ec49d64f1d18",
+      "vt1.0|local_neighborhood": "3323c63c8a34efc8ff26187dee10234d52451cc4b670f9e0f2892c572eefa7e2",
+      "vt1.0|well_mixed": "f6b8ef116ac0a0b610d495c7ebe6644402fe6f0d6fb021506e88799309f1b679"
+    },
+    "locked_factorial_digest": "d94e18261aa8d1656e808d45285d267cddc23ad18de38e043080e35268d25f32",
+    "narrowed_reconstruction": {
+      "cells": [
+        {
+          "cell_digest_from_narrowed": "56e406ed0813b5d8271adbdf14e41fed0cd29dd2c4e284e8e4c2ec49d64f1d18",
+          "host_count": 4,
+          "injected_or_transmitted": 4,
+          "key": "vt0.0|well_mixed",
+          "mean_score": 0.4
+        },
+        {
+          "cell_digest_from_narrowed": "b1cd14c6a449efb45c16562dae12aa2608a95fac4debb593bf2d4c51ac80ebb1",
+          "host_count": 4,
+          "injected_or_transmitted": 2,
+          "key": "vt0.0|local_neighborhood",
+          "mean_score": 0.6
+        },
+        {
+          "cell_digest_from_narrowed": "f6b8ef116ac0a0b610d495c7ebe6644402fe6f0d6fb021506e88799309f1b679",
+          "host_count": 4,
+          "injected_or_transmitted": 6,
+          "key": "vt1.0|well_mixed",
+          "mean_score": 0.2
+        },
+        {
+          "cell_digest_from_narrowed": "3323c63c8a34efc8ff26187dee10234d52451cc4b670f9e0f2892c572eefa7e2",
+          "host_count": 4,
+          "injected_or_transmitted": 4,
+          "key": "vt1.0|local_neighborhood",
+          "mean_score": 0.4
+        }
+      ],
+      "per_seed": [
+        {
+          "cell_digest_from_narrowed": "e8ae8a012102836123574cee692ecc3261e7046c6bddb9abed98a469a1646cdc",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "e8ae8a012102836123574cee692ecc3261e7046c6bddb9abed98a469a1646cdc",
+          "seed": 101,
+          "spatial_mode": "well_mixed",
+          "vt": 0.0
+        },
+        {
+          "cell_digest_from_narrowed": "0f69ef5e0b99e1fb6ca755d1cc96ade27e8832293df2d383685bda716e5f6919",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "0f69ef5e0b99e1fb6ca755d1cc96ade27e8832293df2d383685bda716e5f6919",
+          "seed": 202,
+          "spatial_mode": "well_mixed",
+          "vt": 0.0
+        },
+        {
+          "cell_digest_from_narrowed": "d78a9484de3e3a0adf067f5b8f0f05f03a097a2d53a9b8ae94e905bc892b7fbb",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "d78a9484de3e3a0adf067f5b8f0f05f03a097a2d53a9b8ae94e905bc892b7fbb",
+          "seed": 101,
+          "spatial_mode": "local_neighborhood",
+          "vt": 0.0
+        },
+        {
+          "cell_digest_from_narrowed": "68234dae4098a2bc4d2230417c03168557b06505b03f71c55c09371c18bcb25e",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "68234dae4098a2bc4d2230417c03168557b06505b03f71c55c09371c18bcb25e",
+          "seed": 202,
+          "spatial_mode": "local_neighborhood",
+          "vt": 0.0
+        },
+        {
+          "cell_digest_from_narrowed": "71c07eaf2b4f1c356862a6f52fd9490c27c5f097bb3a2ce25a616a4321c9bb83",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "71c07eaf2b4f1c356862a6f52fd9490c27c5f097bb3a2ce25a616a4321c9bb83",
+          "seed": 101,
+          "spatial_mode": "well_mixed",
+          "vt": 1.0
+        },
+        {
+          "cell_digest_from_narrowed": "2d0971e319ccceeeb04c3ca4ef29e81059d0b907fb3e764cbd68a366371ab27b",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "2d0971e319ccceeeb04c3ca4ef29e81059d0b907fb3e764cbd68a366371ab27b",
+          "seed": 202,
+          "spatial_mode": "well_mixed",
+          "vt": 1.0
+        },
+        {
+          "cell_digest_from_narrowed": "487c2a7dd00cb60329cc3e68445db613a34da0df388e4e1716b388e6bd0d3b5a",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "487c2a7dd00cb60329cc3e68445db613a34da0df388e4e1716b388e6bd0d3b5a",
+          "seed": 101,
+          "spatial_mode": "local_neighborhood",
+          "vt": 1.0
+        },
+        {
+          "cell_digest_from_narrowed": "467df5887f4b368ec497bd35dbc730dd0e52cd2da921c13156f3724bb8be44a3",
+          "narrowed_matches_observed": true,
+          "observed_cell_digest": "467df5887f4b368ec497bd35dbc730dd0e52cd2da921c13156f3724bb8be44a3",
+          "seed": 202,
+          "spatial_mode": "local_neighborhood",
+          "vt": 1.0
+        }
+      ]
+    },
+    "per_seed_records": [
+      {
+        "cell_digest": "e8ae8a012102836123574cee692ecc3261e7046c6bddb9abed98a469a1646cdc",
+        "host_count": 4,
+        "injected_or_transmitted": 2,
+        "mean_score": 0.4,
+        "narrowed_snapshot_digest": "0a3bf54c9d286617d2fc14f71fc96bceaa5f40b985a690661c306f4ec96bd6b8",
+        "seed": 101,
+        "snapshot_digest": "0a3bf54c9d286617d2fc14f71fc96bceaa5f40b985a690661c306f4ec96bd6b8",
+        "spatial_mode": "well_mixed",
+        "vt": 0.0
+      },
+      {
+        "cell_digest": "0f69ef5e0b99e1fb6ca755d1cc96ade27e8832293df2d383685bda716e5f6919",
+        "host_count": 4,
+        "injected_or_transmitted": 2,
+        "mean_score": 0.4,
+        "narrowed_snapshot_digest": "764fec75871ed3abfd842d72d2adba6f2563aa2715baa872cd568c1df3838047",
+        "seed": 202,
+        "snapshot_digest": "764fec75871ed3abfd842d72d2adba6f2563aa2715baa872cd568c1df3838047",
+        "spatial_mode": "well_mixed",
+        "vt": 0.0
+      },
+      {
+        "cell_digest": "d78a9484de3e3a0adf067f5b8f0f05f03a097a2d53a9b8ae94e905bc892b7fbb",
+        "host_count": 4,
+        "injected_or_transmitted": 1,
+        "mean_score": 0.6,
+        "narrowed_snapshot_digest": "a5b336586de97f9e50d98c82e90d509ca6ff4e1d638e49f28ec841008b77fb18",
+        "seed": 101,
+        "snapshot_digest": "a5b336586de97f9e50d98c82e90d509ca6ff4e1d638e49f28ec841008b77fb18",
+        "spatial_mode": "local_neighborhood",
+        "vt": 0.0
+      },
+      {
+        "cell_digest": "68234dae4098a2bc4d2230417c03168557b06505b03f71c55c09371c18bcb25e",
+        "host_count": 4,
+        "injected_or_transmitted": 1,
+        "mean_score": 0.6,
+        "narrowed_snapshot_digest": "410599b0e8e004b7aefad12e8952d4049ff6ad1d87b3b39ac57c02cfb795f5f4",
+        "seed": 202,
+        "snapshot_digest": "410599b0e8e004b7aefad12e8952d4049ff6ad1d87b3b39ac57c02cfb795f5f4",
+        "spatial_mode": "local_neighborhood",
+        "vt": 0.0
+      },
+      {
+        "cell_digest": "71c07eaf2b4f1c356862a6f52fd9490c27c5f097bb3a2ce25a616a4321c9bb83",
+        "host_count": 4,
+        "injected_or_transmitted": 3,
+        "mean_score": 0.2,
+        "narrowed_snapshot_digest": "a2f809ee960e21847648a47253ec2cb92fde340a5b6e4a42860bc25be38b0749",
+        "seed": 101,
+        "snapshot_digest": "a2f809ee960e21847648a47253ec2cb92fde340a5b6e4a42860bc25be38b0749",
+        "spatial_mode": "well_mixed",
+        "vt": 1.0
+      },
+      {
+        "cell_digest": "2d0971e319ccceeeb04c3ca4ef29e81059d0b907fb3e764cbd68a366371ab27b",
+        "host_count": 4,
+        "injected_or_transmitted": 3,
+        "mean_score": 0.2,
+        "narrowed_snapshot_digest": "a3910fefdebafdd9427981169da88d9a1cf4db835a8d3404bc1bff963f46e91d",
+        "seed": 202,
+        "snapshot_digest": "a3910fefdebafdd9427981169da88d9a1cf4db835a8d3404bc1bff963f46e91d",
+        "spatial_mode": "well_mixed",
+        "vt": 1.0
+      },
+      {
+        "cell_digest": "487c2a7dd00cb60329cc3e68445db613a34da0df388e4e1716b388e6bd0d3b5a",
+        "host_count": 4,
+        "injected_or_transmitted": 2,
+        "mean_score": 0.4,
+        "narrowed_snapshot_digest": "ecbef8aeb4f9a15da03c4aae6753c614c2efe0f9748ae68553ca9b738861e5ac",
+        "seed": 101,
+        "snapshot_digest": "ecbef8aeb4f9a15da03c4aae6753c614c2efe0f9748ae68553ca9b738861e5ac",
+        "spatial_mode": "local_neighborhood",
+        "vt": 1.0
+      },
+      {
+        "cell_digest": "467df5887f4b368ec497bd35dbc730dd0e52cd2da921c13156f3724bb8be44a3",
+        "host_count": 4,
+        "injected_or_transmitted": 2,
+        "mean_score": 0.4,
+        "narrowed_snapshot_digest": "a6f4b9a4b1acbe78eb75ea114fb142fb2824cc8956af23f30cb84bb80d7e69f8",
+        "seed": 202,
+        "snapshot_digest": "a6f4b9a4b1acbe78eb75ea114fb142fb2824cc8956af23f30cb84bb80d7e69f8",
+        "spatial_mode": "local_neighborhood",
+        "vt": 1.0
+      }
+    ],
+    "snapshot_keys_observed": [
+      "attempts",
+      "claim_ceiling",
+      "engine_infection_physics",
+      "grid_cols",
+      "grid_rows",
+      "hosts",
+      "interaction_continuum",
+      "interaction_value",
+      "mutualism_equals_success",
+      "null_template",
+      "population_outcome_score",
+      "raises_claim_ladder",
+      "red_queen_proved",
+      "replication_events",
+      "resource_productivity",
+      "schema",
+      "spatial_mode",
+      "steal_fraction",
+      "transmission_mode",
+      "vertical_component",
+      "vertical_transmission_probability"
+    ],
+    "snapshots_captured_by_factorial": 8
+  },
+  "zaman_three_arm": {
+    "arm_digests": {
+      "freeze_parasites": "7238e02281d52be59c06d8f460abf6f42ddf9a3ba9274bea877eeb5bd14a146f",
+      "reciprocal_coevolution": "ceda0b6c1fc03a2fd23c5ef30c2ebef0837eb044a39c2ce0caf01b3ed1293332",
+      "replay_parasite_schedule": "a04d98510be4da119fc41790ca92ccf5be692a212cd597454fa52ca2ff49df94"
+    },
+    "campaign_digest": "c5002ee5813f0495d6c39b5f4522e29f9b2c8b0ace460519d1ff5e19208022b2",
+    "locked_arm_digests": {
+      "freeze_parasites": "7238e02281d52be59c06d8f460abf6f42ddf9a3ba9274bea877eeb5bd14a146f",
+      "reciprocal_coevolution": "ceda0b6c1fc03a2fd23c5ef30c2ebef0837eb044a39c2ce0caf01b3ed1293332",
+      "replay_parasite_schedule": "a04d98510be4da119fc41790ca92ccf5be692a212cd597454fa52ca2ff49df94"
+    },
+    "locked_campaign_digest": "c5002ee5813f0495d6c39b5f4522e29f9b2c8b0ace460519d1ff5e19208022b2",
+    "matches": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "absent": {
+    "contacts": 0,
+    "final_census": 64,
+    "rss_mb": 0.0,
+    "wall_per_generation_s": 0.9742,
+    "wall_s": 1.948
+  },
+  "coevolve": {
+    "contacts": 63,
+    "final_census": 64,
+    "rss_mb": 0.0,
+    "wall_per_generation_s": 1.109,
+    "wall_s": 2.218
+  },
+  "fixed": {
+    "contacts": 59,
+    "final_census": 64,
+    "rss_mb": 0.0,
+    "wall_per_generation_s": 1.0217,
+    "wall_s": 2.043
+  }
+}

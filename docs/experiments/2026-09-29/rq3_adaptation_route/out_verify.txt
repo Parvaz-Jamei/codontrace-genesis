@@ -1,0 +1,101 @@
+{
+  "patch": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\PROPOSED_CHANGE.patch",
+  "patch_sha256": "ff8a95c5f81d265afb9031e0a5febc9cf487a35d1265d56c0bfbc9d9ad97a651",
+  "line_endings_lf_only": true,
+  "files": [
+    {
+      "diff": "diff --git a/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py b/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "old": "a/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "new": "b/src/codontrace/genesis/closed_loop_hp_arm01_structural_rq.py",
+      "hunks": 11,
+      "declared_old": [
+        6,
+        6,
+        6,
+        7,
+        16,
+        6,
+        6,
+        6,
+        70,
+        6,
+        6
+      ],
+      "declared_new": [
+        10,
+        18,
+        11,
+        32,
+        27,
+        7,
+        18,
+        7,
+        53,
+        8,
+        34
+      ],
+      "applied": true,
+      "compiles": true,
+      "patched_line_count": 1454
+    },
+    {
+      "diff": "diff --git a/src/codontrace/genesis/measurements/antagonist_population.py b/src/codontrace/genesis/measurements/antagonist_population.py",
+      "old": "/dev/null",
+      "new": "b/src/codontrace/genesis/measurements/antagonist_population.py",
+      "hunks": 1,
+      "declared_old": [
+        0
+      ],
+      "declared_new": [
+        471
+      ],
+      "applied": true,
+      "compiles": true,
+      "patched_line_count": 471
+    }
+  ],
+  "errors": [],
+  "target_sha256": "e7e061acb69dcf0e37700d590ce15a7952581099d7b95bea63326daf1f9dcece",
+  "target_lf_only": false,
+  "isolated_module_origin": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\applycheck\\src\\codontrace\\genesis\\measurements\\antagonist_population.py",
+  "patched_arm_origin": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq3\\applycheck\\patched\\src\\codontrace\\genesis\\closed_loop_hp_arm01_structural_rq.py",
+  "functional": {
+    "coevolve": {
+      "arm": "copassaged",
+      "seed": 21051,
+      "generations": 12,
+      "antagonist_composition_changes": 11,
+      "turnover_kept_sum": 454,
+      "turnover_replaced_sum": 314,
+      "turnover_mut_events_sum": 133,
+      "turnover_churn_sum": 511,
+      "final_classes": 23,
+      "has_ancestry": true
+    },
+    "fixed": {
+      "arm": "fixed",
+      "seed": 21051,
+      "generations": 12,
+      "antagonist_composition_changes": 0,
+      "turnover_kept_sum": 768,
+      "turnover_replaced_sum": 0,
+      "turnover_mut_events_sum": 0,
+      "turnover_churn_sum": 0,
+      "final_classes": 16,
+      "has_ancestry": true
+    }
+  },
+  "p0_invariant": {
+    "arm": "copassaged",
+    "seed": 43,
+    "generations": 50,
+    "hist_at_25_nonempty": false,
+    "hist_at_25_classes": 0,
+    "parasite_n_at_25": 0,
+    "hist_series_len": 50,
+    "empty_hist_generations": 31,
+    "turnover_replaced_sum": 395,
+    "turnover_mut_events_sum": 151,
+    "window_snapshot_units_at_25": 0
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "errors": [],
+  "host_parasite_world_methods": [
+    "life_loop_snapshot"
+  ],
+  "idea4_cells": [
+    {
+      "checkpoint_fork_complete": false,
+      "checkpoint_genome_digests": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "checkpoint_organism_ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-3"
+      ],
+      "endpoint_map_is_contact_physics": false,
+      "engine_result_digest": "440ff48d62ca79a83db08c75bdea3e6468c58baffc6800d22f56dc4d8bc7dae6",
+      "innovation_observable": true,
+      "lineage_branching_real": true,
+      "lineage_recovery_established": false,
+      "parent_child_ids_recorded": false,
+      "recovery_window_built": false,
+      "recovery_window_missing": [
+        "real_branching_checkpoint",
+        "innovation_arising_in_lineage",
+        "control_recovery_opportunity"
+      ],
+      "seed": 301,
+      "topology_effect_identified": false
+    },
+    {
+      "checkpoint_fork_complete": false,
+      "checkpoint_genome_digests": [
+        "1edd0641fdef811937c6f2822df50ac625c4ffcda4ec40c7c43485aea417e137",
+        "ae5119b20554dca12ee1750e19edaadc1401577d034a3d23ba0dab8df5a44e39"
+      ],
+      "checkpoint_organism_ids": [
+        "org-0",
+        "org-1",
+        "org-2",
+        "org-3"
+      ],
+      "endpoint_map_is_contact_physics": false,
+      "engine_result_digest": "53db8efd8633fc5700df03f1b00718947509a6dfa688d85e3725551d5db21610",
+      "innovation_observable": true,
+      "lineage_branching_real": true,
+      "lineage_recovery_established": false,
+      "parent_child_ids_recorded": false,
+      "recovery_window_built": false,
+      "recovery_window_missing": [
+        "real_branching_checkpoint",
+        "innovation_arising_in_lineage",
+        "control_recovery_opportunity"
+      ],
+      "seed": 302,
+      "topology_effect_identified": false
+    }
+  ],
+  "run_checkpoint_carries_restorable_state": false,
+  "run_checkpoint_fields": [
+    "run_id",
+    "tick",
+    "manifest_digest",
+    "snapshot_digest",
+    "rng_state_digest",
+    "schema_version"
+  ]
+}

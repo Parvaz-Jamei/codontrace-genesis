@@ -1,0 +1,59 @@
+{
+ "round": 1,
+ "probe": "d2_unblocking_patch",
+ "fork_evidence": {
+  "fork_capture_ok": true,
+  "fork_tick_index": 10,
+  "fork_has_rng_state": true,
+  "fork_has_population": true,
+  "continuation_identical": true,
+  "n_continuation_ticks": 5,
+  "parent_child_ids_preserved": true,
+  "n_organisms_forked": 8,
+  "branch_named_paths": [
+   "pop_path:b605c29a2f54ee96f9f5775bd5f1d171317673050ae48b6b42b17b0a9c97cb91",
+   "pop_path:72103260b99e19ecbe28c94cbb01a6f73c8c4942bd71b134ea04d5dfb764dade",
+   "pop_path:43ff5264c4621e7e02c900213e003cab808187a961b3bb4328d39a7914bdb40c",
+   "pop_path:88dbf9dcbd9cf98d8adac5f4a086882846c099aee03a66504cfdb6a1ea08fbdc",
+   "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61"
+  ],
+  "branch_matched_paths": [
+   "pop_path:b605c29a2f54ee96f9f5775bd5f1d171317673050ae48b6b42b17b0a9c97cb91",
+   "pop_path:72103260b99e19ecbe28c94cbb01a6f73c8c4942bd71b134ea04d5dfb764dade",
+   "pop_path:43ff5264c4621e7e02c900213e003cab808187a961b3bb4328d39a7914bdb40c",
+   "pop_path:88dbf9dcbd9cf98d8adac5f4a086882846c099aee03a66504cfdb6a1ea08fbdc",
+   "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61"
+  ],
+  "branches_differ": false,
+  "fork_after_original": 10
+ },
+ "topology_evidence": {
+  "before_patch": {
+   "named_final": "pop_path:bb30d043a807ae8d3d1c5a83a17e95bea291ada1254d64318116459bbc5dddf9",
+   "matched_final": "pop_path:bb30d043a807ae8d3d1c5a83a17e95bea291ada1254d64318116459bbc5dddf9",
+   "identical": true,
+   "count_penalty_terms_identical": true
+  },
+  "after_patch": {
+   "named_final": "pop_path:d19f131649b8fb8e676171cdd658add9c25e36e42d9fb62f7bf9a59ab8d11a61",
+   "matched_final": "pop_path:7423ad40962bdc59c986a1fdfb8685cdff1844aed90c6a22fd25b94e7c43a06d",
+   "identical": false,
+   "differ": true,
+   "named_recipients": [
+    "org-0",
+    "org-1",
+    "org-2"
+   ],
+   "matched_recipients": [
+    "org-4",
+    "org-5",
+    "org-6"
+   ],
+   "named_identified": true,
+   "matched_identified": true,
+   "count_penalty_terms_identical": true,
+   "named_unbound": []
+  }
+ },
+ "seconds": 116.67
+}

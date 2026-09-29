@@ -1,0 +1,27 @@
+{
+  "errors": [],
+  "runs": [
+    {
+      "antagonist_genotype_field_present": false,
+      "antagonist_population_present": false,
+      "contact_opportunities_observed": 0,
+      "engine_result_digest": "ad03d680df733ce268bf2f8c648ebf854a795cae1e22fd7895d50c893e5d38b4",
+      "generations": 8,
+      "reason": "GenesisEngine has no antagonist population and no graded-affinity contact route, so no contact opportunity, no realised debit and no pi_realised can be logged.",
+      "run_id": "rq1-probe-seed301-livegen",
+      "seed": 301,
+      "wall_s": 3.028111
+    },
+    {
+      "antagonist_genotype_field_present": false,
+      "antagonist_population_present": false,
+      "contact_opportunities_observed": 0,
+      "engine_result_digest": "a12c2f99292f28cae027c00c2617ec569672fb5672cd246d2779d25cf769708f",
+      "generations": 8,
+      "reason": "GenesisEngine has no antagonist population and no graded-affinity contact route, so no contact opportunity, no realised debit and no pi_realised can be logged.",
+      "run_id": "rq1-probe-seed302-livegen",
+      "seed": 302,
+      "wall_s": 2.688305
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "bounded_search": true,
+  "deadline_reached": false,
+  "grid": "64 windows of 6 bits, reference_graded_affinity",
+  "random_triples": 0,
+  "reachable": {
+    "contemporary_match": {
+      "reachable": true,
+      "witness": {
+        "hosts": {
+          "future": "000100",
+          "now": "000001",
+          "past": "000000"
+        },
+        "matrix": {
+          "future": {
+            "future": 0.8333333333333334,
+            "now": 0.5,
+            "past": 0.8333333333333334
+          },
+          "now": {
+            "future": 0.5,
+            "now": 0.8333333333333334,
+            "past": 0.8333333333333334
+          },
+          "past": {
+            "future": 0.6666666666666666,
+            "now": 0.6666666666666666,
+            "past": 1.0
+          }
+        },
+        "parasites": {
+          "future": "001100",
+          "now": "000011",
+          "past": "000000"
+        }
+      }
+    },
+    "directional_increase": {
+      "reachable": true,
+      "witness": {
+        "hosts": {
+          "future": "101111",
+          "now": "011111",
+          "past": "001111"
+        },
+        "matrix": {
+          "future": {
+            "future": 0.8333333333333334,
+            "now": 0.5,
+            "past": 0.16666666666666666
+          },
+          "now": {
+            "future": 0.8333333333333334,
+            "now": 0.5,
+            "past": 0.16666666666666666
+          },
+          "past": {
+            "future": 1.0,
+            "now": 0.6666666666666666,
+            "past": 0.3333333333333333
+          }
+        },
+        "parasites": {
+          "future": "001111",
+          "now": "000011",
+          "past": "000000"
+        }
+      }
+    },
+    "lagged_match": {
+      "reachable": true,
+      "witness": {
+        "hosts": {
+          "future": "000011",
+          "now": "000000",
+          "past": "000001"
+        },
+        "matrix": {
+          "future": {
+            "future": 1.0,
+            "now": 1.0,
+            "past": 0.6666666666666666
+          },
+          "now": {
+            "future": 0.6666666666666666,
+            "now": 0.6666666666666666,
+            "past": 1.0
+          },
+          "past": {
+            "future": 0.8333333333333334,
+            "now": 0.8333333333333334,
+            "past": 0.8333333333333334
+          }
+        },
+        "parasites": {
+          "future": "000011",
+          "now": "000011",
+          "past": "000000"
+        }
+      }
+    }
+  },
+  "structured_subset_size": 8,
+  "structured_triples": 512,
+  "triples_checked": 12,
+  "wall_s": 0.194
+}

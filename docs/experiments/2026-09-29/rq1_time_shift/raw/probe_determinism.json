@@ -1,0 +1,17 @@
+{
+  "engine_digests": [
+    "63c04f5d702266f6e3785174e956c642a3bebb83385aff84e66edc2fe03f97cd",
+    "63c04f5d702266f6e3785174e956c642a3bebb83385aff84e66edc2fe03f97cd"
+  ],
+  "engine_replay_identical": true,
+  "kernel_digests": [
+    "367b82c515d106b1d00b569f6fc789323e51fd36da637503c916165d1d7a2447",
+    "367b82c515d106b1d00b569f6fc789323e51fd36da637503c916165d1d7a2447"
+  ],
+  "kernel_replay_identical": true,
+  "world_digests": [
+    "hp_world:9e38aeda7a49c029542c49002e6080d765a6fe426f0c89f28731e5cc66c19c4f",
+    "hp_world:9e38aeda7a49c029542c49002e6080d765a6fe426f0c89f28731e5cc66c19c4f"
+  ],
+  "world_replay_identical": true
+}

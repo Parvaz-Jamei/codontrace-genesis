@@ -1,0 +1,169 @@
+{
+  "arms": {
+    "avirulent": {
+      "n_seeds": 2,
+      "labels": [
+        "flat",
+        null,
+        "flat",
+        null,
+        null,
+        null
+      ],
+      "n_support": 0,
+      "i_contemp_values": [
+        0.0,
+        0.0
+      ],
+      "i_lag_values": [
+        0.0,
+        0.0
+      ],
+      "i_contemp_mean": 0.0,
+      "i_lag_mean": 0.0,
+      "i_contemp_interval": {
+        "point": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      },
+      "i_lag_interval": {
+        "point": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      }
+    },
+    "fixed": {
+      "n_seeds": 2,
+      "labels": [
+        "flat",
+        null,
+        "flat",
+        null,
+        null,
+        null
+      ],
+      "n_support": 0,
+      "i_contemp_values": [
+        0.0,
+        0.0
+      ],
+      "i_lag_values": [
+        0.0,
+        0.0
+      ],
+      "i_contemp_mean": 0.0,
+      "i_lag_mean": 0.0,
+      "i_contemp_interval": {
+        "point": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      },
+      "i_lag_interval": {
+        "point": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      }
+    },
+    "copassaged": {
+      "n_seeds": 2,
+      "labels": [
+        "lagged_match",
+        null,
+        "other",
+        null,
+        null,
+        null
+      ],
+      "n_support": 0,
+      "i_contemp_values": [
+        0.0017380914,
+        0.0098738023
+      ],
+      "i_lag_values": [
+        0.000428224,
+        -0.0045372061
+      ],
+      "i_contemp_mean": 0.00580594685,
+      "i_lag_mean": -0.00205449105,
+      "i_contemp_interval": {
+        "point": 0.00580594685,
+        "lo": 0.0017380914,
+        "hi": 0.0098738023,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      },
+      "i_lag_interval": {
+        "point": -0.00205449105,
+        "lo": -0.0045372061,
+        "hi": 0.000428224,
+        "n_runs": 2,
+        "n_resamples": 10000,
+        "seed": 20260928,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "method": "run_level_cluster_bootstrap_percentile",
+        "unit_of_replication": "run"
+      }
+    }
+  },
+  "rotation_control": {
+    "n": 6,
+    "n_support_label": 0,
+    "fraction_support_label": 0.0,
+    "labels": [
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other"
+    ]
+  },
+  "decision": {
+    "verdict": "INCONCLUSIVE",
+    "reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds, or the effect is not positive",
+    "frozen_also_supports": false,
+    "host_only_is_zero": true,
+    "coevolve_labels_all_support": false,
+    "confirmatory_run": false
+  },
+  "flags": {
+    "hypothesis_supported": false,
+    "red_queen_proved": false,
+    "population_run": true
+  }
+}
+wall_s 546.781 events 240 population 240

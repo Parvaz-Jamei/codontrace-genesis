@@ -1,0 +1,392 @@
+{
+  "verifier": "verifier (independent re-verification agent)",
+  "workspace": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633",
+  "python": "C:\\Users\\parvaz\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "environment_note": "No git executable is installed on this machine; CLAIM B was reproduced by reading the git object database directly. codontrace-genesis was NOT modified. The repository was observed to receive concurrent commits during verification, so HEAD moved between observations; every claim was checked against the relevant snapshot and the movement is recorded per claim.",
+  "claims": {
+    "A": {
+      "verdict": "ACCEPT",
+      "assertion": "The three BAIC pin digests are line-ending-normalised; on this Windows checkout the raw-byte hash differs.",
+      "holds": true,
+      "files": [
+        {
+          "path": "docs/hard_experiment_01/results_v7.json",
+          "pin": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+          "size_bytes": 401445,
+          "raw_sha256": "4a5987c2ed0f09d1088b3c1bca6d81fe2310f3867fa84f22a33fbeee7b5d7efd",
+          "lf_normalised_sha256": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+          "raw_matches_pin": false,
+          "lf_normalised_matches_pin": true,
+          "crlf_pairs": 10201,
+          "lone_lf_bytes": 0,
+          "lone_cr_bytes": 0,
+          "lf_total": 10201,
+          "repo_helper_sha256_text_file": "35bb593604438797755e5e7b28af4d1371992a6181a403d08005f7f45421cbd6",
+          "repo_helper_matches_pin": true,
+          "git_blob_sha1_at_head": "2108bafcbcc619c4d2385ddcab3fcc717fe9881b",
+          "git_blob_size": 391244,
+          "pin_equals_sha256_of_git_blob_at_head": true,
+          "lf_normalised_working_tree_equals_git_blob": true,
+          "raw_and_lf_both_match_pin": false
+        },
+        {
+          "path": "docs/claimgate/risk_bar.json",
+          "pin": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+          "size_bytes": 1430,
+          "raw_sha256": "b7091921bf00c350fa286caf117fa46af81e9760b1b6d4d135eefd042dabd404",
+          "lf_normalised_sha256": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+          "raw_matches_pin": false,
+          "lf_normalised_matches_pin": true,
+          "crlf_pairs": 61,
+          "lone_lf_bytes": 0,
+          "lone_cr_bytes": 0,
+          "lf_total": 61,
+          "repo_helper_sha256_text_file": "4dbe4aa3a6ef8e771f180d2a6589c64b0dd5ffebe0aa73703a7256c17d771cd7",
+          "repo_helper_matches_pin": true,
+          "git_blob_sha1_at_head": "78cf70a66dcb16098130aa778f17fd7bece318ad",
+          "git_blob_size": 1369,
+          "pin_equals_sha256_of_git_blob_at_head": true,
+          "lf_normalised_working_tree_equals_git_blob": true,
+          "raw_and_lf_both_match_pin": false
+        },
+        {
+          "path": "docs/claimgate/biomedical_study.json",
+          "pin": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce",
+          "size_bytes": 1095,
+          "raw_sha256": "2e5193639aad58ceda68ef9bc33943f8eae2c45f042209a060af890c93785079",
+          "lf_normalised_sha256": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce",
+          "raw_matches_pin": false,
+          "lf_normalised_matches_pin": true,
+          "crlf_pairs": 40,
+          "lone_lf_bytes": 0,
+          "lone_cr_bytes": 0,
+          "lf_total": 40,
+          "repo_helper_sha256_text_file": "9685f2fbafb21477d977dfa0c0bf73e02bea81d084e7605978ea25c47bf5ddce",
+          "repo_helper_matches_pin": true,
+          "git_blob_sha1_at_head": "36d3ff3adf730d69777d628b1663be9813c0958e",
+          "git_blob_size": 1055,
+          "pin_equals_sha256_of_git_blob_at_head": true,
+          "lf_normalised_working_tree_equals_git_blob": true,
+          "raw_and_lf_both_match_pin": false
+        }
+      ],
+      "mechanism_evidence": {
+        "normalisation_implemented_at": "codontrace-genesis/src/codontrace/genesis/text_digest.py::sha256_text_file",
+        "normalisation": "read_bytes().replace(b'\\r\\n', b'\\n').replace(b'\\r', b'\\n') then sha256",
+        "pins_declared_at": "codontrace-genesis/src/codontrace/genesis/host_parasite_world.py::_BAIC_PINS (assert_baic_pins_untouched uses sha256_text_file)",
+        "gitattributes": "codontrace-genesis/.gitattributes declares '* text=auto'",
+        "lone_cr_bytes_zero_in_all_three": true,
+        "note": "CRLF->LF-only and CRLF/CR->LF normalisations give identical digests here because no file contains a lone CR."
+      },
+      "summary": {
+        "all_lf_normalised_match_pin": true,
+        "all_raw_differ_from_pin": true,
+        "raw_hashes_differ_from_pin": [
+          "4a5987c2ed0f09d1088b3c1bca6d81fe2310f3867fa84f22a33fbeee7b5d7efd",
+          "b7091921bf00c350fa286caf117fa46af81e9760b1b6d4d135eefd042dabd404",
+          "2e5193639aad58ceda68ef9bc33943f8eae2c45f042209a060af890c93785079"
+        ],
+        "pin_equals_git_blob_sha256_for_all": true,
+        "max_crlf_pairs": 10201
+      }
+    },
+    "B": {
+      "verdict": "ACCEPT",
+      "assertion": "Commit 67c4a10 exists in codontrace-genesis and is an ancestor of HEAD.",
+      "holds": true,
+      "git_cli_available": false,
+      "method": "No git executable exists on this machine (not on PATH, not under C:\\Program Files\\Git, not bundled with GitHub Desktop). The repository's own object database was read directly instead: loose objects (zlib) plus packfiles (idx v2 with the CRC32 table, pack header varints, ofs/ref delta resolution, zlib-inflated payloads). Each reconstructed object is re-hashed with SHA-1 and must match its own id.",
+      "reader_validation": {
+        "packs": [
+          {
+            "pack": "pack-1b8129c0e354f1d62dc0c92e195fdaee076d6c45.pack",
+            "n_objects": 4438,
+            "objects_rehashed_ok": 4438,
+            "objects_bad": [],
+            "n_bad": 0,
+            "trailer_sha1_matches": true
+          },
+          {
+            "pack": "pack-319e3c956cf826bb89265a54ec2564839e4b493a.pack",
+            "n_objects": 1057,
+            "objects_rehashed_ok": 1057,
+            "objects_bad": [],
+            "n_bad": 0,
+            "trailer_sha1_matches": true
+          },
+          {
+            "pack": "pack-ddeb483c63f9f8cf0e2725702e533f6eac4cccc6.pack",
+            "n_objects": 612,
+            "objects_rehashed_ok": 612,
+            "objects_bad": [],
+            "n_bad": 0,
+            "trailer_sha1_matches": true
+          }
+        ],
+        "loose_objects_checked": 161,
+        "loose_objects_bad": 0,
+        "all_objects_rehash_ok": true,
+        "note": "6107 pack objects + 161 loose objects reconstructed and re-hashed; all pack SHA-1 trailers verified."
+      },
+      "emulated_commands": {
+        "git cat-file -t 67c4a10": {
+          "output": "commit",
+          "resolved_full_sha": "67c4a10a93344cbbbd9ac9d536ddc201fac9b5e8",
+          "exit_code": 0
+        },
+        "git merge-base --is-ancestor 67c4a10 HEAD": [
+          {
+            "head": "17a12f65040932ae0491572c766e7b50f7041be5",
+            "output": true,
+            "exit_code": 0
+          },
+          {
+            "head": "d40068782b31799ae006b55bad58f95c86cb06d3",
+            "output": true,
+            "exit_code": 0
+          }
+        ],
+        "git log --oneline -3 (HEAD = 17a12f65040932ae0491572c766e7b50f7041be5)": [
+          "17a12f6 feat(engine): restorable state fork and contact-identified ledger debits",
+          "49750b1 docs(discovery): file the RQ-1 route addendum",
+          "cff84cd fix(ci): hash text pins through the LF-normalising helper"
+        ]
+      },
+      "commit": {
+        "sha": "67c4a10a93344cbbbd9ac9d536ddc201fac9b5e8",
+        "tree": "ad6e199e42afa84d94444b8bf9c2e2bde4848854",
+        "parents": [
+          "8238459f34e48ea44f646d0a6b441d11b8ecc706"
+        ],
+        "subject": "\ufefffix(tests): rebaseline stale artifact pins and align version strings",
+        "committer_date": 1790597610
+      },
+      "head_moved_during_verification": {
+        "detail": "HEAD advanced while this verification ran (another process commits to codontrace-genesis concurrently). The first observation of HEAD was d40068782b31799ae006b55bad58f95c86cb06d3; at recheck time it was 17a12f65040932ae0491572c766e7b50f7041be5. Ancestry of 67c4a10 was confirmed against BOTH, so the verdict does not depend on which snapshot is used.",
+        "heads_checked": [
+          "17a12f65040932ae0491572c766e7b50f7041be5",
+          "d40068782b31799ae006b55bad58f95c86cb06d3"
+        ]
+      },
+      "first_observation": {
+        "head": "d40068782b31799ae006b55bad58f95c86cb06d3",
+        "head_subject": "style(discovery): rename unused loop variable for ruff B007",
+        "cat_file_type": "commit",
+        "is_ancestor": true,
+        "is_ancestor_exit": 0,
+        "log_oneline_3": [
+          "d400687 style(discovery): rename unused loop variable for ruff B007",
+          "a014ed4 \ufeffdocs(discovery): file the discovery test program and its status map",
+          "cd74b85 test(discovery): lock the stage-0 meter without a population claim (#70)"
+        ]
+      }
+    },
+    "C": {
+      "verdict": "ACCEPT",
+      "assertion": "In causal-tape-experiment the re-routing share of the previously reported specification bias at the highest epistasis level (eps = 0.8) is 64.1 per cent with a 95 per cent interval of [55.8, 73.3].",
+      "holds": true,
+      "recomputed_from": "causal-tape-experiment/datasets/e2026092{7,8,9}_eps0.8_G40.npz (raw arrays only)",
+      "definition_used": "beta_j - ATT_whole = (beta_j - ATT_onebit) + (ATT_onebit - ATT_whole); ATT_whole = mean over exposed seeds of (fitness - counterfactual[:, j]); ATT_onebit = mean over exposed seeds of the fitted quadratic model (intercept + 18 main effects + all 153 pairwise products, lstsq-fitted on that configuration's natural ensemble) flipped from locus=0 to locus=1 with all other loci held at their observed values.",
+      "fit_health": {
+        "quad_rank": [
+          172,
+          172,
+          172
+        ],
+        "quad_r2": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "max_abs_residual": [
+          2.4158453015843406e-13,
+          3.304023721284466e-13,
+          1.6342482922482304e-13
+        ],
+        "n_unique_genotypes": [
+          1358,
+          1195,
+          1378
+        ],
+        "max_abs_identity_residual": 1.1102230246251565e-16,
+        "note": "R^2 = 1 to machine precision and rank 172/172: the quadratic model is exactly correctly specified, so ATT_onebit is the exact one-bit contrast, not an approximation."
+      },
+      "ratio_of_means": {
+        "pooled_point_estimate": 0.6481847098619269,
+        "pooled_point_estimate_percent": 64.82,
+        "mean_abs_component_ii_reroute": 0.452686,
+        "mean_abs_total_gap": 0.69839,
+        "per_coupling_draw": {
+          "e20260927_eps0.8_G40": 0.43887271001115624,
+          "e20260928_eps0.8_G40": 0.8326346508196776,
+          "e20260929_eps0.8_G40": 0.71488609871084
+        },
+        "bootstrap_median": 0.6457407920674573,
+        "bootstrap_ci95": [
+          0.5986521324034166,
+          0.6894754727835994
+        ]
+      },
+      "ratio_of_medians": {
+        "pooled_point_estimate": 0.6297458897128516,
+        "pooled_point_estimate_percent": 62.97,
+        "per_coupling_draw": {
+          "e20260927_eps0.8_G40": 0.31067130710208046,
+          "e20260928_eps0.8_G40": 0.8382196949672952,
+          "e20260929_eps0.8_G40": 0.7634936866995135
+        },
+        "bootstrap_median": 0.6420714740974418,
+        "bootstrap_ci95": [
+          0.5602084648018266,
+          0.7325083748172483
+        ],
+        "mean_over_draws_of_per_draw_ratio_of_medians": 0.6374615629229631
+      },
+      "claim_stated": {
+        "value_percent": 64.1,
+        "ci95_percent": [
+          55.8,
+          73.3
+        ]
+      },
+      "agreement": {
+        "estimator_that_produces_the_claimed_64.1": "bootstrap median (500 seed resamples, rng seed 20261004) of the POOLED ratio of MEDIANS med|ii|/med|tot|",
+        "reference_published_value": 0.6407308901109312,
+        "reference_published_ci95": [
+          0.5577497815809901,
+          0.7332976037688598
+        ],
+        "my_primary_independent_run": {
+          "interpreter": "C:\\Users\\parvaz\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "numpy": "2.4.4",
+          "rank_test": "Cholesky (independent of the published SVD rank test)",
+          "bootstrap_ratio_of_medians_median": 0.6420714740974418,
+          "bootstrap_ratio_of_medians_ci95": [
+            0.5602084648018266,
+            0.7325083748172483
+          ],
+          "bootstrap_ratio_of_means_median": 0.6457407920674573,
+          "bootstrap_ratio_of_means_ci95": [
+            0.5986521324034166,
+            0.6894754727835994
+          ],
+          "rank_deficient_redrawn": 4
+        },
+        "rank_tolerance_matched_run": {
+          "rank_test": "svd rank_tol=1e-08",
+          "rank_deficient_redrawn": 6,
+          "bootstrap_ratio_of_medians_median": 0.6407308901109312,
+          "bootstrap_ratio_of_medians_ci95": [
+            0.5577497815809901,
+            0.7332976037688598
+          ],
+          "bootstrap_ratio_of_means_median": 0.6459426356173571,
+          "bootstrap_ratio_of_means_ci95": [
+            0.5986521324031486,
+            0.6922986345929746
+          ],
+          "reproduces_published_bootstrap_median_exactly": true,
+          "reproduces_published_ci_exactly": true
+        },
+        "cross_interpreter_run_python312": {
+          "interpreter": "C:\\Users\\parvaz\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+          "numpy": "2.2.6",
+          "bootstrap_ratio_of_medians_median": 0.6420714740974836,
+          "bootstrap_ratio_of_medians_ci95": [
+            0.5602084648018375,
+            0.7325083748172232
+          ],
+          "rank_deficient_redrawn": 4,
+          "max_abs_median_difference_vs_python314": 4.1744385725905886e-14,
+          "agrees_with_python314_run": true,
+          "note": "Same 4 rank-deficient redraws and identical point estimates; the bootstrap medians differ only in the 14th decimal (different BLAS), so this is floating-point noise, not a methodological divergence."
+        },
+        "ratio_of_means_vs_64.1_within_1pp": true,
+        "bootstrap_ratio_of_medians_median_vs_64.1_within_1pp": true,
+        "bootstrap_ratio_of_means_median_vs_64.1_within_1pp": true,
+        "discrepancies_disclosed": [
+          "The pooled ratio-of-MEDIANS point estimate is 62.97% (mean over draws of the per-draw ratio of medians: 63.75%), which is 1.1 to 1.4 percentage points below 64.1% and therefore outside the 1 pp window. The claimed 64.1% is the BOOTSTRAP MEDIAN of the ratio of medians, not the raw point estimate; both are reported above.",
+          "The 95% interval quoted in the claim, [55.8, 73.3], belongs to the ratio-of-medians estimator. The ratio-of-means bootstrap interval is narrower, [59.9, 69.2].",
+          "My first (fully independent) bootstrap used a Cholesky rank test and redrew 4 rank-deficient resamples instead of the published 6; because a redraw shifts the RNG stream, its interval came out as [56.02, 73.25] rather than [55.78, 73.33]. Switching only the rank test to the published criterion (min/max singular value <= 1e-8, with the published SVD solve) reproduced the published median and interval bit-exactly. This is a floating-point knife-edge in the resample admissibility test, not a substantive disagreement."
+        ]
+      },
+      "per_coupling_draw_detail": {
+        "e20260927_eps0.8_G40": {
+          "ratio_of_means": 0.43887271001115624,
+          "ratio_of_medians": 0.31067130710208046,
+          "mean_abs_comp_i": 1.0822534943761937,
+          "mean_abs_comp_ii": 0.330235084505365,
+          "mean_abs_total": 0.7524621079696897,
+          "median_abs_comp_i": 1.0591018092542976,
+          "median_abs_comp_ii": 0.23414429276193738,
+          "median_abs_total": 0.7536720881822607
+        },
+        "e20260928_eps0.8_G40": {
+          "ratio_of_means": 0.8326346508196776,
+          "ratio_of_medians": 0.8382196949672952,
+          "mean_abs_comp_i": 1.0573992826822518,
+          "mean_abs_comp_ii": 0.48041614956877954,
+          "mean_abs_total": 0.5769831331134723,
+          "median_abs_comp_i": 1.0705212311462309,
+          "median_abs_comp_ii": 0.44551125631702804,
+          "median_abs_total": 0.5314970036995021
+        },
+        "e20260929_eps0.8_G40": {
+          "ratio_of_means": 0.71488609871084,
+          "ratio_of_medians": 0.7634936866995135,
+          "mean_abs_comp_i": 1.313129173602276,
+          "mean_abs_comp_ii": 0.5474053307246548,
+          "mean_abs_total": 0.7657238428776212,
+          "median_abs_comp_i": 1.2934236403878678,
+          "median_abs_comp_ii": 0.5299125297291616,
+          "median_abs_total": 0.6940627525289782
+        }
+      },
+      "published_reference": {
+        "fraction_of_published_bias_that_is_rerouting": 0.6407308901109312,
+        "ci95": [
+          0.5577497815809901,
+          0.7332976037688598
+        ],
+        "by_coupling_draw": {
+          "e20260927_eps0.8_G40": 0.3253440556643041,
+          "e20260928_eps0.8_G40": 0.8340790949817213,
+          "e20260929_eps0.8_G40": 0.7456257995056479
+        },
+        "by_eps_ratio_of_medians_eps0.8": 0.6374615629229631,
+        "bootstrap_ratio_of_medians": {
+          "draws": 500,
+          "median": 0.6407308901109312,
+          "ci95": [
+            0.5577497815809901,
+            0.7332976037688598
+          ]
+        },
+        "bootstrap_ratio_of_means": {
+          "draws": 500,
+          "median": 0.6459426356173571,
+          "ci95": [
+            0.5986521324031486,
+            0.6922986345929746
+          ]
+        }
+      },
+      "artifacts": [
+        "test-runs/verify/claim_c_raw.json",
+        "test-runs/verify/claim_c_raw_rankcheck.json",
+        "test-runs/verify/claim_c_raw_py312.json",
+        "test-runs/verify/claim_c_out.txt",
+        "test-runs/verify/claim_c_rankcheck_out.txt",
+        "test-runs/verify/claim_c_py312_out.txt",
+        "test-runs/verify/claim_c_estimand.py"
+      ]
+    }
+  },
+  "verdicts": {
+    "A": "ACCEPT",
+    "B": "ACCEPT",
+    "C": "ACCEPT"
+  },
+  "overall_verdict": "pass",
+  "overall_note": "All three claims reproduced from raw artifacts with independent code paths."
+}

@@ -54,16 +54,13 @@ These are recorded separately and are not part of the eight program tests:
   conditioning is biased before any epistasis is present, and at high epistasis
   about **64 per cent** of the quantity previously labelled estimator bias is a
   whole-tape re-routing gap rather than model misspecification.
-* **Two-fold cost of sex** (`causal-tape-experiment/results/sex_arms_results.json`):
-  coevolution does not maintain costly sex in that model; the critical cost is
-  bracketed in (1.0, 1.5]. The finer bracket `c* ≈ 1.1–1.2` is a **single-seed
-  probe** (`causal-tape-experiment/phase_probe.txt`, seed 9000) and must not be
-  cited as a confirmatory narrowing; a ≥100-paired-seed sweep is in progress
-  (owner: `scale-designer`, output `test-runs/sex_cost/`). Antagonist turnover
-  from 1 to 12 generations per host generation does not raise it. Reported as a
-  negative. The former `phase_results.json` citation is removed: no such file
-  exists anywhere in the workspace, and no claim here may cite a file that is not
-  in the tree.
+* **Two-fold cost of sex** (`docs/experiments/2026-09-29/sex_cost/`): confirmed on the full
+  2100-run sweep - 7 costs x 3 antagonist turnovers x 100 paired seeds, ledger residual
+  2.556e-10 - the `c*` bracket from the intervals is **(1.1, 1.2]**: `c = 1.1` passes all three
+  turnovers and `c = 1.2` fails all three, with strictly disjoint intervals. The earlier
+  single-seed probe is a **superseded pilot** whose magnitudes do not survive the intervals, and
+  the old narrowing is **confirmed**, not superseded. Reported as a negative for the two-fold cost
+  of sex in this model; claim ceiling and flags are unchanged.
 * **Biotic versus abiotic turnover** (`causal-tape-experiment/results/rjcj_results.json`):
   antagonist-dominant within the model world, stable across window lengths, with
   a genotype-blind tax control passing.

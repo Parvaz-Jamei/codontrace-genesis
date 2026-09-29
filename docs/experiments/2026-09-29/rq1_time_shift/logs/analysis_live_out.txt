@@ -1,0 +1,11 @@
+{
+  "verdict": "INCONCLUSIVE",
+  "reason": "the coevolve arm does not show the pre-declared support pattern consistently across seeds",
+  "integrity": {
+    "live_run_sha256": "4e7f370e1fe6748cf8641c678d2f210c794a28579aebc85e7b4fddc0db91e496",
+    "all_stored_contrasts_match_recompute": true,
+    "calibration_gate_ok": true,
+    "pilot_gate_ok": true,
+    "arm_match_at_generation_0_all": true
+  }
+}

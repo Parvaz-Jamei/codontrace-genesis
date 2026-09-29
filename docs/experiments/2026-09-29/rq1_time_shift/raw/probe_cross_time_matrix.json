@@ -1,0 +1,163 @@
+{
+  "errors": [],
+  "histories": [
+    {
+      "affinity_window_definition": "INVENTED BY THIS PROBE: compact[:6]. The live model has no 6-bit recognition window and no graded-affinity ATP debit, so this matrix is the analysis kernel applied to an imposed definition, not the model's pi_realised.",
+      "antagonist_members_per_slot": {
+        "future": 23,
+        "now": 18,
+        "past": 6
+      },
+      "birth_counts": {
+        "primary": 51,
+        "secondary": 55
+      },
+      "coexistence": true,
+      "contact_physics_of_the_world": "apply_contact(ContactTransferPolicy): payload/book transfer gated by a MatchRule; no per-contact ATP debit, no reservation, no survival link.",
+      "death_counts": {
+        "primary": 30,
+        "secondary": 33
+      },
+      "extinct_primary": false,
+      "extinct_secondary": false,
+      "hook_counts": {
+        "on_birth": 0,
+        "on_contact": 0,
+        "on_death": 0,
+        "on_resource": 354
+      },
+      "host_members_per_slot": {
+        "future": 23,
+        "now": 16,
+        "past": 5
+      },
+      "lag": 10,
+      "matrix_affinity_pi": {
+        "future": {
+          "future": 1.0,
+          "now": 0.4,
+          "past": 0.8
+        },
+        "now": {
+          "future": 1.0,
+          "now": 0.4,
+          "past": 0.4
+        },
+        "past": {
+          "future": 0.4,
+          "now": 1.0,
+          "past": 1.0
+        }
+      },
+      "matrix_allele_exact": {
+        "future": {
+          "future": 0.5012602394,
+          "now": 0.482689211,
+          "past": 0.5144927536
+        },
+        "now": {
+          "future": 0.4941123188,
+          "now": 0.4884259259,
+          "past": 0.4930555556
+        },
+        "past": {
+          "future": 0.5231884058,
+          "now": 0.5055555556,
+          "past": 0.4888888889
+        }
+      },
+      "mutation_counts": {
+        "primary": 181,
+        "secondary": 179
+      },
+      "seed": 11,
+      "slots": {
+        "future": 30,
+        "now": 20,
+        "past": 10
+      },
+      "ticks": 30,
+      "window_notes": [],
+      "world_digest": "hp_world:ea2a732a4711aff18c9e70136954ca67491713014d059573d04c3183c9baf08a"
+    },
+    {
+      "affinity_window_definition": "INVENTED BY THIS PROBE: compact[:6]. The live model has no 6-bit recognition window and no graded-affinity ATP debit, so this matrix is the analysis kernel applied to an imposed definition, not the model's pi_realised.",
+      "antagonist_members_per_slot": {
+        "future": 24,
+        "now": 21,
+        "past": 16
+      },
+      "birth_counts": {
+        "primary": 16,
+        "secondary": 74
+      },
+      "coexistence": true,
+      "contact_physics_of_the_world": "apply_contact(ContactTransferPolicy): payload/book transfer gated by a MatchRule; no per-contact ATP debit, no reservation, no survival link.",
+      "death_counts": {
+        "primary": 13,
+        "secondary": 51
+      },
+      "extinct_primary": false,
+      "extinct_secondary": false,
+      "hook_counts": {
+        "on_birth": 0,
+        "on_contact": 0,
+        "on_death": 0,
+        "on_resource": 104
+      },
+      "host_members_per_slot": {
+        "future": 5,
+        "now": 4,
+        "past": 4
+      },
+      "lag": 10,
+      "matrix_affinity_pi": {
+        "future": {
+          "future": 0.4,
+          "now": 0.0,
+          "past": 0.6
+        },
+        "now": {
+          "future": 0.0,
+          "now": 0.4,
+          "past": 0.6
+        },
+        "past": {
+          "future": 0.8,
+          "now": 0.8,
+          "past": 1.0
+        }
+      },
+      "matrix_allele_exact": {
+        "future": {
+          "future": 0.4819444444,
+          "now": 0.5174603175,
+          "past": 0.5583333333
+        },
+        "now": {
+          "future": 0.4097222222,
+          "now": 0.505952381,
+          "past": 0.5625
+        },
+        "past": {
+          "future": 0.5138888889,
+          "now": 0.4682539683,
+          "past": 0.546875
+        }
+      },
+      "mutation_counts": {
+        "primary": 46,
+        "secondary": 213
+      },
+      "seed": 22,
+      "slots": {
+        "future": 30,
+        "now": 20,
+        "past": 10
+      },
+      "ticks": 30,
+      "window_notes": [],
+      "world_digest": "hp_world:ae3daa264db509356d15f4f8f79bbd490d634759da2fae409963b790409971d1"
+    }
+  ]
+}

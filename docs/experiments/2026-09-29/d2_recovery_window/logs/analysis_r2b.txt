@@ -1,0 +1,1 @@
+[d2 14:16:08] analysis: verdict=BLOCKED_MEASUREMENT blocking=2

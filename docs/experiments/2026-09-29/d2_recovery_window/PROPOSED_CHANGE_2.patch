@@ -1,0 +1,47 @@
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea4_engine.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea4_engine.py
+@@ -68,6 +68,7 @@
+     seed: int,
+     tick_count: int,
+     population: int = 8,
++    ecology: str = "standing",
+ ) -> Any:
+     """Softened life_loop spec so ecology can persist across T≈40 post-checkpoint."""
+ 
+@@ -90,17 +91,34 @@
+     )
+     metab = cfg.metabolism if cfg.metabolism is not None else MetabolicConfig()
+     new_metab = replace(metab, basal_runtime_atp_cost=0.4)
++    # D-2 patch 2 (additive, default preserves every standing number): a
++    # persistence-safe ecology so the control arm keeps a positive census
++    # through the T = 40 checkpoint horizon and therefore has a recovery
++    # opportunity.  The standing profile is byte-identical when the default
++    # "standing" is used, so no recorded number changes.
++    if ecology == "persistence_safe":
++        for pos in SOFT_FOOD_CELLS + ((2, 2), (3, 0), (0, 1), (1, 1), (4, 1), (5, 2), (0, 2), (2, 1)):
++            if 0 <= pos[0] < world.width and 0 <= pos[1] < world.height:
++                world.place_resource(pos, 12.0)
++        new_rrp = RuntimeResourcePolicy(
++            respawn_enabled=True, respawn_rate=1.0, max_resources=24, amount=12.0
++        )
++        new_metab = replace(metab, basal_runtime_atp_cost=0.15)
++    elif ecology != "standing":
++        raise ConfigurationError(f"unknown ecology profile {ecology!r}.")
+     return replace(
+         base,
+         element_grid=world2d_to_element_grid(world),
+-        initial_runtime_atp=20.0,
++        initial_runtime_atp=24.0 if ecology == "persistence_safe" else 20.0,
+         population_configs=replace(
+             cfg,
+             runtime_resource_policy=new_rrp,
+             metabolism=new_metab,
+             mutation=replace(cfg.mutation, bit_flip_rate=0.06),
+             reproduction=replace(
+-                cfg.reproduction, min_runtime_atp=4.0, parent_atp_cost=0.5
++                cfg.reproduction,
++                min_runtime_atp=3.0 if ecology == "persistence_safe" else 4.0,
++                parent_atp_cost=0.5,
+             ),
+         ),
+         metadata={

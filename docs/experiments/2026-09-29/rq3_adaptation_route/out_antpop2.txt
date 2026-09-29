@@ -1,0 +1,372 @@
+{
+  "antagonist_population_functional_test": {
+    "coevolve": {
+      "history": [
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 2,
+            "000001": 1,
+            "111100": 1
+          },
+          "deaths": 3,
+          "generation": 1,
+          "mean_energy": 0.875,
+          "mutations": 1,
+          "newborns": 1,
+          "windows": [
+            "000000",
+            "000000",
+            "111100",
+            "000001"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 3,
+            "000010": 1
+          },
+          "deaths": 3,
+          "generation": 2,
+          "mean_energy": 0.75,
+          "mutations": 2,
+          "newborns": 2,
+          "windows": [
+            "000000",
+            "000010",
+            "000000",
+            "000000"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 4
+          },
+          "deaths": 1,
+          "generation": 3,
+          "mean_energy": 0.7,
+          "mutations": 0,
+          "newborns": 1,
+          "windows": [
+            "000000",
+            "000000",
+            "000000",
+            "000000"
+          ]
+        },
+        {
+          "alive": 3,
+          "class_counts": {
+            "000000": 3
+          },
+          "deaths": 2,
+          "generation": 4,
+          "mean_energy": 1.2,
+          "mutations": 0,
+          "newborns": 1,
+          "windows": [
+            "000000",
+            "000000",
+            "000000"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 4
+          },
+          "deaths": 3,
+          "generation": 5,
+          "mean_energy": 1.0125,
+          "mutations": 0,
+          "newborns": 2,
+          "windows": [
+            "000000",
+            "000000",
+            "000000",
+            "000000"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 3,
+            "000100": 1
+          },
+          "deaths": 2,
+          "generation": 6,
+          "mean_energy": 0.9,
+          "mutations": 1,
+          "newborns": 2,
+          "windows": [
+            "000000",
+            "000100",
+            "000000",
+            "000000"
+          ]
+        }
+      ],
+      "mode": "coevolve"
+    },
+    "frozen": {
+      "history": [
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 1,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 2,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 3,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 4,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 5,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 6,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 0,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        }
+      ],
+      "mode": "frozen"
+    },
+    "shuffled_labels": {
+      "history": [
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 1,
+          "mean_energy": 1.0,
+          "mutations": 1,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 2,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 3,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 4,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 5,
+          "mean_energy": 1.0,
+          "mutations": 1,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        },
+        {
+          "alive": 4,
+          "class_counts": {
+            "000000": 1,
+            "000001": 1,
+            "111100": 1,
+            "111111": 1
+          },
+          "deaths": 0,
+          "generation": 6,
+          "mean_energy": 1.0,
+          "mutations": 0,
+          "newborns": 4,
+          "windows": [
+            "000000",
+            "000001",
+            "111100",
+            "111111"
+          ]
+        }
+      ],
+      "mode": "shuffled_labels"
+    }
+  },
+  "summary": {
+    "coevolve_ancestry_available": true,
+    "coevolve_common_share_last": 0.75,
+    "coevolve_mutations_total": 4,
+    "frozen_common_share_last": 0.25,
+    "shuffled_common_share_last": 0.25,
+    "shuffled_mutations_total": 2
+  }
+}

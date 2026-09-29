@@ -1,0 +1,84 @@
+{
+  "files": {
+    "engine_runtime.py (GenesisEngine)": {
+      "exists": true,
+      "n_lines": 622,
+      "sha256": "be2c78eaacad4dac98fab11c464ad4d47f3f44d5f64cfd407754c2d1baca292b",
+      "token_counts": {
+        "antagonist": 0,
+        "def fork": 0,
+        "from_state": 0,
+        "graded_affinity": 0,
+        "host_parasite": 0,
+        "infection": 0,
+        "parasite": 0,
+        "realised": 0,
+        "restore": 0
+      }
+    },
+    "genesis/checkpointing.py": {
+      "exists": true,
+      "n_lines": 123,
+      "sha256": "785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e",
+      "token_counts": {
+        "antagonist": 0,
+        "def fork": 0,
+        "from_state": 0,
+        "graded_affinity": 0,
+        "host_parasite": 0,
+        "infection": 0,
+        "parasite": 0,
+        "realised": 0,
+        "restore": 0
+      }
+    },
+    "genesis/engine.py (facade)": {
+      "exists": true,
+      "n_lines": 43,
+      "sha256": "65c3ad3c76a298d836b3d92dd2bcfb8b6b0d34ebb54c5ea1d675902238d00df0",
+      "token_counts": {
+        "antagonist": 0,
+        "def fork": 0,
+        "from_state": 0,
+        "graded_affinity": 0,
+        "host_parasite": 0,
+        "infection": 0,
+        "parasite": 0,
+        "realised": 0,
+        "restore": 0
+      }
+    },
+    "genesis/host_parasite_world.py": {
+      "exists": true,
+      "n_lines": 1449,
+      "sha256": "17e3ffbd397a7e9dbea04568c07d039b9d9a872c2935aa96ee28f257309320a8",
+      "token_counts": {
+        "antagonist": 0,
+        "def fork": 0,
+        "from_state": 0,
+        "graded_affinity": 0,
+        "host_parasite": 6,
+        "infection": 1,
+        "parasite": 6,
+        "realised": 0,
+        "restore": 0
+      }
+    },
+    "life_loop/contact.py": {
+      "exists": true,
+      "n_lines": 465,
+      "sha256": "2bfcdb938c267f36ae02cfcb9c656d958dfd70ac5ed386b8ff1dfeec7c020e6a",
+      "token_counts": {
+        "antagonist": 0,
+        "def fork": 0,
+        "from_state": 0,
+        "graded_affinity": 0,
+        "host_parasite": 0,
+        "infection": 0,
+        "parasite": 0,
+        "realised": 0,
+        "restore": 0
+      }
+    }
+  }
+}

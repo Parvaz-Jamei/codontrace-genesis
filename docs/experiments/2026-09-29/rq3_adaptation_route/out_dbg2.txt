@@ -1,0 +1,4 @@
+b/src/codontrace/genesis/measurements/antagonist_population.py 1
+438
+'"""RQ-3: the antagonist as a heritable genotype population with reproduction,\ndeath and selection, plus the label-shuffl'
+438

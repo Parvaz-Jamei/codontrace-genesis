@@ -1,0 +1,64 @@
+{
+  "task": "task-12",
+  "purpose": "replace single-seed c* narrowing with a 100-paired-seed sweep",
+  "experiment": "CausalTape-7 two-fold-cost critical ratio",
+  "git": {
+    "origin_main_at_run_time": "74d98cb9575fc16f7137a3704a8cd896685df1c7",
+    "local_main_at_run_time": "74d98cb9575fc16f7137a3704a8cd896685df1c7",
+    "expected_origin_main_at_task_issue": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+    "observed_origin_main_at_first_sweep_start_16_17": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+    "observed_origin_main_before_resume_16_18": "1355b60099f62a8352ba867575e5bab7565c4518",
+    "sha_matches_expected": false,
+    "note": "origin/main was moving during this session because other team members were pushing, not because of this task: reflog shows 01ee4a2 -> 1355b6 at 16:17:25 ('docs(campaign): repair a dangling citation and commit the novelty synthesis') and a further push to 74d98cb before the 3-run gap fill. 2097 of 2100 runs executed while origin/main was 1355b6 and the final 3 while it was 74d98cb. The load-bearing guarantee is not the moving ref but the harness integrity check below: the four harness files were hash-identical at run time and are unchanged now, so every run executed the same audited code. The manifest records the ref only at write time, so the sha fields above reflect the LAST (3-run) fill invocation.",
+    "git_exe_available": false,
+    "sha_source": "codontrace-genesis/.git reflog + refs/remotes/origin/main (git.exe not on PATH)"
+  },
+  "harness_sha256": {
+    "causal-tape-experiment/sex_phase.py": "5491d49830e937df86084f9a622e2709cafd977afb96fd4d59795e32ebb0c253",
+    "causal-tape-experiment/sex_arms.py": "58053c539ccfea3e592abd219b0aaf8bb0848f2d09e2d637f442cabbf134766a",
+    "causal-tape-experiment/telemetry.py": "2dedde57dfe2bf658bd2f8a465c9b801ac709184c540e2c3d8c74ad8884cc10c",
+    "codontrace-genesis/src/codontrace/rng.py": "f47fb9c1f9609a931fe9553e157eaac57d928dfb86b6c78ef1c46f4e813ded15"
+  },
+  "sweep_script_sha256": "ad48af71035d9470cafbce6a6eee231aadefcd85b11ddb3dac078e42ee6925b9",
+  "config": {
+    "cost_levels": [
+      0.9,
+      1.0,
+      1.1,
+      1.2,
+      1.25,
+      1.5,
+      1.75
+    ],
+    "turnovers": [
+      1,
+      6,
+      12
+    ],
+    "seeds": [
+      8000,
+      8099,
+      100
+    ],
+    "generations": 400,
+    "infection_cost": 0.4,
+    "parasite_mutation": 0.005,
+    "fail_death": 0.9,
+    "antagonist": true,
+    "host_cap": 400,
+    "loci": 6
+  },
+  "config_digest": "572505500794cc3eeaae15c1a0e5e210b72aa67e415c655a40c1fe954a734c38",
+  "environment": {
+    "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "C:\\Users\\parvaz\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+    "workers": 4,
+    "logical_cores": 8,
+    "platform": "win32"
+  },
+  "planned_runs": 2100,
+  "raw_jsonl": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\sex_cost\\raw.jsonl",
+  "completed_runs": 2100,
+  "wall_seconds_total": 3213.7000000000003,
+  "wall_note": "main sweep (2097 runs) 3198.8 s + 3-run gap fill 14.9 s, 4 workers"
+}

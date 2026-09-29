@@ -1,0 +1,204 @@
+{
+  "gate_a": {
+    "gate": "A_determinism_floor",
+    "passed": true,
+    "checks": [
+      {
+        "seed": 3,
+        "digest": "038bcd1d59c59d7d0bf779b2a371ced861a291d9f1f7e566",
+        "events": 40,
+        "accepted": 17,
+        "identical": true,
+        "fast_identical": true
+      },
+      {
+        "seed": 11,
+        "digest": "60f1888a752b600c6339faa686a6db561f1aaeadbe4a2e3e",
+        "events": 40,
+        "accepted": 15,
+        "identical": true,
+        "fast_identical": true
+      },
+      {
+        "seed": 29,
+        "digest": "ad1ec52d8d551991faa1da79cb9cc2660c8d1dcc49411b11",
+        "events": 40,
+        "accepted": 17,
+        "identical": true,
+        "fast_identical": true
+      }
+    ]
+  },
+  "gate_b_neutral": {
+    "gate": "B_intervention_minimality",
+    "passed": true,
+    "checks": [
+      {
+        "event": "0:0>1",
+        "stream_unchanged": true,
+        "changed_bits": [
+          0
+        ],
+        "single_bit_is_target": true,
+        "bits_match_clear": true,
+        "fitness_matches_clear": true,
+        "delta_matches_analytic": true,
+        "suppressed_hits": 1
+      },
+      {
+        "event": "9:0>1",
+        "stream_unchanged": true,
+        "changed_bits": [
+          9
+        ],
+        "single_bit_is_target": true,
+        "bits_match_clear": true,
+        "fitness_matches_clear": true,
+        "delta_matches_analytic": true,
+        "suppressed_hits": 1
+      },
+      {
+        "event": "15:0>1",
+        "stream_unchanged": true,
+        "changed_bits": [
+          15
+        ],
+        "single_bit_is_target": true,
+        "bits_match_clear": true,
+        "fitness_matches_clear": true,
+        "delta_matches_analytic": true,
+        "suppressed_hits": 1
+      },
+      {
+        "event": "16:0>1",
+        "stream_unchanged": true,
+        "changed_bits": [
+          16
+        ],
+        "single_bit_is_target": true,
+        "bits_match_clear": true,
+        "fitness_matches_clear": true,
+        "delta_matches_analytic": true,
+        "suppressed_hits": 1
+      }
+    ]
+  },
+  "gate_b_selection": {
+    "gate": "B_selection_minimality",
+    "passed": true,
+    "target": "0:0>1",
+    "stream_unchanged": true,
+    "suppressed_hits": 1,
+    "natural_fitness": 16.963678523352797,
+    "intervened_fitness": 16.34311039755934
+  },
+  "gate_c": {
+    "gate": "C_fast_path_equivalence",
+    "passed": true,
+    "checks": [
+      {
+        "eps": 0.0,
+        "seed": 0,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.0,
+        "seed": 1,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.0,
+        "seed": 2,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.0,
+        "seed": 3,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.0,
+        "seed": 4,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.0,
+        "seed": 5,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 0,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 1,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 2,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 3,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 4,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      },
+      {
+        "eps": 0.4,
+        "seed": 5,
+        "events_equal": true,
+        "bits_equal": true,
+        "fitness_equal": true,
+        "rng_equal": true
+      }
+    ]
+  },
+  "gate_d": {
+    "gate": "D_perturbed_seed_inequality",
+    "passed": true,
+    "unique_digests": 6,
+    "n_seeds": 6
+  },
+  "all_passed": true
+}

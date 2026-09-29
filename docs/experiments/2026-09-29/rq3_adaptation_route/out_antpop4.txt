@@ -1,0 +1,28 @@
+{
+ "coevolve": {
+  "alive_last": 4,
+  "common_share_first": 0.25,
+  "common_share_g10": 0.25,
+  "common_share_last": 0.25,
+  "extinct": false
+ },
+ "frozen": {
+  "alive_last": 4,
+  "common_share_first": 0.25,
+  "common_share_g10": 0.25,
+  "common_share_last": 0.25,
+  "extinct": false
+ },
+ "shuffled_labels": {
+  "alive_last": 4,
+  "common_share_first": 0.25,
+  "common_share_g10": 0.25,
+  "common_share_last": 0.25,
+  "extinct": false
+ },
+ "verdict": {
+  "cut_removes_it": true,
+  "heritable_adaptation_exists": false,
+  "no_extinction": true
+ }
+}

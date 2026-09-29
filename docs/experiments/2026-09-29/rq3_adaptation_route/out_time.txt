@@ -1,0 +1,14 @@
+boot 0.0s
+gen1 1.0s
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys,time;sys.path.insert(0,r'E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src');from codontrace.genesis.closed_loop_hp_arm01_structural_rq import StructuralRQArm;from codontrace.genesis.closed_loop_hp_arm01 import ARM_COPASSAGED;t=time.perf_counter();a=StructuralRQArm.boot_structural(arm=ARM_COPASSAGED,seed=10);print('boot %.1fs'%(time.perf_counter()-t),flush=True);a.run_generations(1);print('gen1 %.1fs'%(time.perf_counter()-t),flush=True);a.run_generations(4);print('gen5 %.1fs'%(time.perf_counter()-t),flush=True);a.run_generations(5);print('gen10 %.1fs'%(time.perf_counter()-t),flush=True)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ~~~~~~~~~~~~~~~~~^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\closed_loop_hp_arm01_structural_rq.py", line 566, in run_generations
+    assert_census_series_len(self, generations=generations)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\codontrace-genesis\src\codontrace\genesis\closed_loop_hp_arm01_structural_rq.py", line 343, in assert_census_series_len
+    raise ConfigurationError(
+    ...<2 lines>...
+    )
+codontrace.errors.ConfigurationError: census series length mismatch: host=5 parasite=5 expected_generations=4

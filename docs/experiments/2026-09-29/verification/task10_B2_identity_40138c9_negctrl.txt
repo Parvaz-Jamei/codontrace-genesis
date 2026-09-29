@@ -1,0 +1,133 @@
+tree under test : 40138c9_UNPATCHED
+engine module   : E:\_ci_verify\neg40138c9\src\codontrace\engine_runtime.py
+seed            : 31
+{
+  "K": 0,
+  "N": 1,
+  "all_four_ok": false,
+  "child_indices": [
+    0
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    0
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+{
+  "K": 0,
+  "N": 2,
+  "all_four_ok": false,
+  "child_indices": [
+    0,
+    1
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    0,
+    1
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+{
+  "K": 0,
+  "N": 5,
+  "all_four_ok": false,
+  "child_indices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+{
+  "K": 3,
+  "N": 1,
+  "all_four_ok": false,
+  "child_indices": [
+    3
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    3
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+{
+  "K": 3,
+  "N": 2,
+  "all_four_ok": false,
+  "child_indices": [
+    3,
+    4
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    3,
+    4
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+{
+  "K": 3,
+  "N": 5,
+  "all_four_ok": false,
+  "child_indices": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "fork_isolation": null,
+  "fork_state_exact": null,
+  "generation_digest_ok": false,
+  "index_ok": true,
+  "original_tail_indices": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "population_digest_ok": false,
+  "tick_digest_ok": false
+}
+
+=== identity cells 0/6 PASS ===
+  K=0 N=1 index=True tick=False gen=False pop=False
+  K=0 N=2 index=True tick=False gen=False pop=False
+  K=0 N=5 index=True tick=False gen=False pop=False
+  K=3 N=1 index=True tick=False gen=False pop=False
+  K=3 N=2 index=True tick=False gen=False pop=False
+  K=3 N=5 index=True tick=False gen=False pop=False

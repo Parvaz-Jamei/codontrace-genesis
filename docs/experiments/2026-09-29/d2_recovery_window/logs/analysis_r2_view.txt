@@ -1,0 +1,12 @@
+verdict BLOCKED_MEASUREMENT
+n_runs 36 histories 6
+ablate_knowledge_digest 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0]
+control 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0]
+cut_matched_random 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0, 1.351222383]
+cut_named_scaffold 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0, 0.957095996]
+scramble_contacts 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0]
+sham 6 p_rec 0.0 p_ret 0.0 ext 1.0 cens 6 burdens [0.0]
+refusal_fired False all_paths_ident False
+blocking
+ - PRE-TOPOLOGY: only the coupler's fixed global edge-count penalty (n_edge_changes x 0.35 plus a matching food term) reaches the engine; contact_structu
+ - PRE-ENDPOINT: the pre-registered endpoint never moves above its 1.25x baseline rule in any arm; the recovery-opportunity precondition is not shown

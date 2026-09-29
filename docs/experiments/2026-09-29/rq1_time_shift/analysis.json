@@ -1,0 +1,638 @@
+{
+  "analysis_digest": "sha256:2f5b24b79b34e855343bf5a659d0b930095364dbf17d0ebc68f370d817658f0c",
+  "decision": "BLOCKED_MEASUREMENT",
+  "decision_reason": "The RQ-1 assay requires a dated history whose host and antagonist are genotype populations contacting under a realised-pressure law, plus a full-state fork for the frozen/host-only/shuffled arms. Neither exists on the live model. The stage-0 meter passes, but a passing instrument is not a result about a live population, so no effect can be estimated.",
+  "effect_and_interval_table": {
+    "extinction_or_censoring_rate": {
+      "defined": false,
+      "reason": "no live RQ-1 run"
+    },
+    "paired_seed_level_effect": {
+      "defined": false,
+      "n_paired_seeds": 0,
+      "reason": "no independent population history and no fork point"
+    },
+    "primary_outcome": "interaction contrast I(h,a) = pi(h,a) - row_mean(h) - col_mean(a) + grand_mean of the host-time x antagonist-time realised-pressure matrix",
+    "rows": [
+      {
+        "arm": "coevolve_contemporary",
+        "i_contemp": 0.2944444444,
+        "i_lag": -0.1388888889,
+        "interval": {
+          "fraction": 0.1666666667,
+          "method": "time_label_randomisation_over_6_permutations",
+          "n_permutations": 6,
+          "n_support_label": 1
+        },
+        "label": "contemporary_match",
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": true,
+        "unit": "pre_registered_fixture_matrix"
+      },
+      {
+        "arm": "lagged",
+        "i_contemp": -0.1888888889,
+        "i_lag": 0.2277777778,
+        "interval": {
+          "fraction": 0.1666666667,
+          "method": "time_label_randomisation_over_6_permutations",
+          "n_permutations": 6,
+          "n_support_label": 1
+        },
+        "label": "lagged_match",
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": true,
+        "unit": "pre_registered_fixture_matrix"
+      },
+      {
+        "arm": "directional_arms_race",
+        "i_contemp": 0.0111111111,
+        "i_lag": -0.0055555556,
+        "interval": {
+          "fraction": 0.1666666667,
+          "method": "time_label_randomisation_over_6_permutations",
+          "n_permutations": 6,
+          "n_support_label": 1
+        },
+        "label": "directional_increase",
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": false,
+        "unit": "pre_registered_fixture_matrix"
+      },
+      {
+        "arm": "frozen_flat",
+        "i_contemp": -0.0,
+        "i_lag": -0.0,
+        "interval": {
+          "fraction": 0.1666666667,
+          "method": "time_label_randomisation_over_6_permutations",
+          "n_permutations": 6,
+          "n_support_label": 1
+        },
+        "label": "flat",
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": false,
+        "unit": "pre_registered_fixture_matrix"
+      },
+      {
+        "arm": "host_only_zero",
+        "i_contemp": 0.0,
+        "i_lag": 0.0,
+        "interval": {
+          "fraction": 0.1666666667,
+          "method": "time_label_randomisation_over_6_permutations",
+          "n_permutations": 6,
+          "n_support_label": 1
+        },
+        "label": "flat",
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": false,
+        "unit": "pre_registered_fixture_matrix"
+      },
+      {
+        "arm": "live_model",
+        "exclusion_reason": "missing preconditions listed in analysis.json",
+        "i_contemp": null,
+        "i_lag": null,
+        "interval": {
+          "excludes_zero": null,
+          "hi": null,
+          "lo": null,
+          "method": "run_level_cluster_bootstrap",
+          "n_runs": 0,
+          "note": "undefined: zero eligible independent population histories",
+          "point": null
+        },
+        "label": null,
+        "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+        "supports": null,
+        "unit": "independent_population_history"
+      }
+    ],
+    "schema_version": "rq1_effect_table_v1",
+    "thresholds": {
+      "note": "The program's 0.20 and -0.148 locks were not changed and are not used as RQ-1 acceptance thresholds.",
+      "scientific_effect_threshold": null
+    }
+  },
+  "exclusions": [
+    {
+      "item": "live engine cells, seeds 301/302",
+      "reason": "host-lineage census without an antagonist; not RQ-1 data"
+    },
+    {
+      "item": "Idea-2 antagonist counter",
+      "reason": "scalar counter, not a genotype population"
+    },
+    {
+      "item": "HostParasiteWorld allele-exact matrix",
+      "reason": "match rate, not ATP pressure"
+    },
+    {
+      "item": "HostParasiteWorld compact[:6] affinity matrix",
+      "reason": "recognition window invented by this probe, not a model definition"
+    }
+  ],
+  "flags": {
+    "arms_race_proved": false,
+    "hypothesis_supported": false,
+    "instrument_positive_case": true,
+    "population_run": false,
+    "red_queen_proved": false
+  },
+  "live_model_attempt": {
+    "admissible_pi_realised_matrices": 0,
+    "matrices_obtained": [
+      {
+        "admissible_as_pi_realised": false,
+        "contrast": {
+          "i_contemp": 0.0034120788,
+          "i_lag": -0.0042439487,
+          "i_max": {
+            "cell": [
+              "future",
+              "past"
+            ],
+            "value": 0.0152739367
+          },
+          "interaction": {
+            "future": {
+              "future": -0.0053331661,
+              "now": -0.0099407707,
+              "past": 0.0152739367
+            },
+            "now": {
+              "future": -0.0048649521,
+              "now": 0.0034120788,
+              "past": 0.0014528733
+            },
+            "past": {
+              "future": 0.0101981182,
+              "now": 0.0065286918,
+              "past": -0.0167268101
+            }
+          },
+          "n_negative_cells": 4,
+          "n_positive_cells": 5,
+          "uniform_increase": false
+        },
+        "label": "other",
+        "matrix_kind": "matrix_allele_exact",
+        "reason": "allele-exact match rate is the time-shift witness's own currency; it is not ATP pressure and carries no contact cost",
+        "seed": 11
+      },
+      {
+        "admissible_as_pi_realised": false,
+        "contrast": {
+          "i_contemp": -0.0888888889,
+          "i_lag": -0.2222222222,
+          "i_max": {
+            "cell": [
+              "past",
+              "now"
+            ],
+            "value": 0.3111111111
+          },
+          "interaction": {
+            "future": {
+              "future": 0.1777777778,
+              "now": -0.2222222222,
+              "past": 0.0444444444
+            },
+            "now": {
+              "future": 0.3111111111,
+              "now": -0.0888888889,
+              "past": -0.2222222222
+            },
+            "past": {
+              "future": -0.4888888889,
+              "now": 0.3111111111,
+              "past": 0.1777777778
+            }
+          },
+          "n_negative_cells": 4,
+          "n_positive_cells": 5,
+          "uniform_increase": false
+        },
+        "label": "other",
+        "matrix_kind": "matrix_affinity_pi",
+        "reason": "pi_realised computed on compact[:6] windows invented by this probe; the live model has no recognition window and no graded-affinity ATP debit, so this is not the model's pressure",
+        "seed": 11
+      },
+      {
+        "admissible_as_pi_realised": false,
+        "contrast": {
+          "i_contemp": 0.0232197972,
+          "i_lag": 0.0146467152,
+          "i_max": {
+            "cell": [
+              "past",
+              "future"
+            ],
+            "value": 0.0429122575
+          },
+          "interaction": {
+            "future": {
+              "future": 0.0013944003,
+              "now": 0.0082065697,
+              "past": -0.00960097
+            },
+            "now": {
+              "future": -0.0443066579,
+              "now": 0.0232197972,
+              "past": 0.0210868607
+            },
+            "past": {
+              "future": 0.0429122575,
+              "now": -0.0314263669,
+              "past": -0.0114858907
+            }
+          },
+          "n_negative_cells": 4,
+          "n_positive_cells": 5,
+          "uniform_increase": false
+        },
+        "label": "other",
+        "matrix_kind": "matrix_allele_exact",
+        "reason": "allele-exact match rate is the time-shift witness's own currency; it is not ATP pressure and carries no contact cost",
+        "seed": 22
+      },
+      {
+        "admissible_as_pi_realised": false,
+        "contrast": {
+          "i_contemp": 0.1777777778,
+          "i_lag": -0.0888888889,
+          "i_max": {
+            "cell": [
+              "now",
+              "now"
+            ],
+            "value": 0.1777777778
+          },
+          "interaction": {
+            "future": {
+              "future": 0.1777777778,
+              "now": -0.2222222222,
+              "past": 0.0444444444
+            },
+            "now": {
+              "future": -0.2222222222,
+              "now": 0.1777777778,
+              "past": 0.0444444444
+            },
+            "past": {
+              "future": 0.0444444444,
+              "now": 0.0444444444,
+              "past": -0.0888888889
+            }
+          },
+          "n_negative_cells": 3,
+          "n_positive_cells": 6,
+          "uniform_increase": false
+        },
+        "label": "other",
+        "matrix_kind": "matrix_affinity_pi",
+        "reason": "pi_realised computed on compact[:6] windows invented by this probe; the live model has no recognition window and no graded-affinity ATP debit, so this is not the model's pressure",
+        "seed": 22
+      }
+    ],
+    "note": "A 3x3 cross-time matrix can be computed from one HostParasiteWorld history, but neither variant is the model's pi_realised: the allele-exact matrix is a match rate, and the affinity matrix needs a recognition window this model does not define. Reporting either as the RQ-1 primary would be measurement outrunning the model."
+  },
+  "preconditions": {
+    "antagonist_is_genotype_population": false,
+    "antagonist_is_independent_population": false,
+    "checkpoint_fork_complete": false,
+    "eligible_independent_population_histories": 0,
+    "engine_has_antagonist_token": false,
+    "host_parasite_world_fork_methods": [
+      "life_loop_snapshot"
+    ],
+    "missing": [
+      "No dated history contains an antagonist genotype population: the live GenesisEngine runs zero antagonists (source token count 0), the Idea-2 census antagonist is a capped scalar counter (parasite_is_genotype_population=false on every arm), and the abstract HostParasiteWorld is not wired into the engine.",
+      "GenesisEngine has no host-antagonist contact route, so no contact opportunity, no intended/realised debit and no pi_realised can be observed.",
+      "No full-state checkpoint fork exists: RunCheckpoint carries only digests (no restorable state), checkpoint_fork_complete=false and parent_child_ids_recorded=false, so the frozen-antagonist, host-only and shuffled-label arms cannot start from one fork point with independent labelled RNG streams."
+    ],
+    "parent_child_ids_recorded": false,
+    "run_checkpoint_carries_restorable_state": false,
+    "run_checkpoint_fields": [
+      "run_id",
+      "tick",
+      "manifest_digest",
+      "snapshot_digest",
+      "rng_state_digest",
+      "schema_version"
+    ]
+  },
+  "repo_head": {
+    "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+    "dirty_flag": null,
+    "dirty_flag_reason": "git executable is not on PATH in this session; the dirty flag cannot be computed and is recorded as null rather than guessed.",
+    "git_executable_available": false,
+    "head_file": "ref: refs/heads/main",
+    "packed_refs_present": false,
+    "ref": "refs/heads/main"
+  },
+  "schema_version": "rq1_analysis_v1",
+  "sources": {
+    "events.jsonl": {
+      "bytes": 23328,
+      "exists": true,
+      "sha256": "4ca87f284345ddcaddcb1528e08fab1e022ee820e30fa0509baad3b8bd01be21"
+    },
+    "population.jsonl": {
+      "bytes": 14695,
+      "exists": true,
+      "sha256": "7e06e674d6aede7d27c4a0e2dab4aac035b7ba6768b24605fc96f2908dfd897d"
+    },
+    "probe_checkpoint_fork.json": {
+      "bytes": 2241,
+      "exists": true,
+      "sha256": "e51c8f867ef20cad0ad964a050cd3df9c2a6bee852c4c5f10854b5f110d21ca0"
+    },
+    "probe_cross_time_matrix.json": {
+      "bytes": 4473,
+      "exists": true,
+      "sha256": "5ae77fc41e973f05676431e40c0568a65bc23319825ccf6aa12087a149257ee7"
+    },
+    "probe_determinism.json": {
+      "bytes": 651,
+      "exists": true,
+      "sha256": "815cb8eb2d9d9588cdd3946e3ea6caf02cedfce1545cd55d87bec92ddead4dbc"
+    },
+    "probe_engine_antagonist.json": {
+      "bytes": 9439,
+      "exists": true,
+      "sha256": "d2d3fdf55c6d47118db3421f88c94da74498be5052514946ac0231057c8600d2"
+    },
+    "probe_live_generations.json": {
+      "bytes": 1146,
+      "exists": true,
+      "sha256": "98649e35c19d3cdf096d43ce0ea38048e3f16622bf65cfd69cfc2bff859aabf9"
+    },
+    "probe_measurement_kernel.json": {
+      "bytes": 779,
+      "exists": true,
+      "sha256": "e456b28bf0e50ad5246968319980f44c1dcc19543a4924bb1f8c5752999a4b99"
+    },
+    "probe_meter_reachability.json": {
+      "bytes": 2662,
+      "exists": true,
+      "sha256": "805516ccb3dc1990443f66b4547981d75d94de7253e7e1c7f4eb94ea83dbc668"
+    },
+    "probe_run.json": {
+      "bytes": 1646,
+      "exists": true,
+      "sha256": "586281a77997cf91c43b3828da82121a776eef6a6037c84d7521d321bd0bace7"
+    },
+    "probe_source_scan.json": {
+      "bytes": 2232,
+      "exists": true,
+      "sha256": "930c62b2574de9bb32bb6ce49a561f6dc141ff651089a7d86bc0277a7623bdba"
+    },
+    "stage0_fixture_events.jsonl": {
+      "bytes": 1671,
+      "exists": true,
+      "sha256": "3cc71a6f1c233cc950929337607da94280236dcb355a60251b2d4b294f71cc0c"
+    },
+    "stage0_fixtures.json": {
+      "bytes": 13462,
+      "exists": true,
+      "sha256": "1fdf01e3936b8d77efba6331afb9d2765e0a624017f955517e6cb186175ff253"
+    }
+  },
+  "stage0_instrument": {
+    "fixtures": [
+      {
+        "fixture": "coevolve_contemporary",
+        "i_contemp": 0.2944444444,
+        "i_lag": -0.1388888889,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "i_max_value": 0.3611111111,
+        "label": "contemporary_match",
+        "n_negative_cells": 6,
+        "n_positive_cells": 3,
+        "supports_fluctuating_selection": true,
+        "uniform_increase": false
+      },
+      {
+        "fixture": "lagged",
+        "i_contemp": -0.1888888889,
+        "i_lag": 0.2277777778,
+        "i_max_cell": [
+          "now",
+          "past"
+        ],
+        "i_max_value": 0.2944444444,
+        "label": "lagged_match",
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "supports_fluctuating_selection": true,
+        "uniform_increase": false
+      },
+      {
+        "fixture": "directional_arms_race",
+        "i_contemp": 0.0111111111,
+        "i_lag": -0.0055555556,
+        "i_max_cell": [
+          "future",
+          "future"
+        ],
+        "i_max_value": 0.0444444444,
+        "label": "directional_increase",
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "supports_fluctuating_selection": false,
+        "uniform_increase": false
+      },
+      {
+        "fixture": "frozen_flat",
+        "i_contemp": -0.0,
+        "i_lag": -0.0,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "i_max_value": -0.0,
+        "label": "flat",
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "supports_fluctuating_selection": false,
+        "uniform_increase": false
+      },
+      {
+        "fixture": "host_only_zero",
+        "i_contemp": 0.0,
+        "i_lag": 0.0,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "i_max_value": 0.0,
+        "label": "flat",
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "supports_fluctuating_selection": false,
+        "uniform_increase": false
+      }
+    ],
+    "kernel_hand_cases": {
+      "affinity_grid_example": {
+        "future": {
+          "future": 1.0,
+          "now": 0.5,
+          "past": 0.5
+        },
+        "now": {
+          "future": 0.5,
+          "now": 1.0,
+          "past": 0.0
+        },
+        "past": {
+          "future": 0.5,
+          "now": 0.0,
+          "past": 1.0
+        }
+      },
+      "example_histogram_blind": {
+        "affinity_a_000000_000001": 0.8333333333333334,
+        "affinity_b_against_000011": 0.0
+      },
+      "flat_affinity": {
+        "kappa": 1.2,
+        "pressure": {
+          "A": 0.6
+        }
+      },
+      "truncation": {
+        "kappa": 1.2,
+        "pressure": {
+          "A": 0.5
+        }
+      },
+      "two_host_classes": {
+        "class_frequency_used": false,
+        "equal_exposure": true,
+        "histogram_used": false,
+        "pressure": {
+          "A": 0.9,
+          "B": 0.1
+        }
+      }
+    },
+    "label_reachability_under_affinity_law": {
+      "contemporary_match": {
+        "reachable": true,
+        "witness": {
+          "hosts": {
+            "future": "000100",
+            "now": "000001",
+            "past": "000000"
+          },
+          "matrix": {
+            "future": {
+              "future": 0.8333333333333334,
+              "now": 0.5,
+              "past": 0.8333333333333334
+            },
+            "now": {
+              "future": 0.5,
+              "now": 0.8333333333333334,
+              "past": 0.8333333333333334
+            },
+            "past": {
+              "future": 0.6666666666666666,
+              "now": 0.6666666666666666,
+              "past": 1.0
+            }
+          },
+          "parasites": {
+            "future": "001100",
+            "now": "000011",
+            "past": "000000"
+          }
+        }
+      },
+      "directional_increase": {
+        "reachable": true,
+        "witness": {
+          "hosts": {
+            "future": "101111",
+            "now": "011111",
+            "past": "001111"
+          },
+          "matrix": {
+            "future": {
+              "future": 0.8333333333333334,
+              "now": 0.5,
+              "past": 0.16666666666666666
+            },
+            "now": {
+              "future": 0.8333333333333334,
+              "now": 0.5,
+              "past": 0.16666666666666666
+            },
+            "past": {
+              "future": 1.0,
+              "now": 0.6666666666666666,
+              "past": 0.3333333333333333
+            }
+          },
+          "parasites": {
+            "future": "001111",
+            "now": "000011",
+            "past": "000000"
+          }
+        }
+      },
+      "lagged_match": {
+        "reachable": true,
+        "witness": {
+          "hosts": {
+            "future": "000011",
+            "now": "000000",
+            "past": "000001"
+          },
+          "matrix": {
+            "future": {
+              "future": 1.0,
+              "now": 1.0,
+              "past": 0.6666666666666666
+            },
+            "now": {
+              "future": 0.6666666666666666,
+              "now": 0.6666666666666666,
+              "past": 1.0
+            },
+            "past": {
+              "future": 0.8333333333333334,
+              "now": 0.8333333333333334,
+              "past": 0.8333333333333334
+            }
+          },
+          "parasites": {
+            "future": "000011",
+            "now": "000011",
+            "past": "000000"
+          }
+        }
+      }
+    },
+    "note": "A passing instrument fixture is not a population result. The contemporary and lagged fixtures receive support labels and a positive interaction contrast; the arms-race fixture is a main effect with a near-zero interaction; the frozen and host-only fixtures are flat; 5 of 6 time-label permutations destroy the support label.",
+    "passed": true,
+    "randomisation_control": {
+      "fraction_support_label": 0.1666666667,
+      "n_permutations": 6,
+      "n_support_label": 1
+    },
+    "replay_identical": {
+      "engine": true,
+      "kernel": true,
+      "world": true
+    },
+    "rotation_control_i_contemp": -0.1888888889,
+    "rotation_control_label": "other"
+  }
+}

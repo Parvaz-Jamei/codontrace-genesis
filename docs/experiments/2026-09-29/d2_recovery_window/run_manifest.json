@@ -1,0 +1,97 @@
+{
+  "archive_bytes": 21032960,
+  "archive_path": "test-runs/d2/provenance/tip.tar",
+  "archive_sha256": "e4ba113bbc5858f90f579309cc5c7510771d1c25e221b06d96e01f0043926c7e",
+  "arms": [
+    "cut_matched_random",
+    "cut_named_scaffold",
+    "sham"
+  ],
+  "checkpoints": [
+    10,
+    20,
+    30
+  ],
+  "claim_ceiling": "phase2_design",
+  "commit": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+  "commit_source": "manager confirmation; no git binary on this host, so git archive could not be run",
+  "config_digest": "20a38187cb61b12e47d3418e4c5609cd",
+  "design": "independent re-simulation per arm",
+  "ecology": "persistence_safe",
+  "files": {
+    "analysis": "test-runs/d2/analysis_round4.json",
+    "raw": "test-runs/d2/raw/round4/round4_raw.json"
+  },
+  "fork": {
+    "api": "GenesisEngine.capture_fork/from_fork",
+    "cause": "mappingproxy registries make copy.deepcopy impossible for these objects",
+    "isolation_map": {
+      "element_grid": "shared_reference",
+      "nexus_layer": "deepcopy",
+      "population": "shared_reference",
+      "world": "deepcopy"
+    },
+    "population_isolation_holds": false,
+    "shared_reference_objects": [
+      "population",
+      "element_grid"
+    ]
+  },
+  "fork_used": false,
+  "git_archive_attempt": "failed: 'git' is not recognized as an internal or external command",
+  "git_binary": "C:/Users/parvaz/AppData/Local/GitHubDesktop/app-3.5.12/resources/app/git/cmd/git.exe",
+  "horizon": 40,
+  "hypothesis_supported": false,
+  "isolation_holds": true,
+  "isolation_probe": {
+    "advanced_to_checkpoint_first": true,
+    "different_arm_z_differs": true,
+    "engines_built_independently": true,
+    "fork_used": false,
+    "interleaved_same_arm_x_equals_y": true,
+    "isolation_holds": true,
+    "population_objects_distinct": true,
+    "x": [
+      "ed2602ed74a5",
+      "509bb9cabae2",
+      "4471e2ed2c74"
+    ],
+    "y": [
+      "ed2602ed74a5",
+      "509bb9cabae2",
+      "4471e2ed2c74"
+    ],
+    "z": [
+      "ccf9e19b2bff",
+      "c7d49cdc9b04",
+      "bf2330f6832b"
+    ]
+  },
+  "maintenance_value": "fork_state_exact + persistence_safe ecology",
+  "manager_stated_tip": "02cc725 (differs from live HEAD; the run used the live tree)",
+  "n_histories": 6,
+  "n_runs": 18,
+  "pythonpath": "codontrace-genesis/src",
+  "red_queen_proved": false,
+  "replay": "python test-runs/d2/harness/d2_replay.py --run-dir <run_dir>",
+  "reproduce": "python test-runs/d2/harness/d2_round4.py",
+  "rng_streams": {
+    "engine": "seed schedule spec.seed + _tick_offset + index; tick offset restored by from_fork",
+    "ledger": "random.Random(seed) per arm"
+  },
+  "round": 4,
+  "schema": "d2-pack-v1",
+  "seeds": [
+    5501,
+    5502
+  ],
+  "tip": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+  "tip_source": "git rev-parse HEAD via absolute git binary",
+  "tree_clean": true,
+  "verdict": "FALSIFIED_IN_MODEL",
+  "wall_seconds_per_test": {
+    "round3_measurement": 149.0
+  },
+  "wall_seconds_total": 294.85,
+  "workers": 1
+}

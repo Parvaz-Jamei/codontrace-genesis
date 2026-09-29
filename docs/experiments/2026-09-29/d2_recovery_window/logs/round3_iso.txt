@@ -1,0 +1,5 @@
+isolation[0] {"fork_state_exact": false, "n_alive_after_horizon": {"cut_matched_random": 2, "cut_named_scaffold": 2, "sham": 2}, "n_arms_restored_from_one_payload": 3, "population_isolation_holds": true, "population_object_shared_between_arms": false, "population_object_shared_with_history": true, "seed": 5501, "t_intervene": 10}
+iso flags all holds: True
+shared_with_history any: True
+cell iso map: {"element_grid": "shared_reference", "nexus_layer": "deepcopy", "population": "shared_reference", "world": "deepcopy"}
+hex: {"n_peers_at_restore": 1, "population_is_not_history": false, "population_is_not_peer": true, "state_exact": false}

@@ -1,0 +1,22 @@
+control                  final=3c43107bd3a3ad33 repeat_identical=True burden=0.35
+cut_named_scaffold       final=6d7a5d4dbc496cb9 repeat_identical=True burden=3.2202197309490583
+cut_matched_random       final=6d7a5d4dbc496cb9 repeat_identical=True burden=3.2202197309490583
+scramble_contacts        final=d72039b424571361 repeat_identical=True burden=4.549999999999999
+{
+  "control": {
+    "identical_to_control_from_t": true,
+    "first_diff_gen": null
+  },
+  "cut_named_scaffold": {
+    "identical_to_control_from_t": false,
+    "first_diff_gen": 10
+  },
+  "cut_matched_random": {
+    "identical_to_control_from_t": false,
+    "first_diff_gen": 10
+  },
+  "scramble_contacts": {
+    "identical_to_control_from_t": false,
+    "first_diff_gen": 10
+  }
+}

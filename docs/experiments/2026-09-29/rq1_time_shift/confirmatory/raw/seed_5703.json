@@ -1,0 +1,173 @@
+{
+  "arm_initial_state": [
+    {
+      "arm": "copassaged",
+      "census": 64,
+      "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+      "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+    },
+    {
+      "arm": "fixed",
+      "census": 64,
+      "genome_digest": "250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd",
+      "parasite_windows_sha": "28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4"
+    }
+  ],
+  "arm_match_at_generation_0": true,
+  "commit": "6187ff4",
+  "config_digest": "rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807",
+  "errors": [],
+  "frozen_is_zero": true,
+  "generations": 200,
+  "hypothesis_supported": false,
+  "red_queen_proved": false,
+  "regimes": {
+    "copassaged": {
+      "contrast": {
+        "i_contemp": 0.0057280175,
+        "i_lag": -0.0042985259,
+        "i_max": 0.0134279698,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "uniform_increase": false
+      },
+      "gates": {
+        "non_zero": true,
+        "variation": true
+      },
+      "label": "other",
+      "matrix": {
+        "future": {
+          "future": 0.6124223602,
+          "now": 0.6162318841,
+          "past": 0.5956521739
+        },
+        "now": {
+          "future": 0.62,
+          "now": 0.6266666667,
+          "past": 0.5953846154
+        },
+        "past": {
+          "future": 0.5954285714,
+          "now": 0.6,
+          "past": 0.6046153846
+        }
+      },
+      "passage": "coevolve",
+      "rotation_labels": {
+        "future": "other",
+        "now": "other",
+        "past": "other"
+      },
+      "slot_diagnostics": {
+        "future": {
+          "antagonist_classes": 28,
+          "antagonist_n": 64,
+          "census": 23,
+          "dominant_host": "00|00|01",
+          "host_classes": 17,
+          "host_richness": 17
+        },
+        "now": {
+          "antagonist_classes": 30,
+          "antagonist_n": 64,
+          "census": 20,
+          "dominant_host": "00|00|01",
+          "host_classes": 17,
+          "host_richness": 17
+        },
+        "past": {
+          "antagonist_classes": 26,
+          "antagonist_n": 64,
+          "census": 25,
+          "dominant_host": "00|10|01",
+          "host_classes": 19,
+          "host_richness": 19
+        }
+      },
+      "wall_s": 448.164
+    },
+    "fixed": {
+      "contrast": {
+        "i_contemp": 0.0,
+        "i_lag": 0.0,
+        "i_max": 0.0,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "uniform_increase": false
+      },
+      "gates": {
+        "non_zero": true,
+        "variation": true
+      },
+      "label": "flat",
+      "matrix": {
+        "future": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        },
+        "now": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        },
+        "past": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        }
+      },
+      "passage": "frozen",
+      "rotation_labels": {
+        "future": "flat",
+        "now": "flat",
+        "past": "flat"
+      },
+      "slot_diagnostics": {
+        "future": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 24,
+          "dominant_host": "01|10|10",
+          "host_classes": 21,
+          "host_richness": 21
+        },
+        "now": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 19,
+          "dominant_host": "00|11|11",
+          "host_classes": 14,
+          "host_richness": 14
+        },
+        "past": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 29,
+          "dominant_host": "01|10|00",
+          "host_classes": 19,
+          "host_richness": 19
+        }
+      },
+      "wall_s": 358.653
+    }
+  },
+  "schema_version": "rq1_confirmatory_v1",
+  "seed": 5703,
+  "seed_gates_ok": true,
+  "slots": {
+    "future": 110,
+    "now": 100,
+    "past": 90
+  },
+  "wall_s": 807.196
+}

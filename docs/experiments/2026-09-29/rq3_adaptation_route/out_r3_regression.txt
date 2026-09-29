@@ -1,0 +1,7 @@
+{
+ "empty_hist_generations": 0,
+ "hist_at_25_nonempty": true,
+ "parasite_n_at_25": 64,
+ "final_classes": 28,
+ "standing_path_builds_pop": true
+}

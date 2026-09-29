@@ -1,0 +1,571 @@
+{
+  "arm_table": {
+    "ablate_knowledge_digest": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "control": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "cut_matched_random": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0,
+        1.351222383,
+        1.49008225
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "cut_named_scaffold": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0,
+        0.957095996,
+        0.975
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "scramble_contacts": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    },
+    "sham": {
+      "budget_edge_term": [
+        0.0
+      ],
+      "burdens": [
+        0.0
+      ],
+      "censored_runs": 6,
+      "extinction_rate_final_n_zero": 1.0,
+      "n_digest_return_exploratory": 0,
+      "n_recover_preregistered": 0,
+      "n_runs": 6,
+      "p_digest_return_exploratory": 0.0,
+      "p_recover_preregistered": 0.0
+    }
+  },
+  "blocking_conditions": [
+    "TOPOLOGY IDENTIFIED: the named and matched arms now differ in burden and in population path, and the global count penalty is held at zero in the analysed allocation, so the refusal does not fire",
+    "PRE-OPPORTUNITY: every arm finished at n_alive = 0 (extinction rate 1.0) and the pre-registered endpoint never reached 1.25x; a flat-zero curve cannot test a recovery-window law"
+  ],
+  "claim_ceiling": "phase2_design",
+  "derived_from_raw_only": true,
+  "endpoints": {
+    "FI-RARECLASS-CONTACT-YIELD-V1": {
+      "date": "2026-09-28",
+      "role": "pre-registered",
+      "rule": "mean rare-class contact yield >= 1.25x the run's own pre-checkpoint baseline for >= 3 consecutive boundaries within T=40"
+    },
+    "GENOME-DIGEST-LOST-THEN-REGAINED-V1": {
+      "date": "2026-09-29",
+      "role": "exploratory, versioned separately, never pooled with the pre-registered endpoint",
+      "rule": "a checkpoint genome digest disappears and is present again later"
+    },
+    "antagonist_genotype": {
+      "reason": "no antagonist genotype population exists in this model",
+      "role": "absent"
+    }
+  },
+  "flags": {
+    "claimgate_refuses": [
+      "red_queen_proved",
+      "discovery_claim",
+      "first_claim"
+    ],
+    "injected_positive_is_not_a_result": true,
+    "soft_pass_forbidden": true
+  },
+  "fork_precondition": {
+    "evidence": {
+      "capture_fork_available": true,
+      "conclusion": "restorable full fork verified byte-identical (capture_fork/from_fork)",
+      "continuation_identical": true,
+      "deepcopy_error": "TypeError: cannot pickle 'mappingproxy' object",
+      "deepcopy_fork_available": false,
+      "deepcopy_ok": false,
+      "engine_has_rng_attribute": false,
+      "engine_restore_entry_points": [
+        "capture_fork",
+        "from_fork"
+      ],
+      "fork_available": true,
+      "fork_has_rng_state": true,
+      "fork_tick_index": 10,
+      "from_fork_available": true,
+      "parent_child_ids_preserved": true,
+      "rng_restore_available_somewhere": "codontrace.rng.RNGManager.restore",
+      "runner_has_rng_attribute": false,
+      "snapshot_fields": [
+        "element_grid_digest",
+        "population",
+        "qd_archive_digest",
+        "run_id",
+        "substrate_bridge_mode",
+        "world_digest"
+      ],
+      "snapshot_payload_keys": [
+        "element_grid_digest",
+        "population",
+        "qd_archive_digest",
+        "run_id",
+        "substrate_bridge_mode",
+        "world_digest"
+      ],
+      "snapshot_type": "codontrace.engine_results.GenesisSnapshot"
+    },
+    "fork_available": true
+  },
+  "hypothesis_supported": false,
+  "n_independent_histories": 6,
+  "n_runs": 36,
+  "paired_contrasts": {
+    "matched_minus_control": {
+      "hi": 0.0,
+      "inconclusive": false,
+      "lo": 0.0,
+      "method": "exact sign-flip randomisation over independent population histories",
+      "n": 6,
+      "note": "with n=2 development seeds the smallest attainable two-sided p is 0.5; inconclusive by construction",
+      "p_two_sided_exact": 1.0,
+      "point": 0.0
+    },
+    "named_minus_control": {
+      "hi": 0.0,
+      "inconclusive": false,
+      "lo": 0.0,
+      "method": "exact sign-flip randomisation over independent population histories",
+      "n": 6,
+      "note": "with n=2 development seeds the smallest attainable two-sided p is 0.5; inconclusive by construction",
+      "p_two_sided_exact": 1.0,
+      "point": 0.0
+    },
+    "named_minus_matched": {
+      "hi": 0.0,
+      "inconclusive": false,
+      "lo": 0.0,
+      "method": "exact sign-flip randomisation over independent population histories",
+      "n": 6,
+      "note": "with n=2 development seeds the smallest attainable two-sided p is 0.5; inconclusive by construction",
+      "p_two_sided_exact": 1.0,
+      "point": 0.0
+    }
+  },
+  "preconditions": {
+    "full_fork_available": true,
+    "recovery_opportunity_observed": false,
+    "refusal_fired": false,
+    "topology_identified": true
+  },
+  "red_queen_proved": false,
+  "refusal_test": {
+    "all_burdens_identical": false,
+    "all_paths_identical": false,
+    "condition": "named and rewired share realised contacts and population trajectory, or the difference is only the coupler's global edge-cost penalty",
+    "details": [
+      {
+        "burden": 0.9750000000000001,
+        "burden_identical": false,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": false,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "burden": 0.0,
+        "burden_identical": true,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": true,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "burden": 0.0,
+        "burden_identical": true,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": true,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "burden": 0.9570959961975714,
+        "burden_identical": false,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": false,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "burden": 0.0,
+        "burden_identical": true,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": true,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "burden": 0.0,
+        "burden_identical": true,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "matched_cut_edges": [
+          "E6",
+          "E7"
+        ],
+        "named_cut_edges": [
+          "E0",
+          "E1"
+        ],
+        "paths_identical": true,
+        "post_yields_identical": false,
+        "pre_paths_identical": true,
+        "scientific_contrast_eligible": false,
+        "seed": 5502,
+        "t_intervene": 30
+      }
+    ],
+    "penalty_only_rows": [
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.9750000000000001,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 1.4900822504604743,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 10
+      },
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 20
+      },
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5501,
+        "t_intervene": 30
+      },
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.9570959961975714,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 1.351222383274657,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 10
+      },
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 20
+      },
+      {
+        "arm": "cut_named_scaffold",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 30
+      },
+      {
+        "arm": "cut_matched_random",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5502,
+        "t_intervene": 30
+      },
+      {
+        "arm": "scramble_contacts",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": true,
+        "seed": 5502,
+        "t_intervene": 30
+      },
+      {
+        "arm": "ablate_knowledge_digest",
+        "burden_edge_term": 0.0,
+        "burden_total": 0.0,
+        "control_burden": 0.0,
+        "endpoint_identical_to_control": false,
+        "seed": 5502,
+        "t_intervene": 30
+      }
+    ],
+    "refusal_fired": false
+  },
+  "schema": "d2-pack-v1",
+  "statistics": {
+    "inconclusive": true,
+    "method": "paired seed-level effect with an exact sign-flip randomisation interval; extinction and censoring reported separately",
+    "reason": "the test is blocked before the confirmatory tier; n=2 development seeds cannot support an interval that excludes zero"
+  },
+  "unit_of_replication": "independent population history (seed x checkpoint)",
+  "verdict": "INCONCLUSIVE"
+}

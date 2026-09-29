@@ -1,0 +1,44 @@
+{
+  "arm": "absent",
+  "checksums": {
+    "ancestry.jsonl": "43d2c6a63852811624149a7b49cccc0de253c87e20a5f38c5d2f5aaeb9ff5e3d",
+    "contact_events.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "events.jsonl": "f1d3768b43b4a07b72081b4f0ec7ba838a47764638963be7798f6cb3946c0d16",
+    "population.jsonl": "a2acf89c79d2ab358a70577e9664e88a56e0253565c2c4767fad36caaee76f62",
+    "summary.json": "8eba7118162f6fe0837e4c2674795284bb50a190dd7b0775f5218848e96942f4"
+  },
+  "generations": 40,
+  "memory_rss_mb": 0.0,
+  "parameters": {
+    "antagonist_keep_fraction": 0.5,
+    "antagonist_mutation": 0.25,
+    "antagonist_pool_size": 0,
+    "founders": 58,
+    "host_bit_flip_rate": 0.02,
+    "resource_bolus_amount": 20.0,
+    "soft_carrying_capacity": 64,
+    "steal_fraction": 0.15,
+    "virulence": 8.0
+  },
+  "parent_snapshot": null,
+  "pid": 13252,
+  "platform": "Windows-11-10.0.22000-SP0",
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "replay_command": "python rq3_harness.py --stage replay --run-dir runs/rq3-absent-s21001-1790679518",
+  "repo": {
+    "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+    "dirty": "unknown (no git binary on PATH; not inferred from mtimes)",
+    "repo_head_file": "ref: refs/heads/main"
+  },
+  "rng_streams": {
+    "engine_seed_expression": "seed + tick_index + 1",
+    "namespace_note": "each external RNGManager is constructed with (seed, namespace); arms share the seed and differ by namespace/arm",
+    "passage_fork": "passage/{tick_index}",
+    "passage_namespace": "hp-struct-rq-avirulent"
+  },
+  "run_id": "rq3-absent-s21001-1790679518",
+  "schema_version": "rq3-manifest-v1",
+  "seed": 21001,
+  "stop_code": "COMPLETE",
+  "wall_s": 67.9475
+}

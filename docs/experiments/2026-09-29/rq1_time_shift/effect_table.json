@@ -1,0 +1,113 @@
+{
+  "extinction_or_censoring_rate": {
+    "defined": false,
+    "reason": "no live RQ-1 run"
+  },
+  "paired_seed_level_effect": {
+    "defined": false,
+    "n_paired_seeds": 0,
+    "reason": "no independent population history and no fork point"
+  },
+  "primary_outcome": "interaction contrast I(h,a) = pi(h,a) - row_mean(h) - col_mean(a) + grand_mean of the host-time x antagonist-time realised-pressure matrix",
+  "rows": [
+    {
+      "arm": "coevolve_contemporary",
+      "i_contemp": 0.2944444444,
+      "i_lag": -0.1388888889,
+      "interval": {
+        "fraction": 0.1666666667,
+        "method": "time_label_randomisation_over_6_permutations",
+        "n_permutations": 6,
+        "n_support_label": 1
+      },
+      "label": "contemporary_match",
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": true,
+      "unit": "pre_registered_fixture_matrix"
+    },
+    {
+      "arm": "lagged",
+      "i_contemp": -0.1888888889,
+      "i_lag": 0.2277777778,
+      "interval": {
+        "fraction": 0.1666666667,
+        "method": "time_label_randomisation_over_6_permutations",
+        "n_permutations": 6,
+        "n_support_label": 1
+      },
+      "label": "lagged_match",
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": true,
+      "unit": "pre_registered_fixture_matrix"
+    },
+    {
+      "arm": "directional_arms_race",
+      "i_contemp": 0.0111111111,
+      "i_lag": -0.0055555556,
+      "interval": {
+        "fraction": 0.1666666667,
+        "method": "time_label_randomisation_over_6_permutations",
+        "n_permutations": 6,
+        "n_support_label": 1
+      },
+      "label": "directional_increase",
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": false,
+      "unit": "pre_registered_fixture_matrix"
+    },
+    {
+      "arm": "frozen_flat",
+      "i_contemp": -0.0,
+      "i_lag": -0.0,
+      "interval": {
+        "fraction": 0.1666666667,
+        "method": "time_label_randomisation_over_6_permutations",
+        "n_permutations": 6,
+        "n_support_label": 1
+      },
+      "label": "flat",
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": false,
+      "unit": "pre_registered_fixture_matrix"
+    },
+    {
+      "arm": "host_only_zero",
+      "i_contemp": 0.0,
+      "i_lag": 0.0,
+      "interval": {
+        "fraction": 0.1666666667,
+        "method": "time_label_randomisation_over_6_permutations",
+        "n_permutations": 6,
+        "n_support_label": 1
+      },
+      "label": "flat",
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": false,
+      "unit": "pre_registered_fixture_matrix"
+    },
+    {
+      "arm": "live_model",
+      "exclusion_reason": "missing preconditions listed in analysis.json",
+      "i_contemp": null,
+      "i_lag": null,
+      "interval": {
+        "excludes_zero": null,
+        "hi": null,
+        "lo": null,
+        "method": "run_level_cluster_bootstrap",
+        "n_runs": 0,
+        "note": "undefined: zero eligible independent population histories",
+        "point": null
+      },
+      "label": null,
+      "primary_outcome": "host_time_x_antagonist_time_interaction_contrast",
+      "supports": null,
+      "unit": "independent_population_history"
+    }
+  ],
+  "schema_version": "rq1_effect_table_v1",
+  "thresholds": {
+    "note": "The program's 0.20 and -0.148 locks were not changed and are not used as RQ-1 acceptance thresholds.",
+    "scientific_effect_threshold": null
+  }
+}

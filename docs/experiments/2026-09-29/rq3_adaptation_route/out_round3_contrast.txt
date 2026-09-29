@@ -1,0 +1,50 @@
+{
+ "coevolve": {
+  "alive_last": 64,
+  "arm": "coevolve",
+  "common_share_first": 0.09375,
+  "common_share_g10": 0.09375,
+  "common_share_last": 0.171875,
+  "extinct": false,
+  "final_classes": 16,
+  "final_common_count": 11,
+  "final_roster": 64,
+  "generations": 60,
+  "maintenance": 0.15,
+  "mode": "coevolve"
+ },
+ "frozen": {
+  "alive_last": 64,
+  "arm": "frozen",
+  "common_share_first": 0.0625,
+  "common_share_g10": 0.0625,
+  "common_share_last": 0.0625,
+  "extinct": false,
+  "final_classes": 16,
+  "final_common_count": 4,
+  "final_roster": 64,
+  "generations": 60,
+  "maintenance": 0.15,
+  "mode": "frozen"
+ },
+ "shuffled_labels": {
+  "alive_last": 64,
+  "arm": "shuffled_labels",
+  "common_share_first": 0.0625,
+  "common_share_g10": 0.0625,
+  "common_share_last": 0.0625,
+  "extinct": false,
+  "final_classes": 16,
+  "final_common_count": 4,
+  "final_roster": 64,
+  "generations": 60,
+  "maintenance": 0.15,
+  "mode": "shuffled_labels"
+ },
+ "verdict": {
+  "coevolve_above_frozen": true,
+  "coevolve_above_shuffled": true,
+  "coevolve_share_last": 0.171875,
+  "maintenance_same_in_every_arm": 0.15
+ }
+}

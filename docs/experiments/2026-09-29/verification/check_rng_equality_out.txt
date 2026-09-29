@@ -1,0 +1,74 @@
+extracted pre-commit module -> E:\مقاله پزشکی شبیه سازی ویروس\test-runs\verify\_old_contact_atp_ledger.py
+pre-commit source sha256 = ada98994a6402b77899519d896a56f02689e0c44775acb2f895cc680e2485ba7
+PASS  stdlib seed=0 :: draws/call=512 sha256(old)=e20c37bf237e3f17 sha256(new)=e20c37bf237e3f17
+PASS  stdlib seed=1 :: draws/call=512 sha256(old)=14a130ba7c86c47a sha256(new)=14a130ba7c86c47a
+PASS  stdlib seed=7 :: draws/call=512 sha256(old)=9982e1001213ebb3 sha256(new)=9982e1001213ebb3
+PASS  stdlib seed=11 :: draws/call=512 sha256(old)=8b40ac5bae5b3bc5 sha256(new)=8b40ac5bae5b3bc5
+PASS  stdlib seed=401 :: draws/call=512 sha256(old)=2f3a152249182254 sha256(new)=2f3a152249182254
+PASS  stdlib seed=5501 :: draws/call=512 sha256(old)=4860cf117369aa8f sha256(new)=4860cf117369aa8f
+PASS  stdlib seed=2147483647 :: draws/call=512 sha256(old)=f05d346e462dba88 sha256(new)=f05d346e462dba88
+PASS  ledger __post_init__ int(rng_seed=0) :: draws/call=512 sha256(old)=e20c37bf237e3f17 sha256(new)=e20c37bf237e3f17
+PASS  ledger __post_init__ int(rng_seed=3) :: draws/call=512 sha256(old)=2bbf76352eb79757 sha256(new)=2bbf76352eb79757
+PASS  ledger __post_init__ int(rng_seed=401) :: draws/call=512 sha256(old)=2f3a152249182254 sha256(new)=2f3a152249182254
+PASS  unseeded construction does not raise :: old=Random new=StdlibSeedRNG
+PASS  unseeded-then-state-forced :: draws/call=64 sha256(old)=b63922c457c5275a sha256(new)=b63922c457c5275a
+PASS  scaffold snapshot seed=0 :: digest contact_atp_ledg vs contact_atp_ledg
+PASS  scaffold digest seed=0
+PASS  ledger op scramble_contacts seed=0
+PASS  ledger op reallocate_contact_budget seed=0
+PASS  ledger op matched_random_edge seed=0
+PASS  ledger op reward_explore_eps seed=0
+PASS  ledger op sham_cue_predphase seed=0
+PASS  ledger op scramble_contacts seed=0
+PASS  ledger op update_reactive_ledger seed=0
+PASS  snapshot after op schedule seed=0
+PASS  ledger rng re-seed drain seed=0 (512 draws)
+PASS  scaffold snapshot seed=7 :: digest contact_atp_ledg vs contact_atp_ledg
+PASS  scaffold digest seed=7
+PASS  ledger op scramble_contacts seed=7
+PASS  ledger op reallocate_contact_budget seed=7
+PASS  ledger op matched_random_edge seed=7
+PASS  ledger op reward_explore_eps seed=7
+PASS  ledger op sham_cue_predphase seed=7
+PASS  ledger op scramble_contacts seed=7
+PASS  ledger op update_reactive_ledger seed=7
+PASS  snapshot after op schedule seed=7
+PASS  ledger rng re-seed drain seed=7 (512 draws)
+PASS  scaffold snapshot seed=401 :: digest contact_atp_ledg vs contact_atp_ledg
+PASS  scaffold digest seed=401
+PASS  ledger op scramble_contacts seed=401
+PASS  ledger op reallocate_contact_budget seed=401
+PASS  ledger op matched_random_edge seed=401
+PASS  ledger op reward_explore_eps seed=401
+PASS  ledger op sham_cue_predphase seed=401
+PASS  ledger op scramble_contacts seed=401
+PASS  ledger op update_reactive_ledger seed=401
+PASS  snapshot after op schedule seed=401
+PASS  ledger rng re-seed drain seed=401 (512 draws)
+PASS  build_engine_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_engine_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea1_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea1_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea1_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea1_smoke_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea2_engine_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea2_engine_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea2_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea2_smoke_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea3_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea3_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea3_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea3_smoke_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea5_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea5_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea5_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea5_smoke_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea6_scaffold_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea6_scaffold_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_idea6_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_idea6_smoke_ledger(seed=7) digest :: contact_atp_ledg
+PASS  build_smoke_ledger(seed=0) digest :: contact_atp_ledg
+PASS  build_smoke_ledger(seed=7) digest :: contact_atp_ledg
+
+=== RNG EQUALITY SUMMARY ===
+failures: none

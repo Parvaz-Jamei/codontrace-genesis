@@ -1,0 +1,36 @@
+{
+  "fixtures": {
+    "coevolve_contemporary": "contemporary_match",
+    "lagged": "lagged_match",
+    "directional_arms_race": "directional_increase",
+    "frozen_flat": "flat",
+    "host_only_zero": "flat"
+  },
+  "randomisation_n_support_label": 1,
+  "hypothesis_supported": false
+}
+{
+  "decision": "BLOCKED_MEASUREMENT",
+  "stage0_passed": true,
+  "missing_preconditions": 3,
+  "admissible_pi_realised_matrices": 0,
+  "analysis_digest": "sha256:2f5b24b79b34e855343bf5a659d0b930095364dbf17d0ebc68f370d817658f0c"
+}
+{
+  "replay": "REPLAY_OK",
+  "manifest": "run_manifest.json",
+  "checksums_ok": true,
+  "checksum_failures": [],
+  "fixtures_reproduced": true,
+  "analysis_digest_ok": true,
+  "decision": "BLOCKED_MEASUREMENT",
+  "manifest_decision": "INCONCLUSIVE",
+  "manifest_round": 2,
+  "instrument_positive_case": true,
+  "admissible_pi_realised_matrices": 0,
+  "missing_preconditions": [
+    "No dated history contains an antagonist genotype population: the live GenesisEngine runs zero antagonists (source token count 0), the Idea-2 census antagonist is a capped scalar counter (parasite_is_genotype_population=false on every arm), and the abstract HostParasiteWorld is not wired into the engine.",
+    "GenesisEngine has no host-antagonist contact route, so no contact opportunity, no intended/realised debit and no pi_realised can be observed.",
+    "No full-state checkpoint fork exists: RunCheckpoint carries only digests (no restorable state), checkpoint_fork_complete=false and parent_child_ids_recorded=false, so the frozen-antagonist, host-only and shuffled-label arms cannot start from one fork point with independent labelled RNG streams."
+  ]
+}

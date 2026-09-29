@@ -1,0 +1,10 @@
+{
+ "snapshot_regression": {
+  "empty_hist_generations": 0,
+  "hist_at_25_nonempty": true,
+  "parasite_n_at_25": 64,
+  "final_classes": 28
+ },
+ "standing_default_antagonist_pop_is_none": true,
+ "standing_hist_nonempty": true
+}

@@ -1,0 +1,147 @@
+{
+  "cells": {
+    "ablate_first": {
+      "prefix": [
+        "ablate_knowledge_digest"
+      ],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    },
+    "control_first": {
+      "prefix": [
+        "control"
+      ],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    },
+    "named_first": {
+      "prefix": [
+        "cut_named_scaffold"
+      ],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    },
+    "none": {
+      "prefix": [],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    },
+    "scramble_first": {
+      "prefix": [
+        "scramble_contacts"
+      ],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    },
+    "scramble_then_named": {
+      "prefix": [
+        "scramble_contacts",
+        "cut_named_scaffold"
+      ],
+      "target_burden": 3.220219731,
+      "target_detail": [
+        {
+          "design_failure": true,
+          "independent_control": false,
+          "match_exact": true,
+          "matched_cut_edge_ids": [
+            "E6",
+            "E7"
+          ],
+          "profile_cut_edge_ids": [
+            "E0",
+            "E1"
+          ]
+        }
+      ],
+      "target_final_n": 2,
+      "target_final_path": "pop_path:f6930fca1b0b0f1db13712e9383e59e8e6cedcd29914b46a39762884025d7aad"
+    }
+  },
+  "n_distinct_matched_paths": 1,
+  "order_dependent": false,
+  "probe": "cross_run_order_dependence",
+  "seconds": 103.71,
+  "seed": 301,
+  "t": 10
+}

@@ -1,0 +1,52 @@
+{
+  "cpu_s": 44.734,
+  "cwd": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\rq1",
+  "errors": [],
+  "events_emitted": 16,
+  "peak_rss_bytes": null,
+  "platform": "Windows-11-10.0.22000-SP0",
+  "population_rows_emitted": 16,
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "repo": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\codontrace-genesis",
+  "repo_head": {
+    "commit": "a014ed4d6bce6edbf87664344b371f4af8d32f97",
+    "dirty_flag": null,
+    "dirty_flag_reason": "git executable is not on PATH in this session; the dirty flag cannot be computed and is recorded as null rather than guessed.",
+    "git_executable_available": false,
+    "head_file": "ref: refs/heads/main",
+    "packed_refs_present": false,
+    "ref": "refs/heads/main"
+  },
+  "schema_version": "rq1_probe_v1",
+  "steps": {
+    "checkpoint_fork": {
+      "ok": true,
+      "wall_s": 3.464
+    },
+    "cross_time_matrix": {
+      "ok": true,
+      "wall_s": 11.739
+    },
+    "determinism": {
+      "ok": true,
+      "wall_s": 4.435
+    },
+    "engine_antagonist": {
+      "ok": true,
+      "wall_s": 20.844
+    },
+    "measurement_kernel": {
+      "ok": true,
+      "wall_s": 0.001
+    },
+    "meter_reachability": {
+      "ok": true,
+      "wall_s": 0.294
+    },
+    "source_scan": {
+      "ok": true,
+      "wall_s": 0.01
+    }
+  },
+  "wall_s": 46.8
+}

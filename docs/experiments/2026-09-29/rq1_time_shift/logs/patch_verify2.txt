@@ -1,0 +1,14 @@
+{
+  "files": [
+    {
+      "path": "docs/campaigns/discovery_questions_20260928/DISCOVERY_PROGRAM_STAGE0_ADDENDUM_20260929_RQ1_ROUTE.md",
+      "mode": "new_file",
+      "declared_new_len": 31,
+      "actual_new_len": 31,
+      "len_matches": true,
+      "compiles": null
+    }
+  ],
+  "errors": [],
+  "result": "PATCH_OK"
+}

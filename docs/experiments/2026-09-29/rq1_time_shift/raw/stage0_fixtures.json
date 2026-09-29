@@ -1,0 +1,552 @@
+{
+  "fixture_source_path": "src\\codontrace\\genesis\\campaigns\\discovery_program_20260929_stage0.py",
+  "fixture_source_sha256": "7d411dd0a61d7d59e27396a044b461257391c679cd879d3726ad6cf91771fe5b",
+  "fixtures": [
+    {
+      "contrast": {
+        "col_mean": {
+          "future": 0.35,
+          "now": 0.45,
+          "past": 0.3833333333
+        },
+        "grand_mean": 0.3944444444,
+        "i_contemp": 0.2944444444,
+        "i_lag": -0.1388888889,
+        "i_max": {
+          "cell": [
+            "past",
+            "past"
+          ],
+          "value": 0.3611111111
+        },
+        "i_min": {
+          "cell": [
+            "past",
+            "now"
+          ],
+          "value": -0.2055555556
+        },
+        "interaction": {
+          "future": {
+            "future": 0.2611111111,
+            "now": -0.0888888889,
+            "past": -0.1722222222
+          },
+          "now": {
+            "future": -0.1055555556,
+            "now": 0.2944444444,
+            "past": -0.1888888889
+          },
+          "past": {
+            "future": -0.1555555556,
+            "now": -0.2055555556,
+            "past": 0.3611111111
+          }
+        },
+        "n_negative_cells": 6,
+        "n_positive_cells": 3,
+        "row_mean": {
+          "future": 0.3833333333,
+          "now": 0.45,
+          "past": 0.35
+        },
+        "uniform_increase": false
+      },
+      "fixture": "coevolve_contemporary",
+      "is_support_label": true,
+      "matrix": {
+        "future": {
+          "future": 0.6,
+          "now": 0.35,
+          "past": 0.2
+        },
+        "now": {
+          "future": 0.3,
+          "now": 0.8,
+          "past": 0.25
+        },
+        "past": {
+          "future": 0.15,
+          "now": 0.2,
+          "past": 0.7
+        }
+      },
+      "repo_label": "contemporary_match",
+      "supports_fluctuating_selection": true
+    },
+    {
+      "contrast": {
+        "col_mean": {
+          "future": 0.3,
+          "now": 0.4333333333,
+          "past": 0.4
+        },
+        "grand_mean": 0.3777777778,
+        "i_contemp": -0.1888888889,
+        "i_lag": 0.2277777778,
+        "i_max": {
+          "cell": [
+            "now",
+            "past"
+          ],
+          "value": 0.2944444444
+        },
+        "i_min": {
+          "cell": [
+            "future",
+            "past"
+          ],
+          "value": -0.2555555556
+        },
+        "interaction": {
+          "future": {
+            "future": 0.0944444444,
+            "now": 0.1611111111,
+            "past": -0.2555555556
+          },
+          "now": {
+            "future": -0.1055555556,
+            "now": -0.1888888889,
+            "past": 0.2944444444
+          },
+          "past": {
+            "future": 0.0111111111,
+            "now": 0.0277777778,
+            "past": -0.0388888889
+          }
+        },
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "row_mean": {
+          "future": 0.5333333333,
+          "now": 0.3833333333,
+          "past": 0.2166666667
+        },
+        "uniform_increase": false
+      },
+      "fixture": "lagged",
+      "is_support_label": true,
+      "matrix": {
+        "future": {
+          "future": 0.55,
+          "now": 0.75,
+          "past": 0.3
+        },
+        "now": {
+          "future": 0.2,
+          "now": 0.25,
+          "past": 0.7
+        },
+        "past": {
+          "future": 0.15,
+          "now": 0.3,
+          "past": 0.2
+        }
+      },
+      "repo_label": "lagged_match",
+      "supports_fluctuating_selection": true
+    },
+    {
+      "contrast": {
+        "col_mean": {
+          "future": 0.7333333333,
+          "now": 0.5,
+          "past": 0.3
+        },
+        "grand_mean": 0.5111111111,
+        "i_contemp": 0.0111111111,
+        "i_lag": -0.0055555556,
+        "i_max": {
+          "cell": [
+            "future",
+            "future"
+          ],
+          "value": 0.0444444444
+        },
+        "i_min": {
+          "cell": [
+            "past",
+            "future"
+          ],
+          "value": -0.0222222222
+        },
+        "interaction": {
+          "future": {
+            "future": 0.0444444444,
+            "now": -0.0222222222,
+            "past": -0.0222222222
+          },
+          "now": {
+            "future": -0.0222222222,
+            "now": 0.0111111111,
+            "past": 0.0111111111
+          },
+          "past": {
+            "future": -0.0222222222,
+            "now": 0.0111111111,
+            "past": 0.0111111111
+          }
+        },
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "row_mean": {
+          "future": 0.6333333333,
+          "now": 0.5,
+          "past": 0.4
+        },
+        "uniform_increase": false
+      },
+      "fixture": "directional_arms_race",
+      "is_support_label": false,
+      "matrix": {
+        "future": {
+          "future": 0.9,
+          "now": 0.6,
+          "past": 0.4
+        },
+        "now": {
+          "future": 0.7,
+          "now": 0.5,
+          "past": 0.3
+        },
+        "past": {
+          "future": 0.6,
+          "now": 0.4,
+          "past": 0.2
+        }
+      },
+      "repo_label": "directional_increase",
+      "supports_fluctuating_selection": false
+    },
+    {
+      "contrast": {
+        "col_mean": {
+          "future": 0.4,
+          "now": 0.4,
+          "past": 0.4
+        },
+        "grand_mean": 0.4,
+        "i_contemp": -0.0,
+        "i_lag": -0.0,
+        "i_max": {
+          "cell": [
+            "past",
+            "past"
+          ],
+          "value": -0.0
+        },
+        "i_min": {
+          "cell": [
+            "past",
+            "past"
+          ],
+          "value": -0.0
+        },
+        "interaction": {
+          "future": {
+            "future": -0.0,
+            "now": -0.0,
+            "past": -0.0
+          },
+          "now": {
+            "future": -0.0,
+            "now": -0.0,
+            "past": -0.0
+          },
+          "past": {
+            "future": -0.0,
+            "now": -0.0,
+            "past": -0.0
+          }
+        },
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "row_mean": {
+          "future": 0.4,
+          "now": 0.4,
+          "past": 0.4
+        },
+        "uniform_increase": false
+      },
+      "fixture": "frozen_flat",
+      "is_support_label": false,
+      "matrix": {
+        "future": {
+          "future": 0.4,
+          "now": 0.4,
+          "past": 0.4
+        },
+        "now": {
+          "future": 0.4,
+          "now": 0.4,
+          "past": 0.4
+        },
+        "past": {
+          "future": 0.4,
+          "now": 0.4,
+          "past": 0.4
+        }
+      },
+      "repo_label": "flat",
+      "supports_fluctuating_selection": false
+    },
+    {
+      "contrast": {
+        "col_mean": {
+          "future": 0.0,
+          "now": 0.0,
+          "past": 0.0
+        },
+        "grand_mean": 0.0,
+        "i_contemp": 0.0,
+        "i_lag": 0.0,
+        "i_max": {
+          "cell": [
+            "past",
+            "past"
+          ],
+          "value": 0.0
+        },
+        "i_min": {
+          "cell": [
+            "past",
+            "past"
+          ],
+          "value": 0.0
+        },
+        "interaction": {
+          "future": {
+            "future": 0.0,
+            "now": 0.0,
+            "past": 0.0
+          },
+          "now": {
+            "future": 0.0,
+            "now": 0.0,
+            "past": 0.0
+          },
+          "past": {
+            "future": 0.0,
+            "now": 0.0,
+            "past": 0.0
+          }
+        },
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "row_mean": {
+          "future": 0.0,
+          "now": 0.0,
+          "past": 0.0
+        },
+        "uniform_increase": false
+      },
+      "fixture": "host_only_zero",
+      "is_support_label": false,
+      "matrix": {
+        "future": {
+          "future": 0.0,
+          "now": 0.0,
+          "past": 0.0
+        },
+        "now": {
+          "future": 0.0,
+          "now": 0.0,
+          "past": 0.0
+        },
+        "past": {
+          "future": 0.0,
+          "now": 0.0,
+          "past": 0.0
+        }
+      },
+      "repo_label": "flat",
+      "supports_fluctuating_selection": false
+    }
+  ],
+  "hypothesis_supported": false,
+  "population_run": false,
+  "primary_scalars": {
+    "i_contemp": "(now,now) interaction contrast",
+    "i_lag": "mean of (now,past) and (future,now) interaction contrasts"
+  },
+  "randomisation_control": {
+    "distribution": [
+      {
+        "i_contemp": 0.2944444444,
+        "i_lag": -0.1388888889,
+        "is_support_label": true,
+        "label": "contemporary_match",
+        "permutation": [
+          "past",
+          "now",
+          "future"
+        ]
+      },
+      {
+        "i_contemp": -0.1055555556,
+        "i_lag": 0.0361111111,
+        "is_support_label": false,
+        "label": "other",
+        "permutation": [
+          "past",
+          "future",
+          "now"
+        ]
+      },
+      {
+        "i_contemp": -0.1888888889,
+        "i_lag": 0.0611111111,
+        "is_support_label": false,
+        "label": "other",
+        "permutation": [
+          "now",
+          "past",
+          "future"
+        ]
+      },
+      {
+        "i_contemp": -0.1055555556,
+        "i_lag": 0.2777777778,
+        "is_support_label": false,
+        "label": "other",
+        "permutation": [
+          "now",
+          "future",
+          "past"
+        ]
+      },
+      {
+        "i_contemp": -0.1888888889,
+        "i_lag": -0.1388888889,
+        "is_support_label": false,
+        "label": "other",
+        "permutation": [
+          "future",
+          "past",
+          "now"
+        ]
+      },
+      {
+        "i_contemp": 0.2944444444,
+        "i_lag": -0.0972222222,
+        "is_support_label": false,
+        "label": "other",
+        "permutation": [
+          "future",
+          "now",
+          "past"
+        ]
+      }
+    ],
+    "fraction_support_label": 0.1666666667,
+    "identity_permutation_label": "contemporary_match",
+    "n_permutations": 6,
+    "n_support_label": 1,
+    "note": "The randomisation control is over the 6 time-label permutations of one pre-registered fixture. It has no seed-level unit because no live population history exists to replicate; it is a label null, not a cluster interval."
+  },
+  "red_queen_proved": false,
+  "repo_stage0": {
+    "example_flat_affinity": {
+      "difference": 0.0,
+      "histogram_shift": 0.25,
+      "pi": 0.6
+    },
+    "example_histogram_blind": {
+      "affinity_b_against_000011": 0.0,
+      "difference": 0.8,
+      "histogram_difference": 0.0,
+      "pi_a": 0.9,
+      "pi_b": 0.1
+    },
+    "example_truncation": {
+      "intended": 0.6,
+      "intended_difference": 0.0,
+      "paid_does_not_exceed_available_b": 1.0,
+      "pi_realised_a": 0.6,
+      "pi_realised_b": 0.5,
+      "realised_difference": 0.1
+    },
+    "rq1_hand_instrument": {
+      "coevolve_label": "contemporary_match",
+      "decision": "BLOCKED_MEASUREMENT",
+      "directional_label": "directional_increase",
+      "frozen_label": "flat",
+      "hypothesis_supported": false,
+      "instrument_positive_case": true,
+      "lagged_label": "lagged_match",
+      "population_run": false,
+      "red_queen_proved": false,
+      "shuffled_label": "other"
+    },
+    "rq3_hand_channel": {
+      "decision": "BLOCKED_MEASUREMENT",
+      "frozen_reaches_floor": false,
+      "frozen_s": 0.0,
+      "hypothesis_supported": false,
+      "instrument_positive_case": true,
+      "pi_common": 0.9,
+      "pi_rare": 0.3,
+      "population_run": false,
+      "preregistered_direction": true,
+      "red_queen_proved": false,
+      "s": -0.6
+    }
+  },
+  "rotation_control": {
+    "repo_rotated_contrast": {
+      "col_mean": {
+        "future": 0.45,
+        "now": 0.3833333333,
+        "past": 0.35
+      },
+      "grand_mean": 0.3944444444,
+      "i_contemp": -0.1888888889,
+      "i_lag": -0.1388888889,
+      "i_max": {
+        "cell": [
+          "past",
+          "now"
+        ],
+        "value": 0.3611111111
+      },
+      "i_min": {
+        "cell": [
+          "past",
+          "future"
+        ],
+        "value": -0.2055555556
+      },
+      "interaction": {
+        "future": {
+          "future": -0.0888888889,
+          "now": -0.1722222222,
+          "past": 0.2611111111
+        },
+        "now": {
+          "future": 0.2944444444,
+          "now": -0.1888888889,
+          "past": -0.1055555556
+        },
+        "past": {
+          "future": -0.2055555556,
+          "now": 0.3611111111,
+          "past": -0.1555555556
+        }
+      },
+      "n_negative_cells": 6,
+      "n_positive_cells": 3,
+      "row_mean": {
+        "future": 0.3833333333,
+        "now": 0.45,
+        "past": 0.35
+      },
+      "uniform_increase": false
+    },
+    "repo_rotated_label": "other"
+  },
+  "schema_version": "rq1_stage0_fixtures_v1",
+  "support_labels": [
+    "contemporary_match",
+    "lagged_match"
+  ]
+}

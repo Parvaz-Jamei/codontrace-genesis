@@ -1,0 +1,523 @@
+{
+  "batch_vs_single seed=22 tick_count=0 N=1": {
+    "batch_indices": [
+      0
+    ],
+    "batch_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027"
+    ],
+    "expected_indices": [
+      0
+    ],
+    "expected_seeds": [
+      22
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0
+    ],
+    "single_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027"
+    ],
+    "tick_digest_identical": true
+  },
+  "batch_vs_single seed=22 tick_count=0 N=17": {
+    "batch_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "batch_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027",
+      "61aa51d8d62a951e3dcdf41155b55a6937b5182c611a3bbff238f1890c9e164c",
+      "22e8ed2ad36052b9054e8b7343e8d12a7db8cf9807802af15e4ff8b58dfa0291",
+      "5e4653db930a423f24b7ba1fe9bb4d8d2d1b433902cf03af7d632ecbfeceb0a7",
+      "01aa3629caef5508b842c6f9d31fb14fbeb6d6716e2c2f0c844190969f83f8df",
+      "e5532b97949fdb321263a14c484122cddbc394e88a66cbe757defcd8b348fcfa",
+      "dd85e1a72325d4d4b98b98c240c0e42279f09e4a2b51b332a32ac9a3085fb27d",
+      "4f64fd5f337d8d3a64067e9cccf879cba75cc0983781d33496ee4124381afe46",
+      "9186e9e5993a1a90364a7430aa045e62f54fb0ecb9cc1c46e0d4beb29c844a10",
+      "19f7eebc7257aa678e23d005bc4b6166456f37700d7ef2a51bf17041b0d1bfbe",
+      "e8bdc7c33155ce19a3879bb92e413f230cf915e84b28cd7344d11d8c39f0f23a",
+      "140f3d7ac271e96a5d807f6dc630b67a18f7b99968f8d232071aa73a5403b0a0",
+      "2acc4876b0dd7f7eac71df4478ebc052d0c08595b123746d8021fa5992028431",
+      "c173e70d844174bb8bd3c1af5a81fec5b396f7dc0a986c81439e59d81921e8da",
+      "f420b6b5847c3076b7e29d615065702b2aebc8087e4c462b68747ac572d8aae4",
+      "8a92884e352871bc8e2efdf58b1b86edb1b9278caca2383d780b1be38494aaab",
+      "5899bedab85b33278c7be2010b196eb6530d0efdcf9d673b91410be417df8555"
+    ],
+    "expected_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "expected_seeds": [
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "single_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027",
+      "61aa51d8d62a951e3dcdf41155b55a6937b5182c611a3bbff238f1890c9e164c",
+      "22e8ed2ad36052b9054e8b7343e8d12a7db8cf9807802af15e4ff8b58dfa0291",
+      "5e4653db930a423f24b7ba1fe9bb4d8d2d1b433902cf03af7d632ecbfeceb0a7",
+      "01aa3629caef5508b842c6f9d31fb14fbeb6d6716e2c2f0c844190969f83f8df",
+      "e5532b97949fdb321263a14c484122cddbc394e88a66cbe757defcd8b348fcfa",
+      "dd85e1a72325d4d4b98b98c240c0e42279f09e4a2b51b332a32ac9a3085fb27d",
+      "4f64fd5f337d8d3a64067e9cccf879cba75cc0983781d33496ee4124381afe46",
+      "9186e9e5993a1a90364a7430aa045e62f54fb0ecb9cc1c46e0d4beb29c844a10",
+      "19f7eebc7257aa678e23d005bc4b6166456f37700d7ef2a51bf17041b0d1bfbe",
+      "e8bdc7c33155ce19a3879bb92e413f230cf915e84b28cd7344d11d8c39f0f23a",
+      "140f3d7ac271e96a5d807f6dc630b67a18f7b99968f8d232071aa73a5403b0a0",
+      "2acc4876b0dd7f7eac71df4478ebc052d0c08595b123746d8021fa5992028431",
+      "c173e70d844174bb8bd3c1af5a81fec5b396f7dc0a986c81439e59d81921e8da",
+      "f420b6b5847c3076b7e29d615065702b2aebc8087e4c462b68747ac572d8aae4",
+      "8a92884e352871bc8e2efdf58b1b86edb1b9278caca2383d780b1be38494aaab",
+      "5899bedab85b33278c7be2010b196eb6530d0efdcf9d673b91410be417df8555"
+    ],
+    "tick_digest_identical": true
+  },
+  "batch_vs_single seed=22 tick_count=0 N=5": {
+    "batch_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "batch_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027",
+      "61aa51d8d62a951e3dcdf41155b55a6937b5182c611a3bbff238f1890c9e164c",
+      "22e8ed2ad36052b9054e8b7343e8d12a7db8cf9807802af15e4ff8b58dfa0291",
+      "5e4653db930a423f24b7ba1fe9bb4d8d2d1b433902cf03af7d632ecbfeceb0a7",
+      "01aa3629caef5508b842c6f9d31fb14fbeb6d6716e2c2f0c844190969f83f8df"
+    ],
+    "expected_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "expected_seeds": [
+      22,
+      23,
+      24,
+      25,
+      26
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "single_tick_digests": [
+      "8ac05cba7df78d38c8735fdf7c3c71460a3587251ff91b1f5590cc836c2bd027",
+      "61aa51d8d62a951e3dcdf41155b55a6937b5182c611a3bbff238f1890c9e164c",
+      "22e8ed2ad36052b9054e8b7343e8d12a7db8cf9807802af15e4ff8b58dfa0291",
+      "5e4653db930a423f24b7ba1fe9bb4d8d2d1b433902cf03af7d632ecbfeceb0a7",
+      "01aa3629caef5508b842c6f9d31fb14fbeb6d6716e2c2f0c844190969f83f8df"
+    ],
+    "tick_digest_identical": true
+  },
+  "batch_vs_single seed=7 tick_count=5 N=1": {
+    "batch_indices": [
+      0
+    ],
+    "batch_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56"
+    ],
+    "expected_indices": [
+      0
+    ],
+    "expected_seeds": [
+      7
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0
+    ],
+    "single_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56"
+    ],
+    "tick_digest_identical": true
+  },
+  "batch_vs_single seed=7 tick_count=5 N=17": {
+    "batch_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "batch_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56",
+      "058a5718aaac2af1229a09962fdc4bceade15ca06740da9b8ab309ef62b12a28",
+      "447d1eccc5c883f20b2c50804bdf343213a1f3daa48ceae8faf1daca91e0b120",
+      "564f83a63c5be25ad7a46e3541af505d16e358b2c22d3122672a98c82d94fc36",
+      "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447",
+      "75c2312544823596fcce2c47e9f5c17bacbdb35c8a942da3b71ca32e61bbd7d9",
+      "a42df615bd632dd657bf31a8f0fbc5fe58fa6a4f80dc7d1694fcb6a24ee18353",
+      "be72bf9f2dcb22870cff3428cc8543db9e774c9c0ea4dd073b23cd806aabb081",
+      "ba48857f1c2490df07f6dee7e158f2b78f1274d03dc146a3166a00320aaaa7fe",
+      "339c13f11a8296bfd4c75ba3f57e443339df542e5b7fb288d00e1b8321939e5f",
+      "da6e4a7fbe0ee04cd5e3e05682cf6c54f0f04ad4ff81fede3254c5bbb98b6a5a",
+      "a8311016a85a468952ac8cc004bafaadc1fc704018cffef24541ff81fa70ce24",
+      "e885ddc1095f3baca7beb05ca637448a5bc8ad83dfb347d62c342cd46eaaf524",
+      "5cba2c9f1a3e98f8d58acfb1cb4cd0c273e0b9e99f36005caac3d09f6df12d49",
+      "fce8955514c4ee32180c7fdd9cbe284fb6bcd6418c9ab800ee9f025814fbce13",
+      "1837640cd3584871f1c9e6ab24e20b31d037d6c2d8f7d71210a0d18d508343aa",
+      "7977330e2f5062b0ed4a82f0642e2fffd0b50add122e26b7b1d5b1c64acebda0"
+    ],
+    "expected_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "expected_seeds": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "single_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56",
+      "058a5718aaac2af1229a09962fdc4bceade15ca06740da9b8ab309ef62b12a28",
+      "447d1eccc5c883f20b2c50804bdf343213a1f3daa48ceae8faf1daca91e0b120",
+      "564f83a63c5be25ad7a46e3541af505d16e358b2c22d3122672a98c82d94fc36",
+      "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447",
+      "75c2312544823596fcce2c47e9f5c17bacbdb35c8a942da3b71ca32e61bbd7d9",
+      "a42df615bd632dd657bf31a8f0fbc5fe58fa6a4f80dc7d1694fcb6a24ee18353",
+      "be72bf9f2dcb22870cff3428cc8543db9e774c9c0ea4dd073b23cd806aabb081",
+      "ba48857f1c2490df07f6dee7e158f2b78f1274d03dc146a3166a00320aaaa7fe",
+      "339c13f11a8296bfd4c75ba3f57e443339df542e5b7fb288d00e1b8321939e5f",
+      "da6e4a7fbe0ee04cd5e3e05682cf6c54f0f04ad4ff81fede3254c5bbb98b6a5a",
+      "a8311016a85a468952ac8cc004bafaadc1fc704018cffef24541ff81fa70ce24",
+      "e885ddc1095f3baca7beb05ca637448a5bc8ad83dfb347d62c342cd46eaaf524",
+      "5cba2c9f1a3e98f8d58acfb1cb4cd0c273e0b9e99f36005caac3d09f6df12d49",
+      "fce8955514c4ee32180c7fdd9cbe284fb6bcd6418c9ab800ee9f025814fbce13",
+      "1837640cd3584871f1c9e6ab24e20b31d037d6c2d8f7d71210a0d18d508343aa",
+      "7977330e2f5062b0ed4a82f0642e2fffd0b50add122e26b7b1d5b1c64acebda0"
+    ],
+    "tick_digest_identical": true
+  },
+  "batch_vs_single seed=7 tick_count=5 N=5": {
+    "batch_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "batch_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56",
+      "058a5718aaac2af1229a09962fdc4bceade15ca06740da9b8ab309ef62b12a28",
+      "447d1eccc5c883f20b2c50804bdf343213a1f3daa48ceae8faf1daca91e0b120",
+      "564f83a63c5be25ad7a46e3541af505d16e358b2c22d3122672a98c82d94fc36",
+      "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447"
+    ],
+    "expected_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "expected_seeds": [
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "index_ok": true,
+    "single_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "single_tick_digests": [
+      "6bb7a3b9fb9d9acc08931af92187d4fe543084b60157cd4ca790b8dc2c262e56",
+      "058a5718aaac2af1229a09962fdc4bceade15ca06740da9b8ab309ef62b12a28",
+      "447d1eccc5c883f20b2c50804bdf343213a1f3daa48ceae8faf1daca91e0b120",
+      "564f83a63c5be25ad7a46e3541af505d16e358b2c22d3122672a98c82d94fc36",
+      "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447"
+    ],
+    "tick_digest_identical": true
+  },
+  "fork seed=31 pre=3 post=2": {
+    "child_digests": [
+      "664a80777fb993759db3bddc41f188e79a8eab4629a279c4c74a882e67f14e4b",
+      "d5725bc0970aa3fb76f5aa9c67184ee5f34773da5ffe10abc084e5e63b6d6c44"
+    ],
+    "child_indices": [
+      3,
+      4
+    ],
+    "child_seeds": [
+      34,
+      35
+    ],
+    "continuation_digest_identical": false,
+    "continuation_index_identical": true,
+    "expected_indices": [
+      3,
+      4
+    ],
+    "expected_seeds": [
+      34,
+      35
+    ],
+    "fork_honours_tick_offset": true,
+    "fork_tick_index": 3,
+    "index_ok": true,
+    "original_digests_at_same_indices": [
+      "385d017de1f645afb718a989af0cab7b1f75ef1d5edf87dfe5ce9279f39781af",
+      "9d0b0184d18bd4a59342b68b849442256d8ebb4c75746eea5bae85d77c7f1cc4"
+    ],
+    "original_indices": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "seeds_ok": true
+  },
+  "fork seed=31 pre=3 post=2 :: byte_identical_note": "continuation_digest_identical is recorded, not asserted: the manager's own extra check reported this FAILS and mechanism-test owns that defect",
+  "fork seed=7 pre=4 post=3": {
+    "child_digests": [
+      "92ac350a4e558e029e348ed5d439b104f8bb61cf26b55ac0c840f4747fe01bef",
+      "33c358476f6d4582550025d7ba61fb54af7b50c0bf3cc7f87b551319416d10de",
+      "a9448b6fac0e4d92c78ed41312ff6acaadd8955ac0767153e78059da48415a6a"
+    ],
+    "child_indices": [
+      4,
+      5,
+      6
+    ],
+    "child_seeds": [
+      11,
+      12,
+      13
+    ],
+    "continuation_digest_identical": false,
+    "continuation_index_identical": true,
+    "expected_indices": [
+      4,
+      5,
+      6
+    ],
+    "expected_seeds": [
+      11,
+      12,
+      13
+    ],
+    "fork_honours_tick_offset": true,
+    "fork_tick_index": 4,
+    "index_ok": true,
+    "original_digests_at_same_indices": [
+      "26809f2d67dc6958a4245b4e420ef4bb8507684ae1689f15dbd1a08e0dcd4447",
+      "75c2312544823596fcce2c47e9f5c17bacbdb35c8a942da3b71ca32e61bbd7d9",
+      "a42df615bd632dd657bf31a8f0fbc5fe58fa6a4f80dc7d1694fcb6a24ee18353"
+    ],
+    "original_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "seeds_ok": true
+  },
+  "fork seed=7 pre=4 post=3 :: byte_identical_note": "continuation_digest_identical is recorded, not asserted: the manager's own extra check reported this FAILS and mechanism-test owns that defect",
+  "recorded_seed_schedule seed=22 N=17": {
+    "constant_seed_digests": [
+      "f71fda9851a1f2a3820eb92aebcc9700d0e9dbfb5d6979c188e6053656d37aa8",
+      "0c2ca3441ee01ba37a67c671c58551a66433d44ccf51777066077720de75f774",
+      "b2fb473cfa3609490026ca08a2fee99b315d3fee974a439fb282d6d43adf2db9",
+      "1e10416b2c27d6ba5c1f234e00d5e95dd8ca3a3683ebd991efae9afd897a46e4",
+      "898a8773e193e1cf727986665e06b240bf38cc58e2fde6ed0f667bbdcbf21e01",
+      "bbb43fde18096e8871fc8a567b516f7bba2edba0c407b59b081c419974a78043",
+      "51d7e2a98e5aed2bea9570c221e61fcad677d09a811cdea1f42e42a8bbdddab6",
+      "f0dd6e7d5959f6a2a10b90798fadc737cf8a345c3629c67f2e2d8bf435f8ac18",
+      "7361183759a25a5a34c598a96f2d4a775aaa5cd22b1945648dabd080d23f8b79",
+      "ab85c738dae437c14713e55831f5d652baf039439afa67fad2468ab738d820f2",
+      "9253a6cf2fbb0cb23ca2e28d0efef5a4cd6ee71389d031e929261f63f04b6cc1",
+      "beb34fc18b27f95add91b99e492dcaaa9e06eeff01751c9aae8166732c1059bf",
+      "1e4dfc7afbcd7ebdd612f4fb7783aac462b32496b4e5bc0afb520fe3d82147a9",
+      "2000565ffeb8c5372fa4455de05aa5a321a60dc87f4c95de8483ca0bf533768e",
+      "1e59aaf47fb5ce61d8b556973edc641e61d7a4422dea3d41fd74010b3a30ae66",
+      "8f2af41e64b5f82e5897fb0db31804c9145cebfac855a04d6e4c6a997c234576",
+      "5fa0986b5c6e9014a7771cd94e8ab046b33e5a5f9cfb17a20d5209dd1c76bb0b"
+    ],
+    "engine_tick_digests": [
+      "f71fda9851a1f2a3820eb92aebcc9700d0e9dbfb5d6979c188e6053656d37aa8",
+      "b008d04d375c7dd88a38917335b7016e0cec7e4955c9d535a234633f74ef0f73",
+      "dd34d5502ff7caf4055048970be8e359d24be4d1800e2cce7d535f39b58991d4",
+      "1df0f88c40a1ecda6b121702323ca4ac54cc4ba8fa2ee4d2c74f3cfe72c7b365",
+      "525ef724e577f8cec90143f91304a2ba8e2dd04e90f93649ba18690ac8d58ed7",
+      "b8fb86d7a555bb8986fd44f528fbbb6c7f0e22c3082d922d354ac540ee1ac8c6",
+      "07a6b687884f43999be785667870cb7ccd16f232239f598e0f5710c28cc00b65",
+      "e47f9ec735aa975d388f11515a56f9c0f535a401027b343a1bffcb1f4bd431a7",
+      "1eb4f23d4eb685068dda519488daa2e23a49c248113c8489e29cb99c95624bb9",
+      "3913d1f3efeb345f2ce2212af032b79f7ce964aeb0064c0dd50611689d4e748d",
+      "276b671f6fbdbc29ecefc61150ffa0f289f6fdfc8f3775241de809f1670ee4b2",
+      "f7920b96e4afc0ec60e09880b0dedf43935bba5084c7892dd5ee1d442a6d4dd9",
+      "1c22b44bde51bab162926a987864de88f738db4acf2e3c660651b6bc1e0b6f12",
+      "f24f834db2080569ff0fffd6957e2b17818c554943465160a564329cbcef679a",
+      "6f8672f6114fbf8da122f7eecb0638d0c3d0be93031f5f89749a97b2185c4022",
+      "dff36af46f3d099b9c2f77e24e5d3fdca659ebb5f577ac15c866a7dbfb08bf23",
+      "66be321c7e64aab522644005f663c6774f01f8452a845b950a4e84c2a21958b2"
+    ],
+    "engine_used_index_driven_seeds": true,
+    "expected_seed_schedule": [
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38
+    ],
+    "n": 17
+  }
+}

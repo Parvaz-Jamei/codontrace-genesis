@@ -1,0 +1,46 @@
+........F..............                                                  [100%]
+================================== FAILURES ===================================
+_______________ test_p3_engine_has_no_hp_domain_physics_tokens ________________
+
+    def test_p3_engine_has_no_hp_domain_physics_tokens() -> None:
+        import re
+        from pathlib import Path
+    
+        engine_paths = [
+            Path("src/codontrace/engine.py"),
+            Path("src/codontrace/genesis/engine.py"),
+        ]
+        forbidden = re.compile(
+            r"\b(infection|virulence|host.?parasite|parasite|red.?queen|Slowinski)\b",
+            re.IGNORECASE,
+        )
+        for path in engine_paths:
+>           text = path.read_text(encoding="utf-8")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_off_wave8.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('src/codontrace/engine.py'), mode = 'r', buffering = -1
+encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'src\\codontrace\\engine.py'
+
+C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\pathlib\__init__.py:771: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED _off_wave8.py::test_p3_engine_has_no_hp_domain_physics_tokens - FileNo...
+1 failed, 22 passed in 124.85s (0:02:04)

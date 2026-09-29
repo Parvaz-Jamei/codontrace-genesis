@@ -1,0 +1,12 @@
+planned=2100 done=2097 missing=3
+{
+  "origin_main_at_run_time": "74d98cb9575fc16f7137a3704a8cd896685df1c7",
+  "local_main_at_run_time": "74d98cb9575fc16f7137a3704a8cd896685df1c7",
+  "expected_origin_main_at_task_issue": "01ee4a23489a63bc8073a43a82c2037c73b7bbff",
+  "sha_matches_expected": false,
+  "note": "origin/main advanced from 01ee4a2 to 1355b6 at 16:17:25 local during this session (reflog: 'docs(campaign): repair a dangling citation and commit the novelty synthesis'); the sweep therefore ran against the newer ref, which is a descendant of the pinned one. The harness files listed below are unchanged from the first sweep start.",
+  "git_exe_available": false,
+  "sha_source": "codontrace-genesis/.git reflog + refs/remotes/origin/main (git.exe not on PATH)"
+}
+[   13.6s] 1/3 key=t6_ic0.4_c0.90_s8021 sexual=0.7476 extinct=False ledger=1.23e-10
+SWEEP_COMPLETE runs=2100 wall=14.3s

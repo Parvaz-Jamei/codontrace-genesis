@@ -1,0 +1,19 @@
+[engine_module] codontrace.engine_runtime
+[engine_public] ['build_review_request', 'export_evidence_pack', 'export_replay_bundle', 'from_spec', 'record_review_result', 'run_ticks', 'snapshot']
+[from_spec_sig] (spec: 'GenesisExperimentSpec', *, generation_boundary_observers: 'Sequence[GenerationBoundaryObserver] | None' = None) -> 'GenesisEngine'
+[run_ticks_sig] (self, ticks: 'int | None' = None) -> 'GenesisRunResult'
+[spec_build_seconds] 0.0082
+[from_spec_seconds] 0.0195
+[run_ticks_seconds] 7.8619
+[observer_fires] 16
+[expected_ticks] 16
+[result_type] GenesisRunResult
+[engine_attrs_after] ['_last_result', '_qd_parent_feedback_applied', '_snapshots', '_tick_results', 'element_grid', 'generation_boundary_observers', 'qd_archive', 'review_status', 'run', 'runner', 'spec']
+WROTE Traceback (most recent call last):
+  File "E:\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\test-runs\d2\probes\probe1_engine_api.py", line 145, in <module>
+    print("WROTE", OUT / "probe1_engine_api.json")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\parvaz\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 3-7: character maps to <undefined>

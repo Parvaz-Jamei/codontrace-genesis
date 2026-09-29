@@ -1,0 +1,67 @@
+{
+  "engine_type": "codontrace.engine_runtime.GenesisEngine",
+  "runner_type": "codontrace.genesis.population_runner.PopulationRunner",
+  "mappingproxy_paths": [
+    "spec.element_grid.registry._definitions :: mappingproxy of ['Ig', 'Ae', 'Tr', 'Aq']",
+    "spec.population_configs.alive_gate.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "spec.population_configs.fitness.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[0].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[0].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[0].ribosome.codon_table._mapping :: mappingproxy of ['000', '001', '010', '011']",
+    "runner.population.organisms[2].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[2].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[4].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[4].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[6].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[6].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[7].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[7].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[8].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[8].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[10].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[10].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']",
+    "runner.population.organisms[11].action_registry._handlers :: mappingproxy of ['WAIT', 'SENSE_RESOURCE', 'SENSE_FOOD', 'SENSE_DANGER']",
+    "runner.population.organisms[11].action_runtime_config.status_registry._definitions :: mappingproxy of ['executed', 'blocked', 'failed']"
+  ],
+  "deepcopy_per_attribute": {
+    "spec": "TypeError: cannot pickle 'mappingproxy' object",
+    "runner": "TypeError: cannot pickle 'mappingproxy' object",
+    "run": "ok",
+    "_last_result": "TypeError: cannot pickle 'mappingproxy' object",
+    "element_grid": "TypeError: cannot pickle 'mappingproxy' object",
+    "qd_archive": "ok",
+    "review_status": "ok"
+  },
+  "population_type": "codontrace.genesis.population.PopulationState",
+  "population_roundtrip": {
+    "ok": true,
+    "n_before": 12,
+    "n_after": 12,
+    "generation_before": 6,
+    "generation_after": 6,
+    "ids_equal": true,
+    "payload_keys": [
+      "fitness",
+      "generation",
+      "lineage",
+      "organisms",
+      "tick"
+    ]
+  },
+  "world_type": "codontrace.world.World2D",
+  "world_serializers": [
+    "from_dict",
+    "to_dict"
+  ],
+  "world_resources_len": 8,
+  "engine_mutables": [
+    "_last_result",
+    "_snapshots",
+    "_tick_results",
+    "element_grid",
+    "qd_archive",
+    "review_status"
+  ],
+  "tick_results_len": 6,
+  "snapshots_len": 7
+}

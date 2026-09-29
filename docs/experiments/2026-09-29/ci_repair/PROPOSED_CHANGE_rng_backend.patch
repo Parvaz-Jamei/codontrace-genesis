@@ -1,0 +1,260 @@
+diff --git a/src/codontrace/rng.py b/src/codontrace/rng.py
+--- a/src/codontrace/rng.py
++++ b/src/codontrace/rng.py
+@@ -282,6 +282,135 @@
+         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+ 
+ 
++@dataclass(slots=True)
++class StdlibSeedRNG:
++    """Byte-exact :class:`random.Random` wrapper for legacy call sites.
++
++    Compatibility backend for code that was written against the standard
++    library's ``random.Random(seed)`` and must keep a bit-identical stream
++    while still funnelling all randomness through :mod:`codontrace.rng`
++    (the static rule enforced by
++    ``tests/test_rng.py::test_no_direct_random_usage_outside_rng_module``).
++
++    The Mersenne Twister seeding is deliberately the stdlib one: the seed is
++    forwarded untouched to ``random.Random`` so ``StdlibSeedRNG(seed=s).random()``
++    is bit-identical to the legacy ``random.Random(s).random()``. Namespaced
++    derivation (as used by :class:`RNGManager`) would break that equality, so
++    it is not applied here on purpose.
++
++    ``seed=None`` reproduces ``random.Random(None)`` (OS-entropy seeding).
++    """
++
++    seed: int | None = None
++    namespace: str = "root"
++
++    def __post_init__(self) -> None:
++        self._rng = random.Random(self.seed)
++        self._draw_count = 0
++
++    _rng: random.Random = field(init=False, repr=False)
++    _draw_count: int = field(default=0, init=False, repr=False)
++
++    @property
++    def backend_kind(self) -> str:
++        """Return the replay backend identifier for manifests."""
++
++        return "stdlib_seed_rng"
++
++    @property
++    def draw_count(self) -> int:
++        """Return the number of random draws consumed by this stream."""
++
++        return self._draw_count
++
++    def random(self) -> float:
++        """Return the next ``random.Random`` float in [0.0, 1.0)."""
++
++        self._draw_count += 1
++        return self._rng.random()
++
++    def randrange(self, start: int, stop: int | None = None) -> int:
++        """Return a deterministic integer exactly as ``random.Random`` would."""
++
++        self._draw_count += 1
++        if stop is None:
++            return self._rng.randrange(start)
++        return self._rng.randrange(start, stop)
++
++    def choice(self, values: Sequence[T]) -> T:
++        """Choose one item exactly as ``random.Random.choice`` would."""
++
++        if not values:
++            msg = "choice() requires a non-empty sequence."
++            raise ValueError(msg)
++        self._draw_count += 1
++        return self._rng.choice(values)
++
++    def shuffle(self, values: list[T]) -> None:
++        """Shuffle in place exactly as ``random.Random.shuffle`` would."""
++
++        self._draw_count += 1
++        self._rng.shuffle(values)
++
++    def sample(self, population: Sequence[T], k: int) -> list[T]:
++        """Sample exactly as ``random.Random.sample`` would."""
++
++        self._draw_count += 1
++        return self._rng.sample(population, k)
++
++    def getstate(self) -> object:
++        """Expose the wrapped state for replay instrumentation."""
++
++        return self._rng.getstate()
++
++    def setstate(self, state: object) -> None:
++        """Restore the wrapped state for replay instrumentation."""
++
++        self._rng.setstate(state)  # type: ignore[arg-type]
++
++    def fork(self, namespace: str) -> StdlibSeedRNG:
++        """Create a deterministic child stream for a named subsystem."""
++
++        if not namespace:
++            msg = "namespace must not be empty."
++            raise ValueError(msg)
++        if self.seed is None:
++            child_seed: int | None = None
++        else:
++            material = hashlib.sha256(
++                f"{self.seed!r}:{self.namespace}/{namespace}".encode()
++            ).hexdigest()
++            child_seed = int(material[:16], 16)
++        return StdlibSeedRNG(seed=child_seed, namespace=f"{self.namespace}/{namespace}")
++
++    def snapshot(self, *, include_state: bool = False) -> dict[str, JsonValue]:
++        """Return a JSON-safe description of this legacy stream."""
++
++        data: dict[str, JsonValue] = {
++            "backend_kind": self.backend_kind,
++            "seed": self.seed,
++            "namespace": self.namespace,
++            "draw_count": self._draw_count,
++        }
++        if include_state:
++            state = self._rng.getstate()
++            data["state"] = {
++                "version": int(state[0]),
++                "internal": [int(value) for value in state[1]],
++                "gauss": state[2],
++            }
++        return data
++
++    def state_digest(self) -> str:
++        """Return a stable digest of stream identity and exact state."""
++
++        payload = json.dumps(
++            self.snapshot(include_state=True), sort_keys=True, separators=(",", ":")
++        )
++        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
++
++
++
+ def _jsonable_rng_state(value: Any) -> JsonValue:
+     """Convert optional backend state into a deterministic JSON-like payload."""
+ 
+diff --git a/src/codontrace/life_loop/contact_atp_ledger.py b/src/codontrace/life_loop/contact_atp_ledger.py
+--- a/src/codontrace/life_loop/contact_atp_ledger.py
++++ b/src/codontrace/life_loop/contact_atp_ledger.py
+@@ -11,7 +11,6 @@
+ 
+ import itertools
+ import math
+-import random
+ from collections.abc import Iterable, Mapping, Sequence
+ from dataclasses import dataclass, field
+ from typing import Any
+@@ -19,6 +18,7 @@
+ from codontrace._types import JsonValue
+ from codontrace.errors import ConfigurationError
+ from codontrace.genesis.canonical import canonical_digest, require_finite_float
++from codontrace.rng import StdlibSeedRNG
+ 
+ SCHEMA_VERSION = "life_loop_contact_atp_ledger_v1"
+ 
+@@ -156,10 +156,10 @@
+     _one_generation_masks: set[str] = field(default_factory=set, repr=False)
+     _one_generation_budget: dict[str, float] | None = field(default=None, repr=False)
+     _cut_buffer: set[str] = field(default_factory=set, repr=False)
+-    _rng: random.Random = field(default_factory=random.Random, repr=False)
++    _rng: StdlibSeedRNG = field(default_factory=StdlibSeedRNG, repr=False)
+ 
+     def __post_init__(self) -> None:
+-        self._rng = random.Random(int(self.rng_seed))
++        self._rng = StdlibSeedRNG(seed=int(self.rng_seed))
+         require_finite_float("predicted_pressure_phase", self.predicted_pressure_phase)
+         require_finite_float("realised_pressure_phase", self.realised_pressure_phase)
+ 
+@@ -1356,7 +1356,7 @@
+     ledger = ContactAtpLedger(rng_seed=int(seed), generation_index=0)
+     # Generic contact edges with some rare-class tags (ledger tags only).
+     # Primary K4 (scaffold E0/E1 live here). Secondary K4 supplies
+-    # degree- and ATP-matched non-scaffold edges for cut_matched_random.
++    # degree- and ATP-matched non-scaffold edges for the matched cut op.
+     specs = [
+         ("E0", "n0", "n1", CONTACT_TAG_RARE, 1.0),
+         ("E1", "n1", "n2", CONTACT_TAG_RARE, 1.2),
+diff --git a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea1.py b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea1.py
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea1.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea1.py
+@@ -190,9 +190,9 @@
+     if int(generations) < 4:
+         raise ConfigurationError("scored Idea1 generations must be >= 4.")
+ 
+-    import random as _random
+-
+-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
++    from codontrace.rng import StdlibSeedRNG
++
++    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
+     ledger = build_idea1_scaffold_ledger(seed=int(seed))
+     rival = _require_rival_pair(ledger.rival_pair_id)
+ 
+diff --git a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea2.py b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea2.py
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea2.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea2.py
+@@ -231,9 +231,9 @@
+ ) -> dict[str, Any]:
+     """Simulate one arm under a scored cell; return survival_to_T and flags."""
+ 
+-    import random as _random
+-
+-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell + arm))
++    from codontrace.rng import StdlibSeedRNG
++
++    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell + arm))
+     ledger = build_idea2_smoke_ledger(seed=int(seed))
+     realised = 0.25
+     predicted = realised
+diff --git a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea3.py b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea3.py
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea3.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea3.py
+@@ -204,9 +204,9 @@
+     if int(generations) < 4:
+         raise ConfigurationError("scored Idea3 generations must be >= 4.")
+ 
+-    import random as _random
+-
+-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
++    from codontrace.rng import StdlibSeedRNG
++
++    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
+     ledger = build_idea3_scaffold_ledger(seed=int(seed))
+     law = _require_nonempty(ledger.law_id, "law_id")
+     unreach = _require_nonempty(ledger.unreach_id, "unreach_id")
+diff --git a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea5.py b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea5.py
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea5.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea5.py
+@@ -234,9 +234,9 @@
+     if int(generations) < 8:
+         raise ConfigurationError("scored Idea5 generations must be >= 8.")
+ 
+-    import random as _random
+-
+-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
++    from codontrace.rng import StdlibSeedRNG
++
++    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
+     ledger = build_idea5_scaffold_ledger(seed=int(seed))
+     world = _require_nonempty(ledger.world_family_id, "world_family_id")
+     law = _require_nonempty(ledger.short_law_id, "short_law_id")
+diff --git a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea6.py b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea6.py
+--- a/src/codontrace/genesis/campaigns/discovery_q_20260928_idea6.py
++++ b/src/codontrace/genesis/campaigns/discovery_q_20260928_idea6.py
+@@ -218,9 +218,9 @@
+     if int(generations) < 4:
+         raise ConfigurationError("scored Idea6 generations must be >= 4.")
+ 
+-    import random as _random
+-
+-    rng = _random.Random(int(seed) * 1009 + sum(ord(c) for c in cell))
++    from codontrace.rng import StdlibSeedRNG
++
++    rng = StdlibSeedRNG(seed=int(seed) * 1009 + sum(ord(c) for c in cell))
+     ledger = build_idea6_scaffold_ledger(seed=int(seed))
+     ustar_id = _require_nonempty(ledger.ustar_id, "ustar_id")
+     if ustar_id != USTAR_ID:

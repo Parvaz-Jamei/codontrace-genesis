@@ -1,0 +1,30 @@
+{
+  "arm": "sham",
+  "checksums": {
+    "events.jsonl": "e3ec1b7535b99050c0f4210a0e192c229a397262966909009eaf55c7230b427e",
+    "population.jsonl": "5d8cd89894e9fbea2310a40c122c08a6bedaadffdb23cce2d3fb86c2bc16dc2d"
+  },
+  "commit": "",
+  "cpu_seconds": 305.234,
+  "dirty": false,
+  "feedback_allocation": "incident_endpoints_realised",
+  "horizon": 40,
+  "params_hash": "4b8092a2e4668d4be585725091002f9785d36fbe58728a512219f67adf5d7cd8",
+  "parent_snapshot": null,
+  "parent_snapshot_reason": "no restorable checkpoint exists in this revision",
+  "population": 8,
+  "replay_command": "python test-runs/d2/harness/d2_replay.py --run-dir test-runs/d2/raw/d2-s5502-t30-sham --out test-runs/d2/raw/d2-s5502-t30-sham/replay.json",
+  "rng_streams": {
+    "engine": "seed=5502; per-generation seed = spec.seed + index",
+    "ledger": "random.Random(seed=5502)"
+  },
+  "rss_bytes": 0,
+  "run_id": "d2-s5502-t30-sham",
+  "schema": "d2-pack-v1",
+  "seed": 5502,
+  "stop_code": "ZERO_POPULATION",
+  "stop_detail": "n_alive reached 0 at generation 70",
+  "t_intervene": 30,
+  "wall_seconds": 9.878,
+  "workers": 1
+}

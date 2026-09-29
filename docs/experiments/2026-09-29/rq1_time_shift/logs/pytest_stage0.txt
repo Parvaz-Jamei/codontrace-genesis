@@ -1,0 +1,9 @@
+============================= test session starts =============================
+collected 13 items
+
+tests\campaigns\discovery_questions_20260928\test_discovery_program_stage0.py . [  7%]
+.....                                                                    [ 46%]
+tests\campaigns\open_problem_20260925\test_time_shift_open_problem.py .. [ 61%]
+.....                                                                    [100%]
+
+============================= 13 passed in 55.92s =============================

@@ -1,0 +1,44 @@
+{
+  "arm": "coevolve",
+  "checksums": {
+    "ancestry.jsonl": "c543e1110e86504b7753b423ecaeb0f336ebea6c317481f47788c10e390371d9",
+    "contact_events.jsonl": "2cedb4c37e033d8ddddfcb46ccc9a6d0b7280a00e3c78f35532ac9fdd26dfe7e",
+    "events.jsonl": "5151e5613137cfb0165649a4db6e65b27cad00d3ae18b405bc7c34789447bd22",
+    "population.jsonl": "73c223ae0e985f1d7307b5abf4e0cebb7db553fc5206c97e0f92da257597e1b4",
+    "summary.json": "654f427a1f2948a3ce7bcc63a334885861fa1dbf83465db4ce5e9f162f8f402a"
+  },
+  "generations": 150,
+  "memory_rss_mb": 0.0,
+  "parameters": {
+    "antagonist_keep_fraction": 0.5,
+    "antagonist_mutation": 0.25,
+    "antagonist_pool_size": 64,
+    "founders": 28,
+    "host_bit_flip_rate": 0.02,
+    "resource_bolus_amount": 20.0,
+    "soft_carrying_capacity": 64,
+    "steal_fraction": 0.15,
+    "virulence": 8.0
+  },
+  "parent_snapshot": null,
+  "pid": 11964,
+  "platform": "Windows-11-10.0.22000-SP0",
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "replay_command": "python rq3_harness.py --stage replay --run-dir runs/rq3-coevolve-s21011-1790679862",
+  "repo": {
+    "commit": "d40068782b31799ae006b55bad58f95c86cb06d3",
+    "dirty": "unknown (no git binary on PATH; not inferred from mtimes)",
+    "repo_head_file": "ref: refs/heads/main"
+  },
+  "rng_streams": {
+    "engine_seed_expression": "seed + tick_index + 1",
+    "namespace_note": "each external RNGManager is constructed with (seed, namespace); arms share the seed and differ by namespace/arm",
+    "passage_fork": "passage/{tick_index}",
+    "passage_namespace": "hp-struct-rq-copassaged"
+  },
+  "run_id": "rq3-coevolve-s21011-1790679862",
+  "schema_version": "rq3-manifest-v1",
+  "seed": 21011,
+  "stop_code": "COMPLETE",
+  "wall_s": 402.23
+}

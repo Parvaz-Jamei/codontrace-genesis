@@ -1,0 +1,122 @@
+{
+  "arms": {
+    "ablate_knowledge_digest": {
+      "before_digest": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+      "ckpt_after": "relocated_engine",
+      "detail": {
+        "atp_lost": null,
+        "cut_edge_ids": null,
+        "degree_sum": null,
+        "design_failure": null,
+        "independent_control": null,
+        "match_exact": null,
+        "n_edges_cut": null,
+        "n_edges_present_after": 12,
+        "n_edges_total": 12,
+        "op": "ablate_knowledge_digest",
+        "rewired": null,
+        "scientific_contrast_eligible": null,
+        "used_nearest_fallback": null
+      },
+      "detail_hash": "44bb73c4e1b3832fb704b391bd701378",
+      "ledger_digest": "contact_atp_ledger:1089d581512eae6f134b09b86aabe4877613df964a0ad9dfd1a36f1620796555",
+      "rare_yield": 1.2375
+    },
+    "control": {
+      "before_digest": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+      "ckpt_after": "relocated_engine",
+      "detail": {
+        "atp_lost": null,
+        "cut_edge_ids": null,
+        "degree_sum": null,
+        "design_failure": null,
+        "independent_control": null,
+        "match_exact": null,
+        "n_edges_cut": null,
+        "n_edges_present_after": 12,
+        "n_edges_total": 12,
+        "op": "control",
+        "rewired": null,
+        "scientific_contrast_eligible": null,
+        "used_nearest_fallback": null
+      },
+      "detail_hash": "c9329f7d0a3de623db0b3b5488e79490",
+      "ledger_digest": "contact_atp_ledger:85cd1b04480f9af98a67e1f360fae471a275502aa6b0d36d5ad02e6daff0af36",
+      "rare_yield": 1.65
+    },
+    "cut_matched_random": {
+      "before_digest": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+      "ckpt_after": "relocated_engine",
+      "detail": {
+        "atp_lost": 2.2,
+        "cut_edge_ids": [
+          "E6",
+          "E7"
+        ],
+        "degree_sum": 12,
+        "design_failure": true,
+        "independent_control": false,
+        "match_exact": true,
+        "n_edges_cut": 2,
+        "n_edges_present_after": 10,
+        "n_edges_total": 12,
+        "op": "cut_matched_random",
+        "rewired": null,
+        "scientific_contrast_eligible": false,
+        "used_nearest_fallback": false
+      },
+      "detail_hash": "5eefef13d2005b4a29c42f1bf9e9531e",
+      "ledger_digest": "contact_atp_ledger:25934d8b5e55297c765d99ec35302b25d017049c6eee57dcf5675bb803cecb14",
+      "rare_yield": 1.65
+    },
+    "cut_named_scaffold": {
+      "before_digest": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+      "ckpt_after": "relocated_engine",
+      "detail": {
+        "atp_lost": 2.2,
+        "cut_edge_ids": [
+          "E0",
+          "E1"
+        ],
+        "degree_sum": 12,
+        "design_failure": null,
+        "independent_control": null,
+        "match_exact": null,
+        "n_edges_cut": 2,
+        "n_edges_present_after": 10,
+        "n_edges_total": 12,
+        "op": "cut_named_scaffold",
+        "rewired": null,
+        "scientific_contrast_eligible": null,
+        "used_nearest_fallback": null
+      },
+      "detail_hash": "f77a2b8d12e104eb6ff33af73d4d0f8d",
+      "ledger_digest": "contact_atp_ledger:b96d4935cc4cd471b23acd7ff42c9bd9fd9ef2ec1f26f6f274d56c68260aaa12",
+      "rare_yield": 0.176
+    },
+    "scramble_contacts": {
+      "before_digest": "contact_atp_ledger:8732a7c33f244da125561b6d32f380c4143881da1876d31ed7ffddb4296f1064",
+      "ckpt_after": "relocated_engine",
+      "detail": {
+        "atp_lost": null,
+        "cut_edge_ids": null,
+        "degree_sum": null,
+        "design_failure": null,
+        "independent_control": null,
+        "match_exact": null,
+        "n_edges_cut": null,
+        "n_edges_present_after": 12,
+        "n_edges_total": 12,
+        "op": "scramble_contacts",
+        "rewired": 12,
+        "scientific_contrast_eligible": null,
+        "used_nearest_fallback": null
+      },
+      "detail_hash": "3255907d5d6f8019e2d0913be64bab2c",
+      "ledger_digest": "contact_atp_ledger:9531eb62bfd0532f33c364b8a30729a8c51d91315576b5b993cf49579b1a31ab",
+      "rare_yield": 1.65
+    }
+  },
+  "pythonhashseed": "<unset>",
+  "seed": 301
+}

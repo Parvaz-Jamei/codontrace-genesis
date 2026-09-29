@@ -1,0 +1,22 @@
+{
+  "arm_a_element_grid_is_arm_b_element_grid": true,
+  "arm_a_matches_original_tail": true,
+  "arm_a_population_is_arm_b_population": true,
+  "arm_a_population_is_parent_population": true,
+  "arm_a_population_moved_after_its_tick": true,
+  "arm_a_world_is_arm_b_world": false,
+  "arm_b_first_organism_is_arm_a_first_organism": false,
+  "arm_b_matches_original_tail": true,
+  "arm_b_population_moved_when_arm_a_advanced": false,
+  "fork_isolation": {
+    "element_grid": "shared_reference",
+    "nexus_layer": "deepcopy",
+    "population": "shared_reference",
+    "world": "deepcopy"
+  },
+  "fork_state_exact": false,
+  "inplace_mutation_visible_in": "neither",
+  "payload_has_live_objects_key": true,
+  "payload_json_error": "TypeError: Object of type PopulationState is not JSON serializable",
+  "payload_json_safe": false
+}

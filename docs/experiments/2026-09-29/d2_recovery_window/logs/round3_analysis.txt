@@ -1,0 +1,36 @@
+{
+ "verdict": "BLOCKED_MEASUREMENT",
+ "population_isolation": false,
+ "opportunity": true,
+ "endpoint_moved": false,
+ "table": {
+  "cut_matched_random": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_recover_preregistered": 0,
+   "p_digest_return_exploratory": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.5734268359401935,
+   "mean_n_alive_end": 2.0
+  },
+  "cut_named_scaffold": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_recover_preregistered": 0,
+   "p_digest_return_exploratory": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.058505964742045356,
+   "mean_n_alive_end": 2.0
+  },
+  "sham": {
+   "n_runs": 6,
+   "p_recover_preregistered": 0.0,
+   "n_recover_preregistered": 0,
+   "p_digest_return_exploratory": 0.0,
+   "n_alive_end_zero_rate": 0.0,
+   "max_yield_over_baseline": 0.569536548513374,
+   "mean_n_alive_end": 2.0
+  }
+ },
+ "config_digest": "24da55a1cd765a4c00682c6ec092a0ce"
+}

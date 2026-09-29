@@ -1,0 +1,13 @@
+PASS batch(1) indices == 0..0 :: batch=[0]
+PASS batch(1) == 1 x run_ticks(1) indices :: single=[0]
+PASS batch(1) == 1 x run_ticks(1) tick digests
+PASS batch(5) indices == 0..4 :: batch=[0, 1, 2, 3, 4]
+PASS batch(5) == 5 x run_ticks(1) indices :: single=[0, 1, 2, 3, 4]
+PASS batch(5) == 5 x run_ticks(1) tick digests
+PASS batch(17) indices == 0..16 :: batch=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+PASS batch(17) == 17 x run_ticks(1) indices :: single=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+PASS batch(17) == 17 x run_ticks(1) tick digests
+PASS from_fork _tick_offset == 3 :: 3
+PASS from_fork continues at indices [3, 4] :: [3, 4]
+FAIL from_fork continuation tick digests byte-identical
+TOTAL FAILURES: 1

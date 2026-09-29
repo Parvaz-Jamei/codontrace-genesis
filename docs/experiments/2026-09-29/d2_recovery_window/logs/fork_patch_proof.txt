@@ -1,0 +1,37 @@
+{
+ "patch": {
+  "path": "E:\\\u0645\u0642\u0627\u0644\u0647 \u067e\u0632\u0634\u06a9\u06cc \u0634\u0628\u06cc\u0647 \u0633\u0627\u0632\u06cc \u0648\u06cc\u0631\u0648\u0633\\test-runs\\d2\\PROPOSED_CHANGE_fork.patch",
+  "lines": 68,
+  "sha256": "9d7e070d90aaf5d2"
+ },
+ "negative_control_fails": true,
+ "patched_all_equal": true,
+ "multi_arm_branching_safe": true,
+ "isolation_objects": {
+  "population": "shared_reference",
+  "world": "deepcopy",
+  "nexus_layer": "deepcopy",
+  "qd_archive": "deepcopy",
+  "element_grid": "shared_reference"
+ },
+ "shared_reference_objects": [
+  "element_grid",
+  "population"
+ ],
+ "interleaved": [
+  {
+   "k": 3,
+   "ticks": 3,
+   "interleaved_arm_a_matches_original": true,
+   "interleaved_arm_b_matches_original": true,
+   "arms_converge": true
+  },
+  {
+   "k": 0,
+   "ticks": 3,
+   "interleaved_arm_a_matches_original": true,
+   "interleaved_arm_b_matches_original": true,
+   "arms_converge": true
+  }
+ ]
+}

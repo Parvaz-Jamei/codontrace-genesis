@@ -1,0 +1,98 @@
+wall_s=2041.116 seeds=6
+calibration_gate_failed_at_seed=None
+seed=5501 phase=calibration skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=32 para_n=0 host_cls=27 ant_cls=0 rich=27 dom=11|10|11
+    now: census=36 para_n=0 host_cls=29 ant_cls=0 rich=29 dom=11|00|10
+    past: census=39 para_n=0 host_cls=27 ant_cls=0 rich=27 dom=01|00|01
+  arm=copassaged label=lagged_match supports=False i_c=0.0017380914 i_l=0.000428224 imax={'cell': ['past', 'past'], 'value': 0.0054417951}
+    future: census=21 para_n=64 host_cls=19 ant_cls=28 rich=19 dom=00|00|10
+    now: census=28 para_n=64 host_cls=21 ant_cls=28 rich=21 dom=00|00|11
+    past: census=33 para_n=64 host_cls=28 ant_cls=36 rich=28 dom=01|11|11
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=22 para_n=64 host_cls=18 ant_cls=16 rich=18 dom=00|00|00
+    now: census=35 para_n=64 host_cls=29 ant_cls=16 rich=29 dom=00|00|11
+    past: census=40 para_n=64 host_cls=30 ant_cls=16 rich=30 dom=01|01|00
+seed=5502 phase=calibration skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=42 para_n=0 host_cls=28 ant_cls=0 rich=28 dom=00|10|10
+    now: census=48 para_n=0 host_cls=34 ant_cls=0 rich=34 dom=01|10|10
+    past: census=55 para_n=0 host_cls=35 ant_cls=0 rich=35 dom=01|10|10
+  arm=copassaged label=contemporary_match supports=False i_c=0.0039446078 i_l=-0.0015180005 imax={'cell': ['future', 'future'], 'value': 0.0078749661}
+    future: census=32 para_n=64 host_cls=22 ant_cls=29 rich=22 dom=01|11|00
+    now: census=35 para_n=64 host_cls=26 ant_cls=31 rich=26 dom=01|01|11
+    past: census=51 para_n=64 host_cls=32 ant_cls=28 rich=32 dom=01|10|11
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=37 para_n=64 host_cls=25 ant_cls=16 rich=25 dom=10|10|11
+    now: census=39 para_n=64 host_cls=30 ant_cls=16 rich=30 dom=11|00|10
+    past: census=36 para_n=64 host_cls=26 ant_cls=16 rich=26 dom=00|10|01
+seed=5601 phase=pilot skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=35 para_n=0 host_cls=19 ant_cls=0 rich=19 dom=00|10|10
+    now: census=30 para_n=0 host_cls=23 ant_cls=0 rich=23 dom=00|00|10
+    past: census=47 para_n=0 host_cls=35 ant_cls=0 rich=35 dom=11|00|10
+  arm=copassaged label=other supports=False i_c=0.0098738023 i_l=-0.0045372061 imax={'cell': ['now', 'now'], 'value': 0.0098738023}
+    future: census=20 para_n=64 host_cls=17 ant_cls=31 rich=17 dom=00|01|01
+    now: census=21 para_n=64 host_cls=19 ant_cls=30 rich=19 dom=00|00|00
+    past: census=26 para_n=64 host_cls=23 ant_cls=35 rich=23 dom=01|01|00
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=38 para_n=64 host_cls=24 ant_cls=16 rich=24 dom=00|01|10
+    now: census=40 para_n=64 host_cls=25 ant_cls=16 rich=25 dom=10|10|00
+    past: census=39 para_n=64 host_cls=27 ant_cls=16 rich=27 dom=11|00|00
+seed=5602 phase=pilot skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=44 para_n=0 host_cls=30 ant_cls=0 rich=30 dom=11|00|11
+    now: census=41 para_n=0 host_cls=35 ant_cls=0 rich=35 dom=10|01|00
+    past: census=48 para_n=0 host_cls=38 ant_cls=0 rich=38 dom=00|01|10
+  arm=copassaged label=other supports=False i_c=0.0038191776 i_l=-0.0055852537 imax={'cell': ['future', 'future'], 'value': 0.0272099339}
+    future: census=32 para_n=64 host_cls=21 ant_cls=31 rich=21 dom=00|00|01
+    now: census=20 para_n=64 host_cls=16 ant_cls=27 rich=16 dom=00|11|00
+    past: census=37 para_n=64 host_cls=24 ant_cls=36 rich=24 dom=00|11|11
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=24 para_n=64 host_cls=16 ant_cls=16 rich=16 dom=01|10|01
+    now: census=22 para_n=64 host_cls=19 ant_cls=16 rich=19 dom=01|10|00
+    past: census=31 para_n=64 host_cls=27 ant_cls=16 rich=27 dom=00|11|01
+seed=5603 phase=pilot skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=48 para_n=0 host_cls=38 ant_cls=0 rich=38 dom=11|01|10
+    now: census=50 para_n=0 host_cls=29 ant_cls=0 rich=29 dom=10|00|10
+    past: census=57 para_n=0 host_cls=34 ant_cls=0 rich=34 dom=11|00|00
+  arm=copassaged label=other supports=False i_c=0.0073493109 i_l=-0.0067044366 imax={'cell': ['future', 'future'], 'value': 0.0080976121}
+    future: census=27 para_n=64 host_cls=20 ant_cls=30 rich=20 dom=11|11|01
+    now: census=27 para_n=64 host_cls=23 ant_cls=31 rich=23 dom=01|01|01
+    past: census=33 para_n=64 host_cls=27 ant_cls=37 rich=27 dom=10|00|00
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=32 para_n=64 host_cls=21 ant_cls=16 rich=21 dom=00|10|10
+    now: census=30 para_n=64 host_cls=21 ant_cls=16 rich=21 dom=00|11|01
+    past: census=37 para_n=64 host_cls=24 ant_cls=16 rich=24 dom=10|10|10
+seed=5604 phase=pilot skipped=None arm_match0=True
+  init {'arm': 'avirulent', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'fixed', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  init {'arm': 'copassaged', 'census': 64, 'genome_digest': '250879f347cad7adcf31394a0925e9e5b57923f51c3dd350f9011c210484edcd', 'parasite_windows_sha': '28e18a5dc84490b85a5e3132917220f3490a7e3c51273e4b0c7da0ce90019ec4'}
+  arm=avirulent label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=38 para_n=0 host_cls=27 ant_cls=0 rich=27 dom=00|00|00
+    now: census=30 para_n=0 host_cls=25 ant_cls=0 rich=25 dom=00|00|11
+    past: census=44 para_n=0 host_cls=33 ant_cls=0 rich=33 dom=00|00|01
+  arm=copassaged label=other supports=False i_c=0.005648525 i_l=-0.0028098817 imax={'cell': ['future', 'future'], 'value': 0.0103666986}
+    future: census=39 para_n=64 host_cls=26 ant_cls=31 rich=26 dom=00|10|00
+    now: census=34 para_n=64 host_cls=25 ant_cls=29 rich=25 dom=00|00|00
+    past: census=37 para_n=64 host_cls=28 ant_cls=34 rich=28 dom=10|10|10
+  arm=fixed label=flat supports=False i_c=0.0 i_l=0.0 imax={'cell': ['past', 'past'], 'value': 0.0}
+    future: census=25 para_n=64 host_cls=19 ant_cls=16 rich=19 dom=11|01|10
+    now: census=27 para_n=64 host_cls=22 ant_cls=16 rich=22 dom=00|01|01
+    past: census=44 para_n=64 host_cls=27 ant_cls=16 rich=27 dom=00|01|11

@@ -215,6 +215,53 @@ def pre_intervene_pop_digest_from_ecology(
     return canonical_digest(rows, prefix="pre_intervene_pop")
 
 
+def _changed_nodes(pre: Mapping[str, Any], post: Mapping[str, Any]) -> set[str]:
+    """Endpoints of edges whose presence, ends, mask, or yield changed."""
+
+    pre_parts = {p["edge_id"]: p for p in pre.get("parts", ())}
+    post_parts = {p["edge_id"]: p for p in post.get("parts", ())}
+    nodes: set[str] = set()
+    for eid in set(pre_parts) | set(post_parts):
+        left = pre_parts.get(eid)
+        right = post_parts.get(eid)
+        changed = left is None or right is None
+        if left is not None and right is not None:
+            changed = (
+                left["src"] != right["src"]
+                or left["dst"] != right["dst"]
+                or left["present"] != right["present"]
+                or left["masked"] != right["masked"]
+                or float(left["atp_yield"]) != float(right["atp_yield"])
+            )
+        if not changed:
+            continue
+        part = left if left is not None else right
+        assert part is not None
+        nodes.add(str(part["src"]))
+        nodes.add(str(part["dst"]))
+    return nodes
+
+
+def _organisms_for_nodes(organisms: Sequence[Any], nodes: set[str]) -> list[Any]:
+    """Map ledger node ids onto the live population. Not a contact physics claim."""
+
+    ordered = sorted(organisms, key=lambda org: str(getattr(org, "id", "")))
+    if not ordered or not nodes:
+        return []
+    chosen: list[Any] = []
+    seen: set[str] = set()
+    for node in sorted(nodes):
+        digits = "".join(ch for ch in node if ch.isdigit())
+        index = int(digits) if digits else 0
+        org = ordered[index % len(ordered)]
+        org_id = str(getattr(org, "id", ""))
+        if org_id in seen:
+            continue
+        seen.add(org_id)
+        chosen.append(org)
+    return chosen
+
+
 def _structural_delta(pre: Mapping[str, Any], post: Mapping[str, Any]) -> dict[str, float]:
     """Count domain-free structural deltas between ledger snapshots."""
 
@@ -258,8 +305,22 @@ def apply_ledger_feedback_to_engine(
     pre_snap: Mapping[str, Any],
     post_snap: Mapping[str, Any],
     generation_index: int,
+    allocation: str = "global_smear",
 ) -> dict[str, Any]:
-    """Apply domain-free ATP/resource feedback from ledger contact deltas."""
+    """Apply domain-free ATP/resource feedback from ledger contact deltas.
+
+    ``global_smear`` splits the whole burden across every organism. Endpoint
+    identity does not enter that debit, so two equal-cost cuts share one
+    aggregate path. ``incident_endpoints`` charges the edge portion only to
+    organisms mapped from the changed endpoints. That is a meter check, not
+    an identified topology effect. Food removal stays global in both modes.
+    """
+
+    allocation_name = str(allocation)
+    if allocation_name not in ("global_smear", "incident_endpoints"):
+        raise ConfigurationError(
+            "feedback allocation must be global_smear or incident_endpoints."
+        )
 
     deltas = _structural_delta(pre_snap, post_snap)
     energy_delta = float(deltas["energy_delta"])
@@ -283,9 +344,12 @@ def apply_ledger_feedback_to_engine(
     total_credited = 0.0
     g = int(generation_index)
 
-    if organisms and burden > 0.0:
-        per = float(burden) / float(len(organisms))
-        for org in organisms:
+    def _debit(targets: Sequence[Any], amount: float) -> None:
+        nonlocal total_debited
+        if not targets or amount <= 0.0:
+            return
+        per = float(amount) / float(len(targets))
+        for org in targets:
             payable = min(per, float(org.atp_state.runtime_available))
             if payable <= 0.0:
                 continue
@@ -298,6 +362,25 @@ def apply_ledger_feedback_to_engine(
                 reason="ledger_contact_energy_burden",
             )
             total_debited += payable
+
+    nodes = _changed_nodes(pre_snap, post_snap)
+    incident = _organisms_for_nodes(organisms, nodes)
+    if allocation_name == "global_smear":
+        _debit(organisms, burden)
+        recipients = organisms
+        endpoints_enter_debit = False
+    else:
+        edge_burden = burden_lost_energy + burden_edge_changes
+        flat_burden = burden_digest + burden_token
+        if incident and edge_burden > 0.0:
+            _debit(incident, edge_burden)
+            endpoints_enter_debit = True
+        else:
+            _debit(organisms, edge_burden)
+            endpoints_enter_debit = False
+        _debit(organisms, flat_burden)
+        recipients = incident if incident else organisms
+    recipient_ids = sorted(str(getattr(org, "id", "")) for org in recipients)
 
     if organisms and restore > 0.0:
         per = float(restore) / float(len(organisms))
@@ -377,9 +460,17 @@ def apply_ledger_feedback_to_engine(
         "n_edge_changes": float(deltas["n_edge_changes"]),
         "digest_changed": float(deltas["digest_changed"]),
         "token_changed": float(deltas["token_changed"]),
-        # Count and token coefficients are not an identified contact effect.
+        "allocation": allocation_name,
+        "recipient_ids": recipient_ids,
+        "endpoints_enter_debit": bool(endpoints_enter_debit),
+        "food_follows_endpoints": False,
+        "endpoint_map": "node_digits_mod_population",
+        "endpoint_map_is_contact_physics": False,
+        "lineage_resource_transfer": False,
+        # A local debit can move who pays. It does not identify a topology effect.
         "contact_structure_effect_identified": False,
         "knowledge_effect_identified": False,
+        "topology_effect_identified": False,
     }
 
 
@@ -399,6 +490,7 @@ class EngineCoupledLedgerObserver:
     auto_advance: bool = True
     harvest_fn: Callable[[ContactAtpLedger], float] | None = None
     feedback_enabled: bool = True
+    feedback_allocation: str = "global_smear"
 
     def __post_init__(self) -> None:
         if not self.base_rare_yields:
@@ -464,6 +556,7 @@ class EngineCoupledLedgerObserver:
                 pre_snap=pre_snap,
                 post_snap=post_snap,
                 generation_index=g,
+                allocation=self.feedback_allocation,
             )
             feedback_rec.update(applied)
             feedback_rec["n_alive_after_feedback"] = int(applied["n_alive_after"])

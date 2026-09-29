@@ -80,21 +80,88 @@ def rq_magnitude(score: float) -> float:
 def rq_barrier_holds(score: float = RQ_SYNTHETIC_SCORE) -> bool:
     """True only while ``abs(score)`` is strictly below the accept threshold.
 
-    Direction is not part of this boolean. Use
-    ``rq_positive_direction_reaches_threshold`` for the accept direction.
-    Crossing the magnitude on the negative side does not prove Red Queen.
+    Direction is not part of this boolean. The preregistered sign of the
+    swap-signal is ``S < 0`` (PREREG_V2, T9 floor 0.20). A positive score
+    is the opposite sign. Neither crossing is a proof.
     """
 
     return rq_magnitude(score) < float(RQ_ACCEPT_THRESHOLD)
 
 
-def rq_positive_direction_reaches_threshold(score: float) -> bool:
-    """True only for a positive score at or above the accept threshold.
+def rq_preregistered_direction_reaches_threshold(score: float) -> bool:
+    """True when ``S <= -0.20``.
 
-    Not a proof. ``red_queen_proved_from_score`` stays false either way.
+    That is the preregistered direction and the mechanism floor. It is not
+    Red Queen proved, and it does not replace the delay, frozen-antagonist,
+    or population controls.
+    """
+
+    return float(score) <= -float(RQ_ACCEPT_THRESHOLD)
+
+
+def rq_positive_direction_reaches_threshold(score: float) -> bool:
+    """True for ``S >= +0.20``.
+
+    This is the opposite of the preregistered sign. It is not acceptance.
     """
 
     return float(score) >= float(RQ_ACCEPT_THRESHOLD)
+
+
+RQ_REQUIRED_CONTROLS: tuple[str, ...] = (
+    "delay_control",
+    "frozen_antagonist_arm",
+    "population_conditions",
+)
+
+
+def rq_controls_present(controls: object) -> bool:
+    """Delay, frozen antagonist, and population conditions, each recorded true."""
+
+    if not isinstance(controls, Mapping):
+        return False
+    return all(controls.get(name) is True for name in RQ_REQUIRED_CONTROLS)
+
+
+def rq_claim_inputs_sufficient(score: float, controls: object = None) -> bool:
+    """Arithmetic predicate on a supplied mapping. Not a record that arms ran.
+
+    Still not a proof. ``red_queen_proved_from_score`` stays false. This
+    codebase does not record the three controls; use ``rq_model_decision``.
+    """
+
+    return bool(
+        (not rq_barrier_holds(score))
+        and rq_preregistered_direction_reaches_threshold(score)
+        and rq_controls_present(controls)
+    )
+
+
+# These three arms are not in this model. A caller dict cannot invent them.
+RQ_MODEL_CONTROLS: dict[str, bool] = {
+    "delay_control": False,
+    "frozen_antagonist_arm": False,
+    "population_conditions": False,
+}
+
+
+def rq_model_decision(score: float = RQ_SYNTHETIC_SCORE) -> dict[str, bool]:
+    """Decision for this model. The controls are absent, so inputs are not sufficient.
+
+    Crossing 0.20 in the preregistered direction is not Red Queen proved.
+    The positive direction is not acceptance.
+    """
+
+    return {
+        "barrier_holds": bool(rq_barrier_holds(score)),
+        "preregistered_direction_reaches_threshold": bool(
+            rq_preregistered_direction_reaches_threshold(score)
+        ),
+        "positive_direction_is_acceptance": False,
+        "controls_recorded_in_model": False,
+        "claim_inputs_sufficient": False,
+        "red_queen_proved": False,
+    }
 
 
 def red_queen_proved_from_score(score: float = RQ_SYNTHETIC_SCORE) -> bool:

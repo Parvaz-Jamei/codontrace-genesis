@@ -335,7 +335,7 @@ class ContactAtpLedger:
             "atp_lost": atp_lost,
         }
 
-    def cut_matched_random(
+    def _choose_matched_edges(
         self,
         degree: int,
         *,
@@ -343,24 +343,20 @@ class ContactAtpLedger:
         target_degree_sum: int | None = None,
         target_atp_sum: float | None = None,
         target_weight_sum: float | None = None,
+        exclude_edge_ids: Iterable[str] | None = None,
     ) -> dict[str, Any]:
-        """Cut ``n_edges`` present non-scaffold edges matched on degree/ATP.
-
-        Prefer exact endpoint-degree matches. If the exact-degree pool cannot
-        supply ``n_edges``, fall back to nearest-degree edges and set
-        ``used_nearest_fallback=True``. Never labels a nearest fallback as
-        ``match_exact=True``.
-        """
+        """Pick a degree/ATP matched cut. Does not change the ledger."""
 
         deg = _as_int(degree, "degree", minimum=0)
         n_cut = _as_int(n_edges, "n_edges", minimum=1)
         scaffold_members: set[str] = set()
         for members in self.scaffold_edge_sets.values():
             scaffold_members |= members
+        blocked = {str(eid) for eid in (exclude_edge_ids or ())}
         pool = sorted(
             eid
             for eid, edge in self.edges.items()
-            if edge.present and eid not in scaffold_members
+            if edge.present and eid not in scaffold_members and eid not in blocked
         )
         if len(pool) < n_cut:
             raise ConfigurationError(
@@ -421,18 +417,12 @@ class ContactAtpLedger:
             chosen = best
 
         cut_ids = list(chosen)
-        # Snapshot degree/weight BEFORE mutating present flags (degree counts present only).
         degree_sum = int(sum(self.edge_degree(eid) for eid in cut_ids))
         weight_sum = float(sum(float(self.edges[eid].atp_yield) for eid in cut_ids))
         atp_lost = float(weight_sum)
         n_edges_cut = len(cut_ids)
-        for eid in cut_ids:
-            self.edges[eid].present = False
-            self._cut_buffer.add(eid)
-
         atp_exact = tgt_atp is not None and abs(atp_lost - float(tgt_atp)) <= 1e-9
         weight_exact = tgt_w is not None and abs(weight_sum - float(tgt_w)) <= 1e-9
-        # Targets omitted → judge only on n_edges and degree (legacy single-edge callers).
         if tgt_atp is None and tgt_w is None:
             match_exact = (
                 (not used_nearest_fallback)
@@ -447,9 +437,7 @@ class ContactAtpLedger:
                 and atp_exact
                 and weight_exact
             )
-
         return {
-            "op": "cut_matched_random",
             "degree": deg,
             "n_edges_requested": n_cut,
             "cut_edge_ids": cut_ids,
@@ -462,7 +450,42 @@ class ContactAtpLedger:
             "target_weight_sum": tgt_w,
             "used_nearest_fallback": bool(used_nearest_fallback),
             "match_exact": bool(match_exact),
+            "n_pool": len(pool),
+            "n_exact_combos": len(exact),
         }
+
+    def cut_matched_random(
+        self,
+        degree: int,
+        *,
+        n_edges: int = 1,
+        target_degree_sum: int | None = None,
+        target_atp_sum: float | None = None,
+        target_weight_sum: float | None = None,
+        exclude_edge_ids: Iterable[str] | None = None,
+    ) -> dict[str, Any]:
+        """Cut ``n_edges`` present non-scaffold edges matched on degree/ATP.
+
+        Prefer exact endpoint-degree matches. If the exact-degree pool cannot
+        supply ``n_edges``, fall back to nearest-degree edges and set
+        ``used_nearest_fallback=True``. Never labels a nearest fallback as
+        ``match_exact=True``.
+        """
+
+        chosen = self._choose_matched_edges(
+            degree,
+            n_edges=n_edges,
+            target_degree_sum=target_degree_sum,
+            target_atp_sum=target_atp_sum,
+            target_weight_sum=target_weight_sum,
+            exclude_edge_ids=exclude_edge_ids,
+        )
+        for eid in chosen["cut_edge_ids"]:
+            self.edges[eid].present = False
+            self._cut_buffer.add(eid)
+        chosen["op"] = "cut_matched_random"
+        return chosen
+
 
     def scaffold_cut_profile(self, scaffold_id: str) -> dict[str, Any]:
         """Describe what ``cut_named_scaffold`` would cut without mutating."""
@@ -538,6 +561,85 @@ class ContactAtpLedger:
             "match_exact": bool(match_exact),
             "exclude_from_combo_e": not bool(match_exact),
         }
+
+    def independent_match_design(self, scaffold_id: str) -> dict[str, Any]:
+        """Look for an exact degree/ATP match that is not a planted mirror.
+
+        Does not cut. A miss is a design failure. The nearest leftover edges
+        are listed only so the miss can be audited. They are not a result.
+        """
+
+        profile = self.scaffold_cut_profile(scaffold_id)
+        blocked = set(self.match_mirrors.values()) | set(self.match_mirrors)
+        blocked |= {str(eid) for eid in profile["cut_edge_ids"]}
+        n_edges = int(profile["n_edges_cut"])
+        if n_edges < 1:
+            raise ConfigurationError("scaffold cut profile has no present edges to match.")
+        try:
+            chosen = self._choose_matched_edges(
+                int(profile["per_edge_degree"]),
+                n_edges=n_edges,
+                target_degree_sum=int(profile["degree_sum"]),
+                target_atp_sum=float(profile["atp_lost"]),
+                target_weight_sum=float(profile["contact_weight_sum"]),
+                exclude_edge_ids=blocked,
+            )
+        except ConfigurationError:
+            chosen = {
+                "cut_edge_ids": [],
+                "match_exact": False,
+                "used_nearest_fallback": True,
+                "n_pool": 0,
+                "n_exact_combos": 0,
+            }
+        exact = bool(chosen["match_exact"])
+        planned = [str(eid) for eid in chosen["cut_edge_ids"]]
+        return {
+            "op": "independent_match_design",
+            "mutated": False,
+            "independent_of_planted_mirrors": True,
+            "blocked_edge_ids": sorted(blocked),
+            "n_pool": int(chosen["n_pool"]),
+            "n_exact_combos": int(chosen["n_exact_combos"]),
+            "match_exact": exact,
+            "design_failure": not exact,
+            "exclude_from_scientific_contrast": True,
+            "planned_edge_ids": planned if exact else [],
+            "nearest_ids_not_analysed": [] if exact else planned,
+            "used_nearest_fallback": bool(chosen["used_nearest_fallback"]),
+        }
+
+    def cut_independent_of_mirrors(self, scaffold_id: str) -> dict[str, Any]:
+        """Match degree and ATP on edges that are not planted yield mirrors.
+
+        A miss is a design failure. It is excluded from the contrast. It is
+        not replaced by the mirror twin and then analysed as a success.
+        """
+
+        profile = self.scaffold_cut_profile(scaffold_id)
+        blocked = set(self.match_mirrors.values()) | set(profile["cut_edge_ids"])
+        n_edges = int(profile["n_edges_cut"])
+        if n_edges < 1:
+            raise ConfigurationError("scaffold cut profile has no present edges to match.")
+        matched = self.cut_matched_random(
+            int(profile["per_edge_degree"]),
+            n_edges=n_edges,
+            target_degree_sum=int(profile["degree_sum"]),
+            target_atp_sum=float(profile["atp_lost"]),
+            target_weight_sum=float(profile["contact_weight_sum"]),
+            exclude_edge_ids=blocked,
+        )
+        report = self.build_cut_match_report(profile, matched)
+        report["independent_of_planted_mirrors"] = True
+        report["blocked_edge_ids"] = sorted(blocked)
+        report["design_failure"] = not bool(report["match_exact"])
+        report["exclude_from_combo_e"] = not bool(report["match_exact"])
+        matched["match_report"] = report
+        matched["match_exact"] = bool(report["match_exact"])
+        matched["exclude_from_combo_e"] = bool(report["exclude_from_combo_e"])
+        matched["independent_of_planted_mirrors"] = True
+        matched["design_failure"] = bool(report["design_failure"])
+        return matched
 
     def ablate_knowledge_digest(self, digest_key: str) -> dict[str, Any]:
         """Remove a failed-prediction digest only — never recovery tokens or scaffolds."""

@@ -51,3 +51,20 @@ Checked against origin/main `d8b431b` and against the local tree that is not tha
 
 7. **Process check.** Five distinct texts are no longer enough for `process_cycle_complete`. The checker requires a dated search with references, a lead and two roles, an independent critique, the phase order, two retry slots, and ordered dated events. A unit-test trail that meets the shape is not this campaign's audit. The campaign is not marked audited.
 
+## Reading after the e5ae88a critique
+
+Recorded in this revision after `e5ae88a`. Not a discovery. `hypothesis_supported` and `red_queen_proved` stay false. Phase 3 stays closed. The synthetic score −0.148 was not recomputed.
+
+1. **Topology is still not identified.** Global smear makes the named-scaffold cut and the planted-mirror cut share one population-path digest. That equality is the null. `incident_endpoints` debits the edge portion onto organisms mapped by node digits modulo population size. Food stays global. The map is not contact physics and not lineage resource transfer. `topology_effect_identified` stays false.
+
+2. **Two outcomes, two dates.** Engine `recover` is `GENOME-DIGEST-LOST-THEN-REGAINED-V1` (2026-09-29), exploratory. The preregistered outcome remains `FI-RARECLASS-CONTACT-YIELD-V1` (2026-09-28): rare-class yield at least 1.25× for three consecutive boundaries. Aggregates keep the series apart. A row without the dated id is counted in `n_excluded_recover_definition_mismatch` and is not pooled. A returning digest is not a checkpoint fork and not a parent/child id. `lineage_recovery_established` stays false.
+
+3. **The window gate no longer ORs flags across rows.** The three-record split is `window_test_valid=false`. An undated row with all three flags is also false. A dated control row opens the preflight only with a paired arm that carries the same exploratory definition, the same seed and `t_tilde`, and is not an inexact or non-independent match. A dated control next to an undated arm stays false. A blocked control stays false. `window_law_tested` stays false.
+
+4. **Idea 2 is calibration only.** Output version `IDEA2-HOST-CENSUS-CALIBRATION-V1`, dated 2026-09-29. `fresh_hypothesis_sample` is false. No second genotype population was added.
+
+5. **Red Queen sign.** The preregistered direction is `S <= -0.20`. The positive threshold is the opposite sign and is not acceptance. `rq_model_decision` records delay control, frozen antagonist, and population conditions as absent, so claim inputs are not sufficient for −0.245 or for −0.148. A caller-supplied controls dict is not evidence those arms were run. `red_queen_proved_from_score` stays false.
+
+6. **The mirror is not the scientific control.** `independent_match_design` does not mutate. On this scaffold, blocking `E6`/`E7` leaves no exact degree and ATP match, so `design_failure` is true. The mirror cut stays a code check (`match_exact` true, `independent_control` false) and is removed from both contrasts. Exclusion counts are `n_excluded_inexact_by_t` and `n_excluded_nonindependent_by_t`. Successes are not analysed alone.
+
+

@@ -278,6 +278,9 @@ def _apply_ops_cell(ledger: ContactAtpLedger, ops_cell: str) -> dict[str, Any]:
     if cell == "cut_matched_random":
         # Match n_edges / degree / ATP targets to what the named scaffold would cut.
         profile = ledger.scaffold_cut_profile(SCAFFOLD_ID)
+        # Probe before the mirror cut. The probe does not mutate. A miss
+        # stays a design failure and does not become the analysed arm.
+        design = ledger.independent_match_design(SCAFFOLD_ID)
         n_edges = int(profile["n_edges_cut"])
         if n_edges < 1:
             raise ConfigurationError("scaffold cut profile has no present edges to match.")
@@ -295,6 +298,10 @@ def _apply_ops_cell(ledger: ContactAtpLedger, ops_cell: str) -> dict[str, Any]:
         matched["exclude_from_combo_e"] = bool(report["exclude_from_combo_e"])
         matched["scaffold_cut_edge_ids"] = list(profile["cut_edge_ids"])
         matched["n_edges_cut_scaffold"] = int(profile["n_edges_cut"])
+        matched["independent_match_design"] = design
+        matched["independent_control"] = False
+        matched["scientific_contrast_eligible"] = False
+        matched["design_failure"] = bool(design["design_failure"])
         return matched
     if cell == "ablate_knowledge_digest":
         return ledger.ablate_knowledge_digest(PRED_FAIL_DIGEST_KEY)

@@ -1,4 +1,4 @@
-# 2026-09-29 verification record — independent verification of the CI-repair commits
+﻿# 2026-09-29 verification record — independent verification of the CI-repair commits
 
 ## 1. What this record is
 
@@ -234,7 +234,7 @@ legitimately produce different bytes for the observables and the same PASS/FAIL 
 These are honest residuals, not defects to hide, and none of them blocks the landed
 fixes.
 
-1. **`capture_fork()` is in-memory only.** `fork_audit_payload()` is the serialisable
+1. **The in-memory-only contract is partly enforced already** (`fork_audit_payload()` since `01ee4a2` is the serialisable hand-off, the docstring states "Not JSON-serialisable", and the live-payload `TypeError` is asserted); what stays open: `fork_audit_payload()` is the serialisable
    hand-off, and `tests/test_fork_audit_payload.py` asserts that the live payload raises
    `TypeError` under `json.dumps`. No reduced serialisable state exists beside the live
    objects, and nothing guards a future caller from trying to serialise the live payload.
@@ -243,8 +243,8 @@ fixes.
    budget is set for D-2.
 3. **Branches still share the read-only `mappingproxy` registries by design.** The
    mutation tests do not cover those tables.
-4. **The owner-approved `vt_spatial_factorial` re-lock (`6c979f5`) predates these rounds**
-   and was not re-verified inside them. The pin suites confirm those locked values did
+4. **The owner-approved `vt_spatial_factorial` re-lock (`6c979f5`) was independently verified and owner-approved before this round**
+   and is documented separately, so it is a cross-reference rather than an open gate. The pin suites confirm those locked values did
    not move, and the re-lock is documented separately in
    `docs/campaigns/discovery_questions_20260928/FROZEN_DIGEST_RELOCK_20260929.md`.
 

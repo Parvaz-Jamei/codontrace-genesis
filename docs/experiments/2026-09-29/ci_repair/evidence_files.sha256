@@ -1,8 +1,8 @@
 5d2791967e8e831ca8f8c92d5dae98ff701b2d95e65b925058059b8acbb912e3          9351  ci_repair/apply_rng_patch.py
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  ci_repair/campaigns_after.json
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  ci_repair/campaigns_before.json
-628c31d0ebbdeb4012cc9dc52cad9f8aa7a3c9c301772def4f09f14820d707b2          1654  ci_repair/evidence_files.sha256
-7d47dbeb761cd949c50efba1113cf105f5b8821fb2dbc45f97002e910acc95a0          8020  ci_repair/INVENTORY.md
+72b5c246700669f3abd0574273a7b2b4e2fdeac7fc8e11a6f5a88b8005ccd1c1          1654  ci_repair/evidence_files.sha256
+fd4745ba2db230d6c2ad5f78e0ba3cea27e99e5c0f9cd6eabbbe36b412cb0d60          8142  ci_repair/INVENTORY.md
 ee763c7d1243f5416b505ae7343a9745e3b14a2acda733c7d0681045bc0c63f4          1822  ci_repair/make_rng_patch.py
 f821cd6038da4daf4d030423f21052fde3d66d0d70666f9417214768c7461145          2918  ci_repair/paatched_scratch_full_pytest.txt
 3d4266dc084568a8cfb04740d3c8497bb9bc2e2386f480b6e88ca7fc54ef6b72         11101  ci_repair/PROPOSED_CHANGE_rng_backend.patch

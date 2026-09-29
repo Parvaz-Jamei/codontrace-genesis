@@ -3,7 +3,7 @@
 439ab1d228d4cc8b6700d5e98f045fdb73d5eff65b40f7a65fb9552d9398760a          3382  d2_recovery_window/analysis_round4.json
 882ca5710b54a769f3a99478cce48cd7271e485651b4d3647b4328919ab7a61f          4814  d2_recovery_window/decision.md
 0856175321d28e2b99418f29af8009f71b296261be5e507cc8e1584a72725cc4          6482  d2_recovery_window/design.md
-ccdf26e2a6fc0812e5b4867bac76b8c2e176d13ce1645936cc33705a890b6b63         23954  d2_recovery_window/evidence_files.sha256
+0117d1f31534de9f4984facac6eed84e96492e90723cb7a0763e10a592b09786         23954  d2_recovery_window/evidence_files.sha256
 4e353c58bd970d047d04b0a4bf2fb4b7affcb0cfede783ba36a5b6d87f11e582         14317  d2_recovery_window/harness/__pycache__/d2_common.cpython-314.pyc
 2b6a8c281a171e724a4a4b229465ebc6d04d8c987505a1889424ca6f9e15a31a          8588  d2_recovery_window/harness/d2_common.py
 d165a06bd127c8ade2d99316c88d7d39f7837a88d79a53c6e627ae5050e2a33d          9011  d2_recovery_window/harness/d2_fork_isolation_patch.py
@@ -197,7 +197,7 @@ e3ec1b7535b99050c0f4210a0e192c229a397262966909009eaf55c7230b427e        100943  
 e5729097d757ec94fd58f788b6b6d8c5383a57992df40c3b32104f22a42be69e          1132  d2_recovery_window/raw/d2-s5502-t30-sham/run_manifest.json
 dcf1e8769f8fe5645f768e9d8079e704d4ef4587fa459b2b2aad74aef11edbce        114297  d2_recovery_window/raw/round3/round3_raw.json
 758608f366d06715b9fdcabf6c83917f8c2287a07f5142889556d6340697a8db        139796  d2_recovery_window/raw/round4/round4_raw.json
-0b3a45976ca9e649b0db98351cca69328a5284a3f139b24e0de39047c3f362f0          3200  d2_recovery_window/README.md
+cfe5590fe583f05856355c29aa6b3f0bf741a5b3ec6530c8f6d39b3a4588ead1         19006  d2_recovery_window/README.md
 15a4748014e38dc1d1f61cd61980584865d5854787131e895bc2234ecb39619e          3064  d2_recovery_window/run_manifest.json
 57d8b10142554a3205eec0943640c5e8400fe11adaf74541efaf726e9df8cec4          5671  d2_recovery_window/stage0_report.json
 43743f91d1e2e9c7a8417218e80d5941774953d4bfbee674e8e0d6bf6435b67e          6037  d2_recovery_window/TASK7_FORK_REPORT.md

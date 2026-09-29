@@ -307,3 +307,12 @@ the record claims only a behavioural separation in one pilot contrast.
 this directory still carry the withdrawn `SUPPORTED_IN_MODEL` label; their sha256 values are in
 `evidence_files.sha256`. They are kept as the pre-correction record and are superseded by this
 section and by the corrected `decision.md` in the upstream pack, which will be imported.
+
+**Non-recomputability of the superseded share, stated explicitly.** The pre-correction number
+0.171875 (and the seed-21051 contrast behind it) **cannot be recomputed from this repository**. The
+archived raw runs cover seeds 21001 and 21011 only, and the archived `round3_contrast.py` hard-codes
+seed 21051 and re-runs the model rather than replaying stored raw data. Recorded fields that mention
+0.171875 remain in `run_manifest.json` and the superseded `decision.md` as history, with their
+sha256 in `evidence_files.sha256`; the corrected contrast in section (i-b) is the record's standing
+result, and the raw behind it will be imported with the follow-up pre-selection-parity patch. No
+number is adjusted to reconcile the two.

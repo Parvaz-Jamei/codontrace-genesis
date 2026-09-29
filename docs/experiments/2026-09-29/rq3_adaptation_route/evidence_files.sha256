@@ -4,7 +4,7 @@
 faa4e1c8b6b9b1b50fb7f1cc3e4f27648e00a6598e7f4eddc0c3c68896eae6bd         23426  build_patch.py
 0c6254d37fee461705bd4cb3d6beebc591e4e3666381d352fb22646bdd3114b2          5859  decision.md
 c6eb2e7d2d91eb6cb3c04af0d59fbacf2dba18271df307b446a652c79799c3c6          5857  design.md
-391b4a608f5a8faf310c07762ead79dd347b723a8bdfa1a143f56f4474243f3a         11908  evidence_files.sha256
+a89ce839f5eab7b798f1a2246fd35f7fc97105340fcc8771bc884024888a2e21         11908  evidence_files.sha256
 bfe077d322cf4525c51a9661b4069b6ddbafb05a0a64c1ea4b022288aaa4e032           228  out_aff.txt
 e5a6beb414a004b0a8892fb884f402f869cc9f0708f530ea32784904d009eed0          6006  out_analyze1.txt
 67544cb826e2931b54355fcb84622b3b2737acc269b29b1c8ef2875aed678742          6076  out_analyze_pilot.txt
@@ -42,7 +42,7 @@ c11f5c5f49ff6b9c8bdec73e04554ed8862f394e0eb48474f50d31f1f9debf52          5750  
 b43fc49a926284b148eaeea15b48611bd7342e871f7ac0380b994cb4c40b931b          2239  PROPOSED_CHANGE_2_gap.md
 6a853e14e6c6ad7991ddb359b20fecb64e5af73b16a7b6977437f1947ab73b92         38439  PROPOSED_CHANGE_3.patch
 adbee818951fb93d47110bf52a7711c4238c67ae060db095c0fcfad3c205f408          1758  PROPOSED_CHANGE_4.patch
-254d70eb7aca5314edbe155edd14f5205e981e3eaef23f38dce856d7ab415b73         19963  README.md
+bba473fb01d3e583a32cb90fca2a907c202eafa81eb2f528b827e4715c25731c         20702  README.md
 bcd0457e7f0fbb38d8b6ee35133f4c1ad7c3d64b1d05ba8e3bb084b1cf111a43          1168  regen_module_from_patch.py
 c15a156397a1b21996df352e697becf80f84e51111578b49a5b1cc8123243a08          4980  round3_contrast.py
 cef8c717f0e368a44bab4dca3d8cfd01887b1737ef625dc45af34071fac9877f         10203  rq3_analyze.py

@@ -34,8 +34,17 @@ recorded in `results/`.
 
 ## Raw data
 
-Full sha256 manifest: `evidence_files.sha256` (result JSON; the per-generation `*.npz` dumps are
-excluded as dataset dumps).
+Full sha256 manifest: `evidence_files.sha256` (result JSON plus the source datasets).
+
+**Source datasets are in-repo:** the eighteen `results/e2026*_eps*_G40.npz` arrays that the
+reproducibility audit found missing are imported here (`results/`, 18 files, 2.96 MB), so the pooled
+re-routing share and its bootstrap interval are recomputable from the repository: run the archived
+`verify_estimand_split.py` / `estimand_split.py` against those arrays with `PYTHONPATH` pointing at
+the repository `src`. The estimator labels and recorded bootstrap values are unchanged: 64.1 per
+cent is the bootstrap median of the ratio of medians, the raw pooled ratio of medians is 62.97 per
+cent, the mean per-draw ratio of medians is 63.75 per cent, the ratio of means is 64.8 per cent, and
+the ratio-of-medians interval is [55.8, 73.3] under the published 1e-8 SVD rank tolerance
+([55.78, 73.33] exact, [56.02, 73.25] under a Cholesky rank test).
 
 ## Analysis
 

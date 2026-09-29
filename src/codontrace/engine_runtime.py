@@ -322,6 +322,20 @@ class GenesisEngine:
                 "note": "per-generation seed = spec.seed + completed_ticks",
             },
             "parent_snapshot_id": parent_snapshot_id,
+            # Exact in-process branch state.  ``population.to_dict()`` is a
+            # reduced payload: the rebuilt organisms differ from the source in
+            # ``action_runtime_config``, ``causal_graph`` and ``ribosome``, and a
+            # fresh engine also carries a freshly built ``qd_archive`` and
+            # ``nexus_layer``.  Those differences change the next generation
+            # digest, so the live objects are carried for an exact fork.
+            "live_objects": {
+                "population": self.runner.population,
+                "world": self.runner.world,
+                "nexus_layer": self.runner.nexus_layer,
+                "qd_archive": self.qd_archive,
+                "element_grid": self.element_grid,
+            },
+            "exact_state": True,
         }
 
     @classmethod
@@ -345,8 +359,42 @@ class GenesisEngine:
             msg = "fork payload must carry fork_version == 1."
             raise ValueError(msg)
         engine = cls.from_spec(spec, generation_boundary_observers=generation_boundary_observers)
-        engine.runner.population = PopulationState.from_dict(dict(fork["population"]))
-        engine.runner.world = World2D.from_dict(dict(fork["world"]))
+        source = fork.get("live_objects") or {}
+        if source:
+            # Exact fork: attach the captured live objects so every per-object
+            # field (organism action config, causal graph, ribosome, stigmergy
+            # layer, QD archive, world bookkeeping) matches the checkpoint.
+            # Each object is deep-copied per restore so two arms branched from
+            # one checkpoint payload cannot alias each other.  Where deepcopy is
+            # impossible (a mappingproxy inside the graph) the live reference is
+            # attached and the isolation map records it explicitly.
+            import copy as _copy
+
+            isolation: dict[str, str] = {}
+
+            def _take(name: str, value: Any) -> Any:
+                try:
+                    taken = _copy.deepcopy(value)
+                except Exception:
+                    isolation[name] = "shared_reference"
+                    return value
+                isolation[name] = "deepcopy"
+                return taken
+
+            engine.runner.population = _take("population", source["population"])
+            engine.runner.world = _take("world", source["world"])
+            if source.get("nexus_layer") is not None:
+                engine.runner.nexus_layer = _take("nexus_layer", source["nexus_layer"])
+            if source.get("qd_archive") is not None:
+                engine.qd_archive = _take("qd_archive", source["qd_archive"])
+            if source.get("element_grid") is not None:
+                engine.element_grid = _take("element_grid", source["element_grid"])
+            engine.fork_isolation = isolation
+            engine.fork_state_exact = all(value == "deepcopy" for value in isolation.values())
+        else:
+            # Reduced fallback: serialisable payload only.  Documented as lossy.
+            engine.runner.population = PopulationState.from_dict(dict(fork["population"]))
+            engine.runner.world = World2D.from_dict(dict(fork["world"]))
         engine._tick_offset = int(fork["tick_index"])
         engine._tick_results = []
         engine._snapshots = []

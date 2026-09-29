@@ -29,12 +29,12 @@
     },
     "vt_spatial_factorial": {
       "cell_digests": {
-        "vt0.0|local_neighborhood": "b1cd14c6a449efb45c16562dae12aa2608a95fac4debb593bf2d4c51ac80ebb1",
-        "vt0.0|well_mixed": "56e406ed0813b5d8271adbdf14e41fed0cd29dd2c4e284e8e4c2ec49d64f1d18",
-        "vt1.0|local_neighborhood": "3323c63c8a34efc8ff26187dee10234d52451cc4b670f9e0f2892c572eefa7e2",
-        "vt1.0|well_mixed": "f6b8ef116ac0a0b610d495c7ebe6644402fe6f0d6fb021506e88799309f1b679"
+        "vt0.0|local_neighborhood": "bdd0cb6aed2df977d2a2baf8766e025d2c426b29f60b5157e5f96494bc104bd6",
+        "vt0.0|well_mixed": "23b7ae7a5d678f158b11c39444539df3ff008ea223e95361cb4262fbd94a8891",
+        "vt1.0|local_neighborhood": "41570b02b6ef7b1c89040d1a5d2e6a01403588161b4317634d160cdda38c58d8",
+        "vt1.0|well_mixed": "6027be714ec02c545df137bc849258402ca44f27ce7dad026fb6873c07155e6e"
       },
-      "factorial_digest": "d94e18261aa8d1656e808d45285d267cddc23ad18de38e043080e35268d25f32",
+      "factorial_digest": "e5c43da01e0841e4aab57d2b67a56867b9e4a5a64061247a2aeff1bb78af950c",
       "mutualism_equals_success": false,
       "schema": "host_parasite_vt_spatial_factorial_v1",
       "seeds": [

@@ -1,13 +1,13 @@
 5d2791967e8e831ca8f8c92d5dae98ff701b2d95e65b925058059b8acbb912e3          9351  ci_repair/apply_rng_patch.py
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  ci_repair/campaigns_after.json
 dae82e9854b601180e062c2e47a46e05c18afd68aeb4ac603636a242e3871f7a         45328  ci_repair/campaigns_before.json
-f254909b4af72968cf2b875640ea581f8a0bdeb00c546f5034e118e38755de2b          1654  ci_repair/evidence_files.sha256
-7062690ae09357ff62104a79015b9e1289dfbde81bf089bf24d41e8bae4489e6          7898  ci_repair/INVENTORY.md
+628c31d0ebbdeb4012cc9dc52cad9f8aa7a3c9c301772def4f09f14820d707b2          1654  ci_repair/evidence_files.sha256
+7d47dbeb761cd949c50efba1113cf105f5b8821fb2dbc45f97002e910acc95a0          8020  ci_repair/INVENTORY.md
 ee763c7d1243f5416b505ae7343a9745e3b14a2acda733c7d0681045bc0c63f4          1822  ci_repair/make_rng_patch.py
 f821cd6038da4daf4d030423f21052fde3d66d0d70666f9417214768c7461145          2918  ci_repair/paatched_scratch_full_pytest.txt
 3d4266dc084568a8cfb04740d3c8497bb9bc2e2386f480b6e88ca7fc54ef6b72         11101  ci_repair/PROPOSED_CHANGE_rng_backend.patch
 6a36bb0bed573ff167441473bdaedbd5b34be4c01346ce7e5d11705cd3431bf4          7682  ci_repair/prove_rng_equality.py
-046eb7a4732c3d0594b3adcd99d867f491fd89c9ca382b67acca77c79f184489          2043  ci_repair/README.md
+1086a0db84ab9c7f1989bdd4cfef07167fc786a39d0370cac534e4eb5d7c2dac         13369  ci_repair/README.md
 016142cf20b0e90bb27083f4d66dea827268c4b6ae411c201a631846294aa170          6230  ci_repair/rng_equality_manager.json
 016142cf20b0e90bb27083f4d66dea827268c4b6ae411c201a631846294aa170          6230  ci_repair/rng_equality_out.json
 e9d48115089197f525347f9e0bcad638542a6cd297552aba733e245d5a50da95          4272  ci_repair/rng_equality_out.txt

@@ -188,7 +188,13 @@ def test_jsonl_track_c_smoke_subset(tmp_path: Path) -> None:
     assert all(not (801 <= int(r["seed"]) <= 816) for r in parsed)
     assert summary["hypothesis_supported"] is False
     assert summary["hypothesis_supported_any"] is False
+    assert summary["scientific_result"] is False
+    assert summary["data_class"] == "scaffold"
+    assert summary["closed_loop_unseen_worlds"] is False
     assert summary["n_records"] == len(parsed)
+    assert all(r["data_class"] == "scaffold" for r in parsed)
+    assert all(r["scientific_result"] is False for r in parsed)
+    assert all(r["closed_loop_unseen_worlds"] is False for r in parsed)
 
     by_idea = {i: [r for r in parsed if r["idea_id"] == i] for i in (1, 3, 5, 6)}
     assert len(by_idea[1]) == 6  # 2 × 3

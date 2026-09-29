@@ -357,7 +357,9 @@ def run_idea2_scored_cell(
             "survival_to_T": surv,
             "margin_vs_best_rival": margin,
             "channel_margin_threshold": CHANNEL_MARGIN,
-            "estimand": "survival_share_to_T",
+            "estimand": "observer_arm_score",
+            "score_role": "observer_arm_score",
+            "hypothesis_test_eligible": False,
             "sham_id": SHAM_ID,
             "do_on_NC": bool(arm_stats[arm]["do_on_NC"]),
             "decision_budget": DECISION_BUDGET,
@@ -370,8 +372,11 @@ def run_idea2_scored_cell(
             "red_queen_proved": False,
             "honesty": (
                 "Scored Idea2 cell under phase2_design. "
-                "Not G2/M0–M3 sealed evidence; hypothesis_supported stays false "
-                "until Critic post-data seal. Volume ≠ discovery. "
+                "survival_to_T is an observer-arm score: positive-energy steps "
+                "blended 0.7/0.3 with residual energy. It is not an independent "
+                "host population and not a host-parasite hypothesis test. "
+                "Not G2/M0–M3 sealed evidence; hypothesis_supported stays false. "
+                "Volume ≠ discovery. "
                 "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*)."
             ),
             "n_unit": "run",
@@ -393,4 +398,6 @@ def idea2_scored_constants() -> Mapping[str, Any]:
         "scored_horizon_T": SCORED_HORIZON_T,
         "channel_margin": CHANNEL_MARGIN,
         "hypothesis_supported": False,
+        "hypothesis_test_eligible": False,
+        "score_role": "observer_arm_score",
     }

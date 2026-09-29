@@ -516,6 +516,9 @@ class ContactAtpLedger:
             and abs(s_w - m_w) <= 1e-9
             and abs(s_atp - m_atp) <= 1e-9
         )
+        weight_aliases_atp = (
+            abs(s_w - s_atp) <= 1e-9 and abs(m_w - m_atp) <= 1e-9
+        )
         return {
             "scaffold_cut_edge_ids": s_ids,
             "matched_cut_edge_ids": m_ids,
@@ -528,6 +531,9 @@ class ContactAtpLedger:
             "contact_weight_sum_matched": m_w,
             "atp_lost_scaffold": s_atp,
             "atp_lost_matched": m_atp,
+            # Ledger contact weight is the edge ATP yield. Matching both
+            # names is not two independent quantities.
+            "contact_weight_is_atp_yield": bool(weight_aliases_atp),
             "used_nearest_fallback": used_fallback,
             "match_exact": bool(match_exact),
             "exclude_from_combo_e": not bool(match_exact),

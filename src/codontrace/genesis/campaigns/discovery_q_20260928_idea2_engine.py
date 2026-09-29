@@ -1,9 +1,13 @@
 """Discovery questions 2026-09-28 — Idea 2 ENGINE closed-loop cells.
 
-Gene / pattern / causal arms under coevolving antagonist pressure derived from
-GenesisEngine ecology via GenerationBoundaryObserver + ContactAtpLedger.
-Distinct from harness smoke-ledger RNG path. Claim ceiling phase2_design.
-hypothesis_supported=False; red_queen_proved=False. Sham ≠ NC-*.
+Gene / pattern / causal arms are scored by a host-lineage census on a
+GenesisEngine generation boundary. Births copy the oldest living lineage
+id. The parasite value is a capped counter, not an independent population.
+This output is a host-lineage census. It is not a host–parasite hypothesis
+test. ``hypothesis_test_eligible`` stays false.
+
+Claim ceiling phase2_design. hypothesis_supported=False. red_queen_proved=False.
+Sham ≠ NC-*.
 """
 
 from __future__ import annotations
@@ -45,7 +49,11 @@ ENGINE_HORIZON_T = SCORED_HORIZON_T  # 24
 
 
 def _new_host_population(*, founders: int = 6) -> dict[str, Any]:
-    """Independent host lineages plus a parasite count. Not an energy score."""
+    """Side census of host labels plus a capped parasite counter.
+
+    Births copy the oldest living lineage id. The counter is not a second
+    population. Not a host-parasite hypothesis test.
+    """
 
     n = int(founders)
     return {
@@ -329,6 +337,10 @@ def run_idea2_engine_cell(
             "margin_vs_best_rival": margin,
             "channel_margin_threshold": CHANNEL_MARGIN,
             "estimand": "host_lineages_alive_over_founded",
+            "score_role": "host_lineage_census",
+            "hypothesis_test_eligible": False,
+            "parasite_is_independent_population": False,
+            "births_open_new_lineage": False,
             "hosts_founded": int(arm_stats[arm]["hosts_founded"]),
             "host_lineages_alive": int(arm_stats[arm]["host_lineages_alive"]),
             "parasite_end": int(arm_stats[arm]["parasite_end"]),
@@ -344,9 +356,11 @@ def run_idea2_engine_cell(
             "red_queen_proved": False,
             "honesty": (
                 "Engine closed-loop Idea2 cell under phase2_design. "
-                "survival_to_T is host lineages still alive divided by founders. "
-                "Parasite pressure is that arm's parasite count, not an ecology index. "
-                "Not G2/M0–M3 sealed evidence. "
+                "survival_to_T is a host-lineage census: lineages still alive "
+                "divided by founders. Births copy the oldest living lineage id. "
+                "The parasite value is a capped counter, not an independent "
+                "population, so this record is not a host-parasite hypothesis "
+                "test. Not G2/M0–M3 sealed evidence. "
                 "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*). "
                 "hypothesis_supported stays false."
             ),
@@ -355,7 +369,8 @@ def run_idea2_engine_cell(
             "engine_result_digest": result.snapshot.digest(),
             "ledger_digest": ledger.digest(),
             "named_contact_edge_ids": sorted(NAMED_CONTACT_EDGE_IDS),
-            "pressure_series_tail": [int(x) for x in arm_stats[arm]["parasite_series"][-5:]],
+            "pressure_series_tail": [float(x) for x in pressure_series[-5:]],
+            "parasite_series_tail": [int(x) for x in arm_stats[arm]["parasite_series"][-5:]],
             "predicted_series_tail": [float(x) for x in predicted_series[-5:]],
         }
         if cell == "sham_predphase":
@@ -371,6 +386,8 @@ def idea2_engine_constants() -> Mapping[str, Any]:
         "claim_ceiling": CLAIM_CEILING,
         "hypothesis_supported": False,
         "red_queen_proved": False,
+        "hypothesis_test_eligible": False,
+        "score_role": "host_lineage_census",
         "scored_cells": list(IDEA2_ENGINE_CELLS),
         "arms": list(ARMS),
         "engine_horizon_T": ENGINE_HORIZON_T,

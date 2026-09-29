@@ -19,6 +19,9 @@ from typing import Any, Literal
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
+    assert_record_not_a_discovery,
+)
 from codontrace.genesis.campaigns.discovery_q_20260928_idea1 import (
     CLAIM_CEILING as IDEA1_CLAIM_CEILING,
 )
@@ -209,6 +212,11 @@ def run_jsonl_track_c(
 
     records.sort(key=_sort_key)
 
+    for rec in records:
+        rec["data_class"] = "scaffold"
+        rec["scientific_result"] = False
+        rec["closed_loop_unseen_worlds"] = False
+
     hyp_any = False
     for rec in records:
         if rec.get("hypothesis_supported") is not False:
@@ -221,6 +229,7 @@ def run_jsonl_track_c(
             raise ConfigurationError("track_c forbids soft-pass.")
         if SEALED_SEED_LO <= int(rec["seed"]) <= SEALED_SEED_HI:
             raise ConfigurationError("sealed seed leaked into track_c records.")
+        assert_record_not_a_discovery(rec)
         if rec.get("hypothesis_supported") is True:
             hyp_any = True
 
@@ -272,6 +281,9 @@ def run_jsonl_track_c(
         "track": "C",
         "critic_post_data": "pending",
         "not_discovery": True,
+        "data_class": "scaffold",
+        "scientific_result": False,
+        "closed_loop_unseen_worlds": False,
     }
     manifest_path = target / "manifest.json"
     manifest_path.write_text(
@@ -291,6 +303,8 @@ def run_jsonl_track_c(
                 "`red_queen_proved=false`.",
                 "- Soft-pass forbidden.",
                 "- **Volume ≠ discovery.** Critic post-data seal pending.",
+                "- Data class is scaffold. A fast JSONL file is not a closed-loop",
+                "  result on unseen worlds, and it does not test the six questions.",
                 "- Idea1: cells "
                 f"{list(IDEA1_SCORED_CELLS)}; rival "
                 "`RP-LEDGER-ATP-DRAIN-V1`; assay separate from reward.",

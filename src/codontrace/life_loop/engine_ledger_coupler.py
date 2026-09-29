@@ -30,6 +30,7 @@ _FEEDBACK_FOOD_PER_ENERGY = 0.8
 _FEEDBACK_STRUCT_ATP = 0.35
 _FEEDBACK_DIGEST_ATP = 0.50
 _FEEDBACK_TOKEN_ATP = 0.35
+_FEEDBACK_EDGE_FOOD = 0.15
 _FEEDBACK_RESTORE_FRAC = 0.45
 
 
@@ -264,12 +265,14 @@ def apply_ledger_feedback_to_engine(
     energy_delta = float(deltas["energy_delta"])
     lost_energy = max(0.0, -energy_delta)
     gained_energy = max(0.0, energy_delta)
-    # Positive burden when contacts are cut/masked/rewired/ablated/relocated.
+    # Fixed coefficients. The edge and token terms count changes; they are
+    # not a measured local consequence of contact structure.
+    burden_lost_energy = lost_energy * _FEEDBACK_ATP_PER_ENERGY
+    burden_edge_changes = float(deltas["n_edge_changes"]) * _FEEDBACK_STRUCT_ATP
+    burden_digest = float(deltas["digest_changed"]) * _FEEDBACK_DIGEST_ATP
+    burden_token = float(deltas["token_changed"]) * _FEEDBACK_TOKEN_ATP
     burden = (
-        lost_energy * _FEEDBACK_ATP_PER_ENERGY
-        + float(deltas["n_edge_changes"]) * _FEEDBACK_STRUCT_ATP
-        + float(deltas["digest_changed"]) * _FEEDBACK_DIGEST_ATP
-        + float(deltas["token_changed"]) * _FEEDBACK_TOKEN_ATP
+        burden_lost_energy + burden_edge_changes + burden_digest + burden_token
     )
     restore = gained_energy * _FEEDBACK_ATP_PER_ENERGY * _FEEDBACK_RESTORE_FRAC
 
@@ -313,10 +316,12 @@ def apply_ledger_feedback_to_engine(
     resources = getattr(world, "resources", None)
     food_removed = 0.0
     food_added = 0.0
+    food_from_lost_energy = 0.0
+    food_from_edge_count = 0.0
     if isinstance(resources, dict):
-        food_burden = lost_energy * _FEEDBACK_FOOD_PER_ENERGY + float(
-            deltas["n_edge_changes"]
-        ) * 0.15
+        food_from_lost_energy = lost_energy * _FEEDBACK_FOOD_PER_ENERGY
+        food_from_edge_count = float(deltas["n_edge_changes"]) * _FEEDBACK_EDGE_FOOD
+        food_burden = food_from_lost_energy + food_from_edge_count
         if food_burden > 0.0 and resources:
             total_mass = float(sum(float(v) for v in resources.values()))
             if total_mass > 0.0:
@@ -355,17 +360,26 @@ def apply_ledger_feedback_to_engine(
     return {
         "energy_delta": energy_delta,
         "burden": float(burden),
+        "burden_lost_energy": float(burden_lost_energy),
+        "burden_edge_changes": float(burden_edge_changes),
+        "burden_digest": float(burden_digest),
+        "burden_token": float(burden_token),
         "restore": float(restore),
         "total_debited": float(total_debited),
         "total_credited": float(total_credited),
         "food_removed": float(food_removed),
         "food_added": float(food_added),
+        "food_from_lost_energy": float(food_from_lost_energy),
+        "food_from_edge_count": float(food_from_edge_count),
         "n_alive_before": int(n_alive_before),
         "n_alive_after": int(n_alive_after),
         "effect_applied": effect_applied,
         "n_edge_changes": float(deltas["n_edge_changes"]),
         "digest_changed": float(deltas["digest_changed"]),
         "token_changed": float(deltas["token_changed"]),
+        # Count and token coefficients are not an identified contact effect.
+        "contact_structure_effect_identified": False,
+        "knowledge_effect_identified": False,
     }
 
 

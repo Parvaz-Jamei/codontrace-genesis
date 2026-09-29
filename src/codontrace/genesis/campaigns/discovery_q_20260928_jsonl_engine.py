@@ -33,6 +33,9 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
     aggregate_idea4_engine_rates,
     run_idea4_engine_cell,
 )
+from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
+    assert_record_not_a_discovery,
+)
 
 SCHEMA = "discovery_q_20260928_jsonl_engine_v1"
 CLAIM_CEILING = "phase2_design"
@@ -283,6 +286,7 @@ def run_jsonl_engine_campaign(
                 raise ConfigurationError("red_queen_proved must be False.")
             if rec.get("claim_ceiling") != CLAIM_CEILING:
                 raise ConfigurationError("claim_ceiling must stay phase2_design.")
+            assert_record_not_a_discovery(rec)
             fh.write(json.dumps(rec, sort_keys=True) + "\n")
 
     idea4_recs = [r for r in records if int(r.get("idea_id", -1)) == 4]

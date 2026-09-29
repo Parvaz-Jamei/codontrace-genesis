@@ -303,6 +303,37 @@ def run_idea4_engine_cell(
     # P4: pre-placed rare/scaffold markers are not genotype innovation; no real
     # lineage branch checkpoint yet → opportunity meters stay false on the cell.
     # Aggregate sets control_recover_rate / window_test_valid from the cohort.
+    intervention_rows = [
+        row
+        for row in observer.feedback_history
+        if int(row.get("generation_index", -1)) == t_int and "burden" in row
+    ]
+    intervention_feedback = None
+    if intervention_rows:
+        row = intervention_rows[-1]
+        intervention_feedback = {
+            "burden": float(row["burden"]),
+            "burden_lost_energy": float(row.get("burden_lost_energy", 0.0)),
+            "burden_edge_changes": float(row.get("burden_edge_changes", 0.0)),
+            "burden_digest": float(row.get("burden_digest", 0.0)),
+            "burden_token": float(row.get("burden_token", 0.0)),
+            "n_edge_changes": float(row.get("n_edge_changes", 0.0)),
+            "digest_changed": float(row.get("digest_changed", 0.0)),
+            "token_changed": float(row.get("token_changed", 0.0)),
+            "effect_applied": bool(row.get("effect_applied")),
+            "food_from_lost_energy": float(row.get("food_from_lost_energy", 0.0)),
+            "food_from_edge_count": float(row.get("food_from_edge_count", 0.0)),
+        }
+    match_is_planted_mirror = False
+    if isinstance(match_report, dict):
+        scaffold_ids = [str(item) for item in match_report.get("scaffold_cut_edge_ids", [])]
+        matched_ids = [str(item) for item in match_report.get("matched_cut_edge_ids", [])]
+        match_is_planted_mirror = bool(
+            scaffold_ids == ["E0", "E1"]
+            and matched_ids == ["E6", "E7"]
+            and ledger.match_mirrors.get("E0") == "E6"
+            and ledger.match_mirrors.get("E1") == "E7"
+        )
     return {
         "schema": SCHEMA,
         "idea_id": 4,
@@ -353,6 +384,7 @@ def run_idea4_engine_cell(
         "match_report": match_report,
         "match_exact": match_exact,
         "exclude_from_combo_e": exclude_from_combo_e,
+        "match_is_planted_mirror": bool(match_is_planted_mirror),
         "n_edges_cut": (
             int(cell_result.get("n_edges_cut"))
             if isinstance(cell_result, dict) and "n_edges_cut" in cell_result
@@ -366,6 +398,12 @@ def run_idea4_engine_cell(
         "control_recover_rate": None,
         "window_test_valid": False,
         "window_law_tested": False,
+        "recovery_window_built": False,
+        "recovery_window_missing": [
+            "real_branching_checkpoint",
+            "innovation_arising_in_lineage",
+            "control_recovery_opportunity",
+        ],
         "lineage_branching_real": bool(recover_lineage["lineage_branching_real"]),
         "innovation_observable": bool(recover_lineage["innovation_observable"]),
         "n_births_after_checkpoint": int(recover_lineage["n_births_after_checkpoint"]),
@@ -379,6 +417,9 @@ def run_idea4_engine_cell(
         "feedback_event_count": sum(
             1 for h in observer.feedback_history if h.get("effect_applied")
         ),
+        "intervention_feedback": intervention_feedback,
+        "contact_structure_effect_identified": False,
+        "knowledge_effect_identified": False,
     }
 
 
@@ -490,6 +531,12 @@ def aggregate_idea4_engine_rates(
         "control_recover_rate": float(control_recover_rate),
         "window_test_valid": bool(window_test_valid),
         "window_law_tested": False,
+        "recovery_window_built": False,
+        "recovery_window_missing": [
+            "real_branching_checkpoint",
+            "innovation_arising_in_lineage",
+            "control_recovery_opportunity",
+        ],
         "inexact_match_cells_excluded": sorted(inexact_cells),
         "lineage_branching_real": bool(lineage_branching_real),
         "innovation_observable": bool(innovation_observable),

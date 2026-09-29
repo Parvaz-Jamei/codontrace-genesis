@@ -1,4 +1,4 @@
-"""Throwaway independent verification of results/estimand_split.json.
+﻿"""Throwaway independent verification of results/estimand_split.json.
 
 Recomputes a sample of the reported numbers through a deliberately different code
 path (explicit pair loops, lstsq on the full 3000-row design, no shared helpers)
@@ -50,7 +50,7 @@ check(
 worst = {"beta": 0.0, "whole": 0.0, "onebit": 0.0, "i": 0.0, "ii": 0.0, "tot": 0.0}
 pairs = [(c["key"], c["env_seed"], c["eps"]) for c in REPORT["per_config"].values()]
 for key, env_seed, eps in pairs:
-    with np.load(HERE / "datasets" / f"{key}.npz") as data:
+    with np.load(((HERE / "results") if (HERE / "results").is_dir() else (HERE / "datasets")) / f"{key}.npz") as data:
         y = data["fitness"].astype(float)
         X = data["bits"].astype(float)
         C = data["counterfactual"].astype(float)

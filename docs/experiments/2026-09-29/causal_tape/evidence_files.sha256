@@ -1,6 +1,8 @@
+46269df80d641b764be7c32397a443cb203ea9f65abf5341a8e604222a300ee9         72688  causal_tape/__pycache__/estimand_split.cpython-314.pyc
+83999f5b718d65a62b7fee47ed61dabbcb369498bd80ebbd20e370903e845f8b         13326  causal_tape/__pycache__/verify_estimand_split.cpython-314.pyc
 e3db5bc9c1ffaf15a9c2aeb54ffb0029dc79a23a06a5b8f2c90d7e55b518246b         10044  causal_tape/BRAINSTORM_R3_ROUND1.md
-7a65caa13fee5d61ec35f0896a6a285c8d23fddd3b2768eafa327276d003a88b         48606  causal_tape/estimand_split.py
-b513137b47b4a05885b538b979241affc0ac0a90481182c122fd797903528cda          7707  causal_tape/evidence_files.sha256
+fd5885e873db789c52ab0fe256e28357389b85e787a34c32d0fe0d2c4e24a1d9         49718  causal_tape/estimand_split.py
+bba89e85ebb04f82316c4048db5cdf329d6e7a0ea0b16740e159879617bc925e          7831  causal_tape/evidence_files.sha256
 4f228b1ad210d7654e1a592d50f5d4fc0b8e8fca2842a66789d3b94b68b0b84a         15326  causal_tape/harness.py
 8429fd5a90e42790397da81606353d91ee766863219d84d1143ac08a4e2fd9f2          9887  causal_tape/heavy1.py
 a2497f4014dd7cd03486634ae56590a95451b7e8defecae24ca68c058cdea73f         11882  causal_tape/heavy2.py
@@ -11,7 +13,7 @@ a7d9c94b21c02699fddff1f641671cb71e48f1c834b1ca08dccc5055cfd80461          4831  
 1502732bbb45911537158237ac308fc7b62123eded0f320afe571067965dc13c          1097  causal_tape/port_probe.py
 afa2b51ac4f275feb1839d8bc9ca77491600856d1aa3e62353898832656699f3          9997  causal_tape/PREREG.md
 d5a9d6f1906e360f92d8b5df00311d39ffc6b893f151e5a0b03595a202a3d4a9          5905  causal_tape/PREREG_FA.md
-9d00dbeef2fa794d94fb52c806f641ce25d97a4ec6c53135ae5d67ffb4b89102          3200  causal_tape/README.md
+72ece6dad438e9ae7e20306fd228acdfc14a19ba26227e1101e731d05df22d68         24095  causal_tape/README.md
 57dacc8ec2ab46c7c8a2326a66222d90dd81b997966c3335bf948d3cd8edafe1         11603  causal_tape/REDTEAM_R3_ROUND2.md
 f6a47a9a2798dcba5378e944568426a2be37a474d5600baf6c4e781331e495e2          5295  causal_tape/replicate.py
 7ebeaf87a066bf2f1132b3b227da91865306e7962be7de32d27ac3efc1cc651b        195683  causal_tape/results/benchmark_results.json
@@ -71,5 +73,5 @@ a843e7038a48af13db87b8357b5dd4cbbca787171557e21f028155eed39ec39d           430  
 a0a2e42118c5b377ea706328affb2dc07ba4eaa9b4bd978d9e90412c4315f0f5          4717  causal_tape/summarize.py
 2dedde57dfe2bf658bd2f8a465c9b801ac709184c540e2c3d8c74ad8884cc10c          6196  causal_tape/telemetry.py
 fbac6da845befb101f46a4135ca56b48da165d3248c7a7a381bf708b7db99c9e          7454  causal_tape/validate_harness.py
-d7f0248ae7f2381867b510dbe83164a67621b3beed63d961bc01a5896f2c5d41          7331  causal_tape/verify_estimand_split.py
+9d0e86db630406921d7b74723de05f3422e85485473c90f7e32494f7d53ee60c          7393  causal_tape/verify_estimand_split.py
 a92a80689511c02dfe2f9f167d3b351ba95e0a0c8cdd3febf6c0cee2dca3a9fd          3112  causal_tape/workers.py

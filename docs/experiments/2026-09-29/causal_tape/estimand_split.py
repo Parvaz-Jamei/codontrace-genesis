@@ -55,7 +55,8 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-DATASETS = HERE / "datasets"
+# The archived arrays live in results/; datasets/ is kept as a documented fallback
+DATASETS = (HERE / "results") if (HERE / "results").is_dir() else (HERE / "datasets")
 RESULTS = HERE / "results"
 OUT_PATH = RESULTS / "estimand_split.json"
 PUBLISHED = RESULTS / "heavy2_results.json"

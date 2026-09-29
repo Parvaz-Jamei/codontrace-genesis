@@ -1,4 +1,4 @@
-﻿"""GenesisEngine orchestrator — population stepping, QD, and result build.
+"""GenesisEngine orchestrator — population stepping, QD, and result build.
 
 Extracted from ``codontrace.engine`` for debuggability. Public imports stay on
 the ``codontrace.engine`` facade. GenerationBoundaryObserver is invoked once

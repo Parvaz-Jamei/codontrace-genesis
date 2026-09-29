@@ -457,11 +457,18 @@ def apply_ledger_feedback_to_engine(
             "endpoints_enter_debit": True,
             "food_follows_endpoints": False,
             "endpoint_map": "declared_node_order_to_sorted_live_organisms",
-            "endpoint_map_is_contact_physics": identified,
+            "endpoint_binding_complete": identified,
+            # D-2 task-16: the node-to-organism binding is a name-ordered list,
+            # not the contact that actually occurred, and no engine contact
+            # event is read here.  The topology/precision flags therefore stay
+            # False until both endpoints and the realised transfer source come
+            # from an engine event.
+            "topology_flag_reason": "endpoint binding is name-ordered, not an engine contact event",
+            "endpoint_map_is_contact_physics": False,
             "lineage_resource_transfer": False,
-            "contact_structure_effect_identified": identified,
+            "contact_structure_effect_identified": False,
             "knowledge_effect_identified": False,
-            "topology_effect_identified": identified,
+            "topology_effect_identified": False,
         }
 
 

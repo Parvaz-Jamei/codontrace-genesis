@@ -76,3 +76,8 @@ These are recorded separately and are not part of the eight program tests:
    `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, `BLOCKED_MEASUREMENT`.
 4. No `PASS` label for smoke or for an injected positive; absence of a search hit
    is not a uniqueness claim.
+
+**CI repair and executed-test status (2026-09-29):** the red-state root causes, the fixing commit
+chain and the evidence map are recorded in
+[`docs/ci/CI_REPAIR_AND_TEST_STATUS_2026-09-29.md`](../../ci/CI_REPAIR_AND_TEST_STATUS_2026-09-29.md);
+no locked pin was re-locked for those fixes.

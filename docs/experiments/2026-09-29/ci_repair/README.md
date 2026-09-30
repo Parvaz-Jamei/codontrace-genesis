@@ -187,3 +187,18 @@ under `docs/experiments/2026-09-29/`.
 * K. Popper, *The Logic of Scientific Discovery*, 1959 — the falsification stance
   this repository applies to its own gates (*not verified in this session*; cited
   as standing practice, not as a source for any number above).
+
+## Recurrence guard added after this record
+
+Two further engine-text hygiene fixes landed after this record was written, both of the
+same class as the entries above (a static gate reddened by text, never by behaviour):
+
+| Commit | Fix | Acceptance |
+|---|---|---|
+| `4521ca4` | `engine_runtime.py` comment carried the literal token the RNG/hygiene gate forbids outside `rng.py`; the comment now reads "cannot deep-copy ``mappingproxy`` objects" | `pytest tests/test_rng.py -q` -> 4 passed, 0 offenders; the three banned-token gates green; ruff 0; compileall clean |
+| `009b666` | `engine_runtime.py` had acquired a UTF-8 BOM, which `compileall` tolerates but `ast.parse` rejects, so the "Enforce core boundary with AST import guard" step failed all 13 jobs; the file was rewritten byte-for-byte without the three leading bytes (39106 -> 39103) | BOM check False; `python tools/check_core_boundary.py` -> `core-boundary-ok` exit 0; `ast.parse` clean; `pytest tests/test_rng.py -q` 4 passed; ruff 0; compileall clean |
+
+The second failure mode is now guarded in the suite: **`tests/test_no_bom_in_src.py`**
+asserts that no file under `src/` starts with the UTF-8 BOM, so a future editor cannot
+redden every job with an invisible byte. The guard is part of the standard test run and
+passes on the current tip.

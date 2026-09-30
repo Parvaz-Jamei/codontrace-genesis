@@ -16,7 +16,7 @@ fd0b4201cc1c4fb8cbaa824cf6de80a36a5bac0dc53f09975c6c5f1784494c50          3990  
 9f6d4a9d100e6f205e0d9e5856b120d28deb00cb52ba70dd78663fbe12df003e          4038  verification/claim-b.md
 836abdb634f6054480bce7b511bbec368082b0c8892ba70f6b3f2595bde689d9          7465  verification/claim-c.md
 a27aabd65c2bb512d8ca654d8e110d7964a6932b1834709adbcf5e71d349ace8         18947  verification/CLAIMS.json
-4e8f199b06251ee6d66e53905e533784313e3ccc832a9f306630fc43894d05c4          5120  verification/evidence_files.sha256
+486bb90e03c46bcdf167a74eacc6e113b4e322c888cecff7a3c50c7bef45fd20          5120  verification/evidence_files.sha256
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  verification/full44a06f4/src/codontrace/genesis/checkpointing.py
 44fb4aa52bb9e7b3ef534e3ae150fdae8abeee8bf8e2e29edf4ad673d7352b89          7155  verification/full44a06f4/tools/check_core_boundary.py
 785d7d2b67a6b32ce5eb0a9f67f2380067038d830d970a57054e2854c6d1cf0e          5056  verification/full6187ff4/src/codontrace/genesis/checkpointing.py

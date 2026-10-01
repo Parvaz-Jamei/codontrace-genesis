@@ -30,6 +30,7 @@
     {
       "id": "rq3_adaptation_route",
       "standing_verdict": "INCONCLUSIVE",
+      "decision_path": "docs/experiments/2026-09-29/rq3_adaptation_route/decision.md",
       "scope": "Reconstructable raw runs are seeds 21001 and 21011. They are energy-confounded pilot histories, not a confirmatory sample.",
       "data_status": "INCOMPLETE",
       "missing_raw_seeds": [21061, 21062, 21063],
@@ -40,6 +41,7 @@
     {
       "id": "d2_recovery_window",
       "standing_verdict": "BLOCKED_MEASUREMENT",
+      "decision_path": "docs/experiments/2026-09-29/d2_recovery_window/decision.md",
       "scope": "The locked 1.25x endpoint for three consecutive boundaries was not reached by the positive control. Zeros on the arms do not falsify an intervention. Round-4 FALSIFIED_IN_MODEL is retained history, not the standing verdict.",
       "historical": [
         {"verdict": "FALSIFIED_IN_MODEL", "role": "round 4, retained, not standing"}

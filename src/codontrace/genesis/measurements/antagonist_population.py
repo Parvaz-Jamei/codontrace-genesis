@@ -57,6 +57,7 @@ the digest builder) keeps working unchanged.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 
@@ -89,6 +90,60 @@ EARNED_YIELD = 0.75
 #: founder reserve so the negative control starts every generation from the same
 #: state the coevolving arm started from.
 ENERGY_PER_SEAT = 1.0
+
+#: Live accounting. Archived RQ-3 tables were produced before this contract and are
+#: kept as results of the defective model: offspring used to receive a copy of the
+#: parent's energy without a debit. Those files are not recomputed here.
+ACCOUNTING_VERSION = "split_v2"
+
+
+def _finite(name: str, value: float) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ConfigurationError(f"{name} must be finite")
+    return number
+
+
+@dataclass(frozen=True, slots=True)
+class ContactEvent:
+    """One realised contact. Income is credited to ``unit_id``, never to a window."""
+
+    contact_id: str
+    host_id: str
+    unit_id: str
+    atp_paid: float
+    window: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class EnergyAccount:
+    """Closed antagonist energy balance for one generation.
+
+    ``opening + contact_income - maintenance_loss - death_loss - eviction_loss
+    - reproduction_cost = closing``. Reproduction under ``split_v2`` has cost 0
+    because the parent's energy is divided, not copied.
+    """
+
+    generation: int
+    mode: str
+    opening: float
+    contact_income: float
+    maintenance_loss: float
+    death_loss: float
+    eviction_loss: float
+    reproduction_cost: float
+    closing: float
+
+    def residual(self) -> float:
+        return (
+            float(self.opening)
+            + float(self.contact_income)
+            - float(self.maintenance_loss)
+            - float(self.death_loss)
+            - float(self.eviction_loss)
+            - float(self.reproduction_cost)
+            - float(self.closing)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,6 +207,9 @@ class AntagonistPopulation:
     #: Pre-selection energy checkpoint per generation (controlled quantity, asserted
     #: equal across arms by the harness; see the comment inside ``advance``).
     pre_selection_signatures: list[dict[str, float | str]] = field(default_factory=list)
+    energy_accounts: list[EnergyAccount] = field(default_factory=list)
+    known_unit_ids: set[str] = field(default_factory=set)
+    accounting_version: str = ACCOUNTING_VERSION
 
     def __post_init__(self) -> None:
         if self.ledgers is None:
@@ -162,8 +220,25 @@ class AntagonistPopulation:
             raise ConfigurationError("antagonist population requires ancestral windows")
         if not 0.0 <= float(self.keep_fraction) <= 1.0:
             raise ConfigurationError("keep fraction must be in [0, 1]")
-        if float(self.maintenance_cost) <= 0.0:
+        maintenance = _finite("maintenance cost", self.maintenance_cost)
+        if maintenance <= 0.0:
             raise ConfigurationError("maintenance cost must be positive")
+        mutation = _finite("mutation rate", self.mutation_rate)
+        if not 0.0 <= mutation <= 1.0:
+            raise ConfigurationError("mutation rate must be in [0, 1]")
+        fecundity = _finite("fecundity", self.fecundity)
+        if fecundity < 0.0:
+            raise ConfigurationError("fecundity must be >= 0")
+        seen: set[str] = set()
+        for unit in self.units:
+            if unit.unit_id in seen:
+                raise ConfigurationError(f"duplicate antagonist unit id {unit.unit_id}")
+            seen.add(unit.unit_id)
+            energy = _finite(f"energy of {unit.unit_id}", unit.energy)
+            if energy < 0.0:
+                raise ConfigurationError(f"energy of {unit.unit_id} must be >= 0")
+        if not self.known_unit_ids:
+            self.known_unit_ids.update(seen)
 
     @classmethod
     def founders(
@@ -217,13 +292,18 @@ class AntagonistPopulation:
         generation: int,
         rng: RNGManager,
         mutate_window: Callable[[str, RNGManager], str],
+        contact_events: Sequence[ContactEvent] | None = None,
     ) -> PassageLedger:
         """Mortality, reproduction, selection and truncation for one generation.
 
-        ``served_contacts`` holds ``(antagonist_window, atp_paid)`` per realised
-        contact seat. A unit that served a seat earns ``EARNED_YIELD`` of the ATP paid
-        and pays ``PAIRING_COST`` of it, so the pair's energy account closes and the
-        energy a unit holds is exactly what it took from host contacts.
+        Reproduction contract (``split_v2``): the parent remains. Its
+        post-maintenance energy ``E`` is the only source for itself and its
+        offspring. ``n`` offspring means ``n + 1`` equal shares, so the parent
+        is debited and no energy is created. Reproduction cost is 0.
+
+        ``contact_events``, when given, credit ``unit_id``. The legacy
+        ``(window, atp_paid)`` pairs are used only when ``contact_events`` is
+        omitted; they cannot tell same-window individuals apart.
         """
 
         # Contract note (reviewer finding, 2026-09-29): the frozen and shuffled-label
@@ -235,11 +315,15 @@ class AntagonistPopulation:
         # confounded the primary contrast.
         gen = int(generation)
         roster = list(self.units)
+        opening = float(sum(float(unit.energy) for unit in roster))
         if mode == "absent":
             ledger = PassageLedger(
                 gen, mode, (), (), tuple(u.unit_id for u in roster), 0, 0, 0.0, 0
             )
             self.units = []
+            self.energy_accounts.append(
+                EnergyAccount(gen, mode, opening, 0.0, 0.0, opening, 0.0, 0.0, 0.0)
+            )
             self.ledgers.append(ledger)
             return ledger
 
@@ -253,23 +337,9 @@ class AntagonistPopulation:
         # follows realised contact income, which is the quantity RQ-3 claims to test: a
         # window that matches the common host class serves more seats, takes more ATP and
         # therefore reproduces more, with no roster-wide smoothing.
-        served_queue: dict[str, list[float]] = {}
-        for window, paid in served_contacts:
-            served_queue.setdefault(str(window), []).append(float(paid))
-        credited: list[AntagonistUnit] = []
-        for unit in roster:
-            queue = served_queue.get(unit.window) or []
-            personal = float(queue.pop(0)) if queue else 0.0
-            credited.append(
-                replace(
-                    unit,
-                    energy=float(unit.energy)
-                    + (EARNED_YIELD - PAIRING_COST) * personal,
-                    contacts_served=int(unit.contacts_served)
-                    + (1 if personal > 0.0 else 0),
-                )
-            )
-        roster = credited
+        roster, contact_income = self._credit(
+            roster, served_contacts=served_contacts, contact_events=contact_events
+        )
 
         # PRE-SELECTION PARITY CHECKPOINT (reviewer requirement, 2026-09-29).
         #
@@ -306,7 +376,9 @@ class AntagonistPopulation:
                 "energy_max": (
                     float(max(float(u.energy) for u in roster)) if roster else 0.0
                 ),
-                "seats_offered": float(len(served_contacts)),
+                "seats_offered": float(
+                    len(contact_events) if contact_events is not None else len(served_contacts)
+                ),
             }
         )
 
@@ -319,32 +391,41 @@ class AntagonistPopulation:
         #    applied here, because a rule introduced to restore persistence would also
         #    re-mix unsampled windows into the roster and dilute the energy ranking that
         #    the negative control has to separate.
-        maintained = [
-            replace(unit, energy=float(unit.energy) - float(self.maintenance_cost))
-            for unit in roster
-            if unit.alive
-        ]
-        survivors = [unit for unit in maintained if float(unit.energy) > 0.0]
-        deaths = tuple(
-            unit.unit_id for unit in maintained if float(unit.energy) <= 0.0
-        )
+        maintenance_loss = 0.0
+        death_loss = 0.0
+        survivors: list[AntagonistUnit] = []
+        dead_ids: list[str] = []
+        for unit in roster:
+            if not unit.alive:
+                continue
+            energy = float(unit.energy)
+            cost = float(self.maintenance_cost)
+            if energy <= cost:
+                death_loss += energy
+                dead_ids.append(unit.unit_id)
+            else:
+                maintenance_loss += cost
+                survivors.append(replace(unit, energy=energy - cost))
+        deaths = tuple(dead_ids)
 
-        # 2. Reproduction. A surviving unit produces offspring in proportion to the
-        #    energy it holds, and each offspring inherits an equal share of that
-        #    energy. This is the heritable frequency-dependent step: a window that
-        #    matches the common host class serves more contact seats, is credited
-        #    more energy, and therefore contributes more copies of itself to the next
-        #    generation, so the antagonist composition follows the host composition
-        #    after one generation's delay.
+        # 2. Reproduction, split_v2. The parent remains and is debited. n offspring
+        #    divide the parent's energy into n + 1 equal shares. The sum is unchanged.
         newborns: list[AntagonistUnit] = []
+        parents: list[AntagonistUnit] = []
         mutation_events = 0
-        # Frozen stock must not mutate: its windows are fixed at the founder set, so a
-        # mutation would be a heritable change that the control is supposed to exclude.
         effective_mutation = 0.0 if mode == "frozen" else float(self.mutation_rate)
         for unit in survivors:
             expected = float(self.fecundity) * float(unit.energy)
-            draws = int(expected) + (1 if rng.random() < (expected - int(expected)) else 0)
-            share = float(unit.energy) / draws if draws > 0 else 0.0
+            fractional = expected - math.floor(expected)
+            draws = int(math.floor(expected)) + (1 if rng.random() < fractional else 0)
+            if draws <= 0:
+                parents.append(unit)
+                continue
+            if unit.unit_id not in self.known_unit_ids:
+                raise ConfigurationError(f"parent {unit.unit_id} has no history")
+            share = float(unit.energy) / float(draws + 1)
+            parent_energy = float(unit.energy) - share * float(draws)
+            parents.append(replace(unit, energy=parent_energy))
             for child_seat in range(draws):
                 window = unit.window
                 mutated = False
@@ -352,9 +433,12 @@ class AntagonistPopulation:
                     window = mutate_window(window, rng)
                     mutation_events += 1
                     mutated = True
+                child_id = f"a{gen}-{unit.unit_id}-{child_seat}"
+                if child_id in self.known_unit_ids:
+                    raise ConfigurationError(f"duplicate antagonist unit id {child_id}")
                 newborns.append(
                     AntagonistUnit(
-                        unit_id=f"a{gen}-{unit.unit_id}-{child_seat}",
+                        unit_id=child_id,
                         window=str(window),
                         parent_id=unit.unit_id,
                         born_generation=gen,
@@ -362,15 +446,9 @@ class AntagonistPopulation:
                         inherited_mutation=mutated,
                     )
                 )
+                self.known_unit_ids.add(child_id)
 
         if mode == ANTAGONIST_PASSAGE_SHUFFLED_LABELS:
-            # The negative control: cut ONLY the heritable information path, keep the
-            # energy accounting. Offspring are born through the same reproduction step as
-            # the coevolving arm, but each newborn's window is drawn from the ancestral
-            # pool rather than inherited from the parent that earned the energy, so the
-            # window a unit carries is independent of the contact evidence its parent
-            # accumulated. Contact, payment, maintenance, starvation death and seat-cap
-            # selection are untouched and identical to the coevolving arm.
             newborns = [
                 replace(
                     unit,
@@ -384,59 +462,39 @@ class AntagonistPopulation:
                 for unit in newborns
             ]
 
-        # 3. Selection under a fixed seat budget. The pool of survivors and offspring
-        #    exceeds the seat cap, so this is the step that removes genotypes, and its
-        #    ordering is the antagonist's selection coefficient: energy rank, which is
-        #    earned by contact. A unit that is never contacted holds no surplus and
-        #    contributes nothing; a unit whose window matches the common host class
-        #    contributes many copies. Equal ranks are broken by a fresh draw, never by
-        #    unit id, so the result cannot depend on identifier order.
-        pool = survivors + newborns
-        # Selection under the seat budget. The pool of surviving parents and their
-        # offspring is ranked by energy, which is earned by contact; the top ``seat_cap``
-        # form the next generation. If the pool is smaller than the budget the roster
-        # simply shrinks, and it can reach zero: that is the mechanism's own extinction
-        # route, kept strict and unpatched. Equal ranks are broken by a fresh draw, never
-        # by unit id, so the result cannot depend on identifier order.
-        rng_by_unit = {
-            unit.unit_id: rng.random() for unit in pool
-        }
+        pool = parents + newborns
+        rng_by_unit = {unit.unit_id: rng.random() for unit in pool}
+        if len(rng_by_unit) != len(pool):
+            raise ConfigurationError("antagonist pool contains a repeated unit id")
         pool.sort(key=lambda unit: (-float(unit.energy), rng_by_unit[unit.unit_id]))
         selected = pool[: self.seat_cap]
-        dropped = tuple(u.unit_id for u in pool[self.seat_cap :])
+        evicted = pool[self.seat_cap :]
+        eviction_loss = float(sum(float(unit.energy) for unit in evicted))
+        dropped = tuple(unit.unit_id for unit in evicted)
         if mode == "frozen":
-            # Cut ONLY the information path: the roster keeps the founder window set in
-            # seat order, while the energy values that the identical credit, maintenance,
-            # reproduction and selection steps produced are carried through unchanged.
-            # The frequency-to-composition channel is therefore dead, but the energy
-            # accounting is not.
-            units_by_window: dict[str, list[AntagonistUnit]] = {}
-            for unit in selected:
-                units_by_window.setdefault(unit.window, []).append(unit)
-            frozen_selected: list[AntagonistUnit] = []
-            for seat, unit in enumerate(selected):
-                founder_window = (
-                    roster[seat].window
-                    if seat < len(roster)
-                    else unit.window
-                )
-                candidates = units_by_window.get(founder_window) or []
-                if candidates:
-                    picked = candidates.pop(0)
-                    frozen_selected.append(replace(picked, window=founder_window))
-                else:
-                    frozen_selected.append(
-                        replace(unit, window=founder_window, inherited_mutation=False)
-                    )
-            selected = frozen_selected
+            selected = self._reseat_frozen(selected, roster)
+        self._reject_duplicate_ids(selected)
+        closing = float(sum(float(unit.energy) for unit in selected))
+        account = EnergyAccount(
+            gen,
+            mode,
+            opening,
+            contact_income,
+            maintenance_loss,
+            death_loss,
+            eviction_loss,
+            0.0,
+            closing,
+        )
+        if abs(account.residual()) > 1e-9:
+            raise ConfigurationError(
+                f"antagonist energy account did not close: residual {account.residual()}"
+            )
+        self.energy_accounts.append(account)
         self.units = [replace(unit, alive=True) for unit in selected]
         newborn_ids = {unit.unit_id for unit in newborns}
-        selected_newborns = tuple(
-            unit for unit in selected if unit.unit_id in newborn_ids
-        )
-        kept = tuple(
-            unit.unit_id for unit in selected if unit.unit_id not in newborn_ids
-        )
+        selected_newborns = tuple(unit for unit in selected if unit.unit_id in newborn_ids)
+        kept = tuple(unit.unit_id for unit in selected if unit.unit_id not in newborn_ids)
         ledger = PassageLedger(
             gen,
             mode,
@@ -450,6 +508,102 @@ class AntagonistPopulation:
         )
         self.ledgers.append(ledger)
         return ledger
+
+    def _credit(
+        self,
+        roster: list[AntagonistUnit],
+        *,
+        served_contacts: Sequence[tuple[str, float]],
+        contact_events: Sequence[ContactEvent] | None,
+    ) -> tuple[list[AntagonistUnit], float]:
+        net = EARNED_YIELD - PAIRING_COST
+        credits = {unit.unit_id: 0.0 for unit in roster}
+        counts = {unit.unit_id: 0 for unit in roster}
+        income = 0.0
+        if contact_events is not None:
+            seen: set[str] = set()
+            for event in contact_events:
+                paid = _finite("contact payment", event.atp_paid)
+                if paid < 0.0:
+                    raise ConfigurationError("contact payment must be >= 0")
+                if not event.contact_id or event.contact_id in seen:
+                    raise ConfigurationError("contact id must be unique and non-empty")
+                if not event.host_id:
+                    raise ConfigurationError("contact host id must be non-empty")
+                if event.unit_id not in credits:
+                    raise ConfigurationError(f"contact names unknown unit {event.unit_id}")
+                seen.add(event.contact_id)
+                gain = net * paid
+                credits[event.unit_id] += gain
+                income += gain
+                if paid > 0.0:
+                    counts[event.unit_id] += 1
+        else:
+            queues: dict[str, list[float]] = {}
+            for window, paid_raw in served_contacts:
+                paid = _finite("contact payment", paid_raw)
+                if paid < 0.0:
+                    raise ConfigurationError("contact payment must be >= 0")
+                queues.setdefault(str(window), []).append(paid)
+            for unit in roster:
+                queue = queues.get(unit.window) or []
+                personal = float(queue.pop(0)) if queue else 0.0
+                gain = net * personal
+                credits[unit.unit_id] += gain
+                income += gain
+                if personal > 0.0:
+                    counts[unit.unit_id] += 1
+        credited = [
+            replace(
+                unit,
+                energy=float(unit.energy) + credits[unit.unit_id],
+                contacts_served=int(unit.contacts_served) + counts[unit.unit_id],
+            )
+            for unit in roster
+        ]
+        return credited, income
+
+    def _reseat_frozen(
+        self, selected: list[AntagonistUnit], roster: list[AntagonistUnit]
+    ) -> list[AntagonistUnit]:
+        """Assign founder windows one-to-one. A unit is never seated twice."""
+
+        by_window: dict[str, list[AntagonistUnit]] = {}
+        for unit in selected:
+            by_window.setdefault(unit.window, []).append(unit)
+        used: set[str] = set()
+        reseated: list[AntagonistUnit] = []
+        for seat, _unit in enumerate(selected):
+            founder_window = roster[seat].window if seat < len(roster) else selected[seat].window
+            picked: AntagonistUnit | None = None
+            bucket = by_window.get(founder_window, [])
+            while bucket:
+                cand = bucket.pop(0)
+                if cand.unit_id not in used:
+                    picked = cand
+                    break
+            if picked is None:
+                for cand in selected:
+                    if cand.unit_id not in used:
+                        picked = cand
+                        break
+            if picked is None:
+                raise ConfigurationError("frozen reseat ran out of unique units")
+            used.add(picked.unit_id)
+            reseated.append(
+                replace(picked, window=str(founder_window), inherited_mutation=False)
+            )
+        if len(used) != len(selected):
+            raise ConfigurationError("frozen reseat was not one-to-one")
+        return reseated
+
+    @staticmethod
+    def _reject_duplicate_ids(units: Sequence[AntagonistUnit]) -> None:
+        seen: set[str] = set()
+        for unit in units:
+            if unit.unit_id in seen:
+                raise ConfigurationError(f"duplicate living unit id {unit.unit_id}")
+            seen.add(unit.unit_id)
 
     def windows(self) -> list[str]:
         return [unit.window for unit in self.units]

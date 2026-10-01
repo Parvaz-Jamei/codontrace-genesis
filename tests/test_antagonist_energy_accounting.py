@@ -117,14 +117,15 @@ def test_multi_offspring_split_debits_the_parent() -> None:
     assert all(unit.parent_id in pop.known_unit_ids for unit in children)
 
 
-def test_starvation_removes_energy_as_death() -> None:
+def test_starvation_removes_energy_as_maintenance() -> None:
     pop = _population((0.1,))
     _advance(pop, seed=5, mode="coevolve")
     assert pop.units == []
     account = pop.energy_accounts[-1]
-    assert account.death_loss == pytest.approx(0.1)
+    assert account.maintenance_loss == pytest.approx(0.1)
+    assert account.death_loss == 0.0
     assert account.closing == 0.0
-    assert account.maintenance_loss == 0.0
+    assert pop.ledgers[-1].deaths == ("a0-0",)
     assert abs(_independent_residual(account)) < 1e-9
 
 
@@ -190,3 +191,59 @@ def test_property_balance_identity_and_parents() -> None:
                 history.add(unit.unit_id)
 
     _check()
+
+
+def test_unassigned_payment_and_bad_parents_are_rejected() -> None:
+    pop = _population((1.0,))
+    with pytest.raises(ConfigurationError, match="no antagonist unit"):
+        _advance(pop, seed=7, mode="coevolve", served_contacts=(("missing", 1.0),))
+    assert pop.units[0].energy == 1.0
+    assert pop.energy_accounts == []
+
+    with pytest.raises(ConfigurationError, match="no history"):
+        AntagonistPopulation(
+            units=[AntagonistUnit("a0-0", "w", "ghost", 0, energy=1.0)],
+            seat_cap=1,
+            ancestral_windows=["w"],
+        )
+    with pytest.raises(ConfigurationError, match="own parent"):
+        AntagonistPopulation(
+            units=[AntagonistUnit("a0-0", "w", "a0-0", 0, energy=1.0)],
+            seat_cap=1,
+            ancestral_windows=["w"],
+        )
+
+
+def test_corpse_energy_is_booked_as_death() -> None:
+    pop = _population((1.0, 0.4))
+    pop.units[1] = AntagonistUnit(
+        unit_id="a0-1",
+        window="w1",
+        parent_id=None,
+        born_generation=0,
+        energy=0.4,
+        alive=False,
+    )
+    pop.fecundity = 0.0
+    _advance(pop, seed=8, mode="coevolve")
+    account = pop.energy_accounts[-1]
+    assert account.death_loss == pytest.approx(0.4)
+    assert abs(_independent_residual(account)) < 1e-9
+    assert [unit.unit_id for unit in pop.units] == ["a0-0"]
+
+
+def test_failed_generation_does_not_keep_new_ids() -> None:
+    pop = _population((1.0,))
+    with pytest.raises(ConfigurationError):
+        _advance(
+            pop,
+            seed=9,
+            mode="coevolve",
+            contact_events=(
+                ContactEvent("c", "h", "a0-0", 1.0),
+                ContactEvent("c", "h", "a0-0", 1.0),
+            ),
+        )
+    assert pop.known_unit_ids == {"a0-0"}
+    assert pop.pre_selection_signatures == []
+    assert pop.units[0].energy == 1.0

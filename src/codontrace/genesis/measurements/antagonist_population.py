@@ -237,8 +237,13 @@ class AntagonistPopulation:
             energy = _finite(f"energy of {unit.unit_id}", unit.energy)
             if energy < 0.0:
                 raise ConfigurationError(f"energy of {unit.unit_id} must be >= 0")
-        if not self.known_unit_ids:
-            self.known_unit_ids.update(seen)
+        historical = set(self.known_unit_ids) | seen
+        for unit in self.units:
+            if unit.parent_id == unit.unit_id:
+                raise ConfigurationError(f"unit {unit.unit_id} cannot be its own parent")
+            if unit.parent_id is not None and unit.parent_id not in historical:
+                raise ConfigurationError(f"parent {unit.parent_id} has no history")
+        self.known_unit_ids.update(seen)
 
     @classmethod
     def founders(
@@ -337,6 +342,12 @@ class AntagonistPopulation:
         # follows realised contact income, which is the quantity RQ-3 claims to test: a
         # window that matches the common host class serves more seats, takes more ATP and
         # therefore reproduces more, with no roster-wide smoothing.
+        # A corpse still sitting in the roster is not credited. Its energy leaves
+        # as death, so it cannot disappear from the balance.
+        prior_dead = [unit for unit in roster if not unit.alive]
+        death_loss = float(sum(float(unit.energy) for unit in prior_dead))
+        dead_ids = [unit.unit_id for unit in prior_dead]
+        roster = [unit for unit in roster if unit.alive]
         roster, contact_income = self._credit(
             roster, served_contacts=served_contacts, contact_events=contact_events
         )
@@ -357,8 +368,7 @@ class AntagonistPopulation:
         #
         # The checkpoint exists so the claim "the arms differ only in the information path"
         # can be asserted and audited rather than assumed.
-        self.pre_selection_signatures.append(
-            {
+        signature = {
                 "generation": gen,
                 "mode": mode,
                 "roster": float(len(roster)),
@@ -379,8 +389,7 @@ class AntagonistPopulation:
                 "seats_offered": float(
                     len(contact_events) if contact_events is not None else len(served_contacts)
                 ),
-            }
-        )
+        }
 
         # 1. Maintenance and mortality. Every living unit pays a fixed maintenance cost
         #    per generation, so energy earned by contact decays and a unit that has run
@@ -392,20 +401,18 @@ class AntagonistPopulation:
         #    re-mix unsampled windows into the roster and dilute the energy ranking that
         #    the negative control has to separate.
         maintenance_loss = 0.0
-        death_loss = 0.0
         survivors: list[AntagonistUnit] = []
-        dead_ids: list[str] = []
         for unit in roster:
-            if not unit.alive:
-                continue
             energy = float(unit.energy)
             cost = float(self.maintenance_cost)
+            # The charge removes min(energy, cost). A unit that cannot pay the
+            # whole charge dies, and no energy is left to book a second time.
+            paid = energy if energy <= cost else cost
+            maintenance_loss += paid
             if energy <= cost:
-                death_loss += energy
                 dead_ids.append(unit.unit_id)
             else:
-                maintenance_loss += cost
-                survivors.append(replace(unit, energy=energy - cost))
+                survivors.append(replace(unit, energy=energy - paid))
         deaths = tuple(dead_ids)
 
         # 2. Reproduction, split_v2. The parent remains and is debited. n offspring
@@ -413,6 +420,7 @@ class AntagonistPopulation:
         newborns: list[AntagonistUnit] = []
         parents: list[AntagonistUnit] = []
         mutation_events = 0
+        born_ids: list[str] = []
         effective_mutation = 0.0 if mode == "frozen" else float(self.mutation_rate)
         for unit in survivors:
             expected = float(self.fecundity) * float(unit.energy)
@@ -434,7 +442,7 @@ class AntagonistPopulation:
                     mutation_events += 1
                     mutated = True
                 child_id = f"a{gen}-{unit.unit_id}-{child_seat}"
-                if child_id in self.known_unit_ids:
+                if child_id in self.known_unit_ids or child_id in born_ids:
                     raise ConfigurationError(f"duplicate antagonist unit id {child_id}")
                 newborns.append(
                     AntagonistUnit(
@@ -446,7 +454,7 @@ class AntagonistPopulation:
                         inherited_mutation=mutated,
                     )
                 )
-                self.known_unit_ids.add(child_id)
+                born_ids.append(child_id)
 
         if mode == ANTAGONIST_PASSAGE_SHUFFLED_LABELS:
             newborns = [
@@ -490,7 +498,9 @@ class AntagonistPopulation:
             raise ConfigurationError(
                 f"antagonist energy account did not close: residual {account.residual()}"
             )
+        self.known_unit_ids.update(born_ids)
         self.energy_accounts.append(account)
+        self.pre_selection_signatures.append(signature)
         self.units = [replace(unit, alive=True) for unit in selected]
         newborn_ids = {unit.unit_id for unit in newborns}
         selected_newborns = tuple(unit for unit in selected if unit.unit_id in newborn_ids)
@@ -553,6 +563,11 @@ class AntagonistPopulation:
                 income += gain
                 if personal > 0.0:
                     counts[unit.unit_id] += 1
+            leftover = sum(len(queue) for queue in queues.values())
+            if leftover:
+                raise ConfigurationError(
+                    f"{leftover} contact payments matched no antagonist unit"
+                )
         credited = [
             replace(
                 unit,

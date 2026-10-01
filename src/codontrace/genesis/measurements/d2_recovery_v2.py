@@ -8,6 +8,7 @@ only pairing is sorted names.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 
 PREREG_V1_ID = "FI-RARECLASS-CONTACT-YIELD-V1"
@@ -38,10 +39,12 @@ def name_order_mapping(names: Sequence[str]) -> dict[str, object]:
     """Pair sorted names. That is not an engine contact."""
 
     ordered = sorted(str(name) for name in names)
-    pairs = [(ordered[index], ordered[index + 1]) for index in range(0, len(ordered) - 1, 2)]
+    pair_count = len(ordered) // 2
+    pairs = [(ordered[index], ordered[index + 1]) for index in range(0, pair_count * 2, 2)]
     return {
         "method": "sorted_name_order",
         "pairs": pairs,
+        "unpaired": ordered[pair_count * 2 :],
         "topology_identified": False,
         "contact_identified": False,
     }
@@ -56,8 +59,8 @@ def _identified_transfer(event: Mapping[str, object]) -> float | None:
     if not source or not recipient or contact is None:
         return None
     paid = float(event.get("atp_paid", 0.0))  # type: ignore[arg-type]
-    if paid < 0.0:
-        raise ValueError("atp_paid must be non-negative")
+    if not math.isfinite(paid) or paid < 0.0:
+        raise ValueError("atp_paid must be finite and non-negative")
     return paid
 
 
@@ -70,6 +73,8 @@ def transfer_yield(events: Sequence[Mapping[str, object]]) -> dict[str, object]:
     paid = 0.0
     identified = True
     counted = 0
+    if not events:
+        identified = False
     for event in events:
         amount = _identified_transfer(event)
         if amount is None:
@@ -100,6 +105,7 @@ def positive_control_events(amount: float = 1.0) -> list[dict[str, object]]:
             "recipient_id": "resource-recipient",
             "contact_id": "positive-control-1",
             "atp_paid": float(amount),
+            "predefined": True,
         }
     ]
 
@@ -124,16 +130,21 @@ def negative_control_events(cost: float = 1.0) -> list[dict[str, object]]:
 
 
 def controls_match(*, positive_amount: float, negative_cost: float) -> dict[str, object]:
-    positive = transfer_yield(positive_control_events(positive_amount))
-    negative = transfer_yield(negative_control_events(negative_cost))
+    positive_event = positive_control_events(positive_amount)[0]
+    negative_event = negative_control_events(negative_cost)[0]
+    positive = transfer_yield([positive_event])
+    negative = transfer_yield([negative_event])
     return {
         "positive_paid": positive["paid_transfer"],
         "negative_paid": negative["paid_transfer"],
         "positive_reachable": positive["paid_transfer"] == positive_amount,
         "negative_is_zero_transfer": negative["paid_transfer"] == 0.0,
-        "same_cost": positive_amount == negative_cost,
-        "independent_contacts": True,
-        "predefined": True,
+        "same_cost": float(negative_event["cost"]) == float(positive_event["atp_paid"]),
+        "independent_contacts": (
+            negative_event["contact_id"] != positive_event["contact_id"]
+            and negative_event["independent_of"] == positive_event["contact_id"]
+        ),
+        "predefined": bool(positive_event["predefined"] and negative_event["predefined"]),
         "confirms_v1_endpoint": False,
     }
 
@@ -142,13 +153,18 @@ def performance_recovery(events: Sequence[Mapping[str, object]]) -> dict[str, ob
     """Recovery of transferred resource. Not digest return, and not survival."""
 
     measured = transfer_yield(events)
+    digest_flags = [event["digest_returned"] for event in events if "digest_returned" in event]
+    survivor_flags = [event["n_alive"] for event in events if "n_alive" in event]
+    recovered = bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0
     return {
         "endpoint_id": PREREG_V2_ID,
-        "performance_recovered": bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0,
-        "digest_returned": False,
-        "population_survived": None,
-        "same_as_digest_return": False,
-        "same_as_population_survival": False,
+        "performance_recovered": recovered,
+        "digest_returned": None if not digest_flags else any(bool(flag) for flag in digest_flags),
+        "population_survived": None
+        if not survivor_flags
+        else all(int(value) > 0 for value in survivor_flags),  # type: ignore[arg-type]
+        "performance_equals_digest_return": False,
+        "performance_equals_population_survival": False,
         "confirms_v1_endpoint": False,
         "hypothesis_supported": False,
     }

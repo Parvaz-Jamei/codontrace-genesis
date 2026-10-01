@@ -1,12 +1,14 @@
 # RQ-1 confirmatory decision
 
-**Pack:** RQ-1 confirmatory · **Round:** 3 · **Commit:** `6187ff4` (isolated
-extraction `test-runs/verify/full6187ff4`, never the live checkout)
+**Pack:** RQ-1 confirmatory · **Round:** 3 · **Commit pin:** `6187ff4`
 **Config digest:** `rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807`
-**Seeds locked:** [5701, 5702, 5703, 5704, 5705, 5706, 5707, 5708] · **completed:** [5701, 5702, 5703, 5704, 5705]
+**Seeds locked:** [5701, 5702, 5703, 5704, 5705, 5706, 5707, 5708] · **seed JSON present:** [5701, 5702, 5703, 5704, 5705]
+**Archive complete:** False
 **Generations per seed:** 200 (never shortened) · **slots:** {'past': 90, 'now': 100, 'future': 110}
 **Regimes:** copassaged (coevolve) and fixed (frozen antagonist)
 **Status:** incomplete_archive
+
+This file is a derived rebuild from imported raw files after the meter blobs matched the pin. It is not a new simulation, and it is not evidence that the absent seeds ran.
 
 ## Decision
 

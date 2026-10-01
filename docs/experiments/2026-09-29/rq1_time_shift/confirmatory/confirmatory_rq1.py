@@ -341,23 +341,37 @@ def run_seed(seed: int) -> dict:
     return rec
 
 
+CHECK_ONLY = False
+
+
 def _install(argv: list[str] | None = None) -> None:
     """Bind the runner to an explicit checkout. A missing path or a commit mismatch stops."""
 
-    global OUT, RAW, EXTRACTION
+    global OUT, RAW, EXTRACTION, CHECK_ONLY
     global canonical_digest, _paired_interval, classify_time_shift_matrix
     global rotate_antagonist_labels, StructuralRQArm, realised_conditional_host_pressure
     parser = argparse.ArgumentParser(description="RQ-1 confirmatory runner")
     parser.add_argument("--reference-checkout", required=True)
     parser.add_argument("--expect-commit", default=COMMIT)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--output", default=None)
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="verify the checkout, meter pins and config digest, then exit before any seed",
+    )
     args = parser.parse_args(argv)
+    CHECK_ONLY = bool(args.check_only)
+    if args.output is None and not CHECK_ONLY:
+        parser.error("--output is required unless --check-only")
     checkout = Path(args.reference_checkout).resolve()
-    out = Path(args.output).resolve()
-    if out == HERE:
-        raise SystemExit(
-            "refusing to write into the historical confirmatory directory; pass a fresh --output"
-        )
+    if not CHECK_ONLY:
+        out = Path(args.output).resolve()
+        if out == HERE:
+            raise SystemExit(
+                "refusing to write into the historical confirmatory directory; pass a fresh --output"
+            )
+    else:
+        out = HERE
     if not checkout.is_dir():
         raise SystemExit(f"reference checkout does not exist: {checkout}")
     proc = subprocess.run(
@@ -404,6 +418,8 @@ def _install(argv: list[str] | None = None) -> None:
     StructuralRQArm = _arm
     realised_conditional_host_pressure = _pressure
     EXTRACTION = checkout
+    if CHECK_ONLY:
+        return
     OUT = out
     RAW = out / "raw"
     RAW.mkdir(parents=True, exist_ok=True)
@@ -411,6 +427,9 @@ def _install(argv: list[str] | None = None) -> None:
 
 def main() -> int:
     _install()
+    if CHECK_ONLY:
+        print(json.dumps({"check_only": True, "commit": COMMIT, "config_digest": CONFIG_DIGEST}))
+        return 0
     started = time.perf_counter()
     completed = []
     for seed in SEEDS:

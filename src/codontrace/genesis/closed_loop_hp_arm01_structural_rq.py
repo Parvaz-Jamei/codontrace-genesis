@@ -736,6 +736,15 @@ class StructuralRQArm(LifeLoopEcologyArm):
         pressure_available: dict[str, list[float]] = {}
         # One parasite–host pair per seat per generation (no multi-hit pile-on).
         pair_n = min(len(hosts), len(self.parasite_windows))
+        if self.antagonist_pop is not None:
+            units = self.antagonist_pop.units
+            if len(units) != len(self.parasite_windows):
+                raise ConfigurationError("antagonist roster and seat windows differ in length")
+            for seat in range(pair_n):
+                if str(units[seat].window) != str(self.parasite_windows[seat]):
+                    raise ConfigurationError(
+                        "antagonist seat window does not match the serving unit"
+                    )
         host_order = list(range(len(hosts)))
         # Deterministic rotate by tick so pairing is not always index-0 biased.
         rot = int(self.tick_index) % max(1, len(host_order))
@@ -764,10 +773,6 @@ class StructuralRQArm(LifeLoopEcologyArm):
             )
             if self.antagonist_pop is not None:
                 unit = self.antagonist_pop.units[p_index]
-                if str(unit.window) != str(p_window):
-                    raise ConfigurationError(
-                        "antagonist seat window does not match the serving unit"
-                    )
                 contact_events.append(
                     ContactEvent(
                         contact_id=f"c{self.tick_index}-{p_index}-{host.id}",

@@ -52,7 +52,7 @@
     ]
   },
   "provenance": {
-    "comparability": "All eight seeds ran against the same pinned extraction (test-runs/verify/full6187ff4, commit 6187ff4), so the pack is single-revision and the two groups are comparable by construction. The post-6187ff4 commits are absent from the pin and touch the RNG migration and from_fork restoration paths, which these arm runs do not use. No mixed-revision claim is made.",
+    "comparability": "Derived rebuild of the seed JSON files that are actually in this archive. It does not claim that all eight locked seeds ran, and it does not assign the pinned revision to seeds whose raw files were not imported.",
     "engine_changes_after_pin": [
       "40138c9 RNG migration",
       "913f18e from_fork restoration",

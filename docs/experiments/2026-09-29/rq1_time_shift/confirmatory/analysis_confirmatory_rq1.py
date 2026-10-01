@@ -426,6 +426,13 @@ def main() -> int:
                 "The post-6187ff4 commits are absent from the pin and touch the RNG "
                 "migration and from_fork restoration paths, which these arm runs do "
                 "not use. No mixed-revision claim is made."
+                if report["archive_complete"]
+                else (
+                    "Derived rebuild of the seed JSON files that are actually in "
+                    "this archive. It does not claim that all eight locked seeds "
+                    "ran, and it does not assign the pinned revision to seeds whose "
+                    "raw files were not imported."
+                )
             ),
         },
         "config_digest": mod.CONFIG_DIGEST,
@@ -454,13 +461,15 @@ def main() -> int:
 
     decision_md = f"""# RQ-1 confirmatory decision
 
-**Pack:** RQ-1 confirmatory · **Round:** 3 · **Commit:** `{mod.COMMIT}` (isolated
-extraction `test-runs/verify/full6187ff4`, never the live checkout)
+**Pack:** RQ-1 confirmatory · **Round:** 3 · **Commit pin:** `{mod.COMMIT}`
 **Config digest:** `{mod.CONFIG_DIGEST}`
-**Seeds locked:** {list(SEEDS)} · **completed:** {completed}
+**Seeds locked:** {list(SEEDS)} · **seed JSON present:** {completed}
+**Archive complete:** {report["archive_complete"]}
 **Generations per seed:** {mod.GENERATIONS} (never shortened) · **slots:** {SLOTS}
 **Regimes:** copassaged (coevolve) and fixed (frozen antagonist)
 **Status:** {report['status']}
+
+This file is a derived rebuild from imported raw files after the meter blobs matched the pin. It is not a new simulation, and it is not evidence that the absent seeds ran.
 
 ## Decision
 

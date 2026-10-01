@@ -99,9 +99,11 @@ For reference the `df = 1` row (`12.706`) versus the exact `12.706204736174694` 
 | Live output | `raw/events_seed<N>.jsonl` and `raw/population_seed<N>.jsonl` per generation; `raw/summary_seed<N>.jsonl` every 10 |
 | Resumability | a seed is skipped when `raw/seed_<N>.json` exists; partial JSONL is truncated before a seed restart |
 
-All eight seeds ran against the same pinned extraction, so the pack is single-revision. The engine commits after the pin (`40138c9` RNG migration, `913f18e` from_fork restoration, `02cc725` docs-only) are absent from the pin and touch paths these arm runs do not use, so the 5701–5702 and 5703–5708 groups are comparable by construction; the manifest states this under `provenance.comparability`. No mixed-revision claim is made. The isolated extraction was used because the live checkout was being edited concurrently.
+The owner draft said all eight seeds ran against one pinned extraction, so the 5701–5702 and 5703–5708 groups would be comparable. That sentence is not an archive result: seed JSON for 5706–5708 is not in this tree, so those seeds cannot be placed on the pin from the imported files. The engine commits after the pin (`40138c9`, `913f18e`, `02cc725`) are recorded in the draft as absent from the extraction.
 
 ## 5. What ran
+
+Owner draft. The wall times for 5706–5708 are not backed by `raw/seed_<N>.json` in this tree. Do not treat this table as the archive result. The provable rebuild is `confirmatory/rebuild/`.
 
 8 seeds × 2 regimes × 200 generations = **3200 arm-generations**. Each seed is one independent population history contributing three paired arm values. Wall time per seed in seconds, from `raw/seed_<N>.json` → `regimes[*].wall_s`:
 
@@ -121,6 +123,8 @@ Every seed passed its gates: identical initial state across regimes, host classe
 
 ## 6. Raw data files
 
+Owner draft of the intended 32-file pack. The checksum rows for `population_seed5708.jsonl` and `seed_5708.json` name files that were not imported. Files present are listed by `manifest_lf.sha256`.
+
 Under `raw/`. `events_seed<N>.jsonl` and `population_seed<N>.jsonl` have 400 lines per seed (2 regimes × 200 generations); `summary_seed<N>.jsonl` has 40 (2 regimes × 20 snapshots).
 
 **Parsing guidance:** the analysis reads `population_seed<N>.jsonl`. Each line has `regime`, `generation`, `host_joint_class_frequencies`, `host_joint_richness`, `dominant_host_class`, `antagonist_class_frequencies`, `antagonist_n`, `census` and the arm's own `model_realised_pressure`. The three slots are generations 90, 100, 110. `events_seed<N>.jsonl` carries the program's field list with explicit nulls: this arm exposes generation aggregates, not per-contact events, so the contact fields are null and `null_reason` states why.
@@ -136,6 +140,8 @@ Under `raw/`. `events_seed<N>.jsonl` and `population_seed<N>.jsonl` have 400 lin
 Checksums for all 32 raw files (8 seeds × 3 JSONL + 8 per-seed JSON) are printed by `analysis_confirmatory_rq1.py` and recorded in `run_manifest.json` and `analysis_confirmatory.json`.
 
 ## 7. Analysis, derived only from raw
+
+Owner draft of an 8-seed analysis, including the “0 of 24” control count. It is not what `confirmatory/rebuild/` recomputed. The rebuild covers the five seeds that have `seed_<N>.json`.
 
 `analysis_confirmatory_rq1.py` rebuilds each seed's 3×3 matrix from `raw/population_seed<N>.jsonl` at generations 90/100/110 and compares it with the matrix stored in `raw/seed_<N>.json` (tolerance 1e-12): `raw_recompute_matches_all_seeds = true`; `frozen_exactly_zero = true` (every frozen matrix is one repeated value and both frozen interaction scalars are 0.0); `all_seed_gates_ok = true`; shuffled time-label control **0 of 24** permutations receives a support label.
 
@@ -195,10 +201,10 @@ A new simulation is not started from the live checkout. The runner requires the 
 python docs/experiments/2026-09-29/rq1_time_shift/confirmatory/confirmatory_rq1.py \
   --reference-checkout /path/to/checkout-of-6187ff4 \
   --expect-commit 6187ff4 \
-  --output /path/to/fresh-output
+  --check-only
 ```
 
-There is no machine-local default path. `--output` must not be the historical `confirmatory/` directory.
+`--check-only` verifies the commit, the three meter blobs and the config digest, then exits before any seed. A new simulation also needs a fresh `--output`, which must not be the historical `confirmatory/` directory. There is no machine-local default path.
 
 ## 10. Files in this entry
 

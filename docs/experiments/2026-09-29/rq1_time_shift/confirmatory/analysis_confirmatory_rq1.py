@@ -129,6 +129,9 @@ def matrix_from_raw(pop: dict, regime: str) -> dict | None:
         m[ti] = {}
         hf = {str(k): float(v) for k, v in snaps[ti]["host_joint_class_frequencies"].items()}
         for tj in TIMES:
+            # Keys only. This archived cell is the class-balanced assay.
+            # It is not the frequency-weighted abundance pressure, and the
+            # default infinite reserve is not ATP paid in the living history.
             ant = [str(k) for k in snaps[tj]["antagonist_class_frequencies"]]
             m[ti][tj] = round(mod.pressure_cell(hf, ant), 10)
     return m

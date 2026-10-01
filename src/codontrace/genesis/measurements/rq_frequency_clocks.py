@@ -815,6 +815,21 @@ CLASS_BALANCED_ASSAY = "class_balanced_assay"
 FREQUENCY_WEIGHTED_PRESSURE = "frequency_weighted_abundance_pressure"
 
 
+def _reserve_reading(result: Mapping[str, object]) -> str:
+    exposure = result.get("equal_exposure")
+    if not isinstance(exposure, Mapping):
+        return "unknown_reserve"
+    caps = exposure.get("host_capacity_units")
+    if not isinstance(caps, Mapping) or not caps:
+        return "unknown_reserve"
+    values = list(caps.values())
+    if all(value is None for value in values):
+        return "infinity_standardised_assay"
+    if any(value is None for value in values):
+        return "mixed_reserve"
+    return "capacity_capped_assay"
+
+
 def _finite_count(name: str, value: object) -> float:
     number = float(value)  # type: ignore[arg-type]
     if not math.isfinite(number) or number < 0.0:
@@ -841,14 +856,11 @@ def class_balanced_assay(
         parasite_class_windows,
         **kwargs,  # type: ignore[arg-type]
     )
-    infinite = kwargs.get("host_capacity_units") is None
     result["estimand"] = CLASS_BALANCED_ASSAY
     result["histogram_used"] = False
     result["class_frequency_used"] = False
     result["equals_living_history_atp"] = False
-    result["reserve_reading"] = (
-        "infinity_standardised_assay" if infinite else "capacity_capped_assay"
-    )
+    result["reserve_reading"] = _reserve_reading(result)
     result["red_queen_proved"] = False
     return result
 
@@ -861,10 +873,10 @@ def frequency_weighted_abundance_pressure(
 ) -> dict[str, object]:
     """Pressure of the actual class composition.
 
-    Each parasite class is weighted by its count. The same set of classes with
-    a different composition is a different value. This is not the class-balanced
-    assay, and it is still not observed ATP unless a paid amount is supplied
-    separately.
+    Each parasite class is weighted by its share of the count. Multiplying every
+    count by the same positive constant does not change the value: this is the
+    composition, not the census size. It is not the class-balanced assay, and
+    it is not observed ATP.
     """
 
     if not parasite_class_counts:
@@ -887,14 +899,12 @@ def frequency_weighted_abundance_pressure(
         contact_matrix=weighted,
         **kwargs,  # type: ignore[arg-type]
     )
-    infinite = kwargs.get("host_capacity_units") is None
     result["estimand"] = FREQUENCY_WEIGHTED_PRESSURE
     result["histogram_used"] = True
     result["class_frequency_used"] = True
     result["equals_living_history_atp"] = False
-    result["reserve_reading"] = (
-        "infinity_standardised_assay" if infinite else "capacity_capped_assay"
-    )
+    result["scale_invariant_composition"] = True
+    result["reserve_reading"] = _reserve_reading(result)
     result["red_queen_proved"] = False
     return result
 
@@ -908,24 +918,39 @@ def separate_pressure_accounts(
     lineage_growth: float,
     paid_atp: float | None = None,
 ) -> dict[str, object]:
-    """Keep intended pressure, paid ATP, contact chances and lineage growth apart."""
+    """Keep intended pressure, the capped assay, paid ATP, contacts and growth apart.
+
+    The capacity cap is not a payment. ``paid_pressure`` is set only when an
+    observed ``paid_atp`` is supplied, and that observation cannot exceed a
+    known finite reserve.
+    """
 
     intended = _finite_count("affinity", affinity) * float(kappa)
-    if not math.isfinite(intended) or float(kappa) < 0.0:
+    if not math.isfinite(float(kappa)) or float(kappa) < 0.0 or not math.isfinite(intended):
         raise ValueError("intended pressure must be finite and non-negative")
     opportunities = _finite_count("contact_opportunities", contact_opportunities)
     growth = float(lineage_growth)
     if not math.isfinite(growth):
         raise ValueError("lineage_growth must be finite")
-    infinite = reserve is None or math.isinf(float(reserve))
+    if reserve is None or math.isinf(float(reserve)):
+        capped = None
+    else:
+        reserve_value = float(reserve)
+        if not math.isfinite(reserve_value) or reserve_value < 0.0:
+            raise ValueError("reserve must be finite and non-negative, or infinite")
+        capped = min(reserve_value, intended)
     if paid_atp is None:
-        paid = None if infinite else min(float(reserve), intended)
+        paid = None
     else:
         paid = _finite_count("paid_atp", paid_atp)
+        if capped is not None and paid > float(reserve):
+            raise ValueError("paid ATP cannot exceed the known reserve")
     return {
         "intended_pressure": intended,
+        "capacity_capped_assay": capped,
         "paid_pressure": paid,
         "paid_is_observed_atp": paid_atp is not None,
+        "capacity_cap_is_paid_atp": False,
         "infinite_reserve_is_living_history_atp": False,
         "contact_opportunity": opportunities,
         "lineage_growth": growth,
@@ -982,13 +1007,30 @@ def rq_path_components(
     }
 
 
-def confirmatory_seed_disagreement(by_seed: Mapping[int, float]) -> dict[str, object]:
+def confirmatory_seed_disagreement(
+    by_seed: Mapping[int, float],
+    *,
+    generation_rows: int | None = None,
+) -> dict[str, object]:
     """The confirmatory sample size is the number of seeds, not generations."""
 
-    values = [float(by_seed[key]) for key in sorted(by_seed)]
+    values = []
+    for key in sorted(by_seed):
+        number = float(by_seed[key])
+        if not math.isfinite(number):
+            raise ValueError("a seed estimate must be finite")
+        values.append(number)
+    if generation_rows is not None and (
+        isinstance(generation_rows, bool)
+        or not isinstance(generation_rows, int)
+        or generation_rows < len(values)
+    ):
+        raise ValueError("generation_rows must be an integer and at least the seed count")
     spread = 0.0 if len(values) < 2 else max(values) - min(values)
     return {
         "n_confirmatory_seeds": len(values),
+        "n_generation_rows": generation_rows,
+        "n_used_for_inference": len(values),
         "between_seed_range": spread,
         "replicate_unit": "seed",
         "generations_are_independent_replicates": False,

@@ -26,6 +26,7 @@ def test_positive_control_is_reachable_and_the_negative_control_pays_nothing() -
 def test_name_order_is_not_an_identified_contact() -> None:
     mapping = name_order_mapping(["b", "a", "c"])
     assert mapping["pairs"] == [("a", "b")]
+    assert mapping["unpaired"] == ["c"]
     assert mapping["topology_identified"] is False
     assert mapping["contact_identified"] is False
     events = [{"mapping": "sorted_name_order", "source_id": "a", "recipient_id": "b", "atp_paid": 5.0}]
@@ -42,8 +43,15 @@ def test_old_barrier_is_not_confirmed_by_the_new_endpoint() -> None:
     assert barrier["successor_confirms_v1"] is False
     recovered = performance_recovery(positive_control_events(1.0))
     assert recovered["performance_recovered"] is True
-    assert recovered["digest_returned"] is False
+    assert recovered["digest_returned"] is None
     assert recovered["population_survived"] is None
+    assert recovered["performance_equals_digest_return"] is False
+    alive_without_transfer = performance_recovery(
+        [{"digest_returned": True, "n_alive": 4, "mapping": "sorted_name_order", "atp_paid": 3.0}]
+    )
+    assert alive_without_transfer["performance_recovered"] is False
+    assert alive_without_transfer["digest_returned"] is True
+    assert alive_without_transfer["population_survived"] is True
     assert recovered["confirms_v1_endpoint"] is False
 
 

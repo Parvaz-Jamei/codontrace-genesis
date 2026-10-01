@@ -19,9 +19,11 @@ Outputs (all under test-runs/sex_cost/): analysis.json, analysis.txt
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -29,8 +31,19 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[2]
+REPO = HERE
+for _candidate in (HERE, *HERE.parents):
+    if (_candidate / "src" / "codontrace").is_dir():
+        REPO = _candidate
+        break
+if str(REPO / "src") not in sys.path:
+    sys.path.insert(0, str(REPO / "src"))
+
+from codontrace.genesis.archive_io import iter_jsonl_lines, resolve_jsonl
+
 RAW = HERE / "raw.jsonl"
 MANIFEST = HERE / "manifest.json"
+OUT = HERE
 
 COST_LEVELS = (0.9, 1.0, 1.1, 1.2, 1.25, 1.5, 1.75)
 TURNOVERS = (1, 6, 12)
@@ -41,8 +54,11 @@ BOOTSTRAP_DRAWS = 10000
 BOOTSTRAP_SEED = 12345
 
 
-def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def sha256_file(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except FileNotFoundError:
+        return None
 
 
 def bootstrap_ci(values: np.ndarray, *, draws: int = BOOTSTRAP_DRAWS, seed: int = BOOTSTRAP_SEED) -> tuple[float, float]:
@@ -75,10 +91,17 @@ def wilson_ci(k: int, n: int) -> tuple[float, float]:
 
 
 def main() -> int:
-    if not RAW.exists():
-        raise SystemExit("raw.jsonl missing: run sweep_sex_cost.py first")
-
-    rows = [json.loads(line) for line in RAW.read_text(encoding="utf-8").splitlines() if line.strip()]
+    global RAW, OUT
+    parser = argparse.ArgumentParser(description="Rebuild the sex-cost table from archived raw JSONL")
+    parser.add_argument("--raw", type=Path, default=None)
+    parser.add_argument("--output", type=Path, default=None)
+    args = parser.parse_args()
+    RAW = resolve_jsonl(args.raw or (HERE / "raw.jsonl"))
+    OUT = (args.output or (HERE / "rebuild")).resolve()
+    if HERE.resolve() == OUT:
+        raise SystemExit("refusing to overwrite historical sex_cost outputs; pass a fresh --output")
+    OUT.mkdir(parents=True, exist_ok=True)
+    rows = [json.loads(line) for line in iter_jsonl_lines(RAW)]
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
 
     # --- evidence integrity -------------------------------------------------
@@ -87,7 +110,8 @@ def main() -> int:
         name: {
             "at_run_time": digest,
             "now": sha256_file(ROOT / name),
-            "unchanged": digest == sha256_file(ROOT / name),
+            "unchanged": sha256_file(ROOT / name) == digest,
+            "present": sha256_file(ROOT / name) is not None,
         }
         for name, digest in harness.items()
     }
@@ -257,7 +281,7 @@ def main() -> int:
             },
         },
     }
-    (HERE / "analysis.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+    (OUT / "analysis.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
 
     lines = []
     lines.append("c* sweep analysis (all numbers derived from raw.jsonl)")
@@ -305,7 +329,7 @@ def main() -> int:
     lines.append(f"old narrowing status: {bracket['old_narrowing_status']}")
     lines.append(f"origin/main at run time: {manifest.get('git', {}).get('origin_main_at_run_time')}  config digest: {manifest.get('config_digest')}")
     lines.append(f"harness unchanged since run: {out['source']['harness_unchanged_since_run']}")
-    (HERE / "analysis.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (OUT / "analysis.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     print(f"\nANALYSIS_DONE rows={len(rows)}")
     return 0

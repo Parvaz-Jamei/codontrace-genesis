@@ -1,0 +1,3 @@
+- no seed was dropped on the basis of its result
+- the confirmatory generation count was not shortened
+- seeds not yet complete: [5706, 5707, 5708]

@@ -23,35 +23,25 @@ generations and the buffers are flushed every 25.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 import traceback
 from pathlib import Path
 
-EXTRACTION = Path(r"E:\مقاله پزشکی شبیه سازی ویروس\test-runs\verify\full6187ff4")
-SRC = EXTRACTION / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+from rq1_design import assert_meter_pins  # noqa: E402
 
-from codontrace.genesis.canonical import canonical_digest  # noqa: E402
-from codontrace.genesis.causal_validation import _paired_interval  # noqa: E402
-from codontrace.genesis.campaigns.discovery_program_20260929_stage0 import (  # noqa: E402
-    classify_time_shift_matrix,
-    rotate_antagonist_labels,
+HERE = Path(__file__).resolve().parent
+OUT = HERE
+RAW = HERE / "raw"
+EXTRACTION = HERE
+CONFIG_DIGEST = (
+    "rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807"
 )
-from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (  # noqa: E402
-    StructuralRQArm,
-)
-from codontrace.genesis.measurements.rq_frequency_clocks import (  # noqa: E402
-    realised_conditional_host_pressure,
-)
-
-OUT = Path(__file__).resolve().parent
-RAW = OUT / "raw"
-RAW.mkdir(parents=True, exist_ok=True)
 
 SCHEMA = "rq1_confirmatory_v1"
 COMMIT = "6187ff4"
@@ -80,7 +70,6 @@ LOCKED_CONFIG = {
     "interval": "causal_validation._paired_interval (95% paired t)",
     "flags_locked_false": ["hypothesis_supported", "red_queen_proved"],
 }
-CONFIG_DIGEST = canonical_digest(LOCKED_CONFIG, prefix="rq1_confirmatory")
 
 
 def class_to_window(cls: str) -> str:
@@ -352,7 +341,76 @@ def run_seed(seed: int) -> dict:
     return rec
 
 
+def _install(argv: list[str] | None = None) -> None:
+    """Bind the runner to an explicit checkout. A missing path or a commit mismatch stops."""
+
+    global OUT, RAW, EXTRACTION
+    global canonical_digest, _paired_interval, classify_time_shift_matrix
+    global rotate_antagonist_labels, StructuralRQArm, realised_conditional_host_pressure
+    parser = argparse.ArgumentParser(description="RQ-1 confirmatory runner")
+    parser.add_argument("--reference-checkout", required=True)
+    parser.add_argument("--expect-commit", default=COMMIT)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args(argv)
+    checkout = Path(args.reference_checkout).resolve()
+    out = Path(args.output).resolve()
+    if out == HERE:
+        raise SystemExit(
+            "refusing to write into the historical confirmatory directory; pass a fresh --output"
+        )
+    if not checkout.is_dir():
+        raise SystemExit(f"reference checkout does not exist: {checkout}")
+    proc = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.stderr.strip() or "git rev-parse failed on the reference checkout")
+    head = proc.stdout.strip()
+    if not head.startswith(args.expect_commit):
+        raise SystemExit(
+            f"commit mismatch: HEAD {head} does not match {args.expect_commit}; "
+            "refusing to run the live tip under the pinned label"
+        )
+    assert_meter_pins(checkout)
+    src = checkout / "src"
+    if not (src / "codontrace").is_dir():
+        raise SystemExit(f"codontrace package missing under {src}")
+    sys.path.insert(0, str(src))
+    from codontrace.genesis.campaigns.discovery_program_20260929_stage0 import (
+        classify_time_shift_matrix as _classify,
+    )
+    from codontrace.genesis.campaigns.discovery_program_20260929_stage0 import (
+        rotate_antagonist_labels as _rotate,
+    )
+    from codontrace.genesis.canonical import canonical_digest as _digest
+    from codontrace.genesis.causal_validation import _paired_interval as _interval
+    from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+        StructuralRQArm as _arm,
+    )
+    from codontrace.genesis.measurements.rq_frequency_clocks import (
+        realised_conditional_host_pressure as _pressure,
+    )
+
+    digest = _digest(LOCKED_CONFIG, prefix="rq1_confirmatory")
+    if digest != CONFIG_DIGEST:
+        raise SystemExit(f"config digest mismatch: {digest}")
+    canonical_digest = _digest
+    _paired_interval = _interval
+    classify_time_shift_matrix = _classify
+    rotate_antagonist_labels = _rotate
+    StructuralRQArm = _arm
+    realised_conditional_host_pressure = _pressure
+    EXTRACTION = checkout
+    OUT = out
+    RAW = out / "raw"
+    RAW.mkdir(parents=True, exist_ok=True)
+
+
 def main() -> int:
+    _install()
     started = time.perf_counter()
     completed = []
     for seed in SEEDS:

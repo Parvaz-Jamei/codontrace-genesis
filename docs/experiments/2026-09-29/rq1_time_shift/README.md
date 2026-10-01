@@ -2,10 +2,22 @@
 
 **Archive entry:** `docs/experiments/2026-09-29/rq1_time_shift/`
 **Test:** RQ-1 of the 2026-09-29 discovery program (bundle A, Red Queen tests)
-**Verdict:** `INCONCLUSIVE` — the locked support pattern was not met.
+**Verdict on the imported archive:** `INCONCLUSIVE`, and the pack is **not complete**.
 **No discovery is claimed:** `hypothesis_supported = false`, `red_queen_proved = false`.
 
-Every number below is tied to a raw file in `raw/`; the analysis is derived only from those raw files.
+## Archive integrity (2026-10-02)
+
+The owner draft below describes an 8/8 confirmatory pack. The files actually imported into this tree do not support that completion claim.
+
+| Seed | events | population | summary | `seed_<N>.json` |
+|---|---|---|---|---|
+| 5701–5705 | `.jsonl.gz` | `.jsonl.gz` | plain `.jsonl` | present |
+| 5706 | plain `.jsonl` | `.jsonl.gz` | plain `.jsonl` | **absent** |
+| 5707, 5708 | **absent** | **absent** | **absent** | **absent** |
+
+`confirmatory/analysis_confirmatory.json` is the historical partial record: `status=partial`, `seeds_completed=[5701, 5702]`. It is left in place. A fresh rebuild writes only to the directory given by `--output`.
+
+Numbers in the later sections that cite seeds 5707 and 5708, including wall times and the 8/8 intervals, are the owner draft. They are not recomputed from raw files in this repository. Completion requires a population file, a summary, an events file and `seed_<N>.json` for every locked seed, plus a rebuild that matches.
 
 ## 1. Question and hypothesis
 
@@ -167,21 +179,26 @@ For continuity, the earlier pilot (6 seeds × 3 arms × 40 generations) gave `co
 
 ## 9. Replay (in-repo paths)
 
-From the repository root, with this directory archived as `docs/experiments/2026-09-29/rq1_time_shift/`:
+From the repository root:
 
 ```
-cd codontrace-genesis
-python docs/experiments/2026-09-29/rq1_time_shift/analysis_confirmatory_rq1.py
-
-git worktree add ../rq1-6187ff4 6187ff4
-cd ../rq1-6187ff4
-set PYTHONUTF8=1
-set PYTHONIOENCODING=utf-8
-python docs/experiments/2026-09-29/rq1_time_shift/confirmatory_rq1.py
-python docs/experiments/2026-09-29/rq1_time_shift/analysis_confirmatory_rq1.py
+python docs/experiments/2026-09-29/rq1_time_shift/confirmatory/analysis_confirmatory_rq1.py \
+  --raw docs/experiments/2026-09-29/rq1_time_shift/confirmatory/raw \
+  --output docs/experiments/2026-09-29/rq1_time_shift/confirmatory/rebuild
 ```
 
-The first command is the derived-only replay: it reads `raw/` and rewrites the analysis, effect table, decision and manifest, expecting `INCONCLUSIVE`, `raw_recompute_matches_all_seeds = true` and `frozen_exactly_zero = true`. The second block is the full locked re-run at the pin; each seed is skipped if `raw/seed_<N>.json` exists. The write-up pack ran the same code at the same commit via an isolated extraction on `PYTHONPATH` (`docs/experiments/2026-09-29/verification/full6187ff4/src`) so concurrent edits to the live checkout could not contaminate it. **Pin check:** `run_manifest.json` must carry `commit = 6187ff4` and `config_digest = rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807`; otherwise the replay is not the locked pack.
+The derived replay reads plain JSONL and `.jsonl.gz`. It checks the three meter files against the blobs shared by `6187ff4` and `a1d97e9` and stops on a mismatch. It does not overwrite `analysis_confirmatory.json`, `decision.md` or `run_manifest.json`.
+
+A new simulation is not started from the live checkout. The runner requires the pinned tree explicitly and stops if that tree is missing or its `HEAD` is not `6187ff4`:
+
+```
+python docs/experiments/2026-09-29/rq1_time_shift/confirmatory/confirmatory_rq1.py \
+  --reference-checkout /path/to/checkout-of-6187ff4 \
+  --expect-commit 6187ff4 \
+  --output /path/to/fresh-output
+```
+
+There is no machine-local default path. `--output` must not be the historical `confirmatory/` directory.
 
 ## 10. Files in this entry
 

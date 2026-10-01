@@ -1,0 +1,71 @@
+[
+  {
+    "arm": "contemporary",
+    "interval_vs_frozen": {
+      "exact_minus_repo_hi": 1.3632999999995538e-06,
+      "exact_minus_repo_lo": -1.3632999999999874e-06,
+      "exact_t_critical": 2.7764451051977934,
+      "exact_t_hi": 0.0148499871,
+      "exact_t_lo": -0.0021580492,
+      "excludes_zero": false,
+      "hi": 0.0148486238,
+      "lo": -0.0021566859,
+      "mean": 0.006345968939999999,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 5
+    },
+    "mean": 0.006345968939999999,
+    "n": 5,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "lagged",
+    "interval_vs_frozen": {
+      "exact_minus_repo_hi": 5.367000000000045e-07,
+      "exact_minus_repo_lo": -5.366999999995709e-07,
+      "exact_t_critical": 2.7764451051977934,
+      "exact_t_hi": -0.0002539614,
+      "exact_t_lo": -0.006949238,
+      "excludes_zero": true,
+      "hi": -0.0002544981,
+      "lo": -0.0069487013,
+      "mean": -0.00360159968,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 5
+    },
+    "mean": -0.00360159968,
+    "n": 5,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "frozen",
+    "exactly_zero": true,
+    "interval_vs_frozen": {
+      "excludes_zero": false,
+      "hi": 0.0,
+      "lo": 0.0
+    },
+    "mean": 0.0,
+    "n": 5,
+    "unit": "independent population history (seed)"
+  },
+  {
+    "arm": "contemporary_minus_lagged",
+    "interval_vs_frozen": {
+      "exact_minus_repo_hi": 1.7208000000004664e-06,
+      "exact_minus_repo_lo": -1.7208000000000327e-06,
+      "exact_t_critical": 2.7764451051977934,
+      "exact_t_hi": 0.0206812841,
+      "exact_t_lo": -0.0007861469,
+      "excludes_zero": false,
+      "hi": 0.0206795633,
+      "lo": -0.0007844261,
+      "mean": 0.00994756862,
+      "method": "causal_validation._paired_interval (95% paired t)",
+      "n_pairs": 5
+    },
+    "mean": 0.00994756862,
+    "n": 5,
+    "unit": "independent population history (seed)"
+  }
+]

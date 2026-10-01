@@ -10,17 +10,29 @@ Never re-tunes a seed, threshold, arm or estimator.
 
 from __future__ import annotations
 
-import hashlib
-import importlib.util
+import argparse
 import json
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location("conf_mod", HERE / "confirmatory_rq1.py")
-mod = importlib.util.module_from_spec(spec)
-sys.modules["conf_mod"] = mod
-spec.loader.exec_module(mod)
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+REPO = HERE
+for _candidate in (HERE, *HERE.parents):
+    if (_candidate / "src" / "codontrace").is_dir():
+        REPO = _candidate
+        break
+SRC = REPO / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+import rq1_design as mod
+
+from codontrace.genesis.archive_io import iter_jsonl_lines
+
+OUT_DIR = HERE
+RAW = HERE / "raw"
 
 
 def _t_critical(df: int, conf: float = 0.95) -> tuple[float, str]:
@@ -86,7 +98,6 @@ def t_star_comparison() -> dict:
         "confirmatory_exact": _t_critical(7)[0],
     }
 
-RAW = HERE / "raw"
 TIMES = mod.TIMES
 SLOTS = mod.SLOTS
 SEEDS = mod.SEEDS
@@ -96,14 +107,13 @@ SUPPORT_LABELS = mod.SUPPORT_LABELS
 def load_population(seed: int) -> dict:
     path = RAW / f"population_seed{seed}.jsonl"
     rows: dict[tuple[str, int], dict] = {}
-    if not path.exists():
+    try:
+        lines = iter_jsonl_lines(path)
+    except FileNotFoundError:
         return rows
-    with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            if not line.strip():
-                continue
-            r = json.loads(line)
-            rows[(r["regime"], int(r["generation"]))] = r
+    for line in lines:
+        record = json.loads(line)
+        rows[(record["regime"], int(record["generation"]))] = record
     return rows
 
 
@@ -125,6 +135,7 @@ def matrix_from_raw(pop: dict, regime: str) -> dict | None:
 
 
 def main() -> int:
+    mod.bind_meter(REPO)
     seed_files = [
         (s, RAW / f"seed_{s}.json") for s in SEEDS if (RAW / f"seed_{s}.json").exists()
     ]
@@ -143,12 +154,19 @@ def main() -> int:
         "integrity": {},
         "errors": [],
     }
+    report["archive_inventory"] = mod.archive_inventory(RAW)
+    report["archive_complete"] = all(
+        row["events"] and row["population"] and row["summary"] and row["seed_json"]
+        for row in report["archive_inventory"]
+    )
+    if not report["archive_complete"]:
+        report["status"] = "incomplete_archive"
     if not completed:
         report["decision"] = {
             "verdict": "BLOCKED_MEASUREMENT",
             "reason": "no confirmatory seed produced raw data",
         }
-        (HERE / "analysis_confirmatory.json").write_text(
+        (OUT_DIR / "analysis_confirmatory.json").write_text(
             json.dumps(report, indent=2, sort_keys=True, default=str) + "\n",
             encoding="utf-8",
         )
@@ -218,8 +236,8 @@ def main() -> int:
     rot_support = sum(1 for lab in rot_labels if lab in SUPPORT_LABELS)
 
     d_contemp = [c - f for c, f in zip(contemp, frozen_c, strict=False)]
-    d_lag = [l - f for l, f in zip(lagged, frozen_l, strict=False)]
-    d_contemp_lag = [c - l for c, l in zip(contemp, lagged, strict=False)]
+    d_lag = [lag - frozen for lag, frozen in zip(lagged, frozen_l, strict=False)]
+    d_contemp_lag = [con - lag for con, lag in zip(contemp, lagged, strict=False)]
 
     def interval(vals):
         lo, hi = mod._paired_interval(vals)
@@ -378,11 +396,11 @@ def main() -> int:
         else "all locked seeds complete",
     ]
 
-    (HERE / "analysis_confirmatory.json").write_text(
+    (OUT_DIR / "analysis_confirmatory.json").write_text(
         json.dumps(report, indent=2, sort_keys=True, default=str) + "\n",
         encoding="utf-8",
     )
-    (HERE / "effect_table_confirmatory.json").write_text(
+    (OUT_DIR / "effect_table_confirmatory.json").write_text(
         json.dumps(report["effect_table"], indent=2, sort_keys=True, default=str) + "\n",
         encoding="utf-8",
     )
@@ -429,7 +447,7 @@ def main() -> int:
         "hypothesis_supported": False,
         "red_queen_proved": False,
     }
-    (HERE / "run_manifest.json").write_text(
+    (OUT_DIR / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n",
         encoding="utf-8",
     )
@@ -478,8 +496,8 @@ extraction `test-runs/verify/full6187ff4`, never the live checkout)
 No seed, threshold, arm, estimator or generation count was changed after any
 result. {('Seeds ' + str(report['seeds_remaining']) + ' remain; the pack is resumed by re-running the same locked command.') if report['seeds_remaining'] else 'The locked pack is complete.'}
 """
-    (HERE / "decision.md").write_text(decision_md, encoding="utf-8")
-    (HERE / "exclusions.md").write_text(
+    (OUT_DIR / "decision.md").write_text(decision_md, encoding="utf-8")
+    (OUT_DIR / "exclusions.md").write_text(
         "\n".join(f"- {x}" for x in report["exclusions"]) + "\n", encoding="utf-8"
     )
     print(
@@ -507,4 +525,18 @@ result. {('Seeds ' + str(report['seeds_remaining']) + ' remain; the pack is resu
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Rebuild the RQ-1 table from archived raw files")
+    parser.add_argument("--raw", type=Path, default=None)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--reference-checkout", type=Path, default=None)
+    args = parser.parse_args()
+    if args.reference_checkout is not None:
+        REPO = args.reference_checkout.resolve()
+    RAW = (args.raw or (HERE / "raw")).resolve()
+    OUT_DIR = args.output.resolve()
+    if OUT_DIR in {HERE.resolve(), (HERE / "raw").resolve()}:
+        raise SystemExit(
+            "refusing to overwrite historical confirmatory files; pass a fresh --output"
+        )
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     raise SystemExit(main())

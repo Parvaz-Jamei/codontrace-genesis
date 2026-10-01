@@ -1,0 +1,15 @@
+# convention: sha256_lf
+# paths are relative to this manifest's directory
+# this file, evidence_files.sha256, __pycache__ and *.pyc are excluded
+# text files: SHA-256 after CR/CRLF -> LF; binary suffixes stay raw
+0d2efdad597562ce7889279e92d71afa10c3cce5625b17d991a570fe9ab19e09  README.md
+cb912ee6436320ce8f7ff855435b009a5be5bb1176a3dd2b15fc844d1eaa0f30  RESULT.md
+c7314955e7eaf27223641abf1148a6cd55b2935dc7fd1af13be23978b20206d0  analysis.json
+673a571fcbb37995e8746dbc15616ac42f1f9a0602c8de2af9d8a01e76661f20  analysis.log
+767fc8c76d51ae387b06839f8e426f863bc4861ef095d70d6043a3570e3252e1  analysis.txt
+a44abcced10e0293390776f00c93f45c960d776cc5f871702cbe23680d3e3286  analyze_sex_cost.py
+a4e1d4b12101d3319f26cf60f51baea16419dc31fb9d57713f410d378691d516  fill_gap.log
+d141dfd7b04ddf85954ca1611044606c436aa0c419fb3ca16fae9430879d362d  manifest.json
+af1b447abd84bf62fcec89e7a845fd168b5e4f8ee6cf4e570a5a9848a0a01a9b  raw.jsonl.gz
+5d7c08d7bb16293093b62bc2b3adaf2a42772c04820415b278881d9458bdbb6c  sweep.log
+ad48af71035d9470cafbce6a6eee231aadefcd85b11ddb3dac078e42ee6925b9  sweep_sex_cost.py

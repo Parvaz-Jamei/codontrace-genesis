@@ -1,0 +1,117 @@
+{
+  "commit": "6187ff4",
+  "commit_source": "git archive of 6187ff4 at test-runs/verify/full6187ff4",
+  "config_digest": "rq1_confirmatory:d44a70140eeef5876ea68c838ca442de38f5e05cfeaeabd71bab2be38479c807",
+  "generations": 200,
+  "hypothesis_supported": false,
+  "interval_method": "causal_validation._paired_interval (95% paired t)",
+  "locked_config": {
+    "arms": [
+      "contemporary",
+      "lagged",
+      "frozen"
+    ],
+    "commit": "6187ff4",
+    "contact_mode": "full_matrix",
+    "controls": [
+      "frozen_exactly_zero",
+      "shuffled_time_labels_6_permutations"
+    ],
+    "estimator": "host_time_x_antagonist_time_interaction_contrast",
+    "flags_locked_false": [
+      "hypothesis_supported",
+      "red_queen_proved"
+    ],
+    "generations": 200,
+    "interval": "causal_validation._paired_interval (95% paired t)",
+    "kappa": 1.2,
+    "regimes": {
+      "copassaged": "coevolve",
+      "fixed": "frozen"
+    },
+    "seeds": [
+      5701,
+      5702,
+      5703,
+      5704,
+      5705,
+      5706,
+      5707,
+      5708
+    ],
+    "slots": {
+      "future": 110,
+      "now": 100,
+      "past": 90
+    },
+    "test": "RQ-1",
+    "times": [
+      "past",
+      "now",
+      "future"
+    ]
+  },
+  "provenance": {
+    "comparability": "All eight seeds ran against the same pinned extraction (test-runs/verify/full6187ff4, commit 6187ff4), so the pack is single-revision and the two groups are comparable by construction. The post-6187ff4 commits are absent from the pin and touch the RNG migration and from_fork restoration paths, which these arm runs do not use. No mixed-revision claim is made.",
+    "engine_changes_after_pin": [
+      "40138c9 RNG migration",
+      "913f18e from_fork restoration",
+      "02cc725 docs-only"
+    ],
+    "pin": "6187ff4",
+    "seeds_5701_5702": "6187ff4",
+    "seeds_5703_5708": "6187ff4"
+  },
+  "raw_artifacts": [
+    "raw/events_seed5701.jsonl.gz",
+    "raw/events_seed5702.jsonl.gz",
+    "raw/events_seed5703.jsonl.gz",
+    "raw/events_seed5704.jsonl.gz",
+    "raw/events_seed5705.jsonl.gz",
+    "raw/events_seed5706.jsonl",
+    "raw/population_seed5701.jsonl.gz",
+    "raw/population_seed5702.jsonl.gz",
+    "raw/population_seed5703.jsonl.gz",
+    "raw/population_seed5704.jsonl.gz",
+    "raw/population_seed5705.jsonl.gz",
+    "raw/population_seed5706.jsonl.gz",
+    "raw/seed_5701.json",
+    "raw/seed_5702.json",
+    "raw/seed_5703.json",
+    "raw/seed_5704.json",
+    "raw/seed_5705.json",
+    "raw/summary_seed5701.jsonl",
+    "raw/summary_seed5702.jsonl",
+    "raw/summary_seed5703.jsonl",
+    "raw/summary_seed5704.jsonl",
+    "raw/summary_seed5705.jsonl",
+    "raw/summary_seed5706.jsonl"
+  ],
+  "red_queen_proved": false,
+  "rng_derivation": "StructuralRQArm.boot_structural(seed) + RNGManager(seed, namespace=f'hp-struct-rq-{arm}') + rng.fork(f'passage/{tick}')",
+  "round": 3,
+  "schema_version": "rq1_confirmatory_manifest_v1",
+  "seeds_completed": [
+    5701,
+    5702,
+    5703,
+    5704,
+    5705
+  ],
+  "seeds_locked": [
+    5701,
+    5702,
+    5703,
+    5704,
+    5705,
+    5706,
+    5707,
+    5708
+  ],
+  "seeds_remaining": [
+    5706,
+    5707,
+    5708
+  ],
+  "status": "incomplete_archive"
+}

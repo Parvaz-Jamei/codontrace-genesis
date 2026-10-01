@@ -155,13 +155,52 @@ def _default_qd_archive() -> QDArchive:
 _ABSENT = "absent"
 _DEEP_COPIED = "deepcopy"
 _SHARED_REFERENCE = "shared_reference"
-FORK_CHECKPOINT_VERSION = 2
+FORK_CHECKPOINT_VERSION = 3
 NOISE_COUPLING = "stream_position"
+_NOISE_NAMESPACE = "fork-noise-contract"
 _CODE_TYPES = (FunctionType, BuiltinFunctionType, MethodDescriptorType, WrapperDescriptorType)
 
 
 def _is_code(value: Any) -> bool:
+    if isinstance(value, FunctionType) and value.__closure__:
+        return False
     return isinstance(value, _CODE_TYPES) or isinstance(value, type)
+
+
+def _refuse_bound_closures(value: Any) -> None:
+    """A closure cell is shared by deepcopy. Do not call that isolation."""
+
+    seen: set[int] = set()
+    stack: list[Any] = [value]
+    while stack:
+        item = stack.pop()
+        marker = id(item)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        if isinstance(item, FunctionType) and item.__closure__:
+            msg = "fork isolation refused: a closure would share mutable cells across branches."
+            raise ConfigurationError(msg)
+        if item is None or isinstance(item, (bool, int, float, str, bytes)) or _is_code(item):
+            continue
+        if isinstance(item, Mapping):
+            stack.extend(item.keys())
+            stack.extend(item.values())
+            continue
+        if isinstance(item, (list, tuple, set, frozenset)):
+            stack.extend(item)
+            continue
+        fields = getattr(item, "__dataclass_fields__", None)
+        if isinstance(fields, dict):
+            for name in fields:
+                try:
+                    stack.append(getattr(item, name))
+                except Exception:
+                    continue
+            continue
+        namespace = getattr(item, "__dict__", None)
+        if isinstance(namespace, dict):
+            stack.extend(namespace.values())
 
 
 def _deeply_immutable(value: Any, seen: set[int]) -> bool:
@@ -287,6 +326,7 @@ def _clone_member(value: Any, memo: dict[int, Any]) -> Any:
 def _isolated_copy(value: Any) -> Any:
     """Deep-copy one fork object. Immutable proxies may be shared; nothing mutable is."""
 
+    _refuse_bound_closures(value)
     clone, _report = _isolated_copy_report(value)
     return clone
 
@@ -370,7 +410,7 @@ def stream_position_draws(
     a position and every later draw on that stream moves.
     """
 
-    rng = RNGManager(seed=int(seed) + int(tick), namespace="fork-noise-contract")
+    rng = RNGManager(seed=int(seed) + int(tick), namespace=_NOISE_NAMESPACE)
     return tuple((str(event), float(rng.random())) for event in events)
 
 
@@ -400,6 +440,8 @@ def _checkpoint_digest(
     nexus_layer: Any,
     qd_archive: Any,
     element_grid: Any,
+    configs: Any,
+    qd_parent_feedback_applied: bool,
 ) -> str:
     payload = {
         "tick_index": int(tick_index),
@@ -408,6 +450,8 @@ def _checkpoint_digest(
         "nexus": None if nexus_layer is None else str(nexus_layer.digest()),
         "qd_archive": None if qd_archive is None else str(qd_archive.digest()),
         "element_grid": None if element_grid is None else str(element_grid.digest()),
+        "configs": canonical_digest(configs.to_dict(), prefix="configs"),
+        "qd_parent_feedback_applied": bool(qd_parent_feedback_applied),
     }
     return canonical_digest(payload, prefix="fork_checkpoint")
 
@@ -614,7 +658,10 @@ class GenesisEngine:
             nexus_layer=live.get("nexus_layer"),
             qd_archive=live.get("qd_archive"),
             element_grid=live.get("element_grid"),
+            configs=live["configs"],
+            qd_parent_feedback_applied=bool(self._qd_parent_feedback_applied),
         )
+        generation_seed = int(self.spec.seed) + tick_index
         return {
             "record_role": "recoverable_checkpoint",
             "fork_version": FORK_CHECKPOINT_VERSION,
@@ -623,15 +670,15 @@ class GenesisEngine:
             "seed": int(self.spec.seed),
             "tick_index": tick_index,
             "state_digest": state_digest,
-            "population": self.runner.population.to_dict(),
-            "world": self.runner.world.to_dict(),
-            "rng": RNGManager(seed=self.spec.seed, namespace="engine_fork").snapshot(
+            "population": live["population"].to_dict(),
+            "world": live["world"].to_dict(),
+            "rng": RNGManager(seed=generation_seed, namespace=_NOISE_NAMESPACE).snapshot(
                 include_state=True
             ),
             "rng_derivation": {
                 "coupling": NOISE_COUPLING,
                 "seed": int(self.spec.seed),
-                "next_tick_seed": int(self.spec.seed) + tick_index,
+                "next_tick_seed": generation_seed,
                 "note": (
                     "per-generation seed = spec.seed + completed_ticks; "
                     "draws inside a generation are ordered on that stream, "
@@ -639,6 +686,7 @@ class GenesisEngine:
                 ),
             },
             "noise_coupling": NOISE_COUPLING,
+            "qd_parent_feedback_applied": bool(self._qd_parent_feedback_applied),
             "parent_snapshot_id": parent_snapshot_id,
             "fork_isolation": isolation,
             "proxy_contract": proxy_contract,
@@ -651,6 +699,7 @@ class GenesisEngine:
         return {
             "population": self.runner.population,
             "world": self.runner.world,
+            "configs": self.runner.configs,
             "nexus_layer": self.runner.nexus_layer,
             "qd_archive": self.qd_archive,
             "element_grid": self.element_grid,
@@ -665,6 +714,8 @@ class GenesisEngine:
             nexus_layer=self.runner.nexus_layer,
             qd_archive=self.qd_archive,
             element_grid=self.element_grid,
+            configs=self.runner.configs,
+            qd_parent_feedback_applied=bool(self._qd_parent_feedback_applied),
         )
 
     def _fork_isolation_map(self) -> dict[str, str]:
@@ -761,8 +812,13 @@ class GenesisEngine:
             msg = f"fork payload must carry fork_version == {FORK_CHECKPOINT_VERSION}."
             raise ValueError(msg)
         source = fork.get("live_objects") or {}
-        if "population" not in source or "world" not in source:
-            msg = "recoverable checkpoint is missing frozen population or world."
+        if "population" not in source or "world" not in source or "configs" not in source:
+            msg = "recoverable checkpoint is missing frozen population, world, or configs."
+            raise ConfigurationError(msg)
+        generation_seed = int(fork.get("seed", -1)) + int(fork["tick_index"])
+        snapshot = fork.get("rng") or {}
+        if int(snapshot.get("seed", -1)) != generation_seed or snapshot.get("namespace") != _NOISE_NAMESPACE:
+            msg = "checkpoint rng snapshot is not the unused stream at seed + tick_index."
             raise ConfigurationError(msg)
         spec_changed = str(fork.get("spec_digest")) != str(spec.digest()) or int(
             fork.get("seed", -1)
@@ -778,9 +834,10 @@ class GenesisEngine:
                 msg = "an intentional spec change requires spec_change_reason."
                 raise ConfigurationError(msg)
         engine = cls.from_spec(spec, generation_boundary_observers=generation_boundary_observers)
+        engine.spec = _isolated_copy(spec)
         isolation: dict[str, str] = {}
         taken: dict[str, Any] = {}
-        for name in ("population", "world", "nexus_layer", "qd_archive", "element_grid"):
+        for name in ("population", "world", "configs", "nexus_layer", "qd_archive", "element_grid"):
             value = source.get(name)
             if value is None:
                 isolation[name] = _ABSENT
@@ -800,6 +857,7 @@ class GenesisEngine:
             taken[name] = clone
         engine.runner.population = taken["population"]
         engine.runner.world = taken["world"]
+        engine.runner.configs = taken["configs"]
         if "nexus_layer" in taken:
             engine.runner.nexus_layer = taken["nexus_layer"]
         if "qd_archive" in taken:
@@ -809,6 +867,7 @@ class GenesisEngine:
         engine._tick_offset = int(fork["tick_index"])
         engine._tick_results = []
         engine._snapshots = []
+        engine._qd_parent_feedback_applied = bool(fork.get("qd_parent_feedback_applied", False))
         engine.fork_isolation = isolation
         engine.fork_provenance = {
             "checkpoint_version": FORK_CHECKPOINT_VERSION,

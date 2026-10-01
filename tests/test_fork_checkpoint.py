@@ -158,3 +158,26 @@ def test_checkpoint_resumes_in_a_fresh_process(tmp_path) -> None:
     lines = proc.stdout.splitlines()
     assert lines[0] == payload["state_digest"]
     assert lines[1] == "True"
+
+
+def test_rng_snapshot_matches_the_tick_and_a_tampered_one_is_refused() -> None:
+    payload = _engine().capture_fork()
+    assert payload["rng"]["seed"] == 31 + 3
+    assert payload["rng"]["namespace"] == "fork-noise-contract"
+    assert payload["rng_derivation"]["next_tick_seed"] == payload["rng"]["seed"]
+    payload["rng"] = dict(payload["rng"])
+    payload["rng"]["seed"] = 31
+    with pytest.raises(ConfigurationError, match="rng snapshot"):
+        GenesisEngine.from_fork(SPEC, payload)
+
+
+def test_branch_does_not_share_spec_metadata_or_drop_the_feedback_flag() -> None:
+    parent = _engine()
+    parent._qd_parent_feedback_applied = True
+    payload = parent.capture_fork()
+    branch = GenesisEngine.from_fork(SPEC, payload)
+    assert branch.runner.configs.to_dict() == parent.runner.configs.to_dict()
+    assert branch._qd_parent_feedback_applied is True
+    assert branch.fork_state_exact is True
+    branch.spec.metadata["arm"] = "A"
+    assert "arm" not in parent.spec.metadata

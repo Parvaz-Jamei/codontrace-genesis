@@ -52,6 +52,7 @@ from codontrace.genesis.measurements.antagonist_population import (
     ANTAGONIST_ECOLOGY_STANDING,
     ANTAGONIST_PASSAGE_SHUFFLED_LABELS,
     AntagonistPopulation,
+    ContactEvent,
 )
 from codontrace.genesis.measurements.rq_frequency_clocks import (
     host_realised_pressure_from_contacts,
@@ -481,6 +482,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
     contact_pair_records: list[tuple[tuple[str, str, float, float, float], ...]] = field(
         default_factory=list
     )
+    # Identified antagonist contacts for split_v2. Empty on the standing path.
+    antagonist_contact_events: list[tuple[ContactEvent, ...]] = field(default_factory=list)
     # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
     generation_boundary_observer: Callable[..., None] | None = None
     bolus_sync_before_census: list[bool] = field(default_factory=list)
@@ -642,9 +645,17 @@ class StructuralRQArm(LifeLoopEcologyArm):
                         else ()
                     )
                     served = tuple((record[1], record[4]) for record in records)
+                    events = (
+                        self.antagonist_contact_events[-1]
+                        if self.antagonist_contact_events
+                        else ()
+                    )
+                else:
+                    events = ()
                 self._passage_update(
                     matched,
-                    served_contacts=served,
+                    served_contacts=() if events else served,
+                    contact_events=events if self.antagonist_pop is not None else None,
                     rng=rng.fork(f"passage/{self.tick_index}"),
                 )
                 if self.antagonist_pop is not None:
@@ -697,6 +708,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             self.graded_contact_count.append(0)
             if self.collect_realised_host_pressure:
                 self.contact_pair_records.append(())
+            if self.antagonist_pop is not None:
+                self.antagonist_contact_events.append(())
             return 0, []
         hosts = self._hosts()
         if not hosts or not self.parasite_windows:
@@ -704,6 +717,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             self.graded_contact_count.append(0)
             if self.collect_realised_host_pressure:
                 self.contact_pair_records.append(())
+            if self.antagonist_pop is not None:
+                self.antagonist_contact_events.append(())
             return 0, []
         self._reset_env_hosts()
         # Register a shared always-present task so inject seat is available;
@@ -726,6 +741,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
         rot = int(self.tick_index) % max(1, len(host_order))
         host_order = host_order[rot:] + host_order[:rot]
         pair_records: list[tuple[str, str, float, float, float]] = []
+        contact_events: list[ContactEvent] = []
         for p_index in range(pair_n):
             host = hosts[host_order[p_index]]
             p_window = self.parasite_windows[p_index]
@@ -736,15 +752,31 @@ class StructuralRQArm(LifeLoopEcologyArm):
             intended = float(self.virulence) * float(self.hp_env.steal_fraction) * float(
                 affinity
             )
+            paid = float(min(host.atp_state.runtime_available, intended))
             pair_records.append(
                 (
                     joint_match_class(host_window),
                     str(p_window),
                     float(affinity),
                     float(intended),
-                    float(min(host.atp_state.runtime_available, intended)),
+                    paid,
                 )
             )
+            if self.antagonist_pop is not None:
+                unit = self.antagonist_pop.units[p_index]
+                if str(unit.window) != str(p_window):
+                    raise ConfigurationError(
+                        "antagonist seat window does not match the serving unit"
+                    )
+                contact_events.append(
+                    ContactEvent(
+                        contact_id=f"c{self.tick_index}-{p_index}-{host.id}",
+                        host_id=str(host.id),
+                        unit_id=str(unit.unit_id),
+                        atp_paid=paid,
+                        window=str(p_window),
+                    )
+                )
             if self.collect_realised_host_pressure:
                 h_class = joint_match_class(host_window)
                 pressure_aff_sum[h_class] = pressure_aff_sum.get(h_class, 0.0) + float(
@@ -801,6 +833,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
             # from ``host_realised_pressure_series``, so turning the flag off still
             # leaves every recorded pressure series empty and byte-identical.
             self.contact_pair_records.append(tuple(pair_records))
+            self.antagonist_contact_events.append(tuple(contact_events))
         return debit_count, matched_windows
 
     def _record_realised_host_pressure(
@@ -849,6 +882,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
         matched_windows: Sequence[str],
         *,
         served_contacts: Sequence[tuple[str, float]] = (),
+        contact_events: Sequence[ContactEvent] | None = None,
         rng: RNGManager,
     ) -> None:
         """Advance the antagonist one generation.
@@ -873,12 +907,14 @@ class StructuralRQArm(LifeLoopEcologyArm):
         if self.passage == PASSAGE_ABSENT:
             matched_windows = []
             served_contacts = ()
+            contact_events = ()
         mode = self.passage
         if mode not in (PASSAGE_COEVOLVE, PASSAGE_FROZEN, PASSAGE_ABSENT):
             mode = ANTAGONIST_PASSAGE_SHUFFLED_LABELS
         ledger = self.antagonist_pop.advance(
             matched_windows=matched_windows,
             served_contacts=served_contacts,
+            contact_events=contact_events,
             mode=mode,
             generation=int(self.tick_index) + 1,
             rng=rng,

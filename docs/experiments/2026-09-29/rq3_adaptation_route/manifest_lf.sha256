@@ -2,6 +2,7 @@
 # paths are relative to this manifest's directory
 # this file, evidence_files.sha256, __pycache__ and *.pyc are excluded
 # text files: SHA-256 after CR/CRLF -> LF; binary suffixes stay raw
+1c62938eb26fe1880df09eef7bd54473dbd1369dfe12accd99d511ed76738500  ACCOUNTING_SPLIT_V2.md
 4065bb56dbfc1e1bd10dea9b2799ba1274a8f98c37c745bf6d37d847500d4e00  PATCH_NOTE.md
 6a853e14e6c6ad7991ddb359b20fecb64e5af73b16a7b6977437f1947ab73b92  PROPOSED_CHANGE.patch
 b43fc49a926284b148eaeea15b48611bd7342e871f7ac0380b994cb4c40b931b  PROPOSED_CHANGE_2_gap.md

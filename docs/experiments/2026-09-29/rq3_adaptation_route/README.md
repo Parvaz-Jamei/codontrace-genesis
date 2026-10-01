@@ -3,12 +3,13 @@
 **Experiment record, 2026-09-29.** All paths in this README are relative to the repository root
 `codontrace-genesis/`; raw evidence lives in
 `docs/experiments/2026-09-29/rq3_adaptation_route/` and in `docs/experiments/2026-09-29/rq3_adaptation_route/`.
-**Verdict label:** `INCONCLUSIVE` — behavioural separation in one pilot contrast, energy-confounded.
+**Verdict label:** `INCONCLUSIVE` — published raw seeds 21001 and 21011 only.
 **Claim ceiling:** `phase2_design`; `hypothesis_supported=false`, `red_queen_proved=false`.
 **Supersedes:** an earlier `SUPPORTED_IN_MODEL` label for this record, withdrawn after the external
 reviewer showed the control arms reset unit energy each generation and therefore cut the energy
-accounting as well as the information path. No `SUPPORTED_IN_MODEL` text may be imported for this
-record; the corrected n = 3 contrast with both paired intervals containing zero is in section (h).
+accounting as well as the information path. That label stays in `decision.md` as history.
+Section (h.2) quotes seeds 21061–21063, but those rosters are not in the tree, so the quotation
+is `INCOMPLETE` and is not the verdict.
 
 ---
 
@@ -227,23 +228,21 @@ Three seeds were described as 40 generations with maintenance 0.15 in every arm:
 | 21062 | 0.265625 | 0.0625 | 0.046875 |
 | 21063 | 0.03125 | 0.0625 | 0.09375 |
 
-Paired cluster-bootstrap intervals (10,000 resamples, seed 20260928):
+The intervals below are part of the same unreproduced quotation. They are not
+an analysis of files in this tree, and they are not the standing verdict.
 
 | Contrast | Mean | 95 per cent interval |
 |---|---|---|
 | coevolve − frozen | +0.0885 | [−0.03125, +0.203125] |
 | coevolve − shuffled | +0.0781 | [−0.0625, +0.21875] |
 
-Both intervals contain zero and seed 21063 reverses the ordering, so the corrected result is
-`INCONCLUSIVE`, not a separation.
+The quotation said both intervals contain zero and that seed 21063 reverses the
+ordering. That sentence is not a result of a roster stored here.
 
-**Energy parity, as restated by the Lead.** The *design* terms (seats offered, per-unit maintenance
-charged, contact budget offered before selection) are equal across arms in every generation and
-every seed, and are asserted. The *realised* pre-selection energy distribution is logged, not
-asserted: it first differs at generation 2 in every pair (seed 21061 coevolve 96.5 vs frozen 94.4
-total energy; 176–184 mismatched fields per pair over 40 generations), because the cut changes
-which windows the roster carries and therefore which contacts are realised. That divergence is the
-treatment effect, not a confound.
+**Energy note, unreproduced.** The quotation also said the design terms were
+equal and that realised energy first differed at generation 2 (seed 21061,
+coevolve 96.5 versus frozen 94.4). Nothing in `runs/` logs that pair. Do not
+read it as a checked energy balance.
 
 **Locked regression, seed 43, copassaged, 50 generations:** `empty_hist_generations = 0`,
 `parasite_n` at generation 25 = 64, histogram non-empty at generation 25, 28 distinct classes in
@@ -251,6 +250,10 @@ the final generations. The standing default path separately reports `antagonist_
 non-empty histograms throughout.
 
 ## (i) Interpretation and limits
+
+**Withdrawn reading.** This section is the round-3 interpretation of one
+contrast. The standing verdict is `INCONCLUSIVE`. The sentence below is kept
+and is not the current label. `hypothesis_supported` stays false.
 
 The result supports, **inside this model**, the claim that the delayed frequency-to-composition
 route through the antagonist is heritable and necessary for the observed rare-class advantage:

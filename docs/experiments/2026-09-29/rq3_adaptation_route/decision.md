@@ -1,5 +1,12 @@
 # RQ-3 decision record — round 3
 
+**Standing verdict, 2026-10-02:** `INCONCLUSIVE`, from
+[`VERDICT_LEDGER_V1.json`](../VERDICT_LEDGER_V1.json). It rests on the published
+raw seeds 21001 and 21011. The `SUPPORTED_IN_MODEL` line below is the round-3
+record. It was withdrawn after the controls were found to reset unit energy.
+It is kept. It is not the standing verdict. Seeds 21061–21063 have no roster
+in this tree.
+
 **Date:** 2026-09-29 (round 3)
 **Test:** RQ-3 — does the apparent cycle need heritable antagonist feedback?
 **Owner:** dag-prereg (RQ-3 test agent)

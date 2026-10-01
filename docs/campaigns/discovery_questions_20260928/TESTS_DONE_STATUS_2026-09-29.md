@@ -54,18 +54,20 @@ These are recorded separately and are not part of the eight program tests:
   conditioning is biased before any epistasis is present, and at high epistasis
   about **64 per cent** of the quantity previously labelled estimator bias is a
   whole-tape re-routing gap rather than model misspecification.
-* **Two-fold cost of sex** (`docs/experiments/2026-09-29/sex_cost/`): confirmed on the full
-  2100-run sweep - 7 costs x 3 antagonist turnovers x 100 paired seeds, ledger residual
-  2.556e-10 - the `c*` bracket from the intervals is **(1.1, 1.2]**: `c = 1.1` passes all three
-  turnovers and `c = 1.2` fails all three, with strictly disjoint intervals. The earlier
-  single-seed probe is a **superseded pilot** whose magnitudes do not survive the intervals, and
-  the old narrowing is **confirmed**, not superseded. Reported as a negative for the two-fold cost
-  of sex in this model; claim ceiling and flags are unchanged.
+* **Two-fold cost of sex** (`docs/experiments/2026-09-29/sex_cost/`): inside the
+  locked grid only (infection_cost=0.4, 400 generations, host_cap=400,
+  turnovers 1/6/12, seeds 8000–8099) the measured bracket is `(1.1, 1.2]`.
+  That bracket is not a result for other regimes or horizons, and it is not
+  evidence that coevolution maintains sex at the classical two-fold cost.
+  Standing label: `INCONCLUSIVE`.
 * **Biotic versus abiotic turnover** (`causal-tape-experiment/results/rjcj_results.json`):
   antagonist-dominant within the model world, stable across window lengths, with
   a genotype-blind tax control passing.
 
 ## Next actions, in the program's own order
+
+Historical list. Where it disagrees with the standing table at the end of this
+file, the table and `docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json` win.
 
 1. Fix blockers 2 and 3 (a real evolving antagonist; the idea 4 contact/ATP
    coupling and full-state checkpoint fork). Until then RQ-1, RQ-3, D-2 stay
@@ -86,9 +88,10 @@ no locked pin was re-locked for those fixes.
 
 **Novelty and results synthesis (2026-09-29):** the reviewed claim-discipline synthesis is committed
 as [`NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md`](NOVELTY_AND_RESULTS_SYNTHESIS_2026-09-29.md)
-(RQ-1 `INCONCLUSIVE` in flight, D-2 `FALSIFIED_IN_MODEL` on the calibration tier, RQ-3
-`INCONCLUSIVE` (energy-confounded single-pilot behavioural separation; corrected controls at n = 3 show no reliable separation and the pre-selection-parity contract is an open precondition), the CausalTape share only with its estimator
-label, and `c*` flagged probe-level).
+(RQ-1 `INCONCLUSIVE`, archive incomplete; D-2 `BLOCKED_MEASUREMENT`, with round-4
+`FALSIFIED_IN_MODEL` kept as history; RQ-3 `INCONCLUSIVE` on seeds 21001 and
+21011, while the 21061–21063 quotation is `INCOMPLETE`; the CausalTape share
+only with its estimator label; the sex-cost bracket only inside its own grid).
 
 ## Confirmed results superseding the stage-0 rows (2026-09-29)
 

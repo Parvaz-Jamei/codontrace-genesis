@@ -1,5 +1,11 @@
 # D-2 decision — round 4 (independent re-simulation, isolated design)
 
+**Standing verdict, 2026-10-02:** `BLOCKED_MEASUREMENT`, from
+[`VERDICT_LEDGER_V1.json`](../VERDICT_LEDGER_V1.json). The positive control did
+not reach the locked 1.25× endpoint, so arm zeros do not falsify an
+intervention. The `FALSIFIED_IN_MODEL` heading below is the round-4 record. It
+is kept. It is not the standing verdict.
+
 **Agent:** D-2 test agent (`mechanism-test`) · **Date:** 2026-09-29
 **Verdict:** `FALSIFIED_IN_MODEL` — the pre-registered retention endpoint is 0/18 in an isolated
 design, with the largest yield ratio 0.573 against the locked 1.25×.

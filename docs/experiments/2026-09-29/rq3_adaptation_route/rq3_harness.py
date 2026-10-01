@@ -22,8 +22,8 @@ import time
 from collections import Counter
 from pathlib import Path
 
-REPO = Path(r"E:\مقاله پزشکی شبیه سازی ویروس\codontrace-genesis")
 ROOT = Path(__file__).resolve().parent
+REPO = ROOT.parents[3]
 RUNS = ROOT / "runs"
 SCHEMA_VERSION = "rq3-manifest-v1"
 # Round number per the Lead's operating directive v2.1: the 50k cap is per round.
@@ -257,7 +257,9 @@ class ArmRun:
                     "class_count": None,
                 }
 
-        self.arm._passage_update(matched, self.rng.fork(f"passage/{self.arm.tick_index}"))
+        self.arm._passage_update(
+            matched, rng=self.rng.fork(f"passage/{self.arm.tick_index}")
+        )
         self.arm._census()
         self.arm.tick_index += 1
 

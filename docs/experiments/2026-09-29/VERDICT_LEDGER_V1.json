@@ -1,0 +1,65 @@
+{
+  "schema": "verdict_ledger_v1",
+  "date": "2026-10-02",
+  "hypothesis_supported": false,
+  "red_queen_proved": false,
+  "allowed_verdicts": [
+    "SUPPORTED_IN_MODEL",
+    "FALSIFIED_IN_MODEL",
+    "INCONCLUSIVE",
+    "BLOCKED_MEASUREMENT"
+  ],
+  "mypy": {
+    "job": "lint-type",
+    "required": false,
+    "reason": "continue-on-error is true in .github/workflows/ci.yml, so a green workflow is not a mypy pass"
+  },
+  "confirmatory_campaign": {
+    "opened": false,
+    "verdict": "BLOCKED_MEASUREMENT",
+    "cause": "RQ-1 archive is incomplete, D-2 positive control never reached 1.25x, and the RQ-3 seeds 21061-21063 cited in the README have no raw roster. The current engine is a later model (split_v2 accounting and a keyword-only passage update), so a new run must not be filed as that missing raw. Already-used seeds are not called unseen."
+  },
+  "records": [
+    {
+      "id": "rq1_time_shift",
+      "standing_verdict": "INCONCLUSIVE",
+      "scope": "Imported seed JSON covers 5701-5705 only. 5706 has no seed JSON. 5707 and 5708 are absent. The draft 8/8 intervals are not a completion.",
+      "hypothesis_supported": false,
+      "red_queen_proved": false
+    },
+    {
+      "id": "rq3_adaptation_route",
+      "standing_verdict": "INCONCLUSIVE",
+      "scope": "Reconstructable raw runs are seeds 21001 and 21011. They are energy-confounded pilot histories, not a confirmatory sample.",
+      "data_status": "INCOMPLETE",
+      "missing_raw_seeds": [21061, 21062, 21063],
+      "missing_raw_note": "README section h.2 quotes these three seeds. No roster for them is in the tree. The quotation is kept and is not a reconstructable analysis.",
+      "hypothesis_supported": false,
+      "red_queen_proved": false
+    },
+    {
+      "id": "d2_recovery_window",
+      "standing_verdict": "BLOCKED_MEASUREMENT",
+      "scope": "The locked 1.25x endpoint for three consecutive boundaries was not reached by the positive control. Zeros on the arms do not falsify an intervention. Round-4 FALSIFIED_IN_MODEL is retained history, not the standing verdict.",
+      "historical": [
+        {"verdict": "FALSIFIED_IN_MODEL", "role": "round 4, retained, not standing"}
+      ],
+      "hypothesis_supported": false,
+      "red_queen_proved": false
+    },
+    {
+      "id": "sex_cost",
+      "standing_verdict": "INCONCLUSIVE",
+      "scope": "The measured bracket c* in (1.1, 1.2] belongs only to infection_cost=0.4, generations=400, host_cap=400, parasite_cap=16, turnovers {1, 6, 12}, seeds 8000-8099. It is not a result for other regimes or horizons, and it does not support maintenance of sex at the classical two-fold cost.",
+      "hypothesis_supported": false,
+      "red_queen_proved": false
+    },
+    {
+      "id": "causal_tape",
+      "standing_verdict": "INCONCLUSIVE",
+      "scope": "The 63-65% share is an estimator label on a synthetic fitness map. It is not an organism-level result. Nearest prior framing is an SCM do-operator; the tested difference is a noise-free mutation-draw intervention, and that difference is an instrument check.",
+      "hypothesis_supported": false,
+      "red_queen_proved": false
+    }
+  ]
+}

@@ -210,10 +210,16 @@ Seed 21051, one contrast seed, no interval. These numbers were produced with the
 controls that reset unit energy each generation, so they are recorded as a behavioural separation
 in a pilot run only. They are not the verdict basis.
 
-### (h.2) Corrected contrast — n = 3, controls sharing the energy pipeline
+### (h.2) Quoted contrast — seeds 21061–21063, raw roster not in this tree
 
-Three independent seeds, 40 generations, maintenance 0.15 in every arm, controls rebuilt to cut
-only the information path:
+**Data status: `INCOMPLETE`.** The three rows below are the text that was
+already in this README. There is no `runs/` directory for seeds 21061, 21062
+or 21063. They are not a reconstructable analysis, and a later engine must not
+be re-run and filed as if it were this table. The standing verdict stays
+`INCONCLUSIVE` on the published raw seeds 21001 and 21011. See
+[`VERDICT_LEDGER_V1.json`](../VERDICT_LEDGER_V1.json).
+
+Three seeds were described as 40 generations with maintenance 0.15 in every arm:
 
 | Seed | coevolve | frozen | shuffled_labels |
 |---|---|---|---|

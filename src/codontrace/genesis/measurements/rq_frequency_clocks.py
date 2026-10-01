@@ -803,18 +803,218 @@ def joint_freq_counter_to_map(
     return {k: counts[k] / total for k in sorted(counts)}
 
 
+# --- Two named pressure estimands (phase 4) ---------------------------------
+#
+# ``realised_conditional_host_pressure`` stays the class-balanced assay: the
+# parasite histogram does not enter its law. The archived RQ-1 matrices were
+# built from the keys of ``antagonist_class_frequencies``, so they are that
+# assay. They are not the pressure of the living class composition, and an
+# infinite reserve is not ATP that a host paid.
+
+CLASS_BALANCED_ASSAY = "class_balanced_assay"
+FREQUENCY_WEIGHTED_PRESSURE = "frequency_weighted_abundance_pressure"
+
+
+def _finite_count(name: str, value: object) -> float:
+    number = float(value)  # type: ignore[arg-type]
+    if not math.isfinite(number) or number < 0.0:
+        raise ValueError(f"{name} must be a finite, non-negative count")
+    return number
+
+
+def class_balanced_assay(
+    host_class_windows: Mapping[str, str],
+    parasite_class_windows: Mapping[str, str],
+    **kwargs: object,
+) -> dict[str, object]:
+    """Equal assay of the parasite classes that are present.
+
+    Frequencies are not weights. Passing them does not change the result.
+    ``host_capacity_units=None`` is an infinite-reserve standardised assay,
+    not ATP paid in a living history.
+    """
+
+    kwargs.pop("parasite_class_counts", None)
+    kwargs.pop("contact_matrix", None)
+    result = realised_conditional_host_pressure(
+        host_class_windows,
+        parasite_class_windows,
+        **kwargs,  # type: ignore[arg-type]
+    )
+    infinite = kwargs.get("host_capacity_units") is None
+    result["estimand"] = CLASS_BALANCED_ASSAY
+    result["histogram_used"] = False
+    result["class_frequency_used"] = False
+    result["equals_living_history_atp"] = False
+    result["reserve_reading"] = (
+        "infinity_standardised_assay" if infinite else "capacity_capped_assay"
+    )
+    result["red_queen_proved"] = False
+    return result
+
+
+def frequency_weighted_abundance_pressure(
+    host_class_windows: Mapping[str, str],
+    parasite_class_windows: Mapping[str, str],
+    parasite_class_counts: Mapping[str, int | float],
+    **kwargs: object,
+) -> dict[str, object]:
+    """Pressure of the actual class composition.
+
+    Each parasite class is weighted by its count. The same set of classes with
+    a different composition is a different value. This is not the class-balanced
+    assay, and it is still not observed ATP unless a paid amount is supplied
+    separately.
+    """
+
+    if not parasite_class_counts:
+        raise ValueError("frequency-weighted pressure requires class counts")
+    counts = {str(key): _finite_count(str(key), value) for key, value in parasite_class_counts.items()}
+    if sum(counts.values()) <= 0.0:
+        raise ValueError("frequency-weighted pressure requires a positive total count")
+    missing = sorted(set(map(str, parasite_class_windows)) - set(counts))
+    extra = sorted(set(counts) - set(map(str, parasite_class_windows)))
+    if missing or extra:
+        raise ValueError("counts and parasite classes must name the same support")
+    hosts = [str(host) for host in host_class_windows]
+    weighted = {host: {parasite: counts[parasite] for parasite in counts} for host in hosts}
+    kwargs.pop("contact_matrix", None)
+    kwargs.pop("parasite_class_counts", None)
+    result = realised_conditional_host_pressure(
+        host_class_windows,
+        parasite_class_windows,
+        parasite_class_counts=counts,
+        contact_matrix=weighted,
+        **kwargs,  # type: ignore[arg-type]
+    )
+    infinite = kwargs.get("host_capacity_units") is None
+    result["estimand"] = FREQUENCY_WEIGHTED_PRESSURE
+    result["histogram_used"] = True
+    result["class_frequency_used"] = True
+    result["equals_living_history_atp"] = False
+    result["reserve_reading"] = (
+        "infinity_standardised_assay" if infinite else "capacity_capped_assay"
+    )
+    result["red_queen_proved"] = False
+    return result
+
+
+def separate_pressure_accounts(
+    *,
+    affinity: float,
+    kappa: float,
+    reserve: float | None,
+    contact_opportunities: float,
+    lineage_growth: float,
+    paid_atp: float | None = None,
+) -> dict[str, object]:
+    """Keep intended pressure, paid ATP, contact chances and lineage growth apart."""
+
+    intended = _finite_count("affinity", affinity) * float(kappa)
+    if not math.isfinite(intended) or float(kappa) < 0.0:
+        raise ValueError("intended pressure must be finite and non-negative")
+    opportunities = _finite_count("contact_opportunities", contact_opportunities)
+    growth = float(lineage_growth)
+    if not math.isfinite(growth):
+        raise ValueError("lineage_growth must be finite")
+    infinite = reserve is None or math.isinf(float(reserve))
+    if paid_atp is None:
+        paid = None if infinite else min(float(reserve), intended)
+    else:
+        paid = _finite_count("paid_atp", paid_atp)
+    return {
+        "intended_pressure": intended,
+        "paid_pressure": paid,
+        "paid_is_observed_atp": paid_atp is not None,
+        "infinite_reserve_is_living_history_atp": False,
+        "contact_opportunity": opportunities,
+        "lineage_growth": growth,
+        "red_queen_proved": False,
+    }
+
+
+def algebraic_frozen_zero(*, debit_multiplier: float, pressure: float) -> dict[str, object]:
+    """A frozen arm that multiplies the debit by zero is an algebraic control.
+
+    The zero does not, by itself, show that the metric is biologically or
+    causally valid.
+    """
+
+    exact_zero = abs(float(pressure)) <= 1e-15
+    algebraic = float(debit_multiplier) == 0.0 and exact_zero
+    return {
+        "frozen_exactly_zero": exact_zero,
+        "algebraic_control": algebraic,
+        "biological_validity": False,
+        "causal_validity": False,
+        "red_queen_proved": False,
+    }
+
+
+def rq_path_components(
+    *,
+    lag_contrast: float,
+    rarity_delta: float,
+    host_delta: float,
+    parasite_delta: float,
+    pressure_with_path: float,
+    pressure_path_cut: float,
+    sham_pressure: float,
+) -> dict[str, object]:
+    """Four checks. Passing one does not pass the others and proves nothing."""
+
+    return {
+        "lag_condition": float(lag_contrast) < 0.0,
+        "rarity_advantage": float(rarity_delta) > 0.0,
+        "reciprocal_feedback": (
+            float(host_delta) != 0.0
+            and float(parasite_delta) != 0.0
+            and float(host_delta) * float(parasite_delta) < 0.0
+        ),
+        "path_cut_control": (
+            float(pressure_with_path) > 0.0
+            and abs(float(pressure_path_cut)) <= 1e-15
+            and abs(float(sham_pressure) - float(pressure_with_path)) <= 1e-15
+        ),
+        "any_implies_the_others": False,
+        "hypothesis_supported": False,
+        "red_queen_proved": False,
+    }
+
+
+def confirmatory_seed_disagreement(by_seed: Mapping[int, float]) -> dict[str, object]:
+    """The confirmatory sample size is the number of seeds, not generations."""
+
+    values = [float(by_seed[key]) for key in sorted(by_seed)]
+    spread = 0.0 if len(values) < 2 else max(values) - min(values)
+    return {
+        "n_confirmatory_seeds": len(values),
+        "between_seed_range": spread,
+        "replicate_unit": "seed",
+        "generations_are_independent_replicates": False,
+        "hypothesis_supported": False,
+        "red_queen_proved": False,
+    }
+
+
 __all__ = [
+    "CLASS_BALANCED_ASSAY",
     "CONTACT_MODE_ENGINE_SEATS",
     "CONTACT_MODE_FULL_MATRIX",
     "CONTACT_MODES",
     "DEFAULT_CLUSTER_BOOTSTRAP_RESAMPLES",
     "DEFAULT_CLUSTER_BOOTSTRAP_SEED",
     "DEFAULT_NFDS_THRESHOLD",
+    "FREQUENCY_WEIGHTED_PRESSURE",
     "SWAP_SIGNAL_UNITS",
     "affinity_matrix",
+    "algebraic_frozen_zero",
+    "class_balanced_assay",
+    "confirmatory_seed_disagreement",
     "dominant_class_series",
     "exchange_class_shares",
     "frequency_swap_signal",
+    "frequency_weighted_abundance_pressure",
     "host_realised_pressure_from_contacts",
     "joint_freq_counter_to_map",
     "lagged_nfds_score",
@@ -824,5 +1024,7 @@ __all__ = [
     "phase_lag_host_parasite",
     "realised_conditional_host_pressure",
     "reference_graded_affinity",
+    "rq_path_components",
     "run_level_cluster_bootstrap_interval",
+    "separate_pressure_accounts",
 ]

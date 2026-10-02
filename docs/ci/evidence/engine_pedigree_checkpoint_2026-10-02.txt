@@ -1,0 +1,43 @@
+Engine pedigree and checkpoint — local gate, 2026-10-02
+
+Commands (PYTHONPATH=src, pytest --disable-plugin-autoload):
+
+1. tests/science_gates/test_engine_pedigree_and_checkpoint.py
+   tests/test_fork_checkpoint.py
+   tests/test_fork_branch_isolation.py
+   tests/science_gates/test_phase5_archive_and_prediction.py
+   tests/science_gates/test_independent_run_units.py
+   tests/science_gates/test_causal_interval_guard.py
+   tests/science_gates/test_paired_interval_and_bootstrap.py
+   tests/test_verdict_ledger.py
+   tests/campaigns/discovery_questions_20260928/test_discovery_program_stage0.py
+   tests/campaigns/discovery_questions_20260928/test_owner_measurement_fixes.py
+   Result: 76 passed.
+
+2. tests/science_gates tests/genesis_gates
+   Result: 294 passed. ruff check on the new test and the Idea4 module passed.
+
+3. tests/test_antagonist_energy_accounting.py
+   tests/test_fork_audit_payload.py
+   tests/science_gates/test_engine_pedigree_and_checkpoint.py
+   Result: 25 passed.
+
+What the new tests lock
+- A birth counts as linked only when its parent id was already in an earlier census.
+  A missing parent, a self-parent, or a parent that appears in the same census does not.
+  No birth is not recorded as a success.
+  A regained genome is still reported when the parent link fails.
+- The live census parent_id matches the lineage record, including an empty parent.
+- Idea4 checkpoint_fork_complete is true only as a measured restore, and that
+  does not set hypothesis_supported, red_queen_proved, topology_effect_identified,
+  endpoint_map_is_contact_physics, or lineage_recovery_established.
+  n_unit stays "run" (one history is one replicate).
+- The Idea2 side counter stays a counter, not a genotype population.
+
+Citations carried on the implementation
+- doi:10.1038/nature01568 (Lenski, Ofria, Pennock and Adami 2003)
+- doi:10.1162/106454604773563612 (Ofria and Wilke 2004)
+- doi:10.1371/journal.pcbi.1003285 (Sandve, Nekrutenko, Taylor and Hovig 2013)
+- doi:10.2307/1942661 (Hurlbert 1984)
+
+Standing verdicts were not edited. red_queen_proved stays false.

@@ -1,0 +1,126 @@
+{
+  "commit": "a31e4ff",
+  "errors": [],
+  "generations": 200,
+  "hypothesis_supported": false,
+  "locked_commit_absent": "6187ff4",
+  "note": "Current-engine measurement of the seeds whose locked 6187ff4 pack was incomplete. Commit 6187ff4 is not in this repository, so these files do not complete that pack and must not be read as its missing raw. hypothesis_supported and red_queen_proved stay false.",
+  "red_queen_proved": false,
+  "regimes": {
+    "copassaged": {
+      "contrast": {
+        "i_contemp": 0.0104490964,
+        "i_lag": -0.0053641081,
+        "i_max": 0.0211200573,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "n_negative_cells": 4,
+        "n_positive_cells": 5,
+        "uniform_increase": false
+      },
+      "matrix": {
+        "future": {
+          "future": 0.6579710145,
+          "now": 0.6444444444,
+          "past": 0.608115942
+        },
+        "now": {
+          "future": 0.6498550725,
+          "now": 0.6518518518,
+          "past": 0.6034782609
+        },
+        "past": {
+          "future": 0.612173913,
+          "now": 0.602962963,
+          "past": 0.6098550725
+        }
+      },
+      "passage": "coevolve",
+      "slot_diagnostics": {
+        "future": {
+          "antagonist_classes": 23,
+          "antagonist_n": 64,
+          "census": 15,
+          "host_classes": 13
+        },
+        "now": {
+          "antagonist_classes": 18,
+          "antagonist_n": 64,
+          "census": 15,
+          "host_classes": 12
+        },
+        "past": {
+          "antagonist_classes": 23,
+          "antagonist_n": 64,
+          "census": 15,
+          "host_classes": 14
+        }
+      },
+      "wall_s": 53.765
+    },
+    "fixed": {
+      "contrast": {
+        "i_contemp": 0.0,
+        "i_lag": 0.0,
+        "i_max": 0.0,
+        "i_max_cell": [
+          "past",
+          "past"
+        ],
+        "n_negative_cells": 0,
+        "n_positive_cells": 0,
+        "uniform_increase": false
+      },
+      "matrix": {
+        "future": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        },
+        "now": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        },
+        "past": {
+          "future": 0.6,
+          "now": 0.6,
+          "past": 0.6
+        }
+      },
+      "passage": "frozen",
+      "slot_diagnostics": {
+        "future": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 19,
+          "host_classes": 16
+        },
+        "now": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 20,
+          "host_classes": 16
+        },
+        "past": {
+          "antagonist_classes": 16,
+          "antagonist_n": 64,
+          "census": 21,
+          "host_classes": 19
+        }
+      },
+      "wall_s": 61.626
+    }
+  },
+  "replaces_locked_pack": false,
+  "schema_version": "rq1_current_engine_closure_v1",
+  "seed": 5706,
+  "slots": {
+    "future": 110,
+    "now": 100,
+    "past": 90
+  },
+  "wall_s": 115.391
+}

@@ -271,17 +271,16 @@ def live_program_decisions(
 ) -> dict[str, object]:
     """Label the live model. Stage 0 cannot return ``SUPPORTED_IN_MODEL``."""
 
-    antagonist = (
-        idea2.get("parasite_is_genotype_population") is True
-        and idea2.get("hypothesis_test_eligible") is True
-    )
+    has_population = idea2.get("parasite_is_genotype_population") is True
     contact_ready = (
         idea4.get("checkpoint_fork_complete") is True
         and idea4.get("parent_child_ids_recorded") is True
         and idea4.get("topology_effect_identified") is True
         and idea4.get("endpoint_map_is_contact_physics") is True
     )
-    blocked_antagonist = "BLOCKED_MEASUREMENT" if not antagonist else "INCONCLUSIVE"
+    # A real roster removes the instrument block. It does not confirm the
+    # hypothesis. A missing roster stays blocked. Stage 0 never supports.
+    blocked_antagonist = "INCONCLUSIVE" if has_population else "BLOCKED_MEASUREMENT"
     blocked_contact = "BLOCKED_MEASUREMENT" if not contact_ready else "INCONCLUSIVE"
     decisions = {
         "RQ-1": blocked_antagonist,

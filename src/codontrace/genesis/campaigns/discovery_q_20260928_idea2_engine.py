@@ -1,10 +1,11 @@
 """Discovery questions 2026-09-28 — Idea 2 ENGINE closed-loop cells.
 
 Gene / pattern / causal arms are scored by a host-lineage census on a
-GenesisEngine generation boundary. Births copy the oldest living lineage
-id. The parasite value is a capped counter, not an independent population.
-This output is a host-lineage census. It is not a host–parasite hypothesis
-test. ``hypothesis_test_eligible`` stays false.
+GenesisEngine generation boundary. Host births copy the oldest living lineage
+id. The parasite roster is an antagonist population: each unit has a genotype
+window and a parent debit. This output is still a calibration census. It is
+not a confirmatory host–parasite hypothesis test. ``hypothesis_test_eligible``
+stays false.
 
 Claim ceiling phase2_design. hypothesis_supported=False. red_queen_proved=False.
 Sham ≠ NC-*.
@@ -36,11 +37,13 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
     build_idea4_engine_spec,
 )
 from codontrace.genesis.engine import GenesisEngine
+from codontrace.genesis.measurements.antagonist_population import AntagonistPopulation
 from codontrace.life_loop.contact_atp_ledger import (
     NAMED_CONTACT_EDGE_IDS,
     build_idea2_engine_scaffold_ledger,
 )
 from codontrace.life_loop.engine_ledger_coupler import ecology_scale, sample_ecology
+from codontrace.rng import RNGManager
 
 SCHEMA = "discovery_q_20260928_idea2_engine_cell_v1"
 ENGINE_PATH = "genesis_life_loop_observer_coupled"
@@ -62,6 +65,22 @@ def _new_host_population(*, founders: int = 6) -> dict[str, Any]:
         "next_seq": n,
         "founded": n,
     }
+
+
+def _parasite_population(arm: str) -> AntagonistPopulation:
+    """Four named genotypes. Not a counter."""
+
+    return AntagonistPopulation.founders(
+        [f"{arm}-{index:02d}" for index in range(4)],
+        mutation_rate=0.0,
+        fecundity=1.0,
+        maintenance_cost=0.05,
+    )
+
+
+def _hold_window(window: str, rng: RNGManager) -> str:
+    del rng
+    return window
 
 
 def _step_host_population(
@@ -203,6 +222,9 @@ def run_idea2_engine_cell(
             "pattern_memory": 0.0,
             "population": _new_host_population(),
             "parasite_series": [],
+            "parasites": _parasite_population(arm),
+            "parasite_births": 0,
+            "parasite_links_ok": True,
         }
         for arm in ARMS
     }
@@ -263,11 +285,30 @@ def run_idea2_engine_cell(
             else:
                 births = 1 if intervened or (err < 0.5 and int(loc) % 2 == 0) else 0
             extra_kills = 0 if intervened or err <= 1.0 else 1
-            alive_lineages, parasites = _step_host_population(
+            alive_lineages, _counter = _step_host_population(
                 st["population"], births=births, extra_kills=extra_kills
             )
+            parasites = st["parasites"]
+            before = {unit.unit_id for unit in parasites.units}
+            parasites.advance(
+                matched_windows=tuple(unit.window for unit in parasites.units),
+                mode="coevolve",
+                generation=int(generation_index),
+                rng=RNGManager(seed=int(seed) + int(generation_index), namespace=f"idea2-{arm}"),
+                mutate_window=_hold_window,
+            )
+            for unit in parasites.units:
+                if unit.unit_id in before:
+                    continue
+                st["parasite_births"] = int(st["parasite_births"]) + 1
+                if (
+                    not unit.parent_id
+                    or unit.parent_id == unit.unit_id
+                    or unit.parent_id not in parasites.known_unit_ids
+                ):
+                    st["parasite_links_ok"] = False
             st["alive_lineages"] = int(alive_lineages)
-            st["parasite_series"].append(int(parasites))
+            st["parasite_series"].append(len(parasites.units))
         ledger.advance_generation()
 
     class _Idea2Observer:
@@ -315,8 +356,12 @@ def run_idea2_engine_cell(
             "energy_end": float(st["energy"]),
             "hosts_founded": founded,
             "host_lineages_alive": alive_lineages,
-            "parasite_end": int(st["population"]["parasites"]),
+            "parasite_end": len(st["parasites"].units),
             "parasite_series": [int(x) for x in st["parasite_series"]],
+            "parasite_births": int(st["parasite_births"]),
+            "parasite_links_ok": bool(st["parasite_links_ok"]),
+            "parasite_windows": [unit.window for unit in st["parasites"].units],
+            "parasite_ids": [unit.unit_id for unit in st["parasites"].units],
         }
 
     records: list[dict[str, JsonValue]] = []
@@ -343,8 +388,18 @@ def run_idea2_engine_cell(
             "output_version_date": "2026-09-29",
             "fresh_hypothesis_sample": False,
             "hypothesis_test_eligible": False,
-            "parasite_is_independent_population": False,
-            "parasite_is_genotype_population": False,
+            "parasite_is_independent_population": True,
+            "parasite_is_genotype_population": bool(
+                arm_stats[arm]["parasite_ids"]
+                and len(set(arm_stats[arm]["parasite_ids"])) == len(arm_stats[arm]["parasite_ids"])
+                and all(arm_stats[arm]["parasite_windows"])
+            ),
+            "parasite_parent_links_recorded": bool(
+                int(arm_stats[arm]["parasite_births"]) > 0 and arm_stats[arm]["parasite_links_ok"]
+            ),
+            "parasite_accounting": "split_v2",
+            "parasite_ids": list(arm_stats[arm]["parasite_ids"]),
+            "parasite_births": int(arm_stats[arm]["parasite_births"]),
             "births_open_new_lineage": False,
             "births_copy_oldest_living_lineage": True,
             "death_order": "oldest_seq_first",
@@ -367,9 +422,11 @@ def run_idea2_engine_cell(
                 "Engine closed-loop Idea2 cell under phase2_design. "
                 "survival_to_T is a side census for calibration only. Births copy "
                 "the oldest living lineage id and deaths take that order. The "
-                "parasite value is a capped counter, not a genotype population. "
-                "The do step is a coded rule. Parent-child ids are not recorded. "
-                "Not a host-parasite hypothesis test. Not G2/M0–M3 sealed evidence. "
+                "parasite roster is a genotype population under split_v2: each "
+                "unit has a window, births debit the parent, and no energy is "
+                "created. This cell is still a calibration, not a confirmatory "
+                "hypothesis test. The do step is a coded rule. Host parent-child "
+                "ids are not recorded. Not G2/M0–M3 sealed evidence. "
                 "Sham is SHAM-CUE-PREDPHASE-V1 only (never NC-*). "
                 "hypothesis_supported stays false."
             ),

@@ -73,8 +73,12 @@ def test_p2_survival_is_host_census_not_energy_blend() -> None:
         assert row["output_version_id"] == "IDEA2-HOST-CENSUS-CALIBRATION-V1"
         assert row["output_version_date"] == "2026-09-29"
         assert row["fresh_hypothesis_sample"] is False
-        assert row["parasite_is_independent_population"] is False
-        assert row["parasite_is_genotype_population"] is False
+        assert row["parasite_is_independent_population"] is True
+        assert row["parasite_is_genotype_population"] is True
+        assert row["parasite_accounting"] == "split_v2"
+        assert len(set(row["parasite_ids"])) == len(row["parasite_ids"]) > 0
+        births = int(row["parasite_births"])
+        assert row["parasite_parent_links_recorded"] is (births > 0)
         assert row["births_open_new_lineage"] is False
         assert row["births_copy_oldest_living_lineage"] is True
         assert row["do_is_coded_rule"] is True

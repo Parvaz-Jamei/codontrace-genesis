@@ -1,0 +1,53 @@
+{
+  "arms": {
+    "coevolve": {
+      "alive_last": 63,
+      "arm": "coevolve",
+      "common_share_first": 0.125,
+      "common_share_g10": 0.125,
+      "common_share_last": 0.0,
+      "extinct": false,
+      "final_classes": 14,
+      "final_common_count": 0,
+      "final_roster": 63,
+      "generations": 60,
+      "maintenance": 0.15,
+      "mode": "coevolve"
+    },
+    "frozen": {
+      "alive_last": 64,
+      "arm": "frozen",
+      "common_share_first": 0.0625,
+      "common_share_g10": 0.0625,
+      "common_share_last": 0.0625,
+      "extinct": false,
+      "final_classes": 16,
+      "final_common_count": 4,
+      "final_roster": 64,
+      "generations": 60,
+      "maintenance": 0.15,
+      "mode": "frozen"
+    },
+    "shuffled_labels": {
+      "alive_last": 64,
+      "arm": "shuffled_labels",
+      "common_share_first": 0.03125,
+      "common_share_g10": 0.046875,
+      "common_share_last": 0.078125,
+      "extinct": false,
+      "final_classes": 16,
+      "final_common_count": 5,
+      "final_roster": 64,
+      "generations": 60,
+      "maintenance": 0.15,
+      "mode": "shuffled_labels"
+    }
+  },
+  "commit": "a31e4ff",
+  "hypothesis_supported": false,
+  "note": "Raw for the seeds previously quoted without a file. This is the current engine, not a backfill of an older table. hypothesis_supported and red_queen_proved stay false.",
+  "red_queen_proved": false,
+  "replaces_quoted_table": false,
+  "schema_version": "rq3_current_engine_closure_v1",
+  "seed": 21063
+}

@@ -8,6 +8,10 @@ from codontrace.energy import ATPAccount
 from codontrace.engine import GenesisEngine, GenesisExperimentSpec
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.measurements.d2_recovery_v2 import (
+    RECOVERY_DROP_FRACTION,
+    RECOVERY_RESTORE_FRACTION,
+    apply_locked_recovery_arm,
+    assess_recovery,
     controls_match,
     historical_endpoint_barrier,
     name_order_mapping,
@@ -236,3 +240,92 @@ def test_dissipated_loss_is_accepted_only_when_the_books_balance() -> None:
     }
     with pytest.raises(ConfigurationError, match="does not conserve ATP"):
         transfer_yield([event], [forged, recipient.ledger[0]])
+
+
+def _two_organism_engine() -> GenesisEngine:
+    engine = GenesisEngine.from_spec(
+        GenesisExperimentSpec(
+            tick_count=0,
+            seed=31,
+            genome_bits=("101110000", "110000101"),
+            initial_runtime_atp=40.0,
+        )
+    )
+    engine.run_ticks(1)
+    return engine
+
+
+def test_a_transfer_without_a_drop_is_not_recovery() -> None:
+    engine = _two_organism_engine()
+    source, recipient = list(engine.runner.population.organisms)[:2]
+    before = float(recipient.atp_state.runtime_available)
+    paid = 1.0
+    assert source.atp_state.can_execute(paid)
+    source_entry = source.atp_state.debit_runtime(
+        paid, tick=1, organism_id=source.id, codon="d2", action="transfer", reason="no_drop"
+    )
+    recipient_entry = recipient.atp_state.credit_runtime(
+        paid, tick=1, organism_id=recipient.id, codon="d2", action="transfer", reason="no_drop"
+    )
+    assert isinstance(source_entry, int)
+    after = float(recipient.atp_state.runtime_available)
+    event = {
+        "evidence": "engine_ledger",
+        "contact_id": "no-drop-1",
+        "source_id": source.id,
+        "recipient_id": recipient.id,
+        "source_entry_id": source_entry,
+        "recipient_entry_id": recipient_entry,
+        "atp_paid": paid,
+        "loss": 0.0,
+    }
+    ledger = list(source.atp_state.runtime.ledger) + list(recipient.atp_state.runtime.ledger)
+    report = performance_recovery(
+        [event],
+        ledger,
+        boundaries=[before, after, after, after],
+        recipient_id=recipient.id,
+    )
+    assert report["transfer_recorded"] is True
+    assert report["performance_recovered"] is False
+    assert report["recovery_reason"] == "no_drop"
+    assert report["confirms_v1_endpoint"] is False
+    assert report["hypothesis_supported"] is False
+
+
+def test_an_instrument_trajectory_is_not_recovery() -> None:
+    report = assess_recovery(
+        [10.0, 4.0, 9.0, 9.0],
+        positive_control_events(5.0),
+        recipient_id="resource-recipient",
+    )
+    assert report["performance_recovered"] is False
+    assert report["reason"] == "no_reconciling_contact"
+    assert report["confirms_v1_endpoint"] is False
+    assert report["endpoint_id"] == "FI-RESOURCE-RECOVERY-V3"
+
+
+def test_live_positive_control_recovers_and_the_matched_negative_does_not() -> None:
+    positive_engine = _two_organism_engine()
+    negative_engine = _two_organism_engine()
+    positive_organisms = list(positive_engine.runner.population.organisms)
+    negative_organisms = list(negative_engine.runner.population.organisms)
+    positive = apply_locked_recovery_arm(positive_organisms[0], positive_organisms[1], tick=1, arm="positive")
+    negative = apply_locked_recovery_arm(negative_organisms[0], negative_organisms[1], tick=1, arm="negative")
+    assert positive["source_cost"] == negative["source_cost"]
+    assert float(positive["source_cost"]) > 0.0
+    assert positive["disturbance_cost"] == negative["disturbance_cost"]
+    assert positive["recipient_credit"] == positive["source_cost"]
+    assert negative["recipient_credit"] == 0.0
+    assert positive["performance_recovered"] is True
+    assert negative["performance_recovered"] is False
+    assert negative["reason"] == "not_restored"
+    assert positive["confirms_v1_endpoint"] is False
+    assert negative["hypothesis_supported"] is False
+    baseline = float(positive["boundaries"][0])  # type: ignore[index]
+    assert float(positive["boundaries"][1]) <= RECOVERY_DROP_FRACTION * baseline  # type: ignore[index]
+    assert float(positive["boundaries"][2]) >= RECOVERY_RESTORE_FRACTION * baseline  # type: ignore[index]
+    assert float(positive["boundaries"][3]) >= RECOVERY_RESTORE_FRACTION * baseline  # type: ignore[index]
+    negative_baseline = float(negative["boundaries"][0])  # type: ignore[index]
+    assert float(negative["boundaries"][1]) <= RECOVERY_DROP_FRACTION * negative_baseline  # type: ignore[index]
+    assert float(negative["boundaries"][2]) <= RECOVERY_DROP_FRACTION * negative_baseline  # type: ignore[index]

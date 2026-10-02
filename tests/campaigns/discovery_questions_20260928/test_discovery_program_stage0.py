@@ -134,7 +134,14 @@ def test_live_short_cells_stay_blocked_and_replay() -> None:
         assert report["decisions"][name] == "BLOCKED_MEASUREMENT"
     assert idea2["parasite_is_genotype_population"] is False
     assert idea4["topology_effect_identified"] is False
-    assert idea4["checkpoint_fork_complete"] is False
+    assert idea4["endpoint_map_is_contact_physics"] is False
+    assert idea4["checkpoint_fork_complete"] is True
+    assert idea4["hypothesis_supported"] is False
+    births = int(idea4["n_births_after_checkpoint"])
+    if births > 0:
+        assert idea4["parent_child_ids_recorded"] is True
+    else:
+        assert idea4["parent_child_ids_recorded"] is False
     text = SRC.read_text(encoding="utf-8")
     assert "import random" not in text
     assert "pickle" not in text

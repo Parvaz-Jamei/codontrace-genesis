@@ -20,6 +20,9 @@ from codontrace.genesis.causal_validation import (
     build_causal_evidence_report,
     paired_mean_interval,
 )
+from codontrace.genesis.measurements.rq_frequency_clocks import (
+    CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS,
+)
 
 
 def _spec(*, isolated: bool = True, extra: bool = False, settings: bool = True) -> InterventionSpec:
@@ -60,7 +63,7 @@ def _pair(
 
 
 def test_claim_floor_matches_the_claimgate_auditor() -> None:
-    assert INDEPENDENT_RUN_FLOOR == LEVEL4_MIN_SEEDS == 16
+    assert INDEPENDENT_RUN_FLOOR == LEVEL4_MIN_SEEDS == CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS == 16
 
 
 def test_repeating_two_pairs_does_not_narrow_the_interval() -> None:
@@ -148,6 +151,30 @@ def test_self_declared_isolation_is_not_enough() -> None:
         for i in range(INDEPENDENT_RUN_FLOOR)
     )
     assert build_causal_evidence_report(refused).isolation_status == "intervention_not_isolated"
+
+
+def test_a_different_intervention_on_the_same_run_is_not_a_checkpoint() -> None:
+    knock_a = _pair(1.0, run_id="r", seed=1, history_id="h", spec=_spec())
+    knock_b = _pair(
+        2.0,
+        run_id="r",
+        seed=1,
+        history_id="h",
+        spec=InterventionSpec(
+            "other-factor",
+            "factor",
+            "baseline-config",
+            "treatment-config",
+            "seed-family",
+            baseline_settings={"factor": "off", "other": "same"},
+            treatment_settings={"factor": "on", "other": "same"},
+        ),
+    )
+    report = build_causal_evidence_report((knock_a, knock_b))
+    assert report.independent_count == 2
+    assert report.checkpoint_conflict_count == 0
+    assert report.effect.sample_count == 2
+    assert report.failure_status == "passed"
 
 
 def test_claim_requires_the_auditor_floor_and_an_interval_that_excludes_zero() -> None:

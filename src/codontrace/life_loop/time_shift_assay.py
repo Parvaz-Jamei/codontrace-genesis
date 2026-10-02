@@ -227,8 +227,22 @@ class CohortRevision:
 
 @dataclass
 class CohortArchive:
-    frames: list[CohortSnapshot] = field(default_factory=list)
-    revisions: list[CohortRevision] = field(default_factory=list)
+    """Append-only tick store. The live lists are not part of the public surface.
+
+    Assigning or appending to ``frames`` from outside would replace a tick
+    with no revision. Callers get tuples.
+    """
+
+    _frames: list[CohortSnapshot] = field(default_factory=list, repr=False)
+    _revisions: list[CohortRevision] = field(default_factory=list, repr=False)
+
+    @property
+    def frames(self) -> tuple[CohortSnapshot, ...]:
+        return tuple(self._frames)
+
+    @property
+    def revisions(self) -> tuple[CohortRevision, ...]:
+        return tuple(self._revisions)
 
     def _snapshot(
         self,
@@ -252,12 +266,12 @@ class CohortArchive:
         """
 
         snap = self._snapshot(tick, features_by_member)
-        if any(frame.tick == snap.tick for frame in self.frames):
+        if any(frame.tick == snap.tick for frame in self._frames):
             raise ConfigurationError(
                 f"tick {snap.tick} is already archived; use revise(reason=...) so the replacement is traced."
             )
-        self.frames.append(snap)
-        self.frames.sort(key=lambda frame: frame.tick)
+        self._frames.append(snap)
+        self._frames.sort(key=lambda frame: frame.tick)
         return snap
 
     def revise(
@@ -272,7 +286,7 @@ class CohortArchive:
         why = _refuse_banned_fragment(_as_str(reason, "reason"), "reason")
         previous = self.require(tick)
         snap = self._snapshot(tick, features_by_member)
-        self.revisions.append(
+        self._revisions.append(
             CohortRevision(
                 tick=snap.tick,
                 reason=why,
@@ -280,7 +294,7 @@ class CohortArchive:
                 replacement_digest=snap.digest,
             )
         )
-        self.frames = [snap if frame.tick == snap.tick else frame for frame in self.frames]
+        self._frames = [snap if frame.tick == snap.tick else frame for frame in self._frames]
         return snap
 
     def ticks(self) -> tuple[int, ...]:

@@ -68,6 +68,10 @@ def test_replacing_a_tick_without_a_revision_is_refused() -> None:
     assert archive.revisions[0].superseded.digest == original.digest
     assert archive.revisions[0].replacement_digest == revised.digest
     assert archive.digest() != before
+    with pytest.raises(AttributeError):
+        archive.frames.append(original)  # type: ignore[attr-defined]
+    assert isinstance(archive.frames, tuple)
+    assert isinstance(archive.revisions, tuple)
 
 
 def test_nonzero_slope_is_not_predictive_gain_and_untested_lags_are_absent() -> None:

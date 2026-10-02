@@ -605,6 +605,14 @@ def lagged_nfds_score(
     finite, and ``corr <= -threshold`` (default threshold 0.3).
     Contemporaneous-only noise (lag=0 random) should fail.
 
+    Historical pooled estimator, kept for reproducibility. ``n`` counts
+    class×time pairs, not paired generations and not independent runs. A
+    time-invariant contrast between classes (no change along time) can
+    therefore yield ``corr == -1`` and ``pass_prelim is True``. That pass is
+    not temporal evidence. The versioned temporal estimand is
+    :func:`within_class_lagged_association`; it does not rewrite this result
+    and it does not treat a negative correlation as NFDS.
+
     This function never sets ``red_queen_proved``. It is not an oscillation
     flip-count wrapper.
     """
@@ -646,6 +654,341 @@ def lagged_nfds_score(
         "min_points": min_pts,
         "threshold": thr,
         "convention": "host_freq_at_t__parasite_pressure_at_t_plus_lag",
+    }
+
+
+# --- Within-class lagged association (temporal estimand v1) ------------------
+#
+# ``lagged_nfds_score`` stays the historical pooled Pearson. The function below
+# is a separately versioned estimand. It does not edit archived numbers.
+#
+# Dybdahl & Lively (1998), Evolution 52(4):1057–1066,
+# doi:10.1111/j.1558-5646.1998.tb01833.x, correlated *changes* in clone
+# frequency with a lagged change in infection, and the association peaked at a
+# lag rather than at the same generation. Pooling every class×time pair lets a
+# constant between-class contrast impersonate that result.
+#
+# The within-class correlation removes each class mean first (the panel within
+# transformation), so a time-invariant difference between classes cannot pass.
+# A circular shift of the parasite series, applied once to every class, is the
+# predetermined null: it keeps each series' autocorrelation and the
+# cross-class composition (Theiler et al. 1992, Physica D 58:77–94, surrogate
+# principle). The observed alignment is included, so the test cannot reject at
+# alpha 0.05 with fewer than 20 paired times. That floor is locked here; a
+# caller cannot lower it by adding classes or by passing a smaller minimum.
+#
+# Expected sign is not "negative means NFDS". It is read from this model's
+# recognition rule, :func:`reference_graded_affinity`: agreement of bits raises
+# affinity and therefore the ATP debit. The parasite class that carries a host
+# class's window is the matching type. Tracking means that class becomes more
+# common after the host class was common, which is a positive within-class
+# lag, not a negative one.
+
+TEMPORAL_ASSOCIATION_ESTIMATOR = "within_class_lagged_association_v1"
+TEMPORAL_NULL_METHOD = "circular_time_shift_shared"
+TEMPORAL_NULL_ALPHA = 0.05
+# Inclusive shift enumeration: the smallest p is 1/n, so n >= ceil(1/alpha).
+MIN_PAIRED_TIMES_FLOOR = 20
+RECOGNITION_RULE_MATCHING = "graded_affinity_bit_agreement"
+_WITHIN_SS_EPS = 1e-18
+_NULL_TIE_EPS = 1e-9
+
+
+def expected_lag_sign(recognition_rule: str = RECOGNITION_RULE_MATCHING) -> int:
+    """Sign implied by the contact rule. Negative is not treated as NFDS.
+
+    ``graded_affinity_bit_agreement`` is the model's graded match
+    (:func:`reference_graded_affinity`). Affinity, and the ATP debit that
+    follows it, increase with bit agreement. The parasite class labelled with
+    a host class's own window is the type that presses that host. Adaptation
+    that tracks previously common hosts therefore raises the frequency of
+    class ``c`` after host class ``c`` was common: the within-class
+    correlation of host frequency at ``t`` with parasite frequency of the same
+    class at ``t + lag`` is predicted to be positive.
+    """
+
+    if recognition_rule != RECOGNITION_RULE_MATCHING:
+        raise ValueError(
+            "unsupported recognition rule "
+            f"{recognition_rule!r}; the model rule is {RECOGNITION_RULE_MATCHING!r}"
+        )
+    return 1
+
+
+def _as_frequency_map(raw: Mapping[object, object], *, generation: int) -> dict[str, float]:
+    """Renormalize one generation. A pure change of population size drops out."""
+
+    if isinstance(raw, (str, bytes)) or not isinstance(raw, Mapping):
+        raise ValueError(f"generation {generation} must be a class-frequency map")
+    cleaned: dict[str, float] = {}
+    for key, value in raw.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"frequency at generation {generation} class {key!r} must be a finite number >= 0"
+            )
+        number = float(value)
+        if not math.isfinite(number) or number < 0.0:
+            raise ValueError(
+                f"frequency at generation {generation} class {key!r} must be finite and >= 0"
+            )
+        cleaned[str(key)] = number
+    total = sum(cleaned.values())
+    if total <= 0.0:
+        return {key: 0.0 for key in cleaned}
+    return {key: value / total for key, value in cleaned.items()}
+
+
+def _class_demeaned(values: Sequence[float]) -> list[float]:
+    mean = sum(values) / len(values)
+    return [value - mean for value in values]
+
+
+def _sum_of_squares(values: Sequence[float]) -> float:
+    mean = sum(values) / len(values)
+    return sum((value - mean) ** 2 for value in values)
+
+
+def _linear_detrend(values: Sequence[float]) -> list[float] | None:
+    """Remove a within-class linear time trend. ``None`` if the fit is undefined."""
+
+    n = len(values)
+    if n < 3:
+        return None
+    mean_i = (n - 1) / 2.0
+    mean_v = sum(values) / n
+    var_i = sum((index - mean_i) ** 2 for index in range(n))
+    if var_i <= 0.0:
+        return None
+    cov = sum((index - mean_i) * (value - mean_v) for index, value in enumerate(values))
+    slope = cov / var_i
+    intercept = mean_v - slope * mean_i
+    return [value - (intercept + slope * index) for index, value in enumerate(values)]
+
+
+def _frequency_panel(
+    host_class_freq: Mapping[int, Mapping[str, float]],
+    parasite_class_freq: Mapping[int, Mapping[str, float]],
+    *,
+    lag: int,
+) -> tuple[list[int], list[str], dict[str, list[float]], dict[str, list[float]]]:
+    host_at = {
+        int(gen): _as_frequency_map(freqs, generation=int(gen))
+        for gen, freqs in host_class_freq.items()
+    }
+    para_at = {
+        int(gen): _as_frequency_map(freqs, generation=int(gen))
+        for gen, freqs in parasite_class_freq.items()
+    }
+    times = sorted(gen for gen in host_at if gen + lag in para_at)
+    classes = sorted(
+        {
+            class_id
+            for gen in times
+            for class_id in set(host_at[gen]) | set(para_at[gen + lag])
+        }
+    )
+    host_series = {class_id: [] for class_id in classes}
+    para_series = {class_id: [] for class_id in classes}
+    for gen in times:
+        host_map = host_at[gen]
+        para_map = para_at[gen + lag]
+        for class_id in classes:
+            host_series[class_id].append(host_map.get(class_id, 0.0))
+            para_series[class_id].append(para_map.get(class_id, 0.0))
+    return times, classes, host_series, para_series
+
+
+def _pooled_within_corr(
+    host_series: Mapping[str, Sequence[float]],
+    para_series: Mapping[str, Sequence[float]],
+    *,
+    detrend: bool,
+) -> float | None:
+    xs: list[float] = []
+    ys: list[float] = []
+    for class_id in host_series:
+        if detrend:
+            left = _linear_detrend(host_series[class_id])
+            right = _linear_detrend(para_series[class_id])
+            if left is None or right is None:
+                return None
+        else:
+            left = _class_demeaned(host_series[class_id])
+            right = _class_demeaned(para_series[class_id])
+        if sum(value * value for value in left) <= _WITHIN_SS_EPS:
+            continue
+        if sum(value * value for value in right) <= _WITHIN_SS_EPS:
+            continue
+        xs.extend(left)
+        ys.extend(right)
+    if len(xs) < 2:
+        return None
+    return _pearson(xs, ys)
+
+
+def _between_class_corr(
+    host_series: Mapping[str, Sequence[float]],
+    para_series: Mapping[str, Sequence[float]],
+) -> float | None:
+    if not host_series:
+        return None
+    host_means = [sum(host_series[key]) / len(host_series[key]) for key in host_series]
+    para_means = [sum(para_series[key]) / len(para_series[key]) for key in host_series]
+    return _pearson(host_means, para_means)
+
+
+def _circular_shift_p(
+    host_series: Mapping[str, Sequence[float]],
+    para_series: Mapping[str, Sequence[float]],
+    *,
+    observed: float,
+    sign: int,
+) -> float:
+    """One-sided p from a shared circular shift of every class's parasite series."""
+
+    n_times = len(next(iter(para_series.values())))
+    as_extreme = 0
+    for shift in range(n_times):
+        shifted = {
+            class_id: list(values[shift:]) + list(values[:shift])
+            for class_id, values in para_series.items()
+        }
+        corr = _pooled_within_corr(host_series, shifted, detrend=True)
+        if corr is not None and sign * corr >= sign * observed - _NULL_TIE_EPS:
+            as_extreme += 1
+    return as_extreme / n_times
+
+
+def within_class_lagged_association(
+    host_class_freq: Mapping[int, Mapping[str, float]],
+    parasite_class_freq: Mapping[int, Mapping[str, float]],
+    *,
+    lag: int,
+    min_paired_times: int = MIN_PAIRED_TIMES_FLOOR,
+    n_independent_runs: int = 1,
+    recognition_rule: str = RECOGNITION_RULE_MATCHING,
+) -> dict[str, object]:
+    """Within-class lagged association. Not a rewrite of ``lagged_nfds_score``.
+
+    Counts that stay separate
+    -------------------------
+    ``n_paired_times`` is the number of generations ``t`` at which both ``t``
+    and ``t + lag`` exist. ``n_classes`` is the number of classes in those
+    maps. ``n_independent_runs`` is only what the caller declares (default 1);
+    it is never inferred by repeating class×time pairs. ``n_class_time_pairs``
+    is the historical ``n`` and is not the sufficiency count.
+
+    A pass (``temporal_evidence``) requires all of the following, locked
+    before the controls in this module were scored:
+
+    * at least ``max(min_paired_times, 20)`` paired generations;
+    * within-class variation, otherwise ``no_temporal_variation``;
+    * a detrended within-class correlation (a pure shared line is
+      ``shared_trend_not_tracking``);
+    * that correlation's sign equal to :func:`expected_lag_sign`;
+    * a shared circular-shift p-value at or below 0.05;
+    * the lagged detrended correlation strictly larger than the
+      contemporaneous one (Dybdahl & Lively: the peak is not at lag 0).
+
+    ``temporal_evidence`` is a property of this series. It is not a
+    confirmatory claim, and ``hypothesis_supported`` stays false.
+    """
+
+    if isinstance(lag, bool) or not isinstance(lag, int) or lag < 0:
+        raise ValueError("lag must be an integer >= 0")
+    if isinstance(min_paired_times, bool) or not isinstance(min_paired_times, int) or min_paired_times < 1:
+        raise ValueError("min_paired_times must be an integer >= 1")
+    if (
+        isinstance(n_independent_runs, bool)
+        or not isinstance(n_independent_runs, int)
+        or n_independent_runs < 1
+    ):
+        raise ValueError("n_independent_runs must be an integer >= 1")
+    sign = expected_lag_sign(recognition_rule)
+    applied_min = max(min_paired_times, MIN_PAIRED_TIMES_FLOOR)
+
+    times, classes, host_series, para_series = _frequency_panel(
+        host_class_freq, parasite_class_freq, lag=lag
+    )
+    n_times = len(times)
+    n_classes = len(classes)
+    varying = 0
+    for class_id in classes:
+        host_ss = _sum_of_squares(host_series[class_id])
+        para_ss = _sum_of_squares(para_series[class_id])
+        if host_ss > _WITHIN_SS_EPS and para_ss > _WITHIN_SS_EPS:
+            varying += 1
+    within_corr = (
+        _pooled_within_corr(host_series, para_series, detrend=False) if n_times >= 2 else None
+    )
+    within_detrended = (
+        _pooled_within_corr(host_series, para_series, detrend=True) if n_times >= 3 else None
+    )
+    between = _between_class_corr(host_series, para_series) if n_classes >= 2 else None
+    contemporaneous = None
+    if lag == 0:
+        contemporaneous = within_detrended
+    else:
+        _c_times, _c_classes, c_host, c_para = _frequency_panel(
+            host_class_freq, parasite_class_freq, lag=0
+        )
+        if len(_c_times) >= 3:
+            contemporaneous = _pooled_within_corr(c_host, c_para, detrend=True)
+    null_p: float | None = None
+    if within_detrended is not None and n_classes > 0:
+        null_p = _circular_shift_p(
+            host_series, para_series, observed=within_detrended, sign=sign
+        )
+
+    if n_times < applied_min:
+        status = "insufficient_paired_times"
+    elif within_corr is None:
+        status = "no_temporal_variation"
+    elif within_detrended is None:
+        status = "shared_trend_not_tracking"
+    elif sign * within_detrended <= 0.0:
+        status = "sign_inconsistent"
+    elif null_p is None or null_p > TEMPORAL_NULL_ALPHA:
+        status = "null_not_rejected"
+    elif contemporaneous is None or not within_detrended > contemporaneous:
+        status = "contemporaneous_not_lagged"
+    else:
+        status = "temporal_tracking"
+
+    historical = lagged_nfds_score(
+        host_class_freq,
+        parasite_class_freq,
+        lag=lag,
+        min_points=MIN_PAIRED_TIMES_FLOOR,
+    )
+    return {
+        "estimator": TEMPORAL_ASSOCIATION_ESTIMATOR,
+        "historical_estimator": "lagged_nfds_score",
+        "historical_pooled": historical,
+        "recognition_rule": recognition_rule,
+        "expected_sign": sign,
+        "lag": lag,
+        "n_paired_times": n_times,
+        "n_classes": n_classes,
+        "n_classes_with_temporal_variation": varying,
+        "n_independent_runs": n_independent_runs,
+        "n_class_time_pairs": n_times * n_classes,
+        "class_time_pairs_are_not_time_points": True,
+        "independent_runs_are_not_inferred": True,
+        "min_paired_times_requested": min_paired_times,
+        "min_paired_times_applied": applied_min,
+        "between_class_corr": between,
+        "within_corr": within_corr,
+        "within_corr_detrended": within_detrended,
+        "contemporaneous_within_corr_detrended": contemporaneous,
+        "null_method": TEMPORAL_NULL_METHOD,
+        "null_alpha": TEMPORAL_NULL_ALPHA,
+        "null_p": null_p,
+        "null_n_shifts": n_times if n_times else 0,
+        "status": status,
+        "temporal_evidence": status == "temporal_tracking",
+        "hypothesis_supported": False,
+        "confirmatory_claim": False,
     }
 
 
@@ -1048,12 +1391,18 @@ __all__ = [
     "DEFAULT_CLUSTER_BOOTSTRAP_SEED",
     "DEFAULT_NFDS_THRESHOLD",
     "FREQUENCY_WEIGHTED_PRESSURE",
+    "MIN_PAIRED_TIMES_FLOOR",
+    "RECOGNITION_RULE_MATCHING",
     "SWAP_SIGNAL_UNITS",
+    "TEMPORAL_ASSOCIATION_ESTIMATOR",
+    "TEMPORAL_NULL_ALPHA",
+    "TEMPORAL_NULL_METHOD",
     "affinity_matrix",
     "algebraic_frozen_zero",
     "class_balanced_assay",
     "confirmatory_seed_disagreement",
     "dominant_class_series",
+    "expected_lag_sign",
     "exchange_class_shares",
     "frequency_swap_signal",
     "frequency_weighted_abundance_pressure",
@@ -1069,4 +1418,5 @@ __all__ = [
     "rq_path_components",
     "run_level_cluster_bootstrap_interval",
     "separate_pressure_accounts",
+    "within_class_lagged_association",
 ]

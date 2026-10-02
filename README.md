@@ -1,38 +1,112 @@
 # CodonTrace Genesis
 
-### Replayable digital evolution, causal mechanism auditing, and evidence-gated ALife research software.
+<p align="center">
+  <a href="https://pypi.org/project/codontrace/"><img alt="PyPI" src="https://img.shields.io/pypi/v/codontrace?label=PyPI"></a>
+  <a href="https://www.python.org/"><img alt="Python 3.11–3.14" src="https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white"></a>
+  <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://doi.org/10.5281/zenodo.20337435"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg"></a>
+  <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE"><img alt="License AGPL v3+" src="https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg"></a>
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/codontrace?label=PyPI)](https://pypi.org/project/codontrace/)
-[![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![CI](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg)](https://doi.org/10.5281/zenodo.20337435)
-[![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE)
+<p align="center">
+  <strong>Replayable digital evolution, with the claim written down separately from the run.</strong><br>
+  Research software. Not a proof of intelligence, and not a biological result.
+</p>
 
-CodonTrace Genesis is a Python library for running small digital-evolution
-experiments that you can replay later. You start a tiny world, let simple
-agents eat, survive, and reproduce, and the library writes down what happened
-as checkable records. Use it when you want to test an evolutionary idea with
-evidence instead of a screenshot. It is research software. It does **not**
-claim that the agents are intelligent.
+CodonTrace Genesis is a Python library for small digital-evolution experiments that can be replayed later. You start a tiny world, let simple agents eat, survive, and reproduce, and the library records what happened as digests, ledgers, and manifests. Use it when the question is an evolutionary idea and the answer has to be checkable. Domain modules sit beside that life-loop. They do not replace it.
 
-That life-loop is still the product. Domain modules sit beside the engine;
-they do not replace it. The biomedical module is the first extra port: a
-ClaimGate `DomainProfile` that audits a declared evidence table. Hardware
-today is one arm, `SimEsp32Bridge`. Further domain modules and hardware arms
-attach the same way, without a second engine.
+The installable package is `codontrace`. Product naming for contributors lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
-The installable package is `codontrace`. Product naming for contributors
-lives in [`CONTRIBUTING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CONTRIBUTING.md) and [`STYLE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/STYLE.md).
+---
+
+## How to read a result
+
+A number in this repository is not a conclusion. A standing verdict is one of four words, and only one of them may be attached to a test:
+
+`SUPPORTED_IN_MODEL` · `FALSIFIED_IN_MODEL` · `INCONCLUSIVE` · `BLOCKED_MEASUREMENT`
+
+The single source for the 29 September 2026 program is [`docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json`](docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json). On that ledger `hypothesis_supported` is false and `red_queen_proved` is false. The confirmatory campaign is not open. A green workflow is not a scientific result: the lint and typecheck job is `continue-on-error`, so a green run is not a mypy pass.
+
+| Record | Standing verdict | What the scope actually is |
+|---|---|---|
+| RQ-1 time shift | `INCONCLUSIVE` | Imported seed JSON covers 5701–5705. 5706 has no seed JSON. 5707 and 5708 are absent. A draft 8/8 is not a completion. |
+| RQ-3 adaptation route | `INCONCLUSIVE` | Reconstructable raw runs are seeds 21001 and 21011, and they are energy-confounded pilots. Seeds 21061–21063 are quoted in older prose and have no roster in the tree. The quotation is kept. It is not an analysis. |
+| D-2 recovery window | `BLOCKED_MEASUREMENT` | The locked 1.25× endpoint for three consecutive boundaries was not reached by the positive control. Zeros on the arms do not falsify an intervention. An earlier `FALSIFIED_IN_MODEL` is retained history, not the standing verdict. |
+| Sex-cost bracket | `INCONCLUSIVE` | The measured bracket c* in (1.1, 1.2] belongs only to `infection_cost=0.4`, 400 generations, host cap 400, parasite cap 16, turnovers {1, 6, 12}, seeds 8000–8099. It is not the classical two-fold cost of sex, and it is not a result for other regimes. |
+| Causal tape | `INCONCLUSIVE` | A 63–65% share is an estimator label on a synthetic fitness map. It is not an organism-level result. The tested difference is a noise-free mutation-draw intervention: an instrument check, not a do-calculus demonstration on a living population. |
+
+Van Valen’s Red Queen (1973) is the biological hypothesis these records are *about*. None of them establishes it, in the model or outside it. Open-ended intelligence and a Tokyo Type 1 *pass* (Channon 2024) stay blocked. Measurement of a trajectory is not a pass.
+
+---
+
+## Figure style
+
+Figures in this file use one palette. A later diagram should reuse these parameters rather than invent a second visual language.
+
+| Token | Value | Role |
+|---|---|---|
+| `ink` | `#142033` | Text on a node |
+| `rule` | `#1f4e79` | Borders and arrows |
+| `wash` | `#e7eef8` | Primary node fill |
+| `paper` | `#f3efe6` | Secondary node fill |
+| `caution` | `#8a4b2f` | A blocked or non-claim node |
+| `face` | `ui-sans-serif, system-ui, sans-serif` | Figure type |
+| `size` | `15px` | Figure type size |
+
+```mermaid
+%%{init: {'theme':'base','themeVariables': {'primaryColor':'#e7eef8','primaryTextColor':'#142033','primaryBorderColor':'#1f4e79','lineColor':'#1f4e79','secondaryColor':'#f3efe6','tertiaryColor':'#f7f5f0','fontFamily':'ui-sans-serif, system-ui, sans-serif','fontSize':'15px'}}}%%
+flowchart LR
+  world["World tick<br/>eat, survive, reproduce"] --> ledger["Ledgers<br/>energy, contact, birth, death"]
+  ledger --> freeze["Checkpoint<br/>frozen at capture"]
+  freeze --> digest["Digest<br/>recomputed on read"]
+  digest --> gate["Claim gate<br/>scope written beside the number"]
+  gate --> verdict["One standing verdict"]
+```
+
+The path above is an engineering path. Reaching the last box does not promote the run.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables': {'primaryColor':'#e7eef8','primaryTextColor':'#142033','primaryBorderColor':'#1f4e79','lineColor':'#1f4e79','secondaryColor':'#f3efe6','tertiaryColor':'#f4e4dc','fontFamily':'ui-sans-serif, system-ui, sans-serif','fontSize':'15px'}}}%%
+flowchart TB
+  unit["One unit<br/>history, seed, run, intervention"] --> interval["Student-t interval<br/>defined, and not covering zero"]
+  interval --> floor["At least 16 independent units<br/>the ClaimGate seed floor"]
+  floor --> isolated["Isolation verified<br/>settings differ only on the target factor"]
+  isolated --> allowed["Eligible to be discussed as in-model support"]
+  allowed --> blocked["Still blocked<br/>AGI, consciousness, Tokyo Type 1 pass,<br/>biological Red Queen proved"]
+  classBlocked["A checkpoint of the same unit"] -.-> unit
+  slopeBlocked["A non-zero slope, with no own-lag baseline"] -.-> blocked
+```
+
+Hurlbert (1984) is the reason a checkpoint is not a second replicate. Granger (1969) is the reason a slope is not a predictive gain: the comparison is a restricted regression on the target’s own lag against an unrestricted regression that also includes the source. This library reports the fractional drop in residual sum of squares. It does not report an F test, and an empty control list leaves the result a `confounded_candidate`.
+
+---
+
+## What the current model refuses to mix up
+
+These are contracts of the software. They are not findings about organisms.
+
+| Contract | What is computed | What it is not |
+|---|---|---|
+| Energy | A child’s energy is debited from the parent. Maintenance, death, and seat-cap removal are recorded as losses. Without a source, total energy does not rise. | An implicit gift of ATP at birth. |
+| Within-class lag | Association after removing the class mean, and after removing a shared trend. The time count is the number of paired times, not classes times times. | The historical pooled Pearson. That score is kept under its own name. A constant mirror can still give correlation −1 and `pass_prelim`. That pass is not temporal evidence. |
+| Association | Support requires a real contrast: both sides present, a finite test, and no invented zero for a missing group. | A label of support on an empty cell. |
+| Interval | A Student-t critical value from the tail probability. One observation, or a sample with no residual variance, has a point and no interval. A bootstrap percentile may exclude zero for a claim only at the auditor floor of 16 runs, the same floor as ClaimGate level 4. | The old cliff that used 1.96 once the degrees of freedom passed 30, or a one-run interval treated as evidence. |
+| Experimental unit | `(history_id, seed, run_id, intervention_id)`. A later checkpoint of that same intervention is a repeated measure. | Two interventions on one seed counted as one unit, or ten copies of one history counted as ten replicates. |
+| Prediction | Fractional SSE reduction against the target’s own lag. `tested_lags` lists only lags that were fit. | The absolute slope of the source, or a causal claim. |
+| Time-shift archive | The feature map is a proxy over a private copy. Reads recompute the digest. Replacing a tick requires `revise(reason=...)` and keeps the superseded snapshot. | A frozen dataclass whose dict can still be edited, or a silent overwrite of history. |
+| Checkpoint | State is frozen at capture. Restore checks seed, spec digest, and payload version. `exact` is true only when the frozen continuation matches. | A live reference to the parent, or a digest that ignores a field the resume can still change. |
+
+The historical estimators stay in the tree so an old number can be reproduced and then not reused as the corrected estimand. A locked WAVE classifier that still reads `pass_prelim` does not set `red_queen_proved`.
 
 ---
 
 ## What it is
 
-- a Python research library for controlled digital-evolution and ALife experiments
-- a replay / audit-first evidence layer (specs, runtime digests, manifests)
-- a mechanism instrumentation toolkit (ablations, treatment/control, delayed outcomes)
-- a claim-gated workflow: software capability and runtime observations are allowed; strong scientific conclusions are not auto-promoted
-- one biomedical port and one hardware arm on that same auditor; more domain modules and hardware arms attach later without forking the engine
+- A Python research library for controlled digital-evolution and artificial-life experiments.
+- A replay and audit layer: specs, runtime digests, manifests.
+- Mechanism instrumentation: ablations, treatment and control, delayed outcomes.
+- A claim-gated workflow. A software capability and a runtime observation are allowed. A strong scientific conclusion is not auto-promoted.
+- One biomedical port and one hardware arm on that same auditor. Further modules attach without a second engine.
 
 ## What it is not
 
@@ -40,13 +114,13 @@ CodonTrace Genesis is **not** currently presented as:
 
 - proof of artificial general intelligence, consciousness, or collective intelligence
 - proof of open-ended intelligence, or a Tokyo Type 1 *pass* (Channon 2024)
-- a biological evolution simulator or wet-lab chemistry engine
-- a replacement for Avida, MABE, DEAP, QDax, pyribs, or similar tools
-- a physical-robot research platform (ESP32 Moj-ه is an engineering stub / `SimEsp32Bridge` only)
-- a medical device, SaMD, IVD, FDA/CE clearance, or ASME V&V 40 certification (biomedical is a ClaimGate `DomainProfile` port)
-- an Avida/MABE literature-compatible campaign runner (ClaimGate adapters are skeletons until audited published `.dat`/CSV exist)
+- a biological evolution simulator or a wet-lab chemistry engine
+- a replacement for Avida (Ofria and Wilke 2004), MABE, DEAP, QDax, or pyribs
+- a physical-robot platform (`SimEsp32Bridge` is an engineering stub)
+- a medical device, SaMD, IVD, FDA or CE clearance, or an ASME V&V 40 certification
+- an Avida or MABE campaign runner (those ClaimGate adapters stay skeletons until audited published tables exist)
 
-The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md) and [`docs/WHY_NOT_INTELLIGENCE_YET.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/WHY_NOT_INTELLIGENCE_YET.md).
+Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md).
 
 ---
 
@@ -55,60 +129,46 @@ The project is ambitious. Claims must pass evidence gates. See [`CLAIMS.md`](htt
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI tip | `0.3.0b9` — tag [`v0.3.0b9`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b9). Older `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, and `0.3.0b8` are immutable. This cut does not upload a new wheel. |
-| GitHub `main` | Runtime `__version__` is `[project].version` in `pyproject.toml` (currently `0.3.0b11`). |
-| Python | `3.11–3.14` |
-| DOI | `10.5281/zenodo.20337435` |
-| License | `AGPL-3.0-or-later` |
-| Official GitHub release | [`v0.3.0b11`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b11) after CI on that commit. [`v0.3.0b9`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b9) stays the PyPI wheel. |
-| HE01 | SCHEMA v7 locked; ceiling at most `intervention_supported` when the full rule holds |
-| HE02 | Research null after analysis v1b; ceiling stays `runtime_observation` |
-| HE03 | Code + prereg present; research `results_v1` is absent on purpose |
-| Claim ceiling | Research software and evidence infrastructure. Not a proof of AGI, consciousness, collective intelligence, Tokyo Type 1 passed, or Avida replacement. |
+| Public PyPI wheel | `0.3.0b9`, tag [`v0.3.0b9`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b9). Cuts `0.3.0b4` through `0.3.0b8` are immutable. This tree does not recut them. |
+| GitHub `main` | `0.3.0b11`, the `[project].version` in `pyproject.toml`. Not the PyPI wheel. |
+| Python | 3.11–3.14 |
+| DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
+| License | AGPL-3.0-or-later |
+| HE01 | SCHEMA v7 locked. Ceiling at most `intervention_supported` when the full rule holds. |
+| HE02 | Research null after analysis v1b. Ceiling stays `runtime_observation`. |
+| HE03 | Code and preregistration are present. `results_v1` is absent on purpose. |
+| Claim ceiling | Research software and evidence infrastructure. |
 
 ### Phases A–L
 
-Phases A–G remain the earlier `0.3.0b3` substrate. Phases H–L + HE01 SCHEMA v7 + discovery ClaimGate pipeline ship in public `0.3.0b4`.
+Phases A–G are the earlier `0.3.0b3` substrate. Phases H–L, HE01 SCHEMA v7, and the discovery ClaimGate pipeline shipped in public `0.3.0b4`.
 
-| Phase | What landed | Claim ceiling |
+| Phase | What landed | Ceiling |
 |---|---|---|
-| **A** | Darwinian life-loop ecology preset (`life_loop_world`: eat → survive → asexual reproduce) | `runtime_observation` |
-| **B** | Sexual recombination substrate (opt-in; defaults stay asexual; optional avida.cfg-compatible knobs) | `runtime_observation` |
-| **C** | Dynamic / fluctuating environment (chemostat, regimes, patches) | `runtime_observation` |
-| **D** | Multi-generation evidence pack; Tokyo Type 1 *measurement* only | `oee_measurement_only` / `tokyo_type1_measurement_only` |
-| **E** | Capsule / memory / role / deme substrate (opt-in) | `runtime_observation` |
-| **F** | Multi-seed deme payoff campaigns; division-of-labor *metrics* | `runtime_observation` |
-| **G** | Named-materials / chemistry-effect overlay (opt-in) | `runtime_observation` |
-| **H** | Literature RAG; communication-ablation and group-vs-individual harnesses | `runtime_observation` |
-| **I** | Heldout partners; evolved DoL; MLS outcome; export-of-fitness scaffold | `runtime_observation`; flags earned at research scale only; smoke never earns |
-| **J** | Independent digest replay; Price-equation scaffold | `collective_intelligence_candidate` only with **full honest flags including replay** |
-| **K** | Coordination-instruction analog; Goldsby-scale CPU-delay harness; Price transmission; conflict-suppression hooks | `runtime_observation`; smoke never earns |
-| **L** | Closer Avida `ORGANISM_MESSAGING` / `DEME_GROUP` analogs; Goldsby-aligned specialist measurement | `runtime_observation`; analog, **not** an Avida C++ port |
+| **A** | Darwinian life-loop (`life_loop_world`: eat, survive, asexual reproduction) | `runtime_observation` |
+| **B** | Sexual recombination, opt-in; defaults stay asexual | `runtime_observation` |
+| **C** | Fluctuating environment: chemostat, regimes, patches | `runtime_observation` |
+| **D** | Multi-generation evidence; Tokyo Type 1 *measurement* only | `oee_measurement_only` |
+| **E** | Capsule, memory, role, and deme substrate, opt-in | `runtime_observation` |
+| **F** | Multi-seed deme payoff; division-of-labor *metrics* | `runtime_observation` |
+| **G** | Named-materials overlay, opt-in | `runtime_observation` |
+| **H** | Literature retrieval; communication-ablation and group-versus-individual harnesses | `runtime_observation` |
+| **I** | Held-out partners; evolved division of labor; multilevel outcome; export-of-fitness scaffold | `runtime_observation`; smoke never earns a flag |
+| **J** | Independent digest replay; Price-equation scaffold | `collective_intelligence_candidate` only with the full honest flags, including replay |
+| **K** | Coordination-instruction analog; CPU-delay harness; conflict-suppression hooks | `runtime_observation`; smoke never earns |
+| **L** | Analogs of Avida messaging and deme groups | `runtime_observation`; an analog, not an Avida port |
 
-Allowed when the evidence objects actually exist: `runtime_observation`, `oee_measurement_only`, `tokyo_type1_measurement_only`, and `collective_intelligence_candidate` (full honest flags only, including replay).
-
-**Still blocked:** bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1_passed`, Avida replacement, and related aliases. Smoke never auto-sets ClaimGate flags. Digests are never faked.
-
-North star: eventually produce honest collective-work / intelligence-*pathway* outputs. That is not the same as unlocking those claims.
+Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1_passed`, and Avida replacement. Smoke never sets ClaimGate flags. Digests are never invented.
 
 ---
 
 ## Installation
 
-The published wheel is `codontrace==0.3.0b9` (tag `v0.3.0b9`). `main` is
-`0.3.0b11` and is not a recut of that wheel. Older public cuts
-`0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, and `0.3.0b8` remain immutable and must not be recut. Phases A–G
-remain the `0.3.0b3` substrate; H–L + HE01 SCHEMA v7 shipped in `0.3.0b4`.
-
-Python `3.11–3.14`. CI smokes `ubuntu-latest`, `windows-latest`, and `macos-latest` on that range.
-
-### From PyPI (`0.3.0b9`)
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b9`. An editable install of `main` prints `0.3.0b11`.
 
 ```bash
 pip install codontrace==0.3.0b9
 ```
-
-Optional research extras:
 
 ```bash
 pip install "codontrace[research]==0.3.0b9"
@@ -116,27 +176,22 @@ pip install "codontrace[causal]==0.3.0b9"
 pip install "codontrace[qd]==0.3.0b9"
 ```
 
-### From source (`main`, may be ahead of PyPI)
+From source, which may be ahead of PyPI:
 
 ```bash
 git clone https://github.com/Parvaz-Jamei/codontrace-genesis.git
 cd codontrace-genesis
 python -m pip install -e ".[dev,research,causal,qd]"
-```
-
-```bash
 python -c "import codontrace; print(codontrace.__version__)"
 ```
 
-A PyPI install of the published tip prints `0.3.0b9`. An editable install from
-`main` prints `[project].version` from `pyproject.toml` (currently `0.3.0b11`). Do not treat the version
-tuple as a phase fence.
+Do not treat the version tuple as a phase fence, and do not tag or publish from a red or queued CI.
 
 ---
 
 ## Quick start
 
-Use the beginner API first. It keeps setup small and returns the agent, world, trace, and optional explanation without manually creating low-level runtime objects.
+The beginner API returns the agent, the world, the trace, and an optional explanation.
 
 ```python
 from codontrace import WhiteBoxAgent, World2D
@@ -154,26 +209,7 @@ print(result.agent.position)
 print(result.explanation.summary if result.explanation else "no explanation")
 ```
 
----
-
-## Core API
-
-For Genesis-level research runs, use the explicit experiment spec and engine APIs.
-
-```python
-from codontrace.genesis import GenesisEngine, GenesisExperimentSpec
-
-spec = GenesisExperimentSpec(seed=42, tick_count=32, population_max=8)
-result = GenesisEngine.from_spec(spec).run_ticks()
-
-print(result.digest()[:24])
-print(len(result.engine_frames))
-```
-
-Short eat → survive → reproduce experiments should use
-`GenesisRuntimeProfile.life_loop_world()` instead of empty research defaults
-(`ResourceConfig.density=0`, `ReproductionConfig` SAME_CELL). The preset is a
-Darwinian life-loop *substrate*. It is not an Avida replacement.
+A research run uses an explicit spec. Empty research defaults are not a life-loop: `ResourceConfig.density=0` and a same-cell reproduction rule do not make a Darwinian substrate. Use the preset.
 
 ```python
 from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
@@ -183,94 +219,48 @@ result = GenesisEngine.from_spec(spec).run_ticks()
 print(result.digest()[:24])
 ```
 
-Opt-in presets and measurement packs (sexual recombination, fluctuating
-environments, multi-generation / Tokyo Type 1 *measurement*, Phase E substrate,
-materials, RAG, and H–L CI harnesses) are library APIs with the ceilings in
-the status table. Defaults stay off so A–E digest pins remain stable.
-
-Print-only smokes live under [`examples/`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/examples/).
-
----
-
-## Benchmark smoke
-
-The smoke runner is a functionality and artifact-generation check. It is **not**
-a proof of collective intelligence.
-
-```bash
-python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py -q
-```
-
-```bash
-PYTHONPATH=src python examples/collective_joss_evidence_benchmark.py   --out outputs/joss_evidence_smoke   --profile smoke   --seed-count 1   --ticks 3   --population 4   --workers 1   --max-runs 6   --per-run-timeout 90
-```
-
-Expected core artifacts: `run_config.json`, `summary.json`, `run_records.csv`,
-`feature_matrix.csv`, `counterfactual_pairs.csv`, `claim_readiness.json`,
-`artifact_manifest.json`, `environment.txt`, `report.html`.
-
-Levels and interpretation: [`BENCHMARKS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/BENCHMARKS.md).
+Opt-in presets (sexual recombination, fluctuating environments, multi-generation measurement, materials, and the H–L harnesses) stay off unless requested, so earlier digest pins remain stable. Print-only smokes live under [`examples/`](examples/).
 
 ---
 
 ## Claim policy
 
-| Claim level | Meaning |
+| Level | Meaning |
 |---|---|
-| Software capability | The mechanism / API / record exists and is testable |
-| Runtime observation | The mechanism was observed in a valid run |
-| Candidate evidence | Treatment / control comparison exists |
-| Mechanism support | Ablation / intervention / counterfactual-style evidence supports a mechanism |
-| Replicated effect | Effect is stable across enough seeds / configurations |
-| Publication-grade claim | Archived artifacts, statistics, controls, and limitations are available |
+| Software capability | The mechanism, API, or record exists and is tested. |
+| Runtime observation | It was observed in a valid run. |
+| Candidate evidence | A treatment and a control exist. |
+| Mechanism support | Ablation, intervention, or a counterfactual comparison supports a mechanism *in the model*. |
+| Replicated effect | The effect is stable across enough independent units. |
+| Publication-grade claim | Archived artifacts, a pre-registered analysis, controls, and limitations are all present. |
 
-`ScientificClaimGate` can allow `collective_intelligence_candidate` only when
-the full honest flag set is present, including replay. It does **not** allow
-bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1_passed`, or
-Avida replacement.
-
-Full policy: [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md).
-
----
-
-## Next steps
-
-Library-complete beta is not “done.” The next work is **not** more empty Phase
-letters.
-
-1. **Do not recut published wheels** `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, `0.3.0b8`, or `0.3.0b9`. A later public identity needs its own version, a green CI on that exact commit, and an explicit tag. `0.3.0b11` is that next identity; it does not replace the `0.3.0b9` wheel.
-2. **Do not tag or publish from a red or queued CI.** The PyPI wheel stays [`v0.3.0b9`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b9) until a later upload.
-3. **HE03 research campaign** — run only against the locked prereg; do not fabricate `results_v1`.
-4. **Lint/type inventory** — `lint-type` remains non-blocking until the ruff/mypy backlog is reduced in its own PR.
-5. **Candidate claims** — `collective_intelligence_candidate` only if the full honest flags, including replay, are actually earned.
-6. **OEE later** — Tokyo Type 1 *pass* and open-ended intelligence remain blocked.
+`ScientificClaimGate` can allow `collective_intelligence_candidate` only when the full honest flag set is present, including replay. It does not allow bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1_passed`, or Avida replacement. Policy: [`CLAIMS.md`](CLAIMS.md). Ladder: [`docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md`](docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md).
 
 ---
 
 ## Architecture
 
-The product is still the engine: a world, agents that eat, survive, and reproduce, then a digest you can replay. The engine does not know medicine or hardware.
+The product is the engine. It does not know medicine or hardware. A new module is a `DomainProfile` or an adapter. It is not a copy of the engine.
 
-```text
-GenesisEngine  →  ticks, digest, replay
-       └→ native adapter  →  claimgate_bundle_v1  →  audit_bundle()  →  ladder 0–5
-
-Domain modules (same auditor, no second engine)
-       biomedical   DomainProfile  — declared evidence table
-       hardware     SimEsp32Bridge — one arm today; more arms later
-       (later)      another DomainProfile or ingest adapter
+```mermaid
+%%{init: {'theme':'base','themeVariables': {'primaryColor':'#e7eef8','primaryTextColor':'#142033','primaryBorderColor':'#1f4e79','lineColor':'#1f4e79','secondaryColor':'#f3efe6','tertiaryColor':'#f7f5f0','fontFamily':'ui-sans-serif, system-ui, sans-serif','fontSize':'15px'}}}%%
+flowchart TB
+  engine["GenesisEngine<br/>ticks, digest, replay"] --> bundle["claimgate_bundle_v1"]
+  bundle --> audit["audit_bundle"]
+  audit --> ladder["Ladder 0–5<br/>no forbidden alias"]
+  bio["Biomedical DomainProfile<br/>declared evidence table"] --> audit
+  hw["Hardware arm<br/>SimEsp32Bridge"] --> audit
+  foreign["Avida .dat or MABE CSV<br/>read-only adapter"] --> audit
 ```
 
-A new module is a `DomainProfile` or an adapter. It is not a copy of `engine.py`.
-
-| Port | Ingest | Engine |
+| Port | What it ingests | Does it run the engine? |
 |---|---|---|
-| Native campaign | live spec, or HE01 / HE02 / HE03 JSON | yes, when a spec runs; JSON adapters only read the artifact |
-| Avida `.dat`, MABE2 CSV | foreign run tables | no |
-| Biomedical module | declared question of interest, context of use, risk, and a PIRT worksheet | no |
-| Hardware arm | `SimEsp32Bridge` today; further arms on the same bridge port | optional |
+| Native campaign | A live spec, or HE01 / HE02 / HE03 JSON | Yes, when a spec runs. A JSON adapter only reads the artifact. |
+| Avida `.dat`, MABE2 CSV | Foreign run tables | No |
+| Biomedical `DomainProfile` | Question of interest, context of use, risk, and a PIRT worksheet | No |
+| Hardware | `SimEsp32Bridge` today | Optional |
 
-`ALIFE` is the default profile for the life-loop. `BIOMEDICAL` and `HARDWARE` are the two extra profiles that ship now. Biomedical stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as labels. The same port ranks a phenomena table (PIRT, from nuclear safety) and caps a coupled model at its weakest submodel (building-block VVUQ). A study file closes a phenomenon only when that arm was executed; a typed rank does not. Declared model risk has a separate bar (level 2/3/4 for risk 1/2/3, and an open high-importance phenomenon blocks from risk 2 up). The bar does not move the ladder. See `docs/claimgate/risk_bar.json`. It is not a device. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`.
+`ALIFE` is the default profile. `BIOMEDICAL` and `HARDWARE` are the two extra profiles that ship now. The biomedical port stores ASME V&V 40, FDA 2023, IEC 62304, and IMDRF wording as **labels**. It ranks a phenomena table and caps a coupled model at its weakest submodel. A study file closes a phenomenon only when that arm was executed. A typed rank does not. Declared model risk has its own bar. The bar does not move the claim ladder. Strings such as `asme_vv40_passed`, `fda_cleared`, and `samd_certified` raise `ConfigurationError`. This is not SaMD.
 
 ```python
 from codontrace.claimgate import audit_bundle
@@ -300,40 +290,28 @@ bundle = bundle_from_device_model_cou(
 print(audit_bundle(bundle).achieved_level, bundle.extra["domain"], bundle.extra["model_risk"])
 ```
 
-The second call stays on the biomedical port. It does not start `GenesisEngine`. Map: [`docs/ARCHITECTURE_PORTS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ARCHITECTURE_PORTS.md). Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/BIOMEDICAL_ENGINEERING.md).
+The second call stays on the biomedical port. It does not start the engine. Map: [`docs/ARCHITECTURE_PORTS.md`](docs/ARCHITECTURE_PORTS.md). Biomedical scope: [`docs/BIOMEDICAL_ENGINEERING.md`](docs/BIOMEDICAL_ENGINEERING.md). Replay contract: [`docs/ENGINE_REPLAY_CONTRACT.md`](docs/ENGINE_REPLAY_CONTRACT.md).
 
 ---
 
 ## Documentation
 
-| Document | Purpose |
+| Document | Use it for |
 |---|---|
-| [`CLAIMS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CLAIMS.md) | Allowed, candidate, and blocked claims |
-| [`docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/protocol/CLAIM_LADDER_PROTOCOL_v0.1.md) | Claim-ladder protocol v0.1 (design + grade ALife claims; Wave 3) |
-| [`docs/WHY_NOT_INTELLIGENCE_YET.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/WHY_NOT_INTELLIGENCE_YET.md) | Literature-vs-reality barrier map; not close to AGI |
-| [`docs/PHASE_H_CI_AI_PATH.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_H_CI_AI_PATH.md) | Phase H: RAG + ablation / effect-size harnesses |
-| [`docs/PHASE_I_CI_EVIDENCE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_I_CI_EVIDENCE.md) | Phase I: heldout / evolved DoL / MLS / export-of-fitness |
-| [`docs/PHASE_J_REPLAY_CI.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_J_REPLAY_CI.md) | Phase J: honest digest replay + Price scaffold |
-| [`docs/PHASE_K_CI_DEPTH.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_K_CI_DEPTH.md) | Phase K: coordination, Goldsby-scale harness, Price transmission |
-| [`docs/PHASE_INDEX.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_INDEX.md) | Pointer index for Phases H–L and honesty docs |
-| [`docs/PHASE_L_AVIDA_FIDELITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_L_AVIDA_FIDELITY.md) | Phase L: ORGANISM_MESSAGING / DEME_GROUP analogs |
-| [`docs/HARD_EXPERIMENT_01.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/HARD_EXPERIMENT_01.md) | Hard experiment 01: capsule source-bias measurement paper (not a Phase M) |
-| [`docs/CLAIMGATE_STANDALONE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/CLAIMGATE_STANDALONE.md) | Wave 2 simulator-agnostic ClaimGate auditor (public 0–5; not a Tokyo/OEE pass) |
-| [`docs/ARCHITECTURE_PORTS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ARCHITECTURE_PORTS.md) | Engine vs adapter vs DomainProfile; not a second engine per domain |
-| [`docs/BIOMEDICAL_ENGINEERING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/BIOMEDICAL_ENGINEERING.md) | Biomedical analog (QOI/COU labels); not SaMD / FDA / ASME certification |
-| [`docs/ENGINE_REPLAY_CONTRACT.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/ENGINE_REPLAY_CONTRACT.md) | Replay hashes and run-identity types extracted from `engine.py` |
-| [`CONTRIBUTING.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CONTRIBUTING.md) / [`STYLE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/STYLE.md) | Product naming: **CodonTrace Genesis**; package `codontrace` |
-| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature × authority matrix (landed / partial / deferred) |
-| [`docs/rag/README.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/rag/README.md) | Literature RAG corpus (measurement design, not intelligence evidence) |
-| [`REPRODUCIBILITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
-| [`BENCHMARKS.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/BENCHMARKS.md) | Benchmark protocols and claim boundaries |
-| [`RELEASE_EVIDENCE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/RELEASE_EVIDENCE.md) | Release evidence pack (see file for which public wheel it covers) |
+| [`CLAIMS.md`](CLAIMS.md) | Allowed, candidate, and blocked claims |
+| [`docs/WHY_NOT_INTELLIGENCE_YET.md`](docs/WHY_NOT_INTELLIGENCE_YET.md) | Why the literature gap is not a near miss |
+| [`docs/PHASE_INDEX.md`](docs/PHASE_INDEX.md) | Pointers for phases H–L |
+| [`docs/CLAIMGATE_STANDALONE.md`](docs/CLAIMGATE_STANDALONE.md) | Simulator-agnostic auditor, public levels 0–5 |
+| [`docs/SCIENTIFIC_AUTHORITIES_2026.md`](docs/SCIENTIFIC_AUTHORITIES_2026.md) | Feature against authority: landed, partial, deferred |
+| [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
+| [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols and the claim boundary |
+| [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Which public wheel an evidence pack covers |
 
-Phase literature checklists: [`PHASE_D_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_D_LITERATURE.md),
-[`PHASE_E_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_E_LITERATURE.md),
-[`PHASE_G_MATERIALS_LITERATURE.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/PHASE_G_MATERIALS_LITERATURE.md).
-Studio / performance notes stay out of core:
-[`STUDIO_BOUNDARY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/docs/STUDIO_BOUNDARY.md).
+The benchmark smoke is a functionality check. It is not evidence of collective intelligence.
+
+```bash
+python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py -q
+```
 
 ---
 
@@ -343,19 +321,16 @@ Studio / performance notes stay out of core:
 python -m compileall -q src tests examples tools
 python -m pytest tests/genesis_gates -q
 python -m pytest tests/science_gates -q
-python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py -q
 python -m pytest tests -q
 ```
 
-Validation tiers: [`REPRODUCIBILITY.md`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/REPRODUCIBILITY.md).
+The full suite is what CI runs. Tiers: [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 
 ---
 
 ## Citation
 
-If you use CodonTrace Genesis in research, prototypes, technical evaluation,
-benchmark work, reports, or derivative research artifacts, please cite the
-versioned software release.
+Cite the versioned software release. The DOI is the software archive, not a campaign archive.
 
 ```bibtex
 @software{codontrace_genesis_2026,
@@ -368,37 +343,36 @@ versioned software release.
 }
 ```
 
-A [`CITATION.cff`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CITATION.cff) file is included for citation-aware tools.
+[`CITATION.cff`](CITATION.cff) is included for citation tools. Use of the software does not imply co-authorship.
 
-Use of the software does not automatically imply co-authorship. Co-authorship
-may be appropriate when there is substantial collaboration in experimental
-design, analysis, interpretation, validation, or manuscript writing.
+### Works named above
+
+These are the sources the contracts are answerable to. Naming them is not a claim that this repository has reproduced them.
+
+- Granger, C. W. J. 1969. Investigating causal relations by econometric models and cross-spectral methods. *Econometrica* 37:424–438.
+- Hurlbert, S. H. 1984. Pseudoreplication and the design of ecological field experiments. *Ecological Monographs* 54:187–211.
+- Ofria, C., and C. O. Wilke. 2004. Avida: a software platform for research in computational evolutionary biology. *Artificial Life* 10:191–229.
+- Student. 1908. The probable error of a mean. *Biometrika* 6:1–25.
+- Van Valen, L. 1973. A new evolutionary law. *Evolutionary Theory* 1:1–30.
 
 ---
 
 ## License
 
-CodonTrace Genesis is licensed under the **GNU Affero General Public License
-v3.0 or later** (`AGPL-3.0-or-later`).
+CodonTrace Genesis is licensed under the **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`), so that modified, redistributed, and network-deployed versions stay inspectable.
 
-This license is selected to keep modified, redistributed, and network-deployed
-versions open, attributable, and scientifically inspectable.
+Commercial or proprietary use that cannot comply with that license may contact the author for a separate license.
 
-Commercial or proprietary use cases that cannot comply with `AGPL-3.0-or-later`
-may contact the author for a separate commercial license.
-
-See [`LICENSE`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE) and [`NOTICE`](https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/NOTICE).
+See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 ---
 
 ## Author
 
 **Parvaz Jamei**
-Embedded / Industrial IoT / Edge AI / Digital Evolution Research Software
 
 GitHub: [@Parvaz-Jamei](https://github.com/Parvaz-Jamei)
 
 ---
 
-**CodonTrace Genesis**
-Replayable evidence for digital evolution, causal mechanisms, and ALife research.
+**CodonTrace Genesis** — replayable evidence for digital evolution. A run is not a verdict.

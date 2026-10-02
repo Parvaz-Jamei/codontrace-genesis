@@ -5,6 +5,15 @@ ContactAtpLedger. Distinct from harness scored cells (jsonl_campaign): FI
 recover uses real rare-class ATP from ecology-coupled yields — NO
 recovery_progress multiplier. Claim ceiling remains phase2_design.
 hypothesis_supported=False; red_queen_proved=False.
+
+A parent id counts only if that organism was already in an earlier census.
+That is the pedigree constraint on a digital birth (Lenski, Ofria, Pennock
+and Adami 2003, doi:10.1038/nature01568; Ofria and Wilke 2004,
+doi:10.1162/106454604773563612). The checkpoint flag is true only when
+restore matches the digest taken at capture and the continued parent has
+moved (Sandve, Nekrutenko, Taylor and Hovig 2013,
+doi:10.1371/journal.pcbi.1003285). Births inside one run are not extra
+replicates (Hurlbert 1984, doi:10.2307/1942661).
 """
 
 from __future__ import annotations

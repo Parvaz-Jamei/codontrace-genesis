@@ -9,15 +9,20 @@ A scientific contact is a pair of engine ATP ledger rows: one source debit
 and one recipient credit. At the ledger's 1e-10 rounding, source debit =
 recipient credit + non-negative loss, and ``atp_paid`` is that source debit.
 Names alone are not a contact. Instrument rows stay instrument-only.
+``FI-RESOURCE-RECOVERY-V3`` is a baseline-normalized return after a drop.
+It does not confirm the locked 1.25× rule, and a transfer with no drop is
+not that return.
 """
 
 from __future__ import annotations
 
 import math
 from collections.abc import Collection, Mapping, Sequence
+from typing import Literal
 
 from codontrace.energy import ATPLedgerEntry
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.organism import GenesisOrganism
 
 PREREG_V1_ID = "FI-RARECLASS-CONTACT-YIELD-V1"
 PREREG_V2_ID = "FI-RESOURCE-TRANSFER-V2"
@@ -25,6 +30,17 @@ OLD_LOCKED_MULTIPLIER = 1.25
 CONTACT_VALIDATION_ID = "D2-CONTACT-LEDGER-V1"
 ENGINE_LEDGER_EVIDENCE = "engine_ledger"
 _LEDGER_PLACES = 10
+
+#: Locked before any live control in this module is scored.
+#: Ingrisch and Bahn 2018, Trends Ecol. Evol. 33:251–259,
+#: https://doi.org/10.1016/j.tree.2018.01.013 : recovery is a return toward
+#: the pre-disturbance baseline after an impact. A transfer with no impact
+#: is not recovery. These fractions do not confirm the historical 1.25× rule.
+PREREG_V3_ID = "FI-RESOURCE-RECOVERY-V3"
+RECOVERY_DROP_FRACTION = 0.5
+RECOVERY_RESTORE_FRACTION = 0.8
+RECOVERY_WINDOW_BOUNDARIES = 2
+RECOVERY_PERSISTENCE_BOUNDARIES = 1
 
 
 def historical_endpoint_barrier() -> dict[str, object]:
@@ -356,25 +372,247 @@ def controls_match(*, positive_amount: float, negative_cost: float) -> dict[str,
     }
 
 
+def _grid(value: float, *, up: bool) -> float:
+    """Snap onto the ledger's 1e-10 grid without crossing the locked fraction."""
+
+    scaled = value * 10**_LEDGER_PLACES
+    snapped = math.ceil(scaled - 1e-9) if up else math.floor(scaled + 1e-9)
+    return snapped / 10**_LEDGER_PLACES
+
+
+def _boundaries(boundaries: Sequence[object]) -> list[float]:
+    values: list[float] = []
+    for value in boundaries:
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            raise ConfigurationError("a recovery boundary must be finite")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ConfigurationError("a recovery boundary must be finite")
+        values.append(number)
+    if not values:
+        raise ConfigurationError("recovery needs a baseline boundary")
+    if values[0] <= 0.0:
+        raise ConfigurationError("baseline must be finite and positive")
+    return values
+
+
+def _recipient_credit(events: Sequence[Mapping[str, object]], recipient_id: str) -> float:
+    total = 0.0
+    for event in events:
+        if event.get("evidence") != ENGINE_LEDGER_EVIDENCE or event.get("recipient_id") != recipient_id:
+            continue
+        paid = _non_negative(event.get("atp_paid"), "atp_paid")
+        loss = _non_negative(event.get("loss", 0.0), "loss")
+        total += paid - loss
+    return total
+
+
+def assess_recovery(
+    boundaries: Sequence[object],
+    events: Sequence[Mapping[str, object]] = (),
+    ledger: Sequence[ATPLedgerEntry | Mapping[str, object]] | None = None,
+    *,
+    recipient_id: str,
+) -> dict[str, object]:
+    """Score the locked V3 rule. This does not confirm the 1.25× endpoint.
+
+    Baseline is boundary 0. A drop is a later boundary at or below half of
+    that baseline. Restoration is a later boundary, at most two steps after
+    the drop, at or above 80% of baseline, that is still there on the next
+    boundary. The rise from the drop to that restoration must equal a
+    reconciled ledger credit to ``recipient_id``.
+    """
+
+    if not isinstance(recipient_id, str) or not recipient_id.strip():
+        raise ConfigurationError("recovery scoring needs the recipient id")
+    values = _boundaries(boundaries)
+    baseline = values[0]
+    drop_index: int | None = None
+    for index, value in enumerate(values):
+        if index > 0 and value <= RECOVERY_DROP_FRACTION * baseline:
+            drop_index = index
+            break
+    definition = {
+        "drop_fraction_max": RECOVERY_DROP_FRACTION,
+        "restore_fraction_min": RECOVERY_RESTORE_FRACTION,
+        "window_boundaries": RECOVERY_WINDOW_BOUNDARIES,
+        "persistence_boundaries": RECOVERY_PERSISTENCE_BOUNDARIES,
+    }
+    restore_index: int | None = None
+    reason = "no_drop"
+    shape = False
+    saw_lapse = False
+    if drop_index is not None:
+        reason = "not_restored"
+        last = min(len(values) - 1, drop_index + RECOVERY_WINDOW_BOUNDARIES)
+        for index in range(drop_index + 1, last + 1):
+            if values[index] < RECOVERY_RESTORE_FRACTION * baseline:
+                continue
+            end = index + RECOVERY_PERSISTENCE_BOUNDARIES
+            held = end < len(values) and all(
+                values[point] >= RECOVERY_RESTORE_FRACTION * baseline for point in range(index, end + 1)
+            )
+            if held:
+                restore_index = index
+                shape = True
+                reason = "restored"
+                break
+            saw_lapse = True
+        if not shape and saw_lapse:
+            reason = "not_persistent"
+    measured = transfer_yield(events, ledger)
+    credit = _recipient_credit(events, recipient_id) if measured["contact_identified"] else 0.0
+    if shape and restore_index is not None and drop_index is not None:
+        gain = values[restore_index] - values[drop_index]
+        if credit <= 0.0 or not measured["contact_identified"]:
+            shape = False
+            reason = "no_reconciling_contact"
+        elif not _same(gain, credit):
+            shape = False
+            reason = "gain_does_not_match_credit"
+    return {
+        "endpoint_id": PREREG_V3_ID,
+        "definition": definition,
+        "baseline": baseline,
+        "drop_index": drop_index,
+        "restore_index": restore_index if shape else None,
+        "recipient_credit": credit if shape else 0.0,
+        "performance_recovered": shape,
+        "reason": reason,
+        "transfer_recorded": bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0,
+        "confirms_v1_endpoint": False,
+        "hypothesis_supported": False,
+    }
+
+
+def apply_locked_recovery_arm(
+    source: GenesisOrganism,
+    recipient: GenesisOrganism,
+    *,
+    tick: int,
+    arm: Literal["positive", "negative"],
+) -> dict[str, object]:
+    """Place the locked drop, then either restore it or pay the same cost aside.
+
+    Samples are recipient runtime ATP: baseline, after the drop, after the
+    arm, and one persistence sample with no further credit. The positive arm
+    credits the recipient from the source. The negative arm debits that same
+    amount from the source and does not credit the recipient.
+    """
+
+    if arm not in {"positive", "negative"}:
+        raise ConfigurationError("recovery arm must be positive or negative")
+    if source.id == recipient.id:
+        raise ConfigurationError("the recovery control needs two organisms")
+    baseline = float(recipient.atp_state.runtime_available)
+    if baseline <= 0.0:
+        raise ConfigurationError("recovery control baseline must be positive")
+    drop_level = _grid(baseline * RECOVERY_DROP_FRACTION, up=False)
+    disturbance = round(baseline - drop_level, _LEDGER_PLACES)
+    if disturbance <= 0.0 or not recipient.atp_state.can_execute(disturbance):
+        raise ConfigurationError("recovery control could not place the locked drop")
+    drop_entry = recipient.atp_state.debit_runtime(
+        disturbance,
+        tick=tick,
+        organism_id=recipient.id,
+        codon="d2",
+        action="recovery_drop",
+        reason="v3_drop",
+    )
+    if drop_entry is None:
+        raise ConfigurationError("recovery control could not place the locked drop")
+    dropped = float(recipient.atp_state.runtime_available)
+    restore_level = _grid(baseline * RECOVERY_RESTORE_FRACTION, up=True)
+    credit = round(restore_level - dropped, _LEDGER_PLACES)
+    if credit <= 0.0 or not source.atp_state.can_execute(credit):
+        raise ConfigurationError("source cannot fund the locked restore")
+    source_entry = source.atp_state.debit_runtime(
+        credit,
+        tick=tick,
+        organism_id=source.id,
+        codon="d2",
+        action="recovery_transfer" if arm == "positive" else "matched_uncredited_cost",
+        reason="v3_positive_transfer" if arm == "positive" else "v3_negative_matched_cost",
+    )
+    if source_entry is None:
+        raise ConfigurationError("source cannot fund the locked restore")
+    events: list[dict[str, object]] = []
+    if arm == "positive":
+        recipient_entry = recipient.atp_state.credit_runtime(
+            credit,
+            tick=tick,
+            organism_id=recipient.id,
+            codon="d2",
+            action="recovery_transfer",
+            reason="v3_positive_transfer",
+        )
+        events.append(
+            {
+                "evidence": ENGINE_LEDGER_EVIDENCE,
+                "contact_id": "v3-positive-1",
+                "source_id": source.id,
+                "recipient_id": recipient.id,
+                "source_entry_id": source_entry,
+                "recipient_entry_id": recipient_entry,
+                "atp_paid": credit,
+                "loss": 0.0,
+            }
+        )
+    after = float(recipient.atp_state.runtime_available)
+    persisted = float(recipient.atp_state.runtime_available)
+    boundaries = [baseline, dropped, after, persisted]
+    ledger = list(source.atp_state.runtime.ledger) + list(recipient.atp_state.runtime.ledger)
+    scored = assess_recovery(boundaries, events, ledger, recipient_id=recipient.id)
+    return {
+        "arm": arm,
+        "endpoint_id": PREREG_V3_ID,
+        "baseline": baseline,
+        "boundaries": boundaries,
+        "disturbance_cost": disturbance,
+        "source_cost": credit,
+        "recipient_credit": credit if arm == "positive" else 0.0,
+        "performance_recovered": scored["performance_recovered"],
+        "reason": scored["reason"],
+        "recovery": scored,
+        "confirms_v1_endpoint": False,
+        "hypothesis_supported": False,
+    }
+
+
 def performance_recovery(
     events: Sequence[Mapping[str, object]],
     ledger: Sequence[ATPLedgerEntry | Mapping[str, object]] | None = None,
     *,
     used_contact_ids: Collection[str] | None = None,
+    boundaries: Sequence[object] | None = None,
+    recipient_id: str | None = None,
 ) -> dict[str, object]:
-    """A paid reconciled transfer. Not a return to baseline, and not survival.
+    """Name a transfer as a transfer. Recovery is the locked V3 rule only.
 
-    The flag follows contact identification only. A drop, a baseline, and a
-    persistence window are not scored here.
+    Without a baseline series, a paid contact is ``transfer_recorded`` and
+    ``performance_recovered`` stays false. Digest return and survival are
+    separate flags and are not this endpoint.
     """
 
     measured = transfer_yield(events, ledger, used_contact_ids=used_contact_ids)
     digest_flags = [event["digest_returned"] for event in events if "digest_returned" in event]
     survivor_flags = [event["n_alive"] for event in events if "n_alive" in event]
-    recovered = bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0
+    transfer_recorded = bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0
+    recovery: dict[str, object] | None = None
+    recovered = False
+    reason = "no_baseline"
+    if boundaries is not None:
+        if recipient_id is None:
+            raise ConfigurationError("recovery scoring needs the recipient id")
+        recovery = assess_recovery(boundaries, events, ledger, recipient_id=recipient_id)
+        recovered = bool(recovery["performance_recovered"])
+        reason = str(recovery["reason"])
     return {
-        "endpoint_id": PREREG_V2_ID,
+        "endpoint_id": PREREG_V2_ID if boundaries is None else PREREG_V3_ID,
+        "transfer_recorded": transfer_recorded,
         "performance_recovered": recovered,
+        "recovery_reason": reason,
+        "recovery": recovery,
         "digest_returned": None if not digest_flags else any(bool(flag) for flag in digest_flags),
         "population_survived": None
         if not survivor_flags

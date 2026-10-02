@@ -15,17 +15,26 @@ from codontrace.claimgate.schema import ClaimgateComparison
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.causal_validation import (
     CausalInterventionRunPair,
-    InterventionExecutor,
     InterventionSpec,
     build_causal_evidence_report,
 )
 
 
-def _pair(baseline: float, treatment: float) -> CausalInterventionRunPair:
+def _pair(
+    baseline: float,
+    treatment: float,
+    *,
+    run_id: str = "",
+    seed: int | None = None,
+    history_id: str = "",
+) -> CausalInterventionRunPair:
     spec = InterventionSpec(
         "i", "factor", canonical_digest({"a": 1}), canonical_digest({"a": 2}), canonical_digest({"s": 1})
     )
-    return InterventionExecutor().execute(spec, baseline_metric=baseline, treatment_metric=treatment)
+    return CausalInterventionRunPair(
+        spec, "baseline", "treatment", baseline, treatment,
+        run_id=run_id, seed=seed, history_id=history_id,
+    )
 
 
 def _comparison(effect_size, ci_low, ci_high, p) -> ClaimgateComparison:
@@ -41,7 +50,7 @@ def test_single_pair_interval_cannot_exclude_zero():
     assert report.effect.interval_defined is False
     assert report.effect.interval_status == "insufficient_sample"
     assert report.effect.statistical_support is False
-    assert report.failure_status == "insufficient_sample"
+    assert report.failure_status == "identity_unspecified"
     assert report.claim_eligible is False
     assert not _ci_excludes_zero(None, None)
 
@@ -57,12 +66,16 @@ def test_two_pairs_interval_is_a_real_interval():
 
 
 def test_zero_variance_pairs_do_not_mint_a_difference():
-    report = build_causal_evidence_report((_pair(1.0, 2.0), _pair(1.0, 2.0)))
+    report = build_causal_evidence_report((
+        _pair(1.0, 2.0, run_id="a", seed=1, history_id="h1"),
+        _pair(1.0, 2.0, run_id="b", seed=2, history_id="h2"),
+    ))
     assert report.effect.effect_size == 1.0
+    assert report.independent_count == 2
     assert report.effect.confidence_interval is None
     assert report.effect.interval_status == "degenerate_variance"
     assert report.effect.statistical_support is False
-    assert report.failure_status == "degenerate_variance"
+    assert report.failure_status == "isolation_unverified"
     assert report.claim_eligible is False
     assert not _ci_excludes_zero(None, None)
 

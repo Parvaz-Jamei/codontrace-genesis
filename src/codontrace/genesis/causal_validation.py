@@ -940,6 +940,31 @@ def build_intervention_result(
         count,
     )
 
+def _normalize_settings(value: object) -> tuple[tuple[str, str], ...]:
+    """Canonical setting pairs. Key order does not matter; the value does."""
+
+    if value is None:
+        return ()
+    if isinstance(value, Mapping):
+        raw = list(value.items())
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        raw = list(value)
+    else:
+        raise ConfigurationError("settings must be a mapping or a list of pairs")
+    out: list[tuple[str, str]] = []
+    for item in raw:
+        if not isinstance(item, tuple) or len(item) != 2:
+            raise ConfigurationError("setting pairs must be (key, value)")
+        key, item_value = item
+        if not isinstance(key, str) or not key.strip():
+            raise ConfigurationError("setting keys must be non-empty strings")
+        rendered = json.dumps(item_value, sort_keys=True, separators=(",", ":"))
+        out.append((key, rendered))
+    if len({key for key, _ in out}) != len(out):
+        raise ConfigurationError("setting keys must be unique")
+    return tuple(sorted(out))
+
+
 @dataclass(frozen=True, slots=True)
 class InterventionSpec:
     intervention_id: str
@@ -949,6 +974,14 @@ class InterventionSpec:
     seed_family_digest: str
     isolated_factor: bool = True
     schema_version: str = "intervention_spec_v1"
+    baseline_settings: tuple[tuple[str, str], ...] = ()
+    treatment_settings: tuple[tuple[str, str], ...] = ()
+
+    def __post_init__(self) -> None:
+        if not str(self.target_factor).strip():
+            raise ConfigurationError("target_factor must be non-empty")
+        object.__setattr__(self, "baseline_settings", _normalize_settings(self.baseline_settings))
+        object.__setattr__(self, "treatment_settings", _normalize_settings(self.treatment_settings))
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -959,6 +992,8 @@ class InterventionSpec:
             "treatment_config_digest": self.treatment_config_digest,
             "seed_family_digest": self.seed_family_digest,
             "isolated_factor": self.isolated_factor,
+            "baseline_settings": [list(item) for item in self.baseline_settings],
+            "treatment_settings": [list(item) for item in self.treatment_settings],
         }
 
     def digest(self) -> str:
@@ -989,18 +1024,41 @@ class CausalInterventionRunPair:
     baseline_metric: float
     treatment_metric: float
     schema_version: str = "causal_intervention_run_pair_v1"
+    run_id: str = ""
+    seed: int | None = None
+    history_id: str = ""
+    checkpoint_id: str = ""
 
     def __post_init__(self) -> None:
         from codontrace.genesis.canonical import require_finite_float
         object.__setattr__(self, "baseline_metric", require_finite_float("baseline_metric", self.baseline_metric))
         object.__setattr__(self, "treatment_metric", require_finite_float("treatment_metric", self.treatment_metric))
+        object.__setattr__(self, "run_id", str(self.run_id).strip())
+        object.__setattr__(self, "history_id", str(self.history_id).strip())
+        object.__setattr__(self, "checkpoint_id", str(self.checkpoint_id).strip())
+        if self.seed is not None:
+            if isinstance(self.seed, bool) or not isinstance(self.seed, int):
+                raise ConfigurationError("seed must be an integer")
+            object.__setattr__(self, "seed", int(self.seed))
 
     @property
     def paired_delta(self) -> float:
         return round(self.treatment_metric - self.baseline_metric, 10)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {"schema_version": self.schema_version, "spec": self.spec.to_dict(), "baseline_digest": self.baseline_digest, "treatment_digest": self.treatment_digest, "baseline_metric": self.baseline_metric, "treatment_metric": self.treatment_metric, "paired_delta": self.paired_delta}
+        return {
+            "schema_version": self.schema_version,
+            "spec": self.spec.to_dict(),
+            "baseline_digest": self.baseline_digest,
+            "treatment_digest": self.treatment_digest,
+            "baseline_metric": self.baseline_metric,
+            "treatment_metric": self.treatment_metric,
+            "paired_delta": self.paired_delta,
+            "run_id": self.run_id,
+            "seed": self.seed,
+            "history_id": self.history_id,
+            "checkpoint_id": self.checkpoint_id,
+        }
 
     def digest(self) -> str:
         from codontrace.genesis.canonical import canonical_digest
@@ -1067,13 +1125,67 @@ class CausalEvidenceReport:
     effect: CausalEffectEstimate
     failure_status: str = "passed"
     schema_version: str = "causal_evidence_report_v1"
+    submitted_count: int = 0
+    independent_count: int = 0
+    dropped_duplicate_count: int = 0
+    checkpoint_conflict_count: int = 0
+    identity_complete: bool = False
+    isolation_status: str = "isolation_unverified"
+    historical_sample_count: int = 0
+    unit_rule: str = "independent_history_seed_run_v1"
 
     @property
     def claim_eligible(self) -> bool:
-        return bool(self.run_pairs) and self.failure_status == "passed" and self.effect.sample_count == len(self.run_pairs)
+        """True only when this package would not be rejected by the ClaimGate rules it can check.
+
+        Those rules are the ones in ``claimgate.auditor``: no pseudoreplication
+        (Hurlbert 1984), a defined interval that excludes zero, and at least
+        ``INDEPENDENT_RUN_FLOOR`` independent units (the same floor as
+        ``LEVEL4_MIN_SEEDS``). A self-declared ``isolated_factor`` is not enough.
+        ``failure_status == "passed"`` means the rows were usable. It is not itself
+        a claim.
+        """
+
+        return not self.claim_blockers
+
+    @property
+    def claim_blockers(self) -> tuple[str, ...]:
+        blockers: list[str] = []
+        if self.failure_status != "passed":
+            blockers.append(self.failure_status)
+        if not self.identity_complete:
+            blockers.append("identity_unspecified")
+        if self.isolation_status != "isolated":
+            blockers.append(self.isolation_status)
+        if self.dropped_duplicate_count or self.checkpoint_conflict_count:
+            blockers.append("pseudoreplicated")
+        if not self.effect.interval_defined:
+            blockers.append(self.effect.interval_status)
+        elif not self.effect.statistical_support:
+            blockers.append("interval_includes_zero")
+        if self.independent_count < INDEPENDENT_RUN_FLOOR:
+            blockers.append("below_claimgate_seed_floor")
+        if self.effect.sample_count != self.independent_count:
+            blockers.append("sample_count_mismatch")
+        return tuple(dict.fromkeys(blockers))
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {"schema_version": self.schema_version, "run_pairs": [p.to_dict() for p in self.run_pairs], "effect": self.effect.to_dict(), "failure_status": self.failure_status, "claim_eligible": self.claim_eligible}
+        return {
+            "schema_version": self.schema_version,
+            "run_pairs": [p.to_dict() for p in self.run_pairs],
+            "effect": self.effect.to_dict(),
+            "failure_status": self.failure_status,
+            "claim_eligible": self.claim_eligible,
+            "claim_blockers": list(self.claim_blockers),
+            "submitted_count": self.submitted_count,
+            "independent_count": self.independent_count,
+            "dropped_duplicate_count": self.dropped_duplicate_count,
+            "checkpoint_conflict_count": self.checkpoint_conflict_count,
+            "identity_complete": self.identity_complete,
+            "isolation_status": self.isolation_status,
+            "historical_sample_count": self.historical_sample_count,
+            "unit_rule": self.unit_rule,
+        }
 
     def digest(self) -> str:
         from codontrace.genesis.canonical import canonical_digest
@@ -1293,21 +1405,53 @@ def _paired_interval(deltas: Sequence[float]) -> tuple[float, float]:
     return paired_mean_interval(deltas).endpoints()
 
 
-def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair]) -> CausalEvidenceReport:
-    pairs = tuple(run_pairs)
-    if not pairs:
-        effect = CausalEffectEstimate(
-            0.0, None, 0, interval_defined=False, interval_status="not_run",
-            statistical_support=False, estimator=PAIRED_MEAN_ESTIMATOR,
-        )
-        return CausalEvidenceReport((), effect, "not_run")
-    deltas = [pair.paired_delta for pair in pairs]
-    interval = paired_mean_interval(deltas)
+# Same floor as claimgate.auditor.LEVEL4_MIN_SEEDS. Repeating rows does not buy it.
+INDEPENDENT_RUN_FLOOR = 16
+
+
+def _isolation_status(spec: InterventionSpec) -> str:
+    """Isolation is a diff of settings, not the ``isolated_factor`` boolean.
+
+    The boolean cannot grant isolation. It can only refuse it. With no settings
+    on both sides the factor is unverified even when the boolean is true.
+    """
+
+    if spec.isolated_factor is False:
+        return "intervention_not_isolated"
+    if not spec.baseline_settings or not spec.treatment_settings:
+        return "isolation_unverified"
+    base = dict(spec.baseline_settings)
+    treat = dict(spec.treatment_settings)
+    changed = sorted(key for key in set(base) | set(treat) if base.get(key) != treat.get(key))
+    target = spec.target_factor
+    if changed == [target] and base.get(target) != treat.get(target):
+        return "isolated"
+    return "intervention_not_isolated"
+
+
+def _identity_complete(pair: CausalInterventionRunPair) -> bool:
+    return bool(pair.run_id) and pair.seed is not None and bool(pair.history_id)
+
+
+def _unit_key(pair: CausalInterventionRunPair) -> tuple[object, ...]:
+    """One experimental unit. A checkpoint of that unit is not another unit.
+
+    Hurlbert (1984) simple pseudoreplication: subsamples and repeated measures
+    of one unit are not replicates. An unidentified row collapses only with an
+    exact copy of itself; it still cannot support a claim.
+    """
+
+    if _identity_complete(pair):
+        return ("unit", pair.history_id, pair.seed, pair.run_id)
+    return ("unidentified", pair.digest())
+
+
+def _effect_from_interval(interval: PairedMeanInterval, sample_count: int) -> CausalEffectEstimate:
     if not interval.interval_defined or interval.low is None or interval.high is None:
-        effect = CausalEffectEstimate(
+        return CausalEffectEstimate(
             0.0 if interval.point is None else interval.point,
             None,
-            len(pairs),
+            sample_count,
             interval_defined=False,
             interval_status=interval.status,
             statistical_support=False,
@@ -1315,11 +1459,10 @@ def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair])
             df=interval.df,
             critical_value=interval.critical,
         )
-        return CausalEvidenceReport(pairs, effect, interval.status)
-    effect = CausalEffectEstimate(
+    return CausalEffectEstimate(
         0.0 if interval.point is None else interval.point,
         (interval.low, interval.high),
-        len(pairs),
+        sample_count,
         interval_defined=True,
         interval_status=interval.status,
         statistical_support=interval.statistical_support,
@@ -1327,15 +1470,117 @@ def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair])
         df=interval.df,
         critical_value=interval.critical,
     )
-    isolated = all(pair.spec.isolated_factor for pair in pairs)
-    return CausalEvidenceReport(pairs, effect, "passed" if isolated else "intervention_not_isolated")
+
+
+def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair]) -> CausalEvidenceReport:
+    """Interval over independent histories, not over submitted rows.
+
+    Repeating a run-pair, or offering several checkpoints of one history, does
+    not increase ``sample_count`` and does not narrow the interval. The count
+    the old helper would have used is kept as ``historical_sample_count`` and
+    is not the estimate.
+    """
+
+    submitted = tuple(run_pairs)
+    if not submitted:
+        effect = CausalEffectEstimate(
+            0.0, None, 0, interval_defined=False, interval_status="not_run",
+            statistical_support=False, estimator=PAIRED_MEAN_ESTIMATOR,
+        )
+        return CausalEvidenceReport((), effect, "not_run", submitted_count=0, historical_sample_count=0)
+
+    groups: dict[tuple[object, ...], list[CausalInterventionRunPair]] = {}
+    order: list[tuple[object, ...]] = []
+    for pair in submitted:
+        key = _unit_key(pair)
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(pair)
+
+    usable: list[CausalInterventionRunPair] = []
+    dropped = 0
+    conflicts = 0
+    collapsed_checkpoints = 0
+    for key in order:
+        group = groups[key]
+        deltas = {item.paired_delta for item in group}
+        checkpoints = {item.checkpoint_id for item in group}
+        if len(deltas) > 1:
+            conflicts += 1
+            continue
+        if len(group) > 1 and len(checkpoints) > 1:
+            collapsed_checkpoints += 1
+            dropped += len(group) - 1
+        elif len(group) > 1:
+            dropped += len(group) - 1
+        usable.append(group[0])
+
+    interval = paired_mean_interval([item.paired_delta for item in usable]) if usable else PairedMeanInterval(
+        None, None, None, 0, "empty", False, False,
+    )
+    effect = _effect_from_interval(interval, len(usable))
+    identity_complete = all(_identity_complete(item) for item in submitted)
+    states = {_isolation_status(item.spec) for item in submitted}
+    if states == {"isolated"}:
+        isolation = "isolated"
+    elif len(states) == 1:
+        isolation = next(iter(states))
+    else:
+        isolation = "intervention_not_isolated"
+    if conflicts or collapsed_checkpoints:
+        status = "checkpoint_not_independent"
+    elif dropped:
+        status = "duplicate_units_removed"
+    elif not identity_complete:
+        status = "identity_unspecified"
+    elif isolation != "isolated":
+        status = isolation
+    elif not interval.interval_defined:
+        status = interval.status
+    else:
+        status = "passed"
+    return CausalEvidenceReport(
+        tuple(usable),
+        effect,
+        status,
+        submitted_count=len(submitted),
+        independent_count=len(usable),
+        dropped_duplicate_count=dropped,
+        checkpoint_conflict_count=conflicts,
+        identity_complete=identity_complete,
+        isolation_status=isolation,
+        historical_sample_count=len(submitted),
+    )
+
 
 @dataclass(frozen=True, slots=True)
 class InterventionExecutor:
     executor_id: str = "deterministic_public_api_executor_v1"
     schema_version: str = "intervention_executor_v1"
-    def execute(self, spec: InterventionSpec, *, baseline_metric: float, treatment_metric: float) -> CausalInterventionRunPair:
-        return CausalInterventionRunPair(spec, spec.baseline_config_digest, spec.treatment_config_digest, baseline_metric, treatment_metric)
+
+    def execute(
+        self,
+        spec: InterventionSpec,
+        *,
+        baseline_metric: float,
+        treatment_metric: float,
+        run_id: str = "",
+        seed: int | None = None,
+        history_id: str = "",
+        checkpoint_id: str = "",
+    ) -> CausalInterventionRunPair:
+        return CausalInterventionRunPair(
+            spec,
+            spec.baseline_config_digest,
+            spec.treatment_config_digest,
+            baseline_metric,
+            treatment_metric,
+            run_id=run_id,
+            seed=seed,
+            history_id=history_id,
+            checkpoint_id=checkpoint_id,
+        )
     def to_dict(self) -> dict[str, JsonValue]:
         return {"schema_version": self.schema_version, "executor_id": self.executor_id}
     def digest(self) -> str:

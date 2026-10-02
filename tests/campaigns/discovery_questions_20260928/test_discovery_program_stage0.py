@@ -130,9 +130,12 @@ def test_live_short_cells_stay_blocked_and_replay() -> None:
     assert report["hypothesis_supported"] is False
     assert report["red_queen_proved"] is False
     assert report["synthetic_score"] == -0.148
-    for name in ("RQ-1", "RQ-3", "D-2"):
-        assert report["decisions"][name] == "BLOCKED_MEASUREMENT"
-    assert idea2["parasite_is_genotype_population"] is False
+    for name in ("RQ-1", "RQ-3", "D-1"):
+        assert report["decisions"][name] == "INCONCLUSIVE"
+    assert report["decisions"]["D-2"] == "BLOCKED_MEASUREMENT"
+    assert idea2["parasite_is_genotype_population"] is True
+    assert idea2["hypothesis_test_eligible"] is False
+    assert idea2["hypothesis_supported"] is False
     assert idea4["topology_effect_identified"] is False
     assert idea4["endpoint_map_is_contact_physics"] is False
     assert idea4["checkpoint_fork_complete"] is True

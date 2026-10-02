@@ -145,16 +145,16 @@ def test_idea4_freeze_does_not_promote_a_claim_or_split_one_run() -> None:
         assert row["n_unit"] == "run"
 
 
-def test_idea2_counter_stays_a_counter() -> None:
+def test_idea2_roster_is_a_population_and_not_a_claim() -> None:
     rows = run_idea2_engine_cell(seed=301, cell="baseline", generations=4, population=4)
     assert rows
     for row in rows:
-        assert row["parasite_is_genotype_population"] is False
-        assert row["parasite_is_independent_population"] is False
+        assert row["parasite_is_genotype_population"] is True
+        assert row["parasite_is_independent_population"] is True
         assert row["hypothesis_test_eligible"] is False
-        assert row["parent_child_lineage_recorded"] is False
         assert row["hypothesis_supported"] is False
         assert row["red_queen_proved"] is False
+        assert len(row["parasite_ids"]) == len(set(row["parasite_ids"]))
 
 
 def test_blank_ids_and_a_later_parent_cannot_pass() -> None:

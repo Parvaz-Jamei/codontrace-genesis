@@ -11,6 +11,7 @@ from codontrace.genesis.measurements.rq_frequency_clocks import (
     lagged_nfds_score,
     per_sublocus_richness_series,
     phase_lag_host_parasite,
+    within_class_lagged_association,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "lagged_nfds_score",
     "per_sublocus_richness_series",
     "phase_lag_host_parasite",
+    "within_class_lagged_association",
 ]

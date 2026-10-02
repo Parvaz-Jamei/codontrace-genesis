@@ -9,10 +9,12 @@ See ``docs/ENGINE_REPLAY_CONTRACT.md``.
 from __future__ import annotations
 
 import enum
-import pickle
+import importlib
+import json
+import math
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import fields, is_dataclass, replace
 from types import (
     BuiltinFunctionType,
     FunctionType,
@@ -156,6 +158,7 @@ _ABSENT = "absent"
 _DEEP_COPIED = "deepcopy"
 _SHARED_REFERENCE = "shared_reference"
 FORK_CHECKPOINT_VERSION = 3
+_CHECKPOINT_FORMAT = "codontrace-checkpoint-recipe-v1"
 NOISE_COUPLING = "stream_position"
 _NOISE_NAMESPACE = "fork-noise-contract"
 _CODE_TYPES = (FunctionType, BuiltinFunctionType, MethodDescriptorType, WrapperDescriptorType)
@@ -336,64 +339,219 @@ def _isolated_copy_report(value: Any) -> tuple[Any, tuple[dict[str, Any], ...]]:
     return deepcopy(value, memo), report
 
 
-class _ProxyCarrier:
-    """Pickle stand-in for a mappingproxy. The proxy itself cannot be pickled."""
-
-    def __init__(self, items: tuple[tuple[Any, Any], ...]) -> None:
-        self.items = items
-
-    def __reduce__(self) -> tuple[Any, tuple[Any, ...]]:
-        return (_restore_proxy, (self.items,))
+def _type_token(cls: type) -> str:
+    return f"{cls.__module__}:{cls.__qualname__}"
 
 
-def _restore_proxy(items: tuple[tuple[Any, Any], ...]) -> MappingProxyType:
-    return MappingProxyType(dict(items))
+def _resolve_type(token: str) -> type:
+    module_name, separator, qualname = token.partition(":")
+    if separator != ":" or not qualname or "<" in qualname:
+        msg = "checkpoint type token is not a package type."
+        raise ConfigurationError(msg)
+    if module_name != "codontrace" and not module_name.startswith("codontrace."):
+        msg = "checkpoint type is outside this package."
+        raise ConfigurationError(msg)
+    module = importlib.import_module(module_name)
+    found: Any = module
+    for part in qualname.split("."):
+        found = getattr(found, part)
+    if not isinstance(found, type):
+        msg = "checkpoint type token does not name a type."
+        raise ConfigurationError(msg)
+    return found
 
 
-def _pack_member(value: Any, memo: dict[int, Any]) -> Any:
-    if isinstance(value, MappingProxyType):
-        return memo[id(value)]
-    if _deeply_immutable(value, set()):
-        return value
-    return deepcopy(value, memo)
+def _encode_recipe(value: Any) -> dict[str, Any]:
+    """Versioned rebuild recipe. Shared mutable objects keep their identity.
+
+    Loading rebuilds package objects and named package functions. It does not
+    run a caller-supplied callable. That is the point of refusing an executable
+    memory dump: a checkpoint is a recipe for this package, not a program.
+    """
+
+    store: list[Any] = []
+    memo: dict[int, int] = {}
+
+    def intern(node_id: int) -> int:
+        index = len(store)
+        memo[node_id] = index
+        store.append(None)
+        return index
+
+    def encode(item: Any) -> Any:
+        if item is None:
+            return item
+        if isinstance(item, enum.Enum):
+            return {"$enum": _type_token(type(item)), "name": item.name}
+        if isinstance(item, (bool, str)):
+            return item
+        if isinstance(item, int):
+            return item
+        if isinstance(item, float):
+            if math.isnan(item):
+                return {"$float": "nan"}
+            if math.isinf(item):
+                return {"$float": "inf" if item > 0 else "-inf"}
+            return item
+        if isinstance(item, bytes):
+            return {"$bytes": list(item)}
+        if isinstance(item, FunctionType):
+            if (
+                not item.__module__.startswith("codontrace.")
+                or "<" in item.__qualname__
+            ):
+                msg = "checkpoint cannot name a function outside this package."
+                raise ConfigurationError(msg)
+            return {"$fn": f"{item.__module__}:{item.__qualname__}"}
+        if isinstance(item, (tuple, MappingProxyType, frozenset)):
+            if isinstance(item, MappingProxyType):
+                pairs = [[encode(key), encode(val)] for key, val in item.items()]
+                return {"$proxy": pairs}
+            if isinstance(item, frozenset):
+                return {"$frozenset": [encode(part) for part in item]}
+            return {"$tuple": [encode(part) for part in item]}
+        seen = memo.get(id(item))
+        if seen is not None:
+            return {"$ref": seen}
+        if isinstance(item, list):
+            index = intern(id(item))
+            store[index] = {"$list": [encode(part) for part in item]}
+            return {"$ref": index}
+        if isinstance(item, dict):
+            index = intern(id(item))
+            store[index] = {"$dict": [[encode(key), encode(val)] for key, val in item.items()]}
+            return {"$ref": index}
+        if isinstance(item, set):
+            index = intern(id(item))
+            store[index] = {"$set": [encode(part) for part in item]}
+            return {"$ref": index}
+        if is_dataclass(item) and not isinstance(item, type):
+            index = intern(id(item))
+            body = {field.name: encode(getattr(item, field.name)) for field in fields(item)}
+            store[index] = {"$dc": _type_token(type(item)), "fields": body}
+            return {"$ref": index}
+        state = getattr(item, "__dict__", None)
+        if isinstance(state, dict):
+            index = intern(id(item))
+            body = {str(key): encode(val) for key, val in state.items()}
+            store[index] = {"$obj": _type_token(type(item)), "fields": body}
+            return {"$ref": index}
+        msg = f"checkpoint cannot record {type(item).__name__}."
+        raise ConfigurationError(msg)
+
+    root = encode(value)
+    return {"$format": _CHECKPOINT_FORMAT, "objects": store, "root": root}
 
 
-def _pack_proxies(value: Any) -> Any:
-    proxies: list[Any] = []
-    _walk(value, set(), proxies)
-    memo: dict[int, Any] = {}
-    for proxy in proxies:
-        items = tuple(
-            (_pack_member(key, memo), _pack_member(item, memo)) for key, item in proxy.items()
-        )
-        memo[id(proxy)] = _ProxyCarrier(items)
-    return deepcopy(value, memo)
+def _decode_recipe(encoded: Mapping[str, Any]) -> Any:
+    if encoded.get("$format") != _CHECKPOINT_FORMAT:
+        msg = "checkpoint bytes are not a recoverable fork payload."
+        raise ConfigurationError(msg)
+    objects = encoded.get("objects")
+    if not isinstance(objects, list):
+        msg = "checkpoint bytes are not a recoverable fork payload."
+        raise ConfigurationError(msg)
+    shells: list[Any] = []
+    for node in objects:
+        if not isinstance(node, dict):
+            msg = "checkpoint record is not an object recipe."
+            raise ConfigurationError(msg)
+        if "$list" in node:
+            shells.append([])
+        elif "$dict" in node:
+            shells.append({})
+        elif "$set" in node:
+            shells.append(set())
+        elif "$dc" in node or "$obj" in node:
+            shells.append(object.__new__(_resolve_type(str(node.get("$dc") or node.get("$obj")))))
+        else:
+            msg = "checkpoint record is not an object recipe."
+            raise ConfigurationError(msg)
+
+    def resolve(item: Any) -> Any:
+        if item is None or isinstance(item, (bool, str, int, float)):
+            return item
+        if not isinstance(item, dict):
+            msg = "checkpoint value is not a recipe."
+            raise ConfigurationError(msg)
+        if "$ref" in item:
+            return shells[int(item["$ref"])]
+        if "$float" in item:
+            label = str(item["$float"])
+            if label == "nan":
+                return float("nan")
+            if label == "inf":
+                return float("inf")
+            if label == "-inf":
+                return float("-inf")
+            msg = "checkpoint float label is not recognised."
+            raise ConfigurationError(msg)
+        if "$bytes" in item:
+            return bytes(int(part) for part in item["$bytes"])
+        if "$enum" in item:
+            return _resolve_type(str(item["$enum"]))[str(item["name"])]
+        if "$fn" in item:
+            module_name, _, qualname = str(item["$fn"]).partition(":")
+            if not module_name.startswith("codontrace.") or "<" in qualname:
+                msg = "checkpoint function is outside this package."
+                raise ConfigurationError(msg)
+            found: Any = importlib.import_module(module_name)
+            for part in qualname.split("."):
+                found = getattr(found, part)
+            if not isinstance(found, FunctionType):
+                msg = "checkpoint function token does not name a function."
+                raise ConfigurationError(msg)
+            return found
+        if "$tuple" in item:
+            return tuple(resolve(part) for part in item["$tuple"])
+        if "$frozenset" in item:
+            return frozenset(resolve(part) for part in item["$frozenset"])
+        if "$proxy" in item:
+            return MappingProxyType({resolve(key): resolve(val) for key, val in item["$proxy"]})
+        msg = "checkpoint value is not a recipe."
+        raise ConfigurationError(msg)
+
+    for index, node in enumerate(objects):
+        shell = shells[index]
+        if "$list" in node:
+            shell.extend(resolve(part) for part in node["$list"])
+        elif "$dict" in node:
+            for key, val in node["$dict"]:
+                shell[resolve(key)] = resolve(val)
+        elif "$set" in node:
+            shell.update(resolve(part) for part in node["$set"])
+        else:
+            for name, val in node["fields"].items():
+                object.__setattr__(shell, str(name), resolve(val))
+    return resolve(encoded.get("root"))
 
 
 def checkpoint_bytes(fork: Mapping[str, Any]) -> bytes:
     """Bytes for a fresh process. Not a format for untrusted input.
 
     The serialisable audit stays JSON and cannot restore a branch. This record
-    can, because the frozen objects travel with it and mapping proxies are
-    rebuilt on load.
+    can, because it is a versioned rebuild recipe: package objects and named
+    package functions only. A caller-supplied callable is refused.
     """
 
     if fork.get("record_role") != "recoverable_checkpoint":
         msg = "only a recoverable checkpoint can be persisted."
         raise ConfigurationError(msg)
-    packed_live = {
-        name: None if value is None else _pack_proxies(value)
-        for name, value in dict(fork["live_objects"]).items()
-    }
-    packed = {key: value for key, value in fork.items() if key != "live_objects"}
-    packed["live_objects"] = packed_live
-    return pickle.dumps(packed)
+    return json.dumps(_encode_recipe(dict(fork)), allow_nan=False, separators=(",", ":")).encode("utf-8")
 
 
 def checkpoint_from_bytes(blob: bytes) -> dict[str, Any]:
     """Load bytes written by :func:`checkpoint_bytes` in this or another process."""
 
-    loaded = pickle.loads(blob)
+    try:
+        encoded = json.loads(blob.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        msg = "checkpoint bytes are not a recoverable fork payload."
+        raise ConfigurationError(msg) from exc
+    if not isinstance(encoded, dict):
+        msg = "checkpoint bytes are not a recoverable fork payload."
+        raise ConfigurationError(msg)
+    loaded = _decode_recipe(encoded)
     if not isinstance(loaded, dict) or loaded.get("record_role") != "recoverable_checkpoint":
         msg = "checkpoint bytes are not a recoverable fork payload."
         raise ConfigurationError(msg)

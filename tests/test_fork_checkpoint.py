@@ -13,6 +13,7 @@ import pytest
 from codontrace.engine import GenesisEngine, GenesisExperimentSpec
 from codontrace.engine_runtime import (
     checkpoint_bytes,
+    checkpoint_from_bytes,
     event_keyed_draws,
     stream_position_draws,
 )
@@ -125,6 +126,18 @@ def test_audit_is_not_a_checkpoint_and_noise_follows_stream_position() -> None:
     keyed_plain = event_keyed_draws(31, 3, ("contact", "birth"))
     keyed_inserted = event_keyed_draws(31, 3, ("contact", "unrelated", "birth"))
     assert keyed_plain[1][1] == keyed_inserted[2][1]
+
+
+def test_checkpoint_refuses_a_function_outside_the_package() -> None:
+    blob = json.dumps(
+        {
+            "$format": "codontrace-checkpoint-recipe-v1",
+            "objects": [],
+            "root": {"$fn": "os:system"},
+        }
+    ).encode("utf-8")
+    with pytest.raises(ConfigurationError, match="outside this package"):
+        checkpoint_from_bytes(blob)
 
 
 def test_checkpoint_resumes_in_a_fresh_process(tmp_path) -> None:

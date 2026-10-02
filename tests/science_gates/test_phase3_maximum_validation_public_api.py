@@ -127,7 +127,10 @@ def test_causal_executor_requires_intervention_pair_and_effect_report():
     spec=InterventionSpec("i","factor",D("base"),D("treat"),D("seed"))
     pair=InterventionExecutor().execute(spec, baseline_metric=1.0, treatment_metric=2.0)
     report=build_causal_evidence_report((pair,))
-    assert report.claim_eligible
+    assert report.effect.effect_size == 1.0
+    assert pair.paired_delta == 1.0
+    assert report.claim_eligible is False
+    assert "identity_unspecified" in report.claim_blockers
 
 
 def test_social_collective_swarm_oee_ladders_are_evidence_gated():

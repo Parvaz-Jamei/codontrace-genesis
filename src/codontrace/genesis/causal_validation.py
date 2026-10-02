@@ -62,6 +62,50 @@ class CausalValidationConfig:
         }
 
 
+ASSOCIATION_ESTIMATOR = "fisher_exact_independent_v1"
+HISTORICAL_ASSOCIATION_ESTIMATOR = "circular_shift_empty_rate_v0"
+STRATA_AGGREGATION_RULE = "bonferroni_eligible_strata_v1"
+# Fisher (1922, JRSS 85:87–94) is an exact test of independence in a 2×2 table
+# when the records are exchangeable and the margins are conditioned on. A
+# circular shift of the action labels is not that test: it only visits n
+# rotations, and the historical helper also treated a missing group as rate 0.
+# Ordered trials are not exchangeable records, so a temporal series does not
+# inherit this p-value. Eligible strata are those with both exposure groups
+# and at least ``min_samples`` rows; their family-wise threshold is
+# alpha / n_eligible (Bonferroni; Dunn 1961, JASA 56:52–64). The threshold is
+# never lowered to fit a small stratum.
+RECORD_STRUCTURES = ("unspecified", "independent", "temporal")
+
+
+def _log_comb(n: int, k: int) -> float:
+    if k < 0 or k > n:
+        return float("-inf")
+    return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+
+
+def _fisher_exact_two_sided(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact p-value. Tables at least as rare as the observed one."""
+
+    row1 = a + b
+    row2 = c + d
+    col1 = a + c
+    n = row1 + row2
+    if min(row1, row2) <= 0 or n <= 0:
+        raise ValueError("Fisher's exact test needs both exposure groups")
+    lo = max(0, col1 - row2)
+    hi = min(row1, col1)
+    logs = [
+        _log_comb(row1, aa) + _log_comb(row2, col1 - aa) - _log_comb(n, col1)
+        for aa in range(lo, hi + 1)
+    ]
+    observed = logs[a - lo]
+    total = 0.0
+    for log_p in logs:
+        if log_p <= observed + 1e-12:
+            total += math.exp(log_p)
+    return min(1.0, total)
+
+
 @dataclass(frozen=True, slots=True)
 class CausalAssociationTest:
     action: str
@@ -70,13 +114,30 @@ class CausalAssociationTest:
     exposed_total: int
     unexposed_positive: int
     unexposed_total: int
-    effect_size: float
-    p_value: float
+    effect_size: float | None
+    p_value: float | None
     supported: bool
+    status: str = "tested"
+    effect_defined: bool = False
+    effect_observed: bool = False
+    statistical_support: bool = False
+    alpha: float = 0.05
+    nominal_alpha: float = 0.05
+    record_structure: str = "unspecified"
+    test_name: str = ASSOCIATION_ESTIMATOR
+    p_value_role: str = "not_applicable"
+    min_samples_applied: int = 0
+    historical_supported: bool = False
+    historical_circular_shift_p: float | None = None
+    eligible_for_family: bool = False
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "effect_size", require_finite_float("effect_size", self.effect_size))
-        object.__setattr__(self, "p_value", require_finite_float("p_value", self.p_value, probability=True))
+        if self.effect_size is not None:
+            object.__setattr__(self, "effect_size", require_finite_float("effect_size", self.effect_size))
+        if self.p_value is not None:
+            object.__setattr__(self, "p_value", require_finite_float("p_value", self.p_value, probability=True))
+        object.__setattr__(self, "alpha", require_finite_float("alpha", self.alpha, probability=True))
+        object.__setattr__(self, "nominal_alpha", require_finite_float("nominal_alpha", self.nominal_alpha, probability=True))
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -87,8 +148,22 @@ class CausalAssociationTest:
             "unexposed_positive": self.unexposed_positive,
             "unexposed_total": self.unexposed_total,
             "effect_size": self.effect_size,
+            "effect_defined": self.effect_defined,
+            "effect_observed": self.effect_observed,
             "p_value": self.p_value,
+            "p_value_role": self.p_value_role,
             "supported": self.supported,
+            "statistical_support": self.statistical_support,
+            "status": self.status,
+            "alpha": self.alpha,
+            "nominal_alpha": self.nominal_alpha,
+            "record_structure": self.record_structure,
+            "test_name": self.test_name,
+            "min_samples_applied": self.min_samples_applied,
+            "historical_estimator": HISTORICAL_ASSOCIATION_ESTIMATOR,
+            "historical_supported": self.historical_supported,
+            "historical_circular_shift_p": self.historical_circular_shift_p,
+            "eligible_for_family": self.eligible_for_family,
         }
 
     def digest(self) -> str:
@@ -103,6 +178,14 @@ class ConditionalAssociationResult:
     strata: tuple[CausalAssociationTest, ...]
     supported_strata: int
     supported: bool
+    statistical_support: bool = False
+    status: str = "no_eligible_stratum"
+    n_strata: int = 0
+    n_eligible_strata: int = 0
+    historical_supported_strata: int = 0
+    aggregation_rule: str = STRATA_AGGREGATION_RULE
+    nominal_alpha: float = 0.05
+    alpha_adjusted: float | None = None
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -112,6 +195,14 @@ class ConditionalAssociationResult:
             "strata": [item.to_dict() for item in self.strata],
             "supported_strata": self.supported_strata,
             "supported": self.supported,
+            "statistical_support": self.statistical_support,
+            "status": self.status,
+            "n_strata": self.n_strata,
+            "n_eligible_strata": self.n_eligible_strata,
+            "historical_supported_strata": self.historical_supported_strata,
+            "aggregation_rule": self.aggregation_rule,
+            "nominal_alpha": self.nominal_alpha,
+            "alpha_adjusted": self.alpha_adjusted,
         }
 
     def digest(self) -> str:
@@ -289,16 +380,12 @@ def temporal_precedence_audit(graph: object | None) -> CausalValidationReport:
     )
 
 
-def simple_association_test(
+def _exposure_counts(
     records: Sequence[Mapping[str, object]],
     *,
     action: str,
     outcome: str,
-    config: CausalValidationConfig | None = None,
-) -> CausalAssociationTest:
-    """Compute a small deterministic action/outcome association report."""
-
-    config = config or CausalValidationConfig()
+) -> tuple[int, int, int, int]:
     exposed_positive = exposed_total = unexposed_positive = unexposed_total = 0
     for record in records:
         is_exposed = record.get("action") == action
@@ -309,29 +396,138 @@ def simple_association_test(
         else:
             unexposed_total += 1
             unexposed_positive += int(observed)
+    return exposed_positive, exposed_total, unexposed_positive, unexposed_total
+
+
+def _legacy_empty_rate_supported(
+    records: Sequence[Mapping[str, object]],
+    *,
+    action: str,
+    outcome: str,
+    min_samples: int,
+    min_effect_size: float,
+    lower_floor: bool,
+) -> bool:
+    """Historical rule. A missing group was given rate 0, and alpha was ignored.
+
+    ``lower_floor`` is the old conditional path, which also reduced
+    ``min_samples`` to the stratum size. Neither path is a decision.
+    """
+
+    exposed_positive, exposed_total, unexposed_positive, unexposed_total = _exposure_counts(
+        records, action=action, outcome=outcome
+    )
     exposed_rate = exposed_positive / exposed_total if exposed_total else 0.0
     unexposed_rate = unexposed_positive / unexposed_total if unexposed_total else 0.0
-    effect = round(exposed_rate - unexposed_rate, 10)
-    p_value = _deterministic_permutation_p(
+    effect = exposed_rate - unexposed_rate
+    floor = min(min_samples, max(1, len(records))) if lower_floor else min_samples
+    return (exposed_total + unexposed_total) >= floor and abs(effect) >= min_effect_size
+
+
+def simple_association_test(
+    records: Sequence[Mapping[str, object]],
+    *,
+    action: str,
+    outcome: str,
+    config: CausalValidationConfig | None = None,
+    record_structure: str = "unspecified",
+) -> CausalAssociationTest:
+    """Action/outcome association with the comparison and the test kept apart.
+
+    ``effect_observed`` is the substantive rate difference. ``supported`` is
+    statistical support only: both exposure groups exist, the caller's
+    ``min_samples`` is met and is not reduced, ``record_structure`` is
+    ``independent``, and a two-sided Fisher exact p-value is at or below
+    ``alpha``. Changing ``alpha`` changes that decision.
+
+    A missing group is ``insufficient_comparison``. Its rate is not filled in
+    with zero, so the old ``effect_size == 1`` does not reappear.
+    ``historical_supported`` records that old pass and does not grant support.
+
+    ``temporal`` records are not treated as exchangeable trials. The historical
+    circular-shift p-value is stored and is not used for either structure.
+    """
+
+    config = config or CausalValidationConfig()
+    if record_structure not in RECORD_STRUCTURES:
+        raise ValueError(f"record_structure must be one of {RECORD_STRUCTURES}")
+    exposed_positive, exposed_total, unexposed_positive, unexposed_total = _exposure_counts(
+        records, action=action, outcome=outcome
+    )
+    n_records = exposed_total + unexposed_total
+    effect_defined = exposed_total > 0 and unexposed_total > 0
+    effect: float | None = None
+    if effect_defined:
+        effect = round(
+            exposed_positive / exposed_total - unexposed_positive / unexposed_total,
+            10,
+        )
+    effect_observed = bool(effect is not None and abs(effect) >= config.min_effect_size)
+    historical_p = _deterministic_permutation_p(
         records,
         action=action,
         outcome=outcome,
-        observed_effect=abs(effect),
+        observed_effect=abs(effect) if effect is not None else 1.0,
         rounds=config.bootstrap_rounds,
     )
-    supported = (exposed_total + unexposed_total) >= config.min_samples and abs(
-        effect
-    ) >= config.min_effect_size
+    historical = _legacy_empty_rate_supported(
+        records,
+        action=action,
+        outcome=outcome,
+        min_samples=config.min_samples,
+        min_effect_size=config.min_effect_size,
+        lower_floor=False,
+    )
+    fisher: float | None = None
+    if effect_defined:
+        fisher = _fisher_exact_two_sided(
+            exposed_positive,
+            exposed_total - exposed_positive,
+            unexposed_positive,
+            unexposed_total - unexposed_positive,
+        )
+    eligible = bool(
+        effect_defined and n_records >= config.min_samples and record_structure == "independent"
+    )
+    statistical = bool(eligible and fisher is not None and fisher <= config.alpha)
+    if not effect_defined:
+        status = "insufficient_comparison"
+        role = "not_applicable"
+    elif n_records < config.min_samples:
+        status = "insufficient_sample"
+        role = "descriptive_fisher_not_used"
+    elif record_structure == "unspecified":
+        status = "record_structure_unspecified"
+        role = "descriptive_fisher_not_used"
+    elif record_structure == "temporal":
+        status = "temporal_dependence_not_tested"
+        role = "descriptive_fisher_not_used"
+    else:
+        status = "tested"
+        role = "fisher_exact_two_sided"
     return CausalAssociationTest(
-        action,
-        outcome,
-        exposed_positive,
-        exposed_total,
-        unexposed_positive,
-        unexposed_total,
-        effect,
-        p_value,
-        supported,
+        action=action,
+        outcome=outcome,
+        exposed_positive=exposed_positive,
+        exposed_total=exposed_total,
+        unexposed_positive=unexposed_positive,
+        unexposed_total=unexposed_total,
+        effect_size=effect,
+        p_value=fisher,
+        supported=statistical,
+        status=status,
+        effect_defined=effect_defined,
+        effect_observed=effect_observed,
+        statistical_support=statistical,
+        alpha=config.alpha,
+        nominal_alpha=config.alpha,
+        record_structure=record_structure,
+        test_name=ASSOCIATION_ESTIMATOR,
+        p_value_role=role,
+        min_samples_applied=config.min_samples,
+        historical_supported=historical,
+        historical_circular_shift_p=historical_p,
+        eligible_for_family=eligible,
     )
 
 
@@ -342,27 +538,119 @@ def conditional_association_test(
     outcome: str,
     context_key: str,
     config: CausalValidationConfig | None = None,
+    record_structure: str = "unspecified",
 ) -> ConditionalAssociationResult:
+    """Per-context association. The sample floor is not lowered inside a stratum.
+
+    Aggregation is locked as ``bonferroni_eligible_strata_v1``: only strata
+    with both exposure groups, ``n >= min_samples`` and independent records
+    are tests. Their threshold is ``alpha / n_eligible``. One stratum surviving
+    that threshold is the conditional claim. Empty or single-record strata
+    are not tests and do not count toward support. The historical count, which
+    lowered ``min_samples`` to the stratum size and treated a missing group as
+    rate 0, is reported separately and is not the decision.
+    """
+
     config = config or CausalValidationConfig()
     buckets: dict[str, list[Mapping[str, object]]] = {}
     for record in records:
         buckets.setdefault(str(record.get(context_key, "missing")), []).append(record)
-    strata_items = []
-    for _, bucket in sorted(buckets.items()):
-        bucket_config = CausalValidationConfig(
+    ordered = [buckets[key] for key in sorted(buckets)]
+    drafts = [
+        simple_association_test(
+            bucket, action=action, outcome=outcome, config=config, record_structure=record_structure
+        )
+        for bucket in ordered
+    ]
+    eligible_buckets = [bucket for bucket, draft in zip(ordered, drafts, strict=True) if draft.eligible_for_family]
+    n_eligible = len(eligible_buckets)
+    adjusted = (config.alpha / n_eligible) if n_eligible else None
+    if adjusted is None:
+        strata = tuple(drafts)
+    else:
+        adjusted_config = CausalValidationConfig(
             min_effect_size=config.min_effect_size,
-            min_samples=min(config.min_samples, max(1, len(bucket))),
+            min_samples=config.min_samples,
             bootstrap_rounds=config.bootstrap_rounds,
-            alpha=config.alpha,
+            alpha=adjusted,
             require_intervention_for_causal_claim=config.require_intervention_for_causal_claim,
         )
-        strata_items.append(
-            simple_association_test(bucket, action=action, outcome=outcome, config=bucket_config)
+        strata_items = []
+        for bucket, draft in zip(ordered, drafts, strict=True):
+            if draft.eligible_for_family:
+                tested = simple_association_test(
+                    bucket,
+                    action=action,
+                    outcome=outcome,
+                    config=adjusted_config,
+                    record_structure=record_structure,
+                )
+                strata_items.append(
+                    CausalAssociationTest(
+                        action=tested.action,
+                        outcome=tested.outcome,
+                        exposed_positive=tested.exposed_positive,
+                        exposed_total=tested.exposed_total,
+                        unexposed_positive=tested.unexposed_positive,
+                        unexposed_total=tested.unexposed_total,
+                        effect_size=tested.effect_size,
+                        p_value=tested.p_value,
+                        supported=tested.supported,
+                        status=tested.status,
+                        effect_defined=tested.effect_defined,
+                        effect_observed=tested.effect_observed,
+                        statistical_support=tested.statistical_support,
+                        alpha=tested.alpha,
+                        nominal_alpha=config.alpha,
+                        record_structure=tested.record_structure,
+                        test_name=tested.test_name,
+                        p_value_role=tested.p_value_role,
+                        min_samples_applied=config.min_samples,
+                        historical_supported=tested.historical_supported,
+                        historical_circular_shift_p=tested.historical_circular_shift_p,
+                        eligible_for_family=tested.eligible_for_family,
+                    )
+                )
+            else:
+                strata_items.append(draft)
+        strata = tuple(strata_items)
+    supported_strata = sum(1 for item in strata if item.statistical_support)
+    historical_strata = sum(
+        1
+        for bucket in ordered
+        if _legacy_empty_rate_supported(
+            bucket,
+            action=action,
+            outcome=outcome,
+            min_samples=config.min_samples,
+            min_effect_size=config.min_effect_size,
+            lower_floor=True,
         )
-    strata = tuple(strata_items)
-    supported_strata = sum(1 for item in strata if item.supported)
+    )
+    if record_structure != "independent":
+        status = "record_structure_unspecified" if record_structure == "unspecified" else "temporal_dependence_not_tested"
+    elif n_eligible == 0:
+        status = "no_eligible_stratum"
+    elif supported_strata > 0:
+        status = "statistical_support"
+    else:
+        status = "not_significant"
+    statistical = supported_strata > 0
     return ConditionalAssociationResult(
-        action, outcome, context_key, strata, supported_strata, supported_strata > 0
+        action=action,
+        outcome=outcome,
+        context_key=context_key,
+        strata=strata,
+        supported_strata=supported_strata,
+        supported=statistical,
+        statistical_support=statistical,
+        status=status,
+        n_strata=len(strata),
+        n_eligible_strata=n_eligible,
+        historical_supported_strata=historical_strata,
+        aggregation_rule=STRATA_AGGREGATION_RULE,
+        nominal_alpha=config.alpha,
+        alpha_adjusted=adjusted,
     )
 
 
@@ -390,6 +678,7 @@ def validate_causal_graph(
     ground_truth: CausalPredictionAccuracyReport | None = None,
     manifest_digest: str | None = None,
     config: CausalValidationConfig | None = None,
+    record_structure: str = "unspecified",
 ) -> CausalValidationReport:
     """Build a bounded causal validation report from available evidence.
 
@@ -406,17 +695,34 @@ def validate_causal_graph(
     edge_count = len(getattr(graph, "edges", ()) or ()) if graph is not None else 0
 
     if events and action is not None and outcome is not None:
-        association = simple_association_test(events, action=action, outcome=outcome, config=config)
-        if association.supported:
+        association = simple_association_test(
+            events,
+            action=action,
+            outcome=outcome,
+            config=config,
+            record_structure=record_structure,
+        )
+        if association.statistical_support and association.effect_observed:
             levels.append(CausalEvidenceLevel.ASSOCIATION)
             decision = CausalClaimDecision.ASSOCIATION_SUPPORTED
+        elif association.status == "insufficient_comparison":
+            limitations.append("insufficient_comparison")
+        elif association.effect_observed and not association.statistical_support:
+            limitations.append("effect_without_statistical_support")
     if events and action is not None and outcome is not None and context_key is not None:
         conditional = conditional_association_test(
-            events, action=action, outcome=outcome, context_key=context_key, config=config
+            events,
+            action=action,
+            outcome=outcome,
+            context_key=context_key,
+            config=config,
+            record_structure=record_structure,
         )
-        if conditional.supported:
+        if conditional.statistical_support:
             levels.append(CausalEvidenceLevel.CONDITIONAL_ASSOCIATION)
             decision = CausalClaimDecision.CONDITIONAL_ASSOCIATION_SUPPORTED
+        elif conditional.historical_supported_strata and not conditional.statistical_support:
+            limitations.append("historical_strata_pass_is_not_statistical_support")
     if intervention is not None and intervention.supported:
         levels.append(CausalEvidenceLevel.INTERVENTIONAL_SUPPORT)
         decision = CausalClaimDecision.INTERVENTIONAL_SUPPORT

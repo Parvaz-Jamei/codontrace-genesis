@@ -33,7 +33,7 @@ def test_event_graph_canonical_and_causal_graph_alias_temporal_association():
 
 
 def test_predictive_probe_records_lags_controls_and_no_intervention_claim():
-    probe = granger_lite_probe([0, 1, 2, 3], [0, 0, 1, 2], max_lag=1)
+    probe = granger_lite_probe([0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 2, 3, 4, 5], max_lag=1)
     assert probe.selected_lag == 1
     assert probe.tested_lags == (1,)
     assert probe.evidence_level == "lagged_predictive_support"

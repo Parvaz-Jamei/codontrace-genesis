@@ -141,6 +141,9 @@ def test_mypy_is_optional_and_the_ledger_gate_is_not() -> None:
     assert ledger["mypy"]["required"] is False
     assert "continue-on-error: true" in blocks["lint-type"]
     assert "continue-on-error" not in blocks["verdict-ledger"]
+    assert "continue-on-error" not in blocks["published-manifests"]
+    assert "tests/test_published_manifests.py" in blocks["published-manifests"]
+    assert "test_property_balance_identity_and_parents" in blocks["published-manifests"]
     for relative in (
         "tests/test_fork_checkpoint.py",
         "tests/test_antagonist_energy_accounting.py",

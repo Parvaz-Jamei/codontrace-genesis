@@ -49,3 +49,15 @@ def test_manifest_skips_self_cache_and_matches_lf_checkout(tmp_path: Path) -> No
         line for line in raw_path.read_text(encoding="utf-8").splitlines() if line.endswith("note.md")
     )
     assert lf_note.split()[0] != raw_note.split()[0]
+
+
+def test_a_changed_file_or_an_unlisted_file_fails_verification(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text("alpha\n", encoding="utf-8")
+    lf_path, raw_path = write_manifests(tmp_path)
+    note.write_text("beta\n", encoding="utf-8")
+    assert verify_manifest(lf_path) == ["mismatch note.md"]
+    assert verify_manifest(raw_path) == ["mismatch note.md"]
+    (tmp_path / "extra.md").write_text("new\n", encoding="utf-8")
+    assert "unlisted extra.md" in verify_manifest(lf_path)
+    assert "unlisted extra.md" in verify_manifest(raw_path)

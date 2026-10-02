@@ -163,6 +163,12 @@ def test_negative_and_unknown_contacts_are_rejected() -> None:
         )
 
 
+def test_hypothesis_is_installed_for_the_energy_property() -> None:
+    import hypothesis
+
+    assert hypothesis.__version__
+
+
 def test_property_balance_identity_and_parents() -> None:
     pytest.importorskip("hypothesis")
     from hypothesis import given

@@ -141,6 +141,14 @@ def build_idea4_engine_spec(
     )
 
 
+def _valid_census_id(value: object) -> str | None:
+    """An organism id that can be a pedigree node. Blank and padded ids are not."""
+
+    if not isinstance(value, str) or not value or value != value.strip():
+        return None
+    return value
+
+
 def _lineage_after_checkpoint(
     census_history: list[list[dict[str, str]]],
     *,
@@ -172,12 +180,16 @@ def _lineage_after_checkpoint(
     ck_genomes = {row["genome"] for row in checkpoint}
     seen: set[str] = set()
     for earlier in census_history[: idx + 1]:
-        seen.update(row["id"] for row in earlier if row.get("id"))
+        for row in earlier:
+            identified = _valid_census_id(row.get("id"))
+            if identified is not None:
+                seen.add(identified)
     birth_ids: set[str] = set()
     novel_genomes: set[str] = set()
     missing: set[str] = set()
     regained: set[str] = set()
     links_ok = True
+    invalid_births = 0
     for later in census_history[idx + 1 :]:
         present = {row["genome"] for row in later}
         for genome in ck_genomes:
@@ -185,16 +197,23 @@ def _lineage_after_checkpoint(
                 missing.add(genome)
             elif genome in missing:
                 regained.add(genome)
+        frame_ids: list[str] = []
         for row in later:
-            if row["id"] in seen:
+            child = _valid_census_id(row.get("id"))
+            if child is None:
+                invalid_births += 1
+                links_ok = False
                 continue
-            birth_ids.add(row["id"])
-            parent = row.get("parent_id", "")
-            if not parent or parent == row["id"] or parent not in seen:
+            frame_ids.append(child)
+            if child in seen:
+                continue
+            birth_ids.add(child)
+            parent = _valid_census_id(row.get("parent_id"))
+            if parent is None or parent == child or parent not in seen:
                 links_ok = False
             if row["genome"] not in ck_genomes:
                 novel_genomes.add(row["genome"])
-        seen.update(row["id"] for row in later if row.get("id"))
+        seen.update(frame_ids)
     # A new genome is ordinary reproduction. Recovery is a checkpoint genome
     # that disappears and is present again later. Background births do not open
     # the window gate. No birth means the parent link was not exercised.
@@ -202,12 +221,12 @@ def _lineage_after_checkpoint(
         "lineage_branching_real": bool(birth_ids),
         "innovation_observable": bool(novel_genomes),
         "lost_then_regained": bool(regained),
-        "n_births_after_checkpoint": len(birth_ids),
+        "n_births_after_checkpoint": len(birth_ids) + invalid_births,
         "n_novel_genomes_after_checkpoint": len(novel_genomes),
         "n_regained_genomes": len(regained),
         "checkpoint_organism_ids": sorted(ck_ids),
         "checkpoint_genome_digests": sorted(ck_genomes),
-        "parent_child_ids_recorded": bool(birth_ids) and links_ok,
+        "parent_child_ids_recorded": bool(birth_ids) and invalid_births == 0 and links_ok,
     }
 
 
@@ -227,6 +246,8 @@ def run_idea4_engine_cell(
     ecology-coupled rare-class ATP only (no recovery_progress multiplier).
     """
 
+    if isinstance(seed, bool) or isinstance(t_intervene, bool) or isinstance(t_horizon, bool):
+        raise ConfigurationError("seed, t_intervene, and t_horizon must be integers, not booleans.")
     if ops_cell not in OPS_CELLS:
         raise ConfigurationError(f"unknown Idea4 ops_cell {ops_cell!r}.")
     if int(t_intervene) < 1:
@@ -306,12 +327,16 @@ def run_idea4_engine_cell(
     fork = cell_holder.get("checkpoint_fork")
     checkpoint_fork_complete = False
     if isinstance(fork, dict):
-        restored = GenesisEngine.from_fork(spec, fork)
+        restored = GenesisEngine.from_fork(spec, fork, require_exact=True)
         frozen = str(fork.get("state_digest", ""))
+        live_population = fork.get("live_objects", {}).get("population")
         checkpoint_fork_complete = bool(
             frozen
+            and restored.fork_state_exact is True
             and str(restored._state_digest()) == frozen
             and str(engine._state_digest()) != frozen
+            and restored.runner.population is not engine.runner.population
+            and restored.runner.population is not live_population
         )
     # Rare-class yield rebound is not recovery of a genotype innovation.
     rare_yield_rebound = _score_recover(

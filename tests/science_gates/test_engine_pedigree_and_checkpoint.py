@@ -18,6 +18,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from codontrace.errors import ConfigurationError
 from codontrace.genesis import GenesisEngine, GenesisRuntimeProfile
 from codontrace.genesis.campaigns.discovery_q_20260928_idea2_engine import (
     run_idea2_engine_cell,
@@ -152,3 +155,41 @@ def test_idea2_counter_stays_a_counter() -> None:
         assert row["parent_child_lineage_recorded"] is False
         assert row["hypothesis_supported"] is False
         assert row["red_queen_proved"] is False
+
+
+def test_blank_ids_and_a_later_parent_cannot_pass() -> None:
+    blank = [
+        [_row("A", "gA")],
+        [_row("A", "gA")],
+        [_row("A", "gA"), _row("", "gB", "A"), _row("  B", "gC", "A")],
+    ]
+    hidden = _lineage_after_checkpoint(blank, t_intervene=2)
+    assert hidden["n_births_after_checkpoint"] == 2
+    assert hidden["parent_child_ids_recorded"] is False
+
+    padded_parent = [
+        [_row("A", "gA")],
+        [_row("A", "gA")],
+        [_row("A", "gA"), _row("B", "gB", " A")],
+    ]
+    assert (
+        _lineage_after_checkpoint(padded_parent, t_intervene=2)["parent_child_ids_recorded"]
+        is False
+    )
+
+    future_parent = [
+        [_row("A", "gA")],
+        [_row("A", "gA")],
+        [_row("A", "gA"), _row("B", "gB", "C")],
+        [_row("A", "gA"), _row("B", "gB", "C"), _row("C", "gC", "A")],
+    ]
+    late = _lineage_after_checkpoint(future_parent, t_intervene=2)
+    assert late["n_births_after_checkpoint"] == 2
+    assert late["parent_child_ids_recorded"] is False
+
+
+def test_a_boolean_horizon_is_refused() -> None:
+    with pytest.raises(ConfigurationError, match="boolean"):
+        run_idea4_engine_cell(
+            seed=301, ops_cell="control", t_intervene=True, t_horizon=5, population=4
+        )

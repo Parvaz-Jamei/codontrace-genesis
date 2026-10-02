@@ -36,24 +36,35 @@ def _comparison(effect_size, ci_low, ci_high, p) -> ClaimgateComparison:
 
 def test_single_pair_interval_cannot_exclude_zero():
     report = build_causal_evidence_report((_pair(1.0, 2.0),))
-    low, high = report.effect.confidence_interval
     assert report.effect.effect_size == 1.0
-    assert low == 0.0 and high == 0.0
-    assert not _ci_excludes_zero(low, high)
+    assert report.effect.confidence_interval is None
+    assert report.effect.interval_defined is False
+    assert report.effect.interval_status == "insufficient_sample"
+    assert report.effect.statistical_support is False
+    assert report.failure_status == "insufficient_sample"
+    assert report.claim_eligible is False
+    assert not _ci_excludes_zero(None, None)
 
 
 def test_two_pairs_interval_is_a_real_interval():
     report = build_causal_evidence_report((_pair(1.0, 2.0), _pair(1.0, 2.5)))
-    low, high = report.effect.confidence_interval
+    low, high = report.effect.confidence_interval or (None, None)
+    assert low is not None and high is not None
     assert low < report.effect.effect_size < high
     assert low < high
+    assert report.effect.interval_defined is True
+    assert report.effect.estimator == "student_t_paired_mean_v2"
 
 
 def test_zero_variance_pairs_do_not_mint_a_difference():
     report = build_causal_evidence_report((_pair(1.0, 2.0), _pair(1.0, 2.0)))
-    low, high = report.effect.confidence_interval
-    assert low == high == 0.0
-    assert not _ci_excludes_zero(low, high)
+    assert report.effect.effect_size == 1.0
+    assert report.effect.confidence_interval is None
+    assert report.effect.interval_status == "degenerate_variance"
+    assert report.effect.statistical_support is False
+    assert report.failure_status == "degenerate_variance"
+    assert report.claim_eligible is False
+    assert not _ci_excludes_zero(None, None)
 
 
 @pytest.mark.parametrize(

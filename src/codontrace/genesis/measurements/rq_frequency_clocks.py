@@ -424,6 +424,12 @@ def host_realised_pressure_from_contacts(
 DEFAULT_CLUSTER_BOOTSTRAP_RESAMPLES = 10_000
 #: Pre-registered cluster-bootstrap seed (`PREREG_V2.md` T18).
 DEFAULT_CLUSTER_BOOTSTRAP_SEED = 20260928
+#: Auditor floor from STATS_AND_NULL_DESIGN.md section 6. It is the smallest n
+#: at which this percentile interval may be read as an inferential statement.
+#: It is not a power-based confirmatory sample size, and n>=2 is not enough.
+CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS = 16
+CLUSTER_BOOTSTRAP_METHOD = "run_level_cluster_bootstrap_percentile_v2"
+HISTORICAL_CLUSTER_BOOTSTRAP_METHOD = "run_level_cluster_bootstrap_percentile"
 #: Units of the swap-signal (same currency as :func:`realised_conditional_host_pressure`).
 SWAP_SIGNAL_UNITS = "atp_per_host_per_contact_opportunity"
 
@@ -522,22 +528,76 @@ def run_level_cluster_bootstrap_interval(
 ) -> dict[str, object]:
     """Percentile cluster bootstrap over runs (the unit of replication).
 
-    A run is one cluster and contributes one summary value, so resampling runs
-    with replacement is the pre-registered interval method
-    (`STATS_AND_NULL_DESIGN.md` section 2, `PREREG_V2.md` T17/T18). Generation-
-    level values are never resampled here: they are dependent within a run.
+    A run is one cluster. Resampling runs with replacement is the interval
+    method in ``STATS_AND_NULL_DESIGN.md`` section 2. Generation-level values
+    are never resampled here.
+
+    ``n_resamples`` is not a sample size. One run cannot estimate between-run
+    variability, so it is not an interval and ``excludes_zero`` is false no
+    matter how many times that single value is redrawn. A sample with no
+    between-run variance is the same: the point estimate is kept and no
+    confidence interval is invented at that point. Fewer than
+    ``CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS`` runs can still return a
+    descriptive percentile, but that percentile is not an inferential decision.
+    Meeting the floor is necessary for this method and is still not a
+    power-based confirmatory n.
     """
 
-    values = [float(v) for v in run_values]
-    if not values:
-        raise ValueError("run_values is empty")
     if n_resamples < 1:
         raise ValueError("n_resamples must be >= 1")
-    if not 0.0 < alpha < 1.0:
+    if isinstance(alpha, bool) or not isinstance(alpha, (int, float)) or not 0.0 < float(alpha) < 1.0:
         raise ValueError("alpha must be in (0, 1)")
+    if not run_values:
+        raise ValueError("run_values is empty")
+    values: list[float] = []
+    for value in run_values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("run_values must be finite numbers")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("run_values must be finite numbers")
+        values.append(number)
 
     n = len(values)
     point = sum(values) / n
+    base = {
+        "point": point,
+        "n_runs": n,
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "alpha": float(alpha),
+        "method": CLUSTER_BOOTSTRAP_METHOD,
+        "historical_method": HISTORICAL_CLUSTER_BOOTSTRAP_METHOD,
+        "unit_of_replication": "run",
+        "design_min_runs": CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS,
+        "design_floor_source": "STATS_AND_NULL_DESIGN.md section 6 auditor floor; not a power calculation",
+    }
+    if n < 2:
+        return {
+            **base,
+            "lo": point,
+            "hi": point,
+            "interval_defined": False,
+            "inferential_eligible": False,
+            "excludes_zero": False,
+            "percentile_excludes_zero": False,
+            "status": "insufficient_runs",
+            "variability": "between_run_variability_not_estimable",
+        }
+    variance = sum((value - point) ** 2 for value in values) / (n - 1)
+    if variance <= 0.0:
+        return {
+            **base,
+            "lo": point,
+            "hi": point,
+            "interval_defined": False,
+            "inferential_eligible": False,
+            "excludes_zero": False,
+            "percentile_excludes_zero": False,
+            "status": "degenerate_variance",
+            "variability": "no_between_run_variance",
+        }
+
     rng = RNGManager(seed=int(seed), namespace="run_level_cluster_bootstrap")
     samples: list[float] = []
     for _ in range(n_resamples):
@@ -556,19 +616,20 @@ def run_level_cluster_bootstrap_interval(
         frac = pos - lo
         return samples[lo] * (1.0 - frac) + samples[hi] * frac
 
-    lo = _percentile(alpha / 2.0)
-    hi = _percentile(1.0 - alpha / 2.0)
+    lo = _percentile(float(alpha) / 2.0)
+    hi = _percentile(1.0 - float(alpha) / 2.0)
+    percentile_excludes = bool(lo > 0.0 or hi < 0.0)
+    eligible = n >= CLUSTER_BOOTSTRAP_AUDITOR_FLOOR_RUNS
     return {
-        "point": point,
+        **base,
         "lo": lo,
         "hi": hi,
-        "n_runs": n,
-        "n_resamples": int(n_resamples),
-        "seed": int(seed),
-        "alpha": float(alpha),
-        "excludes_zero": bool(lo > 0.0 or hi < 0.0),
-        "method": "run_level_cluster_bootstrap_percentile",
-        "unit_of_replication": "run",
+        "interval_defined": True,
+        "inferential_eligible": eligible,
+        "excludes_zero": bool(eligible and percentile_excludes),
+        "percentile_excludes_zero": percentile_excludes,
+        "status": "percentile_interval" if eligible else "below_auditor_floor",
+        "variability": "between_run",
     }
 
 

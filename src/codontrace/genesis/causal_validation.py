@@ -1010,21 +1010,51 @@ class CausalInterventionRunPair:
 @dataclass(frozen=True, slots=True)
 class CausalEffectEstimate:
     effect_size: float
-    confidence_interval: tuple[float, float]
+    confidence_interval: tuple[float, float] | None
     sample_count: int
     non_finite_guard_status: str = "passed"
     schema_version: str = "causal_effect_estimate_v1"
+    interval_defined: bool = True
+    interval_status: str = "student_t_95"
+    statistical_support: bool = False
+    estimator: str = "student_t_paired_mean_v2"
+    df: int | None = None
+    critical_value: float | None = None
 
     def __post_init__(self) -> None:
         from codontrace.genesis.canonical import require_finite_float
         object.__setattr__(self, "effect_size", require_finite_float("effect_size", self.effect_size))
-        lo, hi = self.confidence_interval
-        object.__setattr__(self, "confidence_interval", (require_finite_float("ci_low", lo), require_finite_float("ci_high", hi)))
+        if self.confidence_interval is None:
+            if self.interval_defined:
+                raise ConfigurationError("an undefined interval has no endpoints")
+        else:
+            if not self.interval_defined:
+                raise ConfigurationError("endpoints were supplied for an undefined interval")
+            lo, hi = self.confidence_interval
+            lo = require_finite_float("ci_low", lo)
+            hi = require_finite_float("ci_high", hi)
+            if lo > hi:
+                raise ConfigurationError("ci_low cannot exceed ci_high")
+            object.__setattr__(self, "confidence_interval", (lo, hi))
+        if self.critical_value is not None:
+            object.__setattr__(self, "critical_value", require_finite_float("critical_value", self.critical_value, non_negative=True))
         if self.sample_count < 0:
             raise ConfigurationError("sample_count must be non-negative")
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {"schema_version": self.schema_version, "effect_size": self.effect_size, "confidence_interval": list(self.confidence_interval), "sample_count": self.sample_count, "non_finite_guard_status": self.non_finite_guard_status}
+        return {
+            "schema_version": self.schema_version,
+            "effect_size": self.effect_size,
+            "confidence_interval": None if self.confidence_interval is None else list(self.confidence_interval),
+            "sample_count": self.sample_count,
+            "non_finite_guard_status": self.non_finite_guard_status,
+            "interval_defined": self.interval_defined,
+            "interval_status": self.interval_status,
+            "statistical_support": self.statistical_support,
+            "estimator": self.estimator,
+            "df": self.df,
+            "critical_value": self.critical_value,
+        }
 
     def digest(self) -> str:
         from codontrace.genesis.canonical import canonical_digest
@@ -1057,37 +1087,246 @@ _T975_BY_DF: dict[int, float] = {
     22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048,
     29: 2.045, 30: 2.042,
 }
+# Historical only. df > 30 used to fall through to the normal 1.96. That cliff
+# is not a Student-t quantile (at df=31 the 0.975 quantile is about 2.0395).
+PAIRED_MEAN_ESTIMATOR = "student_t_paired_mean_v2"
+HISTORICAL_PAIRED_ESTIMATOR = "t_table_through_df30_then_1.96_v0"
+_NORMAL_975 = 1.96
+
+
+def _historical_t975(df: int) -> float:
+    """Old critical value: three-decimal table through df=30, then 1.96."""
+
+    return _T975_BY_DF.get(df, _NORMAL_975)
+
+
+def _betacf(a: float, b: float, x: float) -> float:
+    """Modified Lentz continued fraction for the incomplete-beta tail."""
+
+    qab = a + b
+    qap = a + 1.0
+    qam = a - 1.0
+    c = 1.0
+    d = 1.0 - qab * x / qap
+    if abs(d) < 1e-30:
+        d = 1e-30
+    d = 1.0 / d
+    h = d
+    for m in range(1, 201):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        if abs(d) < 1e-30:
+            d = 1e-30
+        c = 1.0 + aa / c
+        if abs(c) < 1e-30:
+            c = 1e-30
+        d = 1.0 / d
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        if abs(d) < 1e-30:
+            d = 1e-30
+        c = 1.0 + aa / c
+        if abs(c) < 1e-30:
+            c = 1e-30
+        d = 1.0 / d
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) <= 3e-14:
+            return h
+    raise ConfigurationError("incomplete-beta continued fraction did not converge")
+
+
+def _regularized_incomplete_beta(a: float, b: float, x: float) -> float:
+    """Regularized incomplete beta I_x(a, b). Same continued fraction scipy uses."""
+
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    log_bt = (
+        math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+        + a * math.log(x) + b * math.log(1.0 - x)
+    )
+    bt = math.exp(log_bt)
+    if x < (a + 1.0) / (a + b + 2.0):
+        return bt * _betacf(a, b, x) / a
+    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
+
+
+def _inverse_regularized_beta(a: float, b: float, p: float) -> float:
+    """Inverse of I_x(a, b) by bisection. Used only to invert the t identity."""
+
+    if p <= 0.0:
+        return 0.0
+    if p >= 1.0:
+        return 1.0
+    lo = 0.0
+    hi = 1.0
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if _regularized_incomplete_beta(a, b, mid) < p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def student_t_quantile(df: int, probability: float = 0.975) -> float:
+    """Upper Student-t quantile. No normal approximation and no df cutoff.
+
+    For q > 1/2 the identity used by ``scipy.stats.t.ppf`` is
+    ``t = sqrt(df * (1 - x) / x)`` with ``x = I^{-1}_{2(1-q)}(df/2, 1/2)``.
+    The df → ∞ limit is the normal quantile. It is not substituted at df=31.
+    """
+
+    if isinstance(df, bool) or not isinstance(df, int) or df < 1:
+        raise ConfigurationError("df must be an integer >= 1")
+    if isinstance(probability, bool) or not isinstance(probability, (int, float)):
+        raise ConfigurationError("probability must be in (0.5, 1)")
+    q = float(probability)
+    if not math.isfinite(q) or not 0.5 < q < 1.0:
+        raise ConfigurationError("probability must be in (0.5, 1)")
+    x = _inverse_regularized_beta(df / 2.0, 0.5, 2.0 * (1.0 - q))
+    if x <= 0.0:
+        raise ConfigurationError("Student-t quantile is undefined for this tail")
+    return math.sqrt(df * (1.0 - x) / x)
+
+
+def _finite_deltas(deltas: Sequence[float]) -> list[float]:
+    out: list[float] = []
+    for value in deltas:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ConfigurationError("paired deltas must be finite numbers")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ConfigurationError("paired deltas must be finite numbers")
+        out.append(number)
+    return out
+
+
+@dataclass(frozen=True, slots=True)
+class PairedMeanInterval:
+    """95% interval for a mean of independent paired deltas.
+
+    ``statistical_support`` is true only when a real Student-t interval is
+    defined and excludes zero. A missing dispersion estimate is not an
+    interval at the origin, and it is not support.
+    """
+
+    point: float | None
+    low: float | None
+    high: float | None
+    n: int
+    status: str
+    interval_defined: bool
+    statistical_support: bool
+    df: int | None = None
+    critical: float | None = None
+    historical_critical: float | None = None
+    historical_low: float | None = None
+    historical_high: float | None = None
+    estimator: str = PAIRED_MEAN_ESTIMATOR
+    historical_estimator: str = HISTORICAL_PAIRED_ESTIMATOR
+
+    def endpoints(self) -> tuple[float, float]:
+        if not self.interval_defined or self.low is None or self.high is None:
+            raise ConfigurationError(f"paired interval is not defined ({self.status})")
+        return (self.low, self.high)
+
+
+def paired_mean_interval(deltas: Sequence[float]) -> PairedMeanInterval:
+    """Student-t interval for the mean. The 1.96 cliff at df>30 is gone.
+
+    One observation, or two or more identical observations, has no residual
+    degrees of freedom that can be turned into a confidence interval. The
+    point estimate is kept. The old helper returned ``(0, 0)`` in both cases
+    and that placeholder is not reproduced.
+    """
+
+    values = _finite_deltas(deltas)
+    n = len(values)
+    if n == 0:
+        return PairedMeanInterval(None, None, None, 0, "empty", False, False)
+    point = round(sum(values) / n, 10)
+    if n < 2:
+        return PairedMeanInterval(point, None, None, n, "insufficient_sample", False, False)
+    variance = sum((value - (sum(values) / n)) ** 2 for value in values) / (n - 1)
+    df = n - 1
+    historical = _historical_t975(df)
+    if variance <= 0.0:
+        return PairedMeanInterval(
+            point, None, None, n, "degenerate_variance", False, False,
+            df=df, historical_critical=historical,
+        )
+    mean = sum(values) / n
+    standard_error = math.sqrt(variance / n)
+    critical = student_t_quantile(df)
+    half = critical * standard_error
+    historical_half = historical * standard_error
+    low = round(mean - half, 10)
+    high = round(mean + half, 10)
+    return PairedMeanInterval(
+        point=round(mean, 10),
+        low=low,
+        high=high,
+        n=n,
+        status="student_t_95",
+        interval_defined=True,
+        statistical_support=bool(low > 0.0 or high < 0.0),
+        df=df,
+        critical=critical,
+        historical_critical=historical,
+        historical_low=round(mean - historical_half, 10),
+        historical_high=round(mean + historical_half, 10),
+    )
 
 
 def _paired_interval(deltas: Sequence[float]) -> tuple[float, float]:
-    """Return a 95% t interval for the mean paired delta.
+    """Endpoints of a defined 95% paired-t interval.
 
-    A single pair carries no information about dispersion, so it returns a
-    zero-width interval at the origin rather than at the mean. The zero-width
-    interval cannot be read as excluding zero, so a one-pair report can never
-    look like evidence of a difference (see claimgate.auditor).
+    Raises when the interval is not defined. The historical ``(0, 0)``
+    placeholder is not a confidence interval for the mean.
     """
 
-    if len(deltas) < 2:
-        return (0.0, 0.0)
-    mean = sum(deltas) / len(deltas)
-    variance = sum((value - mean) ** 2 for value in deltas) / (len(deltas) - 1)
-    if variance <= 0.0:
-        return (0.0, 0.0)
-    standard_error = (variance / len(deltas)) ** 0.5
-    critical = _T975_BY_DF.get(len(deltas) - 1, 1.96)
-    half_width = critical * standard_error
-    return (round(mean - half_width, 10), round(mean + half_width, 10))
+    return paired_mean_interval(deltas).endpoints()
 
 
 def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair]) -> CausalEvidenceReport:
     pairs = tuple(run_pairs)
     if not pairs:
-        effect = CausalEffectEstimate(0.0, (0.0, 0.0), 0)
+        effect = CausalEffectEstimate(
+            0.0, None, 0, interval_defined=False, interval_status="not_run",
+            statistical_support=False, estimator=PAIRED_MEAN_ESTIMATOR,
+        )
         return CausalEvidenceReport((), effect, "not_run")
     deltas = [pair.paired_delta for pair in pairs]
-    mean = round(sum(deltas) / len(deltas), 10)
-    effect = CausalEffectEstimate(mean, _paired_interval(deltas), len(pairs))
+    interval = paired_mean_interval(deltas)
+    if not interval.interval_defined or interval.low is None or interval.high is None:
+        effect = CausalEffectEstimate(
+            0.0 if interval.point is None else interval.point,
+            None,
+            len(pairs),
+            interval_defined=False,
+            interval_status=interval.status,
+            statistical_support=False,
+            estimator=interval.estimator,
+            df=interval.df,
+            critical_value=interval.critical,
+        )
+        return CausalEvidenceReport(pairs, effect, interval.status)
+    effect = CausalEffectEstimate(
+        0.0 if interval.point is None else interval.point,
+        (interval.low, interval.high),
+        len(pairs),
+        interval_defined=True,
+        interval_status=interval.status,
+        statistical_support=interval.statistical_support,
+        estimator=interval.estimator,
+        df=interval.df,
+        critical_value=interval.critical,
+    )
     isolated = all(pair.spec.isolated_factor for pair in pairs)
     return CausalEvidenceReport(pairs, effect, "passed" if isolated else "intervention_not_isolated")
 

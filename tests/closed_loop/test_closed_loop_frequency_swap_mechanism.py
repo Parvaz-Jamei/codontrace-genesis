@@ -386,12 +386,19 @@ def test_run_level_cluster_bootstrap_is_over_runs_not_generations() -> None:
 
     degenerate = run_level_cluster_bootstrap_interval([0.5, 0.5, 0.5, 0.5], n_resamples=200, seed=7)
     assert degenerate["n_runs"] == 4
-    assert degenerate["lo"] == degenerate["hi"] == 0.5
-    assert degenerate["excludes_zero"] is True
+    assert degenerate["n_resamples"] == 200
+    assert degenerate["point"] == 0.5
+    assert degenerate["interval_defined"] is False
+    assert degenerate["excludes_zero"] is False
+    assert degenerate["inferential_eligible"] is False
+    assert degenerate["status"] == "degenerate_variance"
     assert degenerate["unit_of_replication"] == "run"
 
     spread = run_level_cluster_bootstrap_interval([-0.30, -0.20, -0.10, 0.05], n_resamples=4000, seed=7)
     assert spread["lo"] < float(spread["point"]) < spread["hi"]
+    assert spread["inferential_eligible"] is False
+    assert spread["status"] == "below_auditor_floor"
+    assert spread["excludes_zero"] is False
     again = run_level_cluster_bootstrap_interval([-0.30, -0.20, -0.10, 0.05], n_resamples=4000, seed=7)
     assert (spread["lo"], spread["hi"]) == (again["lo"], again["hi"])
 

@@ -1518,19 +1518,32 @@ def _isolation_status(spec: InterventionSpec) -> str:
 
 
 def _identity_complete(pair: CausalInterventionRunPair) -> bool:
-    return bool(pair.run_id) and pair.seed is not None and bool(pair.history_id)
+    return (
+        bool(pair.run_id)
+        and pair.seed is not None
+        and bool(pair.history_id)
+        and bool(pair.spec.intervention_id.strip())
+    )
 
 
 def _unit_key(pair: CausalInterventionRunPair) -> tuple[object, ...]:
     """One experimental unit. A checkpoint of that unit is not another unit.
 
-    Hurlbert (1984) simple pseudoreplication: subsamples and repeated measures
-    of one unit are not replicates. An unidentified row collapses only with an
-    exact copy of itself; it still cannot support a claim.
+    The unit is one intervention on one history. A later checkpoint of that
+    same intervention is a repeated measure (Hurlbert 1984), not a second
+    replicate. A different intervention_id is a different experiment, even
+    on the same seed. An unidentified row collapses only with an exact copy
+    of itself and still cannot support a claim.
     """
 
     if _identity_complete(pair):
-        return ("unit", pair.history_id, pair.seed, pair.run_id)
+        return (
+            "unit",
+            pair.history_id,
+            pair.seed,
+            pair.run_id,
+            pair.spec.intervention_id.strip(),
+        )
     return ("unidentified", pair.digest())
 
 

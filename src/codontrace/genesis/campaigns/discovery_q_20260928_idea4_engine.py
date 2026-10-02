@@ -141,7 +141,8 @@ def _lineage_after_checkpoint(
 
     The rare ledger tag is not an innovation. A birth is an organism id that
     was absent at the checkpoint. An innovation is a birth whose genome digest
-    was also absent at the checkpoint.
+    was also absent at the checkpoint. A parent link counts only when that
+    birth names a parent id already present in an earlier census.
     """
 
     idx = int(t_intervene) - 1
@@ -155,14 +156,19 @@ def _lineage_after_checkpoint(
             "lost_then_regained": False,
             "checkpoint_organism_ids": [],
             "checkpoint_genome_digests": [],
+            "parent_child_ids_recorded": False,
         }
     checkpoint = census_history[idx]
     ck_ids = {row["id"] for row in checkpoint}
     ck_genomes = {row["genome"] for row in checkpoint}
+    seen: set[str] = set()
+    for earlier in census_history[: idx + 1]:
+        seen.update(row["id"] for row in earlier if row.get("id"))
     birth_ids: set[str] = set()
     novel_genomes: set[str] = set()
     missing: set[str] = set()
     regained: set[str] = set()
+    links_ok = True
     for later in census_history[idx + 1 :]:
         present = {row["genome"] for row in later}
         for genome in ck_genomes:
@@ -171,14 +177,18 @@ def _lineage_after_checkpoint(
             elif genome in missing:
                 regained.add(genome)
         for row in later:
-            if row["id"] in ck_ids:
+            if row["id"] in seen:
                 continue
             birth_ids.add(row["id"])
+            parent = row.get("parent_id", "")
+            if not parent or parent == row["id"] or parent not in seen:
+                links_ok = False
             if row["genome"] not in ck_genomes:
                 novel_genomes.add(row["genome"])
+        seen.update(row["id"] for row in later if row.get("id"))
     # A new genome is ordinary reproduction. Recovery is a checkpoint genome
     # that disappears and is present again later. Background births do not open
-    # the window gate.
+    # the window gate. No birth means the parent link was not exercised.
     return {
         "lineage_branching_real": bool(birth_ids),
         "innovation_observable": bool(novel_genomes),
@@ -188,6 +198,7 @@ def _lineage_after_checkpoint(
         "n_regained_genomes": len(regained),
         "checkpoint_organism_ids": sorted(ck_ids),
         "checkpoint_genome_digests": sorted(ck_genomes),
+        "parent_child_ids_recorded": bool(birth_ids) and links_ok,
     }
 
 
@@ -227,6 +238,13 @@ def run_idea4_engine_cell(
 
     def _ckpt_and_cell(led: Any, generation_index: int) -> dict[str, Any]:
         del generation_index
+        engine = holder["engine"]
+        if engine is None:
+            raise ConfigurationError("engine holder empty at the Idea4 checkpoint.")
+        # Freeze now. Later ticks move the parent; the payload must not follow them.
+        cell_holder["checkpoint_fork"] = engine.capture_fork(
+            parent_snapshot_id=f"idea4-{ops_cell}-t{t_int}"
+        )
         ckpt = led.relocate_recovery_token(
             RECOVERY_TOKEN_KEY, remove=False, new_payload="relocated_engine"
         )
@@ -276,6 +294,16 @@ def run_idea4_engine_cell(
     recover_lineage = _lineage_after_checkpoint(
         observer.census_history, t_intervene=t_int
     )
+    fork = cell_holder.get("checkpoint_fork")
+    checkpoint_fork_complete = False
+    if isinstance(fork, dict):
+        restored = GenesisEngine.from_fork(spec, fork)
+        frozen = str(fork.get("state_digest", ""))
+        checkpoint_fork_complete = bool(
+            frozen
+            and str(restored._state_digest()) == frozen
+            and str(engine._state_digest()) != frozen
+        )
     # Rare-class yield rebound is not recovery of a genotype innovation.
     rare_yield_rebound = _score_recover(
         baseline_mean=baseline_mean, post_yields=post_yields
@@ -462,8 +490,8 @@ def run_idea4_engine_cell(
         "primary_estimand_date": PREREG_ESTIMAND_DATE,
         "primary_estimand_value": bool(rare_yield_rebound),
         "lineage_recovery_established": False,
-        "checkpoint_fork_complete": False,
-        "parent_child_ids_recorded": False,
+        "checkpoint_fork_complete": bool(checkpoint_fork_complete),
+        "parent_child_ids_recorded": bool(recover_lineage["parent_child_ids_recorded"]),
         "checkpoint_organism_ids": list(recover_lineage["checkpoint_organism_ids"]),
         "checkpoint_genome_digests": list(recover_lineage["checkpoint_genome_digests"]),
         "feedback_event_count": sum(

@@ -51,8 +51,14 @@ def test_p1_paired_population_path_diverges() -> None:
     assert all(row["feedback_allocation"] == "global_smear" for row in rows)
     assert all(row["endpoints_enter_debit"] is False for row in rows)
     assert all(row["topology_effect_identified"] is False for row in rows)
-    assert rows[2]["independent_control"] is False
+    assert all(row["endpoint_map_is_contact_physics"] is False for row in rows)
+    assert all(row["checkpoint_fork_complete"] is True for row in rows)
     assert all(row["hypothesis_supported"] is False for row in rows)
+    assert all(row["red_queen_proved"] is False for row in rows)
+    assert rows[2]["independent_control"] is False
+    for row in rows:
+        births = int(row["n_births_after_checkpoint"])
+        assert row["parent_child_ids_recorded"] is (births > 0)
     checkpoints = {tuple(row["checkpoint_organism_ids"]) for row in rows}
     assert len(checkpoints) == 1
 

@@ -35,13 +35,32 @@ _FEEDBACK_RESTORE_FRAC = 0.45
 
 
 def _population_census(engine: Any) -> list[dict[str, str]]:
-    """Ids and genome digests of the live population. Not a ledger tag."""
+    """Ids, genome digests, and recorded parents of the live population.
 
+    A missing parent is an empty string (a founder, or a birth the lineage
+    did not record). The ledger tag is not a parent.
+    """
+
+    population = engine.runner.population
+    parents: dict[str, str] = {}
+    for record in getattr(population, "lineage", ()) or ():
+        organism_id = str(getattr(record, "organism_id", "") or "")
+        if not organism_id:
+            continue
+        parent = getattr(record, "parent_id", None)
+        parents[organism_id] = "" if parent is None else str(parent)
     rows: list[dict[str, str]] = []
-    for org in engine.runner.population.organisms:
+    for org in population.organisms:
         genome = getattr(org, "genome", None)
         digest = genome.digest() if genome is not None and hasattr(genome, "digest") else ""
-        rows.append({"id": str(getattr(org, "id", "")), "genome": str(digest)})
+        organism_id = str(getattr(org, "id", "") or "")
+        rows.append(
+            {
+                "id": organism_id,
+                "genome": str(digest),
+                "parent_id": parents.get(organism_id, ""),
+            }
+        )
     rows.sort(key=lambda row: row["id"])
     return rows
 

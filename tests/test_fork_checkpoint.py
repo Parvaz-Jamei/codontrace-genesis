@@ -173,6 +173,29 @@ def test_checkpoint_resumes_in_a_fresh_process(tmp_path) -> None:
     assert lines[1] == "True"
 
 
+def test_low_energy_ticks_break_exact_continuation() -> None:
+    payload = _engine().capture_fork()
+    organism = payload["live_objects"]["population"].organisms[0]
+    before = int(organism._low_energy_ticks)
+    organism._low_energy_ticks = before + 100
+    restored = GenesisEngine.from_fork(SPEC, payload)
+    assert restored.runner.population.organisms[0]._low_energy_ticks == before + 100
+    assert restored.fork_state_exact is False
+    assert payload["continuation_covered"] is True
+    with pytest.raises(ConfigurationError, match="exact continuation"):
+        GenesisEngine.from_fork(SPEC, payload, require_exact=True)
+
+
+def test_translation_policy_is_inside_the_continuation_hash() -> None:
+    from dataclasses import replace
+
+    payload = _engine().capture_fork()
+    organism = payload["live_objects"]["population"].organisms[0]
+    organism.translation_policy = replace(organism.translation_policy, min_weight=0.25)
+    restored = GenesisEngine.from_fork(SPEC, payload)
+    assert restored.fork_state_exact is False
+
+
 def test_rng_snapshot_matches_the_tick_and_a_tampered_one_is_refused() -> None:
     payload = _engine().capture_fork()
     assert payload["rng"]["seed"] == 31 + 3

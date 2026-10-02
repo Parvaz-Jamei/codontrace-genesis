@@ -1600,6 +1600,7 @@ _CI_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
     'codontrace.life_loop.sparse_recovery.SparseCoefficient': ('digest',),
     'codontrace.life_loop.sparse_recovery.SparseRecoveryResult': ('digest',),
     'codontrace.life_loop.spectral_structure.SpectralStructureSnapshot': ('digest',),
+    'codontrace.life_loop.time_shift_assay.CohortRevision': ('replacement_digest',),
     'codontrace.life_loop.time_shift_assay.CohortSnapshot': ('digest',),
     'codontrace.life_loop.time_shift_assay.TimeShiftPanel': ('digest',),
     'codontrace.life_loop.topology_meters.TopologyMeterSnapshot': ('digest',),

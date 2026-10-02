@@ -159,6 +159,7 @@ _DEEP_COPIED = "deepcopy"
 _SHARED_REFERENCE = "shared_reference"
 FORK_CHECKPOINT_VERSION = 3
 _CHECKPOINT_FORMAT = "codontrace-checkpoint-recipe-v1"
+CONTINUATION_RECORD_VERSION = 1
 NOISE_COUPLING = "stream_position"
 _NOISE_NAMESPACE = "fork-noise-contract"
 _CODE_TYPES = (FunctionType, BuiltinFunctionType, MethodDescriptorType, WrapperDescriptorType)
@@ -590,6 +591,108 @@ def event_keyed_draws(
     )
 
 
+def _callable_token(fn: object) -> str | None:
+    module = getattr(fn, "__module__", None)
+    qualname = getattr(fn, "__qualname__", None)
+    if not isinstance(module, str) or not isinstance(qualname, str):
+        return None
+    if not module.startswith("codontrace.") or "<" in qualname:
+        return None
+    return f"{module}:{qualname}"
+
+
+def _as_record(value: object) -> object:
+    if value is None:
+        return None
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    digest = getattr(value, "digest", None)
+    if callable(digest):
+        return digest()
+    return None
+
+
+def _organism_continuation(organism: object) -> tuple[dict[str, object], bool]:
+    """Fields that can change the next tick, beyond the population summary.
+
+    A field with no package record is not hashed. Coverage is then incomplete
+    and a checkpoint must not be called exact.
+    """
+
+    covered = True
+    handlers: dict[str, str] = {}
+    registry = getattr(organism, "action_registry", None)
+    raw_handlers = getattr(registry, "_handlers", {})
+    for name in sorted(raw_handlers):
+        token = _callable_token(raw_handlers[name])
+        if token is None:
+            covered = False
+            continue
+        handlers[name] = token
+    runtime = getattr(organism, "action_runtime_config", None)
+    status_registry = getattr(runtime, "status_registry", None)
+    status_record = _as_record(status_registry)
+    if status_registry is not None and status_record is None:
+        covered = False
+    profile = getattr(organism, "translation_profile", None)
+    profile_record = _as_record(profile)
+    if profile is not None and profile_record is None:
+        covered = False
+    causal = getattr(organism, "causal_graph", None)
+    causal_record = _as_record(causal)
+    if causal is not None and causal_record is None:
+        covered = False
+    adf_registry = getattr(organism, "adf_macro_registry", None)
+    adf_record = _as_record(adf_registry)
+    if adf_registry is not None and adf_record is None:
+        covered = False
+    ribosome = getattr(organism, "ribosome", None)
+    ribosome_record = _as_record(ribosome)
+    if ribosome is not None and ribosome_record is None:
+        table = getattr(ribosome, "codon_table", None)
+        ribosome_record = _as_record(getattr(table, "spec", None))
+        if ribosome_record is None:
+            covered = False
+    nav = getattr(organism, "capsule_nav_target", None)
+    record: dict[str, object] = {
+        "version": CONTINUATION_RECORD_VERSION,
+        "low_energy_ticks": int(getattr(organism, "_low_energy_ticks", 0)),
+        "execution_source_enabled": bool(getattr(organism, "execution_source_enabled", False)),
+        "action_handlers": handlers,
+        "action_open_statuses": bool(getattr(runtime, "open_statuses", False)),
+        "action_status_registry": status_record,
+        "causal_graph": causal_record,
+        "translation_policy": _as_record(getattr(organism, "translation_policy", None)),
+        "translation_profile": profile_record,
+        "adf_execution_policy": _as_record(getattr(organism, "adf_execution_policy", None)),
+        "adf_macro_registry": adf_record,
+        "ribosome": ribosome_record,
+        "capsule_action_bias": getattr(organism, "capsule_action_bias", None),
+        "capsule_nav_target": None if nav is None else [int(nav[0]), int(nav[1])],
+        "last_task_class": getattr(organism, "last_task_class", None),
+    }
+    if record["translation_policy"] is None and getattr(organism, "translation_policy", None) is not None:
+        covered = False
+    if record["adf_execution_policy"] is None and getattr(organism, "adf_execution_policy", None) is not None:
+        covered = False
+    return record, covered
+
+
+def _population_continuation(population: object) -> tuple[dict[str, object], bool]:
+    covered = True
+    organisms = []
+    for organism in getattr(population, "organisms", ()):
+        record, organism_covered = _organism_continuation(organism)
+        organisms.append(record)
+        covered = covered and organism_covered
+    return {
+        "version": CONTINUATION_RECORD_VERSION,
+        "population_summary_digest": str(population.digest()),
+        "organisms": organisms,
+    }, covered
+
+
 def _checkpoint_digest(
     *,
     tick_index: int,
@@ -600,10 +703,14 @@ def _checkpoint_digest(
     element_grid: Any,
     configs: Any,
     qd_parent_feedback_applied: bool,
-) -> str:
+) -> tuple[str, bool]:
+    continuation, covered = _population_continuation(population)
     payload = {
+        "continuation_version": CONTINUATION_RECORD_VERSION,
+        "continuation_covered": covered,
         "tick_index": int(tick_index),
         "population": str(population.digest()),
+        "continuation": continuation,
         "world": str(world.digest()),
         "nexus": None if nexus_layer is None else str(nexus_layer.digest()),
         "qd_archive": None if qd_archive is None else str(qd_archive.digest()),
@@ -611,7 +718,7 @@ def _checkpoint_digest(
         "configs": canonical_digest(configs.to_dict(), prefix="configs"),
         "qd_parent_feedback_applied": bool(qd_parent_feedback_applied),
     }
-    return canonical_digest(payload, prefix="fork_checkpoint")
+    return canonical_digest(payload, prefix="fork_checkpoint"), covered
 
 
 class GenesisEngine:
@@ -809,7 +916,7 @@ class GenesisEngine:
             isolation[name] = _DEEP_COPIED
             for item in report:
                 proxy_contract.append({"object": name, **item})
-        state_digest = _checkpoint_digest(
+        state_digest, continuation_covered = _checkpoint_digest(
             tick_index=tick_index,
             population=live["population"],
             world=live["world"],
@@ -828,6 +935,7 @@ class GenesisEngine:
             "seed": int(self.spec.seed),
             "tick_index": tick_index,
             "state_digest": state_digest,
+            "continuation_covered": continuation_covered,
             "population": live["population"].to_dict(),
             "world": live["world"].to_dict(),
             "rng": RNGManager(seed=generation_seed, namespace=_NOISE_NAMESPACE).snapshot(
@@ -864,6 +972,14 @@ class GenesisEngine:
         }
 
     def _state_digest(self) -> str:
+        digest, _covered = self._checkpoint_view()
+        return digest
+
+    def _continuation_covered(self) -> bool:
+        _digest, covered = self._checkpoint_view()
+        return covered
+
+    def _checkpoint_view(self) -> tuple[str, bool]:
         tick_index = int(getattr(self, "_tick_offset", 0)) + len(self._tick_results)
         return _checkpoint_digest(
             tick_index=tick_index,
@@ -923,8 +1039,10 @@ class GenesisEngine:
                 "live_payload_is_in_memory_only": True,
                 "restorable": False,
             }
-        exact = self._state_digest() == fork["state_digest"] and all(
-            value in (_DEEP_COPIED, _ABSENT) for value in fork["fork_isolation"].values()
+        exact = (
+            self._continuation_covered()
+            and self._state_digest() == fork["state_digest"]
+            and all(value in (_DEEP_COPIED, _ABSENT) for value in fork["fork_isolation"].values())
         )
         return {
             "record_role": "serialisable_audit",
@@ -954,6 +1072,7 @@ class GenesisEngine:
         generation_boundary_observers: Sequence[Any] | None = None,
         allow_spec_change: bool = False,
         spec_change_reason: str | None = None,
+        require_exact: bool = False,
     ) -> GenesisEngine:
         """Restore a branch from a frozen checkpoint, then copy it again.
 
@@ -1034,10 +1153,17 @@ class GenesisEngine:
             "spec_change_reason": spec_change_reason if spec_changed else None,
         }
         engine.fork_state_exact = (
-            not spec_changed
+            bool(engine._continuation_covered())
+            and not spec_changed
             and engine._state_digest() == str(fork.get("state_digest"))
             and all(value in (_DEEP_COPIED, _ABSENT) for value in isolation.values())
         )
+        if require_exact and not engine.fork_state_exact:
+            msg = (
+                "checkpoint is not an exact continuation state. "
+                "A scientific path must not consume it."
+            )
+            raise ConfigurationError(msg)
         return engine
 
     def snapshot(self) -> GenesisSnapshot:

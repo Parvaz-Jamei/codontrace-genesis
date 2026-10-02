@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
@@ -178,11 +179,18 @@ class CohortSnapshot:
                 for t in tags
             )
             cleaned[member] = tag_set
-        object.__setattr__(self, "features_by_member", cleaned)
+        object.__setattr__(self, "features_by_member", MappingProxyType(dict(cleaned)))
         computed = canonical_digest(self._body(), prefix="cohort_snap")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "CohortSnapshot")
         )
+
+    def assert_intact(self) -> None:
+        """Reject a body that no longer matches the digest recorded at construction."""
+
+        computed = canonical_digest(self._body(), prefix="cohort_snap")
+        if computed != self.digest:
+            raise ConfigurationError("CohortSnapshot digest does not match its body.")
 
     def _body(self) -> dict[str, JsonValue]:
         return {
@@ -195,14 +203,34 @@ class CohortSnapshot:
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
+        self.assert_intact()
         return {**self._body(), "digest": self.digest}
+
+
+@dataclass(frozen=True, slots=True)
+class CohortRevision:
+    """A traced replacement of one archived tick. The superseded body is kept."""
+
+    tick: int
+    reason: str
+    superseded: CohortSnapshot
+    replacement_digest: str
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "tick": self.tick,
+            "reason": self.reason,
+            "superseded": self.superseded.to_dict(),
+            "replacement_digest": self.replacement_digest,
+        }
 
 
 @dataclass
 class CohortArchive:
     frames: list[CohortSnapshot] = field(default_factory=list)
+    revisions: list[CohortRevision] = field(default_factory=list)
 
-    def record(
+    def _snapshot(
         self,
         tick: int,
         features_by_member: Mapping[str, frozenset[str]] | Mapping[str, Sequence[str]],
@@ -211,18 +239,57 @@ class CohortArchive:
             str(mid): frozenset(str(t) for t in tags)
             for mid, tags in features_by_member.items()
         }
-        snap = CohortSnapshot(tick=tick, features_by_member=normalized)
-        self.frames = [f for f in self.frames if f.tick != snap.tick]
+        return CohortSnapshot(tick=tick, features_by_member=normalized)
+
+    def record(
+        self,
+        tick: int,
+        features_by_member: Mapping[str, frozenset[str]] | Mapping[str, Sequence[str]],
+    ) -> CohortSnapshot:
+        """Append a tick. A tick already present is not overwritten.
+
+        Replacing history is ``revise`` and keeps the superseded snapshot.
+        """
+
+        snap = self._snapshot(tick, features_by_member)
+        if any(frame.tick == snap.tick for frame in self.frames):
+            raise ConfigurationError(
+                f"tick {snap.tick} is already archived; use revise(reason=...) so the replacement is traced."
+            )
         self.frames.append(snap)
-        self.frames.sort(key=lambda f: f.tick)
+        self.frames.sort(key=lambda frame: frame.tick)
+        return snap
+
+    def revise(
+        self,
+        tick: int,
+        features_by_member: Mapping[str, frozenset[str]] | Mapping[str, Sequence[str]],
+        *,
+        reason: str,
+    ) -> CohortSnapshot:
+        """Replace one tick and keep the previous snapshot in ``revisions``."""
+
+        why = _refuse_banned_fragment(_as_str(reason, "reason"), "reason")
+        previous = self.require(tick)
+        snap = self._snapshot(tick, features_by_member)
+        self.revisions.append(
+            CohortRevision(
+                tick=snap.tick,
+                reason=why,
+                superseded=previous,
+                replacement_digest=snap.digest,
+            )
+        )
+        self.frames = [snap if frame.tick == snap.tick else frame for frame in self.frames]
         return snap
 
     def ticks(self) -> tuple[int, ...]:
-        return tuple(f.tick for f in self.frames)
+        return tuple(frame.tick for frame in self.frames)
 
     def at(self, tick: int) -> CohortSnapshot | None:
         for frame in self.frames:
             if frame.tick == tick:
+                frame.assert_intact()
                 return frame
         return None
 
@@ -233,9 +300,14 @@ class CohortArchive:
         return frame
 
     def digest(self) -> str:
+        for frame in self.frames:
+            frame.assert_intact()
+        for revision in self.revisions:
+            revision.superseded.assert_intact()
         body: dict[str, JsonValue] = {
             "schema_version": SCHEMA_VERSION,
-            "frames": [f.to_dict() for f in self.frames],
+            "frames": [frame.to_dict() for frame in self.frames],
+            "revisions": [revision.to_dict() for revision in self.revisions],
         }
         return canonical_digest(body, prefix="cohort_arch")
 
@@ -711,6 +783,7 @@ __all__ = [
     "ABLATION_ARMS",
     "AblationArm",
     "CohortArchive",
+    "CohortRevision",
     "CohortSnapshot",
     "MatchLinkedLoopState",
     "MatchMode",

@@ -788,6 +788,7 @@ class PredictiveProbeResult:
     status: str
     evidence_level: str = "lagged_predictive_support"
     caveat: str = "predictive_precedence_not_mechanistic_causality"
+    gain_definition: str = ""
     digest: str = ""
 
     def __post_init__(self) -> None:
@@ -828,10 +829,50 @@ class PredictiveProbeResult:
             "status": self.status,
             "evidence_level": self.evidence_level,
             "caveat": self.caveat,
+            "gain_definition": self.gain_definition,
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {**self._payload(), "digest": self.digest}
+
+
+def _solve_linear(matrix: list[list[float]], rhs: list[float]) -> list[float] | None:
+    size = len(rhs)
+    augmented = [row[:] + [rhs[index]] for index, row in enumerate(matrix)]
+    for col in range(size):
+        pivot = max(range(col, size), key=lambda row: abs(augmented[row][col]))
+        if abs(augmented[pivot][col]) < 1e-12:
+            return None
+        augmented[col], augmented[pivot] = augmented[pivot], augmented[col]
+        scale = augmented[col][col]
+        for column in range(col, size + 1):
+            augmented[col][column] /= scale
+        for row in range(size):
+            if row == col:
+                continue
+            factor = augmented[row][col]
+            for column in range(col, size + 1):
+                augmented[row][column] -= factor * augmented[col][column]
+    return [augmented[row][size] for row in range(size)]
+
+
+def _ols_sse(rows: Sequence[tuple[float, ...]], outcomes: Sequence[float]) -> float | None:
+    width = len(rows[0])
+    gram = [[0.0 for _ in range(width)] for _ in range(width)]
+    moment = [0.0 for _ in range(width)]
+    for row, outcome in zip(rows, outcomes, strict=True):
+        for left in range(width):
+            moment[left] += row[left] * outcome
+            for right in range(width):
+                gram[left][right] += row[left] * row[right]
+    beta = _solve_linear(gram, moment)
+    if beta is None:
+        return None
+    error = 0.0
+    for row, outcome in zip(rows, outcomes, strict=True):
+        predicted = sum(weight * value for weight, value in zip(beta, row, strict=True))
+        error += (outcome - predicted) ** 2
+    return error
 
 
 def granger_lite_probe(
@@ -842,8 +883,58 @@ def granger_lite_probe(
     target_signal: str = "target",
     max_lag: int = 1,
 ) -> PredictiveProbeResult:
+    """In-sample lag probe. Gain is not the absolute slope of source on target.
+
+    For each lag that has at least one residual degree of freedom, compare a
+    restricted regression of the target on its own lag with an unrestricted
+    regression that also includes the source lag (Granger 1969, the comparison
+    only; there is no F test and no causal claim). ``predictive_gain`` is the
+    fractional drop in residual sum of squares. A non-zero slope of the source
+    is not that drop. ``tested_lags`` lists only lags that were fit. Empty
+    controls keep a positive gain at ``confounded_candidate``.
+    """
+
+    if isinstance(max_lag, bool) or not isinstance(max_lag, int) or max_lag < 1:
+        raise ValueError("max_lag must be an integer >= 1")
     n = min(len(source), len(target))
-    if n <= max_lag + 1:
+    values_s: list[float] = []
+    values_t: list[float] = []
+    for index in range(n):
+        left = source[index]
+        right = target[index]
+        if isinstance(left, bool) or isinstance(right, bool):
+            raise ConfigurationError("probe series must be finite numbers")
+        if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+            raise ConfigurationError("probe series must be finite numbers")
+        left_f = float(left)
+        right_f = float(right)
+        if not math.isfinite(left_f) or not math.isfinite(right_f):
+            raise ConfigurationError("probe series must be finite numbers")
+        values_s.append(left_f)
+        values_t.append(right_f)
+
+    tested: list[int] = []
+    gains: list[float] = []
+    for lag in range(1, max_lag + 1):
+        outcomes = values_t[lag:]
+        if len(outcomes) < 4:
+            continue
+        restricted = [(1.0, values_t[index - lag]) for index in range(lag, n)]
+        unrestricted = [
+            (1.0, values_t[index - lag], values_s[index - lag]) for index in range(lag, n)
+        ]
+        sse_restricted = _ols_sse(restricted, outcomes)
+        if sse_restricted is None:
+            continue
+        sse_unrestricted = _ols_sse(unrestricted, outcomes)
+        if sse_unrestricted is None or sse_restricted <= 1e-12:
+            gain = 0.0
+        else:
+            gain = max(0.0, (sse_restricted - sse_unrestricted) / sse_restricted)
+        tested.append(lag)
+        gains.append(round(gain, 10))
+
+    if not tested:
         return PredictiveProbeResult(
             source_signal,
             target_signal,
@@ -851,32 +942,29 @@ def granger_lite_probe(
             0.0,
             None,
             None,
-            tuple(range(1, max_lag + 1)),
+            (),
             (),
             None,
             n,
             "insufficient_data",
+            gain_definition="fractional_sse_reduction_vs_target_own_lag",
         )
-    lag = max(1, max_lag)
-    paired = [(float(source[i - lag]), float(target[i])) for i in range(lag, n)]
-    x_mean = sum(x for x, _ in paired) / len(paired)
-    y_mean = sum(y for _, y in paired) / len(paired)
-    cov = sum((x - x_mean) * (y - y_mean) for x, y in paired)
-    var = sum((x - x_mean) ** 2 for x, _ in paired) or 1.0
-    gain = round(abs(cov / var), 10)
-    status = "predictive" if gain > 0 else "not_predictive"
+    best = min(range(len(gains)), key=lambda index: (-gains[index], tested[index]))
+    gain = gains[best]
+    status = "predictive" if gain > 0.0 else "not_predictive"
     return PredictiveProbeResult(
         source_signal,
         target_signal,
         "granger_lite",
         gain,
         None,
-        lag,
-        tuple(range(1, max_lag + 1)),
+        tested[best],
+        tuple(tested),
         (),
         "not_checked",
         n,
         status,
+        gain_definition="fractional_sse_reduction_vs_target_own_lag",
     )
 
 

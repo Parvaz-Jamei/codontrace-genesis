@@ -6,10 +6,12 @@ The absent census 34/30 is the id-sort rule under the birth cap. It is not retun
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import statistics
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from codontrace.errors import ConfigurationError
@@ -24,17 +26,33 @@ from codontrace.genesis.rq_mechanism_v2_phase4 import (
 )
 from codontrace.genesis.rq_mechanism_v2_phase5 import (
     ARM_COEVOLVE,
+    ARMS,
     MAX_WORKERS,
     NO_CONFIRMATORY_SENTENCE,
+    VERDICT_BLOCKED,
+    VERDICT_SUPPORTED,
+    _arm_rows,
+    _binary_verdict,
+    _load_jsonl,
+    _lock_payload,
+    _people,
+    _statistical_verdict,
+    _worker,
     assert_measurement_floor,
     assert_output_dir,
+    lineage_relative_fitness,
     replay_phase5_archive,
     resolve_workers,
     run_phase5_history,
+    sampling_interval,
     wilson_interval,
 )
 
-PHASE6_BUDGET = 16
+# Raised from 16 to the horizon the max-of-three-times rule already returned.
+# This admits that horizon. It is not a parameter tune. Papkou et al. 2019
+# PNAS (DOI 10.1073/pnas.1810402116) ran 23 host transfers and controlled
+# generation time for the host, not the parasite.
+PHASE6_BUDGET = 70
 PHASE6_PROBE_GENERATIONS = 12
 PHASE6_PROBE_PARASITE = 9807
 PHASE6_PROBE_HOST = 9808
@@ -48,6 +66,7 @@ OUTPUT_PRELIM = Path("runs/rq-mechanism-v2/phase6-prelim")
 OUTPUT_SHORT = Path("runs/rq-mechanism-v2/phase6-short")
 OUTPUT_CONFIRM = Path("runs/rq-mechanism-v2/phase6-coevolution")
 PHASE6_LOCK = Path("runs/rq-mechanism-v2/PHASE6_LOCK.md")
+PHASE6_CONFIRM_LOCK = Path("runs/rq-mechanism-v2/PHASE6_CONFIRM_LOCK.md")
 REANALYSIS_NOTE = Path("runs/rq-mechanism-v2/PHASE5B_REANALYSIS.md")
 _PHASE5B_SUMMARY = Path("runs/rq-mechanism-v2/phase5b-coevolution/summary.json")
 _USED_SEEDS = frozenset(
@@ -129,7 +148,7 @@ def choose_phase6_horizon(
     """
 
     if int(budget) != PHASE6_BUDGET:
-        raise ConfigurationError("phase-6 budget is the registered 16")
+        raise ConfigurationError("phase-6 budget is the registered budget")
     parasite = _positive(parasite_replacement)
     host = _positive(host_replacement)
     delay: float | None
@@ -638,6 +657,444 @@ def _birth_census(path: Path) -> dict[str, object]:
     }
 
 
+def render_phase6_confirm_lock(design: Mapping[str, object], *, code_commit: str) -> str:
+    """Confirm lock. The first sentence is the required sentence. No claim mean is included."""
+
+    seeds = [int(seed) for seed in design["seeds"]]  # type: ignore[index]
+    payload = {
+        "budget": int(design["budget"]),
+        "fitness_delay": design["fitness_delay"],
+        "fitness_delay_unmeasurable": bool(design["fitness_delay_unmeasurable"]),
+        "horizon": int(design["horizon"]),
+        "host_replacement": design["host_replacement"],
+        "importance_bound": None,
+        "measurement_floor": int(MEASUREMENT_FLOOR),
+        "n": len(seeds),
+        "parasite_replacement": design["parasite_replacement"],
+        "primary_lag": int(design["primary_lag"]),
+        "seeds": seeds,
+        "supported_forbidden": True,
+        "turnover_multiple_used": False,
+        "workers": MAX_WORKERS,
+    }
+    block = json.dumps(payload, indent=2, sort_keys=True)
+    lines = [
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+        "# Phase-6 confirmatory lock",
+        "",
+        f"Code commit before this lock: `{code_commit}`.",
+        "Nothing in this lock is a confirmatory claim mean.",
+        "Phase-5b seeds 9701 through 9712 are not reused. Seeds 9601 through 9612 are not reused.",
+        "The horizon was not recomputed from a new probe.",
+        "",
+        "## Budget",
+        "",
+        "The budget moves from 16 to 70 so the pre-registered maximum of the parasite replacement time,",
+        "the host replacement time, and the fitness-response delay can run.",
+        "It is not a parameter tune. Seeds, lag, thresholds, and population parameters are unchanged.",
+        "Papkou et al. 2019, Proceedings of the National Academy of Sciences, DOI 10.1073/pnas.1810402116,",
+        "ran 23 host transfers and controlled generation time for the host, not the parasite.",
+        "The 2010 Caenorhabditis elegans and Bacillus thuringiensis coevolution experiment, PMC2867683,",
+        "used 48 host generations.",
+        "Brockhurst and Koskella 2013, Trends in Ecology and Evolution, time-shift the interaction over evolutionary time,",
+        "not over a budget shorter than one host replacement.",
+        "The horizon is not shortened to 16.",
+        "`PHASE6_LOCK.md` still records the refusal under the old budget.",
+        "",
+        "## Estimand",
+        "",
+        "Every arm is scored with the same paired estimand:",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at horizon - lag, parasites at horizon - lag)`.",
+        "Host effect, parasites held at the past generation:",
+        "`I(hosts at the horizon, parasites at horizon - lag) - I(hosts at horizon - lag, parasites at horizon - lag)`.",
+        "Parasite effect, hosts held at the horizon:",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at the horizon, parasites at horizon - lag)`.",
+        "Those two effects add to the paired estimand. The diagnostic host contrast on contemporary parasites is not added in.",
+        "The score is `infectivity` on `replay_archived_contact` with evolution, reproduction, and mutation off.",
+        "",
+        "## Oscillation",
+        "",
+        "A direction of selection is the sign of ancestry fitness of genotypes that are both present, on a generation with contact pressure.",
+        "An infectivity gap alone is not that direction.",
+        "The registered times are the horizon, one lag earlier, and two lags earlier, when two lags fit.",
+        "One sign change is not a continuing cycle. A scan of every generation stays exploratory.",
+        "`red_queen_proved` is not set from this criterion. Importance is undeclared.",
+        "",
+        "## Horizon",
+        "",
+        "The horizon is the maximum of the parasite replacement time, the host replacement time,",
+        "and the fitness-response delay when that delay was measured.",
+        "It is not three times the parasite replacement time.",
+        f"Parasite replacement: {design['parasite_replacement']}.",
+        f"Host replacement: {design['host_replacement']}.",
+        f"Fitness delay: {design['fitness_delay']}. Unmeasurable: {design['fitness_delay_unmeasurable']}.",
+        f"Primary lag: {design['primary_lag']}.",
+        f"Horizon: {design['horizon']} generations. Budget: {design['budget']}. The horizon was not shortened.",
+        f"n: {len(seeds)}.",
+        f"Seeds: {seeds[0]} through {seeds[-1]} ({', '.join(str(seed) for seed in seeds)}).",
+        "",
+        "Importance for this estimand is undeclared. SUPPORTED is forbidden.",
+        f"`MEASUREMENT_FLOOR` stays {int(MEASUREMENT_FLOOR)} and is not lowered.",
+        "CPU workers at most 7. Reject 8.",
+        f"Output: `{OUTPUT_CONFIRM}`.",
+        "One-shot and resume are compared on `scientific_body` before `COMPLETE`.",
+        "",
+        "```json",
+        block,
+        "```",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _ancestry(host_id: str, founders: Mapping[str, str], parent: Mapping[str, str]) -> str | None:
+    seen: set[str] = set()
+    current: str | None = host_id
+    while current is not None and current not in founders:
+        if current in seen or current not in parent:
+            return None
+        seen.add(current)
+        current = parent[current]
+    if current is None:
+        return None
+    return founders[current]
+
+
+def _coevolve_directions(rows: Sequence[Mapping[str, object]]) -> tuple[list[dict[str, object]], str | None]:
+    """Ancestry fitness by founder class. A broken parent chain is an accounting error."""
+
+    try:
+        mapped = _arm_rows(rows, ARM_COEVOLVE)
+    except ConfigurationError as exc:
+        return [], str(exc)
+    first = mapped.get(1)
+    if first is None:
+        return [], "coevolve generation 1 is missing"
+    start_hosts = first.get("start_hosts")
+    if not isinstance(start_hosts, list) or not start_hosts:
+        return [], "founders missing"
+    founders: dict[str, str] = {}
+    for host in start_hosts:
+        if not isinstance(host, dict) or not isinstance(host.get("id"), str) or not isinstance(host.get("window"), str):
+            return [], "founder id missing"
+        if host["window"] not in (WINDOW_A, WINDOW_B):
+            return [], "founder window is not a locked genotype"
+        founders[str(host["id"])] = str(host["window"])
+    parent: dict[str, str] = {}
+    directions: list[dict[str, object]] = []
+    for generation in sorted(mapped):
+        row = mapped[generation]
+        if str(row.get("passage")) == PASSAGE_ABSENT:
+            return [], "assay leakage: absent passage in the confirmatory"
+        start = row.get("start_hosts")
+        births = row.get("host_births")
+        deaths = row.get("host_deaths")
+        if not isinstance(start, list) or not isinstance(births, list) or not isinstance(deaths, list):
+            return [], f"generation {generation} is missing hosts, births, or deaths"
+        labels: dict[str, str] = {}
+        for host in start:
+            if not isinstance(host, dict) or not isinstance(host.get("id"), str):
+                return [], f"generation {generation} host id missing"
+            label = _ancestry(str(host["id"]), founders, parent)
+            if label is None:
+                return [], f"generation {generation} host {host['id']} has no parent chain"
+            labels[str(host["id"])] = label
+        birth_rows: list[dict[str, object]] = []
+        for birth in births:
+            if not isinstance(birth, dict):
+                return [], f"generation {generation} birth is not a record"
+            parent_id = birth.get("parent_id")
+            child = birth.get("id")
+            if not isinstance(parent_id, str) or not isinstance(child, str):
+                return [], f"generation {generation} birth id missing"
+            if parent_id in labels:
+                ancestry = labels[parent_id]
+            else:
+                ancestry = _ancestry(parent_id, founders, parent)
+            if ancestry is None:
+                return [], f"generation {generation} birth parent {parent_id} has no parent chain"
+            birth_rows.append({"parent_window": ancestry})
+            parent[child] = parent_id
+        fit = lineage_relative_fitness([labels[host_id] for host_id in (str(host["id"]) for host in start if isinstance(host, dict))], birth_rows, deaths)
+        by = fit["by_window"] if fit["measured"] else None
+        ancestry_a = None if not isinstance(by, dict) or WINDOW_A not in by else float(by[WINDOW_A])
+        ancestry_b = None if not isinstance(by, dict) or WINDOW_B not in by else float(by[WINDOW_B])
+        contacts = row.get("contacts")
+        if isinstance(contacts, bool) or not isinstance(contacts, int):
+            return [], f"generation {generation} contacts are not an integer"
+        directed = selection_direction(
+            ancestry_fitness_a=ancestry_a,
+            ancestry_fitness_b=ancestry_b,
+            contact=float(contacts),
+            genotype_a_present=WINDOW_A in labels.values(),
+            genotype_b_present=WINDOW_B in labels.values(),
+        )
+        directions.append({"generation": int(generation), **directed})
+    return directions, None
+
+
+def score_phase6_archive(rows: Sequence[Mapping[str, object]], *, lag: int, horizon: int) -> dict[str, object]:
+    """Paired estimand on every arm, and the registered oscillation on coevolve."""
+
+    if any(row.get("red_queen_proved") is True for row in rows):
+        return {
+            "accounting_error": "red_queen_proved was set true inside an archive row",
+            "red_queen_proved": False,
+        }
+    paired: dict[str, object] = {}
+    for arm in ARMS:
+        try:
+            mapped = _arm_rows(rows, arm)
+        except ConfigurationError as exc:
+            return {"accounting_error": str(exc), "red_queen_proved": False}
+        now = mapped.get(int(horizon))
+        past = mapped.get(int(horizon) - int(lag))
+        blank = {
+            "diagnostic_host_on_contemporary_parasites": None,
+            "host_effect": None,
+            "paired": None,
+            "parasite_effect": None,
+        }
+        if now is None or past is None:
+            paired[arm] = blank
+            continue
+        hosts_now = _people(now, "hosts")
+        hosts_past = _people(past, "hosts")
+        parasites_now = _people(now, "parasites")
+        parasites_past = _people(past, "parasites")
+        if hosts_now is None or hosts_past is None or parasites_now is None or parasites_past is None:
+            paired[arm] = blank
+            continue
+        paired[arm] = shared_paired_estimand(hosts_now, hosts_past, parasites_now, parasites_past)
+    directions, error = _coevolve_directions(rows)
+    if error:
+        return {"accounting_error": error, "paired": paired, "red_queen_proved": False}
+    return {
+        "accounting_error": None,
+        "exploratory_scan": exploratory_direction_scan([row.get("direction") for row in directions]),  # type: ignore[list-item]
+        "oscillation": registered_oscillation(directions, horizon=int(horizon), lag=int(lag)),
+        "paired": paired,
+        "red_queen_proved": False,
+    }
+
+
+def _archive_complete(path: Path, horizon: int) -> bool:
+    rows = _load_jsonl(path)
+    if any(row.get("red_queen_proved") is True for row in rows):
+        return False
+    for arm in ARMS:
+        mapped = _arm_rows(rows, arm)
+        if set(mapped) != set(range(1, int(horizon) + 1)):
+            return False
+    return True
+
+
+def _phase6_report(scored: Sequence[Mapping[str, object]], seeds: Sequence[int]) -> dict[str, object]:
+    """Interval verdicts. Importance stays undeclared, so SUPPORTED is refused."""
+
+    paired_values: list[float] = []
+    for row in scored:
+        arm = row["paired"]
+        if not isinstance(arm, Mapping):
+            continue
+        coevolve = arm.get(ARM_COEVOLVE)
+        if isinstance(coevolve, Mapping) and isinstance(coevolve.get("paired"), (int, float)) and not isinstance(coevolve.get("paired"), bool):
+            paired_values.append(float(coevolve["paired"]))
+    floor = assert_measurement_floor()
+    if len(scored) < floor or len(paired_values) < floor:
+        paired_verdict = VERDICT_BLOCKED
+        paired_interval: dict[str, object] | None = sampling_interval(paired_values) if len(paired_values) >= 2 else None
+    else:
+        paired_interval = sampling_interval(paired_values)
+        paired_verdict = _statistical_verdict(paired_interval, None)
+    measurable = [row for row in scored if isinstance(row.get("oscillation"), Mapping) and row["oscillation"].get("unmeasurable") is False]
+    continuing = [
+        row
+        for row in measurable
+        if isinstance(row.get("oscillation"), Mapping) and row["oscillation"].get("continuing_cycle") is True
+    ]
+    if len(measurable) < floor:
+        oscillation_verdict = VERDICT_BLOCKED
+        oscillation_interval = None
+    else:
+        oscillation_interval = wilson_interval(len(continuing), len(measurable))
+        oscillation_verdict = _binary_verdict(oscillation_interval, None)
+    if paired_verdict == VERDICT_SUPPORTED or oscillation_verdict == VERDICT_SUPPORTED:
+        raise ConfigurationError("SUPPORTED is forbidden while importance is undeclared")
+    return {
+        "continuing_cycle_n": len(continuing),
+        "importance_bound": None,
+        "n_measurable_oscillation": len(measurable),
+        "n_paired": len(paired_values),
+        "n_used": len(scored),
+        "oscillation_interval": oscillation_interval,
+        "oscillation_verdict": oscillation_verdict,
+        "paired_interval": paired_interval,
+        "paired_verdict": paired_verdict,
+        "red_queen_proved": False,
+        "seeds_scored": [int(row["seed"]) for row in scored],
+        "supported_forbidden": True,
+    }
+
+
+def execute_phase6(lock_path: Path, root: Path | None = None) -> dict[str, object]:
+    """Run the locked seeds at the locked horizon. Do not open a new probe or add a seed."""
+
+    target = OUTPUT_CONFIRM if root is None else root
+    assert_phase6_output_dir(target)
+    text = lock_path.read_text(encoding="utf-8")
+    if not text.startswith(NO_CONFIRMATORY_SENTENCE):
+        raise ConfigurationError("phase-6 confirm lock does not open with the required sentence")
+    payload = _lock_payload(text)
+    seeds = locked_phase6_seeds()
+    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+        raise ConfigurationError("phase-6 lock seeds are not 9811 through 9822")
+    if int(payload["budget"]) != PHASE6_BUDGET:
+        raise ConfigurationError("phase-6 lock budget is not the registered budget")
+    if int(payload["n"]) != len(seeds) or int(payload["workers"]) != MAX_WORKERS:
+        raise ConfigurationError("phase-6 lock n or workers do not match the registration")
+    if payload.get("importance_bound") is not None or payload.get("supported_forbidden") is not True:
+        raise ConfigurationError("phase-6 importance is undeclared; SUPPORTED stays forbidden")
+    if int(payload.get("measurement_floor", 0)) != int(MEASUREMENT_FLOOR):
+        raise ConfigurationError("phase-6 must not lower MEASUREMENT_FLOOR")
+    design = choose_phase6_horizon(
+        parasite_replacement=payload["parasite_replacement"],  # type: ignore[arg-type]
+        host_replacement=payload["host_replacement"],  # type: ignore[arg-type]
+        fitness_delay=payload["fitness_delay"],  # type: ignore[arg-type]
+    )
+    if int(payload["horizon"]) != int(design["horizon"]) or int(payload["primary_lag"]) != int(design["primary_lag"]):
+        raise ConfigurationError("phase-6 lock horizon is not the registered rule")
+    if int(design["horizon"]) > int(design["budget"]):
+        raise ConfigurationError("horizon exceeds the registered budget; it is not shortened")
+    if (target / "by_seed").exists():
+        raise ConfigurationError("phase-6 confirmatory already exists; a seed is not replaced")
+    target.mkdir(parents=True, exist_ok=True)
+    horizon = int(design["horizon"])
+    lag = int(design["primary_lag"])
+    workers = resolve_workers(min(MAX_WORKERS, len(seeds)))
+    payloads = [
+        {"arms": list(ARMS), "compare_one_shot": True, "generations": horizon, "root": str(target), "seed": seed}
+        for seed in seeds
+    ]
+    outcomes: list[dict[str, object]] = []
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_worker, item) for item in payloads]
+        for future in as_completed(futures):
+            outcome = future.result()
+            outcomes.append(outcome)
+            if outcome["failed"]:
+                (target / "STOP").write_text(str(outcome["failed"]) + "\n", encoding="utf-8")
+    outcomes.sort(key=lambda item: int(item["seed"]))
+    failed = [item for item in outcomes if item["failed"]]
+    audits: list[dict[str, object]] = []
+    for seed in seeds:
+        seed_dir = target / "by_seed" / f"seed{seed}"
+        archive = seed_dir / "archive.jsonl"
+        if not archive.is_file():
+            continue
+        complete_flag = (seed_dir / "COMPLETE").is_file()
+        reason_flag = (seed_dir / "REASON.txt").is_file()
+        try:
+            complete = _archive_complete(archive, horizon)
+        except ConfigurationError as exc:
+            complete = False
+            audits.append({"error": str(exc), "seed": seed})
+            failed.append({"failed": f"accounting:{exc}", "seed": seed})
+            continue
+        if complete_flag and (reason_flag or not complete):
+            bug = "false-complete"
+            audits.append({"error": bug, "seed": seed})
+            failed.append({"failed": bug, "seed": seed})
+            if not reason_flag:
+                (seed_dir / "REASON.txt").write_text(bug + "\n", encoding="utf-8")
+            (target / "STOP").write_text(bug + "\n", encoding="utf-8")
+        elif complete and not complete_flag:
+            bug = "missing-complete"
+            audits.append({"error": bug, "seed": seed})
+            failed.append({"failed": bug, "seed": seed})
+    replays: list[dict[str, object]] = []
+    for seed in seeds:
+        archive = target / "by_seed" / f"seed{seed}" / "archive.jsonl"
+        if archive.is_file():
+            replays.append({"replay": replay_phase5_archive(archive), "seed": seed})
+    replay_matched = bool(replays) and all(bool(item["replay"]["matched"]) for item in replays)  # type: ignore[index]
+    if replays and not replay_matched:
+        (target / "STOP").write_text("replay-mismatch\n", encoding="utf-8")
+        if not any(item["failed"] == "replay-mismatch" for item in failed):
+            failed.append({"failed": "replay-mismatch", "seed": None})
+    scored: list[dict[str, object]] = []
+    for seed in seeds:
+        archive = target / "by_seed" / f"seed{seed}" / "archive.jsonl"
+        seed_dir = target / "by_seed" / f"seed{seed}"
+        if not archive.is_file():
+            continue
+        try:
+            complete = _archive_complete(archive, horizon)
+        except ConfigurationError as exc:
+            audits.append({"error": str(exc), "seed": seed})
+            failed.append({"failed": f"accounting:{exc}", "seed": seed})
+            continue
+        if not complete:
+            continue
+        rows = _load_jsonl(archive)
+        scored_seed = score_phase6_archive(rows, lag=lag, horizon=horizon)
+        scored_seed["seed"] = seed
+        if scored_seed.get("accounting_error"):
+            bug = f"accounting:{scored_seed['accounting_error']}"
+            audits.append({"error": bug, "seed": seed})
+            failed.append({"failed": bug, "seed": seed})
+            (seed_dir / "REASON.txt").write_text(bug + "\n", encoding="utf-8")
+            (target / "STOP").write_text(bug + "\n", encoding="utf-8")
+            continue
+        births = 0
+        contacts = 0
+        for row in rows:
+            if str(row.get("arm")) != ARM_COEVOLVE:
+                continue
+            births += int(row.get("parasite_births") or 0) + len(row.get("host_births") or [])
+            contacts += int(row.get("contacts") or 0)
+        if births == 0 or contacts == 0:
+            bug = "instrument-cannot-move"
+            audits.append({"error": bug, "seed": seed})
+            failed.append({"failed": bug, "seed": seed})
+            (seed_dir / "REASON.txt").write_text(bug + "\n", encoding="utf-8")
+            (target / "STOP").write_text(bug + "\n", encoding="utf-8")
+            continue
+        scored.append(scored_seed)
+    report = _phase6_report(scored, seeds)
+    if report["red_queen_proved"] is not False:
+        raise ConfigurationError("red_queen_proved is not set by hand")
+    stopped = None
+    if failed or not replay_matched:
+        stopped = failed[0]["failed"] if failed else "replay-mismatch"
+    summary: dict[str, object] = {
+        "audits": audits,
+        "budget": int(design["budget"]),
+        "by_seed": scored,
+        "failed": failed,
+        "horizon": horizon,
+        "n_locked": len(seeds),
+        "n_used": report["n_used"],
+        "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE" if not failed and replay_matched else None,
+        "primary_lag": lag,
+        "red_queen_proved": False,
+        "replay": replays,
+        "replay_matched": replay_matched,
+        "report": report,
+        "seeds": list(seeds),
+        "stopped": stopped,
+        "workers": workers,
+    }
+    summary["summary_sha256"] = hashlib.sha256(
+        json.dumps({key: value for key, value in summary.items() if key != "summary_sha256"}, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    (target / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary
+
+
 def execute_phase6_prelim(root: Path | None = None) -> dict[str, object]:
     """Three unused probe seeds. No confirmatory seed and no claim mean."""
 
@@ -725,6 +1182,7 @@ __all__ = [
     "MEASUREMENT_FLOOR",
     "OUTPUT_CONFIRM",
     "PHASE6_BUDGET",
+    "PHASE6_CONFIRM_LOCK",
     "PHASE6_LOCK",
     "PHASE6_N",
     "WINDOW_A",
@@ -732,8 +1190,11 @@ __all__ = [
     "absent_baseline_rule",
     "assert_phase6_output_dir",
     "choose_phase6_horizon",
+    "execute_phase6",
     "execute_phase6_prelim",
     "execute_phase6_short",
+    "render_phase6_confirm_lock",
+    "score_phase6_archive",
     "exploratory_direction_scan",
     "fitness_kinds",
     "fitness_response_delay",

@@ -36,8 +36,10 @@ from codontrace.genesis.rq_mechanism_v2_phase6 import (
     reanalyze_phase5b_reversals,
     registered_oscillation,
     render_phase5b_reanalysis,
+    render_phase6_confirm_lock,
     render_phase6_lock,
     replacement_time,
+    score_phase6_archive,
     selection_direction,
     shared_paired_estimand,
 )
@@ -55,10 +57,21 @@ def test_horizon_is_not_three_times_parasite_replacement() -> None:
     assert missing["fitness_delay_unmeasurable"] is True
     assert missing["horizon"] == 5
     with pytest.raises(ConfigurationError, match="not shortened"):
-        choose_phase6_horizon(parasite_replacement=2.0, host_replacement=20.0, fitness_delay=None)
+        choose_phase6_horizon(parasite_replacement=2.0, host_replacement=80.0, fitness_delay=None)
     with pytest.raises(ConfigurationError, match="positive"):
         choose_phase6_horizon(parasite_replacement=0.0, host_replacement=2.0, fitness_delay=None)
-    assert PHASE6_BUDGET == 16
+    with pytest.raises(ConfigurationError, match="registered budget"):
+        choose_phase6_horizon(parasite_replacement=2.0, host_replacement=4.0, fitness_delay=None, budget=16)
+    assert PHASE6_BUDGET == 70
+    recorded = choose_phase6_horizon(
+        parasite_replacement=2.9201520912547525,
+        host_replacement=69.54545454545455,
+        fitness_delay=9,
+    )
+    assert recorded["horizon"] == 70
+    assert recorded["budget"] == 70
+    assert recorded["primary_lag"] == 3
+    assert recorded["horizon"] != math_ceil_three(2.9201520912547525)
     assert phase6_worker_cap(7) == 7
     with pytest.raises(ConfigurationError):
         resolve_workers(8)
@@ -301,3 +314,32 @@ def test_live_absent_generation_follows_the_id_order_rule(tmp_path: Path) -> Non
     assert swapped_row["alive_end_A"] == 30
     assert swapped_row["alive_end_B"] == 34
     del swapped
+
+
+def test_confirm_lock_opens_with_the_sentence_and_scores_prelim_without_a_new_probe() -> None:
+    recorded = choose_phase6_horizon(
+        parasite_replacement=2.9201520912547525,
+        host_replacement=69.54545454545455,
+        fitness_delay=9,
+    )
+    recorded["seeds"] = list(locked_phase6_seeds())
+    text = render_phase6_confirm_lock(recorded, code_commit="066fa3da1e64c2d7f77319052fc3d93fb7c1131a")
+    assert text.startswith("No confirmatory number has been computed.")
+    assert "Papkou et al. 2019" in text
+    assert "10.1073/pnas.1810402116" in text
+    assert "PMC2867683" in text
+    assert "not a parameter tune" in text
+    assert "9811" in text and "9822" in text
+    assert '"horizon": 70' in text
+    assert '"budget": 70' in text
+    assert '"workers": 7' in text
+    rows = []
+    archive = Path("runs/rq-mechanism-v2/phase6-prelim-3/by_seed/seed9807/archive.jsonl")
+    for line in archive.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    scored = score_phase6_archive(rows, lag=3, horizon=12)
+    assert scored["accounting_error"] is None
+    assert scored["red_queen_proved"] is False
+    assert scored["oscillation"]["exploratory"] is False
+    assert scored["exploratory_scan"]["confirmatory"] is False

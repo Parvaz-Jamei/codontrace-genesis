@@ -1019,10 +1019,16 @@ class CandidateSpec:
         if not isinstance(raw_desc, Mapping):
             msg = "CandidateSpec.descriptors must be an object."
             raise ConfigurationError(msg)
+        descriptors: dict[str, float] = {}
+        for key, raw in raw_desc.items():
+            if not isinstance(key, str) or isinstance(raw, bool) or not isinstance(raw, int | float):
+                msg = "CandidateSpec.descriptors must be string -> numeric."
+                raise ConfigurationError(msg)
+            descriptors[key] = float(raw)
         return cls(
             candidate_id=_str(data, "candidate_id"),
             genome=_str(data, "genome", ""),
-            descriptors={str(k): float(v) for k, v in raw_desc.items()},  # validated in post_init
+            descriptors=descriptors,
             quality=_float(data, "quality", 0.0),
             source=_str(data, "source"),
             metadata=_metadata(data.get("metadata", {})),

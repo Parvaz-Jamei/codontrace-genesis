@@ -679,7 +679,13 @@ def _manipulation_check_failures(
         value = _summary_field(by_arm[arm], "bias_payload_totals")
         if not isinstance(value, Mapping):
             return set()
-        return {str(key) for key, count in value.items() if int(count) > 0}
+        kept: set[str] = set()
+        for key, count in value.items():
+            if isinstance(count, bool) or not isinstance(count, int):
+                raise ConfigurationError("bias_payload_totals counts must be integers")
+            if count > 0:
+                kept.add(str(key))
+        return kept
 
     applied_on = _num("source_bias_on", "bias_applied_mean")
     if applied_on is None or applied_on <= 0.0:
@@ -3054,7 +3060,7 @@ def evaluate_hard_experiment_01_wave1e_pilot_gates(
     gap = campaign.mean_abs_activity_match_gap
     gap_within_epsilon = gap is not None and float(gap) <= float(ACTIVITY_MATCH_EPSILON) + 1e-9
     # Amd 05: exploratory report only — never blocks overall clearance.
-    gate_activity_exploratory = {
+    gate_activity_exploratory: dict[str, JsonValue] = {
         "blocking": ACTIVITY_MATCH_PILOT_GATE,
         "mean_abs_activity_match_gap": gap,
         "epsilon": ACTIVITY_MATCH_EPSILON,

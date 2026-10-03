@@ -158,6 +158,49 @@ class FoodPatchSignalRecord:
             "payload_token": self.payload_token,
         }
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, JsonValue]) -> FoodPatchSignalRecord:
+        """Restore one record. Counts and flags are checked, not coerced from objects."""
+
+        def _int(name: str) -> int:
+            raw = data.get(name)
+            if isinstance(raw, bool) or not isinstance(raw, int):
+                raise ConfigurationError(f"FoodPatchSignalRecord.{name} must be an int")
+            return raw
+
+        def _text(name: str, default: str = "") -> str:
+            raw = data.get(name, default)
+            if not isinstance(raw, str):
+                raise ConfigurationError(f"FoodPatchSignalRecord.{name} must be a string")
+            return raw
+
+        def _flag(name: str) -> bool:
+            raw = data.get(name)
+            if not isinstance(raw, bool):
+                raise ConfigurationError(f"FoodPatchSignalRecord.{name} must be a bool")
+            return raw
+
+        target = data.get("target_true")
+        if (
+            not isinstance(target, list)
+            or len(target) != 2
+            or isinstance(target[0], bool)
+            or isinstance(target[1], bool)
+            or not isinstance(target[0], int)
+            or not isinstance(target[1], int)
+        ):
+            raise ConfigurationError("FoodPatchSignalRecord.target_true must be two ints")
+        return cls(
+            tick=_int("tick"),
+            emitter_id=_text("emitter_id"),
+            receiver_id=_text("receiver_id"),
+            payload_digest=_text("payload_digest"),
+            target_true=(target[0], target[1]),
+            moved=_flag("moved"),
+            ate_at_target=_flag("ate_at_target"),
+            payload_token=_text("payload_token"),
+        )
+
     def digest(self) -> str:
         return canonical_digest(self.to_dict())
 

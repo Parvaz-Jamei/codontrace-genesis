@@ -11,9 +11,10 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from codontrace._types import JsonValue, Position
 from codontrace.errors import ConfigurationError
@@ -809,8 +810,18 @@ def _csv_cell(value: Any) -> str | int | float | bool | None:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
+class _CsvExportSource(Protocol):
+    """Public export surface. The writer does not accept an untyped object."""
+
+    @property
+    def export_envelopes_by_name(self) -> Mapping[str, ExportEnvelope]: ...
+
+    @property
+    def export_table_schemas(self) -> Mapping[str, tuple[str, ...]]: ...
+
+
 def write_export_csvs(
-    result: object,
+    result: _CsvExportSource,
     output_dir: str | Path,
     *,
     include_empty: bool = True,
@@ -843,7 +854,7 @@ def write_export_csvs(
                 f"Export {name!r} contains non-dict records; measured CSV export would be lossy."
             )
         if not records and include_status_rows:
-            base = {key: None for key in fieldnames}
+            base: dict[str, str | None] = {key: None for key in fieldnames}
             base.update(
                 {
                     "schema_version": envelope.schema_version,

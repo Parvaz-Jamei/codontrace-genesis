@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from types import ModuleType
-from typing import Any
+from typing import Any, Protocol
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -471,10 +471,19 @@ class ActionWiringMatrix:
         return _digest(self.to_dict())
 
 
+class _ActionNameRegistry(Protocol):
+    def names(self) -> Sequence[object]: ...
+    def get(self, name: str) -> object: ...
+
+
+class _CodonActionTable(Protocol):
+    def actions(self) -> Sequence[object]: ...
+
+
 def export_action_wiring_matrix(
     *,
-    action_registry: object | None = None,
-    codon_table: object | None = None,
+    action_registry: _ActionNameRegistry | None = None,
+    codon_table: _CodonActionTable | None = None,
     profile_name: str = "genesis_default",
 ) -> ActionWiringMatrix:
     """Return an action/codon/effect audit matrix without private engine hooks.

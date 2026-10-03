@@ -34,12 +34,20 @@ class BitSpan:
 
     @classmethod
     def from_dict(cls, data: dict[str, JsonValue]) -> BitSpan:
-        return cls(
-            start=int(data["start"]),
-            end=int(data["end"]),
-            kind=str(data["kind"]),
-            tag=str(data["tag"]),
-        )
+        start = data["start"]
+        end = data["end"]
+        kind = data["kind"]
+        tag = data["tag"]
+        if isinstance(start, bool) or not isinstance(start, int):
+            msg = "BitSpan.start must be an integer."
+            raise ValueError(msg)
+        if isinstance(end, bool) or not isinstance(end, int):
+            msg = "BitSpan.end must be an integer."
+            raise ValueError(msg)
+        if not isinstance(kind, str) or not isinstance(tag, str):
+            msg = "BitSpan.kind and BitSpan.tag must be strings."
+            raise ValueError(msg)
+        return cls(start=start, end=end, kind=kind, tag=tag)
 
 
 def _normalize_spans(
@@ -119,8 +127,8 @@ def rebase_spans(
             length -= width
             continue
         if operation.startswith("trim:"):
-            removed = int(operation.split(":", 1)[1])
-            cap = length - removed
+            trimmed = int(operation.split(":", 1)[1])
+            cap = length - trimmed
             current = [span for span in current if span.end <= cap]
             length = cap
     return _normalize_spans(tuple(current), bit_length=length, codon_width=codon_width)

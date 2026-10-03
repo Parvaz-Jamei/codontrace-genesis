@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
+from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.rng import RNGManager
@@ -104,8 +105,8 @@ class ClosedLoopHPLifeConfig:
                 "outcross_mates_per_generation_cap must be >= 1 when set"
             )
 
-    def to_dict(self) -> dict[str, object]:
-        payload: dict[str, object] = {
+    def to_dict(self) -> dict[str, JsonValue]:
+        payload: dict[str, JsonValue] = {
             "enabled": self.enabled,
             "mutate_both_roles": self.mutate_both_roles,
             "role_by_id": {k: v for k, v in self.role_by_id},

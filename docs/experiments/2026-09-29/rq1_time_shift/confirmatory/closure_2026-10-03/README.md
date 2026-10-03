@@ -7,3 +7,9 @@ The locked pack was commit `6187ff4`. That commit is not in this repository, and
 `hypothesis_supported` and `red_queen_proved` are false.
 
 The partial log already in `confirmatory/raw/` for seed 5706 is unchanged.
+
+These files are aggregate summaries of new runs, not complete raw evidence packs.
+
+The seed-specific trajectories, initial state, full settings and replay recipe are not present in this closure directory.
+
+See EVIDENCE_STATUS.json. No aggregate is used to backfill missing historical observations.

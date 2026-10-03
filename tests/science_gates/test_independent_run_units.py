@@ -171,10 +171,11 @@ def test_a_different_intervention_on_the_same_run_is_not_a_checkpoint() -> None:
         ),
     )
     report = build_causal_evidence_report((knock_a, knock_b))
-    assert report.independent_count == 2
-    assert report.checkpoint_conflict_count == 0
-    assert report.effect.sample_count == 2
-    assert report.failure_status == "passed"
+    assert report.independent_count == 0
+    assert report.checkpoint_conflict_count == 1
+    assert report.effect.sample_count == 0
+    assert report.failure_status == "mixed_interventions_require_separate_reports"
+    assert report.claim_eligible is False
 
 
 def test_claim_requires_the_auditor_floor_and_an_interval_that_excludes_zero() -> None:

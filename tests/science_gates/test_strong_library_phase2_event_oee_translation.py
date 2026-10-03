@@ -56,7 +56,8 @@ def test_predictive_probe_records_lags_controls_and_no_intervention_claim():
 
 def test_intervention_result_required_object_and_oee_thresholds():
     result = build_intervention_result("s", [1, 1, 1], [2, 2, 2])
-    assert result.evidence_level == "intervention_supported"
+    assert result.evidence_level == "intervention_observed"
+    assert result.confidence_interval is None
     thresholds = OEEClaimThresholds()
     assert thresholds.min_seed_count_research_grade == 30
     report = build_oee_metrics_report(5, 50, {"archive_coverage_slope": 0.1}, shadow_adjusted=False)

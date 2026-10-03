@@ -1,4 +1,4 @@
-"""D-2 performance endpoint, version 2.
+"""D-2 transfer validation V2 and time-bound recovery V4.
 
 The locked 1.25× rule stays the historical record. This module does not
 re-read it as a success, and it does not treat a later definition as
@@ -9,7 +9,9 @@ A scientific contact is a pair of engine ATP ledger rows: one source debit
 and one recipient credit. At the ledger's 1e-10 rounding, source debit =
 recipient credit + non-negative loss, and ``atp_paid`` is that source debit.
 Names alone are not a contact. Instrument rows stay instrument-only.
-``FI-RESOURCE-RECOVERY-V3`` is a baseline-normalized return after a drop.
+``FI-RESOURCE-RECOVERY-V4-TIME-BOUND`` retains the V3 baseline-normalized
+fractions and additionally binds every sampled boundary to its run, tick,
+recipient and ledger cursor.
 It does not confirm the locked 1.25× rule, and a transfer with no drop is
 not that return.
 """
@@ -20,16 +22,83 @@ import math
 from collections.abc import Collection, Mapping, Sequence
 from typing import Literal
 
-from codontrace.energy import ATPLedgerEntry
+from codontrace.energy import ATPAccount, ATPLedgerEntry
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.organism import GenesisOrganism
 
 PREREG_V1_ID = "FI-RARECLASS-CONTACT-YIELD-V1"
 PREREG_V2_ID = "FI-RESOURCE-TRANSFER-V2"
 OLD_LOCKED_MULTIPLIER = 1.25
-CONTACT_VALIDATION_ID = "D2-CONTACT-LEDGER-V1"
+CONTACT_VALIDATION_ID = "D2-CONTACT-LEDGER-V2"
 ENGINE_LEDGER_EVIDENCE = "engine_ledger"
 _LEDGER_PLACES = 10
+
+
+def _transfer_binding(event: Mapping[str, object]) -> str:
+    """Bind both ledger rows to one transfer, its history and its participants."""
+    body = {key: event[key] for key in ("run_id", "contact_id", "tick", "source_id", "recipient_id")}
+    body.update(atp_paid=_non_negative(event.get("atp_paid"), "atp_paid"),
+                loss=_non_negative(event.get("loss", 0.0), "loss"))
+    return canonical_digest(body, prefix="d2_transfer_v2")
+
+
+def execute_runtime_transfer(
+    source: ATPAccount, recipient: ATPAccount, *, run_id: str, contact_id: str,
+    source_id: str, recipient_id: str, tick: int, amount: float, loss: float = 0.0,
+    self_transfer_justification: str | None = None,
+) -> dict[str, object]:
+    """Record an explicit intervention transfer; this is not spontaneous ecology.
+
+    Validates the complete operation before mutating either account. Both rows
+    carry the same content binding. A replay is rejected against the ledgers.
+    """
+    event: dict[str, object] = {
+        "evidence": ENGINE_LEDGER_EVIDENCE, "run_id": run_id, "contact_id": contact_id,
+        "source_id": source_id, "recipient_id": recipient_id, "tick": tick,
+        "atp_paid": float(_non_negative(amount, "amount")),
+        "loss": float(_non_negative(loss, "loss")),
+    }
+    for name in ("run_id", "contact_id", "source_id", "recipient_id"):
+        _text(event, name)
+    if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0:
+        raise ConfigurationError("transfer tick must be a non-negative integer")
+    if (source is recipient) != (source_id == recipient_id):
+        raise ConfigurationError("account identity does not match the transfer participants")
+    if source_id == recipient_id:
+        if not isinstance(self_transfer_justification, str) or not self_transfer_justification.strip():
+            raise ConfigurationError("self-transfer requires an explicit justification")
+        event["self_transfer_justification"] = self_transfer_justification
+    paid, dissipated = float(event["atp_paid"]), float(event["loss"])
+    if paid <= 0.0 or dissipated > paid or not source.can_pay(paid):
+        raise ConfigurationError("source cannot fund a positive transfer with this loss")
+    binding = _transfer_binding(event)
+    if any(row.reason == binding for row in (*source.ledger, *recipient.ledger)):
+        raise ConfigurationError("replay of a transfer binding")
+    for account in (source, recipient):
+        if account.ledger and tick < account.ledger[-1].tick:
+            raise ConfigurationError("transfer precedes the account history")
+    if not math.isfinite(recipient.current_atp + paid - dissipated):
+        raise ConfigurationError("recipient balance would be non-finite")
+    source_entry = source.debit(paid, tick=tick, agent_id=source_id, codon="d2",
+                                action="d2_transfer_v2", reason=binding)
+    recipient_entry = recipient.credit(paid - dissipated, tick=tick, agent_id=recipient_id,
+                                       codon="d2", action="d2_transfer_v2", reason=binding)
+    event.update(source_entry_id=source_entry, recipient_entry_id=recipient_entry)
+    return event
+
+
+def capture_recovery_boundary(account: ATPAccount, *, run_id: str, recipient_id: str,
+                              tick: int) -> dict[str, object]:
+    """A balance sample anchored to an append-only recipient ledger cursor."""
+    if not run_id.strip() or not recipient_id.strip():
+        raise ConfigurationError("boundary requires history and recipient ids")
+    if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0:
+        raise ConfigurationError("boundary tick must be a non-negative integer")
+    if account.ledger and tick < account.ledger[-1].tick:
+        raise ConfigurationError("boundary precedes its ledger")
+    return {"run_id": run_id, "recipient_id": recipient_id, "tick": tick,
+            "value": account.current_atp, "ledger_entry_count": len(account.ledger)}
 
 #: Locked before any live control in this module is scored.
 #: Ingrisch and Bahn 2018, Trends Ecol. Evol. 33:251–259,
@@ -37,6 +106,7 @@ _LEDGER_PLACES = 10
 #: the pre-disturbance baseline after an impact. A transfer with no impact
 #: is not recovery. These fractions do not confirm the historical 1.25× rule.
 PREREG_V3_ID = "FI-RESOURCE-RECOVERY-V3"
+PREREG_V4_ID = "FI-RESOURCE-RECOVERY-V4-TIME-BOUND"
 RECOVERY_DROP_FRACTION = 0.5
 RECOVERY_RESTORE_FRACTION = 0.8
 RECOVERY_WINDOW_BOUNDARIES = 2
@@ -235,6 +305,14 @@ def _validate_claim(
         raise ConfigurationError("atp_paid does not match the source debit")
     if not _same(source_debit, recipient_credit + loss):
         raise ConfigurationError("source debit, recipient credit, and loss do not reconcile")
+    _text(event, "run_id")
+    tick = event.get("tick")
+    if isinstance(tick, bool) or not isinstance(tick, int) or tick < 0 or tick != source_row["tick"]:
+        raise ConfigurationError("transfer tick does not match the ledger")
+    binding = _transfer_binding(event)
+    if any(row.get("action") != "d2_transfer_v2" or row.get("reason") != binding
+           for row in (source_row, recipient_row)):
+        raise ConfigurationError("ledger rows are not bound to this transfer")
     used_entries.add(source_key)
     used_entries.add(recipient_key)
     return paid
@@ -245,6 +323,7 @@ def transfer_yield(
     ledger: Sequence[ATPLedgerEntry | Mapping[str, object]] | None = None,
     *,
     used_contact_ids: Collection[str] | None = None,
+    used_ledger_entries: Collection[tuple[str, int]] | None = None,
 ) -> dict[str, object]:
     """ATP moved on an engine ledger contact.
 
@@ -256,7 +335,7 @@ def transfer_yield(
 
     index = _index_ledger(ledger)
     already = set(used_contact_ids or ())
-    used_entries: set[tuple[str, int]] = set()
+    used_entries: set[tuple[str, int]] = set(used_ledger_entries or ())
     paid = 0.0
     counted = 0
     instrument = 0
@@ -304,6 +383,7 @@ def transfer_yield(
         "confirms_v1_endpoint": False,
         "hypothesis_supported": False,
         "consumed_contact_ids": tuple(sorted(seen)) if identified else (),
+        "consumed_ledger_entries": tuple(sorted(used_entries - set(used_ledger_entries or ()))) if identified else (),
     }
 
 
@@ -413,8 +493,10 @@ def assess_recovery(
     ledger: Sequence[ATPLedgerEntry | Mapping[str, object]] | None = None,
     *,
     recipient_id: str,
+    used_contact_ids: Collection[str] | None = None,
+    used_ledger_entries: Collection[tuple[str, int]] | None = None,
 ) -> dict[str, object]:
-    """Score the locked V3 rule. This does not confirm the 1.25× endpoint.
+    """Score the versioned time-bound V4 rule with the V3 fractions. This does not confirm the 1.25× endpoint.
 
     Baseline is boundary 0. A drop is a later boundary at or below half of
     that baseline. Restoration is a later boundary, at most two steps after
@@ -425,7 +507,43 @@ def assess_recovery(
 
     if not isinstance(recipient_id, str) or not recipient_id.strip():
         raise ConfigurationError("recovery scoring needs the recipient id")
-    values = _boundaries(boundaries)
+    if not boundaries or not all(isinstance(row, Mapping) for row in boundaries):
+        return {"endpoint_id": PREREG_V4_ID, "performance_recovered": False,
+                "reason": "unbound_boundaries", "transfer_recorded": False,
+                "confirms_v1_endpoint": False, "hypothesis_supported": False}
+    samples = list(boundaries)
+    run_id = _text(samples[0], "run_id")
+    recipient_rows = sorted(
+        (dict(_entry_view(row)) for row in ledger or () if _entry_view(row).get("agent_id") == recipient_id),
+        key=lambda row: int(row["entry_id"]),
+    )
+    _index_ledger(ledger)
+    for index, row in enumerate(recipient_rows):
+        if row["entry_id"] != index:
+            raise ConfigurationError("recovery needs a complete recipient ledger")
+        # Legacy engine entries contain action-local and generation-local tick
+        # counters. Entry ids establish append order; sampled V4 boundaries
+        # separately establish the time of the analysed interval.
+        if index and not _same(float(row["balance_before"]), float(recipient_rows[index - 1]["balance_after"])):
+            raise ConfigurationError("recipient ledger history is discontinuous")
+    values = _boundaries([row.get("value") for row in samples])
+    previous_tick = -1
+    previous_count = 0
+    for sample in samples:
+        if _text(sample, "run_id") != run_id or _text(sample, "recipient_id") != recipient_id:
+            raise ConfigurationError("recovery boundaries mix histories or recipients")
+        tick, count = sample.get("tick"), sample.get("ledger_entry_count")
+        if isinstance(tick, bool) or not isinstance(tick, int) or tick <= previous_tick:
+            raise ConfigurationError("recovery ticks must be strictly increasing")
+        if isinstance(count, bool) or not isinstance(count, int) or count < previous_count or count > len(recipient_rows):
+            raise ConfigurationError("invalid boundary ledger cursor")
+        if count != sum(int(row["tick"]) <= tick for row in recipient_rows):
+            raise ConfigurationError("boundary cursor does not match its tick")
+        if recipient_rows:
+            expected = recipient_rows[count - 1]["balance_after"] if count else recipient_rows[0]["balance_before"]
+            if not _same(float(sample["value"]), float(expected)):
+                raise ConfigurationError("boundary balance does not match its ledger cursor")
+        previous_tick, previous_count = tick, count
     baseline = values[0]
     drop_index: int | None = None
     for index, value in enumerate(values):
@@ -460,18 +578,36 @@ def assess_recovery(
             saw_lapse = True
         if not shape and saw_lapse:
             reason = "not_persistent"
-    measured = transfer_yield(events, ledger)
-    credit = _recipient_credit(events, recipient_id) if measured["contact_identified"] else 0.0
+    measured = transfer_yield(events, ledger, used_contact_ids=used_contact_ids,
+                              used_ledger_entries=used_ledger_entries)
+    if any(event.get("run_id") != run_id for event in events if _is_contact_claim(event)):
+        raise ConfigurationError("transfer and recovery belong to different histories")
+    credit = 0.0
     if shape and restore_index is not None and drop_index is not None:
+        start_count = int(samples[drop_index]["ledger_entry_count"])
+        end_count = int(samples[restore_index]["ledger_entry_count"])
+        window_events = [event for event in events if event.get("recipient_id") == recipient_id
+                         and isinstance(event.get("recipient_entry_id"), int)
+                         and start_count <= int(event["recipient_entry_id"]) < end_count
+                         and int(samples[drop_index]["tick"]) < int(event["tick"]) <= int(samples[restore_index]["tick"])]
+        credit = _recipient_credit(window_events, recipient_id) if measured["contact_identified"] else 0.0
+        interval_rows = recipient_rows[start_count:end_count]
+        contact_entries = {event["recipient_entry_id"] for event in window_events}
+        unexplained = any(row["kind"] == "credit" and row["entry_id"] not in contact_entries
+                          for row in interval_rows)
+        debit = sum(float(row["amount"]) for row in interval_rows if row["kind"] == "debit")
         gain = values[restore_index] - values[drop_index]
         if credit <= 0.0 or not measured["contact_identified"]:
             shape = False
             reason = "no_reconciling_contact"
-        elif not _same(gain, credit):
+        elif unexplained:
+            shape = False
+            reason = "unattributed_credit"
+        elif not _same(gain, credit - debit):
             shape = False
             reason = "gain_does_not_match_credit"
     return {
-        "endpoint_id": PREREG_V3_ID,
+        "endpoint_id": PREREG_V4_ID,
         "definition": definition,
         "baseline": baseline,
         "drop_index": drop_index,
@@ -480,6 +616,8 @@ def assess_recovery(
         "performance_recovered": shape,
         "reason": reason,
         "transfer_recorded": bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0,
+        "consumed_contact_ids": measured["consumed_contact_ids"],
+        "consumed_ledger_entries": measured["consumed_ledger_entries"],
         "confirms_v1_endpoint": False,
         "hypothesis_supported": False,
     }
@@ -504,6 +642,9 @@ def apply_locked_recovery_arm(
         raise ConfigurationError("recovery arm must be positive or negative")
     if source.id == recipient.id:
         raise ConfigurationError("the recovery control needs two organisms")
+    run_id = f"d2-control:{source.id}:{recipient.id}:{tick}:{arm}"
+    samples = [capture_recovery_boundary(recipient.atp_state.runtime, run_id=run_id,
+               recipient_id=recipient.id, tick=tick)]
     baseline = float(recipient.atp_state.runtime_available)
     if baseline <= 0.0:
         raise ConfigurationError("recovery control baseline must be positive")
@@ -513,7 +654,7 @@ def apply_locked_recovery_arm(
         raise ConfigurationError("recovery control could not place the locked drop")
     drop_entry = recipient.atp_state.debit_runtime(
         disturbance,
-        tick=tick,
+        tick=tick + 1,
         organism_id=recipient.id,
         codon="d2",
         action="recovery_drop",
@@ -521,53 +662,39 @@ def apply_locked_recovery_arm(
     )
     if drop_entry is None:
         raise ConfigurationError("recovery control could not place the locked drop")
+    samples.append(capture_recovery_boundary(recipient.atp_state.runtime, run_id=run_id,
+                   recipient_id=recipient.id, tick=tick + 1))
     dropped = float(recipient.atp_state.runtime_available)
     restore_level = _grid(baseline * RECOVERY_RESTORE_FRACTION, up=True)
     credit = round(restore_level - dropped, _LEDGER_PLACES)
     if credit <= 0.0 or not source.atp_state.can_execute(credit):
         raise ConfigurationError("source cannot fund the locked restore")
-    source_entry = source.atp_state.debit_runtime(
-        credit,
-        tick=tick,
-        organism_id=source.id,
-        codon="d2",
-        action="recovery_transfer" if arm == "positive" else "matched_uncredited_cost",
-        reason="v3_positive_transfer" if arm == "positive" else "v3_negative_matched_cost",
-    )
-    if source_entry is None:
-        raise ConfigurationError("source cannot fund the locked restore")
     events: list[dict[str, object]] = []
     if arm == "positive":
-        recipient_entry = recipient.atp_state.credit_runtime(
-            credit,
-            tick=tick,
-            organism_id=recipient.id,
-            codon="d2",
-            action="recovery_transfer",
-            reason="v3_positive_transfer",
-        )
-        events.append(
-            {
-                "evidence": ENGINE_LEDGER_EVIDENCE,
-                "contact_id": "v3-positive-1",
-                "source_id": source.id,
-                "recipient_id": recipient.id,
-                "source_entry_id": source_entry,
-                "recipient_entry_id": recipient_entry,
-                "atp_paid": credit,
-                "loss": 0.0,
-            }
+        events.append(execute_runtime_transfer(
+            source.atp_state.runtime, recipient.atp_state.runtime,
+            run_id=run_id, contact_id="v4-positive-1", source_id=source.id,
+            recipient_id=recipient.id, tick=tick + 2, amount=credit,
+        ))
+    else:
+        source.atp_state.debit_runtime(
+            credit, tick=tick + 2, organism_id=source.id, codon="d2",
+            action="matched_uncredited_cost", reason="v4_negative_matched_cost",
         )
     after = float(recipient.atp_state.runtime_available)
-    persisted = float(recipient.atp_state.runtime_available)
+    persisted = after
+    samples.extend(capture_recovery_boundary(recipient.atp_state.runtime, run_id=run_id,
+                   recipient_id=recipient.id, tick=stage) for stage in (tick + 2, tick + 3))
     boundaries = [baseline, dropped, after, persisted]
     ledger = list(source.atp_state.runtime.ledger) + list(recipient.atp_state.runtime.ledger)
-    scored = assess_recovery(boundaries, events, ledger, recipient_id=recipient.id)
+    scored = assess_recovery(samples, events, ledger, recipient_id=recipient.id)
     return {
         "arm": arm,
-        "endpoint_id": PREREG_V3_ID,
+        "endpoint_id": PREREG_V4_ID,
         "baseline": baseline,
         "boundaries": boundaries,
+        "boundary_records": samples,
+        "control_only": True,
         "disturbance_cost": disturbance,
         "source_cost": credit,
         "recipient_credit": credit if arm == "positive" else 0.0,
@@ -584,17 +711,19 @@ def performance_recovery(
     ledger: Sequence[ATPLedgerEntry | Mapping[str, object]] | None = None,
     *,
     used_contact_ids: Collection[str] | None = None,
+    used_ledger_entries: Collection[tuple[str, int]] | None = None,
     boundaries: Sequence[object] | None = None,
     recipient_id: str | None = None,
 ) -> dict[str, object]:
-    """Name a transfer as a transfer. Recovery is the locked V3 rule only.
+    """Name a transfer as a transfer. Recovery requires time-bound V4 evidence.
 
     Without a baseline series, a paid contact is ``transfer_recorded`` and
     ``performance_recovered`` stays false. Digest return and survival are
     separate flags and are not this endpoint.
     """
 
-    measured = transfer_yield(events, ledger, used_contact_ids=used_contact_ids)
+    measured = transfer_yield(events, ledger, used_contact_ids=used_contact_ids,
+                              used_ledger_entries=used_ledger_entries)
     digest_flags = [event["digest_returned"] for event in events if "digest_returned" in event]
     survivor_flags = [event["n_alive"] for event in events if "n_alive" in event]
     transfer_recorded = bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0
@@ -604,11 +733,12 @@ def performance_recovery(
     if boundaries is not None:
         if recipient_id is None:
             raise ConfigurationError("recovery scoring needs the recipient id")
-        recovery = assess_recovery(boundaries, events, ledger, recipient_id=recipient_id)
+        recovery = assess_recovery(boundaries, events, ledger, recipient_id=recipient_id,
+                                   used_contact_ids=used_contact_ids, used_ledger_entries=used_ledger_entries)
         recovered = bool(recovery["performance_recovered"])
         reason = str(recovery["reason"])
     return {
-        "endpoint_id": PREREG_V2_ID if boundaries is None else PREREG_V3_ID,
+        "endpoint_id": PREREG_V2_ID if boundaries is None else PREREG_V4_ID,
         "transfer_recorded": transfer_recorded,
         "performance_recovered": recovered,
         "recovery_reason": reason,

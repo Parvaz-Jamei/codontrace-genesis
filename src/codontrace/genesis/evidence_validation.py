@@ -101,13 +101,13 @@ class EvidenceValidationContext:
 
     def has_validated_intervention_result(self) -> bool:
         return any(
-            result.evidence_level == "intervention_supported"
+            result.claim_eligible
             for result in self.intervention_results
         )
 
     def best_intervention_result(self) -> InterventionResult | None:
         for result in self.intervention_results:
-            if result.evidence_level == "intervention_supported":
+            if result.claim_eligible:
                 return result
         return self.intervention_results[0] if self.intervention_results else None
 
@@ -179,7 +179,7 @@ class EvidenceValidationContext:
                 "paired_seed_protocol_digest": False,
                 "claim_gate_decision_digest": False,
             }
-        has_result = result.evidence_level == "intervention_supported"
+        has_result = result.claim_eligible
         return {
             "intervention_result_artifact": has_result,
             "intervention_result_digest": has_result and bool(result.digest),

@@ -50,7 +50,7 @@ def test_intervention_supported_requires_validated_intervention_result_artifact(
 
     result = GenesisEngine.from_spec(spec).run_ticks()
 
-    assert result.manifest.claim_level == "intervention_supported"
-    assert result.manifest.claim_gate_allowed is True
-    assert result.manifest.claim_gate_decision == "allowed"
-    assert result.manifest.scientific_protocol_executed is True
+    assert result.manifest.claim_level == "event_association_only"
+    assert result.manifest.claim_gate_allowed is False
+    assert result.manifest.claim_gate_decision == "insufficient_evidence"
+    assert result.manifest.scientific_protocol_executed is False

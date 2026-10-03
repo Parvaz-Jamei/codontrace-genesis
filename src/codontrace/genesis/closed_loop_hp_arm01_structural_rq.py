@@ -19,6 +19,7 @@ from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import cast
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
@@ -59,8 +60,9 @@ from codontrace.genesis.measurements.rq_frequency_clocks import (
 )
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import MutationConfig, PopulationState
+from codontrace.genesis.rq_stream import open_stream
 from codontrace.genesis.text_digest import sha256_text_file
-from codontrace.rng import RNGManager
+from codontrace.rng import RNGManager, RNGSnapshot
 
 PREREG_VERSION = "hp_arm01_structural_rq_regime_prereg_20260926"
 PREREG_RELATIVE_PATH = (
@@ -279,6 +281,13 @@ def graded_affinity(host_window: str, parasite_window: str) -> float:
 
     Forbids AND-collapse of the full window to one exact-match bit
     (Engelstädter 2015 multi-locus / feature-overlap spirit).
+
+    On a 6-bit window split into three 2-bit sub-loci, this value equals the
+    count of matching bits divided by 6. If the two windows were independent
+    and each bit were uniform, that count would be Binomial(6, 0.5) and the
+    mean affinity would be 0.5. That mean is an assumption about the window
+    distribution. It is not guaranteed for an evolved population unless the
+    population is measured. This note does not change the score.
     """
 
     host_subs = sub_loci(host_window)
@@ -519,7 +528,19 @@ class StructuralRQArm(LifeLoopEcologyArm):
     bolus_sync_before_census: list[bool] = field(default_factory=list)
     # Resume contract: created once on the first ``run_generations`` call and reused, so
     # repeated calls continue the same deterministic history instead of re-seeding.
+    # Legacy arms still use this object. Timeshift arms set ``stream_root`` and open
+    # a fresh domain-separated stream per generation instead of seed+generation.
     generation_rng: RNGManager | None = None
+    stream_root: str | None = None
+    stream_history: str | None = None
+    last_host_rng: RNGManager | None = None
+    last_passage_rng: RNGManager | None = None
+    # Phase-3 frequency panel only. None on every existing arm, so the
+    # generation loop is unchanged unless a caller installs a hold.
+    # The hold puts the same host individuals back before contact. It is
+    # not a parasite reward and it is not read by passage.
+    host_composition_hold: Callable[..., None] | None = None
+    last_contact_host_windows: tuple[str, ...] = ()
 
     @classmethod
     def boot_structural(
@@ -636,9 +657,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
 
         Host bit flips happen inside reproduction (``mutate_genome``). Turning
         reproduction off and setting ``bit_flip_rate`` to 0 holds every living
-        host's recognition window. The host population is not cleared, and
-        ``_apply_hp_env_contact`` still applies graded debit. Parasite ecology
-        is unchanged by this call.
+        host's recognition window. That is a transmission-and-demography freeze,
+        not a pure evolution control: host births stop as well as host bit
+        flips. A pure evolution control would have to keep host demography
+        while removing only the evolutionary path under test. The host
+        population is not cleared, and ``_apply_hp_env_contact`` still applies
+        graded debit. Parasite ecology is unchanged by this call.
+        ``shuffled_labels`` is a different cut and is not a frozen genotype.
         """
 
         configs = self.runner.configs
@@ -664,7 +689,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
         generations = int(generations)
         if generations < 1:
             raise ConfigurationError("generations must be >= 1")
-        if self.generation_rng is None:
+        if self.stream_root is None and self.generation_rng is None:
             self.generation_rng = RNGManager(
                 seed=self.seed, namespace=f"hp-struct-rq-{self.arm}"
             )
@@ -672,14 +697,39 @@ class StructuralRQArm(LifeLoopEcologyArm):
         start_records = len(self.host_joint_class_series)
         with _population_unique_id_guard():
             for _ in range(generations):
+                # Phase-3 hold, off unless set. Restores the locked host mix
+                # before the life-loop step so a later death cannot change
+                # which genotypes are offered. Existing arms leave this None.
+                if self.host_composition_hold is not None:
+                    self.host_composition_hold(self)
                 # Bolus/refill at generation boundary BEFORE census append (probe).
                 self._apply_passage_refill()
                 bolus_before = True  # refill precedes census on this path
-                result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
+                generation_number = int(self.tick_index) + 1
+                if self.stream_root is not None:
+                    host_rng = open_stream(
+                        self.stream_root,
+                        str(self.stream_history),
+                        "host-step",
+                        generation_number,
+                    )
+                    self.last_host_rng = host_rng
+                    result = self.runner.step_generation(rng=host_rng)
+                else:
+                    # Legacy structural arms. seed+generation collides across
+                    # histories (9201/g2 == 9202/g1). Timeshift arms do not use it.
+                    result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
                 self._record_births(result)
                 for org in self.runner.population.organisms:
                     if org.id not in self.roles:
                         self.roles[org.id] = ROLE_PRIMARY
+                if self.host_composition_hold is not None:
+                    # Contact must see the locked mix, not whoever survived
+                    # the life-loop step. Passage is not called from the hold.
+                    self.host_composition_hold(self)
+                    self.last_contact_host_windows = tuple(
+                        _window(org) for org in self._hosts()
+                    )
                 debit_count, matched = self._apply_hp_env_contact()
                 self.match_debits_by_generation.append(int(debit_count))
                 served: tuple[tuple[str, float], ...] = ()
@@ -701,11 +751,24 @@ class StructuralRQArm(LifeLoopEcologyArm):
                     )
                 else:
                     events = ()
+                if self.stream_root is not None:
+                    passage_rng = open_stream(
+                        self.stream_root,
+                        str(self.stream_history),
+                        "passage",
+                        generation_number,
+                    )
+                    self.last_passage_rng = passage_rng
+                else:
+                    if rng is None:
+                        raise ConfigurationError("legacy arm is missing its generation RNG")
+                    passage_rng = rng.fork(f"passage/{self.tick_index}")
+                    self.last_passage_rng = passage_rng
                 self._passage_update(
                     matched,
                     served_contacts=() if events else served,
                     contact_events=events if self.antagonist_pop is not None else None,
-                    rng=rng.fork(f"passage/{self.tick_index}"),
+                    rng=passage_rng,
                 )
                 if self.antagonist_pop is not None:
                     ledger = self.antagonist_pop.ledgers[-1]
@@ -734,6 +797,56 @@ class StructuralRQArm(LifeLoopEcologyArm):
             self, generations=start_records + generations
         )
         return self.summary()
+
+    def capture_rng_and_births(self) -> dict[str, object]:
+        """RNG state and the parasite birth-id counter. Both are required to resume."""
+
+        pop = self.antagonist_pop
+        serial: int | None = None
+        known: list[str] = []
+        if isinstance(pop, AntagonistPopulation):
+            serial = int(pop.child_serial)
+            known = sorted(str(unit_id) for unit_id in pop.known_unit_ids)
+        host_state = None if self.last_host_rng is None else self.last_host_rng.snapshot(include_state=True)
+        passage_state = (
+            None if self.last_passage_rng is None else self.last_passage_rng.snapshot(include_state=True)
+        )
+        return {
+            "child_serial": serial,
+            "host_rng": host_state,
+            "known_unit_ids": known,
+            "passage_rng": passage_state,
+            "tick_index": int(self.tick_index),
+        }
+
+    def restore_rng_and_births(self, payload: Mapping[str, object]) -> None:
+        """Restore the birth-id counter and the last host and passage RNG objects."""
+
+        pop = self.antagonist_pop
+        if not isinstance(pop, AntagonistPopulation):
+            raise ConfigurationError("birth-id restore requires the antagonist population")
+        serial = payload.get("child_serial")
+        known = payload.get("known_unit_ids")
+        if not isinstance(serial, int) or serial < 0:
+            raise ConfigurationError("birth-id counter must be a non-negative integer")
+        if not isinstance(known, list) or not all(isinstance(item, str) for item in known):
+            raise ConfigurationError("known unit ids must be a list of strings")
+        pop.child_serial = serial
+        pop.known_unit_ids = set(cast(list[str], known))
+        tick = payload.get("tick_index")
+        if not isinstance(tick, int) or tick < 0:
+            raise ConfigurationError("tick index must be a non-negative integer")
+        self.tick_index = tick
+        host_state = payload.get("host_rng")
+        passage_state = payload.get("passage_rng")
+        if host_state is not None:
+            if not isinstance(host_state, dict):
+                raise ConfigurationError("host RNG state must be an object")
+            self.last_host_rng = RNGManager.restore(cast(RNGSnapshot, host_state))
+        if passage_state is not None:
+            if not isinstance(passage_state, dict):
+                raise ConfigurationError("passage RNG state must be an object")
+            self.last_passage_rng = RNGManager.restore(cast(RNGSnapshot, passage_state))
 
     def _apply_hp_env_contact(self) -> tuple[int, list[str]]:
         """Graded feature-overlap debit; forbid AND-exact composite as multi-locus.

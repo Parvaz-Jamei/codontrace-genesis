@@ -1,0 +1,430 @@
+{
+  "genome_a": "101111000100000001000000",
+  "genome_b": "101111000100000001111111",
+  "parasites": [
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-0",
+      "window": "000000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-1",
+      "window": "000001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-10",
+      "window": "111010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-11",
+      "window": "111011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-12",
+      "window": "111100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-13",
+      "window": "111101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-14",
+      "window": "111110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-15",
+      "window": "111111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-16",
+      "window": "000000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-17",
+      "window": "000001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-18",
+      "window": "000010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-19",
+      "window": "000011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-2",
+      "window": "000010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-20",
+      "window": "000100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-21",
+      "window": "000101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-22",
+      "window": "000110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-23",
+      "window": "000111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-24",
+      "window": "111000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-25",
+      "window": "111001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-26",
+      "window": "111010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-27",
+      "window": "111011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-28",
+      "window": "111100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-29",
+      "window": "111101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-3",
+      "window": "000011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-30",
+      "window": "111110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-31",
+      "window": "111111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-32",
+      "window": "000000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-33",
+      "window": "000001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-34",
+      "window": "000010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-35",
+      "window": "000011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-36",
+      "window": "000100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-37",
+      "window": "000101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-38",
+      "window": "000110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-39",
+      "window": "000111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-4",
+      "window": "000100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-40",
+      "window": "111000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-41",
+      "window": "111001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-42",
+      "window": "111010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-43",
+      "window": "111011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-44",
+      "window": "111100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-45",
+      "window": "111101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-46",
+      "window": "111110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-47",
+      "window": "111111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-48",
+      "window": "000000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-49",
+      "window": "000001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-5",
+      "window": "000101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-50",
+      "window": "000010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-51",
+      "window": "000011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-52",
+      "window": "000100"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-53",
+      "window": "000101"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-54",
+      "window": "000110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-55",
+      "window": "000111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-56",
+      "window": "111000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-57",
+      "window": "111001"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-58",
+      "window": "111010"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-59",
+      "window": "111011"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-6",
+      "window": "000110"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-7",
+      "window": "000111"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-8",
+      "window": "111000"
+    },
+    {
+      "born_generation": 0,
+      "energy": 1.0,
+      "parent_id": null,
+      "unit_id": "a0-9",
+      "window": "111001"
+    }
+  ],
+  "red_queen_proved": false,
+  "seed": 9504,
+  "window_a": "000000",
+  "window_b": "111111"
+}

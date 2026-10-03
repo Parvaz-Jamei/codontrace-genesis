@@ -51,22 +51,50 @@ def test_frequency_shortcut_matches_pairs_and_missing_is_not_zero() -> None:
 
 def test_verdict_gates_do_not_prove_red_queen() -> None:
     practical = 0.05
-    positive = one_sample_t([0.2] * 24, practical)
-    negative = one_sample_t([-0.02] * 24, practical)
+    # Constant samples have SE 0. Student-t p is undefined. They must not
+    # support, and a point CI must not be treated as a negative result.
+    constant_high = one_sample_t([0.2] * 24, practical)
+    constant_low = one_sample_t([-0.02] * 24, practical)
+    assert constant_high["se_zero"] is True
+    assert constant_high["p_one_sided"] is None
+    assert constant_high["reject"] is False
+    assert constant_low["p_one_sided"] is None
     names = ("CH_A", "CP_A", "S_A_minus_S_B", "S_A_minus_S_C")
-    supported = decide_verdict(
-        {name: positive for name in names},
+    assert decide_verdict(
+        {name: constant_high for name in names},
         verification_ok=True,
         archive_ok=True,
         practical_effect=practical,
-    )
-    assert supported == VERDICT_SUPPORTED
+    ) == VERDICT_INCONCLUSIVE
+    assert decide_verdict(
+        {name: constant_low for name in names},
+        verification_ok=True,
+        archive_ok=True,
+        practical_effect=practical,
+    ) == VERDICT_INCONCLUSIVE
+    # Non-constant negative: every history is below the importance bound and
+    # the sample is not degenerate. Upper CI must fall below the bound.
+    negative = one_sample_t([-0.20] * 12 + [-0.30] * 12, practical)
+    assert negative["se_zero"] is False
+    assert negative["reject"] is False
     assert decide_verdict(
         {name: negative for name in names},
         verification_ok=True,
         archive_ok=True,
         practical_effect=practical,
     ) == VERDICT_NEGATIVE
+    positive = one_sample_t([0.30] * 12 + [0.50] * 12, practical, mde=1.0)
+    assert positive["se_zero"] is False
+    assert positive["p_one_sided"] not in (None, 0.0)
+    assert positive["mde"] == 1.0
+    assert positive["mde_is_importance_bound"] is False
+    assert positive["reject"] is True
+    assert decide_verdict(
+        {name: positive for name in names},
+        verification_ok=True,
+        archive_ok=True,
+        practical_effect=practical,
+    ) == VERDICT_SUPPORTED
     mixed = {name: negative for name in names}
     mixed["CH_A"] = positive
     assert decide_verdict(

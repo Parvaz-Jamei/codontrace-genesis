@@ -1,0 +1,89 @@
+{
+  "D_mean": 1.5222222222222221,
+  "by_seed": {
+    "9501": {
+      "D": 1.4055555555555554,
+      "I_A_common_a": 0.8583333333333334,
+      "I_A_common_b": 0.15555555555555556,
+      "I_A_locked": 0.5222222222222223,
+      "I_B_common_a": 0.14166666666666666,
+      "I_B_common_b": 0.8444444444444443,
+      "I_B_locked": 0.4777777777777778,
+      "control_gap": 0.04444444444444445,
+      "red_queen_proved": false
+    },
+    "9502": {
+      "D": 1.6055555555555552,
+      "I_A_common_a": 0.8833333333333332,
+      "I_A_common_b": 0.08055555555555556,
+      "I_A_locked": 0.5222222222222223,
+      "I_B_common_a": 0.11666666666666665,
+      "I_B_common_b": 0.9194444444444444,
+      "I_B_locked": 0.4777777777777778,
+      "control_gap": 0.04444444444444445,
+      "red_queen_proved": false
+    },
+    "9503": {
+      "D": 1.6222222222222222,
+      "I_A_common_a": 0.9083333333333332,
+      "I_A_common_b": 0.09722222222222221,
+      "I_A_locked": 0.5222222222222223,
+      "I_B_common_a": 0.09166666666666667,
+      "I_B_common_b": 0.9027777777777778,
+      "I_B_locked": 0.4777777777777778,
+      "control_gap": 0.04444444444444445,
+      "red_queen_proved": false
+    },
+    "9504": {
+      "D": 1.4555555555555557,
+      "I_A_common_a": 0.7944444444444444,
+      "I_A_common_b": 0.06666666666666667,
+      "I_A_locked": 0.5222222222222223,
+      "I_B_common_a": 0.20555555555555555,
+      "I_B_common_b": 0.9333333333333335,
+      "I_B_locked": 0.4777777777777778,
+      "control_gap": 0.04444444444444445,
+      "red_queen_proved": false
+    }
+  },
+  "dropped_seeds": [],
+  "importance_bound": null,
+  "importance_rule": "Importance for this estimand is undeclared. SUPPORTED is forbidden. The minimum detectable effect is not the importance bound.",
+  "mde_is_importance_bound": false,
+  "measurement_floor": 12,
+  "measurement_floor_lowered": false,
+  "n_locked": 4,
+  "n_used": 4,
+  "per_seed": [
+    {
+      "D": 1.4055555555555554,
+      "control_gap": 0.04444444444444445,
+      "seed": 9501,
+      "status": "measured"
+    },
+    {
+      "D": 1.6055555555555552,
+      "control_gap": 0.04444444444444445,
+      "seed": 9502,
+      "status": "measured"
+    },
+    {
+      "D": 1.6222222222222222,
+      "control_gap": 0.04444444444444445,
+      "seed": 9503,
+      "status": "measured"
+    },
+    {
+      "D": 1.4555555555555557,
+      "control_gap": 0.04444444444444445,
+      "seed": 9504,
+      "status": "measured"
+    }
+  ],
+  "red_queen_declared": false,
+  "red_queen_proved": false,
+  "stream_policy": "shared-derivation-separate-objects",
+  "supported_forbidden": true,
+  "verdict": "NOT_DECLARED",
+  "workers": 4
+}

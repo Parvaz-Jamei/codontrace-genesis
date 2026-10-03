@@ -1,0 +1,694 @@
+{
+  "arms": {
+    "A": {
+      "host_inheritance": "transmit",
+      "passage": "coevolve",
+      "statement": "Both genotypes can be transmitted. Host reproduction stays on and parasite offspring keep inherited windows, subject to mutation. Contact and cost stay on."
+    },
+    "B": {
+      "host_inheritance": "transmit",
+      "passage": "frozen",
+      "statement": "Parasite genotypic inheritance is a frozen genotype: passage is PASSAGE_FROZEN (mode \"frozen\"), reseated by the existing frozen path. This is not shuffled_labels. shuffled_labels is not a frozen genotype. Host inheritance stays on. Contact and cost stay on. The parasite population is not deleted."
+    },
+    "C": {
+      "host_inheritance": "frozen",
+      "passage": "coevolve",
+      "statement": "Host genotypic inheritance is frozen via freeze_host_genotypic_inheritance: host reproduction is off and bit_flip_rate is 0. This is not a pure evolution control. The host population is not deleted. Contact and cost remain. Parasite passage stays PASSAGE_COEVOLVE, so parasites still reproduce."
+    },
+    "D": {
+      "host_inheritance": "frozen",
+      "passage": "frozen",
+      "statement": "Both cuts at once. Parasite passage is PASSAGE_FROZEN (mode \"frozen\"), a frozen genotype, not shuffled_labels. shuffled_labels is not a frozen genotype. Host reproduction is off and bit_flip_rate is 0. That host cut is not a pure evolution control. Neither population is deleted. Contact and cost remain."
+    }
+  },
+  "code_version": "rq-mechanism-v2/0.3.0b12",
+  "config_digest": "43ffc1b66c4e9613075ba93640bba5cff1119e4314b24dfc1536f095212555ab",
+  "design_version": "hp-arm01-structural/timeshift-phase1",
+  "experiment": "RQ-BIDIRECTIONAL-TIMESHIFT-01",
+  "founder": {
+    "hosts": [
+      {
+        "id": "h0",
+        "runtime_atp": 48.0,
+        "window": "000000"
+      },
+      {
+        "id": "h1",
+        "runtime_atp": 48.0,
+        "window": "000001"
+      },
+      {
+        "id": "h10",
+        "runtime_atp": 48.0,
+        "window": "111010"
+      },
+      {
+        "id": "h11",
+        "runtime_atp": 48.0,
+        "window": "111011"
+      },
+      {
+        "id": "h12",
+        "runtime_atp": 48.0,
+        "window": "111100"
+      },
+      {
+        "id": "h13",
+        "runtime_atp": 48.0,
+        "window": "111101"
+      },
+      {
+        "id": "h14",
+        "runtime_atp": 48.0,
+        "window": "111110"
+      },
+      {
+        "id": "h15",
+        "runtime_atp": 48.0,
+        "window": "111111"
+      },
+      {
+        "id": "h16",
+        "runtime_atp": 48.0,
+        "window": "000000"
+      },
+      {
+        "id": "h17",
+        "runtime_atp": 48.0,
+        "window": "000001"
+      },
+      {
+        "id": "h18",
+        "runtime_atp": 48.0,
+        "window": "000010"
+      },
+      {
+        "id": "h19",
+        "runtime_atp": 48.0,
+        "window": "000011"
+      },
+      {
+        "id": "h2",
+        "runtime_atp": 48.0,
+        "window": "000010"
+      },
+      {
+        "id": "h20",
+        "runtime_atp": 48.0,
+        "window": "000100"
+      },
+      {
+        "id": "h21",
+        "runtime_atp": 48.0,
+        "window": "000101"
+      },
+      {
+        "id": "h22",
+        "runtime_atp": 48.0,
+        "window": "000110"
+      },
+      {
+        "id": "h23",
+        "runtime_atp": 48.0,
+        "window": "000111"
+      },
+      {
+        "id": "h24",
+        "runtime_atp": 48.0,
+        "window": "111000"
+      },
+      {
+        "id": "h25",
+        "runtime_atp": 48.0,
+        "window": "111001"
+      },
+      {
+        "id": "h26",
+        "runtime_atp": 48.0,
+        "window": "111010"
+      },
+      {
+        "id": "h27",
+        "runtime_atp": 48.0,
+        "window": "111011"
+      },
+      {
+        "id": "h28",
+        "runtime_atp": 48.0,
+        "window": "111100"
+      },
+      {
+        "id": "h29",
+        "runtime_atp": 48.0,
+        "window": "111101"
+      },
+      {
+        "id": "h3",
+        "runtime_atp": 48.0,
+        "window": "000011"
+      },
+      {
+        "id": "h30",
+        "runtime_atp": 48.0,
+        "window": "111110"
+      },
+      {
+        "id": "h31",
+        "runtime_atp": 48.0,
+        "window": "111111"
+      },
+      {
+        "id": "h32",
+        "runtime_atp": 48.0,
+        "window": "000000"
+      },
+      {
+        "id": "h33",
+        "runtime_atp": 48.0,
+        "window": "000001"
+      },
+      {
+        "id": "h34",
+        "runtime_atp": 48.0,
+        "window": "000010"
+      },
+      {
+        "id": "h35",
+        "runtime_atp": 48.0,
+        "window": "000011"
+      },
+      {
+        "id": "h36",
+        "runtime_atp": 48.0,
+        "window": "000100"
+      },
+      {
+        "id": "h37",
+        "runtime_atp": 48.0,
+        "window": "000101"
+      },
+      {
+        "id": "h38",
+        "runtime_atp": 48.0,
+        "window": "000110"
+      },
+      {
+        "id": "h39",
+        "runtime_atp": 48.0,
+        "window": "000111"
+      },
+      {
+        "id": "h4",
+        "runtime_atp": 48.0,
+        "window": "000100"
+      },
+      {
+        "id": "h40",
+        "runtime_atp": 48.0,
+        "window": "111000"
+      },
+      {
+        "id": "h41",
+        "runtime_atp": 48.0,
+        "window": "111001"
+      },
+      {
+        "id": "h42",
+        "runtime_atp": 48.0,
+        "window": "111010"
+      },
+      {
+        "id": "h43",
+        "runtime_atp": 48.0,
+        "window": "111011"
+      },
+      {
+        "id": "h44",
+        "runtime_atp": 48.0,
+        "window": "111100"
+      },
+      {
+        "id": "h45",
+        "runtime_atp": 48.0,
+        "window": "111101"
+      },
+      {
+        "id": "h46",
+        "runtime_atp": 48.0,
+        "window": "111110"
+      },
+      {
+        "id": "h47",
+        "runtime_atp": 48.0,
+        "window": "111111"
+      },
+      {
+        "id": "h48",
+        "runtime_atp": 48.0,
+        "window": "000000"
+      },
+      {
+        "id": "h49",
+        "runtime_atp": 48.0,
+        "window": "000001"
+      },
+      {
+        "id": "h5",
+        "runtime_atp": 48.0,
+        "window": "000101"
+      },
+      {
+        "id": "h50",
+        "runtime_atp": 48.0,
+        "window": "000010"
+      },
+      {
+        "id": "h51",
+        "runtime_atp": 48.0,
+        "window": "000011"
+      },
+      {
+        "id": "h52",
+        "runtime_atp": 48.0,
+        "window": "000100"
+      },
+      {
+        "id": "h53",
+        "runtime_atp": 48.0,
+        "window": "000101"
+      },
+      {
+        "id": "h54",
+        "runtime_atp": 48.0,
+        "window": "000110"
+      },
+      {
+        "id": "h55",
+        "runtime_atp": 48.0,
+        "window": "000111"
+      },
+      {
+        "id": "h56",
+        "runtime_atp": 48.0,
+        "window": "111000"
+      },
+      {
+        "id": "h57",
+        "runtime_atp": 48.0,
+        "window": "111001"
+      },
+      {
+        "id": "h58",
+        "runtime_atp": 48.0,
+        "window": "111010"
+      },
+      {
+        "id": "h59",
+        "runtime_atp": 48.0,
+        "window": "111011"
+      },
+      {
+        "id": "h6",
+        "runtime_atp": 48.0,
+        "window": "000110"
+      },
+      {
+        "id": "h60",
+        "runtime_atp": 48.0,
+        "window": "111100"
+      },
+      {
+        "id": "h61",
+        "runtime_atp": 48.0,
+        "window": "111101"
+      },
+      {
+        "id": "h62",
+        "runtime_atp": 48.0,
+        "window": "111110"
+      },
+      {
+        "id": "h63",
+        "runtime_atp": 48.0,
+        "window": "111111"
+      },
+      {
+        "id": "h7",
+        "runtime_atp": 48.0,
+        "window": "000111"
+      },
+      {
+        "id": "h8",
+        "runtime_atp": 48.0,
+        "window": "111000"
+      },
+      {
+        "id": "h9",
+        "runtime_atp": 48.0,
+        "window": "111001"
+      }
+    ],
+    "parasites": [
+      {
+        "energy": 1.0,
+        "unit_id": "a0-0",
+        "window": "000000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-1",
+        "window": "000001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-10",
+        "window": "111010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-11",
+        "window": "111011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-12",
+        "window": "111100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-13",
+        "window": "111101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-14",
+        "window": "111110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-15",
+        "window": "111111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-16",
+        "window": "000000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-17",
+        "window": "000001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-18",
+        "window": "000010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-19",
+        "window": "000011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-2",
+        "window": "000010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-20",
+        "window": "000100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-21",
+        "window": "000101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-22",
+        "window": "000110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-23",
+        "window": "000111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-24",
+        "window": "111000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-25",
+        "window": "111001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-26",
+        "window": "111010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-27",
+        "window": "111011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-28",
+        "window": "111100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-29",
+        "window": "111101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-3",
+        "window": "000011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-30",
+        "window": "111110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-31",
+        "window": "111111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-32",
+        "window": "000000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-33",
+        "window": "000001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-34",
+        "window": "000010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-35",
+        "window": "000011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-36",
+        "window": "000100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-37",
+        "window": "000101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-38",
+        "window": "000110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-39",
+        "window": "000111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-4",
+        "window": "000100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-40",
+        "window": "111000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-41",
+        "window": "111001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-42",
+        "window": "111010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-43",
+        "window": "111011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-44",
+        "window": "111100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-45",
+        "window": "111101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-46",
+        "window": "111110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-47",
+        "window": "111111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-48",
+        "window": "000000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-49",
+        "window": "000001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-5",
+        "window": "000101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-50",
+        "window": "000010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-51",
+        "window": "000011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-52",
+        "window": "000100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-53",
+        "window": "000101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-54",
+        "window": "000110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-55",
+        "window": "000111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-56",
+        "window": "111000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-57",
+        "window": "111001"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-58",
+        "window": "111010"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-59",
+        "window": "111011"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-6",
+        "window": "000110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-60",
+        "window": "111100"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-61",
+        "window": "111101"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-62",
+        "window": "111110"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-63",
+        "window": "111111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-7",
+        "window": "000111"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-8",
+        "window": "111000"
+      },
+      {
+        "energy": 1.0,
+        "unit_id": "a0-9",
+        "window": "111001"
+      }
+    ]
+  },
+  "generations": 200,
+  "history_id": "9303",
+  "red_queen_proved": false,
+  "rng": {
+    "arm_name_in_hash": false,
+    "history_id": "9303",
+    "host_step_g1": 10802202254387279423,
+    "passage_g1": 8851507566130624720,
+    "root": "RQ-BIDIRECTIONAL-TIMESHIFT-01",
+    "sharing_policy": {
+      "policy_id": "shared-derivation-separate-objects",
+      "statement": "Arms of one history derive host-step and passage streams from the same (root, history_id, subsystem, generation) tuple, so the draws offered at a generation do not depend on the arm label. Each arm constructs its own RNGManager. Arms do not share a mutable RNG object. Independent histories differ in history_id. Order of histories is not an input."
+    },
+    "subsystems": [
+      "host-step",
+      "passage"
+    ]
+  },
+  "schema": "rq-mechanism-v2-phase2/1",
+  "seed": 9303
+}

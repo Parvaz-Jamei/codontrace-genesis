@@ -1,0 +1,15 @@
+{
+  "I_A": 0.9083333333333332,
+  "I_B": 0.09166666666666667,
+  "archive_sha256": "965507d79ee74e25f3898bbd7903e9b72ba0a6d8ddaa87baf1845c0bfc76e7b1",
+  "archive_unchanged": true,
+  "contacts_A": 60,
+  "contacts_B": "measured",
+  "credit_A": 32.700000000000024,
+  "debit_A": 65.39999999999999,
+  "evolution": false,
+  "mutation": false,
+  "red_queen_proved": false,
+  "reproduction": false,
+  "scale": 1.2
+}

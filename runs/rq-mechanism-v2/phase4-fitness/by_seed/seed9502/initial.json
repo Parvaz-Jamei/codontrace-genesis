@@ -1,0 +1,33 @@
+{
+  "genomes": {
+    "exemplar_a": "host-A-001",
+    "exemplar_b": "host-B-001",
+    "genome_a": "101111000100000001000000",
+    "genome_b": "101111000100000001111111",
+    "window_a": "000000",
+    "window_b": "111111"
+  },
+  "horizon_generations": 7,
+  "per_class": 30,
+  "red_queen_proved": false,
+  "seed": 9502,
+  "sources": {
+    "absent": {
+      "note": "passage absent; roster is removed before contact and is not a genotype treatment",
+      "path": "runs/rq-mechanism-v2/phase3-frequency/by_seed/seed9502/common_a/archive.jsonl",
+      "sha256": "529d13d2f5c2865c65241a5669d3dc1bca80599ab4b004713c6bbd3a5f5f1c7d"
+    },
+    "common_a": {
+      "generation": 7,
+      "n_parasites": 60,
+      "path": "runs/rq-mechanism-v2/phase3-frequency/by_seed/seed9502/common_a/archive.jsonl",
+      "sha256": "529d13d2f5c2865c65241a5669d3dc1bca80599ab4b004713c6bbd3a5f5f1c7d"
+    },
+    "common_b": {
+      "generation": 7,
+      "n_parasites": 60,
+      "path": "runs/rq-mechanism-v2/phase3-frequency/by_seed/seed9502/common_b/archive.jsonl",
+      "sha256": "f9fdbcbcdffcc1afcb00c5ac6394cf52ee5ed83d0afe9b60ce0b281540090e56"
+    }
+  }
+}

@@ -9,26 +9,36 @@ import hashlib
 import json
 import math
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.birth import SexualRecombinationConfig
+from codontrace.genesis.host_parasite_life_plugin import ROLE_PRIMARY, ROLE_SECONDARY, silence_outcross_locus
+from codontrace.genesis.measurements.antagonist_population import AntagonistPopulation
+from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.population import PopulationState
+from codontrace.genesis.rq_bidirectional_timeshift import ARM_A, build_arm
 from codontrace.genesis.rq_bidirectional_timeshift_confirm import MEASUREMENT_FLOOR, VERDICT_BLOCKED
 from codontrace.genesis.rq_mechanism_v2_phase2 import MAX_WORKERS as PHASE2_MAX_WORKERS
 from codontrace.genesis.rq_mechanism_v2_phase3 import MAX_WORKERS as PHASE3_MAX_WORKERS
 from codontrace.genesis.rq_mechanism_v2_phase4 import (
     BRANCH_ABSENT,
     BRANCH_COMMON_A,
+    BRANCHES,
     GENOME_A,
     GENOME_B,
     NO_FITNESS_SENTENCE,
     PHASE4_HORIZON,
     PHASE4_SEEDS,
+    PHASE4B_HORIZON,
     TEST_SEED,
     VERDICT_NOT_DECLARED,
     assert_phase4_seeds,
     assess_phase4,
+    branch_archive_hash,
     build_phase4_arm,
     contact_without_demography,
     equal_host_seats,
@@ -39,6 +49,7 @@ from codontrace.genesis.rq_mechanism_v2_phase4 import (
     locked_genomes,
     population_from_parasite_rows,
     render_phase4_lock,
+    render_phase4b_lock,
     resolve_workers,
     run_fitness_branch,
 )
@@ -293,3 +304,191 @@ def test_complete_sample_is_not_declared_and_horizon_is_the_recorded_multiple() 
         assert_phase4_seeds([9501, 9502, 9503])
     lock = Path("runs/rq-mechanism-v2/PHASE3_LOCK.md").read_text(encoding="utf-8")
     assert "CPU workers at most 4." in lock
+
+
+def test_one_child_is_accepted_on_the_engine_path(tmp_path: Path) -> None:
+    source = PHASE3_ROOT / "by_seed" / "seed9501" / "common_a" / "archive.jsonl"
+    rows, digest, _generation = load_conditioned_parasites(source)
+    parasites = population_from_parasite_rows(rows)
+    seats = equal_host_seats()
+    arm = build_phase4_arm(TEST_SEED, BRANCH_ABSENT, seats, parasites)
+    assert arm.runner.configs.sexual_recombination.uses_birth_chamber is True
+    assert arm.runner.configs.reproduction.enabled is True
+    assert arm.runner.configs.reproduction.parent_atp_cost > 0.0
+    assert arm.runner.configs.mutation.bit_flip_rate == 0.0
+    founders = {str(org.id) for org in arm.runner.population.organisms}
+    arm.run_generations(1)
+    living = list(arm.runner.population.organisms)
+    children = [org for org in living if org.id not in founders]
+    assert children, "a flag is not a child"
+    child = children[0]
+    assert child.id
+    assert any(org.id == child.id for org in living)
+    # Control: reproduction.enabled without the chamber still refuses.
+    refused = build_phase4_arm(TEST_SEED, BRANCH_ABSENT, seats, parasites)
+    refused.runner.configs = replace(
+        refused.runner.configs,
+        sexual_recombination=SexualRecombinationConfig(enabled=False),
+    )
+    assert refused.runner.configs.reproduction.enabled is True
+    assert refused.runner.configs.sexual_recombination.uses_birth_chamber is False
+    before = {str(org.id) for org in refused.runner.population.organisms}
+    result = refused.runner.step_generation(seed=TEST_SEED)
+    after = {str(org.id) for org in result.population.organisms}
+    assert after == before
+    assert result.births == 0
+    reasons = []
+    for trace in result.traces:
+        for event in trace.events:
+            if getattr(event, "action", None) != "COPY_SELF":
+                continue
+            delta = event.world_delta or {}
+            if delta.get("reproduction_blocked_reason"):
+                reasons.append(delta["reproduction_blocked_reason"])
+    assert reasons
+    assert set(reasons) == {"outcross_chamber_required"}
+    archive = tmp_path / "birth" / "archive.jsonl"
+    summary = run_fitness_branch(
+        seed=TEST_SEED,
+        branch=BRANCH_ABSENT,
+        seats=seats,
+        parasites=parasites,
+        generations=1,
+        archive_path=archive,
+        source_sha256=digest,
+    )
+    assert summary["failed"] is None
+    row = json.loads(archive.read_text(encoding="utf-8").splitlines()[0])
+    born_ids = [item["id"] for item in row["parents"] if item["parent_id"]]
+    assert born_ids
+    assert row["births_A"] + row["births_B"] == len(born_ids)
+    assert row["births_A"] + row["births_B"] > 0
+
+
+def test_death_generation_comes_from_the_atp_ledger_not_from_a_helper() -> None:
+    """No-food maximum debit. The expected generation is the ledger sum."""
+
+    arm = build_arm(ARM_A, TEST_SEED)
+    arm.resource_bolus_amount = 0.0
+    arm.runner.world.resources.clear()
+    configs = arm.runner.configs
+    arm.runner.configs = replace(configs, mutation=replace(configs.mutation, bit_flip_rate=0.0))
+    assert arm.runner.configs.sexual_recombination.uses_birth_chamber is False
+    org = GenesisOrganism.from_bits(
+        "host-A-001",
+        GENOME_A,
+        initial_runtime_atp=48.0,
+        position=arm.food_patches[0],
+    )
+    silence_outcross_locus(org, arm.runner.configs.closed_loop_hp_life)
+    arm.runner.population = PopulationState(
+        generation=0,
+        tick=0,
+        organisms=(org,),
+        lineage=(),
+        fitness=(),
+    )
+    arm.roles = {"host-A-001": ROLE_PRIMARY, "parasite_stock": ROLE_SECONDARY}
+    arm.antagonist_pop = AntagonistPopulation.founders(
+        ["000000"],
+        keep_fraction=0.5,
+        mutation_rate=0.0,
+    )
+    arm.parasite_windows = ["000000"]
+    arm.passage = "coevolve"
+    opening = 48.0
+    assert org.atp_state.runtime_available == opening
+    death_at = None
+    hand = opening
+    credits = 0.0
+    max_contact = 0.0
+    for generation in range(1, 16):
+        arm.runner.world.resources.clear()
+        # Same order as run_generations: refill, life-loop, then contact debit.
+        arm._apply_passage_refill()
+        arm.runner.step_generation(seed=TEST_SEED + generation)
+        watched = next(item for item in arm.runner.population.organisms if item.id == "host-A-001")
+        arm._apply_hp_env_contact()
+        hand = opening
+        credits = 0.0
+        max_contact = 0.0
+        for entry in watched.atp_state.runtime.ledger:
+            amount = float(entry.amount)
+            if entry.kind == "credit":
+                hand += amount
+                credits += amount
+            else:
+                hand -= amount
+                if entry.action == "HP_ENV_MATCH":
+                    max_contact = max(max_contact, amount)
+        assert abs(hand - float(watched.atp_state.runtime_available)) < 1e-9
+        alive = any(item.id == "host-A-001" for item in arm._hosts())
+        if hand <= 1e-12:
+            death_at = generation
+            assert alive is False
+            break
+        assert alive is True
+        assert hand > 0.0
+    assert credits == 0.0
+    assert max_contact == pytest.approx(1.2)
+    assert death_at is not None
+    assert death_at > 7
+    # Generation 7 of this account is still above zero. 60/26 is not the horizon.
+    assert math.ceil(3 * (60 / 26)) == 7
+    assert death_at != 7
+    assert PHASE4B_HORIZON == death_at
+    assert PHASE4_HORIZON == 7
+    assert PHASE4_HORIZON != PHASE4B_HORIZON
+
+
+def test_branch_archive_hashes_are_not_aliased() -> None:
+    blobs = {
+        BRANCH_COMMON_A: b"common-a-bytes",
+        "common_b": b"common-b-bytes-differ",
+        BRANCH_ABSENT: b"common-a-bytes",
+    }
+    file_sha = {key: hashlib.sha256(raw).hexdigest() for key, raw in blobs.items()}
+    labels = {
+        key: branch_archive_hash(key, file_sha[key], blobs[key])
+        for key in BRANCHES
+    }
+    assert labels[BRANCH_COMMON_A] == file_sha[BRANCH_COMMON_A]
+    assert labels["common_b"] == file_sha["common_b"]
+    assert labels[BRANCH_COMMON_A] != labels["common_b"]
+    assert labels[BRANCH_ABSENT] != labels[BRANCH_COMMON_A]
+    assert len(set(labels.values())) == 3
+    aliased = {key: labels[BRANCH_COMMON_A] for key in BRANCHES}
+    assert len(set(aliased.values())) == 1
+    assert labels != aliased
+    # Real phase-3 files differ, so their labels must differ.
+    paths = {
+        branch: PHASE3_ROOT / "by_seed" / "seed9501" / branch / "archive.jsonl"
+        for branch in ("common_a", "common_b")
+    }
+    raw = {branch: path.read_bytes() for branch, path in paths.items()}
+    assert raw["common_a"] != raw["common_b"]
+    real = {
+        "common_a": branch_archive_hash("common_a", hashlib.sha256(raw["common_a"]).hexdigest(), raw["common_a"]),
+        "common_b": branch_archive_hash("common_b", hashlib.sha256(raw["common_b"]).hexdigest(), raw["common_b"]),
+        BRANCH_ABSENT: branch_archive_hash(
+            BRANCH_ABSENT,
+            hashlib.sha256(raw["common_a"]).hexdigest(),
+            raw["common_a"],
+        ),
+    }
+    assert len(set(real.values())) == 3
+    text = render_phase4b_lock(code_commit="b" * 40)
+    assert NO_FITNESS_SENTENCE in text
+    assert "Fitness generations: 9" in text
+    assert "per-generation debit cap is 1.2" in text
+    assert "Opening runtime ATP is the structural birth ATP, 48." in text
+    assert GENOME_A in text
+    assert GENOME_B in text
+    assert "at most 7" in text
+    assert "phase4b-fitness" in text
+    assert "not a pure evolution control" in text
+    assert re.search(r"F\s*=\s*-?\d", text) is None
+    with pytest.raises(ConfigurationError, match="inside"):
+        from codontrace.genesis.rq_mechanism_v2_phase4 import assert_output_dir
+
+        assert_output_dir(Path("runs/rq-mechanism-v2/phase4-fitness"), forbid_rejected_archive=True)

@@ -125,3 +125,7 @@ All checks passed.
 ## What was not run
 
 No fitness link. No full coevolution beyond this panel. No new confirmatory. No later phase. No Red Queen claim. Seeds, the horizon, virulence, steal fraction, mutation rate, maintenance, birth ATP, and `MEASUREMENT_FLOOR` were not changed after D. Hall et al. 2011 full text was not read.
+
+## Worker cap after the run
+
+The four histories above ran with 4 workers. That execution was not repeated. After it had finished, the protocol cap was corrected from 4 to 7 (all cores on this machine minus one). `MAX_WORKERS` in `rq_mechanism_v2_phase3.py` is now 7, and `resolve_workers(7)` is accepted. `resolve_workers(8)` is still rejected. Phase 2 and the older confirmatory module still cap at 4 and were not edited. `PHASE3_LOCK.md` still says 4 because that was the cap in force for this measurement. The raw archives were kept.

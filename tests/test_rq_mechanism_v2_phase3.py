@@ -287,10 +287,9 @@ def test_non_evolving_branch_does_not_change_parasite_genotypes() -> None:
 
 
 def test_workers_cap_and_lock_has_no_measurement_d() -> None:
-    assert resolve_workers(None) == 4
-    assert resolve_workers(4) == MAX_WORKERS == 4
-    with pytest.raises(ConfigurationError, match="workers"):
-        resolve_workers(7)
+    assert resolve_workers(None) == 7
+    assert resolve_workers(7) == MAX_WORKERS == 7
+    assert resolve_workers(4) == 4
     with pytest.raises(ConfigurationError, match="workers"):
         resolve_workers(8)
     selection = {
@@ -323,7 +322,7 @@ def test_workers_cap_and_lock_has_no_measurement_d() -> None:
     assert "9501, 9502, 9503, 9504" in text
     assert "undeclared" in text
     assert "SUPPORTED is forbidden" in text
-    assert "at most 4" in text
+    assert "at most 7" in text
     assert "D =" not in text
     assert "D=" not in text
     poisoned = dict(selection)

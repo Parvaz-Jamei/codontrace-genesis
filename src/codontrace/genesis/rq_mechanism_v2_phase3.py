@@ -102,7 +102,7 @@ PHASE3_RARE_FRACTION = 0.2
 TURNOVER_MULTIPLE = 3
 # Probe length for the turnover rate only. Not the conditioning horizon.
 PROBE_GENERATIONS = 24
-MAX_WORKERS = 4
+MAX_WORKERS = 7
 STREAM_ROOT = "RQ-MECHANISM-V2-PHASE3"
 BRANCH_COMMON_A = "common_a"
 BRANCH_COMMON_B = "common_b"
@@ -138,7 +138,7 @@ def assert_phase3_seeds(seeds: Sequence[int], *, selection: bool = False) -> Non
 
 
 def resolve_workers(requested: int | None) -> int:
-    """Cap at 4. Do not follow the machine CPU count, and do not use 7."""
+    """Cap at 7, one core below this machine. Reject 8 and above."""
 
     if requested is None:
         requested = MAX_WORKERS
@@ -1127,7 +1127,7 @@ def render_phase3_lock(selection: Mapping[str, object], *, code_commit: str) -> 
         f"`MEASUREMENT_FLOOR` stays {MEASUREMENT_FLOOR} and is not lowered. It is not the importance bound.",
         "If a locked seed is missing or unmeasurable, the verdict is BLOCKED_MEASUREMENT, not a negative on the reduced sample.",
         "Unmeasurable is missing, not zero.",
-        "CPU workers at most 4.",
+        "CPU workers at most 7.",
         "Output: `runs/rq-mechanism-v2/phase3-frequency/`.",
         "Raw archives are kept. A partial run is kept. The seed is not replaced.",
         "`red_queen_proved` stays false.",

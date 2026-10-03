@@ -40,6 +40,23 @@ A census wave is not that conjunction. Engine path: ``infectivity`` calls
 aFDS). Limit: importance is undeclared. The published 0.10 gap is not this
 engine's importance bound. The MDE is not importance. Estimand: null stays
 null. ``red_queen_proved`` follows claim B only.
+
+Control contrast, phase 5b. Prediction: the phase-5 control score is
+identically zero because ``score_arm_contrast`` assays horizon hosts twice,
+once against each parasite generation, and frozen passage reseats the same
+windows. Engine path: ``infectivity`` calls ``replay_archived_contact`` with
+``atp_override``, which rewrites ATP, and ``_apply_hp_env_contact`` pairs by
+seat index. ``AntagonistPopulation._reseat_frozen`` writes the founder window
+back onto each seat, and frozen mode sets mutation to 0. Control: constant
+parasite is host change against that one horizon roster, not the difference
+of two parasite copies. Adaptation cut is the matched-pair change, so one
+changed host window or one changed parasite window can move it. Source: the
+rejected phase-5 archives, where generations 1 through 10 share one parasite
+window sequence on both control arms, and the seat assay. Limit: claim A and
+claim B on the coevolve arm are not redefined. Importance stays undeclared.
+Lag 3 and horizon 10 are not retuned. The birth, mutation, and passage engine
+is not changed to enlarge the coevolve contrast. Estimand: a control zero is
+no longer forced by duplicate parasite inputs.
 """
 
 from __future__ import annotations
@@ -120,6 +137,12 @@ VERDICT_NOT_DECLARED = "NOT_DECLARED"
 NO_CONFIRMATORY_SENTENCE = "No confirmatory number has been computed."
 OUTPUT_CONFIRMATORY = Path("runs/rq-mechanism-v2/phase5-coevolution")
 OUTPUT_PROBE = Path("runs/rq-mechanism-v2/phase5-probe")
+OUTPUT_PHASE5B = Path("runs/rq-mechanism-v2/phase5b-coevolution")
+PHASE5B_LAG = 3
+PHASE5B_HORIZON = 10
+PHASE5B_SEED_START = 9701
+PHASE5B_N = 12
+PHASE5B_LOCK = Path("runs/rq-mechanism-v2/PHASE5B_LOCK.md")
 _BANNED_OUTPUT_PARTS = (
     Path("runs/rq-bidirectional-timeshift-01"),
     Path("runs/rq-mechanism-v2/phase2-short"),
@@ -1084,8 +1107,16 @@ def _people(row: Mapping[str, object], key: str) -> list[dict[str, object]] | No
     return people or None
 
 
+def _window_tuple(people: Sequence[Mapping[str, object]]) -> tuple[str, ...]:
+    return tuple(str(person["window"]) for person in people)
+
+
 def score_arm_contrast(rows: Sequence[Mapping[str, object]], arm: str, *, lag: int, horizon: int) -> float | None:
-    """Claim A on one arm. A missing population stays null."""
+    """Claim A on the coevolve arm. A missing population stays null.
+
+    This is horizon hosts against two parasite generations. It is not a
+    control. On a frozen roster the two parasite inputs are the same windows.
+    """
 
     mapped = _arm_rows(rows, arm)
     now = mapped.get(int(horizon))
@@ -1098,6 +1129,100 @@ def score_arm_contrast(rows: Sequence[Mapping[str, object]], arm: str, *, lag: i
     if hosts is None or parasites_now is None or parasites_past is None:
         return None
     return contemporary_minus_past(infectivity(hosts, parasites_now), infectivity(hosts, parasites_past))
+
+
+def score_constant_parasite_contrast(
+    rows: Sequence[Mapping[str, object]], *, lag: int, horizon: int
+) -> dict[str, object]:
+    """Host change against one frozen parasite roster.
+
+    Prediction: subtracting two frozen parasite generations from the same
+    hosts is identically zero, and it hides host change. Engine path: both
+    ``infectivity`` calls receive the horizon parasite list only.
+    ``replay_archived_contact`` rewrites ATP and pairs by seat. The past
+    parasite generation is not a second input. Control: the past term is the
+    earlier hosts against that same roster, so a changed host window can move
+    the seat mean. Source: frozen reseat, not a coevolve sign. Limit: this
+    does not replace claim A. Estimand: host change, not a parasite time-shift.
+    """
+
+    blank: dict[str, object] = {
+        "frozen_rosters_match": None,
+        "hosts_differ": None,
+        "inputs_are_copies": None,
+        "parasite_inputs": "single_horizon_roster",
+        "past_parasite_used_as_second_input": False,
+        "value": None,
+    }
+    mapped = _arm_rows(rows, ARM_CONSTANT_PARASITE)
+    now = mapped.get(int(horizon))
+    past = mapped.get(int(horizon) - int(lag))
+    if now is None or past is None:
+        return blank
+    hosts_now = _people(now, "hosts")
+    hosts_past = _people(past, "hosts")
+    parasites = _people(now, "parasites")
+    parasites_past = _people(past, "parasites")
+    if hosts_now is None or hosts_past is None or parasites is None:
+        return blank
+    hosts_differ = _window_tuple(hosts_now) != _window_tuple(hosts_past)
+    frozen_match = parasites_past is not None and _window_tuple(parasites) == _window_tuple(parasites_past)
+    value = contemporary_minus_past(infectivity(hosts_now, parasites), infectivity(hosts_past, parasites))
+    return {
+        "frozen_rosters_match": frozen_match,
+        "hosts_differ": hosts_differ,
+        "inputs_are_copies": not hosts_differ,
+        "parasite_inputs": "single_horizon_roster",
+        "past_parasite_used_as_second_input": False,
+        "value": value,
+    }
+
+
+def score_adaptation_cut_contrast(
+    rows: Sequence[Mapping[str, object]], *, lag: int, horizon: int
+) -> dict[str, object]:
+    """Matched-pair change. Either side can move it.
+
+    Prediction: a held population stays put, but the contrast is not built by
+    copying one parasite list onto both times. Engine path: each generation's
+    own hosts and parasites go through ``infectivity``. One seat whose window
+    differs changes that seat's ``graded_affinity`` inside
+    ``_apply_hp_env_contact``. Control: the other term is the earlier pair,
+    not a second copy of the horizon parasites. Source: the seat assay, which
+    already moves when one window changes. Limit: claim A on coevolve stays
+    the parasite time-shift on horizon hosts. Estimand: change of the matched
+    pair, so a real host change or a real parasite change is visible.
+    """
+
+    blank: dict[str, object] = {
+        "hosts_differ": None,
+        "inputs_are_copies": None,
+        "parasites_differ": None,
+        "value": None,
+    }
+    mapped = _arm_rows(rows, ARM_ADAPTATION_CUT)
+    now = mapped.get(int(horizon))
+    past = mapped.get(int(horizon) - int(lag))
+    if now is None or past is None:
+        return blank
+    hosts_now = _people(now, "hosts")
+    hosts_past = _people(past, "hosts")
+    parasites_now = _people(now, "parasites")
+    parasites_past = _people(past, "parasites")
+    if hosts_now is None or hosts_past is None or parasites_now is None or parasites_past is None:
+        return blank
+    hosts_differ = _window_tuple(hosts_now) != _window_tuple(hosts_past)
+    parasites_differ = _window_tuple(parasites_now) != _window_tuple(parasites_past)
+    value = contemporary_minus_past(
+        infectivity(hosts_now, parasites_now),
+        infectivity(hosts_past, parasites_past),
+    )
+    return {
+        "hosts_differ": hosts_differ,
+        "inputs_are_copies": not hosts_differ and not parasites_differ,
+        "parasites_differ": parasites_differ,
+        "value": value,
+    }
 
 
 def score_claim_b_pieces(rows: Sequence[Mapping[str, object]], *, lag: int, horizon: int) -> dict[str, object]:
@@ -1384,10 +1509,14 @@ def execute_probe(root: Path | None = None) -> dict[str, object]:
 def _score_seed(seed_dir: Path, *, lag: int, horizon: int) -> dict[str, object]:
     rows = _load_jsonl(seed_dir / "archive.jsonl")
     pieces = score_claim_b_pieces(rows, lag=lag, horizon=horizon)
+    cut = score_adaptation_cut_contrast(rows, lag=lag, horizon=horizon)
+    held = score_constant_parasite_contrast(rows, lag=lag, horizon=horizon)
     return {
+        "adaptation_cut_detail": cut,
         "claim_a": score_arm_contrast(rows, ARM_COEVOLVE, lag=lag, horizon=horizon),
-        "claim_a_adaptation_cut": score_arm_contrast(rows, ARM_ADAPTATION_CUT, lag=lag, horizon=horizon),
-        "claim_a_constant_parasite": score_arm_contrast(rows, ARM_CONSTANT_PARASITE, lag=lag, horizon=horizon),
+        "claim_a_adaptation_cut": cut["value"],
+        "claim_a_constant_parasite": held["value"],
+        "constant_parasite_detail": held,
         "contact_pressure": pieces["contact_pressure"],
         "contacts": pieces["contacts"],
         "fitness_measured": pieces["fitness_measured"],
@@ -1468,6 +1597,252 @@ def execute_confirmatory(lock_path: Path, root: Path | None = None) -> dict[str,
             "adaptation_cut": [row["claim_a_adaptation_cut"] for row in scored],
             "constant_parasite": [row["claim_a_constant_parasite"] for row in scored],
         },
+        "horizon": horizon,
+        "n_locked": len(seeds),
+        "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE",
+        "primary_lag": lag,
+        "replay": replays,
+        "replay_matched": True,
+        "report": report,
+        "seeds": list(seeds),
+        "stopped": None,
+        "workers": workers,
+    }
+    summary["summary_sha256"] = hashlib.sha256(
+        json.dumps({key: value for key, value in summary.items() if key != "summary_sha256"}, sort_keys=True).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    (target / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary
+
+
+def locked_phase5b_seeds() -> tuple[int, ...]:
+    """Seeds 9701 through 9712. Probe 9600 and the rejected seeds are excluded."""
+
+    count = int(PHASE5B_N)
+    floor = assert_measurement_floor()
+    if count < floor:
+        raise ConfigurationError("phase-5b history count is below MEASUREMENT_FLOOR")
+    seeds = tuple(range(PHASE5B_SEED_START, PHASE5B_SEED_START + count))
+    banned = set(FORBIDDEN_SEEDS) | set(range(9600, 9613)) | {PROBE_SEED, 9700}
+    if len(seeds) != count or len(set(seeds)) != count or (set(seeds) & banned):
+        raise ConfigurationError("phase-5b seeds are not 9701 through 9712")
+    if seeds[0] != 9701 or seeds[-1] != 9712:
+        raise ConfigurationError("phase-5b seeds are not 9701 through 9712")
+    return seeds
+
+
+def assert_phase5b_output_dir(root: Path) -> None:
+    """Phase 5b writes only its own tree. The rejected run stays put."""
+
+    assert_output_dir(root)
+    resolved = root.resolve()
+    for banned in (OUTPUT_CONFIRMATORY, OUTPUT_PROBE):
+        banned_resolved = banned.resolve()
+        if resolved == banned_resolved or banned_resolved in resolved.parents:
+            raise ConfigurationError(f"phase-5b must not write into {banned}")
+
+
+def render_phase5b_lock(*, code_commit: str) -> str:
+    """Lock the control fix before any phase-5b history exists.
+
+    Importance is undeclared. The minimum detectable effect is computed from
+    the planning sigmas and n = 12. It is not taken from a confirmatory sign.
+    """
+
+    seeds = list(locked_phase5b_seeds())
+    mde_a = phase5_mde(PLANNING_SIGMA_A, len(seeds))
+    mde_b = phase5_mde(PLANNING_SIGMA_B, len(seeds))
+    payload = {
+        "horizon": PHASE5B_HORIZON,
+        "importance_bound": None,
+        "importance_undeclared": True,
+        "mde_a": mde_a,
+        "mde_b": mde_b,
+        "mde_is_importance": False,
+        "measurement_floor": int(MEASUREMENT_FLOOR),
+        "n": len(seeds),
+        "primary_lag": PHASE5B_LAG,
+        "seeds": seeds,
+        "supported_forbidden": True,
+        "workers": MAX_WORKERS,
+    }
+    block = json.dumps(payload, indent=2, sort_keys=True)
+    lines = [
+        "# Phase-5b lock",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+        f"Code commit: `{code_commit}` on branch `rq/mechanism-v2`.",
+        "Nothing has been pushed, merged, or rebased.",
+        "This lock is committed before the phase-5b run.",
+        "`runs/rq-mechanism-v2/phase5-coevolution/` is not rewritten.",
+        "`PHASE5_LOCK.md` is not rewritten. Commit `60a9a0fec9b542bd216c23d1ac6c080e3c254918` is not amended.",
+        "Seeds 9601 through 9612 are not reused. Seed 9600 is not rerun. Seed 9700 is not used.",
+        "",
+        "## Claim A on the coevolve arm",
+        "",
+        "Unchanged. Direction, already locked from the seed-9600 probe:",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at the horizon, parasites at horizon - lag) > 0`.",
+        "The primary arm is `coevolve`. This estimand was not redefined to make the coevolve arm look larger.",
+        "The score is `infectivity` on `replay_archived_contact` with evolution, reproduction, and mutation off.",
+        "",
+        "## Claim B on the coevolve arm",
+        "",
+        "Unchanged. Required together: genotype frequency as window counts;",
+        "real contact pressure; lineage relative fitness; and a sign reversal of `I(A) - I(B)`",
+        "between the contemporary and past parasite populations.",
+        "A census wave is not claim B. Claim A is not claim B.",
+        "`red_queen_proved` is true only if claim B's locked criterion is met, including a declared importance bound.",
+        "Importance is undeclared, so that criterion is not met by declaration.",
+        "",
+        "## Controls",
+        "",
+        "The phase-5 control zero was an instrument failure. It is not reused as a bound.",
+        "`constant_parasite`: host change against the same frozen parasite.",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at horizon - lag, parasites at the horizon)`.",
+        "The past parasite generation is not a second input. This is not the difference of two parasite copies.",
+        "`adaptation_cut`: matched-pair change.",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at horizon - lag, parasites at horizon - lag)`.",
+        "Past and present parasite inputs are the two generations' own rosters, not copies of one roster.",
+        "The contrast can be nonzero if the host windows change or the parasite windows change.",
+        "Host bit-flip stays 0 on this arm, parasite passage stays `frozen`, and reproduction stays enabled.",
+        "`shuffled_labels` is not used. Passage `absent` is not used.",
+        "",
+        "## Lag, horizon, and n",
+        "",
+        "Primary lag 3 and horizon 10 are taken from the seed-9600 probe already locked in `PHASE5_LOCK.md`.",
+        "They are not re-chosen from the rejected confirmatory. Exploratory lag search is forbidden.",
+        f"Primary lag: {PHASE5B_LAG}.",
+        f"Horizon: {PHASE5B_HORIZON} generations.",
+        f"n: {len(seeds)}.",
+        f"Seeds: {seeds[0]} through {seeds[-1]} ({', '.join(str(seed) for seed in seeds)}).",
+        "No seed is added after a sign.",
+        "",
+        "## Importance and the minimum detectable effect",
+        "",
+        "Importance for this estimand is undeclared. SUPPORTED is forbidden.",
+        "The rejected coevolve mean and the rejected control zeros are not an importance bound.",
+        "The Decaestecker gap of 0.10 is not this engine's importance bound.",
+        f"Planning sigma for claim A is {PLANNING_SIGMA_A}. Planning sigma for claim B is {PLANNING_SIGMA_B}.",
+        f"MDE claim A: {mde_a}. MDE claim B: {mde_b}.",
+        "The minimum detectable effect is not the importance bound.",
+        f"`MEASUREMENT_FLOOR` stays {int(MEASUREMENT_FLOOR)} and is not lowered.",
+        "",
+        "## Run rules",
+        "",
+        "CPU workers at most 7.",
+        f"Output: `{OUTPUT_PHASE5B}`.",
+        "Do not write into `runs/rq-mechanism-v2/phase5-coevolution/`.",
+        "Raw archives are kept. A partial run is kept. A seed is not replaced.",
+        "Replay of the same run is required.",
+        "If replay does not match, stop. Do not edit the engine after the verdict.",
+        "",
+        "```json",
+        block,
+        "```",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _phase5b_controls(scored: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    return {
+        "adaptation_cut": {
+            "definition": "I(hosts_horizon, parasites_horizon) - I(hosts_horizon_minus_lag, parasites_horizon_minus_lag)",
+            "hosts_differ": [row["adaptation_cut_detail"]["hosts_differ"] for row in scored],
+            "inputs_are_copies": [row["adaptation_cut_detail"]["inputs_are_copies"] for row in scored],
+            "parasites_differ": [row["adaptation_cut_detail"]["parasites_differ"] for row in scored],
+            "values": [row["claim_a_adaptation_cut"] for row in scored],
+        },
+        "constant_parasite": {
+            "definition": "I(hosts_horizon, parasites_horizon) - I(hosts_horizon_minus_lag, parasites_horizon)",
+            "frozen_rosters_match": [row["constant_parasite_detail"]["frozen_rosters_match"] for row in scored],
+            "hosts_differ": [row["constant_parasite_detail"]["hosts_differ"] for row in scored],
+            "inputs_are_copies": [row["constant_parasite_detail"]["inputs_are_copies"] for row in scored],
+            "past_parasite_used_as_second_input": False,
+            "values": [row["claim_a_constant_parasite"] for row in scored],
+        },
+        "coevolve_claim_a_definition": "I(hosts_horizon, parasites_horizon) - I(hosts_horizon, parasites_horizon_minus_lag)",
+    }
+
+
+def execute_phase5b(lock_path: Path, root: Path | None = None) -> dict[str, object]:
+    """Run seeds 9701-9712. Do not open the rejected tree or add seeds."""
+
+    target = OUTPUT_PHASE5B if root is None else root
+    assert_phase5b_output_dir(target)
+    payload = _lock_payload(lock_path.read_text(encoding="utf-8"))
+    seeds = locked_phase5b_seeds()
+    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+        raise ConfigurationError("phase-5b lock seeds are not 9701 through 9712")
+    if int(payload["primary_lag"]) != PHASE5B_LAG or int(payload["horizon"]) != PHASE5B_HORIZON:
+        raise ConfigurationError("phase-5b lag and horizon are not the locked 3 and 10")
+    if int(payload["n"]) != len(seeds):
+        raise ConfigurationError("phase-5b n is not 12")
+    if int(payload["workers"]) > MAX_WORKERS:
+        raise ConfigurationError("phase-5b workers exceed 7")
+    if payload.get("importance_bound") is not None or payload.get("supported_forbidden") is not True:
+        raise ConfigurationError("phase-5b importance is undeclared; SUPPORTED stays forbidden")
+    if payload.get("mde_is_importance") is True:
+        raise ConfigurationError("phase-5b must not alias the MDE to importance")
+    if (target / "by_seed").exists():
+        raise ConfigurationError("phase-5b output already exists; a seed is not replaced")
+    target.mkdir(parents=True, exist_ok=True)
+    workers = resolve_workers(min(MAX_WORKERS, len(seeds)))
+    lag = PHASE5B_LAG
+    horizon = PHASE5B_HORIZON
+    payloads = [
+        {"arms": list(ARMS), "compare_one_shot": True, "generations": horizon, "root": str(target), "seed": seed}
+        for seed in seeds
+    ]
+    outcomes: list[dict[str, object]] = []
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_worker, item) for item in payloads]
+        for future in as_completed(futures):
+            outcomes.append(future.result())
+    outcomes.sort(key=lambda item: int(item["seed"]))
+    failed = [item for item in outcomes if item["failed"]]
+    replays: list[dict[str, object]] = []
+    if not failed:
+        for seed in seeds:
+            replays.append(replay_phase5_archive(target / "by_seed" / f"seed{seed}" / "archive.jsonl"))
+    replay_matched = bool(replays) and all(bool(item["matched"]) for item in replays)
+    mde_a = float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
+    mde_b = float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
+    if failed or not replay_matched:
+        if not failed:
+            (target / "REASON.txt").write_text("replay-mismatch\n", encoding="utf-8")
+        present = []
+        for seed in seeds:
+            if (target / "by_seed" / f"seed{seed}" / "COMPLETE").is_file():
+                present.append(_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon))
+        report = assess_phase5(present, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
+        report["red_queen_proved"] = False
+        report["claim_b"]["criterion_met"] = False
+        summary: dict[str, object] = {
+            "controls": _phase5b_controls(present) if present else None,
+            "failed": failed,
+            "horizon": horizon,
+            "n_locked": len(seeds),
+            "primary_lag": lag,
+            "replay": replays,
+            "replay_matched": replay_matched,
+            "report": report,
+            "seeds": list(seeds),
+            "stopped": failed[0]["failed"] if failed else "replay-mismatch",
+            "workers": workers,
+        }
+        (target / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return summary
+    scored = [_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon) for seed in seeds]
+    report = assess_phase5(scored, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
+    summary = {
+        "by_seed": scored,
+        "controls": _phase5b_controls(scored),
         "horizon": horizon,
         "n_locked": len(seeds),
         "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE",

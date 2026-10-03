@@ -312,3 +312,136 @@ def test_controls_keep_reproduction_and_do_not_delete_parasites() -> None:
     assert held.host_composition_hold is None
     assert held.antagonist_pop is not None and len(held.antagonist_pop.units) > 0
     assert len(cut._hosts()) == 60
+
+
+def _unit(window: str, index: int, *, atp: float = 0.01) -> dict[str, object]:
+    return {"energy": 0.2, "runtime_atp": atp, "unit_id": f"p{index}", "window": window}
+
+
+def _host(window: str, index: int, *, atp: float = 0.01) -> dict[str, object]:
+    return {"id": f"h{index}", "runtime_atp": atp, "window": window}
+
+
+def _gen(arm: str, generation: int, hosts: list[str], parasites: list[str]) -> dict[str, object]:
+    return {
+        "arm": arm,
+        "generation": generation,
+        "hosts": [_host(window, index) for index, window in enumerate(hosts)],
+        "parasites": [_unit(window, index) for index, window in enumerate(parasites)],
+    }
+
+
+def _seat_mean(hosts: list[str], parasites: list[str]) -> float:
+    from codontrace.genesis.closed_loop_hp_arm01_structural_rq import graded_affinity
+
+    pair_n = min(len(hosts), len(parasites))
+    return sum(graded_affinity(hosts[index], parasites[index]) for index in range(pair_n)) / pair_n
+
+
+def test_control_inputs_are_not_copies_and_constant_parasite_is_host_change() -> None:
+    from codontrace.genesis.rq_mechanism_v2_phase5 import (
+        score_arm_contrast,
+        score_constant_parasite_contrast,
+    )
+
+    hosts_now = ["000000", "000000"]
+    hosts_past = ["000000", "111111"]
+    parasites = ["000000", "000000"]
+    rows = [
+        _gen(ARM_CONSTANT_PARASITE, 10, hosts_now, parasites),
+        _gen(ARM_CONSTANT_PARASITE, 7, hosts_past, parasites),
+        _gen(ARM_COEVOLVE, 10, hosts_now, parasites),
+        _gen(ARM_COEVOLVE, 7, hosts_past, ["111111", "111111"]),
+    ]
+    # Same hosts against two identical parasite rosters. The rejected contrast cannot move.
+    assert score_arm_contrast(rows, ARM_CONSTANT_PARASITE, lag=3, horizon=10) == 0.0
+    held = score_constant_parasite_contrast(rows, lag=3, horizon=10)
+    expected = _seat_mean(hosts_now, parasites) - _seat_mean(hosts_past, parasites)
+    assert expected == pytest.approx(0.5)
+    assert held["past_parasite_used_as_second_input"] is False
+    assert held["parasite_inputs"] == "single_horizon_roster"
+    assert held["hosts_differ"] is True
+    assert held["inputs_are_copies"] is False
+    assert held["value"] == pytest.approx(expected)
+    assert held["value"] != 0.0
+    # Claim A still assays horizon hosts against the two parasite generations.
+    claim_a = score_arm_contrast(rows, ARM_COEVOLVE, lag=3, horizon=10)
+    assert claim_a == pytest.approx(_seat_mean(hosts_now, parasites) - _seat_mean(hosts_now, ["111111", "111111"]))
+    assert claim_a != held["value"]
+
+
+def test_adaptation_cut_is_nonzero_when_one_window_differs() -> None:
+    from codontrace.genesis.rq_mechanism_v2_phase5 import score_adaptation_cut_contrast
+
+    hosts = ["000000"] * 64
+    parasites_now = ["000111"] * 64
+    parasites_past = ["111111"] + ["000111"] * 63
+    assert parasites_now != parasites_past
+    rows = [
+        _gen(ARM_ADAPTATION_CUT, 10, hosts, parasites_now),
+        _gen(ARM_ADAPTATION_CUT, 7, hosts, parasites_past),
+    ]
+    now = _seat_mean(hosts, parasites_now)
+    past = _seat_mean(hosts, parasites_past)
+    # One seat drops from 3/6 to 0/6. The mean moves by 0.5/64. Not copied from a run.
+    assert now == pytest.approx(0.5)
+    assert past == pytest.approx((63 * 0.5) / 64)
+    assert now - past == pytest.approx(0.5 / 64)
+    scored = score_adaptation_cut_contrast(rows, lag=3, horizon=10)
+    assert scored["parasites_differ"] is True
+    assert scored["inputs_are_copies"] is False
+    assert scored["value"] == pytest.approx(now - past)
+    assert scored["value"] != 0.0
+
+    hosts_now = ["000000", "111111"]
+    hosts_past = ["000000", "000000"]
+    shared = ["000000", "111111"]
+    host_rows = [
+        _gen(ARM_ADAPTATION_CUT, 10, hosts_now, shared),
+        _gen(ARM_ADAPTATION_CUT, 7, hosts_past, shared),
+    ]
+    host_shift = score_adaptation_cut_contrast(host_rows, lag=3, horizon=10)
+    assert host_shift["hosts_differ"] is True
+    assert host_shift["parasites_differ"] is False
+    assert host_shift["inputs_are_copies"] is False
+    assert host_shift["value"] == pytest.approx(_seat_mean(hosts_now, shared) - _seat_mean(hosts_past, shared))
+    assert host_shift["value"] == pytest.approx(0.5)
+
+
+def test_phase5b_lock_keeps_claim_gates_and_forbids_support() -> None:
+    from codontrace.genesis.rq_mechanism_v2_phase5 import (
+        PHASE5B_HORIZON,
+        PHASE5B_LAG,
+        assert_phase5b_output_dir,
+        locked_phase5b_seeds,
+        render_phase5b_lock,
+    )
+
+    seeds = list(locked_phase5b_seeds())
+    assert seeds == list(range(9701, 9713))
+    assert PHASE5B_LAG == 3 and PHASE5B_HORIZON == 10
+    assert PROBE_SEED not in seeds
+    assert not (set(seeds) & set(range(9600, 9613)))
+    text = render_phase5b_lock(code_commit="abc123")
+    assert text.splitlines()[2] == NO_CONFIRMATORY_SENTENCE
+    assert text.strip().splitlines()[-1] == NO_CONFIRMATORY_SENTENCE
+    assert "9701" in text and "9712" in text
+    assert "Importance for this estimand is undeclared. SUPPORTED is forbidden." in text
+    assert "is not the importance bound" in text
+    assert "workers" in text and "7" in text
+    assert "-0.004783199264088665" not in text
+    assert "I(hosts at the horizon, parasites at the horizon) - I(hosts at horizon - lag, parasites at the horizon)" in text
+    positive = [0.40] * 6 + [0.60] * 6
+    rows = [_row(seed, positive[index], reversal=True) for index, seed in enumerate(seeds)]
+    undeclared = assess_phase5(rows, seeds, importance_bound=None, mde_a=1.0, mde_b=1.0)
+    assert undeclared["claim_a"]["verdict"] != VERDICT_SUPPORTED
+    assert undeclared["claim_b"]["verdict"] != VERDICT_SUPPORTED
+    assert undeclared["supported_forbidden"] is True
+    assert undeclared["red_queen_proved"] is False
+    missing = rows[:-1]
+    blocked = assess_phase5(missing, seeds, importance_bound=None)
+    assert blocked["claim_a"]["verdict"] == VERDICT_BLOCKED
+    assert blocked["claim_b"]["verdict"] == VERDICT_BLOCKED
+    assert blocked["claim_a"]["mean"] is None
+    with pytest.raises(ConfigurationError):
+        assert_phase5b_output_dir(Path("runs/rq-mechanism-v2/phase5-coevolution"))

@@ -1,0 +1,1488 @@
+"""Phase-5 full coevolution. Two claims, scored separately.
+
+Claim A is a directional time-shift on the engine debit path with evolution
+off during the assay. Claim B is frequency-dependent selection with an
+oscillating Red Queen, and it is not implied by claim A. ``red_queen_proved``
+is computed only from claim B's locked criterion. It is not a constant.
+
+Birth chamber. Prediction: a nonzero outcross locus refuses COPY_SELF unless
+the birth chamber is on. Full coevolution still uses the structural host
+bit-flip. Engine path: ``enable_coevolution_birth_chamber`` sets
+``SexualRecombinationConfig(enabled=True, pairing_policy='birth_chamber')``
+and writes installed host ids into the life role map. ``bit_flip_rate`` stays
+``STRUCT_HOST_BIT_FLIP`` on coevolve and constant-parasite, and 0 on the
+adaptation cut. ``parent_atp_cost`` stays the booted cost. Control: the
+adaptation cut keeps ``reproduction.enabled`` true and does not call
+``freeze_host_genotypic_inheritance``. Source: the chamber phase 4b opened.
+Hall et al. 2011 full text was not read. Limit: virulence, steal fraction,
+maintenance, birth ATP, bolus, ``max_population``, and ``MEASUREMENT_FLOOR``
+are not retuned. Census stays 60 so a birth can fit under the cap of 64.
+Estimand: births can enter the lineage claim B reads. They are not ATP loss.
+
+Arms. Prediction: reciprocal coevolution is passage ``coevolve`` with both
+mutation rates structural. A held parasite composition is not that treatment.
+Cutting reciprocal adaptation is not reproduction-off and not
+``shuffled_labels``. Engine path: boot ``build_arm(ARM_A)``, install equal
+A/B genomes. ``constant_parasite`` uses ``PASSAGE_FROZEN`` so advance reseats
+founder parasite windows while the debit stays. ``adaptation_cut`` sets host
+bit-flip to 0, passage frozen, and a host-composition hold before contact.
+Control: ``PASSAGE_ABSENT`` is not used. The parasite population is not
+deleted. Source: Zaman et al. 2014 as read in PHASE1.md. Limit: the hold is
+only on the adaptation cut. Estimand: claim A uses the coevolve arm.
+
+Claims. Prediction: ``I(hosts_t, parasites_t) - I(hosts_t, parasites_{t-lag})``
+is positive. Claim B also needs genotype-frequency counts, real contact
+pressure, lineage relative fitness, and a sign reversal of ``I(A)-I(B)``.
+A census wave is not that conjunction. Engine path: ``infectivity`` calls
+``replay_archived_contact`` with evolution off. Source: Decaestecker et al.
+2007 as read in PHASE1.md (contemporary infectivity 0.65 versus previous
+0.55) and Papkou et al. 2019 as read there (time-shifts consistent with
+aFDS). Limit: importance is undeclared. The published 0.10 gap is not this
+engine's importance bound. The MDE is not importance. Estimand: null stays
+null. ``red_queen_proved`` follows claim B only.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import statistics
+from collections import Counter
+from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import replace
+from pathlib import Path
+
+from codontrace.errors import ConfigurationError
+from codontrace.genesis.birth import SexualRecombinationConfig
+from codontrace.genesis.closed_loop_hp_arm01 import _window
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    STRUCT_BIRTH_ATP,
+    STRUCT_HOST_BIT_FLIP,
+    STRUCT_PARASITE_MUTATION,
+    STRUCT_STEAL_FRACTION,
+    STRUCT_VIRULENCE,
+    StructuralRQArm,
+)
+from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_COEVOLVE, PASSAGE_FROZEN
+from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY
+from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.rq_bidirectional_timeshift import (
+    ARM_A,
+    build_arm,
+    config_digest,
+    invariant_status,
+    replay_archived_contact,
+)
+from codontrace.genesis.rq_bidirectional_timeshift_confirm import (
+    MEASUREMENT_FLOOR,
+    infectivity,
+    noncentral_t_sf,
+    student_t_ppf,
+    student_t_sf,
+)
+from codontrace.genesis.rq_mechanism_v2_phase3 import TURNOVER_MULTIPLE, pure_host_rows
+from codontrace.genesis.rq_mechanism_v2_phase4 import (
+    GENOME_A,
+    GENOME_B,
+    WINDOW_A,
+    WINDOW_B,
+    equal_host_seats,
+)
+
+PROBE_SEED = 9600
+PROBE_GENERATIONS = 24
+MAX_HISTORIES = 24
+MAX_WORKERS = 7
+N_PRIMARY = 2
+ALPHA_FAMILY = 0.05
+ALPHA = ALPHA_FAMILY / N_PRIMARY
+POWER = 0.80
+PLANNING_SIGMA_A = 0.25
+PLANNING_SIGMA_B = 0.5
+PRECISION_A = 0.25
+PRECISION_B = 0.5
+ASSAY_SCALE = float(STRUCT_VIRULENCE) * float(STRUCT_STEAL_FRACTION)
+REPLAY_ABS_TOL = 1e-6
+STREAM_ROOT = "RQ-MECHANISM-V2-PHASE5"
+ARM_COEVOLVE = "coevolve"
+ARM_ADAPTATION_CUT = "adaptation_cut"
+ARM_CONSTANT_PARASITE = "constant_parasite"
+ARMS: tuple[str, ...] = (ARM_COEVOLVE, ARM_ADAPTATION_CUT, ARM_CONSTANT_PARASITE)
+ARCHIVE_SCHEMA = "rq-mechanism-v2-phase5/1"
+CLAIM_A_DIRECTION = "contemporary_minus_past_positive"
+VERDICT_SUPPORTED = "SUPPORTED"
+VERDICT_NEGATIVE = "NEGATIVE"
+VERDICT_INCONCLUSIVE = "INCONCLUSIVE"
+VERDICT_BLOCKED = "BLOCKED_MEASUREMENT"
+VERDICT_NOT_DECLARED = "NOT_DECLARED"
+NO_CONFIRMATORY_SENTENCE = "No confirmatory number has been computed."
+OUTPUT_CONFIRMATORY = Path("runs/rq-mechanism-v2/phase5-coevolution")
+OUTPUT_PROBE = Path("runs/rq-mechanism-v2/phase5-probe")
+_BANNED_OUTPUT_PARTS = (
+    Path("runs/rq-bidirectional-timeshift-01"),
+    Path("runs/rq-mechanism-v2/phase2-short"),
+    Path("runs/rq-mechanism-v2/phase3-frequency"),
+    Path("runs/rq-mechanism-v2/phase3-selection"),
+    Path("runs/rq-mechanism-v2/phase4-fitness"),
+    Path("runs/rq-mechanism-v2/phase4b-fitness"),
+)
+FORBIDDEN_SEEDS: frozenset[int] = frozenset(
+    {
+        9099,
+        9101,
+        9102,
+        9103,
+        9104,
+        *range(9201, 9225),
+        *range(9301, 9305),
+        9401,
+        *range(9500, 9505),
+    }
+)
+
+
+def assert_measurement_floor(floor: int | None = None) -> int:
+    """``MEASUREMENT_FLOOR`` stays 12. A lower value is rejected."""
+
+    value = int(MEASUREMENT_FLOOR if floor is None else floor)
+    if int(MEASUREMENT_FLOOR) < 12 or value < 12:
+        raise ConfigurationError("MEASUREMENT_FLOOR must not be lowered")
+    return value
+
+
+def _finite(value: object) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    return math.isfinite(float(value))
+
+
+def _rate_allowed(rate: float, *allowed: float) -> bool:
+    return any(math.isclose(float(rate), float(item), abs_tol=1e-12) for item in allowed)
+
+
+def resolve_workers(requested: int | None) -> int:
+    """Cap at 7. Reject 8. Do not read cpu_count."""
+
+    workers = MAX_WORKERS if requested is None else int(requested)
+    if workers < 1 or workers > MAX_WORKERS:
+        raise ConfigurationError(f"phase-5 workers must be in 1..{MAX_WORKERS}, got {workers}")
+    return workers
+
+
+def assert_output_dir(root: Path) -> None:
+    """Refuse previous-run trees."""
+
+    resolved = root.resolve()
+    for banned in _BANNED_OUTPUT_PARTS:
+        banned_resolved = banned.resolve()
+        if resolved == banned_resolved or banned_resolved in resolved.parents:
+            raise ConfigurationError(f"phase-5 output must not be inside {banned}")
+
+
+def locked_confirmatory_seeds(n: int) -> tuple[int, ...]:
+    """Contiguous seeds from 9601. The probe seed 9600 is not included."""
+
+    count = int(n)
+    floor = assert_measurement_floor()
+    if count < floor:
+        raise ConfigurationError(f"phase-5 history count {count} is below MEASUREMENT_FLOOR")
+    if count > MAX_HISTORIES:
+        raise ConfigurationError(f"phase-5 history count {count} exceeds the registered cap")
+    seeds = tuple(range(9601, 9601 + count))
+    if PROBE_SEED in seeds or (set(seeds) & FORBIDDEN_SEEDS):
+        raise ConfigurationError("phase-5 confirmatory seeds overlap a forbidden or probe seed")
+    return seeds
+
+
+def contemporary_minus_past(i_now: float | None, i_past: float | None) -> float | None:
+    """Claim A contrast. Either null stays null. A numeric 0 stays 0."""
+
+    if i_now is None or i_past is None or not _finite(i_now) or not _finite(i_past):
+        return None
+    return float(i_now) - float(i_past)
+
+
+def specialization_gap(i_a: float | None, i_b: float | None) -> float | None:
+    """``I(A) - I(B)``. Null stays null."""
+
+    if i_a is None or i_b is None or not _finite(i_a) or not _finite(i_b):
+        return None
+    return float(i_a) - float(i_b)
+
+
+def direction_reversal(gap_now: float | None, gap_past: float | None) -> bool | None:
+    """True when the nonzero signs differ. A zero gap has no rank and is null."""
+
+    if gap_now is None or gap_past is None or not _finite(gap_now) or not _finite(gap_past):
+        return None
+    if float(gap_now) == 0.0 or float(gap_past) == 0.0:
+        return None
+    return (float(gap_now) > 0.0) != (float(gap_past) > 0.0)
+
+
+def genotype_frequency(windows: Sequence[str] | None) -> dict[str, int] | None:
+    """Window counts. A missing census is null, not a renamed class."""
+
+    if windows is None:
+        return None
+    counts: dict[str, int] = {}
+    for window in windows:
+        text = str(window)
+        if len(text) != 6 or any(ch not in "01" for ch in text):
+            return None
+        counts[text] = counts.get(text, 0) + 1
+    if not counts:
+        return None
+    return counts
+
+
+def frequency_is_measured(counts: Mapping[str, int] | None) -> bool:
+    """A label without window counts is not a genotype frequency."""
+
+    if not isinstance(counts, Mapping) or not counts:
+        return False
+    total = 0
+    for key, value in counts.items():
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            return False
+        text = str(key)
+        if len(text) != 6 or any(ch not in "01" for ch in text):
+            return False
+        total += int(value)
+    return total > 0
+
+
+def census_wave_supports_claim_b(wave: object) -> bool:
+    """A frequency wave is not claim B."""
+
+    del wave
+    return False
+
+
+def lineage_relative_fitness(
+    start_windows: Sequence[str] | None,
+    births: Sequence[Mapping[str, object]] | None,
+    deaths: Sequence[object] | None,
+) -> dict[str, object]:
+    """Next-generation share over start frequency. ATP is not an argument.
+
+    No births, a missing death list, or an unresolved parent is null, not 0.
+    A present class with no offspring has measured fitness 0. An absent class
+    is omitted, not entered as 0.
+    """
+
+    empty: dict[str, object] = {"by_window": None, "deaths_recorded": False, "measured": False, "n_births": 0}
+    if start_windows is None or births is None or deaths is None:
+        return empty
+    frequencies = genotype_frequency(start_windows)
+    if frequencies is None:
+        return empty
+    n_start = sum(frequencies.values())
+    parent_windows: list[str] = []
+    for birth in births:
+        parent = birth.get("parent_window")
+        if not isinstance(parent, str):
+            return empty
+        parent_windows.append(parent)
+    if not parent_windows:
+        return {"by_window": None, "deaths_recorded": True, "measured": False, "n_births": 0}
+    offspring = Counter(parent_windows)
+    n_births = len(parent_windows)
+    by_window: dict[str, float] = {}
+    for window, count in frequencies.items():
+        if count <= 0:
+            continue
+        share = offspring.get(window, 0) / float(n_births)
+        by_window[window] = share / (count / float(n_start))
+    return {"by_window": by_window, "deaths_recorded": True, "measured": True, "n_births": n_births}
+
+
+
+
+def descendant_fitness(
+    start_hosts: Sequence[Mapping[str, object]] | None,
+    births: Sequence[Mapping[str, object]] | None,
+    living: Sequence[Mapping[str, object]] | None,
+    deaths_recorded: bool,
+) -> dict[str, object]:
+    """Living descendant share over generation-1 frequency. ATP is not an argument.
+
+    An unresolved parent chain is null, not a zero share. A founder class that
+    is present at generation 1 and has no living descendant has measured
+    fitness 0. A class absent at generation 1 is omitted.
+    """
+
+    empty: dict[str, object] = {"by_window": None, "measured": False}
+    if not deaths_recorded or start_hosts is None or births is None or living is None:
+        return empty
+    founders: dict[str, str] = {}
+    for host in start_hosts:
+        host_id = host.get("id")
+        window = host.get("window")
+        if not isinstance(host_id, str) or not isinstance(window, str):
+            return empty
+        founders[host_id] = window
+    if not founders or not living:
+        return empty
+    parent: dict[str, str] = {}
+    for birth in births:
+        child = birth.get("id")
+        parent_id = birth.get("parent_id")
+        if isinstance(child, str) and isinstance(parent_id, str):
+            parent[child] = parent_id
+    labels: list[str] = []
+    for host in living:
+        host_id = host.get("id")
+        if not isinstance(host_id, str):
+            return empty
+        if isinstance(host.get("parent_id"), str):
+            parent.setdefault(host_id, str(host["parent_id"]))
+        seen: set[str] = set()
+        current: str | None = host_id
+        while current is not None and current not in founders:
+            if current in seen or current not in parent:
+                return empty
+            seen.add(current)
+            current = parent[current]
+        if current is None:
+            return empty
+        labels.append(founders[current])
+    frequencies = genotype_frequency(list(founders.values()))
+    if frequencies is None:
+        return empty
+    n_start = sum(frequencies.values())
+    n_living = len(labels)
+    counts = Counter(labels)
+    by_window: dict[str, float] = {}
+    for window, count in frequencies.items():
+        if count <= 0:
+            continue
+        by_window[window] = (counts.get(window, 0) / float(n_living)) / (count / float(n_start))
+    return {"by_window": by_window, "measured": True}
+
+def phase5_mde(sigma: float, n: int) -> float:
+    """One-sided MDE at the phase-5 alpha. Not an importance bound."""
+
+    if int(n) < 3:
+        raise ConfigurationError("MDE requires n >= 3")
+    if float(sigma) < 0.0 or not math.isfinite(float(sigma)):
+        raise ConfigurationError("sigma must be non-negative and finite")
+    df = int(n) - 1
+    critical = student_t_ppf(1.0 - ALPHA, df)
+    lo = 0.0
+    hi = 1.0
+    while noncentral_t_sf(critical, df, hi) < POWER:
+        hi *= 2.0
+        if hi > 1e6:
+            raise ConfigurationError("noncentral-t search did not reach the target power")
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        if noncentral_t_sf(critical, df, mid) < POWER:
+            lo = mid
+        else:
+            hi = mid
+    return hi * float(sigma) / math.sqrt(float(n))
+
+
+def history_count_from_power(sigma_a: float, sigma_b: float) -> dict[str, object]:
+    """Smallest n >= 12 whose MDE meets both precision targets, else the cap."""
+
+    floor = assert_measurement_floor()
+    chosen = MAX_HISTORIES
+    met = False
+    for n in range(floor, MAX_HISTORIES + 1):
+        if phase5_mde(float(sigma_a), n) <= PRECISION_A and phase5_mde(float(sigma_b), n) <= PRECISION_B:
+            chosen = n
+            met = True
+            break
+    return {
+        "mde_a": phase5_mde(float(sigma_a), chosen),
+        "mde_b": phase5_mde(float(sigma_b), chosen),
+        "n": chosen,
+        "precision_met": met,
+        "sigma_a": float(sigma_a),
+        "sigma_b": float(sigma_b),
+    }
+
+
+def choose_lag_and_horizon(
+    *,
+    mean_newborns: float | None,
+    census: int,
+    measurable: bool,
+    probe_generations: int = PROBE_GENERATIONS,
+) -> dict[str, object]:
+    """Lag and horizon from parasite replacement time. No contrast is an argument."""
+
+    if not measurable or mean_newborns is None or not _finite(mean_newborns) or float(mean_newborns) <= 0.0:
+        raise ConfigurationError("parasite turnover is unmeasurable; lag and horizon are not 0")
+    if int(census) < 1:
+        raise ConfigurationError("parasite census must be positive")
+    replacement = float(census) / float(mean_newborns)
+    lag = max(1, int(round(replacement)))
+    horizon = max(int(math.ceil(float(TURNOVER_MULTIPLE) * replacement)), lag + 1)
+    if horizon > int(probe_generations):
+        raise ConfigurationError("horizon exceeds the registered probe budget; it is not shortened")
+    if lag >= horizon:
+        raise ConfigurationError("primary lag does not leave a past partner inside the horizon")
+    return {
+        "census": int(census),
+        "horizon": horizon,
+        "mean_seated_newborns": float(mean_newborns),
+        "primary_lag": lag,
+        "replacement_generations": replacement,
+        "turnover_multiple": int(TURNOVER_MULTIPLE),
+    }
+
+
+def sampling_interval(values: Sequence[float]) -> dict[str, object]:
+    """One-sample interval. A sample SE of 0 leaves the t p-value null, not 0."""
+
+    clean = [float(value) for value in values]
+    if any(not math.isfinite(value) for value in clean):
+        raise ConfigurationError("sample contains NaN or Infinity")
+    n = len(clean)
+    if n < 2:
+        return {"ci95": None, "lower": None, "mean": None, "n": n, "p_one_sided": None, "se_zero": False, "upper": None}
+    mean = float(statistics.fmean(clean))
+    sd = float(statistics.stdev(clean))
+    se = sd / math.sqrt(n)
+    if se == 0.0:
+        return {
+            "ci95": None,
+            "lower": None,
+            "mean": mean,
+            "n": n,
+            "p_one_sided": None,
+            "se_zero": True,
+            "upper": None,
+        }
+    df = n - 1
+    t_ci = student_t_ppf(0.975, df)
+    t_lo = student_t_ppf(1.0 - ALPHA, df)
+    lower = mean - t_lo * se
+    upper = mean + t_ci * se
+    return {
+        "ci95": [mean - t_ci * se, upper],
+        "lower": lower,
+        "mean": mean,
+        "n": n,
+        "p_one_sided": float(student_t_sf(mean / se, df)),
+        "se_zero": False,
+        "upper": upper,
+    }
+
+
+def _statistical_verdict(interval: Mapping[str, object], importance_bound: float | None) -> str:
+    """SUPPORTED only when a declared importance bound is cleared by the lower bound."""
+
+    if bool(interval.get("se_zero")) or interval.get("p_one_sided") is None or interval.get("upper") is None:
+        return VERDICT_INCONCLUSIVE
+    upper = float(interval["upper"])  # type: ignore[arg-type]
+    mean = float(interval["mean"])  # type: ignore[arg-type]
+    p_value = float(interval["p_one_sided"])  # type: ignore[arg-type]
+    lower = float(interval["lower"])  # type: ignore[arg-type]
+    if upper < 0.0:
+        return VERDICT_NEGATIVE
+    if importance_bound is None:
+        if p_value < ALPHA and mean > 0.0 and lower > 0.0:
+            return VERDICT_NOT_DECLARED
+        return VERDICT_INCONCLUSIVE
+    if p_value < ALPHA and mean > 0.0 and lower >= float(importance_bound):
+        return VERDICT_SUPPORTED
+    return VERDICT_INCONCLUSIVE
+
+
+def assess_phase5(
+    rows: Sequence[Mapping[str, object]],
+    locked_seeds: Sequence[int],
+    *,
+    importance_bound: float | None,
+    mde_a: float | None = None,
+    mde_b: float | None = None,
+    measurement_floor: int | None = None,
+) -> dict[str, object]:
+    """Score claim A and claim B separately.
+
+    A missing seed or a null required piece is BLOCKED_MEASUREMENT. The mean
+    is then null, not the mean of the remaining rows and not a zero fill.
+    Importance undeclared forbids SUPPORTED. A census wave cannot support B.
+    """
+
+    floor = assert_measurement_floor(measurement_floor)
+    locked = tuple(int(seed) for seed in locked_seeds)
+    if len(locked) < floor:
+        raise ConfigurationError("locked history count is below MEASUREMENT_FLOOR")
+    if importance_bound is not None and not _finite(importance_bound):
+        raise ConfigurationError("importance bound must be finite or null")
+    by_seed = {int(row["seed"]): row for row in rows}
+    dropped_a: list[int] = []
+    dropped_b: list[int] = []
+    a_values: list[float] = []
+    b_values: list[float] = []
+    frequency_n = 0
+    contact_n = 0
+    fitness_n = 0
+    reversal_n = 0
+    conjunction = True
+    for seed in locked:
+        row = by_seed.get(seed)
+        if row is None:
+            dropped_a.append(seed)
+            dropped_b.append(seed)
+            conjunction = False
+            continue
+        contrast = row.get("claim_a")
+        if contrast is None or not _finite(contrast):
+            dropped_a.append(seed)
+        else:
+            a_values.append(float(contrast))
+        if bool(row.get("census_wave")) and census_wave_supports_claim_b(row.get("frequency")):
+            raise ConfigurationError("census wave was treated as claim B")
+        frequency = row.get("frequency")
+        contact = row.get("contact_pressure")
+        contacts = row.get("contacts")
+        fitness_measured = row.get("fitness_measured")
+        reversal = row.get("reversal")
+        measured_frequency = frequency_is_measured(frequency if isinstance(frequency, Mapping) else None)
+        piece_missing = (
+            not measured_frequency
+            or contact is None
+            or not _finite(contact)
+            or not isinstance(contacts, int)
+            or isinstance(contacts, bool)
+            or not isinstance(fitness_measured, bool)
+            or not isinstance(reversal, bool)
+        )
+        if piece_missing:
+            dropped_b.append(seed)
+            conjunction = False
+            continue
+        frequency_n += 1
+        if int(contacts) > 0 and float(contact) > 0.0:
+            contact_n += 1
+        else:
+            conjunction = False
+        if bool(fitness_measured):
+            fitness_n += 1
+        else:
+            conjunction = False
+        if bool(reversal):
+            reversal_n += 1
+            b_values.append(1.0)
+        else:
+            b_values.append(0.0)
+    claim_a: dict[str, object] = {
+        "dropped_seeds": dropped_a,
+        "mean": None,
+        "n_locked": len(locked),
+        "n_used": len(a_values),
+        "verdict": VERDICT_BLOCKED,
+    }
+    claim_b: dict[str, object] = {
+        "contact_ok_n": contact_n,
+        "criterion_met": False,
+        "dropped_seeds": dropped_b,
+        "fitness_measured_n": fitness_n,
+        "frequency_measured_n": frequency_n,
+        "mean": None,
+        "n_locked": len(locked),
+        "n_used": len(locked) - len(dropped_b),
+        "reversal_true_n": reversal_n,
+        "used_census_wave_as_estimand": False,
+        "verdict": VERDICT_BLOCKED,
+    }
+    if not dropped_a and len(a_values) == len(locked):
+        interval_a = sampling_interval(a_values)
+        claim_a["interval"] = interval_a
+        claim_a["mean"] = interval_a["mean"]
+        claim_a["verdict"] = _statistical_verdict(interval_a, importance_bound)
+    if not dropped_b and len(b_values) == len(locked):
+        interval_b = sampling_interval(b_values)
+        claim_b["interval"] = interval_b
+        claim_b["mean"] = interval_b["mean"]
+        statistical = _statistical_verdict(interval_b, importance_bound)
+        claim_b["criterion_met"] = bool(conjunction and statistical == VERDICT_SUPPORTED)
+        if not conjunction:
+            claim_b["verdict"] = VERDICT_NEGATIVE if statistical == VERDICT_NEGATIVE else VERDICT_INCONCLUSIVE
+        else:
+            claim_b["verdict"] = statistical
+    if importance_bound is None:
+        if claim_a["verdict"] == VERDICT_SUPPORTED:
+            claim_a["verdict"] = VERDICT_NOT_DECLARED
+        if claim_b["verdict"] == VERDICT_SUPPORTED:
+            claim_b["verdict"] = VERDICT_NOT_DECLARED
+        claim_b["criterion_met"] = False
+    proved = bool(
+        claim_b["verdict"] == VERDICT_SUPPORTED
+        and claim_b["criterion_met"] is True
+        and importance_bound is not None
+        and floor >= 12
+    )
+    return {
+        "claim_a": claim_a,
+        "claim_a_direction": CLAIM_A_DIRECTION,
+        "claim_b": claim_b,
+        "importance_bound": None if importance_bound is None else float(importance_bound),
+        "importance_is_mde": False,
+        "mde_a": None if mde_a is None else float(mde_a),
+        "mde_b": None if mde_b is None else float(mde_b),
+        "measurement_floor": floor,
+        "measurement_floor_lowered": False,
+        "red_queen_proved": proved,
+        "supported_forbidden": importance_bound is None,
+    }
+
+
+def _install_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]) -> None:
+    """Install genomes. Does not clear a hold and does not touch parasites."""
+
+    patches = list(arm.food_patches)
+    if not patches:
+        raise ConfigurationError("phase-5 hosts require the shared food patches")
+    organisms: list[GenesisOrganism] = []
+    roles: dict[str, str] = {"parasite_stock": ROLE_SECONDARY}
+    seen: set[str] = set()
+    for index, seat in enumerate(seats):
+        host_id = str(seat["host_id"])
+        if host_id in seen:
+            raise ConfigurationError(f"duplicate host id {host_id}")
+        seen.add(host_id)
+        organism = GenesisOrganism.from_bits(
+            host_id,
+            str(seat["genome"]),
+            initial_runtime_atp=float(STRUCT_BIRTH_ATP),
+            position=patches[index % len(patches)],
+        )
+        if _window(organism) != str(seat["window"]):
+            raise ConfigurationError("installed genome does not decode to its window")
+        organisms.append(organism)
+        roles[host_id] = "primary"
+    arm.runner.population = replace(arm.runner.population, organisms=tuple(organisms))
+    arm.roles = roles
+
+
+def enable_coevolution_birth_chamber(arm: StructuralRQArm) -> None:
+    """Open the birth chamber without changing the locked mutation rate."""
+
+    configs = arm.runner.configs
+    parent_cost = float(configs.reproduction.parent_atp_cost)
+    bit_flip = float(configs.mutation.bit_flip_rate)
+    if not configs.reproduction.enabled or parent_cost <= 0.0:
+        raise ConfigurationError("birth chamber requires reproduction and its cost")
+    if not _rate_allowed(bit_flip, 0.0, float(STRUCT_HOST_BIT_FLIP)):
+        raise ConfigurationError("host mutation is not the structural rate or the adaptation cut")
+    chamber = SexualRecombinationConfig(
+        enabled=True,
+        same_length_only=True,
+        recombination_prob=1.0,
+        two_fold_cost_sex=False,
+        diploid_meiosis=False,
+        timeout_policy="asexual_fallback",
+    )
+    if not chamber.uses_birth_chamber:
+        raise ConfigurationError("outcross birth requires the birth chamber")
+    life = replace(configs.closed_loop_hp_life, role_by_id=tuple(sorted(arm.roles.items())))
+    arm.runner.configs = replace(configs, sexual_recombination=chamber, closed_loop_hp_life=life)
+    after = arm.runner.configs
+    if not after.reproduction.enabled or float(after.reproduction.parent_atp_cost) != parent_cost:
+        raise ConfigurationError("birth chamber changed reproduction")
+    if not _rate_allowed(float(after.mutation.bit_flip_rate), bit_flip):
+        raise ConfigurationError("birth chamber changed the host mutation rate")
+
+
+def build_phase5_arm(arm_name: str, seed: int) -> StructuralRQArm:
+    """One coevolution arm from the shared boot. Parasites are not deleted."""
+
+    key = str(arm_name)
+    if key not in ARMS:
+        raise ConfigurationError(f"unknown phase-5 arm {arm_name!r}")
+    if int(seed) in FORBIDDEN_SEEDS:
+        raise ConfigurationError(f"phase-5 seed {seed} is forbidden")
+    arm = build_arm(ARM_A, int(seed))
+    arm.stream_root = STREAM_ROOT
+    arm.stream_history = str(int(seed))
+    if arm.antagonist_pop is None or not arm.antagonist_pop.units:
+        raise ConfigurationError("phase-5 boot deleted the parasite population")
+    if not arm.runner.configs.reproduction.enabled:
+        raise ConfigurationError("phase-5 boot turned reproduction off")
+    seats = equal_host_seats()
+    _install_hosts(arm, seats)
+    if key == ARM_ADAPTATION_CUT:
+        configs = arm.runner.configs
+        arm.runner.configs = replace(configs, mutation=replace(configs.mutation, bit_flip_rate=0.0))
+        arm.passage = PASSAGE_FROZEN
+        captured = [dict(seat) for seat in seats]
+
+        def _hold(target: StructuralRQArm) -> None:
+            _install_hosts(target, captured)
+
+        arm.host_composition_hold = _hold
+    elif key == ARM_CONSTANT_PARASITE:
+        arm.passage = PASSAGE_FROZEN
+        arm.host_composition_hold = None
+    else:
+        arm.passage = PASSAGE_COEVOLVE
+        arm.host_composition_hold = None
+    if arm.passage not in {PASSAGE_COEVOLVE, PASSAGE_FROZEN} or arm.passage == "shuffled_labels":
+        raise ConfigurationError("phase-5 passage is not a locked control")
+    if arm.host_inheritance != "transmit" or not arm.runner.configs.reproduction.enabled:
+        raise ConfigurationError("phase-5 turned reproduction off")
+    pop = arm.antagonist_pop
+    if not _rate_allowed(float(pop.mutation_rate), float(STRUCT_PARASITE_MUTATION)):
+        raise ConfigurationError("parasite mutation is not the structural rate")
+    host_rate = float(arm.runner.configs.mutation.bit_flip_rate)
+    if key == ARM_ADAPTATION_CUT and not _rate_allowed(host_rate, 0.0):
+        raise ConfigurationError("adaptation cut left host mutation on")
+    if key != ARM_ADAPTATION_CUT and not _rate_allowed(host_rate, float(STRUCT_HOST_BIT_FLIP)):
+        raise ConfigurationError("host mutation is not the structural rate")
+    enable_coevolution_birth_chamber(arm)
+    if not arm._hosts():
+        raise ConfigurationError("phase-5 deleted the host population")
+    return arm
+
+
+def _start_hosts(arm: StructuralRQArm) -> list[dict[str, str]]:
+    return [{"id": str(org.id), "window": _window(org)} for org in arm._hosts()]
+
+
+def _end_state(arm: StructuralRQArm) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    parents = {rec.organism_id: rec.parent_id for rec in arm.runner.population.lineage}
+    hosts = [
+        {
+            "id": str(org.id),
+            "parent_id": parents.get(org.id),
+            "runtime_atp": float(org.atp_state.runtime_available),
+            "window": _window(org),
+        }
+        for org in arm._hosts()
+    ]
+    pop = arm.antagonist_pop
+    if pop is None:
+        raise ConfigurationError("end state requires parasites")
+    parasites = [
+        {
+            "born_generation": int(unit.born_generation),
+            "energy": float(unit.energy),
+            "parent_id": unit.parent_id,
+            "unit_id": unit.unit_id,
+            "window": unit.window,
+        }
+        for unit in pop.units
+    ]
+    return hosts, parasites
+
+
+def _install_contact_tap(arm: StructuralRQArm) -> list[dict[str, object]]:
+    snaps: list[dict[str, object]] = []
+    original = arm._apply_hp_env_contact
+
+    def wrapped() -> tuple[int, list[str]]:
+        hosts, parasites = _end_state(arm)
+        snaps.append({"hosts": hosts, "parasites": parasites, "tick": int(arm.tick_index)})
+        return original()
+
+    arm._apply_hp_env_contact = wrapped  # type: ignore[method-assign]
+    return snaps
+
+
+def scientific_body(arm: StructuralRQArm) -> dict[str, object]:
+    """Fields a one-shot run and a resumed run must share."""
+
+    pop = arm.antagonist_pop
+    if pop is None:
+        raise ConfigurationError("scientific body requires parasites")
+    hosts = sorted(
+        (
+            {
+                "id": str(org.id),
+                "runtime_atp": round(float(org.atp_state.runtime_available), 9),
+                "window": _window(org),
+            }
+            for org in arm._hosts()
+        ),
+        key=lambda row: str(row["id"]),
+    )
+    parasites = sorted(
+        (
+            {
+                "energy": round(float(unit.energy), 9),
+                "parent_id": unit.parent_id,
+                "unit_id": unit.unit_id,
+                "window": unit.window,
+            }
+            for unit in pop.units
+        ),
+        key=lambda row: str(row["unit_id"]),
+    )
+    paid = [round(float(sum(record[4] for record in records)), 9) for records in arm.contact_pair_records]
+    return {
+        "contacts": list(arm.graded_contact_count),
+        "hosts": hosts,
+        "paid": paid,
+        "parasites": parasites,
+        "tick_index": int(arm.tick_index),
+    }
+
+
+def _first_diff(left: object, right: object, prefix: str = "") -> str | None:
+    if type(left) is not type(right):
+        return prefix or "type"
+    if isinstance(left, dict) and isinstance(right, dict):
+        for key in sorted(set(left) | set(right)):
+            if key not in left or key not in right:
+                return f"{prefix}.{key}" if prefix else str(key)
+            found = _first_diff(left[key], right[key], f"{prefix}.{key}" if prefix else str(key))
+            if found:
+                return found
+        return None
+    if isinstance(left, list) and isinstance(right, list):
+        if len(left) != len(right):
+            return f"{prefix}.len" if prefix else "len"
+        for index, (item, other) in enumerate(zip(left, right, strict=True)):
+            found = _first_diff(item, other, f"{prefix}[{index}]")
+            if found:
+                return found
+        return None
+    if left != right:
+        return prefix or "value"
+    return None
+
+
+class _Append:
+    def __init__(self, path: Path) -> None:
+        import fcntl
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._fcntl = fcntl
+        self._fh = path.open("a", encoding="utf-8", buffering=1)
+
+    def line(self, text: str) -> None:
+        payload = text if text.endswith("\n") else text + "\n"
+        self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_EX)
+        try:
+            self._fh.write(payload)
+            self._fh.flush()
+        finally:
+            self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_UN)
+
+    def close(self) -> None:
+        self._fh.close()
+
+
+def run_phase5_history(
+    seed: int,
+    root_text: str,
+    generations: int,
+    *,
+    arms: Sequence[str] = ARMS,
+    compare_one_shot: bool = True,
+) -> dict[str, object]:
+    """Advance one generation at a time. A failure keeps the partial archive."""
+
+    root = Path(root_text)
+    assert_output_dir(root)
+    if int(seed) in FORBIDDEN_SEEDS:
+        raise ConfigurationError(f"phase-5 seed {seed} is forbidden")
+    seed_dir = root / "by_seed" / f"seed{int(seed)}"
+    seed_dir.mkdir(parents=True, exist_ok=True)
+    stop = root / "STOP"
+    live = _Append(root / "live.log")
+    archive_path = seed_dir / "archive.jsonl"
+    failed: str | None = None
+    completed = 0
+    try:
+        built = {name: build_phase5_arm(name, int(seed)) for name in arms}
+        taps = {name: _install_contact_tap(built[name]) for name in arms}
+        founders = {name: {org.id for org in built[name]._hosts()} for name in arms}
+        with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
+            for name in arms:
+                if failed or stop.exists():
+                    break
+                arm = built[name]
+                for generation in range(1, int(generations) + 1):
+                    if stop.exists():
+                        failed = "stopped"
+                        break
+                    start = _start_hosts(arm)
+                    start_ids = {row["id"] for row in start}
+                    window_by_id = {row["id"]: row["window"] for row in start}
+                    before_lineage = {rec.organism_id for rec in arm.runner.population.lineage}
+                    try:
+                        arm.run_generations(1)
+                    except Exception as exc:
+                        failed = f"exception:{type(exc).__name__}:{exc}"[:500]
+                        break
+                    status = invariant_status(arm, generation=generation, founder_ids=founders[name])
+                    hosts, parasites = _end_state(arm)
+                    end_ids = {str(row["id"]) for row in hosts}
+                    births = [
+                        rec
+                        for rec in arm.runner.population.lineage
+                        if rec.organism_id not in before_lineage and rec.parent_id and int(rec.generation) != 0
+                    ]
+                    birth_ids = {rec.organism_id for rec in births}
+                    deaths = sorted((start_ids - end_ids) | (birth_ids - end_ids))
+                    pop = arm.antagonist_pop
+                    if pop is None or len(taps[name]) < generation:
+                        failed = "missing-population"
+                        break
+                    contact = taps[name][generation - 1]
+                    events = arm.antagonist_contact_events[-1] if arm.antagonist_contact_events else ()
+                    paid = float(sum(float(event.atp_paid) for event in events))
+                    record = {
+                        "arm": name,
+                        "config_digest": config_digest(),
+                        "contact_credit": float(pop.energy_accounts[-1].contact_income),
+                        "contact_debit": paid,
+                        "contact_hosts": contact["hosts"],
+                        "contact_parasites": contact["parasites"],
+                        "contact_tick": int(contact["tick"]),
+                        "contacts": int(arm.graded_contact_count[-1]) if arm.graded_contact_count else 0,
+                        "generation": int(generation),
+                        "host_births": [
+                            {
+                                "id": rec.organism_id,
+                                "parent_id": rec.parent_id,
+                                "parent_window": window_by_id.get(str(rec.parent_id)),
+                            }
+                            for rec in births
+                        ],
+                        "host_deaths": deaths,
+                        "hosts": hosts,
+                        "invariant": status,
+                        "parasite_births": len(pop.ledgers[-1].newborns),
+                        "parasite_census": len(pop.units),
+                        "parasites": parasites,
+                        "passage": arm.passage,
+                        "red_queen_proved": False,
+                        "reproduction_enabled": bool(arm.runner.configs.reproduction.enabled),
+                        "schema": ARCHIVE_SCHEMA,
+                        "seed": int(seed),
+                        "start_hosts": start,
+                        "start_windows": [row["window"] for row in start],
+                    }
+                    archive.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+                    archive.flush()
+                    live.line(
+                        f"phase=5 seed={seed} arm={name} generation={generation} "
+                        f"contacts={record['contacts']} invariant={status} red_queen_proved=false"
+                    )
+                    completed = generation
+                    if status != "ok":
+                        failed = str(status)
+                        break
+                    if not bool(record["reproduction_enabled"]):
+                        failed = "reproduction-off"
+                        break
+                if failed:
+                    break
+        if failed is None and compare_one_shot and not stop.exists():
+            for name in arms:
+                other = build_phase5_arm(name, int(seed))
+                _install_contact_tap(other)
+                other.run_generations(int(generations))
+                diff = _first_diff(scientific_body(built[name]), scientific_body(other))
+                if diff:
+                    failed = f"one-shot-resume-mismatch:{name}:{diff}"
+                    break
+    finally:
+        live.close()
+    if failed:
+        (seed_dir / "REASON.txt").write_text(failed + "\n", encoding="utf-8")
+        stop.write_text(failed + "\n", encoding="utf-8")
+        return {"failed": failed, "generations_completed": completed, "red_queen_proved": False, "seed": int(seed)}
+    (seed_dir / "COMPLETE").write_text(f"generations={int(generations)} red_queen_proved=false\n", encoding="utf-8")
+    return {"failed": None, "generations_completed": int(generations), "red_queen_proved": False, "seed": int(seed)}
+
+
+def _worker(payload: dict[str, object]) -> dict[str, object]:
+    arms = payload["arms"]
+    if not isinstance(arms, list):
+        raise ConfigurationError("worker arms must be a list")
+    return run_phase5_history(
+        int(payload["seed"]),
+        str(payload["root"]),
+        int(payload["generations"]),
+        arms=tuple(str(item) for item in arms),
+        compare_one_shot=bool(payload["compare_one_shot"]),
+    )
+
+
+def _load_jsonl(path: Path) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    if not path.is_file():
+        return rows
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            parsed = json.loads(line)
+            if isinstance(parsed, dict):
+                rows.append(parsed)
+    return rows
+
+
+def replay_phase5_archive(path: Path) -> dict[str, object]:
+    """Re-score contact populations with evolution, reproduction, and mutation off."""
+
+    mismatches: list[dict[str, object]] = []
+    compared = 0
+    unmeasurable = 0
+    for line_number, row in enumerate(_load_jsonl(path), start=1):
+        hosts = row.get("contact_hosts")
+        parasites = row.get("contact_parasites")
+        if not isinstance(hosts, list) or not isinstance(parasites, list):
+            mismatches.append({"generation": row.get("generation"), "reason": "contact-population-missing"})
+            continue
+        if not hosts or not parasites:
+            unmeasurable += 1
+            if int(row.get("contacts") or 0) != 0 or float(row.get("contact_debit") or 0.0) != 0.0:
+                mismatches.append({"generation": row.get("generation"), "reason": "empty-population-had-contact"})
+            continue
+        scored = replay_archived_contact(
+            json.loads(json.dumps(hosts)),
+            json.loads(json.dumps(parasites)),
+            tick_index=int(row["contact_tick"]),
+            seed=0,
+        )
+        compared += 1
+        debit_gap = abs(float(scored["total_debit"]) - float(row["contact_debit"]))
+        credit_gap = abs(float(scored["credit"]) - float(row["contact_credit"]))
+        flags_off = scored["evolution"] is False and scored["reproduction"] is False and scored["mutation"] is False
+        if debit_gap > REPLAY_ABS_TOL or credit_gap > REPLAY_ABS_TOL or not flags_off:
+            mismatches.append(
+                {
+                    "arm": row.get("arm"),
+                    "credit_gap": credit_gap,
+                    "debit_gap": debit_gap,
+                    "generation": row.get("generation"),
+                    "line": line_number,
+                    "reason": "replay-field-mismatch",
+                }
+            )
+            if len(mismatches) >= 5:
+                break
+    return {
+        "compared_generations": compared,
+        "matched": not mismatches,
+        "mismatches": mismatches,
+        "red_queen_proved": False,
+        "unmeasurable_generations": unmeasurable,
+    }
+
+
+def _arm_rows(rows: Sequence[Mapping[str, object]], arm: str) -> dict[int, Mapping[str, object]]:
+    return {int(row["generation"]): row for row in rows if str(row.get("arm")) == arm}
+
+
+def _people(row: Mapping[str, object], key: str) -> list[dict[str, object]] | None:
+    value = row.get(key)
+    if not isinstance(value, list) or not value:
+        return None
+    people = [dict(item) for item in value if isinstance(item, dict)]
+    return people or None
+
+
+def score_arm_contrast(rows: Sequence[Mapping[str, object]], arm: str, *, lag: int, horizon: int) -> float | None:
+    """Claim A on one arm. A missing population stays null."""
+
+    mapped = _arm_rows(rows, arm)
+    now = mapped.get(int(horizon))
+    past = mapped.get(int(horizon) - int(lag))
+    if now is None or past is None:
+        return None
+    hosts = _people(now, "hosts")
+    parasites_now = _people(now, "parasites")
+    parasites_past = _people(past, "parasites")
+    if hosts is None or parasites_now is None or parasites_past is None:
+        return None
+    return contemporary_minus_past(infectivity(hosts, parasites_now), infectivity(hosts, parasites_past))
+
+
+def score_claim_b_pieces(rows: Sequence[Mapping[str, object]], *, lag: int, horizon: int) -> dict[str, object]:
+    """Claim B pieces from the coevolve archive. Missing pieces stay null."""
+
+    mapped = _arm_rows(rows, ARM_COEVOLVE)
+    focal = mapped.get(int(horizon))
+    past = mapped.get(int(horizon) - int(lag))
+    blank: dict[str, object] = {
+        "contact_pressure": None,
+        "contacts": None,
+        "fitness_measured": None,
+        "frequency": None,
+        "reversal": None,
+    }
+    if focal is None or past is None:
+        return blank
+    windows = focal.get("start_windows")
+    frequency = genotype_frequency([str(item) for item in windows] if isinstance(windows, list) else None)
+    contacts = 0
+    paid = 0.0
+    births_all: list[dict[str, object]] = []
+    deaths_recorded = True
+    for generation in range(1, int(horizon) + 1):
+        row = mapped.get(generation)
+        if row is None or not _finite(row.get("contact_debit")) or not isinstance(row.get("contacts"), int):
+            return blank
+        if not isinstance(row.get("host_deaths"), list):
+            deaths_recorded = False
+        birth_rows = row.get("host_births")
+        if isinstance(birth_rows, list):
+            births_all.extend(item for item in birth_rows if isinstance(item, dict))
+        else:
+            deaths_recorded = False
+        contacts += int(row["contacts"])
+        paid += float(row["contact_debit"])
+    first = mapped.get(1)
+    start_hosts = first.get("start_hosts") if first is not None else None
+    living = focal.get("hosts")
+    fitness = descendant_fitness(
+        [item for item in start_hosts if isinstance(item, dict)] if isinstance(start_hosts, list) else None,
+        births_all,
+        [item for item in living if isinstance(item, dict)] if isinstance(living, list) else None,
+        deaths_recorded,
+    )
+    parasites_now = _people(focal, "parasites")
+    parasites_past = _people(past, "parasites")
+    reversal: bool | None = None
+    if parasites_now is not None and parasites_past is not None:
+        gap_now = specialization_gap(
+            infectivity(pure_host_rows(WINDOW_A, GENOME_A, len(parasites_now), label="A"), parasites_now),
+            infectivity(pure_host_rows(WINDOW_B, GENOME_B, len(parasites_now), label="B"), parasites_now),
+        )
+        gap_past = specialization_gap(
+            infectivity(pure_host_rows(WINDOW_A, GENOME_A, len(parasites_past), label="A"), parasites_past),
+            infectivity(pure_host_rows(WINDOW_B, GENOME_B, len(parasites_past), label="B"), parasites_past),
+        )
+        reversal = direction_reversal(gap_now, gap_past)
+    return {
+        "contact_pressure": paid,
+        "contacts": contacts,
+        "fitness_measured": bool(fitness["measured"]),
+        "frequency": frequency,
+        "lineage_fitness": fitness["by_window"],
+        "reversal": reversal,
+    }
+
+
+def probe_turnover(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    """Replacement time. This does not score a time-shift contrast."""
+
+    newborns: list[int] = []
+    censuses: list[int] = []
+    infectivities: list[float] = []
+    host_births: list[int] = []
+    for row in rows:
+        if str(row.get("arm")) != ARM_COEVOLVE:
+            continue
+        newborns.append(int(row["parasite_births"]))
+        censuses.append(int(row["parasite_census"]))
+        births = row.get("host_births")
+        host_births.append(len(births) if isinstance(births, list) else 0)
+        contacts = row.get("contacts")
+        if isinstance(contacts, int) and contacts > 0 and _finite(row.get("contact_debit")):
+            infectivities.append(float(row["contact_debit"]) / float(contacts) / ASSAY_SCALE)
+    if not newborns:
+        raise ConfigurationError("probe archive has no coevolve generations")
+    mean_newborns = float(statistics.fmean(newborns))
+    census = int(round(float(statistics.fmean(censuses))))
+    sigma = PLANNING_SIGMA_A
+    sigma_source = "planning"
+    if len(infectivities) >= 2:
+        measured = float(statistics.stdev(infectivities))
+        if measured > 0.0:
+            sigma = max(measured, PLANNING_SIGMA_A)
+            sigma_source = "max(probe infectivity sd, planning sigma)"
+    return {
+        "census": census,
+        "generations": len(newborns),
+        "host_births_mean": float(statistics.fmean(host_births)) if host_births else None,
+        "mean_seated_newborns": mean_newborns,
+        "measurable": mean_newborns > 0.0 and census > 0,
+        "sigma_a": sigma,
+        "sigma_a_source": sigma_source,
+        "sigma_b": PLANNING_SIGMA_B,
+    }
+
+
+def design_from_probe(turnover: Mapping[str, object]) -> dict[str, object]:
+    """Choose lag, horizon, and n. A claim contrast in the input is refused."""
+
+    if "claim_a" in turnover or "reversal" in turnover:
+        raise ConfigurationError("probe design must not be chosen from a claim contrast")
+    chosen = choose_lag_and_horizon(
+        mean_newborns=float(turnover["mean_seated_newborns"]) if turnover.get("measurable") else None,
+        census=int(turnover["census"]),
+        measurable=bool(turnover.get("measurable")),
+    )
+    power = history_count_from_power(float(turnover["sigma_a"]), float(turnover["sigma_b"]))
+    seeds = locked_confirmatory_seeds(int(power["n"]))
+    return {
+        "horizon": int(chosen["horizon"]),
+        "importance_bound": None,
+        "mde_a": power["mde_a"],
+        "mde_b": power["mde_b"],
+        "n": int(power["n"]),
+        "precision_met": bool(power["precision_met"]),
+        "primary_lag": int(chosen["primary_lag"]),
+        "replacement_generations": chosen["replacement_generations"],
+        "seeds": list(seeds),
+        "sigma_a": power["sigma_a"],
+        "sigma_b": power["sigma_b"],
+    }
+
+
+def render_phase5_lock(design: Mapping[str, object], *, code_commit: str) -> str:
+    """Lock text. The required sentence is first and last."""
+
+    seeds = [int(seed) for seed in design["seeds"]]  # type: ignore[union-attr]
+    payload = {
+        "horizon": int(design["horizon"]),
+        "importance_bound": None,
+        "mde_a": design["mde_a"],
+        "mde_b": design["mde_b"],
+        "measurement_floor": int(MEASUREMENT_FLOOR),
+        "n": int(design["n"]),
+        "primary_lag": int(design["primary_lag"]),
+        "probe_generations": PROBE_GENERATIONS,
+        "probe_seed": PROBE_SEED,
+        "seeds": seeds,
+        "workers": MAX_WORKERS,
+    }
+    block = json.dumps(payload, indent=2, sort_keys=True)
+    lines = [
+        "# Phase-5 lock",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+        f"Code commit: `{code_commit}` on branch `rq/mechanism-v2`.",
+        "Nothing has been pushed, merged, or rebased.",
+        "`runs/rq-bidirectional-timeshift-01` is untouched and is not part of this commit.",
+        "Previous mechanism-v2 runs are not modified. `PHASE3_LOCK.md` is not modified.",
+        "",
+        "## Claim A",
+        "",
+        "Directional reciprocal adaptation.",
+        "Direction, locked before the confirmatory:",
+        "`I(hosts at the horizon, parasites at the horizon) - I(hosts at the horizon, parasites at horizon - lag) > 0`.",
+        "Contemporary parasite performance on the focal hosts is predicted to exceed performance of the past parasites.",
+        "The score is `infectivity` on `replay_archived_contact` with evolution, reproduction, and mutation off.",
+        "The direction is the contemporary-versus-previous comparison read from Decaestecker et al. 2007 in `PHASE1.md`",
+        "(contemporary infectivity 0.65, previous 0.55). It was not chosen from a probe contrast.",
+        "The primary arm is `coevolve`.",
+        "",
+        "## Claim B",
+        "",
+        "Frequency-dependent selection and an oscillating Red Queen.",
+        "Required together on the coevolve arm: genotype frequency as window counts;",
+        "real contact pressure (contacts and ATP paid on the debit path);",
+        "relative fitness from the lineage (parent ids, births, deaths, next-generation share over start frequency);",
+        "and a sign reversal of `I(A) - I(B)` between the contemporary and past parasite populations.",
+        "ATP loss is not fitness. A census wave, a lagged correlation, or a renamed class is not claim B.",
+        "Claim A is not claim B. A positive D or a nonzero F from an earlier phase is not this confirmatory.",
+        "`red_queen_proved` is true only if claim B's locked criterion is met, including a declared importance bound.",
+        "",
+        "## Controls",
+        "",
+        "`adaptation_cut`: host bit-flip 0, parasite passage `frozen`, founder host genomes restored before contact.",
+        "Host `reproduction.enabled` stays true. This is not reproduction-off and not `freeze_host_genotypic_inheritance`.",
+        "`shuffled_labels` is not used. `shuffled_labels` is not a frozen genotype.",
+        "`constant_parasite`: parasite passage `frozen`, so parasite genotype composition is held.",
+        "Contact and the debit stay. Host bit-flip stays the structural rate. The host population is not deleted.",
+        "Passage `absent` is not used.",
+        "",
+        "## Lag, horizon, and n",
+        "",
+        f"Probe seed: {PROBE_SEED} only. It is not a confirmatory history.",
+        f"Exploratory budget: {PROBE_GENERATIONS} generations, coevolve arm only, no lag grid.",
+        "Primary lag is `max(1, round(parasite census / mean seated newborns))`.",
+        f"Turnover multiple: {int(TURNOVER_MULTIPLE)}, the phase-3 multiple, not a contrast search.",
+        f"Primary lag: {int(design['primary_lag'])}.",
+        f"Horizon: {int(design['horizon'])} generations.",
+        f"Replacement generations: {design['replacement_generations']}.",
+        f"n: {int(design['n'])}.",
+        f"Seeds: {seeds[0]} through {seeds[-1]} ({', '.join(str(seed) for seed in seeds)}).",
+        "",
+        "## Importance and the minimum detectable effect",
+        "",
+        "Importance for this estimand is undeclared. SUPPORTED is forbidden.",
+        "The Decaestecker gap of 0.10 is a different system and is not this engine's importance bound.",
+        "The probe was not used to invent an importance bound after a sign.",
+        f"Planning sigma for claim A is {design['sigma_a']} (at least {PLANNING_SIGMA_A}).",
+        f"Planning sigma for claim B is {PLANNING_SIGMA_B}. It is not a probe reversal rate.",
+        f"Precision targets, separate from importance: claim A {PRECISION_A}, claim B {PRECISION_B}.",
+        f"MDE claim A: {design['mde_a']}. MDE claim B: {design['mde_b']}.",
+        "The minimum detectable effect is not the importance bound.",
+        f"`MEASUREMENT_FLOOR` stays {int(MEASUREMENT_FLOOR)} and is not lowered.",
+        f"`precision_met`: {bool(design['precision_met'])}.",
+        "",
+        "## Run rules",
+        "",
+        "CPU workers at most 7.",
+        f"Output: `{OUTPUT_CONFIRMATORY}`.",
+        "Raw archives are kept. A partial run is kept. A seed is not replaced.",
+        "Extinction and fixation stay in the archive.",
+        "Energy invariants are checked every generation. A real invariant failure stops the run.",
+        "Replay of the same confirmatory run is required. One-shot and resume must match.",
+        "Evolution, reproduction, and mutation are off on the replay copy.",
+        "If replay does not match, stop. That is a bug. Do not edit the engine after the verdict.",
+        "",
+        "```json",
+        block,
+        "```",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _lock_payload(lock_text: str) -> dict[str, object]:
+    if NO_CONFIRMATORY_SENTENCE not in lock_text:
+        raise ConfigurationError("phase-5 lock is missing its sentence")
+    start = lock_text.find("```json")
+    end = lock_text.find("```", start + 7)
+    if start < 0 or end < 0:
+        raise ConfigurationError("phase-5 lock has no json block")
+    parsed = json.loads(lock_text[start + len("```json") : end])
+    if not isinstance(parsed, dict):
+        raise ConfigurationError("phase-5 lock block is not an object")
+    return parsed
+
+
+def execute_probe(root: Path | None = None) -> dict[str, object]:
+    """Seed 9600 only. No confirmatory seed is opened."""
+
+    target = OUTPUT_PROBE if root is None else root
+    assert_output_dir(target)
+    if (target / "by_seed").exists():
+        raise ConfigurationError("probe output already exists; a seed is not replaced")
+    outcome = run_phase5_history(
+        PROBE_SEED,
+        str(target),
+        PROBE_GENERATIONS,
+        arms=(ARM_COEVOLVE,),
+        compare_one_shot=False,
+    )
+    rows = _load_jsonl(target / "by_seed" / f"seed{PROBE_SEED}" / "archive.jsonl")
+    if outcome["failed"]:
+        summary: dict[str, object] = {"failed": outcome["failed"], "red_queen_proved": False, "seed": PROBE_SEED}
+    else:
+        turnover = probe_turnover(rows)
+        summary = {
+            "design": design_from_probe(turnover),
+            "failed": None,
+            "red_queen_proved": False,
+            "turnover": turnover,
+        }
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "probe_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary
+
+
+def _score_seed(seed_dir: Path, *, lag: int, horizon: int) -> dict[str, object]:
+    rows = _load_jsonl(seed_dir / "archive.jsonl")
+    pieces = score_claim_b_pieces(rows, lag=lag, horizon=horizon)
+    return {
+        "claim_a": score_arm_contrast(rows, ARM_COEVOLVE, lag=lag, horizon=horizon),
+        "claim_a_adaptation_cut": score_arm_contrast(rows, ARM_ADAPTATION_CUT, lag=lag, horizon=horizon),
+        "claim_a_constant_parasite": score_arm_contrast(rows, ARM_CONSTANT_PARASITE, lag=lag, horizon=horizon),
+        "contact_pressure": pieces["contact_pressure"],
+        "contacts": pieces["contacts"],
+        "fitness_measured": pieces["fitness_measured"],
+        "frequency": pieces["frequency"],
+        "lineage_fitness": pieces.get("lineage_fitness"),
+        "reversal": pieces["reversal"],
+        "seed": int(seed_dir.name.removeprefix("seed")),
+    }
+
+
+def execute_confirmatory(lock_path: Path, root: Path | None = None) -> dict[str, object]:
+    """Run the locked seeds. Do not add seeds. Stop on a real failure and keep it."""
+
+    target = OUTPUT_CONFIRMATORY if root is None else root
+    assert_output_dir(target)
+    payload = _lock_payload(lock_path.read_text(encoding="utf-8"))
+    n = int(payload["n"])
+    lag = int(payload["primary_lag"])
+    horizon = int(payload["horizon"])
+    seeds = locked_confirmatory_seeds(n)
+    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+        raise ConfigurationError("lock seeds are not 9601 through 9600+n")
+    if int(payload["workers"]) > MAX_WORKERS:
+        raise ConfigurationError("lock workers exceed 7")
+    if payload.get("importance_bound") is not None:
+        raise ConfigurationError("this lock declared an importance bound that was not justified")
+    if (target / "by_seed").exists():
+        raise ConfigurationError("confirmatory output already exists; a seed is not replaced")
+    target.mkdir(parents=True, exist_ok=True)
+    workers = resolve_workers(min(MAX_WORKERS, len(seeds)))
+    payloads = [
+        {"arms": list(ARMS), "compare_one_shot": True, "generations": horizon, "root": str(target), "seed": seed}
+        for seed in seeds
+    ]
+    outcomes: list[dict[str, object]] = []
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_worker, item) for item in payloads]
+        for future in as_completed(futures):
+            outcomes.append(future.result())
+    outcomes.sort(key=lambda item: int(item["seed"]))
+    failed = [item for item in outcomes if item["failed"]]
+    replays: list[dict[str, object]] = []
+    if not failed:
+        for seed in seeds:
+            replays.append(replay_phase5_archive(target / "by_seed" / f"seed{seed}" / "archive.jsonl"))
+    replay_matched = bool(replays) and all(bool(item["matched"]) for item in replays)
+    mde_a = float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
+    mde_b = float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
+    if failed or not replay_matched:
+        if not failed:
+            (target / "REASON.txt").write_text("replay-mismatch\n", encoding="utf-8")
+        present = []
+        for seed in seeds:
+            if (target / "by_seed" / f"seed{seed}" / "COMPLETE").is_file():
+                present.append(_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon))
+        report = assess_phase5(present, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
+        report["red_queen_proved"] = False
+        report["claim_b"]["criterion_met"] = False
+        summary: dict[str, object] = {
+            "failed": failed,
+            "horizon": horizon,
+            "n_locked": len(seeds),
+            "primary_lag": lag,
+            "replay": replays,
+            "replay_matched": replay_matched,
+            "report": report,
+            "seeds": list(seeds),
+            "stopped": failed[0]["failed"] if failed else "replay-mismatch",
+            "workers": workers,
+        }
+        (target / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return summary
+    scored = [_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon) for seed in seeds]
+    report = assess_phase5(scored, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
+    summary = {
+        "by_seed": scored,
+        "controls": {
+            "adaptation_cut": [row["claim_a_adaptation_cut"] for row in scored],
+            "constant_parasite": [row["claim_a_constant_parasite"] for row in scored],
+        },
+        "horizon": horizon,
+        "n_locked": len(seeds),
+        "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE",
+        "primary_lag": lag,
+        "replay": replays,
+        "replay_matched": True,
+        "report": report,
+        "seeds": list(seeds),
+        "stopped": None,
+        "workers": workers,
+    }
+    summary["summary_sha256"] = hashlib.sha256(
+        json.dumps({key: value for key, value in summary.items() if key != "summary_sha256"}, sort_keys=True).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    (target / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return summary

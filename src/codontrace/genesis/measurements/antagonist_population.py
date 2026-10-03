@@ -191,17 +191,20 @@ class AntagonistPopulation:
     # Pre-declared substrate knob, derived mechanically from the arm's standing ATP
     # budget and fixed BEFORE any arm runs. Derivation, using only documented constants:
     #   debit per contact at a full-affinity match = virulence * steal_fraction = 1.2 ATP
-    #   affinity is uniform on [0, 1] over the window space, so its mean is 0.5
+    #   IF the two 6-bit windows are independent and each bit is uniform, the number
+    #   of matching bits is Binomial(6, 0.5) and affinity (that count / 6) has mean 0.5.
+    #   Mean 0.5 is not guaranteed for an evolved population unless it is measured.
+    #   The historical derivation used that assumption:
     #   mean ATP per contact = 1.2 * 0.5 = 0.6 ATP
     #   the arm realises one contact seat per host, so the ATP throughput per seat per
-    #   generation is also 0.6 ATP
+    #   generation is also 0.6 ATP under the same assumption
     #   assimilated income per unit per generation = (EARNED_YIELD - PAIRING_COST) * 0.6
     #   = 0.3 ATP
     #   maintenance = half the assimilated income = 0.15 ATP per generation, so strict
     #   starvation death stays real (an uncontacted unit loses 0.15 per generation and
     #   dies) while a unit earning the standing income keeps a surplus.
-    # The same value is used in every arm, is never re-chosen after an arm result, and
-    # its derivation is hashed into the run manifest.
+    # The numeric value is NOT retuned. The same value is used in every arm, is never
+    # re-chosen after an arm result, and its derivation is hashed into the run manifest.
     maintenance_cost: float = 0.15
     ledgers: list[PassageLedger] = None  # type: ignore[assignment]
     #: Pre-selection energy checkpoint per generation (controlled quantity, asserted

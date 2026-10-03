@@ -51,8 +51,8 @@ import json
 import os
 import time
 from collections import Counter
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import (
@@ -80,6 +80,7 @@ from codontrace.genesis.measurements.antagonist_population import (
     ANTAGONIST_PASSAGE_SHUFFLED_LABELS,
     EARNED_YIELD,
     PAIRING_COST,
+    AntagonistPopulation,
     AntagonistUnit,
 )
 from codontrace.genesis.organism import GenesisOrganism
@@ -97,8 +98,8 @@ SMOKE_GENERATIONS = 4
 # Arm A: both inheritance paths open.
 # Arm B: parasite offspring windows are redrawn from the ancestral pool
 #         (shuffled labels). Host inheritance stays open. Contact and cost stay.
-# Arm C: host genotypic inheritance frozen. Parasite population still
-#         coevolves. Host population, contact and cost stay.
+# Arm C: host reproduction and bit flips are off. This is not a pure evolution control.
+#         Parasite population still coevolves. Host population, contact and cost stay.
 # Arm D: both cuts at once.
 ARM_A = "A"
 ARM_B = "B"
@@ -113,6 +114,52 @@ INSTRUMENT_PAIR_HIGH = ("000000", "000000")
 INSTRUMENT_PAIR_LOW = ("000000", "111000")
 
 RED_QUEEN_PROVED = False
+SNAPSHOT_SCHEMA = "rq-timeshift-snapshot/1"
+ARCHIVE_SCHEMA = "rq-timeshift-archive/1"
+RQ_CODE_VERSION = "rq-mechanism-v2/0.3.0b12"
+RQ_DESIGN_VERSION = "hp-arm01-structural/timeshift-phase1"
+
+
+def control_statement(arm_name: str) -> str:
+    """What an arm actually cuts. Names that over-claim are refused."""
+
+    key = str(arm_name)
+    if key == ARM_A:
+        return (
+            "Both genotypes can be transmitted. Host reproduction stays on and "
+            "parasite offspring keep inherited windows, subject to mutation. "
+            "Contact and cost stay on."
+        )
+    if key == ARM_B:
+        return (
+            "Parasite offspring windows are redrawn from the ancestral pool "
+            "(shuffled_labels). This is not a frozen genotype. Host inheritance "
+            "stays on. Contact and cost stay on."
+        )
+    if key == ARM_C:
+        return (
+            "Host reproduction is off and host bit flips are off, so living host "
+            "windows stay put and host births stop. This is not a pure evolution "
+            "control: host demography is stopped, not only an evolutionary "
+            "operator. Contact and cost remain. The parasite population still "
+            "reproduces."
+        )
+    if key == ARM_D:
+        return (
+            "Both cuts at once: host reproduction is off, and parasite offspring "
+            "windows are shuffled_labels. shuffled_labels is not a frozen "
+            "genotype, and reproduction off is not a pure evolution control. "
+            "Contact and cost remain."
+        )
+    if key == ARM_PILOT:
+        return "Pilot ecology: both inheritance paths open. Not a control label."
+    raise ConfigurationError(f"unknown timeshift arm {arm_name!r}")
+
+
+def config_digest() -> str:
+    """Digest of the locked structural design. Not a content digest of one snapshot."""
+
+    return _canonical({"design": locked_design_dict(), "experiment": EXPERIMENT_ID})
 
 
 def _canonical(body: Mapping[str, object]) -> str:
@@ -153,6 +200,10 @@ def build_arm(arm_name: str, seed: int) -> StructuralRQArm:
         arm.passage = ANTAGONIST_PASSAGE_SHUFFLED_LABELS
     else:
         arm.passage = PASSAGE_COEVOLVE
+    # Timeshift histories do not use seed+generation. Legacy structural arms,
+    # which never set these fields, keep that older mixer.
+    arm.stream_root = EXPERIMENT_ID
+    arm.stream_history = str(int(seed))
     return arm
 
 
@@ -240,6 +291,36 @@ def read_snapshot(path: Path) -> dict[str, object]:
     return body
 
 
+def read_bound_snapshot(path: Path, *, expected: Mapping[str, object]) -> dict[str, object]:
+    """Reject a healthy content digest whose identity is not the requested run.
+
+    The content digest is necessary and not sufficient. Experiment, schema,
+    history, seed, arm, generation, run id, config digest and code/design
+    version must all match ``expected``.
+    """
+
+    body = read_snapshot(path)
+    required = (
+        "arm",
+        "code_version",
+        "config_digest",
+        "design_version",
+        "experiment",
+        "generation",
+        "history_id",
+        "run_id",
+        "schema",
+        "seed",
+    )
+    for key in required:
+        if key not in body or body[key] in (None, ""):
+            raise ConfigurationError(f"snapshot missing schema field {key}")
+    for key, value in expected.items():
+        if body.get(key) != value:
+            raise ConfigurationError(f"snapshot identity rejected: {key}")
+    return body
+
+
 def replay_archived_contact(
     hosts: list[dict[str, object]],
     parasites: list[dict[str, object]],
@@ -247,13 +328,18 @@ def replay_archived_contact(
     virulence: float = STRUCT_VIRULENCE,
     steal_fraction: float = STRUCT_STEAL_FRACTION,
     seed: int = 0,
+    atp_override: float | None = None,
+    tick_index: int = 0,
 ) -> dict[str, object]:
-    """Score one contact round on copies. Evolution, reproduction and mutation stay off.
+    """Score one contact round on copies through the engine debit path.
 
-    The input lists and the dicts inside them are not modified. No passage
-    update runs, so parasite reproduction and mutation do not run. Host
-    reproduction and bit flips are switched off on the scratch arm and
-    ``step_generation`` is not called.
+    Evolution, reproduction and mutation stay off. Turning reproduction off
+    here is a measurement freeze so the archived individuals are not replaced
+    during the score. It is not a pure evolution control. The input lists and
+    the dicts inside them are not modified. Parasite ``advance`` is not
+    called, so parasite reproduction does not run. Host ``step_generation``
+    is not called. Debit, host ATP loss and antagonist credit are read from
+    the engine objects, not from a second formula.
     """
 
     host_token = json.dumps(hosts, sort_keys=True, separators=(",", ":"))
@@ -262,31 +348,49 @@ def replay_archived_contact(
     parasite_copy = json.loads(parasite_token)
     if not host_copy or not parasite_copy:
         raise ConfigurationError("replay requires both populations")
+    for index, row in enumerate(host_copy):
+        if row.get("id") in (None, ""):
+            row["id"] = f"assay-host-{index}"
+        if atp_override is not None:
+            row["runtime_atp"] = float(atp_override)
+        elif "runtime_atp" not in row:
+            row["runtime_atp"] = float(STRUCT_BIRTH_ATP)
+    for index, row in enumerate(parasite_copy):
+        if row.get("unit_id") in (None, ""):
+            row["unit_id"] = f"assay-parasite-{index}"
+        if "energy" not in row:
+            row["energy"] = 1.0
+        if "born_generation" not in row:
+            row["born_generation"] = 0
 
     arm = build_arm(ARM_C, seed)
-    # Arm C already freezes host inheritance. Keep parasite mutation off too:
-    # this scratch arm never advances the parasite population.
-    assert arm.antagonist_pop is not None
-    arm.antagonist_pop.mutation_rate = 0.0
+    # Reproduction is already off on this scratch arm. That is only so the
+    # score cannot evolve. Do not describe it as an evolution control.
+    pop = arm.antagonist_pop
+    if not isinstance(pop, AntagonistPopulation):
+        raise ConfigurationError("replay requires the antagonist population")
+    pop.mutation_rate = 0.0
     arm.parasite_mutation = 0.0
     arm.virulence = float(virulence)
     arm.hp_env.steal_fraction = float(steal_fraction)
-    arm.tick_index = 0
+    arm.tick_index = int(tick_index)
     arm.passage = PASSAGE_COEVOLVE
 
     organisms: list[GenesisOrganism] = []
     seen_hosts: set[str] = set()
+    before_atp: dict[str, float] = {}
     for row in host_copy:
         oid = str(row["id"])
         if oid in seen_hosts:
             raise ConfigurationError(f"duplicate archived host id {oid}")
         seen_hosts.add(oid)
         window = str(row["window"])
+        before_atp[oid] = float(row["runtime_atp"])
         organisms.append(
             GenesisOrganism.from_bits(
                 oid,
                 _tape(OUTCROSS_OUT_BITS, window),
-                initial_runtime_atp=float(row["runtime_atp"]),
+                initial_runtime_atp=before_atp[oid],
                 position=(0, 0),
             )
         )
@@ -307,8 +411,8 @@ def replay_archived_contact(
                 energy=float(row["energy"]),
             )
         )
-    arm.antagonist_pop.units = units
-    arm.antagonist_pop.known_unit_ids.update(seen_units)
+    pop.units = units
+    pop.known_unit_ids.update(seen_units)
     arm.parasite_windows = [unit.window for unit in units]
     arm.runner.population = PopulationState(
         generation=0,
@@ -319,13 +423,13 @@ def replay_archived_contact(
     )
     arm.roles = {org.id: ROLE_PRIMARY for org in organisms}
     arm.roles["parasite_stock"] = ROLE_SECONDARY
-    ledgers_before = len(arm.antagonist_pop.ledgers)
+    ledgers_before = len(pop.ledgers)
     if arm.runner.configs.reproduction.enabled:
         raise ConfigurationError("replay left host reproduction enabled")
     if float(arm.runner.configs.mutation.bit_flip_rate) != 0.0:
         raise ConfigurationError("replay left host mutation enabled")
     arm._apply_hp_env_contact()
-    if len(arm.antagonist_pop.ledgers) != ledgers_before:
+    if len(pop.ledgers) != ledgers_before:
         raise ConfigurationError("replay advanced parasite reproduction")
     if arm.runner.population.generation != 0:
         raise ConfigurationError("replay stepped the host population")
@@ -335,6 +439,18 @@ def replay_archived_contact(
     mean_affinity = (
         float(sum(row[2] for row in records) / contacts) if contacts else 0.0
     )
+    events = arm.antagonist_contact_events[-1] if arm.antagonist_contact_events else ()
+    event_debit = float(sum(float(event.atp_paid) for event in events))
+    loss = float(
+        sum(before_atp[org.id] - float(org.atp_state.runtime_available) for org in organisms)
+    )
+    _roster, credit = pop._credit(
+        list(pop.units),
+        served_contacts=(),
+        contact_events=events,
+    )
+    scale = float(virulence) * float(steal_fraction)
+    infectivity = None if contacts == 0 else (event_debit / float(contacts)) / scale
     archive_mutated = (
         json.dumps(hosts, sort_keys=True, separators=(",", ":")) != host_token
         or json.dumps(parasites, sort_keys=True, separators=(",", ":")) != parasite_token
@@ -344,10 +460,15 @@ def replay_archived_contact(
     return {
         "contacts": contacts,
         "total_debit": total_debit,
+        "debit": event_debit,
+        "credit": float(credit),
+        "loss": loss,
+        "infectivity": infectivity,
         "mean_affinity": mean_affinity,
         "evolution": False,
         "reproduction": False,
         "mutation": False,
+        "measurement_freeze_is_evolution_control": False,
         "archive_mutated": False,
         "red_queen_proved": RED_QUEEN_PROVED,
     }
@@ -936,9 +1057,9 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
         },
         "arms": {
             ARM_A: "host inheritance on, parasite population coevolves",
-            ARM_B: "parasite offspring windows shuffled to the ancestral pool; host inheritance on; contact and cost on",
-            ARM_C: "host genotypic inheritance frozen; host population, contact and cost remain; parasite population coevolves",
-            ARM_D: "host inheritance frozen and parasite labels shuffled; contact and cost remain",
+            ARM_B: control_statement(ARM_B),
+            ARM_C: control_statement(ARM_C),
+            ARM_D: control_statement(ARM_D),
         },
         "instrument": instrument,
         "literature": [

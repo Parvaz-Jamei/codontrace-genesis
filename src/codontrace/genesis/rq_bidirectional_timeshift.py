@@ -69,7 +69,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     graded_affinity,
     locked_design_dict,
 )
-from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_COEVOLVE
+from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_COEVOLVE, PASSAGE_FROZEN
 from codontrace.genesis.host_parasite_life_plugin import (
     OUTCROSS_OUT_BITS,
     ROLE_PRIMARY,
@@ -120,10 +120,20 @@ RQ_CODE_VERSION = "rq-mechanism-v2/0.3.0b12"
 RQ_DESIGN_VERSION = "hp-arm01-structural/timeshift-phase1"
 
 
-def control_statement(arm_name: str) -> str:
-    """What an arm actually cuts. Names that over-claim are refused."""
+def control_statement(arm_name: str, *, phase: int = 1) -> str:
+    """What an arm actually cuts. Names that over-claim are refused.
+
+    Phase 1 is the locked 9201-9224 confirmatory wording: arms B and D are
+    shuffled_labels. Phase 2 is a separate builder. It does not rewrite that
+    wording. Pass ``phase=2`` for the frozen-genotype statements.
+    """
 
     key = str(arm_name)
+    phase_i = int(phase)
+    if phase_i not in (1, 2):
+        raise ConfigurationError(f"unknown timeshift control phase {phase!r}")
+    if phase_i == 2 and key in {ARM_B, ARM_C, ARM_D}:
+        return _phase2_control_statement(key)
     if key == ARM_A:
         return (
             "Both genotypes can be transmitted. Host reproduction stays on and "
@@ -154,6 +164,71 @@ def control_statement(arm_name: str) -> str:
     if key == ARM_PILOT:
         return "Pilot ecology: both inheritance paths open. Not a control label."
     raise ConfigurationError(f"unknown timeshift arm {arm_name!r}")
+
+
+def _phase2_control_statement(arm_name: str) -> str:
+    """Phase-2 cuts. Frozen genotype is PASSAGE_FROZEN, not shuffled_labels."""
+
+    key = str(arm_name)
+    if key == ARM_B:
+        return (
+            "Parasite genotypic inheritance is a frozen genotype: passage is "
+            "PASSAGE_FROZEN (mode \"frozen\"), reseated by the existing frozen path. "
+            "This is not shuffled_labels. shuffled_labels is not a frozen genotype. "
+            "Host inheritance stays on. Contact and cost stay on. The parasite "
+            "population is not deleted."
+        )
+    if key == ARM_C:
+        return (
+            "Host genotypic inheritance is frozen via freeze_host_genotypic_inheritance: "
+            "host reproduction is off and bit_flip_rate is 0. This is not a pure "
+            "evolution control. The host population is not deleted. Contact and cost "
+            "remain. Parasite passage stays PASSAGE_COEVOLVE, so parasites still "
+            "reproduce."
+        )
+    if key == ARM_D:
+        return (
+            "Both cuts at once. Parasite passage is PASSAGE_FROZEN (mode \"frozen\"), "
+            "a frozen genotype, not shuffled_labels. shuffled_labels is not a frozen "
+            "genotype. Host reproduction is off and bit_flip_rate is 0. That host cut "
+            "is not a pure evolution control. Neither population is deleted. Contact "
+            "and cost remain."
+        )
+    raise ConfigurationError(f"unknown phase-2 control {arm_name!r}")
+
+
+def build_phase2_arm(arm_name: str, seed: int) -> StructuralRQArm:
+    """Phase-2 arm. Founders come from one shared boot, then the cuts are applied.
+
+    ``build_arm`` for B and D still sets shuffled_labels. That is the phase-1
+    confirmatory semantics and is not reused here. Every phase-2 arm boots
+    through ``build_arm(ARM_A)``, which calls ``boot_structural`` with the same
+    copassaged arm label and the same seed, then sets the timeshift stream.
+    Treatment flags are applied only after that boot, so host and parasite
+    founders (ids, windows, energy) match across A-D. Arms do not share a
+    mutable RNG object: the stream hash is root, history id, subsystem and
+    generation, and the arm name is not an input.
+    """
+
+    key = str(arm_name)
+    if key not in {ARM_A, ARM_B, ARM_C, ARM_D}:
+        raise ConfigurationError(f"unknown phase-2 arm {arm_name!r}")
+    arm = build_arm(ARM_A, int(seed))
+    if key in {ARM_C, ARM_D}:
+        arm.freeze_host_genotypic_inheritance()
+    if key in {ARM_B, ARM_D}:
+        arm.passage = PASSAGE_FROZEN
+    else:
+        arm.passage = PASSAGE_COEVOLVE
+    if arm.passage == ANTAGONIST_PASSAGE_SHUFFLED_LABELS:
+        raise ConfigurationError("phase-2 passage must not be shuffled_labels")
+    if arm.passage not in {PASSAGE_COEVOLVE, PASSAGE_FROZEN}:
+        raise ConfigurationError(f"phase-2 passage {arm.passage!r} is not a locked mode")
+    if not arm._hosts():
+        raise ConfigurationError("phase-2 boot deleted the host population")
+    if arm.antagonist_pop is None or not arm.antagonist_pop.units:
+        raise ConfigurationError("phase-2 boot deleted the parasite population")
+    return arm
 
 
 def config_digest() -> str:
@@ -580,6 +655,46 @@ def invariant_status(arm: StructuralRQArm, *, generation: int, founder_ids: set[
         return "snapshot-generation"
     if arm.antagonist_pop is not None and not snap["antagonist_units"] and pop.units:
         return "snapshot-empty-units"
+    if len(arm.graded_contact_count) != int(generation):
+        return "contact-length"
+    if len(arm.antagonist_contact_events) != int(generation):
+        return "contact-event-length"
+    if len(arm.contact_pair_records) != int(generation):
+        return "contact-record-length"
+    if len(arm.match_debits_by_generation) != int(generation):
+        return "debit-length"
+    events = arm.antagonist_contact_events[-1]
+    for event in events:
+        if not event.contact_id or not event.host_id or not event.unit_id:
+            return "contact-id-missing"
+        if event.unit_id not in pop.known_unit_ids:
+            return "contact-unit-unknown"
+        paid = float(event.atp_paid)
+        if paid != paid or paid in (float("inf"), float("-inf")) or paid < 0.0:
+            return "contact-atp"
+    for org in arm._hosts():
+        energy = float(org.atp_state.runtime_available)
+        if energy != energy or energy in (float("inf"), float("-inf")):
+            return "host-energy"
+        if not org.id:
+            return "host-id-missing"
+    ledger = pop.ledgers[-1]
+    for unit in pop.units:
+        energy = float(unit.energy)
+        if energy != energy or energy in (float("inf"), float("-inf")):
+            return "parasite-energy"
+        if not unit.unit_id:
+            return "parasite-id-missing"
+    for unit in ledger.newborns:
+        if not unit.unit_id:
+            return "parasite-birth-id-missing"
+        if not unit.parent_id:
+            return "parasite-birth-without-parent"
+    for dead_id in ledger.deaths:
+        if not dead_id:
+            return "parasite-death-id-missing"
+    if ledger.newborns is None or ledger.deaths is None:
+        return "birth-death-missing"
     return "ok"
 
 

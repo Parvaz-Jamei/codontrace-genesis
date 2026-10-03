@@ -15,7 +15,7 @@
 
 CodonTrace Genesis is a laboratory you can run twice and get the same world back.
 
-You set down a small place. Simple agents eat, spend energy, survive, and leave offspring. The questions are evolutionary: does an antagonist push a lineage somewhere new, does a costly behavior hold its ground, does a line recover after its path is cut. The library exists so those questions can be asked without the answer being talked into shape afterwards. A birth names its parent, and the cost of that birth comes out of the parent. A checkpoint is the moment it was taken, not whatever the run became later. A number is stored beside the only scope it is allowed to have.
+You set down a small place. Simple agents eat, survive, and reproduce. The energy of each birth comes out of the parent. The questions are evolutionary: does an antagonist push a lineage somewhere new, does a costly behavior hold its ground, does a line recover after its path is cut. The library exists so those questions can be asked without the answer being talked into shape afterwards. A birth names its parent. A checkpoint is the moment it was taken, not whatever the run became later. A number is stored beside the only scope it is allowed to have.
 
 The aim is not to announce a Red Queen, an open-ended mind, or a medical device. The aim is a digital-evolution engine whose ledgers, forks, and verdicts stay weaker than the temptation to overclaim them. Four words are allowed at the end of a test, and only one of them is support, and only inside the model that was actually run: `SUPPORTED_IN_MODEL`, `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, `BLOCKED_MEASUREMENT`. On the standing ledger, the Red Queen is not proved.
 

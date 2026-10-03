@@ -535,6 +535,12 @@ class StructuralRQArm(LifeLoopEcologyArm):
     stream_history: str | None = None
     last_host_rng: RNGManager | None = None
     last_passage_rng: RNGManager | None = None
+    # Phase-3 frequency panel only. None on every existing arm, so the
+    # generation loop is unchanged unless a caller installs a hold.
+    # The hold puts the same host individuals back before contact. It is
+    # not a parasite reward and it is not read by passage.
+    host_composition_hold: Callable[..., None] | None = None
+    last_contact_host_windows: tuple[str, ...] = ()
 
     @classmethod
     def boot_structural(
@@ -691,6 +697,11 @@ class StructuralRQArm(LifeLoopEcologyArm):
         start_records = len(self.host_joint_class_series)
         with _population_unique_id_guard():
             for _ in range(generations):
+                # Phase-3 hold, off unless set. Restores the locked host mix
+                # before the life-loop step so a later death cannot change
+                # which genotypes are offered. Existing arms leave this None.
+                if self.host_composition_hold is not None:
+                    self.host_composition_hold(self)
                 # Bolus/refill at generation boundary BEFORE census append (probe).
                 self._apply_passage_refill()
                 bolus_before = True  # refill precedes census on this path
@@ -712,6 +723,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 for org in self.runner.population.organisms:
                     if org.id not in self.roles:
                         self.roles[org.id] = ROLE_PRIMARY
+                if self.host_composition_hold is not None:
+                    # Contact must see the locked mix, not whoever survived
+                    # the life-loop step. Passage is not called from the hold.
+                    self.host_composition_hold(self)
+                    self.last_contact_host_windows = tuple(
+                        _window(org) for org in self._hosts()
+                    )
                 debit_count, matched = self._apply_hp_env_contact()
                 self.match_debits_by_generation.append(int(debit_count))
                 served: tuple[tuple[str, float], ...] = ()

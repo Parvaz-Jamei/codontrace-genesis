@@ -79,6 +79,31 @@ def test_audited_positive_intervention_is_still_supported():
     assert not forged.claim_eligible
 
 
+def test_claim_eligible_binds_scenario_and_reconstructed_array_digests():
+    """A supported result stays bound to the intervention and the metric arrays.
+
+    Assignment is not a label that can be swapped after the contrast is signed,
+    and the array digests are the constructor's digest of those metrics.
+    """
+
+    pairs = [_pair(i) for i in range(16)]
+    result = build_intervention_result(
+        "probe", [p.baseline_metric for p in pairs], [p.treatment_metric for p in pairs], run_pairs=pairs
+    )
+    assert result.claim_eligible
+    assert result.scenario_id == "probe"
+    assert {pair.spec.intervention_id for pair in result.causal_report.run_pairs} == {"probe"}
+
+    wrong_scenario = replace(result, scenario_id="other-probe", digest="")
+    assert not wrong_scenario.claim_eligible
+
+    wrong_baseline = replace(result, baseline_digest="0" * 64, digest="")
+    assert not wrong_baseline.claim_eligible
+
+    wrong_treatment = replace(result, treatment_digest="1" * 64, digest="")
+    assert not wrong_treatment.claim_eligible
+
+
 def test_unrelated_move_and_food_rows_are_not_a_transfer():
     source, recipient = ATPAccount(20), ATPAccount(5)
     debit = source.debit(3, tick=7, agent_id="s", codon="000", action="MOVE", reason="move")

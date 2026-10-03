@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -982,14 +982,29 @@ class InterventionResult:
 
     @property
     def claim_eligible(self) -> bool:
+        """Support is eligible only when this result is the intervention it names.
+
+        Effect, interval, and sample count were already bound to the audited
+        report. The scenario must be the ``intervention_id`` of every run-pair
+        (assignment is not a relabelable tag), and the baseline/treatment
+        digests must be the constructor digest of those pairs' metrics. A
+        rebuilt report whose digest does not match is not this result.
+        """
+
         report = self.causal_report
         if report is None:
             return False
         audited = build_causal_evidence_report(report.run_pairs)
         if audited.digest() != report.digest():
             return False
+        if any(pair.spec.intervention_id != self.scenario_id for pair in report.run_pairs):
+            return False
+        if self.baseline_digest != _metric_array_digest(pair.baseline_metric for pair in report.run_pairs):
+            return False
+        if self.treatment_digest != _metric_array_digest(pair.treatment_metric for pair in report.run_pairs):
+            return False
         return bool(
-            report is not None and report.claim_eligible
+            report.claim_eligible
             and self.evidence_level == "intervention_supported"
             and self.paired_seed_count == report.independent_count
             and self.effect_size == report.effect.effect_size
@@ -1024,6 +1039,18 @@ class InterventionResult:
         return {**self._payload(), "digest": self.digest}
 
 
+
+def _metric_array_digest(values: Iterable[float]) -> str:
+    """Constructor digest of an ordered metric array.
+
+    ``build_intervention_result`` and ``InterventionResult.claim_eligible``
+    both use this, so a stored digest can be checked by rebuilding it from
+    the report metrics. Order is part of the contract.
+    """
+
+    return _digest({"values": [float(value) for value in values]})
+
+
 def build_intervention_result(
     scenario_id: str, baseline_values: Sequence[float], treatment_values: Sequence[float],
     *, run_pairs: Sequence[CausalInterventionRunPair] | None = None,
@@ -1037,8 +1064,8 @@ def build_intervention_result(
     treatment_values = _finite_deltas(treatment_values)
     if len(baseline_values) != len(treatment_values):
         raise ConfigurationError("baseline and treatment must have equal paired lengths")
-    baseline_digest = _digest({"values": [float(v) for v in baseline_values]})
-    treatment_digest = _digest({"values": [float(v) for v in treatment_values]})
+    baseline_digest = _metric_array_digest(baseline_values)
+    treatment_digest = _metric_array_digest(treatment_values)
     count = len(baseline_values)
     if count == 0:
         effect = 0.0
@@ -1048,7 +1075,11 @@ def build_intervention_result(
             / count
         )
     interval = paired_mean_interval([t - b for b, t in zip(baseline_values, treatment_values, strict=True)])
-    endpoints = (interval.low, interval.high) if interval.interval_defined else None
+    endpoints: tuple[float, float] | None
+    if interval.interval_defined:
+        endpoints = interval.endpoints()
+    else:
+        endpoints = None
     report = None
     if run_pairs is not None:
         pairs = tuple(run_pairs)

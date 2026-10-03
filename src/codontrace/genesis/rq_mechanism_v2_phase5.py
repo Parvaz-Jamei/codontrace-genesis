@@ -2,8 +2,8 @@
 
 Claim A is a directional time-shift on the engine debit path with evolution
 off during the assay. Claim B is frequency-dependent selection with an
-oscillating Red Queen, and it is not implied by claim A. ``red_queen_proved``
-is computed only from claim B's locked criterion. It is not a constant.
+oscillating Red Queen, and it is not implied by claim A. ``red_queen_proved`` is not set from an in-model support call.
+A limited claim is ``in_model_support``. The public flag stays false.
 
 Birth chamber. Prediction: a nonzero outcross locus refuses COPY_SELF unless
 the birth chamber is on. Full coevolution still uses the structural host
@@ -39,7 +39,7 @@ A census wave is not that conjunction. Engine path: ``infectivity`` calls
 0.55) and Papkou et al. 2019 as read there (time-shifts consistent with
 aFDS). Limit: importance is undeclared. The published 0.10 gap is not this
 engine's importance bound. The MDE is not importance. Estimand: null stays
-null. ``red_queen_proved`` follows claim B only.
+null. The public flag does not stand in for that in-model claim.
 
 Control contrast, phase 5b. Prediction: the phase-5 control score is
 identically zero because ``score_arm_contrast`` assays horizon hosts twice,
@@ -518,6 +518,219 @@ def _statistical_verdict(interval: Mapping[str, object], importance_bound: float
     return VERDICT_INCONCLUSIVE
 
 
+def normal_ppf(p: float) -> float:
+    """Acklam's inverse normal. Used only as the Wilson kappa."""
+
+    if not 0.0 < float(p) < 1.0:
+        raise ConfigurationError("normal quantile requires a probability in (0, 1)")
+    a = (
+        -3.969683028665376e01,
+        2.209460984245205e02,
+        -2.759285104469687e02,
+        1.383577518672690e02,
+        -3.066479806614716e01,
+        2.506628277459239e00,
+    )
+    b = (
+        -5.447609879822406e01,
+        1.615858368580409e02,
+        -1.556989798598866e02,
+        6.680131188771972e01,
+        -1.328068155288572e01,
+    )
+    c = (
+        -7.784894002430293e-03,
+        -3.223964580411365e-01,
+        -2.400758277161838e00,
+        -2.549732539343734e00,
+        4.374664141464968e00,
+        2.938163982698783e00,
+    )
+    d = (7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e00, 3.754408661907416e00)
+    plow = 0.02425
+    phigh = 1.0 - plow
+    prob = float(p)
+    if prob < plow:
+        q = math.sqrt(-2.0 * math.log(prob))
+        return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
+        )
+    if prob > phigh:
+        q = math.sqrt(-2.0 * math.log(1.0 - prob))
+        return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
+        )
+    q = prob - 0.5
+    r = q * q
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (
+        ((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0
+    )
+
+
+REVERSAL_NULL = 0.5
+
+
+def _binom_terms(n: int, p: float) -> list[float]:
+    """P(X=k) for k = 0..n. p = 0.5 uses exact powers of one half."""
+
+    count = int(n)
+    if count < 1:
+        raise ConfigurationError("binomial n must be positive")
+    prob = float(p)
+    if prob < 0.0 or prob > 1.0 or not math.isfinite(prob):
+        raise ConfigurationError("binomial probability is not in [0, 1]")
+    if math.isclose(prob, 0.5, abs_tol=1e-15):
+        unit = 0.5 ** count
+        terms = [unit]
+        for k in range(count):
+            terms.append(terms[-1] * (count - k) / (k + 1))
+        return terms
+    if prob == 0.0:
+        return [1.0] + [0.0] * count
+    if prob == 1.0:
+        return [0.0] * count + [1.0]
+    terms = [(1.0 - prob) ** count]
+    for k in range(count):
+        terms.append(terms[-1] * (count - k) / (k + 1) * prob / (1.0 - prob))
+    return terms
+
+
+def wilson_interval(successes: int, n: int, *, confidence: float = 0.95) -> dict[str, object]:
+    """Two-sided Wilson interval. 0/n keeps 0 and n/n keeps 1.
+
+    The Wald standard error is recorded and is not the p-value. A zero Wald
+    standard error does not delete the boundary or set p to 0.
+    Source: Brown, Cai, and DasGupta 2001, Statistical Science 16:101-133,
+    equation (4), the interval they recommend for small n.
+    """
+
+    count = int(n)
+    k = int(successes)
+    if isinstance(successes, bool) or isinstance(n, bool):
+        raise ConfigurationError("binomial counts must be integers")
+    if count < 1 or k < 0 or k > count:
+        raise ConfigurationError("binomial counts are outside 0..n")
+    if not 0.0 < float(confidence) < 1.0:
+        raise ConfigurationError("confidence must be in (0, 1)")
+    z = normal_ppf(0.5 + float(confidence) / 2.0)
+    phat = k / float(count)
+    z2 = z * z
+    denom = 1.0 + z2 / float(count)
+    center = (phat + z2 / (2.0 * float(count))) / denom
+    margin = z * math.sqrt(phat * (1.0 - phat) / float(count) + z2 / (4.0 * float(count) ** 2)) / denom
+    lower = max(0.0, center - margin)
+    upper = min(1.0, center + margin)
+    if k == 0:
+        lower = 0.0
+    if k == count:
+        upper = 1.0
+    wald_se = math.sqrt(phat * (1.0 - phat) / float(count))
+    terms = _binom_terms(count, REVERSAL_NULL)
+    p_upper = float(sum(terms[k:]))
+    p_lower = float(sum(terms[: k + 1]))
+    p_one = p_upper if phat >= REVERSAL_NULL else p_lower
+    p_two = min(1.0, 2.0 * min(p_lower, p_upper))
+    return {
+        "ci95": [lower, upper],
+        "k": k,
+        "lower": lower,
+        "mean": phat,
+        "n": count,
+        "null": REVERSAL_NULL,
+        "p_one_sided": p_one,
+        "p_two_sided": p_two,
+        "se_zero": False,
+        "upper": upper,
+        "wald_se": wald_se,
+        "wald_se_zero": wald_se == 0.0,
+    }
+
+
+def _binary_verdict(interval: Mapping[str, object], importance_bound: float | None) -> str:
+    """Directional success is a rate above the null. The Wilson upper below the null is negative.
+
+    Importance left undeclared forbids SUPPORTED. The continuous effect size is not this index.
+    """
+
+    if interval.get("lower") is None or interval.get("upper") is None or interval.get("p_one_sided") is None:
+        return VERDICT_INCONCLUSIVE
+    upper = float(interval["upper"])  # type: ignore[arg-type]
+    lower = float(interval["lower"])  # type: ignore[arg-type]
+    mean = float(interval["mean"])  # type: ignore[arg-type]
+    p_value = float(interval["p_one_sided"])  # type: ignore[arg-type]
+    null = float(interval["null"])  # type: ignore[arg-type]
+    if upper < null:
+        return VERDICT_NEGATIVE
+    if importance_bound is None:
+        if p_value < ALPHA and mean > null and lower > null:
+            return VERDICT_NOT_DECLARED
+        return VERDICT_INCONCLUSIVE
+    if p_value < ALPHA and mean > null and lower >= float(importance_bound) and lower > null:
+        return VERDICT_SUPPORTED
+    return VERDICT_INCONCLUSIVE
+
+
+def _reject_duplicate_inputs(
+    rows: Sequence[Mapping[str, object]],
+    locked: Sequence[int],
+) -> dict[int, Mapping[str, object]]:
+    """Unique seeds and unique generations. A second payload for one seed is not a second history."""
+
+    if len(locked) != len(set(locked)):
+        raise ConfigurationError("duplicate seeds")
+    by_seed: dict[int, Mapping[str, object]] = {}
+    for row in rows:
+        seed = int(row["seed"])
+        generations = row.get("generations")
+        if isinstance(generations, list):
+            gens = [int(item) for item in generations]
+            if len(gens) != len(set(gens)):
+                raise ConfigurationError("duplicate generations")
+        if seed in by_seed:
+            previous = by_seed[seed]
+            if previous.get("claim_a") != row.get("claim_a") or previous.get("reversal") != row.get("reversal"):
+                raise ConfigurationError("contradictory rows")
+            raise ConfigurationError("duplicate seeds")
+        by_seed[seed] = row
+    return by_seed
+
+
+def _bind_evidence(
+    by_seed: Mapping[int, Mapping[str, object]],
+    locked: Sequence[int],
+    evidence: Mapping[str, object] | None,
+) -> dict[str, object]:
+    """Identity, config, and provenance travel with the claim. A missing bundle is not a match."""
+
+    if evidence is None:
+        return {"bound": False, "config_digest": None, "identity": None, "provenance": None}
+    identity = evidence.get("identity")
+    digest = evidence.get("config_digest")
+    provenance = evidence.get("provenance")
+    if not isinstance(identity, str) or not identity:
+        raise ConfigurationError("evidence identity is not bound")
+    if not isinstance(digest, str) or not digest:
+        raise ConfigurationError("evidence config is not bound")
+    if not isinstance(provenance, str) or not provenance:
+        raise ConfigurationError("evidence provenance is not bound")
+    for seed in locked:
+        row = by_seed.get(int(seed))
+        if row is None:
+            continue
+        if row.get("evidence_id") != identity:
+            raise ConfigurationError("evidence identity is not bound to the claim")
+        if row.get("config_digest") != digest:
+            raise ConfigurationError("evidence config is not bound to the claim")
+        if row.get("provenance") != provenance:
+            raise ConfigurationError("evidence provenance is not bound to the claim")
+    return {
+        "bound": True,
+        "config_digest": digest,
+        "identity": identity,
+        "provenance": provenance,
+    }
+
+
 def assess_phase5(
     rows: Sequence[Mapping[str, object]],
     locked_seeds: Sequence[int],
@@ -526,12 +739,18 @@ def assess_phase5(
     mde_a: float | None = None,
     mde_b: float | None = None,
     measurement_floor: int | None = None,
+    evidence: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     """Score claim A and claim B separately.
 
     A missing seed or a null required piece is BLOCKED_MEASUREMENT. The mean
     is then null, not the mean of the remaining rows and not a zero fill.
     Importance undeclared forbids SUPPORTED. A census wave cannot support B.
+    Duplicate seeds, contradictory rows, and duplicate generations are rejected.
+    Two copies of one history are not twelve histories.
+
+    The reversal index is a binomial proportion. Its Wilson interval is not the
+    continuous effect size. ``red_queen_proved`` is not that in-model claim.
     """
 
     floor = assert_measurement_floor(measurement_floor)
@@ -540,7 +759,8 @@ def assess_phase5(
         raise ConfigurationError("locked history count is below MEASUREMENT_FLOOR")
     if importance_bound is not None and not _finite(importance_bound):
         raise ConfigurationError("importance bound must be finite or null")
-    by_seed = {int(row["seed"]): row for row in rows}
+    by_seed = _reject_duplicate_inputs(rows, locked)
+    bound = _bind_evidence(by_seed, locked, evidence)
     dropped_a: list[int] = []
     dropped_b: list[int] = []
     a_values: list[float] = []
@@ -606,6 +826,7 @@ def assess_phase5(
     }
     claim_b: dict[str, object] = {
         "contact_ok_n": contact_n,
+        "continuous_effect": None,
         "criterion_met": False,
         "dropped_seeds": dropped_b,
         "fitness_measured_n": fitness_n,
@@ -623,39 +844,51 @@ def assess_phase5(
         claim_a["mean"] = interval_a["mean"]
         claim_a["verdict"] = _statistical_verdict(interval_a, importance_bound)
     if not dropped_b and len(b_values) == len(locked):
-        interval_b = sampling_interval(b_values)
+        interval_b = wilson_interval(reversal_n, len(locked))
         claim_b["interval"] = interval_b
         claim_b["mean"] = interval_b["mean"]
-        statistical = _statistical_verdict(interval_b, importance_bound)
-        claim_b["criterion_met"] = bool(conjunction and statistical == VERDICT_SUPPORTED)
+        # The binary index is the reversal count. A continuous gap, when the
+        # caller stored one, is not substituted for it.
+        gaps = [row.get("effect_size") for row in (by_seed[seed] for seed in locked)]
+        if all(_finite(gap) for gap in gaps):
+            claim_b["continuous_effect"] = sampling_interval([float(gap) for gap in gaps])  # type: ignore[arg-type]
+        statistical = _binary_verdict(interval_b, importance_bound)
+        claim_b["criterion_met"] = bool(conjunction and statistical == VERDICT_SUPPORTED and bound["bound"])
         if not conjunction:
             claim_b["verdict"] = VERDICT_NEGATIVE if statistical == VERDICT_NEGATIVE else VERDICT_INCONCLUSIVE
         else:
             claim_b["verdict"] = statistical
-    if importance_bound is None:
+    if importance_bound is None or not bound["bound"]:
         if claim_a["verdict"] == VERDICT_SUPPORTED:
             claim_a["verdict"] = VERDICT_NOT_DECLARED
         if claim_b["verdict"] == VERDICT_SUPPORTED:
             claim_b["verdict"] = VERDICT_NOT_DECLARED
         claim_b["criterion_met"] = False
-    proved = bool(
+    in_model = bool(
         claim_b["verdict"] == VERDICT_SUPPORTED
         and claim_b["criterion_met"] is True
         and importance_bound is not None
+        and bound["bound"]
         and floor >= 12
     )
+    # The public flag does not stand in for ``in_model``. A later locked run
+    # would have to meet its own pre-registered criterion. This function does
+    # not take a caller flag that sets it.
     return {
         "claim_a": claim_a,
         "claim_a_direction": CLAIM_A_DIRECTION,
         "claim_b": claim_b,
+        "evidence": bound,
         "importance_bound": None if importance_bound is None else float(importance_bound),
         "importance_is_mde": False,
+        "in_model_support": in_model,
         "mde_a": None if mde_a is None else float(mde_a),
         "mde_b": None if mde_b is None else float(mde_b),
         "measurement_floor": floor,
         "measurement_floor_lowered": False,
-        "red_queen_proved": proved,
-        "supported_forbidden": importance_bound is None,
+        "public_flag_is_in_model_claim": False,
+        "red_queen_proved": False,
+        "supported_forbidden": importance_bound is None or not bound["bound"],
     }
 
 
@@ -684,6 +917,88 @@ def _install_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]) -> 
         organisms.append(organism)
         roles[host_id] = "primary"
     arm.runner.population = replace(arm.runner.population, organisms=tuple(organisms))
+    arm.roles = roles
+
+
+def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]) -> None:
+    """Keep founder windows without rebuilding a living id at the birth ATP.
+
+    A living id keeps its ATP state and its memory object. A missing id is a
+    replacement and is the only path that constructs a body. That replacement
+    is its own ledger line. Genotype restore, population reset, and energy
+    resupply are not the same line. This hold writes neither a population
+    reset nor an energy resupply.
+    """
+
+    patches = list(arm.food_patches)
+    if not patches:
+        raise ConfigurationError("phase-5 hosts require the shared food patches")
+    ledger = getattr(arm, "intervention_ledger", None)
+    if not isinstance(ledger, list):
+        ledger = []
+        arm.intervention_ledger = ledger
+    by_id = {str(org.id): org for org in arm.runner.population.organisms}
+    if len(by_id) != len(tuple(arm.runner.population.organisms)):
+        raise ConfigurationError("duplicate host id")
+    ordered: list[GenesisOrganism] = []
+    roles: dict[str, str] = {"parasite_stock": ROLE_SECONDARY}
+    seen: set[str] = set()
+    for index, seat in enumerate(seats):
+        host_id = str(seat["host_id"])
+        if host_id in seen:
+            raise ConfigurationError(f"duplicate host id {host_id}")
+        seen.add(host_id)
+        genome = str(seat["genome"])
+        window = str(seat["window"])
+        existing = by_id.get(host_id)
+        if existing is None:
+            organism = GenesisOrganism.from_bits(
+                host_id,
+                genome,
+                initial_runtime_atp=float(STRUCT_BIRTH_ATP),
+                position=patches[index % len(patches)],
+            )
+            ledger.append(
+                {
+                    "host_id": host_id,
+                    "initial_atp": float(STRUCT_BIRTH_ATP),
+                    "kind": "replacement",
+                    "reset_memory": False,
+                    "resupply": False,
+                }
+            )
+        else:
+            atp_before = float(existing.atp_state.runtime_available)
+            memory_before = existing.episodic_memory
+            if _window(existing) != window:
+                scratch = GenesisOrganism.from_bits(
+                    host_id + ":genotype-scratch",
+                    genome,
+                    initial_runtime_atp=0.0,
+                    position=existing.position,
+                )
+                existing.genome = scratch.genome
+                existing.ribosome = scratch.ribosome
+                existing.compiled_brain = scratch.compiled_brain
+                if float(existing.atp_state.runtime_available) != atp_before:
+                    raise ConfigurationError("genotype restore changed ATP")
+                if existing.episodic_memory is not memory_before:
+                    raise ConfigurationError("genotype restore changed memory")
+                ledger.append(
+                    {
+                        "host_id": host_id,
+                        "kind": "genotype_restore",
+                        "reset_atp": False,
+                        "reset_memory": False,
+                        "resupply": False,
+                    }
+                )
+            organism = existing
+        if _window(organism) != window:
+            raise ConfigurationError("installed genome does not decode to its window")
+        ordered.append(organism)
+        roles[host_id] = "primary"
+    arm.runner.population = replace(arm.runner.population, organisms=tuple(ordered))
     arm.roles = roles
 
 
@@ -738,9 +1053,10 @@ def build_phase5_arm(arm_name: str, seed: int) -> StructuralRQArm:
         arm.runner.configs = replace(configs, mutation=replace(configs.mutation, bit_flip_rate=0.0))
         arm.passage = PASSAGE_FROZEN
         captured = [dict(seat) for seat in seats]
+        arm.intervention_ledger = []
 
         def _hold(target: StructuralRQArm) -> None:
-            _install_hosts(target, captured)
+            hold_founder_genotypes(target, captured)
 
         arm.host_composition_hold = _hold
     elif key == ARM_CONSTANT_PARASITE:
@@ -1096,7 +1412,15 @@ def replay_phase5_archive(path: Path) -> dict[str, object]:
 
 
 def _arm_rows(rows: Sequence[Mapping[str, object]], arm: str) -> dict[int, Mapping[str, object]]:
-    return {int(row["generation"]): row for row in rows if str(row.get("arm")) == arm}
+    mapped: dict[int, Mapping[str, object]] = {}
+    for row in rows:
+        if str(row.get("arm")) != arm:
+            continue
+        generation = int(row["generation"])
+        if generation in mapped:
+            raise ConfigurationError("duplicate generations")
+        mapped[generation] = row
+    return mapped
 
 
 def _people(row: Mapping[str, object], key: str) -> list[dict[str, object]] | None:

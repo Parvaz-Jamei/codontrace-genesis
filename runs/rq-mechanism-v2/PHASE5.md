@@ -137,3 +137,7 @@ Verified before any control edit, on the code and on the twelve archives.
 On every seed 9601 through 9612, the parasite window sequence at generations 1 through 10 is the same inside `adaptation_cut`, the same inside `constant_parasite`, and the same across those two arms. Order matches, not only the multiset. `constant_parasite` host windows at generation 10 differ from generation 7 on every seed, so host change was present and the old contrast could not see it. `adaptation_cut` host windows do not differ across those generations. The coevolve parasite windows do differ. A separate seat check, not these archives, already shows the assay moves when one window changes: 64 seats at affinity 0.5 versus the same seats with one window at affinity 0 differ by 0.5/64.
 
 The replacement is phase 5b. It does not reuse seeds 9601 through 9612, and it does not write into `phase5-coevolution/`.
+
+## Phase 5b
+
+The replacement run is recorded in `PHASE5B.md`. The coevolve estimands were not rewritten. Red Queen was not declared.

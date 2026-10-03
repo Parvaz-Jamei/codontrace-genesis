@@ -3,7 +3,8 @@
 Branch `rq/mechanism-v2`, created from `9dba28f1bc101be607ee31bc98645a9edb97a8c8` (main after PR 102). `9dba28f` is an ancestor. Nothing was pushed, merged, or rebased. The old confirmatory tree `runs/rq-bidirectional-timeshift-01` was not committed and was not modified. Its verdict stays `NEGATIVE_IN_MODEL`. `red_queen_proved` stays false. This note is not timestamped `20261003T151015`.
 
 Mechanism fixes: `a810be697a0545d401e9bef15242a436ae403753`.
-This document is the following commit on the same branch.
+Phase-1 review note: `856142ffda2f603da625fa8d134628a19d788bb7`.
+This document is amended in a later commit on the same branch for the locked-history analyze gate (those two commits were not amended).
 
 No new confirmatory was run. Seeds, horizon, lag, thresholds, and `maintenance_cost` (0.15) were not retuned. No A/B frequency panel and no fitness link.
 
@@ -13,7 +14,22 @@ What was opened, and what was not. Quotes below are from the copies that were fe
 
 1. Decaestecker et al. 2007, DOI 10.1038/nature06291. Opened the KU Leuven Lirias copy of the Nature letter (Vol 450, 6 December 2007, doi:10.1038/nature06291), not the nature.com HTML. *Daphnia magna* / *Pasteuria ramosa* sediment time-shift. The letter states: "On average, infectivity was higher when Daphnia were exposed to contemporary (average infectivity 0.65) parasites than to parasites from previous (average infectivity 0.55) growing seasons" and "average parasite infectivity was lower when Daphnia clones were confronted with future parasites (average infectivity 0.57)". Table 1 reports a time-shift effect (deviance 5.89, P = 0.05) and a clone-depth × time-shift interaction (P < 0.0001). The model they compare with is a matching-allele matrix. Nature.com was not the copy read. The supplementary PDF was not opened.
 
-2. Hall et al. 2011, DOI 10.1111/j.1461-0248.2011.01624.x. Full text was not read. The Wiley page was not opened as full text. What was read is the University College Cork publication record, which prints the abstract and the journal line *Ecology Letters* 14(7), pages 635–642, July 2011. The abstract says arms-race dynamics "decelerate over time" because of "increasing costs of generalism", while "fluctuating selection on individual host and parasite genotypes was maintained". Organisms named there: *Pseudomonas fluorescens* SBW25 and phage SBW25Φ2. No page-internal quotation is claimed. Papkou et al. 2019, which was read in full on PMC, cites this paper as Hall et al., *Ecol Lett* 14:635–642, for bacteria–phage time-shifts in which arms-race dynamics can give way to fluctuating selection. That citation is not a substitute for the Hall full text.
+2. Hall et al. 2011, DOI 10.1111/j.1461-0248.2011.01624.x. Full text was not reached by any legal copy tried in this phase. Copies tried and what each returned:
+
+   - Wiley HTML `https://onlinelibrary.wiley.com/doi/10.1111/j.1461-0248.2011.01624.x` — Cloudflare security interstitial / bot check; not full text.
+   - Wiley DOI redirect `https://doi.org/10.1111/j.1461-0248.2011.01624.x` — landed on `onlinelibrary.wiley.com/action/cookieAbsent` (cookie/paywall gate HTML, not the article body).
+   - Wiley PDF/ePDF URLs under the same DOI — same `cookieAbsent` gate HTML.
+   - Unpaywall API for the DOI — `is_oa: false`, `oa_locations: []`, `has_repository_copy: false`.
+   - OpenAlex work for the DOI — `open_access.is_oa: false`, `best_oa_location: null`, `any_repository_has_fulltext: false`; locations are Wiley (closed) and PubMed (no PDF).
+   - Semantic Scholar graph API for the DOI — `isOpenAccess: false`, `openAccessPdf.status: CLOSED`.
+   - PMC search by DOI and by exact title — no PMC article / author manuscript.
+   - Europe PMC REST search by DOI — MEDLINE abstract only (PMID 21521436); no free full text URL.
+   - PubMed landing `https://pubmed.ncbi.nlm.nih.gov/21521436/` — HTTP 403 from this environment.
+   - UCC research record `https://research.ucc.ie/en/publications/host-parasite-coevolutionary-arms-races-give-way-to-fluctuating-s/` — abstract and bibliographic line only (*Ecology Letters* 14(7), 635–642, July 2011).
+   - Oxford ORA title search, Exeter ORE discover query, Edinburgh research search — no reachable author manuscript (404 / empty 202 / Cloudflare 403).
+   - Sci-Hub and other pirate copies were not used.
+
+   What was read is therefore still only the abstract (UCC / Europe PMC). The abstract says arms-race dynamics "decelerate over time" because of "increasing costs of generalism", while "fluctuating selection on individual host and parasite genotypes was maintained". Organisms named there: *Pseudomonas fluorescens* SBW25 and phage SBW25Φ2. No page-internal quotation from a full text is claimed. Papkou et al. 2019 (PMC full text) cites Hall et al., *Ecol Lett* 14:635–642, for bacteria–phage arms races giving way to fluctuating selection; that citation is not a substitute for the Hall full text.
 
 3. Zaman et al. 2014, DOI 10.1371/journal.pbio.1002023. Opened the PMC full text, PMC4267771. Avida hosts and parasites. The frozen treatment holds parasite genotypes at the frequencies from 250,000 updates and assigns each newborn parasite a random genotype from that set. The text says those hosts "evolved significantly higher complexity than in the treatment without parasites" but "did not reach as high a level of complexity as when the parasites coevolved". Replay of past parasite frequencies, without a response to the current hosts, likewise stayed below reciprocal coevolution. Data: Dryad doi:10.5061/dryad.485qq. This is the source for not calling a static or shuffled antagonist a full coevolution treatment, and for not calling a measurement freeze a pure evolution control.
 
@@ -118,6 +134,20 @@ Estimand. None. The debit scale is still 1.2 times the measured affinity of the 
 
 Limit. The historical derivation of 0.15 used the unmeasured mean. That derivation is now marked as conditional. The parameter was not refit.
 
+### 6. Locked-history gate on the analyze verdict path
+
+Prediction. If the scored seeds are not exactly the locked list, or any required contrast is unmeasurable for a locked history, the confirmatory verdict is a measurement block. It is not a scientific negative and not an inconclusive result on the leftover histories.
+
+Engine path. `analyze` builds per-contrast records that keep `None` for an unmeasurable history, then calls `apply_locked_history_verdict_gate`, which calls `assess_locked_histories` for each of CH_A, CP_A, S_A_minus_S_B, and S_A_minus_S_C. When any assessment has `ok` false, the verdict is forced to `BLOCKED_MEASUREMENT`. The report carries `n_locked`, `n_used`, and `dropped_seeds`. The previous path only rewrote `SUPPORTED_IN_MODEL` when the estimand changed, so a reduced sample could still leave `decide_verdict` as `NEGATIVE_IN_MODEL` or `INCONCLUSIVE`.
+
+Control. Positive: the locked 24 with every contrast measurable leaves the scientific verdict untouched by the gate. Negative (regression): a locked list of 24 with seed 9212 missing, and a leftover sample of 23 that would otherwise be `NEGATIVE_IN_MODEL` under `decide_verdict` with importance 0.05 and `MEASUREMENT_FLOOR` still 12, is `BLOCKED_MEASUREMENT` with `dropped_seeds == [9212]`, `n_locked == 24`, and `n_used == 23` on every contrast. Expectations are stated independently of the function's prior return value. Zero-SE Student-t behavior is unchanged: not p = 0 and not automatic support.
+
+Source. Software validity for a locked estimand. Not a retune of seeds, horizon, lag, thresholds, or `maintenance_cost`.
+
+Estimand. A reduced-sample negative is no longer allowed. Missing histories are reported as dropped seeds; they are not imputed as 0 and are not scored as a scientific absence of Red Queen.
+
+Limit. Center-level estimand changes inside an otherwise complete history still use the older support-only rewrite when every locked seed remains measurable. No new confirmatory was scored. `red_queen_proved` stays false. `MEASUREMENT_FLOOR` was not lowered.
+
 ## Tests
 
 Not `pytest -n 4`. The validity test itself opens a four-worker pool. Stacking pytest-xdist on that pool would exceed the cap of 4. Serial pytest is the equivalent that stays at 4. No test was marked `slow`; the file finishes in a few seconds, so a slow mark would be false. Unregistered `slow` marks in tests this phase did not touch were left as they were.
@@ -130,7 +160,7 @@ Not `pytest -n 4`. The validity test itself opens a four-worker pool. Stacking p
   --tb=no -rA
 ```
 
-Result: 15 passed, 0 failed, 4.18s. Nine in `test_rq_mechanism_v2_validity.py`, six in `test_rq_bidirectional_timeshift_confirm.py`.
+Result after the locked-history analyze gate: 16 passed, 0 failed, 4.29s. Ten in `test_rq_mechanism_v2_validity.py` (adds `test_locked_history_with_one_missing_is_blocked_not_negative`), six in `test_rq_bidirectional_timeshift_confirm.py`.
 
 Ruff, on the touched files only:
 
@@ -154,8 +184,8 @@ Mypy 2.4.0, `--strict --follow-imports=silent` on the five source files: `rq_str
 - Legacy structural arms with `stream_root is None` still mix `seed + tick_index + 1`. Sealed trajectories stay byte-identical. The collision remains on that path by design.
 - `maintenance_cost` stays 0.15. Mean affinity of an evolved population was not measured.
 - No new confirmatory, no unused-history campaign, no frequency panel, no fitness link.
-- The old run was not reanalyzed and its files were not edited. Fingerprint of file size and mtime before and after the edits matched.
-- Hall 2011 full text was not read.
+- The old run was not reanalyzed and its files were not edited. Untracked confirmatory artifacts under `runs/rq-bidirectional-timeshift-01` stayed untracked and unmodified.
+- Hall 2011 full text was not read; every legal copy tried failed as listed under Literature.
 - The ~700 MB raw archives have no published URL in `OMITTED.txt`. The independent raw-data audit is incomplete.
 - Pre-existing mypy debt listed above.
 - A pure evolution control that keeps host demography and removes only the evolutionary operator was not added.

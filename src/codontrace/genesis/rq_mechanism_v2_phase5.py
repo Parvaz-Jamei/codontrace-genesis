@@ -82,7 +82,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     STRUCT_VIRULENCE,
     StructuralRQArm,
 )
-from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_COEVOLVE, PASSAGE_FROZEN
+from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE, PASSAGE_FROZEN
 from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.rq_bidirectional_timeshift import (
@@ -1218,6 +1218,7 @@ def run_phase5_history(
     *,
     arms: Sequence[str] = ARMS,
     compare_one_shot: bool = True,
+    passage_override: str | None = None,
 ) -> dict[str, object]:
     """Advance one generation at a time. A failure keeps the partial archive."""
 
@@ -1234,6 +1235,11 @@ def run_phase5_history(
     completed = 0
     try:
         built = {name: build_phase5_arm(name, int(seed)) for name in arms}
+        if passage_override is not None:
+            if str(passage_override) != PASSAGE_ABSENT:
+                raise ConfigurationError("passage override is only the no-parasite baseline")
+            for arm in built.values():
+                arm.passage = PASSAGE_ABSENT
         taps = {name: _install_contact_tap(built[name]) for name in arms}
         founders = {name: {org.id for org in built[name]._hosts()} for name in arms}
         with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
@@ -1347,6 +1353,7 @@ def _worker(payload: dict[str, object]) -> dict[str, object]:
         int(payload["generations"]),
         arms=tuple(str(item) for item in arms),
         compare_one_shot=bool(payload["compare_one_shot"]),
+        passage_override=None if payload.get("passage_override") is None else str(payload["passage_override"]),
     )
 
 

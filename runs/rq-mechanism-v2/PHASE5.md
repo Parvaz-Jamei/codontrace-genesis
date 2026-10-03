@@ -125,3 +125,15 @@ All checks passed.
 ## What was not done
 
 No push, merge, or history rewrite. The engine was not changed after the verdict and was not changed to force a positive. `red_queen_proved` was not set true by hand. Seeds were not added or replaced after the sign. Raw archives were kept. Hall et al. 2011 full text was not read.
+
+## Rejection
+
+Phase 5 is rejected. The control zeros were an instrument failure, not a biological zero. Claim A and claim B on the coevolve arm were not rewritten. Their definitions stay `I(hosts at generation 10, parasites at generation 10) - I(hosts at generation 10, parasites at generation 7)` and the claim-B conjunction already stated above. The coevolve numbers in this file stay as recorded: claim A mean -0.004783199264088665, interval includes 0, verdict `INCONCLUSIVE`; claim B reversal rate 0, `criterion_met` false, verdict `INCONCLUSIVE`.
+
+Verified before any control edit, on the code and on the twelve archives.
+
+`score_arm_contrast` passes the horizon hosts to both `infectivity` calls and changes only the parasite generation. `infectivity` calls `replay_archived_contact` with the assay ATP override, so archived ATP is rewritten before the debit. `_apply_hp_env_contact` pairs parasite seat `i` with a host seat. Frozen passage calls `AntagonistPopulation._reseat_frozen`, which writes the founder window back onto each seat, and frozen mode sets mutation to 0. The two parasite inputs are therefore the same windows, the pairing matches, and the contrast cannot be nonzero. That written 0 is not a result about adaptation.
+
+On every seed 9601 through 9612, the parasite window sequence at generations 1 through 10 is the same inside `adaptation_cut`, the same inside `constant_parasite`, and the same across those two arms. Order matches, not only the multiset. `constant_parasite` host windows at generation 10 differ from generation 7 on every seed, so host change was present and the old contrast could not see it. `adaptation_cut` host windows do not differ across those generations. The coevolve parasite windows do differ. A separate seat check, not these archives, already shows the assay moves when one window changes: 64 seats at affinity 0.5 versus the same seats with one window at affinity 0 differ by 0.5/64.
+
+The replacement is phase 5b. It does not reuse seeds 9601 through 9612, and it does not write into `phase5-coevolution/`.

@@ -169,13 +169,29 @@ def test_hypothesis_is_installed_for_the_energy_property() -> None:
     assert hypothesis.__version__
 
 
-def test_property_balance_identity_and_parents() -> None:
-    pytest.importorskip("hypothesis")
-    from hypothesis import given
+# Independent sessions, not one cached campaign. Health checks and the deadline
+# stay on: Hypothesis reports data-generation time (drawtime / HealthCheck.too_slow)
+# separately from the time spent in the invariant (runtime minus drawtime).
+_INDEPENDENT_ENERGY_SEEDS = (101, 202, 303)
+_energy_property_check = None
+
+
+def _energy_property():
+    """Build the property once. Settings do not suppress health checks."""
+
+    global _energy_property_check
+    if _energy_property_check is not None:
+        return _energy_property_check
+    from hypothesis import given, settings
     from hypothesis import strategies as st
 
+    @settings(database=None)
     @given(
-        energies=st.lists(st.floats(min_value=0.0, max_value=3.0, allow_nan=False), min_size=1, max_size=4),
+        energies=st.lists(
+            st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False),
+            min_size=1,
+            max_size=4,
+        ),
         seed=st.integers(min_value=0, max_value=40),
         mode=st.sampled_from(("coevolve", "frozen", "shuffled_labels")),
         generations=st.integers(min_value=1, max_value=4),
@@ -196,7 +212,65 @@ def test_property_balance_identity_and_parents() -> None:
                     assert unit.parent_id in history
                 history.add(unit.unit_id)
 
-    _check()
+    _energy_property_check = _check
+    return _check
+
+
+def _generation_and_invariant_seconds(stats: dict[str, object]) -> tuple[float, float, int]:
+    """Split Hypothesis drawtime from the invariant body.
+
+    ``runtime`` includes generation. The invariant's own time is the difference.
+    A failing example is ``interesting`` and is not reported as slowness.
+    """
+
+    generation = 0.0
+    runtime = 0.0
+    interesting = 0
+    saw_case = False
+    for phase in stats.values():
+        if not isinstance(phase, dict):
+            continue
+        cases = phase.get("test-cases")
+        if not isinstance(cases, list):
+            continue
+        for case in cases:
+            if not isinstance(case, dict) or "drawtime" not in case or "runtime" not in case:
+                continue
+            drawtime = case["drawtime"]
+            case_runtime = case["runtime"]
+            if isinstance(drawtime, bool) or isinstance(case_runtime, bool):
+                continue
+            if not isinstance(drawtime, int | float) or not isinstance(case_runtime, int | float):
+                continue
+            saw_case = True
+            generation += float(drawtime)
+            runtime += float(case_runtime)
+            if case.get("status") == "interesting":
+                interesting += 1
+    if not saw_case:
+        raise AssertionError(
+            "Hypothesis did not report per-example drawtime separately from runtime; "
+            f"stats keys={sorted(stats)}"
+        )
+    return generation, runtime - generation, interesting
+
+
+@pytest.mark.parametrize("run_seed", _INDEPENDENT_ENERGY_SEEDS)
+def test_property_balance_identity_and_parents(run_seed: int) -> None:
+    pytest.importorskip("hypothesis")
+    from hypothesis import seed as hypothesis_seed
+    from hypothesis import statistics
+
+    captured: list[dict[str, object]] = []
+    with statistics.collector.with_value(captured.append):
+        hypothesis_seed(run_seed)(_energy_property())()
+    assert captured, "an independent energy run produced no Hypothesis statistics"
+    generation_s, invariant_s, interesting = _generation_and_invariant_seconds(captured[-1])
+    assert interesting == 0, (
+        "energy invariant failed "
+        f"(generation_s={generation_s:.4f} is not the failure; invariant_s={invariant_s:.4f})"
+    )
+    assert generation_s >= 0.0 and invariant_s >= -1e-9
 
 
 def test_unassigned_payment_and_bad_parents_are_rejected() -> None:

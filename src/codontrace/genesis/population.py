@@ -2123,7 +2123,7 @@ def _blocked_reproduction_result(
     )
 
 
-def _genome_after_swap(parent, mate, recombination) -> SemanticGenome:
+def _genome_after_swap(parent: GenesisOrganism, mate: GenesisOrganism | None, recombination: RecombinationRecord) -> SemanticGenome:
     """Bits from the swap. Spans are spliced only when a parent actually has them."""
 
     genome = SemanticGenome.from_compact(
@@ -5502,7 +5502,7 @@ def _drain_chamber_pairs(
         radius = life.mate_search_radius
         cap = life.outcross_mates_per_generation_cap
 
-        def _mate_ok(first, second, _life=life, _radius=radius, _cap=cap, _counts=mate_counts):
+        def _mate_ok(first: IncipientOffspring, second: IncipientOffspring, _life: ClosedLoopHPLifeConfig = life, _radius: int | None = radius, _cap: int | None = cap, _counts: dict[str, int] = mate_counts) -> bool:
             if _life.outcross_enabled and _life.outcross_same_role_only:
                 if not outcross_mates_compatible(first.parent_id, second.parent_id, _life):
                     return False

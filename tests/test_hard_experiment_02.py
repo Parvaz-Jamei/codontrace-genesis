@@ -222,3 +222,20 @@ def test_he02_harvest_helper_is_wired_for_oracle_discrimination() -> None:
 def test_invalid_deme_level_raises() -> None:
     with pytest.raises(ConfigurationError):
         DemeSelectionConfig(enabled=True, level="NOT_A_LEVEL")  # type: ignore[arg-type]
+
+
+def test_food_patch_signal_record_roundtrip_rejects_a_non_int_tick() -> None:
+    record = FoodPatchSignalRecord(
+        tick=3,
+        emitter_id="e",
+        receiver_id="r",
+        payload_digest="d",
+        target_true=(1, 2),
+        moved=True,
+        ate_at_target=False,
+        payload_token="PATCH",
+    )
+    restored = FoodPatchSignalRecord.from_dict(record.to_dict())
+    assert restored == record
+    with pytest.raises(ConfigurationError):
+        FoodPatchSignalRecord.from_dict({**record.to_dict(), "tick": "3"})

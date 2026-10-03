@@ -16,6 +16,7 @@ from typing import Literal
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.novelty_proposer import ArchiveSummary
 from codontrace.rng import RNGManager
 
 DiscoveryPipelineScale = Literal["S1", "S2", "research"]
@@ -558,7 +559,7 @@ class QDCandidateSearchRunner:
 
 
 
-def _archive_summary_for_wire(archive: QDSearchArchive, config: QDSearchConfig):
+def _archive_summary_for_wire(archive: QDSearchArchive, config: QDSearchConfig) -> ArchiveSummary:
     from codontrace.genesis.novelty_proposer import archive_summary_from_qd
 
     elites = list(archive.elites.values())

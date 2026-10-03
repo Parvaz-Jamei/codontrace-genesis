@@ -1,0 +1,46 @@
+{
+  "claim_eligible": false,
+  "historical_verdicts_unchanged": true,
+  "records": [
+    {
+      "hypothesis_supported": false,
+      "pack": "rq1_time_shift",
+      "raw_pack_complete": false,
+      "reason": "No complete seed-specific trajectory, initial state, config and replay recipe in this closure directory.",
+      "record_role": "current_engine_aggregate_summary",
+      "replaces_historical_raw": false,
+      "seed": 5706,
+      "status": "INCOMPLETE_PROVENANCE",
+      "summary_commit": "a31e4ff",
+      "summary_present": true,
+      "trajectory_present": false
+    },
+    {
+      "hypothesis_supported": false,
+      "pack": "rq1_time_shift",
+      "raw_pack_complete": false,
+      "reason": "No complete seed-specific trajectory, initial state, config and replay recipe in this closure directory.",
+      "record_role": "current_engine_aggregate_summary",
+      "replaces_historical_raw": false,
+      "seed": 5707,
+      "status": "INCOMPLETE_PROVENANCE",
+      "summary_commit": "a31e4ff",
+      "summary_present": true,
+      "trajectory_present": false
+    },
+    {
+      "hypothesis_supported": false,
+      "pack": "rq1_time_shift",
+      "raw_pack_complete": false,
+      "reason": "No complete seed-specific trajectory, initial state, config and replay recipe in this closure directory.",
+      "record_role": "current_engine_aggregate_summary",
+      "replaces_historical_raw": false,
+      "seed": 5708,
+      "status": "INCOMPLETE_PROVENANCE",
+      "summary_commit": "a31e4ff",
+      "summary_present": true,
+      "trajectory_present": false
+    }
+  ],
+  "schema": "closure_summary_inventory_v1"
+}

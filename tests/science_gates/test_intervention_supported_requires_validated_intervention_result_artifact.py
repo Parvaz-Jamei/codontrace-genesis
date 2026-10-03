@@ -20,5 +20,5 @@ def test_intervention_supported_requires_validated_intervention_result_artifact_
         )
     ).run_ticks()
 
-    assert result.manifest.claim_level == "intervention_supported"
-    assert result.manifest.claim_gate_allowed is True
+    assert result.manifest.claim_level == "event_association_only"
+    assert result.manifest.claim_gate_allowed is False

@@ -976,8 +976,25 @@ class InterventionResult:
     effect_size: float
     confidence_interval: tuple[float, float] | None
     paired_seed_count: int
-    evidence_level: str = "intervention_supported"
+    evidence_level: str = "intervention_observed"
     digest: str = ""
+    causal_report: CausalEvidenceReport | None = None
+
+    @property
+    def claim_eligible(self) -> bool:
+        report = self.causal_report
+        if report is None:
+            return False
+        audited = build_causal_evidence_report(report.run_pairs)
+        if audited.digest() != report.digest():
+            return False
+        return bool(
+            report is not None and report.claim_eligible
+            and self.evidence_level == "intervention_supported"
+            and self.paired_seed_count == report.independent_count
+            and self.effect_size == report.effect.effect_size
+            and self.confidence_interval == report.effect.confidence_interval
+        )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "effect_size", require_finite_float("effect_size", self.effect_size))
@@ -1000,6 +1017,7 @@ class InterventionResult:
             else list(self.confidence_interval),
             "paired_seed_count": self.paired_seed_count,
             "evidence_level": self.evidence_level,
+            "causal_report": None if self.causal_report is None else self.causal_report.to_dict(),
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -1007,11 +1025,21 @@ class InterventionResult:
 
 
 def build_intervention_result(
-    scenario_id: str, baseline_values: Sequence[float], treatment_values: Sequence[float]
+    scenario_id: str, baseline_values: Sequence[float], treatment_values: Sequence[float],
+    *, run_pairs: Sequence[CausalInterventionRunPair] | None = None,
 ) -> InterventionResult:
+    """Describe a paired effect; support requires an independently audited report.
+
+    Anonymous arrays provide no proof of replication, intervention isolation,
+    or pairing. They can carry a descriptive interval, never a support label.
+    """
+    baseline_values = _finite_deltas(baseline_values)
+    treatment_values = _finite_deltas(treatment_values)
+    if len(baseline_values) != len(treatment_values):
+        raise ConfigurationError("baseline and treatment must have equal paired lengths")
     baseline_digest = _digest({"values": [float(v) for v in baseline_values]})
     treatment_digest = _digest({"values": [float(v) for v in treatment_values]})
-    count = min(len(baseline_values), len(treatment_values))
+    count = len(baseline_values)
     if count == 0:
         effect = 0.0
     else:
@@ -1019,13 +1047,30 @@ def build_intervention_result(
             sum(float(treatment_values[i]) - float(baseline_values[i]) for i in range(count))
             / count
         )
+    interval = paired_mean_interval([t - b for b, t in zip(baseline_values, treatment_values, strict=True)])
+    endpoints = (interval.low, interval.high) if interval.interval_defined else None
+    report = None
+    if run_pairs is not None:
+        pairs = tuple(run_pairs)
+        if len(pairs) != count or any(
+            pair.baseline_metric != b or pair.treatment_metric != t
+            or pair.spec.intervention_id != scenario_id
+            for pair, b, t in zip(pairs, baseline_values, treatment_values, strict=True)
+        ):
+            raise ConfigurationError("run-pairs do not match the scenario and paired values")
+        report = build_causal_evidence_report(pairs)
+        effect = report.effect.effect_size
+        endpoints = report.effect.confidence_interval
+        count = report.independent_count
     return InterventionResult(
         scenario_id,
         baseline_digest,
         treatment_digest,
         round(effect, 10),
-        (round(effect, 10), round(effect, 10)),
-        count,
+        endpoints,
+        count if report is not None else 0,
+        evidence_level="intervention_supported" if report is not None and report.claim_eligible else "intervention_observed",
+        causal_report=report,
     )
 
 def _normalize_settings(value: object) -> tuple[tuple[str, str], ...]:
@@ -1220,7 +1265,7 @@ class CausalEvidenceReport:
     identity_complete: bool = False
     isolation_status: str = "isolation_unverified"
     historical_sample_count: int = 0
-    unit_rule: str = "independent_history_seed_run_v1"
+    unit_rule: str = "independent_history_seed_block_v2"
 
     @property
     def claim_eligible(self) -> bool:
@@ -1527,22 +1572,17 @@ def _identity_complete(pair: CausalInterventionRunPair) -> bool:
 
 
 def _unit_key(pair: CausalInterventionRunPair) -> tuple[object, ...]:
-    """One experimental unit. A checkpoint of that unit is not another unit.
+    """One stochastic history is the independent block.
 
-    The unit is one intervention on one history. A later checkpoint of that
-    same intervention is a repeated measure (Hurlbert 1984), not a second
-    replicate. A different intervention_id is a different experiment, even
-    on the same seed. An unidentified row collapses only with an exact copy
-    of itself and still cannot support a claim.
+    Intervention names and checkpoints are observations on that block. Mixed
+    interventions require separate estimands/reports rather than a pooled CI.
     """
 
     if _identity_complete(pair):
         return (
-            "unit",
+            "history",
             pair.history_id,
             pair.seed,
-            pair.run_id,
-            pair.spec.intervention_id.strip(),
         )
     return ("unidentified", pair.digest())
 
@@ -1617,7 +1657,10 @@ def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair])
             dropped += len(group) - 1
         usable.append(group[0])
 
-    interval = paired_mean_interval([item.paired_delta for item in usable]) if usable else PairedMeanInterval(
+    estimands = {(pair.spec.intervention_id, pair.spec.target_factor, pair.spec.baseline_settings,
+                  pair.spec.treatment_settings) for pair in submitted}
+    mixed = len(estimands) > 1
+    interval = paired_mean_interval([item.paired_delta for item in usable]) if usable and not mixed else PairedMeanInterval(
         None, None, None, 0, "empty", False, False,
     )
     effect = _effect_from_interval(interval, len(usable))
@@ -1629,7 +1672,9 @@ def build_causal_evidence_report(run_pairs: Sequence[CausalInterventionRunPair])
         isolation = next(iter(states))
     else:
         isolation = "intervention_not_isolated"
-    if conflicts or collapsed_checkpoints:
+    if mixed:
+        status = "mixed_interventions_require_separate_reports"
+    elif conflicts or collapsed_checkpoints:
         status = "checkpoint_not_independent"
     elif dropped:
         status = "duplicate_units_removed"

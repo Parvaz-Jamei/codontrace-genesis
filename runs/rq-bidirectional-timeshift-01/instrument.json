@@ -1,0 +1,24 @@
+{
+  "available_atp": 48.0,
+  "note": "instrument only; not Red Queen evidence",
+  "pair_high": {
+    "affinity": 1.0,
+    "total_debit": 1.2,
+    "windows": [
+      "000000",
+      "000000"
+    ]
+  },
+  "pair_low": {
+    "affinity": 0.5,
+    "total_debit": 0.6,
+    "windows": [
+      "000000",
+      "111000"
+    ]
+  },
+  "red_queen_proved": false,
+  "steal_fraction": 0.15,
+  "valid": true,
+  "virulence": 8.0
+}

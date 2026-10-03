@@ -1,0 +1,36 @@
+{
+  "arms": {
+    "A": {
+      "failed": null,
+      "final_host_census": 29,
+      "final_parasite_census": 64,
+      "generations_completed": 600,
+      "red_queen_proved": false
+    },
+    "B": {
+      "failed": null,
+      "final_host_census": 17,
+      "final_parasite_census": 44,
+      "generations_completed": 600,
+      "red_queen_proved": false
+    },
+    "C": {
+      "failed": null,
+      "final_host_census": 16,
+      "final_parasite_census": 37,
+      "generations_completed": 600,
+      "red_queen_proved": false
+    },
+    "D": {
+      "failed": null,
+      "final_host_census": 16,
+      "final_parasite_census": 38,
+      "generations_completed": 600,
+      "red_queen_proved": false
+    }
+  },
+  "founder_digest": "d0ab1855b996e6e058a3c133ef8cd36e6215ac6f89750a0c5054a7148830f595",
+  "red_queen_proved": false,
+  "rng_digest": "be3f7c801c63a93aa1692a31bc51cf9f2b0d9fc67d0a629bcbbffd5aa4eead07",
+  "seed": 9223
+}

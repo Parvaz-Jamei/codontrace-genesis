@@ -1,0 +1,29 @@
+RQ-BIDIRECTIONAL-TIMESHIFT-01, run 20261003T151015.
+Verdict NEGATIVE_IN_MODEL. red_queen_proved stays false.
+
+These files are the written results. They are small, so they are in the tree:
+confirmatory/verdict.json, confirmatory/inference.json, the 24
+confirmatory/by_seed/seed9201-seed9224 result.json and COMPLETE files,
+confirmatory/replay_command.txt, prereg_lock.json, pilot_summary.json,
+confirmatory_power.json, instrument.json, and confirmatory_stdout.log.
+
+analysis.json is not on disk. It was not invented.
+per_history_effects.csv is not on disk. The per-history numbers are
+result.json and the per_seed block of verdict.json.
+No separate assay-pair summary was written. The assay definition is in
+prereg_lock.json. The instrument pair check is instrument.json.
+inference.json is the four locked tests the confirmatory actually wrote.
+
+Left out because the raw set is about 700 MB. No single file exceeds
+GitHub's 100 MB limit. These are trajectories and snapshots, not the
+analysis:
+
+- confirmatory/by_seed/seed*/archive.jsonl: 24 files, 638675266 bytes
+- confirmatory/trajectory.jsonl: 24082910 bytes
+- trajectory.jsonl (pilot): 384154 bytes
+- live.log: 14939814 bytes
+- confirmatory/snapshots: 2880 files, 20354738 bytes
+- snapshots (pilot): 40 files, 1085656 bytes
+- confirmatory/by_seed/seed*/initial.json: 24 files, 848472 bytes
+  (initial population snapshots)
+- confirmatory.pid: a local process id, not a result

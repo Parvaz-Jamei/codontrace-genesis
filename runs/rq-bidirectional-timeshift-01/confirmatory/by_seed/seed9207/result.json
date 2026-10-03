@@ -1,0 +1,49 @@
+{
+  "S_A_minus_S_B": 0.0091961408918045,
+  "S_A_minus_S_C": 0.007916355879282895,
+  "archive_lines": 2400,
+  "arms": {
+    "A": {
+      "S": 0.007916355879282872,
+      "archive_missing": false,
+      "mean_ch": 0.013212678392585447,
+      "mean_cp": 0.007916355879282872,
+      "missing": [],
+      "n_ch": 10,
+      "n_cp": 10,
+      "red_queen_proved": false
+    },
+    "B": {
+      "S": -0.0012797850125216281,
+      "archive_missing": false,
+      "mean_ch": -0.0012797850125216281,
+      "mean_cp": 0.0013465477375993573,
+      "missing": [],
+      "n_ch": 10,
+      "n_cp": 10,
+      "red_queen_proved": false
+    },
+    "C": {
+      "S": -2.2204460492503132e-17,
+      "archive_missing": false,
+      "mean_ch": 0.0,
+      "mean_cp": -2.2204460492503132e-17,
+      "missing": [],
+      "n_ch": 10,
+      "n_cp": 10,
+      "red_queen_proved": false
+    },
+    "D": {
+      "S": 0.0,
+      "archive_missing": false,
+      "mean_ch": 0.0,
+      "mean_cp": 1.1102230246251566e-17,
+      "missing": [],
+      "n_ch": 10,
+      "n_cp": 10,
+      "red_queen_proved": false
+    }
+  },
+  "red_queen_proved": false,
+  "seed": 9207
+}

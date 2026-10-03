@@ -1,0 +1,445 @@
+{
+  "antagonist_ecology": "population",
+  "arms": {
+    "A": "host inheritance on, parasite population coevolves",
+    "B": "parasite offspring windows shuffled to the ancestral pool; host inheritance on; contact and cost on",
+    "C": "host genotypic inheritance frozen; host population, contact and cost remain; parasite population coevolves",
+    "D": "host inheritance frozen and parasite labels shuffled; contact and cost remain"
+  },
+  "biological_red_queen_proved": false,
+  "code_commit": "83b0aca05018bebc1e856f83a88792e004862e5a",
+  "confirmatory": {
+    "analysis_centers": [
+      200,
+      240,
+      280,
+      320,
+      360,
+      400,
+      440,
+      480,
+      520,
+      560
+    ],
+    "arms": {
+      "A": "both genotypes evolve; population contact and cost on",
+      "B": "host evolves; parasite offspring windows redrawn from the ancestral pool; contact and cost on",
+      "C": "parasite population evolves; host genotypic inheritance frozen; host population, contact and cost remain",
+      "D": "both genotype inheritance paths cut; contact and cost remain"
+    },
+    "assay_atp": 48.0,
+    "assay_definition": "I(H,P) = mean ATP transferred over all host-parasite individual pairs / (virulence * steal_fraction); duplicate windows weighted by census frequency",
+    "burn_in": 160,
+    "code_commit": "19b7ba7f052554e66effef36482f79b75ddc8648",
+    "confirmatory_started": true,
+    "delta": 40,
+    "dispersion": {
+      "alpha_per_test": 0.0125,
+      "ch": [
+        0.024687499999999307,
+        -0.0036951894423162823,
+        0.10472541507024308,
+        0.023960918114144025
+      ],
+      "chi2_df3_ppf_0_20": 1.0051740130523492,
+      "cp": [
+        -0.010393518518518552,
+        0.048360339506173466,
+        0.007316534040671785,
+        -0.007980510752689018
+      ],
+      "instrument_I_gap": 0.5,
+      "n_histories": 24,
+      "pilot_center": 200,
+      "pilot_delta": 40,
+      "pilot_seeds": [
+        9101,
+        9102,
+        9103,
+        9104
+      ],
+      "power": 0.8,
+      "practical_effect": 0.05383601202069386,
+      "red_queen_proved": false,
+      "resolvable": true,
+      "resolve_ceiling": 0.25,
+      "sd_ch": 0.04677513991304781,
+      "sd_cp": 0.027178989059112833,
+      "sd_used": 0.04677513991304781,
+      "sigma_upper_80": 0.08080813739282613
+    },
+    "excluded_seeds": [
+      9099,
+      9101,
+      9102,
+      9103,
+      9104
+    ],
+    "generations": 600,
+    "locked": true,
+    "measurement_floor": 12,
+    "parameters_not_retuned": true,
+    "phase1_facts_unchanged": {
+      "instrument_debits": [
+        1.2,
+        0.6
+      ],
+      "pilot_generations": 200,
+      "pilot_seeds": [
+        9101,
+        9102,
+        9103,
+        9104
+      ],
+      "pilot_wall_seconds": 206
+    },
+    "pilot_shortcut_verification": {
+      "max_abs": 2.886579864025407e-15,
+      "ok": true,
+      "red_queen_proved": false,
+      "seed": 9101
+    },
+    "practical_effect": 0.05383601202069386,
+    "red_queen_proved": false,
+    "run_id": "20261003T151015",
+    "seeds": [
+      9201,
+      9202,
+      9203,
+      9204,
+      9205,
+      9206,
+      9207,
+      9208,
+      9209,
+      9210,
+      9211,
+      9212,
+      9213,
+      9214,
+      9215,
+      9216,
+      9217,
+      9218,
+      9219,
+      9220,
+      9221,
+      9222,
+      9223,
+      9224
+    ],
+    "snapshot_stride": 20,
+    "tests": {
+      "S": "min(mean CH, mean CP) over measurable centers; not the mean of per-center mins",
+      "alpha_family": 0.05,
+      "alpha_per_test": 0.0125,
+      "ci_reported": "two-sided 95 percent Student-t interval",
+      "contrasts": [
+        "mean CH_A",
+        "mean CP_A",
+        "mean (S_A - S_B)",
+        "mean (S_A - S_C)"
+      ],
+      "correction": "Bonferroni",
+      "decision_bound": "one-sided lower bound at 1 - alpha_per_test",
+      "measurement_floor": 12,
+      "missing": "unmeasurable center omitted; unmeasurable history omitted; never imputed as 0",
+      "n_tests": 4,
+      "negative_rule": "measurement not blocked and every contrast has a two-sided 95 percent CI upper bound strictly below the practical effect",
+      "otherwise": "INCONCLUSIVE",
+      "practical_rule": "point estimate >= locked practical effect",
+      "procedure": "one-sample Student t, one-sided, H1: mean > 0",
+      "red_queen_proved_allowed": false,
+      "supported_requires": "all four tests reject at alpha_per_test and all four point estimates meet the practical effect, with measurement not blocked",
+      "unit": "history, paired within seed"
+    }
+  },
+  "confirmatory_started": true,
+  "experiment": "RQ-BIDIRECTIONAL-TIMESHIFT-01",
+  "generations": 200,
+  "initial_host_n": 64,
+  "initial_parasite_n": 64,
+  "instrument": {
+    "available_atp": 48.0,
+    "note": "instrument only; not Red Queen evidence",
+    "pair_high": {
+      "affinity": 1.0,
+      "total_debit": 1.2,
+      "windows": [
+        "000000",
+        "000000"
+      ]
+    },
+    "pair_low": {
+      "affinity": 0.5,
+      "total_debit": 0.6,
+      "windows": [
+        "000000",
+        "111000"
+      ]
+    },
+    "red_queen_proved": false,
+    "steal_fraction": 0.15,
+    "valid": true,
+    "virulence": 8.0
+  },
+  "literature": [
+    "Gandon 2002 Ecology Letters 5:246-256 (PDF opened)",
+    "Gandon and Michalakis 2002 J Evol Biol (search extract)",
+    "Dybdahl and Lively 1998 Evolution 52:1057-1066 (author summary opened via search)",
+    "Lively and Dybdahl 2000 Nature 405:679-681 (abstract via search)"
+  ],
+  "locked_design": {
+    "arms": [
+      "avirulent",
+      "fixed",
+      "copassaged"
+    ],
+    "basal_runtime_atp_cost": 0.05,
+    "biological_red_queen_proved_allowed": false,
+    "birth_atp": 48.0,
+    "body_census_is_ne_proxy": false,
+    "cycle_candidate_secondary_observation_only": true,
+    "debit_active_arms": [
+      "fixed",
+      "copassaged"
+    ],
+    "distinct_match_founders": [
+      "000000",
+      "000001",
+      "000010",
+      "000011",
+      "000100",
+      "000101",
+      "000110",
+      "000111",
+      "111000",
+      "111001",
+      "111010",
+      "111011",
+      "111100",
+      "111101",
+      "111110",
+      "111111"
+    ],
+    "epsilon": 0.15,
+    "estimand": "structural_polymorphism_hold_under_large_N_multilocus_mid_turnover",
+    "food_patches": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ]
+    ],
+    "founder_spatial_policy": "food_patch_interleaved",
+    "generations": 250,
+    "handling_time": 0.0,
+    "host_bit_flip_rate": 0.02,
+    "host_n": 64,
+    "locked_windows": [
+      50,
+      125,
+      250
+    ],
+    "mating_deferred": true,
+    "mating_deferred_asexual_substrate": true,
+    "mid_windows": [
+      50,
+      125
+    ],
+    "min_viable_census": 12,
+    "n_distinct_match_founders": 16,
+    "parasite_class_memory_L": 8,
+    "parasite_keep_fraction_kappa": 0.5,
+    "parasite_mutation": 0.25,
+    "parasite_n": 64,
+    "passage_refill_mode": "generation_boundary_resource_bolus",
+    "prereg_path": "docs/handoff/CLOSED_LOOP_HP_ARM01_STRUCTURAL_RQ_REGIME_PREREG_20260926.md",
+    "prereg_version": "hp_arm01_structural_rq_regime_prereg_20260926",
+    "primary_success": "polymorphism_hold",
+    "r_min": 3,
+    "red_queen_proved_allowed": false,
+    "reproduction_mode": "asexual",
+    "resource_bolus_amount": 20.0,
+    "revision": "hp-arm01-structural-rq-regime-20260926",
+    "sealed_mating_seeds_untouched": [
+      401,
+      402,
+      403,
+      404,
+      405,
+      406,
+      407,
+      408
+    ],
+    "sealed_p7_seeds_untouched": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108
+    ],
+    "sealed_persistence_seeds_untouched": [
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      307,
+      308
+    ],
+    "sealed_selfing_hold_seeds_untouched": [
+      501,
+      502,
+      503,
+      504,
+      505,
+      506,
+      507,
+      508
+    ],
+    "sealed_slowinski_seeds_untouched": [
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208
+    ],
+    "second_population_registry": false,
+    "seeds": [
+      601,
+      602,
+      603
+    ],
+    "slice": "HP-ARM01-STRUCTURAL-RQ-REGIME",
+    "slowinski_scored": false,
+    "snap_stride": null,
+    "soft_carrying_capacity": 64,
+    "spc_owns_accept_path": false,
+    "steal_fraction": 0.15,
+    "sub_locus_partition": {
+      "affinity_rule": "feature_overlap",
+      "and_collapse_forbidden": true,
+      "n_sub_loci": 3,
+      "ranges": [
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "sub_locus_width": 2
+    },
+    "substrate": "population_runner_phase_b_host_parasite_env",
+    "terminal_window": 250,
+    "typed_outcomes": [
+      "Slowinski_unscored",
+      "cycle_candidate",
+      "horizon_insufficient",
+      "parasite_extinct",
+      "polymorphism_hold",
+      "regime_hostile_ne",
+      "regime_hostile_turnover",
+      "selfing_nonviable",
+      "sweep_fixation"
+    ],
+    "virulence": 8.0,
+    "world_size": 16
+  },
+  "phase": 1,
+  "phase1_protocol_overrides": {
+    "antagonist_ecology": "population",
+    "generations": 200,
+    "note": "overrides are the phase-1 protocol, not a fit to the outcome",
+    "seeds": [
+      9101,
+      9102,
+      9103,
+      9104
+    ],
+    "snapshot_stride": 20
+  },
+  "pilot_seeds": [
+    9101,
+    9102,
+    9103,
+    9104
+  ],
+  "pilot_seeds_not_for_confirmatory": true,
+  "red_queen_proved": false,
+  "smoke_seed": 9099,
+  "snapshot_stride": 20
+}

@@ -330,6 +330,18 @@ class AntagonistPopulation:
         roster = list(self.units)
         opening = float(sum(float(unit.energy) for unit in roster))
         if mode == "absent":
+            energies = [float(unit.energy) for unit in roster]
+            signature = {
+                "generation": gen,
+                "mode": mode,
+                "roster": float(len(roster)),
+                "maintenance_charged": 0.0,
+                "energy_total": opening,
+                "energy_mean": (opening / len(roster)) if roster else 0.0,
+                "energy_min": min(energies) if energies else 0.0,
+                "energy_max": max(energies) if energies else 0.0,
+                "seats_offered": 0.0,
+            }
             ledger = PassageLedger(
                 gen, mode, (), (), tuple(u.unit_id for u in roster), 0, 0, 0.0, 0
             )
@@ -337,6 +349,7 @@ class AntagonistPopulation:
             self.energy_accounts.append(
                 EnergyAccount(gen, mode, opening, 0.0, 0.0, opening, 0.0, 0.0, 0.0)
             )
+            self.pre_selection_signatures.append(signature)
             self.ledgers.append(ledger)
             return ledger
 

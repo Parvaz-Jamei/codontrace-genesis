@@ -327,3 +327,23 @@ def test_failed_generation_does_not_keep_new_ids() -> None:
     assert pop.known_unit_ids == {"a0-0"}
     assert pop.pre_selection_signatures == []
     assert pop.units[0].energy == 1.0
+
+
+def test_absent_passage_keeps_a_checkpoint_and_pays_no_contact() -> None:
+    pop = _population((1.0, 0.5))
+    opening = 1.5
+    _advance(pop, seed=11, mode="absent")
+    assert pop.units == []
+    assert len(pop.pre_selection_signatures) == 1
+    assert len(pop.energy_accounts) == 1
+    assert len(pop.ledgers) == 1
+    signature = pop.pre_selection_signatures[0]
+    assert signature["mode"] == "absent"
+    assert signature["seats_offered"] == 0.0
+    assert signature["maintenance_charged"] == 0.0
+    assert signature["energy_total"] == pytest.approx(opening)
+    account = pop.energy_accounts[-1]
+    assert account.contact_income == 0.0
+    assert account.death_loss == pytest.approx(opening)
+    assert account.closing == 0.0
+    assert abs(_independent_residual(account)) < 1e-9

@@ -1,0 +1,13 @@
+phase=5 seed=9800 arm=coevolve generation=1 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=2 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=3 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=4 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=5 contacts=63 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=6 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=7 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=8 contacts=63 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=9 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=10 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=11 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9800 arm=coevolve generation=12 contacts=64 invariant=ok red_queen_proved=false
+phase=5 seed=9801 arm=coevolve generation=1 contacts=0 invariant=preselection-checkpoint-length red_queen_proved=false

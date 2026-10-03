@@ -1245,6 +1245,8 @@ def run_phase5_history(
         with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
             for name in arms:
                 if failed or stop.exists():
+                    if failed is None:
+                        failed = "stopped"
                     break
                 arm = built[name]
                 for generation in range(1, int(generations) + 1):

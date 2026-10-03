@@ -36,9 +36,10 @@ from codontrace.genesis.rq_mechanism_v2_phase5 import (
 
 PHASE6_BUDGET = 16
 PHASE6_PROBE_GENERATIONS = 12
-PHASE6_PROBE_PARASITE = 9800
-PHASE6_PROBE_HOST = 9801
-PHASE6_PROBE_DELAY = 9802
+PHASE6_PROBE_PARASITE = 9804
+PHASE6_PROBE_HOST = 9805
+PHASE6_PROBE_DELAY = 9806
+PHASE6_BURNED_PROBE = (9800, 9801, 9802)
 PHASE6_SHORT_SEED = 9803
 PHASE6_SEED_START = 9811
 PHASE6_N = 12
@@ -96,6 +97,7 @@ def locked_phase6_seeds() -> tuple[int, ...]:
         PHASE6_PROBE_HOST,
         PHASE6_PROBE_DELAY,
         PHASE6_SHORT_SEED,
+        *PHASE6_BURNED_PROBE,
     }
     if len(set(seeds)) != count or (set(seeds) & banned):
         raise ConfigurationError("phase-6 seeds overlap a used history")

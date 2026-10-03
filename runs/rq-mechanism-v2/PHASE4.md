@@ -138,3 +138,15 @@ All checks passed.
 ## What was not run
 
 No full coevolution. No later phase. No new confirmatory. No Red Queen claim. Seeds, the horizon, virulence, steal fraction, mutation during the assay, maintenance, birth ATP, and `MEASUREMENT_FLOOR` were not changed after F. The phase-3 frequency panel was not rerun. Hall et al. 2011 full text was not read.
+
+## Rejection
+
+The run above is rejected. The archives under `runs/rq-mechanism-v2/phase4-fitness/` are kept. They were not deleted, rewritten, or reseeded. The numbers in the tables above are the rejected measurement and are not replaced. Commit of that archive: `8dbcc1eba85290bc286f1512ea06eee54456373f`.
+
+`F_mean` = 0.0 was an instrument failure, not a fitness result.
+
+- No birth was accepted. Every host tape has a nonzero outcross locus, so `resolve_copy_self_mode` returns `chamber`. Structural boot sets sexual recombination off, so `uses_birth_chamber` is false. `COPY_SELF` is refused with `outcross_chamber_required` and no child id is created. `reproduction.enabled` true is not sufficient. Birth counts were 0/0 on every branch, including absent.
+- Death is unreachable by generation 7. Opening ATP is 48. The contact debit cap is virulence 8.0 times steal fraction 0.15 times affinity at most 1, which is 1.2. With no food credit and that maximum debit, plus the life-loop basal cost and the codon costs the program actually pays, the host balance is still 2.5 after generation 7 and reaches 0 at generation 9. The horizon of 7 was the ceiling of 3 times the parasite replacement time 60/26. It was not taken from this host energy account.
+- The archive hash was aliased. `run_phase4_seed` wrote the `common_a` file hash into every branch, including `common_b`.
+
+A nonzero F is not Red Queen. `red_queen_proved` stays false. The engine was not changed in that rejected run to create a fitness effect. The corrected assay is not this section. It is recorded separately so this note stays intact.

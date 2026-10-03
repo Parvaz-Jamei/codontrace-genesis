@@ -1,0 +1,22 @@
+{
+  "failed": [
+    {
+      "failed": "contact-record-length",
+      "generations_completed": 1,
+      "red_queen_proved": false,
+      "seed": 9805
+    },
+    {
+      "failed": "stopped",
+      "generations_completed": 0,
+      "red_queen_proved": false,
+      "seed": 9806
+    }
+  ],
+  "red_queen_proved": false,
+  "seeds": [
+    9804,
+    9805,
+    9806
+  ]
+}

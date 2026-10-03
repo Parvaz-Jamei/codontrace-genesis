@@ -1,0 +1,119 @@
+{
+  "code_commit": "55f82233a716a9e855a6413d697b60911250c233",
+  "experiment": "RQ-BIDIRECTIONAL-TIMESHIFT-01",
+  "fitness_link": false,
+  "frequency_panel": false,
+  "generations": 200,
+  "not_run": [
+    "frequency panel",
+    "fitness link",
+    "confirmatory",
+    "Red Queen claim"
+  ],
+  "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE",
+  "phase": 2,
+  "red_queen_proved": false,
+  "replay": [
+    {
+      "replay": {
+        "compared_generations": 800,
+        "comparison": "named fields total_debit, credit, evolution, reproduction, mutation; not archive bytes",
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9301
+    },
+    {
+      "replay": {
+        "compared_generations": 800,
+        "comparison": "named fields total_debit, credit, evolution, reproduction, mutation; not archive bytes",
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9302
+    },
+    {
+      "replay": {
+        "compared_generations": 800,
+        "comparison": "named fields total_debit, credit, evolution, reproduction, mutation; not archive bytes",
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9303
+    },
+    {
+      "replay": {
+        "compared_generations": 800,
+        "comparison": "named fields total_debit, credit, evolution, reproduction, mutation; not archive bytes",
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9304
+    }
+  ],
+  "replay_matched": true,
+  "seeds": [
+    9301,
+    9302,
+    9303,
+    9304
+  ],
+  "serial_archives": "removed after byte match; hashes remain in worker_compare",
+  "stopped": null,
+  "worker_compare": {
+    "compared": "archive.jsonl and initial.json bytes",
+    "hashes": {
+      "seed9301/archive.jsonl": {
+        "workers_1": "0e54ae67cb856dc051cc92bb8896a99b3b9066c5691020accf6c5c0fe5e21bf9",
+        "workers_4": "0e54ae67cb856dc051cc92bb8896a99b3b9066c5691020accf6c5c0fe5e21bf9"
+      },
+      "seed9301/initial.json": {
+        "workers_1": "37300243c8d6b6633f5dd1dd965ac1eec842bd6337a93d7d61361fa1efb7a623",
+        "workers_4": "37300243c8d6b6633f5dd1dd965ac1eec842bd6337a93d7d61361fa1efb7a623"
+      },
+      "seed9302/archive.jsonl": {
+        "workers_1": "8d07d6d98550d9af1994e98e1c89a260ec5d01912a04fe076e554da7897c8bb1",
+        "workers_4": "8d07d6d98550d9af1994e98e1c89a260ec5d01912a04fe076e554da7897c8bb1"
+      },
+      "seed9302/initial.json": {
+        "workers_1": "4692b34d3d091311da71fbff3c96b69f004b6a0901af53e10c3a74ce0cbf3f17",
+        "workers_4": "4692b34d3d091311da71fbff3c96b69f004b6a0901af53e10c3a74ce0cbf3f17"
+      },
+      "seed9303/archive.jsonl": {
+        "workers_1": "3a4402bd8f3d8566322f9dfddc690c8d5914120a496bbce6cdbf8894d271f974",
+        "workers_4": "3a4402bd8f3d8566322f9dfddc690c8d5914120a496bbce6cdbf8894d271f974"
+      },
+      "seed9303/initial.json": {
+        "workers_1": "5cdbbafe5e46eea68cba75b0434ad8f493f3971d467e17fe328c3128712a77b6",
+        "workers_4": "5cdbbafe5e46eea68cba75b0434ad8f493f3971d467e17fe328c3128712a77b6"
+      },
+      "seed9304/archive.jsonl": {
+        "workers_1": "483aaa7ea76c414756865876d30d679a39489ca3e8fd8a72be137951b77e210f",
+        "workers_4": "483aaa7ea76c414756865876d30d679a39489ca3e8fd8a72be137951b77e210f"
+      },
+      "seed9304/initial.json": {
+        "workers_1": "71bd5d3cd41405e27f2fa0798484b3484a186795638407c85aa8ecbed6b06ffc",
+        "workers_4": "71bd5d3cd41405e27f2fa0798484b3484a186795638407c85aa8ecbed6b06ffc"
+      }
+    },
+    "matched": true,
+    "mismatches": [],
+    "red_queen_proved": false
+  },
+  "workers1": {
+    "failed": false,
+    "wall_seconds": 1348.7761478840039
+  },
+  "workers4": {
+    "failed": false,
+    "wall_seconds": 405.5695882170039
+  }
+}

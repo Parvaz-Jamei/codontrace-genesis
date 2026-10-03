@@ -9,13 +9,17 @@
 </p>
 
 <p align="center">
-  <strong>Replayable digital evolution, with the claim written down separately from the run.</strong><br>
+  <strong>A world small enough to replay, and a claim strict enough to refuse itself.</strong><br>
   Research software. Not a proof of intelligence, and not a biological result.
 </p>
 
-CodonTrace Genesis is a Python library for small digital-evolution experiments that can be replayed later. You start a tiny world, let simple agents eat, survive, and reproduce, and the library records what happened as digests, ledgers, and manifests. Use it when the question is an evolutionary idea and the answer has to be checkable. Domain modules sit beside that life-loop. They do not replace it.
+CodonTrace Genesis is a laboratory you can run twice and get the same world back.
 
-The installable package is `codontrace`. Product naming for contributors lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
+You set down a small place. Simple agents eat, spend energy, survive, and leave offspring. The questions are evolutionary: does an antagonist push a lineage somewhere new, does a costly behavior hold its ground, does a line recover after its path is cut. The library exists so those questions can be asked without the answer being talked into shape afterwards. A birth names its parent, and the cost of that birth comes out of the parent. A checkpoint is the moment it was taken, not whatever the run became later. A number is stored beside the only scope it is allowed to have.
+
+The aim is not to announce a Red Queen, an open-ended mind, or a medical device. The aim is a digital-evolution engine whose ledgers, forks, and verdicts stay weaker than the temptation to overclaim them. Four words are allowed at the end of a test, and only one of them is support, and only inside the model that was actually run: `SUPPORTED_IN_MODEL`, `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, `BLOCKED_MEASUREMENT`. On the standing ledger, the Red Queen is not proved.
+
+Domain modules sit beside that life-loop. They do not replace it. The installable package is `codontrace`. Product naming for contributors lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
 ---
 
@@ -29,8 +33,8 @@ The single source for the 29 September 2026 program is [`docs/experiments/2026-0
 
 | Record | Standing verdict | What the scope actually is |
 |---|---|---|
-| RQ-1 time shift | `INCONCLUSIVE` | Imported seed JSON covers 5701–5705. 5706 has no seed JSON. 5707 and 5708 are absent. A draft 8/8 is not a completion. |
-| RQ-3 adaptation route | `INCONCLUSIVE` | Reconstructable raw runs are seeds 21001 and 21011, and they are energy-confounded pilots. Seeds 21061–21063 are quoted in older prose and have no roster in the tree. The quotation is kept. It is not an analysis. |
+| RQ-1 time shift | `INCONCLUSIVE` | The locked pack still covers imported seeds 5701–5705. Seed 5706’s old log is partial. Seeds 5706–5708 were rerun on the current engine under `confirmatory/closure_2026-10-03/`; that rerun does not complete the locked commit `6187ff4`, which is not in this repository. |
+| RQ-3 adaptation route | `INCONCLUSIVE` | Seeds 21001 and 21011 remain energy-confounded pilots. Seeds 21061–21063 now have current-engine raw under `closure_2026-10-03/`. On those three seeds the coevolving common-window share ends at 0 and does not beat the frozen arm. The raw does not replace the older quotation, and it does not support the hypothesis. |
 | D-2 recovery window | `BLOCKED_MEASUREMENT` | The locked 1.25× endpoint for three consecutive boundaries was not reached by the positive control. Zeros on the arms do not falsify an intervention. An earlier `FALSIFIED_IN_MODEL` is retained history, not the standing verdict. |
 | Sex-cost bracket | `INCONCLUSIVE` | The measured bracket c* in (1.1, 1.2] belongs only to `infection_cost=0.4`, 400 generations, host cap 400, parasite cap 16, turnovers {1, 6, 12}, seeds 8000–8099. It is not the classical two-fold cost of sex, and it is not a result for other regimes. |
 | Causal tape | `INCONCLUSIVE` | A 63–65% share is an estimator label on a synthetic fitness map. It is not an organism-level result. The tested difference is a noise-free mutation-draw intervention: an instrument check, not a do-calculus demonstration on a living population. |

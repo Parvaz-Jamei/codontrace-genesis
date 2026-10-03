@@ -408,6 +408,7 @@ def _population_unique_id_guard():
         organisms = list(self.organisms)
         seen: dict[str, int] = {}
         fixed: list[GenesisOrganism] = []
+        renames: dict[str, list[str]] = {}
         changed = False
         for org in organisms:
             oid = org.id
@@ -418,10 +419,33 @@ def _population_unique_id_guard():
             seen[oid] += 1
             new_id = f"{oid}#{seen[oid]}"
             fixed.append(replace(org, id=new_id))
+            renames.setdefault(oid, []).append(new_id)
             changed = True
         if changed:
             object.__setattr__(self, "organisms", tuple(fixed))
-            # Keep roles map coherent for newly suffixed ids when possible.
+            # Twin births share one digest id. The second organism is suffixed,
+            # but the lineage row was still stored under the unsuffixed id, so a
+            # later child recorded parent_id "<id>#1" with no lineage row.
+            # Keep the first row on the unsuffixed id and move the later rows,
+            # in order, onto the suffixed ids.
+            lineage = list(self.lineage)
+            for old_id, new_ids in renames.items():
+                indexes = [
+                    index
+                    for index, rec in enumerate(lineage)
+                    if rec.organism_id == old_id
+                ]
+                if len(indexes) < len(new_ids) + 1:
+                    raise ConfigurationError(
+                        "duplicate organism id "
+                        f"{old_id} renamed {len(new_ids)} time(s) but lineage has "
+                        f"{len(indexes)} row(s)"
+                    )
+                for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
+                    lineage[rec_index] = replace(
+                        lineage[rec_index], organism_id=new_id
+                    )
+            object.__setattr__(self, "lineage", tuple(lineage))
         original(self)
 
     PopulationState.__post_init__ = _patched  # type: ignore[method-assign]

@@ -1,0 +1,347 @@
+{
+  "F_mean": -0.050266426431244016,
+  "by_seed": {
+    "9501": {
+      "F": -0.17340521114106022,
+      "advantage_absent": 0.0625,
+      "advantage_common_a": -0.38095238095238093,
+      "advantage_common_b": -0.2075471698113207,
+      "branches": {
+        "absent": {
+          "alive_end_A": 34,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 0,
+          "deaths": {
+            "A": 0,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 0.0,
+          "passage": "absent",
+          "share_A": 0.53125,
+          "share_B": 0.46875,
+          "status": "measured"
+        },
+        "common_a": {
+          "alive_end_A": 13,
+          "alive_end_B": 29,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 21,
+            "B": 1
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 322.3,
+          "passage": "coevolve",
+          "share_A": 0.30952380952380953,
+          "share_B": 0.6904761904761905,
+          "status": "measured"
+        },
+        "common_b": {
+          "alive_end_A": 21,
+          "alive_end_B": 32,
+          "births": {
+            "A": 4,
+            "B": 2
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 13,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 317.8,
+          "passage": "coevolve",
+          "share_A": 0.39622641509433965,
+          "share_B": 0.6037735849056604,
+          "status": "measured"
+        }
+      },
+      "contact_report": {
+        "contact_changed": true,
+        "contact_without_demographic_change": false,
+        "reproduction_changed": true,
+        "survival_changed": true
+      },
+      "red_queen_proved": false
+    },
+    "9502": {
+      "F": 0.05469845722300143,
+      "advantage_absent": 0.0625,
+      "advantage_common_a": 0.08695652173913043,
+      "advantage_common_b": 0.032258064516129004,
+      "branches": {
+        "absent": {
+          "alive_end_A": 34,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 0,
+          "deaths": {
+            "A": 0,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 0.0,
+          "passage": "absent",
+          "share_A": 0.53125,
+          "share_B": 0.46875,
+          "status": "measured"
+        },
+        "common_a": {
+          "alive_end_A": 25,
+          "alive_end_B": 21,
+          "births": {
+            "A": 10,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 15,
+            "B": 9
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 319.2,
+          "passage": "coevolve",
+          "share_A": 0.5434782608695652,
+          "share_B": 0.45652173913043476,
+          "status": "measured"
+        },
+        "common_b": {
+          "alive_end_A": 32,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 2,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 314.6,
+          "passage": "coevolve",
+          "share_A": 0.5161290322580645,
+          "share_B": 0.4838709677419355,
+          "status": "measured"
+        }
+      },
+      "contact_report": {
+        "contact_changed": true,
+        "contact_without_demographic_change": false,
+        "reproduction_changed": true,
+        "survival_changed": true
+      },
+      "red_queen_proved": false
+    },
+    "9503": {
+      "F": -0.36684171042760694,
+      "advantage_absent": 0.0625,
+      "advantage_common_a": -0.3023255813953489,
+      "advantage_common_b": 0.06451612903225806,
+      "branches": {
+        "absent": {
+          "alive_end_A": 34,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 0,
+          "deaths": {
+            "A": 0,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 0.0,
+          "passage": "absent",
+          "share_A": 0.53125,
+          "share_B": 0.46875,
+          "status": "measured"
+        },
+        "common_a": {
+          "alive_end_A": 15,
+          "alive_end_B": 28,
+          "births": {
+            "A": 6,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 21,
+            "B": 2
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 318.0,
+          "passage": "coevolve",
+          "share_A": 0.3488372093023256,
+          "share_B": 0.6511627906976745,
+          "status": "measured"
+        },
+        "common_b": {
+          "alive_end_A": 33,
+          "alive_end_B": 29,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 1,
+            "B": 1
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 312.2,
+          "passage": "coevolve",
+          "share_A": 0.532258064516129,
+          "share_B": 0.46774193548387094,
+          "status": "measured"
+        }
+      },
+      "contact_report": {
+        "contact_changed": true,
+        "contact_without_demographic_change": false,
+        "reproduction_changed": true,
+        "survival_changed": true
+      },
+      "red_queen_proved": false
+    },
+    "9504": {
+      "F": 0.28448275862068967,
+      "advantage_absent": 0.0625,
+      "advantage_common_a": 0.25,
+      "advantage_common_b": -0.03448275862068967,
+      "branches": {
+        "absent": {
+          "alive_end_A": 34,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 0,
+          "deaths": {
+            "A": 0,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 0.0,
+          "passage": "absent",
+          "share_A": 0.53125,
+          "share_B": 0.46875,
+          "status": "measured"
+        },
+        "common_a": {
+          "alive_end_A": 35,
+          "alive_end_B": 21,
+          "births": {
+            "A": 12,
+            "B": 2
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 7,
+            "B": 11
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 326.3,
+          "passage": "coevolve",
+          "share_A": 0.625,
+          "share_B": 0.375,
+          "status": "measured"
+        },
+        "common_b": {
+          "alive_end_A": 28,
+          "alive_end_B": 30,
+          "births": {
+            "A": 4,
+            "B": 0
+          },
+          "contacts": 540,
+          "deaths": {
+            "A": 6,
+            "B": 0
+          },
+          "extinct_A": false,
+          "extinct_B": false,
+          "host_atp_paid": 313.0,
+          "passage": "coevolve",
+          "share_A": 0.4827586206896552,
+          "share_B": 0.5172413793103449,
+          "status": "measured"
+        }
+      },
+      "contact_report": {
+        "contact_changed": true,
+        "contact_without_demographic_change": false,
+        "reproduction_changed": true,
+        "survival_changed": true
+      },
+      "red_queen_proved": false
+    }
+  },
+  "dropped_seeds": [],
+  "horizon": {
+    "generations": 9,
+    "source": "host_energy_account"
+  },
+  "horizon_generations": 9,
+  "importance_bound": null,
+  "importance_rule": "Importance for this estimand is undeclared. SUPPORTED is forbidden. The minimum detectable effect is not the importance bound.",
+  "mde_is_importance_bound": false,
+  "measurement_floor": 12,
+  "measurement_floor_lowered": false,
+  "n_locked": 4,
+  "n_used": 4,
+  "no_fitness_sentence_was_the_lock": "No fitness number has been computed.",
+  "per_seed_status": [
+    {
+      "F": -0.17340521114106022,
+      "seed": 9501,
+      "status": "measured"
+    },
+    {
+      "F": 0.05469845722300143,
+      "seed": 9502,
+      "status": "measured"
+    },
+    {
+      "F": -0.36684171042760694,
+      "seed": 9503,
+      "status": "measured"
+    },
+    {
+      "F": 0.28448275862068967,
+      "seed": 9504,
+      "status": "measured"
+    }
+  ],
+  "red_queen_declared": false,
+  "red_queen_proved": false,
+  "supported_forbidden": true,
+  "verdict": "NOT_DECLARED",
+  "workers": 7,
+  "workers_cap": 7
+}

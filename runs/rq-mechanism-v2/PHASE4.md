@@ -150,3 +150,7 @@ The run above is rejected. The archives under `runs/rq-mechanism-v2/phase4-fitne
 - The archive hash was aliased. `run_phase4_seed` wrote the `common_a` file hash into every branch, including `common_b`.
 
 A nonzero F is not Red Queen. `red_queen_proved` stays false. The engine was not changed in that rejected run to create a fitness effect. The corrected assay is not this section. It is recorded separately so this note stays intact.
+
+## Phase-4b
+
+The corrected assay is `runs/rq-mechanism-v2/PHASE4B.md`. The rejected numbers and the rejection note above are unchanged. `runs/rq-mechanism-v2/phase4-fitness/` was not rewritten.

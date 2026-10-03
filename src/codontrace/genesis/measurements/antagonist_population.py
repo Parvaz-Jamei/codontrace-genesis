@@ -210,6 +210,11 @@ class AntagonistPopulation:
     energy_accounts: list[EnergyAccount] = field(default_factory=list)
     known_unit_ids: set[str] = field(default_factory=set)
     accounting_version: str = ACCOUNTING_VERSION
+    # Birth counter for short ids. The previous id embedded the entire ancestor
+    # chain (``a{gen}-{parent_unit_id}-{seat}``), so a living id was hundreds of
+    # characters by generation 200 and still growing. parent_id already points at
+    # the immediate parent. The id text is not an RNG input.
+    child_serial: int = 0
 
     def __post_init__(self) -> None:
         if self.ledgers is None:
@@ -434,14 +439,15 @@ class AntagonistPopulation:
             share = float(unit.energy) / float(draws + 1)
             parent_energy = float(unit.energy) - share * float(draws)
             parents.append(replace(unit, energy=parent_energy))
-            for child_seat in range(draws):
+            for _child_seat in range(draws):
                 window = unit.window
                 mutated = False
                 if effective_mutation > 0.0 and rng.random() < effective_mutation:
                     window = mutate_window(window, rng)
                     mutation_events += 1
                     mutated = True
-                child_id = f"a{gen}-{unit.unit_id}-{child_seat}"
+                child_id = f"a{gen}-n{self.child_serial}"
+                self.child_serial += 1
                 if child_id in self.known_unit_ids or child_id in born_ids:
                     raise ConfigurationError(f"duplicate antagonist unit id {child_id}")
                 newborns.append(

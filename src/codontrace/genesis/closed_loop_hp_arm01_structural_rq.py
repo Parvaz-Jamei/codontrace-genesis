@@ -408,6 +408,7 @@ def _population_unique_id_guard():
         organisms = list(self.organisms)
         seen: dict[str, int] = {}
         fixed: list[GenesisOrganism] = []
+        renames: dict[str, list[str]] = {}
         changed = False
         for org in organisms:
             oid = org.id
@@ -418,10 +419,33 @@ def _population_unique_id_guard():
             seen[oid] += 1
             new_id = f"{oid}#{seen[oid]}"
             fixed.append(replace(org, id=new_id))
+            renames.setdefault(oid, []).append(new_id)
             changed = True
         if changed:
             object.__setattr__(self, "organisms", tuple(fixed))
-            # Keep roles map coherent for newly suffixed ids when possible.
+            # Twin births share one digest id. The second organism is suffixed,
+            # but the lineage row was still stored under the unsuffixed id, so a
+            # later child recorded parent_id "<id>#1" with no lineage row.
+            # Keep the first row on the unsuffixed id and move the later rows,
+            # in order, onto the suffixed ids.
+            lineage = list(self.lineage)
+            for old_id, new_ids in renames.items():
+                indexes = [
+                    index
+                    for index, rec in enumerate(lineage)
+                    if rec.organism_id == old_id
+                ]
+                if len(indexes) < len(new_ids) + 1:
+                    raise ConfigurationError(
+                        "duplicate organism id "
+                        f"{old_id} renamed {len(new_ids)} time(s) but lineage has "
+                        f"{len(indexes)} row(s)"
+                    )
+                for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
+                    lineage[rec_index] = replace(
+                        lineage[rec_index], organism_id=new_id
+                    )
+            object.__setattr__(self, "lineage", tuple(lineage))
         original(self)
 
     PopulationState.__post_init__ = _patched  # type: ignore[method-assign]
@@ -484,6 +508,12 @@ class StructuralRQArm(LifeLoopEcologyArm):
     )
     # Identified antagonist contacts for split_v2. Empty on the standing path.
     antagonist_contact_events: list[tuple[ContactEvent, ...]] = field(default_factory=list)
+    # Per-generation frozen antagonist roster. Units are frozen dataclasses, so a
+    # later generation's replace() cannot rewrite an earlier snapshot.
+    antagonist_unit_series: list[tuple[object, ...]] = field(default_factory=list)
+    # ``transmit`` is the recorded host path. ``frozen`` is the arm-C adapter:
+    # host genotype transmission is off, the host population is not deleted.
+    host_inheritance: str = "transmit"
     # Domain-free diagnostics (WAVE8 P3): no HP args on the observer.
     generation_boundary_observer: Callable[..., None] | None = None
     bolus_sync_before_census: list[bool] = field(default_factory=list)
@@ -601,6 +631,25 @@ class StructuralRQArm(LifeLoopEcologyArm):
         return structural
 
 
+    def freeze_host_genotypic_inheritance(self) -> None:
+        """Arm C: stop host genotype transmission.
+
+        Host bit flips happen inside reproduction (``mutate_genome``). Turning
+        reproduction off and setting ``bit_flip_rate`` to 0 holds every living
+        host's recognition window. The host population is not cleared, and
+        ``_apply_hp_env_contact`` still applies graded debit. Parasite ecology
+        is unchanged by this call.
+        """
+
+        configs = self.runner.configs
+        self.runner.configs = replace(
+            configs,
+            mutation=replace(configs.mutation, bit_flip_rate=0.0),
+            reproduction=replace(configs.reproduction, enabled=False),
+        )
+        self.host_inheritance = "frozen"
+        self.host_bit_flip_rate = 0.0
+
     def run_generations(self, generations: int) -> dict[str, object]:
         """Advance the arm by ``generations``, resuming from the current state.
 
@@ -660,15 +709,18 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 )
                 if self.antagonist_pop is not None:
                     ledger = self.antagonist_pop.ledgers[-1]
-                    self.antagonist_ledger = [
+                    # Append. Assigning a fresh one-element list kept only the
+                    # last generation and made every earlier snapshot report it.
+                    self.antagonist_ledger.append(
                         (
                             len(ledger.kept),
                             len(ledger.newborns),
                             int(ledger.mutation_events),
                             len(ledger.deaths),
                         )
-                    ]
+                    )
                     self.parasite_windows = self.antagonist_pop.windows()
+                    self.antagonist_unit_series.append(tuple(self.antagonist_pop.units))
                 self._census()
                 self.bolus_sync_before_census.append(bool(bolus_before))
                 self.tick_index += 1
@@ -1120,6 +1172,33 @@ class StructuralRQArm(LifeLoopEcologyArm):
                     for cls, value, _contacts in self.host_realised_pressure_series[j]
                 }
             )
+        antagonist_units: list[dict[str, object]] = []
+        antagonist_ledger: dict[str, object] | None = None
+        if self.antagonist_pop is not None:
+            if idx >= len(self.antagonist_unit_series) or idx >= len(self.antagonist_pop.ledgers):
+                raise ConfigurationError(
+                    "antagonist snapshot series is shorter than the requested generation"
+                )
+            ledger_at = self.antagonist_pop.ledgers[idx]
+            antagonist_units = [
+                {
+                    "unit_id": unit.unit_id,
+                    "window": unit.window,
+                    "class": joint_match_class(unit.window),
+                    "parent_id": unit.parent_id,
+                    "energy": round(float(unit.energy), 9),
+                }
+                for unit in self.antagonist_unit_series[idx]
+            ]
+            antagonist_ledger = {
+                "mode": ledger_at.mode,
+                "kept": len(ledger_at.kept),
+                "newborns": len(ledger_at.newborns),
+                "deaths": len(ledger_at.deaths),
+                "mutation_events": int(ledger_at.mutation_events),
+                "contacts": int(ledger_at.contacts),
+                "mean_energy": round(float(ledger_at.mean_energy), 9),
+            }
         return {
             "generation": int(generation),
             "census": census,
@@ -1134,34 +1213,8 @@ class StructuralRQArm(LifeLoopEcologyArm):
             "parasite_class_hist_lag": parasite_class_hist_lag,
             "host_realised_pressure": host_realised_pressure,
             "host_realised_pressure_lag": host_realised_pressure_lag,
-            "antagonist_units": [
-                {
-                    "unit_id": unit.unit_id,
-                    "window": unit.window,
-                    "class": joint_match_class(unit.window),
-                    "parent_id": unit.parent_id,
-                    "energy": round(float(unit.energy), 9),
-                }
-                for unit in (
-                    self.antagonist_pop.units if self.antagonist_pop is not None else []
-                )
-            ],
-            "antagonist_ledger": (
-                None if not self.antagonist_pop or not self.antagonist_pop.ledgers
-                else {
-                    "mode": self.antagonist_pop.ledgers[-1].mode,
-                    "kept": len(self.antagonist_pop.ledgers[-1].kept),
-                    "newborns": len(self.antagonist_pop.ledgers[-1].newborns),
-                    "deaths": len(self.antagonist_pop.ledgers[-1].deaths),
-                    "mutation_events": int(
-                        self.antagonist_pop.ledgers[-1].mutation_events
-                    ),
-                    "contacts": int(self.antagonist_pop.ledgers[-1].contacts),
-                    "mean_energy": round(
-                        float(self.antagonist_pop.ledgers[-1].mean_energy), 9
-                    ),
-                }
-            ),
+            "antagonist_units": antagonist_units,
+            "antagonist_ledger": antagonist_ledger,
             "parasite_class_hist_is_class_frequency_not_host_pressure": True,
         }
 

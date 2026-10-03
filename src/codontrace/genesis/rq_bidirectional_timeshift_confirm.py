@@ -1,0 +1,1434 @@
+"""Confirmatory bidirectional time-shift for RQ-BIDIRECTIONAL-TIMESHIFT-01.
+
+Phase 1 (pilot seeds 9101-9104, 200 generations, instrument debit 1.2 vs 0.6)
+is already locked and is not rerun. This module locks the confirmatory design
+before the first confirmatory generation, then:
+
+- phase 2: 24 fresh histories, four arms, 600 generations, full archive
+- phase 3: time-shift assay on immutable snapshots
+- phase 4: CH, CP, S and four paired tests
+- phase 5: per-seed artifacts, replay command, one verdict
+
+``red_queen_proved`` stays false for every verdict, including SUPPORTED_IN_MODEL.
+Parameters, horizon, lag and seeds are not changed after the confirmatory lock
+in order to obtain a positive result. A negative or inconclusive verdict is a
+valid stop. Extinction and fixation stay in the archive.
+
+Assay, in the sense of Gandon 2002 (performance at one time against a partner
+from another time, with no evolution during the score) and Dybdahl and Lively
+1998 (the whole population, not one modal genotype): I(H, P) is the mean ATP
+actually transferred over every host individual paired with every parasite
+individual, divided by virulence * steal_fraction. Duplicate windows are
+aggregated by their census frequency. That shortcut is checked against the
+explicit pairs.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import statistics
+import time
+from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
+from typing import cast
+
+from codontrace.errors import ConfigurationError
+from codontrace.genesis.closed_loop_hp_arm01 import ARM_COPASSAGED
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+    STRUCT_BIRTH_ATP,
+    STRUCT_STEAL_FRACTION,
+    STRUCT_VIRULENCE,
+    graded_affinity,
+)
+from codontrace.genesis.rq_bidirectional_timeshift import (
+    ARM_A,
+    ARM_B,
+    ARM_C,
+    ARM_D,
+    ARMS,
+    PHASE1_PILOT_SEEDS,
+    SMOKE_SEED,
+    _canonical,
+    _generation_row,
+    _git_head,
+    _hosts_payload,
+    _parasite_payload,
+    build_arm,
+    read_snapshot,
+    snapshot_body,
+    write_snapshot,
+)
+
+EXPERIMENT_ID = "RQ-BIDIRECTIONAL-TIMESHIFT-01"
+EXCLUDED_SEEDS: frozenset[int] = frozenset({SMOKE_SEED, *PHASE1_PILOT_SEEDS})
+CONFIRMATORY_SEEDS: tuple[int, ...] = tuple(range(9201, 9225))
+CONFIRMATORY_GENERATIONS = 600
+SNAPSHOT_STRIDE = 20
+BURN_IN = 160
+DELTA = 40
+N_HISTORIES = 24
+ALPHA_FAMILY = 0.05
+N_TESTS = 4
+ALPHA = ALPHA_FAMILY / N_TESTS
+POWER = 0.80
+INSTRUMENT_I_GAP = 0.5
+RESOLVE_CEILING = INSTRUMENT_I_GAP / 2.0
+MEASUREMENT_FLOOR = 12
+VERIFY_ABS_TOL = 1e-9
+ASSAY_ATP = float(STRUCT_BIRTH_ATP)
+SCALE = float(STRUCT_VIRULENCE) * float(STRUCT_STEAL_FRACTION)
+VERDICT_SUPPORTED = "SUPPORTED_IN_MODEL"
+VERDICT_NEGATIVE = "NEGATIVE_IN_MODEL"
+VERDICT_INCONCLUSIVE = "INCONCLUSIVE"
+VERDICT_BLOCKED = "BLOCKED_MEASUREMENT"
+
+
+def analysis_centers() -> tuple[int, ...]:
+    """Centers t = 200, 240, ..., 560. Lag generations are t - delta."""
+
+    return tuple(range(BURN_IN + DELTA, CONFIRMATORY_GENERATIONS - DELTA + 1, DELTA))
+
+
+def required_snapshot_generations() -> tuple[int, ...]:
+    """Snapshot generations the assay reads: 160 and every center through 560."""
+
+    return tuple(range(BURN_IN, analysis_centers()[-1] + 1, DELTA))
+
+
+def _default_root() -> Path:
+    return Path(__file__).resolve().parents[3] / "runs" / "rq-bidirectional-timeshift-01"
+
+
+def _load_json(path: Path) -> dict[str, object]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ConfigurationError(f"{path} must contain a JSON object")
+    return cast(dict[str, object], raw)
+
+
+def _atomic_json(path: Path, body: Mapping[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    text = json.dumps(body, sort_keys=True, indent=2) + "\n"
+    temporary.write_text(text, encoding="utf-8")
+    fd = os.open(temporary, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.replace(temporary, path)
+
+
+def _rows(body: Mapping[str, object], key: str) -> list[dict[str, object]]:
+    raw = body.get(key)
+    if not isinstance(raw, list):
+        raise ConfigurationError(f"snapshot missing list {key}")
+    rows: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ConfigurationError(f"snapshot {key} row is not an object")
+        rows.append(cast(dict[str, object], item))
+    return rows
+
+
+def _window_counts(rows: Sequence[Mapping[str, object]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        window = str(row[key])
+        counts[window] = counts.get(window, 0) + 1
+    return counts
+
+
+def _assert_assay_atp(atp: float) -> None:
+    if float(atp) + 1e-9 < SCALE:
+        raise ConfigurationError(
+            "assay ATP would clip a perfect match: "
+            f"atp={atp} scale={SCALE}"
+        )
+
+
+def infectivity(
+    hosts: Sequence[Mapping[str, object]],
+    parasites: Sequence[Mapping[str, object]],
+    *,
+    atp: float = ASSAY_ATP,
+) -> float | None:
+    """Mean transferred ATP per individual pair, divided by virulence * steal.
+
+    Empty host or parasite population is unmeasurable (None), not zero.
+    Duplicate windows are weighted by their census counts. With ``atp`` at
+    least ``virulence * steal_fraction``, a perfect match does not clip.
+    """
+
+    if not hosts or not parasites:
+        return None
+    _assert_assay_atp(atp)
+    host_counts = _window_counts(hosts, "window")
+    parasite_counts = _window_counts(parasites, "window")
+    host_n = sum(host_counts.values())
+    parasite_n = sum(parasite_counts.values())
+    if host_n <= 0 or parasite_n <= 0:
+        return None
+    transferred = 0.0
+    for host_window, host_count in host_counts.items():
+        for parasite_window, parasite_count in parasite_counts.items():
+            affinity = graded_affinity(host_window, parasite_window)
+            intended = SCALE * float(affinity)
+            paid = intended if intended <= atp else atp
+            transferred += float(host_count * parasite_count) * paid
+    return (transferred / float(host_n * parasite_n)) / SCALE
+
+
+def infectivity_pairwise(
+    hosts: Sequence[Mapping[str, object]],
+    parasites: Sequence[Mapping[str, object]],
+    *,
+    atp: float = ASSAY_ATP,
+) -> float | None:
+    """Same estimand as ``infectivity``, summed over individuals."""
+
+    if not hosts or not parasites:
+        return None
+    _assert_assay_atp(atp)
+    transferred = 0.0
+    pairs = 0
+    for host in hosts:
+        for parasite in parasites:
+            affinity = graded_affinity(str(host["window"]), str(parasite["window"]))
+            intended = SCALE * float(affinity)
+            paid = intended if intended <= atp else atp
+            transferred += paid
+            pairs += 1
+    if pairs <= 0:
+        return None
+    return (transferred / float(pairs)) / SCALE
+
+
+def regularized_incomplete_beta(x: float, a: float, b: float) -> float:
+    """Continued-fraction regularized incomplete beta, Numerical Recipes."""
+
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    log_beta = math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)
+    front = math.exp(a * math.log(x) + b * math.log(1.0 - x) - log_beta)
+
+    def betacf(aa: float, bb: float, xx: float) -> float:
+        max_iter = 200
+        eps = 3e-14
+        fpmin = 1e-300
+        qab = aa + bb
+        qap = aa + 1.0
+        qam = aa - 1.0
+        c = 1.0
+        d = 1.0 - qab * xx / qap
+        if abs(d) < fpmin:
+            d = fpmin
+        d = 1.0 / d
+        h = d
+        for m in range(1, max_iter + 1):
+            m2 = 2 * m
+            numer = m * (bb - m) * xx / ((qam + m2) * (aa + m2))
+            d = 1.0 + numer * d
+            if abs(d) < fpmin:
+                d = fpmin
+            c = 1.0 + numer / c
+            if abs(c) < fpmin:
+                c = fpmin
+            d = 1.0 / d
+            h *= d * c
+            numer = -(aa + m) * (qab + m) * xx / ((aa + m2) * (qap + m2))
+            d = 1.0 + numer * d
+            if abs(d) < fpmin:
+                d = fpmin
+            c = 1.0 + numer / c
+            if abs(c) < fpmin:
+                c = fpmin
+            d = 1.0 / d
+            delta = d * c
+            h *= delta
+            if abs(delta - 1.0) < eps:
+                break
+        return h
+
+    if x < (a + 1.0) / (a + b + 2.0):
+        return front * betacf(a, b, x) / a
+    return 1.0 - front * betacf(b, a, 1.0 - x) / b
+
+
+def student_t_sf(t: float, df: int) -> float:
+    """Upper tail P(T_df > t)."""
+
+    if df < 1:
+        raise ConfigurationError("Student t requires df >= 1")
+    if t == 0.0:
+        return 0.5
+    x = float(df) / (float(df) + t * t)
+    tail = 0.5 * regularized_incomplete_beta(x, df / 2.0, 0.5)
+    if t > 0.0:
+        return tail
+    return 1.0 - tail
+
+
+def student_t_ppf(p: float, df: int) -> float:
+    """Quantile of the central Student t. ``p`` is the CDF probability."""
+
+    if not 0.0 < p < 1.0:
+        raise ConfigurationError("Student t probability must be in (0, 1)")
+    if p == 0.5:
+        return 0.0
+    target = 1.0 - p
+    lo = -1.0
+    hi = 1.0
+    while student_t_sf(lo, df) < target:
+        lo *= 2.0
+    while student_t_sf(hi, df) > target:
+        hi *= 2.0
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if student_t_sf(mid, df) > target:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def chi2_df3_cdf(x: float) -> float:
+    """Closed form for the chi-square distribution with 3 degrees of freedom."""
+
+    if x <= 0.0:
+        return 0.0
+    root = math.sqrt(x / 2.0)
+    return math.erf(root) - math.sqrt((2.0 * x) / math.pi) * math.exp(-x / 2.0)
+
+
+def chi2_df3_ppf(p: float) -> float:
+    if not 0.0 < p < 1.0:
+        raise ConfigurationError("chi-square probability must be in (0, 1)")
+    lo = 1e-12
+    hi = 1.0
+    while chi2_df3_cdf(hi) < p:
+        hi *= 2.0
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if chi2_df3_cdf(mid) < p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def _chi2_pdf(x: float, df: int) -> float:
+    if x <= 0.0:
+        return 0.0
+    k = float(df)
+    return math.exp(
+        -math.lgamma(k / 2.0)
+        - (k / 2.0) * math.log(2.0)
+        + (k / 2.0 - 1.0) * math.log(x)
+        - x / 2.0
+    )
+
+
+def _normal_sf(z: float) -> float:
+    return 0.5 * math.erfc(z / math.sqrt(2.0))
+
+
+def noncentral_t_sf(t: float, df: int, ncp: float) -> float:
+    """P(T' > t) for the noncentral t, by integrating the normal/chi-square form."""
+
+    if df < 1:
+        raise ConfigurationError("noncentral t requires df >= 1")
+    hi = float(df) + 12.0 * math.sqrt(2.0 * float(df)) + 40.0
+    lo = 1e-8
+    n = 4000
+    if n % 2:
+        n += 1
+    step = (hi - lo) / float(n)
+
+    def integrand(u: float) -> float:
+        z = t * math.sqrt(u / float(df)) - ncp
+        return _normal_sf(z) * _chi2_pdf(u, df)
+
+    total = integrand(lo) + integrand(hi)
+    for index in range(1, n):
+        weight = 4.0 if index % 2 else 2.0
+        total += weight * integrand(lo + index * step)
+    return total * step / 3.0
+
+
+def minimum_detectable_effect(sigma: float, n: int, *, power: float = POWER) -> float:
+    """One-sided MDE at Bonferroni alpha for a one-sample t test, n histories.
+
+    The noncentrality is solved so that P(T' > t_{1-alpha, n-1}) = ``power``.
+    The returned effect is ncp * sigma / sqrt(n), in the same units as sigma.
+    """
+
+    if n < 3:
+        raise ConfigurationError("MDE requires n >= 3")
+    if sigma < 0.0:
+        raise ConfigurationError("sigma must be non-negative")
+    df = n - 1
+    critical = student_t_ppf(1.0 - ALPHA, df)
+    lo = 0.0
+    hi = 1.0
+    while noncentral_t_sf(critical, df, hi) < power:
+        hi *= 2.0
+        if hi > 1e6:
+            raise ConfigurationError("noncentral-t search did not reach the target power")
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if noncentral_t_sf(critical, df, mid) < power:
+            lo = mid
+        else:
+            hi = mid
+    return hi * float(sigma) / math.sqrt(float(n))
+
+
+def _pilot_component(seed: int, root: Path) -> tuple[float, float]:
+    """CH and CP at the only confirmatory center the pilot reaches (t=200, d=40)."""
+
+    snap = root / "snapshots"
+
+    def load(generation: int) -> dict[str, object]:
+        return read_snapshot(snap / f"seed{seed}_pilot_g{generation:04d}.json")
+
+    past = load(200 - DELTA)
+    now = load(200)
+    past_hosts = _rows(past, "hosts")
+    past_parasites = _rows(past, "parasites")
+    now_hosts = _rows(now, "hosts")
+    now_parasites = _rows(now, "parasites")
+    contemporary = infectivity(past_hosts, past_parasites)
+    host_shift = infectivity(now_hosts, past_parasites)
+    parasite_shift = infectivity(past_hosts, now_parasites)
+    if contemporary is None or host_shift is None or parasite_shift is None:
+        raise ConfigurationError(f"pilot seed {seed} has an unmeasurable t=200 assay")
+    return contemporary - host_shift, parasite_shift - contemporary
+
+
+def pilot_dispersion(root: Path) -> dict[str, object]:
+    """Between-seed SD of the single in-window pilot center, inflated upward.
+
+    Arms B and C were not piloted. The larger of the host-side and parasite-side
+    standard deviations is used for every contrast, then inflated to an 80%
+    upper confidence bound (chi-square, df = 3). That sigma is deliberately
+    the SD of one center, not of a mean of several centers, so it does not
+    understate the noise of the history-level summary.
+    """
+
+    ch_values: list[float] = []
+    cp_values: list[float] = []
+    for seed in PHASE1_PILOT_SEEDS:
+        ch, cp = _pilot_component(seed, root)
+        ch_values.append(ch)
+        cp_values.append(cp)
+    sd_ch = float(statistics.stdev(ch_values))
+    sd_cp = float(statistics.stdev(cp_values))
+    sd = max(sd_ch, sd_cp)
+    chi = chi2_df3_ppf(0.20)
+    sigma = sd * math.sqrt(3.0 / chi)
+    effect = minimum_detectable_effect(sigma, N_HISTORIES)
+    return {
+        "pilot_seeds": list(PHASE1_PILOT_SEEDS),
+        "pilot_center": 200,
+        "pilot_delta": DELTA,
+        "ch": ch_values,
+        "cp": cp_values,
+        "sd_ch": sd_ch,
+        "sd_cp": sd_cp,
+        "sd_used": sd,
+        "sigma_upper_80": sigma,
+        "chi2_df3_ppf_0_20": chi,
+        "practical_effect": effect,
+        "power": POWER,
+        "alpha_per_test": ALPHA,
+        "n_histories": N_HISTORIES,
+        "resolve_ceiling": RESOLVE_CEILING,
+        "instrument_I_gap": INSTRUMENT_I_GAP,
+        "resolvable": effect < RESOLVE_CEILING,
+        "red_queen_proved": False,
+    }
+
+
+def assert_confirmatory_seeds(seeds: Sequence[int]) -> None:
+    from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
+        PILOT_SEEDS,
+        assert_pilot_seed_policy,
+    )
+
+    chosen = tuple(int(seed) for seed in seeds)
+    if len(chosen) != N_HISTORIES:
+        raise ConfigurationError(f"confirmatory requires {N_HISTORIES} seeds, got {len(chosen)}")
+    if len(set(chosen)) != len(chosen):
+        raise ConfigurationError("confirmatory seeds must be unique")
+    banned = sorted(set(chosen) & set(EXCLUDED_SEEDS))
+    if banned:
+        raise ConfigurationError(f"pilot and smoke seeds must not be reused; overlap={banned}")
+    structural = sorted(set(chosen) & set(PILOT_SEEDS))
+    if structural:
+        raise ConfigurationError(f"structural pilot seeds must not be reused; overlap={structural}")
+    assert_pilot_seed_policy(chosen)
+
+
+def _named_rng_manifest(seed: int, generations: int) -> dict[str, object]:
+    namespace = f"hp-struct-rq-{ARM_COPASSAGED}"
+    passage = [f"{namespace}/passage/{tick}" for tick in range(generations)]
+    host_steps = [int(seed) + generation for generation in range(1, generations + 1)]
+    body: dict[str, object] = {
+        "generation_rng_namespace": namespace,
+        "generation_rng_seed": int(seed),
+        "passage_forks": passage,
+        "host_step_seeds": host_steps,
+        "note": (
+            "All four arms boot under the copassaged structural label, so these "
+            "named streams match at generation 0. Treatment flags are applied "
+            "after boot and are not a reseed."
+        ),
+    }
+    body["digest"] = _canonical({k: v for k, v in body.items() if k != "digest"})
+    return body
+
+
+
+
+def _founder_signature(arm: object) -> dict[str, object]:
+    """Initial organisms, resources and costs. Treatment flags are excluded."""
+
+    from codontrace.genesis.closed_loop_hp_arm01 import _window
+    from codontrace.genesis.closed_loop_hp_arm01_structural_rq import StructuralRQArm
+
+    if not isinstance(arm, StructuralRQArm):
+        raise ConfigurationError("founder signature requires a structural arm")
+    hosts: list[dict[str, object]] = []
+    for org in arm._hosts():
+        pos = org.position
+        hosts.append(
+            {
+                "id": str(org.id),
+                "position": [int(pos[0]), int(pos[1])],
+                "runtime_atp": float(org.atp_state.runtime_available),
+                "window": _window(org),
+            }
+        )
+    hosts.sort(key=lambda row: str(row["id"]))
+    pop = arm.antagonist_pop
+    if pop is None:
+        raise ConfigurationError("population ecology is required")
+    parasites = [
+        {"energy": float(unit.energy), "unit_id": unit.unit_id, "window": unit.window}
+        for unit in pop.units
+    ]
+    parasites.sort(key=lambda row: str(row["unit_id"]))
+    resources = [
+        [int(pos[0]), int(pos[1]), float(amount)]
+        for pos, amount in sorted(arm.runner.world.resources.items())
+    ]
+    return {
+        "basal_runtime_atp_cost": float(arm.basal_runtime_atp_cost),
+        "birth_atp": float(arm.birth_atp),
+        "cumulative_resource_bolus_placed": float(arm.cumulative_resource_bolus_placed),
+        "hosts": hosts,
+        "parasite_mutation": float(arm.parasite_mutation),
+        "parasites": parasites,
+        "resource_bolus_amount": float(arm.resource_bolus_amount),
+        "resources": resources,
+        "soft_carrying_capacity": float(arm.soft_carrying_capacity),
+        "steal_fraction": float(arm.hp_env.steal_fraction),
+        "virulence": float(arm.virulence),
+    }
+
+
+def _pilot_shortcut_ok(root: Path) -> dict[str, object]:
+    snap = root / "snapshots"
+    past = read_snapshot(snap / f"seed{PHASE1_PILOT_SEEDS[0]}_pilot_g{200 - DELTA:04d}.json")
+    now = read_snapshot(snap / f"seed{PHASE1_PILOT_SEEDS[0]}_pilot_g0200.json")
+    crosses = (
+        (_rows(past, "hosts"), _rows(past, "parasites")),
+        (_rows(now, "hosts"), _rows(past, "parasites")),
+        (_rows(past, "hosts"), _rows(now, "parasites")),
+    )
+    diffs: list[float] = []
+    for hosts, parasites in crosses:
+        left = infectivity(hosts, parasites)
+        right = infectivity_pairwise(hosts, parasites)
+        if left is None or right is None:
+            raise ConfigurationError("pilot verification sample is unmeasurable")
+        diffs.append(abs(left - right))
+    return {
+        "ok": max(diffs) <= VERIFY_ABS_TOL,
+        "max_abs": max(diffs),
+        "seed": PHASE1_PILOT_SEEDS[0],
+        "red_queen_proved": False,
+    }
+
+
+def _test_protocol() -> dict[str, object]:
+    return {
+        "alpha_family": ALPHA_FAMILY,
+        "alpha_per_test": ALPHA,
+        "correction": "Bonferroni",
+        "n_tests": N_TESTS,
+        "procedure": "one-sample Student t, one-sided, H1: mean > 0",
+        "unit": "history, paired within seed",
+        "contrasts": [
+            "mean CH_A",
+            "mean CP_A",
+            "mean (S_A - S_B)",
+            "mean (S_A - S_C)",
+        ],
+        "S": "min(mean CH, mean CP) over measurable centers; not the mean of per-center mins",
+        "ci_reported": "two-sided 95 percent Student-t interval",
+        "decision_bound": "one-sided lower bound at 1 - alpha_per_test",
+        "practical_rule": "point estimate >= locked practical effect",
+        "missing": "unmeasurable center omitted; unmeasurable history omitted; never imputed as 0",
+        "measurement_floor": MEASUREMENT_FLOOR,
+        "supported_requires": (
+            "all four tests reject at alpha_per_test and all four point estimates "
+            "meet the practical effect, with measurement not blocked"
+        ),
+        "negative_rule": (
+            "measurement not blocked and every contrast has a two-sided 95 percent "
+            "CI upper bound strictly below the practical effect"
+        ),
+        "otherwise": VERDICT_INCONCLUSIVE,
+        "red_queen_proved_allowed": False,
+    }
+
+
+def lock_confirmatory(root: Path, *, code_commit: str) -> dict[str, object]:
+    """Write the confirmatory block if it is not already locked.
+
+    Re-locking is refused. The practical effect is computed only from the
+    phase-1 pilot snapshots, never from confirmatory outcomes.
+    """
+
+    path = root / "prereg_lock.json"
+    prereg = _load_json(path)
+    existing = prereg.get("confirmatory")
+    if isinstance(existing, dict) and existing.get("locked") is True:
+        return prereg
+    assert_confirmatory_seeds(CONFIRMATORY_SEEDS)
+    shortcut = _pilot_shortcut_ok(root)
+    if not shortcut["ok"]:
+        raise ConfigurationError("pilot frequency shortcut does not match pairwise infectivity")
+    dispersion = pilot_dispersion(root)
+    centers = list(analysis_centers())
+    block: dict[str, object] = {
+        "analysis_centers": centers,
+        "arms": {
+            ARM_A: "both genotypes evolve; population contact and cost on",
+            ARM_B: "host evolves; parasite offspring windows redrawn from the ancestral pool; contact and cost on",
+            ARM_C: "parasite population evolves; host genotypic inheritance frozen; host population, contact and cost remain",
+            ARM_D: "both genotype inheritance paths cut; contact and cost remain",
+        },
+        "assay_atp": ASSAY_ATP,
+        "assay_definition": (
+            "I(H,P) = mean ATP transferred over all host-parasite individual pairs "
+            "/ (virulence * steal_fraction); duplicate windows weighted by census frequency"
+        ),
+        "burn_in": BURN_IN,
+        "code_commit": code_commit,
+        "confirmatory_started": False,
+        "delta": DELTA,
+        "dispersion": dispersion,
+        "excluded_seeds": sorted(EXCLUDED_SEEDS),
+        "generations": CONFIRMATORY_GENERATIONS,
+        "locked": True,
+        "measurement_floor": MEASUREMENT_FLOOR,
+        "parameters_not_retuned": True,
+        "phase1_facts_unchanged": {
+            "instrument_debits": [1.2, 0.6],
+            "pilot_generations": 200,
+            "pilot_seeds": list(PHASE1_PILOT_SEEDS),
+            "pilot_wall_seconds": 206,
+        },
+        "pilot_shortcut_verification": shortcut,
+        "practical_effect": dispersion["practical_effect"],
+        "red_queen_proved": False,
+        "seeds": list(CONFIRMATORY_SEEDS),
+        "snapshot_stride": SNAPSHOT_STRIDE,
+        "tests": _test_protocol(),
+    }
+    if not bool(dispersion["resolvable"]):
+        sigma = float(cast(float, dispersion["sigma_upper_80"]))
+        revised_n = N_HISTORIES
+        revised_effect = float(cast(float, dispersion["practical_effect"]))
+        while revised_effect >= RESOLVE_CEILING and revised_n < 10000:
+            revised_n += 1
+            revised_effect = minimum_detectable_effect(sigma, revised_n)
+        block["revised_design"] = {
+            "generations": CONFIRMATORY_GENERATIONS,
+            "n_histories": revised_n,
+            "practical_effect": revised_effect,
+            "reason": (
+                "24 histories cannot resolve the practical effect under the "
+                "pre-set ceiling of half the instrument I gap"
+            ),
+            "started": False,
+        }
+    prereg["confirmatory"] = block
+    _atomic_json(path, prereg)
+    _atomic_json(root / "confirmatory_power.json", dispersion)
+    return prereg
+
+
+def _locked_block(root: Path) -> dict[str, object]:
+    prereg = _load_json(root / "prereg_lock.json")
+    block = prereg.get("confirmatory")
+    if not isinstance(block, dict) or block.get("locked") is not True:
+        raise ConfigurationError("confirmatory design is not locked")
+    return cast(dict[str, object], block)
+
+
+def _as_int_list(value: object) -> list[int]:
+    if not isinstance(value, list):
+        raise ConfigurationError("expected a list of seeds")
+    return [int(cast(int, item)) for item in value]
+
+
+def mark_started(root: Path, run_id: str) -> dict[str, object]:
+    path = root / "prereg_lock.json"
+    prereg = _load_json(path)
+    block = prereg.get("confirmatory")
+    if not isinstance(block, dict) or block.get("locked") is not True:
+        raise ConfigurationError("refusing to start an unlocked confirmatory")
+    if block.get("revised_design") is not None and block.get("confirmatory_started") is not True:
+        raise ConfigurationError("revised design is locked and must not be started as the n=24 run")
+    if block.get("confirmatory_started") is True:
+        return prereg
+    block["confirmatory_started"] = True
+    block["run_id"] = run_id
+    prereg["confirmatory"] = block
+    prereg["confirmatory_started"] = True
+    _atomic_json(path, prereg)
+    return prereg
+
+
+class _LockedAppend:
+    def __init__(self, path: Path, *, fsync_each: bool) -> None:
+        import fcntl
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._fcntl = fcntl
+        self._fh = path.open("a", encoding="utf-8", buffering=1)
+        self._fsync_each = fsync_each
+
+    def line(self, text: str) -> None:
+        payload = text if text.endswith("\n") else text + "\n"
+        self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_EX)
+        try:
+            self._fh.write(payload)
+            self._fh.flush()
+            if self._fsync_each:
+                os.fsync(self._fh.fileno())
+        finally:
+            self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_UN)
+
+    def close(self) -> None:
+        self._fh.flush()
+        os.fsync(self._fh.fileno())
+        self._fh.close()
+
+
+def _reset_seed(root: Path, seed: int) -> None:
+    import shutil
+
+    seed_dir = root / "confirmatory" / "by_seed" / f"seed{seed}"
+    if seed_dir.exists():
+        shutil.rmtree(seed_dir)
+    snap = root / "confirmatory" / "snapshots"
+    if snap.exists():
+        for path in snap.glob(f"seed{seed}_*_g*.json"):
+            path.unlink()
+
+
+def _archive_record(arm: object, row: Mapping[str, object]) -> dict[str, object]:
+    from codontrace.genesis.closed_loop_hp_arm01_structural_rq import StructuralRQArm
+
+    if not isinstance(arm, StructuralRQArm):
+        raise ConfigurationError("archive requires a structural arm")
+    pop = arm.antagonist_pop
+    if pop is None or not pop.ledgers:
+        raise ConfigurationError("parasite ledger missing")
+    before_note = row.get("_before_hosts")
+    before_hosts = set(cast(list[str], before_note)) if isinstance(before_note, list) else set()
+    birth_note = row.get("_birth_ids")
+    birth_ids = set(cast(list[str], birth_note)) if isinstance(birth_note, list) else set()
+    after_hosts = {str(org.id) for org in arm._hosts()}
+    deaths = sorted((before_hosts - after_hosts) | (birth_ids - after_hosts))
+    ledger = pop.ledgers[-1]
+    events = arm.antagonist_contact_events[-1] if arm.antagonist_contact_events else ()
+    hosts = _hosts_payload(arm)
+    positions = {
+        str(org.id): [int(org.position[0]), int(org.position[1])] for org in arm._hosts()
+    }
+    for host in hosts:
+        host["position"] = positions[str(host["id"])]
+    resources = [
+        [int(pos[0]), int(pos[1]), float(amount)]
+        for pos, amount in sorted(arm.runner.world.resources.items())
+    ]
+    generation = int(cast(int, row["generation"]))
+    return {
+        "arm": row["arm"],
+        "contacts": [
+            {
+                "atp": float(event.atp_paid),
+                "host_id": str(event.host_id),
+                "unit_id": str(event.unit_id),
+                "window": str(event.window),
+            }
+            for event in events
+        ],
+        "cumulative_resource_bolus_placed": float(arm.cumulative_resource_bolus_placed),
+        "experiment": EXPERIMENT_ID,
+        "generation": generation,
+        "host_births": cast(list[object], row.get("_host_births") or []),
+        "host_deaths": deaths,
+        "hosts": hosts,
+        "host_step_seed": int(cast(int, row["seed"])) + generation,
+        "invariant": row["invariant"],
+        "parasite_births": [
+            {
+                "energy": float(unit.energy),
+                "parent_id": unit.parent_id,
+                "unit_id": unit.unit_id,
+                "window": unit.window,
+            }
+            for unit in ledger.newborns
+        ],
+        "parasite_deaths": [str(unit_id) for unit_id in ledger.deaths],
+        "parasites": _parasite_payload(arm),
+        "passage_fork": f"hp-struct-rq-{ARM_COPASSAGED}/passage/{generation - 1}",
+        "phase": 2,
+        "red_queen_proved": False,
+        "resources": resources,
+        "run_id": row.get("run_id"),
+        "seed": row["seed"],
+    }
+
+
+def run_one_history(
+    seed: int,
+    root_text: str,
+    generations: int,
+    run_id: str,
+    snapshot_stride: int,
+) -> dict[str, object]:
+    """Run four arms from one shared initial state. Does not score Red Queen."""
+
+    root = Path(root_text)
+    stop = root / "confirmatory" / "STOP"
+    seed_dir = root / "confirmatory" / "by_seed" / f"seed{seed}"
+    seed_dir.mkdir(parents=True, exist_ok=True)
+    arms = {name: build_arm(name, seed) for name in ARMS}
+    signatures = {name: _founder_signature(arms[name]) for name in ARMS}
+    digests = {name: _canonical(signatures[name]) for name in ARMS}
+    if len(set(digests.values())) != 1:
+        return {
+            "failed": "initial-state-diverged",
+            "digests": digests,
+            "red_queen_proved": False,
+            "seed": seed,
+        }
+    for arm in arms.values():
+        if arm.arm != ARM_COPASSAGED:
+            return {"failed": "rng-namespace-diverged", "red_queen_proved": False, "seed": seed}
+    rng_manifest = _named_rng_manifest(seed, generations)
+    initial = {
+        "arms": {
+            name: {
+                "digest": digests[name],
+                "host_inheritance": arms[name].host_inheritance,
+                "passage": arms[name].passage,
+            }
+            for name in ARMS
+        },
+        "founder_digest": digests[ARM_A],
+        "red_queen_proved": False,
+        "rng": rng_manifest,
+        "seed": seed,
+    }
+    _atomic_json(seed_dir / "initial.json", initial)
+    live = _LockedAppend(root / "live.log", fsync_each=True)
+    dataset = _LockedAppend(root / "confirmatory" / "trajectory.jsonl", fsync_each=False)
+    archive_path = seed_dir / "archive.jsonl"
+    summaries: dict[str, object] = {}
+    try:
+        with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
+            for arm_name in ARMS:
+                if stop.exists():
+                    summaries[arm_name] = {"failed": "stopped", "generations_completed": 0}
+                    break
+                arm = arms[arm_name]
+                founder_ids = {org.id for org in arm._hosts()}
+                prev_census = len(founder_ids)
+                prev_lineage = 0
+                failed: str | None = None
+                completed = 0
+                for generation in range(1, int(generations) + 1):
+                    if stop.exists():
+                        failed = "stopped"
+                        break
+                    before_hosts = [str(org.id) for org in arm._hosts()]
+                    before_lineage = {rec.organism_id for rec in arm.runner.population.lineage}
+                    try:
+                        arm.run_generations(1)
+                    except Exception as exc:
+                        failed = f"exception:{type(exc).__name__}:{exc}"
+                        live.line(
+                            f"phase=2 run={run_id} seed={seed} arm={arm_name} "
+                            f"generation={generation} invariant={failed} red_queen_proved=false"
+                        )
+                        break
+                    row = _generation_row(
+                        arm,
+                        seed=seed,
+                        arm_name=arm_name,
+                        generation=generation,
+                        founder_ids=founder_ids,
+                        prev_host_census=prev_census,
+                        prev_lineage=prev_lineage,
+                    )
+                    new_lineage = [
+                        rec
+                        for rec in arm.runner.population.lineage
+                        if rec.organism_id not in before_lineage
+                    ]
+                    row["phase"] = 2
+                    row["run_id"] = run_id
+                    row["red_queen_proved"] = False
+                    row["_before_hosts"] = before_hosts
+                    row["_birth_ids"] = [rec.organism_id for rec in new_lineage]
+                    row["_host_births"] = [
+                        {
+                            "generation": int(rec.generation),
+                            "id": rec.organism_id,
+                            "parent_id": rec.parent_id,
+                        }
+                        for rec in new_lineage
+                    ]
+                    pop = arm.antagonist_pop
+                    if pop is not None and any(len(unit.unit_id) > 64 for unit in pop.units):
+                        row["invariant"] = "parasite-id-unbounded"
+                    record = _archive_record(arm, row)
+                    archive.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+                    archive.flush()
+                    if generation % 20 == 0:
+                        os.fsync(archive.fileno())
+                    public = {
+                        key: value
+                        for key, value in row.items()
+                        if not str(key).startswith("_")
+                    }
+                    dataset.line(json.dumps(public, sort_keys=True, separators=(",", ":")))
+                    live.line(
+                        f"phase=2 run={run_id} seed={seed} arm={arm_name} generation={generation} "
+                        f"host_census={row['host_census']} parasite_census={row['parasite_census']} "
+                        f"host_energy={float(row['host_energy']):.6f} "
+                        f"parasite_energy={float(row['parasite_energy']):.6f} "
+                        f"host_births={row['host_births']} host_deaths={row['host_deaths']} "
+                        f"parasite_births={row['parasite_births']} parasite_deaths={row['parasite_deaths']} "
+                        f"contacts={row['contacts']} invariant={row['invariant']} "
+                        "red_queen_proved=false"
+                    )
+                    completed = generation
+                    if row["invariant"] != "ok":
+                        failed = str(row["invariant"])
+                        break
+                    if snapshot_stride and generation % int(snapshot_stride) == 0:
+                        body = snapshot_body(arm, seed=seed, arm_name=arm_name, generation=generation)
+                        body["phase"] = 2
+                        body["red_queen_proved"] = False
+                        write_snapshot(
+                            root / "confirmatory" / "snapshots" / f"seed{seed}_{arm_name}_g{generation:04d}.json",
+                            body,
+                        )
+                    prev_census = int(cast(int, row["host_census"]))
+                    prev_lineage += int(cast(int, row["host_births"]))
+                summaries[arm_name] = {
+                    "failed": failed,
+                    "final_host_census": len(arm._hosts()),
+                    "final_parasite_census": len(arm.antagonist_pop.units) if arm.antagonist_pop else 0,
+                    "generations_completed": completed,
+                    "red_queen_proved": False,
+                }
+                if failed:
+                    break
+    finally:
+        live.close()
+        dataset.close()
+    outcome = {
+        "arms": summaries,
+        "founder_digest": digests[ARM_A],
+        "red_queen_proved": False,
+        "rng_digest": rng_manifest["digest"],
+        "seed": seed,
+    }
+    done = (
+        not stop.exists()
+        and all(name in summaries for name in ARMS)
+        and all(
+            isinstance(summaries[name], dict)
+            and cast(dict[str, object], summaries[name]).get("failed") is None
+            and int(cast(int, cast(dict[str, object], summaries[name])["generations_completed"]))
+            == int(generations)
+            for name in ARMS
+        )
+    )
+    if done:
+        _atomic_json(seed_dir / "COMPLETE", outcome)
+    else:
+        _atomic_json(seed_dir / "PARTIAL", outcome)
+    return outcome
+
+
+def _mean(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return float(sum(values) / len(values))
+
+
+def _load_snap(root: Path, seed: int, arm: str, generation: int) -> dict[str, object] | None:
+    path = root / "confirmatory" / "snapshots" / f"seed{seed}_{arm}_g{generation:04d}.json"
+    if not path.is_file():
+        return None
+    return read_snapshot(path)
+
+
+def arm_time_shift(root: Path, seed: int, arm: str) -> dict[str, object]:
+    """CH and CP at the locked centers. Missing assays are omitted, not zeroed."""
+
+    ch_values: list[float] = []
+    cp_values: list[float] = []
+    missing: list[dict[str, object]] = []
+    archive_missing = False
+    for center in analysis_centers():
+        past_body = _load_snap(root, seed, arm, center - DELTA)
+        now_body = _load_snap(root, seed, arm, center)
+        if past_body is None or now_body is None:
+            archive_missing = True
+            missing.append({"center": center, "reason": "snapshot-missing"})
+            continue
+        past_hosts = _rows(past_body, "hosts")
+        past_parasites = _rows(past_body, "parasites")
+        now_hosts = _rows(now_body, "hosts")
+        now_parasites = _rows(now_body, "parasites")
+        contemporary = infectivity(past_hosts, past_parasites)
+        host_now = infectivity(now_hosts, past_parasites)
+        parasite_now = infectivity(past_hosts, now_parasites)
+        if contemporary is None or host_now is None:
+            missing.append({"center": center, "component": "CH", "reason": "unmeasurable"})
+        else:
+            ch_values.append(contemporary - host_now)
+        if contemporary is None or parasite_now is None:
+            missing.append({"center": center, "component": "CP", "reason": "unmeasurable"})
+        else:
+            cp_values.append(parasite_now - contemporary)
+    mean_ch = _mean(ch_values)
+    mean_cp = _mean(cp_values)
+    score = None if mean_ch is None or mean_cp is None else min(mean_ch, mean_cp)
+    return {
+        "S": score,
+        "archive_missing": archive_missing,
+        "mean_ch": mean_ch,
+        "mean_cp": mean_cp,
+        "missing": missing,
+        "n_ch": len(ch_values),
+        "n_cp": len(cp_values),
+        "red_queen_proved": False,
+    }
+
+
+def one_sample_t(values: Sequence[float], practical_effect: float) -> dict[str, object]:
+    clean = [float(value) for value in values]
+    n = len(clean)
+    if n < 2:
+        return {
+            "ci95": None,
+            "df": n - 1,
+            "lower_decision": None,
+            "mean": _mean(clean),
+            "meets_practical_effect": False,
+            "n": n,
+            "p_one_sided": None,
+            "reject": False,
+            "red_queen_proved": False,
+            "sd": None,
+        }
+    mean = float(statistics.fmean(clean))
+    sd = float(statistics.stdev(clean))
+    se = sd / math.sqrt(n)
+    df = n - 1
+    if se == 0.0:
+        t_stat = None
+        p_value = 0.0 if mean > 0.0 else (1.0 if mean < 0.0 else 0.5)
+        ci = [mean, mean]
+        lower = mean
+    else:
+        t_stat = mean / se
+        p_value = float(student_t_sf(t_stat, df))
+        t_ci = student_t_ppf(0.975, df)
+        t_lo = student_t_ppf(1.0 - ALPHA, df)
+        ci = [mean - t_ci * se, mean + t_ci * se]
+        lower = mean - t_lo * se
+    return {
+        "ci95": ci,
+        "df": df,
+        "lower_decision": lower,
+        "mean": mean,
+        "meets_practical_effect": mean >= practical_effect,
+        "n": n,
+        "p_one_sided": p_value,
+        "reject": bool(p_value < ALPHA and mean > 0.0),
+        "red_queen_proved": False,
+        "sd": sd,
+        "t": t_stat,
+        "values_are_histories": True,
+    }
+
+
+def decide_verdict(
+    tests: Mapping[str, Mapping[str, object]],
+    *,
+    verification_ok: bool,
+    archive_ok: bool,
+    practical_effect: float,
+) -> str:
+    if not verification_ok or not archive_ok:
+        return VERDICT_BLOCKED
+    parsed: list[Mapping[str, object]] = []
+    for name in ("CH_A", "CP_A", "S_A_minus_S_B", "S_A_minus_S_C"):
+        if name not in tests:
+            return VERDICT_BLOCKED
+        parsed.append(tests[name])
+    if any(int(cast(int, item["n"])) < MEASUREMENT_FLOOR for item in parsed):
+        return VERDICT_BLOCKED
+    if all(bool(item["reject"]) and bool(item["meets_practical_effect"]) for item in parsed):
+        return VERDICT_SUPPORTED
+    uppers: list[float] = []
+    for item in parsed:
+        ci = item.get("ci95")
+        if not isinstance(ci, list) or len(ci) != 2:
+            return VERDICT_INCONCLUSIVE
+        uppers.append(float(cast(float, ci[1])))
+    if all(upper < practical_effect for upper in uppers):
+        return VERDICT_NEGATIVE
+    return VERDICT_INCONCLUSIVE
+
+
+def _line_count(path: Path) -> int:
+    if not path.is_file():
+        return 0
+    count = 0
+    with path.open(encoding="utf-8") as handle:
+        for _ in handle:
+            count += 1
+    return count
+
+
+def verify_confirmatory_shortcut(root: Path, seeds: Sequence[int]) -> dict[str, object]:
+    """First locked seed whose arm A is measurable at t-d and t. Not chosen by sign."""
+
+    for seed in seeds:
+        past = _load_snap(root, seed, ARM_A, BURN_IN)
+        now = _load_snap(root, seed, ARM_A, BURN_IN + DELTA)
+        if past is None or now is None:
+            continue
+        crosses = (
+            (_rows(past, "hosts"), _rows(past, "parasites")),
+            (_rows(now, "hosts"), _rows(past, "parasites")),
+            (_rows(past, "hosts"), _rows(now, "parasites")),
+        )
+        if any((not hosts or not parasites) for hosts, parasites in crosses):
+            continue
+        diffs: list[float] = []
+        for hosts, parasites in crosses:
+            left = infectivity(hosts, parasites)
+            right = infectivity_pairwise(hosts, parasites)
+            if left is None or right is None:
+                diffs = []
+                break
+            diffs.append(abs(left - right))
+        if not diffs:
+            continue
+        return {
+            "max_abs": max(diffs),
+            "ok": max(diffs) <= VERIFY_ABS_TOL,
+            "red_queen_proved": False,
+            "seed": seed,
+        }
+    return {"ok": False, "reason": "no measurable verification sample", "red_queen_proved": False}
+
+
+def analyze(root: Path) -> dict[str, object]:
+    block = _locked_block(root)
+    if block.get("confirmatory_started") is not True:
+        raise ConfigurationError("refusing to score a confirmatory that was not started")
+    seeds = _as_int_list(block.get("seeds"))
+    generations = int(cast(int, block["generations"]))
+    practical = float(cast(float, block["practical_effect"]))
+    per_seed: list[dict[str, object]] = []
+    archive_ok = True
+    for seed in seeds:
+        seed_dir = root / "confirmatory" / "by_seed" / f"seed{seed}"
+        complete_path = seed_dir / "COMPLETE"
+        if not complete_path.is_file():
+            archive_ok = False
+        lines = _line_count(seed_dir / "archive.jsonl")
+        if lines != generations * len(ARMS):
+            archive_ok = False
+        arms: dict[str, object] = {}
+        for arm_name in ARMS:
+            arms[arm_name] = arm_time_shift(root, seed, arm_name)
+            if bool(cast(dict[str, object], arms[arm_name])["archive_missing"]):
+                archive_ok = False
+        arm_a = cast(dict[str, object], arms[ARM_A])
+        arm_b = cast(dict[str, object], arms[ARM_B])
+        arm_c = cast(dict[str, object], arms[ARM_C])
+        diff_b = (
+            None
+            if arm_a["S"] is None or arm_b["S"] is None
+            else float(cast(float, arm_a["S"])) - float(cast(float, arm_b["S"]))
+        )
+        diff_c = (
+            None
+            if arm_a["S"] is None or arm_c["S"] is None
+            else float(cast(float, arm_a["S"])) - float(cast(float, arm_c["S"]))
+        )
+        record = {
+            "S_A_minus_S_B": diff_b,
+            "S_A_minus_S_C": diff_c,
+            "archive_lines": lines,
+            "arms": arms,
+            "red_queen_proved": False,
+            "seed": seed,
+        }
+        per_seed.append(record)
+        _atomic_json(seed_dir / "result.json", record)
+
+    def collect(selector: str) -> list[float]:
+        values: list[float] = []
+        for record in per_seed:
+            if selector == "CH_A":
+                value = cast(dict[str, object], cast(dict[str, object], record["arms"])[ARM_A])["mean_ch"]
+            elif selector == "CP_A":
+                value = cast(dict[str, object], cast(dict[str, object], record["arms"])[ARM_A])["mean_cp"]
+            elif selector == "S_A_minus_S_B":
+                value = record["S_A_minus_S_B"]
+            else:
+                value = record["S_A_minus_S_C"]
+            if value is not None:
+                values.append(float(cast(float, value)))
+        return values
+
+    tests = {
+        "CH_A": one_sample_t(collect("CH_A"), practical),
+        "CP_A": one_sample_t(collect("CP_A"), practical),
+        "S_A_minus_S_B": one_sample_t(collect("S_A_minus_S_B"), practical),
+        "S_A_minus_S_C": one_sample_t(collect("S_A_minus_S_C"), practical),
+    }
+    verification = verify_confirmatory_shortcut(root, seeds)
+    for record in per_seed:
+        for arm_name in ARMS:
+            if bool(cast(dict[str, object], cast(dict[str, object], record["arms"])[arm_name])["archive_missing"]):
+                archive_ok = False
+    verdict = decide_verdict(
+        tests,
+        verification_ok=bool(verification.get("ok")),
+        archive_ok=archive_ok,
+        practical_effect=practical,
+    )
+    report: dict[str, object] = {
+        "archive_ok": archive_ok,
+        "code_commit": block.get("code_commit"),
+        "experiment": EXPERIMENT_ID,
+        "per_seed": per_seed,
+        "phase": 5,
+        "practical_effect": practical,
+        "red_queen_proved": False,
+        "biological_red_queen_proved": False,
+        "run_id": block.get("run_id"),
+        "seeds": seeds,
+        "shortcut_verification": verification,
+        "tests": tests,
+        "verdict": verdict,
+    }
+    # The supported-in-model flag is not a biological proof.
+    report["red_queen_proved"] = False
+    out = root / "confirmatory"
+    _atomic_json(out / "inference.json", {"practical_effect": practical, "tests": tests, "red_queen_proved": False})
+    _atomic_json(out / "verdict.json", report)
+    replay = root.parents[0] if False else Path(__file__).resolve().parents[3]
+    command = (
+        f"cd {replay}\n"
+        "PYTHONPATH=src PYTHONUNBUFFERED=1 "
+        "python -m codontrace.genesis.rq_bidirectional_timeshift_confirm\n"
+        "PYTHONPATH=src PYTHONUNBUFFERED=1 "
+        "python -m codontrace.genesis.rq_bidirectional_timeshift_confirm --analyze-only\n"
+    )
+    (out / "replay_command.txt").write_text(command, encoding="utf-8")
+    live = _LockedAppend(root / "live.log", fsync_each=True)
+    try:
+        live.line(
+            f"phase=5 event=verdict verdict={verdict} practical_effect={practical} "
+            "red_queen_proved=false"
+        )
+    finally:
+        live.close()
+    return report
+
+
+def _pending_seeds(root: Path, seeds: Sequence[int]) -> list[int]:
+    pending: list[int] = []
+    for seed in seeds:
+        if (root / "confirmatory" / "by_seed" / f"seed{seed}" / "COMPLETE").is_file():
+            continue
+        _reset_seed(root, seed)
+        pending.append(seed)
+    return pending
+
+
+def restart_clean(root: Path) -> None:
+    """Drop confirmatory outputs after an engine bug. The lock is not retuned."""
+
+    import shutil
+
+    block = _locked_block(root)
+    conf = root / "confirmatory"
+    if conf.exists():
+        shutil.rmtree(conf)
+    log = root / "live.log"
+    if log.is_file():
+        kept = [
+            line
+            for line in log.read_text(encoding="utf-8").splitlines(True)
+            if "phase=2" not in line and "phase=5" not in line and "event=confirmatory" not in line
+        ]
+        log.write_text("".join(kept), encoding="utf-8")
+    path = root / "prereg_lock.json"
+    prereg = _load_json(path)
+    current = cast(dict[str, object], prereg["confirmatory"])
+    count = int(cast(int, current.get("restart_clean_count") or 0)) + 1
+    current["restart_clean_count"] = count
+    current["run_id"] = f"clean-{count}"
+    current["confirmatory_started"] = True
+    prereg["confirmatory"] = current
+    prereg["confirmatory_started"] = True
+    _atomic_json(path, prereg)
+    _ = block
+    live = _LockedAppend(root / "live.log", fsync_each=True)
+    try:
+        live.line(
+            f"event=restart-clean count={count} seeds_unchanged=true "
+            "horizon_unchanged=true lag_unchanged=true red_queen_proved=false"
+        )
+    finally:
+        live.close()
+
+
+def run_confirmatory(root: Path) -> dict[str, object]:
+    block = _locked_block(root)
+    if block.get("revised_design") is not None:
+        raise ConfigurationError("stopping before confirmatory generations: design was revised for power")
+    if block.get("confirmatory_started") is not True:
+        raise ConfigurationError("confirmatory_started is still false")
+    seeds = _as_int_list(block.get("seeds"))
+    generations = int(cast(int, block["generations"]))
+    if generations != CONFIRMATORY_GENERATIONS or int(cast(int, block["delta"])) != DELTA:
+        raise ConfigurationError("locked horizon or lag does not match the confirmatory protocol")
+    run_id = str(block.get("run_id") or "run")
+    pending = _pending_seeds(root, seeds)
+    stop = root / "confirmatory" / "STOP"
+    if stop.exists():
+        stop.unlink()
+    if pending:
+        workers = min(len(pending), os.cpu_count() or 1)
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(run_one_history, seed, str(root), generations, run_id, SNAPSHOT_STRIDE): seed
+                for seed in pending
+            }
+            for future in as_completed(futures):
+                seed = futures[future]
+                try:
+                    outcome = future.result()
+                except Exception as exc:
+                    stop.write_text(f"seed={seed} exception={exc}\n", encoding="utf-8")
+                    raise
+                arms = cast(dict[str, object], outcome.get("arms") or {})
+                broken = [
+                    name
+                    for name in ARMS
+                    if name not in arms
+                    or not isinstance(arms[name], dict)
+                    or cast(dict[str, object], arms[name]).get("failed")
+                ]
+                if broken or outcome.get("failed"):
+                    stop.write_text(
+                        json.dumps({"failed": outcome.get("failed"), "seed": seed, "arms": arms}) + "\n",
+                        encoding="utf-8",
+                    )
+                    raise ConfigurationError(f"engine failure on seed {seed}: {outcome.get('failed') or broken}")
+    return analyze(root)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="RQ bidirectional time-shift confirmatory")
+    parser.add_argument("--root", type=Path, default=None)
+    parser.add_argument("--lock-only", action="store_true")
+    parser.add_argument("--analyze-only", action="store_true")
+    parser.add_argument("--restart-clean", action="store_true")
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    root = args.root if args.root is not None else _default_root()
+    repo = Path(__file__).resolve().parents[3]
+    code_commit = _git_head(repo)
+    if args.restart_clean:
+        restart_clean(root)
+    prereg = lock_confirmatory(root, code_commit=code_commit)
+    block = cast(dict[str, object], prereg["confirmatory"])
+    if block.get("revised_design") is not None and block.get("confirmatory_started") is not True:
+        print(
+            "STOP before confirmatory generations: 24 seeds cannot resolve the "
+            f"practical effect {block.get('practical_effect')}. Revised design is locked.",
+            flush=True,
+        )
+        return 2
+    if args.lock_only:
+        print(
+            f"locked practical_effect={block.get('practical_effect')} "
+            f"resolvable={cast(dict[str, object], block['dispersion'])['resolvable']} "
+            "confirmatory_started=false red_queen_proved=false",
+            flush=True,
+        )
+        return 0
+    if args.analyze_only:
+        if block.get("confirmatory_started") is not True:
+            raise ConfigurationError("nothing to analyze; confirmatory has not started")
+        report = analyze(root)
+        print(f"verdict={report['verdict']} red_queen_proved=false", flush=True)
+        return 0
+    run_id = str(block.get("run_id") or time.strftime("%Y%m%dT%H%M%S"))
+    mark_started(root, run_id)
+    live = _LockedAppend(root / "live.log", fsync_each=True)
+    try:
+        live.line(
+            f"event=confirmatory-start run={run_id} seeds={','.join(str(s) for s in CONFIRMATORY_SEEDS)} "
+            f"generations={CONFIRMATORY_GENERATIONS} delta={DELTA} "
+            f"practical_effect={block.get('practical_effect')} red_queen_proved=false"
+        )
+    finally:
+        live.close()
+    report = run_confirmatory(root)
+    print(f"verdict={report['verdict']} red_queen_proved=false", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

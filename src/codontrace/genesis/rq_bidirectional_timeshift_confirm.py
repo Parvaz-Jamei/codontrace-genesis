@@ -1327,7 +1327,8 @@ def assess_locked_histories(
 
     A duplicate seed is an alias, not a second history. A missing value is
     omitted, not replaced by zero, and the estimand is then no longer the
-    locked one. Support is not allowed after that change.
+    locked one. ``analyze`` calls this through ``apply_locked_history_verdict_gate``
+    so a reduced sample is BLOCKED, not a scientific negative or inconclusive.
     """
 
     seeds = [int(cast(int, record["seed"])) for record in records]
@@ -1375,6 +1376,44 @@ def assess_locked_histories(
         "ok": True,
         "reason": None,
         "support_allowed": True,
+    }
+
+
+def apply_locked_history_verdict_gate(
+    verdict: str,
+    *,
+    contrast_records: Mapping[str, Sequence[Mapping[str, object]]],
+    locked_seeds: Sequence[int],
+) -> dict[str, object]:
+    """Force BLOCKED when analyze would score a reduced locked sample.
+
+    ``assess_locked_histories`` is the rule. A seed-list mismatch or any
+    unmeasurable required contrast is a measurement block, not a scientific
+    negative or an inconclusive result on the leftover histories.
+    """
+
+    assessments = {
+        name: assess_locked_histories(records, locked_seeds)
+        for name, records in contrast_records.items()
+    }
+    ok = all(bool(item["ok"]) for item in assessments.values())
+    dropped: list[int] = []
+    seen: set[int] = set()
+    for item in assessments.values():
+        for seed in cast(list[object], item["dropped_seeds"]):
+            seed_i = int(cast(int, seed))
+            if seed_i not in seen:
+                seen.add(seed_i)
+                dropped.append(seed_i)
+    dropped.sort()
+    return {
+        "assessments": assessments,
+        "dropped_seeds": dropped,
+        "estimand_changed": any(bool(item["estimand_changed"]) for item in assessments.values()),
+        "n_locked": len(tuple(locked_seeds)),
+        "n_used": {name: int(cast(int, item["n_used"])) for name, item in assessments.items()},
+        "ok": ok,
+        "verdict": VERDICT_BLOCKED if not ok else verdict,
     }
 
 
@@ -1561,17 +1600,47 @@ def analyze(root: Path) -> dict[str, object]:
         archive_ok=archive_ok,
         practical_effect=importance,
     )
-    n_used: dict[str, int] = {name: int(cast(int, tests[name]["n"])) for name in tests}
-    estimand_changed = any(n != len(seeds) for n in n_used.values())
+
+    def _contrast_value(record: Mapping[str, object], selector: str) -> object:
+        if selector == "CH_A":
+            return cast(dict[str, object], cast(dict[str, object], record["arms"])[ARM_A])["mean_ch"]
+        if selector == "CP_A":
+            return cast(dict[str, object], cast(dict[str, object], record["arms"])[ARM_A])["mean_cp"]
+        return record[selector]
+
+    contrast_names = ("CH_A", "CP_A", "S_A_minus_S_B", "S_A_minus_S_C")
+    contrast_records = {
+        name: [
+            {"seed": int(cast(int, record["seed"])), "value": _contrast_value(record, name)}
+            for record in per_seed
+        ]
+        for name in contrast_names
+    }
+    # analyze calls assess_locked_histories through this gate. A reduced locked
+    # sample is BLOCKED, not NEGATIVE_IN_MODEL or INCONCLUSIVE.
+    lock_gate = apply_locked_history_verdict_gate(
+        verdict,
+        contrast_records=contrast_records,
+        locked_seeds=seeds,
+    )
+    verdict = str(lock_gate["verdict"])
+    n_used = cast(dict[str, int], lock_gate["n_used"])
+    dropped_seeds = cast(list[int], lock_gate["dropped_seeds"])
+    estimand_changed = bool(lock_gate["estimand_changed"])
     for record in per_seed:
         for arm_name in ARMS:
             if bool(cast(dict[str, object], cast(dict[str, object], record["arms"])[arm_name]).get("estimand_changed")):
                 estimand_changed = True
     if (not importance_declared or estimand_changed) and verdict == VERDICT_SUPPORTED:
         verdict = VERDICT_BLOCKED
+    if not bool(lock_gate["ok"]):
+        # History lock failure stays a measurement block even if support was
+        # already rewritten above. Negatives and inconclusive leftovers are not allowed.
+        verdict = VERDICT_BLOCKED
     report: dict[str, object] = {
         "archive_ok": archive_ok,
         "code_commit": block.get("code_commit"),
+        "dropped_seeds": dropped_seeds,
         "experiment": EXPERIMENT_ID,
         "per_seed": per_seed,
         "phase": 5,
@@ -1583,9 +1652,13 @@ def analyze(root: Path) -> dict[str, object]:
         "estimand_changed": estimand_changed,
         "importance_bound": raw_importance,
         "importance_bound_declared": importance_declared,
+        "locked_history_gate": {
+            "ok": lock_gate["ok"],
+            "assessments": lock_gate["assessments"],
+        },
         "mde_used_as_importance_bound": False,
         "minimum_detectable_effect": mde,
-        "n_locked": len(seeds),
+        "n_locked": int(cast(int, lock_gate["n_locked"])),
         "n_used": n_used,
         "practical_effect": raw_importance if importance_declared else None,
         "red_queen_proved": False,

@@ -44,9 +44,12 @@ from codontrace.genesis.rq_bidirectional_timeshift import (
 )
 from codontrace.genesis.rq_bidirectional_timeshift_confirm import (
     ALPHA,
+    CONFIRMATORY_SEEDS,
     VERDICT_BLOCKED,
     VERDICT_INCONCLUSIVE,
+    VERDICT_NEGATIVE,
     VERDICT_SUPPORTED,
+    apply_locked_history_verdict_gate,
     assert_artifacts_one_run,
     assess_locked_histories,
     decide_verdict,
@@ -459,3 +462,66 @@ def test_stats_refuse_zero_se_bad_samples_and_accept_a_real_positive() -> None:
         )
         == VERDICT_SUPPORTED
     )
+
+def test_locked_history_with_one_missing_is_blocked_not_negative() -> None:
+    """Reduced-sample negatives are measurement blocks, not scientific negatives.
+
+    Independent expectation (not copied from the function under test): a locked
+    list of 24 with seed 9212 missing cannot be NEGATIVE_IN_MODEL. The gate
+    used by analyze must report BLOCKED, dropped seed 9212, n_locked=24, and
+    n_used=23. MEASUREMENT_FLOOR stays 12; the leftover sample is large enough
+    that decide_verdict alone would still return NEGATIVE_IN_MODEL.
+    """
+
+    locked = tuple(CONFIRMATORY_SEEDS)
+    assert locked == tuple(range(9201, 9225))
+    assert len(locked) == 24
+    dropped_seed = 9212
+    # Independently chosen negative sample with SE > 0 (same construction as
+    # the existing non-constant negative control elsewhere in this suite).
+    measurable = [-0.20] * 11 + [-0.30] * 12
+    assert len(measurable) == 23
+    importance = 0.05
+    names = ("CH_A", "CP_A", "S_A_minus_S_B", "S_A_minus_S_C")
+    reduced = one_sample_t(measurable, importance)
+    assert reduced["se_zero"] is False
+    assert reduced["n"] == 23
+    assert 23 >= 12  # MEASUREMENT_FLOOR; do not lower it to pass
+    raw_verdict = decide_verdict(
+        {name: reduced for name in names},
+        verification_ok=True,
+        archive_ok=True,
+        practical_effect=importance,
+    )
+    assert raw_verdict == VERDICT_NEGATIVE
+
+    values_by_seed: dict[int, float | None] = {}
+    measurable_i = 0
+    for seed in locked:
+        if seed == dropped_seed:
+            values_by_seed[seed] = None
+        else:
+            values_by_seed[seed] = measurable[measurable_i]
+            measurable_i += 1
+    assert measurable_i == 23
+    contrast_records = {
+        name: [{"seed": seed, "value": values_by_seed[seed]} for seed in locked]
+        for name in names
+    }
+    gated = apply_locked_history_verdict_gate(
+        raw_verdict,
+        contrast_records=contrast_records,
+        locked_seeds=locked,
+    )
+    # Independently specified expectation for the analyze lock path.
+    assert gated["verdict"] == VERDICT_BLOCKED
+    assert gated["verdict"] != VERDICT_NEGATIVE
+    assert gated["verdict"] != VERDICT_INCONCLUSIVE
+    assert gated["ok"] is False
+    assert gated["dropped_seeds"] == [dropped_seed]
+    assert gated["n_locked"] == 24
+    assert gated["n_used"] == {name: 23 for name in names}
+    for name in names:
+        assessment = gated["assessments"][name]
+        assert assessment["reason"] == "unmeasurable-omitted"
+        assert assessment["support_allowed"] is False

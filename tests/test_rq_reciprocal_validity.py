@@ -260,3 +260,27 @@ def test_matrix_margin_stays_missing_and_repeated_scores_cannot_prove() -> None:
     text = render_confirm_lock(design, code_commit="abc")
     assert text.splitlines()[0] == NO_CONFIRMATORY_SENTENCE
     assert text.strip().splitlines()[-1] == NO_CONFIRMATORY_SENTENCE
+
+
+
+def test_second_hold_does_not_recount_earlier_energy() -> None:
+    from dataclasses import replace as dc_replace
+
+    from codontrace.genesis.organism import GenesisOrganism
+    from codontrace.genesis.rq_mechanism_v2_phase4 import GENOME_B
+    from codontrace.genesis.rq_mechanism_v2_phase5 import ARM_ADAPTATION_CUT, build_phase5_arm
+
+    arm = build_phase5_arm(ARM_ADAPTATION_CUT, 9593)
+    assert arm.host_composition_hold is not None
+    extra = GenesisOrganism.from_bits("host-extra-002", GENOME_B, initial_runtime_atp=1.5, position=arm.food_patches[0])
+    arm.runner.population = dc_replace(arm.runner.population, organisms=tuple(arm.runner.population.organisms) + (extra,))
+    arm.host_composition_hold(arm)
+    first_entries = arm.energy_account["entries"]
+    again = GenesisOrganism.from_bits("host-extra-003", GENOME_B, initial_runtime_atp=1.5, position=arm.food_patches[0])
+    arm.runner.population = dc_replace(arm.runner.population, organisms=tuple(arm.runner.population.organisms) + (again,))
+    arm.host_composition_hold(arm)
+    assert arm.energy_account["entries"] == pytest.approx(first_entries)
+    assert arm.energy_account["exits"] == pytest.approx(1.5)
+    assert arm.energy_account["sum_after"] == pytest.approx(
+        arm.energy_account["sum_before"] - arm.energy_account["exits"] + arm.energy_account["entries"]
+    )

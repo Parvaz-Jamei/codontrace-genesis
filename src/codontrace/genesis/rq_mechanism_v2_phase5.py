@@ -939,6 +939,7 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
     if not isinstance(ledger, list):
         ledger = []
         arm.intervention_ledger = ledger
+    ledger_start = len(ledger)
     by_id = {str(org.id): org for org in arm.runner.population.organisms}
     if len(by_id) != len(tuple(arm.runner.population.organisms)):
         raise ConfigurationError("duplicate host id")
@@ -1020,8 +1021,9 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
         ordered.append(organism)
         roles[host_id] = "primary"
     rebuilt = bool(ordered) and all(str(org.id) not in by_id for org in ordered)
+    fresh = ledger[ledger_start:]
     if rebuilt:
-        for item in ledger:
+        for item in fresh:
             if item.get("kind") == "replacement":
                 item["kind"] = "rebuilt_population"
     arm.intervention_name = "rebuilt_population" if rebuilt else "hold_founder_genotypes"
@@ -1037,12 +1039,14 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
                 "resupply": False,
             }
         )
+    # Earlier calls stay on the ledger. This call's balance uses only its own lines.
+    fresh = ledger[ledger_start:]
     entries = sum(
         float(item["initial_atp"])
-        for item in ledger
+        for item in fresh
         if item.get("kind") in {"replacement", "rebuilt_population"}
     )
-    exits = sum(float(item["energy_out"]) for item in ledger if item.get("kind") == "population_exit")
+    exits = sum(float(item["energy_out"]) for item in fresh if item.get("kind") == "population_exit")
     sum_after = sum(float(org.atp_state.runtime_available) for org in ordered)
     if abs(sum_after - (sum_before - exits + entries)) > 1e-6:
         raise ConfigurationError("intervention energy does not balance")

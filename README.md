@@ -134,7 +134,7 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 |---|---|
 | Package | `codontrace` |
 | Public PyPI wheel | `0.3.0b9`, tag [`v0.3.0b9`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b9). Cuts `0.3.0b4` through `0.3.0b8` are immutable. This tree does not recut them. |
-| GitHub `main` | `0.3.0b12`, the `[project].version` in `pyproject.toml`. Not the PyPI wheel. |
+| GitHub `main` | `0.3.0b13`, the `[project].version` in `pyproject.toml`. Not the PyPI wheel. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,7 +168,7 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b9`. An editable install of `main` prints `0.3.0b12`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b9`. An editable install of `main` prints `0.3.0b13`.
 
 ```bash
 pip install codontrace==0.3.0b9
@@ -340,10 +340,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b12},
+  version = {0.3.0b13},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b12 is the git identity. The PyPI wheel remains 0.3.0b9. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b13 is the git identity. The PyPI wheel remains 0.3.0b9. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

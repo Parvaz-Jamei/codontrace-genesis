@@ -171,3 +171,28 @@ def test_adaptation_cut_hold_keeps_state_and_balances_energy() -> None:
     balance = arm.energy_account["sum_before"] - arm.energy_account["exits"] + arm.energy_account["entries"]
     assert arm.energy_account["sum_after"] == pytest.approx(balance)
     assert all(org.id != extra.id for org in arm._hosts())
+
+
+def test_only_an_id_swap_is_classified_as_moving_births() -> None:
+    from codontrace.genesis.rq_mechanism_v2_phase4 import equal_host_seats
+    from codontrace.genesis.rq_reciprocal_validity import swapped_seats, which_swap_moves
+
+    seats = equal_host_seats()
+    renamed = swapped_seats("ids", seats)
+    assert renamed[0]["host_id"].startswith("host-B-")
+    assert renamed[0]["window"] == seats[0]["window"]
+    genomes = swapped_seats("genome_background", seats)
+    assert genomes[0]["host_id"] == seats[0]["host_id"]
+    assert genomes[0]["window"] != seats[0]["window"]
+    food = swapped_seats("food_access", seats)
+    assert food[0]["role_letter"] == "B"
+    assert food[0]["host_id"].startswith("host-B-")
+    moved = which_swap_moves(
+        {"births_A": 4, "births_B": 0},
+        {
+            "processing_order": {"births_A": 4, "births_B": 0},
+            "ids": {"births_A": 0, "births_B": 4},
+            "position": {"births_A": 4, "births_B": 0},
+        },
+    )
+    assert moved["moved"] == ["ids"]

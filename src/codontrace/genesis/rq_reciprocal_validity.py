@@ -343,9 +343,11 @@ def _tally_generation(arm: object) -> dict[str, object]:
     arm.run_generations(1)  # type: ignore[attr-defined]
     births_id = {"A": 0, "B": 0, "other": 0}
     births_window: dict[str, int] = {}
+    parent_ids: list[str] = []
     for rec in arm.runner.population.lineage:  # type: ignore[attr-defined]
         if rec.organism_id in before or not rec.parent_id or int(rec.generation) == 0:
             continue
+        parent_ids.append(str(rec.parent_id))
         births_id[_id_letter(str(rec.parent_id))] += 1
         parent_window = start.get(str(rec.parent_id))
         if parent_window is None:
@@ -368,6 +370,7 @@ def _tally_generation(arm: object) -> dict[str, object]:
         "births_by_id": births_id,
         "births_by_parent_window": births_window,
         "contacts": contacts,
+        "parent_ids": parent_ids,
         "deaths_A": deaths_id["A"],
         "deaths_B": deaths_id["B"],
         "direction": selection_direction(births_id["A"], births_id["B"], deaths_id["A"], deaths_id["B"]),

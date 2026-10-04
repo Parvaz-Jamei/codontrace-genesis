@@ -196,3 +196,67 @@ def test_only_an_id_swap_is_classified_as_moving_births() -> None:
         },
     )
     assert moved["moved"] == ["ids"]
+
+
+
+def test_matrix_margin_stays_missing_and_repeated_scores_cannot_prove() -> None:
+    from codontrace.genesis.rq_reciprocal_validity import (
+        IMPORTANCE_BOUND,
+        NO_CONFIRMATORY_SENTENCE,
+        assess_matrix_scores,
+        matrix_margins,
+        render_confirm_lock,
+    )
+
+    missing = matrix_margins(
+        {
+            "future_host__present_parasite": 0.2,
+            "past_host__present_parasite": 0.2,
+            "present_host__future_parasite": 0.4,
+            "present_host__past_parasite": None,
+            "present_host__present_parasite": 0.5,
+        }
+    )
+    assert missing["host_margin"] is None
+    assert missing["parasite_margin"] == pytest.approx(0.3)
+    seeds = list(range(9911, 9923))
+    one = {
+        "history_id": "h",
+        "margins": {"host_margin": 0.1, "parasite_margin": 0.1},
+        "matrix": {"a": 1},
+        "seed": 9911,
+    }
+    copy = dict(one)
+    copy["seed"] = 9912
+    copy["history_id"] = "h2"
+    with pytest.raises(ConfigurationError, match="duplicate history"):
+        assess_matrix_scores([one, copy], seeds, importance_bound=IMPORTANCE_BOUND)
+    dropped = [
+        {
+            "history_id": f"h-{seed}",
+            "margins": {"host_margin": None, "parasite_margin": 0.1},
+            "matrix": {"cell": seed},
+            "seed": seed,
+        }
+        for seed in seeds
+    ]
+    blocked = assess_matrix_scores(dropped, seeds, importance_bound=IMPORTANCE_BOUND)
+    assert blocked["n_independent"] == 0
+    assert blocked["verdict"] == "BLOCKED_MEASUREMENT"
+    assert blocked["red_queen_proved"] is False
+    design = {
+        "budget": 70,
+        "fitness_delay": None,
+        "fitness_delay_unmeasurable": True,
+        "future_generation": 70,
+        "horizon": 70,
+        "host_replacement": 70.0,
+        "importance_bound": IMPORTANCE_BOUND,
+        "parasite_replacement": 3.0,
+        "past_generation": 64,
+        "present_generation": 67,
+        "primary_lag": 3,
+    }
+    text = render_confirm_lock(design, code_commit="abc")
+    assert text.splitlines()[0] == NO_CONFIRMATORY_SENTENCE
+    assert text.strip().splitlines()[-1] == NO_CONFIRMATORY_SENTENCE

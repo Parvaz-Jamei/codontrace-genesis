@@ -10,14 +10,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import threading
+import time
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import _window
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import STRUCT_SOFT_K
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE
 from codontrace.genesis.rq_bidirectional_timeshift import ARM_A, build_arm
+from codontrace.genesis.rq_bidirectional_timeshift_confirm import infectivity
 from codontrace.genesis.rq_mechanism_v2_phase4 import (
     GENOME_A,
     GENOME_B,
@@ -32,14 +38,22 @@ from codontrace.genesis.rq_mechanism_v2_phase4 import (
 )
 from codontrace.genesis.rq_mechanism_v2_phase5 import (
     VERDICT_BLOCKED,
+    _arm_rows,
     _binary_verdict,
+    _people,
+    _statistical_verdict,
+    _worker,
     assert_measurement_floor,
     direction_reversal,
     genotype_frequency,
     lineage_relative_fitness,
+    replay_phase5_archive,
+    resolve_workers,
     run_phase5_history,
+    sampling_interval,
     wilson_interval,
 )
+from codontrace.genesis.rq_mechanism_v2_phase6 import replacement_time
 
 TARGET_QUANTITY = "paired_infectivity_margin"
 
@@ -542,3 +556,415 @@ def run_selection_series(root: Path, *, generations: int = 8) -> dict[str, objec
     }
     (root / "series.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return payload
+
+
+
+PILOT_SEEDS = (9901, 9902, 9903)
+SHORT_SEED = 9904
+CONFIRM_SEEDS = tuple(range(9911, 9923))
+# One bit of affinity is 1/6. One such seat among STRUCT_SOFT_K contact seats.
+IMPORTANCE_BOUND = (1.0 / 6.0) / float(STRUCT_SOFT_K)
+MATRIX_TIMES = ("past", "present", "future")
+NO_CONFIRMATORY_SENTENCE = "No confirmatory number has been computed."
+
+
+def _roster_windows(people: Sequence[Mapping[str, object]] | None) -> tuple[str, ...] | None:
+    if not people:
+        return None
+    return tuple(sorted(str(person["window"]) for person in people))
+
+
+def response_diversity_fixation(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    """Response time, diversity, and fixation. A side that never changes stays missing."""
+
+    if not rows:
+        raise ConfigurationError("pilot rows are empty")
+    ordered = sorted(rows, key=lambda row: int(row["generation"]))
+    first_hosts = _roster_windows(_people(ordered[0], "hosts"))
+    first_parasites = _roster_windows(_people(ordered[0], "parasites"))
+    host_response = None
+    parasite_response = None
+    for row in ordered:
+        if host_response is None and _roster_windows(_people(row, "hosts")) != first_hosts:
+            host_response = int(row["generation"])
+        if parasite_response is None and _roster_windows(_people(row, "parasites")) != first_parasites:
+            parasite_response = int(row["generation"])
+    last_hosts = _people(ordered[-1], "hosts") or []
+    last_parasites = _people(ordered[-1], "parasites") or []
+    host_windows = [str(person["window"]) for person in last_hosts]
+    parasite_windows = [str(person["window"]) for person in last_parasites]
+    def _fixed(windows: list[str]) -> bool | None:
+        if not windows:
+            return None
+        return len(set(windows)) == 1
+
+    return {
+        "host_diversity": len(set(host_windows)) if host_windows else None,
+        "host_fixed": _fixed(host_windows),
+        "host_response_generation": host_response,
+        "parasite_diversity": len(set(parasite_windows)) if parasite_windows else None,
+        "parasite_fixed": _fixed(parasite_windows),
+        "parasite_response_generation": parasite_response,
+    }
+
+
+def choose_reciprocal_horizon(
+    *,
+    parasite_replacement: float | None,
+    host_replacement: float | None,
+    fitness_delay: float | None,
+) -> dict[str, object]:
+    """Max of the measured times. A missing time stays missing. The horizon is not shortened."""
+
+    if parasite_replacement is None or host_replacement is None:
+        raise ConfigurationError("replacement time is missing; it is not filled with zero")
+    parasite = float(parasite_replacement)
+    host = float(host_replacement)
+    if parasite <= 0.0 or host <= 0.0 or not math.isfinite(parasite) or not math.isfinite(host):
+        raise ConfigurationError("replacement time must be positive and finite")
+    delay = None if fitness_delay is None else float(fitness_delay)
+    if delay is not None and (delay <= 0.0 or not math.isfinite(delay)):
+        raise ConfigurationError("fitness delay must be positive or null")
+    horizon = max(math.ceil(parasite), math.ceil(host))
+    if delay is not None:
+        horizon = max(horizon, math.ceil(delay))
+    lag = max(1, int(round(parasite)))
+    if lag >= horizon or horizon - 2 * lag < 1:
+        raise ConfigurationError("lag does not leave past, present, and future inside the horizon")
+    return {
+        "budget": int(horizon),
+        "fitness_delay": delay,
+        "fitness_delay_unmeasurable": delay is None,
+        "future_generation": int(horizon),
+        "horizon": int(horizon),
+        "host_replacement": host,
+        "importance_bound": IMPORTANCE_BOUND,
+        "parasite_replacement": parasite,
+        "past_generation": int(horizon - 2 * lag),
+        "present_generation": int(horizon - lag),
+        "primary_lag": int(lag),
+        "turnover_multiple_used": False,
+    }
+
+
+def matrix_cells(
+    rows: Sequence[Mapping[str, object]],
+    *,
+    arm: str,
+    past: int,
+    present: int,
+    future: int,
+) -> dict[str, float | None]:
+    """Past/present/future hosts by past/present/future parasites. Missing stays null."""
+
+    mapped = _arm_rows(rows, arm)
+    times = {"past": int(past), "present": int(present), "future": int(future)}
+    cells: dict[str, float | None] = {}
+    for host_name, host_gen in times.items():
+        host_row = mapped.get(host_gen)
+        hosts = None if host_row is None else _people(host_row, "hosts")
+        for parasite_name, parasite_gen in times.items():
+            parasite_row = mapped.get(parasite_gen)
+            parasites = None if parasite_row is None else _people(parasite_row, "parasites")
+            key = f"{host_name}_host__{parasite_name}_parasite"
+            if not hosts or not parasites:
+                cells[key] = None
+            else:
+                cells[key] = infectivity(hosts, parasites)
+    return cells
+
+
+def matrix_margins(cells: Mapping[str, float | None]) -> dict[str, float | None]:
+    """Same trait on both sides. A missing cell makes that margin missing."""
+
+    def _margin(focal: float | None, left: float | None, right: float | None) -> float | None:
+        if focal is None or left is None or right is None:
+            return None
+        return float(focal) - (float(left) + float(right)) / 2.0
+
+    focal = cells.get("present_host__present_parasite")
+    return {
+        "host_margin": _margin(
+            focal,
+            cells.get("present_host__past_parasite"),
+            cells.get("present_host__future_parasite"),
+        ),
+        "parasite_margin": _margin(
+            focal,
+            cells.get("past_host__present_parasite"),
+            cells.get("future_host__present_parasite"),
+        ),
+        "target_quantity": TARGET_QUANTITY,
+    }
+
+
+def assess_matrix_scores(
+    scores: Sequence[Mapping[str, object]],
+    locked_seeds: Sequence[int],
+    *,
+    importance_bound: float,
+) -> dict[str, object]:
+    """n is independent valid histories. A boolean label is not read."""
+
+    floor = assert_measurement_floor()
+    if abs(float(importance_bound) - IMPORTANCE_BOUND) > 1e-15:
+        raise ConfigurationError("importance bound is the locked seat quantum")
+    locked = tuple(int(seed) for seed in locked_seeds)
+    if len(locked) != len(set(locked)):
+        raise ConfigurationError("duplicate seeds")
+    if len(locked) < floor:
+        raise ConfigurationError("locked history count is below MEASUREMENT_FLOOR")
+    by_seed: dict[int, Mapping[str, object]] = {}
+    seen_ids: set[str] = set()
+    seen_body: set[str] = set()
+    for score in scores:
+        seed = int(score["seed"])
+        history_id = str(score["history_id"])
+        if history_id in seen_ids:
+            raise ConfigurationError("duplicate history_id")
+        seen_ids.add(history_id)
+        body = _content_digest([{"generation": 1, "margins": score.get("margins"), "matrix": score.get("matrix")}])
+        if body in seen_body:
+            raise ConfigurationError("duplicate history")
+        seen_body.add(body)
+        if seed in by_seed:
+            raise ConfigurationError("duplicate seeds")
+        by_seed[seed] = score
+    host_values: list[float] = []
+    parasite_values: list[float] = []
+    both_positive = 0
+    dropped: list[int] = []
+    for seed in locked:
+        score = by_seed.get(seed)
+        if score is None:
+            dropped.append(seed)
+            continue
+        margins = score.get("margins")
+        if not isinstance(margins, Mapping):
+            dropped.append(seed)
+            continue
+        host_margin = margins.get("host_margin")
+        parasite_margin = margins.get("parasite_margin")
+        if host_margin is None or parasite_margin is None:
+            dropped.append(seed)
+            continue
+        host_values.append(float(host_margin))
+        parasite_values.append(float(parasite_margin))
+        if float(host_margin) > 0.0 and float(parasite_margin) > 0.0:
+            both_positive += 1
+    blocked = len(dropped) > 0 or len(host_values) != len(locked)
+    report: dict[str, object] = {
+        "binary_index": None,
+        "dropped_seeds": dropped,
+        "host_margin": None,
+        "importance_bound": float(importance_bound),
+        "measurement_floor": floor,
+        "n_independent": 0 if blocked else len(host_values),
+        "n_locked": len(locked),
+        "parasite_margin": None,
+        "red_queen_proved": False,
+        "supported_forbidden": False,
+        "target_quantity": TARGET_QUANTITY,
+        "used_boolean_label": False,
+        "verdict": VERDICT_BLOCKED,
+    }
+    if blocked:
+        return report
+    host_interval = sampling_interval(host_values)
+    parasite_interval = sampling_interval(parasite_values)
+    binary = wilson_interval(both_positive, len(locked))
+    host_verdict = _statistical_verdict(host_interval, importance_bound)
+    parasite_verdict = _statistical_verdict(parasite_interval, importance_bound)
+    binary_verdict = _binary_verdict(binary, importance_bound)
+    # Both continuous margins must clear the seat quantum. The rate is separate.
+    if host_verdict == "NEGATIVE" or parasite_verdict == "NEGATIVE":
+        verdict = "NEGATIVE"
+    elif host_verdict == "SUPPORTED" and parasite_verdict == "SUPPORTED":
+        verdict = "SUPPORTED"
+    else:
+        verdict = "INCONCLUSIVE"
+    report.update(
+        {
+            "binary_index": {"interval": binary, "k": both_positive, "verdict": binary_verdict},
+            "host_margin": {"interval": host_interval, "verdict": host_verdict},
+            "n_independent": len(host_values),
+            "parasite_margin": {"interval": parasite_interval, "verdict": parasite_verdict},
+            "verdict": verdict,
+        }
+    )
+    return report
+
+
+def render_confirm_lock(design: Mapping[str, object], *, code_commit: str) -> str:
+    """First sentence is the required sentence. No confirmatory mean is included."""
+
+    lines = [
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+        f"Code commit: `{code_commit}`.",
+        "This lock is not a confirmatory result.",
+        "",
+        "Primary estimand, same infectivity trait on both antagonists:",
+        "`I(present hosts, present parasites) - mean(I(present hosts, past parasites), I(present hosts, future parasites))`",
+        "and",
+        "`I(present hosts, present parasites) - mean(I(past hosts, present parasites), I(future hosts, present parasites))`.",
+        "A missing cell stays missing. The two margins are not added.",
+        "Reversal of two fixed genotypes is not this estimand. The other matrix cells are exploratory.",
+        "",
+        f"Past generation: {design['past_generation']}. Present: {design['present_generation']}. Future: {design['future_generation']}.",
+        f"Horizon: {design['horizon']}. Lag: {design['primary_lag']}. Budget: {design['budget']}. The horizon was not shortened.",
+        f"Host replacement: {design['host_replacement']}. Parasite replacement: {design['parasite_replacement']}.",
+        f"Fitness delay: {design['fitness_delay']}. Unmeasurable: {design['fitness_delay_unmeasurable']}.",
+        f"Importance bound: {design['importance_bound']}. It is one bit of affinity (1/6) on one of {int(STRUCT_SOFT_K)} seats.",
+        "It was not taken from a confirmatory mean. SUPPORTED requires both continuous lower bounds to clear it.",
+        "The binary index is the count of histories where both margins are positive. Its interval is Wilson, equation (4) of Brown, Cai, and DasGupta 2001.",
+        "The binary index is not the continuous margin. 0/n and n/n keep the endpoint.",
+        f"`MEASUREMENT_FLOOR` stays {int(assert_measurement_floor())}. Workers at most 7.",
+        f"Seeds: {CONFIRM_SEEDS[0]} through {CONFIRM_SEEDS[-1]}.",
+        "Pilot seeds 9901-9903 and short seed 9904 are not in that list.",
+        "`red_queen_proved` is not set from this criterion.",
+        "",
+        NO_CONFIRMATORY_SENTENCE,
+        "",
+    ]
+    return "\n".join(lines)
+
+
+
+def _read_jsonl(path: Path) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            parsed = json.loads(line)
+            if isinstance(parsed, dict):
+                rows.append(parsed)
+    return rows
+
+
+def _coevolve_rows(path: Path) -> list[dict[str, object]]:
+    return [row for row in _read_jsonl(path) if row.get("arm") == "coevolve"]
+
+
+def run_pilot(root: Path, *, generations: int = 12) -> dict[str, object]:
+    """Exploratory pilot. These seeds are not the confirmatory."""
+
+    root.mkdir(parents=True, exist_ok=True)
+    per_seed = []
+    for seed in PILOT_SEEDS:
+        outcome = run_phase5_history(
+            seed,
+            str(root),
+            int(generations),
+            arms=("coevolve",),
+            compare_one_shot=False,
+        )
+        archive = root / "by_seed" / f"seed{seed}" / "archive.jsonl"
+        rows = _coevolve_rows(archive)
+        measured = response_diversity_fixation(rows)
+        host_births = [len(row.get("host_births") or []) for row in rows]
+        host_census = [len(row.get("hosts") or []) for row in rows]
+        parasite_births = [int(row.get("parasite_births") or 0) for row in rows]
+        parasite_census = [int(row.get("parasite_census") or 0) for row in rows]
+        per_seed.append(
+            {
+                "failed": outcome["failed"],
+                "host_replacement": replacement_time(host_births, host_census),
+                "measured": measured,
+                "parasite_replacement": replacement_time(parasite_births, parasite_census),
+                "seed": seed,
+            }
+        )
+    payload = {"exploratory": True, "generations": int(generations), "red_queen_proved": False, "seeds": per_seed}
+    (root / "pilot_summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return payload
+
+
+def run_short(root: Path, *, generations: int = 4) -> dict[str, object]:
+    """One-shot versus resume, then replay. Not a confirmatory."""
+
+    outcome = run_phase5_history(
+        SHORT_SEED,
+        str(root),
+        int(generations),
+        arms=("coevolve", "adaptation_cut", "constant_parasite"),
+        compare_one_shot=True,
+    )
+    archive = root / "by_seed" / f"seed{SHORT_SEED}" / "archive.jsonl"
+    replay = replay_phase5_archive(archive) if archive.is_file() else {"matched": False, "reason": "missing archive"}
+    payload = {"failed": outcome["failed"], "red_queen_proved": False, "replay": replay, "seed": SHORT_SEED}
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "short_summary.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return payload
+
+
+def score_confirmatory_archives(root: Path, design: Mapping[str, object]) -> list[dict[str, object]]:
+    """Matrix margins from archives. Controls use the same cells."""
+
+    scores = []
+    for seed in CONFIRM_SEEDS:
+        archive = root / "by_seed" / f"seed{seed}" / "archive.jsonl"
+        rows = _read_jsonl(archive)
+        arms = {}
+        for arm in ("coevolve", "adaptation_cut", "constant_parasite"):
+            cells = matrix_cells(
+                rows,
+                arm=arm,
+                past=int(design["past_generation"]),
+                present=int(design["present_generation"]),
+                future=int(design["future_generation"]),
+            )
+            arms[arm] = {"cells": cells, "margins": matrix_margins(cells)}
+        primary = arms["coevolve"]["margins"]
+        scores.append(
+            {
+                "arms": arms,
+                "history_id": f"rq-reciprocal-{seed}",
+                "margins": primary,
+                "matrix": arms["coevolve"]["cells"],
+                "seed": seed,
+            }
+        )
+    return scores
+
+
+def _health_loop(path: Path, stop: threading.Event) -> None:
+    while not stop.wait(600):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"health ts={time.time()} red_queen_proved=false\n")
+
+
+def run_confirmatory(root: Path, *, generations: int, workers: int = 7) -> dict[str, object]:
+    """Fresh seeds. Stops on a history failure. Does not retune."""
+
+    if int(generations) < 1:
+        raise ConfigurationError("confirmatory generations must be positive")
+    workers_used = resolve_workers(workers)
+    root.mkdir(parents=True, exist_ok=True)
+    health = root / "health.log"
+    stop = threading.Event()
+    thread = threading.Thread(target=_health_loop, args=(health, stop), daemon=True)
+    thread.start()
+    jobs = [
+        {
+            "arms": ["coevolve", "adaptation_cut", "constant_parasite"],
+            "compare_one_shot": True,
+            "generations": int(generations),
+            "passage_override": None,
+            "root": str(root),
+            "seed": seed,
+        }
+        for seed in CONFIRM_SEEDS
+    ]
+    failed = []
+    try:
+        with ProcessPoolExecutor(max_workers=workers_used) as pool:
+            futures = [pool.submit(_worker, job) for job in jobs]
+            for future in as_completed(futures):
+                outcome = future.result()
+                if outcome.get("failed"):
+                    failed.append(outcome)
+                    (root / "STOP").write_text(str(outcome["failed"]) + "\n", encoding="utf-8")
+    finally:
+        stop.set()
+    return {"failed": failed, "red_queen_proved": False, "workers": workers_used}

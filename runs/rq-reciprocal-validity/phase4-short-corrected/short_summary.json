@@ -1,0 +1,13 @@
+{
+  "corrects": 9904,
+  "failed": null,
+  "red_queen_proved": false,
+  "replay": {
+    "compared_generations": 12,
+    "matched": true,
+    "mismatches": [],
+    "red_queen_proved": false,
+    "unmeasurable_generations": 0
+  },
+  "seed": 9905
+}

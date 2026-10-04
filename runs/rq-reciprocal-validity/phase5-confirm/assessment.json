@@ -1,0 +1,63 @@
+{
+  "binary_index": {
+    "interval": {
+      "ci95": [
+        0.19326031353363787,
+        0.6804886876249334
+      ],
+      "k": 5,
+      "lower": 0.19326031353363787,
+      "mean": 0.4166666666666667,
+      "n": 12,
+      "null": 0.5,
+      "p_one_sided": 0.38720703125,
+      "p_two_sided": 0.7744140625,
+      "se_zero": false,
+      "upper": 0.6804886876249334,
+      "wald_se": 0.14231876063832774,
+      "wald_se_zero": false
+    },
+    "k": 5,
+    "verdict": "INCONCLUSIVE"
+  },
+  "dropped_seeds": [],
+  "host_margin": {
+    "interval": {
+      "ci95": [
+        -0.03433459674045918,
+        0.00901485819968568
+      ],
+      "lower": -0.03433459674045918,
+      "mean": -0.01265986927038675,
+      "n": 12,
+      "p_one_sided": 0.8874993182022344,
+      "se_zero": false,
+      "upper": 0.00901485819968568
+    },
+    "verdict": "INCONCLUSIVE"
+  },
+  "importance_bound": 0.0026041666666666665,
+  "measurement_floor": 12,
+  "n_independent": 12,
+  "n_locked": 12,
+  "parasite_margin": {
+    "interval": {
+      "ci95": [
+        -0.010217518407846198,
+        0.031247223183996205
+      ],
+      "lower": -0.010217518407846198,
+      "mean": 0.010514852388075003,
+      "n": 12,
+      "p_one_sided": 0.14404753353303373,
+      "se_zero": false,
+      "upper": 0.031247223183996205
+    },
+    "verdict": "INCONCLUSIVE"
+  },
+  "red_queen_proved": false,
+  "supported_forbidden": false,
+  "target_quantity": "paired_infectivity_margin",
+  "used_boolean_label": false,
+  "verdict": "INCONCLUSIVE"
+}

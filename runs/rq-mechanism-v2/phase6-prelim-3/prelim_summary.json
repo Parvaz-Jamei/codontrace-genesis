@@ -1,0 +1,27 @@
+{
+  "design": null,
+  "design_error": "horizon exceeds the registered budget; it is not shortened",
+  "failed": [],
+  "fitness_delay": {
+    "delay": 9,
+    "measurable": true
+  },
+  "host_turnover": {
+    "mean_births": 0.9166666666666666,
+    "mean_census": 63.75,
+    "measurable": true,
+    "replacement": 69.54545454545455
+  },
+  "parasite_turnover": {
+    "mean_births": 21.916666666666668,
+    "mean_census": 64.0,
+    "measurable": true,
+    "replacement": 2.9201520912547525
+  },
+  "red_queen_proved": false,
+  "seeds": [
+    9807,
+    9808,
+    9809
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "direction_changed_by_parasites": false,
+  "parasite_source_generation": 7,
+  "parasite_source_sha256": "7359b8365d5b7ddfdca55190adb3a06f9788265b458c9da5ee98c09b977b9c0f",
+  "pressure": {
+    "births_A": 4,
+    "births_B": 0,
+    "births_by_id": {
+      "A": 4,
+      "B": 0,
+      "other": 0
+    },
+    "births_by_parent_window": {
+      "000000": 4
+    },
+    "contacts": 60,
+    "deaths_A": 0,
+    "deaths_B": 0,
+    "direction": {
+      "birth_sign_a_minus_b": 1,
+      "death_sign_a_minus_b": null
+    },
+    "living_windows": {
+      "000000": 34,
+      "111111": 30
+    },
+    "parent_ids": [
+      "host-A-001",
+      "host-A-002",
+      "host-A-003",
+      "host-A-004"
+    ]
+  },
+  "red_queen_proved": false,
+  "seed": 9883,
+  "source_archive_rewritten": false,
+  "swaps": {
+    "baseline": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "000000": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 34,
+        "111111": 30
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "baseline"
+    },
+    "food_access": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "000000": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 34,
+        "111111": 30
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "food_access"
+    },
+    "genome_background": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "111111": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 30,
+        "111111": 34
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "genome_background"
+    },
+    "ids": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "111111": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 30,
+        "111111": 34
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "ids"
+    },
+    "position": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "000000": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 34,
+        "111111": 30
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "position"
+    },
+    "processing_order": {
+      "births_A": 4,
+      "births_B": 0,
+      "births_by_id": {
+        "A": 4,
+        "B": 0,
+        "other": 0
+      },
+      "births_by_parent_window": {
+        "000000": 4
+      },
+      "contacts": 0,
+      "deaths_A": 0,
+      "deaths_B": 0,
+      "direction": {
+        "birth_sign_a_minus_b": 1,
+        "death_sign_a_minus_b": null
+      },
+      "living_windows": {
+        "000000": 34,
+        "111111": 30
+      },
+      "parent_ids": [
+        "host-A-001",
+        "host-A-002",
+        "host-A-003",
+        "host-A-004"
+      ],
+      "swap": "processing_order"
+    }
+  },
+  "which_swap_moves_id_births": {
+    "baseline_births_A": 4,
+    "baseline_births_B": 0,
+    "moved": []
+  }
+}

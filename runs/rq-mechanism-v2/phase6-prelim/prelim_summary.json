@@ -1,0 +1,16 @@
+{
+  "failed": [
+    {
+      "failed": "preselection-checkpoint-length",
+      "generations_completed": 1,
+      "red_queen_proved": false,
+      "seed": 9801
+    }
+  ],
+  "red_queen_proved": false,
+  "seeds": [
+    9800,
+    9801,
+    9802
+  ]
+}

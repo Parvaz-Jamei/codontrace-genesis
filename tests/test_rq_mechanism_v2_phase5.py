@@ -25,7 +25,6 @@ from codontrace.genesis.rq_mechanism_v2_phase5 import (
     PRECISION_B,
     PROBE_SEED,
     VERDICT_BLOCKED,
-    VERDICT_INCONCLUSIVE,
     VERDICT_NEGATIVE,
     VERDICT_NOT_DECLARED,
     VERDICT_SUPPORTED,
@@ -61,14 +60,20 @@ def _upper_ci(values: list[float]) -> float:
     return mean + student_t_ppf(0.975, len(values) - 1) * se
 
 
+_EVIDENCE = {"config_digest": "cfg-unit", "identity": "unit-history", "provenance": "unit-test"}
+
+
 def _row(seed: int, claim_a: float | None, *, reversal: bool | None, contact: float | None = 1.2) -> dict[str, object]:
     return {
         "census_wave": False,
         "claim_a": claim_a,
+        "config_digest": _EVIDENCE["config_digest"],
         "contact_pressure": contact,
         "contacts": 10 if contact is not None else None,
+        "evidence_id": _EVIDENCE["identity"],
         "fitness_measured": True if reversal is not None else None,
         "frequency": {WINDOW_A: 30, WINDOW_B: 30},
+        "provenance": _EVIDENCE["provenance"],
         "reversal": reversal,
         "seed": seed,
     }
@@ -97,11 +102,13 @@ def test_claim_gates_are_separate_and_importance_blocks_support() -> None:
     ]
     half = [1.0] * 6 + [0.0] * 6
     assert _lower(half) < 0.30 < _lower(positive)
-    separated = assess_phase5(rows, seeds, importance_bound=0.30, mde_a=1.0, mde_b=1.0)
+    separated = assess_phase5(rows, seeds, importance_bound=0.30, mde_a=1.0, mde_b=1.0, evidence=_EVIDENCE)
     assert separated["claim_a"]["verdict"] == VERDICT_SUPPORTED
     assert separated["claim_b"]["verdict"] != VERDICT_SUPPORTED
     assert separated["claim_a"]["verdict"] != separated["claim_b"]["verdict"]
     assert separated["red_queen_proved"] is False
+    assert separated["public_flag_is_in_model_claim"] is False
+    assert separated["evidence"]["bound"] is True
     assert separated["importance_is_mde"] is False
     undeclared = assess_phase5(rows, seeds, importance_bound=None, mde_a=1.0, mde_b=1.0)
     assert undeclared["claim_a"]["verdict"] == VERDICT_NOT_DECLARED
@@ -123,11 +130,17 @@ def test_claim_b_can_prove_only_when_its_own_criterion_is_met() -> None:
     assert _lower(rate) >= importance
     assert statistics.stdev(rate) > 0.0
     rows = [_row(seed, positive[index], reversal=flags[index]) for index, seed in enumerate(seeds)]
-    report = assess_phase5(rows, seeds, importance_bound=importance)
+    report = assess_phase5(rows, seeds, importance_bound=importance, evidence=_EVIDENCE)
     assert report["claim_b"]["verdict"] == VERDICT_SUPPORTED
     assert report["claim_b"]["criterion_met"] is True
-    assert report["red_queen_proved"] is True
+    assert report["in_model_support"] is True
+    assert report["red_queen_proved"] is False
+    assert report["public_flag_is_in_model_claim"] is False
     assert report["claim_a"]["verdict"] == VERDICT_SUPPORTED
+    bare = assess_phase5(rows, seeds, importance_bound=importance)
+    assert bare["claim_b"]["verdict"] != VERDICT_SUPPORTED
+    assert bare["in_model_support"] is False
+    assert bare["red_queen_proved"] is False
 
 
 def test_census_wave_alone_cannot_support_claim_b() -> None:
@@ -195,7 +208,10 @@ def test_complete_negative_direction_stays_negative() -> None:
     assert report["claim_a"]["verdict"] == VERDICT_NEGATIVE
     assert report["claim_a"]["mean"] == pytest.approx(statistics.fmean(negative))
     assert report["red_queen_proved"] is False
-    assert report["claim_b"]["verdict"] == VERDICT_INCONCLUSIVE
+    assert report["claim_b"]["verdict"] == VERDICT_NEGATIVE
+    assert report["claim_b"]["interval"]["wald_se_zero"] is True
+    assert report["claim_b"]["interval"]["p_two_sided"] not in (None, 0.0)
+    assert report["claim_b"]["interval"]["lower"] == 0.0
 
 
 def test_lineage_fitness_uses_births_not_a_missing_class_as_zero() -> None:
@@ -445,3 +461,91 @@ def test_phase5b_lock_keeps_claim_gates_and_forbids_support() -> None:
     assert blocked["claim_a"]["mean"] is None
     with pytest.raises(ConfigurationError):
         assert_phase5b_output_dir(Path("runs/rq-mechanism-v2/phase5-coevolution"))
+
+
+def test_duplicate_histories_and_generations_are_rejected() -> None:
+    half = list(range(9601, 9607))
+    rows = [_row(seed, 0.4, reversal=True) for seed in half]
+    doubled_seeds = half + half
+    with pytest.raises(ConfigurationError, match="duplicate seeds"):
+        assess_phase5(rows + rows, doubled_seeds, importance_bound=0.05, evidence=_EVIDENCE)
+    with pytest.raises(ConfigurationError, match="duplicate seeds"):
+        assess_phase5(rows, doubled_seeds, importance_bound=0.05, evidence=_EVIDENCE)
+    locked = list(range(9601, 9613))
+    full = [_row(seed, 0.4, reversal=False) for seed in locked]
+    full.append(_row(9601, 0.9, reversal=True))
+    with pytest.raises(ConfigurationError, match="contradictory rows"):
+        assess_phase5(full, locked, importance_bound=None)
+    copied = [_row(seed, 0.4, reversal=True) for seed in locked]
+    copied[0]["generations"] = [1, 2, 2]
+    with pytest.raises(ConfigurationError, match="duplicate generations"):
+        assess_phase5(copied, locked, importance_bound=None)
+    from codontrace.genesis.rq_mechanism_v2_phase5 import wilson_interval
+
+    none = wilson_interval(0, 12)
+    every = wilson_interval(12, 12)
+    assert none["lower"] == 0.0
+    assert none["upper"] < 0.5
+    assert none["p_two_sided"] == pytest.approx(2.0 / 4096.0)
+    assert none["p_one_sided"] != 0.0
+    assert none["se_zero"] is False
+    assert none["wald_se_zero"] is True
+    assert every["upper"] == 1.0
+    assert every["lower"] > 0.5
+    assert every["p_two_sided"] == pytest.approx(2.0 / 4096.0)
+    # Ten of twelve still clears the in-model bound. The public flag does not.
+    assert report_boundary_is_not_the_public_flag()
+
+
+def report_boundary_is_not_the_public_flag() -> bool:
+    seeds = list(range(9601, 9613))
+    rows = [_row(seed, 0.5, reversal=True) for seed in seeds]
+    report = assess_phase5(rows, seeds, importance_bound=0.2, evidence=_EVIDENCE)
+    assert report["claim_b"]["interval"]["upper"] == 1.0
+    assert report["claim_b"]["verdict"] == VERDICT_SUPPORTED
+    assert report["in_model_support"] is True
+    assert report["red_queen_proved"] is False
+    return True
+
+
+def test_genotype_hold_does_not_reset_atp_or_memory() -> None:
+    arm = build_phase5_arm(ARM_ADAPTATION_CUT, 9591)
+    host = arm._hosts()[0]
+    before = float(host.atp_state.runtime_available)
+    host.atp_state.debit_runtime(
+        1.0,
+        tick=0,
+        organism_id=host.id,
+        codon="000",
+        action="HOLD_CHECK",
+        reason="genotype hold must not resupply",
+    )
+    spent = float(host.atp_state.runtime_available)
+    assert spent == pytest.approx(before - 1.0)
+    sentinel = object()
+    host.episodic_memory = sentinel  # type: ignore[assignment]
+    assert arm.host_composition_hold is not None
+    arm.host_composition_hold(arm)
+    again = next(org for org in arm._hosts() if org.id == host.id)
+    assert again is host
+    assert float(again.atp_state.runtime_available) == pytest.approx(spent)
+    assert again.episodic_memory is sentinel
+    ledger = list(arm.intervention_ledger)
+    assert all(item["kind"] != "energy_resupply" for item in ledger)
+    assert all(item.get("resupply") is not True for item in ledger)
+    assert ledger == []
+    # A missing id is a replacement, not a silent resupply of the others.
+    from dataclasses import replace as dc_replace
+
+    survivors = tuple(org for org in arm.runner.population.organisms if org.id != host.id)
+    arm.runner.population = dc_replace(arm.runner.population, organisms=survivors)
+    kept = next(iter(arm._hosts()))
+    kept_atp = float(kept.atp_state.runtime_available)
+    arm.host_composition_hold(arm)
+    restored = next(org for org in arm._hosts() if org.id == host.id)
+    assert restored is not host
+    assert float(kept.atp_state.runtime_available) == pytest.approx(kept_atp)
+    kinds = [item["kind"] for item in arm.intervention_ledger]
+    assert kinds == ["replacement"]
+    assert arm.intervention_ledger[0]["host_id"] == host.id
+    assert arm.intervention_ledger[0]["resupply"] is False

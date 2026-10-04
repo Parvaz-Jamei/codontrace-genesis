@@ -1,0 +1,914 @@
+[
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5460992907801419,
+          "future_host__past_parasite": 0.49645390070921985,
+          "future_host__present_parasite": 0.5106382978723404,
+          "past_host__future_parasite": 0.48299319727891155,
+          "past_host__past_parasite": 0.49659863945578236,
+          "past_host__present_parasite": 0.49659863945578236,
+          "present_host__future_parasite": 0.5085470085470085,
+          "present_host__past_parasite": 0.452991452991453,
+          "present_host__present_parasite": 0.5042735042735043
+        },
+        "margins": {
+          "host_margin": 0.023504273504273532,
+          "parasite_margin": 0.0006550356094429111,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.4878787878787878,
+          "future_host__past_parasite": 0.4878787878787878,
+          "future_host__present_parasite": 0.4878787878787878,
+          "past_host__future_parasite": 0.4907407407407407,
+          "past_host__past_parasite": 0.4907407407407407,
+          "past_host__present_parasite": 0.4907407407407407,
+          "present_host__future_parasite": 0.46839080459770116,
+          "present_host__past_parasite": 0.46839080459770116,
+          "present_host__present_parasite": 0.46839080459770116
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.02091895971206309,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9911",
+    "margins": {
+      "host_margin": 0.023504273504273532,
+      "parasite_margin": 0.0006550356094429111,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5460992907801419,
+      "future_host__past_parasite": 0.49645390070921985,
+      "future_host__present_parasite": 0.5106382978723404,
+      "past_host__future_parasite": 0.48299319727891155,
+      "past_host__past_parasite": 0.49659863945578236,
+      "past_host__present_parasite": 0.49659863945578236,
+      "present_host__future_parasite": 0.5085470085470085,
+      "present_host__past_parasite": 0.452991452991453,
+      "present_host__present_parasite": 0.5042735042735043
+    },
+    "seed": 9911
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5305555555555556,
+          "future_host__past_parasite": 0.5305555555555556,
+          "future_host__present_parasite": 0.5194444444444445,
+          "past_host__future_parasite": 0.4912280701754387,
+          "past_host__past_parasite": 0.49415204678362573,
+          "past_host__present_parasite": 0.47953216374269,
+          "present_host__future_parasite": 0.5026881720430108,
+          "present_host__past_parasite": 0.5080645161290323,
+          "present_host__present_parasite": 0.5430107526881721
+        },
+        "margins": {
+          "host_margin": 0.037634408602150615,
+          "parasite_margin": 0.04352244859460486,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.475,
+          "future_host__past_parasite": 0.475,
+          "future_host__present_parasite": 0.475,
+          "past_host__future_parasite": 0.47619047619047616,
+          "past_host__past_parasite": 0.47619047619047616,
+          "past_host__present_parasite": 0.47619047619047616,
+          "present_host__future_parasite": 0.5061728395061729,
+          "present_host__past_parasite": 0.5061728395061729,
+          "present_host__present_parasite": 0.5061728395061729
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": 0.030577601410934796,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9912",
+    "margins": {
+      "host_margin": 0.037634408602150615,
+      "parasite_margin": 0.04352244859460486,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5305555555555556,
+      "future_host__past_parasite": 0.5305555555555556,
+      "future_host__present_parasite": 0.5194444444444445,
+      "past_host__future_parasite": 0.4912280701754387,
+      "past_host__past_parasite": 0.49415204678362573,
+      "past_host__present_parasite": 0.47953216374269,
+      "present_host__future_parasite": 0.5026881720430108,
+      "present_host__past_parasite": 0.5080645161290323,
+      "present_host__present_parasite": 0.5430107526881721
+    },
+    "seed": 9912
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.4972677595628416,
+          "future_host__past_parasite": 0.5245901639344263,
+          "future_host__present_parasite": 0.4754098360655737,
+          "past_host__future_parasite": 0.5431034482758621,
+          "past_host__past_parasite": 0.5229885057471264,
+          "past_host__present_parasite": 0.5114942528735632,
+          "present_host__future_parasite": 0.5493827160493828,
+          "present_host__past_parasite": 0.5185185185185186,
+          "present_host__present_parasite": 0.537037037037037
+        },
+        "margins": {
+          "host_margin": 0.0030864197530862114,
+          "parasite_margin": 0.043584992567468506,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.554421768707483,
+          "future_host__past_parasite": 0.554421768707483,
+          "future_host__present_parasite": 0.554421768707483,
+          "past_host__future_parasite": 0.49707602339181284,
+          "past_host__past_parasite": 0.49707602339181284,
+          "past_host__present_parasite": 0.49707602339181284,
+          "present_host__future_parasite": 0.443452380952381,
+          "present_host__past_parasite": 0.443452380952381,
+          "present_host__present_parasite": 0.443452380952381
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.08229651509726693,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9913",
+    "margins": {
+      "host_margin": 0.0030864197530862114,
+      "parasite_margin": 0.043584992567468506,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.4972677595628416,
+      "future_host__past_parasite": 0.5245901639344263,
+      "future_host__present_parasite": 0.4754098360655737,
+      "past_host__future_parasite": 0.5431034482758621,
+      "past_host__past_parasite": 0.5229885057471264,
+      "past_host__present_parasite": 0.5114942528735632,
+      "present_host__future_parasite": 0.5493827160493828,
+      "present_host__past_parasite": 0.5185185185185186,
+      "present_host__present_parasite": 0.537037037037037
+    },
+    "seed": 9913
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.4397163120567376,
+          "future_host__past_parasite": 0.4148936170212766,
+          "future_host__present_parasite": 0.47517730496453897,
+          "past_host__future_parasite": 0.52046783625731,
+          "past_host__past_parasite": 0.456140350877193,
+          "past_host__present_parasite": 0.5087719298245613,
+          "present_host__future_parasite": 0.5212765957446809,
+          "present_host__past_parasite": 0.4609929078014185,
+          "present_host__present_parasite": 0.44326241134751776
+        },
+        "margins": {
+          "host_margin": -0.0478723404255319,
+          "parasite_margin": -0.048712206047032414,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.4779874213836478,
+          "future_host__past_parasite": 0.4779874213836478,
+          "future_host__present_parasite": 0.4779874213836478,
+          "past_host__future_parasite": 0.5536723163841808,
+          "past_host__past_parasite": 0.5536723163841808,
+          "past_host__present_parasite": 0.5536723163841808,
+          "present_host__future_parasite": 0.49666666666666665,
+          "present_host__past_parasite": 0.49666666666666665,
+          "present_host__present_parasite": 0.49666666666666665
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.0191632022172476,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9914",
+    "margins": {
+      "host_margin": -0.0478723404255319,
+      "parasite_margin": -0.048712206047032414,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.4397163120567376,
+      "future_host__past_parasite": 0.4148936170212766,
+      "future_host__present_parasite": 0.47517730496453897,
+      "past_host__future_parasite": 0.52046783625731,
+      "past_host__past_parasite": 0.456140350877193,
+      "past_host__present_parasite": 0.5087719298245613,
+      "present_host__future_parasite": 0.5212765957446809,
+      "present_host__past_parasite": 0.4609929078014185,
+      "present_host__present_parasite": 0.44326241134751776
+    },
+    "seed": 9914
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5472222222222222,
+          "future_host__past_parasite": 0.4944444444444445,
+          "future_host__present_parasite": 0.5333333333333333,
+          "past_host__future_parasite": 0.4649122807017544,
+          "past_host__past_parasite": 0.5526315789473684,
+          "past_host__present_parasite": 0.5292397660818714,
+          "present_host__future_parasite": 0.5584795321637427,
+          "present_host__past_parasite": 0.5584795321637427,
+          "present_host__present_parasite": 0.48245614035087725
+        },
+        "margins": {
+          "host_margin": -0.07602339181286544,
+          "parasite_margin": -0.04883040935672511,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.5316091954022989,
+          "future_host__past_parasite": 0.5316091954022989,
+          "future_host__present_parasite": 0.5316091954022989,
+          "past_host__future_parasite": 0.46060606060606063,
+          "past_host__past_parasite": 0.46060606060606063,
+          "past_host__present_parasite": 0.46060606060606063,
+          "present_host__future_parasite": 0.5386904761904762,
+          "present_host__past_parasite": 0.5386904761904762,
+          "present_host__present_parasite": 0.5386904761904762
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": 0.04258284818629643,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9915",
+    "margins": {
+      "host_margin": -0.07602339181286544,
+      "parasite_margin": -0.04883040935672511,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5472222222222222,
+      "future_host__past_parasite": 0.4944444444444445,
+      "future_host__present_parasite": 0.5333333333333333,
+      "past_host__future_parasite": 0.4649122807017544,
+      "past_host__past_parasite": 0.5526315789473684,
+      "past_host__present_parasite": 0.5292397660818714,
+      "present_host__future_parasite": 0.5584795321637427,
+      "present_host__past_parasite": 0.5584795321637427,
+      "present_host__present_parasite": 0.48245614035087725
+    },
+    "seed": 9915
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.48148148148148145,
+          "future_host__past_parasite": 0.4907407407407407,
+          "future_host__present_parasite": 0.45987654320987653,
+          "past_host__future_parasite": 0.49404761904761896,
+          "past_host__past_parasite": 0.46726190476190477,
+          "past_host__present_parasite": 0.5,
+          "present_host__future_parasite": 0.5191256830601093,
+          "present_host__past_parasite": 0.49453551912568305,
+          "present_host__present_parasite": 0.5027322404371585
+        },
+        "margins": {
+          "host_margin": -0.004098360655737765,
+          "parasite_margin": 0.02279396883222018,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.4808743169398907,
+          "future_host__past_parasite": 0.4808743169398907,
+          "future_host__present_parasite": 0.4808743169398907,
+          "past_host__future_parasite": 0.5444444444444444,
+          "past_host__past_parasite": 0.5444444444444444,
+          "past_host__present_parasite": 0.5444444444444444,
+          "present_host__future_parasite": 0.4972222222222222,
+          "present_host__past_parasite": 0.4972222222222222,
+          "present_host__present_parasite": 0.4972222222222222
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.015437158469945367,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9916",
+    "margins": {
+      "host_margin": -0.004098360655737765,
+      "parasite_margin": 0.02279396883222018,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.48148148148148145,
+      "future_host__past_parasite": 0.4907407407407407,
+      "future_host__present_parasite": 0.45987654320987653,
+      "past_host__future_parasite": 0.49404761904761896,
+      "past_host__past_parasite": 0.46726190476190477,
+      "past_host__present_parasite": 0.5,
+      "present_host__future_parasite": 0.5191256830601093,
+      "present_host__past_parasite": 0.49453551912568305,
+      "present_host__present_parasite": 0.5027322404371585
+    },
+    "seed": 9916
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.46264367816091945,
+          "future_host__past_parasite": 0.5316091954022989,
+          "future_host__present_parasite": 0.5258620689655173,
+          "past_host__future_parasite": 0.5505952380952381,
+          "past_host__past_parasite": 0.4910714285714286,
+          "past_host__present_parasite": 0.488095238095238,
+          "present_host__future_parasite": 0.5534591194968553,
+          "present_host__past_parasite": 0.5220125786163522,
+          "present_host__present_parasite": 0.5440251572327045
+        },
+        "margins": {
+          "host_margin": 0.0062893081761007386,
+          "parasite_margin": 0.03704650370232676,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.4491525423728813,
+          "future_host__past_parasite": 0.4491525423728813,
+          "future_host__present_parasite": 0.4491525423728813,
+          "past_host__future_parasite": 0.47076023391812866,
+          "past_host__past_parasite": 0.47076023391812866,
+          "past_host__present_parasite": 0.47076023391812866,
+          "present_host__future_parasite": 0.4971751412429378,
+          "present_host__past_parasite": 0.4971751412429378,
+          "present_host__present_parasite": 0.4971751412429378
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": 0.03721875309743283,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9917",
+    "margins": {
+      "host_margin": 0.0062893081761007386,
+      "parasite_margin": 0.03704650370232676,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.46264367816091945,
+      "future_host__past_parasite": 0.5316091954022989,
+      "future_host__present_parasite": 0.5258620689655173,
+      "past_host__future_parasite": 0.5505952380952381,
+      "past_host__past_parasite": 0.4910714285714286,
+      "past_host__present_parasite": 0.488095238095238,
+      "present_host__future_parasite": 0.5534591194968553,
+      "present_host__past_parasite": 0.5220125786163522,
+      "present_host__present_parasite": 0.5440251572327045
+    },
+    "seed": 9917
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5282485875706215,
+          "future_host__past_parasite": 0.516949152542373,
+          "future_host__present_parasite": 0.5056497175141244,
+          "past_host__future_parasite": 0.52,
+          "past_host__past_parasite": 0.49333333333333335,
+          "past_host__present_parasite": 0.5033333333333333,
+          "present_host__future_parasite": 0.5871212121212122,
+          "present_host__past_parasite": 0.5113636363636364,
+          "present_host__present_parasite": 0.5
+        },
+        "margins": {
+          "host_margin": -0.04924242424242431,
+          "parasite_margin": -0.0044915254237287705,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.47756410256410253,
+          "future_host__past_parasite": 0.47756410256410253,
+          "future_host__present_parasite": 0.47756410256410253,
+          "past_host__future_parasite": 0.48511904761904767,
+          "past_host__past_parasite": 0.48511904761904767,
+          "past_host__present_parasite": 0.48511904761904767,
+          "present_host__future_parasite": 0.5321637426900585,
+          "present_host__past_parasite": 0.5321637426900585,
+          "present_host__present_parasite": 0.5321637426900585
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": 0.0508221675984834,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9918",
+    "margins": {
+      "host_margin": -0.04924242424242431,
+      "parasite_margin": -0.0044915254237287705,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5282485875706215,
+      "future_host__past_parasite": 0.516949152542373,
+      "future_host__present_parasite": 0.5056497175141244,
+      "past_host__future_parasite": 0.52,
+      "past_host__past_parasite": 0.49333333333333335,
+      "past_host__present_parasite": 0.5033333333333333,
+      "present_host__future_parasite": 0.5871212121212122,
+      "present_host__past_parasite": 0.5113636363636364,
+      "present_host__present_parasite": 0.5
+    },
+    "seed": 9918
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5433333333333333,
+          "future_host__past_parasite": 0.5566666666666666,
+          "future_host__present_parasite": 0.5333333333333333,
+          "past_host__future_parasite": 0.5030864197530864,
+          "past_host__past_parasite": 0.5246913580246914,
+          "past_host__present_parasite": 0.5246913580246914,
+          "present_host__future_parasite": 0.5851851851851851,
+          "present_host__past_parasite": 0.5555555555555556,
+          "present_host__present_parasite": 0.548148148148148
+        },
+        "margins": {
+          "host_margin": -0.022222222222222365,
+          "parasite_margin": 0.01913580246913571,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.5036231884057971,
+          "future_host__past_parasite": 0.5036231884057971,
+          "future_host__present_parasite": 0.5036231884057971,
+          "past_host__future_parasite": 0.4937106918238994,
+          "past_host__past_parasite": 0.4937106918238994,
+          "past_host__present_parasite": 0.4937106918238994,
+          "present_host__future_parasite": 0.48290598290598286,
+          "present_host__past_parasite": 0.48290598290598286,
+          "present_host__present_parasite": 0.48290598290598286
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.01576095720886539,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9919",
+    "margins": {
+      "host_margin": -0.022222222222222365,
+      "parasite_margin": 0.01913580246913571,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5433333333333333,
+      "future_host__past_parasite": 0.5566666666666666,
+      "future_host__present_parasite": 0.5333333333333333,
+      "past_host__future_parasite": 0.5030864197530864,
+      "past_host__past_parasite": 0.5246913580246914,
+      "past_host__present_parasite": 0.5246913580246914,
+      "present_host__future_parasite": 0.5851851851851851,
+      "present_host__past_parasite": 0.5555555555555556,
+      "present_host__present_parasite": 0.548148148148148
+    },
+    "seed": 9919
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5303030303030303,
+          "future_host__past_parasite": 0.5090909090909091,
+          "future_host__present_parasite": 0.47878787878787876,
+          "past_host__future_parasite": 0.5055555555555556,
+          "past_host__past_parasite": 0.48333333333333334,
+          "past_host__present_parasite": 0.5083333333333333,
+          "present_host__future_parasite": 0.5526315789473684,
+          "present_host__past_parasite": 0.5146198830409356,
+          "present_host__present_parasite": 0.5058479532163743
+        },
+        "margins": {
+          "host_margin": -0.02777777777777768,
+          "parasite_margin": 0.012287347155768291,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.4888888888888888,
+          "future_host__past_parasite": 0.4888888888888888,
+          "future_host__present_parasite": 0.4888888888888888,
+          "past_host__future_parasite": 0.5416666666666667,
+          "past_host__past_parasite": 0.5416666666666667,
+          "past_host__present_parasite": 0.5416666666666667,
+          "present_host__future_parasite": 0.4942528735632184,
+          "present_host__past_parasite": 0.4942528735632184,
+          "present_host__present_parasite": 0.4942528735632184
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.021024904214559326,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9920",
+    "margins": {
+      "host_margin": -0.02777777777777768,
+      "parasite_margin": 0.012287347155768291,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5303030303030303,
+      "future_host__past_parasite": 0.5090909090909091,
+      "future_host__present_parasite": 0.47878787878787876,
+      "past_host__future_parasite": 0.5055555555555556,
+      "past_host__past_parasite": 0.48333333333333334,
+      "past_host__present_parasite": 0.5083333333333333,
+      "present_host__future_parasite": 0.5526315789473684,
+      "present_host__past_parasite": 0.5146198830409356,
+      "present_host__present_parasite": 0.5058479532163743
+    },
+    "seed": 9920
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.5130718954248366,
+          "future_host__past_parasite": 0.5522875816993464,
+          "future_host__present_parasite": 0.5098039215686274,
+          "past_host__future_parasite": 0.53954802259887,
+          "past_host__past_parasite": 0.5056497175141244,
+          "past_host__present_parasite": 0.5367231638418078,
+          "present_host__future_parasite": 0.5386904761904762,
+          "present_host__past_parasite": 0.5505952380952381,
+          "present_host__present_parasite": 0.5684523809523809
+        },
+        "margins": {
+          "host_margin": 0.023809523809523725,
+          "parasite_margin": 0.04518883824716324,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.5141242937853107,
+          "future_host__past_parasite": 0.5141242937853107,
+          "future_host__present_parasite": 0.5141242937853107,
+          "past_host__future_parasite": 0.5373563218390804,
+          "past_host__past_parasite": 0.5373563218390804,
+          "past_host__present_parasite": 0.5373563218390804,
+          "present_host__future_parasite": 0.5086206896551725,
+          "present_host__past_parasite": 0.5086206896551725,
+          "present_host__present_parasite": 0.5086206896551725
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.01711961815702312,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9921",
+    "margins": {
+      "host_margin": 0.023809523809523725,
+      "parasite_margin": 0.04518883824716324,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.5130718954248366,
+      "future_host__past_parasite": 0.5522875816993464,
+      "future_host__present_parasite": 0.5098039215686274,
+      "past_host__future_parasite": 0.53954802259887,
+      "past_host__past_parasite": 0.5056497175141244,
+      "past_host__present_parasite": 0.5367231638418078,
+      "present_host__future_parasite": 0.5386904761904762,
+      "present_host__past_parasite": 0.5505952380952381,
+      "present_host__present_parasite": 0.5684523809523809
+    },
+    "seed": 9921
+  },
+  {
+    "arms": {
+      "adaptation_cut": {
+        "cells": {
+          "future_host__future_parasite": 0.5666666666666667,
+          "future_host__past_parasite": 0.5666666666666667,
+          "future_host__present_parasite": 0.5666666666666667,
+          "past_host__future_parasite": 0.5409356725146199,
+          "past_host__past_parasite": 0.5409356725146199,
+          "past_host__present_parasite": 0.5409356725146199,
+          "present_host__future_parasite": 0.5467836257309941,
+          "present_host__past_parasite": 0.5467836257309941,
+          "present_host__present_parasite": 0.5467836257309941
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": -0.007017543859649145,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "coevolve": {
+        "cells": {
+          "future_host__future_parasite": 0.48692810457516333,
+          "future_host__past_parasite": 0.522875816993464,
+          "future_host__present_parasite": 0.4771241830065359,
+          "past_host__future_parasite": 0.47023809523809523,
+          "past_host__past_parasite": 0.5357142857142858,
+          "past_host__present_parasite": 0.5148809523809523,
+          "present_host__future_parasite": 0.5116959064327485,
+          "present_host__past_parasite": 0.5263157894736842,
+          "present_host__present_parasite": 0.5
+        },
+        "margins": {
+          "host_margin": -0.01900584795321636,
+          "parasite_margin": 0.003997432306255877,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      },
+      "constant_parasite": {
+        "cells": {
+          "future_host__future_parasite": 0.47619047619047616,
+          "future_host__past_parasite": 0.47619047619047616,
+          "future_host__present_parasite": 0.47619047619047616,
+          "past_host__future_parasite": 0.5,
+          "past_host__past_parasite": 0.5,
+          "past_host__present_parasite": 0.5,
+          "present_host__future_parasite": 0.5316091954022989,
+          "present_host__past_parasite": 0.5316091954022989,
+          "present_host__present_parasite": 0.5316091954022989
+        },
+        "margins": {
+          "host_margin": 0.0,
+          "parasite_margin": 0.04351395730706081,
+          "target_quantity": "paired_infectivity_margin"
+        }
+      }
+    },
+    "history_id": "rq-reciprocal-9922",
+    "margins": {
+      "host_margin": -0.01900584795321636,
+      "parasite_margin": 0.003997432306255877,
+      "target_quantity": "paired_infectivity_margin"
+    },
+    "matrix": {
+      "future_host__future_parasite": 0.48692810457516333,
+      "future_host__past_parasite": 0.522875816993464,
+      "future_host__present_parasite": 0.4771241830065359,
+      "past_host__future_parasite": 0.47023809523809523,
+      "past_host__past_parasite": 0.5357142857142858,
+      "past_host__present_parasite": 0.5148809523809523,
+      "present_host__future_parasite": 0.5116959064327485,
+      "present_host__past_parasite": 0.5263157894736842,
+      "present_host__present_parasite": 0.5
+    },
+    "seed": 9922
+  }
+]

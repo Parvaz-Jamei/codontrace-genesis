@@ -871,7 +871,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
         if self.passage == PASSAGE_ABSENT:
             self.graded_affinity_sum.append(0.0)
             self.graded_contact_count.append(0)
-            if self.collect_realised_host_pressure:
+            # Empty contact records, not a skipped list. The phase-5 invariant
+            # counts every generation. No debit is applied on this branch.
+            if self.antagonist_pop is not None or self.collect_realised_host_pressure:
                 self.contact_pair_records.append(())
             if self.antagonist_pop is not None:
                 self.antagonist_contact_events.append(())

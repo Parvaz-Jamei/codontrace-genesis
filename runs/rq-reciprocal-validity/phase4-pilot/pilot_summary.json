@@ -1,0 +1,79 @@
+{
+  "exploratory": true,
+  "generations": 12,
+  "red_queen_proved": false,
+  "seeds": [
+    {
+      "failed": null,
+      "host_replacement": {
+        "mean_births": 2.0,
+        "mean_census": 61.916666666666664,
+        "measurable": true,
+        "replacement": 30.958333333333332
+      },
+      "measured": {
+        "host_diversity": 38,
+        "host_fixed": false,
+        "host_response_generation": 2,
+        "parasite_diversity": 17,
+        "parasite_fixed": false,
+        "parasite_response_generation": 2
+      },
+      "parasite_replacement": {
+        "mean_births": 23.083333333333332,
+        "mean_census": 64.0,
+        "measurable": true,
+        "replacement": 2.772563176895307
+      },
+      "seed": 9901
+    },
+    {
+      "failed": null,
+      "host_replacement": {
+        "mean_births": 3.0,
+        "mean_census": 61.083333333333336,
+        "measurable": true,
+        "replacement": 20.36111111111111
+      },
+      "measured": {
+        "host_diversity": 31,
+        "host_fixed": false,
+        "host_response_generation": 2,
+        "parasite_diversity": 22,
+        "parasite_fixed": false,
+        "parasite_response_generation": 2
+      },
+      "parasite_replacement": {
+        "mean_births": 22.666666666666668,
+        "mean_census": 64.0,
+        "measurable": true,
+        "replacement": 2.8235294117647056
+      },
+      "seed": 9902
+    },
+    {
+      "failed": null,
+      "host_replacement": {
+        "mean_births": 3.75,
+        "mean_census": 60.583333333333336,
+        "measurable": true,
+        "replacement": 16.155555555555555
+      },
+      "measured": {
+        "host_diversity": 35,
+        "host_fixed": false,
+        "host_response_generation": 2,
+        "parasite_diversity": 18,
+        "parasite_fixed": false,
+        "parasite_response_generation": 2
+      },
+      "parasite_replacement": {
+        "mean_births": 23.333333333333332,
+        "mean_census": 64.0,
+        "measurable": true,
+        "replacement": 2.742857142857143
+      },
+      "seed": 9903
+    }
+  ]
+}

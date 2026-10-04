@@ -1,0 +1,12 @@
+{
+  "failed": "exception:ConfigurationError:intervention energy does not balance",
+  "red_queen_proved": false,
+  "replay": {
+    "compared_generations": 5,
+    "matched": true,
+    "mismatches": [],
+    "red_queen_proved": false,
+    "unmeasurable_generations": 0
+  },
+  "seed": 9904
+}

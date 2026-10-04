@@ -1,0 +1,825 @@
+{
+  "audits": [],
+  "budget": 70,
+  "by_seed": [
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 14,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          67
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          -1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": -0.0002645502645503006,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.037433862433862375,
+          "paired": 0.013624338624338594,
+          "parasite_effect": -0.02380952380952378
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": 0.03686127888026086,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.03686127888026086,
+          "paired": 0.03686127888026086,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9811
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 19,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          70
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          1,
+          1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": -0.033333333333333326,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.08787878787878806,
+          "paired": -0.015151515151515249,
+          "parasite_effect": 0.07272727272727281
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.04695524578136456,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.04695524578136456,
+          "paired": -0.04695524578136456,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9812
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 24,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          67
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          -1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": -0.010714668381013648,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.019500696453444766,
+          "paired": 0.002357227043823018,
+          "parasite_effect": 0.021857923497267784
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.017246506095747793,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.017246506095747793,
+          "paired": -0.017246506095747793,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9813
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 25,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          -1,
+          -1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.04195906432748525,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.016812865497076113,
+          "paired": 0.039035087719298145,
+          "parasite_effect": 0.022222222222222032
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.010483870967741893,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.010483870967741893,
+          "paired": -0.010483870967741893,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9814
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 27,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": true,
+        "direction_changes": [
+          67,
+          70
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          -1,
+          1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.012786596119929439,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.008928571428571397,
+          "paired": -0.011904761904761973,
+          "parasite_effect": -0.02083333333333337
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": 0.05052151238591923,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05052151238591923,
+          "paired": 0.05052151238591923,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9815
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 23,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          67
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          1,
+          -1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": -0.021890096618357502,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.010718599033816445,
+          "paired": -0.003774154589372025,
+          "parasite_effect": 0.00694444444444442
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": 0.02185960591133007,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.02185960591133007,
+          "paired": 0.02185960591133007,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9816
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 28,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.02822249589490966,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.011186371100164183,
+          "paired": 0.0341748768472907,
+          "parasite_effect": 0.02298850574712652
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.05042553191489363,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.05042553191489363,
+          "paired": -0.05042553191489363,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9817
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 35,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": true,
+        "direction_changes": [
+          67,
+          70
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          -1,
+          1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.0502297410192149,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.009137426900584777,
+          "paired": 0.04145781119465347,
+          "parasite_effect": 0.05059523809523825
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": 0.004154795821462498,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.004154795821462498,
+          "paired": 0.004154795821462498,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9818
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 24,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.006187785848802696,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.022240157833378127,
+          "paired": 0.009012644605864872,
+          "parasite_effect": -0.013227513227513255
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": 0.009692671394799068,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.009692671394799068,
+          "paired": 0.009692671394799068,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9819
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 22,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": false,
+        "signs": [
+          1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.05754573170731703,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.041158536585365946,
+          "paired": 0.0940040650406504,
+          "parasite_effect": 0.05284552845528445
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.005847953216374269,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.005847953216374269,
+          "paired": -0.005847953216374269,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9820
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 15,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          67
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          1,
+          -1,
+          -1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": -0.004668304668304646,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.0,
+          "paired": -0.018181818181818188,
+          "parasite_effect": -0.018181818181818188
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.03239801667793546,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.03239801667793546,
+          "paired": -0.03239801667793546,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9821
+    },
+    {
+      "accounting_error": null,
+      "exploratory_scan": {
+        "confirmatory": false,
+        "direction_changes": 30,
+        "exploratory": true
+      },
+      "oscillation": {
+        "continuing_cycle": false,
+        "direction_changes": [
+          67
+        ],
+        "exploratory": false,
+        "one_sign_change_is_not_a_cycle": true,
+        "signs": [
+          -1,
+          1,
+          1
+        ],
+        "times": [
+          64,
+          67,
+          70
+        ],
+        "unmeasurable": false
+      },
+      "paired": {
+        "adaptation_cut": {
+          "diagnostic_host_on_contemporary_parasites": 0.05729011795024286,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": 0.05729011795024286,
+          "paired": 0.05729011795024286,
+          "parasite_effect": 0.0
+        },
+        "coevolve": {
+          "diagnostic_host_on_contemporary_parasites": 0.01358974358974363,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.01717948717948714,
+          "paired": 0.032820512820512904,
+          "parasite_effect": 0.050000000000000044
+        },
+        "constant_parasite": {
+          "diagnostic_host_on_contemporary_parasites": -0.06887589343729689,
+          "diagnostic_mixed_into_paired": false,
+          "host_effect": -0.06887589343729689,
+          "paired": -0.06887589343729689,
+          "parasite_effect": 0.0
+        }
+      },
+      "red_queen_proved": false,
+      "seed": 9822
+    }
+  ],
+  "failed": [],
+  "horizon": 70,
+  "n_locked": 12,
+  "n_used": 12,
+  "one_shot_vs_resume": "matched on scientific_body inside each history before COMPLETE",
+  "primary_lag": 3,
+  "red_queen_proved": false,
+  "replay": [
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9811
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9812
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9813
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9814
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9815
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9816
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9817
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9818
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9819
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9820
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9821
+    },
+    {
+      "replay": {
+        "compared_generations": 210,
+        "matched": true,
+        "mismatches": [],
+        "red_queen_proved": false,
+        "unmeasurable_generations": 0
+      },
+      "seed": 9822
+    }
+  ],
+  "replay_matched": true,
+  "report": {
+    "continuing_cycle_n": 2,
+    "importance_bound": null,
+    "n_measurable_oscillation": 12,
+    "n_paired": 12,
+    "n_used": 12,
+    "oscillation_interval": {
+      "ci95": [
+        0.0469651421402176,
+        0.4480308624940672
+      ],
+      "k": 2,
+      "lower": 0.0469651421402176,
+      "mean": 0.16666666666666666,
+      "n": 12,
+      "null": 0.5,
+      "p_one_sided": 0.019287109375,
+      "p_two_sided": 0.03857421875,
+      "se_zero": false,
+      "upper": 0.4480308624940672,
+      "wald_se": 0.10758287072798381,
+      "wald_se_zero": false
+    },
+    "oscillation_verdict": "NEGATIVE",
+    "paired_interval": {
+      "ci95": [
+        -0.0023058732090795488,
+        0.038551592220573666
+      ],
+      "lower": -0.0023058732090795488,
+      "mean": 0.018122859505747057,
+      "n": 12,
+      "p_one_sided": 0.03839158853444875,
+      "se_zero": false,
+      "upper": 0.038551592220573666
+    },
+    "paired_verdict": "INCONCLUSIVE",
+    "red_queen_proved": false,
+    "seeds_scored": [
+      9811,
+      9812,
+      9813,
+      9814,
+      9815,
+      9816,
+      9817,
+      9818,
+      9819,
+      9820,
+      9821,
+      9822
+    ],
+    "supported_forbidden": true
+  },
+  "seeds": [
+    9811,
+    9812,
+    9813,
+    9814,
+    9815,
+    9816,
+    9817,
+    9818,
+    9819,
+    9820,
+    9821,
+    9822
+  ],
+  "stopped": null,
+  "summary_sha256": "948413a36d9046448f78de9cfb323207cf42852905d39329d6ba0e46d60b1344",
+  "workers": 7
+}

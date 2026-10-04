@@ -97,3 +97,77 @@ def test_label_only_history_is_not_a_valid_sample_and_cannot_prove_red_queen() -
     assert declared["verdict"] == VERDICT_SUPPORTED
     assert declared["red_queen_proved"] is False
     assert declared["verdict"] != VERDICT_NOT_DECLARED
+
+
+def test_adaptation_cut_hold_keeps_state_and_balances_energy() -> None:
+    from dataclasses import replace as dc_replace
+
+    from codontrace.genesis.organism import GenesisOrganism
+    from codontrace.genesis.rq_mechanism_v2_phase4 import GENOME_B, WINDOW_B
+    from codontrace.genesis.rq_mechanism_v2_phase5 import ARM_ADAPTATION_CUT, build_phase5_arm
+    from codontrace.genesis.rq_reciprocal_validity import TARGET_QUANTITY
+
+    arm = build_phase5_arm(ARM_ADAPTATION_CUT, 9592)
+    host = arm._hosts()[0]
+    host.atp_state.debit_runtime(
+        1.25,
+        tick=0,
+        organism_id=host.id,
+        codon="000",
+        action="HOLD_CHECK",
+        reason="state preservation",
+    )
+    host._step_index = 7
+    host._cursor = 3
+    host.position = arm.food_patches[-1]
+    digest_before = host.atp_state.ledger_digest()
+    atp_before = float(host.atp_state.runtime_available)
+    assert arm.host_composition_hold is not None
+    scratch = GenesisOrganism.from_bits(host.id + ":scratch", GENOME_B, initial_runtime_atp=0.0, position=host.position)
+    assert scratch  # genome B decodes
+    from codontrace.genesis.closed_loop_hp_arm01 import _window
+
+    host.genome = scratch.genome
+    host.ribosome = scratch.ribosome
+    host.compiled_brain = scratch.compiled_brain
+    assert _window(host) == WINDOW_B
+    arm.host_composition_hold(arm)
+    again = next(org for org in arm._hosts() if org.id == host.id)
+    assert again is host
+    assert float(again.atp_state.runtime_available) == pytest.approx(atp_before)
+    assert again.atp_state.ledger_digest() == digest_before
+    assert again._step_index == 7
+    assert again._cursor == 3
+    assert again.position == arm.food_patches[-1]
+    assert arm.energy_account["kind"] == "hold_founder_genotypes"
+    assert arm.energy_account["target_quantity"] == TARGET_QUANTITY
+    assert arm.energy_account["exits"] == 0.0
+    kinds = [item["kind"] for item in arm.intervention_ledger]
+    assert "genotype_restore" in kinds
+    assert "energy_resupply" not in kinds
+    extra = GenesisOrganism.from_bits(
+        "host-extra-001",
+        GENOME_B,
+        initial_runtime_atp=2.5,
+        position=arm.food_patches[0],
+    )
+    extra.atp_state.debit_runtime(
+        0.5,
+        tick=1,
+        organism_id=extra.id,
+        codon="000",
+        action="EXIT_CHECK",
+        reason="exit energy",
+    )
+    arm.runner.population = dc_replace(
+        arm.runner.population,
+        organisms=tuple(arm.runner.population.organisms) + (extra,),
+    )
+    arm.host_composition_hold(arm)
+    exit_lines = [item for item in arm.intervention_ledger if item["kind"] == "population_exit"]
+    assert [item["host_id"] for item in exit_lines] == ["host-extra-001"]
+    assert exit_lines[0]["energy_out"] == pytest.approx(2.0)
+    assert arm.energy_account["exits"] == pytest.approx(2.0)
+    balance = arm.energy_account["sum_before"] - arm.energy_account["exits"] + arm.energy_account["entries"]
+    assert arm.energy_account["sum_after"] == pytest.approx(balance)
+    assert all(org.id != extra.id for org in arm._hosts())

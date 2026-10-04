@@ -921,13 +921,15 @@ def _install_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]) -> 
 
 
 def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]) -> None:
-    """Keep founder windows without rebuilding a living id at the birth ATP.
+    """Keep founder windows without resetting a living host.
 
-    A living id keeps its ATP state and its memory object. A missing id is a
-    replacement and is the only path that constructs a body. That replacement
-    is its own ledger line. Genotype restore, population reset, and energy
-    resupply are not the same line. This hold writes neither a population
-    reset nor an energy resupply.
+    A living id keeps its ATP, ATP ledger, execution age (``_step_index``),
+    position, execution cursor, and memory object. A missing id is a
+    replacement and is the only path that constructs a body. An id that is
+    alive and not in the seat list is a ``population_exit`` with its energy
+    out. Replacing every living id is ``rebuilt_population``, not this hold.
+    Genotype restore, population exit, and energy resupply are not the same
+    line. This hold writes neither an energy resupply nor a full rebuild.
     """
 
     patches = list(arm.food_patches)
@@ -940,6 +942,7 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
     by_id = {str(org.id): org for org in arm.runner.population.organisms}
     if len(by_id) != len(tuple(arm.runner.population.organisms)):
         raise ConfigurationError("duplicate host id")
+    sum_before = sum(float(org.atp_state.runtime_available) for org in by_id.values())
     ordered: list[GenesisOrganism] = []
     roles: dict[str, str] = {"parasite_stock": ROLE_SECONDARY}
     seen: set[str] = set()
@@ -970,6 +973,10 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
         else:
             atp_before = float(existing.atp_state.runtime_available)
             memory_before = existing.episodic_memory
+            age_before = int(existing._step_index)
+            cursor_before = int(existing._cursor)
+            position_before = existing.position
+            ledger_before = existing.atp_state.ledger_digest()
             if _window(existing) != window:
                 scratch = GenesisOrganism.from_bits(
                     host_id + ":genotype-scratch",
@@ -982,6 +989,14 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
                 existing.compiled_brain = scratch.compiled_brain
                 if float(existing.atp_state.runtime_available) != atp_before:
                     raise ConfigurationError("genotype restore changed ATP")
+                if existing.atp_state.ledger_digest() != ledger_before:
+                    raise ConfigurationError("genotype restore changed the ATP ledger")
+                if int(existing._step_index) != age_before:
+                    raise ConfigurationError("genotype restore changed age")
+                if existing.position != position_before:
+                    raise ConfigurationError("genotype restore changed position")
+                if int(existing._cursor) != cursor_before:
+                    raise ConfigurationError("genotype restore changed execution state")
                 if existing.episodic_memory is not memory_before:
                     raise ConfigurationError("genotype restore changed memory")
                 ledger.append(
@@ -996,8 +1011,49 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
             organism = existing
         if _window(organism) != window:
             raise ConfigurationError("installed genome does not decode to its window")
+        if int(organism._step_index) != (0 if existing is None else age_before):
+            raise ConfigurationError("hold changed age")
+        if organism.position != (patches[index % len(patches)] if existing is None else position_before):
+            raise ConfigurationError("hold changed position")
+        if int(organism._cursor) != (0 if existing is None else cursor_before):
+            raise ConfigurationError("hold changed execution state")
         ordered.append(organism)
         roles[host_id] = "primary"
+    rebuilt = bool(ordered) and all(str(org.id) not in by_id for org in ordered)
+    if rebuilt:
+        for item in ledger:
+            if item.get("kind") == "replacement":
+                item["kind"] = "rebuilt_population"
+    arm.intervention_name = "rebuilt_population" if rebuilt else "hold_founder_genotypes"
+    for host_id, org in by_id.items():
+        if host_id in seen:
+            continue
+        ledger.append(
+            {
+                "energy_out": float(org.atp_state.runtime_available),
+                "host_id": host_id,
+                "kind": "population_exit",
+                "reset_atp": False,
+                "resupply": False,
+            }
+        )
+    entries = sum(
+        float(item["initial_atp"])
+        for item in ledger
+        if item.get("kind") in {"replacement", "rebuilt_population"}
+    )
+    exits = sum(float(item["energy_out"]) for item in ledger if item.get("kind") == "population_exit")
+    sum_after = sum(float(org.atp_state.runtime_available) for org in ordered)
+    if abs(sum_after - (sum_before - exits + entries)) > 1e-6:
+        raise ConfigurationError("intervention energy does not balance")
+    arm.energy_account = {
+        "entries": entries,
+        "exits": exits,
+        "kind": arm.intervention_name,
+        "sum_after": sum_after,
+        "sum_before": sum_before,
+        "target_quantity": "paired_infectivity_margin",
+    }
     arm.runner.population = replace(arm.runner.population, organisms=tuple(ordered))
     arm.roles = roles
 

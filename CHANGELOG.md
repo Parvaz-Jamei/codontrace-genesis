@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0b14] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b13`.
+
+- Phase-5 birth rows keep both parents, the window source, and recombination metadata (`genesis-birth-witness/2`). The legacy `parent_window` field stays. A missing window stays unmeasured.
+- A persisted generation set that is short or duplicated is not marked `COMPLETE`. A stale `COMPLETE` marker is removed.
+- Evolution rules, the RNG, and `engine.py` are unchanged. `red_queen_proved` stays false. HE03 `results_v1` stays absent.
+
 ## [0.3.0b10] — 2026-09-25
 
 Research-beta cut. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, `0.3.0b8`, or `0.3.0b9`. The PyPI wheel stays `0.3.0b9`.

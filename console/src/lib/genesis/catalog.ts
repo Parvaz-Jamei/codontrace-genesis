@@ -21,7 +21,7 @@ export const GATE_FILES = [
   { file: "test_rq_birth_archive_witness.py", count: 4 },
 ] as const;
 
-export const ENGINE_IDENTITY = "0.3.0b20";
+export const ENGINE_IDENTITY = "0.3.0b21";
 // Engine tree this preview was checked against. The console does not run it.
 export const ENGINE_COMMIT = "5209c87";
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0b21] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b20`.
+
+- A long log line wraps inside the run card instead of widening the page. The seed matrix scrolls inside the card, so the run buttons stay next to the header. Core lists wrap inside their cell.
+- The preview clock, the claim ceiling, and the engine are unchanged. `red_queen_proved` stays false.
+
 ## [0.3.0b20] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b19`.

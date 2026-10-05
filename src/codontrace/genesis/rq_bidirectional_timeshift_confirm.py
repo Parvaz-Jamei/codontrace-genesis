@@ -30,6 +30,7 @@ import json
 import math
 import os
 import statistics
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -1804,25 +1805,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     prereg = lock_confirmatory(root, code_commit=code_commit)
     block = cast(dict[str, object], prereg["confirmatory"])
     if block.get("revised_design") is not None and block.get("confirmatory_started") is not True:
-        print(
+        sys.stdout.write(
             "STOP before confirmatory generations: 24 seeds cannot resolve the "
-            f"practical effect {block.get('practical_effect')}. Revised design is locked.",
-            flush=True,
+            f"practical effect {block.get('practical_effect')}. Revised design is locked.\n"
         )
+        sys.stdout.flush()
         return 2
     if args.lock_only:
-        print(
+        dispersion = cast(dict[str, object], block["dispersion"])
+        sys.stdout.write(
             f"locked practical_effect={block.get('practical_effect')} "
-            f"resolvable={cast(dict[str, object], block['dispersion'])['resolvable']} "
-            "confirmatory_started=false red_queen_proved=false",
-            flush=True,
+            f"resolvable={dispersion['resolvable']} "
+            "confirmatory_started=false red_queen_proved=false\n"
         )
+        sys.stdout.flush()
         return 0
     if args.analyze_only:
         if block.get("confirmatory_started") is not True:
             raise ConfigurationError("nothing to analyze; confirmatory has not started")
         report = analyze(root)
-        print(f"verdict={report['verdict']} red_queen_proved=false", flush=True)
+        sys.stdout.write(f"verdict={report['verdict']} red_queen_proved=false\n")
+        sys.stdout.flush()
         return 0
     run_id = str(block.get("run_id") or time.strftime("%Y%m%dT%H%M%S"))
     mark_started(root, run_id)
@@ -1836,7 +1839,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     finally:
         live.close()
     report = run_confirmatory(root)
-    print(f"verdict={report['verdict']} red_queen_proved=false", flush=True)
+    sys.stdout.write(f"verdict={report['verdict']} red_queen_proved=false\n")
+    sys.stdout.flush()
     return 0
 
 

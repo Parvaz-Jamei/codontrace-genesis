@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from codontrace.genesis.he02_contrasts import run_hard_experiment_02_v1b
 
 
@@ -24,10 +22,6 @@ def test_phase1_wrapper_is_required_entry_point() -> None:
     assert "contrasts_from_seed_dicts" in helper
 
 
-@pytest.mark.xfail(
-    reason="hard_experiment_02.py source wire pending; use run_hard_experiment_02_v1b",
-    strict=False,
-)
 def test_he02_runner_source_uses_delta_helper() -> None:
     src = _he02_src()
     assert "contrasts_from_seed_dicts" in src

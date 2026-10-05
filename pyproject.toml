@@ -99,6 +99,7 @@ markers = [
   "unit: fast domain-free or module unit tests (no long campaigns)",
   "campaign: HostParasiteWorld / analytics / calibration campaign tests",
   "pin: BAIC/HE01 pin integrity and static architecture audits",
+  "slow: locked-horizon campaign smoke; still collected by the default suite",
 ]
 
 [tool.ruff]

@@ -7,6 +7,7 @@
 - Offspring that never took a seat stay in `eviction_loss` and are not recorded as deaths.
 - A zero-width or inverted interval does not count as a confidence interval. A supported diversity campaign with empty arm evidence is not attached. `intelligence` and `red_queen_proved` demote a bundle the same way other blocked flags do.
 - A confirmatory whose prereg locks a revised design does not start or score. A `COMPLETE` file whose arm is marked failed is not support.
+- HE02 primary contrasts use Cohen's dz on the paired differences (Lakens, 2013). The two-vector call was the wrong shape, raised, and was stored as a missing effect. Claim ceiling stays `runtime_observation`.
 
 ## [0.3.0b14] — 2026-10-05
 

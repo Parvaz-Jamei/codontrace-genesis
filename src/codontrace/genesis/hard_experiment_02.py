@@ -14,7 +14,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Literal
 
 from codontrace._types import JsonValue
 from codontrace.actions import (
@@ -22,7 +22,7 @@ from codontrace.actions import (
     default_action_registry,
     move_toward_capsule_target_handler,
 )
-from codontrace.dynvalues import same_float, same_iter
+from codontrace.dynvalues import same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
 from codontrace.genesis.capsule import (
@@ -47,7 +47,6 @@ from codontrace.genesis.hard_experiment_01 import (
     _receiver_mean_terminal_atp,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
-from codontrace.genesis.statistical_protocol import holm_correction, paired_effect_size
 from codontrace.genesis.stepping_stone_reward import SteppingStoneRewardConfig
 from codontrace.genesis.text_digest import sha256_text_file
 
@@ -806,63 +805,24 @@ def run_hard_experiment_02(
     assay_failures = _manipulation_failures(summary_map)
     assay_failed = bool(assay_failures)
 
-    contrasts_raw: list[HardExperiment02PairedContrast] = []
-    for baseline in ("content_null", "channel_off", "capsules_shuffled"):
-        lefts: list[float] = []
-        rights: list[float] = []
-        for rec in seed_records:
-            left = rec.treatment.receiver_mean_terminal_runtime_atp
-            right = rec.arm_map()[baseline].receiver_mean_terminal_runtime_atp
-            if left is None or right is None:
-                continue
-            lefts.append(float(left))
-            rights.append(float(right))
-        if not lefts or assay_failed:
-            contrasts_raw.append(
-                HardExperiment02PairedContrast(
-                    treatment_arm="treatment",
-                    baseline_arm=baseline,
-                    dz=None,
-                    p_raw=None,
-                    p_holm=None,
-                    n_pairs=len(lefts),
-                )
-            )
-            continue
-        try:
-            effect = cast(Any, paired_effect_size)(lefts, rights)
-            dz = same_float(getattr(effect, "effect_size", effect.get("effect_size")))
-            p_raw = same_float(getattr(effect, "p_value", effect.get("p_value")))
-        except Exception:
-            dz, p_raw = None, None
-        contrasts_raw.append(
-            HardExperiment02PairedContrast(
-                treatment_arm="treatment",
-                baseline_arm=baseline,
-                dz=dz,
-                p_raw=p_raw,
-                p_holm=None,
-                n_pairs=len(lefts),
-            )
-        )
-    p_values = [item.p_raw for item in contrasts_raw]
-    try:
-        adjusted: list[float | None] = cast(
-            list[float | None],
-            list(holm_correction(cast(Sequence[float], p_values))),
-        )
-    except Exception:
-        adjusted = list(p_values)
+    from codontrace.genesis.he02_contrasts import contrasts_from_seed_dicts
+
+    # Cohen's dz is mean(Δ) / s_Δ on the paired differences (Lakens, 2013),
+    # not a two-vector call. The old call raised and was swallowed as dz=None.
+    rows = contrasts_from_seed_dicts(
+        [rec.to_dict() for rec in seed_records],
+        assay_failed=assay_failed,
+    )
     contrasts = tuple(
         HardExperiment02PairedContrast(
-            treatment_arm=item.treatment_arm,
-            baseline_arm=item.baseline_arm,
-            dz=item.dz,
-            p_raw=item.p_raw,
-            p_holm=None if adj is None else float(adj),
-            n_pairs=item.n_pairs,
+            treatment_arm=str(item["treatment_arm"]),
+            baseline_arm=str(item["baseline_arm"]),
+            dz=None if item["dz"] is None else float(item["dz"]),
+            p_raw=None if item["p_raw"] is None else float(item["p_raw"]),
+            p_holm=None if item["p_holm"] is None else float(item["p_holm"]),
+            n_pairs=int(item["n_pairs"]),
         )
-        for item, adj in zip(contrasts_raw, adjusted, strict=False)
+        for item in rows
     )
 
     decision_failures: list[str] = []

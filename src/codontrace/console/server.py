@@ -59,15 +59,41 @@ def parse_temp_c(raw: str) -> float | None:
     return value
 
 
+def cpu_temp_c(thermal_root: Path) -> float | None:
+    """Prefer a zone whose type names the CPU. Zone 0 is the GPU on some ARM boards."""
+    chosen: float | None = None
+    fallback: float | None = None
+    try:
+        zones = sorted(path for path in thermal_root.glob("thermal_zone*") if path.is_dir())
+    except OSError:
+        zones = []
+    for zone in zones:
+        try:
+            kind = (zone / "type").read_text(encoding="utf-8").strip().lower()
+            raw = (zone / "temp").read_text(encoding="utf-8")
+        except OSError:
+            continue
+        temp = parse_temp_c(raw)
+        if temp is None:
+            continue
+        if zone.name == "thermal_zone0":
+            fallback = temp
+        if chosen is None and "cpu" in kind and "gpu" not in kind:
+            chosen = temp
+    if chosen is not None:
+        return chosen
+    if fallback is not None:
+        return fallback
+    try:
+        return parse_temp_c((thermal_root / "thermal_zone0" / "temp").read_text(encoding="utf-8"))
+    except OSError:
+        return None
+
+
 def read_temp_c() -> float | None:
     if sys.platform != "linux":
         return None
-    path = Path("/sys/class/thermal/thermal_zone0/temp")
-    try:
-        raw = path.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    return parse_temp_c(raw)
+    return cpu_temp_c(Path("/sys/class/thermal"))
 
 
 def load_average() -> float:
@@ -215,6 +241,14 @@ def static_file(url_path: str) -> Path | None:
     return None
 
 
+def _can_serve_app_shell(url_path: str) -> bool:
+    path = unquote(urlparse(url_path).path)
+    if path.startswith("/api/") or ".." in path:
+        return False
+    name = path.rstrip("/").rsplit("/", 1)[-1]
+    return "." not in name
+
+
 def _from_this_machine(address: str) -> bool:
     host = address.split("%", 1)[0].lower()
     if host.startswith("::ffff:"):
@@ -233,6 +267,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         self._respond(include_body=True)
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Accept, Content-Type")
+        self.send_header("Access-Control-Max-Age", "600")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
@@ -269,6 +312,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
         found = static_file(self.path)
+        if found is None and _can_serve_app_shell(self.path):
+            found = static_file("/")
         if found is None:
             message = b"not found\n"
             self._send(404, "text/plain; charset=utf-8", message, include_body=include_body, cache="no-store")
@@ -283,6 +328,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", cache)
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         if include_body:
             self.wfile.write(body)

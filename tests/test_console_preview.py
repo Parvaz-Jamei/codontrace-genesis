@@ -85,6 +85,7 @@ def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
             assert b"CodonTrace Genesis Console" in body or b'id="root"' in body or b"root" in body
         with urllib.request.urlopen(base + "/api/host", timeout=5) as host_page:
             payload = json.loads(host_page.read().decode("utf-8"))
+            assert host_page.headers.get("Access-Control-Allow-Origin") == "*"
         assert payload["source"] == "host"
         assert payload["recommendedWorkers"] <= 4
         with urllib.request.urlopen(base + "/api/release", timeout=5) as release_page:
@@ -92,6 +93,20 @@ def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
         assert info["currentVersion"]
         assert info["updateAvailable"] in {True, False}
         assert "red_queen_proved" not in info
+        preflight = urllib.request.Request(base + "/api/host", method="OPTIONS")
+        with urllib.request.urlopen(preflight, timeout=5) as options:
+            assert options.status == 204
+            assert options.headers.get("Access-Control-Allow-Origin") == "*"
+        with urllib.request.urlopen(base + "/gates", timeout=5) as gate_page:
+            gate_body = gate_page.read()
+            assert gate_page.status == 200
+            assert b'id="root"' in gate_body or b"root" in gate_body
+        try:
+            urllib.request.urlopen(base + "/assets/does-not-exist.js", timeout=5)
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 404
+        else:
+            raise AssertionError("a missing script was served as the page")
         try:
             urllib.request.urlopen(base + "/%2e%2e/%2e%2e/pyproject.toml", timeout=5)
         except urllib.error.HTTPError as exc:
@@ -102,6 +117,26 @@ def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
         httpd.shutdown()
         httpd.server_close()
         thread.join(timeout=5)
+
+
+def test_cpu_zone_is_preferred_over_the_gpu_zone(tmp_path: Path) -> None:
+    gpu = tmp_path / "thermal_zone0"
+    cpu = tmp_path / "thermal_zone2"
+    gpu.mkdir()
+    cpu.mkdir()
+    (gpu / "type").write_text("gpu-thermal\n", encoding="utf-8")
+    (gpu / "temp").write_text("30000\n", encoding="utf-8")
+    (cpu / "type").write_text("cpu-thermal\n", encoding="utf-8")
+    (cpu / "temp").write_text("45000\n", encoding="utf-8")
+    assert server.cpu_temp_c(tmp_path) == 45.0
+
+
+def test_zone_zero_remains_when_no_cpu_zone_is_named(tmp_path: Path) -> None:
+    zone = tmp_path / "thermal_zone0"
+    zone.mkdir()
+    (zone / "type").write_text("soc-thermal\n", encoding="utf-8")
+    (zone / "temp").write_text("37000\n", encoding="utf-8")
+    assert server.cpu_temp_c(tmp_path) == 37.0
 
 
 def test_release_ordering_knows_a_newer_beta() -> None:

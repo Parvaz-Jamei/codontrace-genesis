@@ -85,6 +85,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE, PASSAGE_FROZEN
 from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY
 from codontrace.genesis.organism import GenesisOrganism
+from codontrace.genesis.population import LineageRecord
 from codontrace.genesis.rq_bidirectional_timeshift import (
     ARM_A,
     build_arm,
@@ -1271,6 +1272,36 @@ class _Append:
         self._fh.close()
 
 
+def birth_archive_witness(
+    record: LineageRecord,
+    start_windows: Mapping[str, str],
+    contact_windows: Mapping[str, str],
+) -> dict[str, object]:
+    """Preserve both genetic parents and recombination/mutation birth metadata.
+
+    Legacy fields remain readable. Missing windows are unmeasured, not an
+    invented genotype. Parentage identifies contributors; it does not assume
+    equal contributions of recognition loci in a recombined child.
+    """
+    parents = record.parent_ids
+    windows = {parent: start_windows.get(parent, contact_windows.get(parent)) for parent in parents}
+    sources = {parent: "generation_start" if parent in start_windows else
+               "pre_contact" if parent in contact_windows else "unmeasured" for parent in parents}
+    return {
+        "id": record.organism_id,
+        "parent_id": record.parent_id,
+        "parent_window": start_windows.get(str(record.parent_id)),
+        "second_parent_id": record.second_parent_id,
+        "parent_ids": list(parents),
+        "parent_windows": windows,
+        "parent_window_sources": sources,
+        "parent_windows_complete": bool(parents) and all(window is not None for window in windows.values()),
+        "child_window_pre_contact": contact_windows.get(record.organism_id),
+        "lineage_record": record.to_dict(),
+        "evidence_schema": "genesis-birth-witness/2",
+    }
+
+
 def run_phase5_history(
     seed: int,
     root_text: str,
@@ -1350,13 +1381,13 @@ def run_phase5_history(
                         "contacts": int(arm.graded_contact_count[-1]) if arm.graded_contact_count else 0,
                         "generation": int(generation),
                         "host_births": [
-                            {
-                                "id": rec.organism_id,
-                                "parent_id": rec.parent_id,
-                                "parent_window": window_by_id.get(str(rec.parent_id)),
-                            }
+                            birth_archive_witness(
+                                rec, window_by_id,
+                                {str(host["id"]): str(host["window"]) for host in contact["hosts"]},
+                            )
                             for rec in births
                         ],
+                        "birth_evidence_schema": "genesis-birth-witness/2",
                         "host_deaths": deaths,
                         "hosts": hosts,
                         "invariant": status,
@@ -1397,7 +1428,16 @@ def run_phase5_history(
                     break
     finally:
         live.close()
+    if failed is None:
+        persisted = _load_jsonl(archive_path)
+        expected = {(name, generation) for name in arms for generation in range(1, int(generations) + 1)}
+        observed = {(row.get("arm"), row.get("generation")) for row in persisted}
+        if len(persisted) != len(expected) or observed != expected:
+            failed = "archive-integrity:incomplete-or-duplicated-generation"
+        elif stop.exists():
+            failed = "stopped"
     if failed:
+        (seed_dir / "COMPLETE").unlink(missing_ok=True)
         (seed_dir / "REASON.txt").write_text(failed + "\n", encoding="utf-8")
         stop.write_text(failed + "\n", encoding="utf-8")
         return {"failed": failed, "generations_completed": completed, "red_queen_proved": False, "seed": int(seed)}

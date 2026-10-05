@@ -166,7 +166,7 @@ export function JobsView() {
                 <ChevronDown className={cn("h-4 w-4 shrink-0 text-subtle transition-transform duration-200", open && "rotate-180")} />
               </button>
               {open ? (
-                <div className="rise flex flex-col gap-3 px-3 pb-3 sm:px-4">
+                <div className="rise flex min-w-0 flex-col gap-3 px-3 pb-3 sm:px-4">
                   <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-4">
                     <Stat k={text.requested} v={String(job.generations)} />
                     <Stat k={text.preview} v={String(job.previewGenerations)} />
@@ -175,7 +175,7 @@ export function JobsView() {
                   </dl>
                   {job.kind === "engine" && job.seeds.length > 0 ? <SeedMatrix job={job} /> : null}
                   {job.logs.length > 0 ? (
-                    <pre className="max-h-40 overflow-auto rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
+                    <pre className="max-h-40 min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
                       {job.logs.slice(-8).join("\n")}
                     </pre>
                   ) : null}
@@ -1462,9 +1462,9 @@ function Status({ job }: { job: Job }) {
 
 function Stat({ k, v }: { k: string; v: string }) {
   return (
-    <div className="bg-bg px-3 py-2">
+    <div className="min-w-0 bg-bg px-3 py-2">
       <dt className="text-xs text-subtle">{k}</dt>
-      <dd className="mt-0.5 font-mono text-sm">{v}</dd>
+      <dd className="mt-0.5 min-w-0 break-words font-mono text-sm">{v}</dd>
     </div>
   );
 }
@@ -1475,7 +1475,7 @@ function SeedMatrix({ job }: { job: Job }) {
   return (
     <div>
       <p className="mb-2 text-xs text-subtle">{text.seedMatrix}</p>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid max-h-56 grid-cols-2 gap-2 overflow-auto sm:grid-cols-3">
         {slots.map((slot) => (
           <div key={slot.seed} className="rounded-xl bg-bg px-3 py-2">
             <div className="flex items-baseline justify-between gap-2">

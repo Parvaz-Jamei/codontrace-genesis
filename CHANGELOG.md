@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0b19] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b18`.
+
+- A run id no longer depends on `crypto.randomUUID`, so opening the page over a plain LAN address does not blank the browser.
+- On Linux, temperature prefers a thermal zone whose type names the CPU. Zone 0 stays the fallback. On some ARM boards that zone is the GPU.
+- A path with no file suffix returns the page instead of a 404. Paths that leave the package tree still do not.
+- The preview server sends `Access-Control-Allow-Origin: *` so a local page build can call it. An update is still accepted only from this machine.
+- The page still does not run the evolution engine and does not set `red_queen_proved`. Evolution rules, the RNG, and `engine.py` are unchanged.
+
 ## [0.3.0b18] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b17`.

@@ -133,8 +133,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI wheel | `0.3.0b17`, tag [`v0.3.0b17`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b17). Cuts `0.3.0b4` through `0.3.0b16` are not recut. |
-| GitHub `main` | `0.3.0b17`, the `[project].version` in `pyproject.toml`. |
+| Public PyPI wheel | `0.3.0b18`, tag [`v0.3.0b18`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b18). Cuts `0.3.0b4` through `0.3.0b17` are not recut. |
+| GitHub `main` | `0.3.0b18`, the `[project].version` in `pyproject.toml`. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,16 +168,16 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b17`. An editable install of `main` prints `0.3.0b17`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b18`. An editable install of `main` prints `0.3.0b18`.
 
 ```bash
-pip install codontrace==0.3.0b17
+pip install codontrace==0.3.0b18
 ```
 
 ```bash
-pip install "codontrace[research]==0.3.0b17"
-pip install "codontrace[causal]==0.3.0b17"
-pip install "codontrace[qd]==0.3.0b17"
+pip install "codontrace[research]==0.3.0b18"
+pip install "codontrace[causal]==0.3.0b18"
+pip install "codontrace[qd]==0.3.0b18"
 ```
 
 From source, which may be ahead of PyPI:
@@ -235,10 +235,6 @@ The same command works on Linux, Windows, and macOS after a normal install. No e
 
 ```bash
 python -m codontrace.console
-```
-
-```bash
-genesis-console
 ```
 
 The default address is `http://127.0.0.1:8765/`. `--host` and `--port` change the bind. `--open` asks the desktop to open the page. Workers stay in 1–4. A temperature is reported only when the machine exposes a sensor file. Windows does not have a load average, so that field stays unmeasured there.
@@ -360,10 +356,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b17},
+  version = {0.3.0b18},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b17 is the git identity. Cuts 0.3.0b4 through 0.3.0b16 are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b18 is the git identity. Cuts 0.3.0b4 through 0.3.0b17 are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

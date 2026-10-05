@@ -38,7 +38,7 @@ function hostDev(): Plugin {
           recommendedWorkers: Math.max(1, Math.min(4, cores)),
           hostname: os.hostname(),
           source: "host",
-          packageVersion: "0.3.0b17",
+          packageVersion: "0.3.0b18",
         };
         res.setHeader("content-type", "application/json; charset=utf-8");
         res.end(JSON.stringify(body));

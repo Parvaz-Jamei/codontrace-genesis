@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0b18] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b17`.
+
+- The console stays a library module. `[project.scripts]` is absent, so the package does not grow an application entry point. Open it with `python -m codontrace.console`.
+- The page still does not run the evolution engine, does not execute uploaded scripts, and does not set `red_queen_proved`.
+- Evolution rules, the RNG, and `engine.py` are unchanged. `red_queen_proved` stays false. HE03 `results_v1` stays absent.
+
 ## [0.3.0b17] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b16`.

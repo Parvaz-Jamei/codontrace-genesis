@@ -137,7 +137,12 @@ def analyze_committed_research(path: Path | None = None) -> dict[str, Any]:
 
 
 def rescore_he02_campaign(campaign: Any) -> Any:
-    """Replace swallowed two-arg ``dz=None`` contrasts on a live campaign."""
+    """Replace swallowed two-arg ``dz=None`` contrasts on a live campaign.
+
+    Contrast failures are recomputed. The prereg ordinal block
+    (content_null must not beat channel_off) and an invalid assay stay
+    in force, so a passing Holm set cannot erase them.
+    """
 
     from codontrace.genesis.hard_experiment_02 import HardExperiment02PairedContrast
 
@@ -157,16 +162,17 @@ def rescore_he02_campaign(campaign: Any) -> Any:
         for item in rows
     )
     decision = decision_from_contrasts(rows)
-    failures = list(campaign.decision_rule_failures)
+    ordinal = {"assay_invalid", "content_null_beats_channel_off"}
+    failures = [item for item in campaign.decision_rule_failures if item in ordinal]
+    if campaign.assay_failed and "assay_invalid" not in failures:
+        failures.append("assay_invalid")
     for item in decision["decision_rule_failures"]:
         if item not in failures:
             failures.append(item)
     return replace(
         campaign,
         paired_contrasts=contrasts,
-        decision_rule_passed=bool(
-            decision["decision_rule_passed"] and not campaign.assay_failed
-        ),
+        decision_rule_passed=not failures,
         decision_rule_failures=tuple(failures),
         digest="",
     )

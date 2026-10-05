@@ -8,6 +8,7 @@
 - A zero-width or inverted interval does not count as a confidence interval. A supported diversity campaign with empty arm evidence is not attached. `intelligence` and `red_queen_proved` demote a bundle the same way other blocked flags do.
 - A confirmatory whose prereg locks a revised design does not start or score. A `COMPLETE` file whose arm is marked failed is not support.
 - HE02 primary contrasts use Cohen's dz on the paired differences (Lakens, 2013). The two-vector call was the wrong shape, raised, and was stored as a missing effect. Claim ceiling stays `runtime_observation`.
+- Rescoring those contrasts no longer drops the prereg block that content_null must not beat channel_off. A stale missing-effect failure is not kept after the contrasts are recomputed.
 
 ## [0.3.0b14] — 2026-10-05
 

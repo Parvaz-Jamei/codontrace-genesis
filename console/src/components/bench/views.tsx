@@ -4,9 +4,9 @@ import { ChevronDown } from "lucide-react";
 import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
-import { artifactZip, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
+import { artifactZip, seedSlots, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
 import { fetchRelease, pullRelease } from "@/lib/genesis/host";
-import type { Job, JobStatus, ReleaseReport } from "@/lib/genesis/types";
+import type { Job, JobStatus, PresetId, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 
 export function JobsView() {
@@ -123,9 +123,13 @@ export function JobsView() {
             </label>
             <button
               className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10"
-              onClick={() => setOpenIds(openIds.length === shown.length ? [] : shown.map((job) => job.id))}
+              onClick={() => {
+                const visible = shown.map((job) => job.id);
+                const allOpen = visible.length > 0 && visible.every((id) => openIds.includes(id));
+                setOpenIds(allOpen ? openIds.filter((id) => !visible.includes(id)) : [...new Set([...openIds, ...visible])]);
+              }}
             >
-              {openIds.length === shown.length && shown.length > 0 ? text.collapseAll : text.expandAll}
+              {shown.length > 0 && shown.every((job) => openIds.includes(job.id)) ? text.collapseAll : text.expandAll}
             </button>
           </div>
         </div>
@@ -169,13 +173,19 @@ export function JobsView() {
                     <Stat k={text.workers} v={String(job.workers)} />
                     <Stat k={text.cores} v={job.cores.length ? job.cores.map((index) => `#${index}`).join(", ") : "—"} />
                   </dl>
+                  {job.kind === "engine" && job.seeds.length > 0 ? <SeedMatrix job={job} /> : null}
+                  {job.logs.length > 0 ? (
+                    <pre className="max-h-40 overflow-auto rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
+                      {job.logs.slice(-8).join("\n")}
+                    </pre>
+                  ) : null}
                   <p className="text-xs text-subtle">
                     {text.sliceNote} {text.diag} · {text.exploratory}
                   </p>
                   <div className="flex flex-wrap items-center gap-1">
                     {job.status !== "archived" && job.status !== "running" ? (
                       <button className="min-h-11 rounded-lg bg-fg px-3 text-sm text-bg" onClick={() => startJob(job.id)}>
-                        {job.status === "paused" ? text.resume : text.start}
+                        {job.status === "paused" ? text.resume : job.cursor > 0 ? text.resumeRemaining : text.start}
                       </button>
                     ) : null}
                     {job.status === "running" ? (
@@ -196,6 +206,12 @@ export function JobsView() {
                     </button>
                     <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => downloadJob(job)}>
                       {text.download}
+                    </button>
+                    <button
+                      className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10"
+                      onClick={() => downloadText(`log_${job.id}.txt`, `${job.logs.join("\n")}\n`, "text/plain")}
+                    >
+                      {text.downloadLog}
                     </button>
                     <button className="ms-auto min-h-11 rounded-lg px-3 text-sm text-bad hover:bg-white/10" onClick={() => removeJob(job.id)}>
                       {text.remove}
@@ -654,6 +670,7 @@ export function ScriptsView() {
   const lang = useBench((state) => state.settings.lang);
   const scripts = useBench((state) => state.scripts);
   const addScript = useBench((state) => state.addScript);
+  const createRun = useBench((state) => state.createRun);
   const text = t(lang);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -720,13 +737,34 @@ export function ScriptsView() {
             <h3 className="font-mono text-sm">{script.name}</h3>
             <p className="text-sm text-muted">{script.note}</p>
             <p className="mt-1 text-xs text-subtle">{(script.body ?? "").length} · {text.stored}</p>
-            <button
-              type="button"
-              className="mt-2 min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10"
-              onClick={() => downloadText(script.name, script.body ?? "", "text/x-python")}
-            >
-              {text.download}
-            </button>
+            <div className="mt-2 flex flex-wrap gap-1">
+              <button
+                type="button"
+                className="min-h-11 rounded-lg bg-fg px-3 text-sm text-bg"
+                onClick={() => {
+                  const id = createRun({
+                    title: script.name,
+                    kind: "script",
+                    preset: "custom",
+                    seedsText: "",
+                    generations: 2,
+                    workers: 1,
+                    cores: [0],
+                    scriptName: script.name,
+                  });
+                  if (id) startJob(id);
+                }}
+              >
+                {text.previewScript}
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10"
+                onClick={() => downloadText(script.name, script.body ?? "", "text/x-python")}
+              >
+                {text.download}
+              </button>
+            </div>
           </article>
         ))}
       </div>
@@ -1058,13 +1096,14 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
   const host = useBench((state) => state.host);
   const createRun = useBench((state) => state.createRun);
   const text = t(lang);
-  const cores = host?.cores ?? 1;
+  const cores = Math.max(1, host?.cores ?? 4);
+  const opened = pinPreset("smoke", cores);
   const [kind, setKind] = useState<RunInput["kind"]>("engine");
   const [preset, setPreset] = useState<RunInput["preset"]>("smoke");
-  const [seedsText, setSeedsText] = useState("17001, 17002");
-  const [generations, setGenerations] = useState(3);
-  const [workers, setWorkers] = useState(1);
-  const [picked, setPicked] = useState<number[]>([0]);
+  const [seedsText, setSeedsText] = useState(opened.seedsText);
+  const [generations, setGenerations] = useState(opened.generations);
+  const [workers, setWorkers] = useState(opened.workers);
+  const [picked, setPicked] = useState<number[]>(opened.cores);
   const [gateFile, setGateFile] = useState<string>(GATE_FILES[0].file);
   const [scriptName, setScriptName] = useState("check.py");
   const [title, setTitle] = useState("");
@@ -1158,37 +1197,53 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         </div>
         {track !== "contracts" && kind === "engine" ? (
           <>
-            <label className="text-sm text-muted">
-              {text.preset}
-            <div className="grid grid-cols-2 gap-2">
-              {(["smoke", "standard", "overnight", "expedition", "custom"] as const).map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={cn("min-h-11 rounded-lg px-3 text-start text-sm", preset === id ? "bg-white/10 text-fg" : "bg-white/5 text-muted")}
-                  onClick={() => setPreset(id)}
-                >
-                  {id}
-                </button>
-              ))}
+            <div>
+              <p className="text-sm text-muted">{text.preset}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(["smoke", "standard", "overnight", "expedition", "custom"] as const).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={cn("min-h-11 rounded-lg px-3 text-start text-sm", preset === id ? "bg-white/10 text-fg" : "bg-white/5 text-muted")}
+                    onClick={() => {
+                      setPreset(id);
+                      if (id === "custom") return;
+                      const next = pinPreset(id, cores);
+                      setSeedsText(next.seedsText);
+                      setGenerations(next.generations);
+                      setWorkers(next.workers);
+                      setPicked(next.cores);
+                    }}
+                  >
+                    {id}
+                  </button>
+                ))}
+              </div>
             </div>
+            <label className="text-sm text-muted">
+              {text.seeds}
+              <input
+                value={seedsText}
+                onChange={(event) => {
+                  setPreset("custom");
+                  setSeedsText(event.target.value);
+                }}
+                className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3"
+              />
             </label>
-            {preset === "custom" ? (
-              <>
-                <label className="text-sm text-muted">
-                  {text.seeds}
-                  <input value={seedsText} onChange={(event) => setSeedsText(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3" />
-                </label>
-                <label className="text-sm text-muted">
-                  {text.generations}
-                  <input type="number" min={2} value={generations} onChange={(event) => setGenerations(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3" />
-                </label>
-              </>
-            ) : (
-              <p className="text-sm text-subtle">
-                {PRESETS[preset].seeds.length} seeds · {PRESETS[preset].generations} requested · preview 2
-              </p>
-            )}
+            <label className="text-sm text-muted">
+              {text.generations}
+              <input
+                type="number"
+                min={2}
+                value={generations}
+                onChange={(event) => {
+                  setPreset("custom");
+                  setGenerations(Number(event.target.value));
+                }}
+                className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3"
+              />
+            </label>
           </>
         ) : null}
         {kind === "gates" ? (
@@ -1231,7 +1286,12 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
                   type="button"
                   aria-pressed={on}
                   className={cn("h-11 w-11 rounded-lg text-sm", on ? "bg-white/10 text-fg" : "bg-white/5 text-muted")}
-                  onClick={() => setPicked(on ? picked.filter((core) => core !== index) : [...picked, index].sort((a, b) => a - b))}
+                  onClick={() => {
+                    if (on && picked.length === 1) return;
+                    const next = on ? picked.filter((core) => core !== index) : [...picked, index].sort((a, b) => a - b);
+                    setPicked(next);
+                    setWorkers((count) => Math.max(1, Math.min(count, next.length, 4)));
+                  }}
                 >
                   {index}
                 </button>
@@ -1409,6 +1469,31 @@ function Stat({ k, v }: { k: string; v: string }) {
   );
 }
 
+function SeedMatrix({ job }: { job: Job }) {
+  const text = t(useBench((state) => state.settings.lang));
+  const slots = seedSlots(job);
+  return (
+    <div>
+      <p className="mb-2 text-xs text-subtle">{text.seedMatrix}</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {slots.map((slot) => (
+          <div key={slot.seed} className="rounded-xl bg-bg px-3 py-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-sm">{slot.seed}</span>
+              <span className="text-xs text-muted">
+                {slot.state === "done" ? text.seedDone : slot.state === "active" ? text.seedActive : text.seedIdle}
+              </span>
+            </div>
+            <p className="mt-1 truncate font-mono text-xs text-subtle">
+              {slot.arm} · {slot.done}/{slot.total}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingSection({ value, title, children }: { value: string; title: string; children: ReactNode }) {
   return (
     <Accordion.Item value={value} className="min-w-0 overflow-hidden rounded-2xl bg-white/5">
@@ -1446,14 +1531,29 @@ function labelStatus(text: ReturnType<typeof t>, status: JobStatus) {
 }
 
 function smokeInput(): RunInput {
+  const smoke = pinPreset("smoke", 4);
   return {
     title: "Smoke",
     kind: "engine",
     preset: "smoke",
-    seedsText: "",
-    generations: 3,
-    workers: 1,
-    cores: [0],
+    seedsText: smoke.seedsText,
+    generations: smoke.generations,
+    workers: smoke.workers,
+    cores: smoke.cores,
+  };
+}
+
+function pinPreset(id: Exclude<PresetId, "custom">, hostCores: number) {
+  const spec = PRESETS[id];
+  const limit = Math.max(1, hostCores);
+  const available = Array.from({ length: limit }, (_, index) => index);
+  const pinned = spec.cores.filter((core) => available.includes(core));
+  const nextCores = pinned.length > 0 ? pinned : [available[0] ?? 0];
+  return {
+    seedsText: spec.seeds.join(", "),
+    generations: spec.generations,
+    workers: Math.max(1, Math.min(4, spec.workers, nextCores.length)),
+    cores: nextCores,
   };
 }
 
@@ -1463,7 +1563,7 @@ function validate(input: RunInput, text: ReturnType<typeof t>) {
     return text.errorWorkers;
   }
   if (input.kind === "script" && !/^[\w.-]+\.py$/.test(input.scriptName ?? "")) return text.errorScript;
-  if (input.kind === "engine" && input.preset === "custom") {
+  if (input.kind === "engine" && input.track !== "contracts") {
     if (!Number.isInteger(input.generations) || input.generations < 2) return text.errorGen;
     const parts = input.seedsText.split(/[\s,]+/).filter(Boolean).map(Number);
     if (parts.length === 0 || parts.some((seed) => !Number.isInteger(seed) || seed < 0) || new Set(parts).size !== parts.length) {

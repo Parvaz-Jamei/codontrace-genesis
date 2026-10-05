@@ -4,12 +4,12 @@ export const ARMS = ["coevolve", "adaptation_cut", "constant_parasite"] as const
 
 export const PRESETS: Record<
   Exclude<PresetId, "custom">,
-  { seeds: number[]; generations: number }
+  { seeds: number[]; generations: number; workers: number; cores: number[] }
 > = {
-  smoke: { seeds: [17001, 17002], generations: 3 },
-  standard: { seeds: range(17101, 17112), generations: 100 },
-  overnight: { seeds: range(18001, 18024), generations: 1000 },
-  expedition: { seeds: range(19001, 19048), generations: 3000 },
+  smoke: { seeds: [17001, 17002], generations: 3, workers: 2, cores: [0, 1] },
+  standard: { seeds: range(17101, 17112), generations: 100, workers: 4, cores: [0, 1, 2, 3] },
+  overnight: { seeds: range(18001, 18024), generations: 1000, workers: 2, cores: [0, 1] },
+  expedition: { seeds: range(19001, 19048), generations: 3000, workers: 4, cores: [0, 1, 2, 3] },
 };
 
 export const GATE_FILES = [
@@ -21,7 +21,7 @@ export const GATE_FILES = [
   { file: "test_rq_birth_archive_witness.py", count: 4 },
 ] as const;
 
-export const ENGINE_IDENTITY = "0.3.0b19";
+export const ENGINE_IDENTITY = "0.3.0b20";
 // Engine tree this preview was checked against. The console does not run it.
 export const ENGINE_COMMIT = "5209c87";
 

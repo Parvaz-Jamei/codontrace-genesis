@@ -133,8 +133,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI wheel | `0.3.0b19`, tag [`v0.3.0b19`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b19). Cuts `0.3.0b4` through `0.3.0b18` are not recut. |
-| GitHub `main` | `0.3.0b19`, the `[project].version` in `pyproject.toml`. |
+| Public PyPI wheel | `0.3.0b20`, tag [`v0.3.0b20`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b20). Cuts `0.3.0b4` through `0.3.0b19` are not recut. |
+| GitHub `main` | `0.3.0b20`, the `[project].version` in `pyproject.toml`. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,16 +168,16 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b19`. An editable install of `main` prints `0.3.0b19`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b20`. An editable install of `main` prints `0.3.0b20`.
 
 ```bash
-pip install codontrace==0.3.0b19
+pip install codontrace==0.3.0b20
 ```
 
 ```bash
-pip install "codontrace[research]==0.3.0b19"
-pip install "codontrace[causal]==0.3.0b19"
-pip install "codontrace[qd]==0.3.0b19"
+pip install "codontrace[research]==0.3.0b20"
+pip install "codontrace[causal]==0.3.0b20"
+pip install "codontrace[qd]==0.3.0b20"
 ```
 
 From source, which may be ahead of PyPI:
@@ -356,10 +356,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b19},
+  version = {0.3.0b20},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b19 is the git identity. Cuts 0.3.0b4 through 0.3.0b18 are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b20 is the git identity. Cuts 0.3.0b4 through 0.3.0b19 are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

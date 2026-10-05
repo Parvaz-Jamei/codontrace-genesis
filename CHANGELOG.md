@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0b20] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b19`.
+
+- A preset now fills seeds, the requested horizon, workers, and pinned cores, and those fields stay visible. The preview clock is still two generations.
+- An expanded run shows the seed matrix and the latest log lines, and the log can be downloaded. A stopped preview can continue from the remaining steps, or restart from scratch.
+- Expand all follows the rows on screen. The header shows cores, temperature, memory, and load when the host reports them.
+- A stored script can start a preview clock. The file is still not executed. `red_queen_proved` stays false. Evolution rules, the RNG, and `engine.py` are unchanged.
+
 ## [0.3.0b19] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b18`.

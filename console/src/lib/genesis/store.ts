@@ -267,6 +267,17 @@ export function nextLine(job: Job) {
   return `preview phase=5 seed=${seed} arm=${arm} generation=${generation} contacts=${contactsFor(arm)} invariant=ok red_queen_proved=false`;
 }
 
+export function seedSlots(job: Job) {
+  const span = Math.max(1, job.previewGenerations * ARMS.length);
+  return job.seeds.map((seed, index) => {
+    const start = index * span;
+    const done = Math.min(span, Math.max(0, job.cursor - start));
+    const state = done >= span ? "done" : done > 0 ? "active" : "idle";
+    const arm = ARMS[done === 0 ? 0 : (done - 1) % ARMS.length] ?? ARMS[0];
+    return { seed, done, total: span, state, arm };
+  });
+}
+
 export function artifactZip(job: Job) {
   const execution = {
     complete: job.status === "archived",
@@ -331,14 +342,14 @@ function buildJob(input: RunInput): Job | null {
   const gateFile = input.track === "contracts" ? "all" : input.gateFile;
   const seeds =
     kind === "engine"
-      ? input.preset !== "custom"
-        ? PRESETS[input.preset].seeds
-        : parseSeeds(input.seedsText)
+      ? input.seedsText.trim()
+        ? parseSeeds(input.seedsText)
+        : input.preset !== "custom"
+          ? PRESETS[input.preset].seeds
+          : null
       : [0];
   if (!seeds) return null;
-  const generations =
-    kind === "engine" && input.preset !== "custom" ? PRESETS[input.preset].generations : input.generations;
-  if (kind === "engine" && (!Number.isInteger(generations) || generations < 2)) return null;
+  if (kind === "engine" && (!Number.isInteger(input.generations) || input.generations < 2)) return null;
   if (kind === "gates" && gateFile !== "all" && !GATE_FILES.some((gate) => gate.file === gateFile)) return null;
   if (kind === "script" && !input.scriptName) return null;
   const previewGenerations = kind === "engine" ? PREVIEW_HORIZON : 1;
@@ -360,7 +371,7 @@ function buildJob(input: RunInput): Job | null {
     kind,
     preset: input.preset,
     seeds: kind === "engine" ? seeds : [],
-    generations: kind === "engine" ? generations : previewGenerations,
+    generations: kind === "engine" ? input.generations : previewGenerations,
     previewGenerations,
     workers: input.workers,
     cores: input.cores,
@@ -369,7 +380,7 @@ function buildJob(input: RunInput): Job | null {
     totalSteps: steps,
     logs: [
       kind === "engine"
-        ? `preview horizon ${previewGenerations} of ${generations} requested · ${input.track ?? "engine"} · exploratory · red_queen_proved=false`
+        ? `preview horizon ${previewGenerations} of ${input.generations} requested · ${input.track ?? "engine"} · exploratory · red_queen_proved=false`
         : "preview only · not a result from the board",
     ],
     createdAt: Date.now(),

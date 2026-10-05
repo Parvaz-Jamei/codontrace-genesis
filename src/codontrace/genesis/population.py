@@ -4870,6 +4870,7 @@ def _with_reproduction_delta(
         and reproduction_result.recombination_record is not None
     ):
         record = reproduction_result.recombination_record
+        delta["parent_id"] = record.parent_a_id
         delta["second_parent_id"] = record.parent_b_id
         delta["parent_ids"] = list(record.parent_ids)
         delta["recombination_digest"] = record.digest()

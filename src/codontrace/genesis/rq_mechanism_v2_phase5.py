@@ -1288,21 +1288,35 @@ def birth_archive_witness(
     invented genotype. Parentage identifies contributors; it does not assume
     equal contributions of recognition loci in a recombined child.
     """
-    parents = record.parent_ids
+    parents_list: list[str] = []
+    if record.parent_id:
+        parents_list.append(record.parent_id)
+    second = record.second_parent_id
+    if second:
+        # Selfing keeps both slots. A missing primary must not erase the mate.
+        if (record.parent_id and second == record.parent_id) or second not in parents_list:
+            parents_list.append(second)
+    parents = tuple(parents_list)
     windows = {parent: start_windows.get(parent, contact_windows.get(parent)) for parent in parents}
     sources = {parent: "generation_start" if parent in start_windows else
                "pre_contact" if parent in contact_windows else "unmeasured" for parent in parents}
+    lineage = record.to_dict()
+    if second and lineage.get("parent_ids") != list(parents):
+        lineage["parent_ids"] = list(parents)
+    # to_dict stores this flag only when it is true, which erases a real false.
+    if record.recombination_window_differed is False:
+        lineage["recombination_window_differed"] = False
     return {
         "id": record.organism_id,
         "parent_id": record.parent_id,
-        "parent_window": start_windows.get(str(record.parent_id)),
+        "parent_window": None if not record.parent_id else start_windows.get(str(record.parent_id)),
         "second_parent_id": record.second_parent_id,
         "parent_ids": list(parents),
         "parent_windows": windows,
         "parent_window_sources": sources,
         "parent_windows_complete": bool(parents) and all(window is not None for window in windows.values()),
         "child_window_pre_contact": contact_windows.get(record.organism_id),
-        "lineage_record": record.to_dict(),
+        "lineage_record": lineage,
         "evidence_schema": "genesis-birth-witness/2",
     }
 
@@ -1437,7 +1451,7 @@ def run_phase5_history(
         persisted = _load_jsonl(archive_path)
         expected = {(name, generation) for name in arms for generation in range(1, int(generations) + 1)}
         observed = {(row.get("arm"), row.get("generation")) for row in persisted}
-        if len(persisted) != len(expected) or observed != expected:
+        if not expected or len(persisted) != len(expected) or observed != expected:
             failed = "archive-integrity:incomplete-or-duplicated-generation"
         elif stop.exists():
             failed = "stopped"

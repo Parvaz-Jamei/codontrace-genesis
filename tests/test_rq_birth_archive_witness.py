@@ -79,3 +79,38 @@ def test_duplicate_history_is_not_marked_complete(tmp_path):
     outcome=run_phase5_history(10503,str(root),2,arms=('coevolve',),compare_one_shot=False)
     assert outcome['failed']=='archive-integrity:incomplete-or-duplicated-generation'
     assert not (root/'by_seed/seed10503/COMPLETE').exists()
+
+
+def test_null_parent_keeps_second_parent_and_does_not_invent_a_window():
+    missing=LineageRecord(organism_id='c',parent_id=None,second_parent_id='b',
+        generation=1,genome_digest='birth-genome',mutation_count=0,birth_tick=1,
+        death_tick=None,reproduction_event_id='repro-1',
+        recombination_start_index=2,recombination_end_index=8,recombination_digest='segment',
+        recombination_window_differed=False)
+    witness=birth_archive_witness(missing,{'None':'111111','b':'010101'},{})
+    assert witness['second_parent_id']=='b'
+    assert witness['parent_ids']==['b']
+    assert witness['lineage_record']['parent_ids']==['b']
+    assert witness['parent_window'] is None
+    assert witness['parent_windows']=={'b':'010101'}
+    assert witness['parent_windows_complete'] is True
+    assert witness['parent_window_sources']['b']=='generation_start'
+    assert witness['lineage_record']['recombination_window_differed'] is False
+    assert 'recombination_start_index' not in birth_archive_witness(
+        LineageRecord(organism_id='c',parent_id='a',second_parent_id='b',generation=1,
+            genome_digest='birth-genome',mutation_count=0,birth_tick=1,death_tick=None,
+            reproduction_event_id='repro-1'),
+        {'a':'000000','b':'111111'},{})['lineage_record']
+
+
+def test_vacuous_history_is_not_marked_complete(tmp_path):
+    root=tmp_path/'vacuous'
+    outcome=run_phase5_history(10504,str(root),2,arms=(),compare_one_shot=False)
+    assert outcome['failed']=='archive-integrity:incomplete-or-duplicated-generation'
+    assert outcome['red_queen_proved'] is False
+    assert not (root/'by_seed/seed10504/COMPLETE').exists()
+    zero=tmp_path/'zero'
+    outcome=run_phase5_history(10505,str(zero),0,arms=('coevolve',),compare_one_shot=False)
+    assert outcome['failed']=='archive-integrity:incomplete-or-duplicated-generation'
+    assert outcome['red_queen_proved'] is False
+    assert not (zero/'by_seed/seed10505/COMPLETE').exists()

@@ -198,8 +198,11 @@ def _assay_invalid(bundle: ClaimgateBundle) -> bool:
 
 
 def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
+    # A missing bound, a zero-width point, or an inverted interval is not a
+    # confidence interval. It must not unlock replicated or publication grades.
     return any(
-        item.ci_low is not None and item.ci_high is not None for item in bundle.comparisons
+        item.ci_low is not None and item.ci_high is not None and item.ci_low < item.ci_high
+        for item in bundle.comparisons
     )
 
 
@@ -283,6 +286,10 @@ def _bundle_flags(bundle: ClaimgateBundle) -> dict[str, bool]:
 def _forbidden_hits(bundle: ClaimgateBundle) -> tuple[str, ...]:
     policy = default_claim_gate_policy()
     forbidden = set(policy.forbidden_aliases)
+    # Bare intelligence is rejected as unknown by the gate, and Red Queen is
+    # blocked on the host–parasite profile. Either flag still must not ride
+    # along on an otherwise supported bundle.
+    forbidden.update({"intelligence", "red_queen_proved"})
     hits: set[str] = set()
     extra = bundle.extra or {}
     for key, value in extra.items():

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- An empty phase-5 archive is not marked `COMPLETE`. A birth with no primary parent keeps the second parent and does not look up the window `"None"`. A false recombination flag stays in the witness.
+- A two-fold sexual birth trace records the recombination backbone as `parent_id`, not the organism that closed the chamber twice.
+- Offspring that never took a seat stay in `eviction_loss` and are not recorded as deaths.
+- A zero-width or inverted interval does not count as a confidence interval. A supported diversity campaign with empty arm evidence is not attached. `intelligence` and `red_queen_proved` demote a bundle the same way other blocked flags do.
+- A confirmatory whose prereg locks a revised design does not start or score. A `COMPLETE` file whose arm is marked failed is not support.
+
 ## [0.3.0b14] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b13`.
@@ -17,7 +25,7 @@ Research-beta cut. Does not recut `0.3.0b4`, `0.3.0b5`, `0.3.0b6`, `0.3.0b7`, `0
 - Numbers and citations: `docs/handoff/CLOSED_LOOP_MEASUREMENTS_20260925.md`.
 - `engine.py` is unchanged. HE03 `results_v1` stays absent.
 
-## Unreleased
+## Earlier notes
 
 - Causal-evidence intervals and claim-gate comparisons fail closed. The
   paired-delta report no longer fabricates a zero-width interval at the mean: it

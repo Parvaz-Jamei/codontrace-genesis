@@ -383,11 +383,18 @@ def _text(raw: object) -> str:
 
 
 def _treatment_width(bundle: ClaimgateBundle, arm_name: str) -> float | None:
-    """Width of the first contrast that names this arm as treatment."""
+    """Width of the first contrast that names this arm as treatment.
+
+    A missing, zero-width, or inverted interval is not uncertainty information
+    and must not close the phenomenon.
+    """
 
     for item in bundle.comparisons:
         if item.a == arm_name and item.ci_low is not None and item.ci_high is not None:
-            return item.ci_high - item.ci_low
+            width = item.ci_high - item.ci_low
+            if width <= 0.0:
+                return None
+            return width
     return None
 
 

@@ -501,7 +501,11 @@ class AntagonistPopulation:
         selected = pool[: self.seat_cap]
         evicted = pool[self.seat_cap :]
         eviction_loss = float(sum(float(unit.energy) for unit in evicted))
-        dropped = tuple(unit.unit_id for unit in evicted)
+        # Energy still leaves with every eviction. Demography does not: an
+        # offspring that never took a seat was not in the population, so it is
+        # not a death. Births are the seated offspring only.
+        born = set(born_ids)
+        dropped = tuple(unit.unit_id for unit in evicted if unit.unit_id not in born)
         if mode == "frozen":
             selected = self._reseat_frozen(selected, roster)
         self._reject_duplicate_ids(selected)

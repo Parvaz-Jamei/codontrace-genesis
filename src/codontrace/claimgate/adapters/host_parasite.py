@@ -1347,12 +1347,20 @@ def attach_genome_diversity_campaign(
     require_preregistration_before_campaign_attach(bundle)
     if campaign.red_queen_proved:
         raise ConfigurationError("campaign.red_queen_proved must remain False.")
-    if campaign.hypothesis_supported and not campaign.failure_reason:
-        # Supported universal claim must not be attached as a falsification success.
-        pass
-    if (not campaign.hypothesis_supported) and not str(campaign.failure_reason).strip():
+    if campaign.hypothesis_supported:
+        # The universal entropy claim holding is not a falsification success.
+        # Empty outcomes, a missing failure reason, or a bare supported flag
+        # must not be attached as evidence.
+        raise ConfigurationError(
+            "supported universal claim must not be attached as a falsification success."
+        )
+    if not str(campaign.failure_reason).strip():
         raise ConfigurationError(
             "falsified diversity campaign requires a non-empty failure_reason."
+        )
+    if not campaign.arm_outcomes:
+        raise ConfigurationError(
+            "genome diversity attach refuses empty arm evidence."
         )
     extra = dict(bundle.extra or {})
     if extra.get("domain") != HOST_PARASITE.name:

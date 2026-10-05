@@ -725,7 +725,8 @@ def mark_started(root: Path, run_id: str) -> dict[str, object]:
     block = prereg.get("confirmatory")
     if not isinstance(block, dict) or block.get("locked") is not True:
         raise ConfigurationError("refusing to start an unlocked confirmatory")
-    if block.get("revised_design") is not None and block.get("confirmatory_started") is not True:
+    # A revised design is a locked stop. An earlier started flag does not lift it.
+    if block.get("revised_design") is not None:
         raise ConfigurationError("revised design is locked and must not be started as the n=24 run")
     if block.get("confirmatory_started") is True:
         return prereg
@@ -1499,8 +1500,25 @@ def assert_artifacts_one_run(
             raise ConfigurationError("verdict is from another run")
 
 
+def _recorded_arm_failure(body: Mapping[str, object]) -> bool:
+    """A failed arm is not a finished history. Absence of the key is not a failure.
+
+    ``None`` is the runner's success marker. Any other value, including a
+    failure string, means that arm did not succeed.
+    """
+
+    if body.get("failed") is not None:
+        return True
+    arms = body.get("arms")
+    if not isinstance(arms, dict):
+        return False
+    return any(isinstance(arm, dict) and arm.get("failed") is not None for arm in arms.values())
+
+
 def analyze(root: Path) -> dict[str, object]:
     block = _locked_block(root)
+    if block.get("revised_design") is not None:
+        raise ConfigurationError("refusing to score a confirmatory the prereg says must stop")
     if block.get("confirmatory_started") is not True:
         raise ConfigurationError("refusing to score a confirmatory that was not started")
     seeds = _as_int_list(block.get("seeds"))
@@ -1522,7 +1540,15 @@ def analyze(root: Path) -> dict[str, object]:
     for seed in seeds:
         seed_dir = root / "confirmatory" / "by_seed" / f"seed{seed}"
         complete_path = seed_dir / "COMPLETE"
+        complete_body: dict[str, object] | None = None
         if not complete_path.is_file():
+            archive_ok = False
+        else:
+            try:
+                complete_body = _load_json(complete_path)
+            except ConfigurationError:
+                archive_ok = False
+        if complete_body is not None and _recorded_arm_failure(complete_body):
             archive_ok = False
         lines = _line_count(seed_dir / "archive.jsonl")
         if lines != generations * len(ARMS):
@@ -1716,6 +1742,8 @@ def restart_clean(root: Path) -> None:
     import shutil
 
     block = _locked_block(root)
+    if block.get("revised_design") is not None:
+        raise ConfigurationError("revised design is locked and must not be started")
     path = root / "prereg_lock.json"
     prereg = _load_json(path)
     current = cast(dict[str, object], prereg["confirmatory"])
@@ -1805,7 +1833,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         restart_clean(root)
     prereg = lock_confirmatory(root, code_commit=code_commit)
     block = cast(dict[str, object], prereg["confirmatory"])
-    if block.get("revised_design") is not None and block.get("confirmatory_started") is not True:
+    if block.get("revised_design") is not None:
         sys.stdout.write(
             "STOP before confirmatory generations: 24 seeds cannot resolve the "
             f"practical effect {block.get('practical_effect')}. Revised design is locked.\n"

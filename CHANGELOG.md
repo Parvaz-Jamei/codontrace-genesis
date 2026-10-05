@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0b17] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b16`.
+
+- The preview console checks the public GitHub release when it starts and again every 24 hours. A newer tag, or a checkout behind `origin/main`, is shown on the page. The check does not push.
+- A clean git checkout can fast-forward with `git pull --ff-only`. Local edits are left untouched. A wheel install is not rewritten.
+- The page still does not run the evolution engine, does not execute uploaded scripts, and does not set `red_queen_proved`.
+- Evolution rules, the RNG, and `engine.py` are unchanged. `red_queen_proved` stays false. HE03 `results_v1` stays absent.
+
 ## [0.3.0b16] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b15`.

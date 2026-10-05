@@ -18,6 +18,21 @@ export type HostProfile = {
   packageVersion?: string;
 };
 
+export type ReleaseReport = {
+  currentVersion: string;
+  currentCommit: string | null;
+  latestVersion: string | null;
+  latestCommit: string | null;
+  updateAvailable: boolean;
+  behindMain: boolean;
+  releaseAhead: boolean;
+  lastChecked: number;
+  checking: boolean;
+  error: string | null;
+  checkout: boolean;
+  htmlUrl: string | null;
+};
+
 export type Job = {
   id: string;
   title: string;

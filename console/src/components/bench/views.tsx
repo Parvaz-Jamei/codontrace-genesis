@@ -5,7 +5,8 @@ import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
 import { artifactZip, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
-import type { Job, JobStatus } from "@/lib/genesis/types";
+import { fetchRelease, pullRelease } from "@/lib/genesis/host";
+import type { Job, JobStatus, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 
 export function JobsView() {
@@ -823,15 +824,101 @@ export function HostView() {
             ))}
           </div>
         </article>
-        <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5">
-          <h3 className="text-sm font-medium">{text.release}</h3>
-          <p className="mt-2 text-sm text-muted">{text.releaseNote}</p>
-          <p className="mt-2 break-all font-mono text-sm">
-            {host.packageVersion ?? ENGINE_IDENTITY} · {ENGINE_COMMIT}
-          </p>
-        </article>
+        <ReleaseCard identity={`${host.packageVersion ?? ENGINE_IDENTITY} · ${ENGINE_COMMIT}`} />
       </div>
     </section>
+  );
+}
+
+function ReleaseCard({ identity }: { identity: string }) {
+  const text = t(useBench((state) => state.settings.lang));
+  const [report, setReport] = useState<ReleaseReport | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let gone = false;
+    const load = (refresh = false) => {
+      fetchRelease(refresh)
+        .then((next) => {
+          if (!gone) setReport(next);
+        })
+        .catch(() => {
+          if (!gone) setReport(null);
+        });
+    };
+    load(false);
+    const timer = window.setInterval(() => load(false), 60_000);
+    return () => {
+      gone = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+  const current = report?.currentVersion ? `${report.currentVersion}${report.currentCommit ? ` · ${report.currentCommit}` : ""}` : identity;
+  return (
+    <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5">
+      <h3 className="text-sm font-medium">{text.release}</h3>
+      <p className="mt-2 text-sm text-muted">{text.releaseNote}</p>
+      <p className="mt-2 break-all font-mono text-sm">{current}</p>
+      <p className="mt-3 text-sm text-muted">{text.releaseLatest}</p>
+      <p className="mt-1 break-all font-mono text-sm">
+        {report?.checking && !report.latestVersion
+          ? text.releaseChecking
+          : report?.latestVersion
+            ? `${report.latestVersion}${report.latestCommit ? ` · ${report.latestCommit}` : ""}`
+            : report?.error
+              ? text.releaseFailed
+              : "—"}
+      </p>
+      {report?.updateAvailable ? (
+        <p className="mt-2 text-sm text-fg">{report.releaseAhead ? text.releaseAvailable : text.releaseBehind}</p>
+      ) : report?.latestVersion ? (
+        <p className="mt-2 text-sm text-muted">{text.releaseUpToDate}</p>
+      ) : null}
+      {report?.error && !report.latestVersion ? <p className="mt-2 text-sm text-subtle">{text.releaseFailed}</p> : null}
+      <p className="mt-2 text-sm text-subtle">{text.releaseReadOnly}</p>
+      {note ? <p className="mt-2 text-sm text-muted">{note}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            fetchRelease(true)
+              .then((next) => {
+                setReport(next);
+                setNote("");
+              })
+              .catch(() => setNote(text.releaseFailed))
+              .finally(() => setBusy(false));
+          }}
+        >
+          {text.releaseCheck}
+        </button>
+        {report?.checkout && report.updateAvailable ? (
+          <button
+            type="button"
+            className="min-h-11 rounded-lg bg-white/10 px-3 text-sm"
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm(text.releaseConfirm)) return;
+              setBusy(true);
+              pullRelease()
+                .then((result) => setNote(result.message))
+                .catch(() => setNote(text.releaseFailed))
+                .finally(() => setBusy(false));
+          }}
+          >
+            {text.releaseUpdate}
+          </button>
+        ) : null}
+        {report?.htmlUrl ? (
+          <a className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted hover:bg-white/10" href={report.htmlUrl} target="_blank" rel="noreferrer">
+            {text.releaseOpen}
+          </a>
+        ) : null}
+      </div>
+    </article>
   );
 }
 

@@ -14,9 +14,16 @@ import socket
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+
+from codontrace.console.release import (
+    installed_version,
+    refresh_release,
+    release_state,
+    start_release_monitor,
+    update_checkout,
+)
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
 _CONTENT_TYPES = {
@@ -170,26 +177,6 @@ def arch_name() -> str:
     return machine or "unknown"
 
 
-def installed_version() -> str:
-    try:
-        return version("codontrace")
-    except PackageNotFoundError:
-        pass
-    for parent in Path(__file__).resolve().parents:
-        pyproject = parent / "pyproject.toml"
-        if not pyproject.is_file():
-            continue
-        for raw in pyproject.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if line.startswith("#") or not line.startswith("version ="):
-                continue
-            value = line.split("=", 1)[1].strip().strip('"').strip("'")
-            if value:
-                return value
-        break
-    return "0.3.0b16"
-
-
 def host_profile() -> dict[str, object]:
     cores = os.cpu_count() or 1
     if cores < 1:
@@ -228,6 +215,13 @@ def static_file(url_path: str) -> Path | None:
     return None
 
 
+def _from_this_machine(address: str) -> bool:
+    host = address.split("%", 1)[0].lower()
+    if host.startswith("::ffff:"):
+        host = host.removeprefix("::ffff:")
+    return host in {"127.0.0.1", "::1", "localhost"}
+
+
 class ConsoleHandler(BaseHTTPRequestHandler):
     server_version = "CodonTraceConsole"
 
@@ -240,10 +234,38 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self._respond(include_body=True)
 
+    def do_POST(self) -> None:
+        path = urlparse(self.path).path
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length > 4096:
+            self._send(400, "text/plain; charset=utf-8", b"body too large\n", include_body=True, cache="no-store")
+            return
+        if length > 0:
+            self.rfile.read(length)
+        if path != "/api/release/update":
+            self._send(404, "text/plain; charset=utf-8", b"not found\n", include_body=True, cache="no-store")
+            return
+        if not _from_this_machine(self.client_address[0]):
+            payload = json.dumps({"ok": False, "message": "Update is only accepted from this machine."}).encode("utf-8")
+            self._send(403, "application/json; charset=utf-8", payload, include_body=True, cache="no-store")
+            return
+        ok, message = update_checkout()
+        if ok:
+            refresh_release(force=True)
+        payload = json.dumps({"ok": ok, "message": message}).encode("utf-8")
+        self._send(200, "application/json; charset=utf-8", payload, include_body=True, cache="no-store")
+
     def _respond(self, *, include_body: bool) -> None:
         path = urlparse(self.path).path
         if path == "/api/host":
             payload = json.dumps(host_profile(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path == "/api/release":
+            query = parse_qs(urlparse(self.path).query)
+            refresh = query.get("refresh", ["0"])[0] == "1"
+            state = refresh_release(force=True) if refresh else release_state()
+            payload = json.dumps(state, allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
         found = static_file(self.path)
@@ -292,6 +314,7 @@ def main(argv: list[str] | None = None) -> int:
     except OSError as exc:
         sys.stderr.write(f"console-bind-error: {exc}\n")
         return 1
+    start_release_monitor()
     address = server.server_address
     shown_host = address[0].decode("ascii") if isinstance(address[0], bytes) else str(address[0])
     url = f"http://{shown_host}:{address[1]}/"

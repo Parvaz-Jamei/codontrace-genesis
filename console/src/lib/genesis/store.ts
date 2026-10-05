@@ -1,0 +1,451 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { answer } from "./analyst";
+import { ARMS, contactsFor, ENGINE_COMMIT, GATE_FILES, PRESETS } from "./catalog";
+import type {
+  BenchSettings,
+  HostProfile,
+  Job,
+  JobKind,
+  PresetId,
+  ScriptRec,
+  Thread,
+  View,
+} from "./types";
+import { zipStore } from "./zip";
+
+const PREVIEW_HORIZON = 2;
+
+type BenchState = {
+  settings: BenchSettings;
+  host: HostProfile | null;
+  jobs: Job[];
+  threads: Thread[];
+  scripts: ScriptRec[];
+  view: View;
+  selectedJobId: string | null;
+  activeThreadId: string | null;
+  setHost: (host: HostProfile) => void;
+  setView: (view: View) => void;
+  setSettings: (patch: Partial<BenchSettings>) => void;
+  selectJob: (id: string | null) => void;
+  openThread: (id: string) => void;
+  ensureThread: (id: string, title: string, jobId: string | null) => void;
+  createRun: (input: RunInput) => string | null;
+  loadEngineCheck: () => void;
+  patchJob: (id: string, patch: Partial<Job>) => void;
+  appendLog: (id: string, line: string) => void;
+  removeJob: (id: string) => void;
+  addScript: (name: string, note: string, body: string) => string | null;
+  send: (threadId: string, text: string) => void;
+  togglePin: (threadId: string) => void;
+  clearThread: (threadId: string) => void;
+  clearChats: () => void;
+  settle: () => void;
+};
+
+export type RunInput = {
+  title: string;
+  kind: JobKind;
+  preset: PresetId;
+  seedsText: string;
+  generations: number;
+  workers: number;
+  cores: number[];
+  gateFile?: string;
+  scriptName?: string;
+  track?: "engine" | "reference" | "contracts";
+};
+
+const baseSettings: BenchSettings = {
+  lang: "en",
+  followLog: true,
+  density: "comfortable",
+  model: "local-analyst",
+};
+
+export const useBench = create<BenchState>()(
+  persist(
+    (set, get) => ({
+      settings: baseSettings,
+      host: null,
+      jobs: [],
+      threads: [],
+      scripts: [],
+      view: "jobs",
+      selectedJobId: null,
+      activeThreadId: null,
+      setHost: (host) => set({ host }),
+      setView: (view) => set({ view }),
+      setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
+      selectJob: (id) => {
+        const thread = id ? get().threads.find((item) => item.jobId === id) : undefined;
+        set({
+          selectedJobId: id,
+          activeThreadId: thread?.id ?? get().activeThreadId,
+        });
+      },
+      openThread: (id) => {
+        const thread = get().threads.find((item) => item.id === id);
+        set({
+          view: "chat",
+          activeThreadId: id,
+          selectedJobId: thread?.jobId ?? get().selectedJobId,
+        });
+      },
+      ensureThread: (id, title, jobId) => {
+        const existing = get().threads.some((item) => item.id === id);
+        if (!existing) {
+          set({
+            threads: [
+              { id, title, jobId, pinned: false, messages: [], updatedAt: Date.now() },
+              ...get().threads,
+            ],
+          });
+        }
+        set({
+          view: "chat",
+          activeThreadId: id,
+          selectedJobId: jobId ?? get().selectedJobId,
+        });
+      },
+      createRun: (input) => {
+        const job = buildJob(input);
+        if (!job) return null;
+        const thread = emptyThread(job.id, job.title);
+        set({
+          jobs: [job, ...get().jobs],
+          threads: [thread, ...get().threads],
+          selectedJobId: job.id,
+          activeThreadId: thread.id,
+          view: "jobs",
+        });
+        return job.id;
+      },
+      loadEngineCheck: () => {
+        if (get().jobs.some((job) => job.id === "engine-check-17001")) {
+          get().selectJob("engine-check-17001");
+          set({ view: "jobs" });
+          return;
+        }
+        const job = engineCheck();
+        const thread = emptyThread(job.id, job.title);
+        thread.messages.push({
+          id: "m-check",
+          role: "assistant",
+          at: job.createdAt,
+          text:
+            get().settings.lang === "fa"
+              ? "بررسی موتور، بذر ۱۷۰۰۱، دو نسل، سه بازو. بازپخش تماس‌ها جور بود. red_queen_proved برابر false است. تشخیص‌های افق بلند در این بسته نیستند."
+              : "Engine check, seed 17001, two generations, three arms. Contact replay matched. red_queen_proved is false. Long-horizon diagnostics are not in this package.",
+        });
+        set({
+          jobs: [job, ...get().jobs],
+          threads: [thread, ...get().threads],
+          selectedJobId: job.id,
+          activeThreadId: thread.id,
+          view: "jobs",
+        });
+      },
+      patchJob: (id, patch) =>
+        set({
+          jobs: get().jobs.map((job) => (job.id === id ? { ...job, ...patch } : job)),
+        }),
+      appendLog: (id, line) =>
+        set({
+          jobs: get().jobs.map((job) =>
+            job.id === id ? { ...job, logs: [...job.logs, line].slice(-400) } : job,
+          ),
+        }),
+      removeJob: (id) =>
+        set({
+          jobs: get().jobs.filter((job) => job.id !== id),
+          selectedJobId: get().selectedJobId === id ? null : get().selectedJobId,
+        }),
+      addScript: (name, note, body) => {
+        const clean = name.trim();
+        const source = body.slice(0, 200_000);
+        if (!/^[\w.-]+\.py$/.test(clean)) return null;
+        const rec: ScriptRec = {
+          id: uid(),
+          name: clean,
+          note: note.trim(),
+          body: source,
+          createdAt: Date.now(),
+        };
+        set({ scripts: [rec, ...get().scripts] });
+        return rec.id;
+      },
+      send: (threadId, text) => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        const state = get();
+        const thread = state.threads.find((item) => item.id === threadId);
+        if (!thread) return;
+        const job = thread.jobId ? state.jobs.find((item) => item.id === thread.jobId) ?? null : null;
+        const at = Date.now();
+        const reply = answer(state.settings.lang, trimmed, job ?? null);
+        const spoken =
+          state.settings.model === "board-model"
+            ? state.settings.lang === "fa"
+              ? `مدل برد وصل نیست. تحلیلگر محلی:\n${reply}`
+              : `The board model is not mounted. Local analyst:\n${reply}`
+            : reply;
+        set({
+          threads: state.threads.map((item) =>
+            item.id === threadId
+              ? {
+                  ...item,
+                  title: item.messages.length === 0 ? trimmed.slice(0, 72) : item.title,
+                  updatedAt: at,
+                  messages: [
+                    ...item.messages,
+                    { id: uid(), role: "user", text: trimmed, at },
+                    { id: uid(), role: "assistant", text: spoken, at: at + 1 },
+                  ],
+                }
+              : item,
+          ),
+        });
+      },
+      togglePin: (threadId) =>
+        set({
+          threads: get().threads.map((item) =>
+            item.id === threadId ? { ...item, pinned: !item.pinned } : item,
+          ),
+        }),
+      clearThread: (threadId) =>
+        set({
+          threads: get().threads.map((item) =>
+            item.id === threadId ? { ...item, messages: [], updatedAt: Date.now() } : item,
+          ),
+        }),
+      clearChats: () => set({ threads: [], activeThreadId: null }),
+      settle: () =>
+        set({
+          jobs: get().jobs.map((job) =>
+            job.status === "running" || job.status === "paused"
+              ? {
+                  ...job,
+                  status: "stopped",
+                  logs: [...job.logs, "console: this session closed before the preview clock finished"],
+                }
+              : job,
+          ),
+        }),
+    }),
+    {
+      name: "genesis-console",
+      partialize: (state) => ({
+        settings: state.settings,
+        jobs: state.jobs,
+        threads: state.threads,
+        scripts: state.scripts,
+        view: state.view,
+        selectedJobId: state.selectedJobId,
+        activeThreadId: state.activeThreadId,
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?.settle();
+      },
+      skipHydration: true,
+    },
+  ),
+);
+
+export function jobProgress(job: Job | null) {
+  if (!job || job.totalSteps < 1) return 0;
+  return Math.min(1, job.cursor / job.totalSteps);
+}
+
+export function nextLine(job: Job) {
+  const span = job.previewGenerations * ARMS.length;
+  const seed = job.seeds[Math.floor(job.cursor / span)] ?? job.seeds[0] ?? 0;
+  const rest = job.cursor % span;
+  const generation = Math.floor(rest / ARMS.length) + 1;
+  const arm = ARMS[rest % ARMS.length];
+  return `preview phase=5 seed=${seed} arm=${arm} generation=${generation} contacts=${contactsFor(arm)} invariant=ok red_queen_proved=false`;
+}
+
+export function artifactZip(job: Job) {
+  const execution = {
+    complete: job.status === "archived",
+    exploratory: true,
+    red_queen_proved: false,
+    diagnostics_complete: false,
+    diagnostics: job.diagnostics,
+    preview_generations: job.previewGenerations,
+    requested_generations: job.generations,
+    seeds: job.seeds,
+    commit: ENGINE_COMMIT,
+  };
+  return zipStore([
+    { name: "live.log", text: `${job.logs.join("\n")}\n` },
+    { name: "status.json", text: JSON.stringify({ status: job.status, cursor: job.cursor, total: job.totalSteps }, null, 2) },
+    { name: "execution.json", text: JSON.stringify(execution, null, 2) },
+  ]);
+}
+
+export function suiteZip(jobs: Job[]) {
+  const newest = (file: string) => {
+    let best: Job | null = null;
+    for (const job of jobs) {
+      if (job.kind !== "gates" || job.gateFile !== file) continue;
+      if (!best || job.createdAt > best.createdAt) best = job;
+    }
+    return best;
+  };
+  const result = (file: string, count: number) => {
+    const job = newest(file);
+    return {
+      name: `results/${file.replace(/\.py$/, "")}.json`,
+      text: `${JSON.stringify(
+        {
+          file,
+          registered: count,
+          status: job?.status ?? "not_run",
+          cursor: job?.cursor ?? 0,
+          total: job?.totalSteps ?? count,
+          red_queen_proved: false,
+          exploratory: true,
+          pytest: false,
+          log: job?.logs ?? [],
+        },
+        null,
+        2,
+      )}\n`,
+    };
+  };
+  return zipStore([
+    {
+      name: "README.txt",
+      text: "Genesis console preview.\nThese files are not pytest results and not a pass.\nred_queen_proved=false\n",
+    },
+    ...GATE_FILES.map((gate) => result(gate.file, gate.count)),
+    result("all", GATE_FILES.reduce((sum, gate) => sum + gate.count, 0)),
+  ]);
+}
+
+function buildJob(input: RunInput): Job | null {
+  const kind = input.track === "contracts" ? "gates" : input.kind;
+  const gateFile = input.track === "contracts" ? "all" : input.gateFile;
+  const seeds =
+    kind === "engine"
+      ? input.preset !== "custom"
+        ? PRESETS[input.preset].seeds
+        : parseSeeds(input.seedsText)
+      : [0];
+  if (!seeds) return null;
+  const generations =
+    kind === "engine" && input.preset !== "custom" ? PRESETS[input.preset].generations : input.generations;
+  if (kind === "engine" && (!Number.isInteger(generations) || generations < 2)) return null;
+  if (kind === "gates" && gateFile !== "all" && !GATE_FILES.some((gate) => gate.file === gateFile)) return null;
+  if (kind === "script" && !input.scriptName) return null;
+  const previewGenerations = kind === "engine" ? PREVIEW_HORIZON : 1;
+  const steps =
+    kind === "engine"
+      ? seeds.length * previewGenerations * ARMS.length
+      : kind === "gates"
+        ? gateFile === "all"
+          ? GATE_FILES.reduce((sum, gate) => sum + gate.count, 0)
+          : GATE_FILES.find((gate) => gate.file === gateFile)?.count ?? 1
+        : 3;
+  const id = uid();
+  const title =
+    input.title.trim() ||
+    (kind === "gates" ? (gateFile === "all" ? "All 29 gates" : gateFile || "gates") : kind === "script" ? input.scriptName || "script" : input.preset);
+  return {
+    id,
+    title,
+    kind,
+    preset: input.preset,
+    seeds: kind === "engine" ? seeds : [],
+    generations: kind === "engine" ? generations : previewGenerations,
+    previewGenerations,
+    workers: input.workers,
+    cores: input.cores,
+    status: "queued",
+    cursor: 0,
+    totalSteps: steps,
+    logs: [
+      kind === "engine"
+        ? `preview horizon ${previewGenerations} of ${generations} requested · ${input.track ?? "engine"} · exploratory · red_queen_proved=false`
+        : "preview only · not a result from the board",
+    ],
+    createdAt: Date.now(),
+    note: input.track ?? "",
+    redQueenProved: false,
+    exploratory: true,
+    diagnostics: "not_run",
+    gateFile,
+    scriptName: input.scriptName,
+  };
+}
+
+function engineCheck(): Job {
+  const lines = [
+    "phase=5 seed=17001 arm=coevolve generation=1 contacts=64 invariant=ok red_queen_proved=false",
+    "phase=5 seed=17001 arm=coevolve generation=2 contacts=64 invariant=ok red_queen_proved=false",
+    "phase=5 seed=17001 arm=adaptation_cut generation=1 contacts=60 invariant=ok red_queen_proved=false",
+    "phase=5 seed=17001 arm=adaptation_cut generation=2 contacts=60 invariant=ok red_queen_proved=false",
+    "phase=5 seed=17001 arm=constant_parasite generation=1 contacts=64 invariant=ok red_queen_proved=false",
+    "phase=5 seed=17001 arm=constant_parasite generation=2 contacts=64 invariant=ok red_queen_proved=false",
+    "replay matched · diagnostics not in 0.3.0b15 · red_queen_proved=false",
+  ];
+  return {
+    id: "engine-check-17001",
+    title: "Engine check 17001",
+    kind: "engine",
+    preset: "custom",
+    seeds: [17001],
+    generations: 2,
+    previewGenerations: 2,
+    workers: 1,
+    cores: [0],
+    status: "archived",
+    cursor: 6,
+    totalSteps: 6,
+    logs: lines,
+    createdAt: Date.now(),
+    note: "Measured on the 0.3.0b15 engine tree. Not a campaign.",
+    redQueenProved: false,
+    exploratory: true,
+    diagnostics: "not_run",
+  };
+}
+
+function emptyThread(jobId: string, title: string): Thread {
+  return {
+    id: `thread-${jobId}`,
+    title,
+    jobId,
+    pinned: false,
+    messages: [],
+    updatedAt: Date.now(),
+  };
+}
+
+function parseSeeds(text: string) {
+  const parts = text.split(/[\s,]+/).filter(Boolean);
+  if (parts.length === 0) return null;
+  const seeds = parts.map((part) => Number(part));
+  if (seeds.some((seed) => !Number.isInteger(seed) || seed < 0)) return null;
+  if (new Set(seeds).size !== seeds.length) return null;
+  return seeds;
+}
+
+function uid() {
+  return crypto.randomUUID();
+}
+
+export function gateLine(job: Job) {
+  if (job.gateFile === "all") {
+    const names = GATE_FILES.flatMap((gate) => Array.from({ length: gate.count }, () => gate.file));
+    return `preview ${names[job.cursor] ?? "gate"} · not a board pytest result · red_queen_proved=false`;
+  }
+  return `preview ${job.gateFile} item ${job.cursor + 1} · not a board pytest result · red_queen_proved=false`;
+}
+
+export function scriptLine(job: Job) {
+  return `preview script ${job.scriptName} step ${job.cursor + 1} · record only · not executed`;
+}

@@ -14,3 +14,5 @@ npm run build
 ```
 
 `npm run dev` serves the page with a host profile for layout work. That process is not the installed command, and it does not run the evolution engine.
+
+The installed command checks the public GitHub release when it starts and every 24 hours. The check does not push. A clean git checkout can fast-forward from the page. A dirty tree and a wheel install are left untouched.

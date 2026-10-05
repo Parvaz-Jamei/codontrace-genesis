@@ -14,9 +14,9 @@ where = ["src"]
 
 [project]
 name = "codontrace"
-version = "0.3.0b16"
-# Prior identities: version = "0.3.0b4.dev0", version = "0.3.0b4.dev1", version = "0.3.0b4", version = "0.3.0b5", version = "0.3.0b6", version = "0.3.0b7", version = "0.3.0b8", version = "0.3.0b9", version = "0.3.0b10", version = "0.3.0b11", version = "0.3.0b12", version = "0.3.0b13", version = "0.3.0b14", version = "0.3.0b15".
-# Public cuts 0.3.0b4 through 0.3.0b15 are immutable. Do not recut them.
+version = "0.3.0b17"
+# Prior identities: version = "0.3.0b4.dev0", version = "0.3.0b4.dev1", version = "0.3.0b4", version = "0.3.0b5", version = "0.3.0b6", version = "0.3.0b7", version = "0.3.0b8", version = "0.3.0b9", version = "0.3.0b10", version = "0.3.0b11", version = "0.3.0b12", version = "0.3.0b13", version = "0.3.0b14", version = "0.3.0b15", version = "0.3.0b16".
+# Public cuts 0.3.0b4 through 0.3.0b16 are immutable. Do not recut them.
 description = "CodonTrace Genesis: deterministic research-beta engine for digital evolution, causal mechanism auditing, capsule-mediated transfer, skill compression, role emergence, and replayable evidence artifacts."
 readme = "README.md"
 requires-python = ">=3.11,<3.15"

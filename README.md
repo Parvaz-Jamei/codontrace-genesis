@@ -133,8 +133,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI wheel | `0.3.0b16`, tag [`v0.3.0b16`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b16). Cuts `0.3.0b4` through `0.3.0b15` are not recut. |
-| GitHub `main` | `0.3.0b16`, the `[project].version` in `pyproject.toml`. |
+| Public PyPI wheel | `0.3.0b17`, tag [`v0.3.0b17`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b17). Cuts `0.3.0b4` through `0.3.0b16` are not recut. |
+| GitHub `main` | `0.3.0b17`, the `[project].version` in `pyproject.toml`. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,16 +168,16 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b16`. An editable install of `main` prints `0.3.0b16`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b17`. An editable install of `main` prints `0.3.0b17`.
 
 ```bash
-pip install codontrace==0.3.0b16
+pip install codontrace==0.3.0b17
 ```
 
 ```bash
-pip install "codontrace[research]==0.3.0b16"
-pip install "codontrace[causal]==0.3.0b16"
-pip install "codontrace[qd]==0.3.0b16"
+pip install "codontrace[research]==0.3.0b17"
+pip install "codontrace[causal]==0.3.0b17"
+pip install "codontrace[qd]==0.3.0b17"
 ```
 
 From source, which may be ahead of PyPI:
@@ -229,7 +229,7 @@ Opt-in presets (sexual recombination, fluctuating environments, multi-generation
 
 ## Console
 
-The console is a local preview module. It does not run the evolution engine, it does not execute an uploaded `.py` file, and it does not set `red_queen_proved`. A gate row is the catalog plus the latest preview in the browser, not a pytest pass.
+The console is a local preview module. It does not run the evolution engine, it does not execute an uploaded `.py` file, and it does not set `red_queen_proved`. A gate row is the catalog plus the latest preview in the browser, not a pytest pass. On startup, and again every 24 hours, it asks GitHub whether a newer release exists. That query does not push. A clean checkout of this repository can fast-forward; a wheel install is left as it is.
 
 The same command works on Linux, Windows, and macOS after a normal install. No extra package and no Node process are required to open the page.
 
@@ -360,10 +360,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b16},
+  version = {0.3.0b17},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b16 is the git identity. Cuts 0.3.0b4 through 0.3.0b15 are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b17 is the git identity. Cuts 0.3.0b4 through 0.3.0b16 are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import ast
 import json
+import subprocess
 import sys
 import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-from codontrace.console import server
+from codontrace.console import release, server
 
 REPO = Path(__file__).resolve().parents[1]
 SERVER = REPO / "src" / "codontrace" / "console" / "server.py"
@@ -34,6 +35,10 @@ def test_server_source_does_not_import_the_engine() -> None:
     text = SERVER.read_text(encoding="utf-8")
     assert "exec(" not in text
     assert "eval(" not in text
+    release_text = (REPO / "src" / "codontrace" / "console" / "release.py").read_text(encoding="utf-8")
+    assert "git push" not in release_text
+    assert "--hard" not in release_text
+    assert "--ff-only" in release_text
 
 
 def test_workers_stay_between_one_and_four() -> None:
@@ -82,6 +87,11 @@ def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
             payload = json.loads(host_page.read().decode("utf-8"))
         assert payload["source"] == "host"
         assert payload["recommendedWorkers"] <= 4
+        with urllib.request.urlopen(base + "/api/release", timeout=5) as release_page:
+            info = json.loads(release_page.read().decode("utf-8"))
+        assert info["currentVersion"]
+        assert info["updateAvailable"] in {True, False}
+        assert "red_queen_proved" not in info
         try:
             urllib.request.urlopen(base + "/%2e%2e/%2e%2e/pyproject.toml", timeout=5)
         except urllib.error.HTTPError as exc:
@@ -92,3 +102,57 @@ def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
         httpd.shutdown()
         httpd.server_close()
         thread.join(timeout=5)
+
+
+def test_release_ordering_knows_a_newer_beta() -> None:
+    assert release.newer_release("v0.3.0b17", "0.3.0b16")
+    assert not release.newer_release("0.3.0b16", "0.3.0b17")
+    assert not release.newer_release("0.3.0b16", "v0.3.0b16")
+    assert release.newer_release("0.3.0", "0.3.0b17")
+    assert release.version_key("nope") is None
+
+
+def _git(cwd: Path, *args: str) -> None:
+    subprocess.check_call(
+        ["git", "-c", "user.email=console@example.com", "-c", "user.name=console", *args],
+        cwd=cwd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def test_dirty_checkout_is_left_untouched(tmp_path: Path) -> None:
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    _git(origin, "init", "-b", "main")
+    (origin / "pyproject.toml").write_text('name = "codontrace"\nversion = "0.3.0b17"\n', encoding="utf-8")
+    _git(origin, "add", "pyproject.toml")
+    _git(origin, "commit", "-m", "base")
+    clone = tmp_path / "clone"
+    subprocess.check_call(
+        ["git", "clone", str(origin), str(clone)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+    (clone / "local.txt").write_text("keep\n", encoding="utf-8")
+    ok, message = release.pull_checkout(clone)
+    assert ok is False
+    assert "untouched" in message
+    assert (clone / "local.txt").read_text(encoding="utf-8") == "keep\n"
+
+
+def test_fast_forward_updates_a_clean_checkout(tmp_path: Path) -> None:
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    _git(origin, "init", "-b", "main")
+    (origin / "pyproject.toml").write_text('name = "codontrace"\nversion = "0.3.0b17"\n', encoding="utf-8")
+    _git(origin, "add", "pyproject.toml")
+    _git(origin, "commit", "-m", "base")
+    clone = tmp_path / "clone"
+    subprocess.check_call(
+        ["git", "clone", str(origin), str(clone)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+    (origin / "note.txt").write_text("next\n", encoding="utf-8")
+    _git(origin, "add", "note.txt")
+    _git(origin, "commit", "-m", "next")
+    ok, _message = release.pull_checkout(clone)
+    assert ok is True
+    assert (clone / "note.txt").read_text(encoding="utf-8") == "next\n"

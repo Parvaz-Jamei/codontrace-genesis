@@ -1,10 +1,10 @@
 import { useEffect, useState, ViewTransition, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Check, CircleHelp, Cpu, FileCode, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
-import { getHostProfile } from "@/lib/genesis/host";
+import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
 import { t } from "@/lib/genesis/copy";
 import { useBench } from "@/lib/genesis/store";
-import type { HostProfile, View } from "@/lib/genesis/types";
+import type { HostProfile, ReleaseReport, View } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 import { Stage } from "./stage";
 import { ChatView, GatesView, HelpDialog, HostView, JobsView, LogRail, NewRunDialog, ScriptsView, SettingsView } from "./views";
@@ -24,6 +24,8 @@ export function BenchApp() {
   const [log, setLog] = useState(false);
   const [composer, setComposer] = useState(false);
   const [help, setHelp] = useState(false);
+  const [release, setRelease] = useState<ReleaseReport | null>(null);
+  const [hideRelease, setHideRelease] = useState(false);
 
   useEffect(() => {
     void useBench.persist.rehydrate();
@@ -69,6 +71,23 @@ export function BenchApp() {
     };
   }, [setHost]);
 
+  useEffect(() => {
+    let gone = false;
+    const load = () => {
+      fetchRelease()
+        .then((next) => {
+          if (!gone) setRelease(next);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      gone = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const titles: Record<View, string> = {
     jobs: settings.lang === "fa" ? "کارزارهای تکامل" : "Evolution Campaigns",
     chat: settings.lang === "fa" ? "دستیار پژوهش" : "Research Assistant",
@@ -106,6 +125,19 @@ export function BenchApp() {
             {text.log}
           </button>
         </header>
+        {release?.updateAvailable && !hideRelease ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-sm">
+            <p className="min-w-0 flex-1">
+              {release.releaseAhead ? text.releaseAvailable : text.releaseBehind} {release.latestVersion ?? release.latestCommit}
+            </p>
+            <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => setView("host")}>
+              {text.release}
+            </button>
+            <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => setHideRelease(true)}>
+              {text.releaseDismiss}
+            </button>
+          </div>
+        ) : null}
         <div className={cn("grid min-h-0 flex-1 transition-[grid-template-columns] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]", log ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_0px]")}>
           <main className="relative min-h-0 min-w-0">
             <Stage />

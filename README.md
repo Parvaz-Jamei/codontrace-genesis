@@ -133,8 +133,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI wheel | `0.3.0b15`, tag [`v0.3.0b15`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b15). Cuts `0.3.0b4` through `0.3.0b14` are not recut. |
-| GitHub `main` | `0.3.0b15`, the `[project].version` in `pyproject.toml`. |
+| Public PyPI wheel | `0.3.0b16`, tag [`v0.3.0b16`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b16). Cuts `0.3.0b4` through `0.3.0b15` are not recut. |
+| GitHub `main` | `0.3.0b16`, the `[project].version` in `pyproject.toml`. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,16 +168,16 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b15`. An editable install of `main` prints `0.3.0b15`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b16`. An editable install of `main` prints `0.3.0b16`.
 
 ```bash
-pip install codontrace==0.3.0b15
+pip install codontrace==0.3.0b16
 ```
 
 ```bash
-pip install "codontrace[research]==0.3.0b15"
-pip install "codontrace[causal]==0.3.0b15"
-pip install "codontrace[qd]==0.3.0b15"
+pip install "codontrace[research]==0.3.0b16"
+pip install "codontrace[causal]==0.3.0b16"
+pip install "codontrace[qd]==0.3.0b16"
 ```
 
 From source, which may be ahead of PyPI:
@@ -224,6 +224,26 @@ print(result.digest()[:24])
 ```
 
 Opt-in presets (sexual recombination, fluctuating environments, multi-generation measurement, materials, and the H–L harnesses) stay off unless requested, so earlier digest pins remain stable. Print-only smokes live under [`examples/`](examples/).
+
+---
+
+## Console
+
+The console is a local preview module. It does not run the evolution engine, it does not execute an uploaded `.py` file, and it does not set `red_queen_proved`. A gate row is the catalog plus the latest preview in the browser, not a pytest pass.
+
+The same command works on Linux, Windows, and macOS after a normal install. No extra package and no Node process are required to open the page.
+
+```bash
+python -m codontrace.console
+```
+
+```bash
+genesis-console
+```
+
+The default address is `http://127.0.0.1:8765/`. `--host` and `--port` change the bind. `--open` asks the desktop to open the page. Workers stay in 1–4. A temperature is reported only when the machine exposes a sensor file. Windows does not have a load average, so that field stays unmeasured there.
+
+The page source lives in [`console/`](console/). Rebuild it with Node only when the interface itself changes; the result is stored under `src/codontrace/console/static` and shipped inside the wheel. The server is `codontrace.console` and does not import `engine.py`.
 
 ---
 
@@ -340,10 +360,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b15},
+  version = {0.3.0b16},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b15 is the git identity. Cuts 0.3.0b4 through 0.3.0b14 are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b16 is the git identity. Cuts 0.3.0b4 through 0.3.0b15 are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

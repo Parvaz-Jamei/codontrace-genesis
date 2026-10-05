@@ -32,6 +32,17 @@ global-exclude *.html
 global-exclude *.patch
 global-exclude .grok_write_probe*.txt
 global-exclude .size_test_*.txt
+recursive-include src/codontrace/console/static *
+include console/README.md
+include console/package.json
+include console/package-lock.json
+include console/tsconfig.json
+include console/vite.config.ts
+include console/index.html
+recursive-include console/src *.ts
+recursive-include console/src *.tsx
+recursive-include console/src *.css
+prune console/node_modules
 
 recursive-include paper *.md
 recursive-include paper *.bib

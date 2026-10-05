@@ -2,6 +2,10 @@
 .grok_write_probe*.txt
 .size_test_*.txt
 
+# Console rebuild. The served page is committed under src/codontrace/console/static.
+console/node_modules/
+console/dist/
+
 # Python
 __pycache__/
 *.py[cod]

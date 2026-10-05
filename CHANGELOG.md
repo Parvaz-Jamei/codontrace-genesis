@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0b16] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b15`.
+
+- The preview console is a package module. `python -m codontrace.console` and `genesis-console` serve a local page and a host profile on Linux, Windows, and macOS. Node is not required to open it.
+- The page does not run the evolution engine, does not execute uploaded `.py` text, and does not set `red_queen_proved`. A gate row is a catalog entry plus a preview, not a pytest pass. Workers stay in 1–4. Temperature is read only when a sensor file is present. Windows does not report a load average.
+- Evolution rules, the RNG, and `engine.py` are unchanged. `red_queen_proved` stays false. HE03 `results_v1` stays absent.
+
 ## [0.3.0b15] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b14`.

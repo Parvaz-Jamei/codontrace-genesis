@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.ilw.adapter_honesty import (
     assert_claim_ceiling_runtime_observation,
@@ -406,15 +407,15 @@ def run_campaign_cell(
         replay_matched=replay_matched if run_replay else False,
         conservation_passed=bool(conservation.passed),
         required_edge_coverage=float(coverage),
-        birth_count=int(summary.get("birth_count", 0) or 0),
-        death_count=int(summary.get("death_count", 0) or 0),
+        birth_count=same_int(summary.get("birth_count", 0) or 0),
+        death_count=same_int(summary.get("death_count", 0) or 0),
         generation_turnover=_generation_turnover(primary),
         lineage_depth=_lineage_depth(primary),
         unique_genome_count=_unique_genome_count(primary),
         niches_occupied=_niches_occupied(primary),
         knockout_applied_zero_when_expected=ko_ok,
         final_digest=digest,
-        event_count=int(summary.get("event_count", 0) or 0),
+        event_count=same_int(summary.get("event_count", 0) or 0),
         no_claim_promotion=True,
         claim_ceiling=CLAIM_CEILING,
     )

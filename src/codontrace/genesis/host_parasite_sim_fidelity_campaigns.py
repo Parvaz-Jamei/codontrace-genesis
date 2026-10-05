@@ -26,7 +26,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from typing import Any
+from typing import Any, cast
 
 from codontrace.claimgate import audit_bundle
 from codontrace.claimgate.adapters.host_parasite import (
@@ -41,6 +41,7 @@ from codontrace.claimgate.adapters.host_parasite_prereg import (
     attach_host_parasite_preregistration,
     host_parasite_preregistration,
 )
+from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_ard_fsd_transition import (
@@ -231,16 +232,16 @@ def _sf1_coexistence_trial(*, seed: int, cost_of_generalism: float, generations:
         )
 
     final = history[-1]
-    host_rich = int(final["host_richness"])
-    para_rich = int(final["parasite_richness"])
-    mean_host = float(final["mean_host_n"])
+    host_rich = same_int(final["host_richness"])
+    para_rich = same_int(final["parasite_richness"])
+    mean_host = same_float(final["mean_host_n"])
     # Extinction proxy: host richness collapses or mean host count near zero.
     extinction_proxy = host_rich <= 1 or mean_host < 2.0
     coexistence = host_rich >= 2 and para_rich >= 2 and mean_host >= 5.0 and not extinction_proxy
     # Superparasite dominance: V_ab outnumbers specialists late when cost low.
-    late_p = history[-1]["parasites"]
-    superparasite_dominance = int(late_p["V_ab"]) > (
-        int(late_p["V_a"]) + int(late_p["V_b"])
+    late_p = same_mapping(history[-1]["parasites"])
+    superparasite_dominance = same_int(late_p["V_ab"]) > (
+        same_int(late_p["V_a"]) + same_int(late_p["V_b"])
     )
 
     # Env hygiene probe: infection path uses DomainProfile env, not engine.
@@ -309,8 +310,8 @@ def _panel_sf1() -> dict[str, object]:
         "n_seeds": len(SEEDS_SF1),
         "zero_cost_trials": zero_cost,
         "with_cost_trials": with_cost,
-        "mean_host_n_zero": _mean([float(t["mean_host_n"]) for t in zero_cost]),
-        "mean_host_n_with_cost": _mean([float(t["mean_host_n"]) for t in with_cost]),
+        "mean_host_n_zero": _mean([same_float(t["mean_host_n"]) for t in zero_cost]),
+        "mean_host_n_with_cost": _mean([same_float(t["mean_host_n"]) for t in with_cost]),
         "honesty": (
             "Digital GFG-style count assay on host_parasite DomainProfile helpers; "
             "not wet coexistence proof; Red Queen unproved."
@@ -326,23 +327,25 @@ def _panel_sf1() -> dict[str, object]:
 def _panel_sf2() -> dict[str, object]:
     camp = run_genome_diversity_campaign(seeds=SEEDS_SF2)
     d = camp.to_dict()
-    by: dict[str, list[dict[str, object]]] = defaultdict(list)
-    for o in d["arm_outcomes"]:
-        by[str(o["arm"])].append(o)
+    by: dict[str, list[Mapping[object, object]]] = defaultdict(list)
+    for outcome_raw in same_iter(d["arm_outcomes"]):
+        outcome = same_mapping(outcome_raw)
+        by[str(outcome["arm"])].append(outcome)
+    arm_digests = same_mapping(d["arm_digests"])
     arm_stats = {
         arm: {
             "mean_entropy_delta_vs_baseline": _mean(
-                [float(o["entropy_delta_vs_baseline"]) for o in outs]
+                [same_float(o["entropy_delta_vs_baseline"]) for o in outs]
             ),
-            "mean_hamming": _mean([float(o["mean_genome_distance"]) for o in outs]),
-            "mean_entropy": _mean([float(o["codon_usage_entropy"]) for o in outs]),
-            "arm_digest": d["arm_digests"][arm],
+            "mean_hamming": _mean([same_float(o["mean_genome_distance"]) for o in outs]),
+            "mean_entropy": _mean([same_float(o["codon_usage_entropy"]) for o in outs]),
+            "arm_digest": arm_digests[arm],
         }
         for arm, outs in by.items()
     }
-    biotic = float(arm_stats["biotic_intact"]["mean_entropy_delta_vs_baseline"])
-    abiotic = float(arm_stats["abiotic_stress"]["mean_entropy_delta_vs_baseline"])
-    content = float(arm_stats["content_null"]["mean_entropy_delta_vs_baseline"])
+    biotic = same_float(arm_stats["biotic_intact"]["mean_entropy_delta_vs_baseline"])
+    abiotic = same_float(arm_stats["abiotic_stress"]["mean_entropy_delta_vs_baseline"])
+    content = same_float(arm_stats["content_null"]["mean_entropy_delta_vs_baseline"])
     # Literature: biotic coevolution raises complexity/diversity vs abiotic (Zaman).
     # Pre-reg: biotic > abiotic AND biotic > 0 AND content_null == 0 AND hyp fails.
     success = (
@@ -396,16 +399,23 @@ def _panel_sf3() -> dict[str, object]:
     camp = run_ard_fsd_transition_campaign(seeds=SEEDS_SF3, n_slices=10)
     d = camp.to_dict()
     # Spotlight seed 11 early vs late under parasite_coevolution.
-    spotlight = [
+    spotlight = []
+    for raw in same_iter(d["slices"]):
+        row = same_mapping(raw)
+        if row["seed"] == SEEDS_SF3[0] and row["arm"] == "parasite_coevolution":
+            spotlight.append(row)
+    early = next(
         s
-        for s in d["slices"]
-        if s["seed"] == SEEDS_SF3[0] and s["arm"] == "parasite_coevolution"
-    ]
-    early = next(s for s in spotlight if s["slice_id"].endswith(":early:seed11") or ":early:" in s["slice_id"])
-    late = next(s for s in spotlight if ":late:" in s["slice_id"])
+        for s in spotlight
+        if cast(str, s["slice_id"]).endswith(":early:seed11")
+        or ":early:" in cast(str, s["slice_id"])
+    )
+    late = next(s for s in spotlight if ":late:" in cast(str, s["slice_id"]))
     # Also gather by label.
-    labels = {s["slice_id"]: s["label"] for s in spotlight}
-    cost_rise = float(late["mean_cost_of_generalism"]) > float(early["mean_cost_of_generalism"])
+    labels = {cast(str, s["slice_id"]): s["label"] for s in spotlight}
+    cost_rise = same_float(late["mean_cost_of_generalism"]) > same_float(
+        early["mean_cost_of_generalism"]
+    )
     label_shift = early["label"] == "ard_like" and late["label"] == "fsd_like"
     # Mixing literature (Gómez): more mixing → ARD. Our cost-rise assay shows
     # ARD→FSD under rising generalism cost (Hall-style constraint) — complementary,
@@ -521,9 +531,9 @@ def _panel_sf4() -> dict[str, object]:
     """
 
     camp = run_type2_campaign(seeds=SEEDS_SF4)
-    n_cycle = int(camp["n_cycling_seeds"])
+    n_cycle = same_int(camp["n_cycling_seeds"])
     result = str(camp["result"])
-    trials = list(camp["trials"])
+    trials = list(same_iter(camp["trials"]))
     # Legacy contrast: weak NFD alone still fails (documents D1 necessity).
     legacy = [_sf4_nfd_proxy(seed=s) for s in SEEDS_SF4]
     legacy_cycles = sum(1 for t in legacy if t["cycling_detected"])
@@ -596,18 +606,24 @@ def _panel_sf5() -> dict[str, object]:
     d = camp.to_dict()
     per_arm: dict[str, Any] = {}
     all_pairs_distinct = True
-    for arm in d["arm_results"]:
-        hosts = [o["genomes"]["host_genome_digest"] for o in arm["seed_outcomes"]]
-        paras = [o["genomes"]["parasite_genome_digest"] for o in arm["seed_outcomes"]]
+    for arm_raw in same_iter(d["arm_results"]):
+        arm = same_mapping(arm_raw)
+        hosts = []
+        paras = []
+        for outcome_raw in same_iter(arm["seed_outcomes"]):
+            outcome = same_mapping(outcome_raw)
+            genomes = same_mapping(outcome["genomes"])
+            hosts.append(genomes["host_genome_digest"])
+            paras.append(genomes["parasite_genome_digest"])
         pairs_ok = all(h != p for h, p in zip(hosts, paras, strict=True))
         all_pairs_distinct = all_pairs_distinct and pairs_ok
-        per_arm[arm["arm"]] = {
+        per_arm[cast(str, arm["arm"])] = {
             "arm_digest": arm["digest"],
             "host_parasite_digest_pairs_distinct": pairs_ok,
             "distinct_parasite_final_digests": arm["distinct_parasite_final_digests"],
         }
     # Coevolution arm should diverge from freeze control.
-    arm_digests = d["arm_digests"]
+    arm_digests = same_mapping(d["arm_digests"])
     coevo_vs_freeze = arm_digests.get("reciprocal_coevolution") != arm_digests.get("freeze_parasites")
     success = (
         d["arms_are_distinct"] is True
@@ -663,7 +679,7 @@ def _panel_sf6() -> dict[str, object]:
         context_of_use=(
             "Sequential Cornish multi-intervention; SF fidelity; digital ClaimGate."
         ),
-        arms=tuple(s["step_id"] for s in default_sequential_schedule()),
+        arms=tuple(cast(str, s["step_id"]) for s in default_sequential_schedule()),
         success_metrics=("campaign_digest", "intervention_supported"),
         forbidden_claims=("red_queen_proved", "intervention_supported"),
     )
@@ -674,9 +690,11 @@ def _panel_sf6() -> dict[str, object]:
         preregistration_digest=prereg_digest,
     )
     d = camp.to_dict()
-    steps = d["step_outcomes"]
-    obs_score = next(s["score"] for s in steps if s["kind"] == "observational")
-    int_scores = [s["score"] for s in steps if s["kind"] == "intervention"]
+    steps = [same_mapping(raw) for raw in same_iter(d["step_outcomes"])]
+    obs_score = next(
+        same_float(s["score"]) for s in steps if s["kind"] == "observational"
+    )
+    int_scores = [same_float(s["score"]) for s in steps if s["kind"] == "intervention"]
     success = (
         d["observational_match"] is True
         and d["interventions_executed"] is True

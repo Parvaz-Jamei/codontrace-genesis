@@ -1757,10 +1757,8 @@ from codontrace.genesis.qd_descriptors import (
 )
 from codontrace.genesis.statistical_report import (
     BootstrapCI,
-    EffectSizeReport,
     MetricDistribution,
     MinimumSeedPolicy,
-    PairedSeedComparison,
     StatisticalExperimentReport,
     build_statistical_report,
     deterministic_bootstrap_ci,
@@ -2385,7 +2383,6 @@ from codontrace.genesis.evidence_status import (
     is_claim_eligible_status,
     validate_status_transition,
 )
-from codontrace.genesis.open_endedness import OEECandidateMetrics
 from codontrace.genesis.plugins import PluginRegistry, PluginSpec
 from codontrace.genesis.quality_diversity import (
     MultiObjectiveQDArchive,
@@ -2489,28 +2486,19 @@ from codontrace.genesis.phase_b_scientific_maturity import (
     AblationPlan,
     AblationResult,
     AblationWitness,
-    ChallengeNoveltyReport,
     CheckpointResumeAudit,
     CollectiveSwarmEvidenceLadder,
     ConfidenceIntervalReport,
     CurriculumEnvironmentRecord,
-    CurriculumStepRecord,
     D0BaselineReport,
-    DiscoveryCandidate,
     DiscoveryClaimEligibilityResult,
     DiscoveryEvent,
     DiscoveryPersistenceReport,
-    DiscoveryWitness,
-    DistanceToD0Result,
     EffectSizeReport,
-    EnvironmentAgentTransferRecord,
-    EnvironmentLineageRecord,
-    EnvironmentMutationSpec,
     GeneralizationMatrix,
     HeldoutEvaluationSpec,
     HeldoutLeakageAudit,
     InterventionComparisonReport,
-    InterventionResult,
     LineageSnapshot,
     LongHorizonRunManifest,
     OEECandidateMetrics,
@@ -2721,22 +2709,8 @@ __all__.extend([
 # evidence records use PhaseB* names wherever an older runtime/API class already
 # owns the unprefixed name.  This avoids hidden shadow imports while keeping old
 # user code stable.
-from codontrace.genesis.causal_validation import InterventionResult as LegacyInterventionResult
-from codontrace.genesis.discovery_witness import (
-    DiscoveryCandidate as LegacyDiscoveryCandidate,
-)
-from codontrace.genesis.discovery_witness import (
-    DiscoveryWitness as LegacyDiscoveryWitness,
-)
-from codontrace.genesis.discovery_witness import (
-    DistanceToD0Result as LegacyDistanceToD0Result,
-)
-
-DiscoveryCandidate = LegacyDiscoveryCandidate
-DiscoveryWitness = LegacyDiscoveryWitness
-DistanceToD0Result = LegacyDistanceToD0Result
-InterventionResult = LegacyInterventionResult
 from codontrace.genesis.campaign import HeldoutEvaluationResult as LegacyHeldoutEvaluationResult
+from codontrace.genesis.causal_validation import InterventionResult as LegacyInterventionResult
 from codontrace.genesis.curriculum import (
     ChallengeNoveltyReport as LegacyChallengeNoveltyReport,
 )
@@ -2751,6 +2725,15 @@ from codontrace.genesis.curriculum import (
 )
 from codontrace.genesis.curriculum import (
     EnvironmentMutationSpec as LegacyEnvironmentMutationSpec,
+)
+from codontrace.genesis.discovery_witness import (
+    DiscoveryCandidate as LegacyDiscoveryCandidate,
+)
+from codontrace.genesis.discovery_witness import (
+    DiscoveryWitness as LegacyDiscoveryWitness,
+)
+from codontrace.genesis.discovery_witness import (
+    DistanceToD0Result as LegacyDistanceToD0Result,
 )
 from codontrace.genesis.evidence_lineage import EvidenceLineageDAG as LegacyEvidenceLineageDAG
 from codontrace.genesis.final_release_manifest import (
@@ -2794,27 +2777,6 @@ from codontrace.genesis.scale_performance import (
     ScaleBenchmarkSpec as LegacyScaleBenchmarkSpec,
 )
 
-EnvironmentMutationSpec = LegacyEnvironmentMutationSpec
-CurriculumStepRecord = LegacyCurriculumStepRecord
-EnvironmentLineageRecord = LegacyEnvironmentLineageRecord
-ChallengeNoveltyReport = LegacyChallengeNoveltyReport
-EnvironmentAgentTransferRecord = LegacyEnvironmentAgentTransferRecord
-TaskGeneratorSpec = LegacyTaskGeneratorSpec
-HeldoutEvaluationResult = LegacyHeldoutEvaluationResult
-ScaleBenchmarkSpec = LegacyScaleBenchmarkSpec
-ScaleBenchmarkReport = LegacyScaleBenchmarkReport
-ResourceBudgetPolicy = LegacyResourceBudgetPolicy
-PluginManifest = LegacyPluginManifest
-PluginValidationResult = LegacyPluginValidationResult
-FinalClaimManifest = LegacyFinalClaimManifest
-ReleaseEvidencePack = LegacyReleaseEvidencePack
-Phase3ScientificSummary = LegacyPhase3ScientificSummary
-NegativeResultReport = LegacyNegativeResultReport
-ReplayBundleIndex = LegacyReplayBundleIndex
-BenchmarkLeaderboardArtifact = LegacyBenchmarkLeaderboardArtifact
-AblationMatrixArtifact = LegacyAblationMatrixArtifact
-ClaimDowngradeReport = LegacyClaimDowngradeReport
-EvidenceLineageDAG = LegacyEvidenceLineageDAG
 # Explicit sample aliases name the Phase-B scientific evidence schemas without
 # shadowing mature release/evidence-lineage runtime classes.
 PhaseBReleaseEvidencePackSample = ReleaseEvidencePackSample

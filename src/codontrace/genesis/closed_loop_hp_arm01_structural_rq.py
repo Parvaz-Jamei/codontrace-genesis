@@ -15,12 +15,13 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import cast
 
+from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping, same_str
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -53,6 +54,7 @@ from codontrace.genesis.measurements.antagonist_population import (
     ANTAGONIST_ECOLOGY_STANDING,
     ANTAGONIST_PASSAGE_SHUFFLED_LABELS,
     AntagonistPopulation,
+    AntagonistUnit,
     ContactEvent,
 )
 from codontrace.genesis.measurements.rq_frequency_clocks import (
@@ -319,11 +321,13 @@ def _richness_and_max(freq: Mapping[str, float]) -> tuple[int, float]:
     return len(freq), max(freq.values())
 
 
-def _dominant_class(freq: Mapping[str, float]) -> str | None:
-    if not freq:
+def _dominant_class(freq: object) -> str | None:
+    mapping = same_mapping(freq)
+    if not mapping:
         return None
-    best = max(freq.values())
-    winners = sorted(k for k, v in freq.items() if v == best)
+    scored = [(same_str(key), same_float(value)) for key, value in mapping.items()]
+    best = max(value for _key, value in scored)
+    winners = sorted(key for key, value in scored if value == best)
     return winners[0]
 
 
@@ -404,7 +408,7 @@ def collect_dense_snaps(
 
 
 @contextmanager
-def _population_unique_id_guard():
+def _population_unique_id_guard() -> Iterator[None]:
     """Closed-loop guard: asexual twin births can collide on digest-based ids.
 
     Remap duplicate ids with a numeric suffix before PopulationState validates.
@@ -498,7 +502,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
     host_realised_pressure_series: list[tuple[tuple[str, float, int], ...]] = field(
         default_factory=list
     )
-    host_contact_available_series: list[tuple[tuple[str, float, ...], ...]] = field(
+    host_contact_available_series: list[tuple[tuple[str, float], ...]] = field(
         default_factory=list
     )
     # RQ-3 opt-in: the arm-level switch for the heritable antagonist population.
@@ -506,7 +510,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
     antagonist_ecology: str = ANTAGONIST_ECOLOGY_STANDING
     # RQ-3: antagonist population with identity, reproduction and death. ``None`` on
     # the standing path, so ``parasite_windows`` and every recorded series are unchanged.
-    antagonist_pop: object | None = None
+    antagonist_pop: AntagonistPopulation | None = None
     # ``(kept, replaced, mut_events, churn)`` per generation for the ancestry log.
     antagonist_ledger: list[tuple[int, int, int, int]] = field(default_factory=list)
     # RQ-3: one row per realised contact pair (host class, antagonist class, affinity,
@@ -519,7 +523,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
     antagonist_contact_events: list[tuple[ContactEvent, ...]] = field(default_factory=list)
     # Per-generation frozen antagonist roster. Units are frozen dataclasses, so a
     # later generation's replace() cannot rewrite an earlier snapshot.
-    antagonist_unit_series: list[tuple[object, ...]] = field(default_factory=list)
+    antagonist_unit_series: list[tuple[AntagonistUnit, ...]] = field(default_factory=list)
     # ``transmit`` is the recorded host path. ``frozen`` is the arm-C adapter:
     # host genotype transmission is off, the host population is not deleted.
     host_inheritance: str = "transmit"
@@ -1052,10 +1056,10 @@ class StructuralRQArm(LifeLoopEcologyArm):
     def _passage_update(
         self,
         matched_windows: Sequence[str],
+        rng: RNGManager,
         *,
         served_contacts: Sequence[tuple[str, float]] = (),
         contact_events: Sequence[ContactEvent] | None = None,
-        rng: RNGManager,
     ) -> None:
         """Advance the antagonist one generation.
 
@@ -1377,13 +1381,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
 def _polymorphism_ok(snap: Mapping[str, object]) -> bool:
     """Hold gate on match-class freqs — never soft-K body census as Ne proxy."""
 
-    richness = int(snap.get("joint_richness") or 0)
-    max_f = float(snap.get("joint_max_freq") or 1.0)
+    richness = same_int(snap.get("joint_richness") or 0)
+    max_f = same_float(snap.get("joint_max_freq") or 1.0)
     if richness >= STRUCT_R_MIN and max_f <= (1.0 - STRUCT_EPSILON):
         return True
     # Alternate prereg clause: ≥2 distinct alleles on ≥2 of 3 sub-loci
     # AND joint max_f ≤ 1-ε
-    sub_rich = [int(x) for x in (snap.get("sub_locus_richness") or [])]
+    sub_rich = [same_int(x) for x in same_iter(snap.get("sub_locus_richness") or [])]
     loci_diverse = sum(1 for r in sub_rich if r >= 2)
     if loci_diverse >= 2 and max_f <= (1.0 - STRUCT_EPSILON) and richness >= 2:
         return True
@@ -1404,7 +1408,7 @@ def classify_structural_outcome(
             snap = snaps.get(gen)
             if snap is None:
                 return OUTCOME_PARASITE_EXTINCT
-            if int(snap.get("parasite_n") or 0) <= 0:
+            if same_int(snap.get("parasite_n") or 0) <= 0:
                 return OUTCOME_PARASITE_EXTINCT
 
     # Demographic gate (not Ne proxy): living census floor
@@ -1412,7 +1416,7 @@ def classify_structural_outcome(
         snaps = arm_snaps.get(arm, {})
         for gen in STRUCT_LOCKED_WINDOWS:
             snap = snaps[gen]
-            if int(snap.get("census") or 0) < STRUCT_MIN_VIABLE_CENSUS:
+            if same_int(snap.get("census") or 0) < STRUCT_MIN_VIABLE_CENSUS:
                 return OUTCOME_REGIME_HOSTILE_NE
 
     # Stage A contract: founder richness ≫2 already locked; bit-flip locked in boot
@@ -1678,7 +1682,7 @@ def run_structural_rq_pilot(
 
     results: list[StructuralRQSeedResult] = []
     for payload in seed_payloads:
-        seed = int(payload["seed"])
+        seed = same_int(payload["seed"])
         typed = final_outcomes[seed]
         seed_ceiling = (
             CLAIM_CEILING_CANDIDATE

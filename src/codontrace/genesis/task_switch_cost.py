@@ -13,6 +13,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 
@@ -91,7 +92,7 @@ class TaskSwitchCostConfig:
             raise ConfigurationError("task_a_actions/task_b_actions must be sequences.")
         return cls(
             enabled=bool(data.get("enabled", False)),
-            switch_cost_atp=float(data.get("switch_cost_atp", SWITCH_COST_ATP_COST_0)),
+            switch_cost_atp=same_float(data.get("switch_cost_atp", SWITCH_COST_ATP_COST_0)),
             task_a_actions=tuple(str(item) for item in raw_a),
             task_b_actions=tuple(str(item) for item in raw_b),
         )
@@ -136,14 +137,14 @@ class TaskSwitchCostRecord:
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> TaskSwitchCostRecord:
         return cls(
-            tick=int(data.get("tick", 0)),
+            tick=same_int(data.get("tick", 0)),
             organism_id=str(data.get("organism_id", "")),
             from_task=str(data.get("from_task", "")),
             to_task=str(data.get("to_task", "")),
             action=str(data.get("action", "")),
-            switch_cost_atp=float(data.get("switch_cost_atp", 0.0)),
+            switch_cost_atp=same_float(data.get("switch_cost_atp", 0.0)),
             charged=bool(data.get("charged", False)),
-            runtime_atp_after=float(data.get("runtime_atp_after", 0.0)),
+            runtime_atp_after=same_float(data.get("runtime_atp_after", 0.0)),
         )
 
     def digest(self) -> str:

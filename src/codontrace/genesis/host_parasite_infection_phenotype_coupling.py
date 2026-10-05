@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_abstract_phenotype import (
@@ -72,7 +73,7 @@ def _arm_trial(
         injected = bool(attempt.injected)
         reason = attempt.reason
         ph = decode_abstract_phenotype(host_g)
-        base_err = float(ph["metabolic_error"])
+        base_err = same_float(ph["metabolic_error"])
         if not injected:
             coupled_error = base_err
         else:
@@ -127,7 +128,7 @@ def run_infection_phenotype_coupling_campaign(
             per_arm[arm].append(trial)
 
     def _mean_delta(arm: str) -> float:
-        xs = [float(t["delta_error"]) for t in per_arm[arm]]
+        xs = [same_float(t["delta_error"]) for t in per_arm[arm]]
         return round(sum(xs) / len(xs), 10) if xs else 0.0
 
     intact_mean = _mean_delta("intact")

@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -931,7 +931,7 @@ def _bca_acceleration(values: Sequence[float]) -> float:
     squared = sum((center - item) ** 2 for item in jack)
     if squared <= 0.0:
         return 0.0
-    return cubed / (6.0 * (squared**1.5))
+    return cast(float, cubed / (6.0 * (squared**1.5)))
 
 
 def bootstrap_ci_paired(

@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol, cast
 
 from codontrace._numeric import finite_float
 from codontrace._types import JsonValue, Position
@@ -550,7 +550,7 @@ def collect_resource_handler(ctx: ActionContext) -> ActionResult:
     """
 
     amount = ctx.view.resource_amount(ctx.position)
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     if amount <= 0:
         return ActionResult.blocked(
             reason="no_resource",
@@ -567,7 +567,7 @@ def collect_resource_handler(ctx: ActionContext) -> ActionResult:
             },
         )
     _add_inventory_item(ctx, "resource")
-    inventory_after = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_after = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     return ActionResult.executed(
         reason="resource_collected",
         position_after=ctx.position,
@@ -720,7 +720,7 @@ def eat_lumen_handler(ctx: ActionContext) -> ActionResult:
     """
 
     amount = ctx.view.resource_amount(ctx.position)
-    _inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    _inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     if amount <= 0:
         return ActionResult.blocked(
             reason="no_lumen",
@@ -959,7 +959,7 @@ def collect_resource_primitive_handler(ctx: ActionContext) -> ActionResult:
     selected object deterministically and records inventory/evidence.
     """
 
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     objects = ctx.world.objects_at(ctx.position)
     resource = next(
         (
@@ -1005,7 +1005,7 @@ def collect_resource_primitive_handler(ctx: ActionContext) -> ActionResult:
 
 
 def craft_item_primitive_handler(ctx: ActionContext) -> ActionResult:
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     items = _inventory_items(ctx)
     has_named_inputs = {"wood", "stone"}.issubset(items)
     has_generic_input = "resource" in items
@@ -1025,7 +1025,7 @@ def craft_item_primitive_handler(ctx: ActionContext) -> ActionResult:
         )
     _add_inventory_item(ctx, "crafted_item")
     _add_inventory_item(ctx, "tool")
-    inventory_after = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_after = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     return ActionResult.executed(
         reason="item_crafted",
         position_after=ctx.position,
@@ -1065,7 +1065,7 @@ def use_item_primitive_handler(ctx: ActionContext) -> ActionResult:
 
 
 def unlock_cell_primitive_handler(ctx: ActionContext) -> ActionResult:
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     items = _inventory_items(ctx)
     if "key" not in items and "tool" not in items and "crafted_item" not in items:
         return ActionResult.blocked(
@@ -1102,7 +1102,7 @@ def unlock_cell_primitive_handler(ctx: ActionContext) -> ActionResult:
 
 
 def cross_terrain_primitive_handler(ctx: ActionContext) -> ActionResult:
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     items = _inventory_items(ctx)
     terrain = ctx.world.get_custom_cell(ctx.position)
     if (
@@ -1147,7 +1147,7 @@ def cross_terrain_primitive_handler(ctx: ActionContext) -> ActionResult:
 
 
 def deposit_resource_primitive_handler(ctx: ActionContext) -> ActionResult:
-    inventory_before = {item: 1.0 for item in sorted(_inventory_items(ctx))}
+    inventory_before = cast(dict[str, JsonValue], {item: 1.0 for item in sorted(_inventory_items(ctx))})
     items = _inventory_items(ctx)
     if not items:
         return ActionResult.blocked(

@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_diagnostics import diagnose_coevolution_ranges
@@ -222,7 +223,7 @@ def run_resource_dynamics_factorial(
                         resource_level=resource,
                         biotic_level=biotic,
                         dynamics_label=diag.label,
-                        outcome_score=float(probe["outcome_score"]),
+                        outcome_score=same_float(probe["outcome_score"]),
                         cell_digest=cell_digest,
                         notes=notes,
                     )

@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 
 if TYPE_CHECKING:
@@ -87,12 +88,12 @@ def check_conservation(
         edge_id = event.edge_id
         if edge_id == "action_to_resource_world":
             kind = str(payload.get("kind", "") or "")
-            taken = float(payload.get("taken", 0.0) or 0.0)
+            taken = same_float(payload.get("taken", 0.0) or 0.0)
             if kind:
                 harvested[kind] += taken
             action = str(payload.get("action", ""))
-            if action in {"HARVEST_0", "HARVEST_1"} and int(payload.get("applied", 0) or 0) > 0:
-                energy_delta = float(payload.get("energy_delta", 0.0) or 0.0)
+            if action in {"HARVEST_0", "HARVEST_1"} and same_int(payload.get("applied", 0) or 0) > 0:
+                energy_delta = same_float(payload.get("energy_delta", 0.0) or 0.0)
                 expected = taken * float(runtime.harvest_gain_scale) - float(runtime.metabolism)
                 if abs(energy_delta - expected) > atol:
                     harvest_errors.append(
@@ -107,7 +108,7 @@ def check_conservation(
             deltas = payload.get("renewal_deltas") or {}
             if isinstance(deltas, Mapping):
                 for kind, value in deltas.items():
-                    renewed[str(kind)] += float(value)
+                    renewed[str(kind)] += same_float(value)
 
     for kind in sorted(set(initial) | set(final) | set(harvested) | set(renewed)):
         pred = float(initial.get(kind, 0.0)) - float(harvested.get(kind, 0.0)) + float(

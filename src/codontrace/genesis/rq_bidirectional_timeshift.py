@@ -53,7 +53,9 @@ import time
 from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
+from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import (
     ARM_COPASSAGED,
@@ -315,7 +317,7 @@ def _parasite_payload(arm: StructuralRQArm) -> list[dict[str, object]]:
         for unit in pop.units
     ]
     rows.sort(key=lambda row: str(row["unit_id"]))
-    return rows
+    return cast(list[dict[str, object]], rows)
 
 
 def snapshot_body(arm: StructuralRQArm, *, seed: int, arm_name: str, generation: int) -> dict[str, object]:
@@ -350,6 +352,10 @@ def write_snapshot(path: Path, body: Mapping[str, object]) -> str:
         handle.flush()
         os.fsync(handle.fileno())
     return digest
+
+
+def _as_rows(value: object) -> list[dict[str, object]]:
+    return [cast(dict[str, object], item) for item in same_iter(value)]
 
 
 def read_snapshot(path: Path) -> dict[str, object]:
@@ -586,7 +592,7 @@ def instrument_two_pair_debit() -> dict[str, object]:
 
     high = _one(*INSTRUMENT_PAIR_HIGH)
     low = _one(*INSTRUMENT_PAIR_LOW)
-    valid = float(high["total_debit"]) != float(low["total_debit"])
+    valid = same_float(high["total_debit"]) != same_float(low["total_debit"])
     return {
         "valid": valid,
         "pair_high": {
@@ -860,8 +866,8 @@ def run_logged_generations(
                     f"seed={seed} arm={arm_name} generation={generation} invariant=snapshot-reread"
                 )
                 break
-        prev_census = int(row["host_census"])
-        prev_lineage += int(row["host_births"])
+        prev_census = same_int(row["host_census"])
+        prev_lineage += same_int(row["host_births"])
     windows_now = {org.id: _window(org) for org in arm._hosts()}
     # Death of a founder is not a genotype change. A new id or a changed
     # window on a survivor is.
@@ -906,7 +912,7 @@ def _window_counter(rows: list[dict[str, object]], key: str) -> tuple[tuple[str,
 def assay_separates_populations(sample: dict[str, object]) -> dict[str, object]:
     """Same hosts, two parasite populations, replayed with evolution off."""
 
-    hosts = list(sample["hosts"])  # type: ignore[arg-type]
+    hosts = _as_rows(sample["hosts"])
     # Guarantee a difference that does not depend on the evolved mix:
     # all-matching 000000 versus the partial-match window used by the instrument.
     left = []
@@ -940,7 +946,7 @@ def assay_separates_populations(sample: dict[str, object]) -> dict[str, object]:
     token = json.dumps(sample, sort_keys=True, separators=(",", ":"))
     score_left = replay_archived_contact(hosts_ref, left)
     score_right = replay_archived_contact(hosts_ref, right)
-    separated = float(score_left["total_debit"]) != float(score_right["total_debit"])
+    separated = same_float(score_left["total_debit"]) != same_float(score_right["total_debit"])
     mutated = json.dumps(sample, sort_keys=True, separators=(",", ":")) != token
     return {
         "separated": separated and not mutated,
@@ -986,13 +992,15 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
     (out / "instrument.json").write_text(
         json.dumps(instrument, sort_keys=True, indent=2) + "\n", encoding="utf-8"
     )
+    pair_high = same_mapping(instrument["pair_high"])
+    pair_low = same_mapping(instrument["pair_low"])
     live.line(
         "event=instrument "
         f"valid={instrument['valid']} "
-        f"debit_high={instrument['pair_high']['total_debit']} "
-        f"debit_low={instrument['pair_low']['total_debit']} "
-        f"affinity_high={instrument['pair_high']['affinity']} "
-        f"affinity_low={instrument['pair_low']['affinity']}"
+        f"debit_high={pair_high['total_debit']} "
+        f"debit_low={pair_low['total_debit']} "
+        f"affinity_high={pair_high['affinity']} "
+        f"affinity_low={pair_low['affinity']}"
     )
     if not instrument["valid"]:
         live.line("event=stop reason=instrument-invalid confirmatory=not-started")
@@ -1016,16 +1024,16 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
         if summary["failed"]:
             smoke_ok = False
             break
-        if int(summary["contacts"]) <= 0 or int(summary["final_host_census"]) <= 0:
+        if same_int(summary["contacts"]) <= 0 or same_int(summary["final_host_census"]) <= 0:
             summary["failed"] = "smoke-population-or-contact"
             smoke_ok = False
             break
         if arm_name == ARM_C:
-            if not summary["frozen_windows_held"] or int(summary["host_births"]) != 0:
+            if not summary["frozen_windows_held"] or same_int(summary["host_births"]) != 0:
                 summary["failed"] = "arm-c-did-not-freeze-inheritance"
                 smoke_ok = False
                 break
-            if int(summary["debits"]) <= 0 or int(summary["parasite_births_with_parents"]) <= 0:
+            if same_int(summary["debits"]) <= 0 or same_int(summary["parasite_births_with_parents"]) <= 0:
                 summary["failed"] = "arm-c-lost-cost-or-parasite-reproduction"
                 smoke_ok = False
                 break
@@ -1037,7 +1045,7 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
     if not smoke_ok:
         live.line("event=stop reason=arm-smoke-failed confirmatory=not-started pilot=not-started")
         live.close()
-        report = {
+        report: dict[str, object] = {
             "instrument": instrument,
             "smoke": smoke,
             "pilot": None,
@@ -1066,7 +1074,7 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
         summary["seed"] = seed
         summary["wall_seconds"] = time.perf_counter() - t0
         pilot_rows.append(summary)
-        if summary["failed"] or int(summary["generations_completed"]) != PHASE1_GENERATIONS:
+        if summary["failed"] or same_int(summary["generations_completed"]) != PHASE1_GENERATIONS:
             pilot_failed = True
             live.line(
                 f"event=stop seed={seed} reason={summary['failed'] or 'short-run'} "
@@ -1091,30 +1099,30 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
         late_path = snap_dir / f"seed{PHASE1_PILOT_SEEDS[0]}_{ARM_PILOT}_g{PHASE1_GENERATIONS:04d}.json"
         late = read_snapshot(late_path)
         early_score = replay_archived_contact(
-            list(early["hosts"]),  # type: ignore[arg-type]
-            list(early["parasites"]),  # type: ignore[arg-type]
+            _as_rows(early["hosts"]),
+            _as_rows(early["parasites"]),
         )
         cross_score = replay_archived_contact(
-            list(early["hosts"]),  # type: ignore[arg-type]
-            list(late["parasites"]),  # type: ignore[arg-type]
+            _as_rows(early["hosts"]),
+            _as_rows(late["parasites"]),
         )
         empirical = {
             "early_generation": SNAPSHOT_STRIDE,
             "late_generation": PHASE1_GENERATIONS,
             "debit_contemporary": early_score["total_debit"],
             "debit_late_parasites_on_early_hosts": cross_score["total_debit"],
-            "parasite_windows_differ": _window_counter(list(early["parasites"]), "window")  # type: ignore[arg-type]
-            != _window_counter(list(late["parasites"]), "window"),  # type: ignore[arg-type]
+            "parasite_windows_differ": _window_counter(_as_rows(early["parasites"]), "window")
+            != _window_counter(_as_rows(late["parasites"]), "window"),
             "red_queen_proved": False,
             "note": "descriptive cross only; not a Red Queen verdict",
         }
         if hashlib.sha256(sample_path.read_bytes()).hexdigest() != file_hash:
             empirical["archive_file_mutated"] = True
 
-    parent_n = sum(int(row["parent_n"]) for row in pilot_rows)
-    other_n = sum(int(row["other_n"]) for row in pilot_rows)
-    parent_sum = sum(float(row["parent_income_sum"]) for row in pilot_rows)
-    other_sum = sum(float(row["other_income_sum"]) for row in pilot_rows)
+    parent_n = sum(same_int(row["parent_n"]) for row in pilot_rows)
+    other_n = sum(same_int(row["other_n"]) for row in pilot_rows)
+    parent_sum = sum(same_float(row["parent_income_sum"]) for row in pilot_rows)
+    other_sum = sum(same_float(row["other_income_sum"]) for row in pilot_rows)
     parent_mean = parent_sum / parent_n if parent_n else None
     other_mean = other_sum / other_n if other_n else None
     income_depends = (
@@ -1123,9 +1131,9 @@ def run_phase1(root: Path | None = None) -> dict[str, object]:
         and parent_mean > other_mean
     )
     both_inherit = all(
-        int(row["host_births"]) > 0
+        same_int(row["host_births"]) > 0
         and bool(row["host_window_changed"])
-        and int(row["parasite_births_with_parents"]) > 0
+        and same_int(row["parasite_births_with_parents"]) > 0
         and bool(row["parasite_window_changed"])
         for row in pilot_rows
     ) and not pilot_failed and len(pilot_rows) == len(PHASE1_PILOT_SEEDS)

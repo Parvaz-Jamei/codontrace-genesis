@@ -10,7 +10,7 @@ red_queen_proved stays False.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -137,7 +137,7 @@ def run_idea3_smoke(
         "ledger_digest": ledger.digest(),
         "history_len": len(history),
         "package_cut_applied": bool(ledger.package_cut_applied),
-        "raw_pool_keys": sorted(ledger.raw_pool),
+        "raw_pool_keys": cast(list[JsonValue], sorted(ledger.raw_pool)),
         "imitation_buffer_len": len(ledger.imitation_buffer),
         "distinction_locks": {
             "cut_failed_and_bounds_required": cut_ok,

@@ -12,9 +12,11 @@ import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
+from typing import cast
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue, Position
+from codontrace.dynvalues import same_float, same_int
 from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
@@ -237,16 +239,16 @@ class SexualRecombinationConfig:
             raise ValueError("max_birth_wait_ticks must be an integer, -1, or null.")
         return cls(
             enabled=bool(data.get("enabled", False)),
-            recombination_prob=float(data.get("recombination_prob", 1.0)),
+            recombination_prob=same_float(data.get("recombination_prob", 1.0)),
             max_birth_wait_ticks=max_wait,
-            chamber_capacity=int(data.get("chamber_capacity", 3600)),
+            chamber_capacity=same_int(data.get("chamber_capacity", 3600)),
             same_length_only=bool(data.get("same_length_only", False)),
             two_fold_cost_sex=bool(data.get("two_fold_cost_sex", False)),
             continuous_regions=bool(data.get("continuous_regions", True)),
             corresponding_positions=bool(data.get("corresponding_positions", True)),
             timeout_policy=str(data.get("timeout_policy", "asexual_fallback")),
             pairing_policy=str(data.get("pairing_policy", "birth_chamber")),
-            modular_region_count=int(data.get("modular_region_count", 0)),
+            modular_region_count=same_int(data.get("modular_region_count", 0)),
             mating_types_enabled=bool(data.get("mating_types_enabled", False)),
             lekking=bool(data.get("lekking", False)),
             diploid_meiosis=bool(data.get("diploid_meiosis", False)),
@@ -428,7 +430,7 @@ class ReproductionGateResult:
                     "gate-stage placement requires child_placement_available to be known.",
                 )
         else:
-            _require(self.reasons, "blocked reproduction gate must carry at least one reason.")
+            _require(bool(self.reasons), "blocked reproduction gate must carry at least one reason.")
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -1166,9 +1168,9 @@ def build_mutation_plan(
     rng_state_digest_before: str,
     policy: MutationPolicy = MutationPolicy.RANDOM_BASELINE,
 ) -> MutationPlan:
-    bit_flip_rate = finite_float("bit_flip_rate", bit_flip_rate, probability=True)
-    insertion_rate = finite_float("insertion_rate", insertion_rate, probability=True)
-    deletion_rate = finite_float("deletion_rate", deletion_rate, probability=True)
+    bit_flip_rate = cast(float, finite_float("bit_flip_rate", bit_flip_rate, probability=True))
+    insertion_rate = cast(float, finite_float("insertion_rate", insertion_rate, probability=True))
+    deletion_rate = cast(float, finite_float("deletion_rate", deletion_rate, probability=True))
     operators: list[str] = []
     if bit_flip_rate > 0:
         operators.append(MutationOperator.POINT_FLIP.value)
@@ -1490,17 +1492,17 @@ class IncipientOffspring:
         if not isinstance(position_raw, list) or len(position_raw) != 2:
             raise ValueError("parent_position must be an [x, y] pair.")
         ledger_raw = data.get("ledger_entry_ids", [])
-        ledger = tuple(int(item) for item in ledger_raw) if isinstance(ledger_raw, list) else ()
+        ledger = tuple(same_int(item) for item in ledger_raw) if isinstance(ledger_raw, list) else ()
         return cls(
             slot_id=str(data.get("slot_id", "")),
             parent_id=str(data.get("parent_id", "")),
             genome_bits=str(data.get("genome_bits", "")),
             genome_digest=str(data.get("genome_digest", "")),
-            entered_tick=int(data.get("entered_tick", 0)),
-            parent_position=(int(position_raw[0]), int(position_raw[1])),
-            offspring_runtime_atp=float(data.get("offspring_runtime_atp", 0.0)),
-            parent_generation=int(data.get("parent_generation", 0)),
-            codon_width=int(data.get("codon_width", 3)),
+            entered_tick=same_int(data.get("entered_tick", 0)),
+            parent_position=(same_int(position_raw[0]), same_int(position_raw[1])),
+            offspring_runtime_atp=same_float(data.get("offspring_runtime_atp", 0.0)),
+            parent_generation=same_int(data.get("parent_generation", 0)),
+            codon_width=same_int(data.get("codon_width", 3)),
             ledger_entry_ids=ledger,
         )
 

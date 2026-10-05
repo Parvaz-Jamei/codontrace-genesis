@@ -17,17 +17,18 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.campaigns.discovery_q_20260928_idea2_engine import (
     IDEA2_ENGINE_CELLS,
     run_idea2_engine_cell,
 )
 from codontrace.genesis.campaigns.discovery_q_20260928_idea4 import (
+    CLAIM_CEILING as IDEA4_CLAIM_CEILING,
+)
+from codontrace.genesis.campaigns.discovery_q_20260928_idea4 import (
     OPS_CELLS,
     T_INTERVENE_GRID,
-)
-from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
-    CLAIM_CEILING as IDEA4_CLAIM_CEILING,
 )
 from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
     aggregate_idea4_engine_rates,
@@ -161,7 +162,7 @@ def _idea2_arm_cell_survival_stats(
         for r in idea2_recs
         if str(r.get("cell")) == cell and str(r.get("arm")) == arm
     ]
-    vals = sorted({round(float(r["survival_to_T"]), 8) for r in subset})
+    vals = sorted({round(same_float(r["survival_to_T"]), 8) for r in subset})
     return {
         "cell": cell,
         "arm": arm,
@@ -191,7 +192,7 @@ def _idea4_alive_end_stats(idea4_recs: list[dict[str, JsonValue]]) -> dict[str, 
             "rate_alive_end_eq_0": None,
             "note": "no idea4 records",
         }
-    n_zero = sum(1 for r in idea4_recs if float(r.get("n_alive_end", 0.0)) == 0.0)
+    n_zero = sum(1 for r in idea4_recs if same_float(r.get("n_alive_end", 0.0)) == 0.0)
     rate = float(n_zero) / float(n)
     return {
         "n_records": n,
@@ -289,8 +290,8 @@ def run_jsonl_engine_campaign(
             assert_record_not_a_discovery(rec)
             fh.write(json.dumps(rec, sort_keys=True) + "\n")
 
-    idea4_recs = [r for r in records if int(r.get("idea_id", -1)) == 4]
-    idea2_recs = [r for r in records if int(r.get("idea_id", -1)) == 2]
+    idea4_recs = [r for r in records if same_int(r.get("idea_id", -1)) == 4]
+    idea2_recs = [r for r in records if same_int(r.get("idea_id", -1)) == 2]
     aggregates = aggregate_idea4_engine_rates(idea4_recs)
 
     # Seed variance proof on at least one metric (baseline_mean_rare_yield).
@@ -301,9 +302,9 @@ def run_jsonl_engine_campaign(
         subset = [
             r
             for r in idea4_recs
-            if r.get("ops_cell") == "control" and int(r.get("t_intervene", -1)) == 10
+            if r.get("ops_cell") == "control" and same_int(r.get("t_intervene", -1)) == 10
         ]
-        vals = sorted({round(float(r[metric]), 8) for r in subset})
+        vals = sorted({round(same_float(r[metric]), 8) for r in subset})
         variance_proof = {
             "ok": len(vals) >= 2,
             "metric": metric,
@@ -313,8 +314,8 @@ def run_jsonl_engine_campaign(
             "n_unique": len(vals),
             "min": vals[0] if vals else None,
             "max": vals[-1] if vals else None,
-            "observer_fires_min": min(int(r["observer_fire_count"]) for r in idea4_recs),
-            "observer_fires_expected": int(idea4_recs[0]["tick_count"]),
+            "observer_fires_min": min(same_int(r["observer_fire_count"]) for r in idea4_recs),
+            "observer_fires_expected": same_int(idea4_recs[0]["tick_count"]),
         }
 
     pattern_pi_survival = _idea2_arm_cell_survival_stats(

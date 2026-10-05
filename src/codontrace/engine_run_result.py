@@ -8,10 +8,11 @@ byte-stable. See ``docs/ENGINE_REPLAY_CONTRACT.md``.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
+from codontrace.dynvalues import same_float
 from codontrace.engine_digest import (
     _action_registry_hash,
     _digest,
@@ -90,6 +91,11 @@ from codontrace.genesis.role import (
     RoleContribution,
     infer_role_from_record,
 )
+from codontrace.trace import TraceEvent
+
+if TYPE_CHECKING:
+    from codontrace.genesis.phase1_runtime_maturity import Phase1RuntimeMaturityReport
+    from codontrace.genesis.phase_b_scientific_maturity import PhaseBScientificMaturityReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,7 +202,7 @@ class GenesisRunResult:
         return ConsistencyValidationResult(not issues, tuple(sorted(set(issues))))
 
     @property
-    def phase1_runtime_maturity_report(self) -> object:
+    def phase1_runtime_maturity_report(self) -> Phase1RuntimeMaturityReport:
         """Digest-backed Phase-1 runtime maturity report derived from this run.
 
         The report is computed from already-executed runtime records. It does
@@ -218,7 +224,7 @@ class GenesisRunResult:
         return tuple(item.to_dict() for item in report.feature_statuses)
 
     @property
-    def phase_b_scientific_maturity_report(self) -> object:
+    def phase_b_scientific_maturity_report(self) -> PhaseBScientificMaturityReport:
         """Final Phase-B scientific-evidence report derived from executed runtime records.
 
         This consumes Phase-A evidence and downgrades unsupported claims instead
@@ -425,7 +431,8 @@ class GenesisRunResult:
                         and getattr(classification, "emit_energy_link", True)
                     )
                     actual_death = bool(
-                        link_enabled and classification.actual_death_removed_from_population
+                        link_enabled
+                        and cast(Any, classification).actual_death_removed_from_population
                     )
                     last_for_agent = last_event_key_by_agent.get(event.agent_id) == (
                         trace_index,
@@ -1220,7 +1227,7 @@ class GenesisRunResult:
                         reward_tick = None
                         if correct_flag:
                             reward_tick = event.step
-                            reward_value = float(
+                            reward_value = same_float(
                                 event.world_delta.get("resource_credit", 0.0)
                                 or event.world_delta.get("lumen_consumed", 0.0)
                                 or 0.0
@@ -1286,7 +1293,7 @@ class GenesisRunResult:
                         memory_required=True,
                         memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
                         action_after_memory=reward_event.action,
-                        reward_after_action=float(
+                        reward_after_action=same_float(
                             reward_event.world_delta.get("resource_credit", 0.0)
                             or reward_event.world_delta.get("lumen_consumed", 0.0)
                             or 0.0
@@ -1299,13 +1306,13 @@ class GenesisRunResult:
                         ),
                     )
         # Cross-tick agent timeline: same classification rules, no invented success.
-        events_by_agent: dict[str, list[object]] = {}
+        events_by_agent: dict[str, list[TraceEvent]] = {}
         for tick in self.ticks:
             for trace in tick.generation_result.traces:
                 for event in trace.events:
                     events_by_agent.setdefault(event.agent_id, []).append(event)
-        for events in events_by_agent.values():
-            ordered = sorted(events, key=lambda event: event.step)
+        for agent_events in events_by_agent.values():
+            ordered = sorted(agent_events, key=lambda event: event.step)
             first_write = next(
                 (event for event in ordered if event.world_delta.get("memory_write_succeeded") is True),
                 None,
@@ -1348,7 +1355,7 @@ class GenesisRunResult:
                 memory_required=True,
                 memory_key=str(first_write.world_delta.get("memory_key", "runtime_signal")),
                 action_after_memory=reward_event.action,
-                reward_after_action=float(
+                reward_after_action=same_float(
                     reward_event.world_delta.get("resource_credit", 0.0)
                     or reward_event.world_delta.get("lumen_consumed", 0.0)
                     or 0.0
@@ -1361,7 +1368,7 @@ class GenesisRunResult:
                 ),
             )
             before = len(rows)
-            _append_evidence(**candidate_kwargs)
+            _append_evidence(**cast(Any, candidate_kwargs))
             if len(rows) > before:
                 # Drop duplicate digests introduced by per-trace + cross-tick paths.
                 if any(existing.digest() == rows[-1].digest() for existing in rows[:-1]):
@@ -1404,7 +1411,7 @@ class GenesisRunResult:
     def tool_chain_records(self) -> tuple[object, ...]:
         from codontrace.genesis.toolchain import tool_chain_records_from_trace
 
-        rows = []
+        rows: list[object] = []
         for tick in self.ticks:
             for trace in tick.generation_result.traces:
                 rows.extend(tool_chain_records_from_trace(trace))
@@ -1839,7 +1846,7 @@ class GenesisRunResult:
         phase_b_report = self.phase_b_scientific_maturity_report
         artifact_map.update(phase1_report.artifact_digest_map)
         artifact_map.update(phase_b_report.artifact_digest_map)
-        feature_status = {
+        feature_status: dict[str, str] = {
             item.schema_version.removesuffix("_export_v1"): item.feature_status
             for item in self.export_status_records
         }

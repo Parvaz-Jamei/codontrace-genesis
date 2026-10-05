@@ -37,6 +37,7 @@ import math
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -1263,9 +1264,11 @@ def run_mutation_ablation_control(
     treatment_c = censuses_from_run(treatment_result)
     treatment_delta = _trajectory_fitness_delta(treatment_c)
     control_spec = _spec_with_mutation_rate(spec, 0.0)
-    from codontrace.genesis.engine import GenesisEngine
+    from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
 
-    control_result = GenesisEngine.from_spec(control_spec).run_ticks()
+    control_result = GenesisEngine.from_spec(
+        cast(GenesisExperimentSpec, control_spec)
+    ).run_ticks()
     control_c = censuses_from_run(control_result)
     control_delta = _trajectory_fitness_delta(control_c)
     treatment_digest = str(treatment_result.digest()) if hasattr(treatment_result, "digest") else ""
@@ -1630,7 +1633,7 @@ def _run_genome_cohort(
     seed: int | None,
     tick_count: int,
 ) -> object:
-    from codontrace.genesis.engine import GenesisEngine
+    from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
 
     updated = replace(
         spec,  # type: ignore[type-var]
@@ -1638,7 +1641,7 @@ def _run_genome_cohort(
         seed=getattr(spec, "seed", 1) if seed is None else seed,
         tick_count=tick_count,
     )
-    return GenesisEngine.from_spec(updated).run_ticks()
+    return GenesisEngine.from_spec(cast(GenesisExperimentSpec, updated)).run_ticks()
 
 
 def _spec_with_mutation_rate(spec: object, bit_flip_rate: float) -> object:

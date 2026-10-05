@@ -10,10 +10,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
+from codontrace.dynvalues import same_int, same_iter, same_mapping, same_str
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.host_parasite_world import (
@@ -363,8 +364,10 @@ class ContinuumCellResult:
             ),
             meter_digest=_as_str(data.get("meter_digest"), "meter_digest"),
             world_digest=_as_str(data.get("world_digest"), "world_digest"),
-            census=dict(data.get("census") or {}),  # type: ignore[arg-type]
-            related_totals=dict(data.get("related_totals") or {}),  # type: ignore[arg-type]
+            census=cast(Mapping[str, int], dict(same_mapping(data.get("census") or {}))),
+            related_totals=cast(
+                Mapping[str, float], dict(same_mapping(data.get("related_totals") or {}))
+            ),
             cell_digest=_as_str(data.get("cell_digest", ""), "cell_digest", allow_empty=True),
             continuum_physics_source=_as_str(
                 data.get("continuum_physics_source", CONTINUUM_PHYSICS_SOURCE),
@@ -473,19 +476,19 @@ class ContinuumFactorialResult:
         if not isinstance(cells_raw, Sequence):
             raise ConfigurationError("cells must be a sequence.")
         cells = tuple(
-            ContinuumCellResult.from_dict(c)  # type: ignore[arg-type]
+            ContinuumCellResult.from_dict(c)
             for c in cells_raw
         )
         return cls(
             factorial_id=_as_str(data.get("factorial_id"), "factorial_id"),
-            seeds=tuple(int(s) for s in (data.get("seeds") or ())),  # type: ignore[arg-type]
+            seeds=tuple(same_int(s) for s in same_iter(data.get("seeds") or ())),
             ticks=_as_int(data.get("ticks"), "ticks", minimum=0),
             cells=cells,
             claim_ceiling=_as_str(
                 data.get("claim_ceiling", "runtime_observation"), "claim_ceiling"
             ),
             smoke_only=_as_bool(data.get("smoke_only", False), "smoke_only"),
-            refuse_list=tuple(str(x) for x in (data.get("refuse_list") or ())),
+            refuse_list=tuple(same_str(x) for x in same_iter(data.get("refuse_list") or ())),
             digest=_as_str(data.get("digest", ""), "digest", allow_empty=True),
             red_queen_proved=_as_bool(
                 data.get("red_queen_proved", False), "red_queen_proved"
@@ -787,7 +790,7 @@ class InterventionContrastResult:
         if not isinstance(arms_raw, Sequence):
             raise ConfigurationError("arms must be a sequence.")
         arms = tuple(
-            InterventionArmResult.from_dict(a)  # type: ignore[arg-type]
+            InterventionArmResult.from_dict(a)
             for a in arms_raw
         )
         return cls(
@@ -812,7 +815,7 @@ class InterventionContrastResult:
             ),
             smoke_only=_as_bool(data.get("smoke_only", False), "smoke_only"),
             science_grade=_as_bool(data.get("science_grade", False), "science_grade"),
-            refuse_list=tuple(str(x) for x in (data.get("refuse_list") or ())),
+            refuse_list=tuple(same_str(x) for x in same_iter(data.get("refuse_list") or ())),
             digest=_as_str(data.get("digest", ""), "digest", allow_empty=True),
             intervention_supported=_as_bool(
                 data.get("intervention_supported", False), "intervention_supported"
@@ -1019,7 +1022,7 @@ class ReciprocalObservationalContrast:
     def from_dict(cls, data: Mapping[str, object]) -> ReciprocalObservationalContrast:
         replay_raw = data.get("replay_arm")
         replay = (
-            InterventionArmResult.from_dict(replay_raw)  # type: ignore[arg-type]
+            InterventionArmResult.from_dict(replay_raw)
             if isinstance(replay_raw, Mapping)
             else None
         )
@@ -1044,7 +1047,7 @@ class ReciprocalObservationalContrast:
                 data.get("claim_ceiling", "runtime_observation"), "claim_ceiling"
             ),
             smoke_only=_as_bool(data.get("smoke_only", True), "smoke_only"),
-            refuse_list=tuple(str(x) for x in (data.get("refuse_list") or ())),
+            refuse_list=tuple(same_str(x) for x in same_iter(data.get("refuse_list") or ())),
             digest=_as_str(data.get("digest", ""), "digest", allow_empty=True),
             red_queen_proved=_as_bool(
                 data.get("red_queen_proved", False), "red_queen_proved"

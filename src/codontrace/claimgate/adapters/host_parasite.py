@@ -1521,7 +1521,7 @@ def attach_task_gene_map(
             "map_digest": payload["map_digest"],
             "seed": payload["seed"],
             "host_genome_digest": payload["host_genome_digest"],
-            "window_count": len(payload["windows"]),
+            "window_count": len(cast(Sequence[object], payload["windows"])),
             "claim_ceiling": payload["claim_ceiling"],
             "gene_identity_proved": False,
             "crispr_identity_proved": False,

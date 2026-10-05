@@ -19,6 +19,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -318,13 +319,13 @@ def classify_demography_outcome(
             snap = snaps.get(gen)
             if snap is None:
                 return OUTCOME_HORIZON_INSUFFICIENT
-            if int(snap.get("parasite_n") or 0) <= 0:
+            if same_int(snap.get("parasite_n") or 0) <= 0:
                 return OUTCOME_PARASITE_EXTINCT
 
     for arm in DEBIT_ACTIVE_ARMS:
         snaps = arm_snaps[arm]
         for gen in DEMOGRAPHY_LOCKED_WINDOWS:
-            if int(snaps[gen].get("census") or 0) < DEMOGRAPHY_MIN_VIABLE:
+            if same_int(snaps[gen].get("census") or 0) < DEMOGRAPHY_MIN_VIABLE:
                 return OUTCOME_REGIME_HOSTILE_NE
 
     return OUTCOME_DEMOGRAPHY_OK

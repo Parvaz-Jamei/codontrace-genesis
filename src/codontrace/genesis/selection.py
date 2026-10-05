@@ -11,7 +11,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
@@ -357,8 +357,8 @@ class EvolutionSelectionResult:
             "dropped_ids": list(self.dropped_ids),
             "policy_name": self.policy_name,
             "config_digest": self.config_digest,
-            "selected_parent_ids": list(self.selected_parent_ids),
-            "selected_survivor_ids": list(self.selected_survivor_ids),
+            "selected_parent_ids": list(cast(tuple[str, ...], self.selected_parent_ids)),
+            "selected_survivor_ids": list(cast(tuple[str, ...], self.selected_survivor_ids)),
             "fitness_scores_digest": self.fitness_scores_digest,
             "novelty_scores_digest": self.novelty_scores_digest,
             "descriptor_digest": self.descriptor_digest,

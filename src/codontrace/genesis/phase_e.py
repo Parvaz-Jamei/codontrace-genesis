@@ -34,7 +34,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -660,25 +660,28 @@ class DemeState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> DemeState:
+        demes_raw = data.get("demes", [])
+        inbox_raw = data.get("inbox", [])
+        events_raw = data.get("replication_events", [])
         return cls(
             demes=tuple(
-                Deme.from_dict(item) for item in data.get("demes", []) if isinstance(item, Mapping)
+                Deme.from_dict(item) for item in demes_raw if isinstance(item, Mapping)
             )
-            if isinstance(data.get("demes", []), list)
+            if isinstance(demes_raw, list)
             else (),
             inbox=tuple(
                 DemeMessage.from_dict(item)
-                for item in data.get("inbox", [])
+                for item in inbox_raw
                 if isinstance(item, Mapping)
             )
-            if isinstance(data.get("inbox", []), list)
+            if isinstance(inbox_raw, list)
             else (),
             replication_events=tuple(
                 DemeReplicationEvent.from_dict(item)
-                for item in data.get("replication_events", [])
+                for item in events_raw
                 if isinstance(item, Mapping)
             )
-            if isinstance(data.get("replication_events", []), list)
+            if isinstance(events_raw, list)
             else (),
         )
 
@@ -1716,7 +1719,7 @@ def summarize_phase_e_observation(result: object) -> PhaseEObservation:
             )
         for message in getattr(generation, "phase_e_messages", ()) or ():
             kind = getattr(message, "kind", None)
-            kind_value = kind.value if hasattr(kind, "value") else str(kind)
+            kind_value = cast(Any, kind).value if hasattr(kind, "value") else str(kind)
             if getattr(message, "blocked", False):
                 messages_blocked += 1
             elif kind_value == MessageKind.RETRIEVE.value:

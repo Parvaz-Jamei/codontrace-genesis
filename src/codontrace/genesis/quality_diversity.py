@@ -46,8 +46,12 @@ class BehaviorDescriptorSchema:
             if isinstance(bins, bool) or not isinstance(bins, int) or bins <= 0:
                 msg = f"bins_per_descriptor[{name!r}] must be positive."
                 raise ConfigurationError(msg)
-            min_value = finite_float(f"min_values[{name!r}]", self.min_values.get(name, 0.0))
-            max_value = finite_float(f"max_values[{name!r}]", self.max_values.get(name, 0.0))
+            min_value = cast(
+                float, finite_float(f"min_values[{name!r}]", self.min_values.get(name, 0.0))
+            )
+            max_value = cast(
+                float, finite_float(f"max_values[{name!r}]", self.max_values.get(name, 0.0))
+            )
             if max_value <= min_value:
                 msg = f"max_values[{name!r}] must be greater than min_values."
                 raise ConfigurationError(msg)
@@ -946,7 +950,7 @@ def _optional_float(value: object, key: str) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         msg = f"{key} must be numeric or null."
         raise ConfigurationError(msg)
-    return finite_float(key, value)  # type: ignore[return-value]
+    return finite_float(key, value)
 
 
 def _str_tuple(data: Mapping[str, JsonValue], key: str) -> tuple[str, ...]:

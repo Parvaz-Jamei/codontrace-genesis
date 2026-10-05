@@ -17,6 +17,7 @@ from math import log2
 from typing import Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 
@@ -89,11 +90,11 @@ class FoodPatchSignalConfig:
     def from_dict(cls, data: Mapping[str, JsonValue]) -> FoodPatchSignalConfig:
         return cls(
             enabled=bool(data.get("enabled", False)),
-            patch_spawn_period_ticks=int(data.get("patch_spawn_period_ticks", 8)),
-            patch_lifetime_ticks=int(data.get("patch_lifetime_ticks", 16)),
-            visibility_radius=int(data.get("visibility_radius", 1)),
-            patch_atp=float(data.get("patch_atp", 2.0)),
-            patch_count=int(data.get("patch_count", 1)),
+            patch_spawn_period_ticks=same_int(data.get("patch_spawn_period_ticks", 8)),
+            patch_lifetime_ticks=same_int(data.get("patch_lifetime_ticks", 16)),
+            visibility_radius=same_int(data.get("visibility_radius", 1)),
+            patch_atp=same_float(data.get("patch_atp", 2.0)),
+            patch_count=same_int(data.get("patch_count", 1)),
         )
 
     def digest(self) -> str:
@@ -123,10 +124,10 @@ class FoodPatchState:
     def from_dict(cls, data: Mapping[str, JsonValue]) -> FoodPatchState:
         return cls(
             patch_id=str(data.get("patch_id", "")),
-            x=int(data.get("x", 0)),
-            y=int(data.get("y", 0)),
-            spawn_tick=int(data.get("spawn_tick", 0)),
-            expire_tick=int(data.get("expire_tick", 0)),
+            x=same_int(data.get("x", 0)),
+            y=same_int(data.get("y", 0)),
+            spawn_tick=same_int(data.get("spawn_tick", 0)),
+            expire_tick=same_int(data.get("expire_tick", 0)),
         )
 
     def digest(self) -> str:

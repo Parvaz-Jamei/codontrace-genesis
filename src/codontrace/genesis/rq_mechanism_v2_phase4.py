@@ -51,6 +51,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
 
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import SexualRecombinationConfig
 from codontrace.genesis.closed_loop_hp_arm01 import _window
@@ -150,7 +151,7 @@ def _horizon_record() -> dict[str, object]:
 
 
 _HORIZON = _horizon_record()
-PHASE4_HORIZON = int(_HORIZON["conditioning_generations"])
+PHASE4_HORIZON = same_int(_HORIZON["conditioning_generations"])
 # Death on the no-food maximum-debit account. Not ceil(3 * 60/26).
 # The assay bolus stays on. This constant is the lock, not a fitness sign.
 PHASE4B_HORIZON = 9
@@ -438,7 +439,7 @@ def population_from_parasite_rows(rows: Sequence[Mapping[str, object]]) -> Antag
                 unit_id=unit_id,
                 window=window,
                 parent_id=parent_id,
-                born_generation=int(row["born_generation"]),  # type: ignore[arg-type]
+                born_generation=same_int(row["born_generation"]),
                 energy=float(row["energy"]),  # type: ignore[arg-type]
                 alive=True,
             )
@@ -692,7 +693,7 @@ def load_conditioned_parasites(path: Path) -> tuple[list[dict[str, object]], str
     parasites = last.get("parasites")
     if not isinstance(parasites, list) or not parasites:
         raise ConfigurationError(f"phase-3 archive has no parasites: {path}")
-    generation = int(last["generation"])  # type: ignore[arg-type]
+    generation = same_int(last["generation"])
     after = _read_only_bytes(path)
     if after != before:
         raise ConfigurationError("reading the phase-3 archive changed its bytes")
@@ -901,8 +902,8 @@ def _founder_map(rows: Sequence[Mapping[str, object]]) -> dict[str, str]:
 
 def _sum_counts(rows: Sequence[Mapping[str, object]], key_a: str, key_b: str) -> dict[str, int]:
     return {
-        "A": int(sum(int(row[key_a]) for row in rows)),  # type: ignore[arg-type]
-        "B": int(sum(int(row[key_b]) for row in rows)),  # type: ignore[arg-type]
+        "A": same_int(sum(same_int(row[key_a]) for row in rows)),
+        "B": same_int(sum(same_int(row[key_b]) for row in rows)),
     }
 
 
@@ -941,17 +942,17 @@ def branch_measurement(rows: Sequence[Mapping[str, object]], *, generations: int
         return {"share_A": None, "share_B": None, "status": "unmeasurable"}
     scored = lineage_share(
         [str(unit_id) for unit_id in living],
-        _parent_map(parent_rows),  # type: ignore[arg-type]
-        _founder_map(founder_rows),  # type: ignore[arg-type]
+        _parent_map(parent_rows),
+        _founder_map(founder_rows),
     )
     births = _sum_counts(rows, "births_A", "births_B")
     deaths = _sum_counts(rows, "deaths_A", "deaths_B")
-    contacts = int(sum(int(row["contacts"]) for row in rows))  # type: ignore[arg-type]
-    paid = float(sum(float(row["host_atp_paid"]) for row in rows))  # type: ignore[arg-type]
+    contacts = same_int(sum(same_int(row["contacts"]) for row in rows))
+    paid = float(sum(same_float(row["host_atp_paid"]) for row in rows))
     status = "measured" if scored["share_A"] is not None else "unmeasurable"
     return {
-        "alive_end_A": int(last["alive_end_A"]),  # type: ignore[arg-type]
-        "alive_end_B": int(last["alive_end_B"]),  # type: ignore[arg-type]
+        "alive_end_A": same_int(last["alive_end_A"]),
+        "alive_end_B": same_int(last["alive_end_B"]),
         "births": births,
         "contacts": contacts,
         "deaths": deaths,
@@ -1047,8 +1048,8 @@ def _seed_estimand(seed_dir: Path, *, generations: int) -> dict[str, object]:
     demography = None
     if common_a.get("status") == "measured" and common_b.get("status") == "measured":
         demography = contact_without_demography(
-            contacts_a=int(common_a["contacts"]),  # type: ignore[arg-type]
-            contacts_b=int(common_b["contacts"]),  # type: ignore[arg-type]
+            contacts_a=same_int(common_a["contacts"]),
+            contacts_b=same_int(common_b["contacts"]),
             paid_a=float(common_a["host_atp_paid"]),  # type: ignore[arg-type]
             paid_b=float(common_b["host_atp_paid"]),  # type: ignore[arg-type]
             births_a=common_a["births"],  # type: ignore[arg-type]
@@ -1210,7 +1211,7 @@ def run_phase4_seed(
             forbid_rejected_archive=forbid_rejected_archive,
         )
         summaries[branch] = summary
-        if summary["failed"] or int(summary["completed"]) != int(generations):
+        if summary["failed"] or same_int(summary["completed"]) != same_int(generations):
             failed = str(summary["failed"] or "incomplete")
             (seed_dir / "REASON.txt").write_text(
                 f"seed={seed} branch={branch} completed={summary['completed']} reason={failed}\n",
@@ -1242,12 +1243,12 @@ def run_phase4_seed(
     }
 
 
-def _worker(payload: dict[str, object]) -> dict[str, object]:
+def _worker(payload: Mapping[str, object]) -> dict[str, object]:
     return run_phase4_seed(
-        int(payload["seed"]),
+        same_int(payload["seed"]),
         Path(str(payload["root"])),
         phase3_root=Path(str(payload["phase3_root"])),
-        generations=int(payload["generations"]),
+        generations=same_int(payload["generations"]),
         stream_root=None if payload.get("stream_root") is None else str(payload["stream_root"]),
         archive_schema=None if payload.get("archive_schema") is None else str(payload["archive_schema"]),
         forbid_rejected_archive=bool(payload.get("forbid_rejected_archive", False)),

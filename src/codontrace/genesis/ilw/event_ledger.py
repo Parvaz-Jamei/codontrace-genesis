@@ -220,7 +220,7 @@ class EventLedger:
                 return value
             if isinstance(value, int) and not isinstance(value, bool):
                 return value
-            return value  # type: ignore[return-value]
+            return value
         if isinstance(value, Mapping):
             return {str(k): EventLedger._to_json_value(v) for k, v in value.items()}
         if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):

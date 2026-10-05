@@ -50,7 +50,9 @@ import json
 import math
 from collections import Counter
 from dataclasses import dataclass
+from typing import Any
 
+from codontrace.dynvalues import same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import apply_positional_segment_exchange
 from codontrace.genesis.host_parasite_life_plugin import (
@@ -164,8 +166,8 @@ def _frequency_state(organisms: list[GenesisOrganism]) -> tuple[tuple[str, int],
 
 
 def classify_oscillation_v1(
-    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
-    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list[Any],
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list[Any],
     match_debits: tuple[int, ...] | list[int],
 ) -> str:
     """Detector used before the terminal-window rule. Kept for comparison.
@@ -176,7 +178,7 @@ def classify_oscillation_v1(
 
     if len(match_debits) != len(host_frequencies):
         raise ConfigurationError("match debits must align with the type history")
-    seen: dict[tuple, int] = {}
+    seen: dict[tuple[Any, ...], int] = {}
     paid_returns = 0
     unpaid_returns = 0
     for index, state in enumerate(host_frequencies):
@@ -185,7 +187,7 @@ def classify_oscillation_v1(
         changed = previous is not None and any(
             tuple(host_frequencies[cursor]) != key for cursor in range(previous + 1, index)
         )
-        if changed:
+        if previous is not None and changed:
             paid = any(match_debits[cursor] > 0 for cursor in range(previous + 1, index + 1))
             if paid:
                 paid_returns += 1
@@ -225,8 +227,8 @@ def _debit_entry(value: object) -> int:
 
 
 def classify_oscillation(
-    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
-    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list,
+    host_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list[Any],
+    parasite_frequencies: tuple[tuple[tuple[str, int], ...], ...] | list[Any],
     match_debits: tuple[int, ...] | list[int],
 ) -> str:
     """Terminal-window classes. A prefix that later dies is not stable.
@@ -264,7 +266,7 @@ def classify_oscillation(
     for index, state in enumerate(hosts):
         previous = seen.get(state)
         changed = previous is not None and any(hosts[cursor] != state for cursor in range(previous + 1, index))
-        if changed:
+        if previous is not None and changed:
             paid = any(debits[cursor] > 0 for cursor in range(previous + 1, index + 1))
             parasite_interval = parasites[previous + 1 : index + 1]
             moved_inside = len(set(parasite_interval)) > 1
@@ -332,10 +334,10 @@ def debit_backed_cycle(
 def _match_debit_count(organisms: list[GenesisOrganism], tick: int) -> int:
     total = 0
     for organism in organisms:
-        ledger = organism.atp_state.runtime.to_dict().get("ledger", [])
+        ledger_raw = organism.atp_state.runtime.to_dict().get("ledger", [])
         total += sum(
             1
-            for entry in ledger
+            for entry in same_iter(ledger_raw)
             if isinstance(entry, dict)
             and entry.get("reason") == MATCH_LEDGER_REASON
             and entry.get("tick") == tick
@@ -1459,7 +1461,7 @@ class ClosedLoopP6Clock:
                     isinstance(entry, dict)
                     and entry.get("reason") == MATCH_LEDGER_REASON
                     and entry.get("tick") == self.tick_index
-                    for entry in host.atp_state.runtime.to_dict().get("ledger", [])
+                    for entry in same_iter(host.atp_state.runtime.to_dict().get("ledger", []))
                 )
             ]
             if self.passage == "coevolve" and infected:
@@ -1476,9 +1478,8 @@ class ClosedLoopP6Clock:
                 host.id
                 for host in hosts
                 if any(
-                    entry.get("reason") == MATCH_LEDGER_REASON
-                    for entry in host.atp_state.runtime.to_dict().get("ledger", [])
-                    if isinstance(entry, dict)
+                    isinstance(entry, dict) and entry.get("reason") == MATCH_LEDGER_REASON
+                    for entry in same_iter(host.atp_state.runtime.to_dict().get("ledger", []))
                 )
             ],
             "red_queen_proved": False,

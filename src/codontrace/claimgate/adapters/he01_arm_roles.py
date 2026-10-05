@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES
+from codontrace.claimgate.adapters.roles import ROLE_ALIASES
 from codontrace.claimgate.adapters.roles import canonical_role as _canonical_role
+from codontrace.claimgate.schema import ARM_ROLES as SCHEMA_ROLES
 
 ARM_ROLES: dict[str, str] = {
     "source_bias_on": "treatment",

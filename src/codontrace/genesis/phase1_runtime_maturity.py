@@ -15,7 +15,7 @@ import math
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 
@@ -219,7 +219,12 @@ def _stable_dict(data: Mapping[str, Any] | None) -> dict[str, JsonValue]:
         elif isinstance(value, Mapping):
             out[str(key)] = _stable_dict(value)
         elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-            out[str(key)] = [str(item) if not isinstance(item, (int, float, bool, type(None), Mapping)) else item for item in value]  # type: ignore[list-item]
+            out[str(key)] = [
+                str(item)
+                if not isinstance(item, (int, float, bool, type(None), Mapping))
+                else cast(JsonValue, item)
+                for item in value
+            ]
         else:
             out[str(key)] = str(value)
     return out
@@ -1027,9 +1032,12 @@ def reproduction_audit_from_result(result: object, *, tick: int = 0) -> Reproduc
     data = result.to_dict() if hasattr(result, "to_dict") else {}
     gate = data.get("gate") if isinstance(data.get("gate"), Mapping) else data.get("reproduction_gate_result")
     gate_map = dict(gate) if isinstance(gate, Mapping) else {}
-    birth_event = data.get("birth_event") if isinstance(data.get("birth_event"), Mapping) else {}
-    child = data.get("child_genome") if isinstance(data.get("child_genome"), Mapping) else {}
-    mutation = data.get("mutation") if isinstance(data.get("mutation"), Mapping) else {}
+    birth_raw = data.get("birth_event")
+    birth_event = birth_raw if isinstance(birth_raw, Mapping) else {}
+    child_raw = data.get("child_genome")
+    child = child_raw if isinstance(child_raw, Mapping) else {}
+    mutation_raw = data.get("mutation")
+    mutation = mutation_raw if isinstance(mutation_raw, Mapping) else {}
     reasons = gate_map.get("reasons")
     first_reason = "none"
     if isinstance(reasons, Sequence) and not isinstance(reasons, (str, bytes, bytearray)) and reasons:
@@ -1630,7 +1638,11 @@ def attach_phase1_report_to_manifest(manifest: object, report: Phase1RuntimeMatu
     feature_status = dict(getattr(manifest, "feature_status", {}) or {})
     feature_status.update(report.manifest_feature_status)
     try:
-        return replace(manifest, artifact_digest_map=artifact_map, feature_status=feature_status)
+        return replace(
+            cast(Any, manifest),
+            artifact_digest_map=artifact_map,
+            feature_status=feature_status,
+        )
     except Exception:
         return manifest
 

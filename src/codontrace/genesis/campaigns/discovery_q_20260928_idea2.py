@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -116,6 +116,7 @@ def run_idea2_smoke(
 
     arm_pack: dict[str, JsonValue] = {}
     for arm in use_arms:
+        spend: dict[str, JsonValue]
         if arm == "gene":
             spend = {"decision_units": DECISION_BUDGET, "genotype_update": True, "do": False}
         elif arm == "pattern":
@@ -129,11 +130,14 @@ def run_idea2_smoke(
                 "decision_units": DECISION_BUDGET,
                 "hypothesis_revision": CAUSAL_SPEND[0],
                 "do": CAUSAL_SPEND[1],
-                "do_ops": [
-                    "mask_named_contacts",
-                    "reallocate_contact_budget",
-                    "cut_or_restore_named_contact_edge",
-                ],
+                "do_ops": cast(
+                    list[JsonValue],
+                    [
+                        "mask_named_contacts",
+                        "reallocate_contact_budget",
+                        "cut_or_restore_named_contact_edge",
+                    ],
+                ),
                 "sham_control": SHAM_ID,
             }
         arm_pack[arm] = {
@@ -175,8 +179,8 @@ def run_idea2_smoke(
         ),
         "ledger_digest": ledger.digest(),
         "history_len": len(history),
-        "nc_presence": nc_presence,
-        "nc_masked": nc_masked,
+        "nc_presence": cast(dict[str, JsonValue], nc_presence),
+        "nc_masked": cast(dict[str, JsonValue], nc_masked),
         "predicted_pressure_phase": float(ledger.predicted_pressure_phase),
         "realised_pressure_phase": float(ledger.realised_pressure_phase),
         "distinction_locks": {

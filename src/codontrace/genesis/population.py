@@ -13,10 +13,11 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import cast
+from typing import Any, cast
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
@@ -598,8 +599,8 @@ class BirthPlacementRecord:
         return cls(
             parent_id=_str(data, "parent_id"),
             child_id=_str(data, "child_id"),
-            parent_position=(int(parent_raw[0]), int(parent_raw[1])),
-            placement_cell=(int(child_raw[0]), int(child_raw[1])),
+            parent_position=(same_int(parent_raw[0]), same_int(parent_raw[1])),
+            placement_cell=(same_int(child_raw[0]), same_int(child_raw[1])),
         )
 
 
@@ -1263,7 +1264,7 @@ class RuntimeResourceEvent:
         raw_pos = data.get("position")
         pos = None
         if isinstance(raw_pos, list) and len(raw_pos) == 2:
-            pos = (int(raw_pos[0]), int(raw_pos[1]))
+            pos = (same_int(raw_pos[0]), same_int(raw_pos[1]))
         return cls(
             tick=_int(data, "tick", 0),
             event_type=_str(data, "event_type", "unknown"),
@@ -1405,6 +1406,15 @@ class GenerationResult:
         if not isinstance(population_raw, Mapping) or not isinstance(world_raw, Mapping):
             msg = "GenerationResult requires population and world_after objects."
             raise ConfigurationError(msg)
+        zero_reasons_raw = data.get("selection_zero_score_reasons", {})
+        if isinstance(zero_reasons_raw, Mapping):
+            selection_zero_score_reasons = {
+                str(key): int(value)
+                for key, value in zero_reasons_raw.items()
+                if isinstance(value, int) and not isinstance(value, bool)
+            }
+        else:
+            selection_zero_score_reasons = {}
         return cls(
             before_count=_int(data, "before_count", 0),
             after_count=_int(data, "after_count", 0),
@@ -1444,11 +1454,7 @@ class GenerationResult:
             viable_mean_fitness=_float(data, "viable_mean_fitness", 0.0),
             viable_best_fitness=_float(data, "viable_best_fitness", 0.0),
             viability_gate_failures=_int(data, "viability_gate_failures", 0),
-            selection_zero_score_reasons={
-                str(k): int(v)
-                for k, v in dict(data.get("selection_zero_score_reasons", {})).items()
-                if isinstance(v, int) and not isinstance(v, bool)
-            } if isinstance(data.get("selection_zero_score_reasons", {}), Mapping) else {},
+            selection_zero_score_reasons=selection_zero_score_reasons,
             mean_fitness_alias=_str(data, "mean_fitness_alias", "raw_mean_fitness"),
             best_fitness_alias=_str(data, "best_fitness_alias", "raw_best_fitness"),
             resource_policy_records=tuple(
@@ -1489,12 +1495,12 @@ class GenerationResult:
             ),
             logic9_events=tuple(
                 Logic9ReactionEvent(
-                    tick=int(item.get("tick", 0) or 0),
+                    tick=same_int(item.get("tick", 0) or 0),
                     organism_id=str(item.get("organism_id", "")),
                     task=str(item.get("task", "NAND")),
                     resource_name=str(item.get("resource_name", "resNAND")),
-                    consumed=float(item.get("consumed", 0.0) or 0.0),
-                    atp_bonus=float(item.get("atp_bonus", 0.0) or 0.0),
+                    consumed=same_float(item.get("consumed", 0.0) or 0.0),
+                    atp_bonus=same_float(item.get("atp_bonus", 0.0) or 0.0),
                     blocked_reason=str(item.get("blocked_reason", "")),
                     genome_digest=str(item.get("genome_digest", "")),
                 )
@@ -1596,7 +1602,7 @@ class PopulationConfigs:
             object.__setattr__(
                 self,
                 "death_monitoring",
-                replace(self.death_monitoring, **legacy_overrides),
+                replace(self.death_monitoring, **cast(Any, legacy_overrides)),
             )
 
     @property
@@ -3662,9 +3668,10 @@ def step_population(
                         placement=placement,
                         policy=configs.reproduction.offspring_placement,
                     )
-                    child = reproduction_result.child
-                    if child is None:
+                    placed_child = reproduction_result.child
+                    if placed_child is None:
                         raise RuntimeError("finalized reproduction unexpectedly lost child")
+                    child = placed_child
                     children.append(child)
                     life = configs.closed_loop_hp_life
                     if life.outcross_enabled or life.match_locus_enabled:
@@ -3953,7 +3960,6 @@ def step_population(
             for record in records
             if record.behavior_descriptor is not None
         }
-        newborn_protection_records: list[dict[str, JsonValue]] = []
         if configs.newborn_protection_policy == "protect_until_first_evaluation" and children:
             ceiling = max(fitness_score_map.values(), default=0.0)
             for child in children:
@@ -4040,8 +4046,8 @@ def step_population(
         if item.selection_fitness_score is not None and item.selection_fitness_score.viability_gate <= 0.0
     )
     selection_zero_score_reasons: dict[str, int] = {}
-    for item in fitness_results:
-        score = item.selection_fitness_score
+    for fitness_item in fitness_results:
+        score = fitness_item.selection_fitness_score
         if score is not None and score.selection_score <= 0.0:
             selection_zero_score_reasons[score.viability_gate_reason] = selection_zero_score_reasons.get(score.viability_gate_reason, 0) + 1
     mean_fitness = raw_mean_fitness
@@ -4067,8 +4073,8 @@ def step_population(
         environment_snapshot = env_result.snapshot
         environment_world_events = env_result.world_events
         if traces:
-            for event in environment_world_events:
-                traces[0].append_world_event(replace(event, sequence=traces[0].next_sequence()))
+            for world_event in environment_world_events:
+                traces[0].append_world_event(replace(world_event, sequence=traces[0].next_sequence()))
     materials_records: tuple[MaterialEvent, ...] = ()
     materials_snapshot: MaterialsSnapshot | None = None
     materials_world_events: tuple[WorldEvent, ...] = ()
@@ -4095,8 +4101,8 @@ def step_population(
         materials_snapshot = mat_result.snapshot
         materials_world_events = mat_result.world_events
         if traces:
-            for event in materials_world_events:
-                traces[0].append_world_event(replace(event, sequence=traces[0].next_sequence()))
+            for world_event in materials_world_events:
+                traces[0].append_world_event(replace(world_event, sequence=traces[0].next_sequence()))
     skip_legacy = env_cfg.enabled and env_cfg.skip_legacy_respawn
     if not skip_legacy:
         respawn_ns = configs.runtime_resource_policy.seed_namespace
@@ -5455,9 +5461,10 @@ def _commit_newborn(
         placement=placement,
         policy=configs.reproduction.offspring_placement,
     )
-    child = reproduction_result.child
-    if child is None:
+    placed_child = reproduction_result.child
+    if placed_child is None:
         raise RuntimeError("finalized reproduction unexpectedly lost child")
+    child = placed_child
     children.append(child)
     life = configs.closed_loop_hp_life
     if life.outcross_enabled or life.match_locus_enabled:
@@ -6417,7 +6424,7 @@ def _optional_float(data: Mapping[str, JsonValue], key: str) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         msg = f"{key} must be numeric or null."
         raise ConfigurationError(msg)
-    return finite_float(key, value)  # type: ignore[return-value]
+    return finite_float(key, value)
 
 
 def _optional_int(data: Mapping[str, JsonValue], key: str) -> int | None:

@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import cast
 
 from codontrace.claimgate.adapters.host_parasite import (
     assert_claim_allowed,
@@ -28,6 +29,7 @@ from codontrace.claimgate.adapters.host_parasite_prereg import (
     host_parasite_preregistration,
 )
 from codontrace.claimgate.domain import PROFILES, bundle_from_declared_scores
+from codontrace.dynvalues import same_float, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.claim_gate import ClaimRequest, ScientificClaimGate
@@ -109,22 +111,32 @@ def panel_dx1_claimladder_theatrical() -> dict[str, object]:
 
     diversity = run_genome_diversity_campaign(seeds=SEEDS_DX + (44, 55)).to_dict()
     ard = run_ard_fsd_transition_campaign(seeds=SEEDS_DX, n_slices=8).to_dict()
-    by_arm = {}
-    for o in diversity["arm_outcomes"]:
-        by_arm.setdefault(o["arm"], []).append(float(o["entropy_delta_vs_baseline"]))
+    by_arm: dict[str, list[float]] = {}
+    for outcome_raw in same_iter(diversity["arm_outcomes"]):
+        outcome = same_mapping(outcome_raw)
+        by_arm.setdefault(cast(str, outcome["arm"]), []).append(
+            same_float(outcome["entropy_delta_vs_baseline"])
+        )
     biotic_delta = sum(by_arm["biotic_intact"]) / len(by_arm["biotic_intact"])
     content_delta = sum(by_arm["content_null"]) / len(by_arm["content_null"])
+    slices = [same_mapping(raw) for raw in same_iter(ard["slices"])]
     early = next(
         s
-        for s in ard["slices"]
-        if s["arm"] == "parasite_coevolution" and s["seed"] == SEEDS_DX[0] and "early" in s["slice_id"]
+        for s in slices
+        if s["arm"] == "parasite_coevolution"
+        and s["seed"] == SEEDS_DX[0]
+        and "early" in cast(str, s["slice_id"])
     )
     late = next(
         s
-        for s in ard["slices"]
-        if s["arm"] == "parasite_coevolution" and s["seed"] == SEEDS_DX[0] and "late" in s["slice_id"]
+        for s in slices
+        if s["arm"] == "parasite_coevolution"
+        and s["seed"] == SEEDS_DX[0]
+        and "late" in cast(str, s["slice_id"])
     )
-    cost_jump = float(late["mean_cost_of_generalism"]) - float(early["mean_cost_of_generalism"])
+    cost_jump = same_float(late["mean_cost_of_generalism"]) - same_float(
+        early["mean_cost_of_generalism"]
+    )
 
     refuses = _refuse_map(_THEATRICAL_REFUSE)
     all_blocked = all(refuses.values())
@@ -221,9 +233,12 @@ def panel_dx2_price_not_causality() -> dict[str, object]:
     )
     ready = attach_host_parasite_preregistration(bundle, prereg)
     attached = attach_price_causality_caution(ready, assay)
-    payload = attached.extra["price_causality_caution"]
+    payload = cast(
+        Mapping[str, object],
+        cast(Mapping[str, object], attached.extra)["price_causality_caution"],
+    )
     success = (
-        float(d["price_covariance"]) != 0.0
+        same_float(d["price_covariance"]) != 0.0
         and d["price_summary_is_causal"] is False
         and d["major_transition_proved"] is False
         and d["refusal_assay_passed"] is True
@@ -341,17 +356,25 @@ def panel_dx3_modes_measurement_only() -> dict[str, object]:
 
 
 def panel_dx4_replay_integrity_spectacle() -> dict[str, object]:
-    same_a = []
-    same_b = []
+    same_a: list[str] = []
+    same_b: list[str] = []
     for seed in SEEDS_DX_REPLAY:
-        same_a.append(run_genome_diversity_campaign(seeds=(seed,)).to_dict()["campaign_digest"])
-        same_b.append(run_genome_diversity_campaign(seeds=(seed,)).to_dict()["campaign_digest"])
+        same_a.append(
+            cast(str, run_genome_diversity_campaign(seeds=(seed,)).to_dict()["campaign_digest"])
+        )
+        same_b.append(
+            cast(str, run_genome_diversity_campaign(seeds=(seed,)).to_dict()["campaign_digest"])
+        )
     stable = same_a == same_b
     # Mutated seed → mismatch.
-    base = run_genome_diversity_campaign(seeds=(SEEDS_DX_REPLAY[0],)).to_dict()["campaign_digest"]
-    mutated_seed = run_genome_diversity_campaign(
-        seeds=(SEEDS_DX_REPLAY[0] + 1,)
-    ).to_dict()["campaign_digest"]
+    base = cast(
+        str,
+        run_genome_diversity_campaign(seeds=(SEEDS_DX_REPLAY[0],)).to_dict()["campaign_digest"],
+    )
+    mutated_seed = cast(
+        str,
+        run_genome_diversity_campaign(seeds=(SEEDS_DX_REPLAY[0] + 1,)).to_dict()["campaign_digest"],
+    )
     seed_mismatch = base != mutated_seed
     # Mutated claim payload → refuse.
     claim_refuse_ok = False
@@ -363,7 +386,7 @@ def panel_dx4_replay_integrity_spectacle() -> dict[str, object]:
     prereg = host_parasite_preregistration(
         question_of_interest="Replay spectacle Cornish",
         context_of_use="DX4; digital only.",
-        arms=tuple(s["step_id"] for s in default_sequential_schedule()),
+        arms=tuple(cast(str, s["step_id"]) for s in default_sequential_schedule()),
         success_metrics=("campaign_digest",),
         forbidden_claims=("intervention_supported",),
     )
@@ -467,7 +490,10 @@ def panel_dx5_content_null_trap() -> dict[str, object]:
         steal_fraction=0.8,
     )
     d = ok.to_dict()
-    scores = {a["arm"]: float(a["mean_score"]) for a in d["arm_results"]}
+    scores = {
+        cast(str, arm["arm"]): same_float(arm["mean_score"])
+        for arm in (same_mapping(raw) for raw in same_iter(d["arm_results"]))
+    }
     # Eye-catching: intact looks "damaged" (0.2) vs content_null (1.0) —
     # naive reader might skip the null; ClaimGate requires it for ceiling.
     dramatic = scores["intact"] < 0.5 and scores["content_null"] > 0.8
@@ -666,7 +692,7 @@ def panel_dx7_cornish_headline() -> dict[str, object]:
     prereg = host_parasite_preregistration(
         question_of_interest="Looks fixed — does ClaimGate grant intervention_supported?",
         context_of_use="DX7 Cornish headline; digital only.",
-        arms=tuple(s["step_id"] for s in default_sequential_schedule()),
+        arms=tuple(cast(str, s["step_id"]) for s in default_sequential_schedule()),
         success_metrics=("campaign_digest", "intervention_supported"),
         forbidden_claims=("intervention_supported", "red_queen_proved"),
     )
@@ -677,11 +703,11 @@ def panel_dx7_cornish_headline() -> dict[str, object]:
         preregistration_digest=digest,
     )
     d = camp.to_dict()
-    steps = d["step_outcomes"]
+    steps = [same_mapping(raw) for raw in same_iter(d["step_outcomes"])]
     obs = next(s for s in steps if s["kind"] == "observational")
     ints = [s for s in steps if s["kind"] == "intervention"]
-    obs_score = float(obs["score"])
-    int_scores = [float(s["score"]) for s in ints]
+    obs_score = same_float(obs["score"])
+    int_scores = [same_float(s["score"]) for s in ints]
     success = (
         d["observational_match"] is True
         and d["interventions_executed"] is True

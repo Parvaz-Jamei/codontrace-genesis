@@ -119,6 +119,7 @@ class SocialInteractionEvent:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> SocialInteractionEvent:
+        raw_delta = data.get("world_state_delta", {})
         return cls(
             source_organism_id=_str(data, "source_organism_id"),
             target_organism_id=_str(data, "target_organism_id"),
@@ -139,7 +140,9 @@ class SocialInteractionEvent:
             lineage_target=_str(data, "lineage_target", ""),
             world_state_before_digest=_optional_str(data, "world_state_before_digest"),
             world_state_after_digest=_optional_str(data, "world_state_after_digest"),
-            world_state_delta=dict(data.get("world_state_delta", {})) if isinstance(data.get("world_state_delta", {}), Mapping) else {},
+            world_state_delta=(
+                dict(raw_delta) if isinstance(raw_delta, Mapping) else {}
+            ),
             interaction_status=_str(data, "interaction_status", "measured"),
             schema_version=_str(data, "schema_version", "social_interaction_v3"),
         )

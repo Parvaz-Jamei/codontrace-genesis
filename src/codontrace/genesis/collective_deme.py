@@ -12,8 +12,9 @@ blocked. Not evolved division of labor and not an Avida C++ deme port.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -543,7 +544,7 @@ def build_deme_division_of_labor_observation(
     if last_state is None:
         return ()
     role_by_id: dict[str, str] = {}
-    for organism in last_organisms:
+    for organism in cast(Iterable[Any], last_organisms):
         role = getattr(getattr(organism, "phase_e_state", None), "role", None)
         kind = getattr(role, "kind", None)
         value = getattr(kind, "value", None) or (str(kind) if kind else "unassigned")
@@ -700,9 +701,15 @@ def run_collective_deme_payoff_campaign(
         multilevel_selection_experiment=_MULTILEVEL_SCAFFOLD,
     )
     gate = ScientificClaimGate()
-    if gate.decide(ClaimRequest("collective_intelligence", campaign.to_dict())).allowed:
+    if gate.decide(
+        ClaimRequest("collective_intelligence", cast(Mapping[str, bool], campaign.to_dict()))
+    ).allowed:
         raise ConfigurationError("collective_intelligence must remain blocked.")
-    if gate.decide(ClaimRequest("proved_collective_intelligence", campaign.to_dict())).allowed:
+    if gate.decide(
+        ClaimRequest(
+            "proved_collective_intelligence", cast(Mapping[str, bool], campaign.to_dict())
+        )
+    ).allowed:
         raise ConfigurationError("proved_collective_intelligence must remain blocked.")
     return campaign
 
@@ -714,7 +721,7 @@ def evaluate_collective_deme_payoff_campaign_claim(
     """Runtime observation only. proved collective intelligence stays blocked."""
 
     resolved = gate or ScientificClaimGate()
-    payload = campaign.to_dict()
+    payload = cast(Mapping[str, bool], campaign.to_dict())
     decision = resolved.decide(
         ClaimRequest(_CLAIM_CEILING, payload, evidence_digests=(campaign.digest,))
     )

@@ -19,6 +19,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
@@ -390,18 +391,18 @@ def empirical_systematics_shadow_from_dict(
     cfg = EmpiricalSystematicsShadowConfig(
         enabled=bool(config_raw.get("enabled", False)),
         null_model=str(config_raw.get("null_model", "shuffled_parentage")),
-        seed=int(config_raw.get("seed", 0) or 0),
-        persistence_window_t=int(config_raw.get("persistence_window_t", 2) or 2),
+        seed=same_int(config_raw.get("seed", 0) or 0),
+        persistence_window_t=same_int(config_raw.get("persistence_window_t", 2) or 2),
     )
     run = EmpiricalSystematicsShadowRun(
         config=cfg,
-        observed_edge_count=int(data.get("observed_edge_count", 0) or 0),
-        shadow_edge_count=int(data.get("shadow_edge_count", 0) or 0),
+        observed_edge_count=same_int(data.get("observed_edge_count", 0) or 0),
+        shadow_edge_count=same_int(data.get("shadow_edge_count", 0) or 0),
         shadow_digest=str(data.get("shadow_digest", "") or ""),
         observed_digest=str(data.get("observed_digest", "") or ""),
-        persistent_count_observed=int(data.get("persistent_count_observed", 0) or 0),
-        persistent_count_shadow=int(data.get("persistent_count_shadow", 0) or 0),
-        persistence_window_t=int(data.get("persistence_window_t", cfg.persistence_window_t) or 2),
+        persistent_count_observed=same_int(data.get("persistent_count_observed", 0) or 0),
+        persistent_count_shadow=same_int(data.get("persistent_count_shadow", 0) or 0),
+        persistence_window_t=same_int(data.get("persistence_window_t", cfg.persistence_window_t) or 2),
         empirical_systematics_shadow_run=bool(data.get("empirical_systematics_shadow_run", False)),
         null_model=str(data.get("null_model", cfg.null_model)),
     )

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -56,7 +57,6 @@ from codontrace.genesis.phase_i import (
     CandidateFlagEarnCriteria,
     EarnedCandidateFlags,
     _DetRng,
-    _partition,
     _resolve_group_count,
     _resolve_seeds,
     earn_collective_intelligence_candidate_flags,
@@ -77,6 +77,7 @@ from codontrace.genesis.phase_k import (
     _analog_switch_cpu_cost,
     _eval_instruction_population,
     _mean_coord_nmi,
+    _partition_genomes,
     _specialist_fraction,
     evolve_instruction_population,
     measure_isolation_competence,
@@ -543,7 +544,7 @@ def _eval_fidelity_population(
     id_prefix: str,
     deme_replicate_threshold: float | None,
 ) -> tuple[OrganismMessagingEvaluation, ...]:
-    groups = _partition(tuple(genomes), group_size)
+    groups = _partition_genomes(genomes, group_size)
     rows: list[OrganismMessagingEvaluation] = []
     for index, group in enumerate(groups):
         ids = tuple(f"{id_prefix}:g{index}:o{member}" for member in range(len(group)))
@@ -605,7 +606,7 @@ def evolve_fidelity_population(
         deme_replicate_threshold=deme_replicate_threshold,
     )
     for generation in range(1, generations + 1):
-        groups = _partition(tuple(genomes), group_size)
+        groups = _partition_genomes(genomes, group_size)
         genomes = _reproduce_fidelity_mls(
             groups, tuple(row.group_fitness for row in rows), rng
         )
@@ -1370,7 +1371,7 @@ def feed_phase_k_coordination_ablation_evidence(
         raise ConfigurationError("source coordination campaign must not auto-set flags.")
     inferred_smoke = True if not propose_candidate_flags else bool(smoke)
     earned = earn_collective_intelligence_candidate_flags(
-        coordination=campaign,
+        coordination=cast(Any, campaign),
         smoke=inferred_smoke,
         criteria=criteria,
     )

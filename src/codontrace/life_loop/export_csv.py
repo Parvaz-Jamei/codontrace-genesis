@@ -71,14 +71,14 @@ def hook_meter_snapshot_to_rows(
         rows.append(
             {**base, "channel_kind": "related_count", "channel": key, "value": str(value)}
         )
-    for key, value in sorted(snapshot.related_totals.items()):
+    for key, total in sorted(snapshot.related_totals.items()):
         _refuse_banned_column(key)
         rows.append(
             {
                 **base,
                 "channel_kind": "related_total",
                 "channel": key,
-                "value": repr(float(value)),
+                "value": repr(float(total)),
             }
         )
     for key, value in sorted(snapshot.densities.items()):

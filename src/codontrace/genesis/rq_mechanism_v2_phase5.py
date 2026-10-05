@@ -70,7 +70,9 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
+from typing import Any, cast
 
+from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import SexualRecombinationConfig
 from codontrace.genesis.closed_loop_hp_arm01 import _window
@@ -681,7 +683,7 @@ def _reject_duplicate_inputs(
         raise ConfigurationError("duplicate seeds")
     by_seed: dict[int, Mapping[str, object]] = {}
     for row in rows:
-        seed = int(row["seed"])
+        seed = same_int(row["seed"])
         generations = row.get("generations")
         if isinstance(generations, list):
             gens = [int(item) for item in generations]
@@ -782,7 +784,7 @@ def assess_phase5(
         if contrast is None or not _finite(contrast):
             dropped_a.append(seed)
         else:
-            a_values.append(float(contrast))
+            a_values.append(same_float(contrast))
         if bool(row.get("census_wave")) and census_wave_supports_claim_b(row.get("frequency")):
             raise ConfigurationError("census wave was treated as claim B")
         frequency = row.get("frequency")
@@ -805,7 +807,7 @@ def assess_phase5(
             conjunction = False
             continue
         frequency_n += 1
-        if int(contacts) > 0 and float(contact) > 0.0:
+        if same_int(contacts) > 0 and same_float(contact) > 0.0:
             contact_n += 1
         else:
             conjunction = False
@@ -936,10 +938,10 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
     patches = list(arm.food_patches)
     if not patches:
         raise ConfigurationError("phase-5 hosts require the shared food patches")
-    ledger = getattr(arm, "intervention_ledger", None)
+    ledger = getattr(cast(Any, arm), "intervention_ledger", None)
     if not isinstance(ledger, list):
         ledger = []
-        arm.intervention_ledger = ledger
+        cast(Any, arm).intervention_ledger = ledger
     ledger_start = len(ledger)
     by_id = {str(org.id): org for org in arm.runner.population.organisms}
     if len(by_id) != len(tuple(arm.runner.population.organisms)):
@@ -1027,7 +1029,7 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
         for item in fresh:
             if item.get("kind") == "replacement":
                 item["kind"] = "rebuilt_population"
-    arm.intervention_name = "rebuilt_population" if rebuilt else "hold_founder_genotypes"
+    cast(Any, arm).intervention_name = "rebuilt_population" if rebuilt else "hold_founder_genotypes"
     for host_id, org in by_id.items():
         if host_id in seen:
             continue
@@ -1051,10 +1053,10 @@ def hold_founder_genotypes(arm: StructuralRQArm, seats: Sequence[Mapping[str, st
     sum_after = sum(float(org.atp_state.runtime_available) for org in ordered)
     if abs(sum_after - (sum_before - exits + entries)) > 1e-6:
         raise ConfigurationError("intervention energy does not balance")
-    arm.energy_account = {
+    cast(Any, arm).energy_account = {
         "entries": entries,
         "exits": exits,
-        "kind": arm.intervention_name,
+        "kind": cast(Any, arm).intervention_name,
         "sum_after": sum_after,
         "sum_before": sum_before,
         "target_quantity": "paired_infectivity_margin",
@@ -1114,7 +1116,7 @@ def build_phase5_arm(arm_name: str, seed: int) -> StructuralRQArm:
         arm.runner.configs = replace(configs, mutation=replace(configs.mutation, bit_flip_rate=0.0))
         arm.passage = PASSAGE_FROZEN
         captured = [dict(seat) for seat in seats]
-        arm.intervention_ledger = []
+        cast(Any, arm).intervention_ledger = []
 
         def _hold(target: StructuralRQArm) -> None:
             hold_founder_genotypes(target, captured)
@@ -1172,7 +1174,10 @@ def _end_state(arm: StructuralRQArm) -> tuple[list[dict[str, object]], list[dict
         }
         for unit in pop.units
     ]
-    return hosts, parasites
+    return cast(
+        tuple[list[dict[str, object]], list[dict[str, object]]],
+        (hosts, parasites),
+    )
 
 
 def _install_contact_tap(arm: StructuralRQArm) -> list[dict[str, object]]:
@@ -1377,13 +1382,13 @@ def run_phase5_history(
                         "contact_debit": paid,
                         "contact_hosts": contact["hosts"],
                         "contact_parasites": contact["parasites"],
-                        "contact_tick": int(contact["tick"]),
+                        "contact_tick": same_int(contact["tick"]),
                         "contacts": int(arm.graded_contact_count[-1]) if arm.graded_contact_count else 0,
                         "generation": int(generation),
                         "host_births": [
                             birth_archive_witness(
                                 rec, window_by_id,
-                                {str(host["id"]): str(host["window"]) for host in contact["hosts"]},
+                                {str(host["id"]): str(host["window"]) for host in (same_mapping(item) for item in same_iter(contact["hosts"]))},
                             )
                             for rec in births
                         ],
@@ -1445,14 +1450,14 @@ def run_phase5_history(
     return {"failed": None, "generations_completed": int(generations), "red_queen_proved": False, "seed": int(seed)}
 
 
-def _worker(payload: dict[str, object]) -> dict[str, object]:
+def _worker(payload: Mapping[str, object]) -> dict[str, object]:
     arms = payload["arms"]
     if not isinstance(arms, list):
         raise ConfigurationError("worker arms must be a list")
     return run_phase5_history(
-        int(payload["seed"]),
+        same_int(payload["seed"]),
         str(payload["root"]),
-        int(payload["generations"]),
+        same_int(payload["generations"]),
         arms=tuple(str(item) for item in arms),
         compare_one_shot=bool(payload["compare_one_shot"]),
         passage_override=None if payload.get("passage_override") is None else str(payload["passage_override"]),
@@ -1485,18 +1490,18 @@ def replay_phase5_archive(path: Path) -> dict[str, object]:
             continue
         if not hosts or not parasites:
             unmeasurable += 1
-            if int(row.get("contacts") or 0) != 0 or float(row.get("contact_debit") or 0.0) != 0.0:
+            if same_int(row.get("contacts") or 0) != 0 or same_float(row.get("contact_debit") or 0.0) != 0.0:
                 mismatches.append({"generation": row.get("generation"), "reason": "empty-population-had-contact"})
             continue
         scored = replay_archived_contact(
             json.loads(json.dumps(hosts)),
             json.loads(json.dumps(parasites)),
-            tick_index=int(row["contact_tick"]),
+            tick_index=same_int(row["contact_tick"]),
             seed=0,
         )
         compared += 1
-        debit_gap = abs(float(scored["total_debit"]) - float(row["contact_debit"]))
-        credit_gap = abs(float(scored["credit"]) - float(row["contact_credit"]))
+        debit_gap = abs(same_float(scored["total_debit"]) - same_float(row["contact_debit"]))
+        credit_gap = abs(same_float(scored["credit"]) - same_float(row["contact_credit"]))
         flags_off = scored["evolution"] is False and scored["reproduction"] is False and scored["mutation"] is False
         if debit_gap > REPLAY_ABS_TOL or credit_gap > REPLAY_ABS_TOL or not flags_off:
             mismatches.append(
@@ -1525,7 +1530,7 @@ def _arm_rows(rows: Sequence[Mapping[str, object]], arm: str) -> dict[int, Mappi
     for row in rows:
         if str(row.get("arm")) != arm:
             continue
-        generation = int(row["generation"])
+        generation = same_int(row["generation"])
         if generation in mapped:
             raise ConfigurationError("duplicate generations")
         mapped[generation] = row
@@ -1690,8 +1695,8 @@ def score_claim_b_pieces(rows: Sequence[Mapping[str, object]], *, lag: int, hori
             births_all.extend(item for item in birth_rows if isinstance(item, dict))
         else:
             deaths_recorded = False
-        contacts += int(row["contacts"])
-        paid += float(row["contact_debit"])
+        contacts += same_int(row["contacts"])
+        paid += same_float(row["contact_debit"])
     first = mapped.get(1)
     start_hosts = first.get("start_hosts") if first is not None else None
     living = focal.get("hosts")
@@ -1734,13 +1739,13 @@ def probe_turnover(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
     for row in rows:
         if str(row.get("arm")) != ARM_COEVOLVE:
             continue
-        newborns.append(int(row["parasite_births"]))
-        censuses.append(int(row["parasite_census"]))
+        newborns.append(same_int(row["parasite_births"]))
+        censuses.append(same_int(row["parasite_census"]))
         births = row.get("host_births")
         host_births.append(len(births) if isinstance(births, list) else 0)
         contacts = row.get("contacts")
         if isinstance(contacts, int) and contacts > 0 and _finite(row.get("contact_debit")):
-            infectivities.append(float(row["contact_debit"]) / float(contacts) / ASSAY_SCALE)
+            infectivities.append(same_float(row["contact_debit"]) / same_float(contacts) / ASSAY_SCALE)
     if not newborns:
         raise ConfigurationError("probe archive has no coevolve generations")
     mean_newborns = float(statistics.fmean(newborns))
@@ -1770,20 +1775,20 @@ def design_from_probe(turnover: Mapping[str, object]) -> dict[str, object]:
     if "claim_a" in turnover or "reversal" in turnover:
         raise ConfigurationError("probe design must not be chosen from a claim contrast")
     chosen = choose_lag_and_horizon(
-        mean_newborns=float(turnover["mean_seated_newborns"]) if turnover.get("measurable") else None,
-        census=int(turnover["census"]),
+        mean_newborns=same_float(turnover["mean_seated_newborns"]) if turnover.get("measurable") else None,
+        census=same_int(turnover["census"]),
         measurable=bool(turnover.get("measurable")),
     )
-    power = history_count_from_power(float(turnover["sigma_a"]), float(turnover["sigma_b"]))
-    seeds = locked_confirmatory_seeds(int(power["n"]))
+    power = history_count_from_power(same_float(turnover["sigma_a"]), same_float(turnover["sigma_b"]))
+    seeds = locked_confirmatory_seeds(same_int(power["n"]))
     return {
-        "horizon": int(chosen["horizon"]),
+        "horizon": same_int(chosen["horizon"]),
         "importance_bound": None,
         "mde_a": power["mde_a"],
         "mde_b": power["mde_b"],
-        "n": int(power["n"]),
+        "n": same_int(power["n"]),
         "precision_met": bool(power["precision_met"]),
-        "primary_lag": int(chosen["primary_lag"]),
+        "primary_lag": same_int(chosen["primary_lag"]),
         "replacement_generations": chosen["replacement_generations"],
         "seeds": list(seeds),
         "sigma_a": power["sigma_a"],
@@ -1794,15 +1799,15 @@ def design_from_probe(turnover: Mapping[str, object]) -> dict[str, object]:
 def render_phase5_lock(design: Mapping[str, object], *, code_commit: str) -> str:
     """Lock text. The required sentence is first and last."""
 
-    seeds = [int(seed) for seed in design["seeds"]]  # type: ignore[union-attr]
+    seeds = [same_int(seed) for seed in same_iter(design["seeds"])]
     payload = {
-        "horizon": int(design["horizon"]),
+        "horizon": same_int(design["horizon"]),
         "importance_bound": None,
         "mde_a": design["mde_a"],
         "mde_b": design["mde_b"],
         "measurement_floor": int(MEASUREMENT_FLOOR),
-        "n": int(design["n"]),
-        "primary_lag": int(design["primary_lag"]),
+        "n": same_int(design["n"]),
+        "primary_lag": same_int(design["primary_lag"]),
         "probe_generations": PROBE_GENERATIONS,
         "probe_seed": PROBE_SEED,
         "seeds": seeds,
@@ -1856,10 +1861,10 @@ def render_phase5_lock(design: Mapping[str, object], *, code_commit: str) -> str
         f"Exploratory budget: {PROBE_GENERATIONS} generations, coevolve arm only, no lag grid.",
         "Primary lag is `max(1, round(parasite census / mean seated newborns))`.",
         f"Turnover multiple: {int(TURNOVER_MULTIPLE)}, the phase-3 multiple, not a contrast search.",
-        f"Primary lag: {int(design['primary_lag'])}.",
-        f"Horizon: {int(design['horizon'])} generations.",
+        f"Primary lag: {same_int(design['primary_lag'])}.",
+        f"Horizon: {same_int(design['horizon'])} generations.",
         f"Replacement generations: {design['replacement_generations']}.",
-        f"n: {int(design['n'])}.",
+        f"n: {same_int(design['n'])}.",
         f"Seeds: {seeds[0]} through {seeds[-1]} ({', '.join(str(seed) for seed in seeds)}).",
         "",
         "## Importance and the minimum detectable effect",
@@ -1966,13 +1971,13 @@ def execute_confirmatory(lock_path: Path, root: Path | None = None) -> dict[str,
     target = OUTPUT_CONFIRMATORY if root is None else root
     assert_output_dir(target)
     payload = _lock_payload(lock_path.read_text(encoding="utf-8"))
-    n = int(payload["n"])
-    lag = int(payload["primary_lag"])
-    horizon = int(payload["horizon"])
+    n = same_int(payload["n"])
+    lag = same_int(payload["primary_lag"])
+    horizon = same_int(payload["horizon"])
     seeds = locked_confirmatory_seeds(n)
-    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+    if [same_int(seed) for seed in same_iter(payload["seeds"])] != list(seeds):
         raise ConfigurationError("lock seeds are not 9601 through 9600+n")
-    if int(payload["workers"]) > MAX_WORKERS:
+    if same_int(payload["workers"]) > MAX_WORKERS:
         raise ConfigurationError("lock workers exceed 7")
     if payload.get("importance_bound") is not None:
         raise ConfigurationError("this lock declared an importance bound that was not justified")
@@ -1989,15 +1994,15 @@ def execute_confirmatory(lock_path: Path, root: Path | None = None) -> dict[str,
         futures = [pool.submit(_worker, item) for item in payloads]
         for future in as_completed(futures):
             outcomes.append(future.result())
-    outcomes.sort(key=lambda item: int(item["seed"]))
+    outcomes.sort(key=lambda item: same_int(item["seed"]))
     failed = [item for item in outcomes if item["failed"]]
     replays: list[dict[str, object]] = []
     if not failed:
         for seed in seeds:
             replays.append(replay_phase5_archive(target / "by_seed" / f"seed{seed}" / "archive.jsonl"))
     replay_matched = bool(replays) and all(bool(item["matched"]) for item in replays)
-    mde_a = float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
-    mde_b = float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
+    mde_a = same_float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
+    mde_b = same_float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
     if failed or not replay_matched:
         if not failed:
             (target / "REASON.txt").write_text("replay-mismatch\n", encoding="utf-8")
@@ -2007,7 +2012,7 @@ def execute_confirmatory(lock_path: Path, root: Path | None = None) -> dict[str,
                 present.append(_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon))
         report = assess_phase5(present, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
         report["red_queen_proved"] = False
-        report["claim_b"]["criterion_met"] = False
+        cast(dict[str, object], report["claim_b"])["criterion_met"] = False
         summary: dict[str, object] = {
             "failed": failed,
             "horizon": horizon,
@@ -2183,19 +2188,22 @@ def render_phase5b_lock(*, code_commit: str) -> str:
 
 
 def _phase5b_controls(scored: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    def _detail(row: Mapping[str, object], key: str) -> Mapping[object, object]:
+        return same_mapping(row[key])
+
     return {
         "adaptation_cut": {
             "definition": "I(hosts_horizon, parasites_horizon) - I(hosts_horizon_minus_lag, parasites_horizon_minus_lag)",
-            "hosts_differ": [row["adaptation_cut_detail"]["hosts_differ"] for row in scored],
-            "inputs_are_copies": [row["adaptation_cut_detail"]["inputs_are_copies"] for row in scored],
-            "parasites_differ": [row["adaptation_cut_detail"]["parasites_differ"] for row in scored],
+            "hosts_differ": [_detail(row, "adaptation_cut_detail")["hosts_differ"] for row in scored],
+            "inputs_are_copies": [_detail(row, "adaptation_cut_detail")["inputs_are_copies"] for row in scored],
+            "parasites_differ": [_detail(row, "adaptation_cut_detail")["parasites_differ"] for row in scored],
             "values": [row["claim_a_adaptation_cut"] for row in scored],
         },
         "constant_parasite": {
             "definition": "I(hosts_horizon, parasites_horizon) - I(hosts_horizon_minus_lag, parasites_horizon)",
-            "frozen_rosters_match": [row["constant_parasite_detail"]["frozen_rosters_match"] for row in scored],
-            "hosts_differ": [row["constant_parasite_detail"]["hosts_differ"] for row in scored],
-            "inputs_are_copies": [row["constant_parasite_detail"]["inputs_are_copies"] for row in scored],
+            "frozen_rosters_match": [_detail(row, "constant_parasite_detail")["frozen_rosters_match"] for row in scored],
+            "hosts_differ": [_detail(row, "constant_parasite_detail")["hosts_differ"] for row in scored],
+            "inputs_are_copies": [_detail(row, "constant_parasite_detail")["inputs_are_copies"] for row in scored],
             "past_parasite_used_as_second_input": False,
             "values": [row["claim_a_constant_parasite"] for row in scored],
         },
@@ -2210,13 +2218,13 @@ def execute_phase5b(lock_path: Path, root: Path | None = None) -> dict[str, obje
     assert_phase5b_output_dir(target)
     payload = _lock_payload(lock_path.read_text(encoding="utf-8"))
     seeds = locked_phase5b_seeds()
-    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+    if [same_int(seed) for seed in same_iter(payload["seeds"])] != list(seeds):
         raise ConfigurationError("phase-5b lock seeds are not 9701 through 9712")
-    if int(payload["primary_lag"]) != PHASE5B_LAG or int(payload["horizon"]) != PHASE5B_HORIZON:
+    if same_int(payload["primary_lag"]) != PHASE5B_LAG or same_int(payload["horizon"]) != PHASE5B_HORIZON:
         raise ConfigurationError("phase-5b lag and horizon are not the locked 3 and 10")
-    if int(payload["n"]) != len(seeds):
+    if same_int(payload["n"]) != len(seeds):
         raise ConfigurationError("phase-5b n is not 12")
-    if int(payload["workers"]) > MAX_WORKERS:
+    if same_int(payload["workers"]) > MAX_WORKERS:
         raise ConfigurationError("phase-5b workers exceed 7")
     if payload.get("importance_bound") is not None or payload.get("supported_forbidden") is not True:
         raise ConfigurationError("phase-5b importance is undeclared; SUPPORTED stays forbidden")
@@ -2237,15 +2245,15 @@ def execute_phase5b(lock_path: Path, root: Path | None = None) -> dict[str, obje
         futures = [pool.submit(_worker, item) for item in payloads]
         for future in as_completed(futures):
             outcomes.append(future.result())
-    outcomes.sort(key=lambda item: int(item["seed"]))
+    outcomes.sort(key=lambda item: same_int(item["seed"]))
     failed = [item for item in outcomes if item["failed"]]
     replays: list[dict[str, object]] = []
     if not failed:
         for seed in seeds:
             replays.append(replay_phase5_archive(target / "by_seed" / f"seed{seed}" / "archive.jsonl"))
     replay_matched = bool(replays) and all(bool(item["matched"]) for item in replays)
-    mde_a = float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
-    mde_b = float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
+    mde_a = same_float(payload["mde_a"]) if _finite(payload.get("mde_a")) else None
+    mde_b = same_float(payload["mde_b"]) if _finite(payload.get("mde_b")) else None
     if failed or not replay_matched:
         if not failed:
             (target / "REASON.txt").write_text("replay-mismatch\n", encoding="utf-8")
@@ -2255,7 +2263,7 @@ def execute_phase5b(lock_path: Path, root: Path | None = None) -> dict[str, obje
                 present.append(_score_seed(target / "by_seed" / f"seed{seed}", lag=lag, horizon=horizon))
         report = assess_phase5(present, seeds, importance_bound=None, mde_a=mde_a, mde_b=mde_b)
         report["red_queen_proved"] = False
-        report["claim_b"]["criterion_met"] = False
+        cast(dict[str, object], report["claim_b"])["criterion_met"] = False
         summary: dict[str, object] = {
             "controls": _phase5b_controls(present) if present else None,
             "failed": failed,

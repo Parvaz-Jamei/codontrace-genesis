@@ -664,7 +664,7 @@ class HostParasiteWorld:
         )
         self._inherit_policy = InheritAttachedPolicy(
             policy_id=f"inh_{self.profile.profile_id}",
-            mode=self.profile.inherit_mode,  # type: ignore[arg-type]
+            mode=self.profile.inherit_mode,
             probability=self.profile.inherit_probability,
         )
         self.phenotype_map = _phenotype_map_for(self.profile)
@@ -845,7 +845,7 @@ class HostParasiteWorld:
         )
         for mid, bag in list(self.state_bags.items()):
             record, _ = apply_ablation(template, bag, tick=self.tick_index)
-            self.state_bags[mid] = dict(record.bag)  # type: ignore[arg-type]
+            self.state_bags[mid] = dict(record.bag)
         self._ablation_applied = True
 
     def _ensure_schedule_lock(self) -> None:

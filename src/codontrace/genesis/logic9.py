@@ -16,14 +16,16 @@ Not an Avida replacement and not metabolic intelligence.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
 from codontrace.genesis.environment import ResourceSpec
+from codontrace.genesis.organism import GenesisOrganism
 
 _PACK_SCHEMA = "logic9_reaction_pack_v1"
 _CLAIM_CEILING = "runtime_observation"
@@ -86,7 +88,7 @@ def _invert_bits(bits: str) -> str:
     return "".join("0" if bit == "1" else "1" for bit in bits)
 
 
-def _zip_op(left: str, right: str, fn) -> str:  # noqa: ANN001
+def _zip_op(left: str, right: str, fn: Callable[[bool, bool], bool]) -> str:
     n = min(len(left), len(right))
     return "".join("1" if fn(left[i] == "1", right[i] == "1") else "0" for i in range(n))
 
@@ -182,10 +184,10 @@ class Logic9ReactionConfig:
     def from_dict(cls, data: Mapping[str, JsonValue]) -> Logic9ReactionConfig:
         return cls(
             enabled=bool(data.get("enabled", False)),
-            consume_amount=float(data.get("consume_amount", 1.0) or 1.0),
-            atp_bonus=float(data.get("atp_bonus", 0.5) or 0.5),
-            population_size=int(data.get("population_size", 0) or 0),
-            mutation_bit_flip_rate=float(data.get("mutation_bit_flip_rate", 0.0) or 0.0),
+            consume_amount=same_float(data.get("consume_amount", 1.0) or 1.0),
+            atp_bonus=same_float(data.get("atp_bonus", 0.5) or 0.5),
+            population_size=same_int(data.get("population_size", 0) or 0),
+            mutation_bit_flip_rate=same_float(data.get("mutation_bit_flip_rate", 0.0) or 0.0),
         )
 
     def digest(self) -> str:
@@ -376,7 +378,7 @@ def build_logic9_reaction_pack(
 
 
 def apply_logic9_runtime_bonus(
-    organism: object,
+    organism: GenesisOrganism,
     *,
     tick: int,
     config: Logic9ReactionConfig,

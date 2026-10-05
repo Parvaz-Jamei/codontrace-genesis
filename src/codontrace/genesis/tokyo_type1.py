@@ -16,6 +16,7 @@ sits under. Borg et al. 2023 cultural OEE is cited only and is out of scope.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -413,11 +414,12 @@ def evaluate_tokyo_type1_measurement_claim(
     if isinstance(protocol, TokyoType1MeasurementCampaign):
         protocol = protocol.protocol
     if not isinstance(protocol, TokyoType1MeasurementProtocol):
+        from codontrace.genesis.multi_generation import MultiGenerationEvidencePack
         from codontrace.genesis.multi_generation import (
             evaluate_tokyo_type1_measurement_claim as evaluate_pack_claim,
         )
 
-        return evaluate_pack_claim(protocol, gate=gate)
+        return evaluate_pack_claim(cast(MultiGenerationEvidencePack, protocol), gate=gate)
 
     resolved = gate or ScientificClaimGate()
     decision = resolved.decide(tokyo_type1_claim_request(protocol))

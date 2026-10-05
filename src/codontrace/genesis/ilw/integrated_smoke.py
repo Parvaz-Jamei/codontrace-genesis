@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.ilw.adapter_honesty import (
     assert_claim_ceiling_runtime_observation,
@@ -144,9 +145,9 @@ def _attempt_fields_separate(runtime: IlwChainRuntime) -> bool:
                 return False
         # Values may differ (never forced equal as a collapsed counter).
         _ = (
-            int(payload["attempted"]),
-            int(payload["accepted"]),
-            int(payload["applied"]),
+            same_int(payload["attempted"]),
+            same_int(payload["accepted"]),
+            same_int(payload["applied"]),
         )
     return True
 
@@ -205,8 +206,8 @@ def run_integrated_smoke(
 
     conservation = check_conservation(primary, atol=atol, raise_on_fail=True)
 
-    births = int(primary_summary.get("birth_count", 0) or 0)
-    deaths = int(primary_summary.get("death_count", 0) or 0)
+    births = same_int(primary_summary.get("birth_count", 0) or 0)
+    deaths = same_int(primary_summary.get("death_count", 0) or 0)
     if require_birth_death and (births < 1 or deaths < 1):
         raise IlwSmokeError(
             f"ILW-3 smoke expected ≥1 birth and ≥1 death; got births={births}, deaths={deaths}."
@@ -245,9 +246,9 @@ def run_integrated_smoke(
         conservation=conservation,
         birth_count=births,
         death_count=deaths,
-        alive_count=int(primary_summary.get("alive_count", 0) or 0),
-        organism_count=int(primary_summary.get("organism_count", 0) or 0),
-        event_count=int(primary_summary.get("event_count", 0) or 0),
+        alive_count=same_int(primary_summary.get("alive_count", 0) or 0),
+        organism_count=same_int(primary_summary.get("organism_count", 0) or 0),
+        event_count=same_int(primary_summary.get("event_count", 0) or 0),
         attempt_fields_separate=True,
         claim_ceiling=CLAIM_CEILING,
         scientific_name=SCIENTIFIC_NAME,

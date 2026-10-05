@@ -16,6 +16,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.rng import RNGManager
@@ -209,12 +210,12 @@ class ClosedLoopHPLifeConfig:
             mate_search_radius=(
                 None
                 if data.get("mate_search_radius", None) is None
-                else int(data.get("mate_search_radius"))
+                else same_int(data.get("mate_search_radius"))
             ),
             outcross_mates_per_generation_cap=(
                 None
                 if data.get("outcross_mates_per_generation_cap", None) is None
-                else int(data.get("outcross_mates_per_generation_cap"))
+                else same_int(data.get("outcross_mates_per_generation_cap"))
             ),
         )
 

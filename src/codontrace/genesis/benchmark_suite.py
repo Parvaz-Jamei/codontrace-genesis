@@ -9,6 +9,7 @@ from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
 from codontrace.codon import CodonTable
+from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.genesis.engine import GenesisEngine, GenesisEngineConfig, GenesisExperimentSpec, GenesisRunResult
 from codontrace.genesis.population import MutationConfig, PopulationConfigs, ReproductionConfig, RuntimeResourcePolicy
 from codontrace.genesis.selection import EvolutionConfig
@@ -433,12 +434,12 @@ def _build_behavior_world(behavior: ScenarioBehaviorSpec) -> World2D:
     width = 5 if "maze" in behavior.world_builder or "qd" in behavior.world_builder else 4
     height = 4
     world = World2D(width, height)
-    for item in (behavior.world_config or {}).get("walls", []):
+    for item in same_iter((behavior.world_config or {}).get("walls", [])):
         if isinstance(item, list) and len(item) >= 2:
-            world.set_cell((int(item[0]), int(item[1])), World2D.WALL)
-    for item in (behavior.world_config or {}).get("resources", []):
+            world.set_cell((same_int(item[0]), same_int(item[1])), World2D.WALL)
+    for item in same_iter((behavior.world_config or {}).get("resources", [])):
         if isinstance(item, list) and len(item) >= 3:
-            world.place_resource((int(item[0]), int(item[1])), float(item[2]))
+            world.place_resource((same_int(item[0]), same_int(item[1])), same_float(item[2]))
     if "toolchain" in behavior.enabled_components:
         world.add_object((0, 0), WorldObject("wood", metadata={"item": "wood"}))
         world.add_object((0, 0), WorldObject("stone", metadata={"item": "stone"}))

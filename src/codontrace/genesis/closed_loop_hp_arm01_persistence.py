@@ -408,6 +408,7 @@ def run_persistence_confirm_campaign(
             ARM_TO_PASSAGE,
             INVASION_CLOCKS,
             REQUIRED_CLOCKS,
+            FrequencyClock,
             LifeLoopEcologyArm,
             assert_ecology_arm_taxonomy,
             per_arm_clocks_complete,
@@ -420,7 +421,7 @@ def run_persistence_confirm_campaign(
 
         assert_ecology_arm_taxonomy()
         arms: dict[str, LifeLoopEcologyArm] = {}
-        clocks_by_arm: dict = {}
+        clocks_by_arm: dict[str, dict[str, FrequencyClock]] = {}
         freqs: dict[str, float | None] = {}
         census: dict[str, int] = {}
         bolus_by_arm: dict[str, float] = {}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace.claimgate import audit_bundle
 from codontrace.claimgate.adapters.host_parasite import (
@@ -267,14 +268,18 @@ def run_wave6_journal_smoke(
             raise ConfigurationError(f"attach record {key} missing digest.")
         digests.append((key, digest))
 
-    if extra["multi_seed_contingency"].get("complexity_emergence_proved"):
+    if cast(Mapping[str, object], extra["multi_seed_contingency"]).get(
+        "complexity_emergence_proved"
+    ):
         raise ConfigurationError("complexity_emergence_proved must stay False.")
-    if extra["cornish_sequential_campaign"].get("intervention_supported"):
+    if cast(Mapping[str, object], extra["cornish_sequential_campaign"]).get(
+        "intervention_supported"
+    ):
         raise ConfigurationError("intervention_supported must stay False.")
-    if extra["scanlan_mutator_campaign"].get("gene_identity_proved"):
+    if cast(Mapping[str, object], extra["scanlan_mutator_campaign"]).get("gene_identity_proved"):
         raise ConfigurationError("gene_identity_proved must stay False.")
     if any(
-        isinstance(extra.get(k), Mapping) and extra[k].get("red_queen_proved")
+        isinstance(record := extra.get(k), Mapping) and record.get("red_queen_proved")
         for k in ATTACH_ORDER
     ):
         raise ConfigurationError("red_queen_proved must stay False on all attaches.")

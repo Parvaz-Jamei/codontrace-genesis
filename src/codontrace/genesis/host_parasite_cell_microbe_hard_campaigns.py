@@ -21,7 +21,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from typing import Any
+from typing import Any, cast
 
 from codontrace.claimgate import audit_bundle
 from codontrace.claimgate.adapters.host_parasite import (
@@ -39,6 +39,7 @@ from codontrace.claimgate.adapters.host_parasite_prereg import (
     attach_host_parasite_preregistration,
     host_parasite_preregistration,
 )
+from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_ard_fsd_transition import (
@@ -152,8 +153,9 @@ def _panel_contingency() -> dict[str, object]:
     supporting = run_multi_seed_contingency_campaign(seeds=SEEDS_SUPPORTING_EDGE)
     md = mixed.to_dict()
     sd = supporting.to_dict()
-    present = [o for o in md["seed_outcomes"] if o["arm"] == "parasite_present"]
-    absent = [o for o in md["seed_outcomes"] if o["arm"] == "parasite_absent"]
+    outcomes = [same_mapping(raw) for raw in same_iter(md["seed_outcomes"])]
+    present = [o for o in outcomes if o["arm"] == "parasite_present"]
+    absent = [o for o in outcomes if o["arm"] == "parasite_absent"]
     heat = [
         {
             "seed": o["seed"],
@@ -163,8 +165,8 @@ def _panel_contingency() -> dict[str, object]:
         }
         for o in present
     ]
-    rising = [h for h in heat if int(h["richness_delta"]) > 0]
-    failing = [h for h in heat if int(h["richness_delta"]) <= 0]
+    rising = [h for h in heat if same_int(h["richness_delta"]) > 0]
+    failing = [h for h in heat if same_int(h["richness_delta"]) <= 0]
     return {
         "id": "CM1_multi_seed_contingency",
         "title": "Multi-seed contingency — when parasites fail to raise complexity",
@@ -191,8 +193,8 @@ def _panel_contingency() -> dict[str, object]:
         "parasite_present_heat": heat,
         "n_rising_under_parasitism": len(rising),
         "n_failing_under_parasitism": len(failing),
-        "mean_delta_present": _mean([float(o["richness_delta"]) for o in present]),
-        "mean_delta_absent": _mean([float(o["richness_delta"]) for o in absent]),
+        "mean_delta_present": _mean([same_float(o["richness_delta"]) for o in present]),
+        "mean_delta_absent": _mean([same_float(o["richness_delta"]) for o in absent]),
         "arm_digests": md["arm_digests"],
         "honesty": (
             "Support on edge seeds ≠ complexity_emergence_proved; mixed pack "
@@ -206,16 +208,24 @@ def _panel_genome_zaman() -> dict[str, object]:
     d = camp.to_dict()
     # Host vs parasite final digests per arm (cell substrate vs microbe label).
     per_arm: dict[str, Any] = {}
-    for arm in d["arm_results"]:
-        hosts = [o["genomes"]["host_genome_digest"] for o in arm["seed_outcomes"]]
-        paras = [o["genomes"]["parasite_genome_digest"] for o in arm["seed_outcomes"]]
-        per_arm[arm["arm"]] = {
+    for arm_raw in same_iter(d["arm_results"]):
+        arm = same_mapping(arm_raw)
+        hosts: list[str] = []
+        paras: list[str] = []
+        for outcome_raw in same_iter(arm["seed_outcomes"]):
+            outcome = same_mapping(outcome_raw)
+            genomes = same_mapping(outcome["genomes"])
+            hosts.append(cast(str, genomes["host_genome_digest"]))
+            paras.append(cast(str, genomes["parasite_genome_digest"]))
+        per_arm[cast(str, arm["arm"])] = {
             "arm_digest": arm["digest"],
             "mean_host_genome_length": arm["mean_host_genome_length"],
             "distinct_parasite_final_digests": arm["distinct_parasite_final_digests"],
             "host_final_digests_prefix": [h[:16] for h in hosts],
             "parasite_final_digests_prefix": [p[:16] for p in paras],
-            "host_parasite_digest_pairs_distinct": all(h != p for h, p in zip(hosts, paras, strict=False)),
+            "host_parasite_digest_pairs_distinct": all(
+                h != p for h, p in zip(hosts, paras, strict=False)
+            ),
         }
     return {
         "id": "CM2_dual_genome_zaman",
@@ -244,17 +254,19 @@ def _panel_genome_zaman() -> dict[str, object]:
 def _panel_genome_diversity() -> dict[str, object]:
     camp = run_genome_diversity_campaign(seeds=SEEDS_DIVERSITY)
     d = camp.to_dict()
-    by: dict[str, list[dict[str, object]]] = defaultdict(list)
-    for o in d["arm_outcomes"]:
-        by[str(o["arm"])].append(o)
+    by: dict[str, list[Mapping[object, object]]] = defaultdict(list)
+    for outcome_raw in same_iter(d["arm_outcomes"]):
+        outcome = same_mapping(outcome_raw)
+        by[str(outcome["arm"])].append(outcome)
+    arm_digests = same_mapping(d["arm_digests"])
     arm_stats = {
         arm: {
             "mean_entropy_delta_vs_baseline": _mean(
-                [float(o["entropy_delta_vs_baseline"]) for o in outs]
+                [same_float(o["entropy_delta_vs_baseline"]) for o in outs]
             ),
-            "mean_hamming": _mean([float(o["mean_genome_distance"]) for o in outs]),
-            "mean_entropy": _mean([float(o["codon_usage_entropy"]) for o in outs]),
-            "arm_digest": d["arm_digests"][arm],
+            "mean_hamming": _mean([same_float(o["mean_genome_distance"]) for o in outs]),
+            "mean_entropy": _mean([same_float(o["codon_usage_entropy"]) for o in outs]),
+            "arm_digest": arm_digests[arm],
         }
         for arm, outs in by.items()
     }
@@ -274,8 +286,8 @@ def _panel_genome_diversity() -> dict[str, object]:
         "arms_are_distinct": d["arms_are_distinct"],
         "arm_stats": arm_stats,
         "biotic_minus_content_null_entropy_delta": round(
-            float(arm_stats["biotic_intact"]["mean_entropy_delta_vs_baseline"])
-            - float(arm_stats["content_null"]["mean_entropy_delta_vs_baseline"]),
+            same_float(arm_stats["biotic_intact"]["mean_entropy_delta_vs_baseline"])
+            - same_float(arm_stats["content_null"]["mean_entropy_delta_vs_baseline"]),
             10,
         ),
         "claim_ceiling": d["claim_ceiling"],
@@ -288,7 +300,8 @@ def _panel_ard_fsd() -> dict[str, object]:
     camp = run_ard_fsd_transition_campaign(seeds=SEEDS_ARD, n_slices=8)
     d = camp.to_dict()
     cost_rows = []
-    for s in d["slices"]:
+    for raw in same_iter(d["slices"]):
+        s = same_mapping(raw)
         cost_rows.append(
             {
                 "slice_id": s["slice_id"],
@@ -338,7 +351,7 @@ def _panel_cornish() -> dict[str, object]:
             "Sequential Cornish multi-intervention; cell substrate scores; "
             "microbe/parasite labels only; digital ClaimGate."
         ),
-        arms=tuple(s["step_id"] for s in default_sequential_schedule()),
+        arms=tuple(cast(str, s["step_id"]) for s in default_sequential_schedule()),
         success_metrics=("campaign_digest", "intervention_supported"),
         forbidden_claims=("red_queen_proved", "intervention_supported"),
     )
@@ -360,7 +373,7 @@ def _panel_cornish() -> dict[str, object]:
             "intervention_supported": s["intervention_supported"],
             "step_digest": s["step_digest"],
         }
-        for s in d["step_outcomes"]
+        for s in (same_mapping(raw) for raw in same_iter(d["step_outcomes"]))
     ]
     return {
         "id": "CM5_sequential_cornish",
@@ -396,21 +409,23 @@ def _panel_scanlan() -> dict[str, object]:
         request_claim_ceiling="candidate_evidence",
     )
     d = camp.to_dict()
-    by: dict[str, list[dict[str, object]]] = defaultdict(list)
-    for o in d["arm_outcomes"]:
-        by[str(o["arm"])].append(o)
+    by: dict[str, list[Mapping[object, object]]] = defaultdict(list)
+    for outcome_raw in same_iter(d["arm_outcomes"]):
+        outcome = same_mapping(outcome_raw)
+        by[str(outcome["arm"])].append(outcome)
+    arm_digests = same_mapping(d["arm_digests"])
     arm_stats = {
         arm: {
-            "mean_abiotic_fitness": _mean([float(o["abiotic_fitness"]) for o in outs]),
-            "mean_entropy": _mean([float(o["codon_usage_entropy"]) for o in outs]),
-            "mean_hamming": _mean([float(o["mean_genome_distance"]) for o in outs]),
+            "mean_abiotic_fitness": _mean([same_float(o["abiotic_fitness"]) for o in outs]),
+            "mean_entropy": _mean([same_float(o["codon_usage_entropy"]) for o in outs]),
+            "mean_hamming": _mean([same_float(o["mean_genome_distance"]) for o in outs]),
             "mutation_factor": outs[0]["mutation_factor"],
-            "arm_digest": d["arm_digests"][arm],
+            "arm_digest": arm_digests[arm],
         }
         for arm, outs in by.items()
     }
-    coevo_elev = float(arm_stats["coevolution_elevated_mutation"]["mean_abiotic_fitness"])
-    abiotic_elev = float(arm_stats["abiotic_elevated_mutation"]["mean_abiotic_fitness"])
+    coevo_elev = same_float(arm_stats["coevolution_elevated_mutation"]["mean_abiotic_fitness"])
+    abiotic_elev = same_float(arm_stats["abiotic_elevated_mutation"]["mean_abiotic_fitness"])
     return {
         "id": "CM6_scanlan_mutator_dual_null",
         "title": "Scanlan mutator dual-null under abiotic constraint",
@@ -440,12 +455,13 @@ def _panel_task_gene() -> dict[str, object]:
     for label, seed in TASK_GENE_SEEDS.items():
         result = build_task_gene_map(seed=seed, genome_length=12, window_width=2)
         d = result.to_dict()
+        windows = d["windows"]
         maps[label] = {
             "seed": seed,
             "map_digest": d["map_digest"],
             "host_genome_digest": d["host_genome_digest"],
-            "n_windows": len(d["windows"]),
-            "task_labels": [w["task_label"] for w in d["windows"]],
+            "n_windows": len(cast(Sequence[object], windows)),
+            "task_labels": [same_mapping(window)["task_label"] for window in same_iter(windows)],
             "gene_identity_proved": d["gene_identity_proved"],
             "crispr_identity_proved": d["crispr_identity_proved"],
         }

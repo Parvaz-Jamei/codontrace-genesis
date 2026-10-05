@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
@@ -196,10 +196,10 @@ class CohortSnapshot:
         return {
             "schema_version": SCHEMA_VERSION,
             "tick": self.tick,
-            "features_by_member": {
-                mid: sorted(tags)
-                for mid, tags in sorted(self.features_by_member.items())
-            },
+            "features_by_member": cast(
+                JsonValue,
+                {mid: sorted(tags) for mid, tags in sorted(self.features_by_member.items())},
+            ),
         }
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -356,7 +356,7 @@ class TimeShiftPanel:
         pat = _as_str(self.pattern, "pattern").casefold()
         if pat not in SHIFT_PATTERNS:
             raise ConfigurationError(f"unknown pattern {self.pattern!r}.")
-        object.__setattr__(self, "pattern", pat)  # type: ignore[arg-type]
+        object.__setattr__(self, "pattern", pat)
         computed = canonical_digest(self._body(), prefix="ts_panel")
         object.__setattr__(
             self, "digest", _check_digest(self.digest, computed, "TimeShiftPanel")

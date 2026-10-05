@@ -13,7 +13,9 @@ import statistics
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import cast
 
+from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import STRUCT_SOFT_K
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT
@@ -209,10 +211,10 @@ def shared_paired_estimand(
             "paired": None,
             "parasite_effect": None,
         }
-    parasite_effect = float(now_now) - float(now_past)
-    host_effect = float(now_past) - float(past_past)
-    paired = float(now_now) - float(past_past)
-    diagnostic = float(now_now) - float(past_now)
+    parasite_effect = same_float(now_now) - same_float(now_past)
+    host_effect = same_float(now_past) - same_float(past_past)
+    paired = same_float(now_now) - same_float(past_past)
+    diagnostic = same_float(now_now) - same_float(past_now)
     if not math.isclose(parasite_effect + host_effect, paired, abs_tol=1e-12):
         raise ConfigurationError("host and parasite effects do not add to the paired estimand")
     return {
@@ -270,7 +272,7 @@ def registered_oscillation(
     if int(lag) < 1 or int(horizon) <= int(lag):
         raise ConfigurationError("oscillation lag is outside the horizon")
     needed = [int(horizon) - 2 * int(lag), int(horizon) - int(lag), int(horizon)]
-    by_gen = {int(row["generation"]): row for row in directions}
+    by_gen = {same_int(row["generation"]): row for row in directions}
     if len(by_gen) != len(list(directions)):
         raise ConfigurationError("duplicate generations")
     if needed[0] < 1:
@@ -303,7 +305,7 @@ def registered_oscillation(
                 "times": needed,
                 "unmeasurable": True,
             }
-        signs.append(int(row["direction"]))
+        signs.append(same_int(row["direction"]))
     changes = [needed[index] for index in (1, 2) if signs[index] != signs[index - 1]]
     continuing = len(changes) >= 2 and signs[0] == signs[2] and signs[1] != signs[0]
     return {
@@ -503,17 +505,17 @@ def render_phase5b_reanalysis(result: Mapping[str, object]) -> str:
 def render_phase6_lock(design: Mapping[str, object], *, code_commit: str) -> str:
     """Lock text. The required sentence is the first sentence and the last sentence."""
 
-    seeds = [int(seed) for seed in design["seeds"]]  # type: ignore[index]
+    seeds = [same_int(seed) for seed in same_iter(design["seeds"])]
     payload = {
-        "budget": int(design["budget"]),
+        "budget": same_int(design["budget"]),
         "fitness_delay": design["fitness_delay"],
         "fitness_delay_unmeasurable": bool(design["fitness_delay_unmeasurable"]),
-        "horizon": int(design["horizon"]),
+        "horizon": same_int(design["horizon"]),
         "host_replacement": design["host_replacement"],
         "importance_bound": None,
         "n": len(seeds),
         "parasite_replacement": design["parasite_replacement"],
-        "primary_lag": int(design["primary_lag"]),
+        "primary_lag": same_int(design["primary_lag"]),
         "seeds": seeds,
         "supported_forbidden": True,
         "turnover_multiple_used": False,
@@ -660,18 +662,18 @@ def _birth_census(path: Path) -> dict[str, object]:
 def render_phase6_confirm_lock(design: Mapping[str, object], *, code_commit: str) -> str:
     """Confirm lock. The first sentence is the required sentence. No claim mean is included."""
 
-    seeds = [int(seed) for seed in design["seeds"]]  # type: ignore[index]
+    seeds = [same_int(seed) for seed in same_iter(design["seeds"])]
     payload = {
-        "budget": int(design["budget"]),
+        "budget": same_int(design["budget"]),
         "fitness_delay": design["fitness_delay"],
         "fitness_delay_unmeasurable": bool(design["fitness_delay_unmeasurable"]),
-        "horizon": int(design["horizon"]),
+        "horizon": same_int(design["horizon"]),
         "host_replacement": design["host_replacement"],
         "importance_bound": None,
         "measurement_floor": int(MEASUREMENT_FLOOR),
         "n": len(seeds),
         "parasite_replacement": design["parasite_replacement"],
-        "primary_lag": int(design["primary_lag"]),
+        "primary_lag": same_int(design["primary_lag"]),
         "seeds": seeds,
         "supported_forbidden": True,
         "turnover_multiple_used": False,
@@ -810,10 +812,7 @@ def _coevolve_directions(rows: Sequence[Mapping[str, object]]) -> tuple[list[dic
             child = birth.get("id")
             if not isinstance(parent_id, str) or not isinstance(child, str):
                 return [], f"generation {generation} birth id missing"
-            if parent_id in labels:
-                ancestry = labels[parent_id]
-            else:
-                ancestry = _ancestry(parent_id, founders, parent)
+            ancestry = labels[parent_id] if parent_id in labels else _ancestry(parent_id, founders, parent)
             if ancestry is None:
                 return [], f"generation {generation} birth parent {parent_id} has no parent chain"
             birth_rows.append({"parent_window": ancestry})
@@ -874,7 +873,9 @@ def score_phase6_archive(rows: Sequence[Mapping[str, object]], *, lag: int, hori
         return {"accounting_error": error, "paired": paired, "red_queen_proved": False}
     return {
         "accounting_error": None,
-        "exploratory_scan": exploratory_direction_scan([row.get("direction") for row in directions]),  # type: ignore[list-item]
+        "exploratory_scan": exploratory_direction_scan(
+            [cast(int | None, row.get("direction")) for row in directions]
+        ),
         "oscillation": registered_oscillation(directions, horizon=int(horizon), lag=int(lag)),
         "paired": paired,
         "red_queen_proved": False,
@@ -910,12 +911,16 @@ def _phase6_report(scored: Sequence[Mapping[str, object]], seeds: Sequence[int])
     else:
         paired_interval = sampling_interval(paired_values)
         paired_verdict = _statistical_verdict(paired_interval, None)
-    measurable = [row for row in scored if isinstance(row.get("oscillation"), Mapping) and row["oscillation"].get("unmeasurable") is False]
-    continuing = [
-        row
-        for row in measurable
-        if isinstance(row.get("oscillation"), Mapping) and row["oscillation"].get("continuing_cycle") is True
-    ]
+    measurable: list[Mapping[str, object]] = []
+    for row in scored:
+        oscillation = row.get("oscillation")
+        if isinstance(oscillation, Mapping) and oscillation.get("unmeasurable") is False:
+            measurable.append(row)
+    continuing: list[Mapping[str, object]] = []
+    for row in measurable:
+        oscillation = row.get("oscillation")
+        if isinstance(oscillation, Mapping) and oscillation.get("continuing_cycle") is True:
+            continuing.append(row)
     if len(measurable) < floor:
         oscillation_verdict = VERDICT_BLOCKED
         oscillation_interval = None
@@ -935,7 +940,7 @@ def _phase6_report(scored: Sequence[Mapping[str, object]], seeds: Sequence[int])
         "paired_interval": paired_interval,
         "paired_verdict": paired_verdict,
         "red_queen_proved": False,
-        "seeds_scored": [int(row["seed"]) for row in scored],
+        "seeds_scored": [same_int(row["seed"]) for row in scored],
         "supported_forbidden": True,
     }
 
@@ -950,30 +955,30 @@ def execute_phase6(lock_path: Path, root: Path | None = None) -> dict[str, objec
         raise ConfigurationError("phase-6 confirm lock does not open with the required sentence")
     payload = _lock_payload(text)
     seeds = locked_phase6_seeds()
-    if [int(seed) for seed in payload["seeds"]] != list(seeds):
+    if [same_int(seed) for seed in same_iter(payload["seeds"])] != list(seeds):
         raise ConfigurationError("phase-6 lock seeds are not 9811 through 9822")
-    if int(payload["budget"]) != PHASE6_BUDGET:
+    if same_int(payload["budget"]) != PHASE6_BUDGET:
         raise ConfigurationError("phase-6 lock budget is not the registered budget")
-    if int(payload["n"]) != len(seeds) or int(payload["workers"]) != MAX_WORKERS:
+    if same_int(payload["n"]) != len(seeds) or same_int(payload["workers"]) != MAX_WORKERS:
         raise ConfigurationError("phase-6 lock n or workers do not match the registration")
     if payload.get("importance_bound") is not None or payload.get("supported_forbidden") is not True:
         raise ConfigurationError("phase-6 importance is undeclared; SUPPORTED stays forbidden")
-    if int(payload.get("measurement_floor", 0)) != int(MEASUREMENT_FLOOR):
+    if same_int(payload.get("measurement_floor", 0)) != same_int(MEASUREMENT_FLOOR):
         raise ConfigurationError("phase-6 must not lower MEASUREMENT_FLOOR")
     design = choose_phase6_horizon(
         parasite_replacement=payload["parasite_replacement"],  # type: ignore[arg-type]
         host_replacement=payload["host_replacement"],  # type: ignore[arg-type]
         fitness_delay=payload["fitness_delay"],  # type: ignore[arg-type]
     )
-    if int(payload["horizon"]) != int(design["horizon"]) or int(payload["primary_lag"]) != int(design["primary_lag"]):
+    if same_int(payload["horizon"]) != same_int(design["horizon"]) or same_int(payload["primary_lag"]) != same_int(design["primary_lag"]):
         raise ConfigurationError("phase-6 lock horizon is not the registered rule")
-    if int(design["horizon"]) > int(design["budget"]):
+    if same_int(design["horizon"]) > same_int(design["budget"]):
         raise ConfigurationError("horizon exceeds the registered budget; it is not shortened")
     if (target / "by_seed").exists():
         raise ConfigurationError("phase-6 confirmatory already exists; a seed is not replaced")
     target.mkdir(parents=True, exist_ok=True)
-    horizon = int(design["horizon"])
-    lag = int(design["primary_lag"])
+    horizon = same_int(design["horizon"])
+    lag = same_int(design["primary_lag"])
     workers = resolve_workers(min(MAX_WORKERS, len(seeds)))
     payloads = [
         {"arms": list(ARMS), "compare_one_shot": True, "generations": horizon, "root": str(target), "seed": seed}
@@ -987,7 +992,7 @@ def execute_phase6(lock_path: Path, root: Path | None = None) -> dict[str, objec
             outcomes.append(outcome)
             if outcome["failed"]:
                 (target / "STOP").write_text(str(outcome["failed"]) + "\n", encoding="utf-8")
-    outcomes.sort(key=lambda item: int(item["seed"]))
+    outcomes.sort(key=lambda item: same_int(item["seed"]))
     failed = [item for item in outcomes if item["failed"]]
     audits: list[dict[str, object]] = []
     for seed in seeds:
@@ -1054,8 +1059,8 @@ def execute_phase6(lock_path: Path, root: Path | None = None) -> dict[str, objec
         for row in rows:
             if str(row.get("arm")) != ARM_COEVOLVE:
                 continue
-            births += int(row.get("parasite_births") or 0) + len(row.get("host_births") or [])
-            contacts += int(row.get("contacts") or 0)
+            births += same_int(row.get("parasite_births") or 0) + len(list(same_iter(row.get("host_births") or [])))
+            contacts += same_int(row.get("contacts") or 0)
         if births == 0 or contacts == 0:
             bug = "instrument-cannot-move"
             audits.append({"error": bug, "seed": seed})
@@ -1072,7 +1077,7 @@ def execute_phase6(lock_path: Path, root: Path | None = None) -> dict[str, objec
         stopped = failed[0]["failed"] if failed else "replay-mismatch"
     summary: dict[str, object] = {
         "audits": audits,
-        "budget": int(design["budget"]),
+        "budget": same_int(design["budget"]),
         "by_seed": scored,
         "failed": failed,
         "horizon": horizon,

@@ -24,6 +24,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from codontrace.dynvalues import same_int, same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -534,13 +535,13 @@ def classify_rq_earn_confirm_outcome(
             snap = snaps.get(gen)
             if snap is None:
                 return _outcome_payload(OUTCOME_PARASITE_EXTINCT)
-            if int(snap.get("parasite_n") or 0) <= 0:
+            if same_int(snap.get("parasite_n") or 0) <= 0:
                 return _outcome_payload(OUTCOME_PARASITE_EXTINCT)
 
     for arm in DEBIT_ACTIVE_ARMS:
         snaps = arm_snaps[arm]
         for gen in RQ_EARN_CONFIRM_LOCKED_WINDOWS:
-            if int(snaps[gen].get("census") or 0) < RQ_EARN_CONFIRM_MIN_VIABLE:
+            if same_int(snaps[gen].get("census") or 0) < RQ_EARN_CONFIRM_MIN_VIABLE:
                 # hostile_ne: out of lag fraction; not RQ miss
                 return _outcome_payload(
                     OUTCOME_REGIME_HOSTILE_NE,
@@ -586,7 +587,7 @@ def classify_rq_earn_confirm_outcome(
         typed_outcome=None,  # not hostile_ne
     )
     # Avirulent must not appear in debit scores
-    if ARM_AVIRULENT in (lagged.get("arm_scores") or {}):
+    if ARM_AVIRULENT in same_mapping(lagged.get("arm_scores") or {}):
         raise ConfigurationError("avirulent must not receive lag credit")
 
     coevolve_lag = score_pearl_passage_lag(
@@ -651,7 +652,7 @@ def lag_observability(
     def _triple(score: Mapping[str, object]) -> dict[str, object]:
         return {
             "corr": score.get("corr"),
-            "n": int(score.get("n") or 0),
+            "n": same_int(score.get("n") or 0),
             "pass_prelim": bool(score.get("pass_prelim") is True),
         }
 
@@ -709,7 +710,8 @@ def seed_done_live_metrics(
     if "parasite_hist_empty" in obs:
         row["parasite_hist_empty"] = bool(obs["parasite_hist_empty"])
     # Flatten corr/n/pass for coevolve convenience on lag_fail autopsy
-    coevo = obs.get("coevolve") if isinstance(obs.get("coevolve"), Mapping) else {}
+    coevo_raw = obs.get("coevolve")
+    coevo = coevo_raw if isinstance(coevo_raw, Mapping) else {}
     if coevo:
         row["corr"] = coevo.get("corr")
         row["n"] = coevo.get("n")

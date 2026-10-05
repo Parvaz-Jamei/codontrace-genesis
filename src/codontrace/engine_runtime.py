@@ -490,7 +490,7 @@ def _decode_recipe(encoded: Mapping[str, Any]) -> Any:
         if "$bytes" in item:
             return bytes(int(part) for part in item["$bytes"])
         if "$enum" in item:
-            return _resolve_type(str(item["$enum"]))[str(item["name"])]
+            return cast(Any, _resolve_type(str(item["$enum"])))[str(item["name"])]
         if "$fn" in item:
             module_name, _, qualname = str(item["$fn"]).partition(":")
             if not module_name.startswith("codontrace.") or "<" in qualname:
@@ -688,7 +688,7 @@ def _population_continuation(population: object) -> tuple[dict[str, object], boo
         covered = covered and organism_covered
     return {
         "version": CONTINUATION_RECORD_VERSION,
-        "population_summary_digest": str(population.digest()),
+        "population_summary_digest": str(cast(Any, population).digest()),
         "organisms": organisms,
     }, covered
 
@@ -1032,7 +1032,7 @@ class GenesisEngine:
                 "population_digest": str(self.runner.population.digest()),
                 "world_digest": str(self.runner.world.digest()),
                 "parent_snapshot_id": parent_snapshot_id,
-                "fork_isolation": isolation,
+                "fork_isolation": cast(JsonValue, isolation),
                 "fork_state_exact": False,
                 "noise_coupling": NOISE_COUPLING,
                 "proxy_contract": [],
@@ -1141,24 +1141,24 @@ class GenesisEngine:
             engine.qd_archive = taken["qd_archive"]
         if "element_grid" in taken:
             engine.element_grid = taken["element_grid"]
-        engine._tick_offset = int(fork["tick_index"])
+        cast(Any, engine)._tick_offset = int(fork["tick_index"])
         engine._tick_results = []
         engine._snapshots = []
         engine._qd_parent_feedback_applied = bool(fork.get("qd_parent_feedback_applied", False))
-        engine.fork_isolation = isolation
-        engine.fork_provenance = {
+        cast(Any, engine).fork_isolation = isolation
+        cast(Any, engine).fork_provenance = {
             "checkpoint_version": FORK_CHECKPOINT_VERSION,
             "checkpoint_spec_digest": str(fork.get("spec_digest")),
             "restore_spec_digest": str(spec.digest()),
             "spec_change_reason": spec_change_reason if spec_changed else None,
         }
-        engine.fork_state_exact = (
+        cast(Any, engine).fork_state_exact = (
             bool(engine._continuation_covered())
             and not spec_changed
             and engine._state_digest() == str(fork.get("state_digest"))
             and all(value in (_DEEP_COPIED, _ABSENT) for value in isolation.values())
         )
-        if require_exact and not engine.fork_state_exact:
+        if require_exact and not cast(Any, engine).fork_state_exact:
             msg = (
                 "checkpoint is not an exact continuation state. "
                 "A scientific path must not consume it."

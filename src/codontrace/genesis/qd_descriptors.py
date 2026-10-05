@@ -74,8 +74,8 @@ class QDDescriptorConfig:
             low, high, bin_count = self.custom_ranges.get(
                 name, _DEFAULT_RANGES.get(name, (0.0, 1.0, 10))
             )
-            low = finite_float(f"QDDescriptorConfig.custom_ranges[{name}].low", low)
-            high = finite_float(f"QDDescriptorConfig.custom_ranges[{name}].high", high)
+            low = cast(float, finite_float(f"QDDescriptorConfig.custom_ranges[{name}].low", low))
+            high = cast(float, finite_float(f"QDDescriptorConfig.custom_ranges[{name}].high", high))
             if isinstance(bin_count, bool) or not isinstance(bin_count, int) or high <= low or bin_count <= 0:
                 raise ConfigurationError(f"Invalid QD range for descriptor {name!r}.")
             min_values[name] = low

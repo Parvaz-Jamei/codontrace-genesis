@@ -9,7 +9,9 @@ so that row is a probe, not an escape trial.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from typing import cast
 
+from codontrace._types import JsonValue
 from codontrace.claimgate.auditor import audit_bundle
 from codontrace.claimgate.ladder_packs import (
     pack_drop_confirmatory_keep_sensitivity_role,
@@ -45,7 +47,7 @@ _LABELS: tuple[Mapping[str, object], ...] = (
 
 def _with_labels(bundle: ClaimgateBundle, labels: Mapping[str, object]) -> ClaimgateBundle:
     extra = dict(bundle.extra or {})
-    extra.update(labels)
+    extra.update(cast(Mapping[str, JsonValue], labels))
     extra["label_inflation"] = True
     return ClaimgateBundle(
         software=bundle.software,

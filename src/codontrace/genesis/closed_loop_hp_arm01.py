@@ -74,6 +74,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
 )
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import (
+    GenerationResult,
     MetabolicConfig,
     MutationConfig,
     PopulationConfigs,
@@ -812,7 +813,7 @@ class LifeLoopEcologyArm:
             or role_of(org.id, self.runner.configs.closed_loop_hp_life.role_map()) == ROLE_PRIMARY
         ]
 
-    def _record_births(self, result) -> None:
+    def _record_births(self, result: GenerationResult) -> None:
         known = set(self.roles)
         lineage_by_id = {rec.organism_id: rec for rec in result.population.lineage}
         new_births: list[tuple[str, str]] = []

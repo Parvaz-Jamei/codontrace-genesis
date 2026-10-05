@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from codontrace.errors import ConfigurationError
-from codontrace.genesis.hard_experiment_01 import (
-    INFERENTIAL_SEED,
+from codontrace.genesis.hard_experiment_01 import INFERENTIAL_SEED
+from codontrace.genesis.statistical_protocol import (
     exact_sign_flip_permutation_p,
     holm_correction,
     paired_effect_size,

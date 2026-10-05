@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_genome_zaman import _flip_codons, _genome_for_seed
@@ -195,8 +196,8 @@ def _run_cell(
         parasite_genome_digest=_digest_body({"parasites": parasite_digests}),
         host_unique=len(host_digests),
         parasite_unique=len(parasite_digests),
-        mean_host_hamming=float(body["mean_host_hamming"]),
-        mean_parasite_hamming=float(body["mean_parasite_hamming"]),
+        mean_host_hamming=same_float(body["mean_host_hamming"]),
+        mean_parasite_hamming=same_float(body["mean_parasite_hamming"]),
         continuum_score=continuum_score,
         cell_digest=_digest_body(body),
     )
@@ -226,10 +227,10 @@ def run_genome_vt_spatial_continuum_factorial(
             raise ConfigurationError(f"vt_levels[{index}] must be in [0, 1].")
         vt_tuple.append(value)
     spatial_tuple: list[str] = []
-    for index, raw in enumerate(spatial_modes):
-        if not isinstance(raw, str) or not raw.strip():
+    for index, mode in enumerate(spatial_modes):
+        if not isinstance(mode, str) or not mode.strip():
             raise ConfigurationError(f"spatial_modes[{index}] must be a non-empty string.")
-        key = raw.strip().lower()
+        key = mode.strip().lower()
         if key not in _SPATIAL:
             raise ConfigurationError(
                 f"spatial_modes[{index}] must be one of {sorted(_SPATIAL)}."

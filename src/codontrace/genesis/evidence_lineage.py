@@ -601,7 +601,7 @@ class EvidenceLineageValidator:
         return EvidenceLineageValidationResult(True, not reasons, (), (), (), tuple(reasons) if reasons else ("evidence_lineage_validated",))
 
 def _phase3_has_cycle(ids: tuple[str, ...], edges: tuple[EvidenceLineageEdge, ...]) -> bool:
-    adj={i: [] for i in ids}
+    adj: dict[str, list[str]] = {i: [] for i in ids}
     for e in edges:
         adj[e.source_node_id].append(e.target_node_id)
     visiting=set(); visited=set()

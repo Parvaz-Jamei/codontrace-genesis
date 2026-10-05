@@ -16,7 +16,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -417,7 +417,7 @@ def apply_ledger_feedback_to_engine(
             before_present = bool(before is not None and before.get("present") and not before.get("masked"))
             after_present = bool(after is not None and after.get("present") and not after.get("masked"))
             if before_present and not after_present:
-                realised = float(before.get("atp_yield", 0.0))
+                realised = float(cast(Any, before).get("atp_yield", 0.0))
             elif before is not None and after is not None:
                 realised = max(
                     0.0,

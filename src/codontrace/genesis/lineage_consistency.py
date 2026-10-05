@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
@@ -31,6 +32,10 @@ def validate_evidence_lineage_dag_payload(payload: Mapping[str, object]) -> dict
                 target = str(edge.get("target", edge.get("to", "")))
                 if source not in node_ids or target not in node_ids:
                     issues.append(f"broken_edge:{source}->{target}")
-    out: dict[str, JsonValue] = {"schema_version": "integration_lineage_consistency_v1", "passed": not issues, "issues": sorted(set(issues))}
+    out: dict[str, JsonValue] = {
+        "schema_version": "integration_lineage_consistency_v1",
+        "passed": not issues,
+        "issues": cast(list[JsonValue], sorted(set(issues))),
+    }
     out["audit_digest"] = canonical_digest(out, prefix="integration_lineage")
     return out

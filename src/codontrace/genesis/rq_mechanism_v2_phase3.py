@@ -32,7 +32,9 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
+from codontrace.dynvalues import same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import (
     _tape,
@@ -558,7 +560,7 @@ def _parasite_rows(pop: AntagonistPopulation) -> list[dict[str, object]]:
         for unit in pop.units
     ]
     rows.sort(key=lambda row: str(row["unit_id"]))
-    return rows
+    return cast(list[dict[str, object]], rows)
 
 
 def _archive_line(arm: StructuralRQArm, *, seed: int, branch: str, generation: int) -> dict[str, object]:
@@ -720,7 +722,7 @@ def assay_parasites(
     return {
         "I_A": i_a,
         "I_B": i_b,
-        "contacts_A": int(scored_a["contacts"]) if i_a is not None else 0,
+        "contacts_A": same_int(scored_a["contacts"]) if i_a is not None else 0,
         "contacts_B": None if i_b is None else "measured",
         "credit_A": scored_a["credit"],
         "debit_A": scored_a["debit"],
@@ -769,7 +771,7 @@ def assay_archive(
     if not isinstance(parasites, list):
         raise ConfigurationError("archive parasites are missing")
     scored = assay_parasites(
-        parasites,  # type: ignore[arg-type]
+        parasites,
         window_a=window_a,
         genome_a=genome_a,
         window_b=window_b,
@@ -840,7 +842,7 @@ def run_phase3_seed(
             archive_path=archive,
         )
         branch_summaries[branch] = summary
-        if summary["failed"] or int(summary["completed"]) != int(generations):
+        if summary["failed"] or same_int(summary["completed"]) != same_int(generations):
             failed = str(summary["failed"] or "incomplete")
             (seed_dir / "REASON.txt").write_text(
                 f"seed={seed} branch={branch} completed={summary['completed']} reason={failed}\n",
@@ -930,9 +932,9 @@ def analyze_phase3(root: Path, locked_seeds: Sequence[int] = PHASE3_SEEDS) -> di
 
 def _worker(payload: dict[str, object]) -> dict[str, object]:
     return run_phase3_seed(
-        int(payload["seed"]),
+        same_int(payload["seed"]),
         Path(str(payload["root"])),
-        generations=int(payload["generations"]),
+        generations=same_int(payload["generations"]),
         window_a=str(payload["window_a"]),
         window_b=str(payload["window_b"]),
         genome_a=str(payload["genome_a"]),
@@ -1022,8 +1024,8 @@ def run_selection(root: Path) -> dict[str, object]:
         }
         _write_json(root / "selection.json", body)
         raise ConfigurationError(f"selection probe stopped: {probe['failed']}")
-    newborns = [int(value) for value in probe["newborns"]]  # type: ignore[union-attr]
-    contacts = [int(value) for value in probe["contacts"]]  # type: ignore[union-attr]
+    newborns = [same_int(value) for value in same_iter(probe["newborns"])]
+    contacts = [same_int(value) for value in same_iter(probe["contacts"])]
     measurable = bool(contacts) and all(value > 0 for value in contacts) and bool(newborns)
     mean_newborns = float(sum(newborns) / len(newborns)) if newborns else 0.0
     horizon = horizon_from_turnover(

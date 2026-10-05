@@ -33,7 +33,9 @@ findings were later deleted from the tree.
 `[tool.ruff.lint] ignore = ["E501"]` only. Line-length is deferred. The other
 codes from the snapshot are **visible** again; they are not ignored as a block.
 No dedicated `ruff check --fix` pass has landed, so I001 / F401 / UP042 / F811
-and the rest of the non-E501 set are still open. `mypy --strict src` is unchanged.
+and the rest of the non-E501 set are still open. `mypy --strict src` was
+closed later by annotations and casts. That pass does not add dataclass
+fields and does not change what `int` or `float` accept.
 
 Cleared in this wave: none of the 1273 snapshot rows by code edit.
 Changed: display policy (E501 hidden; remainder no longer hidden).
@@ -65,9 +67,12 @@ new findings since the snapshot. A later CI log on `ba03621` reported 1336
 before the E501-only ignore landed; that is the same backlog plus drift, not
 a new science failure.
 
-### Mypy (`mypy --strict src`) — 263 errors in 37 files (2026-09-11 snapshot)
+### Mypy (`mypy --strict src`) — clean on current `src`
 
-| Code | Count |
+The 2026-09-11 snapshot below is historical. It is not the current tree.
+Current `python -m mypy --strict src` reports 0 errors.
+
+| Code | Count on 2026-09-11 |
 |---|---:|
 | arg-type | 83 |
 | attr-defined | 38 |
@@ -82,11 +87,12 @@ a new science failure.
 | call-arg | 2 |
 | no-untyped-def, no-redef, no-any-return, name-defined | 1 each |
 
-Heaviest files: `genesis/__init__.py` (37), `engine.py` (35),
+Heaviest files on that date: `genesis/__init__.py` (37), `engine.py` (35),
 `genesis/population.py` (25), `actions.py` (20), `genesis/fitness.py` (14),
 `genesis/birth.py` (13), `genesis/logic9.py` (12).
 
-Do not treat a green `continue-on-error` job as a type-safe release gate.
+`mypy --strict src` is clean now. The lint job is still `continue-on-error`.
+A green workflow is still not a scientific result.
 
 ## Non-goals that remain active
 

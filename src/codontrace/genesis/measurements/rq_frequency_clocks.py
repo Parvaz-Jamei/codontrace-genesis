@@ -39,7 +39,9 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from typing import Any
 
+from codontrace.dynvalues import same_float
 from codontrace.rng import RNGManager
 
 DEFAULT_NFDS_THRESHOLD = 0.3
@@ -386,7 +388,7 @@ def host_realised_pressure_from_contacts(
         if per_host_map is not None:
             policy = float(per_host_map.get(cls, 0.0))
         else:
-            policy = float(host_per_contact_units)
+            policy = same_float(host_per_contact_units)
         aff_sum = float(host_affinity_sums.get(cls, 0.0))
         contacts = float(host_contact_counts.get(cls, 0) or 0.0)
         if contacts <= 0.0:
@@ -776,7 +778,7 @@ def expected_lag_sign(recognition_rule: str = RECOGNITION_RULE_MATCHING) -> int:
     return 1
 
 
-def _as_frequency_map(raw: Mapping[object, object], *, generation: int) -> dict[str, float]:
+def _as_frequency_map(raw: Mapping[Any, Any], *, generation: int) -> dict[str, float]:
     """Renormalize one generation. A pure change of population size drops out."""
 
     if isinstance(raw, (str, bytes)) or not isinstance(raw, Mapping):
@@ -848,8 +850,8 @@ def _frequency_panel(
             for class_id in set(host_at[gen]) | set(para_at[gen + lag])
         }
     )
-    host_series = {class_id: [] for class_id in classes}
-    para_series = {class_id: [] for class_id in classes}
+    host_series: dict[str, list[float]] = {class_id: [] for class_id in classes}
+    para_series: dict[str, list[float]] = {class_id: [] for class_id in classes}
     for gen in times:
         host_map = host_at[gen]
         para_map = para_at[gen + lag]
@@ -1055,7 +1057,7 @@ def within_class_lagged_association(
 
 def per_sublocus_richness_series(
     snaps: Mapping[int, Mapping[str, object]],
-) -> dict[str, list]:
+) -> dict[str, list[int]]:
     """Per-sublocus richness over generations (sorted by generation key).
 
     If snaps carry ``sub_locus_richness`` lists, use them. Otherwise derive
@@ -1083,7 +1085,7 @@ def per_sublocus_richness_series(
         if n_loci <= 0:
             n_loci = 3
 
-    out: dict[str, list] = {f"sublocus_{i}": [] for i in range(n_loci)}
+    out: dict[str, list[int]] = {f"sublocus_{i}": [] for i in range(n_loci)}
     for gen in gens:
         snap = snaps[gen]
         sub_rich = snap.get("sub_locus_richness")
@@ -1181,7 +1183,7 @@ def parasite_class_frequency_from_hist(
     estimand is :func:`realised_conditional_host_pressure`.
     """
 
-    raw = {str(k): float(v) for k, v in hist.items()}
+    raw = {str(k): same_float(v) for k, v in hist.items()}
     total = sum(raw.values())
     if total <= 0.0:
         return {}
@@ -1347,7 +1349,7 @@ def separate_pressure_accounts(
         paid = None
     else:
         paid = _finite_count("paid_atp", paid_atp)
-        if capped is not None and paid > float(reserve):
+        if capped is not None and paid > same_float(reserve):
             raise ValueError("paid ATP cannot exceed the known reserve")
     return {
         "intended_pressure": intended,

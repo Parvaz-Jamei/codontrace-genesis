@@ -7,9 +7,11 @@ not an external rater study.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from hashlib import sha256
+from typing import cast
 
+from codontrace._types import JsonValue
 from codontrace.claimgate.auditor import audit_bundle
 from codontrace.claimgate.schema import (
     ClaimgateArm,
@@ -69,6 +71,7 @@ def _base(
         values_by_arm["channel_off"] = base_abl
     if include_negative:
         values_by_arm["content_null"] = base_ctrl
+    pair: tuple[ClaimgateComparison, ...]
     if comparisons is None:
         pair = (
             ClaimgateComparison(
@@ -114,7 +117,7 @@ def _base(
         limitations=limitations
         if limitations is not None
         else ("Synthetic sanity pack. Not clinical validity.",),
-        extra=payload_extra,
+        extra=cast(Mapping[str, JsonValue], payload_extra),
     )
     return parse_claimgate_bundle(bundle)
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -516,4 +516,4 @@ def load_event(data: Mapping[str, Any]) -> LifeLoopEvent:
     loader = _EVENT_LOADERS.get(et)
     if loader is None:
         raise ConfigurationError(f"Unknown event_type: {et}")
-    return loader(data)  # type: ignore[no-any-return]
+    return cast(LifeLoopEvent, loader(data))

@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 
@@ -49,7 +50,7 @@ class IsolationAssayConfig:
     def from_dict(cls, data: Mapping[str, JsonValue]) -> IsolationAssayConfig:
         return cls(
             enabled=bool(data.get("enabled", False)),
-            min_group_performance=float(data.get("min_group_performance", 0.0)),
+            min_group_performance=same_float(data.get("min_group_performance", 0.0)),
         )
 
     def digest(self) -> str:

@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -215,7 +216,7 @@ class ClosedLoopP5Session:
             for entry in ledger:
                 if not isinstance(entry, dict) or entry.get("reason") != "outcross_runtime_cost":
                     continue
-                self._seen_outcross_debits.add((org.id, int(entry["entry_id"])))
+                self._seen_outcross_debits.add((org.id, same_int(entry["entry_id"])))
         self.outcross_debit_events = len(self._seen_outcross_debits)
 
     def _record_births(self, result: GenerationResult) -> None:

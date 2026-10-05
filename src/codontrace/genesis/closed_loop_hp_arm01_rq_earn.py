@@ -39,6 +39,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+from codontrace.dynvalues import same_mapping
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.closed_loop_hp_arm01 import (
@@ -322,12 +323,12 @@ def build_rq_earn_report_stub(
             frozen_cycle = bool(debit_backed_cycle(tuple(frozen_history), tuple(frozen_debits)))
 
     # Pearl stubs: without live arm runs, lag flags stay False on empty snaps.
-    arm_scores = lagged.get("arm_scores") or {}
+    arm_scores = same_mapping(lagged.get("arm_scores") or {})
     coevo_pass = bool(
-        (arm_scores.get(ARM_COPASSAGED) or {}).get("pass_prelim")
+        same_mapping(arm_scores.get(ARM_COPASSAGED) or {}).get("pass_prelim")
     )
     # Fixed arm is debit-active frozen-stock contrast in ecology taxonomy.
-    frozen_pass = bool((arm_scores.get(ARM_FIXED) or {}).get("pass_prelim"))
+    frozen_pass = bool(same_mapping(arm_scores.get(ARM_FIXED) or {}).get("pass_prelim"))
     # Absent / avirulent never grant credit — report explicit False.
     absent_pass = False
     if ARM_AVIRULENT in snaps:

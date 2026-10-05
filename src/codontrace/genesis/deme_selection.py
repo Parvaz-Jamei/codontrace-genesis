@@ -16,6 +16,7 @@ from enum import StrEnum
 from typing import Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.phase_e import DemeConfig, PhaseESubstrateConfig
@@ -101,9 +102,9 @@ class DemeSelectionConfig:
             level=str(data.get("level", "INDIVIDUAL")),  # type: ignore[arg-type]
             founder_relatedness=str(data.get("founder_relatedness", "MIXED")),  # type: ignore[arg-type]
             replication_trigger=str(data.get("replication_trigger", "MEAN_FITNESS")),  # type: ignore[arg-type]
-            deme_size=int(data.get("deme_size", 4)),
-            deme_count=int(data.get("deme_count", 2)),
-            mean_fitness_threshold=float(data.get("mean_fitness_threshold", 0.0)),
+            deme_size=same_int(data.get("deme_size", 4)),
+            deme_count=same_int(data.get("deme_count", 2)),
+            mean_fitness_threshold=same_float(data.get("mean_fitness_threshold", 0.0)),
         )
 
     def digest(self) -> str:

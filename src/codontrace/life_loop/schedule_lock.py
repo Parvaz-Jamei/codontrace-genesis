@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
@@ -314,8 +314,8 @@ class ScheduleLockState:
             "population_id": self.population_id,
             "schedule_partition": self.schedule_partition,
             "member_ids": list(self.member_ids),
-            "snapshots": snaps,
-            "frames": frames,
+            "snapshots": cast(JsonValue, snaps),
+            "frames": cast(JsonValue, frames),
             "frame_index": self.frame_index,
             "tick": self.tick,
         }

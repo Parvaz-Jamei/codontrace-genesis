@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.campaigns.discovery_q_20260928_idea2 import (
     CLAIM_CEILING as IDEA2_CLAIM_CEILING,
@@ -191,7 +192,7 @@ def run_jsonl_campaign(
             raise ConfigurationError("campaign must keep red_queen_proved=False.")
         if rec.get("claim_ceiling") != CLAIM_CEILING:
             raise ConfigurationError("campaign must keep claim_ceiling=phase2_design.")
-        if SEALED_SEED_LO <= int(rec["seed"]) <= SEALED_SEED_HI:
+        if SEALED_SEED_LO <= same_int(rec["seed"]) <= SEALED_SEED_HI:
             raise ConfigurationError("sealed seed leaked into campaign records.")
         assert_record_not_a_discovery(rec)
 
@@ -202,10 +203,10 @@ def run_jsonl_campaign(
         for rec in records:
             fh.write(json.dumps(rec, sort_keys=True, separators=(",", ":")) + "\n")
 
-    n_idea4 = sum(1 for r in records if int(r["idea_id"]) == 4)
-    n_idea2 = sum(1 for r in records if int(r["idea_id"]) == 2)
+    n_idea4 = sum(1 for r in records if same_int(r["idea_id"]) == 4)
+    n_idea2 = sum(1 for r in records if same_int(r["idea_id"]) == 2)
     recover_rate = (
-        sum(1 for r in records if int(r["idea_id"]) == 4 and r.get("recover") is True)
+        sum(1 for r in records if same_int(r["idea_id"]) == 4 and r.get("recover") is True)
         / n_idea4
         if n_idea4
         else None

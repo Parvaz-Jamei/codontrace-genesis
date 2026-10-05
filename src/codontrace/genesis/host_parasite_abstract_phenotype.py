@@ -11,6 +11,7 @@ import hashlib
 import math
 from collections.abc import Mapping, Sequence
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genome import SemanticGenome
@@ -116,7 +117,7 @@ def metabolic_error_for_genome(
     n_bins: int = DEFAULT_N_BINS,
     target: Sequence[float] | None = None,
 ) -> float:
-    return float(decode_abstract_phenotype(genome, n_bins=n_bins, target=target)["metabolic_error"])
+    return same_float(decode_abstract_phenotype(genome, n_bins=n_bins, target=target)["metabolic_error"])
 
 
 __all__ = [

@@ -17,6 +17,7 @@ import re
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 
 RQ_SYNTHETIC_SCORE = -0.148
@@ -182,7 +183,7 @@ def assert_record_not_a_discovery(record: Mapping[str, object]) -> None:
         raise ConfigurationError("this record is not a scientific result.")
     idea_raw = record.get("idea_id", -1)
     try:
-        idea_id = int(idea_raw)  # type: ignore[arg-type]
+        idea_id = same_int(idea_raw)
     except (TypeError, ValueError):
         idea_id = -1
     if idea_id == 2 and record.get("hypothesis_test_eligible") is not False:

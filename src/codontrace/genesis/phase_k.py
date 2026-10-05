@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -370,6 +371,16 @@ def evaluate_coordination_group(
     )
 
 
+def _partition_genomes(
+    genomes: Sequence[tuple[str, ...]],
+    group_size: int,
+) -> tuple[tuple[tuple[str, ...], ...], ...]:
+    """Same partition as phase-i ``_partition``, typed for instruction genomes."""
+
+    partitioned = _partition(cast(Sequence[float], tuple(genomes)), group_size)
+    return cast(tuple[tuple[tuple[str, ...], ...], ...], partitioned)
+
+
 def _eval_instruction_population(
     genomes: Sequence[tuple[str, ...]],
     *,
@@ -378,7 +389,7 @@ def _eval_instruction_population(
     cpu_delay_cycles: int,
     id_prefix: str,
 ) -> tuple[CoordinationGroupEvaluation, ...]:
-    groups = _partition(tuple(genomes), group_size)
+    groups = _partition_genomes(genomes, group_size)
     rows: list[CoordinationGroupEvaluation] = []
     for index, group in enumerate(groups):
         ids = tuple(f"{id_prefix}:g{index}:o{member}" for member in range(len(group)))
@@ -464,7 +475,7 @@ def evolve_instruction_population(
             personal = [fit for row in rows for fit in row.personal_fitness]
             genomes = _reproduce_instruction_organism_only(genomes, personal, rng)
         else:
-            groups = _partition(tuple(genomes), group_size)
+            groups = _partition_genomes(genomes, group_size)
             genomes = _reproduce_instruction_mls(
                 groups, tuple(row.group_fitness for row in rows), rng
             )

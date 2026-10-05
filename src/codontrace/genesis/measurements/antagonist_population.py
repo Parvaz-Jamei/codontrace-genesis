@@ -60,6 +60,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
+from typing import cast
 
 from codontrace.errors import ConfigurationError
 from codontrace.rng import RNGManager
@@ -349,7 +350,7 @@ class AntagonistPopulation:
             self.energy_accounts.append(
                 EnergyAccount(gen, mode, opening, 0.0, 0.0, opening, 0.0, 0.0, 0.0)
             )
-            self.pre_selection_signatures.append(signature)
+            self.pre_selection_signatures.append(cast(dict[str, float | str], signature))
             self.ledgers.append(ledger)
             return ledger
 
@@ -522,7 +523,7 @@ class AntagonistPopulation:
             )
         self.known_unit_ids.update(born_ids)
         self.energy_accounts.append(account)
-        self.pre_selection_signatures.append(signature)
+        self.pre_selection_signatures.append(cast(dict[str, float | str], signature))
         self.units = [replace(unit, alive=True) for unit in selected]
         newborn_ids = {unit.unit_id for unit in newborns}
         selected_newborns = tuple(unit for unit in selected if unit.unit_id in newborn_ids)

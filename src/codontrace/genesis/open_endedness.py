@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import (
@@ -243,7 +244,7 @@ class SteppingStoneTransferReport:
 
     @property
     def rejection_reasons(self) -> tuple[str, ...]:
-        reasons = list(self.learnability.rejection_reasons)
+        reasons = list(cast(LearnabilityReport, self.learnability).rejection_reasons)
         if not _real_digest(self.source_environment_digest):
             reasons.append("missing_source_environment_digest")
         if not _real_digest(self.target_environment_digest):
@@ -254,12 +255,16 @@ class SteppingStoneTransferReport:
 
     @property
     def claim_eligible(self) -> bool:
-        return self.learnability.claim_eligible and self.transfer_status == "measured" and not self.rejection_reasons
+        return (
+            cast(LearnabilityReport, self.learnability).claim_eligible
+            and self.transfer_status == "measured"
+            and not self.rejection_reasons
+        )
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
             "schema_version": self.schema_version,
-            "learnability": self.learnability.to_dict(),
+            "learnability": cast(LearnabilityReport, self.learnability).to_dict(),
             "source_environment_digest": self.source_environment_digest,
             "target_environment_digest": self.target_environment_digest,
             "transfer_status": self.transfer_status,

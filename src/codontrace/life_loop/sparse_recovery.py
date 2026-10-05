@@ -171,8 +171,8 @@ def sparse_phenotype_recovery(
     for rec in phenotype_map.records:
         if rec.member_id not in outcomes:
             continue
-        y = float(require_finite_float(f"outcomes[{rec.member_id}]", outcomes[rec.member_id]))
-        members.append((rec.tag_set, y))
+        score = float(require_finite_float(f"outcomes[{rec.member_id}]", outcomes[rec.member_id]))
+        members.append((rec.tag_set, score))
         tags.update(rec.feature_tags)
     tag_list = sorted(tags)
     if not members or not tag_list:

@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float
 from codontrace.genesis.liveness import AliveGateResult
 from codontrace.genesis.status import ActionStatusRegistry
 from codontrace.trace import Trace, TraceEvent
@@ -242,7 +243,7 @@ class FitnessSignalRegistry:
             if name not in base:
                 msg = f"Unknown serializable fitness signal {name!r}."
                 raise ValueError(msg)
-            signals.append(FitnessSignal(name, finite_float("FitnessSignal.weight", weight), base[name].extractor))
+            signals.append(FitnessSignal(name, cast(float, finite_float("FitnessSignal.weight", weight)), base[name].extractor))
         return cls(tuple(signals))
 
     def digest(self) -> str:
@@ -376,7 +377,7 @@ class FitnessComponentWeights:
         for name, weight in self.weights:
             if not name:
                 raise ValueError("FitnessComponentWeights names must not be empty.")
-            clean.append((name, finite_float(f"FitnessComponentWeights[{name}]", weight)))
+            clean.append((name, cast(float, finite_float(f"FitnessComponentWeights[{name}]", weight))))
         object.__setattr__(self, "weights", tuple(clean))
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -694,7 +695,13 @@ def evaluate_task_sensitive_fitness(
         raw_metrics, config=config, organism_id=organism_id, tick=tick
     )
     raw_gate = raw_metrics.get("viability_score", 0.0) if viability_gate is None else viability_gate
-    gate = finite_float("viability_gate", raw_gate if isinstance(raw_gate, (int, float)) and not isinstance(raw_gate, bool) else 0.0)
+    gate = cast(
+        float,
+        finite_float(
+            "viability_gate",
+            raw_gate if isinstance(raw_gate, (int, float)) and not isinstance(raw_gate, bool) else 0.0,
+        ),
+    )
     gate = max(0.0, min(1.0, gate))
     weighted_sum = float(breakdown.total or 0.0)
     selection_score = round(gate * weighted_sum, 10)
@@ -797,12 +804,18 @@ def build_fitness_component_value(
 ) -> FitnessComponentValue:
     """Factory for a normalized phase-1 fitness component."""
 
-    weight = finite_float("fitness component weight", weight, non_negative=True)
+    weight = cast(float, finite_float("fitness component weight", weight, non_negative=True))
     resolved_polarity = polarity or _PHASE1_POLARITY.get(name, "reward")
     if resolved_polarity not in {"reward", "penalty"}:
         msg = "unknown fitness component polarity"
         raise ValueError(msg)
-    denom = finite_float("fitness normalizer", normalizer if normalizer is not None else _PHASE1_NORMALIZERS.get(name, 1.0))
+    denom = cast(
+        float,
+        finite_float(
+            "fitness normalizer",
+            normalizer if normalizer is not None else _PHASE1_NORMALIZERS.get(name, 1.0),
+        ),
+    )
     if denom <= 0:
         msg = "normalizer must be positive."
         raise ValueError(msg)
@@ -814,7 +827,7 @@ def build_fitness_component_value(
             raise ValueError(msg)
         status = "missing"
         raw_value = 0.0
-    raw_value = finite_float(f"fitness component raw[{name}]", raw_value)
+    raw_value = cast(float, finite_float(f"fitness component raw[{name}]", raw_value))
     normalized_unclipped = raw_value / denom
     normalized = max(0.0, min(1.0, normalized_unclipped))
     if normalized != normalized_unclipped and status == "available":
@@ -827,7 +840,7 @@ def build_fitness_component_value(
         raise ValueError("unknown fitness component polarity")
     return FitnessComponentValue(
         name=name,
-        raw=round(float(raw_value), 10),
+        raw=round(same_float(raw_value), 10),
         normalized=round(normalized, 10),
         weight=round(float(weight), 10),
         polarity=resolved_polarity,

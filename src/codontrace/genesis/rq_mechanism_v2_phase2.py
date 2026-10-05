@@ -17,8 +17,9 @@ import time
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import IO
+from typing import IO, cast
 
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import ARM_COPASSAGED, _window
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
@@ -195,7 +196,7 @@ def scientific_body(arm: StructuralRQArm) -> dict[str, object]:
 def _first_diff(left: object, right: object, prefix: str = "") -> str | None:
     if type(left) is not type(right):
         return prefix or "type"
-    if isinstance(left, dict):
+    if isinstance(left, dict) and isinstance(right, dict):
         for key in sorted(set(left) | set(right)):
             if key not in left or key not in right:
                 return f"{prefix}.{key}" if prefix else str(key)
@@ -203,7 +204,7 @@ def _first_diff(left: object, right: object, prefix: str = "") -> str | None:
             if found:
                 return found
         return None
-    if isinstance(left, list):
+    if isinstance(left, list) and isinstance(right, list):
         if len(left) != len(right):
             return f"{prefix}.len" if prefix else "len"
         for index, (item, other) in enumerate(zip(left, right, strict=True)):
@@ -305,7 +306,10 @@ def _end_population(arm: StructuralRQArm) -> tuple[list[dict[str, object]], list
         for unit in pop.units
     ]
     parasites.sort(key=lambda row: str(row["unit_id"]))
-    return hosts, parasites
+    return cast(
+        tuple[list[dict[str, object]], list[dict[str, object]]],
+        (hosts, parasites),
+    )
 
 
 def _write_json(path: Path, body: Mapping[str, object]) -> None:
@@ -386,7 +390,7 @@ def _run_logged_arm(
             "contact_debit": paid,
             "contact_hosts": contact["hosts"],
             "contact_parasites": contact["parasites"],
-            "contact_tick": int(contact["tick"]),
+            "contact_tick": same_int(contact["tick"]),
             "contacts": [
                 {
                     "atp": float(event.atp_paid),
@@ -405,7 +409,7 @@ def _run_logged_arm(
                 for rec in new_lineage
             ],
             "host_deaths": deaths,
-            "host_energy": float(row["host_energy"]),
+            "host_energy": same_float(row["host_energy"]),
             "host_inheritance": arm.host_inheritance,
             "hosts": hosts,
             "invariant": row["invariant"],
@@ -419,7 +423,7 @@ def _run_logged_arm(
                 for unit in ledger.newborns
             ],
             "parasite_deaths": [str(unit_id) for unit_id in ledger.deaths],
-            "parasite_energy": float(row["parasite_energy"]),
+            "parasite_energy": same_float(row["parasite_energy"]),
             "parasites": parasites,
             "passage": arm.passage,
             "phase": 2,
@@ -461,8 +465,8 @@ def _run_logged_arm(
             f"contacts={row['contacts']} invariant={record['invariant']} red_queen_proved=false"
         )
         completed = generation
-        prev_census = int(row["host_census"])
-        prev_lineage += int(row["host_births"])
+        prev_census = same_int(row["host_census"])
+        prev_lineage += same_int(row["host_births"])
         if failed:
             break
     return {
@@ -721,10 +725,10 @@ def replay_phase2_archive(path: Path) -> dict[str, object]:
             seed=0,
         )
         compared += 1
-        debit_gap = abs(float(scored["total_debit"]) - float(row["contact_debit"]))
-        credit_gap = abs(float(scored["credit"]) - float(row["contact_credit"]))
+        debit_gap = abs(same_float(scored["total_debit"]) - same_float(row["contact_debit"]))
+        credit_gap = abs(same_float(scored["credit"]) - same_float(row["contact_credit"]))
         recorded_paid = float(sum(float(item["atp"]) for item in recorded_contacts))
-        paid_gap = abs(float(scored["total_debit"]) - recorded_paid)
+        paid_gap = abs(same_float(scored["total_debit"]) - recorded_paid)
         flags_off = (
             scored["evolution"] is False
             and scored["reproduction"] is False

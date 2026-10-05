@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -434,7 +434,7 @@ def run_idea2_engine_cell(
             "observer_fire_count": int(idea2_obs.fire_count),
             "engine_result_digest": result.snapshot.digest(),
             "ledger_digest": ledger.digest(),
-            "named_contact_edge_ids": sorted(NAMED_CONTACT_EDGE_IDS),
+            "named_contact_edge_ids": cast(list[JsonValue], sorted(NAMED_CONTACT_EDGE_IDS)),
             "pressure_series_tail": [float(x) for x in pressure_series[-5:]],
             "parasite_series_tail": [int(x) for x in arm_stats[arm]["parasite_series"][-5:]],
             "predicted_series_tail": [float(x) for x in predicted_series[-5:]],

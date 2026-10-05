@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from codontrace.dynvalues import same_int
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_type2_rq import run_type2_campaign
 
@@ -65,7 +66,7 @@ def run_dk_region_map(
                 alpha_off=float(alpha_off),
                 dt=float(dt),
             )
-            n_cycle = int(camp["n_cycling_seeds"])
+            n_cycle = same_int(camp["n_cycling_seeds"])
             label = _cell_label(n_cycling=n_cycle, n_seeds=len(seeds))
             cell = {
                 "d": float(d),

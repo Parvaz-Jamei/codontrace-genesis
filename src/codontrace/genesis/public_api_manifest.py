@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -162,7 +162,7 @@ def validate_public_api_manifest(rows: tuple[IntegrationPublicAPISymbol, ...] | 
         "passed": not issues,
         "feature_status": "complete_limited_claim" if not issues else "blocked_by_public_api_issue",
         "claim_gate_reason": "public API surface is importable and provisional symbols are not claim-ready" if not issues else "public API manifest has blocking issues",
-        "issues": issues,
+        "issues": cast(list[JsonValue], issues),
         "symbols": [row.to_dict() for row in manifest],
         "manifest_digest": canonical_digest([row.to_dict() for row in manifest], prefix="integration_public_api"),
     }

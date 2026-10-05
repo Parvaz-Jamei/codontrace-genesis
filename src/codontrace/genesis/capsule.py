@@ -1151,7 +1151,7 @@ def emit_causal_capsule(
 
     if not config.enabled:
         return _emission_blocked("capsule_transfer_disabled")
-    fitness = finite_float("fitness_result.score", getattr(fitness_result, "score", 0.0))
+    fitness = cast(float, finite_float("fitness_result.score", getattr(fitness_result, "score", 0.0)))
     if fitness < config.min_source_fitness:
         return _emission_blocked("source_fitness_below_threshold")
     confidence = _capsule_confidence(graph, fitness)
@@ -1794,7 +1794,7 @@ def _optional_float(data: Mapping[str, JsonValue], key: str) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         msg = f"{key} must be numeric or null."
         raise ConfigurationError(msg)
-    return finite_float(key, value)  # type: ignore[return-value]
+    return finite_float(key, value)
 
 
 def _str_tuple(data: Mapping[str, JsonValue], key: str) -> tuple[str, ...]:

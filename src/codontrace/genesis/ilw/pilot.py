@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.ilw.adapter_honesty import (
     assert_claim_ceiling_runtime_observation,
@@ -103,7 +104,7 @@ def _edge_applied_count(runtime: IlwChainRuntime, edge_id: str) -> int:
     return sum(
         1
         for event in runtime.ledger.events
-        if event.edge_id == edge_id and int(event.payload.get("applied", 0) or 0) == 1
+        if event.edge_id == edge_id and same_int(event.payload.get("applied", 0) or 0) == 1
     )
 
 
@@ -322,17 +323,17 @@ def run_seed_pilot(
         conservation_passed=bool(conservation.passed),
         required_edge_coverage=float(coverage),
         missing_edge_ids=missing,
-        birth_count=int(primary_summary.get("birth_count", 0) or 0),
-        death_count=int(primary_summary.get("death_count", 0) or 0),
+        birth_count=same_int(primary_summary.get("birth_count", 0) or 0),
+        death_count=same_int(primary_summary.get("death_count", 0) or 0),
         generation_turnover=_generation_turnover(primary),
         lineage_depth=_lineage_depth(primary),
         regime_changes=0,  # discrete regime shifter not yet wired; honest zero
         unique_genome_count=_unique_genome_count(primary),
         niches_occupied=_niches_occupied(primary),
         capsule_to_policy_applied=_edge_applied_count(primary, "capsule_to_policy"),
-        event_count=int(primary_summary.get("event_count", 0) or 0),
-        organism_count=int(primary_summary.get("organism_count", 0) or 0),
-        alive_count=int(primary_summary.get("alive_count", 0) or 0),
+        event_count=same_int(primary_summary.get("event_count", 0) or 0),
+        organism_count=same_int(primary_summary.get("organism_count", 0) or 0),
+        alive_count=same_int(primary_summary.get("alive_count", 0) or 0),
         attempt_fields_separate=True,
         no_claim_promotion=True,
         claim_ceiling=CLAIM_CEILING,
@@ -400,15 +401,15 @@ def _run_scale_probe(
     direction_retained = (
         cov1 == 1.0
         and cov2 == 1.0
-        and int(sum1.get("birth_count", 0) or 0) >= 1
-        and int(sum2.get("birth_count", 0) or 0) >= 1
+        and same_int(sum1.get("birth_count", 0) or 0) >= 1
+        and same_int(sum2.get("birth_count", 0) or 0) >= 1
     )
     return {
         "seed": seed,
         "s1_coverage": cov1,
         "s2_coverage": cov2,
-        "s1_births": int(sum1.get("birth_count", 0) or 0),
-        "s2_births": int(sum2.get("birth_count", 0) or 0),
+        "s1_births": same_int(sum1.get("birth_count", 0) or 0),
+        "s2_births": same_int(sum2.get("birth_count", 0) or 0),
         "effect_direction_retained": direction_retained,
         "note": "Coverage+births retention S1→S2; not a finite-size S4 claim.",
     }

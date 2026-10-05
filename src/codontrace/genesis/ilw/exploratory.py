@@ -16,9 +16,10 @@ from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import log2
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.ilw.adapter_honesty import (
@@ -278,7 +279,7 @@ class Ilw6ExploratoryReport:
             "scientific_claim_emitted": self.scientific_claim_emitted,
             "cce_claimed": self.cce_claimed,
             "intelligence_claimed": self.intelligence_claimed,
-            "forbidden_promotions": sorted(ILW6_FORBIDDEN_PROMOTIONS),
+            "forbidden_promotions": cast(list[JsonValue], sorted(ILW6_FORBIDDEN_PROMOTIONS)),
             "persistence_window_generations": self.persistence_window_generations,
             "organism_phylogeny": [n.to_dict() for n in self.organism_phylogeny],
             "capsule_genealogy": [n.to_dict() for n in self.capsule_genealogy],
@@ -339,9 +340,9 @@ def build_organism_phylogeny(
                     else str(rec.get("parent_id"))
                 ),
                 lineage_id=str(rec.get("lineage_id", "")),
-                generation=int(rec.get("generation", 0) or 0),
+                generation=same_int(rec.get("generation", 0) or 0),
                 genome_digest=str(rec.get("genome_digest", "")),
-                tick=int(rec.get("tick", 0) or 0),
+                tick=same_int(rec.get("tick", 0) or 0),
                 parent_genome_digest=(
                     None
                     if rec.get("parent_genome_digest") in (None, "", "null")
@@ -377,7 +378,7 @@ def build_capsule_genealogy(
                 lineage_id=str(rec.get("lineage_id", "")),
                 payload_digest=str(rec.get("payload_digest", "")),
                 provenance_digest=str(rec.get("provenance_digest", "")),
-                tick=int(rec.get("tick", 0) or 0),
+                tick=same_int(rec.get("tick", 0) or 0),
             )
         )
     nodes.sort(key=lambda n: (n.tick, n.capsule_id))
@@ -584,11 +585,11 @@ def learnability_probe(runtime: IlwChainRuntime) -> LearnabilityProbe:
         payload = ev.payload
         if str(payload.get("edge_id", "")) != "capsule_to_policy":
             continue
-        if int(payload.get("applied", 0) or 0) < 1:
+        if same_int(payload.get("applied", 0) or 0) < 1:
             continue
         applied += 1
         actor = str(payload.get("actor_id", "") or "")
-        tick = int(payload.get("tick", 0) or 0)
+        tick = same_int(payload.get("tick", 0) or 0)
         later = [
             other
             for other in by_actor.get(actor, ())

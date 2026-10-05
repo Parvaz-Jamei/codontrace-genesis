@@ -14,10 +14,15 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from codontrace._types import JsonValue
-from codontrace.actions import default_action_registry, move_toward_capsule_target_handler
+from codontrace.actions import (
+    ActionRegistry,
+    default_action_registry,
+    move_toward_capsule_target_handler,
+)
+from codontrace.dynvalues import same_float, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, is_real_evidence_digest
 from codontrace.genesis.capsule import (
@@ -40,10 +45,9 @@ from codontrace.genesis.hard_experiment_01 import (
     _capsule_counts,
     _mean_last_tick_fitness,
     _receiver_mean_terminal_atp,
-    holm_correction,
-    paired_effect_size,
 )
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+from codontrace.genesis.statistical_protocol import holm_correction, paired_effect_size
 from codontrace.genesis.stepping_stone_reward import SteppingStoneRewardConfig
 from codontrace.genesis.text_digest import sha256_text_file
 
@@ -157,7 +161,7 @@ def hard_experiment_02_causal_dag() -> dict[str, JsonValue]:
     }
 
 
-def hard_experiment_02_action_registry():
+def hard_experiment_02_action_registry() -> ActionRegistry:
     """Default registry plus MOVE_TOWARD_CAPSULE_TARGET (HE02 specs only)."""
 
     return default_action_registry().extend(
@@ -633,7 +637,7 @@ def _run_arm(
     )
     result = GenesisEngine.from_spec(spec).run_ticks()
     _sources, _utilities, _transfers, _attempts, accepted = _capsule_counts(result)
-    roles = tuple(str(item) for item in (spec.metadata.get("genome_roles") or ()))
+    roles = tuple(str(item) for item in same_iter(spec.metadata.get("genome_roles") or ()))
     if not roles:
         # Fallback: treat all surviving organisms as receivers for HE02 smoke/pilot.
         roles = tuple(f"receiver_{index}" for index in range(population))
@@ -796,7 +800,9 @@ def run_hard_experiment_02(
         _arm_summary(arm, tuple(rec.arm_map()[arm] for rec in seed_records))
         for arm in ARMS
     )
-    summary_map = {item.arm: item for item in summaries}
+    summary_map: dict[str, HardExperiment02ArmSummary] = {
+        item.arm: item for item in summaries
+    }
     assay_failures = _manipulation_failures(summary_map)
     assay_failed = bool(assay_failures)
 
@@ -824,9 +830,9 @@ def run_hard_experiment_02(
             )
             continue
         try:
-            effect = paired_effect_size(lefts, rights)
-            dz = float(getattr(effect, "effect_size", effect.get("effect_size")))  # type: ignore[union-attr]
-            p_raw = float(getattr(effect, "p_value", effect.get("p_value")))  # type: ignore[union-attr]
+            effect = cast(Any, paired_effect_size)(lefts, rights)
+            dz = same_float(getattr(effect, "effect_size", effect.get("effect_size")))
+            p_raw = same_float(getattr(effect, "p_value", effect.get("p_value")))
         except Exception:
             dz, p_raw = None, None
         contrasts_raw.append(
@@ -841,7 +847,10 @@ def run_hard_experiment_02(
         )
     p_values = [item.p_raw for item in contrasts_raw]
     try:
-        adjusted = list(holm_correction(p_values))
+        adjusted: list[float | None] = cast(
+            list[float | None],
+            list(holm_correction(cast(Sequence[float], p_values))),
+        )
     except Exception:
         adjusted = list(p_values)
     contrasts = tuple(
@@ -955,15 +964,15 @@ def format_hard_experiment_02_summary(campaign: HardExperiment02Campaign) -> str
         f"decision_rule_passed={campaign.decision_rule_passed}",
         f"seeds={list(campaign.seeds)}",
     ]
-    for item in campaign.arm_summaries:
+    for summary in campaign.arm_summaries:
         lines.append(
-            f"  {item.arm}: mean={item.mean} mi={item.mi_mean} "
-            f"adoptions={item.adoption_mean}"
+            f"  {summary.arm}: mean={summary.mean} mi={summary.mi_mean} "
+            f"adoptions={summary.adoption_mean}"
         )
-    for item in campaign.paired_contrasts:
+    for contrast in campaign.paired_contrasts:
         lines.append(
-            f"  contrast treatment vs {item.baseline_arm}: "
-            f"dz={item.dz} p_holm={item.p_holm}"
+            f"  contrast treatment vs {contrast.baseline_arm}: "
+            f"dz={contrast.dz} p_holm={contrast.p_holm}"
         )
     return "\n".join(lines)
 

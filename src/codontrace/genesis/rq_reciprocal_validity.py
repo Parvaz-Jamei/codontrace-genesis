@@ -18,10 +18,13 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
 
+from codontrace.dynvalues import same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import _window
-from codontrace.genesis.closed_loop_hp_arm01_structural_rq import STRUCT_SOFT_K
+from codontrace.genesis.closed_loop_hp_arm01_structural_rq import STRUCT_SOFT_K, StructuralRQArm
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE
+from codontrace.genesis.measurements.antagonist_population import AntagonistPopulation
+from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.rq_bidirectional_timeshift import ARM_A, build_arm
 from codontrace.genesis.rq_bidirectional_timeshift_confirm import infectivity
 from codontrace.genesis.rq_mechanism_v2_phase4 import (
@@ -192,12 +195,12 @@ def assess_independent_histories(
     reversal_true = 0
     dropped: list[int] = []
     for seed in locked:
-        history = by_seed.get(seed)
-        if history is None:
+        locked_history = by_seed.get(seed)
+        if locked_history is None:
             dropped.append(seed)
             continue
-        fitness = extract_fitness_witness(history)
-        reversal = extract_reversal_witness(history)
+        fitness = extract_fitness_witness(locked_history)
+        reversal = extract_reversal_witness(locked_history)
         if not fitness["measured"] or not reversal["measured"]:
             dropped.append(seed)
             continue
@@ -326,7 +329,9 @@ def swapped_seats(name: str, seats: Sequence[Mapping[str, str]]) -> list[dict[st
     raise ConfigurationError(f"unknown swap {name}")
 
 
-def build_swap_arm(seed: int, seats: Sequence[Mapping[str, str]], parasites: object, *, passage: str):
+def build_swap_arm(
+    seed: int, seats: Sequence[Mapping[str, str]], parasites: object, *, passage: str
+) -> StructuralRQArm:
     """Absent or pressured arm. Does not use the phase-4 seed gate."""
 
     if int(seed) in {9501, 9502, 9503, 9504}:
@@ -392,7 +397,7 @@ def _tally_generation(arm: object) -> dict[str, object]:
     }
 
 
-def _load_phase3_parasites():
+def _load_phase3_parasites() -> tuple[AntagonistPopulation, str, int]:
     rows, digest, generation = load_conditioned_parasites(Path(PHASE3_PARASITE_SOURCE))
     return population_from_parasite_rows(rows), digest, generation
 
@@ -413,7 +418,7 @@ def run_swap_factorial(root: Path, *, seed: int = PHASE3_SWAP_SEED) -> dict[str,
             )
         if name == "position":
             hosts = list(arm._hosts())
-            by_suffix: dict[str, list] = {}
+            by_suffix: dict[str, list[GenesisOrganism]] = {}
             for org in hosts:
                 suffix = str(org.id).split("-")[-1]
                 by_suffix.setdefault(suffix, []).append(org)
@@ -486,12 +491,12 @@ def summarize_selection_rows(rows: Sequence[Mapping[str, object]]) -> list[dict[
             for item in start_hosts:
                 if isinstance(item, Mapping):
                     founder_counts[_id_letter(str(item.get("id")))] = founder_counts.get(_id_letter(str(item.get("id"))), 0) + 1
-        founder_fitness = {}
+        founder_fitness: dict[str, float] | None = {}
         birth_total = births_a + births_b
         for letter, count in founder_counts.items():
             if letter not in {"A", "B"} or count <= 0:
                 continue
-            if birth_total == 0:
+            if birth_total == 0 or founder_fitness is None:
                 founder_fitness = None
                 break
             births_letter = births_a if letter == "A" else births_b
@@ -579,16 +584,16 @@ def response_diversity_fixation(rows: Sequence[Mapping[str, object]]) -> dict[st
 
     if not rows:
         raise ConfigurationError("pilot rows are empty")
-    ordered = sorted(rows, key=lambda row: int(row["generation"]))
+    ordered = sorted(rows, key=lambda row: same_int(row["generation"]))
     first_hosts = _roster_windows(_people(ordered[0], "hosts"))
     first_parasites = _roster_windows(_people(ordered[0], "parasites"))
     host_response = None
     parasite_response = None
     for row in ordered:
         if host_response is None and _roster_windows(_people(row, "hosts")) != first_hosts:
-            host_response = int(row["generation"])
+            host_response = same_int(row["generation"])
         if parasite_response is None and _roster_windows(_people(row, "parasites")) != first_parasites:
-            parasite_response = int(row["generation"])
+            parasite_response = same_int(row["generation"])
     last_hosts = _people(ordered[-1], "hosts") or []
     last_parasites = _people(ordered[-1], "parasites") or []
     host_windows = [str(person["window"]) for person in last_hosts]
@@ -674,7 +679,7 @@ def matrix_cells(
     return cells
 
 
-def matrix_margins(cells: Mapping[str, float | None]) -> dict[str, float | None]:
+def matrix_margins(cells: Mapping[str, float | None]) -> dict[str, float | str | None]:
     """Same trait on both sides. A missing cell makes that margin missing."""
 
     def _margin(focal: float | None, left: float | None, right: float | None) -> float | None:
@@ -718,7 +723,7 @@ def assess_matrix_scores(
     seen_ids: set[str] = set()
     seen_body: set[str] = set()
     for score in scores:
-        seed = int(score["seed"])
+        seed = same_int(score["seed"])
         history_id = str(score["history_id"])
         if history_id in seen_ids:
             raise ConfigurationError("duplicate history_id")
@@ -735,11 +740,11 @@ def assess_matrix_scores(
     both_positive = 0
     dropped: list[int] = []
     for seed in locked:
-        score = by_seed.get(seed)
-        if score is None:
+        locked_score = by_seed.get(seed)
+        if locked_score is None:
             dropped.append(seed)
             continue
-        margins = score.get("margins")
+        margins = locked_score.get("margins")
         if not isinstance(margins, Mapping):
             dropped.append(seed)
             continue
@@ -861,10 +866,10 @@ def run_pilot(root: Path, *, generations: int = 12) -> dict[str, object]:
         archive = root / "by_seed" / f"seed{seed}" / "archive.jsonl"
         rows = _coevolve_rows(archive)
         measured = response_diversity_fixation(rows)
-        host_births = [len(row.get("host_births") or []) for row in rows]
-        host_census = [len(row.get("hosts") or []) for row in rows]
-        parasite_births = [int(row.get("parasite_births") or 0) for row in rows]
-        parasite_census = [int(row.get("parasite_census") or 0) for row in rows]
+        host_births = [len(list(same_iter(row.get("host_births") or []))) for row in rows]
+        host_census = [len(list(same_iter(row.get("hosts") or []))) for row in rows]
+        parasite_births = [same_int(row.get("parasite_births") or 0) for row in rows]
+        parasite_census = [same_int(row.get("parasite_census") or 0) for row in rows]
         per_seed.append(
             {
                 "failed": outcome["failed"],
@@ -909,9 +914,9 @@ def score_confirmatory_archives(root: Path, design: Mapping[str, object]) -> lis
             cells = matrix_cells(
                 rows,
                 arm=arm,
-                past=int(design["past_generation"]),
-                present=int(design["present_generation"]),
-                future=int(design["future_generation"]),
+                past=same_int(design["past_generation"]),
+                present=same_int(design["present_generation"]),
+                future=same_int(design["future_generation"]),
             )
             arms[arm] = {"cells": cells, "margins": matrix_margins(cells)}
         primary = arms["coevolve"]["margins"]

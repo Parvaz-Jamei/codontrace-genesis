@@ -15,9 +15,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.ilw.adapter_honesty import (
@@ -303,7 +304,7 @@ class IlwChainRuntime:
             "ledger_digest": self._ledger.digest(),
             "world_digest": self._world.digest(),
             "final_digest": self.final_digest(),
-            "observed_edge_ids": sorted(self._ledger.observed_edge_ids),
+            "observed_edge_ids": cast(list[JsonValue], sorted(self._ledger.observed_edge_ids)),
             "event_count": len(self._ledger),
             "alive_count": len(self.alive_organisms),
             "organism_count": len(self._organisms),
@@ -311,7 +312,7 @@ class IlwChainRuntime:
             "lineage_record_count": len(self._lineage_records),
             "birth_count": int(births),
             "death_count": int(deaths),
-            "resource_totals": self._world.totals(),
+            "resource_totals": cast(dict[str, JsonValue], self._world.totals()),
             "claim_ceiling": CLAIM_CEILING,
             "claim_promotions": [],
             "ladder_promotion": None,
@@ -421,14 +422,14 @@ class IlwChainRuntime:
                 for i in range(0, len(org.genome_bits) - 2, 3)
             ]
             toolchain = {
-                "codon_tokens": tokens,
+                "codon_tokens": cast(list[JsonValue], tokens),
                 "viable": program.viable,
                 "preferred_resource_index": self._bit_int(org.genome_bits[3:6]) % 2,
                 "explore": self._bit_int(org.genome_bits[0:3]) / 7.0,
                 "emit_threshold": self._bit_int(org.genome_bits[9:12]) / 7.0,
                 "reproduce_threshold": 0.4 + self._bit_int(org.genome_bits[12:15]) / 14.0,
             }
-            org.policy_bias.setdefault("toolchain_explore", float(toolchain["explore"]))
+            org.policy_bias.setdefault("toolchain_explore", same_float(toolchain["explore"]))
             applied = 1
         after = org.state_digest()
         return self._emit(
@@ -477,7 +478,7 @@ class IlwChainRuntime:
             # Compute cost for phenotype construction.
             org.energy = max(0.0, org.energy - 0.05)
             energy_delta = -0.05
-            phenotype = {"action_scores": scores}
+            phenotype = {"action_scores": cast(dict[str, JsonValue], scores)}
             applied = 1
         after = org.state_digest()
         return self._emit(
@@ -512,7 +513,7 @@ class IlwChainRuntime:
         if isinstance(scores_raw, Mapping):
             maybe = scores_raw.get("action_scores", {})
             if isinstance(maybe, Mapping):
-                scores = {str(k): float(v) for k, v in maybe.items()}
+                scores = {str(k): same_float(v) for k, v in maybe.items()}
         if self.knockouts.cuts_edge(edge_id):
             blocked = self.knockouts.blocked_reason(edge_id)
             org.energy = max(0.0, org.energy - 0.01)
@@ -649,15 +650,18 @@ class IlwChainRuntime:
             parent = self._peek_event(parents[0]) if parents else {}
             experience = {
                 "action": str(parent.get("action", "WAIT")),
-                "taken": float(parent.get("taken", 0.0) or 0.0),
+                "taken": same_float(parent.get("taken", 0.0) or 0.0),
                 "kind": str(parent.get("kind", "")),
-                "position": list(parent.get("position", [org.x, org.y])),
+                "position": cast(
+                    list[JsonValue],
+                    list(same_iter(parent.get("position", [org.x, org.y]))),
+                ),
                 "world_digest": self._world.digest(),
             }
             if org.last_experience is not None:
                 experience["last_experience"] = dict(org.last_experience)
-            resource_delta = float(parent.get("resource_delta", 0.0) or 0.0)
-            energy_delta = float(parent.get("energy_delta", 0.0) or 0.0)
+            resource_delta = same_float(parent.get("resource_delta", 0.0) or 0.0)
+            energy_delta = same_float(parent.get("energy_delta", 0.0) or 0.0)
             applied = 1
         after = org.state_digest()
         return self._emit(
@@ -697,7 +701,7 @@ class IlwChainRuntime:
             isinstance(experience, Mapping)
             and str(experience.get("action", "")) in {"HARVEST_0", "HARVEST_1", "EMIT"}
             and (
-                float(experience.get("taken", 0.0) or 0.0) > 0.0
+                same_float(experience.get("taken", 0.0) or 0.0) > 0.0
                 or str(experience.get("action", "")) == "EMIT"
             )
         )
@@ -709,13 +713,14 @@ class IlwChainRuntime:
             accepted = 1
         else:
             accepted = 1
+            experience_map = cast(Mapping[str, JsonValue], experience)
             pattern = (
-                str(experience.get("action", "WAIT")),
-                str(experience.get("kind", "unknown")),
-                f"pos:{experience.get('position', [org.x, org.y])}",
+                str(experience_map.get("action", "WAIT")),
+                str(experience_map.get("kind", "unknown")),
+                f"pos:{experience_map.get('position', [org.x, org.y])}",
             )
             payload_digest = canonical_digest(
-                {"pattern": list(pattern), "taken": experience.get("taken", 0.0)},
+                {"pattern": list(pattern), "taken": experience_map.get("taken", 0.0)},
                 prefix="ilw_capsule_payload",
             )
             provenance_digest = canonical_digest(
@@ -856,7 +861,7 @@ class IlwChainRuntime:
         transported = str(parent.get("capsule_id", "") or "")
         if self.knockouts.cuts_edge(edge_id):
             blocked = self.knockouts.blocked_reason(edge_id)
-        elif not transported or int(parent.get("applied", 0) or 0) < 1:
+        elif not transported or same_int(parent.get("applied", 0) or 0) < 1:
             blocked = "no_applied_capsule"
             accepted = 1
         else:
@@ -935,7 +940,7 @@ class IlwChainRuntime:
                         intent = True
                     if payload.get("action") == "REPRODUCE":
                         intent = True
-                    for grand in payload.get("causal_parent_ids", []) or []:
+                    for grand in same_iter(payload.get("causal_parent_ids", []) or []):
                         gp = self._peek_event(str(grand))
                         if gp.get("reproduce_intent") or gp.get("action") == "REPRODUCE":
                             intent = True

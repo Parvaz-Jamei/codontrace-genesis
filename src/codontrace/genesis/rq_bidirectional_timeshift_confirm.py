@@ -37,6 +37,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import cast
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.closed_loop_hp_arm01 import ARM_COPASSAGED
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
@@ -980,8 +981,8 @@ def run_one_history(
                     live.line(
                         f"phase=2 run={run_id} seed={seed} arm={arm_name} generation={generation} "
                         f"host_census={row['host_census']} parasite_census={row['parasite_census']} "
-                        f"host_energy={float(row['host_energy']):.6f} "
-                        f"parasite_energy={float(row['parasite_energy']):.6f} "
+                        f"host_energy={same_float(row['host_energy']):.6f} "
+                        f"parasite_energy={same_float(row['parasite_energy']):.6f} "
                         f"host_births={row['host_births']} host_deaths={row['host_deaths']} "
                         f"parasite_births={row['parasite_births']} parasite_deaths={row['parasite_deaths']} "
                         f"contacts={row['contacts']} invariant={row['invariant']} "

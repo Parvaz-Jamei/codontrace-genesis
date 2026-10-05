@@ -84,7 +84,8 @@ from codontrace.claimgate.adapters.host_parasite_prereg import (
     require_preregistration_before_campaign_attach,
 )
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
-from codontrace.claimgate.adapters.roles import ROLE_ALIASES, SCHEMA_ROLES, canonical_role
+from codontrace.claimgate.adapters.roles import ROLE_ALIASES, canonical_role
+from codontrace.claimgate.schema import ARM_ROLES as SCHEMA_ROLES
 
 __all__ = [
     "attach_phase3_honesty",

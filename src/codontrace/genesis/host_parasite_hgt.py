@@ -25,6 +25,7 @@ from codontrace.metrics.diversity import (
     mean_genome_distance,
     unique_genome_count,
 )
+from codontrace.specs import GenomeSpec
 
 SCHEMA = "host_parasite_hgt_compartment_campaign_v1"
 HYPOTHESIS = "any_transfer_raises_host_diversity"
@@ -87,7 +88,7 @@ def _copy_segment_into(
     return SemanticGenome.from_codons(codons, spec=target.spec)
 
 
-def _noise_segment(seed: int, length: int, spec) -> tuple[str, ...]:
+def _noise_segment(seed: int, length: int, spec: GenomeSpec) -> tuple[str, ...]:
     noise = SemanticGenome.random(length=length, seed=seed + 777_001)
     # Force same spec alphabet/width.
     return tuple(

@@ -20,8 +20,9 @@ from __future__ import annotations
 
 import math
 from collections.abc import Collection, Mapping, Sequence
-from typing import Literal
+from typing import Literal, cast
 
+from codontrace.dynvalues import same_float, same_int
 from codontrace.energy import ATPAccount, ATPLedgerEntry
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -69,7 +70,7 @@ def execute_runtime_transfer(
         if not isinstance(self_transfer_justification, str) or not self_transfer_justification.strip():
             raise ConfigurationError("self-transfer requires an explicit justification")
         event["self_transfer_justification"] = self_transfer_justification
-    paid, dissipated = float(event["atp_paid"]), float(event["loss"])
+    paid, dissipated = same_float(event["atp_paid"]), same_float(event["loss"])
     if paid <= 0.0 or dissipated > paid or not source.can_pay(paid):
         raise ConfigurationError("source cannot fund a positive transfer with this loss")
     binding = _transfer_binding(event)
@@ -291,14 +292,14 @@ def _validate_claim(
         raise ConfigurationError(f"replay of a ledger entry on contact {contact}")
     source_row = _require_row(index, source_key[0], source_key[1], kind="debit")
     recipient_row = _require_row(index, recipient_key[0], recipient_key[1], kind="credit")
-    if int(source_row["tick"]) != int(recipient_row["tick"]):
+    if same_int(source_row["tick"]) != same_int(recipient_row["tick"]):
         raise ConfigurationError("source debit and recipient credit are not one contact")
     _stated_balance(event, "source_before", source_row.get("balance_before"), "balance_before")
     _stated_balance(event, "source_after", source_row.get("balance_after"), "balance_after")
     _stated_balance(event, "recipient_before", recipient_row.get("balance_before"), "balance_before")
     _stated_balance(event, "recipient_after", recipient_row.get("balance_after"), "balance_after")
-    source_debit = float(source_row["amount"])
-    recipient_credit = float(recipient_row["amount"])
+    source_debit = same_float(source_row["amount"])
+    recipient_credit = same_float(recipient_row["amount"])
     loss = _non_negative(event.get("loss", 0.0), "loss")
     paid = _non_negative(event.get("atp_paid"), "atp_paid")
     if not _same(paid, source_debit):
@@ -435,14 +436,14 @@ def controls_match(*, positive_amount: float, negative_cost: float) -> dict[str,
     return {
         "positive_paid": positive["paid_transfer"],
         "negative_paid": negative["paid_transfer"],
-        "instrument_positive_amount": float(positive_event["atp_paid"]),
-        "instrument_negative_paid": float(negative_event["atp_paid"]),
-        "positive_reachable": float(positive_event["atp_paid"]) == float(positive_amount),
-        "negative_is_zero_transfer": float(negative_event["atp_paid"]) == 0.0,
+        "instrument_positive_amount": same_float(positive_event["atp_paid"]),
+        "instrument_negative_paid": same_float(negative_event["atp_paid"]),
+        "positive_reachable": same_float(positive_event["atp_paid"]) == same_float(positive_amount),
+        "negative_is_zero_transfer": same_float(negative_event["atp_paid"]) == 0.0,
         "positive_is_engine_contact": positive["contact_identified"],
         "negative_is_engine_contact": negative["contact_identified"],
         "contact_identified": False,
-        "same_cost": float(negative_event["cost"]) == float(positive_event["atp_paid"]),
+        "same_cost": same_float(negative_event["cost"]) == same_float(positive_event["atp_paid"]),
         "independent_contacts": (
             negative_event["contact_id"] != positive_event["contact_id"]
             and negative_event["independent_of"] == positive_event["contact_id"]
@@ -457,7 +458,7 @@ def _grid(value: float, *, up: bool) -> float:
 
     scaled = value * 10**_LEDGER_PLACES
     snapped = math.ceil(scaled - 1e-9) if up else math.floor(scaled + 1e-9)
-    return snapped / 10**_LEDGER_PLACES
+    return cast(float, snapped / 10**_LEDGER_PLACES)
 
 
 def _boundaries(boundaries: Sequence[object]) -> list[float]:
@@ -511,11 +512,11 @@ def assess_recovery(
         return {"endpoint_id": PREREG_V4_ID, "performance_recovered": False,
                 "reason": "unbound_boundaries", "transfer_recorded": False,
                 "confirms_v1_endpoint": False, "hypothesis_supported": False}
-    samples = list(boundaries)
+    samples = cast(list[Mapping[str, object]], list(boundaries))
     run_id = _text(samples[0], "run_id")
     recipient_rows = sorted(
         (dict(_entry_view(row)) for row in ledger or () if _entry_view(row).get("agent_id") == recipient_id),
-        key=lambda row: int(row["entry_id"]),
+        key=lambda row: same_int(row["entry_id"]),
     )
     _index_ledger(ledger)
     for index, row in enumerate(recipient_rows):
@@ -524,7 +525,7 @@ def assess_recovery(
         # Legacy engine entries contain action-local and generation-local tick
         # counters. Entry ids establish append order; sampled V4 boundaries
         # separately establish the time of the analysed interval.
-        if index and not _same(float(row["balance_before"]), float(recipient_rows[index - 1]["balance_after"])):
+        if index and not _same(same_float(row["balance_before"]), same_float(recipient_rows[index - 1]["balance_after"])):
             raise ConfigurationError("recipient ledger history is discontinuous")
     values = _boundaries([row.get("value") for row in samples])
     previous_tick = -1
@@ -537,11 +538,11 @@ def assess_recovery(
             raise ConfigurationError("recovery ticks must be strictly increasing")
         if isinstance(count, bool) or not isinstance(count, int) or count < previous_count or count > len(recipient_rows):
             raise ConfigurationError("invalid boundary ledger cursor")
-        if count != sum(int(row["tick"]) <= tick for row in recipient_rows):
+        if count != sum(same_int(row["tick"]) <= tick for row in recipient_rows):
             raise ConfigurationError("boundary cursor does not match its tick")
         if recipient_rows:
             expected = recipient_rows[count - 1]["balance_after"] if count else recipient_rows[0]["balance_before"]
-            if not _same(float(sample["value"]), float(expected)):
+            if not _same(same_float(sample["value"]), same_float(expected)):
                 raise ConfigurationError("boundary balance does not match its ledger cursor")
         previous_tick, previous_count = tick, count
     baseline = values[0]
@@ -584,18 +585,18 @@ def assess_recovery(
         raise ConfigurationError("transfer and recovery belong to different histories")
     credit = 0.0
     if shape and restore_index is not None and drop_index is not None:
-        start_count = int(samples[drop_index]["ledger_entry_count"])
-        end_count = int(samples[restore_index]["ledger_entry_count"])
+        start_count = same_int(samples[drop_index]["ledger_entry_count"])
+        end_count = same_int(samples[restore_index]["ledger_entry_count"])
         window_events = [event for event in events if event.get("recipient_id") == recipient_id
                          and isinstance(event.get("recipient_entry_id"), int)
-                         and start_count <= int(event["recipient_entry_id"]) < end_count
-                         and int(samples[drop_index]["tick"]) < int(event["tick"]) <= int(samples[restore_index]["tick"])]
+                         and start_count <= same_int(event["recipient_entry_id"]) < end_count
+                         and same_int(samples[drop_index]["tick"]) < same_int(event["tick"]) <= same_int(samples[restore_index]["tick"])]
         credit = _recipient_credit(window_events, recipient_id) if measured["contact_identified"] else 0.0
         interval_rows = recipient_rows[start_count:end_count]
         contact_entries = {event["recipient_entry_id"] for event in window_events}
         unexplained = any(row["kind"] == "credit" and row["entry_id"] not in contact_entries
                           for row in interval_rows)
-        debit = sum(float(row["amount"]) for row in interval_rows if row["kind"] == "debit")
+        debit = sum(same_float(row["amount"]) for row in interval_rows if row["kind"] == "debit")
         gain = values[restore_index] - values[drop_index]
         if credit <= 0.0 or not measured["contact_identified"]:
             shape = False
@@ -615,7 +616,7 @@ def assess_recovery(
         "recipient_credit": credit if shape else 0.0,
         "performance_recovered": shape,
         "reason": reason,
-        "transfer_recorded": bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0,
+        "transfer_recorded": bool(measured["contact_identified"]) and same_float(measured["paid_transfer"] or 0.0) > 0.0,
         "consumed_contact_ids": measured["consumed_contact_ids"],
         "consumed_ledger_entries": measured["consumed_ledger_entries"],
         "confirms_v1_endpoint": False,
@@ -726,7 +727,7 @@ def performance_recovery(
                               used_ledger_entries=used_ledger_entries)
     digest_flags = [event["digest_returned"] for event in events if "digest_returned" in event]
     survivor_flags = [event["n_alive"] for event in events if "n_alive" in event]
-    transfer_recorded = bool(measured["contact_identified"]) and float(measured["paid_transfer"] or 0.0) > 0.0
+    transfer_recorded = bool(measured["contact_identified"]) and same_float(measured["paid_transfer"] or 0.0) > 0.0
     recovery: dict[str, object] | None = None
     recovered = False
     reason = "no_baseline"
@@ -746,7 +747,7 @@ def performance_recovery(
         "digest_returned": None if not digest_flags else any(bool(flag) for flag in digest_flags),
         "population_survived": None
         if not survivor_flags
-        else all(int(value) > 0 for value in survivor_flags),  # type: ignore[arg-type]
+        else all(same_int(value) > 0 for value in survivor_flags),
         "performance_equals_digest_return": False,
         "performance_equals_population_survival": False,
         "confirms_v1_endpoint": False,
@@ -757,8 +758,8 @@ def performance_recovery(
 def replicate_unit(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
     """A seed is one history. Its checkpoints are nested, not extra samples."""
 
-    seeds = {int(row["seed"]) for row in rows}  # type: ignore[arg-type]
-    pairs = {(int(row["seed"]), int(row["checkpoint"])) for row in rows}  # type: ignore[arg-type]
+    seeds = {same_int(row["seed"]) for row in rows}
+    pairs = {(same_int(row["seed"]), same_int(row["checkpoint"])) for row in rows}
     return {
         "n_independent_histories": len(seeds),
         "n_seed_checkpoint_pairs": len(pairs),

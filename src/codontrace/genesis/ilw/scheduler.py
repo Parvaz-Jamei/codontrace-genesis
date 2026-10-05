@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.ilw.seed_namespace import SeedNamespace
 from codontrace.genesis.ilw.world_spec import WorldSpec
+from codontrace.rng import RNGManager
 
 
 class IlwSchedulerError(ConfigurationError):
@@ -77,5 +78,5 @@ class IlwScheduler:
     def advanced_ticks(self) -> tuple[int, ...]:
         return tuple(self._advanced_ticks)
 
-    def scheduler_rng(self):
+    def scheduler_rng(self) -> RNGManager:
         return self.seed_namespace.fork_rng("scheduler", f"tick-{self.tick}")

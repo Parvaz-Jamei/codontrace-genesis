@@ -20,9 +20,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.campaigns.discovery_q_20260928_idea4 import (
     CHECKPOINT_ID,
@@ -332,7 +333,7 @@ def run_idea4_engine_cell(
         live_population = fork.get("live_objects", {}).get("population")
         checkpoint_fork_complete = bool(
             frozen
-            and restored.fork_state_exact is True
+            and cast(Any, restored).fork_state_exact is True
             and str(restored._state_digest()) == frozen
             and str(engine._state_digest()) != frozen
             and restored.runner.population is not engine.runner.population
@@ -479,7 +480,7 @@ def run_idea4_engine_cell(
         "n_alive_mean": (
             float(sum(n_alive_series) / len(n_alive_series)) if n_alive_series else 0.0
         ),
-        "ecology_tail": eco_tail,
+        "ecology_tail": cast(JsonValue, eco_tail),
         "recovery_progress_multiplier_used": False,
         "pre_intervene_pop_digest": pre_pop,
         "engine_pop_path_digest": eng_pop,
@@ -491,7 +492,7 @@ def run_idea4_engine_cell(
         "exclude_from_combo_e": exclude_from_combo_e,
         "match_is_planted_mirror": bool(match_is_planted_mirror),
         "n_edges_cut": (
-            int(cell_result.get("n_edges_cut"))
+            same_int(cell_result.get("n_edges_cut"))
             if isinstance(cell_result, dict) and "n_edges_cut" in cell_result
             else None
         ),
@@ -531,7 +532,7 @@ def run_idea4_engine_cell(
         "feedback_event_count": sum(
             1 for h in observer.feedback_history if h.get("effect_applied")
         ),
-        "intervention_feedback": intervention_feedback,
+        "intervention_feedback": cast(JsonValue, intervention_feedback),
         "feedback_allocation": str(feedback_allocation),
         "endpoints_enter_debit": bool(
             intervention_feedback and intervention_feedback.get("endpoints_enter_debit")

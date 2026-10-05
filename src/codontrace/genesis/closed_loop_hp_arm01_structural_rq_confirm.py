@@ -20,6 +20,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -221,9 +222,9 @@ def assert_confirm_seed_policy(seeds: Sequence[int] | None = None) -> None:
 def _polymorphism_ok_conjunctive(snap: Mapping[str, object]) -> bool:
     """Conjunctive hold only — OR soft-path removed for confirmatory."""
 
-    richness = int(snap.get("joint_richness") or 0)
-    max_f = float(snap.get("joint_max_freq") or 1.0)
-    sub_rich = [int(x) for x in (snap.get("sub_locus_richness") or [])]
+    richness = same_int(snap.get("joint_richness") or 0)
+    max_f = same_float(snap.get("joint_max_freq") or 1.0)
+    sub_rich = [same_int(x) for x in same_iter(snap.get("sub_locus_richness") or [])]
     loci_diverse = sum(1 for r in sub_rich if r >= 2)
     return (
         richness >= STRUCT_R_MIN
@@ -356,14 +357,14 @@ def classify_structural_confirm_outcome(
             snap = snaps.get(gen)
             if snap is None:
                 return OUTCOME_PARASITE_EXTINCT
-            if int(snap.get("parasite_n") or 0) <= 0:
+            if same_int(snap.get("parasite_n") or 0) <= 0:
                 return OUTCOME_PARASITE_EXTINCT
 
     for arm in DEBIT_ACTIVE_ARMS:
         snaps = arm_snaps.get(arm, {})
         for gen in CONFIRM_LOCKED_WINDOWS:
             snap = snaps[gen]
-            if int(snap.get("census") or 0) < STRUCT_MIN_VIABLE_CENSUS:
+            if same_int(snap.get("census") or 0) < STRUCT_MIN_VIABLE_CENSUS:
                 return OUTCOME_REGIME_HOSTILE_NE
 
     if len(_DISTINCT_WINDOWS) < 8 or STRUCT_HOST_BIT_FLIP <= 0.0:
@@ -635,7 +636,7 @@ def run_structural_rq_confirm(
 
     results: list[StructuralRQConfirmSeedResult] = []
     for payload in seed_payloads:
-        seed = int(payload["seed"])
+        seed = same_int(payload["seed"])
         typed = final_outcomes[seed]
         seed_ceiling = (
             CLAIM_CEILING_CANDIDATE

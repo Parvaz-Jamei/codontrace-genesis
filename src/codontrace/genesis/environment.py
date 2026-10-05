@@ -30,6 +30,7 @@ from enum import StrEnum
 from typing import cast
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.trace import (
@@ -420,7 +421,7 @@ class EnvironmentSchedule:
                 for item in regimes_raw
                 if isinstance(item, Mapping)
             ),
-            switch_ticks=tuple(int(item) for item in switch_raw),
+            switch_ticks=tuple(same_int(item) for item in switch_raw),
         )
 
     def digest(self) -> str:
@@ -764,7 +765,7 @@ class EnvironmentEvent:
         raw_pos = data.get("position")
         pos = None
         if isinstance(raw_pos, list) and len(raw_pos) == 2:
-            pos = (int(raw_pos[0]), int(raw_pos[1]))
+            pos = (same_int(raw_pos[0]), same_int(raw_pos[1]))
         meta_raw = data.get("metadata", {})
         metadata = dict(meta_raw) if isinstance(meta_raw, Mapping) else {}
         resource_raw = data.get("resource")

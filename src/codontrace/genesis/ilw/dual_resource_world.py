@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import MutableMapping
 from dataclasses import dataclass, field
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -131,7 +132,7 @@ class DualResourceWorld:
     def snapshot(self) -> MutableMapping[str, JsonValue]:
         return {
             "digest": self.digest(),
-            "totals": self.totals(),
+            "totals": cast(dict[str, JsonValue], self.totals()),
             "niche_count": self.niche_count,
             "resource_kinds": list(self.resource_kinds),
         }

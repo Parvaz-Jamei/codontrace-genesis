@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest
@@ -79,7 +79,7 @@ def integration_feature_catalog() -> tuple[RuntimeWiringFeature, ...]:
 
 def _import_class(path: str) -> type[Any]:
     module_name, name = path.rsplit(".", 1)
-    return getattr(import_module(module_name), name)
+    return cast(type[Any], getattr(import_module(module_name), name))
 
 
 def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWiringFeature, ...] | None = None) -> dict[str, JsonValue]:
@@ -111,4 +111,10 @@ def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWi
         if digest and isinstance(digest, str) and digest.startswith(("fake", "placeholder", "not_run:")):
             issues.append(f"non_real_manifest_digest:{feature.feature_name}")
         rows.append({**feature.to_dict(), "record_importable": importable, "result_reachable": result_reachable, "manifest_reachable": manifest_reachable, "replay_policy_registered": replay_policy_registered, "audit_digest": feature.digest()})
-    return {"schema_version": "integration_runtime_wiring_audit_v1", "passed": not issues, "issues": sorted(set(issues)), "features": rows, "audit_digest": canonical_digest(rows, prefix="integration_wiring")}
+    return {
+        "schema_version": "integration_runtime_wiring_audit_v1",
+        "passed": not issues,
+        "issues": cast(list[JsonValue], sorted(set(issues))),
+        "features": cast(list[JsonValue], rows),
+        "audit_digest": canonical_digest(rows, prefix="integration_wiring"),
+    }

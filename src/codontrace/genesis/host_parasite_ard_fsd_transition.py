@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_diagnostics import (
@@ -206,7 +207,7 @@ def run_ard_fsd_transition_campaign(
             for window_name, window_rows in windows:
                 diag = diagnose_coevolution_ranges(window_rows)
                 mean_cost = round(
-                    sum(float(r["cost_of_generalism"]) for r in window_rows)
+                    sum(same_float(r["cost_of_generalism"]) for r in window_rows)
                     / len(window_rows),
                     10,
                 )

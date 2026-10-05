@@ -13,6 +13,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_env import DEFAULT_STEAL_FRACTION, HostParasiteEnv
@@ -215,11 +216,11 @@ def run_multi_seed_contingency_campaign(
                     "final_richness": proxy["final_richness"],
                     "richness_delta": proxy["richness_delta"],
                     "outcome_score": proxy["outcome_score"],
-                    "tasks": list(proxy["tasks"]),
+                    "tasks": list(same_iter(proxy["tasks"])),
                     "contingent_seed": proxy["contingent_seed"],
                 }
             )
-            notes = (
+            notes: tuple[str, ...] = (
                 "seed_stratified",
                 "parasite_present" if parasites else "parasite_absent_dual_null",
             )
@@ -229,10 +230,10 @@ def run_multi_seed_contingency_campaign(
                 ContingencySeedOutcome(
                     seed=seed,
                     arm=arm,
-                    initial_richness=int(proxy["initial_richness"]),
-                    final_richness=int(proxy["final_richness"]),
-                    richness_delta=int(proxy["richness_delta"]),
-                    outcome_score=float(proxy["outcome_score"]),
+                    initial_richness=same_int(proxy["initial_richness"]),
+                    final_richness=same_int(proxy["final_richness"]),
+                    richness_delta=same_int(proxy["richness_delta"]),
+                    outcome_score=same_float(proxy["outcome_score"]),
                     contingent_seed=bool(proxy["contingent_seed"]),
                     seed_digest=seed_digest,
                     notes=notes,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from codontrace._types import JsonValue
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.replay_integrity import replay_digest_class_policies
@@ -13,7 +15,7 @@ def audit_replay_policy_coverage(required_class_paths: tuple[str, ...]) -> dict[
     payload: dict[str, JsonValue] = {
         "schema_version": "integration_replay_policy_audit_v1",
         "passed": not missing,
-        "missing": missing,
+        "missing": cast(list[JsonValue], missing),
         "checked_count": len(required_class_paths),
     }
     payload["audit_digest"] = canonical_digest(payload, prefix="integration_replay_policy")

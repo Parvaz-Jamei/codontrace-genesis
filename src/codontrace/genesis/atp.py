@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
@@ -39,8 +40,8 @@ class GenesisATPState:
     ) -> GenesisATPState:
         """Create runtime ATP plus an optional learning account."""
 
-        runtime_value = finite_float("runtime_atp", runtime_atp, non_negative=True)
-        learning_value = finite_float("learning_atp", learning_atp, non_negative=True)
+        runtime_value = cast(float, finite_float("runtime_atp", runtime_atp, non_negative=True))
+        learning_value = cast(float, finite_float("learning_atp", learning_atp, non_negative=True))
         learning = ATPAccount(learning_value) if learning_enabled else None
         return cls(runtime=ATPAccount(runtime_value), learning=learning)
 
@@ -280,7 +281,11 @@ class DualATPBudget:
             msg = "learning_enabled must be boolean."
             raise ValueError(msg)
         return cls(
-            runtime_available=finite_float("runtime_available", runtime, non_negative=True),
-            learning_available=finite_float("learning_available", learning, non_negative=True),
+            runtime_available=cast(
+                float, finite_float("runtime_available", runtime, non_negative=True)
+            ),
+            learning_available=cast(
+                float, finite_float("learning_available", learning, non_negative=True)
+            ),
             learning_enabled=enabled,
         )

@@ -23,7 +23,7 @@ try:
 except ImportError:  # pragma: no cover - optional at install time
     BaseModel = None  # type: ignore[misc, assignment]
     ConfigDict = None  # type: ignore[misc, assignment]
-    Field = None  # type: ignore[misc, assignment]
+    Field = None  # type: ignore[assignment]
     ValidationError = Exception  # type: ignore[misc, assignment]
 
 

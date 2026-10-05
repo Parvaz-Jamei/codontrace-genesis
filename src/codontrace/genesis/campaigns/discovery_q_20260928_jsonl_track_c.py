@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.campaigns.discovery_q_20260928_idea1 import (
     CLAIM_CEILING as IDEA1_CLAIM_CEILING,
@@ -227,7 +228,7 @@ def run_jsonl_track_c(
             raise ConfigurationError("track_c must keep claim_ceiling=phase2_design.")
         if rec.get("soft_pass") is True or rec.get("soft_pass_claimed") is True:
             raise ConfigurationError("track_c forbids soft-pass.")
-        if SEALED_SEED_LO <= int(rec["seed"]) <= SEALED_SEED_HI:
+        if SEALED_SEED_LO <= same_int(rec["seed"]) <= SEALED_SEED_HI:
             raise ConfigurationError("sealed seed leaked into track_c records.")
         assert_record_not_a_discovery(rec)
         if rec.get("hypothesis_supported") is True:
@@ -243,7 +244,7 @@ def run_jsonl_track_c(
         for rec in records:
             fh.write(json.dumps(rec, sort_keys=True, separators=(",", ":")) + "\n")
 
-    counts = {i: sum(1 for r in records if int(r["idea_id"]) == i) for i in (1, 3, 5, 6)}
+    counts = {i: sum(1 for r in records if same_int(r["idea_id"]) == i) for i in (1, 3, 5, 6)}
 
     manifest: dict[str, Any] = {
         "schema": SCHEMA,

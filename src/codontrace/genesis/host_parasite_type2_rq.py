@@ -23,6 +23,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 
@@ -342,8 +343,8 @@ def run_type2_cycling_trial(
         n_types=n_types,
         steps=int(steps),
         cycling_detected=bool(cycle["cycling_detected"]),
-        unique_dominants=int(cycle["unique_dominants"]),  # type: ignore[arg-type]
-        dominance_returns=int(cycle["dominance_returns"]),  # type: ignore[arg-type]
+        unique_dominants=same_int(cycle["unique_dominants"]),
+        dominance_returns=same_int(cycle["dominance_returns"]),
         final_hosts=tuple(round(h, 10) for h in hosts),
         final_parasites=tuple(round(p, 10) for p in parasites),
         params=params,

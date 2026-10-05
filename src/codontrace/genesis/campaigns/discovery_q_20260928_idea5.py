@@ -10,7 +10,7 @@ red_queen_proved stays False.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -139,7 +139,7 @@ def run_idea5_smoke(
         "probe_id": probe,
         "held_out_split": {
             "train": list(ledger.held_out_split.get("train", [])),
-            "held_out": held_out,
+            "held_out": cast(list[JsonValue], held_out),
         },
         "ops": list(OPS),
         "theta": THETA,
@@ -345,7 +345,7 @@ def run_idea5_scored_cell(
         "probe_id": probe,
         "held_out_split": {
             "train": list(ledger.held_out_split.get("train", [])),
-            "held_out": held_out,
+            "held_out": cast(list[JsonValue], held_out),
         },
         "survival_only_active": bool(ledger.survival_only_active),
         "taught": bool(taught),

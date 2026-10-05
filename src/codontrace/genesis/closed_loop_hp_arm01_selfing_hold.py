@@ -14,6 +14,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypedDict
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -254,6 +255,15 @@ def _freq_at_generation(
     return self_n / denom
 
 
+class _AvirulentHoldInfo(TypedDict):
+    hold_passes: bool
+    frequencies: dict[str, float | None]
+    epsilon: float
+    mid_windows: list[int]
+    baseline_series_digest: str
+    series_out_self: list[tuple[int, int]]
+
+
 def avirulent_selfing_hold_series(
     *,
     outcross_by_generation: Sequence[int],
@@ -261,7 +271,7 @@ def avirulent_selfing_hold_series(
     mid_windows: Sequence[int] = HOLD_MID_WINDOWS,
     terminal_generation: int = HOLD_GENERATIONS,
     epsilon: float = HOLD_EPSILON,
-) -> dict[str, object]:
+) -> _AvirulentHoldInfo:
     """Evaluate mid+terminal hold; bump-then-purge fails."""
 
     checks: dict[str, float | None] = {}
@@ -534,6 +544,7 @@ def run_selfing_hold_confirm_campaign(
         ARM_TO_PASSAGE,
         INVASION_CLOCKS,
         REQUIRED_CLOCKS,
+        FrequencyClock,
         LifeLoopEcologyArm,
         assert_ecology_arm_taxonomy,
         per_arm_clocks_complete,
@@ -550,13 +561,13 @@ def run_selfing_hold_confirm_campaign(
     for seed in chosen_seeds:
         assert_ecology_arm_taxonomy()
         arms: dict[str, LifeLoopEcologyArm] = {}
-        clocks_by_arm: dict = {}
+        clocks_by_arm: dict[str, dict[str, FrequencyClock]] = {}
         freqs: dict[str, float | None] = {}
         census: dict[str, int] = {}
         bolus_by_arm: dict[str, float] = {}
         hp_env_ids: dict[str, int] = {}
         intro_freq = 0.0
-        avi_hold_info: dict[str, object] = {}
+        avi_hold_info: _AvirulentHoldInfo | None = None
 
         for arm_name in ECOLOGY_ARMS:
             arm = LifeLoopEcologyArm.boot(
@@ -612,10 +623,10 @@ def run_selfing_hold_confirm_campaign(
             terminal_census_by_arm=census,
             min_viable_census=HOLD_MIN_VIABLE_CENSUS,
         )
-        hold_ok = bool(avi_hold_info.get("hold_passes")) if assay_ok else False
-        hold_freqs = dict(avi_hold_info.get("frequencies") or {})
-        series_digest = str(avi_hold_info.get("baseline_series_digest") or "")
-        series_pairs = list(avi_hold_info.get("series_out_self") or [])
+        hold_ok = bool(avi_hold_info["hold_passes"]) if assay_ok and avi_hold_info is not None else False
+        hold_freqs = dict(avi_hold_info["frequencies"]) if avi_hold_info is not None else {}
+        series_digest = avi_hold_info["baseline_series_digest"] if avi_hold_info is not None else ""
+        series_pairs = list(avi_hold_info["series_out_self"]) if avi_hold_info is not None else []
         campaign_series_parts.append(
             {"seed": seed, "baseline_series_digest": series_digest, "hold": hold_ok}
         )

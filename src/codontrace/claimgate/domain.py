@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
+from codontrace._types import JsonValue
 from codontrace.claimgate.schema import (
     ClaimgateArm,
     ClaimgateBundle,
@@ -316,6 +318,6 @@ def bundle_from_declared_scores(
         replay=ClaimgateReplay(verified=False, digests=()),
         artifacts=(),
         limitations=limitations,
-        extra=extra,
+        extra=cast(Mapping[str, JsonValue], extra),
     )
     return parse_claimgate_bundle(bundle)

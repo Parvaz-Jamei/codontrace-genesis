@@ -39,6 +39,7 @@ from enum import StrEnum
 from typing import Any
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 from codontrace.genesis.claim_gate import ClaimDecision, ClaimRequest, ScientificClaimGate
@@ -863,7 +864,7 @@ class MaterialEvent:
         raw_pos = data.get("position")
         pos = None
         if isinstance(raw_pos, list) and len(raw_pos) == 2:
-            pos = (int(raw_pos[0]), int(raw_pos[1]))
+            pos = (same_int(raw_pos[0]), same_int(raw_pos[1]))
         meta_raw = data.get("metadata", {})
         metadata = dict(meta_raw) if isinstance(meta_raw, Mapping) else {}
         material_raw = data.get("material")
@@ -1393,8 +1394,8 @@ def apply_organism_material_coupling(
 
     if config.excretion_rate > 0:
         for name, amount in list(state.intracellular.items()):
-            spec = config.spec_by_name().get(name)
-            if spec is None or spec.kind not in {"waste", "intermediate"}:
+            excreted = config.spec_by_name().get(name)
+            if excreted is None or excreted.kind not in {"waste", "intermediate"}:
                 continue
             dump = round(amount * config.excretion_rate, 10)
             if dump <= 0:

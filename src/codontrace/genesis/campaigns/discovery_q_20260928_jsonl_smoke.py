@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.campaigns.discovery_q_20260928_idea2 import (
     CLAIM_CEILING as IDEA2_CLAIM_CEILING,
@@ -159,7 +160,7 @@ def run_jsonl_smoke(
 
     # Defensive sort: seed then idea_id (4 before 2 follows IDEA_IDS order).
     idea_rank = {4: 0, 2: 1}
-    records.sort(key=lambda r: (int(r["seed"]), idea_rank.get(int(r["idea_id"]), 99)))
+    records.sort(key=lambda r: (same_int(r["seed"]), idea_rank.get(same_int(r["idea_id"]), 99)))
 
     for rec in records:
         if rec.get("hypothesis_supported") is not False:

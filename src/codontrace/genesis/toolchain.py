@@ -6,6 +6,7 @@ import hashlib
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import cast
 
 from codontrace._types import JsonValue
 from codontrace.trace import Trace, TraceEvent
@@ -268,8 +269,8 @@ def tool_chain_records_from_trace(trace: Trace | Iterable[TraceEvent]) -> tuple[
             "status": event.status,
             "reason": event.reason,
             "world_delta": dict(event.world_delta),
-            "inventory_before": before_inventory,
-            "inventory_after": after_inventory,
+            "inventory_before": cast(dict[str, JsonValue], before_inventory),
+            "inventory_after": cast(dict[str, JsonValue], after_inventory),
             "reward_delta": reward_delta,
             "fitness_component_delta": fitness_delta,
         })
@@ -281,8 +282,8 @@ def tool_chain_records_from_trace(trace: Trace | Iterable[TraceEvent]) -> tuple[
                 allowed=allowed,
                 blocked_reason=reason,
                 state_digest=state.digest(),
-                inventory_before=before_inventory,
-                inventory_after=after_inventory,
+                inventory_before=cast(dict[str, JsonValue], before_inventory),
+                inventory_after=cast(dict[str, JsonValue], after_inventory),
                 world_delta=dict(event.world_delta),
                 reward_delta=reward_delta,
                 status=event.status,

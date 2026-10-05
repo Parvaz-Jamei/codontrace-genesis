@@ -11,7 +11,7 @@ import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import Literal, cast
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
@@ -51,8 +51,18 @@ class QDDescriptorConfig:
             bins = self.bins_per_descriptor.get(name, 8)
             if isinstance(bins, bool) or not isinstance(bins, int) or bins <= 0:
                 raise ConfigurationError("bins_per_descriptor values must be positive.")
-            min_value = finite_float(f"QDDescriptorConfig.min_values[{name}]", self.min_values.get(name, 0.0))
-            max_value = finite_float(f"QDDescriptorConfig.max_values[{name}]", self.max_values.get(name, 1.0))
+            min_value = cast(
+                float,
+                finite_float(
+                    f"QDDescriptorConfig.min_values[{name}]", self.min_values.get(name, 0.0)
+                ),
+            )
+            max_value = cast(
+                float,
+                finite_float(
+                    f"QDDescriptorConfig.max_values[{name}]", self.max_values.get(name, 1.0)
+                ),
+            )
             if max_value <= min_value:
                 raise ConfigurationError(f"max_values[{name!r}] must be greater than min_values.")
             clean_bins[name] = bins

@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import csv
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 
+from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
@@ -166,7 +167,7 @@ def metric_summary_row(summary: HostParasiteMetricSummary) -> dict[str, Any]:
         "ablation_preset": body["ablation_preset"],
         "digest": body["digest"],
     }
-    for mid, value in sorted(dict(body["metrics"]).items()):
+    for mid, value in sorted(dict(cast(Mapping[str, JsonValue], body["metrics"])).items()):
         row[f"metric_{mid}"] = value
     return _force_honesty(row)
 
@@ -175,20 +176,19 @@ def prereg_row(prereg: HostParasitePreregSpec) -> dict[str, Any]:
     if not isinstance(prereg, HostParasitePreregSpec):
         raise ConfigurationError("prereg must be a HostParasitePreregSpec.")
     body = prereg.to_dict()
+    seed_plan = body.get("seed_plan")
     return _force_honesty(
         {
             "schema_version": SCHEMA_PREREG,
             "prereg_id": body["prereg_id"],
             "phenomenon": body["phenomenon"],
-            "metric_ids": ",".join(body["metric_ids"]),
+            "metric_ids": ",".join(cast(Iterable[str], body["metric_ids"])),
             "dual_null_required": body["dual_null_required"],
             "ci_plan": body["ci_plan"],
             "planned_claim_ceiling": body["planned_claim_ceiling"],
-            "refuse_list": ",".join(body["refuse_list"]),
+            "refuse_list": ",".join(cast(Iterable[str], body["refuse_list"])),
             "digest": body["digest"],
-            "seed_plan_digest": body["seed_plan"]["digest"]
-            if isinstance(body.get("seed_plan"), Mapping)
-            else "",
+            "seed_plan_digest": seed_plan["digest"] if isinstance(seed_plan, Mapping) else "",
         }
     )
 
@@ -302,9 +302,9 @@ def write_json(payload: Mapping[str, Any] | Sequence[Any], destination: str | Pa
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     digest = canonical_digest(payload if isinstance(payload, Mapping) else {"rows": list(payload)}, prefix="hp_export_json")
     if hasattr(destination, "write"):
-        destination.write(text)  # type: ignore[union-attr]
+        destination.write(text)
         if not text.endswith("\n"):
-            destination.write("\n")  # type: ignore[union-attr]
+            destination.write("\n")
     else:
         path = Path(destination)
         path.parent.mkdir(parents=True, exist_ok=True)

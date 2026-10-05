@@ -13,6 +13,7 @@ from typing import cast
 
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_int
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.memory import EpisodicEvent, MemoryWriteResult
 
@@ -274,7 +275,7 @@ def consolidate_memory(
             summary={},
         )
     summary = _memory_summary(memory)
-    if int(summary.get("event_count", 0)) <= 0:
+    if same_int(summary.get("event_count", 0)) <= 0:
         return MemoryConsolidationResult(
             attempted=True,
             succeeded=False,
@@ -405,7 +406,9 @@ def _memory_threshold(memory: object) -> float:
     config = getattr(memory, "config", None)
     threshold = getattr(config, "prediction_error_threshold", 0.25)
     if isinstance(threshold, int | float) and not isinstance(threshold, bool):
-        return finite_float("prediction_error_threshold", threshold, non_negative=True)  # type: ignore[return-value]
+        return cast(
+            float, finite_float("prediction_error_threshold", threshold, non_negative=True)
+        )
     return 0.25
 
 
@@ -422,8 +425,13 @@ def _memory_summary(memory: object) -> dict[str, JsonValue]:
         outcomes[status] = outcomes.get(status, 0) + 1
         if status == "blocked":
             blocked += 1
-        runtime_after = finite_float("event.atp_runtime_after", getattr(event, "atp_runtime_after", 0.0))
-        runtime_before = finite_float("event.atp_runtime_before", getattr(event, "atp_runtime_before", 0.0))
+        runtime_after = cast(
+            float, finite_float("event.atp_runtime_after", getattr(event, "atp_runtime_after", 0.0))
+        )
+        runtime_before = cast(
+            float,
+            finite_float("event.atp_runtime_before", getattr(event, "atp_runtime_before", 0.0)),
+        )
         runtime_delta += runtime_after - runtime_before
     count = len(events)
     return {

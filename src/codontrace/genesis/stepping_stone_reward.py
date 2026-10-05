@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from codontrace._types import JsonValue
+from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, require_finite_float
 
@@ -54,7 +55,7 @@ class SteppingStoneRewardConfig:
             raise ConfigurationError("component_rewards must be a sequence of floats.")
         return cls(
             enabled=bool(data.get("enabled", False)),
-            component_rewards=tuple(float(item) for item in raw),
+            component_rewards=tuple(same_float(item) for item in raw),
         )
 
     def digest(self) -> str:

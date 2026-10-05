@@ -13,7 +13,7 @@ import itertools
 import math
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -1304,9 +1304,10 @@ class ContactAtpLedger:
             "atp_yield_by_tag": dict(sorted(self.atp_yield_by_tag.items())),
             "failed_prediction_digests": dict(sorted(self.failed_prediction_digests.items())),
             "recovery_tokens": dict(sorted(self.recovery_tokens.items())),
-            "scaffold_edge_sets": {
-                k: sorted(v) for k, v in sorted(self.scaffold_edge_sets.items())
-            },
+            "scaffold_edge_sets": cast(
+                JsonValue,
+                {k: sorted(v) for k, v in sorted(self.scaffold_edge_sets.items())},
+            ),
             "rival_pair_id": self.rival_pair_id,
             "rival_assay_log_len": len(self.rival_assay_log),
             "reactive_memory": dict(sorted(self.reactive_memory.items())),
@@ -1315,14 +1316,14 @@ class ContactAtpLedger:
             "unreach_id": self.unreach_id,
             "package_schema_id": self.package_schema_id,
             "reversal_cell_id": self.reversal_cell_id,
-            "causal_package_ids": sorted(self.causal_packages),
-            "raw_pool_keys": sorted(self.raw_pool),
+            "causal_package_ids": cast(JsonValue, sorted(self.causal_packages)),
+            "raw_pool_keys": cast(JsonValue, sorted(self.raw_pool)),
             "imitation_buffer_len": len(self.imitation_buffer),
             "package_cut_applied": bool(self.package_cut_applied),
             "world_family_id": self.world_family_id,
             "short_law_id": self.short_law_id,
             "probe_id": self.probe_id,
-            "retained_law_keys": sorted(self.retained_laws),
+            "retained_law_keys": cast(JsonValue, sorted(self.retained_laws)),
             "teaching_log_len": len(self.teaching_log),
             "survival_only_active": bool(self.survival_only_active),
             "held_out_split": {

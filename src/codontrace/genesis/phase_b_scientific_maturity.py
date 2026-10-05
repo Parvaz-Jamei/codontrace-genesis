@@ -9,7 +9,7 @@ scale, statistics, release packs, plugins, and evidence-lineage wiring.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -1099,8 +1099,14 @@ class PhaseBScientificMaturityReport:
             "plugin_validations": [x.to_dict() for x in self.plugin_validations],
             "release_packs": [x.to_dict() for x in self.release_packs],
             "feature_statuses": [x.to_dict() for x in self.feature_statuses],
-            "artifact_digest_map": self.artifact_digest_map if self.record_digest else {},
-            "manifest_feature_status": self.manifest_feature_status if self.record_digest else {},
+            "artifact_digest_map": cast(
+                dict[str, JsonValue],
+                self.artifact_digest_map if self.record_digest else {},
+            ),
+            "manifest_feature_status": cast(
+                dict[str, JsonValue],
+                self.manifest_feature_status if self.record_digest else {},
+            ),
             "record_digest": self.record_digest,
         }
 

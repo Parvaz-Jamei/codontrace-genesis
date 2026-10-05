@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from codontrace.dynvalues import same_float, same_mapping
 from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
     RQ_ACCEPT_THRESHOLD,
     RQ_SYNTHETIC_SCORE,
@@ -242,8 +243,8 @@ def rq3_hand_channel() -> dict[str, object]:
         {0: float(common["pressure"]["A"])},  # type: ignore[index]
         window=[0],
     )
-    score = _r(float(signal["s"]))
-    frozen = _r(float(frozen_signal["s"]))
+    score = _r(same_float(signal["s"]))
+    frozen = _r(same_float(frozen_signal["s"]))
     return {
         "pi_common": _r(float(common["pressure"]["A"])),  # type: ignore[index]
         "pi_rare": _r(float(rare["pressure"]["A"])),  # type: ignore[index]
@@ -346,6 +347,6 @@ def stage0_report(
         ),
         "hand_digest": digest,
         "hand_digest_replay": canonical_digest(hand),
-        "histogram_difference": hand["histogram_blind"]["difference"],
+        "histogram_difference": same_mapping(hand["histogram_blind"])["difference"],
         "withdrawn_difference": 0.700,
     }

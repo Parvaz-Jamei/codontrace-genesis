@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## [0.3.0b15] — 2026-10-05
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b14`.
 
 - An empty phase-5 archive is not marked `COMPLETE`. A birth with no primary parent keeps the second parent and does not look up the window `"None"`. A false recombination flag stays in the witness.
 - A two-fold sexual birth trace records the recombination backbone as `parent_id`, not the organism that closed the chamber twice.
@@ -9,6 +11,7 @@
 - A confirmatory whose prereg locks a revised design does not start or score. A `COMPLETE` file whose arm is marked failed is not support.
 - HE02 primary contrasts use Cohen's dz on the paired differences (Lakens, 2013). The two-vector call was the wrong shape, raised, and was stored as a missing effect. Claim ceiling stays `runtime_observation`.
 - Rescoring those contrasts no longer drops the prereg block that content_null must not beat channel_off. A stale missing-effect failure is not kept after the contrasts are recomputed.
+- Evolution rules, the RNG, and `engine.py` are unchanged. `red_queen_proved` stays false. HE03 `results_v1` stays absent.
 
 ## [0.3.0b14] — 2026-10-05
 

@@ -13,6 +13,7 @@ import json
 import math
 import random
 import statistics
+import sys
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -428,7 +429,8 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=1800.0)
     args = parser.parse_args()
     if args.verify_reference:
-        print(json.dumps(verify_reference(args.output)))
+        sys.stdout.write(json.dumps(verify_reference(args.output)) + "\n")
+        sys.stdout.flush()
         return
     if args.histories < 1:
         parser.error("histories must be positive")
@@ -438,7 +440,8 @@ def main() -> None:
         report = engine_pilot(args.output, seeds, 100 if args.generations is None else args.generations, args.max_seconds)
     else:
         report = run_reference(args.output, Design(seeds=seeds, generations=300 if args.generations is None else args.generations))
-    print(json.dumps({k: v for k, v in report.items() if k not in ("by_seed", "contrasts", "archive_sha256")}))
+    sys.stdout.write(json.dumps({k: v for k, v in report.items() if k not in ("by_seed", "contrasts", "archive_sha256")}) + "\n")
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":

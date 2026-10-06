@@ -15,6 +15,7 @@ import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from codontrace.console.chat import chat_turn, check_llm_status, list_discovered_models, set_llm_endpoint
@@ -32,6 +33,7 @@ from codontrace.console.runs import (
     list_simulation_runs,
     manage_run_action,
     send_signal_to_run,
+    validate_run_id,
 )
 from codontrace.console.scripts_service import (
     list_gates,
@@ -40,9 +42,23 @@ from codontrace.console.scripts_service import (
     run_gate_tests,
     run_script,
     save_script,
+    validate_script_name,
 )
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
+
+
+def _parse_json_dict(raw: bytes) -> tuple[dict[str, Any] | None, str | None]:
+    """Safely parse JSON request body ensuring it is a dictionary/object."""
+    if not raw or not raw.strip():
+        return {}, None
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError) as exc:
+        return None, f"Invalid JSON syntax: {exc}"
+    if not isinstance(obj, dict):
+        return None, f"Expected JSON object, got {type(obj).__name__}"
+    return obj, None
 _CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
     ".html": "text/html; charset=utf-8",
@@ -286,28 +302,85 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self._respond(include_body=True)
 
+    def _is_origin_allowed(self) -> bool:
+        """Validate request Origin to prevent cross-origin mutation attacks."""
+        origin = self.headers.get("Origin")
+        if not origin:
+            fetch_site = (self.headers.get("Sec-Fetch-Site") or "").lower()
+            if fetch_site == "cross-site":
+                return False
+            return True
+
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        origin_host = (parsed.hostname or "").lower()
+        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return True
+
+        host_header = self.headers.get("Host", "")
+        if host_header:
+            req_host = host_header.split(":", 1)[0].lower()
+            if origin_host == req_host:
+                return True
+
+        server_host = str(getattr(self.server, "server_address", ("", 0))[0]).lower()
+        if server_host and origin_host == server_host:
+            return True
+
+        return False
+
     def do_OPTIONS(self) -> None:
+        origin = self.headers.get("Origin")
+        if origin and not self._is_origin_allowed():
+            self.send_response(403)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        else:
+            self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Accept, Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization, X-Requested-With")
         self.send_header("Access-Control-Max-Age", "600")
         self.send_header("Content-Length", "0")
         self.end_headers()
 
     def do_POST(self) -> None:
+        if not self._is_origin_allowed():
+            self._send(
+                403,
+                "application/json; charset=utf-8",
+                b'{"ok": false, "error": "Forbidden: untrusted origin"}\n',
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", "0") or "0")
-        if length > 32768:
-            self._send(400, "text/plain; charset=utf-8", b"body too large\n", include_body=True, cache="no-store")
+        if length > 262144:  # 256 KB max payload
+            self._send(413, "application/json; charset=utf-8", b'{"ok": false, "error": "Payload too large"}\n', include_body=True, cache="no-store")
             return
         raw_body = self.rfile.read(length) if length > 0 else b""
 
+        body_json, json_err = _parse_json_dict(raw_body)
+        if json_err is not None:
+            self._send(
+                400,
+                "application/json; charset=utf-8",
+                json.dumps({"ok": False, "error": json_err}).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+        assert body_json is not None
+
         if path == "/api/chat":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
             text = str(body_json.get("text") or body_json.get("message") or "").strip()
             lang = str(body_json.get("lang", "en")).strip()
             ctx = body_json.get("jobContext")
@@ -322,11 +395,18 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/chat/endpoint":
+            ep = body_json.get("endpoint")
             try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
-            set_llm_endpoint(body_json.get("endpoint"))
+                set_llm_endpoint(ep)
+            except ValueError as exc:
+                self._send(
+                    400,
+                    "application/json; charset=utf-8",
+                    json.dumps({"ok": False, "error": str(exc)}).encode("utf-8"),
+                    include_body=True,
+                    cache="no-store",
+                )
+                return
             self._send(
                 200,
                 "application/json; charset=utf-8",
@@ -337,13 +417,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/runs/launch":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
             res = launch_simulation_run(body_json)
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
                 json.dumps(res, allow_nan=False).encode("utf-8"),
                 include_body=True,
@@ -352,13 +429,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/runs/action":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
-            res = manage_run_action(str(body_json.get("runId", "")), str(body_json.get("action", "")))
+            run_id = str(body_json.get("runId", ""))
+            action = str(body_json.get("action", ""))
+            res = manage_run_action(run_id, action)
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
                 json.dumps(res, allow_nan=False).encode("utf-8"),
                 include_body=True,
@@ -367,13 +443,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/scripts/upload":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
-            res = save_script(str(body_json.get("name", "")), str(body_json.get("content", "")))
+            name = str(body_json.get("name", ""))
+            content = str(body_json.get("content", ""))
+            res = save_script(name, content)
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
                 json.dumps(res, allow_nan=False).encode("utf-8"),
                 include_body=True,
@@ -382,13 +457,11 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/scripts/run":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
-            res = run_script(str(body_json.get("name", "")))
+            name = str(body_json.get("name", ""))
+            res = run_script(name)
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
                 json.dumps(res, allow_nan=False).encode("utf-8"),
                 include_body=True,
@@ -397,10 +470,6 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/gates/run":
-            try:
-                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-            except ValueError:
-                body_json = {}
             res = run_gate_tests(body_json.get("filter"))
             self._send(
                 200,
@@ -413,6 +482,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/runs/") and path.endswith("/pause"):
             run_id = path.removeprefix("/api/runs/").removesuffix("/pause")
+            if not validate_run_id(run_id):
+                self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID"}\n', include_body=True, cache="no-store")
+                return
             ok = send_signal_to_run(run_id, "STOP")
             self._send(
                 200,
@@ -425,6 +497,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/runs/") and path.endswith("/resume"):
             run_id = path.removeprefix("/api/runs/").removesuffix("/resume")
+            if not validate_run_id(run_id):
+                self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID"}\n', include_body=True, cache="no-store")
+                return
             ok = send_signal_to_run(run_id, "CONT")
             self._send(
                 200,
@@ -475,6 +550,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         if path.startswith("/api/runs/") and path.endswith("/zip"):
             run_id = path.removeprefix("/api/runs/").removesuffix("/zip").strip("/")
+            if not validate_run_id(run_id):
+                self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID or path traversal attempt"}\n', include_body=include_body, cache="no-store")
+                return
             zip_bytes = get_run_zip(run_id)
             if zip_bytes is None:
                 self._send(404, "application/json; charset=utf-8", b'{"error": "run not found"}', include_body=include_body, cache="no-store")
@@ -490,6 +568,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         if path.startswith("/api/runs/"):
             run_id = path.removeprefix("/api/runs/").strip("/")
+            if not validate_run_id(run_id):
+                self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID or path traversal attempt"}\n', include_body=include_body, cache="no-store")
+                return
             details = get_run_details(run_id)
             if details is None:
                 self._send(404, "application/json; charset=utf-8", b'{"error": "run not found"}', include_body=include_body, cache="no-store")
@@ -502,6 +583,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         if path.startswith("/api/scripts/"):
             script_name = path.removeprefix("/api/scripts/").strip("/")
+            if not validate_script_name(script_name):
+                self._send(400, "text/plain; charset=utf-8", b"invalid script name\n", include_body=include_body, cache="no-store")
+                return
             body_text = read_script(script_name)
             if body_text is None:
                 self._send(404, "text/plain; charset=utf-8", b"script not found\n", include_body=include_body, cache="no-store")
@@ -538,7 +622,13 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", cache)
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin:
+            if self._is_origin_allowed():
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+        else:
+            self.send_header("Access-Control-Allow-Origin", "*")
         if extra_headers:
             for k, v in extra_headers.items():
                 self.send_header(k, v)

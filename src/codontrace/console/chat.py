@@ -24,9 +24,17 @@ _RUNTIME_ENDPOINT: str | None = None
 
 
 def set_llm_endpoint(endpoint: str | None) -> None:
-    """Dynamically set the active LLM endpoint."""
+    """Dynamically set the active LLM endpoint with scheme validation."""
     global _RUNTIME_ENDPOINT
-    _RUNTIME_ENDPOINT = endpoint.strip() if endpoint else None
+    if not endpoint:
+        _RUNTIME_ENDPOINT = None
+        return
+    clean = endpoint.strip()
+    from urllib.parse import urlparse
+    parsed = urlparse(clean)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("Invalid LLM endpoint: must be a valid http or https URL")
+    _RUNTIME_ENDPOINT = clean
 
 
 def get_llm_endpoint() -> str:

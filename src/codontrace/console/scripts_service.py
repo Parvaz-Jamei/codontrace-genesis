@@ -70,14 +70,34 @@ def list_scripts() -> list[dict[str, Any]]:
     return results
 
 
+def validate_script_name(name: str) -> str | None:
+    """Validate script filename to prevent path traversal and arbitrary execution."""
+    if not isinstance(name, str):
+        return None
+    clean = name.strip()
+    if not clean or len(clean) > 128 or not clean.endswith(".py"):
+        return None
+    if Path(clean).name != clean or ".." in clean or "/" in clean or "\\" in clean:
+        return None
+    import re
+    if not re.fullmatch(r"^[a-zA-Z0-9_\-\.]+\.py$", clean):
+        return None
+    return clean
+
+
 def read_script(name: str) -> str | None:
-    """Read contents of a script safely."""
-    clean_name = Path(name).name
-    if not clean_name.endswith(".py") or ".." in clean_name:
+    """Read contents of a script safely with strict containment validation."""
+    clean_name = validate_script_name(name)
+    if not clean_name:
         return None
 
     for s_dir in script_directories():
-        candidate = s_dir / clean_name
+        s_dir_res = s_dir.resolve()
+        candidate = (s_dir / clean_name).resolve()
+        try:
+            candidate.relative_to(s_dir_res)
+        except ValueError:
+            continue
         if candidate.is_file():
             try:
                 return candidate.read_text(encoding="utf-8", errors="replace")
@@ -115,18 +135,34 @@ def list_gates(repo_root: Path | None = None) -> list[dict[str, Any]]:
 
 
 def save_script(name: str, content: str) -> dict[str, Any]:
-    """Save an uploaded script to the custom_tests directory."""
-    clean = Path(name).name
-    if not clean.endswith(".py") or ".." in clean:
-        return {"ok": False, "error": "Script must be a .py file"}
+    """Save an uploaded script to the custom_tests directory with strict size and path guards."""
+    clean = validate_script_name(name)
+    if not clean:
+        return {"ok": False, "error": "Invalid script name or path traversal attempt", "status_code": 400}
+
+    if not isinstance(content, str):
+        return {"ok": False, "error": "Script content must be text", "status_code": 400}
+
+    # Strict upload limit: 200 KB
+    content_bytes = content.encode("utf-8")
+    if len(content_bytes) > 200 * 1024:
+        return {"ok": False, "error": "Script content exceeds 200 KB limit", "status_code": 413}
+
     target_dir = Path("custom_tests").resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_file = target_dir / clean
+    target_file = (target_dir / clean).resolve()
     try:
-        target_file.write_text(content, encoding="utf-8")
+        target_file.relative_to(target_dir)
+    except ValueError:
+        return {"ok": False, "error": "Path traversal detected", "status_code": 400}
+
+    try:
+        temp_file = target_file.with_name(f"{target_file.name}.tmp")
+        temp_file.write_text(content, encoding="utf-8")
+        os.replace(temp_file, target_file)
         return {"ok": True, "name": clean, "path": str(target_file)}
     except OSError as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": str(e), "status_code": 500}
 
 
 def run_script(name: str) -> dict[str, Any]:
@@ -134,15 +170,24 @@ def run_script(name: str) -> dict[str, Any]:
     import subprocess
     import sys
 
-    clean = Path(name).name
+    clean = validate_script_name(name)
+    if not clean:
+        return {"ok": False, "error": "Invalid script name or path traversal attempt", "status_code": 400}
+
     repo_root = Path(__file__).resolve().parents[3]
     candidate = None
     for s_dir in script_directories():
-        if (s_dir / clean).is_file():
-            candidate = s_dir / clean
+        s_dir_res = s_dir.resolve()
+        item = (s_dir / clean).resolve()
+        try:
+            item.relative_to(s_dir_res)
+        except ValueError:
+            continue
+        if item.is_file():
+            candidate = item
             break
     if not candidate:
-        return {"ok": False, "error": f"Script {name} not found"}
+        return {"ok": False, "error": f"Script {name} not found", "status_code": 404}
 
     try:
         proc = subprocess.run(

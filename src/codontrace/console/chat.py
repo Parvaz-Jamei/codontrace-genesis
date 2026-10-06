@@ -100,11 +100,13 @@ def check_llm_status() -> dict[str, Any]:
                     data = json.loads(resp.read().decode("utf-8"))
                     models = [m.get("id", "model") for m in data.get("data", [])] if isinstance(data, dict) else []
                     active_model = models[0] if models else "active-model"
+                    provider = "llama-server" if ":8088" in ep else ("ollama" if ":11434" in ep else "local-llm")
                     return {
                         "mounted": True,
                         "endpoint": ep,
                         "model": active_model,
-                        "provider": "llama-server" if ":8088" in ep else "local-llm",
+                        "provider": provider,
+                        "available_models": models,
                     }
         except (urllib.error.URLError, TimeoutError, OSError, ValueError):
             continue
@@ -114,11 +116,16 @@ def check_llm_status() -> dict[str, Any]:
         "endpoint": endpoint,
         "model": None,
         "provider": "none",
+        "available_models": [],
     }
 
 
-def query_llm(messages: list[dict[str, str]], system_prompt: str | None = None) -> str | None:
-    """Send query to local LLM server."""
+def query_llm(
+    messages: list[dict[str, str]],
+    system_prompt: str | None = None,
+    model: str | None = None,
+) -> str | None:
+    """Send query to local LLM server with explicit model and safe timeout handling."""
     status = check_llm_status()
     if not status["mounted"]:
         return None
@@ -129,11 +136,14 @@ def query_llm(messages: list[dict[str, str]], system_prompt: str | None = None) 
         all_messages.append({"role": "system", "content": system_prompt})
     all_messages.extend(messages)
 
-    payload = json.dumps({
+    chosen_model = model or status.get("model") or "local-model"
+    payload_dict: dict[str, Any] = {
+        "model": chosen_model,
         "messages": all_messages,
         "temperature": 0.3,
-        "max_tokens": 180,
-    }).encode("utf-8")
+        "max_tokens": 300,
+    }
+    payload = json.dumps(payload_dict).encode("utf-8")
 
     req = urllib.request.Request(
         endpoint,
@@ -146,7 +156,7 @@ def query_llm(messages: list[dict[str, str]], system_prompt: str | None = None) 
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=90.0) as resp:
+        with urllib.request.urlopen(req, timeout=30.0) as resp:
             if resp.status == 200:
                 body = json.loads(resp.read().decode("utf-8"))
                 choices = body.get("choices", [])
@@ -158,16 +168,75 @@ def query_llm(messages: list[dict[str, str]], system_prompt: str | None = None) 
     return None
 
 
-def chat_turn(text: str, lang: str = "en", job_context: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Execute a chat turn with LLM or fallback."""
+def chat_turn(
+    text: str,
+    lang: str = "en",
+    job_context: dict[str, Any] | None = None,
+    job_id: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """Execute an authoritative chat turn with LLM or deterministic fallback."""
+    t0 = time.time()
     sys_prompt = (
         "You are the CodonTrace Genesis Research Assistant. "
         "CodonTrace is a deterministic digital evolution and host-parasite coevolution engine. "
         "Provide insightful, scientifically grounded evolutionary analysis. "
         "Keep responses structured and focused. "
+        "EPISTEMOLOGICAL INVARIANT: The Red Queen hypothesis is NEVER proven by computational runs. "
+        "red_queen_proved is strictly locked to false. Never claim or imply that Red Queen is proven. "
         f"Respond in {'Persian (Farsi)' if lang == 'fa' else 'English'}."
     )
-    if job_context:
+
+    effective_run_id = job_id or (
+        str(job_context.get("id") or job_context.get("runId"))
+        if isinstance(job_context, dict) and (job_context.get("id") or job_context.get("runId"))
+        else None
+    )
+
+    if effective_run_id:
+        from codontrace.console.runs import get_run_details
+
+        run_data = get_run_details(effective_run_id)
+        if run_data is not None:
+            manifest = run_data.get("manifest") or {}
+            params = manifest.get("params") or {}
+            execution = run_data.get("execution")
+            diagnostics = run_data.get("diagnostics")
+            live_logs = run_data.get("liveLogs") or []
+            tail_lines = live_logs[-5:] if isinstance(live_logs, list) else []
+
+            ctx_summary = (
+                f"\n[Authoritative Server Run Context for {effective_run_id}]:\n"
+                f"- Title: {run_data.get('title')}\n"
+                f"- Status: {run_data.get('status')}\n"
+                f"- Generations: {params.get('generations', 'unspecified')}, Workers: {params.get('workers', 'unspecified')}\n"
+                f"- Seeds: {params.get('seeds', [])}\n"
+                f"- Invariant status: invariant=ok, red_queen_proved=false (LOCKED)\n"
+            )
+            if execution is not None and isinstance(execution, dict):
+                ctx_summary += (
+                    f"- Execution outcome: complete={execution.get('complete')}, "
+                    f"elapsed_seconds={execution.get('elapsed_seconds')}, "
+                    f"diagnostics_complete={execution.get('diagnostics_complete')}\n"
+                )
+            else:
+                ctx_summary += "- Execution outcome: no execution summary available yet (in progress or pending)\n"
+
+            if diagnostics is not None and isinstance(diagnostics, dict):
+                ctx_summary += f"- Diagnostics summary: lag={diagnostics.get('lag')}, permutations={diagnostics.get('permutations')}\n"
+            else:
+                ctx_summary += "- Diagnostics: no time-shift diagnostics data recorded for this run\n"
+
+            if tail_lines:
+                ctx_summary += "- Recent live logs:\n  " + "\n  ".join(tail_lines) + "\n"
+
+            sys_prompt += ctx_summary
+        else:
+            sys_prompt += (
+                f"\n[Run Context]: Run '{effective_run_id}' was queried but no server run details exist "
+                "(unmanaged client demo or archived).\n"
+            )
+    elif job_context:
         ctx_summary = (
             f"Active Job Context: title='{job_context.get('title')}', "
             f"kind='{job_context.get('kind')}', status='{job_context.get('status')}', "
@@ -175,12 +244,24 @@ def chat_turn(text: str, lang: str = "en", job_context: dict[str, Any] | None = 
         )
         sys_prompt += f" {ctx_summary}"
 
-    llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt)
+    llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
+    duration_ms = round((time.time() - t0) * 1000)
+
     if llm_answer is not None:
+        # Enforce locked invariant guardrail on response
+        if "red_queen_proved=true" in llm_answer.lower() or "red queen is proved" in llm_answer.lower():
+            llm_answer += (
+                "\n\n[Invariant Note: In accordance with scientific epistemic safeguards, "
+                "red_queen_proved remains strictly false.]"
+            )
+        status = check_llm_status()
         return {
             "source": "llm",
             "reply": llm_answer,
             "mounted": True,
+            "model": model or status.get("model") or "local-model",
+            "duration_ms": duration_ms,
+            "fallback": False,
         }
 
     # Deterministic fallback answer
@@ -188,17 +269,22 @@ def chat_turn(text: str, lang: str = "en", job_context: dict[str, Any] | None = 
         fallback_reply = (
             "مدل هوش مصنوعی محلی در پورت ۸۰۸۸ یا ۱۱۴۳۴ متصل نیست. "
             "تحلیلگر محلی جنسیس: این محیط جهت رصد و پایش تجربی دینامیک‌های مسابقه تسلیحاتی فرگشتی "
-            "(Red Queen Dynamics) و ماتریس‌های انتقال زمانی دوطرفه طراحی شده است."
+            "(Red Queen Dynamics) و ماتریس‌های انتقال زمانی دوطرفه طراحی شده است. "
+            "قفل معرفت‌شناختی: red_queen_proved=false به صورت قطعی در سیستم برقرار است."
         )
     else:
         fallback_reply = (
             "No local LLM detected on port 8088 or 11434. "
             "CodonTrace local analyst: This console observes reciprocal antagonistic coevolutionary "
-            "dynamics and bidirectional time-shift assays."
+            "dynamics and bidirectional time-shift assays. "
+            "Epistemic invariant: red_queen_proved=false is strictly preserved."
         )
 
     return {
         "source": "analyst",
         "reply": fallback_reply,
         "mounted": False,
+        "model": "deterministic-analyst",
+        "duration_ms": duration_ms,
+        "fallback": True,
     }

@@ -250,7 +250,12 @@ export function ChatView() {
   const clearThread = useBench((state) => state.clearThread);
   const model = useBench((state) => state.settings.model ?? "local-analyst");
   const setSettings = useBench((state) => state.setSettings);
+  const refreshChatStatus = useBench((state) => state.refreshChatStatus);
   const text = t(lang);
+
+  useEffect(() => {
+    refreshChatStatus();
+  }, [refreshChatStatus]);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
@@ -390,9 +395,21 @@ export function ChatView() {
                   </p>
                 </div>
               ) : (
-                <p key={message.id} className="w-full whitespace-pre-wrap break-words text-start leading-relaxed">
-                  <Reveal text={message.text} active={message.id === lastAssistantId && Date.now() - message.at < 8000} />
-                </p>
+                <div key={message.id} className="flex w-full flex-col gap-1 text-start leading-relaxed">
+                  <p className="whitespace-pre-wrap break-words">
+                    <Reveal text={message.text} active={message.id === lastAssistantId && Date.now() - message.at < 8000} />
+                  </p>
+                  {(message.source || message.model) ? (
+                    <div className="flex items-center gap-2 text-[11px] text-muted">
+                      <span className="rounded bg-white/5 px-1.5 py-0.5 uppercase tracking-wider font-mono text-[10px]">
+                        {message.source === "llm" ? "LLM" : "Analyst"}
+                      </span>
+                      {message.model ? <span>{message.model}</span> : null}
+                      {message.durationMs ? <span>{message.durationMs}ms</span> : null}
+                      {message.fallback ? <span className="text-amber-400">fallback</span> : null}
+                    </div>
+                  ) : null}
+                </div>
               ),
             )}
           </div>
@@ -475,6 +492,7 @@ function ChatModelSelect({
   onModel: (model: "local-analyst" | "board-model") => void;
   className?: string;
 }) {
+  const chatStatus = useBench((state) => state.chatStatus);
   return (
     <label className={cn("inline-flex min-h-11 min-w-0 items-center gap-2 text-sm text-muted", className)}>
       <span className="shrink-0">{text.model}</span>
@@ -486,12 +504,15 @@ function ChatModelSelect({
         }}
         className="min-h-11 w-full min-w-0 truncate rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10"
       >
-        {MODELS.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.id === "local-analyst" ? text.modelLocal : text.modelBoard}
-            {item.mounted ? "" : ` · ${text.modelMissing}`}
-          </option>
-        ))}
+        {MODELS.map((item) => {
+          const isMounted = item.id === "local-analyst" ? true : Boolean(chatStatus?.mounted);
+          return (
+            <option key={item.id} value={item.id}>
+              {item.id === "local-analyst" ? text.modelLocal : text.modelBoard}
+              {isMounted ? "" : ` · ${text.modelMissing}`}
+            </option>
+          );
+        })}
       </select>
     </label>
   );

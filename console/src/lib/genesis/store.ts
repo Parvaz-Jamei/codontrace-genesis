@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { answer } from "./analyst";
 import { ARMS, contactsFor, ENGINE_COMMIT, GATE_FILES, PRESETS } from "./catalog";
 import {
+  checkChatStatus,
   fetchRunDetails,
   fetchSimulationRuns,
   launchServerRun,
@@ -10,6 +11,8 @@ import {
 } from "./host";
 import type {
   BenchSettings,
+  ChatMessage,
+  ChatStatus,
   HostProfile,
   Job,
   JobKind,
@@ -51,6 +54,8 @@ type BenchState = {
   view: View;
   selectedJobId: string | null;
   activeThreadId: string | null;
+  chatStatus: ChatStatus | null;
+  refreshChatStatus: () => Promise<void>;
   setHost: (host: HostProfile) => void;
   setView: (view: View) => void;
   setSettings: (patch: Partial<BenchSettings>) => void;
@@ -104,6 +109,15 @@ export const useBench = create<BenchState>()(
       view: "jobs",
       selectedJobId: null,
       activeThreadId: null,
+      chatStatus: null,
+      refreshChatStatus: async () => {
+        try {
+          const status = await checkChatStatus();
+          set({ chatStatus: status });
+        } catch {
+          set({ chatStatus: { mounted: false, endpoint: "", model: null, provider: "none" } });
+        }
+      },
       setHost: (host) => set({ host }),
       setView: (view) => set({ view }),
       setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
@@ -371,13 +385,17 @@ export const useBench = create<BenchState>()(
         });
 
         if (state.settings.model === "board-model") {
-          sendChatMessage(trimmed, state.settings.lang, job)
+          sendChatMessage(trimmed, state.settings.lang, job, job?.id, state.settings.model)
             .then((res) => {
-              const assistantMsg = {
+              const assistantMsg: ChatMessage = {
                 id: uid(),
                 role: "assistant" as const,
                 text: res.reply,
                 at: Date.now(),
+                source: res.source,
+                model: res.model,
+                durationMs: res.duration_ms,
+                fallback: res.fallback,
               };
               set({
                 threads: get().threads.map((item) =>
@@ -397,11 +415,13 @@ export const useBench = create<BenchState>()(
                 state.settings.lang === "fa"
                   ? `پاسخ از تحلیلگر محلی (مدل زنده در دسترس نیست):\n${reply}`
                   : `Local analyst fallback (live model offline):\n${reply}`;
-              const assistantMsg = {
+              const assistantMsg: ChatMessage = {
                 id: uid(),
                 role: "assistant" as const,
                 text: spoken,
                 at: Date.now(),
+                source: "analyst",
+                fallback: true,
               };
               set({
                 threads: get().threads.map((item) =>
@@ -417,11 +437,14 @@ export const useBench = create<BenchState>()(
             });
         } else {
           const reply = answer(state.settings.lang, trimmed, job ?? null);
-          const assistantMsg = {
+          const assistantMsg: ChatMessage = {
             id: uid(),
             role: "assistant" as const,
             text: reply,
             at: at + 1,
+            source: "analyst",
+            model: "local-analyst",
+            fallback: false,
           };
           set({
             threads: get().threads.map((item) =>

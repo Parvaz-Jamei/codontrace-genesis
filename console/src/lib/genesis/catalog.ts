@@ -26,8 +26,8 @@ export const ENGINE_IDENTITY = "0.3.0b21";
 export const ENGINE_COMMIT = "5209c87";
 
 export const MODELS = [
-  { id: "local-analyst", mounted: true },
-  { id: "board-model", mounted: true },
+  { id: "local-analyst" },
+  { id: "board-model" },
 ] as const;
 
 export function range(from: number, to: number) {

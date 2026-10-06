@@ -335,8 +335,12 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         alive = False
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
-            if proc and proc.poll() is None:
-                alive = True
+            if proc:
+                p_code = proc.poll()
+                if p_code is None:
+                    alive = True
+                else:
+                    status_info.setdefault("exitCode", p_code)
         if not alive and pid:
             alive = is_pid_alive(pid)
 
@@ -355,6 +359,13 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 st = "STALE"
             if st != orig_st:
                 status_info["status"] = st
+                if st == "COMPLETED":
+                    status_info.setdefault("exitCode", 0)
+                    status_info.setdefault("pct", 100.0)
+                    status_info.setdefault("endedAt", time.time())
+                elif st == "FAILED":
+                    status_info.setdefault("exitCode", 1)
+                    status_info.setdefault("endedAt", time.time())
                 write_atomic_json(status_file, status_info)
 
     manifest_file = entry / "run_manifest.json"

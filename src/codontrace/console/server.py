@@ -402,7 +402,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             text = str(body_json.get("text") or body_json.get("message") or "").strip()
             lang = str(body_json.get("lang", "en")).strip()
             ctx = body_json.get("jobContext")
-            result = chat_turn(text, lang, ctx if isinstance(ctx, dict) else None)
+            job_id = body_json.get("jobId") or body_json.get("runId")
+            model = body_json.get("model")
+            result = chat_turn(
+                text,
+                lang,
+                ctx if isinstance(ctx, dict) else None,
+                job_id=str(job_id).strip() if job_id else None,
+                model=str(model).strip() if model else None,
+            )
             self._send(
                 200,
                 "application/json; charset=utf-8",

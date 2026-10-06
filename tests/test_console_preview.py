@@ -758,6 +758,92 @@ def test_console_phase3_scientific_metrics_in_run_details(monkeypatch, tmp_path:
     assert details["status"] == "COMPLETED"
 
 
+def test_console_phase4_authoritative_chat_and_invariant(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    from codontrace.console import chat
+
+    run_dir = tmp_path / "runs" / "run_phase4_chat_test"
+    engine_dir = run_dir / "output"
+    engine_dir.mkdir(parents=True)
+
+    manifest_data = {
+        "title": "Phase 4 Chat Test",
+        "params": {"generations": 10, "workers": 2, "seeds": [20001, 20002]},
+    }
+    (run_dir / "run_manifest.json").write_text(json.dumps(manifest_data), encoding="utf-8")
+    (run_dir / "status.json").write_text(json.dumps({"status": "COMPLETED", "pct": 100.0}), encoding="utf-8")
+    exec_content = {
+        "complete": True,
+        "elapsed_seconds": 12.5,
+        "red_queen_proved": False,
+        "diagnostics_complete": True,
+    }
+    (engine_dir / "execution.json").write_text(json.dumps(exec_content), encoding="utf-8")
+    (engine_dir / "live.log").write_text("generation=10 arm=coevolve invariant=ok red_queen_proved=false\n", encoding="utf-8")
+
+    res = chat.chat_turn("What are the outcomes of this run?", lang="en", job_id="run_phase4_chat_test")
+    assert isinstance(res, dict)
+    assert "source" in res
+    assert res["source"] in ("analyst", "llm")
+    assert "reply" in res
+    assert "duration_ms" in res
+    assert isinstance(res["duration_ms"], int)
+    assert "fallback" in res
+    assert isinstance(res["fallback"], bool)
+    # Locked invariant
+    assert "red_queen_proved=true" not in res["reply"].lower()
+
+
+def test_console_phase4_chat_status_endpoint() -> None:
+    httpd = server.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address[:2]
+    base = f"http://{host}:{port}"
+    try:
+        with urllib.request.urlopen(f"{base}/api/chat/status", timeout=5) as r:
+            assert r.status == 200
+            data = json.loads(r.read().decode("utf-8"))
+            assert "mounted" in data
+            assert isinstance(data["mounted"], bool)
+            assert "endpoint" in data
+            assert "model" in data
+            assert "provider" in data
+            assert "available_models" in data
+            assert isinstance(data["available_models"], list)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)
+
+
+def test_console_phase4_scripts_and_gates_alignment(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("CODONTRACE_SCRIPTS_DIR", str(tmp_path / "custom_scripts"))
+    from codontrace.console import scripts_service
+
+    canonical_dir = scripts_service.canonical_scripts_directory()
+    assert canonical_dir.is_dir()
+    assert canonical_dir == (tmp_path / "custom_scripts").resolve()
+
+    # Save a script
+    save_res = scripts_service.save_script("custom_test_phase4.py", "# Test script\nprint('hello')\n")
+    assert save_res["ok"] is True
+    assert (canonical_dir / "custom_test_phase4.py").is_file()
+
+    # Verify list_scripts finds it
+    scripts = scripts_service.list_scripts()
+    names = [s["name"] for s in scripts]
+    assert "custom_test_phase4.py" in names
+
+    # Verify list_gates computes count
+    gates = scripts_service.list_gates()
+    assert len(gates) > 0
+    for g in gates:
+        assert "count" in g
+        assert isinstance(g["count"], int)
+
+
+
 
 
 

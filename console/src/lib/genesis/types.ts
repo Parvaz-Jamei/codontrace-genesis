@@ -62,11 +62,23 @@ export type Job = {
   diagnosticsData?: Record<string, unknown>;
 };
 
+export type ChatStatus = {
+  mounted: boolean;
+  endpoint: string;
+  model: string | null;
+  provider: string;
+  available_models?: string[];
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
   at: number;
+  source?: "llm" | "analyst";
+  model?: string;
+  durationMs?: number;
+  fallback?: boolean;
 };
 
 export type Thread = {

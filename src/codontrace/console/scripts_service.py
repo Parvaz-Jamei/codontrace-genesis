@@ -12,12 +12,22 @@ from pathlib import Path
 from typing import Any
 
 
-def script_directories() -> list[Path]:
-    """Find directories containing custom tests and research scripts."""
-    dirs: list[Path] = []
+def canonical_scripts_directory() -> Path:
+    """Canonical directory for user custom tests and scripts."""
     custom_env = os.environ.get("CODONTRACE_SCRIPTS_DIR", "").strip()
     if custom_env:
-        dirs.append(Path(custom_env).expanduser())
+        d = Path(custom_env).expanduser().resolve()
+    else:
+        repo_dir = Path(__file__).resolve().parents[3]
+        candidate = repo_dir / "custom_tests"
+        d = candidate if candidate.is_dir() else Path("custom_tests").resolve()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def script_directories() -> list[Path]:
+    """Find directories containing custom tests and research scripts."""
+    dirs: list[Path] = [canonical_scripts_directory()]
 
     dirs.append(Path("custom_tests").resolve())
     dirs.append(Path("scripts").resolve())
@@ -107,7 +117,7 @@ def read_script(name: str) -> str | None:
 
 
 def list_gates(repo_root: Path | None = None) -> list[dict[str, Any]]:
-    """List the 29 gate test files and their metadata."""
+    """List the gate test files and their metadata with actual test counts."""
     if repo_root is None:
         repo_root = Path(__file__).resolve().parents[3]
 
@@ -118,10 +128,15 @@ def list_gates(repo_root: Path | None = None) -> list[dict[str, Any]]:
     gates = []
     for item in sorted(gates_dir.glob("test_*.py")):
         doc = ""
+        test_count = 0
         try:
-            content = item.read_text(encoding="utf-8", errors="replace")[:1500]
+            content = item.read_text(encoding="utf-8", errors="replace")
             tree = ast.parse(content)
             doc = ast.get_docstring(tree) or ""
+            test_count = sum(
+                1 for node in ast.walk(tree)
+                if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+            )
         except Exception:
             pass
 
@@ -129,13 +144,14 @@ def list_gates(repo_root: Path | None = None) -> list[dict[str, Any]]:
             "file": item.name,
             "path": str(item),
             "description": doc.strip().split("\n")[0] if doc else item.stem.replace("test_", "").replace("_", " ").title(),
+            "count": test_count,
         })
 
     return gates
 
 
 def save_script(name: str, content: str) -> dict[str, Any]:
-    """Save an uploaded script to the custom_tests directory with strict size and path guards."""
+    """Save an uploaded script to the canonical scripts directory with strict size and path guards."""
     clean = validate_script_name(name)
     if not clean:
         return {"ok": False, "error": "Invalid script name or path traversal attempt", "status_code": 400}
@@ -148,12 +164,7 @@ def save_script(name: str, content: str) -> dict[str, Any]:
     if len(content_bytes) > 200 * 1024:
         return {"ok": False, "error": "Script content exceeds 200 KB limit", "status_code": 413}
 
-    custom_env = os.environ.get("CODONTRACE_SCRIPTS_DIR", "").strip()
-    if custom_env:
-        target_dir = Path(custom_env).expanduser().resolve()
-    else:
-        target_dir = Path("custom_tests").resolve()
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = canonical_scripts_directory()
     target_file = (target_dir / clean).resolve()
     try:
         target_file.relative_to(target_dir)

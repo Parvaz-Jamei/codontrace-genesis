@@ -1,5 +1,5 @@
 import { ENGINE_IDENTITY } from "./catalog";
-import type { HostProfile, ReleaseReport } from "./types";
+import type { ChatStatus, HostProfile, ReleaseReport } from "./types";
 
 export async function getHostProfile(): Promise<HostProfile> {
   const response = await fetch("/api/host", { headers: { accept: "application/json" } });
@@ -74,28 +74,44 @@ export async function pullRelease(): Promise<{ ok: boolean; message: string }> {
   return { ok: Boolean(record.ok), message: record.message ?? "" };
 }
 
-export async function checkChatStatus(): Promise<{ mounted: boolean; endpoint?: string; model?: string }> {
+export async function checkChatStatus(): Promise<ChatStatus> {
   try {
     const res = await fetch("/api/chat/status");
-    if (res.ok) return (await res.json()) as { mounted: boolean; endpoint?: string; model?: string };
+    if (res.ok) return (await res.json()) as ChatStatus;
   } catch {
     // fallback
   }
-  return { mounted: false };
+  return { mounted: false, endpoint: "", model: null, provider: "none" };
 }
 
 export async function sendChatMessage(
   text: string,
   lang: string,
   jobContext?: unknown,
-): Promise<{ reply: string; source: string; mounted: boolean }> {
+  jobId?: string | null,
+  model?: string | null,
+): Promise<{
+  reply: string;
+  source: "llm" | "analyst";
+  mounted: boolean;
+  model?: string;
+  duration_ms?: number;
+  fallback?: boolean;
+}> {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, lang, jobContext }),
+    body: JSON.stringify({ text, lang, jobContext, jobId, model }),
   });
   if (!res.ok) throw new Error(String(res.status));
-  return (await res.json()) as { reply: string; source: string; mounted: boolean };
+  return (await res.json()) as {
+    reply: string;
+    source: "llm" | "analyst";
+    mounted: boolean;
+    model?: string;
+    duration_ms?: number;
+    fallback?: boolean;
+  };
 }
 
 export type ServerRunSummary = {

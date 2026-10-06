@@ -905,22 +905,31 @@ def create_population_with_unique_ids(
     Asexual twin births can collide on digest-based ids. Remap duplicate ids with a numeric suffix
     before PopulationState validates, and update their lineage records appropriately.
     """
-    seen: dict[str, int] = {}
+    reserved_ids: set[str] = {org.id for org in organisms}
+    used_ids: set[str] = set()
+    seen_counts: dict[str, int] = {}
     fixed: list[GenesisOrganism] = []
     renames: dict[str, list[str]] = {}
     changed = False
 
     for org in organisms:
         oid = org.id
-        if oid not in seen:
-            seen[oid] = 0
+        if oid not in used_ids:
+            used_ids.add(oid)
+            seen_counts[oid] = 0
             fixed.append(org)
             continue
-        seen[oid] += 1
-        new_id = f"{oid}#{seen[oid]}"
-        fixed.append(replace(org, id=new_id))
-        renames.setdefault(oid, []).append(new_id)
+
         changed = True
+        k = seen_counts[oid] + 1
+        candidate = f"{oid}#{k}"
+        while candidate in reserved_ids or candidate in used_ids:
+            k += 1
+            candidate = f"{oid}#{k}"
+        seen_counts[oid] = k
+        used_ids.add(candidate)
+        fixed.append(replace(org, id=candidate))
+        renames.setdefault(oid, []).append(candidate)
 
     if not changed:
         return PopulationState(
@@ -945,12 +954,19 @@ def create_population_with_unique_ids(
         for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
             fixed_lineage[rec_index] = replace(fixed_lineage[rec_index], organism_id=new_id)
 
+    fixed_fitness = list(fitness)
+    for old_id, new_ids in renames.items():
+        fit_indexes = [index for index, rec in enumerate(fixed_fitness) if rec.organism_id == old_id]
+        if len(fit_indexes) >= len(new_ids) + 1:
+            for fit_index, new_id in zip(fit_indexes[1:], new_ids, strict=True):
+                fixed_fitness[fit_index] = replace(fixed_fitness[fit_index], organism_id=new_id)
+
     return PopulationState(
         generation=generation,
         tick=tick,
         organisms=tuple(fixed),
         lineage=tuple(fixed_lineage),
-        fitness=fitness,
+        fitness=tuple(fixed_fitness),
         birth_chamber=birth_chamber,
         environment=environment,
         deme=deme,

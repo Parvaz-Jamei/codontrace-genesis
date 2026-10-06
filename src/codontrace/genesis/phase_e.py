@@ -355,14 +355,8 @@ class CapsuleMemoryState:
             enabled=_bool(data, "enabled", True),
         )
 
-    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
-
     def digest(self) -> str:
-        if self._cached_digest is not None:
-            return self._cached_digest
-        val = canonical_digest(self.to_dict())
-        object.__setattr__(self, "_cached_digest", val)
-        return val
+        return canonical_digest(self.to_dict())
 
     def matching_slot(self, cue: SensoryCue) -> CapsuleSlot | None:
         for slot in reversed(self.slots):
@@ -739,14 +733,8 @@ class DemeState:
             else (),
         )
 
-    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
-
     def digest(self) -> str:
-        if self._cached_digest is not None:
-            return self._cached_digest
-        val = canonical_digest(self.to_dict())
-        object.__setattr__(self, "_cached_digest", val)
-        return val
+        return canonical_digest(self.to_dict())
 
     def members_of(self, deme_id: str) -> tuple[str, ...]:
         for deme in self.demes:
@@ -1107,14 +1095,8 @@ class PhaseEOrganismState:
             low_food_action=_str(data, "low_food_action", "WAIT"),
         )
 
-    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
-
     def digest(self) -> str:
-        if self._cached_digest is not None:
-            return self._cached_digest
-        val = canonical_digest(self.to_dict())
-        object.__setattr__(self, "_cached_digest", val)
-        return val
+        return canonical_digest(self.to_dict())
 
 
 def copy_phase_e_state(state: PhaseEOrganismState | None) -> PhaseEOrganismState | None:

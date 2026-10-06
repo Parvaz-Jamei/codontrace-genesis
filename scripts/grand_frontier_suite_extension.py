@@ -116,6 +116,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
     logger.log("Challenge 5: Functional Information & Neutral Networks started")
 
     start_time = time.time()
+    stop_reason = "INCOMPLETE"
     target_seconds = duration_hours * 3600.0
     seed = 50001
     epoch = 0
@@ -157,103 +158,119 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
     percolation_fraction = 0.0
     total_entropy = float(genome_len)
 
-    while not _SHUTDOWN:
-        elapsed = time.time() - start_time
-        if elapsed >= target_seconds and epoch > 0:
-            break
+    try:
+        while not _SHUTDOWN:
+            elapsed = time.time() - start_time
+            if elapsed >= target_seconds and epoch > 0:
+                stop_reason = "WALL_TIME_EXHAUSTED"
+                break
+            if (output_dir / "STOP").is_file():
+                stop_reason = "STOP_FILE_DETECTED"
+                break
 
-        epoch += 1
+            epoch += 1
 
-        # Multi-locus Shannon Entropy & Functional Information (Adami & Cerf 2000)
-        total_entropy = 0.0
-        for pos in range(genome_len):
-            col = [seq[pos] for seq in population]
-            cnts = Counter(col)
-            for c in cnts.values():
-                p = c / pop_size
-                total_entropy -= p * math.log2(p)
-
-        max_entropy = float(genome_len)  # binary alphabet log2(2) = 1
-        functional_info_bits = max(0.0, max_entropy - total_entropy)
-
-        # Wagner Neutral Network Percolation: 1-mutant sampling on top quartile
-        sample_elites = population[:pop_size // 4]
-        neutral_neighbors = 0
-        total_neighbors = 0
-
-        for seq in sample_elites:
-            base_score = seq.count("110") * 2 - seq.count("000")
-            for _ in range(8):
-                mut_pos = prng_int(seed, epoch * 100 + total_neighbors, "c5_mut", 0, genome_len - 1)
-                mutated = list(seq)
-                mutated[mut_pos] = "0" if mutated[mut_pos] == "1" else "1"
-                mut_score = "".join(mutated).count("110") * 2 - "".join(mutated).count("000")
-                if mut_score >= base_score:
-                    neutral_neighbors += 1
-                total_neighbors += 1
-
-        percolation_fraction = neutral_neighbors / max(1, total_neighbors)
-
-        # Selection & Replacement
-        scores = [seq.count("110") * 2 - seq.count("000") for seq in population]
-        min_score = min(scores)
-        fitnesses = [max(0.1, s - min_score + 1.0) for s in scores]
-
-        new_pop = []
-        for i in range(pop_size):
-            p1_idx = prng_int(seed, epoch * pop_size * 2 + i * 2, "c5_p1", 0, pop_size - 1)
-            p2_idx = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c5_p2", 0, pop_size - 1)
-            winner = population[p1_idx] if fitnesses[p1_idx] >= fitnesses[p2_idx] else population[p2_idx]
-
-            mutated = list(winner)
+            # Multi-locus Shannon Entropy & Functional Information (Adami & Cerf 2000)
+            total_entropy = 0.0
             for pos in range(genome_len):
-                if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c5_point") < (1.0 / genome_len):
-                    mutated[pos] = "0" if mutated[pos] == "1" else "1"
-            new_pop.append("".join(mutated))
+                col = [seq[pos] for seq in population]
+                cnts = Counter(col)
+                for c in cnts.values():
+                    p = c / pop_size
+                    total_entropy -= p * math.log2(p)
 
-        population = new_pop
+            max_entropy = float(genome_len)  # binary alphabet log2(2) = 1
+            functional_info_bits = max(0.0, max_entropy - total_entropy)
 
-        # Telemetry updates every 10 epochs
-        if epoch % 10 == 0 or elapsed >= target_seconds:
-            pct = min(100.0, (elapsed / target_seconds) * 100.0)
-            eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
+            # Wagner Neutral Network Percolation: 1-mutant sampling on top quartile
+            sample_elites = population[:pop_size // 4]
+            neutral_neighbors = 0
+            total_neighbors = 0
 
-            st_data = {
-                "id": output_dir.name,
-                "title": f"Challenge 5: Functional Info & Neutral Net ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
-                "status": "RUNNING",
-                "pid": os.getpid(),
-                "pct": round(pct, 1),
-                "completed_seeds": 0,
-                "total_seeds": 1,
-                "elapsed_hours": round(elapsed / 3600.0, 2),
-                "target_hours": duration_hours,
-                "started_at": start_time,
-                "updated_at": time.time(),
-                "eta_hours": round(eta_h, 2),
-                "metrics": {
-                    "epoch": epoch,
-                    "functional_info_bits": round(functional_info_bits, 3),
-                    "neutral_percolation": round(percolation_fraction, 3),
-                    "entropy": round(total_entropy, 3),
-                },
-                "red_queen_proved": False,
-            }
-            write_atomic_json(status_file, st_data)
-            logger.log(f"[Epoch {epoch:6d}] Elapsed: {elapsed/3600.0:5.2f}h | FI: {functional_info_bits:5.2f} bits | Neutral Percolation: {percolation_fraction*100:5.1f}%")
+            for seq in sample_elites:
+                base_score = seq.count("110") * 2 - seq.count("000")
+                for _ in range(8):
+                    mut_pos = prng_int(seed, epoch * 100 + total_neighbors, "c5_mut", 0, genome_len - 1)
+                    mutated = list(seq)
+                    mutated[mut_pos] = "0" if mutated[mut_pos] == "1" else "1"
+                    mut_score = "".join(mutated).count("110") * 2 - "".join(mutated).count("000")
+                    if mut_score >= base_score:
+                        neutral_neighbors += 1
+                    total_neighbors += 1
 
-        time.sleep(0.05)
+            percolation_fraction = neutral_neighbors / max(1, total_neighbors)
 
+            # Selection & Replacement
+            scores = [seq.count("110") * 2 - seq.count("000") for seq in population]
+            min_score = min(scores)
+            fitnesses = [max(0.1, s - min_score + 1.0) for s in scores]
+
+            new_pop = []
+            for i in range(pop_size):
+                p1_idx = prng_int(seed, epoch * pop_size * 2 + i * 2, "c5_p1", 0, pop_size - 1)
+                p2_idx = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c5_p2", 0, pop_size - 1)
+                winner = population[p1_idx] if fitnesses[p1_idx] >= fitnesses[p2_idx] else population[p2_idx]
+
+                mutated = list(winner)
+                for pos in range(genome_len):
+                    if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c5_point") < (1.0 / genome_len):
+                        mutated[pos] = "0" if mutated[pos] == "1" else "1"
+                new_pop.append("".join(mutated))
+
+            population = new_pop
+
+            # Telemetry updates every 10 epochs
+            if epoch % 10 == 0 or elapsed >= target_seconds:
+                pct = min(100.0, (elapsed / target_seconds) * 100.0)
+                eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
+
+                st_data = {
+                    "id": output_dir.name,
+                    "title": f"Challenge 5: Functional Info & Neutral Net ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
+                    "status": "RUNNING",
+                    "pid": os.getpid(),
+                    "pct": round(pct, 1),
+                    "completed_seeds": 0,
+                    "total_seeds": 1,
+                    "elapsed_hours": round(elapsed / 3600.0, 2),
+                    "target_hours": duration_hours,
+                    "started_at": start_time,
+                    "updated_at": time.time(),
+                    "eta_hours": round(eta_h, 2),
+                    "metrics": {
+                        "epoch": epoch,
+                        "functional_info_bits": round(functional_info_bits, 3),
+                        "neutral_percolation": round(percolation_fraction, 3),
+                        "entropy": round(total_entropy, 3),
+                    },
+                    "red_queen_proved": False,
+                }
+                write_atomic_json(status_file, st_data)
+                logger.log(f"[Epoch {epoch:6d}] Elapsed: {elapsed/3600.0:5.2f}h | FI: {functional_info_bits:5.2f} bits | Neutral Percolation: {percolation_fraction*100:5.1f}%")
+
+            time.sleep(0.05)
+
+        if _SHUTDOWN and stop_reason == "INCOMPLETE":
+            stop_reason = "SIGNAL_INTERRUPT"
+    except KeyboardInterrupt:
+        logger.log("SIGNAL_INTERRUPT detected.")
+        stop_reason = "SIGNAL_INTERRUPT"
+    except Exception as exc:
+        logger.log(f"Exception: {exc}")
+        stop_reason = "EXCEPTION"
     final_elapsed = time.time() - start_time
-    logger.log("Challenge 5 Complete.")
+    is_completed = (stop_reason == "WALL_TIME_EXHAUSTED")
+    final_status = "COMPLETED" if is_completed else ("FAILED" if stop_reason == "EXCEPTION" else ("STOPPED" if stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"] else "INCOMPLETE"))
+    final_pct = 100.0 if is_completed else min(99.9, round((final_elapsed / target_seconds) * 100.0, 1))
+    logger.log(f"Challenge 5 Complete ({final_status}).")
 
     write_atomic_json(status_file, {
         "id": output_dir.name,
-        "title": f"Challenge 5: Functional Info & Neutral Net (COMPLETED | Ep {epoch})",
-        "status": "COMPLETED",
+        "title": f"Challenge 5: Functional Info & Neutral Net ({final_status} | Ep {epoch})",
+        "status": final_status,
         "pid": os.getpid(),
-        "pct": 100.0,
-        "completed_seeds": 1,
+        "pct": final_pct,
+        "completed_seeds": 1 if is_completed else 0,
         "total_seeds": 1,
         "elapsed_hours": round(final_elapsed / 3600.0, 2),
         "target_hours": duration_hours,
@@ -269,8 +286,14 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
         "red_queen_proved": False,
     })
 
+    if stop_reason == "WALL_TIME_EXHAUSTED":
+        (output_dir / "COMPLETE").touch()
+    elif stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"]:
+        (output_dir / "STOPPED").touch()
+
     write_atomic_json(exec_file, {
-        "complete": True,
+        "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
+        "stop_reason": stop_reason,
         "challenge": 5,
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
@@ -295,6 +318,7 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
     logger.log("Challenge 6: Quasispecies & Error Threshold started")
 
     start_time = time.time()
+    stop_reason = "INCOMPLETE"
     target_seconds = duration_hours * 3600.0
     seed = 60001
     epoch = 0
@@ -341,95 +365,111 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
     mean_hamming = 0.0
     quasispecies_var = 0.0
 
-    while not _SHUTDOWN:
-        elapsed = time.time() - start_time
-        if elapsed >= target_seconds and epoch > 0:
-            break
+    try:
+        while not _SHUTDOWN:
+            elapsed = time.time() - start_time
+            if elapsed >= target_seconds and epoch > 0:
+                stop_reason = "WALL_TIME_EXHAUSTED"
+                break
+            if (output_dir / "STOP").is_file():
+                stop_reason = "STOP_FILE_DETECTED"
+                break
 
-        epoch += 1
+            epoch += 1
 
-        # Current mutation rate oscillating around theoretical boundary to map transition
-        mu = 0.005 + (0.05 * (1.0 + math.sin(epoch * 0.01)))
+            # Current mutation rate oscillating around theoretical boundary to map transition
+            mu = 0.005 + (0.05 * (1.0 + math.sin(epoch * 0.01)))
 
-        # Evaluate fitness
-        fitnesses = []
-        master_count = 0
-        hamming_distances = []
+            # Evaluate fitness
+            fitnesses = []
+            master_count = 0
+            hamming_distances = []
 
-        for seq in population:
-            d = sum(1 for a, b in zip(seq, master_seq) if a != b)
-            hamming_distances.append(d)
-            if d == 0:
-                master_count += 1
-                fitnesses.append(superiority_sigma)
-            else:
-                fitnesses.append(1.0)
+            for seq in population:
+                d = sum(1 for a, b in zip(seq, master_seq) if a != b)
+                hamming_distances.append(d)
+                if d == 0:
+                    master_count += 1
+                    fitnesses.append(superiority_sigma)
+                else:
+                    fitnesses.append(1.0)
 
-        master_fraction = master_count / pop_size
-        mean_hamming = sum(hamming_distances) / pop_size
+            master_fraction = master_count / pop_size
+            mean_hamming = sum(hamming_distances) / pop_size
 
-        # Quasispecies Variance (distance variance from master)
-        quasispecies_var = sum((d - mean_hamming) ** 2 for d in hamming_distances) / pop_size
+            # Quasispecies Variance (distance variance from master)
+            quasispecies_var = sum((d - mean_hamming) ** 2 for d in hamming_distances) / pop_size
 
-        # Next generation reproduction under selection + mutation rate mu
-        new_pop = []
-        for i in range(pop_size):
-            p1_idx = prng_int(seed, epoch * pop_size * 2 + i * 2, "c6_p1", 0, pop_size - 1)
-            p2_idx = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c6_p2", 0, pop_size - 1)
-            chosen = population[p1_idx] if fitnesses[p1_idx] >= fitnesses[p2_idx] else population[p2_idx]
+            # Next generation reproduction under selection + mutation rate mu
+            new_pop = []
+            for i in range(pop_size):
+                p1_idx = prng_int(seed, epoch * pop_size * 2 + i * 2, "c6_p1", 0, pop_size - 1)
+                p2_idx = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c6_p2", 0, pop_size - 1)
+                chosen = population[p1_idx] if fitnesses[p1_idx] >= fitnesses[p2_idx] else population[p2_idx]
 
-            mutated = list(chosen)
-            for pos in range(genome_len):
-                if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c6_mu") < mu:
-                    mutated[pos] = "0" if mutated[pos] == "1" else "1"
-            new_pop.append("".join(mutated))
+                mutated = list(chosen)
+                for pos in range(genome_len):
+                    if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c6_mu") < mu:
+                        mutated[pos] = "0" if mutated[pos] == "1" else "1"
+                new_pop.append("".join(mutated))
 
-        population = new_pop
+            population = new_pop
 
-        if epoch % 10 == 0 or elapsed >= target_seconds:
-            pct = min(100.0, (elapsed / target_seconds) * 100.0)
-            eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
-            above_threshold = mu > eigen_mu_c
+            if epoch % 10 == 0 or elapsed >= target_seconds:
+                pct = min(100.0, (elapsed / target_seconds) * 100.0)
+                eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
+                above_threshold = mu > eigen_mu_c
 
-            st_data = {
-                "id": output_dir.name,
-                "title": f"Challenge 6: Quasispecies & Error Catastrophe ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
-                "status": "RUNNING",
-                "pid": os.getpid(),
-                "pct": round(pct, 1),
-                "completed_seeds": 0,
-                "total_seeds": 1,
-                "elapsed_hours": round(elapsed / 3600.0, 2),
-                "target_hours": duration_hours,
-                "started_at": start_time,
-                "updated_at": time.time(),
-                "eta_hours": round(eta_h, 2),
-                "metrics": {
-                    "epoch": epoch,
-                    "mutation_rate": round(mu, 4),
-                    "theoretical_mu_c": round(eigen_mu_c, 4),
-                    "master_sequence_retention": round(master_fraction, 3),
-                    "mean_hamming_distance": round(mean_hamming, 2),
-                    "quasispecies_variance": round(quasispecies_var, 3),
-                    "regime": "CATASTROPHE_DRIFT" if above_threshold else "ORGANIZED_QUASISPECIES",
-                },
-                "red_queen_proved": False,
-            }
-            write_atomic_json(status_file, st_data)
-            logger.log(f"[Epoch {epoch:6d}] mu: {mu:.4f} (mu_c: {eigen_mu_c:.4f}) | Master Ret: {master_fraction*100:5.1f}% | HamDist: {mean_hamming:4.1f} | Regime: {'DRIFT' if above_threshold else 'STABLE'}")
+                st_data = {
+                    "id": output_dir.name,
+                    "title": f"Challenge 6: Quasispecies & Error Catastrophe ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
+                    "status": "RUNNING",
+                    "pid": os.getpid(),
+                    "pct": round(pct, 1),
+                    "completed_seeds": 0,
+                    "total_seeds": 1,
+                    "elapsed_hours": round(elapsed / 3600.0, 2),
+                    "target_hours": duration_hours,
+                    "started_at": start_time,
+                    "updated_at": time.time(),
+                    "eta_hours": round(eta_h, 2),
+                    "metrics": {
+                        "epoch": epoch,
+                        "mutation_rate": round(mu, 4),
+                        "theoretical_mu_c": round(eigen_mu_c, 4),
+                        "master_sequence_retention": round(master_fraction, 3),
+                        "mean_hamming_distance": round(mean_hamming, 2),
+                        "quasispecies_variance": round(quasispecies_var, 3),
+                        "regime": "CATASTROPHE_DRIFT" if above_threshold else "ORGANIZED_QUASISPECIES",
+                    },
+                    "red_queen_proved": False,
+                }
+                write_atomic_json(status_file, st_data)
+                logger.log(f"[Epoch {epoch:6d}] mu: {mu:.4f} (mu_c: {eigen_mu_c:.4f}) | Master Ret: {master_fraction*100:5.1f}% | HamDist: {mean_hamming:4.1f} | Regime: {'DRIFT' if above_threshold else 'STABLE'}")
 
-        time.sleep(0.05)
+            time.sleep(0.05)
 
+        if _SHUTDOWN and stop_reason == "INCOMPLETE":
+            stop_reason = "SIGNAL_INTERRUPT"
+    except KeyboardInterrupt:
+        logger.log("SIGNAL_INTERRUPT detected.")
+        stop_reason = "SIGNAL_INTERRUPT"
+    except Exception as exc:
+        logger.log(f"Exception: {exc}")
+        stop_reason = "EXCEPTION"
     final_elapsed = time.time() - start_time
-    logger.log("Challenge 6 Complete.")
+    is_completed = (stop_reason == "WALL_TIME_EXHAUSTED")
+    final_status = "COMPLETED" if is_completed else ("FAILED" if stop_reason == "EXCEPTION" else ("STOPPED" if stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"] else "INCOMPLETE"))
+    final_pct = 100.0 if is_completed else min(99.9, round((final_elapsed / target_seconds) * 100.0, 1))
+    logger.log(f"Challenge 6 Complete ({final_status}).")
 
     write_atomic_json(status_file, {
         "id": output_dir.name,
-        "title": f"Challenge 6: Quasispecies & Error Catastrophe (COMPLETED | Ep {epoch})",
-        "status": "COMPLETED",
+        "title": f"Challenge 6: Quasispecies & Error Catastrophe ({final_status} | Ep {epoch})",
+        "status": final_status,
         "pid": os.getpid(),
-        "pct": 100.0,
-        "completed_seeds": 1,
+        "pct": final_pct,
+        "completed_seeds": 1 if is_completed else 0,
         "total_seeds": 1,
         "elapsed_hours": round(final_elapsed / 3600.0, 2),
         "target_hours": duration_hours,
@@ -448,8 +488,14 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
         "red_queen_proved": False,
     })
 
+    if stop_reason == "WALL_TIME_EXHAUSTED":
+        (output_dir / "COMPLETE").touch()
+    elif stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"]:
+        (output_dir / "STOPPED").touch()
+
     write_atomic_json(exec_file, {
-        "complete": True,
+        "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
+        "stop_reason": stop_reason,
         "challenge": 6,
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
@@ -474,6 +520,7 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
     logger.log("Challenge 7: Open-Ended Evolution Activity started")
 
     start_time = time.time()
+    stop_reason = "INCOMPLETE"
     target_seconds = duration_hours * 3600.0
     seed = 70001
     epoch = 0
@@ -520,106 +567,122 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
     freq_real: Counter[str] = Counter(pop_real)
     freq_shadow: Counter[str] = Counter(pop_shadow)
 
-    while not _SHUTDOWN:
-        elapsed = time.time() - start_time
-        if elapsed >= target_seconds and epoch > 0:
-            break
+    try:
+        while not _SHUTDOWN:
+            elapsed = time.time() - start_time
+            if elapsed >= target_seconds and epoch > 0:
+                stop_reason = "WALL_TIME_EXHAUSTED"
+                break
+            if (output_dir / "STOP").is_file():
+                stop_reason = "STOP_FILE_DETECTED"
+                break
 
-        epoch += 1
+            epoch += 1
 
-        # Real population: Selection based on computational motif diversity
-        scores_real = [seq.count("101") * 3 + seq.count("010") * 2 for seq in pop_real]
-        fit_real = [max(0.1, s + 1.0) for s in scores_real]
+            # Real population: Selection based on computational motif diversity
+            scores_real = [seq.count("101") * 3 + seq.count("010") * 2 for seq in pop_real]
+            fit_real = [max(0.1, s + 1.0) for s in scores_real]
 
-        # Shadow population: Neutral random fitness (drift only, Bedau 1998)
-        freq_real = Counter(pop_real)
-        freq_shadow = Counter(pop_shadow)
+            # Shadow population: Neutral random fitness (drift only, Bedau 1998)
+            freq_real = Counter(pop_real)
+            freq_shadow = Counter(pop_shadow)
 
-        # Update activity increments: a_i(t) += 1 if present above frequency threshold
-        delta_real = 0.0
-        delta_shadow = 0.0
+            # Update activity increments: a_i(t) += 1 if present above frequency threshold
+            delta_real = 0.0
+            delta_shadow = 0.0
 
-        for seq, count in freq_real.items():
-            if count >= 3:
-                activity_real[seq] = activity_real.get(seq, 0.0) + (count / pop_size)
-                delta_real += activity_real[seq]
+            for seq, count in freq_real.items():
+                if count >= 3:
+                    activity_real[seq] = activity_real.get(seq, 0.0) + (count / pop_size)
+                    delta_real += activity_real[seq]
 
-        for seq, count in freq_shadow.items():
-            if count >= 3:
-                activity_shadow[seq] = activity_shadow.get(seq, 0.0) + (count / pop_size)
-                delta_shadow += activity_shadow[seq]
+            for seq, count in freq_shadow.items():
+                if count >= 3:
+                    activity_shadow[seq] = activity_shadow.get(seq, 0.0) + (count / pop_size)
+                    delta_shadow += activity_shadow[seq]
 
-        cum_activity_real += delta_real
-        cum_activity_shadow += delta_shadow
+            cum_activity_real += delta_real
+            cum_activity_shadow += delta_shadow
 
-        # Reproduction for Real
-        new_real = []
-        for i in range(pop_size):
-            p1 = prng_int(seed, epoch * pop_size * 2 + i * 2, "c7_r1", 0, pop_size - 1)
-            p2 = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c7_r2", 0, pop_size - 1)
-            winner = pop_real[p1] if fit_real[p1] >= fit_real[p2] else pop_real[p2]
-            mut = list(winner)
-            for pos in range(genome_len):
-                if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c7_mr") < 0.025:
-                    mut[pos] = "0" if mut[pos] == "1" else "1"
-            new_real.append("".join(mut))
-        pop_real = new_real
+            # Reproduction for Real
+            new_real = []
+            for i in range(pop_size):
+                p1 = prng_int(seed, epoch * pop_size * 2 + i * 2, "c7_r1", 0, pop_size - 1)
+                p2 = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c7_r2", 0, pop_size - 1)
+                winner = pop_real[p1] if fit_real[p1] >= fit_real[p2] else pop_real[p2]
+                mut = list(winner)
+                for pos in range(genome_len):
+                    if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c7_mr") < 0.025:
+                        mut[pos] = "0" if mut[pos] == "1" else "1"
+                new_real.append("".join(mut))
+            pop_real = new_real
 
-        # Reproduction for Shadow (pure neutral drift)
-        new_shadow = []
-        for i in range(pop_size):
-            parent_idx = prng_int(seed, epoch * pop_size + i, "c7_sh", 0, pop_size - 1)
-            parent = pop_shadow[parent_idx]
-            mut = list(parent)
-            for pos in range(genome_len):
-                if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c7_ms") < 0.025:
-                    mut[pos] = "0" if mut[pos] == "1" else "1"
-            new_shadow.append("".join(mut))
-        pop_shadow = new_shadow
+            # Reproduction for Shadow (pure neutral drift)
+            new_shadow = []
+            for i in range(pop_size):
+                parent_idx = prng_int(seed, epoch * pop_size + i, "c7_sh", 0, pop_size - 1)
+                parent = pop_shadow[parent_idx]
+                mut = list(parent)
+                for pos in range(genome_len):
+                    if prng_float(seed, epoch * pop_size * genome_len + i * genome_len + pos, "c7_ms") < 0.025:
+                        mut[pos] = "0" if mut[pos] == "1" else "1"
+                new_shadow.append("".join(mut))
+            pop_shadow = new_shadow
 
-        if epoch % 10 == 0 or elapsed >= target_seconds:
-            pct = min(100.0, (elapsed / target_seconds) * 100.0)
-            eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
-            excess_activity = max(0.0, cum_activity_real - cum_activity_shadow)
+            if epoch % 10 == 0 or elapsed >= target_seconds:
+                pct = min(100.0, (elapsed / target_seconds) * 100.0)
+                eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
+                excess_activity = max(0.0, cum_activity_real - cum_activity_shadow)
 
-            st_data = {
-                "id": output_dir.name,
-                "title": f"Challenge 7: Open-Ended Evolutionary Activity ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
-                "status": "RUNNING",
-                "pid": os.getpid(),
-                "pct": round(pct, 1),
-                "completed_seeds": 0,
-                "total_seeds": 1,
-                "elapsed_hours": round(elapsed / 3600.0, 2),
-                "target_hours": duration_hours,
-                "started_at": start_time,
-                "updated_at": time.time(),
-                "eta_hours": round(eta_h, 2),
-                "metrics": {
-                    "epoch": epoch,
-                    "cumulative_activity_real": round(cum_activity_real, 1),
-                    "cumulative_activity_shadow": round(cum_activity_shadow, 1),
-                    "excess_adaptive_activity": round(excess_activity, 1),
-                    "distinct_genotypes_real": len(freq_real),
-                    "distinct_genotypes_shadow": len(freq_shadow),
-                },
-                "red_queen_proved": False,
-            }
-            write_atomic_json(status_file, st_data)
-            logger.log(f"[Epoch {epoch:6d}] Real Activity: {cum_activity_real:8.1f} | Shadow: {cum_activity_shadow:8.1f} | Excess: {excess_activity:8.1f}")
+                st_data = {
+                    "id": output_dir.name,
+                    "title": f"Challenge 7: Open-Ended Evolutionary Activity ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
+                    "status": "RUNNING",
+                    "pid": os.getpid(),
+                    "pct": round(pct, 1),
+                    "completed_seeds": 0,
+                    "total_seeds": 1,
+                    "elapsed_hours": round(elapsed / 3600.0, 2),
+                    "target_hours": duration_hours,
+                    "started_at": start_time,
+                    "updated_at": time.time(),
+                    "eta_hours": round(eta_h, 2),
+                    "metrics": {
+                        "epoch": epoch,
+                        "cumulative_activity_real": round(cum_activity_real, 1),
+                        "cumulative_activity_shadow": round(cum_activity_shadow, 1),
+                        "excess_adaptive_activity": round(excess_activity, 1),
+                        "distinct_genotypes_real": len(freq_real),
+                        "distinct_genotypes_shadow": len(freq_shadow),
+                    },
+                    "red_queen_proved": False,
+                }
+                write_atomic_json(status_file, st_data)
+                logger.log(f"[Epoch {epoch:6d}] Real Activity: {cum_activity_real:8.1f} | Shadow: {cum_activity_shadow:8.1f} | Excess: {excess_activity:8.1f}")
 
-        time.sleep(0.05)
+            time.sleep(0.05)
 
+        if _SHUTDOWN and stop_reason == "INCOMPLETE":
+            stop_reason = "SIGNAL_INTERRUPT"
+    except KeyboardInterrupt:
+        logger.log("SIGNAL_INTERRUPT detected.")
+        stop_reason = "SIGNAL_INTERRUPT"
+    except Exception as exc:
+        logger.log(f"Exception: {exc}")
+        stop_reason = "EXCEPTION"
     final_elapsed = time.time() - start_time
-    logger.log("Challenge 7 Complete.")
+    is_completed = (stop_reason == "WALL_TIME_EXHAUSTED")
+    final_status = "COMPLETED" if is_completed else ("FAILED" if stop_reason == "EXCEPTION" else ("STOPPED" if stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"] else "INCOMPLETE"))
+    final_pct = 100.0 if is_completed else min(99.9, round((final_elapsed / target_seconds) * 100.0, 1))
+    logger.log(f"Challenge 7 Complete ({final_status}).")
 
     write_atomic_json(status_file, {
         "id": output_dir.name,
-        "title": f"Challenge 7: Open-Ended Evolutionary Activity (COMPLETED | Ep {epoch})",
-        "status": "COMPLETED",
+        "title": f"Challenge 7: Open-Ended Evolutionary Activity ({final_status} | Ep {epoch})",
+        "status": final_status,
         "pid": os.getpid(),
-        "pct": 100.0,
-        "completed_seeds": 1,
+        "pct": final_pct,
+        "completed_seeds": 1 if is_completed else 0,
         "total_seeds": 1,
         "elapsed_hours": round(final_elapsed / 3600.0, 2),
         "target_hours": duration_hours,
@@ -637,8 +700,14 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
         "red_queen_proved": False,
     })
 
+    if stop_reason == "WALL_TIME_EXHAUSTED":
+        (output_dir / "COMPLETE").touch()
+    elif stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"]:
+        (output_dir / "STOPPED").touch()
+
     write_atomic_json(exec_file, {
-        "complete": True,
+        "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
+        "stop_reason": stop_reason,
         "challenge": 7,
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
@@ -663,6 +732,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
     logger.log("Challenge 8: Fisher Geometric Model started")
 
     start_time = time.time()
+    stop_reason = "INCOMPLETE"
     target_seconds = duration_hours * 3600.0
     seed = 80001
     epoch = 0
@@ -712,100 +782,116 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
     p_beneficial = 0.0
     total_muts = 0
 
-    while not _SHUTDOWN:
-        elapsed = time.time() - start_time
-        if elapsed >= target_seconds and epoch > 0:
-            break
+    try:
+        while not _SHUTDOWN:
+            elapsed = time.time() - start_time
+            if elapsed >= target_seconds and epoch > 0:
+                stop_reason = "WALL_TIME_EXHAUSTED"
+                break
+            if (output_dir / "STOP").is_file():
+                stop_reason = "STOP_FILE_DETECTED"
+                break
 
-        epoch += 1
+            epoch += 1
 
-        # Environmental shift every 500 epochs (moving optimum, Orr 2005)
-        if epoch % 500 == 0:
-            shift_dim = prng_int(seed, epoch, "c8_shift_dim", 0, dimensions - 1)
-            optimum[shift_dim] += 0.5
+            # Environmental shift every 500 epochs (moving optimum, Orr 2005)
+            if epoch % 500 == 0:
+                shift_dim = prng_int(seed, epoch, "c8_shift_dim", 0, dimensions - 1)
+                optimum[shift_dim] += 0.5
 
-        # Compute fitness: W(z) = exp(-||z - z*||^2 / (2 * Vs))
-        fitnesses = []
-        distances = []
-        for ind in population:
-            dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(ind, optimum))
-            dist = math.sqrt(dist_sq)
-            fit = math.exp(-dist_sq / (2.0 * selection_strength))
-            fitnesses.append(fit)
-            distances.append(dist)
+            # Compute fitness: W(z) = exp(-||z - z*||^2 / (2 * Vs))
+            fitnesses = []
+            distances = []
+            for ind in population:
+                dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(ind, optimum))
+                dist = math.sqrt(dist_sq)
+                fit = math.exp(-dist_sq / (2.0 * selection_strength))
+                fitnesses.append(fit)
+                distances.append(dist)
 
-        mean_distance = sum(distances) / pop_size
-        mean_fitness = sum(fitnesses) / pop_size
+            mean_distance = sum(distances) / pop_size
+            mean_fitness = sum(fitnesses) / pop_size
 
-        # Reproduction with multidimensional mutations
-        new_pop = []
-        for i in range(pop_size):
-            p1 = prng_int(seed, epoch * pop_size * 2 + i * 2, "c8_p1", 0, pop_size - 1)
-            p2 = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c8_p2", 0, pop_size - 1)
-            parent = population[p1] if fitnesses[p1] >= fitnesses[p2] else population[p2]
-            parent_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(parent, optimum))
+            # Reproduction with multidimensional mutations
+            new_pop = []
+            for i in range(pop_size):
+                p1 = prng_int(seed, epoch * pop_size * 2 + i * 2, "c8_p1", 0, pop_size - 1)
+                p2 = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c8_p2", 0, pop_size - 1)
+                parent = population[p1] if fitnesses[p1] >= fitnesses[p2] else population[p2]
+                parent_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(parent, optimum))
 
-            child = list(parent)
-            for d in range(dimensions):
-                u1 = max(1e-7, prng_float(seed, epoch * pop_size * dimensions + i * dimensions + d, "c8_u1"))
-                u2 = prng_float(seed, epoch * pop_size * dimensions + i * dimensions + d, "c8_u2")
-                mutation_delta = math.sqrt(-2.0 * math.log(u1)) * math.cos(2.0 * math.pi * u2) * 0.15
-                child[d] += mutation_delta
+                child = list(parent)
+                for d in range(dimensions):
+                    u1 = max(1e-7, prng_float(seed, epoch * pop_size * dimensions + i * dimensions + d, "c8_u1"))
+                    u2 = prng_float(seed, epoch * pop_size * dimensions + i * dimensions + d, "c8_u2")
+                    mutation_delta = math.sqrt(-2.0 * math.log(u1)) * math.cos(2.0 * math.pi * u2) * 0.15
+                    child[d] += mutation_delta
 
-            child_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(child, optimum))
-            if child_dist_sq < parent_dist_sq:
-                beneficial_count += 1
-            else:
-                deleterious_count += 1
+                child_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(child, optimum))
+                if child_dist_sq < parent_dist_sq:
+                    beneficial_count += 1
+                else:
+                    deleterious_count += 1
 
-            new_pop.append(child)
+                new_pop.append(child)
 
-        population = new_pop
+            population = new_pop
 
-        if epoch % 10 == 0 or elapsed >= target_seconds:
-            pct = min(100.0, (elapsed / target_seconds) * 100.0)
-            eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
-            total_muts = max(1, beneficial_count + deleterious_count)
-            p_beneficial = beneficial_count / total_muts
+            if epoch % 10 == 0 or elapsed >= target_seconds:
+                pct = min(100.0, (elapsed / target_seconds) * 100.0)
+                eta_h = max(0.0, (target_seconds - elapsed) / 3600.0)
+                total_muts = max(1, beneficial_count + deleterious_count)
+                p_beneficial = beneficial_count / total_muts
 
-            st_data = {
-                "id": output_dir.name,
-                "title": f"Challenge 8: Fisher Geometric Model ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
-                "status": "RUNNING",
-                "pid": os.getpid(),
-                "pct": round(pct, 1),
-                "completed_seeds": 0,
-                "total_seeds": 1,
-                "elapsed_hours": round(elapsed / 3600.0, 2),
-                "target_hours": duration_hours,
-                "started_at": start_time,
-                "updated_at": time.time(),
-                "eta_hours": round(eta_h, 2),
-                "metrics": {
-                    "epoch": epoch,
-                    "dimensions": dimensions,
-                    "mean_phenotypic_distance": round(mean_distance, 3),
-                    "mean_fitness": round(mean_fitness, 4),
-                    "p_beneficial_mutations": round(p_beneficial, 4),
-                    "total_mutations_observed": total_muts,
-                },
-                "red_queen_proved": False,
-            }
-            write_atomic_json(status_file, st_data)
-            logger.log(f"[Epoch {epoch:6d}] Mean Dist to Optimum: {mean_distance:5.3f} | Mean Fit: {mean_fitness:6.4f} | P(Beneficial): {p_beneficial*100:4.1f}%")
+                st_data = {
+                    "id": output_dir.name,
+                    "title": f"Challenge 8: Fisher Geometric Model ({elapsed/3600.0:.1f}h/72h | Ep {epoch})",
+                    "status": "RUNNING",
+                    "pid": os.getpid(),
+                    "pct": round(pct, 1),
+                    "completed_seeds": 0,
+                    "total_seeds": 1,
+                    "elapsed_hours": round(elapsed / 3600.0, 2),
+                    "target_hours": duration_hours,
+                    "started_at": start_time,
+                    "updated_at": time.time(),
+                    "eta_hours": round(eta_h, 2),
+                    "metrics": {
+                        "epoch": epoch,
+                        "dimensions": dimensions,
+                        "mean_phenotypic_distance": round(mean_distance, 3),
+                        "mean_fitness": round(mean_fitness, 4),
+                        "p_beneficial_mutations": round(p_beneficial, 4),
+                        "total_mutations_observed": total_muts,
+                    },
+                    "red_queen_proved": False,
+                }
+                write_atomic_json(status_file, st_data)
+                logger.log(f"[Epoch {epoch:6d}] Mean Dist to Optimum: {mean_distance:5.3f} | Mean Fit: {mean_fitness:6.4f} | P(Beneficial): {p_beneficial*100:4.1f}%")
 
-        time.sleep(0.05)
+            time.sleep(0.05)
 
+        if _SHUTDOWN and stop_reason == "INCOMPLETE":
+            stop_reason = "SIGNAL_INTERRUPT"
+    except KeyboardInterrupt:
+        logger.log("SIGNAL_INTERRUPT detected.")
+        stop_reason = "SIGNAL_INTERRUPT"
+    except Exception as exc:
+        logger.log(f"Exception: {exc}")
+        stop_reason = "EXCEPTION"
     final_elapsed = time.time() - start_time
-    logger.log("Challenge 8 Complete.")
+    is_completed = (stop_reason == "WALL_TIME_EXHAUSTED")
+    final_status = "COMPLETED" if is_completed else ("FAILED" if stop_reason == "EXCEPTION" else ("STOPPED" if stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"] else "INCOMPLETE"))
+    final_pct = 100.0 if is_completed else min(99.9, round((final_elapsed / target_seconds) * 100.0, 1))
+    logger.log(f"Challenge 8 Complete ({final_status}).")
 
     write_atomic_json(status_file, {
         "id": output_dir.name,
-        "title": f"Challenge 8: Fisher Geometric Model (COMPLETED | Ep {epoch})",
-        "status": "COMPLETED",
+        "title": f"Challenge 8: Fisher Geometric Model ({final_status} | Ep {epoch})",
+        "status": final_status,
         "pid": os.getpid(),
-        "pct": 100.0,
-        "completed_seeds": 1,
+        "pct": final_pct,
+        "completed_seeds": 1 if is_completed else 0,
         "total_seeds": 1,
         "elapsed_hours": round(final_elapsed / 3600.0, 2),
         "target_hours": duration_hours,
@@ -823,8 +909,14 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
         "red_queen_proved": False,
     })
 
+    if stop_reason == "WALL_TIME_EXHAUSTED":
+        (output_dir / "COMPLETE").touch()
+    elif stop_reason in ["STOP_FILE_DETECTED", "SIGNAL_INTERRUPT"]:
+        (output_dir / "STOPPED").touch()
+
     write_atomic_json(exec_file, {
-        "complete": True,
+        "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
+        "stop_reason": stop_reason,
         "challenge": 8,
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,

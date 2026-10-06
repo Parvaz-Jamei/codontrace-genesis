@@ -116,6 +116,7 @@ def test_witness_config_ablation_coverage_and_soft_claim() -> None:
         persistence_ticks=2,
         mechanism_tags=("assay",),
         evidence_refs=("trace:1",),
+        assay_evidence={"genome": "000111", "raw_data_hash": "sha_base_01", "measurement": 3.0},
     )
     blocked = build_discovery_witness(
         witness_id="w-blocked",

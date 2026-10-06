@@ -11,11 +11,12 @@ import json
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.discovery import D0BaselineConfig, DiscoveryClaimLevel
+from codontrace.genome import SemanticGenome
 
 Descriptor = Mapping[str, float]
 
@@ -704,20 +705,32 @@ def evaluate_discovery_candidate(
     min_persistence_ticks: int = 1,
     mechanism_tags: Sequence[str] = (),
     evidence_refs: Sequence[str] = (),
+    genome: SemanticGenome | str | None = None,
+    assay_evidence: Mapping[str, Any] | None = None,
 ) -> DiscoveryCandidate:
     """Evaluate conservative candidate status against D0 evidence."""
 
     distance = measure_distance_to_d0(behavior_descriptor, baseline_set, metric_config)
     reasons: list[str] = []
     
-    from codontrace.genome import SemanticGenome
     try:
-        SemanticGenome.from_compact(candidate_id)
-    except ValueError:
+        if isinstance(genome, SemanticGenome):
+            _ = genome.to_compact()
+        elif isinstance(genome, str):
+            _ = SemanticGenome.from_compact(genome).to_compact()
+        else:
+            _ = SemanticGenome.from_compact(candidate_id).to_compact()
+    except Exception:
         reasons.append("invalid_genome")
-        
-    if "assay" not in mechanism_tags:
-        reasons.append("missing_assay_check")
+
+    if "assay" in mechanism_tags:
+        if not assay_evidence:
+            reasons.append("missing_assay_evidence")
+        else:
+            if "genome" not in assay_evidence or "raw_data_hash" not in assay_evidence:
+                reasons.append("missing_assay_evidence")
+            elif not any(k in assay_evidence for k in ("measurements", "data", "measurement_data", "measurement")):
+                reasons.append("missing_assay_evidence")
         
     if not distance.succeeded:
         reasons.extend(distance.reasons)

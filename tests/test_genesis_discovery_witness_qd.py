@@ -66,6 +66,7 @@ def test_discovery_candidate_and_witness_require_evidence() -> None:
         persistence_ticks=5,
         mechanism_tags=("assay",),
         evidence_refs=("trace:1",),
+        assay_evidence={"genome": "000111", "raw_data_hash": "sha_base_01", "measurement": 4.0},
     )
     assert candidate.claim_level is DiscoveryClaimLevel.CANDIDATE
     blocked = build_discovery_witness(

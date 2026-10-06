@@ -118,6 +118,7 @@ def run_worker_0_oee(
         "target_hours": target_hours,
         "started_at": t_start,
         "updated_at": t_start,
+        "red_queen_proved": RED_QUEEN_PROVED,
     }
     write_atomic_json(status_file, status_data)
 
@@ -323,6 +324,7 @@ def run_worker_0_oee(
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "red_queen_proved": RED_QUEEN_PROVED,
         "summary": summary,
     })
 
@@ -378,6 +380,7 @@ def run_worker_1_mls(
         "target_hours": target_hours,
         "started_at": t_start,
         "updated_at": t_start,
+        "red_queen_proved": RED_QUEEN_PROVED,
     }
     write_atomic_json(status_file, status_data)
 
@@ -593,6 +596,7 @@ def run_worker_1_mls(
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "red_queen_proved": RED_QUEEN_PROVED,
         "summary": summary,
     })
 
@@ -648,6 +652,7 @@ def run_worker_2_transition(
         "target_hours": target_hours,
         "started_at": t_start,
         "updated_at": t_start,
+        "red_queen_proved": RED_QUEEN_PROVED,
     }
     write_atomic_json(status_file, status_data)
 
@@ -830,6 +835,7 @@ def run_worker_2_transition(
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "red_queen_proved": RED_QUEEN_PROVED,
         "summary": summary,
     })
 
@@ -846,11 +852,14 @@ def run_worker_3_contingency(
     epoch_gens: int = 10000,
     founder_seed: int = 40001,
     resume: bool = True,
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Challenge 4: "Replaying Life's Tape" - Multi-seed Long-Horizon Contingency Assay
     (Gould 1989, Blount et al. 2008, 2012 LTEE, Conway Morris).
     """
+    if seed is not None:
+        founder_seed = seed
     set_core_affinity(3)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
@@ -885,6 +894,7 @@ def run_worker_3_contingency(
         "target_hours": target_hours,
         "started_at": t_start,
         "updated_at": t_start,
+        "red_queen_proved": RED_QUEEN_PROVED,
     }
     write_atomic_json(status_file, status_data)
 
@@ -1037,6 +1047,7 @@ def run_worker_3_contingency(
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "red_queen_proved": RED_QUEEN_PROVED,
         "summary": summary,
     })
 

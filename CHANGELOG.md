@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0b23] — 2026-10-07
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b22`.
+
+- Comprehensive 8-challenge integration test suite (`tests/test_grand_frontier_challenges_suite.py`) verifies all campaign and extension experiments.
+- Campaign workers synchronize telemetry headers, seed forwarding, and status records with persistent `red_queen_proved = False` flags.
+- Full engine CI and boundary gates green. ClaimGate, evolution rules, and epistemic boundaries remain invariant.
+
 ## [0.3.0b22] — 2026-10-07
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b21`.

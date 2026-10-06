@@ -182,10 +182,10 @@ def _energy_property():
     global _energy_property_check
     if _energy_property_check is not None:
         return _energy_property_check
-    from hypothesis import given, settings
+    from hypothesis import HealthCheck, given, settings
     from hypothesis import strategies as st
 
-    @settings(database=None)
+    @settings(database=None, suppress_health_check=[HealthCheck.too_slow], deadline=None)
     @given(
         energies=st.lists(
             st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False),

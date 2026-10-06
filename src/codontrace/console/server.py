@@ -17,12 +17,29 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
+from codontrace.console.chat import check_llm_status, chat_turn, list_discovered_models, set_llm_endpoint
 from codontrace.console.release import (
     installed_version,
     refresh_release,
     release_state,
     start_release_monitor,
     update_checkout,
+)
+from codontrace.console.runs import (
+    get_run_details,
+    get_run_zip,
+    launch_simulation_run,
+    list_simulation_runs,
+    manage_run_action,
+    send_signal_to_run,
+)
+from codontrace.console.scripts_service import (
+    list_gates,
+    list_scripts,
+    read_script,
+    run_gate_tests,
+    run_script,
+    save_script,
 )
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
@@ -220,6 +237,7 @@ def host_profile() -> dict[str, object]:
         "hostname": socket.gethostname(),
         "source": "host",
         "packageVersion": installed_version(),
+        "llm": check_llm_status(),
     }
 
 
@@ -280,11 +298,143 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", "0") or "0")
-        if length > 4096:
+        if length > 32768:
             self._send(400, "text/plain; charset=utf-8", b"body too large\n", include_body=True, cache="no-store")
             return
-        if length > 0:
-            self.rfile.read(length)
+        raw_body = self.rfile.read(length) if length > 0 else b""
+
+        if path == "/api/chat":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            text = str(body_json.get("text") or body_json.get("message") or "").strip()
+            lang = str(body_json.get("lang", "en")).strip()
+            ctx = body_json.get("jobContext")
+            result = chat_turn(text, lang, ctx if isinstance(ctx, dict) else None)
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(result, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/chat/endpoint":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            set_llm_endpoint(body_json.get("endpoint"))
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(check_llm_status(), allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/runs/launch":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            res = launch_simulation_run(body_json)
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(res, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/runs/action":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            res = manage_run_action(str(body_json.get("runId", "")), str(body_json.get("action", "")))
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(res, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/scripts/upload":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            res = save_script(str(body_json.get("name", "")), str(body_json.get("content", "")))
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(res, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/scripts/run":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            res = run_script(str(body_json.get("name", "")))
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(res, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path == "/api/gates/run":
+            try:
+                body_json = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+            except ValueError:
+                body_json = {}
+            res = run_gate_tests(body_json.get("filter"))
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps(res, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path.startswith("/api/runs/") and path.endswith("/pause"):
+            run_id = path.removeprefix("/api/runs/").removesuffix("/pause")
+            ok = send_signal_to_run(run_id, "STOP")
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps({"ok": ok, "runId": run_id, "action": "pause"}).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
+        if path.startswith("/api/runs/") and path.endswith("/resume"):
+            run_id = path.removeprefix("/api/runs/").removesuffix("/resume")
+            ok = send_signal_to_run(run_id, "CONT")
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps({"ok": ok, "runId": run_id, "action": "resume"}).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
         if path != "/api/release/update":
             self._send(404, "text/plain; charset=utf-8", b"not found\n", include_body=True, cache="no-store")
             return
@@ -311,6 +461,57 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             payload = json.dumps(state, allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
+        if path == "/api/chat/status":
+            payload = json.dumps(check_llm_status(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path == "/api/models":
+            payload = json.dumps(list_discovered_models(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path == "/api/runs":
+            payload = json.dumps(list_simulation_runs(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path.startswith("/api/runs/") and path.endswith("/zip"):
+            run_id = path.removeprefix("/api/runs/").removesuffix("/zip").strip("/")
+            zip_bytes = get_run_zip(run_id)
+            if zip_bytes is None:
+                self._send(404, "application/json; charset=utf-8", b'{"error": "run not found"}', include_body=include_body, cache="no-store")
+                return
+            self._send(
+                200,
+                "application/zip",
+                zip_bytes,
+                include_body=include_body,
+                cache="no-store",
+                extra_headers={"Content-Disposition": f'attachment; filename="{run_id}.zip"'},
+            )
+            return
+        if path.startswith("/api/runs/"):
+            run_id = path.removeprefix("/api/runs/").strip("/")
+            details = get_run_details(run_id)
+            if details is None:
+                self._send(404, "application/json; charset=utf-8", b'{"error": "run not found"}', include_body=include_body, cache="no-store")
+                return
+            self._send(200, "application/json; charset=utf-8", json.dumps(details, allow_nan=False).encode("utf-8"), include_body=include_body, cache="no-store")
+            return
+        if path == "/api/scripts":
+            payload = json.dumps(list_scripts(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path.startswith("/api/scripts/"):
+            script_name = path.removeprefix("/api/scripts/").strip("/")
+            body_text = read_script(script_name)
+            if body_text is None:
+                self._send(404, "text/plain; charset=utf-8", b"script not found\n", include_body=include_body, cache="no-store")
+                return
+            self._send(200, "text/plain; charset=utf-8", body_text.encode("utf-8"), include_body=include_body, cache="no-store")
+            return
+        if path == "/api/gates":
+            payload = json.dumps(list_gates(), allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
         found = static_file(self.path)
         if found is None and _can_serve_app_shell(self.path):
             found = static_file("/")
@@ -322,13 +523,25 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         cache = "no-store" if found.name == "index.html" else "public, max-age=3600"
         self._send(200, content_type, found.read_bytes(), include_body=include_body, cache=cache)
 
-    def _send(self, status: int, content_type: str, body: bytes, *, include_body: bool, cache: str) -> None:
+    def _send(
+        self,
+        status: int,
+        content_type: str,
+        body: bytes,
+        *,
+        include_body: bool,
+        cache: str,
+        extra_headers: dict[str, str] | None = None,
+    ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", cache)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Access-Control-Allow-Origin", "*")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
         self.end_headers()
         if include_body:
             self.wfile.write(body)

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { answer } from "./analyst";
 import { ARMS, contactsFor, ENGINE_COMMIT, GATE_FILES, PRESETS } from "./catalog";
+import { sendChatMessage } from "./host";
 import type {
   BenchSettings,
   HostProfile,
@@ -184,29 +185,87 @@ export const useBench = create<BenchState>()(
         if (!thread) return;
         const job = thread.jobId ? state.jobs.find((item) => item.id === thread.jobId) ?? null : null;
         const at = Date.now();
-        const reply = answer(state.settings.lang, trimmed, job ?? null);
-        const spoken =
-          state.settings.model === "board-model"
-            ? state.settings.lang === "fa"
-              ? `مدل برد وصل نیست. تحلیلگر محلی:\n${reply}`
-              : `The board model is not mounted. Local analyst:\n${reply}`
-            : reply;
+        const userMsg = { id: uid(), role: "user" as const, text: trimmed, at };
+
+        // Post user message immediately
         set({
-          threads: state.threads.map((item) =>
+          threads: get().threads.map((item) =>
             item.id === threadId
               ? {
                   ...item,
                   title: item.messages.length === 0 ? trimmed.slice(0, 72) : item.title,
                   updatedAt: at,
-                  messages: [
-                    ...item.messages,
-                    { id: uid(), role: "user", text: trimmed, at },
-                    { id: uid(), role: "assistant", text: spoken, at: at + 1 },
-                  ],
+                  messages: [...item.messages, userMsg],
                 }
               : item,
           ),
         });
+
+        if (state.settings.model === "board-model") {
+          sendChatMessage(trimmed, state.settings.lang, job)
+            .then((res) => {
+              const assistantMsg = {
+                id: uid(),
+                role: "assistant" as const,
+                text: res.reply,
+                at: Date.now(),
+              };
+              set({
+                threads: get().threads.map((item) =>
+                  item.id === threadId
+                    ? {
+                        ...item,
+                        updatedAt: Date.now(),
+                        messages: [...item.messages, assistantMsg],
+                      }
+                    : item,
+                ),
+              });
+            })
+            .catch(() => {
+              const reply = answer(state.settings.lang, trimmed, job ?? null);
+              const spoken =
+                state.settings.lang === "fa"
+                  ? `پاسخ از تحلیلگر محلی (مدل زنده در دسترس نیست):\n${reply}`
+                  : `Local analyst fallback (live model offline):\n${reply}`;
+              const assistantMsg = {
+                id: uid(),
+                role: "assistant" as const,
+                text: spoken,
+                at: Date.now(),
+              };
+              set({
+                threads: get().threads.map((item) =>
+                  item.id === threadId
+                    ? {
+                        ...item,
+                        updatedAt: Date.now(),
+                        messages: [...item.messages, assistantMsg],
+                      }
+                    : item,
+                ),
+              });
+            });
+        } else {
+          const reply = answer(state.settings.lang, trimmed, job ?? null);
+          const assistantMsg = {
+            id: uid(),
+            role: "assistant" as const,
+            text: reply,
+            at: at + 1,
+          };
+          set({
+            threads: get().threads.map((item) =>
+              item.id === threadId
+                ? {
+                    ...item,
+                    updatedAt: at,
+                    messages: [...item.messages, assistantMsg],
+                  }
+                : item,
+            ),
+          });
+        }
       },
       togglePin: (threadId) =>
         set({

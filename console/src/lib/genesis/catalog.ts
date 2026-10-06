@@ -27,7 +27,7 @@ export const ENGINE_COMMIT = "5209c87";
 
 export const MODELS = [
   { id: "local-analyst", mounted: true },
-  { id: "board-model", mounted: false },
+  { id: "board-model", mounted: true },
 ] as const;
 
 export function range(from: number, to: number) {

@@ -71,7 +71,8 @@ def test_host_profile_is_a_measurement_not_a_claim() -> None:
         assert profile["tempC"] is None
 
 
-def test_preview_serves_page_and_host_and_rejects_traversal() -> None:
+def test_preview_serves_page_and_host_and_rejects_traversal(monkeypatch) -> None:
+    monkeypatch.setenv("CODONTRACE_LLM_ENDPOINT", "http://127.0.0.1:59999/v1/chat/completions")
     assert (server.STATIC_ROOT / "index.html").is_file()
     httpd = server.make_server("127.0.0.1", 0)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -191,3 +192,69 @@ def test_fast_forward_updates_a_clean_checkout(tmp_path: Path) -> None:
     ok, _message = release.pull_checkout(clone)
     assert ok is True
     assert (clone / "note.txt").read_text(encoding="utf-8") == "next\n"
+
+
+def test_console_serves_chat_runs_scripts_and_gates(monkeypatch) -> None:
+    monkeypatch.setenv("CODONTRACE_LLM_ENDPOINT", "http://127.0.0.1:59999/v1/chat/completions")
+    httpd = server.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address[:2]
+    base = f"http://{host}:{port}"
+    try:
+        with urllib.request.urlopen(base + "/api/chat/status", timeout=5) as r:
+            assert r.status == 200
+            data = json.loads(r.read().decode("utf-8"))
+            assert "mounted" in data
+        with urllib.request.urlopen(base + "/api/runs", timeout=5) as r:
+            assert r.status == 200
+            runs = json.loads(r.read().decode("utf-8"))
+            assert isinstance(runs, list)
+        with urllib.request.urlopen(base + "/api/scripts", timeout=5) as r:
+            assert r.status == 200
+            scripts = json.loads(r.read().decode("utf-8"))
+            assert isinstance(scripts, list)
+        with urllib.request.urlopen(base + "/api/gates", timeout=5) as r:
+            assert r.status == 200
+            gates = json.loads(r.read().decode("utf-8"))
+            assert isinstance(gates, list)
+        chat_req = urllib.request.Request(
+            base + "/api/chat",
+            data=json.dumps({"text": "test", "lang": "en"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(chat_req, timeout=35) as r:
+            assert r.status == 200
+            resp = json.loads(r.read().decode("utf-8"))
+            assert "reply" in resp
+        with urllib.request.urlopen(base + "/api/models", timeout=5) as r:
+            assert r.status == 200
+            models = json.loads(r.read().decode("utf-8"))
+            assert isinstance(models, list)
+        ep_req = urllib.request.Request(
+            base + "/api/chat/endpoint",
+            data=json.dumps({"endpoint": "http://127.0.0.1:8088/v1/chat/completions"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(ep_req, timeout=5) as r:
+            assert r.status == 200
+            ep_resp = json.loads(r.read().decode("utf-8"))
+            assert "mounted" in ep_resp
+        action_req = urllib.request.Request(
+            base + "/api/runs/action",
+            data=json.dumps({"runId": "nonexistent_run", "action": "stop"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(action_req, timeout=5) as r:
+            assert r.status == 200
+            act_resp = json.loads(r.read().decode("utf-8"))
+            assert act_resp["ok"] is False  # nonexistent run
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+

@@ -1118,11 +1118,11 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
   return (
     <dialog
       ref={ref}
-      className="m-auto w-[min(100%,36rem)] max-w-full overflow-hidden rounded-2xl bg-[#101218] text-fg backdrop:bg-black/70"
+      className="m-auto w-[min(100%,36rem)] max-w-full overflow-hidden rounded-2xl bg-[#101218] text-fg backdrop:bg-black/70 outline-none focus:outline-none"
       onClose={onClose}
     >
       <form
-        className="grid max-h-[min(100dvh,40rem)] grid-rows-[minmax(0,1fr)_auto]"
+        className="grid max-h-[min(100dvh,40rem)] grid-rows-[minmax(0,1fr)_auto] outline-none focus:outline-none"
         onSubmit={(event) => {
           event.preventDefault();
           const effectiveKind = track === "contracts" ? "gates" : kind;
@@ -1155,7 +1155,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
           ref.current?.close();
         }}
       >
-        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-5">
+        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-5 outline-none focus:outline-none">
         <h2 className="text-lg font-medium">{text.newRun}</h2>
         <p className="text-sm text-muted">{text.formHint}</p>
         <label className="text-sm text-muted">

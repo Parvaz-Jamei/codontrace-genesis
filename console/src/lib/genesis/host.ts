@@ -73,3 +73,48 @@ export async function pullRelease(): Promise<{ ok: boolean; message: string }> {
   const record = body as { ok?: boolean; message?: string };
   return { ok: Boolean(record.ok), message: record.message ?? "" };
 }
+
+export async function checkChatStatus(): Promise<{ mounted: boolean; endpoint?: string; model?: string }> {
+  try {
+    const res = await fetch("/api/chat/status");
+    if (res.ok) return (await res.json()) as { mounted: boolean; endpoint?: string; model?: string };
+  } catch {
+    // fallback
+  }
+  return { mounted: false };
+}
+
+export async function sendChatMessage(
+  text: string,
+  lang: string,
+  jobContext?: unknown,
+): Promise<{ reply: string; source: string; mounted: boolean }> {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, lang, jobContext }),
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  return (await res.json()) as { reply: string; source: string; mounted: boolean };
+}
+
+export async function fetchSimulationRuns(): Promise<unknown[]> {
+  try {
+    const res = await fetch("/api/runs");
+    if (res.ok) return (await res.json()) as unknown[];
+  } catch {
+    // fallback
+  }
+  return [];
+}
+
+export async function fetchScripts(): Promise<unknown[]> {
+  try {
+    const res = await fetch("/api/scripts");
+    if (res.ok) return (await res.json()) as unknown[];
+  } catch {
+    // fallback
+  }
+  return [];
+}
+

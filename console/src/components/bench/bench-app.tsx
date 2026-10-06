@@ -50,6 +50,40 @@ export function BenchApp() {
   }, [settings.lang, settings.density]);
 
   useEffect(() => {
+    const syncFromLocation = () => {
+      const rawHash = window.location.hash.replace(/^#\/?/, "").toLowerCase();
+      const validViews: View[] = ["jobs", "chat", "gates", "scripts", "host", "settings"];
+      if (validViews.includes(rawHash as View)) {
+        setView(rawHash as View);
+      }
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get("lang");
+      if (urlLang === "fa" || urlLang === "en") {
+        setSettings({ lang: urlLang });
+      }
+      if (params.get("new") === "1") {
+        setComposer(true);
+      }
+      if (params.get("log") === "1") {
+        setLog(true);
+      }
+      if (params.get("help") === "1") {
+        setHelp(true);
+      }
+    };
+    syncFromLocation();
+    window.addEventListener("hashchange", syncFromLocation);
+    return () => window.removeEventListener("hashchange", syncFromLocation);
+  }, [setView, setSettings, setComposer, setLog, setHelp]);
+
+  const handlePick = (next: View) => {
+    setView(next);
+    if (window.location.hash.replace(/^#\/?/, "") !== next) {
+      window.location.hash = `#/${next}`;
+    }
+  };
+
+  useEffect(() => {
     let gone = false;
     getHostProfile()
       .then((profile) => {
@@ -106,11 +140,11 @@ export function BenchApp() {
         jobs={jobs}
         live={live}
         collapsible
-        onPick={setView}
+        onPick={handlePick}
         onNew={() => setComposer(true)}
         onOpenJob={(id) => {
           selectJob(id);
-          setView("jobs");
+          handlePick("jobs");
         }}
         onLang={() => setSettings({ lang: settings.lang === "en" ? "fa" : "en" })}
         onHelp={() => setHelp(true)}
@@ -131,7 +165,7 @@ export function BenchApp() {
             <p className="min-w-0 flex-1">
               {release.releaseAhead ? text.releaseAvailable : text.releaseBehind} {release.latestVersion ?? release.latestCommit}
             </p>
-            <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => setView("host")}>
+            <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => handlePick("host")}>
               {text.release}
             </button>
             <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => setHideRelease(true)}>
@@ -179,7 +213,7 @@ export function BenchApp() {
               live={live}
               collapsible={false}
               onPick={(next) => {
-                setView(next);
+                handlePick(next);
                 setMenu(false);
               }}
               onNew={() => {
@@ -188,7 +222,7 @@ export function BenchApp() {
               }}
               onOpenJob={(id) => {
                 selectJob(id);
-                setView("jobs");
+                handlePick("jobs");
                 setMenu(false);
               }}
               onLang={() => setSettings({ lang: settings.lang === "en" ? "fa" : "en" })}

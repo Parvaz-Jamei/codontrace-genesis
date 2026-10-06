@@ -268,8 +268,8 @@ def test_console_phase1_security_origin_and_cors(monkeypatch) -> None:
     try:
         # Untrusted Origin POST must receive 403 Forbidden
         evil_req = urllib.request.Request(
-            base + "/api/chat",
-            data=json.dumps({"text": "hello"}).encode("utf-8"),
+            base + "/api/runs/action",
+            data=json.dumps({"run_id": "test_run", "action": "stop"}).encode("utf-8"),
             headers={"Content-Type": "application/json", "Origin": "https://untrusted.evil.com"},
             method="POST",
         )
@@ -293,12 +293,12 @@ def test_console_phase1_security_origin_and_cors(monkeypatch) -> None:
 
         # Allowed Origin receives matching Access-Control-Allow-Origin
         trusted_req = urllib.request.Request(
-            base + "/api/chat",
-            data=json.dumps({"text": "hello"}).encode("utf-8"),
+            base + "/api/runs/action",
+            data=json.dumps({"run_id": "test_run", "action": "stop"}).encode("utf-8"),
             headers={"Content-Type": "application/json", "Origin": f"http://127.0.0.1:{port}"},
             method="POST",
         )
-        with urllib.request.urlopen(trusted_req, timeout=35) as r:
+        with urllib.request.urlopen(trusted_req, timeout=10) as r:
             assert r.status == 200
             assert r.headers.get("Access-Control-Allow-Origin") == f"http://127.0.0.1:{port}"
     finally:

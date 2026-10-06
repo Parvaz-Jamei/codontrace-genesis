@@ -332,8 +332,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         origin = self.headers.get("Origin")
         if origin and not self._is_origin_allowed():
+            self.close_connection = True
             self.send_response(403)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Connection", "close")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
@@ -352,19 +354,35 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         if not self._is_origin_allowed():
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            if length > 0:
+                try:
+                    self.rfile.read(min(length, 262144))
+                except OSError:
+                    pass
+            self.close_connection = True
             self._send(
                 403,
                 "application/json; charset=utf-8",
                 b'{"ok": false, "error": "Forbidden: untrusted origin"}\n',
                 include_body=True,
                 cache="no-store",
+                extra_headers={"Connection": "close"},
             )
             return
 
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", "0") or "0")
         if length > 262144:  # 256 KB max payload
-            self._send(413, "application/json; charset=utf-8", b'{"ok": false, "error": "Payload too large"}\n', include_body=True, cache="no-store")
+            self.close_connection = True
+            self._send(
+                413,
+                "application/json; charset=utf-8",
+                b'{"ok": false, "error": "Payload too large"}\n',
+                include_body=True,
+                cache="no-store",
+                extra_headers={"Connection": "close"},
+            )
             return
         raw_body = self.rfile.read(length) if length > 0 else b""
 
@@ -429,7 +447,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/runs/action":
-            run_id = str(body_json.get("runId", ""))
+            run_id = str(body_json.get("runId") or body_json.get("run_id") or "")
             action = str(body_json.get("action", ""))
             res = manage_run_action(run_id, action)
             code = int(res.get("status_code", 200 if res.get("ok") else 400))

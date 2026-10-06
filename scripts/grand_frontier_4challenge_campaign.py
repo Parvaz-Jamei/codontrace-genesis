@@ -151,7 +151,7 @@ def run_worker_0_oee(output_dir: Path, generations: int, seed: int = 10001) -> d
             counts[hx] = counts.get(hx, 0) + 1
         shannon = -sum((c / pop_size) * math.log(c / pop_size) for c in counts.values())
 
-        if gen % 20 == 0 or gen == generations:
+        if gen % max(20, generations // 25) == 0 or gen == generations:
             log(f"Gen {gen}/{generations} | Unique persistent alleles={len(persistent_active)} | Shannon={shannon:.3f} | Activity={a_t}")
 
         timeseries.append({
@@ -315,7 +315,7 @@ def run_worker_1_mls(output_dir: Path, generations: int, seed: int = 20001) -> d
 
         demes = new_demes
 
-        if gen % 20 == 0 or gen == generations:
+        if gen % max(20, generations // 25) == 0 or gen == generations:
             log(f"Gen {gen}/{generations} | Between-Group={between_group_term:+.4f} | Within-Group={within_group_term:+.4f} | Altruists={ratio_specialists*100:.1f}%")
 
         history.append({
@@ -327,8 +327,9 @@ def run_worker_1_mls(output_dir: Path, generations: int, seed: int = 20001) -> d
         })
 
     # Summary analysis
-    avg_between = sum(pt["between_group_term"] for pt in history[-50:]) / 50.0
-    avg_within = sum(pt["within_group_term"] for pt in history[-50:]) / 50.0
+    window = history[-min(50, len(history)):]
+    avg_between = sum(pt["between_group_term"] for pt in window) / float(len(window))
+    avg_within = sum(pt["within_group_term"] for pt in window) / float(len(window))
     altruism_sustained = history[-1]["ratio_altruists"] > 0.35
 
     log(f"MLS Challenge Completed: Avg Between-Group={avg_between:+.4f} | Avg Within-Group={avg_within:+.4f} | Altruism Sustained={altruism_sustained}")
@@ -518,7 +519,7 @@ def run_worker_3_contingency(output_dir: Path, generations: int, founder_seed: i
                 new_pop.append(genome)
             pop = new_pop
 
-            if gen % 25 == 0 or gen == generations:
+            if gen % max(25, generations // 20) == 0 or gen == generations:
                 # Capture dominant phenotypic task repertoire
                 dominant = max(set(pop), key=pop.count)
                 trajectory.append({

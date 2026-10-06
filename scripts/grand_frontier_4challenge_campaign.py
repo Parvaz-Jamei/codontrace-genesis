@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-grand_frontier_4challenge_campaign.py - Multi-Day 4-Worker Frontier Experimental Campaign.
+grand_frontier_4challenge_campaign.py - 4-Worker Frontier Experimental Campaign.
 
-Deploys 4 deep, mathematically rigorous experimental challenges across 4 dedicated CPU cores:
-- Worker 0 (Core 0): [OEE_NOVELTY] Open-Endedness & Persistence-Filtered Novelty (Stanley 2017, Channon 2024, Bedau 1998)
-- Worker 1 (Core 1): [MLS_PRICE] Multilevel Selection & Role Differentiation (Chaturvedi et al. 2026, Price 1972, Okasha 2006)
-- Worker 2 (Core 2): [TRANSITION_MUTUALISM] Major Evolutionary Transition & Mutualism Barrier (Maynard Smith-Szathmary 1995, Michod 2007)
-- Worker 3 (Core 3): [CONTINGENCY_REPLAY] Historical Contingency vs Determinism (Gould 1989, Blount et al. 2008 LTEE, Conway Morris)
+Deploys 4 distinct, mathematically rigorous experimental challenges across 4 dedicated CPU cores.
+Each challenge runs in its own directory as an independent console simulation job:
+- Challenge 1 (Core 0): [OEE_NOVELTY] Open-Ended Evolution & Persistence Novelty (Stanley 2017, Channon 2024, Bedau 1998)
+- Challenge 2 (Core 1): [MLS_PRICE] Multilevel Selection & Role Differentiation (Chaturvedi et al. 2026, Price 1972, Okasha 2006)
+- Challenge 3 (Core 2): [TRANSITION_MUTUALISM] Major Evolutionary Transition & Mutualism Barrier (Maynard Smith-Szathmary 1995, Michod 2007)
+- Challenge 4 (Core 3): [CONTINGENCY_REPLAY] Historical Contingency vs Determinism (Gould 1989, Blount et al. 2008 LTEE, Conway Morris)
 
 Architected for 48 to 72 hours of continuous execution with:
 - Dedicated core affinity (os.sched_setaffinity for cores 0, 1, 2, 3 on Linux ARM64).
 - Periodic epoch checkpointing & resumption (zero progress lost on restart).
 - Bounded memory footprint (safe for 2GB RAM Orange Pi Zero 3 boards over multi-day runs).
-- Native CodonTrace console integration (status.json, live.log, console.log, execution.json, COMPLETE).
+- Native CodonTrace console integration (status.json, live.log, console.log, execution.json, COMPLETE per challenge).
 - Epistemic invariants locked: red_queen_proved=False, open_ended_intelligence=False, major_transition_proved=False.
 """
 
@@ -81,25 +82,43 @@ def run_worker_0_oee(
 ) -> dict[str, Any]:
     """
     Challenge 1: Evaluates whether antagonistic coevolution sustains unbounded
-    cumulative evolutionary activity A(t) (Bedau et al. 1998, Channon 2024)
-    versus cycling / stagnation across millions of generations.
+    cumulative evolutionary activity A(t) (Bedau et al. 1998, Channon 2024).
     """
     set_core_affinity(0)
-    worker_dir = output_dir / "worker_0_oee"
-    worker_dir.mkdir(parents=True, exist_ok=True)
-    log_file = worker_dir / "worker_0.log"
-    checkpoint_file = worker_dir / "checkpoint.json"
-    history_file = worker_dir / "oee_history.jsonl"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    log_file = output_dir / "live.log"
+    ui_log = output_dir / "console.log"
+    checkpoint_file = output_dir / "checkpoint.json"
+    history_file = output_dir / "history.jsonl"
+    status_file = output_dir / "status.json"
 
     def log(msg: str) -> None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] [WORKER-0:OEE] {msg}"
-        with log_file.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-        # Mirror to main live log
-        with (output_dir / "live.log").open("a", encoding="utf-8") as lf:
-            lf.write(line + "\n")
+        line = f"[{ts}] [CHALLENGE-1:OEE] {msg}"
+        for p in (log_file, ui_log):
+            with p.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
         print(line, flush=True)
+
+    target_hours = target_seconds / 3600.0
+    t_start = time.time()
+
+    status_data: dict[str, Any] = {
+        "id": output_dir.name,
+        "title": f"Challenge 1: Open-Ended Novelty (OEE, Core 0, {target_hours:.0f}h)",
+        "status": "RUNNING",
+        "pid": os.getpid(),
+        "pct": 0.0,
+        "completed_seeds": 0,
+        "total_seeds": 1,
+        "elapsed_hours": 0.0,
+        "target_hours": target_hours,
+        "started_at": t_start,
+        "updated_at": t_start,
+    }
+    write_atomic_json(status_file, status_data)
 
     pop_size = 64
     epoch = 0
@@ -109,7 +128,6 @@ def run_worker_0_oee(
     component_first_seen: dict[str, int] = {}
     component_last_seen: dict[str, int] = {}
 
-    # Initialize or resume state
     if resume and checkpoint_file.is_file():
         try:
             ckpt = json.loads(checkpoint_file.read_text(encoding="utf-8"))
@@ -121,32 +139,31 @@ def run_worker_0_oee(
             component_last_seen = ckpt.get("component_last_seen", {})
             hosts = [bytes.fromhex(h) for h in ckpt["hosts"]]
             parasites = [bytes.fromhex(p) for p in ckpt["parasites"]]
-            log(f"Resumed from checkpoint: Epoch {epoch}, Total Gens {total_gens:,}, Activity {cumulative_activity:.1f}")
+            log(f"Resumed from checkpoint: Epoch {epoch}, Gens {total_gens:,}, Activity {cumulative_activity:.0f}")
         except Exception as exc:
-            log(f"Failed to load checkpoint ({exc}), starting fresh.")
+            log(f"Checkpoint load error ({exc}), starting fresh.")
             hosts = [hashlib.sha256(f"h:{seed}:{i}".encode()).digest()[:2] for i in range(pop_size)]
             parasites = [hashlib.sha256(f"p:{seed}:{i}".encode()).digest()[:2] for i in range(pop_size)]
     else:
         hosts = [hashlib.sha256(f"h:{seed}:{i}".encode()).digest()[:2] for i in range(pop_size)]
         parasites = [hashlib.sha256(f"p:{seed}:{i}".encode()).digest()[:2] for i in range(pop_size)]
 
-    log(f"Started Open-Ended Evolution Assay: Target Seconds={target_seconds:.0f}s ({target_seconds/3600:.1f}h)")
+    log(f"Running Challenge 1 (Core 0): Target {target_hours:.1f}h ({target_seconds:.0f}s), Epoch Size {epoch_gens:,} gens")
 
-    t_start = time.time()
     activity_snapshots = []
+    slope = 0.0
 
     while True:
         elapsed = time.time() - t_start
         if elapsed >= target_seconds:
-            log(f"Target duration {target_seconds/3600:.1f}h reached. Finalizing worker.")
+            log(f"Target duration {target_hours:.1f}h reached. Finalizing Challenge 1.")
             break
         if (output_dir / "STOP").is_file():
-            log("Stop signal detected. Exiting gracefully.")
+            log("STOP file detected. Exiting gracefully.")
             break
 
         epoch += 1
 
-        # Run 1 epoch of generations
         for step in range(1, epoch_gens + 1):
             gen = total_gens + step
             new_hosts = []
@@ -156,11 +173,8 @@ def run_worker_0_oee(
             for i in range(pop_size):
                 h_bits = int.from_bytes(hosts[i], "big")
                 p_bits = int.from_bytes(parasites[i], "big")
-
-                # Matching bits = infection success
                 match_count = bin(h_bits & p_bits).count("1")
 
-                # Selection & mutation
                 h_rand = prng_float(seed, gen * 1000 + i, "host_mut")
                 if h_rand < 0.15:
                     bit_flip = 1 << (int(h_rand * 100) % 16)
@@ -186,7 +200,6 @@ def run_worker_0_oee(
             hosts = new_hosts
             parasites = new_parasites
 
-            # Bedau Activity: components persisting >= 3 generations
             persistent_active = [
                 component_activity[a] for a in gen_alleles
                 if (gen - component_first_seen[a]) >= 3
@@ -195,14 +208,13 @@ def run_worker_0_oee(
 
         total_gens += epoch_gens
 
-        # Prune dead components if dictionary grows beyond 35,000 keys (Memory Safeguard)
+        # Prune dictionary if > 35000 keys to keep memory < 5MB
         if len(component_activity) > 35000:
             active_keys = [k for k, last in component_last_seen.items() if (total_gens - last) < 15000]
             component_activity = {k: component_activity[k] for k in active_keys}
             component_first_seen = {k: component_first_seen[k] for k in active_keys}
             component_last_seen = {k: component_last_seen[k] for k in active_keys}
 
-        # Shannon diversity
         counts: dict[str, int] = {}
         for h in hosts:
             hx = h.hex()
@@ -213,7 +225,6 @@ def run_worker_0_oee(
         if len(activity_snapshots) > 100:
             activity_snapshots.pop(0)
 
-        # Channon Activity Slope estimation
         n = len(activity_snapshots)
         x_vals = list(range(n))
         slope = (
@@ -222,17 +233,21 @@ def run_worker_0_oee(
             if n > 1 else 0.0
         )
 
+        elapsed = time.time() - t_start
+        pct = min(99.9, round((elapsed / target_seconds) * 100.0, 1))
+        elapsed_h = round(elapsed / 3600.0, 2)
+        eta_h = max(0.0, round((target_seconds - elapsed) / 3600.0, 2))
+
+        # Append epoch record
         epoch_record = {
             "epoch": epoch,
             "total_gens": total_gens,
-            "unique_alleles": len(counts),
             "tracked_alleles": len(component_activity),
             "shannon_entropy": round(shannon, 4),
             "cumulative_activity": round(cumulative_activity, 2),
             "activity_slope": round(slope, 4),
-            "elapsed_hours": round((time.time() - t_start) / 3600.0, 3),
+            "elapsed_hours": elapsed_h,
         }
-
         with history_file.open("a", encoding="utf-8") as hf:
             hf.write(json.dumps(epoch_record) + "\n")
 
@@ -250,6 +265,14 @@ def run_worker_0_oee(
         }
         write_atomic_json(checkpoint_file, ckpt_data)
 
+        # Update console status.json
+        status_data["pct"] = pct
+        status_data["elapsed_hours"] = elapsed_h
+        status_data["eta_hours"] = eta_h
+        status_data["title"] = f"Challenge 1: Open-Ended Novelty ({elapsed_h:.1f}h/{target_hours:.0f}h | Ep {epoch})"
+        status_data["updated_at"] = time.time()
+        write_atomic_json(status_file, status_data)
+
         log(f"Epoch {epoch} | Total Gens={total_gens:,} | Tracked Alleles={len(component_activity)} | Activity={cumulative_activity:.0f} | Slope={slope:.2f} | Shannon={shannon:.3f}")
 
     verdict = "BOUNDED_CYCLING" if slope < 0.1 else "CONTINUOUS_INNOVATION_GROWTH"
@@ -265,8 +288,24 @@ def run_worker_0_oee(
         "red_queen_proved": RED_QUEEN_PROVED,
         "open_ended_intelligence": OPEN_ENDED_INTELLIGENCE_PROVED,
     }
-    with (worker_dir / "oee_summary.json").open("w", encoding="utf-8") as f:
+    with (output_dir / "oee_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
+
+    status_data["status"] = "COMPLETED"
+    status_data["pct"] = 100.0
+    status_data["exitCode"] = 0
+    status_data["endedAt"] = time.time()
+    write_atomic_json(status_file, status_data)
+    (output_dir / "COMPLETE").touch()
+
+    write_atomic_json(output_dir / "execution.json", {
+        "complete": True,
+        "challenge": "OEE_NOVELTY",
+        "total_generations": total_gens,
+        "completed_epochs": epoch,
+        "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "summary": summary,
+    })
 
     return summary
 
@@ -287,20 +326,40 @@ def run_worker_1_mls(
     coupled resource ecology (Chaturvedi et al. arXiv:2604.00810, Price 1972, Okasha 2006).
     """
     set_core_affinity(1)
-    worker_dir = output_dir / "worker_1_mls"
-    worker_dir.mkdir(parents=True, exist_ok=True)
-    log_file = worker_dir / "worker_1.log"
-    checkpoint_file = worker_dir / "checkpoint.json"
-    history_file = worker_dir / "mls_history.jsonl"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    log_file = output_dir / "live.log"
+    ui_log = output_dir / "console.log"
+    checkpoint_file = output_dir / "checkpoint.json"
+    history_file = output_dir / "history.jsonl"
+    status_file = output_dir / "status.json"
 
     def log(msg: str) -> None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] [WORKER-1:MLS] {msg}"
-        with log_file.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-        with (output_dir / "live.log").open("a", encoding="utf-8") as lf:
-            lf.write(line + "\n")
+        line = f"[{ts}] [CHALLENGE-2:MLS] {msg}"
+        for p in (log_file, ui_log):
+            with p.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
         print(line, flush=True)
+
+    target_hours = target_seconds / 3600.0
+    t_start = time.time()
+
+    status_data: dict[str, Any] = {
+        "id": output_dir.name,
+        "title": f"Challenge 2: Multilevel Selection (Price, Core 1, {target_hours:.0f}h)",
+        "status": "RUNNING",
+        "pid": os.getpid(),
+        "pct": 0.0,
+        "completed_seeds": 0,
+        "total_seeds": 1,
+        "elapsed_hours": 0.0,
+        "target_hours": target_hours,
+        "started_at": t_start,
+        "updated_at": t_start,
+    }
+    write_atomic_json(status_file, status_data)
 
     num_demes = 4
     deme_size = 32
@@ -315,16 +374,15 @@ def run_worker_1_mls(
             epoch = ckpt.get("epoch", 0)
             total_gens = ckpt.get("total_gens", 0)
             demes = ckpt.get("demes", [])
-            log(f"Resumed MLS from checkpoint: Epoch {epoch}, Total Gens {total_gens:,}")
+            log(f"Resumed MLS from checkpoint: Epoch {epoch}, Gens {total_gens:,}")
         except Exception as exc:
-            log(f"Failed to load checkpoint ({exc}), starting fresh.")
+            log(f"Checkpoint load error ({exc}), starting fresh.")
             demes = [[prng_float(seed, d * deme_size + i, "init_z") for i in range(deme_size)] for d in range(num_demes)]
     else:
         demes = [[prng_float(seed, d * deme_size + i, "init_z") for i in range(deme_size)] for d in range(num_demes)]
 
-    log(f"Started MLS Challenge: Target Seconds={target_seconds:.0f}s ({target_seconds/3600:.1f}h)")
+    log(f"Running Challenge 2 (Core 1): Target {target_hours:.1f}h ({target_seconds:.0f}s), Epoch Size {epoch_gens:,} gens")
 
-    t_start = time.time()
     between_history = []
     within_history = []
     altruist_history = []
@@ -332,10 +390,10 @@ def run_worker_1_mls(
     while True:
         elapsed = time.time() - t_start
         if elapsed >= target_seconds:
-            log(f"Target duration {target_seconds/3600:.1f}h reached. Finalizing MLS worker.")
+            log(f"Target duration {target_hours:.1f}h reached. Finalizing Challenge 2.")
             break
         if (output_dir / "STOP").is_file():
-            log("Stop signal detected. Exiting gracefully.")
+            log("STOP file detected. Exiting gracefully.")
             break
 
         epoch += 1
@@ -346,7 +404,6 @@ def run_worker_1_mls(
         for step in range(1, epoch_gens + 1):
             gen = total_gens + step
 
-            # Deme evaluations
             deme_fitnesses = []
             deme_mean_z = []
             individual_fitnesses = []
@@ -365,7 +422,6 @@ def run_worker_1_mls(
                 individual_fitnesses.append(ind_fits)
                 deme_fitnesses.append(sum(ind_fits) / deme_size)
 
-            # Price Equation Decomposition
             mean_W = sum(deme_fitnesses) / num_demes
             mean_Z = sum(deme_mean_z) / num_demes
 
@@ -387,7 +443,6 @@ def run_worker_1_mls(
             epoch_within += within_term
             epoch_altruists += ratio_specialists
 
-            # Multilevel Reproduction
             new_demes = []
             tot_deme_fit = sum(deme_fitnesses) or 1.0
             for d in range(num_demes):
@@ -434,19 +489,22 @@ def run_worker_1_mls(
             within_history.pop(0)
             altruist_history.pop(0)
 
+        elapsed = time.time() - t_start
+        pct = min(99.9, round((elapsed / target_seconds) * 100.0, 1))
+        elapsed_h = round(elapsed / 3600.0, 2)
+        eta_h = max(0.0, round((target_seconds - elapsed) / 3600.0, 2))
+
         epoch_record = {
             "epoch": epoch,
             "total_gens": total_gens,
             "between_group_term": round(avg_b, 6),
             "within_group_term": round(avg_w, 6),
             "ratio_altruists": round(avg_alt, 4),
-            "elapsed_hours": round((time.time() - t_start) / 3600.0, 3),
+            "elapsed_hours": elapsed_h,
         }
-
         with history_file.open("a", encoding="utf-8") as hf:
             hf.write(json.dumps(epoch_record) + "\n")
 
-        # Save checkpoint
         ckpt_data = {
             "epoch": epoch,
             "total_gens": total_gens,
@@ -454,6 +512,13 @@ def run_worker_1_mls(
             "updated_at": time.time(),
         }
         write_atomic_json(checkpoint_file, ckpt_data)
+
+        status_data["pct"] = pct
+        status_data["elapsed_hours"] = elapsed_h
+        status_data["eta_hours"] = eta_h
+        status_data["title"] = f"Challenge 2: Multilevel Selection ({elapsed_h:.1f}h/{target_hours:.0f}h | Ep {epoch})"
+        status_data["updated_at"] = time.time()
+        write_atomic_json(status_file, status_data)
 
         log(f"Epoch {epoch} | Total Gens={total_gens:,} | Between={avg_b:+.4f} | Within={avg_w:+.4f} | Altruists={avg_alt*100:.1f}%")
 
@@ -473,8 +538,24 @@ def run_worker_1_mls(
         "major_transition_proved": MAJOR_TRANSITION_PROVED,
         "red_queen_proved": RED_QUEEN_PROVED,
     }
-    with (worker_dir / "mls_summary.json").open("w", encoding="utf-8") as f:
+    with (output_dir / "mls_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
+
+    status_data["status"] = "COMPLETED"
+    status_data["pct"] = 100.0
+    status_data["exitCode"] = 0
+    status_data["endedAt"] = time.time()
+    write_atomic_json(status_file, status_data)
+    (output_dir / "COMPLETE").touch()
+
+    write_atomic_json(output_dir / "execution.json", {
+        "complete": True,
+        "challenge": "MLS_PRICE",
+        "total_generations": total_gens,
+        "completed_epochs": epoch,
+        "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "summary": summary,
+    })
 
     return summary
 
@@ -491,25 +572,44 @@ def run_worker_2_transition(
     resume: bool = True,
 ) -> dict[str, Any]:
     """
-    Challenge 3: Identifies the critical vertical transmission threshold v*
-    triggering the transition from antagonistic parasitism to obligate mutualism
-    (Michod 2007 "Export of Fitness", Maynard Smith & Szathmáry 1995).
+    Challenge 3: Identifies critical vertical transmission threshold v*
+    triggering transition from parasitism to obligate mutualism (Michod 2007).
     """
     set_core_affinity(2)
-    worker_dir = output_dir / "worker_2_transition"
-    worker_dir.mkdir(parents=True, exist_ok=True)
-    log_file = worker_dir / "worker_2.log"
-    checkpoint_file = worker_dir / "checkpoint.json"
-    history_file = worker_dir / "transition_history.jsonl"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    log_file = output_dir / "live.log"
+    ui_log = output_dir / "console.log"
+    checkpoint_file = output_dir / "checkpoint.json"
+    history_file = output_dir / "history.jsonl"
+    status_file = output_dir / "status.json"
 
     def log(msg: str) -> None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] [WORKER-2:TRANSITION] {msg}"
-        with log_file.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-        with (output_dir / "live.log").open("a", encoding="utf-8") as lf:
-            lf.write(line + "\n")
+        line = f"[{ts}] [CHALLENGE-3:TRANSITION] {msg}"
+        for p in (log_file, ui_log):
+            with p.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
         print(line, flush=True)
+
+    target_hours = target_seconds / 3600.0
+    t_start = time.time()
+
+    status_data: dict[str, Any] = {
+        "id": output_dir.name,
+        "title": f"Challenge 3: Major Transition to Mutualism (Michod, Core 2, {target_hours:.0f}h)",
+        "status": "RUNNING",
+        "pid": os.getpid(),
+        "pct": 0.0,
+        "completed_seeds": 0,
+        "total_seeds": 1,
+        "elapsed_hours": 0.0,
+        "target_hours": target_hours,
+        "started_at": t_start,
+        "updated_at": t_start,
+    }
+    write_atomic_json(status_file, status_data)
 
     v_rates = [0.0, 0.25, 0.50, 0.75, 1.0]
     num_pop = 32
@@ -517,7 +617,6 @@ def run_worker_2_transition(
     epoch = 0
     total_gens = 0
 
-    # Populations for each transmission regime
     regime_populations = {}
     if resume and checkpoint_file.is_file():
         try:
@@ -525,32 +624,28 @@ def run_worker_2_transition(
             epoch = ckpt.get("epoch", 0)
             total_gens = ckpt.get("total_gens", 0)
             regime_populations = {float(k): v for k, v in ckpt.get("regimes", {}).items()}
-            log(f"Resumed Transition from checkpoint: Epoch {epoch}, Total Gens {total_gens:,}")
+            log(f"Resumed Transition from checkpoint: Epoch {epoch}, Gens {total_gens:,}")
         except Exception as exc:
-            log(f"Failed to load checkpoint ({exc}), initializing fresh regimes.")
+            log(f"Checkpoint load error ({exc}), starting fresh.")
             for v_rate in v_rates:
                 regime_populations[v_rate] = [0.85 + (prng_float(seed, int(v_rate * 100) + i, "init") - 0.5) * 0.1 for i in range(num_pop)]
     else:
         for v_rate in v_rates:
             regime_populations[v_rate] = [0.85 + (prng_float(seed, int(v_rate * 100) + i, "init") - 0.5) * 0.1 for i in range(num_pop)]
 
-    log(f"Started Transition & Mutualism Challenge: Target Seconds={target_seconds:.0f}s ({target_seconds/3600:.1f}h)")
-
-    t_start = time.time()
+    log(f"Running Challenge 3 (Core 2): Target {target_hours:.1f}h ({target_seconds:.0f}s), Epoch Size {epoch_gens:,} gens")
 
     while True:
         elapsed = time.time() - t_start
         if elapsed >= target_seconds:
-            log(f"Target duration {target_seconds/3600:.1f}h reached. Finalizing Transition worker.")
+            log(f"Target duration {target_hours:.1f}h reached. Finalizing Challenge 3.")
             break
         if (output_dir / "STOP").is_file():
-            log("Stop signal detected. Exiting gracefully.")
+            log("STOP file detected. Exiting gracefully.")
             break
 
         epoch += 1
         regime_epoch_stats = {}
-
-        # Evolve each transmission regime for epoch_gens // len(v_rates) steps
         steps_per_regime = max(100, epoch_gens // len(v_rates))
 
         for v_rate in v_rates:
@@ -606,17 +701,20 @@ def run_worker_2_transition(
 
         total_gens += epoch_gens
 
+        elapsed = time.time() - t_start
+        pct = min(99.9, round((elapsed / target_seconds) * 100.0, 1))
+        elapsed_h = round(elapsed / 3600.0, 2)
+        eta_h = max(0.0, round((target_seconds - elapsed) / 3600.0, 2))
+
         epoch_record = {
             "epoch": epoch,
             "total_gens": total_gens,
             "regimes": regime_epoch_stats,
-            "elapsed_hours": round((time.time() - t_start) / 3600.0, 3),
+            "elapsed_hours": elapsed_h,
         }
-
         with history_file.open("a", encoding="utf-8") as hf:
             hf.write(json.dumps(epoch_record) + "\n")
 
-        # Save checkpoint
         ckpt_data = {
             "epoch": epoch,
             "total_gens": total_gens,
@@ -625,9 +723,15 @@ def run_worker_2_transition(
         }
         write_atomic_json(checkpoint_file, ckpt_data)
 
+        status_data["pct"] = pct
+        status_data["elapsed_hours"] = elapsed_h
+        status_data["eta_hours"] = eta_h
+        status_data["title"] = f"Challenge 3: Mutualism Transition ({elapsed_h:.1f}h/{target_hours:.0f}h | Ep {epoch})"
+        status_data["updated_at"] = time.time()
+        write_atomic_json(status_file, status_data)
+
         log(f"Epoch {epoch} | Total Gens={total_gens:,} | v=0.00: Vir={regime_epoch_stats['0.0']['virulence']:.2f} | v=0.50: Vir={regime_epoch_stats['0.5']['virulence']:.2f} (Corr={regime_epoch_stats['0.5']['michod_correlation']:+.2f}) | v=1.00: Vir={regime_epoch_stats['1.0']['virulence']:.2f}")
 
-    # Determine critical threshold
     crit_v = None
     regimes_summary = []
     for v_rate in v_rates:
@@ -652,8 +756,24 @@ def run_worker_2_transition(
         "major_transition_proved": MAJOR_TRANSITION_PROVED,
         "red_queen_proved": RED_QUEEN_PROVED,
     }
-    with (worker_dir / "transition_summary.json").open("w", encoding="utf-8") as f:
+    with (output_dir / "transition_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
+
+    status_data["status"] = "COMPLETED"
+    status_data["pct"] = 100.0
+    status_data["exitCode"] = 0
+    status_data["endedAt"] = time.time()
+    write_atomic_json(status_file, status_data)
+    (output_dir / "COMPLETE").touch()
+
+    write_atomic_json(output_dir / "execution.json", {
+        "complete": True,
+        "challenge": "TRANSITION_MUTUALISM",
+        "total_generations": total_gens,
+        "completed_epochs": epoch,
+        "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "summary": summary,
+    })
 
     return summary
 
@@ -674,20 +794,40 @@ def run_worker_3_contingency(
     (Gould 1989, Blount et al. 2008, 2012 LTEE, Conway Morris).
     """
     set_core_affinity(3)
-    worker_dir = output_dir / "worker_3_contingency"
-    worker_dir.mkdir(parents=True, exist_ok=True)
-    log_file = worker_dir / "worker_3.log"
-    checkpoint_file = worker_dir / "checkpoint.json"
-    history_file = worker_dir / "contingency_history.jsonl"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    log_file = output_dir / "live.log"
+    ui_log = output_dir / "console.log"
+    checkpoint_file = output_dir / "checkpoint.json"
+    history_file = output_dir / "history.jsonl"
+    status_file = output_dir / "status.json"
 
     def log(msg: str) -> None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] [WORKER-3:CONTINGENCY] {msg}"
-        with log_file.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-        with (output_dir / "live.log").open("a", encoding="utf-8") as lf:
-            lf.write(line + "\n")
+        line = f"[{ts}] [CHALLENGE-4:CONTINGENCY] {msg}"
+        for p in (log_file, ui_log):
+            with p.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
         print(line, flush=True)
+
+    target_hours = target_seconds / 3600.0
+    t_start = time.time()
+
+    status_data: dict[str, Any] = {
+        "id": output_dir.name,
+        "title": f"Challenge 4: Contingency Replay (Gould, Core 3, {target_hours:.0f}h)",
+        "status": "RUNNING",
+        "pid": os.getpid(),
+        "pct": 0.0,
+        "completed_seeds": 0,
+        "total_seeds": 1,
+        "elapsed_hours": 0.0,
+        "target_hours": target_hours,
+        "started_at": t_start,
+        "updated_at": t_start,
+    }
+    write_atomic_json(status_file, status_data)
 
     num_replays = 8
     pop_size = 32
@@ -704,29 +844,29 @@ def run_worker_3_contingency(
             epoch = ckpt.get("epoch", 0)
             total_gens = ckpt.get("total_gens", 0)
             replays = ckpt.get("replays", [])
-            log(f"Resumed Contingency from checkpoint: Epoch {epoch}, Total Gens {total_gens:,}")
+            log(f"Resumed Contingency from checkpoint: Epoch {epoch}, Gens {total_gens:,}")
         except Exception as exc:
-            log(f"Failed to load checkpoint ({exc}), re-initializing.")
+            log(f"Checkpoint load error ({exc}), starting fresh.")
             replays = [[founder_val for _ in range(pop_size)] for _ in range(num_replays)]
     else:
         replays = [[founder_val for _ in range(pop_size)] for _ in range(num_replays)]
 
-    log(f"Started Contingency Replay Challenge: Target Seconds={target_seconds:.0f}s ({target_seconds/3600:.1f}h)")
+    log(f"Running Challenge 4 (Core 3): Target {target_hours:.1f}h ({target_seconds:.0f}s), Epoch Size {epoch_gens:,} gens")
 
-    t_start = time.time()
+    mean_pairwise_dist = 0.0
+    divergence_matrix = []
 
     while True:
         elapsed = time.time() - t_start
         if elapsed >= target_seconds:
-            log(f"Target duration {target_seconds/3600:.1f}h reached. Finalizing Contingency worker.")
+            log(f"Target duration {target_hours:.1f}h reached. Finalizing Challenge 4.")
             break
         if (output_dir / "STOP").is_file():
-            log("Stop signal detected. Exiting gracefully.")
+            log("STOP file detected. Exiting gracefully.")
             break
 
         epoch += 1
 
-        # Run epoch_gens for each replay
         for r_id in range(num_replays):
             pop = replays[r_id]
             sub_seed = founder_seed + r_id
@@ -746,7 +886,6 @@ def run_worker_3_contingency(
 
         total_gens += epoch_gens
 
-        # Compute pairwise normalized Hamming distance matrix
         dominant_genomes = [max(set(pop), key=pop.count) for pop in replays]
         divergence_matrix = []
         pairwise_distances = []
@@ -761,18 +900,21 @@ def run_worker_3_contingency(
 
         mean_pairwise_dist = sum(pairwise_distances) / len(pairwise_distances) if pairwise_distances else 0.0
 
+        elapsed = time.time() - t_start
+        pct = min(99.9, round((elapsed / target_seconds) * 100.0, 1))
+        elapsed_h = round(elapsed / 3600.0, 2)
+        eta_h = max(0.0, round((target_seconds - elapsed) / 3600.0, 2))
+
         epoch_record = {
             "epoch": epoch,
             "total_gens": total_gens,
             "mean_pairwise_divergence": round(mean_pairwise_dist, 4),
             "dominant_genomes": [f"{g:08x}" for g in dominant_genomes],
-            "elapsed_hours": round((time.time() - t_start) / 3600.0, 3),
+            "elapsed_hours": elapsed_h,
         }
-
         with history_file.open("a", encoding="utf-8") as hf:
             hf.write(json.dumps(epoch_record) + "\n")
 
-        # Save checkpoint
         ckpt_data = {
             "epoch": epoch,
             "total_gens": total_gens,
@@ -780,6 +922,13 @@ def run_worker_3_contingency(
             "updated_at": time.time(),
         }
         write_atomic_json(checkpoint_file, ckpt_data)
+
+        status_data["pct"] = pct
+        status_data["elapsed_hours"] = elapsed_h
+        status_data["eta_hours"] = eta_h
+        status_data["title"] = f"Challenge 4: Contingency Replay ({elapsed_h:.1f}h/{target_hours:.0f}h | Ep {epoch})"
+        status_data["updated_at"] = time.time()
+        write_atomic_json(status_file, status_data)
 
         log(f"Epoch {epoch} | Total Gens={total_gens:,} | Mean Pairwise Divergence={mean_pairwise_dist:.4f} ({mean_pairwise_dist*100:.1f}%)")
 
@@ -795,206 +944,88 @@ def run_worker_3_contingency(
         "contingency_verdict": contingency_verdict,
         "red_queen_proved": RED_QUEEN_PROVED,
     }
-    with (worker_dir / "contingency_summary.json").open("w", encoding="utf-8") as f:
+    with (output_dir / "contingency_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
-
-    return summary
-
-
-# ==============================================================================
-# MAIN ORCHESTRATOR HARNESS
-# ==============================================================================
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Grand Frontier 4-Challenge Long-Horizon Campaign")
-    parser.add_argument("--output", type=str, default="/home/parvaz/simulation_runs/run_grand_frontier_48h", help="Output directory")
-    parser.add_argument("--duration-hours", type=float, default=48.0, help="Campaign duration in hours (e.g. 48.0, 72.0)")
-    parser.add_argument("--epoch-gens", type=int, default=10000, help="Generations per epoch")
-    parser.add_argument("--no-resume", action="store_true", help="Start from scratch ignoring checkpoints")
-    args = parser.parse_args()
-
-    out_dir = Path(args.output).resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    console_log = out_dir / "campaign.log"
-    live_log = out_dir / "live.log"
-    ui_console_log = out_dir / "console.log"
-
-    def log(msg: str) -> None:
-        ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] [CAMPAIGN-ORCHESTRATOR] {msg}"
-        for lp in (console_log, live_log, ui_console_log):
-            with lp.open("a", encoding="utf-8") as f:
-                f.write(line + "\n")
-        print(line, flush=True)
-
-    target_seconds = float(args.duration_hours) * 3600.0
-    t0 = time.time()
-    run_id = out_dir.name
-    (out_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
-
-    status_data: dict[str, Any] = {
-        "id": run_id,
-        "title": f"Grand Frontier 4-Challenge {args.duration_hours:.0f}h Campaign",
-        "status": "RUNNING",
-        "pid": os.getpid(),
-        "pct": 0.0,
-        "completed_seeds": 0,
-        "total_seeds": 4,
-        "elapsed_hours": 0.0,
-        "target_hours": args.duration_hours,
-        "started_at": t0,
-        "updated_at": t0,
-    }
-    write_atomic_json(out_dir / "status.json", status_data)
-
-    log("=" * 80)
-    log(f"LAUNCHING GRAND FRONTIER 4-CHALLENGE {args.duration_hours:.1f}-HOUR CAMPAIGN")
-    log("Dedicated Core Allocation: 4 Workers on Cores 0, 1, 2, 3")
-    log(f"Target Duration: {args.duration_hours:.1f} Hours ({target_seconds:.0f}s) | Epoch Size: {args.epoch_gens:,} Gens")
-    log(f"Output Directory: {out_dir}")
-    log("Invariants Enforced: red_queen_proved=False, open_ended_intelligence=False, major_transition_proved=False")
-    log("=" * 80)
-
-    worker_specs = [
-        (0, "Worker-0 [OEE_NOVELTY]", run_worker_0_oee, (out_dir, target_seconds, args.epoch_gens, 10001, not args.no_resume)),
-        (1, "Worker-1 [MLS_PRICE]", run_worker_1_mls, (out_dir, target_seconds, args.epoch_gens, 20001, not args.no_resume)),
-        (2, "Worker-2 [TRANSITION_MUTUALISM]", run_worker_2_transition, (out_dir, target_seconds, args.epoch_gens, 30001, not args.no_resume)),
-        (3, "Worker-3 [CONTINGENCY_REPLAY]", run_worker_3_contingency, (out_dir, target_seconds, args.epoch_gens, 40001, not args.no_resume)),
-    ]
-
-    results: dict[str, Any] = {}
-
-    with ProcessPoolExecutor(max_workers=4) as executor:
-        futures = {
-            executor.submit(spec[2], *spec[3]): spec[1]
-            for spec in worker_specs
-        }
-
-        # Monitor loop while futures are running
-        while futures:
-            done = [f for f in futures if f.done()]
-            for future in done:
-                name = futures.pop(future)
-                try:
-                    res = future.result()
-                    challenge_name = res.get("challenge", name)
-                    results[challenge_name] = res
-                    log(f"SUCCESS: {name} finished successfully.")
-                except Exception as exc:
-                    log(f"ERROR: {name} failed: {exc}")
-                    import traceback
-                    traceback.print_exc()
-
-            now = time.time()
-            elapsed_sec = now - t0
-            elapsed_h = round(elapsed_sec / 3600.0, 2)
-            pct = min(99.9, round((elapsed_sec / target_seconds) * 100.0, 1))
-
-            status_data["pct"] = pct
-            status_data["elapsed_hours"] = elapsed_h
-            status_data["eta_hours"] = max(0.0, round((target_seconds - elapsed_sec) / 3600.0, 2))
-            status_data["completed_seeds"] = len(results)
-            status_data["updated_at"] = now
-            status_data["title"] = f"Grand Frontier 4-Challenge {args.duration_hours:.0f}h Campaign ({elapsed_h:.1f}h/{args.duration_hours:.0f}h)"
-            write_atomic_json(out_dir / "status.json", status_data)
-
-            if not futures:
-                break
-
-            time.sleep(15)
-
-    elapsed = time.time() - t0
-    log("=" * 80)
-    log(f"ALL 4 FRONTIER CHALLENGES COMPLETED in {elapsed:.2f} seconds ({elapsed/3600.0:.2f} hours)!")
-    log("=" * 80)
 
     status_data["status"] = "COMPLETED"
     status_data["pct"] = 100.0
     status_data["exitCode"] = 0
     status_data["endedAt"] = time.time()
-    write_atomic_json(out_dir / "status.json", status_data)
-    (out_dir / "COMPLETE").touch()
+    write_atomic_json(status_file, status_data)
+    (output_dir / "COMPLETE").touch()
 
-    # Synthesis Report
-    synthesis = {
-        "campaign": "grand_frontier_4challenge_campaign",
-        "total_elapsed_seconds": round(elapsed, 2),
-        "total_elapsed_hours": round(elapsed / 3600.0, 3),
-        "workers_completed": len(results),
-        "results": results,
-        "epistemic_invariants": {
-            "red_queen_proved": RED_QUEEN_PROVED,
-            "open_ended_intelligence": OPEN_ENDED_INTELLIGENCE_PROVED,
-            "major_transition_proved": MAJOR_TRANSITION_PROVED,
-        },
-    }
-
-    with (out_dir / "frontier_synthesis.json").open("w", encoding="utf-8") as f:
-        json.dump(synthesis, f, indent=2)
-
-    # Execution JSON for Console compatibility
-    exec_payload = {
+    write_atomic_json(output_dir / "execution.json", {
         "complete": True,
-        "duration_hours": args.duration_hours,
-        "campaign": "grand_frontier_4challenge_campaign",
-        "elapsed_seconds": round(elapsed, 2),
-        "elapsed_hours": round(elapsed / 3600.0, 3),
-        "workers_completed": len(results),
-        "epistemic_invariants": {
-            "red_queen_proved": RED_QUEEN_PROVED,
-            "open_ended_intelligence": OPEN_ENDED_INTELLIGENCE_PROVED,
-            "major_transition_proved": MAJOR_TRANSITION_PROVED,
-        },
-        "results": results,
+        "challenge": "CONTINGENCY_REPLAY",
+        "total_generations": total_gens,
+        "completed_epochs": epoch,
+        "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
+        "summary": summary,
+    })
+
+    return summary
+
+
+# ==============================================================================
+# MAIN LAUNCHER HARNESS
+# ==============================================================================
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Grand Frontier 4-Challenge Launcher")
+    parser.add_argument("--challenge", type=str, default="all", choices=["all", "1", "2", "3", "4", "oee", "mls", "transition", "contingency"], help="Specific challenge or 'all' for 4 independent runs")
+    parser.add_argument("--runs-root", type=str, default="/home/parvaz/simulation_runs", help="Root directory for simulation runs")
+    parser.add_argument("--output", type=str, default=None, help="Explicit output directory for single challenge")
+    parser.add_argument("--duration-hours", type=float, default=72.0, help="Target duration in hours (e.g. 48.0, 72.0)")
+    parser.add_argument("--epoch-gens", type=int, default=10000, help="Generations per epoch")
+    parser.add_argument("--no-resume", action="store_true", help="Start from scratch ignoring checkpoints")
+    args = parser.parse_args()
+
+    target_seconds = float(args.duration_hours) * 3600.0
+    runs_root = Path(args.runs_root).resolve()
+    runs_root.mkdir(parents=True, exist_ok=True)
+
+    c_map = {
+        "1": "oee",
+        "2": "mls",
+        "3": "transition",
+        "4": "contingency",
     }
-    with (out_dir / "execution.json").open("w", encoding="utf-8") as f:
-        json.dump(exec_payload, f, indent=2)
+    chosen = c_map.get(args.challenge, args.challenge)
 
-    # Write Markdown Synthesis Report
-    md_content = f"""# CodonTrace Genesis: گزارش جامع کمپین ۴۸ تا ۷۲ ساعته در مرزهای حل‌نشده علم تکاملی
+    if chosen == "all":
+        # Launch all 4 as separate concurrent processes in 4 distinct run directories!
+        specs = [
+            ("run_challenge_1_oee_72h", run_worker_0_oee, 10001),
+            ("run_challenge_2_mls_72h", run_worker_1_mls, 20001),
+            ("run_challenge_3_transition_72h", run_worker_2_transition, 30001),
+            ("run_challenge_4_contingency_72h", run_worker_3_contingency, 40001),
+        ]
+        print(f"Launching all 4 frontier challenges as independent simulation runs in {runs_root} for {args.duration_hours}h...")
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            futures = {}
+            for dir_name, fn, seed in specs:
+                target_dir = runs_root / dir_name
+                f = executor.submit(fn, target_dir, target_seconds, args.epoch_gens, seed, not args.no_resume)
+                futures[f] = dir_name
 
-این گزارش حاصل اجرای پیوسته و بلندمدت ۴ چالش حل‌نشده در زیست‌محاسباتی و حیات مصنوعی (Artificial Life) بر روی ۴ هسته فیزیکی پردازنده بورد **Orange Pi Zero 3 (Allwinner H618 ARM64)** است.
-
----
-
-## خلاصه اجرایی و تله‌متری اجرا
-- **مدت زمان کل اجرا:** {elapsed/3600.0:.2f} ساعت ({elapsed:.1f} ثانیه).
-- **تعداد کارگرهای موازی:** ۴ کارگر مستقل تخصیص‌یافته به ۴ هسته پردازنده (Cores 0, 1, 2, 3).
-- **قفل‌های معرفت‌شناختی:**
-  - `red_queen_proved = False` (حفظ قاطع سقف تجربی).
-  - `open_ended_intelligence = False` (عدم تعمیم ابزار به هوش عمومی).
-  - `major_transition_proved = False` (عدم ادعای اثبات گذار بزرگ در زیست‌شناسی خیس).
-
----
-
-## ۱. کارگر ۰ (هسته ۰): چالش نوآوری باز و پویایی بی‌پایان (Stanley 2017 / Channon 2024 / Bedau 1998)
-- **مسئله حل‌نشده:** آیا فشار خصمانه هم‌تکاملی میزبان-انگل می‌تواند نوآوری پایدار بی‌پایان تولید کند، یا به دام چرخه‌های تکرارشونده متناهی می‌افتد؟
-- **نتیجه:** {json.dumps(results.get("OEE_NOVELTY", {}), indent=2)}
-
----
-
-## ۲. کارگر ۱ (هسته ۱): چالش انتخاب چندسطحی و تفکیک نقش‌ها (Chaturvedi 2026 / Price 1972)
-- **مسئله حل‌نشده:** تفکیک معادله پرایس بین اثر انتخاب درون‌گروهی و بین‌گروهی، و جلوگیری از تراژدی منابع مشترک (Tragedy of the Commons).
-- **نتیجه:** {json.dumps(results.get("MLS_PRICE", {}), indent=2)}
-
----
-
-## ۳. کارگر ۲ (هسته ۲): چالش گذار بزرگ تکاملی و سد همزیستی (Michod 2007 / Szathmáry 1995)
-- **مسئله حل‌نشده:** شناسایی آستانه بحرانی گذار از تخاصم انگل به همزیستی اجباری (Export of Fitness) تحت گرادیان نرخ انتقال عمودی.
-- **نتیجه:** {json.dumps(results.get("TRANSITION_MUTUALISM", {}), indent=2)}
-
----
-
-## ۴. کارگر ۳ (هسته ۳): چالش جبرگرایی در برابر تصادف تاریخی (Gould 1989 / Blount LTEE)
-- **مسئله حل‌نشده:** بازپخش نوار حیات از جمعیت یکسان موسس؛ آیا مسیرها به یک فنوتیپ واحد همگرا می‌شوند یا واگرایی تاریخی ایجاد می‌شود؟
-- **نتیجه:** {json.dumps(results.get("CONTINGENCY_REPLAY", {}), indent=2)}
-"""
-
-    with (out_dir / "FRONTIER_REPORT.md").open("w", encoding="utf-8") as f:
-        f.write(md_content)
-
-    log(f"Campaign synthesis report saved to {out_dir / 'FRONTIER_REPORT.md'}")
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    res = future.result()
+                    print(f"COMPLETED: {name} finished successfully: {res.get('challenge')}")
+                except Exception as exc:
+                    print(f"ERROR: {name} failed: {exc}")
+    else:
+        # Run single challenge directly
+        target_dir = Path(args.output).resolve() if args.output else (runs_root / f"run_challenge_{chosen}_{args.duration_hours:.0f}h")
+        if chosen == "oee":
+            run_worker_0_oee(target_dir, target_seconds, args.epoch_gens, 10001, not args.no_resume)
+        elif chosen == "mls":
+            run_worker_1_mls(target_dir, target_seconds, args.epoch_gens, 20001, not args.no_resume)
+        elif chosen == "transition":
+            run_worker_2_transition(target_dir, target_seconds, args.epoch_gens, 30001, not args.no_resume)
+        elif chosen == "contingency":
+            run_worker_3_contingency(target_dir, target_seconds, args.epoch_gens, 40001, not args.no_resume)
 
 
 if __name__ == "__main__":

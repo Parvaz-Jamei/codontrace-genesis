@@ -678,5 +678,86 @@ def test_console_phase2_fast_tail_file(tmp_path: Path) -> None:
     assert tail_lines[-5].startswith("line_0996:")
 
 
+def test_console_phase3_zip_integrity_manifest_and_no_silent_drop(monkeypatch, tmp_path: Path) -> None:
+    import hashlib
+    import zipfile
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    from codontrace.console import runs
+
+    run_dir = tmp_path / "runs" / "run_phase3_export_test"
+    run_dir.mkdir(parents=True)
+    (run_dir / "status.json").write_text(json.dumps({"status": "COMPLETED", "title": "Export Test"}), encoding="utf-8")
+    (run_dir / "small.txt").write_text("hello small file\n", encoding="utf-8")
+
+    # Create a 26 MB file to test no silent drop (previously files >= 25MB were dropped)
+    large_file = run_dir / "large_data.bin"
+    large_chunk = b"X" * 1024 * 1024
+    with large_file.open("wb") as f:
+        for _ in range(26):
+            f.write(large_chunk)
+
+    expected_large_sha256 = hashlib.sha256()
+    with large_file.open("rb") as f:
+        while chunk := f.read(65536):
+            expected_large_sha256.update(chunk)
+    expected_hex = expected_large_sha256.hexdigest()
+
+    zip_bytes = runs.get_run_zip("run_phase3_export_test")
+    assert zip_bytes is not None
+    assert len(zip_bytes) > 0
+
+    import io
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
+        names = zf.namelist()
+        assert "export_manifest.json" in names
+        assert "small.txt" in names
+        assert "large_data.bin" in names  # MUST NOT be silently omitted!
+
+        manifest_raw = zf.read("export_manifest.json")
+        manifest = json.loads(manifest_raw.decode("utf-8"))
+        assert manifest["schemaVersion"] == 1
+        assert manifest["runId"] == "run_phase3_export_test"
+        assert manifest["snapshotStatus"] == "COMPLETED"
+        assert manifest["isPartialSnapshot"] is False
+        assert manifest["totalFiles"] >= 3
+
+        # Verify hash match
+        large_entry = next(f for f in manifest["files"] if f["path"] == "large_data.bin")
+        assert large_entry["sha256"] == expected_hex
+        assert large_entry["size"] == 26 * 1024 * 1024
+
+
+def test_console_phase3_scientific_metrics_in_run_details(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    from codontrace.console import runs
+
+    run_dir = tmp_path / "runs" / "run_phase3_metrics_test"
+    engine_dir = run_dir / "output"
+    engine_dir.mkdir(parents=True)
+
+    (run_dir / "status.json").write_text(json.dumps({"status": "COMPLETED", "pct": 100.0}), encoding="utf-8")
+    exec_content = {
+        "complete": True,
+        "elapsed_seconds": 45.2,
+        "red_queen_proved": False,
+        "outcomes": [{"seed": 16001, "generations_completed": 10}],
+    }
+    (engine_dir / "execution.json").write_text(json.dumps(exec_content), encoding="utf-8")
+
+    diag_content = {
+        "lag": 5,
+        "permutations": 8,
+        "red_queen_proved": False,
+    }
+    (engine_dir / "time_shift_diagnostics.json").write_text(json.dumps(diag_content), encoding="utf-8")
+
+    details = runs.get_run_details("run_phase3_metrics_test")
+    assert details is not None
+    assert details["execution"] == exec_content
+    assert details["diagnostics"] == diag_content
+    assert details["status"] == "COMPLETED"
+
+
+
 
 

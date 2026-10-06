@@ -1,46 +1,99 @@
+import { sendServerRunAction } from "./host";
 import { gateLine, nextLine, scriptLine, useBench } from "./store";
 
 const clocks = new Map<string, number>();
 
-export function startJob(id: string) {
+export async function startJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
   if (!job || job.status === "archived") return;
-  stopClock(id);
-  useBench.getState().patchJob(id, { status: "running" });
-  const timer = window.setInterval(() => tick(id), 700);
-  clocks.set(id, timer);
+  if (job.isDemo) {
+    stopClock(id);
+    useBench.getState().patchJob(id, { status: "running" });
+    const timer = window.setInterval(() => tick(id), 700);
+    clocks.set(id, timer);
+    return;
+  }
+  try {
+    await sendServerRunAction(id, "resume");
+    useBench.getState().patchJob(id, { status: "running" });
+    void useBench.getState().syncServerRuns();
+  } catch (err) {
+    console.error("Failed to start/resume job:", err);
+  }
 }
 
-export function pauseJob(id: string) {
-  stopClock(id);
+export async function pauseJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
-  if (job?.status === "running") useBench.getState().patchJob(id, { status: "paused" });
+  if (!job) return;
+  if (job.isDemo) {
+    stopClock(id);
+    if (job.status === "running") useBench.getState().patchJob(id, { status: "paused" });
+    return;
+  }
+  try {
+    await sendServerRunAction(id, "pause");
+    useBench.getState().patchJob(id, { status: "paused" });
+    void useBench.getState().syncServerRuns();
+  } catch (err) {
+    console.error("Failed to pause job:", err);
+  }
 }
 
-export function stopJob(id: string) {
-  stopClock(id);
+export async function stopJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
   if (!job || job.status === "archived") return;
-  useBench.getState().appendLog(id, "STOP");
-  useBench.getState().patchJob(id, { status: "stopped" });
+  if (job.isDemo) {
+    stopClock(id);
+    useBench.getState().appendLog(id, "STOP");
+    useBench.getState().patchJob(id, { status: "stopped" });
+    return;
+  }
+  try {
+    await sendServerRunAction(id, "stop");
+    useBench.getState().patchJob(id, { status: "stopped" });
+    void useBench.getState().syncServerRuns();
+  } catch (err) {
+    console.error("Failed to stop job:", err);
+  }
 }
 
-export function restartJob(id: string) {
-  stopClock(id);
+export async function restartJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
   if (!job || job.id === "engine-check-17001") return;
-  useBench.getState().patchJob(id, {
-    status: "running",
-    cursor: 0,
-    logs: ["preview restart · exploratory · red_queen_proved=false"],
-  });
-  const timer = window.setInterval(() => tick(id), 700);
-  clocks.set(id, timer);
+  if (job.isDemo) {
+    stopClock(id);
+    useBench.getState().patchJob(id, {
+      status: "running",
+      cursor: 0,
+      logs: ["preview restart · exploratory · red_queen_proved=false"],
+    });
+    const timer = window.setInterval(() => tick(id), 700);
+    clocks.set(id, timer);
+    return;
+  }
+  try {
+    await sendServerRunAction(id, "resume");
+    useBench.getState().patchJob(id, { status: "running" });
+    void useBench.getState().syncServerRuns();
+  } catch (err) {
+    console.error("Failed to restart job:", err);
+  }
 }
 
-export function removeJob(id: string) {
+export async function removeJob(id: string) {
+  const job = useBench.getState().jobs.find((item) => item.id === id);
   stopClock(id);
+  if (job?.isDemo) {
+    useBench.getState().removeJob(id);
+    return;
+  }
+  try {
+    await sendServerRunAction(id, "delete");
+  } catch (err) {
+    console.error("Failed to delete job on server:", err);
+  }
   useBench.getState().removeJob(id);
+  void useBench.getState().syncServerRuns();
 }
 
 function tick(id: string) {

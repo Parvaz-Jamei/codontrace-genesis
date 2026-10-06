@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { answer } from "./analyst";
 import { ARMS, contactsFor, ENGINE_COMMIT, GATE_FILES, PRESETS } from "./catalog";
-import { sendChatMessage } from "./host";
+import {
+  fetchRunDetails,
+  fetchSimulationRuns,
+  launchServerRun,
+  sendChatMessage,
+} from "./host";
 import type {
   BenchSettings,
   HostProfile,
@@ -16,6 +21,26 @@ import type {
 import { zipStore } from "./zip";
 
 const PREVIEW_HORIZON = 2;
+
+export function mapServerStatus(st: string): Job["status"] {
+  switch (st.toUpperCase()) {
+    case "RUNNING":
+    case "STARTING":
+      return "running";
+    case "PAUSED":
+      return "paused";
+    case "STOPPED":
+    case "CANCELLED":
+    case "STALE":
+      return "stopped";
+    case "COMPLETED":
+      return "archived";
+    case "FAILED":
+      return "failed";
+    default:
+      return "queued";
+  }
+}
 
 type BenchState = {
   settings: BenchSettings;
@@ -33,6 +58,8 @@ type BenchState = {
   openThread: (id: string) => void;
   ensureThread: (id: string, title: string, jobId: string | null) => void;
   createRun: (input: RunInput) => string | null;
+  launchJob: (input: RunInput) => Promise<string | null>;
+  syncServerRuns: () => Promise<void>;
   loadEngineCheck: () => void;
   patchJob: (id: string, patch: Partial<Job>) => void;
   appendLog: (id: string, line: string) => void;
@@ -56,6 +83,7 @@ export type RunInput = {
   gateFile?: string;
   scriptName?: string;
   track?: "engine" | "reference" | "contracts";
+  isDemo?: boolean;
 };
 
 const baseSettings: BenchSettings = {
@@ -111,7 +139,7 @@ export const useBench = create<BenchState>()(
         });
       },
       createRun: (input) => {
-        const job = buildJob(input);
+        const job = buildJob({ ...input, isDemo: input.isDemo ?? true });
         if (!job) return null;
         const thread = emptyThread(job.id, job.title);
         set({
@@ -122,6 +150,147 @@ export const useBench = create<BenchState>()(
           view: "jobs",
         });
         return job.id;
+      },
+      launchJob: async (input) => {
+        if (input.isDemo) {
+          return get().createRun(input);
+        }
+        const seedsText = input.seedsText.trim()
+          ? input.seedsText
+          : input.preset !== "custom" && PRESETS[input.preset]
+            ? PRESETS[input.preset].seeds.join(", ")
+            : "16001";
+        const res = await launchServerRun({
+          title: input.title,
+          generations: input.generations,
+          workers: input.workers,
+          seeds: seedsText,
+          budget: 1800,
+          track: input.track || "engine",
+          cores: input.cores.length ? input.cores : null,
+          script: input.scriptName,
+        });
+        if (!res.ok || !res.runId) {
+          throw new Error(res.error || "Failed to launch run");
+        }
+        const runId = res.runId;
+        const parsedSeeds = parseSeeds(seedsText) || [16001];
+        const initialJob: Job = {
+          id: runId,
+          title: input.title.trim() || runId,
+          kind: input.kind,
+          preset: input.preset,
+          seeds: parsedSeeds,
+          generations: input.generations,
+          previewGenerations: PREVIEW_HORIZON,
+          workers: input.workers,
+          cores: input.cores,
+          status: "running",
+          cursor: 0,
+          totalSteps: 6,
+          logs: [`starting execution on board/host · ${input.track || "engine"} · red_queen_proved=false`],
+          createdAt: Date.now(),
+          note: input.track || "engine",
+          redQueenProved: false,
+          exploratory: true,
+          diagnostics: "not_run",
+          serverManaged: true,
+          isDemo: false,
+          gateFile: input.gateFile,
+          scriptName: input.scriptName,
+        };
+        const thread = emptyThread(runId, initialJob.title);
+        set({
+          jobs: [initialJob, ...get().jobs],
+          threads: [thread, ...get().threads],
+          selectedJobId: runId,
+          activeThreadId: thread.id,
+          view: "jobs",
+        });
+        void get().syncServerRuns();
+        return runId;
+      },
+      syncServerRuns: async () => {
+        try {
+          const serverRuns = await fetchSimulationRuns();
+          if (!serverRuns || !serverRuns.length) return;
+          const currentJobs = get().jobs;
+          const currentThreads = get().threads;
+
+          const updatedJobs = [...currentJobs];
+          const newThreads = [...currentThreads];
+
+          for (const sRun of serverRuns) {
+            const existingIndex = updatedJobs.findIndex((j) => j.id === sRun.id);
+            const mappedStatus = mapServerStatus(sRun.status);
+            if (existingIndex >= 0) {
+              const existing = updatedJobs[existingIndex];
+              const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
+              updatedJobs[existingIndex] = {
+                ...existing,
+                status: mappedStatus,
+                pct: sRun.pct ?? existing.pct,
+                cursor: sRun.status === "COMPLETED" ? existing.totalSteps : Math.round(((sRun.pct || 0) / 100) * existing.totalSteps),
+                logs,
+              };
+            } else {
+              const totalSteps = 6;
+              const newJob: Job = {
+                id: sRun.id,
+                title: sRun.title,
+                kind: "engine",
+                preset: "custom",
+                seeds: [sRun.completedSeeds || 16001],
+                generations: 100,
+                previewGenerations: 2,
+                workers: 2,
+                cores: [],
+                status: mappedStatus,
+                cursor: sRun.status === "COMPLETED" ? totalSteps : Math.round(((sRun.pct || 0) / 100) * totalSteps),
+                totalSteps,
+                logs: sRun.recentLogs || [],
+                createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
+                note: "server run",
+                redQueenProved: false,
+                exploratory: true,
+                diagnostics: "not_run",
+                serverManaged: true,
+                isDemo: false,
+                pct: sRun.pct,
+              };
+              updatedJobs.push(newJob);
+              if (!newThreads.some((t) => t.id === `thread-${sRun.id}`)) {
+                newThreads.push(emptyThread(sRun.id, sRun.title));
+              }
+            }
+          }
+
+          const selectedId = get().selectedJobId;
+          if (selectedId) {
+            const selectedJob = updatedJobs.find((j) => j.id === selectedId);
+            if (selectedJob && !selectedJob.isDemo) {
+              const details = await fetchRunDetails(selectedId);
+              if (details) {
+                const idx = updatedJobs.findIndex((j) => j.id === selectedId);
+                if (idx >= 0) {
+                  const liveLogs = details.liveLogs?.length ? details.liveLogs : details.consoleLogs || [];
+                  updatedJobs[idx] = {
+                    ...updatedJobs[idx],
+                    status: mapServerStatus(details.status),
+                    logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
+                    execution: details.execution,
+                    diagnosticsData: details.diagnostics,
+                    cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
+                  };
+                }
+              }
+            }
+          }
+
+          set({ jobs: updatedJobs, threads: newThreads });
+        } catch {
+          // Ignore transient network errors
+        }
       },
       loadEngineCheck: () => {
         if (get().jobs.some((job) => job.id === "engine-check-17001")) {
@@ -449,6 +618,8 @@ function buildJob(input: RunInput): Job | null {
     diagnostics: "not_run",
     gateFile,
     scriptName: input.scriptName,
+    isDemo: Boolean(input.isDemo ?? false),
+    serverManaged: Boolean(!input.isDemo),
   };
 }
 
@@ -481,6 +652,8 @@ function engineCheck(): Job {
     redQueenProved: false,
     exploratory: true,
     diagnostics: "not_run",
+    isDemo: true,
+    serverManaged: false,
   };
 }
 

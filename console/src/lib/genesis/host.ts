@@ -98,14 +98,91 @@ export async function sendChatMessage(
   return (await res.json()) as { reply: string; source: string; mounted: boolean };
 }
 
-export async function fetchSimulationRuns(): Promise<unknown[]> {
+export type ServerRunSummary = {
+  id: string;
+  title: string;
+  status: string;
+  path: string;
+  pct: number;
+  completedSeeds: number;
+  totalSeeds: number;
+  mtime: number;
+  recentLogs: string[];
+};
+
+export type ServerRunDetails = {
+  id: string;
+  title: string;
+  status: string;
+  statusData: Record<string, unknown>;
+  manifest: Record<string, unknown>;
+  execution?: Record<string, unknown>;
+  diagnostics?: Record<string, unknown>;
+  liveLogs: string[];
+  consoleLogs: string[];
+};
+
+export type LaunchRunPayload = {
+  title?: string;
+  generations?: number;
+  workers?: number;
+  seeds?: string | number | number[];
+  budget?: number;
+  track?: string;
+  cores?: number[] | null;
+  script?: string;
+  scriptName?: string;
+};
+
+export async function fetchSimulationRuns(): Promise<ServerRunSummary[]> {
   try {
     const res = await fetch("/api/runs");
-    if (res.ok) return (await res.json()) as unknown[];
+    if (res.ok) return (await res.json()) as ServerRunSummary[];
   } catch {
     // fallback
   }
   return [];
+}
+
+export async function fetchRunDetails(runId: string): Promise<ServerRunDetails | null> {
+  try {
+    const res = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
+    if (res.ok) return (await res.json()) as ServerRunDetails;
+  } catch {
+    // fallback
+  }
+  return null;
+}
+
+export async function launchServerRun(
+  payload: LaunchRunPayload,
+): Promise<{ ok: boolean; runId?: string; error?: string }> {
+  const res = await fetch("/api/runs/launch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; runId?: string; error?: string };
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `Failed to launch run (status ${res.status})`);
+  }
+  return { ok: true, runId: data.runId };
+}
+
+export async function sendServerRunAction(
+  runId: string,
+  action: "pause" | "resume" | "stop" | "delete",
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch("/api/runs/action", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ runId, action }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `Failed action ${action} (status ${res.status})`);
+  }
+  return { ok: true };
 }
 
 export async function fetchScripts(): Promise<unknown[]> {
@@ -117,4 +194,5 @@ export async function fetchScripts(): Promise<unknown[]> {
   }
   return [];
 }
+
 

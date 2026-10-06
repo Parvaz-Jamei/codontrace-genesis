@@ -54,6 +54,12 @@ export type Job = {
   diagnostics: "not_run";
   gateFile?: string;
   scriptName?: string;
+  isDemo?: boolean;
+  serverManaged?: boolean;
+  pct?: number;
+  mtime?: number;
+  execution?: Record<string, unknown>;
+  diagnosticsData?: Record<string, unknown>;
 };
 
 export type ChatMessage = {

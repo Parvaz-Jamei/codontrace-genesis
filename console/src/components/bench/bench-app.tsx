@@ -105,6 +105,23 @@ export function BenchApp() {
     };
   }, [setHost]);
 
+  const syncServerRuns = useBench((state) => state.syncServerRuns);
+
+  useEffect(() => {
+    let gone = false;
+    const sync = () => {
+      if (gone) return;
+      void syncServerRuns();
+    };
+    sync();
+    const intervalMs = live ? 1500 : 3000;
+    const timer = window.setInterval(sync, intervalMs);
+    return () => {
+      gone = true;
+      window.clearInterval(timer);
+    };
+  }, [syncServerRuns, live]);
+
   useEffect(() => {
     let gone = false;
     const load = () => {

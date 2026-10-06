@@ -173,6 +173,18 @@ export function JobsView() {
                     <Stat k={text.workers} v={String(job.workers)} />
                     <Stat k={text.cores} v={job.cores.length ? job.cores.map((index) => `#${index}`).join(", ") : "—"} />
                   </dl>
+                  {job.execution ? (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/5 px-3 py-2 text-xs text-muted">
+                      <span>Status: <strong className="text-fg">{job.execution.complete ? "Complete" : "In Progress"}</strong></span>
+                      {job.execution.elapsed_seconds != null ? (
+                        <span>Elapsed: <strong className="text-fg">{Number(job.execution.elapsed_seconds).toFixed(1)}s</strong></span>
+                      ) : null}
+                      {Array.isArray(job.execution.replays) ? (
+                        <span>Replays: <strong className="text-fg">{job.execution.replays.length} verified</strong></span>
+                      ) : null}
+                      <span className="ms-auto font-mono text-[11px] text-subtle">red_queen_proved=false</span>
+                    </div>
+                  ) : null}
                   {job.kind === "engine" && job.seeds.length > 0 ? <SeedMatrix job={job} /> : null}
                   {job.logs.length > 0 ? (
                     <pre className="max-h-40 min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
@@ -1094,7 +1106,7 @@ export function SettingsView() {
 export function NewRunDialog({ onClose }: { onClose: () => void }) {
   const lang = useBench((state) => state.settings.lang);
   const host = useBench((state) => state.host);
-  const createRun = useBench((state) => state.createRun);
+  const launchJob = useBench((state) => state.launchJob);
   const text = t(lang);
   const cores = Math.max(1, host?.cores ?? 4);
   const opened = pinPreset("smoke", cores);
@@ -1109,6 +1121,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [track, setTrack] = useState<NonNullable<RunInput["track"]>>("engine");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -1118,12 +1131,13 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
   return (
     <dialog
       ref={ref}
+      aria-labelledby="new-run-dialog-title"
       className="m-auto w-[min(100%,36rem)] max-w-full overflow-hidden rounded-2xl bg-[#101218] text-fg backdrop:bg-black/70 outline-none focus:outline-none"
       onClose={onClose}
     >
       <form
         className="grid max-h-[min(100dvh,40rem)] grid-rows-[minmax(0,1fr)_auto] outline-none focus:outline-none"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
           const effectiveKind = track === "contracts" ? "gates" : kind;
           const effectiveGate = track === "contracts" ? "all" : gateFile;
@@ -1135,28 +1149,34 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
             setError(message);
             return;
           }
-          const id = createRun({
-            title,
-            kind: effectiveKind,
-            preset,
-            seedsText,
-            generations,
-            workers,
-            cores: picked,
-            gateFile: effectiveGate,
-            scriptName,
-            track,
-          });
-          if (!id) {
-            setError(text.errorSeeds);
-            return;
+          setBusy(true);
+          try {
+            const id = await launchJob({
+              title,
+              kind: effectiveKind,
+              preset,
+              seedsText,
+              generations,
+              workers,
+              cores: picked,
+              gateFile: effectiveGate,
+              scriptName,
+              track,
+            });
+            if (!id) {
+              setError(text.errorSeeds);
+              setBusy(false);
+              return;
+            }
+            ref.current?.close();
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : String(err));
+            setBusy(false);
           }
-          startJob(id);
-          ref.current?.close();
         }}
       >
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-5 outline-none focus:outline-none">
-        <h2 className="text-lg font-medium">{text.newRun}</h2>
+        <h2 id="new-run-dialog-title" className="text-lg font-medium">{text.newRun}</h2>
         <p className="text-sm text-muted">{text.formHint}</p>
         <label className="text-sm text-muted">
           {text.title}
@@ -1310,8 +1330,12 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
             <button type="button" className="min-h-11 rounded-lg px-3 text-sm" onClick={() => ref.current?.close()}>
               {text.cancel}
             </button>
-            <button type="submit" className="min-h-11 rounded-lg bg-fg px-4 text-sm font-medium text-bg">
-              {text.create}
+            <button
+              type="submit"
+              disabled={busy}
+              className="min-h-11 rounded-lg bg-fg px-4 text-sm font-medium text-bg disabled:opacity-50"
+            >
+              {busy ? "..." : text.create}
             </button>
           </div>
         </div>
@@ -1574,7 +1598,16 @@ function validate(input: RunInput, text: ReturnType<typeof t>) {
 }
 
 function downloadJob(job: Job) {
-  saveBlob(artifactZip(job), `${job.id}.zip`);
+  if (job.isDemo) {
+    saveBlob(artifactZip(job), `${job.id}.zip`);
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = `/api/runs/${encodeURIComponent(job.id)}/zip`;
+  link.download = `${job.id}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function saveBlob(blob: Blob, name: string) {

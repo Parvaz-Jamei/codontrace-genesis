@@ -370,12 +370,36 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
     live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
     console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
 
+    exec_data: dict[str, Any] = {}
+    for ej in (engine_dir / "execution.json", entry / "execution.json", engine_dir / "partial_execution.json"):
+        if ej.is_file():
+            try:
+                raw_ej = json.loads(ej.read_text(encoding="utf-8"))
+                if isinstance(raw_ej, dict):
+                    exec_data = raw_ej
+                    break
+            except Exception:
+                pass
+
+    diagnostics_data: dict[str, Any] = {}
+    for dj in (engine_dir / "time_shift_diagnostics.json", entry / "time_shift_diagnostics.json"):
+        if dj.is_file():
+            try:
+                raw_dj = json.loads(dj.read_text(encoding="utf-8"))
+                if isinstance(raw_dj, dict):
+                    diagnostics_data = raw_dj
+                    break
+            except Exception:
+                pass
+
     return {
         "id": run_id,
         "title": status_info.get("title") or run_id.replace("_", " ").title(),
         "status": status_info.get("status", "UNKNOWN"),
         "statusData": status_info,
         "manifest": manifest_data,
+        "execution": exec_data,
+        "diagnostics": diagnostics_data,
         "liveLogs": tail_file(live_log, 100),
         "consoleLogs": tail_file(console_log, 100),
     }
@@ -425,28 +449,109 @@ def send_signal_to_run(run_id: str, sig_name: str) -> bool:
         return False
 
 
-def get_run_zip(run_id: str) -> bytes | None:
-    """Create an in-memory zip archive of a simulation run directory with strict containment."""
+def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | None]:
+    """Generate a temporary zip archive on disk with integrity manifest and no silent file drops."""
     entry = get_safe_run_dir(run_id, must_exist=True)
     if entry is None:
-        return None
+        return None, None
 
-    import io
+    import hashlib
+    import tempfile
     import zipfile
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for file_path in entry.rglob("*"):
-            if file_path.is_file():
+    status_file = entry / "status.json"
+    status_str = "UNKNOWN"
+    if status_file.is_file():
+        try:
+            status_data = json.loads(status_file.read_text(encoding="utf-8"))
+            if isinstance(status_data, dict):
+                status_str = status_data.get("status", "UNKNOWN")
+        except Exception:
+            pass
+
+    is_partial = status_str in ("RUNNING", "STARTING")
+
+    tmp_fd, tmp_path_str = tempfile.mkstemp(suffix=".zip", prefix=f"run_export_{run_id}_")
+    os.close(tmp_fd)
+    tmp_path = Path(tmp_path_str)
+
+    manifest_files: list[dict[str, Any]] = []
+    omitted_files: list[dict[str, Any]] = []
+    total_raw_bytes = 0
+
+    try:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for file_path in sorted(entry.rglob("*")):
+                if not file_path.is_file():
+                    continue
                 try:
-                    file_path.relative_to(entry)
+                    rel_path = file_path.relative_to(entry)
                 except ValueError:
                     continue
-                if file_path.stat().st_size < 25 * 1024 * 1024:
-                    arcname = file_path.relative_to(entry)
-                    zf.write(file_path, str(arcname))
-    buf.seek(0)
-    return buf.getvalue()
+
+                if ".tmp." in file_path.name:
+                    continue
+
+                file_size = file_path.stat().st_size
+                hasher = hashlib.sha256()
+                try:
+                    with file_path.open("rb") as f:
+                        while True:
+                            chunk = f.read(65536)
+                            if not chunk:
+                                break
+                            hasher.update(chunk)
+                    sha256_hex = hasher.hexdigest()
+
+                    zf.write(file_path, str(rel_path))
+                    manifest_files.append({
+                        "path": str(rel_path).replace("\\", "/"),
+                        "size": file_size,
+                        "sha256": sha256_hex,
+                    })
+                    total_raw_bytes += file_size
+                except (OSError, PermissionError) as exc:
+                    omitted_files.append({
+                        "path": str(rel_path).replace("\\", "/"),
+                        "size": file_size,
+                        "reason": f"Read error: {exc}",
+                    })
+
+            export_manifest = {
+                "schemaVersion": 1,
+                "runId": run_id,
+                "exportedAt": time.time(),
+                "snapshotStatus": status_str,
+                "isPartialSnapshot": is_partial,
+                "totalFiles": len(manifest_files),
+                "totalRawBytes": total_raw_bytes,
+                "files": manifest_files,
+                "omittedFiles": omitted_files,
+            }
+            zf.writestr("export_manifest.json", json.dumps(export_manifest, indent=2))
+
+        return tmp_path, export_manifest
+    except Exception:
+        if tmp_path.is_file():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+        raise
+
+
+def get_run_zip(run_id: str) -> bytes | None:
+    """Create a complete zip archive of a simulation run with integrity manifest."""
+    tmp_path, _ = generate_run_zip_file(run_id)
+    if tmp_path is None:
+        return None
+    try:
+        return tmp_path.read_bytes()
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def manage_run_action(run_id: str, action: str) -> dict[str, Any]:

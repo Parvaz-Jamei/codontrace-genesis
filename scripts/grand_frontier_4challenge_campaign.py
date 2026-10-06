@@ -592,12 +592,39 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     console_log = out_dir / "campaign.log"
+    live_log = out_dir / "live.log"
+    ui_console_log = out_dir / "console.log"
+
+    def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
+        tmp = path.with_suffix(".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        tmp.replace(path)
+
     def log(msg: str) -> None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         line = f"[{ts}] [CAMPAIGN-ORCHESTRATOR] {msg}"
-        with console_log.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
+        for lp in (console_log, live_log, ui_console_log):
+            with lp.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
         print(line, flush=True)
+
+    t0 = time.time()
+    run_id = out_dir.name
+    (out_dir / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    status_data: dict[str, Any] = {
+        "id": run_id,
+        "title": f"Grand Frontier 4-Challenge Campaign ({args.generations:,} Gen)",
+        "status": "RUNNING",
+        "pid": os.getpid(),
+        "pct": 0.0,
+        "completed_seeds": 0,
+        "total_seeds": 4,
+        "started_at": t0,
+        "updated_at": t0,
+    }
+    write_atomic_json(out_dir / "status.json", status_data)
 
     log("=" * 80)
     log("LAUNCHING GRAND FRONTIER 4-CHALLENGE COEVOLUTIONARY CAMPAIGN")
@@ -605,8 +632,6 @@ def main() -> None:
     log(f"Output Directory: {out_dir} | Generations: {args.generations}")
     log("Invariants Enforced: red_queen_proved=False, open_ended_intelligence=False")
     log("=" * 80)
-
-    t0 = time.time()
 
     # Launch 4 workers in parallel using ProcessPoolExecutor
     worker_specs = [
@@ -636,10 +661,22 @@ def main() -> None:
                 import traceback
                 traceback.print_exc()
 
+            status_data["completed_seeds"] = len(results)
+            status_data["pct"] = round((len(results) / 4.0) * 100.0, 1)
+            status_data["updated_at"] = time.time()
+            write_atomic_json(out_dir / "status.json", status_data)
+
     elapsed = time.time() - t0
     log("=" * 80)
     log(f"ALL 4 FRONTIER CHALLENGES COMPLETED in {elapsed:.2f} seconds ({elapsed/60.0:.2f} minutes)!")
     log("=" * 80)
+
+    status_data["status"] = "COMPLETED"
+    status_data["pct"] = 100.0
+    status_data["exitCode"] = 0
+    status_data["endedAt"] = time.time()
+    write_atomic_json(out_dir / "status.json", status_data)
+    (out_dir / "COMPLETE").touch()
 
     # Synthesis Report
     synthesis = {
@@ -656,6 +693,23 @@ def main() -> None:
 
     with (out_dir / "frontier_synthesis.json").open("w", encoding="utf-8") as f:
         json.dump(synthesis, f, indent=2)
+
+    # Execution JSON for Console compatibility
+    exec_payload = {
+        "complete": True,
+        "generations": args.generations,
+        "campaign": "grand_frontier_4challenge_campaign",
+        "elapsed_seconds": round(elapsed, 2),
+        "workers_completed": len(results),
+        "epistemic_invariants": {
+            "red_queen_proved": RED_QUEEN_PROVED,
+            "open_ended_intelligence": OPEN_ENDED_INTELLIGENCE_PROVED,
+            "major_transition_proved": MAJOR_TRANSITION_PROVED,
+        },
+        "results": results,
+    }
+    with (out_dir / "execution.json").open("w", encoding="utf-8") as f:
+        json.dump(exec_payload, f, indent=2)
 
     # Write Markdown Synthesis Report
     md_content = f"""# CodonTrace Genesis: گزارش جامع کمپین ۴ چالشی در مرزهای حل‌نشده علم تکاملی

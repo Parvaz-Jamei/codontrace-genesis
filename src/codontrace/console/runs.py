@@ -32,15 +32,22 @@ def is_pid_alive(pid: int) -> bool:
     if sys.platform == "win32":
         try:
             import ctypes
-            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            SYNCHRONIZE = 0x00100000
-            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, False, pid)
+
+            loader: Any = getattr(ctypes, "windll", None)
+            if loader is None:
+                return True
+            kernel32: Any = getattr(loader, "kernel32", None)
+            if kernel32 is None:
+                return True
+            process_query_limited_information = 0x1000
+            synchronize = 0x00100000
+            handle = kernel32.OpenProcess(process_query_limited_information | synchronize, False, pid)
             if not handle:
                 return False
             exit_code = ctypes.c_ulong()
-            ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
-            ctypes.windll.kernel32.CloseHandle(handle)
-            return exit_code.value == 259  # STILL_ACTIVE
+            kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+            kernel32.CloseHandle(handle)
+            return bool(exit_code.value == 259)  # STILL_ACTIVE
         except Exception:
             return False
     else:
@@ -49,6 +56,7 @@ def is_pid_alive(pid: int) -> bool:
             return True
         except OSError as err:
             import errno
+
             return err.errno == errno.EPERM
 
 
@@ -130,8 +138,24 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
     """Safely write JSON using an atomic replace to avoid partial/corrupt files."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_file = path.with_name(f"{path.name}.tmp.{uuid.uuid4().hex[:6]}")
-    temp_file.write_text(json.dumps(data, indent=2, allow_nan=False), encoding="utf-8")
-    os.replace(temp_file, path)
+    try:
+        temp_file.write_text(json.dumps(data, indent=2, allow_nan=False), encoding="utf-8")
+        # On Windows, os.replace can fail momentarily if another reader has the target file open.
+        for attempt in range(5):
+            try:
+                os.replace(temp_file, path)
+                break
+            except OSError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.05)
+    finally:
+        if temp_file.is_file():
+            try:
+                temp_file.unlink()
+            except OSError:
+                pass
+
 
 
 def runs_directory() -> Path:
@@ -238,14 +262,16 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                 alive = is_pid_alive(pid)
 
             if not alive:
+                orig_st = status_info.get("status")
                 if has_complete_exec:
                     st = "COMPLETED"
                 elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
                     st = "STOPPED"
                 else:
                     st = "STALE"
-                status_info["status"] = st
-                write_atomic_json(status_file, status_info)
+                if st != orig_st:
+                    status_info["status"] = st
+                    write_atomic_json(status_file, status_info)
         elif not st:
             if has_complete_exec or (entry / "COMPLETE").is_file():
                 st = "COMPLETED"
@@ -315,6 +341,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             alive = is_pid_alive(pid)
 
         if not alive:
+            orig_st = status_info.get("status")
             exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (entry / "execution.json")
             if exec_json.is_file():
                 try:
@@ -326,8 +353,9 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 st = "STOPPED"
             else:
                 st = "STALE"
-            status_info["status"] = st
-            write_atomic_json(status_file, status_info)
+            if st != orig_st:
+                status_info["status"] = st
+                write_atomic_json(status_file, status_info)
 
     manifest_file = entry / "run_manifest.json"
     manifest_data: dict[str, Any] = {}

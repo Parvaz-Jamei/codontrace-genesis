@@ -740,11 +740,16 @@ def mark_started(root: Path, run_id: str) -> dict[str, object]:
 
 class _LockedAppend:
     def __init__(self, path: Path, *, fsync_each: bool) -> None:
+        self._has_flock: bool = False
         try:
             import fcntl
-            self._fcntl = fcntl
+
+            self._flock = fcntl.flock
+            self._lock_ex = fcntl.LOCK_EX
+            self._lock_un = fcntl.LOCK_UN
+            self._has_flock = True
         except ImportError:
-            self._fcntl = None
+            pass
 
         path.parent.mkdir(parents=True, exist_ok=True)
         self._fh = path.open("a", encoding="utf-8", buffering=1)
@@ -752,16 +757,16 @@ class _LockedAppend:
 
     def line(self, text: str) -> None:
         payload = text if text.endswith("\n") else text + "\n"
-        if self._fcntl is not None:
-            self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_EX)
+        if self._has_flock:
+            self._flock(self._fh.fileno(), self._lock_ex)
         try:
             self._fh.write(payload)
             self._fh.flush()
             if self._fsync_each:
                 os.fsync(self._fh.fileno())
         finally:
-            if self._fcntl is not None:
-                self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_UN)
+            if self._has_flock:
+                self._flock(self._fh.fileno(), self._lock_un)
 
     def close(self) -> None:
         self._fh.flush()

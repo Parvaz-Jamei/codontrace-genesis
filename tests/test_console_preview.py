@@ -7,9 +7,11 @@ import json
 import subprocess
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 from codontrace.console import release, server
 
@@ -473,6 +475,208 @@ def test_console_phase1_process_safety_and_atomic_writes(monkeypatch, tmp_path: 
     finally:
         with runs._RUN_LOCK:
             runs._RUN_PROCESSES.pop("run_fake_active", None)
+
+
+def test_console_phase2_param_validation_and_rejection(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    httpd = server.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address[:2]
+    base = f"http://{host}:{port}"
+    try:
+        # Invalid seeds (negative or malformed)
+        req = urllib.request.Request(
+            base + "/api/runs/launch",
+            data=json.dumps({"seeds": [-1, 2]}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("negative seed was accepted")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+
+        # Duplicate seeds
+        req = urllib.request.Request(
+            base + "/api/runs/launch",
+            data=json.dumps({"seeds": [16001, 16001]}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("duplicate seeds were accepted")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+
+        # Negative budget / max_seconds
+        req = urllib.request.Request(
+            base + "/api/runs/launch",
+            data=json.dumps({"budget": -10}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("negative budget was accepted")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+
+        # Non-existent script
+        req = urllib.request.Request(
+            base + "/api/runs/launch",
+            data=json.dumps({"scriptName": "non_existent_runner_123.py"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("missing script was accepted")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 404
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+
+def test_console_phase2_lifecycle_separation_and_smoke_api(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    httpd = server.make_server("127.0.0.1", 0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address[:2]
+    base = f"http://{host}:{port}"
+    try:
+        # Launch real 2-generation smoke run through API
+        launch_req = urllib.request.Request(
+            base + "/api/runs/launch",
+            data=json.dumps({
+                "title": "phase2_smoke",
+                "generations": 2,
+                "workers": 1,
+                "seeds": [16001],
+                "budget": 60,
+                "track": "reference",
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(launch_req, timeout=10) as resp:
+            assert resp.status == 200
+            launch_data = json.loads(resp.read().decode("utf-8"))
+            assert launch_data["ok"] is True
+            run_id = launch_data["runId"]
+
+        run_dir = tmp_path / "runs" / run_id
+        assert run_dir.is_dir()
+
+        # Verify run_manifest.json exists with schemaVersion 1
+        manifest_file = run_dir / "run_manifest.json"
+        assert manifest_file.is_file()
+        manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+        assert manifest["schemaVersion"] == 1
+        assert manifest["params"]["generations"] == 2
+        assert manifest["params"]["workers"] == 1
+        assert manifest["params"]["seeds"] == [16001]
+
+        # Poll until complete (should take ~5-15 seconds)
+        start = time.time()
+        completed = False
+        final_details: dict[str, Any] = {}
+        while time.time() - start < 35:
+            with urllib.request.urlopen(f"{base}/api/runs/{run_id}", timeout=5) as r:
+                final_details = json.loads(r.read().decode("utf-8"))
+                if final_details.get("status") in ("COMPLETED", "FAILED"):
+                    completed = True
+                    break
+            time.sleep(0.5)
+
+        assert completed is True
+        assert final_details["status"] == "COMPLETED"
+        assert final_details["statusData"]["exitCode"] == 0
+        assert final_details["statusData"]["pct"] == 100.0
+
+        # Scientific output directory must exist and contain execution.json
+        engine_out = run_dir / "output"
+        assert engine_out.is_dir()
+        assert (engine_out / "execution.json").is_file()
+        report = json.loads((engine_out / "execution.json").read_text(encoding="utf-8"))
+        assert report["complete"] is True
+        assert report["red_queen_proved"] is False
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
+
+
+def test_console_phase2_watcher_captures_failure_and_exit_code(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    monkeypatch.setenv("CODONTRACE_SCRIPTS_DIR", str(tmp_path / "scripts"))
+    from codontrace.console import runs, scripts_service
+
+    # Create a test script that fails with exit code 42
+    scripts_service.save_script("fail_test.py", "import sys\nsys.stderr.write('CRITICAL: intentional failure test\\n')\nsys.exit(42)\n")
+
+    res = runs.launch_simulation_run({"scriptName": "fail_test.py", "title": "intentional_fail"})
+    assert res["ok"] is True
+    run_id = res["runId"]
+
+    # Wait for watcher to capture the failure
+    start = time.time()
+    st_info = {}
+    while time.time() - start < 10:
+        details = runs.get_run_details(run_id)
+        assert details is not None
+        st_info = details.get("statusData", {})
+        if st_info.get("status") in ("FAILED", "STOPPED"):
+            break
+        time.sleep(0.2)
+
+    assert st_info.get("status") == "FAILED"
+    assert st_info.get("exitCode") == 42
+    assert "intentional failure test" in st_info.get("errorReason", "")
+
+
+def test_console_phase2_authoritative_stale_detection(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(tmp_path / "runs"))
+    from codontrace.console import runs
+
+    orphaned_dir = tmp_path / "runs" / "run_orphaned_dead"
+    orphaned_dir.mkdir(parents=True)
+    (orphaned_dir / "status.json").write_text(
+        json.dumps({"status": "RUNNING", "pid": 99999999, "title": "Orphaned Run"}),
+        encoding="utf-8",
+    )
+    (orphaned_dir / "run.pid").write_text("99999999\n", encoding="utf-8")
+
+    # list_simulation_runs must detect that PID is dead and recover status to STALE
+    discovered = runs.list_simulation_runs()
+    match = [r for r in discovered if r["id"] == "run_orphaned_dead"]
+    assert len(match) == 1
+    assert match[0]["status"] == "STALE"
+
+    # status.json must be atomically corrected on disk
+    updated_st = json.loads((orphaned_dir / "status.json").read_text(encoding="utf-8"))
+    assert updated_st["status"] == "STALE"
+
+
+def test_console_phase2_fast_tail_file(tmp_path: Path) -> None:
+    from codontrace.console.runs import tail_file
+
+    large_log = tmp_path / "large.log"
+    # Write 1000 lines (> 64 KB)
+    with large_log.open("w", encoding="utf-8") as f:
+        for i in range(1, 1001):
+            f.write(f"line_{i:04d}: content padding {'x' * 80}\n")
+
+    tail_lines = tail_file(large_log, max_lines=5, max_bytes=4096)
+    assert len(tail_lines) == 5
+    assert tail_lines[-1].startswith("line_1000:")
+    assert tail_lines[-5].startswith("line_0996:")
+
 
 
 

@@ -219,21 +219,26 @@ def _first_diff(left: object, right: object, prefix: str = "") -> str | None:
 
 class _Append:
     def __init__(self, path: Path) -> None:
-        import fcntl
+        try:
+            import fcntl
+            self._fcntl = fcntl
+        except ImportError:
+            self._fcntl = None
 
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._fcntl = fcntl
         self._fh = path.open("a", encoding="utf-8", buffering=1)
 
     def line(self, text: str) -> None:
         payload = text if text.endswith("\n") else text + "\n"
-        self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_EX)
+        if self._fcntl is not None:
+            self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_EX)
         try:
             self._fh.write(payload)
             self._fh.flush()
             os.fsync(self._fh.fileno())
         finally:
-            self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_UN)
+            if self._fcntl is not None:
+                self._fcntl.flock(self._fh.fileno(), self._fcntl.LOCK_UN)
 
     def close(self) -> None:
         self._fh.flush()

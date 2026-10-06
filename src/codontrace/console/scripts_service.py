@@ -148,7 +148,11 @@ def save_script(name: str, content: str) -> dict[str, Any]:
     if len(content_bytes) > 200 * 1024:
         return {"ok": False, "error": "Script content exceeds 200 KB limit", "status_code": 413}
 
-    target_dir = Path("custom_tests").resolve()
+    custom_env = os.environ.get("CODONTRACE_SCRIPTS_DIR", "").strip()
+    if custom_env:
+        target_dir = Path(custom_env).expanduser().resolve()
+    else:
+        target_dir = Path("custom_tests").resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = (target_dir / clean).resolve()
     try:

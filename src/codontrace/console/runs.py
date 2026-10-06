@@ -6,7 +6,9 @@ Works on Windows, Linux, and macOS.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -21,6 +23,77 @@ from typing import Any
 
 _RUN_PROCESSES: dict[str, subprocess.Popen[Any]] = {}
 _RUN_LOCK = threading.Lock()
+
+
+def is_pid_alive(pid: int) -> bool:
+    """Check if process with given PID is currently active across platforms."""
+    if pid <= 0:
+        return False
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            SYNCHRONIZE = 0x00100000
+            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, False, pid)
+            if not handle:
+                return False
+            exit_code = ctypes.c_ulong()
+            ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return exit_code.value == 259  # STILL_ACTIVE
+        except Exception:
+            return False
+    else:
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError as err:
+            import errno
+            return err.errno == errno.EPERM
+
+
+def parse_seeds(val: Any) -> list[int]:
+    """Parse and validate seeds from a list, int, or string."""
+    seeds: list[int] = []
+    if isinstance(val, (int, float)) and not isinstance(val, bool):
+        s = int(val)
+        if s >= 0:
+            return [s]
+        raise ValueError("Seed must be non-negative")
+    elif isinstance(val, list):
+        for item in val:
+            if isinstance(item, (int, float)) and not isinstance(item, bool):
+                s = int(item)
+                if s < 0:
+                    raise ValueError(f"Seed {s} must be non-negative")
+                seeds.append(s)
+            elif isinstance(item, str) and item.strip().isdigit():
+                seeds.append(int(item.strip()))
+            else:
+                raise ValueError(f"Invalid seed value: {item!r}")
+    elif isinstance(val, str):
+        val = val.strip()
+        if ".." in val:
+            parts = val.split("..", 1)
+            if parts[0].strip().isdigit() and parts[1].strip().isdigit():
+                start, end = int(parts[0].strip()), int(parts[1].strip())
+                if end < start or (end - start) > 1000:
+                    raise ValueError("Invalid seed range")
+                seeds = list(range(start, end + 1))
+            else:
+                raise ValueError("Invalid seed range format")
+        else:
+            tokens = [t.strip() for t in re.split(r"[,;\s]+", val) if t.strip()]
+            for token in tokens:
+                if token.isdigit():
+                    seeds.append(int(token))
+                else:
+                    raise ValueError(f"Invalid seed token: {token!r}")
+    if not seeds:
+        raise ValueError("No valid seeds provided")
+    if len(seeds) != len(set(seeds)):
+        raise ValueError("Duplicate seeds provided")
+    return seeds
 
 
 def validate_run_id(run_id: str) -> str | None:
@@ -84,12 +157,19 @@ def runs_directory() -> Path:
     return local
 
 
-def tail_file(path: Path, max_lines: int = 50) -> list[str]:
-    """Read tail lines from a file efficiently."""
+def tail_file(path: Path, max_lines: int = 50, max_bytes: int = 65536) -> list[str]:
+    """Read tail lines from a file efficiently using seek-from-end without loading entire file."""
     if not path.is_file():
         return []
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        file_size = path.stat().st_size
+        if file_size == 0:
+            return []
+        read_size = min(file_size, max_bytes)
+        with path.open("rb") as f:
+            f.seek(file_size - read_size)
+            chunk = f.read(read_size)
+        text = chunk.decode("utf-8", errors="replace")
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         return lines[-max_lines:]
     except OSError:
@@ -97,7 +177,7 @@ def tail_file(path: Path, max_lines: int = 50) -> list[str]:
 
 
 def list_simulation_runs() -> list[dict[str, Any]]:
-    """Enumerate discovered simulation runs."""
+    """Enumerate discovered simulation runs with authoritative status verification."""
     root = runs_directory()
     if not root.is_dir():
         return []
@@ -114,39 +194,83 @@ def list_simulation_runs() -> list[dict[str, Any]]:
 
         run_id = entry.name
         status_file = entry / "status.json"
-        live_log = entry / "live.log"
-        console_log = entry / "console.log"
+        engine_dir = entry / "output"
+        live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
+        console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
 
         status_info: dict[str, Any] = {}
         if status_file.is_file():
             try:
                 status_info = json.loads(status_file.read_text(encoding="utf-8"))
+                if not isinstance(status_info, dict):
+                    status_info = {}
             except (OSError, ValueError):
+                status_info = {}
+
+        # Authoritative status determination
+        st = status_info.get("status")
+        pid = status_info.get("pid")
+        if not pid:
+            pid_file = entry / "run.pid"
+            if pid_file.is_file():
+                try:
+                    pid = int(pid_file.read_text(encoding="utf-8").strip())
+                except (ValueError, OSError):
+                    pid = None
+
+        exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (entry / "execution.json")
+        has_complete_exec = False
+        if exec_json.is_file():
+            try:
+                rep = json.loads(exec_json.read_text(encoding="utf-8"))
+                if rep.get("complete") is True:
+                    has_complete_exec = True
+            except Exception:
                 pass
 
-        # Determine status
-        st = status_info.get("status")
-        if not st:
-            if (entry / "COMPLETE").is_file() or (entry / "REPORT.md").is_file():
+        if st in ("RUNNING", "STARTING"):
+            alive = False
+            with _RUN_LOCK:
+                proc = _RUN_PROCESSES.get(run_id)
+                if proc and proc.poll() is None:
+                    alive = True
+            if not alive and pid:
+                alive = is_pid_alive(pid)
+
+            if not alive:
+                if has_complete_exec:
+                    st = "COMPLETED"
+                elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
+                    st = "STOPPED"
+                else:
+                    st = "STALE"
+                status_info["status"] = st
+                write_atomic_json(status_file, status_info)
+        elif not st:
+            if has_complete_exec or (entry / "COMPLETE").is_file():
                 st = "COMPLETED"
             elif live_log.is_file() and (time.time() - live_log.stat().st_mtime < 120):
                 st = "RUNNING"
             else:
                 st = "INACTIVE"
 
-        seeds_dir = entry / "by_seed"
-        seed_count = len(list(seeds_dir.glob("seed*"))) if seeds_dir.is_dir() else 0
+        seeds_dir = (engine_dir / "by_seed") if (engine_dir / "by_seed").is_dir() else (entry / "by_seed")
+        seed_count = 0
+        if seeds_dir.is_dir():
+            for s_dir in seeds_dir.glob("seed*"):
+                if (s_dir / "archive.jsonl").is_file() or s_dir.is_dir():
+                    seed_count += 1
 
         logs = tail_file(live_log, 15) or tail_file(console_log, 15)
 
         runs.append({
             "id": run_id,
-            "title": run_id.replace("_", " ").title(),
+            "title": status_info.get("title") or run_id.replace("_", " ").title(),
             "status": st,
             "path": str(entry),
             "pct": status_info.get("pct", 100.0 if st == "COMPLETED" else 0.0),
-            "completedSeeds": status_info.get("completed_seeds", seed_count),
-            "totalSeeds": status_info.get("total_seeds", max(12, seed_count)),
+            "completedSeeds": status_info.get("completed_seeds", status_info.get("completedSeeds", seed_count)),
+            "totalSeeds": status_info.get("total_seeds", status_info.get("totalSeeds", max(12, seed_count))),
             "mtime": entry.stat().st_mtime,
             "recentLogs": logs,
         })
@@ -161,6 +285,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         return None
 
     status_file = entry / "status.json"
+    engine_dir = entry / "output"
     status_info: dict[str, Any] = {}
     if status_file.is_file():
         try:
@@ -168,16 +293,61 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             if not isinstance(status_info, dict):
                 status_info = {}
         except (OSError, ValueError):
+            status_info = {}
+
+    st = status_info.get("status")
+    pid = status_info.get("pid")
+    if not pid:
+        pid_file = entry / "run.pid"
+        if pid_file.is_file():
+            try:
+                pid = int(pid_file.read_text(encoding="utf-8").strip())
+            except (ValueError, OSError):
+                pid = None
+
+    if st in ("RUNNING", "STARTING"):
+        alive = False
+        with _RUN_LOCK:
+            proc = _RUN_PROCESSES.get(run_id)
+            if proc and proc.poll() is None:
+                alive = True
+        if not alive and pid:
+            alive = is_pid_alive(pid)
+
+        if not alive:
+            exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (entry / "execution.json")
+            if exec_json.is_file():
+                try:
+                    rep = json.loads(exec_json.read_text(encoding="utf-8"))
+                    st = "COMPLETED" if rep.get("complete") is True else "FAILED"
+                except Exception:
+                    st = "FAILED"
+            elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
+                st = "STOPPED"
+            else:
+                st = "STALE"
+            status_info["status"] = st
+            write_atomic_json(status_file, status_info)
+
+    manifest_file = entry / "run_manifest.json"
+    manifest_data: dict[str, Any] = {}
+    if manifest_file.is_file():
+        try:
+            manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            if not isinstance(manifest_data, dict):
+                manifest_data = {}
+        except (OSError, ValueError):
             pass
 
-    live_log = entry / "live.log"
-    console_log = entry / "console.log"
+    live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
+    console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
 
     return {
         "id": run_id,
-        "title": run_id.replace("_", " ").title(),
+        "title": status_info.get("title") or run_id.replace("_", " ").title(),
         "status": status_info.get("status", "UNKNOWN"),
         "statusData": status_info,
+        "manifest": manifest_data,
         "liveLogs": tail_file(live_log, 100),
         "consoleLogs": tail_file(console_log, 100),
     }
@@ -270,6 +440,8 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         return {"ok": ok, "action": "resume", "run_id": run_id}
     elif act == "stop":
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")
+        if (entry / "output").is_dir():
+            ((entry / "output") / "STOP").write_text("stopped by console\n", encoding="utf-8")
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
         stopped = False
@@ -323,7 +495,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
             try:
                 raw_st = json.loads(status_file.read_text(encoding="utf-8"))
                 if isinstance(raw_st, dict) and raw_st.get("status") == "RUNNING":
-                    live_log = entry / "live.log"
+                    live_log = (entry / "output" / "live.log") if (entry / "output" / "live.log").is_file() else (entry / "live.log")
                     if live_log.is_file() and (time.time() - live_log.stat().st_mtime < 30):
                         return {
                             "ok": False,
@@ -344,12 +516,71 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
     return {"ok": False, "error": f"Unknown action '{action}'", "status_code": 400}
 
 
+def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, engine_dir: Path) -> None:
+    """Monitor background simulation process, capture exit code and update status atomically."""
+    try:
+        ret = proc.wait()
+    except Exception:
+        ret = -1
+
+    ended_at = time.time()
+    status_file = run_dir / "status.json"
+    status_info: dict[str, Any] = {}
+    if status_file.is_file():
+        try:
+            status_info = json.loads(status_file.read_text(encoding="utf-8"))
+            if not isinstance(status_info, dict):
+                status_info = {}
+        except Exception:
+            status_info = {}
+
+    stopped_marker = (run_dir / "STOP").is_file() or (engine_dir / "STOP").is_file()
+    if stopped_marker or status_info.get("status") in ("STOPPED", "CANCELLED"):
+        new_status = "STOPPED"
+        error_reason = None
+    elif ret == 0:
+        exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (run_dir / "execution.json")
+        if exec_json.is_file():
+            try:
+                rep = json.loads(exec_json.read_text(encoding="utf-8"))
+                if rep.get("complete") is True:
+                    new_status = "COMPLETED"
+                    error_reason = None
+                else:
+                    new_status = "FAILED"
+                    error_reason = "Run completed with failures in execution report"
+            except Exception:
+                new_status = "COMPLETED"
+                error_reason = None
+        else:
+            new_status = "COMPLETED"
+            error_reason = None
+    else:
+        new_status = "FAILED"
+        console_log = run_dir / "console.log"
+        last_lines = tail_file(console_log, 5)
+        error_reason = last_lines[-1] if last_lines else f"Process exited with code {ret}"
+
+    status_info["status"] = new_status
+    status_info["exitCode"] = ret
+    status_info["endedAt"] = ended_at
+    if new_status == "COMPLETED":
+        status_info["pct"] = 100.0
+    if error_reason:
+        status_info["errorReason"] = error_reason
+
+    write_atomic_json(status_file, status_info)
+    with _RUN_LOCK:
+        _RUN_PROCESSES.pop(run_id, None)
+
+
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
-    """Launch a simulation run in the background with validation and collision safety."""
+    """Launch a simulation run in the background with lifecycle separation, validation, and watcher."""
     if not isinstance(params, dict):
         return {"ok": False, "error": "Invalid params: expected JSON object", "status_code": 400}
 
-    raw_gen = params.get("generations", 10)
+    # Generations validation
+    raw_gen = params.get("generations", 100)
     try:
         generations = int(raw_gen)
         if generations < 1 or generations > 100000:
@@ -357,6 +588,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         return {"ok": False, "error": "generations must be a valid integer", "status_code": 400}
 
+    # Workers validation
     raw_workers = params.get("workers", 2)
     try:
         workers = int(raw_workers)
@@ -365,66 +597,150 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         return {"ok": False, "error": "workers must be a valid integer", "status_code": 400}
 
+    # Seeds validation
+    raw_seeds = params.get("seeds") if "seeds" in params else params.get("seedsText")
+    resolved_seeds: list[int] | None = None
+    if raw_seeds is not None:
+        try:
+            resolved_seeds = parse_seeds(raw_seeds)
+        except ValueError as exc:
+            return {"ok": False, "error": f"Invalid seeds parameter: {exc}", "status_code": 400}
+
+    # Budget / max_seconds validation
+    raw_budget = params.get("budget") if "budget" in params else params.get("max_seconds", params.get("maxSeconds"))
+    max_seconds = 1800.0
+    if raw_budget is not None:
+        try:
+            max_seconds = float(raw_budget)
+            if max_seconds <= 0 or math.isnan(max_seconds) or math.isinf(max_seconds):
+                return {"ok": False, "error": "budget/max_seconds must be a positive number", "status_code": 400}
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "budget/max_seconds must be a valid number", "status_code": 400}
+
+    # Cores / affinity validation
+    cores_val = params.get("cores")
+    if cores_val is not None:
+        if not isinstance(cores_val, list) or not all(isinstance(c, int) and 0 <= c < 256 for c in cores_val):
+            return {"ok": False, "error": "cores must be a list of non-negative integer core IDs", "status_code": 400}
+
+    track_val = str(params.get("track") or "reference").strip()
     title = str(params.get("title") or "custom_run").strip()[:40]
     clean_title = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in title).lower() or "run"
     ts = time.strftime("%Y%m%d_%H%M%S")
     uid = uuid.uuid4().hex[:8]
     run_id = f"run_{clean_title}_{ts}_{uid}"
-    out_dir = runs_directory() / run_id
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    status_file = out_dir / "status.json"
-    status_info = {
-        "status": "RUNNING",
-        "title": title,
-        "startedAt": time.time(),
-        "params": {
-            "generations": generations,
-            "workers": workers,
-            "title": title,
-        },
-    }
-    write_atomic_json(status_file, status_info)
+    # Lifecycle parent directory
+    run_dir = runs_directory() / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
 
-    script_name = params.get("scriptName")
+    # Scientific engine child directory (NOT pre-created!)
+    engine_dir = run_dir / "output"
+
     repo_root = Path(__file__).resolve().parents[3]
     cmd = [sys.executable]
 
+    script_name = params.get("scriptName")
     if script_name:
         if not isinstance(script_name, str) or not script_name.endswith(".py") or Path(script_name).name != script_name:
+            shutil.rmtree(run_dir, ignore_errors=True)
             return {"ok": False, "error": "Invalid scriptName", "status_code": 400}
-        script_path = repo_root / "scripts" / script_name
-        if not script_path.is_file():
-            script_path = repo_root / "custom_tests" / script_name
-        if script_path.is_file():
-            cmd.extend([str(script_path), "--output", str(out_dir)])
+        script_path = None
+        custom_scripts_env = os.environ.get("CODONTRACE_SCRIPTS_DIR", "").strip()
+        if custom_scripts_env:
+            candidate = (Path(custom_scripts_env).expanduser() / script_name).resolve()
+            if candidate.is_file():
+                script_path = candidate
+        if not script_path:
+            for s_dir in (repo_root / "scripts", repo_root / "custom_tests", Path("custom_tests").resolve()):
+                candidate = (s_dir / script_name).resolve()
+                if candidate.is_file():
+                    script_path = candidate
+                    break
+        if script_path and script_path.is_file():
+            cmd.extend([str(script_path), "--output", str(engine_dir)])
         else:
-            return {"ok": False, "error": f"Script {script_name} not found", "status_code": 404}
+            shutil.rmtree(run_dir, ignore_errors=True)
+            return {"ok": False, "error": f"Script '{script_name}' not found", "status_code": 404}
     else:
         engine_script = repo_root / "scripts" / "rq_full_engine_parallel.py"
-        if engine_script.is_file():
-            cmd.extend([
-                str(engine_script),
-                "--output", str(out_dir),
-                "--generations", str(generations),
-                "--workers", str(workers),
-            ])
-        else:
-            cmd.extend(["-m", "codontrace.console", "--help"])
+        if not engine_script.is_file():
+            shutil.rmtree(run_dir, ignore_errors=True)
+            return {"ok": False, "error": "Simulation engine script 'rq_full_engine_parallel.py' not found", "status_code": 404}
 
-    log_path = out_dir / "console.log"
+        cmd.extend([
+            str(engine_script),
+            "--output", str(engine_dir),
+            "--generations", str(generations),
+            "--workers", str(workers),
+            "--max-seconds", str(max_seconds),
+        ])
+        if resolved_seeds:
+            cmd.extend([
+                "--histories", str(len(resolved_seeds)),
+                "--seed-start", str(min(resolved_seeds)),
+            ])
+
+    started_at = time.time()
+    param_record = {
+        "generations": generations,
+        "workers": workers,
+        "seeds": resolved_seeds,
+        "budget": max_seconds,
+        "track": track_val,
+        "cores": cores_val,
+        "title": title,
+        "scriptName": script_name,
+    }
+
+    manifest_info = {
+        "schemaVersion": 1,
+        "runId": run_id,
+        "title": title,
+        "startedAt": started_at,
+        "command": cmd,
+        "params": param_record,
+        "configDigest": hashlib.sha256(json.dumps(param_record, sort_keys=True).encode("utf-8")).hexdigest()[:16],
+    }
+    write_atomic_json(run_dir / "run_manifest.json", manifest_info)
+
+    status_info = {
+        "schemaVersion": 1,
+        "runId": run_id,
+        "status": "STARTING",
+        "title": title,
+        "startedAt": started_at,
+        "pct": 0.0,
+        "completedSeeds": 0,
+        "totalSeeds": len(resolved_seeds) if resolved_seeds else 12,
+        "params": param_record,
+    }
+    write_atomic_json(run_dir / "status.json", status_info)
+
+    log_path = run_dir / "console.log"
     with open(log_path, "w", encoding="utf-8") as log_fp:
         proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root))
 
     with _RUN_LOCK:
         _RUN_PROCESSES[run_id] = proc
 
-    (out_dir / "run.pid").write_text(f"{proc.pid}\n", encoding="utf-8")
+    (run_dir / "run.pid").write_text(f"{proc.pid}\n", encoding="utf-8")
+
+    status_info["status"] = "RUNNING"
+    status_info["pid"] = proc.pid
+    write_atomic_json(run_dir / "status.json", status_info)
+
+    watcher_thread = threading.Thread(
+        target=_watch_run_process,
+        args=(run_id, proc, run_dir, engine_dir),
+        daemon=True,
+    )
+    watcher_thread.start()
 
     return {
         "ok": True,
         "runId": run_id,
         "pid": proc.pid,
-        "path": str(out_dir),
+        "path": str(run_dir),
     }
 

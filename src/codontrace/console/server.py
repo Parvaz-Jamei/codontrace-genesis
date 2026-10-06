@@ -17,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from codontrace.console.chat import check_llm_status, chat_turn, list_discovered_models, set_llm_endpoint
+from codontrace.console.chat import chat_turn, check_llm_status, list_discovered_models, set_llm_endpoint
 from codontrace.console.release import (
     installed_version,
     refresh_release,

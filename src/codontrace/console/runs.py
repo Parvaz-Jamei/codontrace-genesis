@@ -70,7 +70,6 @@ def list_simulation_runs() -> list[dict[str, Any]]:
         status_file = entry / "status.json"
         live_log = entry / "live.log"
         console_log = entry / "console.log"
-        report_file = entry / "REPORT.md" or entry / "OBSERVATORY_REPORT.md"
 
         status_info: dict[str, Any] = {}
         if status_file.is_file():
@@ -266,8 +265,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
             cmd.extend(["-m", "codontrace.console", "--help"])
 
     log_path = out_dir / "console.log"
-    log_fp = open(log_path, "w", encoding="utf-8")
-    proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root))
+    with open(log_path, "w", encoding="utf-8") as log_fp:
+        proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root))
 
     return {
         "ok": True,

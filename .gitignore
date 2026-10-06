@@ -41,6 +41,13 @@ genesis_*_out/
 # BAIC 2026 manuscript pack — held outside the public tree during congress review
 paper/baic/
 
+# Local staging and temporary workspaces
+staging/
+tmp/
+scratch/
+console/scratch/
+docs/audit/
+
 # OS / editor
 .DS_Store
 .idea/

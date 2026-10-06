@@ -57,13 +57,14 @@ def test_discovery_candidate_and_witness_require_evidence() -> None:
     )
     assert calibration.baseline_set is not None
     candidate = evaluate_discovery_candidate(
-        candidate_id="cand1",
+        candidate_id="000111",
         source_run_id="r9",
         behavior_descriptor={"novelty": 4.0, "complexity": 2.0},
         behavior_digest="bd",
         baseline_set=calibration.baseline_set,
         novelty_threshold=0.1,
         persistence_ticks=5,
+        mechanism_tags=("assay",),
         evidence_refs=("trace:1",),
     )
     assert candidate.claim_level is DiscoveryClaimLevel.CANDIDATE

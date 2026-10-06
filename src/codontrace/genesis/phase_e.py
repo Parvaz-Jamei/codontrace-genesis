@@ -199,8 +199,14 @@ class SensoryCue:
             source=_str(data, "source", "unspecified"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def read_environment_cue(
@@ -288,8 +294,14 @@ class CapsuleSlot:
             source=_str(data, "source", "self"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
     def matches(self, cue: SensoryCue) -> bool:
         if self.cue_has_local_food and not cue.has_local_food:
@@ -343,8 +355,14 @@ class CapsuleMemoryState:
             enabled=_bool(data, "enabled", True),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
     def matching_slot(self, cue: SensoryCue) -> CapsuleSlot | None:
         for slot in reversed(self.slots):
@@ -425,8 +443,14 @@ class CapsuleMemoryConfig:
             seed_requires_local_food=_bool(data, "seed_requires_local_food", True),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -458,8 +482,14 @@ class DifferentiationRole:
             can_forward=_bool(data, "can_forward", True),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def role_for_kind(kind: RoleKind | str) -> DifferentiationRole:
@@ -520,8 +550,14 @@ class RoleDifferentiationConfig:
             explicit_roles=_str_tuple(data, "explicit_roles", ()),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -568,8 +604,14 @@ class DemeMessage:
             blocked_reason=_str(data, "blocked_reason", ""),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -614,8 +656,14 @@ class DemeReplicationEvent:
             trigger=_str(data, "trigger", "mean_fitness_threshold"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -639,8 +687,14 @@ class Deme:
             generation=_int(data, "generation", 0),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(slots=True)
@@ -685,8 +739,14 @@ class DemeState:
             else (),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
     def members_of(self, deme_id: str) -> tuple[str, ...]:
         for deme in self.demes:
@@ -759,8 +819,14 @@ class DemeConfig:
             send_on_eat=_bool(data, "send_on_eat", True),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -858,8 +924,14 @@ class PlasticityConfig:
             else PlasticityProtocolSpec(),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -903,8 +975,14 @@ class PhaseESubstrateConfig:
             else PlasticityConfig(),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
     @staticmethod
     def capsule_memory_preset(
@@ -1029,8 +1107,14 @@ class PhaseEOrganismState:
             low_food_action=_str(data, "low_food_action", "WAIT"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def copy_phase_e_state(state: PhaseEOrganismState | None) -> PhaseEOrganismState | None:
@@ -1503,8 +1587,14 @@ class PhaseERuntimeEvent:
             digest_ref=_str(data, "digest_ref", ""),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -1679,8 +1769,14 @@ class PhaseEObservation:
             "plasticity_evolved": self.plasticity_evolved,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = canonical_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def summarize_phase_e_observation(result: object) -> PhaseEObservation:

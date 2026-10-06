@@ -433,8 +433,9 @@ def run_worker_1_mls(
                 mW_d = sum(individual_fitnesses[d]) / deme_size
                 mz_d = deme_mean_z[d]
                 c_w = sum((individual_fitnesses[d][i] - mW_d) * (demes[d][i] - mz_d) for i in range(deme_size)) / deme_size
-                within_covs.append(c_w / mW_d if mW_d > 1e-6 else 0.0)
-            within_term = sum(within_covs) / num_demes
+                q_g = deme_size / total_pop
+                within_covs.append(q_g * c_w)
+            within_term = sum(within_covs) / mean_W if mean_W > 1e-6 else 0.0
 
             role_counts = [sum(1 for z in demes[d] if z >= 0.5) for d in range(num_demes)]
             ratio_specialists = sum(role_counts) / total_pop

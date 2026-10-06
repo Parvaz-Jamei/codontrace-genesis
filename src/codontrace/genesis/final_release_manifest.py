@@ -7,7 +7,7 @@ write files, publish packages, run CI, or generate reports.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
@@ -76,8 +76,14 @@ class FinalReleaseManifest:
             _str(data, "limitations_digest", ""),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,8 +128,14 @@ class FinalGateSummary:
             _str_tuple(data, "reasons"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,8 +174,14 @@ class FinalExamplesMatrix:
             _str(data, "notes", ""),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,8 +220,14 @@ class FinalExamplesMatrixSummary:
             raise ConfigurationError("FinalExamplesMatrixSummary.examples must be a list.")
         return cls(tuple(FinalExamplesMatrix.from_dict(_mapping(item, "example")) for item in raw))
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,8 +300,14 @@ class FinalNonClaimStatement:
             _str_tuple(data, "prohibited_claims"),
         )
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def _digest(payload: Mapping[str, JsonValue]) -> str:
@@ -351,8 +381,14 @@ class FinalClaimValidationResult:
             "invalid_digest_fields": list(self.invalid_digest_fields),
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 
@@ -468,8 +504,14 @@ class FinalClaimManifest:
             "validation_reasons": list(self.validation_reasons),
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -530,8 +572,14 @@ class ReleaseEvidencePack:
             "validation_reasons": list(self.validation_reasons),
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 def validate_final_claim_manifest(
@@ -607,8 +655,14 @@ class ReplayBundleIndex:
             "availability_status": self.availability_status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -659,8 +713,14 @@ class BenchmarkLeaderboardArtifact:
             "downgrade_status": self.downgrade_status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -707,8 +767,14 @@ class AblationMatrixArtifact:
             "status": self.status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -746,8 +812,14 @@ class ClaimDowngradeReport:
             "status": self.status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -786,8 +858,14 @@ class NegativeResultReport:
             "status": self.status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val
 
 
 @dataclass(frozen=True, slots=True)
@@ -836,5 +914,11 @@ class Phase3ScientificSummary:
             "status": self.status,
         }
 
+    _cached_digest: str | None = field(default=None, init=False, repr=False, compare=False)
+
     def digest(self) -> str:
-        return _strict_phase3_digest(self.to_dict())
+        if self._cached_digest is not None:
+            return self._cached_digest
+        val = _strict_phase3_digest(self.to_dict())
+        object.__setattr__(self, "_cached_digest", val)
+        return val

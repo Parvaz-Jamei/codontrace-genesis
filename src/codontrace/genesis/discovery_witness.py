@@ -709,6 +709,16 @@ def evaluate_discovery_candidate(
 
     distance = measure_distance_to_d0(behavior_descriptor, baseline_set, metric_config)
     reasons: list[str] = []
+    
+    from codontrace.genome import SemanticGenome
+    try:
+        SemanticGenome.from_compact(candidate_id)
+    except ValueError:
+        reasons.append("invalid_genome")
+        
+    if "assay" not in mechanism_tags:
+        reasons.append("missing_assay_check")
+        
     if not distance.succeeded:
         reasons.extend(distance.reasons)
     if distance.distance <= novelty_threshold:

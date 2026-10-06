@@ -889,6 +889,75 @@ class PopulationState:
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def create_population_with_unique_ids(
+    generation: int,
+    tick: int,
+    organisms: tuple[GenesisOrganism, ...],
+    lineage: tuple[LineageRecord, ...],
+    fitness: tuple[FitnessResult, ...],
+    birth_chamber: BirthChamberState,
+    environment: EnvironmentState | None = None,
+    deme: DemeState | None = None,
+    materials: MaterialsState | None = None,
+) -> PopulationState:
+    """Safely construct a PopulationState, renaming organisms to prevent digest-based ID collisions.
+    
+    Asexual twin births can collide on digest-based ids. Remap duplicate ids with a numeric suffix
+    before PopulationState validates, and update their lineage records appropriately.
+    """
+    seen: dict[str, int] = {}
+    fixed: list[GenesisOrganism] = []
+    renames: dict[str, list[str]] = {}
+    changed = False
+
+    for org in organisms:
+        oid = org.id
+        if oid not in seen:
+            seen[oid] = 0
+            fixed.append(org)
+            continue
+        seen[oid] += 1
+        new_id = f"{oid}#{seen[oid]}"
+        fixed.append(replace(org, id=new_id))
+        renames.setdefault(oid, []).append(new_id)
+        changed = True
+
+    if not changed:
+        return PopulationState(
+            generation=generation,
+            tick=tick,
+            organisms=organisms,
+            lineage=lineage,
+            fitness=fitness,
+            birth_chamber=birth_chamber,
+            environment=environment,
+            deme=deme,
+            materials=materials,
+        )
+
+    fixed_lineage = list(lineage)
+    for old_id, new_ids in renames.items():
+        indexes = [index for index, rec in enumerate(fixed_lineage) if rec.organism_id == old_id]
+        if len(indexes) < len(new_ids) + 1:
+            raise ConfigurationError(
+                f"duplicate organism id {old_id} renamed {len(new_ids)} time(s) but lineage has {len(indexes)} row(s)"
+            )
+        for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
+            fixed_lineage[rec_index] = replace(fixed_lineage[rec_index], organism_id=new_id)
+
+    return PopulationState(
+        generation=generation,
+        tick=tick,
+        organisms=tuple(fixed),
+        lineage=tuple(fixed_lineage),
+        fitness=fitness,
+        birth_chamber=birth_chamber,
+        environment=environment,
+        deme=deme,
+        materials=materials,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class OrganismStepRecord:
     """Generation-level audit record for one organism run."""
@@ -4148,7 +4217,7 @@ def step_population(
         refreshed.inbox = working_deme_state.inbox
         refreshed.replication_events = working_deme_state.replication_events
         working_deme_state = refreshed
-    next_population = PopulationState(
+    next_population = create_population_with_unique_ids(
         generation=population.generation + 1,
         tick=current_tick,
         organisms=next_organisms,

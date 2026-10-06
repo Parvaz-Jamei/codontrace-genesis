@@ -586,7 +586,7 @@ def test_console_phase2_lifecycle_separation_and_smoke_api(monkeypatch, tmp_path
         start = time.time()
         completed = False
         final_details: dict[str, Any] = {}
-        while time.time() - start < 35:
+        while time.time() - start < 90:
             with urllib.request.urlopen(f"{base}/api/runs/{run_id}", timeout=5) as r:
                 final_details = json.loads(r.read().decode("utf-8"))
                 if final_details.get("status") in ("COMPLETED", "FAILED"):

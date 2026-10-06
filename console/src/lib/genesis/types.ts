@@ -102,5 +102,5 @@ export type BenchSettings = {
   lang: Lang;
   followLog: boolean;
   density: "comfortable" | "compact";
-  model: "local-analyst" | "board-model";
+  model: string;
 };

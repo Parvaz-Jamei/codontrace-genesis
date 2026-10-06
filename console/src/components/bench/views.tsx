@@ -115,10 +115,10 @@ export function JobsView() {
                 onChange={(event) => setSort(event.target.value as typeof sort)}
                 className="min-h-11 min-w-0 max-w-full rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10"
               >
-                <option value="new">{text.sortNew}</option>
-                <option value="old">{text.sortOld}</option>
-                <option value="status">{text.sortStatus}</option>
-                <option value="name">{text.sortName}</option>
+                <option value="new" className="bg-[#181a20] text-fg">{text.sortNew}</option>
+                <option value="old" className="bg-[#181a20] text-fg">{text.sortOld}</option>
+                <option value="status" className="bg-[#181a20] text-fg">{text.sortStatus}</option>
+                <option value="name" className="bg-[#181a20] text-fg">{text.sortName}</option>
               </select>
             </label>
             <button
@@ -487,28 +487,47 @@ function ChatModelSelect({
   onModel,
   className,
 }: {
-  model: "local-analyst" | "board-model";
+  model: string;
   text: ReturnType<typeof t>;
-  onModel: (model: "local-analyst" | "board-model") => void;
+  onModel: (model: string) => void;
   className?: string;
 }) {
   const chatStatus = useBench((state) => state.chatStatus);
+  const [localModels, setLocalModels] = useState<string[]>([]);
+  
+  useEffect(() => {
+    fetch("/api/models")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setLocalModels(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const dynamicModels = Array.from(
+    new Set([
+      "local-analyst",
+      "board-model",
+      ...(chatStatus?.available_models || []),
+      ...localModels,
+    ])
+  );
+
   return (
     <label className={cn("inline-flex min-h-11 min-w-0 items-center gap-2 text-sm text-muted", className)}>
       <span className="shrink-0">{text.model}</span>
       <select
         value={model}
-        onChange={(event) => {
-          const next = event.target.value;
-          if (next === "local-analyst" || next === "board-model") onModel(next);
-        }}
-        className="min-h-11 w-full min-w-0 truncate rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10"
+        onChange={(event) => onModel(event.target.value)}
+        className="min-h-11 w-full min-w-0 truncate rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10 [color-scheme:dark]"
       >
-        {MODELS.map((item) => {
-          const isMounted = item.id === "local-analyst" ? true : Boolean(chatStatus?.mounted);
+        {dynamicModels.map((m) => {
+          const isMounted =
+            m === "local-analyst" ? true : m === "board-model" ? Boolean(chatStatus?.mounted) : true;
+          const label = m === "local-analyst" ? text.modelLocal : m === "board-model" ? text.modelBoard : m;
           return (
-            <option key={item.id} value={item.id}>
-              {item.id === "local-analyst" ? text.modelLocal : text.modelBoard}
+            <option key={m} value={m} className="bg-[#181a20] text-fg">
+              {label}
               {isMounted ? "" : ` · ${text.modelMissing}`}
             </option>
           );
@@ -737,7 +756,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-1 block min-h-11 w-full rounded-lg bg-white/5 px-3 text-sm"
+              className="mt-2 block w-full text-sm text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/15 file:text-fg hover:file:bg-white/25 cursor-pointer"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1205,10 +1224,10 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="text-sm text-muted">
           {text.kind}
-          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3">
-            <option value="engine">{text.engine}</option>
-            <option value="gates">{text.gateKind}</option>
-            <option value="script">{text.scriptKind}</option>
+          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg bg-[#181a20] px-3 text-fg [color-scheme:dark] outline-none">
+            <option value="engine" className="bg-[#181a20] text-fg">{text.engine}</option>
+            <option value="gates" className="bg-[#181a20] text-fg">{text.gateKind}</option>
+            <option value="script" className="bg-[#181a20] text-fg">{text.scriptKind}</option>
           </select>
         </label>
         <div>
@@ -1290,9 +1309,9 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         {kind === "gates" ? (
           <label className="text-sm text-muted">
             {text.gateKind}
-            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3">
+            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-[#181a20] px-3 text-fg [color-scheme:dark] outline-none">
               {GATE_FILES.map((gate) => (
-                <option key={gate.file} value={gate.file}>
+                <option key={gate.file} value={gate.file} className="bg-[#181a20] text-fg">
                   {gate.file}
                 </option>
               ))}

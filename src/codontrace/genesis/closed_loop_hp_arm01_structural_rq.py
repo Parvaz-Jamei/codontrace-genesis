@@ -407,65 +407,7 @@ def collect_dense_snaps(
 
 
 
-@contextmanager
-def _population_unique_id_guard() -> Iterator[None]:
-    """Closed-loop guard: asexual twin births can collide on digest-based ids.
 
-    Remap duplicate ids with a numeric suffix before PopulationState validates.
-    Does not edit engine.py; HP vocabulary stays out of the engine.
-    """
-
-    original = PopulationState.__post_init__
-
-    def _patched(self: PopulationState) -> None:
-        organisms = list(self.organisms)
-        seen: dict[str, int] = {}
-        fixed: list[GenesisOrganism] = []
-        renames: dict[str, list[str]] = {}
-        changed = False
-        for org in organisms:
-            oid = org.id
-            if oid not in seen:
-                seen[oid] = 0
-                fixed.append(org)
-                continue
-            seen[oid] += 1
-            new_id = f"{oid}#{seen[oid]}"
-            fixed.append(replace(org, id=new_id))
-            renames.setdefault(oid, []).append(new_id)
-            changed = True
-        if changed:
-            object.__setattr__(self, "organisms", tuple(fixed))
-            # Twin births share one digest id. The second organism is suffixed,
-            # but the lineage row was still stored under the unsuffixed id, so a
-            # later child recorded parent_id "<id>#1" with no lineage row.
-            # Keep the first row on the unsuffixed id and move the later rows,
-            # in order, onto the suffixed ids.
-            lineage = list(self.lineage)
-            for old_id, new_ids in renames.items():
-                indexes = [
-                    index
-                    for index, rec in enumerate(lineage)
-                    if rec.organism_id == old_id
-                ]
-                if len(indexes) < len(new_ids) + 1:
-                    raise ConfigurationError(
-                        "duplicate organism id "
-                        f"{old_id} renamed {len(new_ids)} time(s) but lineage has "
-                        f"{len(indexes)} row(s)"
-                    )
-                for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
-                    lineage[rec_index] = replace(
-                        lineage[rec_index], organism_id=new_id
-                    )
-            object.__setattr__(self, "lineage", tuple(lineage))
-        original(self)
-
-    PopulationState.__post_init__ = _patched  # type: ignore[method-assign]
-    try:
-        yield
-    finally:
-        PopulationState.__post_init__ = original  # type: ignore[method-assign]
 
 
 @dataclass
@@ -699,102 +641,101 @@ class StructuralRQArm(LifeLoopEcologyArm):
             )
         rng = self.generation_rng
         start_records = len(self.host_joint_class_series)
-        with _population_unique_id_guard():
-            for _ in range(generations):
-                # Phase-3 hold, off unless set. Restores the locked host mix
-                # before the life-loop step so a later death cannot change
-                # which genotypes are offered. Existing arms leave this None.
-                if self.host_composition_hold is not None:
-                    self.host_composition_hold(self)
-                # Bolus/refill at generation boundary BEFORE census append (probe).
-                self._apply_passage_refill()
-                bolus_before = True  # refill precedes census on this path
-                generation_number = int(self.tick_index) + 1
-                if self.stream_root is not None:
-                    host_rng = open_stream(
-                        self.stream_root,
-                        str(self.stream_history),
-                        "host-step",
-                        generation_number,
-                    )
-                    self.last_host_rng = host_rng
-                    result = self.runner.step_generation(rng=host_rng)
-                else:
-                    # Legacy structural arms. seed+generation collides across
-                    # histories (9201/g2 == 9202/g1). Timeshift arms do not use it.
-                    result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
-                self._record_births(result)
-                for org in self.runner.population.organisms:
-                    if org.id not in self.roles:
-                        self.roles[org.id] = ROLE_PRIMARY
-                if self.host_composition_hold is not None:
-                    # Contact must see the locked mix, not whoever survived
-                    # the life-loop step. Passage is not called from the hold.
-                    self.host_composition_hold(self)
-                    self.last_contact_host_windows = tuple(
-                        _window(org) for org in self._hosts()
-                    )
-                debit_count, matched = self._apply_hp_env_contact()
-                self.match_debits_by_generation.append(int(debit_count))
-                served: tuple[tuple[str, float], ...] = ()
-                if self.antagonist_pop is not None:
-                    # The record list grows only on paths that append one for the current
-                    # generation, so it is empty on the first generation of an arm that
-                    # does not collect pressure. Reading it defensively keeps the
-                    # population path independent of a flag the boot path does not set.
-                    records = (
-                        self.contact_pair_records[-1]
-                        if self.contact_pair_records
-                        else ()
-                    )
-                    served = tuple((record[1], record[4]) for record in records)
-                    events = (
-                        self.antagonist_contact_events[-1]
-                        if self.antagonist_contact_events
-                        else ()
-                    )
-                else:
-                    events = ()
-                if self.stream_root is not None:
-                    passage_rng = open_stream(
-                        self.stream_root,
-                        str(self.stream_history),
-                        "passage",
-                        generation_number,
-                    )
-                    self.last_passage_rng = passage_rng
-                else:
-                    if rng is None:
-                        raise ConfigurationError("legacy arm is missing its generation RNG")
-                    passage_rng = rng.fork(f"passage/{self.tick_index}")
-                    self.last_passage_rng = passage_rng
-                self._passage_update(
-                    matched,
-                    served_contacts=() if events else served,
-                    contact_events=events if self.antagonist_pop is not None else None,
-                    rng=passage_rng,
+        for _ in range(generations):
+            # Phase-3 hold, off unless set. Restores the locked host mix
+            # before the life-loop step so a later death cannot change
+            # which genotypes are offered. Existing arms leave this None.
+            if self.host_composition_hold is not None:
+                self.host_composition_hold(self)
+            # Bolus/refill at generation boundary BEFORE census append (probe).
+            self._apply_passage_refill()
+            bolus_before = True  # refill precedes census on this path
+            generation_number = int(self.tick_index) + 1
+            if self.stream_root is not None:
+                host_rng = open_stream(
+                    self.stream_root,
+                    str(self.stream_history),
+                    "host-step",
+                    generation_number,
                 )
-                if self.antagonist_pop is not None:
-                    ledger = self.antagonist_pop.ledgers[-1]
-                    # Append. Assigning a fresh one-element list kept only the
-                    # last generation and made every earlier snapshot report it.
-                    self.antagonist_ledger.append(
-                        (
-                            len(ledger.kept),
-                            len(ledger.newborns),
-                            int(ledger.mutation_events),
-                            len(ledger.deaths),
-                        )
+                self.last_host_rng = host_rng
+                result = self.runner.step_generation(rng=host_rng)
+            else:
+                # Legacy structural arms. seed+generation collides across
+                # histories (9201/g2 == 9202/g1). Timeshift arms do not use it.
+                result = self.runner.step_generation(seed=self.seed + self.tick_index + 1)
+            self._record_births(result)
+            for org in self.runner.population.organisms:
+                if org.id not in self.roles:
+                    self.roles[org.id] = ROLE_PRIMARY
+            if self.host_composition_hold is not None:
+                # Contact must see the locked mix, not whoever survived
+                # the life-loop step. Passage is not called from the hold.
+                self.host_composition_hold(self)
+                self.last_contact_host_windows = tuple(
+                    _window(org) for org in self._hosts()
+                )
+            debit_count, matched = self._apply_hp_env_contact()
+            self.match_debits_by_generation.append(int(debit_count))
+            served: tuple[tuple[str, float], ...] = ()
+            if self.antagonist_pop is not None:
+                # The record list grows only on paths that append one for the current
+                # generation, so it is empty on the first generation of an arm that
+                # does not collect pressure. Reading it defensively keeps the
+                # population path independent of a flag the boot path does not set.
+                records = (
+                    self.contact_pair_records[-1]
+                    if self.contact_pair_records
+                    else ()
+                )
+                served = tuple((record[1], record[4]) for record in records)
+                events = (
+                    self.antagonist_contact_events[-1]
+                    if self.antagonist_contact_events
+                    else ()
+                )
+            else:
+                events = ()
+            if self.stream_root is not None:
+                passage_rng = open_stream(
+                    self.stream_root,
+                    str(self.stream_history),
+                    "passage",
+                    generation_number,
+                )
+                self.last_passage_rng = passage_rng
+            else:
+                if rng is None:
+                    raise ConfigurationError("legacy arm is missing its generation RNG")
+                passage_rng = rng.fork(f"passage/{self.tick_index}")
+                self.last_passage_rng = passage_rng
+            self._passage_update(
+                matched,
+                served_contacts=() if events else served,
+                contact_events=events if self.antagonist_pop is not None else None,
+                rng=passage_rng,
+            )
+            if self.antagonist_pop is not None:
+                ledger = self.antagonist_pop.ledgers[-1]
+                # Append. Assigning a fresh one-element list kept only the
+                # last generation and made every earlier snapshot report it.
+                self.antagonist_ledger.append(
+                    (
+                        len(ledger.kept),
+                        len(ledger.newborns),
+                        int(ledger.mutation_events),
+                        len(ledger.deaths),
                     )
-                    self.parasite_windows = self.antagonist_pop.windows()
-                    self.antagonist_unit_series.append(tuple(self.antagonist_pop.units))
-                self._census()
-                self.bolus_sync_before_census.append(bool(bolus_before))
-                self.tick_index += 1
-                observer = self.generation_boundary_observer
-                if observer is not None:
-                    # Domain-free: generation index only (no HP args).
-                    observer(generation_index=int(self.tick_index))
+                )
+                self.parasite_windows = self.antagonist_pop.windows()
+                self.antagonist_unit_series.append(tuple(self.antagonist_pop.units))
+            self._census()
+            self.bolus_sync_before_census.append(bool(bolus_before))
+            self.tick_index += 1
+            observer = self.generation_boundary_observer
+            if observer is not None:
+                # Domain-free: generation index only (no HP args).
+                observer(generation_index=int(self.tick_index))
         # Resume-aware invariant: the series grew by exactly the generations requested,
         # and the arm's total history is the sum of every call made on it.
         assert_census_series_len(

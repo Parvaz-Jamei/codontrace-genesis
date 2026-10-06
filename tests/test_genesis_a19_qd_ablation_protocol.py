@@ -107,13 +107,14 @@ def test_witness_config_ablation_coverage_and_soft_claim() -> None:
     calibration = calibrate_d0_baseline([_run(1, 1.0), _run(2, 1.2), _run(3, 1.3)], config)
     assert calibration.baseline_set is not None
     candidate = evaluate_discovery_candidate(
-        candidate_id="cand",
+        candidate_id="000111",
         source_run_id="source",
         behavior_descriptor={"novelty": 3.0, "complexity": 3.0},
         behavior_digest="behavior",
         baseline_set=calibration.baseline_set,
         novelty_threshold=0.1,
         persistence_ticks=2,
+        mechanism_tags=("assay",),
         evidence_refs=("trace:1",),
     )
     blocked = build_discovery_witness(

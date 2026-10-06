@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0b22] — 2026-10-07
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b21`.
+
+- Mutable state dataclasses compute fresh canonical digests dynamically without stale cached hashes.
+- Suffix generation in population initialization avoids duplicate and colliding identifiers, maintaining synchronized lineage and fitness mappings.
+- Discovery candidate evaluation requires valid codon-decodable genomes and structured assay evidence with cryptographic raw data verification for assay mechanism tags.
+- Campaign and extension runners implement explicit lifecycle semantics with STOPPED status, stop reasons, and complete flag gating on early exit.
+- `red_queen_proved` stays false. Evolution rules, ClaimGate, and epistemic boundaries remain invariant.
+
 ## [0.3.0b21] — 2026-10-05
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b20`.

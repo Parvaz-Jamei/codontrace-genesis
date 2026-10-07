@@ -1,4 +1,4 @@
-const CACHE_NAME = 'genesis-console-v1';
+const CACHE_NAME = 'genesis-console-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

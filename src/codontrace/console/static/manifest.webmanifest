@@ -1,6 +1,8 @@
 {
   "name": "CodonTrace Genesis Console",
   "short_name": "Genesis",
+  "id": "/?source=pwa",
+  "description": "CodonTrace Genesis console and local evolution engine",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060911",
@@ -14,12 +16,28 @@
     {
       "src": "/assets/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/assets/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/screenshot-wide.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/assets/screenshot-narrow.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

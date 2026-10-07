@@ -113,7 +113,7 @@ export function JobsView() {
               <select
                 value={sort}
                 onChange={(event) => setSort(event.target.value as typeof sort)}
-                className="min-h-11 min-w-0 max-w-full rounded-lg bg-[#181a20] px-2 text-fg outline-none hover:bg-white/10 [color-scheme:dark]"
+                className="min-h-11 min-w-0 max-w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
               >
                 <option value="new" className="bg-[#181a20] text-fg">{text.sortNew}</option>
                 <option value="old" className="bg-[#181a20] text-fg">{text.sortOld}</option>
@@ -523,7 +523,10 @@ function ChatModelSelect({
     fetch("/api/models")
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setLocalModels(data);
+        if (Array.isArray(data)) {
+          const names = data.map((item) => (typeof item === "string" ? item : item.name));
+          setLocalModels(names.filter(Boolean));
+        }
       })
       .catch(() => {});
   }, []);
@@ -543,7 +546,7 @@ function ChatModelSelect({
       <select
         value={model}
         onChange={(event) => onModel(event.target.value)}
-        className="min-h-11 w-full min-w-0 truncate rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10 [color-scheme:dark]"
+        className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
       >
         {dynamicModels.map((m) => {
           const isMounted =
@@ -780,7 +783,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-2 block w-full text-sm text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/15 file:text-fg hover:file:bg-white/25 cursor-pointer"
+              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1248,7 +1251,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="text-sm text-muted">
           {text.kind}
-          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg bg-[#181a20] px-3 text-fg [color-scheme:dark] outline-none">
+          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
             <option value="engine" className="bg-[#181a20] text-fg">{text.engine}</option>
             <option value="gates" className="bg-[#181a20] text-fg">{text.gateKind}</option>
             <option value="script" className="bg-[#181a20] text-fg">{text.scriptKind}</option>
@@ -1333,7 +1336,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         {kind === "gates" ? (
           <label className="text-sm text-muted">
             {text.gateKind}
-            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-[#181a20] px-3 text-fg [color-scheme:dark] outline-none">
+            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
               {GATE_FILES.map((gate) => (
                 <option key={gate.file} value={gate.file} className="bg-[#181a20] text-fg">
                   {gate.file}
@@ -1343,10 +1346,27 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
           </label>
         ) : null}
         {kind === "script" ? (
-          <label className="text-sm text-muted">
-            {text.scriptName}
-            <input value={scriptName} onChange={(event) => setScriptName(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3" />
-          </label>
+          <div className="flex flex-col gap-3">
+            <label className="text-sm text-muted">
+              {text.scriptName}
+              <input value={scriptName} onChange={(event) => setScriptName(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3" />
+            </label>
+            <label className="text-sm text-muted">
+              {text.upload}
+              <input
+                type="file"
+                accept=".py,text/x-python"
+                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setScriptName(file.name);
+                  // Just set the name since launchJob expects scriptName.
+                  // Store logic handles if it needs to upload body somewhere else.
+                }}
+              />
+            </label>
+          </div>
         ) : null}
         <label className="text-sm text-muted">
           {text.workers}

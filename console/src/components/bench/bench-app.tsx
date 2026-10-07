@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { Check, CircleHelp, Cpu, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
+import { Check, CircleHelp, Cpu, Download, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
 import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
 import { t } from "@/lib/genesis/copy";
 import { useBench } from "@/lib/genesis/store";
+import { useInstallPrompt } from "@/lib/genesis/useInstallPrompt";
 import type { HostProfile, ReleaseReport, View } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 import { Stage } from "./stage";
@@ -26,15 +27,7 @@ export function BenchApp() {
   const [help, setHelp] = useState(false);
   const [release, setRelease] = useState<ReleaseReport | null>(null);
   const [hideRelease, setHideRelease] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  const { isInstallable, promptToInstall } = useInstallPrompt();
 
   useEffect(() => {
     void useBench.persist.rehydrate();
@@ -185,14 +178,12 @@ export function BenchApp() {
           </button>
           <p className="truncate text-sm text-muted">{titles[view]}</p>
           <div className="ms-auto flex items-center gap-2">
-            {deferredPrompt && (
+            {isInstallable && (
               <button
-                className="flex h-8 items-center rounded-lg bg-blue-500/20 px-3 text-xs font-medium text-blue-500 hover:bg-blue-500/30"
-                onClick={() => {
-                  deferredPrompt.prompt();
-                  deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-                }}
+                className="flex h-8 items-center rounded-lg bg-gradient-to-r from-blue-600/20 to-indigo-600/20 px-3 text-xs font-medium text-blue-400 hover:from-blue-600/30 hover:to-indigo-600/30 border border-blue-500/20 shadow-sm transition-all"
+                onClick={promptToInstall}
               >
+                <Download className="mr-1.5 h-3.5 w-3.5" />
                 {settings.lang === "fa" ? "نصب وب‌اپلیکیشن" : "Install App"}
               </button>
             )}

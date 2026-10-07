@@ -219,7 +219,7 @@ export function BenchApp() {
                 {view === "settings" ? <SettingsView /> : null}
               </div>
           </main>
-          <div inert={!log} aria-hidden={!log} className={cn("hidden min-h-0 overflow-hidden border-line bg-[#101218] lg:block", log && "border-s")}>
+          <div inert={!log} aria-hidden={!log} className={cn("hidden min-h-0 overflow-hidden border-line bg-[#060911] lg:block", log && "border-s")}>
             <div className="flex h-full w-80 flex-col">
               <div className="flex h-12 items-center justify-between px-3 text-sm text-muted">
                 <span>{text.log}</span>
@@ -327,7 +327,7 @@ function Sidebar({
   const ram = host && host.memoryMb > 0 ? Math.round(((host.memoryMb - host.freeMb) / host.memoryMb) * 100) : null;
   const recent = jobs.filter((job) => job.title.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 12);
   return (
-    <aside className={cn("h-full shrink-0 flex-col overflow-hidden bg-[#101218] transition-[width] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]", collapsed && collapsible ? "w-[72px]" : "w-[260px]", className)}>
+    <aside className={cn("h-full shrink-0 flex-col overflow-hidden bg-[#060911] transition-[width] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]", collapsed && collapsible ? "w-[72px]" : "w-[260px]", className)}>
       <div className="flex items-center gap-2 px-3 pt-3">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-fg text-xs font-semibold text-bg">G</span>
         {collapsed ? null : <span className="text-sm font-medium">Genesis</span>}

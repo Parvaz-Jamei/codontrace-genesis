@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Accordion from "@radix-ui/react-accordion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Pin, Archive, Trash2 } from "lucide-react";
 import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
@@ -113,7 +113,7 @@ export function JobsView() {
               <select
                 value={sort}
                 onChange={(event) => setSort(event.target.value as typeof sort)}
-                className="min-h-11 min-w-0 max-w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
+                className="min-h-11 min-w-0 max-w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
               >
                 <option value="new" className="bg-[#181a20] text-fg">{text.sortNew}</option>
                 <option value="old" className="bg-[#181a20] text-fg">{text.sortOld}</option>
@@ -331,19 +331,34 @@ export function ChatView() {
         <div className="flex gap-1 overflow-x-auto sm:min-h-0 sm:flex-1 sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto">
           {shown.length === 0 ? <p className="px-2 py-2 text-sm text-muted">{text.noThreads}</p> : null}
           {shown.map((thread) => (
-            <button
-              key={thread.id}
-              type="button"
-              className={cn(
-                "flex min-h-11 max-w-48 shrink-0 items-center gap-2 rounded-xl px-3 text-start text-sm sm:w-full sm:max-w-full",
-                thread.id === activeId ? "bg-white/10 text-fg" : "text-muted hover:bg-white/10",
-              )}
-              aria-current={thread.id === activeId ? "true" : undefined}
-              onClick={() => openThread(thread.id)}
-            >
-              <span className="min-w-0 flex-1 truncate">{thread.title}</span>
-              <span className="shrink-0 text-xs text-subtle">{thread.messages.length}</span>
-            </button>
+            <div key={thread.id} className={cn("group flex min-h-11 max-w-48 shrink-0 items-center gap-2 rounded-xl px-3 text-sm sm:w-full sm:max-w-full", thread.id === activeId ? "bg-white/10 text-fg" : "text-muted hover:bg-white/10")}>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-2 text-start"
+                aria-current={thread.id === activeId ? "true" : undefined}
+                onClick={() => openThread(thread.id)}
+              >
+                <span className="min-w-0 flex-1 truncate">{thread.title}</span>
+                <span className="shrink-0 text-xs text-subtle">{thread.messages.length}</span>
+              </button>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-white/10 transition-colors focus:outline-none focus:opacity-100" aria-label="More options">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content className="min-w-32 rounded-xl border border-white/10 bg-[#181a20] p-1 text-sm text-fg shadow-xl z-50">
+                    <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 outline-none hover:bg-white/10" onClick={() => togglePin(thread.id)}>
+                      <Pin className="w-4 h-4" /> {thread.pinned ? text.unpin : text.pin}
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 outline-none text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => clearThread(thread.id)}>
+                      <Trash2 className="w-4 h-4" /> {text.clearThread}
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            </div>
           ))}
         </div>
       </aside>
@@ -429,9 +444,13 @@ export function ChatView() {
               ),
             )}
             {active?.isThinking ? (
-              <div className="flex w-full flex-col gap-1 text-start leading-relaxed animate-pulse">
+              <div className="flex w-full flex-col gap-1 text-start leading-relaxed">
                 <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-xs text-muted">
-                  <span className="inline-block h-2 w-2 rounded-full bg-accent animate-ping" />
+                  <div className="flex items-center gap-0.5">
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
+                  </div>
                   <span>{lang === "fa" ? "مدل در حال پردازش و استدلال است..." : "Model is thinking..."}</span>
                 </div>
               </div>
@@ -546,7 +565,7 @@ function ChatModelSelect({
       <select
         value={model}
         onChange={(event) => onModel(event.target.value)}
-        className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
+        className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
       >
         {dynamicModels.map((m) => {
           const isMounted =
@@ -783,7 +802,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
+              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1251,7 +1270,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="text-sm text-muted">
           {text.kind}
-          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
+          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
             <option value="engine" className="bg-[#181a20] text-fg">{text.engine}</option>
             <option value="gates" className="bg-[#181a20] text-fg">{text.gateKind}</option>
             <option value="script" className="bg-[#181a20] text-fg">{text.scriptKind}</option>
@@ -1336,7 +1355,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         {kind === "gates" ? (
           <label className="text-sm text-muted">
             {text.gateKind}
-            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-[#181a20] px-3 py-2 text-sm text-fg outline-none transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
+            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
               {GATE_FILES.map((gate) => (
                 <option key={gate.file} value={gate.file} className="bg-[#181a20] text-fg">
                   {gate.file}
@@ -1356,7 +1375,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
               <input
                 type="file"
                 accept=".py,text/x-python"
-                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
+                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
@@ -1857,3 +1876,8 @@ export function HomeView() {
     </div>
   );
 }
+
+
+
+
+

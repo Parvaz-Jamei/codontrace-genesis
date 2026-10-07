@@ -153,6 +153,17 @@
   transition: stroke-dashoffset 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+.wave-bar {
+  animation: wave 1s ease-in-out infinite;
+}
+.wave-bar:nth-child(1) { animation-delay: 0s; }
+.wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; }
+
 /* Comfortable is the default (no extra rule). Compact only tightens page padding. */
 [data-density="compact"] section.h-full.overflow-auto.bg-bg {
   padding-block: 0.75rem;

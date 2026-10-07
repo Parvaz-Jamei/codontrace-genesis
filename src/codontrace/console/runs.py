@@ -252,7 +252,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
             except Exception:
                 pass
 
-        if st in ("RUNNING", "STARTING"):
+        if st in ("RUNNING", "STARTING", "PAUSED"):
             alive = False
             with _RUN_LOCK:
                 proc = _RUN_PROCESSES.get(run_id)
@@ -331,7 +331,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             except (ValueError, OSError):
                 pid = None
 
-    if st in ("RUNNING", "STARTING"):
+    if st in ("RUNNING", "STARTING", "PAUSED"):
         alive = False
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
@@ -578,9 +578,27 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
     act = action.lower().strip()
     if act == "pause":
         ok = send_signal_to_run(run_id, "STOP")
+        if ok:
+            status_file = entry / "status.json"
+            if status_file.is_file():
+                try:
+                    st_info = json.loads(status_file.read_text(encoding="utf-8"))
+                    st_info["status"] = "PAUSED"
+                    write_atomic_json(status_file, st_info)
+                except Exception:
+                    pass
         return {"ok": ok, "action": "pause", "run_id": run_id}
     elif act == "resume":
         ok = send_signal_to_run(run_id, "CONT")
+        if ok:
+            status_file = entry / "status.json"
+            if status_file.is_file():
+                try:
+                    st_info = json.loads(status_file.read_text(encoding="utf-8"))
+                    st_info["status"] = "RUNNING"
+                    write_atomic_json(status_file, st_info)
+                except Exception:
+                    pass
         return {"ok": ok, "action": "resume", "run_id": run_id}
     elif act == "stop":
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")

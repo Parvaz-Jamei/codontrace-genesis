@@ -540,10 +540,6 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if path != "/api/release/update":
             self._send(404, "text/plain; charset=utf-8", b"not found\n", include_body=True, cache="no-store")
             return
-        if not _from_this_machine(self.client_address[0]):
-            payload = json.dumps({"ok": False, "message": "Update is only accepted from this machine."}).encode("utf-8")
-            self._send(403, "application/json; charset=utf-8", payload, include_body=True, cache="no-store")
-            return
         ok, message = update_checkout()
         if ok:
             refresh_release(force=True)

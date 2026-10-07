@@ -298,6 +298,17 @@ def chat_turn(
         }
 
     # Deterministic domain-aware fallback answer
+    if model not in ("local-analyst", "deterministic-analyst"):
+        err_msg = "ارتباط با مدل زبانی محلی برقرار نشد. لطفاً مطمئن شوید سرویس Llama-server در حال اجراست." if lang == "fa" else "Connection to the local LLM failed. Please ensure Llama-server is running."
+        return {
+            "source": "analyst",
+            "reply": err_msg,
+            "mounted": False,
+            "model": model,
+            "duration_ms": duration_ms,
+            "fallback": True,
+        }
+
     fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
 
     return {
@@ -306,7 +317,7 @@ def chat_turn(
         "mounted": False,
         "model": "deterministic-analyst",
         "duration_ms": duration_ms,
-        "fallback": True,
+        "fallback": False,
     }
 
 
@@ -429,7 +440,7 @@ def _generate_analyst_reply(
         )
 
     # Active Runs / Board hardware
-    if any(k in q for k in ("run", "اجرا", "چالش", "بورد", "board", "وضعیت", "status", "پیشرفت", "progress", "سخت‌افزار", "hardware")):
+    if any(k in q for k in ("run", "اجرا", "چالش", "challenge", "بورد", "board", "وضعیت", "status", "پیشرفت", "progress", "سخت‌افزار", "hardware")):
         try:
             from codontrace.console.runs import list_simulation_runs, get_run_details, runs_directory
             import sys

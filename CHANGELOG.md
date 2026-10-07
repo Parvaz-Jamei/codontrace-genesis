@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0b25] — 2026-10-07
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b24`.
+
+- Mounted `HomeView` in console app routing as the default landing view with live dynamic telemetry and host status.
+- Connected chat model selection to resolve `board-model` dynamically to the active backend model ID (`qwen`).
+- Replaced mock generation and temperature numbers in chat and UI with live measurements from host and simulation runs.
+- Generated high-resolution 192x192 and 512x512 PWA icons and enhanced service worker with offline shell caching and network-only API routing.
+- Fixed population lineage zipping in `create_population_with_unique_ids` and enforced strict codon decoding for discovery candidate validation.
+- Upgraded Grand Frontier 8-challenge test suite from static STOP stubs to live multi-epoch runs with scientific calibrations and Price equation analytical benchmarks.
+- Invariant `red_queen_proved = False` strictly preserved across all modules, tests, and telemetry.
+
 ## [0.3.0b24] — 2026-10-07
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b23`.

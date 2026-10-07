@@ -1708,6 +1708,7 @@ export function HomeView() {
   const ensureThread = useBench((state) => state.ensureThread);
   const openThread = useBench((state) => state.openThread);
   const jobs = useBench((state) => state.jobs);
+  const host = useBench((state) => state.host);
   const text = t(lang);
   const model = useBench((state) => state.settings.model ?? "local-analyst");
   const setSettings = useBench((state) => state.setSettings);
@@ -1736,6 +1737,9 @@ export function HomeView() {
     "Eigen quasispecies catastrophe threshold"
   ];
 
+  const activeCount = jobs.filter((j) => j.status === "running").length;
+  const archivedCount = jobs.filter((j) => j.status === "archived").length;
+
   return (
     <div className="flex h-full flex-col items-center justify-center p-4">
       <div className="w-full max-w-3xl text-center">
@@ -1750,10 +1754,10 @@ export function HomeView() {
 
         <div className="mb-12 flex justify-center">
           <div className="flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-2 text-sm text-muted">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+            <div className={cn("h-2 w-2 rounded-full", host ? "bg-emerald-500" : "bg-amber-500")} />
             {lang === "fa" 
-              ? `${jobs.filter(j => j.status === 'running').length} چالش فعال | ۹۵ میلیون+ نسل | بورد آنلاین` 
-              : `${jobs.filter(j => j.status === 'running').length} active challenges | 95M+ generations | Board online`}
+              ? `${activeCount} چالش فعال | ${archivedCount} تکمیل‌شده | ${host ? `بورد آنلاین (${host.load1} بار پردازش)` : "اتصال بورد در انتظار..."} | red_queen_proved: نادرست` 
+              : `${activeCount} active challenges | ${archivedCount} completed | ${host ? `Board online (${host.load1} load)` : "Connecting to board..."} | red_queen_proved: False`}
           </div>
         </div>
 

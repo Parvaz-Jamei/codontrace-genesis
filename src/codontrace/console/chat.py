@@ -418,18 +418,83 @@ def _generate_analyst_reply(
     # Active Runs / Board hardware
     if any(k in q for k in ("run", "اجرا", "چالش", "بورد", "board", "وضعیت", "status", "پیشرفت", "progress", "سخت‌افزار", "hardware")):
         try:
-            from codontrace.console.runs import list_simulation_runs
+            from codontrace.console.runs import list_simulation_runs, get_run_details, runs_directory
+            import sys
+            import os
+            import shutil
+            
             runs = list_simulation_runs()
             active_count = sum(1 for r in runs if r.get("status") == "RUNNING")
+            
+            total_generations = 0
+            has_generations = False
+            for r in runs:
+                details = get_run_details(r["id"])
+                if details:
+                    manifest = details.get("manifest", {})
+                    params = manifest.get("params", {})
+                    exec_data = details.get("execution", {})
+                    if "generations" in params:
+                        total_generations += params["generations"]
+                        has_generations = True
+                    elif "generations" in exec_data:
+                        total_generations += exec_data["generations"]
+                        has_generations = True
+            
+            gen_str = str(total_generations) if has_generations else "none"
+            if not runs:
+                gen_str = "unknown"
+                
+            cpu_load = "unknown"
+            if hasattr(os, "getloadavg"):
+                try:
+                    cpu_load = str(os.getloadavg()[0])
+                except Exception:
+                    pass
+                    
+            mem_load = "unknown"
+            if sys.platform == "win32":
+                try:
+                    import ctypes
+                    class MEMORYSTATUSEX(ctypes.Structure):
+                        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                                    ("sullAvailExtendedVirtual", ctypes.c_ulonglong)]
+                    stat = MEMORYSTATUSEX()
+                    stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+                    mem_load = f"{stat.dwMemoryLoad}%"
+                except Exception:
+                    pass
+            else:
+                try:
+                    with open("/proc/meminfo") as f:
+                        mi = f.read()
+                    total = int([x for x in mi.splitlines() if x.startswith("MemTotal:")][0].split()[1])
+                    free = int([x for x in mi.splitlines() if x.startswith("MemAvailable:")][0].split()[1])
+                    mem_load = f"{int(100 * (total - free) / total)}%"
+                except Exception:
+                    pass
+                    
+            disk_str = "unknown"
+            try:
+                du = shutil.disk_usage(runs_directory())
+                disk_str = f"{du.used // (1024**3)}GB/{du.total // (1024**3)}GB"
+            except Exception:
+                pass
+            
             if lang == "fa":
                 return (
-                    f"گزارش وضعیت زنده: در حال حاضر {len(runs)} چالش ثبت‌شده و {active_count} چالش با وضعیت RUNNING "
-                    "روی ۴ هسته پردازشی بورد در حال اجرا هستند. بیش از ۹۵ میلیون نسل بدون هیچ نقصی شبیه‌سازی شده "
-                    "و دمای دستگاه پایدار و خنک (~۴۸ درجه) است."
+                    f"گزارش وضعیت زنده: {len(runs)} چالش ثبت‌شده ({active_count} RUNNING). "
+                    f"نسل‌های شبیه‌سازی‌شده: {gen_str}. "
+                    f"بار پردازنده: {cpu_load}، حافظه: {mem_load}، دیسک: {disk_str}."
                 )
             return (
-                f"Live status report: {len(runs)} runs registered ({active_count} RUNNING) across the 4 ARM cores. "
-                "Over 95 million generations simulated with stable thermals (~48°C) and zero crashes."
+                f"Live status report: {len(runs)} runs registered ({active_count} RUNNING). "
+                f"Generations simulated: {gen_str}. "
+                f"CPU load: {cpu_load}, Memory: {mem_load}, Disk: {disk_str}."
             )
         except Exception:
             pass

@@ -106,7 +106,7 @@ export const useBench = create<BenchState>()(
       jobs: [],
       threads: [],
       scripts: [],
-      view: "jobs",
+      view: "home",
       selectedJobId: null,
       activeThreadId: null,
       chatStatus: null,
@@ -386,7 +386,11 @@ export const useBench = create<BenchState>()(
         });
 
         
-          sendChatMessage(trimmed, state.settings.lang, job, job?.id, state.settings.model)
+          const activeModel =
+            state.settings.model === "board-model" && state.chatStatus?.model
+              ? state.chatStatus.model
+              : state.settings.model;
+          sendChatMessage(trimmed, state.settings.lang, job, job?.id, activeModel)
             .then((res) => {
               const assistantMsg: ChatMessage = {
                 id: uid(),

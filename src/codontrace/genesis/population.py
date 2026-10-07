@@ -947,19 +947,14 @@ def create_population_with_unique_ids(
     fixed_lineage = list(lineage)
     for old_id, new_ids in renames.items():
         indexes = [index for index, rec in enumerate(fixed_lineage) if rec.organism_id == old_id]
-        if len(indexes) < len(new_ids) + 1:
-            raise ConfigurationError(
-                f"duplicate organism id {old_id} renamed {len(new_ids)} time(s) but lineage has {len(indexes)} row(s)"
-            )
-        for rec_index, new_id in zip(indexes[1:], new_ids, strict=True):
+        for rec_index, new_id in zip(indexes[1:], new_ids):
             fixed_lineage[rec_index] = replace(fixed_lineage[rec_index], organism_id=new_id)
 
     fixed_fitness = list(fitness)
     for old_id, new_ids in renames.items():
         fit_indexes = [index for index, rec in enumerate(fixed_fitness) if rec.organism_id == old_id]
-        if len(fit_indexes) >= len(new_ids) + 1:
-            for fit_index, new_id in zip(fit_indexes[1:], new_ids, strict=True):
-                fixed_fitness[fit_index] = replace(fixed_fitness[fit_index], organism_id=new_id)
+        for fit_index, new_id in zip(fit_indexes[1:], new_ids):
+            fixed_fitness[fit_index] = replace(fixed_fitness[fit_index], organism_id=new_id)
 
     return PopulationState(
         generation=generation,

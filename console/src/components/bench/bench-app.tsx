@@ -220,6 +220,7 @@ export function BenchApp() {
             <Stage />
             <ViewTransition enter="vt-enter" exit="vt-exit">
               <div key={view} className="relative z-10 h-full min-h-0">
+                {view === "home" ? <HomeView /> : null}
                 {view === "jobs" ? <JobsView /> : null}
                 {view === "chat" ? <ChatView /> : null}
                 {view === "gates" ? <GatesView /> : null}

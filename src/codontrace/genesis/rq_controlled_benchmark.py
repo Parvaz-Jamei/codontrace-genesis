@@ -383,6 +383,10 @@ def engine_pilot(output: Path, seeds: tuple[int, ...], generations: int, max_sec
     def monitor() -> None:
         with (output/"health.log").open("w", encoding="utf-8", buffering=1) as health:
             while not stop.is_set():
+                while (output/"PAUSE").is_file() or ((output.parent/"PAUSE").is_file()):
+                    if stop.is_set() or (output/"STOP").exists() or ((output.parent/"STOP").is_file()):
+                        break
+                    time.sleep(0.2)
                 elapsed = time.monotonic()-began
                 health.write(json.dumps(dict(elapsed_seconds=elapsed, stop_file=(output/"STOP").exists()))+"\n")
                 if elapsed >= max_seconds:
@@ -395,6 +399,10 @@ def engine_pilot(output: Path, seeds: tuple[int, ...], generations: int, max_sec
     outcomes, replays = [], []
     try:
         for seed in seeds:
+            while (output/"PAUSE").is_file() or ((output.parent/"PAUSE").is_file()):
+                if (output/"STOP").exists() or ((output.parent/"STOP").is_file()):
+                    break
+                time.sleep(0.2)
             if (output/"STOP").exists():
                 break
             result = run_phase5_history(seed, str(output), generations, compare_one_shot=True)

@@ -247,10 +247,11 @@ def list_simulation_runs() -> list[dict[str, Any]]:
         if exec_json.is_file():
             try:
                 rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                if rep.get("complete") is True:
+                if isinstance(rep, dict) and rep.get("complete") is True:
                     rep_id = rep.get("runId") or rep.get("run_id")
                     if not rep_id or rep_id == run_id:
-                        has_complete_exec = True
+                        if not rep.get("validation_failures") and not rep.get("errors") and not rep.get("failed"):
+                            has_complete_exec = True
             except Exception:
                 pass
 
@@ -361,9 +362,11 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             if exec_json.is_file():
                 try:
                     rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                    is_complete = rep.get("complete") is True
+                    is_complete = isinstance(rep, dict) and rep.get("complete") is True
                     rep_id = rep.get("runId") or rep.get("run_id")
                     if rep_id and rep_id != run_id:
+                        is_complete = False
+                    if isinstance(rep, dict) and (rep.get("validation_failures") or rep.get("errors") or rep.get("failed")):
                         is_complete = False
                     st = "COMPLETED" if is_complete else "FAILED"
                 except Exception:
@@ -432,7 +435,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
 
 
 def send_signal_to_run(run_id: str, sig_name: str) -> bool:
-    """Send pause/resume signal directly to the run's registered process."""
+    """Send cooperative pause/resume signal directly to the run's registered process."""
     entry = get_safe_run_dir(run_id, must_exist=True)
     if entry is None:
         return False
@@ -449,30 +452,29 @@ def send_signal_to_run(run_id: str, sig_name: str) -> bool:
             except (ValueError, OSError):
                 pid = None
 
-    if pid is None:
+    if pid is None and not ((entry / "status.json").is_file()):
         return False
 
     sig_upper = sig_name.upper()
-    if sys.platform == "win32":
-        if sig_upper == "STOP":
-            (entry / "STOP").write_text("paused by console\n", encoding="utf-8")
-            return True
-        elif sig_upper == "CONT":
-            stop_marker = entry / "STOP"
-            if stop_marker.is_file():
+    engine_dir = entry / "output"
+
+    if sig_upper in ("PAUSE", "STOP"):
+        # Cooperative pause: place PAUSE marker file (R17)
+        (entry / "PAUSE").write_text("paused by console\n", encoding="utf-8")
+        if engine_dir.is_dir():
+            (engine_dir / "PAUSE").write_text("paused by console\n", encoding="utf-8")
+        return True
+    elif sig_upper == "CONT":
+        # Cooperative resume: remove PAUSE marker file (R17)
+        for marker in (entry / "PAUSE", engine_dir / "PAUSE"):
+            if marker.is_file():
                 try:
-                    stop_marker.unlink()
+                    marker.unlink()
                 except OSError:
                     pass
-            return True
-        return False
-
-    sig = signal.SIGSTOP if sig_upper == "STOP" else signal.SIGCONT
-    try:
-        os.kill(pid, sig)
         return True
-    except OSError:
-        return False
+
+    return False
 
 
 def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | None]:
@@ -505,6 +507,7 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
     omitted_files: list[dict[str, Any]] = []
     total_raw_bytes = 0
 
+    entry_root = entry.resolve()
     try:
         with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for file_path in sorted(entry.rglob("*")):
@@ -516,6 +519,26 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
                     continue
 
                 if ".tmp." in file_path.name:
+                    continue
+
+                # Strict boundary containment check (prevent symlink path traversal - R05)
+                try:
+                    target_path = file_path.resolve(strict=True)
+                    if not target_path.is_relative_to(entry_root):
+                        omitted_files.append({
+                            "path": str(rel_path).replace("\\", "/"),
+                            "size": 0,
+                            "reason": "Symlink traversal outside run boundary rejected",
+                        })
+                        continue
+                    if target_path == tmp_path.resolve():
+                        continue
+                except (OSError, RuntimeError, ValueError) as exc:
+                    omitted_files.append({
+                        "path": str(rel_path).replace("\\", "/"),
+                        "size": 0,
+                        "reason": f"Path resolution error: {exc}",
+                    })
                     continue
 
                 file_size = file_path.stat().st_size
@@ -592,7 +615,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
 
     act = action.lower().strip()
     if act == "pause":
-        ok = send_signal_to_run(run_id, "STOP")
+        ok = send_signal_to_run(run_id, "PAUSE")
         if ok:
             status_file = entry / "status.json"
             if status_file.is_file():
@@ -616,6 +639,13 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                     pass
         return {"ok": ok, "action": "resume", "run_id": run_id}
     elif act == "stop":
+        # Unlink any existing PAUSE markers so the process aborts cleanly
+        for marker in (entry / "PAUSE", (entry / "output") / "PAUSE"):
+            if marker.is_file():
+                try:
+                    marker.unlink()
+                except OSError:
+                    pass
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")
         if (entry / "output").is_dir():
             ((entry / "output") / "STOP").write_text("stopped by console\n", encoding="utf-8")
@@ -717,22 +747,44 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
         error_reason = None
     elif ret == 0:
         exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (run_dir / "execution.json")
+        complete_marker = (run_dir / "COMPLETE").is_file() or (engine_dir / "COMPLETE").is_file()
         if exec_json.is_file():
             try:
                 rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                is_complete = rep.get("complete") is True
-                rep_id = rep.get("runId") or rep.get("run_id")
-                if rep_id and rep_id != run_id:
-                    is_complete = False
-                if is_complete:
-                    new_status = "COMPLETED"
-                    error_reason = None
-                else:
+                if not isinstance(rep, dict):
                     new_status = "FAILED"
-                    error_reason = "Run completed with failures in execution report"
-            except Exception:
-                new_status = "COMPLETED"
-                error_reason = None
+                    error_reason = "Corrupted execution report: root is not a JSON object"
+                else:
+                    is_complete = rep.get("complete") is True
+                    rep_id = rep.get("runId") or rep.get("run_id")
+                    if rep_id and rep_id != run_id:
+                        is_complete = False
+
+                    val_failures = rep.get("validation_failures") or rep.get("errors")
+                    if rep.get("failed") or val_failures:
+                        is_complete = False
+
+                    if is_complete:
+                        new_status = "COMPLETED"
+                        error_reason = None
+                    else:
+                        new_status = "FAILED"
+                        if rep.get("failed"):
+                            error_reason = f"Execution failed: {rep.get('failed')}"
+                        elif val_failures and isinstance(val_failures, list) and len(val_failures) > 0:
+                            first = val_failures[0]
+                            if isinstance(first, dict) and "reason" in first:
+                                error_reason = f"Validation failure: {first['reason']}"
+                            else:
+                                error_reason = f"Validation failures: {val_failures}"
+                        else:
+                            error_reason = rep.get("error") or rep.get("reason") or "Run completed with failures in execution report"
+            except Exception as exc:
+                new_status = "FAILED"
+                error_reason = f"Corrupted execution report (JSONDecodeError): {exc}"
+        elif complete_marker:
+            new_status = "COMPLETED"
+            error_reason = None
         else:
             new_status = "COMPLETED"
             error_reason = None
@@ -863,6 +915,21 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
             ])
 
     started_at = time.time()
+    if script_name:
+        s_lower = script_name.lower()
+        if "frontier" in s_lower or "challenge" in s_lower:
+            engine_backend = "frontier_reference_model"
+            model_scope = "frontier_reference_exploration"
+            boundary_notice = "Isolated mathematical reference exploration model executing on dedicated CPU core; distinct from full GenesisEngine codon VM."
+        else:
+            engine_backend = "custom_script"
+            model_scope = "script_execution"
+            boundary_notice = f"Custom script execution: {script_name}."
+    else:
+        engine_backend = "genesis_engine"
+        model_scope = "full_digital_organism_simulation"
+        boundary_notice = "Full Genesis digital organism coevolution engine with codon translation, contact dynamics, and biological assays."
+
     param_record = {
         "generations": generations,
         "workers": workers,
@@ -872,6 +939,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "cores": cores_val,
         "title": title,
         "scriptName": script_name,
+        "engineBackend": engine_backend,
+        "modelScope": model_scope,
     }
 
     manifest_info = {
@@ -881,6 +950,13 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "startedAt": started_at,
         "command": cmd,
         "params": param_record,
+        "executionBoundary": {
+            "engineBackend": engine_backend,
+            "modelScope": model_scope,
+            "boundaryNotice": boundary_notice,
+            "isFrontierReference": (engine_backend == "frontier_reference_model"),
+            "isGenesisEngine": (engine_backend == "genesis_engine"),
+        },
         "configDigest": hashlib.sha256(json.dumps(param_record, sort_keys=True).encode("utf-8")).hexdigest()[:16],
     }
     write_atomic_json(run_dir / "run_manifest.json", manifest_info)
@@ -895,6 +971,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "completedSeeds": 0,
         "totalSeeds": len(resolved_seeds) if resolved_seeds else 12,
         "params": param_record,
+        "engineBackend": engine_backend,
+        "modelScope": model_scope,
     }
     write_atomic_json(run_dir / "status.json", status_info)
 

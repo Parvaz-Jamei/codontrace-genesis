@@ -70,7 +70,7 @@ def _source_digest_dataclass_paths() -> set[str]:
             for item in node.body:
                 if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                     name = item.target.id
-                    if name == "digest" or name.endswith("_digest"):
+                    if not name.startswith("_") and (name == "digest" or name.endswith("_digest")):
                         digest_fields.append(name)
             if digest_fields:
                 paths.add(f"{module}.{node.name}")

@@ -17,6 +17,14 @@ artificial life, and complex adaptive systems:
 
 Fully integrated with the CodonTrace Console (status.json, live.log, console.log, execution.json).
 Epistemic invariants locked: red_queen_proved=False, open_ended_intelligence=False.
+
+EXECUTION BOUNDARY & ARCHITECTURAL CLASSIFICATION:
+Backend: FRONTIER_REFERENCE_MODEL (Independent Mathematical Benchmarks)
+Engine Substrate: Standalone computational biology reference models (Challenges 5-8).
+Boundary Separation: This extension executes isolated reference models for functional
+information (Hazen et al.), quasispecies error threshold (Eigen), neutral shadow activity
+(Bedau et al.), and Fisher's geometric model. It does NOT execute the codon-translating
+GenesisEngine virtual machine. For full digital organism codon execution, use GenesisEngine.
 """
 
 from __future__ import annotations
@@ -322,6 +330,9 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
         "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
         "stop_reason": stop_reason,
         "challenge": 5,
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
         "red_queen_proved": False,
@@ -533,6 +544,9 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
         "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
         "stop_reason": stop_reason,
         "challenge": 6,
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
         "red_queen_proved": False,
@@ -740,6 +754,9 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
         "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
         "stop_reason": stop_reason,
         "challenge": 7,
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
         "red_queen_proved": False,
@@ -951,6 +968,9 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
         "complete": (stop_reason == "WALL_TIME_EXHAUSTED"),
         "stop_reason": stop_reason,
         "challenge": 8,
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "epochs": epoch,
         "elapsed_seconds": final_elapsed,
         "red_queen_proved": False,

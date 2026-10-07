@@ -1364,13 +1364,21 @@ def run_phase5_history(
         founders = {name: {org.id for org in built[name]._hosts()} for name in arms}
         with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
             for name in arms:
-                if failed or stop.exists():
+                while (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
+                    if stop.exists() or (root.parent / "STOP").is_file():
+                        break
+                    time.sleep(0.2)
+                if failed or stop.exists() or (root.parent / "STOP").is_file():
                     if failed is None:
                         failed = "stopped"
                     break
                 arm = built[name]
                 for generation in range(1, int(generations) + 1):
-                    if stop.exists():
+                    while (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
+                        if stop.exists() or (root.parent / "STOP").is_file():
+                            break
+                        time.sleep(0.2)
+                    if stop.exists() or (root.parent / "STOP").is_file():
                         failed = "stopped"
                         break
                     start = _start_hosts(arm)

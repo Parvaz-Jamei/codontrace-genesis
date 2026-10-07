@@ -15,6 +15,14 @@ Architected for 48 to 72 hours of continuous execution with:
 - Bounded memory footprint (safe for 2GB RAM Orange Pi Zero 3 boards over multi-day runs).
 - Native CodonTrace console integration (status.json, live.log, console.log, execution.json, COMPLETE per challenge).
 - Epistemic invariants locked: red_queen_proved=False, open_ended_intelligence=False, major_transition_proved=False.
+
+EXECUTION BOUNDARY & ARCHITECTURAL CLASSIFICATION:
+Backend: FRONTIER_REFERENCE_MODEL (Independent Mathematical Benchmarks)
+Engine Substrate: Standalone computational biology reference models (cores 0-3).
+Boundary Separation: This campaign executes isolated mathematical reference models for
+open-ended evolution, multilevel Price selection, mutualism barriers, and contingency.
+It does NOT execute the codon-translating GenesisEngine virtual machine or biological
+assay pipelines of CodonTrace. For full digital organism codon execution, use GenesisEngine.
 """
 
 from __future__ import annotations
@@ -321,6 +329,9 @@ def run_worker_0_oee(
         "complete": is_completed,
         "stop_reason": stop_reason,
         "challenge": "OEE_NOVELTY",
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
@@ -593,6 +604,9 @@ def run_worker_1_mls(
         "complete": is_completed,
         "stop_reason": stop_reason,
         "challenge": "MLS_PRICE",
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
@@ -832,6 +846,9 @@ def run_worker_2_transition(
         "complete": is_completed,
         "stop_reason": stop_reason,
         "challenge": "TRANSITION_MUTUALISM",
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),
@@ -1044,6 +1061,9 @@ def run_worker_3_contingency(
         "complete": is_completed,
         "stop_reason": stop_reason,
         "challenge": "CONTINGENCY_REPLAY",
+        "engine_backend": "frontier_reference_model",
+        "model_scope": "frontier_reference_exploration",
+        "model_boundary_notice": "Isolated mathematical reference exploration model; distinct from full GenesisEngine codon VM.",
         "total_generations": total_gens,
         "completed_epochs": epoch,
         "elapsed_hours": round((time.time() - t_start) / 3600.0, 2),

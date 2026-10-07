@@ -32,7 +32,6 @@ from codontrace.console.runs import (
     launch_simulation_run,
     list_simulation_runs,
     manage_run_action,
-    send_signal_to_run,
     validate_run_id,
 )
 from codontrace.console.scripts_service import (
@@ -330,6 +329,35 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         return False
 
+    def _check_update_authorization(self, body_json: dict[str, Any] | None) -> tuple[bool, int, str]:
+        """Verify independent authorization token and origin security for release update (R18)."""
+        client_ip = self.client_address[0] if self.client_address else ""
+        is_local = _from_this_machine(client_ip)
+
+        configured_token = os.environ.get("CODONTRACE_UPDATE_TOKEN", "").strip()
+
+        # Extract provided token from Authorization header, X-Update-Token, or JSON body
+        auth_header = self.headers.get("Authorization", "").strip()
+        provided_token = ""
+        if auth_header.lower().startswith("bearer "):
+            provided_token = auth_header[7:].strip()
+        elif self.headers.get("X-Update-Token"):
+            provided_token = self.headers.get("X-Update-Token", "").strip()
+        elif body_json and isinstance(body_json, dict) and body_json.get("token"):
+            provided_token = str(body_json.get("token", "")).strip()
+
+        if configured_token:
+            import hmac
+            if provided_token and hmac.compare_digest(provided_token, configured_token):
+                return True, 200, "Authorized via token"
+            return False, 401, "Unauthorized: Invalid or missing update authorization token"
+
+        # If no update token is configured, remote clients are strictly forbidden
+        if not is_local:
+            return False, 403, "Forbidden: Remote update requires CODONTRACE_UPDATE_TOKEN authorization"
+
+        return True, 200, "Authorized (local caller)"
+
     def do_OPTIONS(self) -> None:
         origin = self.headers.get("Origin")
         if origin and not self._is_origin_allowed():
@@ -512,11 +540,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             if not validate_run_id(run_id):
                 self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID"}\n', include_body=True, cache="no-store")
                 return
-            ok = send_signal_to_run(run_id, "STOP")
+            res = manage_run_action(run_id, "pause")
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
-                json.dumps({"ok": ok, "runId": run_id, "action": "pause"}).encode("utf-8"),
+                json.dumps(res).encode("utf-8"),
                 include_body=True,
                 cache="no-store",
             )
@@ -527,11 +556,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             if not validate_run_id(run_id):
                 self._send(400, "application/json; charset=utf-8", b'{"ok": false, "error": "Invalid run ID"}\n', include_body=True, cache="no-store")
                 return
-            ok = send_signal_to_run(run_id, "CONT")
+            res = manage_run_action(run_id, "resume")
+            code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
-                200,
+                code,
                 "application/json; charset=utf-8",
-                json.dumps({"ok": ok, "runId": run_id, "action": "resume"}).encode("utf-8"),
+                json.dumps(res).encode("utf-8"),
                 include_body=True,
                 cache="no-store",
             )
@@ -540,6 +570,18 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if path != "/api/release/update":
             self._send(404, "text/plain; charset=utf-8", b"not found\n", include_body=True, cache="no-store")
             return
+
+        authorized, status_code, msg = self._check_update_authorization(body_json)
+        if not authorized:
+            self._send(
+                status_code,
+                "application/json; charset=utf-8",
+                json.dumps({"ok": False, "error": msg}).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
         ok, message = update_checkout()
         if ok:
             refresh_release(force=True)

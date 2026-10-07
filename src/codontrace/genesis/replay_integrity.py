@@ -1103,7 +1103,9 @@ def public_dataclass_digest_fields(class_obj: type[Any]) -> tuple[str, ...]:
     """Return digest-like dataclass field names for a class object."""
 
     fields = getattr(class_obj, "__dataclass_fields__", {})
-    return tuple(name for name in fields if name == "digest" or name.endswith("_digest"))
+    return tuple(
+        name for name in fields if not name.startswith("_") and (name == "digest" or name.endswith("_digest"))
+    )
 
 
 def resolve_class_path(class_path: str) -> type[Any]:

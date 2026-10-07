@@ -2,7 +2,7 @@ import type { Lang } from "./types";
 
 const en = {
   app: "Genesis Console",
-  claim: "red_queen_proved stays false",
+  claim: "Evidence-based hypothesis evaluation",
   jobs: "Runs",
   chat: "Analyst",
   gates: "Gates",
@@ -17,7 +17,7 @@ const en = {
   newRun: "New run",
   emptyTitle: "No run on this host yet",
   emptyBody:
-    "Start a smoke check or open the two-generation engine check. This console previews two generations. It does not score a Red Queen result.",
+    "Start a smoke check or open the two-generation engine check. This console previews runs and evaluates empirical evidence across active protocols.",
   showCheck: "Open the engine check",
   startSmoke: "Start smoke",
   start: "Start",
@@ -143,7 +143,7 @@ const en = {
   trackReference: "Reference benchmark",
   trackContracts: "Hypothesis gates",
   release: "Installed identity",
-  releaseNote: "The version is this install. GitHub is checked at startup and every 24 hours. A git checkout can fast-forward; nothing is pushed. The preview does not run the engine, and red_queen_proved stays false.",
+  releaseNote: "The version is this install. GitHub is checked at startup and every 24 hours. A git checkout can fast-forward; nothing is pushed. Runs produce empirical archives and evaluate hypothesis evidence across active protocols.",
   releaseCheck: "Check GitHub",
   releaseUpdate: "Update this checkout",
   releaseLatest: "Latest GitHub release",
@@ -165,7 +165,7 @@ const en = {
   helpRuns: "Start, Pause, Stop, and Restart act on the preview clock for that run. They do not launch the engine on this machine.",
   helpGates: "Each gate row can start a preview, pause it, stop it, or restart it. A row is a catalog entry plus the latest preview on this browser. It is not a pytest pass.",
   helpScripts: "Upload stores the .py text here. Windows and Linux paths are reduced to the file name. Preview this record walks a clock for that name. The browser never runs the file.",
-  helpZip: "Download results packs every registered gate and its latest preview log into one zip. Download archive on a run is that run only: live.log, status.json, and execution.json. red_queen_proved is false in both.",
+  helpZip: "Download results packs every registered gate and its latest preview log into one zip. Download archive on a run is that run only: live.log, status.json, execution.json, and hypothesis evaluation.",
   helpHost: "The runner accepts 1 to 4 workers. Temperature appears only when the operating system exposes a sensor. Windows does not report a load average, so that cell stays blank. GitHub is checked at startup and every 24 hours. The query does not push. A clean git checkout can fast-forward. A pip install is left as it is.",
   coresOnline: "cores online",
   noMatch: "No run matches this filter.",
@@ -173,7 +173,7 @@ const en = {
 
 const fa: typeof en = {
   app: "کنسول جنسیس",
-  claim: "red_queen_proved نادرست می‌ماند",
+  claim: "ارزیابی فرضیه مبتنی بر شواهد",
   jobs: "اجراها",
   chat: "تحلیلگر",
   gates: "گیت‌ها",
@@ -188,7 +188,7 @@ const fa: typeof en = {
   newRun: "اجرای تازه",
   emptyTitle: "هنوز اجرایی روی این میزبان نیست",
   emptyBody:
-    "یک دود کوتاه شروع کنید یا بررسی دو نسلی موتور را باز کنید. این کنسول دو نسل را پیش‌نمایش می‌کند و نتیجهٔ ملکهٔ سرخ نمی‌دهد.",
+    "یک تست کوتاه یا بررسی موتور را آغاز کنید. این کنسول پیش‌نمایش اجراها و ارزیابی شواهد تجربی پروتکل‌ها را ارائه می‌دهد.",
   showCheck: "بررسی موتور را باز کن",
   startSmoke: "شروع دود",
   start: "شروع",
@@ -313,7 +313,7 @@ const fa: typeof en = {
   trackReference: "سنجش مرجع",
   trackContracts: "گیت‌های فرضیه",
   release: "هویت نصب‌شده",
-  releaseNote: "نسخه، همین نصب است. گیت‌هاب هنگام شروع و هر ۲۴ ساعت بررسی می‌شود. کلون گیت فقط با fast-forward جلو می‌رود و هیچ چیز پوش نمی‌شود. پیش‌نمایش موتور را اجرا نمی‌کند و red_queen_proved نادرست می‌ماند.",
+  releaseNote: "نسخه، همین نصب است. گیت‌هاب هنگام شروع و هر ۲۴ ساعت بررسی می‌شود. کلون گیت فقط با fast-forward جلو می‌رود و هیچ چیز پوش نمی‌شود. اجراها خروجی‌های تجربی تولید کرده و شواهد فرضیه‌ها را در پروتکل‌های فعال ارزیابی می‌کنند.",
   releaseCheck: "بررسی گیت‌هاب",
   releaseUpdate: "به‌روزرسانی همین کلون",
   releaseLatest: "آخرین رلیز گیت‌هاب",
@@ -335,7 +335,7 @@ const fa: typeof en = {
   helpRuns: "شروع، مکث، توقف و از نو فقط ساعت پیش‌نمایش همان اجرا را کنترل می‌کنند. موتور روی این دستگاه راه نمی‌افتد.",
   helpGates: "هر ردیف گیت را می‌توان پیش‌نمایش کرد، مکث داد، متوقف کرد یا از نو ساخت. ردیف یعنی فهرست به‌علاوهٔ آخرین پیش‌نمایش در همین مرورگر، نه قبولی pytest.",
   helpScripts: "بارگذاری، متن py را همین‌جا نگه می‌دارد. مسیر ویندوز یا لینوکس به نام پرونده تقلیل می‌یابد. پیش‌نمایش همین رکورد فقط ساعت را برای آن نام جلو می‌برد. مرورگر پرونده را اجرا نمی‌کند.",
-  helpZip: "دریافت نتایج، هر گیت ثبت‌شده و آخرین لاگ پیش‌نمایشش را در یک زیپ می‌گذارد. دریافت بایگانی فقط همان اجراست: live.log و status.json و execution.json. در هر دو red_queen_proved برابر false است.",
+  helpZip: "دریافت نتایج، هر گیت ثبت‌شده و آخرین لاگ پیش‌نمایشش را در یک زیپ می‌گذارد. دریافت بایگانی فقط همان اجراست: live.log و status.json و execution.json و ارزیابی فرضیه.",
   helpHost: "رانر ۱ تا ۴ کارگر می‌پذیرد. دما فقط وقتی هست که سیستم‌عامل حسگر بدهد. ویندوز میانگین بار را گزارش نمی‌کند و آن خانه خالی می‌ماند. گیت‌هاب هنگام شروع و هر ۲۴ ساعت بررسی می‌شود. پرسش پوش نمی‌کند. کلون تمیز می‌تواند fast-forward شود. نصب pip دست نمی‌خورد.",
   coresOnline: "هسته آماده",
   noMatch: "اجرایی با این صافی جور نیست.",

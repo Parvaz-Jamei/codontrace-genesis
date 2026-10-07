@@ -185,8 +185,9 @@ def query_llm(
         method="POST",
     )
 
+    llm_timeout = float(os.environ.get("CODONTRACE_LLM_TIMEOUT", "180.0"))
     try:
-        with urllib.request.urlopen(req, timeout=5.0) as resp:
+        with urllib.request.urlopen(req, timeout=llm_timeout) as resp:
             if resp.status == 200:
                 body = json.loads(resp.read().decode("utf-8"))
                 choices = body.get("choices", [])
@@ -212,8 +213,9 @@ def chat_turn(
         "CodonTrace is a deterministic digital evolution and host-parasite coevolution engine. "
         "Provide insightful, scientifically grounded evolutionary analysis. "
         "Keep responses structured and focused. "
-        "EPISTEMOLOGICAL INVARIANT: The Red Queen hypothesis is NEVER proven by computational runs. "
-        "red_queen_proved is strictly locked to false. Never claim or imply that Red Queen is proven. "
+        "EPISTEMOLOGICAL STANDARD: Accept valid positive results and valid negative results based on "
+        "empirical evidence, measurement quality, controls, and formal hypothesis evaluators. "
+        "Never falsely lock hypotheses to false, and never declare unvalidated runs as proven. "
         f"Respond in {'Persian (Farsi)' if lang == 'fa' else 'English'}."
     )
 
@@ -224,6 +226,7 @@ def chat_turn(
     )
 
     if effective_run_id:
+        from codontrace.console.evaluator import evaluate_run_hypothesis
         from codontrace.console.runs import get_run_details
 
         run_data = get_run_details(effective_run_id)
@@ -234,6 +237,7 @@ def chat_turn(
             diagnostics = run_data.get("diagnostics")
             live_logs = run_data.get("liveLogs") or []
             tail_lines = live_logs[-5:] if isinstance(live_logs, list) else []
+            assessment = evaluate_run_hypothesis(run_data)
 
             ctx_summary = (
                 f"\n[Authoritative Server Run Context for {effective_run_id}]:\n"
@@ -241,7 +245,7 @@ def chat_turn(
                 f"- Status: {run_data.get('status')}\n"
                 f"- Generations: {params.get('generations', 'unspecified')}, Workers: {params.get('workers', 'unspecified')}\n"
                 f"- Seeds: {params.get('seeds', [])}\n"
-                f"- Invariant status: invariant=ok, red_queen_proved=false (LOCKED)\n"
+                f"- Hypothesis assessment: verdict={assessment['verdict']}, protocol={assessment.get('protocol')}, rationale={assessment.get('rationale')}\n"
             )
             if execution is not None and isinstance(execution, dict):
                 ctx_summary += (
@@ -281,12 +285,6 @@ def chat_turn(
     duration_ms = round((time.time() - t0) * 1000)
 
     if llm_answer is not None:
-        # Enforce locked invariant guardrail on response
-        if "red_queen_proved=true" in llm_answer.lower() or "red queen is proved" in llm_answer.lower():
-            llm_answer += (
-                "\n\n[Invariant Note: In accordance with scientific epistemic safeguards, "
-                "red_queen_proved remains strictly false.]"
-            )
         status = check_llm_status()
         return {
             "source": "llm",
@@ -297,27 +295,17 @@ def chat_turn(
             "fallback": False,
         }
 
-    # Deterministic domain-aware fallback answer
-    if model not in ("local-analyst", "deterministic-analyst"):
-        err_msg = "ارتباط با مدل زبانی محلی برقرار نشد. لطفاً مطمئن شوید سرویس Llama-server در حال اجراست." if lang == "fa" else "Connection to the local LLM failed. Please ensure Llama-server is running."
-        return {
-            "source": "analyst",
-            "reply": err_msg,
-            "mounted": False,
-            "model": model,
-            "duration_ms": duration_ms,
-            "fallback": True,
-        }
-
+    # Deterministic domain-aware fallback answer (R19)
     fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
+    is_fallback = model not in ("local-analyst", "deterministic-analyst")
 
     return {
         "source": "analyst",
         "reply": fallback_reply,
         "mounted": False,
-        "model": "deterministic-analyst",
+        "model": "deterministic-analyst" if not is_fallback else (model or "deterministic-analyst"),
         "duration_ms": duration_ms,
-        "fallback": False,
+        "fallback": is_fallback,
     }
 
 
@@ -329,16 +317,43 @@ def _generate_analyst_reply(
 ) -> str:
     q = text.lower()
 
-    # Invariant guardrail
-    if any(k in q for k in ("proof", "prove", "proved", "اثبات", "ثابت", "red queen", "ملکه سرخ")) and any(k in q for k in ("queen", "سرخ", "proved", "اثبات", "ثابت")):
+    # Dynamic Hypothesis & Evidence Assessment
+    if any(k in q for k in ("proof", "prove", "proved", "اثبات", "ثابت", "red queen", "ملکه سرخ", "verdict", "فرضیه", "hypothesis")):
+        from codontrace.console.evaluator import evaluate_run_hypothesis
+        details = None
+        if job_id:
+            try:
+                from codontrace.console.runs import get_run_details
+                details = get_run_details(job_id)
+            except Exception:
+                pass
+        if details is None and job_context:
+            details = job_context
+
+        assessment = evaluate_run_hypothesis(details)
+        verdict = assessment.get("verdict", "not_evaluated")
+        rationale = assessment.get("rationale", "")
+        proto = assessment.get("protocol", "general")
+
         if lang == "fa":
+            verdict_fa = {
+                "supported": "پشتیبانی‌شده (Supported)",
+                "not_supported": "پشتیبانی‌نشده (Not Supported)",
+                "inconclusive": "غیرقطعی / نیازمند داده بیشتر (Inconclusive)",
+                "invalid": "نامعتبر / خطای اندازه‌گیری (Invalid)",
+                "not_evaluated": "ارزیابی‌نشده (Not Evaluated)",
+            }.get(verdict, verdict)
             return (
-                "خیر. قید معرفت‌شناختی: red_queen_proved روی تمام اجراها و کل موتور به طور قطعی False است "
-                "و با شبیه‌سازی‌های محاسباتی اثبات نمی‌شود. رصد دینامیک‌های هم‌فرگشتی فقط برای مقایسه اکتشافی است."
+                f"ارزیابی شواهد فرضیه ({proto}): وضعیت «{verdict_fa}» است.\n"
+                f"• تحلیل: {rationale}\n"
+                "• اصل روش‌شناختی Genesis: پذیرش نتایج وابسته به شواهد تجربی، صحت کنترل‌ها "
+                "و آزمون‌های آماری است؛ هیچ نتیجه‌ای به صورت از پیش قفل‌شده تحمیل نمی‌شود."
             )
         return (
-            "No. Epistemic invariant: red_queen_proved remains strictly False across all runs and the engine. "
-            "Computational simulations never prove the Red Queen hypothesis; dynamics serve as empirical observations only."
+            f"Hypothesis Evidence Assessment ({proto}): Verdict is '{verdict}'.\n"
+            f"• Rationale: {rationale}\n"
+            "• Genesis Epistemic Standard: Verdicts are determined strictly by empirical evidence, "
+            "control validity, and statistical power without permanent boolean locking."
         )
 
     def _metric(k: str) -> str:
@@ -454,10 +469,11 @@ def _generate_analyst_reply(
     # Active Runs / Board hardware
     if any(k in q for k in ("run", "اجرا", "چالش", "challenge", "بورد", "board", "وضعیت", "status", "پیشرفت", "progress", "سخت‌افزار", "hardware")):
         try:
-            from codontrace.console.runs import list_simulation_runs, get_run_details, runs_directory
-            import sys
             import os
             import shutil
+            import sys
+
+            from codontrace.console.runs import get_run_details, list_simulation_runs, runs_directory
             
             runs = list_simulation_runs()
             active_count = sum(1 for r in runs if r.get("status") == "RUNNING")
@@ -538,14 +554,14 @@ def _generate_analyst_reply(
         return (
             "درود! من دستیار هوشمند پژوهش CodonTrace Genesis هستم. "
             "می‌توانید وضعیت زنده هر ۸ چالش فرانتیر روی بورد، سنجه‌های ریاضی فرگشت "
-            "(معادله پرایس، فاجعه خطای ایگن، اطلاعات عملکردی هازن، مدل هندسی فیشر و نوآوری بداو) "
-            "و سلامت سخت‌افزاری دستگاه را از من بپرسید.\n"
-            "قید معرفتی سیستم: red_queen_proved=false به صورت قطعی در سیستم برقرار است."
+            "(معادله پرایس، فاجعه خطای ایگن، اطلاعات عملکردی هازن، مدل هندسی فیشر و نوآوری بداو)، "
+            "ارزیابی شواهد فرضیه‌ها و سلامت سخت‌افزاری دستگاه را از من بپرسید.\n"
+            "اصل سیستم: ارزیابی بی‌طرفانه مبتنی بر شواهد تجربی (supported, not_supported, inconclusive, invalid, not_evaluated)."
         )
     return (
         "Hello! I am the CodonTrace Genesis Research Assistant. "
         "You can ask me about the 8 live frontier challenges running on the board, evolutionary metrics "
         "(Price equation, Eigen quasispecies threshold, Hazen functional information, Fisher geometric model, Bedau OEE), "
-        "and hardware telemetry.\n"
-        "Epistemic invariant: red_queen_proved=false is strictly preserved."
+        "hypothesis evidence assessment, and hardware telemetry.\n"
+        "System standard: Impartial evidence-based hypothesis evaluation (supported, not_supported, inconclusive, invalid, not_evaluated)."
     )

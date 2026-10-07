@@ -1,6 +1,11 @@
 """Fixed-budget exploratory Genesis runs with fail-closed archive validation.
 
 Treatment physics, selection and RNG are unchanged. Partial data are retained.
+
+EXECUTION BOUNDARY & ARCHITECTURAL CLASSIFICATION:
+Backend: GENESIS_ENGINE (Full Digital Organism Coevolution Simulation)
+Engine Substrate: CodonTrace GenesisEngine coevolutionary dynamics with codon translation,
+reproduction, host-parasite contacts, and biological assay verification.
 """
 from __future__ import annotations
 
@@ -8,11 +13,11 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import os
 from pathlib import Path
 from typing import Any
 
@@ -114,6 +119,10 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
     def monitor() -> None:
         with (root/'health.log').open('w', encoding='utf-8', buffering=1) as log:
             while not stop.is_set():
+                while ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
+                    if stop.is_set() or (root/'STOP').exists() or ((root.parent/'STOP').is_file()):
+                        break
+                    time.sleep(0.2)
                 elapsed = time.monotonic()-started
                 log.write(json.dumps(dict(elapsed_seconds=elapsed, stop_file=(root/'STOP').exists()))+'\n')
                 if elapsed >= max_seconds:
@@ -161,6 +170,9 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
     report = dict(complete=complete, simulation_elapsed_seconds=time.monotonic()-started,
         outcomes=sorted(outcomes, key=lambda row: row['seed']), replays=replays,
         validation_failures=errors, diagnostics_complete=False,
+        engine_backend='genesis_engine',
+        model_scope='full_digital_organism_simulation',
+        model_boundary_notice='Full digital organism coevolution engine with codon translation and biological assays.',
         red_queen_proved=False, exploratory=True)
     write_json(root/'execution.json', report)
     if complete:

@@ -30,6 +30,9 @@
 }
 
 @layer base {
+  html {
+    font-size: 14px;
+  }
   html,
   body,
   #root {
@@ -40,8 +43,8 @@
     background: var(--color-bg);
     color: var(--color-fg);
     font-family: var(--font-sans);
-    font-size: 15px;
     line-height: 1.5;
+    color-scheme: dark;
   }
   html[lang="fa"] body {
     font-family: "Vazirmatn", "IBM Plex Sans", Tahoma, sans-serif;

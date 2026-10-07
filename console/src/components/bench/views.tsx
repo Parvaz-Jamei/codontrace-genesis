@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Accordion from "@radix-ui/react-accordion";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, MoreHorizontal, Pin, Archive, Trash2 } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Pin, Archive, Trash2, ArrowUp, Square } from "lucide-react";
 import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
@@ -448,9 +448,9 @@ export function ChatView() {
               <div className="flex w-full flex-col gap-1 text-start leading-relaxed">
                 <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-xs text-muted">
                   <div className="flex items-center gap-0.5">
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-gradient-to-t from-[#0f172a] to-teal-400" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-gradient-to-t from-[#0f172a] to-teal-400" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-gradient-to-t from-[#0f172a] to-teal-400" />
                   </div>
                   <span>{lang === "fa" ? "مدل در حال پردازش و استدلال است..." : "Model is thinking..."}</span>
                 </div>
@@ -491,9 +491,14 @@ export function ChatView() {
                 <button
                   type="submit"
                   disabled={!canSend}
-                  className="min-h-11 shrink-0 rounded-xl bg-fg px-4 text-sm font-medium text-bg disabled:opacity-40"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-fg text-bg disabled:opacity-40"
+                  aria-label={text.send}
                 >
-                  {text.send}
+                  {active?.isThinking ? (
+                    <Square className="h-5 w-5 fill-current" />
+                  ) : (
+                    <ArrowUp className="h-5 w-5 stroke-[3]" />
+                  )}
                 </button>
               </div>
             </div>
@@ -803,7 +808,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
+              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] hover:file:border-white/20 focus:outline-none cursor-pointer"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1376,7 +1381,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
               <input
                 type="file"
                 accept=".py,text/x-python"
-                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] focus:outline-none cursor-pointer"
+                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] hover:file:border-white/20 focus:outline-none cursor-pointer"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
@@ -1867,9 +1872,10 @@ export function HomeView() {
             <button
               type="submit"
               disabled={!draft.trim()}
-              className="ms-auto rounded-lg bg-fg px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+              className="ms-auto grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-fg text-bg disabled:opacity-50"
+              aria-label={text.send}
             >
-              {text.send}
+              <ArrowUp className="h-5 w-5 stroke-[3]" />
             </button>
           </div>
         </form>

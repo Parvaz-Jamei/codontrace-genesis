@@ -16,6 +16,11 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      window.deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+      });
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').catch(() => {});

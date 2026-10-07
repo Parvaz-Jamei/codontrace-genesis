@@ -10,15 +10,31 @@ export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+declare global {
+  interface Window {
+    deferredPrompt: BeforeInstallPromptEvent | null;
+  }
+}
+
 export function useInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => typeof window !== 'undefined' ? window.deferredPrompt : null
+  );
 
   useEffect(() => {
+    // Check again when the component mounts in case it missed the initial event
+    if (typeof window !== 'undefined' && window.deferredPrompt && !deferredPrompt) {
+      setDeferredPrompt(window.deferredPrompt);
+    }
+
     const handler = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      if (typeof window !== 'undefined') {
+        window.deferredPrompt = e as BeforeInstallPromptEvent;
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -26,7 +42,7 @@ export function useInstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
     };
-  }, []);
+  }, [deferredPrompt]);
 
   const promptToInstall = async () => {
     if (!deferredPrompt) {
@@ -43,6 +59,9 @@ export function useInstallPrompt() {
     }
     // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
+    if (typeof window !== 'undefined') {
+      window.deferredPrompt = null;
+    }
   };
 
   return { isInstallable: !!deferredPrompt, promptToInstall };

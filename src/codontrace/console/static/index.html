@@ -11,12 +11,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Genesis" />
     <title>CodonTrace Genesis Console</title>
-    <script type="module" crossorigin src="/assets/index-D2MOmiku.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-df8xkqAf.css">
+    <script type="module" crossorigin src="/assets/index-DbvXQMRj.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Bp0mKeev.css">
   </head>
   <body>
     <div id="root"></div>
     <script>
+      window.deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+      });
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').catch(() => {});

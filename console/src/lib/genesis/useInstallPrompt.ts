@@ -28,8 +28,6 @@ export function useInstallPrompt() {
     }
 
     const handler = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       if (typeof window !== 'undefined') {

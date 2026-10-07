@@ -172,22 +172,22 @@ export function BenchApp() {
         onHelp={() => setHelp(true)}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 px-3">
-          <button className="grid h-11 w-11 place-items-center rounded-lg text-muted hover:bg-surface lg:hidden" onClick={() => setMenu(true)} aria-label={text.menu}>
-            <Menu className="h-4 w-4" />
+        <header className="flex h-14 shrink-0 items-center gap-3 px-4 sm:px-6 border-b border-line/50">
+          <button className="grid h-10 w-10 place-items-center rounded-lg text-muted hover:bg-surface lg:hidden" onClick={() => setMenu(true)} aria-label={text.menu}>
+            <Menu className="h-5 w-5" />
           </button>
-          <p className="truncate text-sm text-muted">{titles[view]}</p>
+          <p className="min-w-0 truncate text-sm font-medium text-muted">{titles[view]}</p>
           <div className="ms-auto flex items-center gap-2">
             {isInstallable && (
               <button
-                className="flex h-8 items-center rounded-lg bg-white/10 px-3 text-xs font-medium text-fg hover:bg-white/20 border border-white/20 shadow-sm transition-all"
+                className="flex h-10 items-center rounded-lg border border-white/20 bg-white/10 px-3 text-xs font-medium text-fg shadow-sm transition-all hover:bg-white/20 sm:text-sm"
                 onClick={promptToInstall}
               >
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 {settings.lang === "fa" ? "نصب وب‌اپلیکیشن" : "Install App"}
               </button>
             )}
-            <button className="grid h-11 min-w-11 place-items-center rounded-lg px-3 text-sm text-muted hover:bg-surface" onClick={() => setLog((open) => !open)}>
+            <button className="flex h-10 items-center justify-center rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:bg-white/10 hover:text-fg" onClick={() => setLog((open) => !open)}>
               {text.log}
             </button>
           </div>
@@ -363,9 +363,9 @@ function Sidebar({
       </nav>
       {collapsed ? <div className="min-h-0 flex-1" /> : (
       <Collapsible.Root open={recentsOpen} onOpenChange={setRecentsOpen} className="mt-3 flex min-h-0 flex-1 flex-col px-2">
-        <Collapsible.Trigger className="flex min-h-10 w-full shrink-0 items-center justify-between px-3 text-xs text-subtle">
+        <Collapsible.Trigger className="group flex min-h-10 w-full shrink-0 items-center justify-between rounded-lg px-3 text-xs font-medium text-subtle hover:bg-white/5 transition-colors">
           {lang === "fa" ? "اخیر" : "Recents"}
-          <span>{recentsOpen ? "–" : "+"}</span>
+          <span className="text-muted transition-colors group-hover:text-fg">{recentsOpen ? "–" : "+"}</span>
         </Collapsible.Trigger>
         <Collapsible.Content className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             <input

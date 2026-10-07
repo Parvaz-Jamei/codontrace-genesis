@@ -1398,7 +1398,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
           <input
             type="number"
             min={1}
-            max={4}
+            max={cores}
             value={workers}
             onChange={(event) => setWorkers(Number(event.target.value))}
             className="mt-1 min-h-11 w-full rounded-lg bg-white/5 px-3"
@@ -1419,7 +1419,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
                     if (on && picked.length === 1) return;
                     const next = on ? picked.filter((core) => core !== index) : [...picked, index].sort((a, b) => a - b);
                     setPicked(next);
-                    setWorkers((count) => Math.max(1, Math.min(count, next.length, 4)));
+                    setWorkers((count) => Math.max(1, Math.min(count, next.length, cores)));
                   }}
                 >
                   {index}
@@ -1685,14 +1685,14 @@ function pinPreset(id: Exclude<PresetId, "custom">, hostCores: number) {
   return {
     seedsText: spec.seeds.join(", "),
     generations: spec.generations,
-    workers: Math.max(1, Math.min(4, spec.workers, nextCores.length)),
+    workers: Math.max(1, Math.min(spec.workers, nextCores.length, limit)),
     cores: nextCores,
   };
 }
 
 function validate(input: RunInput, text: ReturnType<typeof t>) {
   if (input.cores.length < 1) return text.errorCores;
-  if (!Number.isInteger(input.workers) || input.workers < 1 || input.workers > 4 || input.workers > input.cores.length) {
+  if (!Number.isInteger(input.workers) || input.workers < 1 || input.workers > input.cores.length) {
     return text.errorWorkers;
   }
   if (input.kind === "script" && !/^[\w.-]+\.py$/.test(input.scriptName ?? "")) return text.errorScript;

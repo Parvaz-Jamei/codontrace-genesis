@@ -731,35 +731,38 @@ def evaluate_discovery_candidate(
         except Exception:
             reasons.append("invalid_genome")
 
-    if "assay" in mechanism_tags:
+    if assay_evidence is not None or "assay" in mechanism_tags:
         if not assay_evidence:
             reasons.append("missing_assay_evidence")
         else:
             raw_hash = assay_evidence.get("raw_data_hash", "")
             is_valid_hex = False
-            if isinstance(raw_hash, str) and raw_hash.strip():
+            if isinstance(raw_hash, str) and len(raw_hash) == 64:
                 try:
                     int(raw_hash, 16)
                     is_valid_hex = True
                 except ValueError:
                     pass
+            if not is_valid_hex:
+                reasons.append("invalid_raw_data_hash")
             
-            if not is_valid_hex or "genome" not in assay_evidence:
-                reasons.append("missing_assay_evidence")
+            assay_genome = assay_evidence.get("genome")
+            expected_genome = genome.to_compact() if isinstance(genome, SemanticGenome) else genome
+            if expected_genome is None or assay_genome != expected_genome:
+                reasons.append("genome_mismatch")
+            
+            measurements = assay_evidence.get("measurements")
+            if not measurements:
+                reasons.append("empty_measurements")
             else:
                 valid_measurements = False
-                for k in ("measurements", "data", "measurement_data", "measurement"):
-                    if k in assay_evidence:
-                        vals = assay_evidence[k]
-                        if isinstance(vals, dict):
-                            valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals.values())
-                        elif isinstance(vals, (list, tuple)):
-                            valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals)
-                        elif isinstance(vals, (int, float)):
-                            valid_measurements = math.isfinite(vals)
-                        break
+                if isinstance(measurements, dict):
+                    valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in measurements.values())
+                elif isinstance(measurements, (list, tuple)):
+                    valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in measurements)
+                
                 if not valid_measurements:
-                    reasons.append("missing_assay_evidence")
+                    reasons.append("invalid_measurements")
         
     if not distance.succeeded:
         reasons.extend(distance.reasons)

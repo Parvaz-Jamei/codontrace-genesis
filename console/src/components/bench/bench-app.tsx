@@ -180,7 +180,7 @@ export function BenchApp() {
           <div className="ms-auto flex items-center gap-2">
             {isInstallable && (
               <button
-                className="flex h-8 items-center rounded-lg bg-gradient-to-r from-blue-600/20 to-indigo-600/20 px-3 text-xs font-medium text-blue-400 hover:from-blue-600/30 hover:to-indigo-600/30 border border-blue-500/20 shadow-sm transition-all"
+                className="flex h-8 items-center rounded-lg bg-white/10 px-3 text-xs font-medium text-fg hover:bg-white/20 border border-white/20 shadow-sm transition-all"
                 onClick={promptToInstall}
               >
                 <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -362,12 +362,12 @@ function Sidebar({
         ))}
       </nav>
       {collapsed ? <div className="min-h-0 flex-1" /> : (
-      <Collapsible.Root open={recentsOpen} onOpenChange={setRecentsOpen} className="mt-3 min-h-0 flex-1 overflow-auto px-2">
-        <Collapsible.Trigger className="flex min-h-10 w-full items-center justify-between px-3 text-xs text-subtle">
+      <Collapsible.Root open={recentsOpen} onOpenChange={setRecentsOpen} className="mt-3 flex min-h-0 flex-1 flex-col px-2">
+        <Collapsible.Trigger className="flex min-h-10 w-full shrink-0 items-center justify-between px-3 text-xs text-subtle">
           {lang === "fa" ? "اخیر" : "Recents"}
           <span>{recentsOpen ? "–" : "+"}</span>
         </Collapsible.Trigger>
-        <Collapsible.Content>
+        <Collapsible.Content className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}

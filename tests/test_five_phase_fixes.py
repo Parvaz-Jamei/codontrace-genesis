@@ -220,8 +220,8 @@ def test_phase3_discovery_candidate_genome_and_assay():
         evidence_refs=("trace:1",),
         assay_evidence={
             "genome": "000111",
-            "raw_data_hash": "sha256_mock_abc123",
-            "measurement": 5.0,
+            "raw_data_hash": "a" * 64,
+            "measurements": [5.0],
         },
     )
     assert cand.claim_level == DiscoveryClaimLevel.CANDIDATE

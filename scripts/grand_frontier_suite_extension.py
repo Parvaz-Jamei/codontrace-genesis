@@ -192,7 +192,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
             sample_size = 500
             viable_count = 0
             for _s in range(sample_size):
-                rand_seq = "".join(alphabet[prng_int(seed, epoch * sample_size + _s, "c5_ref", 0, 1)] for _ in range(genome_len))
+                rand_seq = "".join(alphabet[prng_int(seed, ((epoch * sample_size + _s) * genome_len) + pos, "c5_ref", 0, 1)] for pos in range(genome_len))
                 rand_score = rand_seq.count("110") * 2 - rand_seq.count("000")
                 if rand_score >= theta:
                     viable_count += 1

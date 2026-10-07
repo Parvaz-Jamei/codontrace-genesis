@@ -905,31 +905,27 @@ def create_population_with_unique_ids(
     Asexual twin births can collide on digest-based ids. Remap duplicate ids with a numeric suffix
     before PopulationState validates, and update their lineage records appropriately.
     """
-    reserved_ids: set[str] = {org.id for org in organisms}
     used_ids: set[str] = set()
-    seen_counts: dict[str, int] = {}
-    fixed: list[GenesisOrganism] = []
-    renames: dict[str, list[str]] = {}
+    id_sequence: dict[str, list[str]] = {}
+    fixed_lineage: list[LineageRecord] = []
     changed = False
 
-    for org in organisms:
-        oid = org.id
+    for rec in lineage:
+        oid = rec.organism_id
         if oid not in used_ids:
             used_ids.add(oid)
-            seen_counts[oid] = 0
-            fixed.append(org)
-            continue
-
-        changed = True
-        k = seen_counts[oid] + 1
-        candidate = f"{oid}#{k}"
-        while candidate in reserved_ids or candidate in used_ids:
-            k += 1
+            fixed_lineage.append(rec)
+            id_sequence.setdefault(oid, []).append(oid)
+        else:
+            changed = True
+            k = 1
             candidate = f"{oid}#{k}"
-        seen_counts[oid] = k
-        used_ids.add(candidate)
-        fixed.append(replace(org, id=candidate))
-        renames.setdefault(oid, []).append(candidate)
+            while candidate in used_ids:
+                k += 1
+                candidate = f"{oid}#{k}"
+            used_ids.add(candidate)
+            fixed_lineage.append(replace(rec, organism_id=candidate))
+            id_sequence.setdefault(oid, []).append(candidate)
 
     if not changed:
         return PopulationState(
@@ -944,22 +940,36 @@ def create_population_with_unique_ids(
             materials=materials,
         )
 
-    fixed_lineage = list(lineage)
-    for old_id, new_ids in renames.items():
-        indexes = [index for index, rec in enumerate(fixed_lineage) if rec.organism_id == old_id]
-        for rec_index, new_id in zip(indexes[1:], new_ids):
-            fixed_lineage[rec_index] = replace(fixed_lineage[rec_index], organism_id=new_id)
+    org_counts: dict[str, int] = {}
+    for org in organisms:
+        org_counts[org.id] = org_counts.get(org.id, 0) + 1
 
-    fixed_fitness = list(fitness)
-    for old_id, new_ids in renames.items():
-        fit_indexes = [index for index, rec in enumerate(fixed_fitness) if rec.organism_id == old_id]
-        for fit_index, new_id in zip(fit_indexes[1:], new_ids):
-            fixed_fitness[fit_index] = replace(fixed_fitness[fit_index], organism_id=new_id)
+    org_consumed: dict[str, int] = {}
+    fixed_organisms: list[GenesisOrganism] = []
+    for org in organisms:
+        oid = org.id
+        seq = id_sequence[oid]
+        idx = len(seq) - org_counts[oid] + org_consumed.get(oid, 0)
+        fixed_organisms.append(replace(org, id=seq[idx]))
+        org_consumed[oid] = org_consumed.get(oid, 0) + 1
+
+    fit_counts: dict[str, int] = {}
+    for fit in fitness:
+        fit_counts[fit.organism_id] = fit_counts.get(fit.organism_id, 0) + 1
+
+    fit_consumed: dict[str, int] = {}
+    fixed_fitness: list[FitnessResult] = []
+    for fit in fitness:
+        oid = fit.organism_id
+        seq = id_sequence[oid]
+        idx = len(seq) - fit_counts[oid] + fit_consumed.get(oid, 0)
+        fixed_fitness.append(replace(fit, organism_id=seq[idx]))
+        fit_consumed[oid] = fit_consumed.get(oid, 0) + 1
 
     return PopulationState(
         generation=generation,
         tick=tick,
-        organisms=tuple(fixed),
+        organisms=tuple(fixed_organisms),
         lineage=tuple(fixed_lineage),
         fitness=tuple(fixed_fitness),
         birth_chamber=birth_chamber,

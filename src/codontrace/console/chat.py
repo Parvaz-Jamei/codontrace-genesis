@@ -342,13 +342,25 @@ def _generate_analyst_reply(
         )
 
     def _metric(k: str) -> str:
-        if not job_context: return "no active run data"
-        if "metrics" not in job_context: return "stale data"
-        metrics = job_context["metrics"]
+        metrics = None
+        if job_id:
+            try:
+                from codontrace.console.runs import get_run_details
+                details = get_run_details(job_id)
+                if details:
+                    exec_data = details.get("execution") or {}
+                    metrics = exec_data.get("metrics")
+            except Exception:
+                pass
+        
+        if metrics is None and job_context:
+            metrics = job_context.get("metrics")
+            
+        if not metrics: return "stale data"
         if not isinstance(metrics, dict): return "read error"
-        if k not in metrics: return "no data"
+        if k not in metrics: return "unknown"
         val = metrics[k]
-        if val is None: return "read error"
+        if val is None: return "unknown"
         if val == 0 or val == 0.0: return "measured zero"
         return str(val)
 
@@ -389,7 +401,7 @@ def _generate_analyst_reply(
 
     # Hazen functional info
     if any(k in q for k in ("hazen", "هازن", "functional", "اطلاعات عملکردی", "wagner", "واگنر", "percolation", "نفوذ")):
-        fi = _metric("functional_information")
+        fi = _metric("hazen_functional_info_bits")
         pr = _metric("neutral_percolation_rate")
         if lang == "fa":
             return (
@@ -426,7 +438,7 @@ def _generate_analyst_reply(
 
     # Fisher geometric model
     if any(k in q for k in ("fisher", "فیشر", "dfe", "geometric", "هندسی", "جهش")):
-        dfe = _metric("dfe_ratio")
+        dfe = _metric("p_beneficial_mutations")
         if lang == "fa":
             return (
                 "تحلیل مدل هندسی فیشر (Fisher's Geometric Model of Adaptation & DFE):\n"
@@ -455,11 +467,9 @@ def _generate_analyst_reply(
             for r in runs:
                 details = get_run_details(r["id"])
                 if details:
-                    manifest = details.get("manifest", {})
-                    params = manifest.get("params", {})
                     exec_data = details.get("execution", {})
-                    if "generations" in params:
-                        total_generations += params["generations"]
+                    if "completed_generations" in exec_data:
+                        total_generations += exec_data["completed_generations"]
                         has_generations = True
                     elif "generations" in exec_data:
                         total_generations += exec_data["generations"]

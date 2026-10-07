@@ -248,7 +248,9 @@ def list_simulation_runs() -> list[dict[str, Any]]:
             try:
                 rep = json.loads(exec_json.read_text(encoding="utf-8"))
                 if rep.get("complete") is True:
-                    has_complete_exec = True
+                    rep_id = rep.get("runId") or rep.get("run_id")
+                    if not rep_id or rep_id == run_id:
+                        has_complete_exec = True
             except Exception:
                 pass
 
@@ -273,7 +275,16 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     status_info["status"] = st
                     write_atomic_json(status_file, status_info)
         elif not st:
-            if has_complete_exec or (entry / "COMPLETE").is_file():
+            has_complete_marker = False
+            complete_file = entry / "COMPLETE"
+            if complete_file.is_file():
+                try:
+                    content = complete_file.read_text(encoding="utf-8").strip()
+                    if not content or run_id in content:
+                        has_complete_marker = True
+                except OSError:
+                    has_complete_marker = True
+            if has_complete_exec or has_complete_marker:
                 st = "COMPLETED"
             elif live_log.is_file() and (time.time() - live_log.stat().st_mtime < 120):
                 st = "RUNNING"
@@ -350,7 +361,11 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             if exec_json.is_file():
                 try:
                     rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                    st = "COMPLETED" if rep.get("complete") is True else "FAILED"
+                    is_complete = rep.get("complete") is True
+                    rep_id = rep.get("runId") or rep.get("run_id")
+                    if rep_id and rep_id != run_id:
+                        is_complete = False
+                    st = "COMPLETED" if is_complete else "FAILED"
                 except Exception:
                     st = "FAILED"
             elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
@@ -705,7 +720,11 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
         if exec_json.is_file():
             try:
                 rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                if rep.get("complete") is True:
+                is_complete = rep.get("complete") is True
+                rep_id = rep.get("runId") or rep.get("run_id")
+                if rep_id and rep_id != run_id:
+                    is_complete = False
+                if is_complete:
                     new_status = "COMPLETED"
                     error_reason = None
                 else:

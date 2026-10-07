@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Accordion from "@radix-ui/react-accordion";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, MoreHorizontal, Pin, Archive, Trash2 } from "lucide-react";
 import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
@@ -447,9 +448,9 @@ export function ChatView() {
               <div className="flex w-full flex-col gap-1 text-start leading-relaxed">
                 <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-xs text-muted">
                   <div className="flex items-center gap-0.5">
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
-                    <span className="wave-bar h-2.5 w-1 rounded-full bg-accent" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
+                    <span className="wave-bar h-2.5 w-1 rounded-full bg-white/50" />
                   </div>
                   <span>{lang === "fa" ? "مدل در حال پردازش و استدلال است..." : "Model is thinking..."}</span>
                 </div>
@@ -1876,6 +1877,7 @@ export function HomeView() {
     </div>
   );
 }
+
 
 
 

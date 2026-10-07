@@ -1,4 +1,4 @@
-import { useEffect, useState, ViewTransition, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Check, CircleHelp, Cpu, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
 import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
@@ -218,7 +218,6 @@ export function BenchApp() {
         <div className={cn("grid min-h-0 flex-1 transition-[grid-template-columns] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]", log ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_0px]")}>
           <main className="relative min-h-0 min-w-0">
             <Stage />
-            <ViewTransition enter="vt-enter" exit="vt-exit">
               <div key={view} className="relative z-10 h-full min-h-0">
                 {view === "home" ? <HomeView /> : null}
                 {view === "jobs" ? <JobsView /> : null}
@@ -228,7 +227,6 @@ export function BenchApp() {
                 {view === "host" ? <HostView /> : null}
                 {view === "settings" ? <SettingsView /> : null}
               </div>
-            </ViewTransition>
           </main>
           <div inert={!log} aria-hidden={!log} className={cn("hidden min-h-0 overflow-hidden border-line bg-[#101218] lg:block", log && "border-s")}>
             <div className="flex h-full w-80 flex-col">

@@ -477,12 +477,14 @@ export const useBench = create<BenchState>()(
         jobs: state.jobs,
         threads: state.threads,
         scripts: state.scripts,
-        view: state.view,
+        // view is intentionally not persisted: app always starts on HomeView
         selectedJobId: state.selectedJobId,
         activeThreadId: state.activeThreadId,
       }),
       onRehydrateStorage: () => (state) => {
         state?.settle();
+        // Always reset to home on fresh page load
+        state?.setView("home");
       },
       skipHydration: true,
     },

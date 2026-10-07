@@ -25,7 +25,8 @@ _RUNTIME_ENDPOINT: str | None = None
 
 def set_llm_endpoint(endpoint: str | None) -> None:
     """Dynamically set the active LLM endpoint with scheme validation."""
-    global _RUNTIME_ENDPOINT
+    global _RUNTIME_ENDPOINT, _STATUS_CACHE
+    _STATUS_CACHE.clear()
     if not endpoint:
         _RUNTIME_ENDPOINT = None
         return
@@ -82,7 +83,7 @@ def list_discovered_models() -> list[dict[str, Any]]:
     return models
 
 
-_STATUS_CACHE: tuple[float, dict[str, Any]] | None = None
+_STATUS_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _CACHE_TTL_SECONDS = 5.0
 
 
@@ -112,11 +113,15 @@ def _probe_single_endpoint(ep: str) -> dict[str, Any] | None:
 def check_llm_status() -> dict[str, Any]:
     """Check if any local LLM server is mounted and responding with concurrency and caching."""
     global _STATUS_CACHE
-    now = time.time()
-    if _STATUS_CACHE is not None and (now - _STATUS_CACHE[0]) < _CACHE_TTL_SECONDS:
-        return _STATUS_CACHE[1]
-
+    now = time.monotonic()
+    
     endpoint = get_llm_endpoint()
+    
+    if endpoint in _STATUS_CACHE:
+        cached_time, cached_val = _STATUS_CACHE[endpoint]
+        if (now - cached_time) < _CACHE_TTL_SECONDS:
+            return dict(cached_val)
+
     env_set = bool(_RUNTIME_ENDPOINT or os.environ.get("CODONTRACE_LLM_ENDPOINT"))
     endpoints_to_try = [endpoint] if env_set else list(DEFAULT_ENDPOINTS)
 
@@ -129,8 +134,8 @@ def check_llm_status() -> dict[str, Any]:
             try:
                 res = fut.result()
                 if res and res.get("mounted"):
-                    _STATUS_CACHE = (now, res)
-                    return res
+                    _STATUS_CACHE[endpoint] = (now, res)
+                    return dict(res)
             except Exception:
                 pass
 
@@ -141,8 +146,8 @@ def check_llm_status() -> dict[str, Any]:
         "provider": "none",
         "available_models": [],
     }
-    _STATUS_CACHE = (now, fallback_status)
-    return fallback_status
+    _STATUS_CACHE[endpoint] = (now, fallback_status)
+    return dict(fallback_status)
 
 
 def query_llm(
@@ -325,94 +330,102 @@ def _generate_analyst_reply(
             "Computational simulations never prove the Red Queen hypothesis; dynamics serve as empirical observations only."
         )
 
+    def _metric(k: str) -> str:
+        if not job_context: return "no active run data"
+        if "metrics" not in job_context: return "stale data"
+        metrics = job_context["metrics"]
+        if not isinstance(metrics, dict): return "read error"
+        if k not in metrics: return "no data"
+        val = metrics[k]
+        if val is None: return "read error"
+        if val == 0 or val == 0.0: return "measured zero"
+        return str(val)
+
     # Price equation / Multilevel selection
     if any(k in q for k in ("price", "پرایس", "multilevel", "چندسطحی", "mls", "دگرخواهی", "altruism")):
         if lang == "fa":
             return (
-                "تحلیل معادله پرایس (George Price 1972) در چالش ۲:\n"
+                "تحلیل معادله پرایس (George Price 1972):\n"
                 "فرمول تفکیک دو سطحی پرایس: Δz̄ = (1/W̄) Cov(W_g, z̄_g) + (1/W̄) ∑ q_g Cov(w_gi, z_gi)\n"
-                "• ترم بین‌گروهی (انتخاب بین دمه‌ها): دارای علامت مثبت است و از دگرخواهی و بقای گروه حمایت می‌کند.\n"
-                "• ترم درون‌گروهی (انتخاب فردی): دارای علامت منفی است و گرایش به خودخواهی فردی دارد.\n"
-                "تعادل کنونی سیستم نشان می‌دهد انتخاب فردی درون گروه‌ها بر ساختار ضعیف دمه‌ای غالب است و سهم دگرخواهان در تعادل مرزی پایدار مانده است."
+                "• ترم بین‌گروهی (انتخاب بین دمه‌ها): کوواریانس بین برازش گروه و میانگین فنوتیپ.\n"
+                "• ترم درون‌گروهی (انتخاب فردی): رقابت فردی درون گروهی.\n"
+                "علامت و مقادیر این ترم‌ها به صورت پویا به ساختار جمعیت وابسته است."
             )
         return (
-            "Price Equation Analysis (George Price 1972) for Challenge 2:\n"
+            "Price Equation Analysis (George Price 1972):\n"
             "Δz̄ = (1/W̄) Cov(W_g, z̄_g) + (1/W̄) ∑ q_g Cov(w_gi, z_gi)\n"
-            "• Between-group term: positive covariance favoring cooperative demes.\n"
-            "• Within-group term: negative covariance reflecting individual within-deme competition.\n"
-            "Current empirical telemetry shows individual selection dominating under weak population viscosity."
+            "• Between-group term: covariance between group fitness and mean trait.\n"
+            "• Within-group term: within-group individual competition.\n"
+            "The signs and magnitudes depend dynamically on the population structure."
         )
 
     # Eigen quasispecies
     if any(k in q for k in ("eigen", "ایگن", "quasispecies", "شبه‌گونه", "catastrophe", "فاجعه", "آستانه")):
+        mu = _metric("observed_mutation_rate")
         if lang == "fa":
             return (
-                "تحلیل تئوری شبه‌گونه‌های منفرد ایگن (Eigen Quasispecies & Error Catastrophe) در چالش ۶:\n"
+                "تحلیل تئوری شبه‌گونه‌های منفرد ایگن (Eigen Quasispecies & Error Catastrophe):\n"
                 "آستانه خطای بحرانی تئوریک: μ_c = ln(σ_0) / L\n"
-                "• نرخ جهش کنونی: μ ≈ 0.0124 که پایین‌تر از حد بحرانی μ_c = 0.022 قرار دارد.\n"
-                "• رژیم پویایی: ORGANIZED_QUASISPECIES با واریانس مشخص و حفظ ابر جهشی اطراف توالی مرجع.\n"
-                "در صورتی که نرخ جهش از 0.022 فراتر رود، جمعیت وارد رژیم CATASTROPHE_DRIFT (فاجعه جهشی و انحلال اطلاعات) می‌شود."
+                f"• نرخ جهش رصد شده: {mu}\n"
+                "عبور از آستانه خطای بحرانی موجب فروپاشی ساختار ژنتیکی می‌شود."
             )
         return (
-            "Eigen Quasispecies & Error Catastrophe Analysis (Challenge 6):\n"
-            "Critical mutational threshold: μ_c = ln(σ_0) / L\n"
-            "• Current mutation rate: μ ≈ 0.0124, safely below μ_c = 0.022.\n"
-            "• Regime: ORGANIZED_QUASISPECIES (structured mutational cloud around master sequence).\n"
+            "Eigen Quasispecies & Error Catastrophe Analysis:\n"
+            "Critical mutational threshold formulation: μ_c = ln(σ_0) / L\n"
+            f"• Observed mutation rate: {mu}\n"
             "Exceeding μ_c triggers catastrophic mutational meltdown into random genetic drift."
         )
 
     # Hazen functional info
     if any(k in q for k in ("hazen", "هازن", "functional", "اطلاعات عملکردی", "wagner", "واگنر", "percolation", "نفوذ")):
+        fi = _metric("functional_information")
+        pr = _metric("neutral_percolation_rate")
         if lang == "fa":
             return (
-                "تحلیل اطلاعات عملکردی هازن و نفوذ در شبکه خنثی (چالش ۵):\n"
+                "تحلیل اطلاعات عملکردی هازن و نفوذ در شبکه خنثی:\n"
                 "فرمول اطلاعات عملکردی: I(E_x) = -log2(M(E_x) / N)\n"
-                "• اطلاعات عملکردی ثبت‌شده: بیش از ۳۵.۶ بیت\n"
-                "• نفوذ در شبکه خنثی واگنر: ۲۶.۷٪ پیوستگی مسیرهای خنثی ژنوتیپی بدون افت کارکرد زیستی.\n"
-                "این نتایج اثبات‌کننده فرضیه آندریاس واگنر در مورد قابلیت تکامل‌پذیری و پایداری ژنوم در فضاهای خنثی است."
+                f"• اطلاعات عملکردی ثبت‌شده: {fi}\n"
+                f"• نفوذ در شبکه خنثی واگنر: {pr}\n"
             )
         return (
-            "Hazen Functional Information & Wagner Neutral Percolation (Challenge 5):\n"
+            "Hazen Functional Information & Wagner Neutral Percolation:\n"
             "I(E_x) = -log2(M(E_x) / N)\n"
-            "• Functional information: >35.6 bits\n"
-            "• Neutral percolation rate: 26.7% connected neutral network paths without fitness loss.\n"
-            "Empirically corroborates Andreas Wagner's neutral network evolvability model."
+            f"• Functional information: {fi}\n"
+            f"• Neutral percolation rate: {pr}\n"
         )
 
     # Bedau OEE activity
     if any(k in q for k in ("bedau", "بداو", "activity", "فعالیت", "shadow", "سایه", "oee")):
+        act = _metric("cumulative_activity")
+        shad = _metric("shadow_activity")
+        excess = _metric("excess_activity")
         if lang == "fa":
             return (
-                "تحلیل فعالیت فرگشتی تجمعی بی‌پایان در برابر مدل سایه (چالش ۷):\n"
-                "• فعالیت تجمعی واقعی: ۱۵,۵۴۹.۱\n"
-                "• فعالیت تجمعی سایه (خنثی بدون انتخاب طبیعی): ۳,۵۱۲.۶\n"
-                "• فعالیت مازاد تطبیقی: +۱۲,۰۳۶.۵\n"
-                "این اختلاف فاحش آزمون‌های ۱ و ۲ Bedau-Packard را با قبولی قطعی تأیید کرده و تولید مداوم نوآوری سازگارانه را نشان می‌دهد."
+                "تحلیل فعالیت فرگشتی تجمعی بی‌پایان در برابر مدل سایه (آزمون‌های Bedau-Packard):\n"
+                f"• فعالیت تجمعی واقعی: {act}\n"
+                f"• فعالیت تجمعی سایه: {shad}\n"
+                f"• فعالیت مازاد تطبیقی: {excess}\n"
             )
         return (
-            "Bedau Cumulative Evolutionary Activity vs Neutral Shadow (Challenge 7):\n"
-            "• Real cumulative activity: 15,549.1\n"
-            "• Neutral shadow activity: 3,512.6\n"
-            "• Excess adaptive activity: +12,036.5\n"
-            "Definitively passes Bedau-Packard Tests 1 & 2 for ongoing adaptive evolutionary novelty."
+            "Bedau Cumulative Evolutionary Activity vs Neutral Shadow (Bedau-Packard tests):\n"
+            f"• Real cumulative activity: {act}\n"
+            f"• Neutral shadow activity: {shad}\n"
+            f"• Excess adaptive activity: {excess}\n"
         )
 
     # Fisher geometric model
     if any(k in q for k in ("fisher", "فیشر", "dfe", "geometric", "هندسی", "جهش")):
+        dfe = _metric("dfe_ratio")
         if lang == "fa":
             return (
-                "تحلیل مدل هندسی فیشر (Fisher's Geometric Model of Adaptation & DFE) در چالش ۸:\n"
-                "• فضای فنوتیپی: ۱۶ بعد پیوسته\n"
-                "• نمونه‌برداری جهش‌ها: بیش از ۱۹.۶ میلیون جهش ثبت‌شده\n"
-                "• نسبت جهش‌های سودمند: ۲۰.۱۶٪ (توزیع DFE مطابق با پیش‌بینی تئوری آلن اور)\n"
-                "• میانگین فاصله تا نقطه بهینه سازشی: ۱.۴۳۱ با برازش ۰.۵۹۹۶."
+                "تحلیل مدل هندسی فیشر (Fisher's Geometric Model of Adaptation & DFE):\n"
+                "مدل هندسی فیشر توزیع اثرات جهش‌ها را در فضای فنوتیپی ارزیابی می‌کند.\n"
+                f"• نسبت جهش‌های سودمند (DFE): {dfe}\n"
             )
         return (
-            "Fisher's Geometric Model of Adaptation & DFE (Challenge 8):\n"
-            "• Phenotype space: 16 dimensions\n"
-            "• Sampled mutations: >19.6 million observed\n"
-            "• Beneficial mutation ratio: ~20.16% matching Orr (2005) DFE expectations\n"
-            "• Mean phenotypic distance to optimum: 1.431 with fitness 0.5996."
+            "Fisher's Geometric Model of Adaptation & DFE:\n"
+            "Fisher's geometric model explains the distribution of fitness effects (DFE) in phenotypic space.\n"
+            f"• Beneficial mutation ratio (DFE): {dfe}\n"
         )
 
     # Active Runs / Board hardware

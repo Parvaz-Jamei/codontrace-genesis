@@ -113,7 +113,7 @@ export function JobsView() {
               <select
                 value={sort}
                 onChange={(event) => setSort(event.target.value as typeof sort)}
-                className="min-h-11 min-w-0 max-w-full rounded-lg bg-transparent px-2 text-fg outline-none hover:bg-white/10"
+                className="min-h-11 min-w-0 max-w-full rounded-lg bg-[#181a20] px-2 text-fg outline-none hover:bg-white/10 [color-scheme:dark]"
               >
                 <option value="new" className="bg-[#181a20] text-fg">{text.sortNew}</option>
                 <option value="old" className="bg-[#181a20] text-fg">{text.sortOld}</option>
@@ -406,12 +406,36 @@ export function ChatView() {
                       </span>
                       {message.model ? <span>{message.model}</span> : null}
                       {message.durationMs ? <span>{message.durationMs}ms</span> : null}
-                      {message.fallback ? <span className="text-amber-400">fallback</span> : null}
+                      {message.fallback ? (
+                        <span className="flex items-center gap-1.5 text-amber-400">
+                          <span>fallback</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const lastUser = [...(active.messages)].reverse().find((m) => m.role === "user");
+                              if (lastUser) {
+                                send(active.id, lastUser.text);
+                              }
+                            }}
+                            className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-fg hover:bg-white/20 transition-colors"
+                          >
+                            {lang === "fa" ? "تلاش مجدد" : "Retry"}
+                          </button>
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
               ),
             )}
+            {active?.isThinking ? (
+              <div className="flex w-full flex-col gap-1 text-start leading-relaxed animate-pulse">
+                <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-4 py-3 text-xs text-muted">
+                  <span className="inline-block h-2 w-2 rounded-full bg-accent animate-ping" />
+                  <span>{lang === "fa" ? "مدل در حال پردازش و استدلال است..." : "Model is thinking..."}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
         {active ? (

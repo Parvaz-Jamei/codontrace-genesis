@@ -713,24 +713,53 @@ def evaluate_discovery_candidate(
     distance = measure_distance_to_d0(behavior_descriptor, baseline_set, metric_config)
     reasons: list[str] = []
     
-    try:
-        if isinstance(genome, SemanticGenome):
-            _ = genome.to_compact()
-        elif isinstance(genome, str):
-            _ = SemanticGenome.from_compact(genome).to_compact()
-        else:
-            _ = SemanticGenome.from_compact(candidate_id).to_compact()
-    except Exception:
-        reasons.append("invalid_genome")
+    for v in behavior_descriptor.values():
+        if not isinstance(v, (int, float)) or not math.isfinite(v):
+            reasons.append("non_finite_behavior_descriptor")
+            break
+
+    if genome is None:
+        reasons.append("missing_genome")
+    else:
+        try:
+            if isinstance(genome, SemanticGenome):
+                _ = genome.to_compact()
+            elif isinstance(genome, str):
+                _ = SemanticGenome.from_compact(genome).to_compact()
+            else:
+                reasons.append("invalid_genome")
+        except Exception:
+            reasons.append("invalid_genome")
 
     if "assay" in mechanism_tags:
         if not assay_evidence:
             reasons.append("missing_assay_evidence")
         else:
-            if "genome" not in assay_evidence or "raw_data_hash" not in assay_evidence:
+            raw_hash = assay_evidence.get("raw_data_hash", "")
+            is_valid_hex = False
+            if isinstance(raw_hash, str) and raw_hash.strip():
+                try:
+                    int(raw_hash, 16)
+                    is_valid_hex = True
+                except ValueError:
+                    pass
+            
+            if not is_valid_hex or "genome" not in assay_evidence:
                 reasons.append("missing_assay_evidence")
-            elif not any(k in assay_evidence for k in ("measurements", "data", "measurement_data", "measurement")):
-                reasons.append("missing_assay_evidence")
+            else:
+                valid_measurements = False
+                for k in ("measurements", "data", "measurement_data", "measurement"):
+                    if k in assay_evidence:
+                        vals = assay_evidence[k]
+                        if isinstance(vals, dict):
+                            valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals.values())
+                        elif isinstance(vals, (list, tuple)):
+                            valid_measurements = all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals)
+                        elif isinstance(vals, (int, float)):
+                            valid_measurements = math.isfinite(vals)
+                        break
+                if not valid_measurements:
+                    reasons.append("missing_assay_evidence")
         
     if not distance.succeeded:
         reasons.extend(distance.reasons)

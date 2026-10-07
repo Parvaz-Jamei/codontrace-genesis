@@ -154,8 +154,10 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
         for i in range(pop_size)
     ]
 
-    functional_info_bits = 0.0
-    percolation_fraction = 0.0
+    sequence_information_bits = 0.0
+    hazen_functional_info_bits = 0.0
+    neutral_percolation = 0.0
+    viable_percolation = 0.0
     total_entropy = float(genome_len)
 
     try:
@@ -170,7 +172,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
 
             epoch += 1
 
-            # Multi-locus Shannon Entropy & Functional Information (Adami & Cerf 2000)
+            # Multi-locus Shannon Entropy & Sequence Information (Adami & Cerf 2000)
             total_entropy = 0.0
             for pos in range(genome_len):
                 col = [seq[pos] for seq in population]
@@ -180,11 +182,28 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
                     total_entropy -= p * math.log2(p)
 
             max_entropy = float(genome_len)  # binary alphabet log2(2) = 1
-            functional_info_bits = max(0.0, max_entropy - total_entropy)
+            sequence_information_bits = max(0.0, max_entropy - total_entropy)
+
+            # Evaluate fitness of current population to define functional threshold
+            scores = [seq.count("110") * 2 - seq.count("000") for seq in population]
+            theta = min(scores)
+
+            # Hazen Functional Information: I(Ex) = -log2(M(Ex)/N) via reference space sampling
+            sample_size = 500
+            viable_count = 0
+            for _s in range(sample_size):
+                rand_seq = "".join(alphabet[prng_int(seed, epoch * sample_size + _s, "c5_ref", 0, 1)] for _ in range(genome_len))
+                rand_score = rand_seq.count("110") * 2 - rand_seq.count("000")
+                if rand_score >= theta:
+                    viable_count += 1
+            
+            p_f = viable_count / sample_size
+            hazen_functional_info_bits = -math.log2(p_f) if p_f > 0 else float(genome_len)
 
             # Wagner Neutral Network Percolation: 1-mutant sampling on top quartile
             sample_elites = population[:pop_size // 4]
-            neutral_neighbors = 0
+            strict_neutral = 0
+            viable_neighbors = 0
             total_neighbors = 0
 
             for seq in sample_elites:
@@ -194,14 +213,16 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
                     mutated = list(seq)
                     mutated[mut_pos] = "0" if mutated[mut_pos] == "1" else "1"
                     mut_score = "".join(mutated).count("110") * 2 - "".join(mutated).count("000")
+                    if mut_score == base_score:
+                        strict_neutral += 1
                     if mut_score >= base_score:
-                        neutral_neighbors += 1
+                        viable_neighbors += 1
                     total_neighbors += 1
 
-            percolation_fraction = neutral_neighbors / max(1, total_neighbors)
+            neutral_percolation = strict_neutral / max(1, total_neighbors)
+            viable_percolation = viable_neighbors / max(1, total_neighbors)
 
             # Selection & Replacement
-            scores = [seq.count("110") * 2 - seq.count("000") for seq in population]
             min_score = min(scores)
             fitnesses = [max(0.1, s - min_score + 1.0) for s in scores]
 
@@ -239,14 +260,17 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
                     "eta_hours": round(eta_h, 2),
                     "metrics": {
                         "epoch": epoch,
-                        "functional_info_bits": round(functional_info_bits, 3),
-                        "neutral_percolation": round(percolation_fraction, 3),
+                        "sequence_information_bits": round(sequence_information_bits, 3),
+                        "hazen_functional_info_bits": round(hazen_functional_info_bits, 3),
+                        "functional_info_bits": round(hazen_functional_info_bits, 3),
+                        "neutral_percolation": round(neutral_percolation, 3),
+                        "viable_percolation": round(viable_percolation, 3),
                         "entropy": round(total_entropy, 3),
                     },
                     "red_queen_proved": False,
                 }
                 write_atomic_json(status_file, st_data)
-                logger.log(f"[Epoch {epoch:6d}] Elapsed: {elapsed/3600.0:5.2f}h | FI: {functional_info_bits:5.2f} bits | Neutral Percolation: {percolation_fraction*100:5.1f}%")
+                logger.log(f"[Epoch {epoch:6d}] Elapsed: {elapsed/3600.0:5.2f}h | FI: {hazen_functional_info_bits:5.2f} bits | Strict Neutral: {neutral_percolation*100:5.1f}%")
 
             time.sleep(0.05)
 
@@ -279,8 +303,11 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
         "eta_hours": 0.0,
         "metrics": {
             "epoch": epoch,
-            "functional_info_bits": round(functional_info_bits, 3),
-            "neutral_percolation": round(percolation_fraction, 3),
+            "sequence_information_bits": round(sequence_information_bits, 3),
+            "hazen_functional_info_bits": round(hazen_functional_info_bits, 3),
+            "functional_info_bits": round(hazen_functional_info_bits, 3),
+            "neutral_percolation": round(neutral_percolation, 3),
+            "viable_percolation": round(viable_percolation, 3),
             "entropy": round(total_entropy, 3),
         },
         "red_queen_proved": False,
@@ -377,8 +404,10 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
 
             epoch += 1
 
-            # Current mutation rate oscillating around theoretical boundary to map transition
-            mu = 0.005 + (0.05 * (1.0 + math.sin(epoch * 0.01)))
+            # Discrete test step points relative to mu_c
+            test_points = [0.5, 0.8, 1.0, 1.2, 1.5]
+            point_idx = (epoch // 100) % len(test_points)
+            mu = test_points[point_idx] * eigen_mu_c
 
             # Evaluate fitness
             fitnesses = []
@@ -400,12 +429,19 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
             # Quasispecies Variance (distance variance from master)
             quasispecies_var = sum((d - mean_hamming) ** 2 for d in hamming_distances) / pop_size
 
-            # Next generation reproduction under selection + mutation rate mu
+            # Wright-Fisher fitness-proportional selection
+            total_fitness = sum(fitnesses)
+            
             new_pop = []
             for i in range(pop_size):
-                p1_idx = prng_int(seed, epoch * pop_size * 2 + i * 2, "c6_p1", 0, pop_size - 1)
-                p2_idx = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c6_p2", 0, pop_size - 1)
-                chosen = population[p1_idx] if fitnesses[p1_idx] >= fitnesses[p2_idx] else population[p2_idx]
+                roll = prng_float(seed, epoch * pop_size + i, "c6_sel") * total_fitness
+                cum = 0.0
+                chosen = population[0]
+                for idx, fit in enumerate(fitnesses):
+                    cum += fit
+                    if cum >= roll:
+                        chosen = population[idx]
+                        break
 
                 mutated = list(chosen)
                 for pos in range(genome_len):
@@ -588,21 +624,16 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
             freq_shadow = Counter(pop_shadow)
 
             # Update activity increments: a_i(t) += 1 if present above frequency threshold
-            delta_real = 0.0
-            delta_shadow = 0.0
-
             for seq, count in freq_real.items():
                 if count >= 3:
                     activity_real[seq] = activity_real.get(seq, 0.0) + (count / pop_size)
-                    delta_real += activity_real[seq]
 
             for seq, count in freq_shadow.items():
                 if count >= 3:
                     activity_shadow[seq] = activity_shadow.get(seq, 0.0) + (count / pop_size)
-                    delta_shadow += activity_shadow[seq]
 
-            cum_activity_real += delta_real
-            cum_activity_shadow += delta_shadow
+            cum_activity_real = sum(activity_real.get(seq, 0.0) for seq in pop_real)
+            cum_activity_shadow = sum(activity_shadow.get(seq, 0.0) for seq in pop_shadow)
 
             # Reproduction for Real
             new_real = []
@@ -862,6 +893,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
                         "mean_phenotypic_distance": round(mean_distance, 3),
                         "mean_fitness": round(mean_fitness, 4),
                         "p_beneficial_mutations": round(p_beneficial, 4),
+                        "beneficial_ratio": round(p_beneficial, 4),
                         "total_mutations_observed": total_muts,
                     },
                     "red_queen_proved": False,
@@ -904,6 +936,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
             "mean_phenotypic_distance": round(mean_distance, 3),
             "mean_fitness": round(mean_fitness, 4),
             "p_beneficial_mutations": round(p_beneficial, 4),
+            "beneficial_ratio": round(p_beneficial, 4),
             "total_mutations_observed": total_muts,
         },
         "red_queen_proved": False,

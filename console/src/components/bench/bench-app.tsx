@@ -195,7 +195,7 @@ export function BenchApp() {
         <Telemetry />
         {release?.updateAvailable && !hideRelease ? (
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-sm">
-            <p className="min-w-0 flex-1">
+            <p className="min-w-0 flex-1 break-words">
               {release.releaseAhead ? text.releaseAvailable : text.releaseBehind} {release.latestVersion ?? release.latestCommit}
             </p>
             <button type="button" className="min-h-10 rounded-lg px-2 text-muted hover:bg-white/10" onClick={() => handlePick("host")}>

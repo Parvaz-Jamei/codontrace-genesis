@@ -808,7 +808,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] hover:file:border-white/20 focus:outline-none cursor-pointer"
+              className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1381,7 +1381,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
               <input
                 type="file"
                 accept=".py,text/x-python"
-                className="mt-2 block w-full text-sm text-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-medium file:bg-[#101218] file:text-fg hover:file:bg-[#181a20] hover:file:border-white/20 focus:outline-none cursor-pointer"
+                className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;

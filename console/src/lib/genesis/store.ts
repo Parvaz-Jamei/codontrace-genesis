@@ -379,12 +379,13 @@ export const useBench = create<BenchState>()(
                   title: item.messages.length === 0 ? trimmed.slice(0, 72) : item.title,
                   updatedAt: at,
                   messages: [...item.messages, userMsg],
+                  isThinking: true,
                 }
               : item,
           ),
         });
 
-        if (state.settings.model === "board-model") {
+        
           sendChatMessage(trimmed, state.settings.lang, job, job?.id, state.settings.model)
             .then((res) => {
               const assistantMsg: ChatMessage = {
@@ -404,6 +405,7 @@ export const useBench = create<BenchState>()(
                         ...item,
                         updatedAt: Date.now(),
                         messages: [...item.messages, assistantMsg],
+                        isThinking: false,
                       }
                     : item,
                 ),
@@ -430,34 +432,13 @@ export const useBench = create<BenchState>()(
                         ...item,
                         updatedAt: Date.now(),
                         messages: [...item.messages, assistantMsg],
+                        isThinking: false,
                       }
                     : item,
                 ),
               });
             });
-        } else {
-          const reply = answer(state.settings.lang, trimmed, job ?? null);
-          const assistantMsg: ChatMessage = {
-            id: uid(),
-            role: "assistant" as const,
-            text: reply,
-            at: at + 1,
-            source: "analyst",
-            model: "local-analyst",
-            fallback: false,
-          };
-          set({
-            threads: get().threads.map((item) =>
-              item.id === threadId
-                ? {
-                    ...item,
-                    updatedAt: at,
-                    messages: [...item.messages, assistantMsg],
-                  }
-                : item,
-            ),
-          });
-        }
+        
       },
       togglePin: (threadId) =>
         set({

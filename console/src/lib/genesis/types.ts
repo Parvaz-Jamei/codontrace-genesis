@@ -1,5 +1,5 @@
 export type Lang = "en" | "fa";
-export type View = "jobs" | "chat" | "gates" | "scripts" | "host" | "settings";
+export type View = "home" | "jobs" | "chat" | "gates" | "scripts" | "host" | "settings";
 export type JobKind = "engine" | "gates" | "script";
 export type JobStatus = "queued" | "running" | "paused" | "stopped" | "archived" | "failed";
 export type PresetId = "smoke" | "standard" | "overnight" | "expedition" | "custom";
@@ -88,6 +88,7 @@ export type Thread = {
   pinned: boolean;
   messages: ChatMessage[];
   updatedAt: number;
+  isThinking?: boolean;
 };
 
 export type ScriptRec = {

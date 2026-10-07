@@ -1699,3 +1699,113 @@ function downloadText(name: string, body: string, type: string) {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+
+export function HomeView() {
+  const lang = useBench((state) => state.settings.lang);
+  const setView = useBench((state) => state.setView);
+  const send = useBench((state) => state.send);
+  const ensureThread = useBench((state) => state.ensureThread);
+  const openThread = useBench((state) => state.openThread);
+  const jobs = useBench((state) => state.jobs);
+  const text = t(lang);
+  const model = useBench((state) => state.settings.model ?? "local-analyst");
+  const setSettings = useBench((state) => state.setSettings);
+
+  const [draft, setDraft] = useState("");
+  
+  const submit = () => {
+    if (!draft.trim()) return;
+    const threadId = "chat-" + Date.now().toString();
+    ensureThread(threadId, draft.slice(0, 30), null);
+    openThread(threadId);
+    send(threadId, draft);
+    setDraft("");
+    setView("chat");
+  };
+
+  const prompts = lang === "fa" ? [
+    "وضعیت و سلامت بورد",
+    "تحلیل پیشرفت ۸ چالش فرانتیر",
+    "معادله پرایس و انتخاب چندسطحی",
+    "آستانه خطای شبه‌گونه‌های ایگن"
+  ] : [
+    "Board & hardware telemetry",
+    "Audit live 8 frontier challenges",
+    "Price equation & MLS breakdown",
+    "Eigen quasispecies catastrophe threshold"
+  ];
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-4">
+      <div className="w-full max-w-3xl text-center">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight text-fg">
+          {lang === "fa" ? "دستیار هوشمند تحلیل فرگشت جنسیس" : "CodonTrace Genesis AI Assistant"}
+        </h1>
+        <p className="mb-8 text-lg text-subtle">
+          {lang === "fa" 
+            ? "از دستیار هوشمند برای تحلیل زنده شبیه‌سازی‌ها، بررسی لاگ‌ها، و درک عمیق‌تر مفاهیم زیست‌شناسی تکاملی کمک بگیرید." 
+            : "Use the AI assistant to analyze live simulations, inspect logs, and gain deeper insights into evolutionary biology concepts."}
+        </p>
+
+        <div className="mb-12 flex justify-center">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-2 text-sm text-muted">
+            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+            {lang === "fa" 
+              ? `${jobs.filter(j => j.status === 'running').length} چالش فعال | ۹۵ میلیون+ نسل | بورد آنلاین` 
+              : `${jobs.filter(j => j.status === 'running').length} active challenges | 95M+ generations | Board online`}
+          </div>
+        </div>
+
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {prompts.map((p, i) => (
+            <button 
+              key={i} 
+              onClick={() => {
+                const threadId = "chat-" + Date.now().toString() + i;
+                ensureThread(threadId, p.slice(0, 30), null);
+                openThread(threadId);
+                send(threadId, p);
+                setView("chat");
+              }}
+              className="flex items-center justify-center rounded-xl border border-line bg-surface p-4 text-sm font-medium text-muted transition-colors hover:bg-white/5 hover:text-fg"
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+          className="mx-auto w-full rounded-2xl bg-white/5 p-2"
+        >
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={text.placeholder}
+            rows={1}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
+              event.preventDefault();
+              submit();
+            }}
+            className="max-h-40 min-h-11 w-full resize-none overflow-y-auto bg-transparent px-3 py-2 text-fg outline-none placeholder:text-subtle"
+          />
+          <div className="flex items-center gap-2 ps-1">
+            <ChatModelSelect model={model} text={text} onModel={(m) => setSettings({ model: m })} />
+            <button
+              type="submit"
+              disabled={!draft.trim()}
+              className="ms-auto rounded-lg bg-fg px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+            >
+              {text.send}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,13 +1,13 @@
 import { useEffect, useState, ViewTransition, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { Check, CircleHelp, Cpu, FileCode, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
+import { Check, CircleHelp, Cpu, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
 import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
 import { t } from "@/lib/genesis/copy";
 import { useBench } from "@/lib/genesis/store";
 import type { HostProfile, ReleaseReport, View } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 import { Stage } from "./stage";
-import { ChatView, GatesView, HelpDialog, HostView, JobsView, LogRail, NewRunDialog, ScriptsView, SettingsView } from "./views";
+import { ChatView, GatesView, HelpDialog, HostView, JobsView, LogRail, NewRunDialog, ScriptsView, SettingsView, HomeView } from "./views";
 
 export function BenchApp() {
   const settings = useBench((state) => state.settings);
@@ -26,6 +26,15 @@ export function BenchApp() {
   const [help, setHelp] = useState(false);
   const [release, setRelease] = useState<ReleaseReport | null>(null);
   const [hideRelease, setHideRelease] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => {
     void useBench.persist.rehydrate();
@@ -52,9 +61,11 @@ export function BenchApp() {
   useEffect(() => {
     const syncFromLocation = () => {
       const rawHash = window.location.hash.replace(/^#\/?/, "").toLowerCase();
-      const validViews: View[] = ["jobs", "chat", "gates", "scripts", "host", "settings"];
+      const validViews: View[] = ["home", "jobs", "chat", "gates", "scripts", "host", "settings"];
       if (validViews.includes(rawHash as View)) {
         setView(rawHash as View);
+      } else if (!rawHash) {
+        setView("home");
       }
       const params = new URLSearchParams(window.location.search);
       const urlLang = params.get("lang");
@@ -140,6 +151,7 @@ export function BenchApp() {
   }, []);
 
   const titles: Record<View, string> = {
+    home: settings.lang === "fa" ? "خانه و دستیار هوشمند" : "Home & AI Assistant",
     jobs: settings.lang === "fa" ? "کارزارهای تکامل" : "Evolution Campaigns",
     chat: settings.lang === "fa" ? "دستیار پژوهش" : "Research Assistant",
     gates: settings.lang === "fa" ? "مجموعه ۲۹ گیت" : "Test Suite · 29 gates",
@@ -172,9 +184,22 @@ export function BenchApp() {
             <Menu className="h-4 w-4" />
           </button>
           <p className="truncate text-sm text-muted">{titles[view]}</p>
-          <button className="ms-auto grid h-11 min-w-11 place-items-center rounded-lg px-3 text-sm text-muted hover:bg-surface" onClick={() => setLog((open) => !open)}>
-            {text.log}
-          </button>
+          <div className="ms-auto flex items-center gap-2">
+            {deferredPrompt && (
+              <button
+                className="flex h-8 items-center rounded-lg bg-blue-500/20 px-3 text-xs font-medium text-blue-500 hover:bg-blue-500/30"
+                onClick={() => {
+                  deferredPrompt.prompt();
+                  deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+                }}
+              >
+                {settings.lang === "fa" ? "نصب وب‌اپلیکیشن" : "Install App"}
+              </button>
+            )}
+            <button className="grid h-11 min-w-11 place-items-center rounded-lg px-3 text-sm text-muted hover:bg-surface" onClick={() => setLog((open) => !open)}>
+              {text.log}
+            </button>
+          </div>
         </header>
         <Telemetry />
         {release?.updateAvailable && !hideRelease ? (
@@ -301,6 +326,7 @@ function Sidebar({
   const [query, setQuery] = useState("");
   const selectedId = useBench((state) => state.selectedJobId);
   const items: { id: View; label: string; icon: typeof List }[] = [
+    { id: "home", label: lang === "fa" ? "خانه / دستیار" : "Home / AI", icon: Home },
     { id: "jobs", label: lang === "fa" ? "شبیه‌سازی‌ها" : "Simulations", icon: List },
     { id: "chat", label: lang === "fa" ? "تحلیلگر" : "Analyst", icon: MessageSquare },
     { id: "gates", label: lang === "fa" ? "گیت‌ها" : "Gates", icon: Check },

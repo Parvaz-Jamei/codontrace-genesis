@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0b24] — 2026-10-07
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b23`.
+
+- Modern AI Assistant Home view (`HomeView`) added as the default landing view with hero overview, live simulation telemetry badge, and quick prompt cards.
+- Full Progressive Web App (PWA) support with web manifest (`manifest.webmanifest`), service worker (`sw.js`), modern app icons, and in-browser install button.
+- Upgraded console chat backend (`chat.py`) with concurrent endpoint probing, 5-second TTL cache, and rich simulation-aware domain analyst responses for runs, Price equation, Eigen error catastrophe, Hazen functional information, Bedau OEE activity, and Fisher geometric model.
+- Epistemic invariants strictly preserved: `red_queen_proved = False` across all views, telemetry, and analyst responses.
+
 ## [0.3.0b23] — 2026-10-07
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b22`.

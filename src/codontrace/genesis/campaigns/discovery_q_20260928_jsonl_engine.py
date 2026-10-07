@@ -259,7 +259,8 @@ def run_jsonl_engine_campaign(
 
     workers = 1
     if parallel:
-        cap = min(8, nproc_reported())
+        import os
+        cap = os.cpu_count() or 1
         workers = min(cap, int(max_workers) if max_workers else cap)
         workers = max(1, workers)
 

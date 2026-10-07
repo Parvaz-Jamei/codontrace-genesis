@@ -147,9 +147,10 @@ def run_jsonl_smoke(
     n_jobs = len(jobs)
     reported = nproc_reported()
     if max_workers is None:
-        workers = min(8, reported, n_jobs, len(use_seeds)) if parallel else 1
+        import os
+        workers = min(os.cpu_count() or 1, reported, n_jobs, len(use_seeds)) if parallel else 1
     else:
-        workers = max(1, min(int(max_workers), 8, n_jobs))
+        workers = max(1, min(int(max_workers), n_jobs))
 
     if workers <= 1 or n_jobs <= 1:
         records = [_run_one(idea_id, seed) for idea_id, seed in jobs]

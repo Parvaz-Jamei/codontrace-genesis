@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +92,7 @@ def horizon_diagnostics(root: Path, seeds: tuple[int, ...], generations: int) ->
 def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_seconds: float) -> dict[str, Any]:
     if not seeds or any(type(s) is not int or s < 0 for s in seeds) or len(set(seeds)) != len(seeds):
         raise ConfigurationError('history seeds must be unique nonnegative integers')
-    if type(workers) is not int or not 1 <= workers <= 4 or type(generations) is not int or generations < 2:
+    if type(workers) is not int or workers < 1 or type(generations) is not int or generations < 2:
         raise ConfigurationError('invalid worker/generation budget')
     if isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float)) or not math.isfinite(max_seconds) or max_seconds <= 0:
         raise ConfigurationError('invalid time budget')
@@ -183,7 +184,7 @@ def main() -> None:
     parser.add_argument('--histories', type=int, default=12)
     parser.add_argument('--generations', type=int, default=100)
     parser.add_argument('--seed-start', type=int, default=16001)
-    parser.add_argument('--workers', type=int, default=2)
+    parser.add_argument('--workers', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--max-seconds', type=float, default=1800.0)
     args = parser.parse_args()
     if args.histories < 1:

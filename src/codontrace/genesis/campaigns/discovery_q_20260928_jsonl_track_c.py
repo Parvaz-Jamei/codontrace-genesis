@@ -194,9 +194,10 @@ def run_jsonl_track_c(
     n_jobs = len(jobs)
     reported = nproc_reported()
     if max_workers is None:
-        workers = min(8, reported, n_jobs) if parallel else 1
+        import os
+        workers = min(os.cpu_count() or 1, reported, n_jobs) if parallel else 1
     else:
-        workers = max(1, min(int(max_workers), 8, n_jobs))
+        workers = max(1, min(int(max_workers), n_jobs))
 
     t0 = time.perf_counter()
     if workers <= 1 or n_jobs <= 1:

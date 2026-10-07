@@ -37,8 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-workers",
         type=int,
-        default=8,
-        help="thread workers (capped at 8)",
+        default=os.cpu_count() or 1,
+        help="thread workers (default os.cpu_count())",
     )
     parser.add_argument(
         "--no-parallel",

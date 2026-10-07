@@ -1066,6 +1066,7 @@ def main() -> None:
     parser.add_argument("--duration-hours", type=float, default=72.0, help="Target duration in hours (e.g. 48.0, 72.0)")
     parser.add_argument("--epoch-gens", type=int, default=10000, help="Generations per epoch")
     parser.add_argument("--no-resume", action="store_true", help="Start from scratch ignoring checkpoints")
+    parser.add_argument("--workers", type=int, default=os.cpu_count(), help="Max parallel workers (defaults to os.cpu_count())")
     args = parser.parse_args()
 
     target_seconds = float(args.duration_hours) * 3600.0
@@ -1089,7 +1090,7 @@ def main() -> None:
             ("run_challenge_4_contingency_72h", run_worker_3_contingency, 40001),
         ]
         print(f"Launching all 4 frontier challenges as independent simulation runs in {runs_root} for {args.duration_hours}h...")
-        with ProcessPoolExecutor(max_workers=4) as executor:
+        with ProcessPoolExecutor(max_workers=args.workers) as executor:
             futures = {}
             for dir_name, fn, seed in specs:
                 target_dir = runs_root / dir_name

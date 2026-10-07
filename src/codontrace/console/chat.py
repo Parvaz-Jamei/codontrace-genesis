@@ -269,7 +269,10 @@ def chat_turn(
         )
         sys_prompt += f" {ctx_summary}"
 
-    llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
+    if model in ("local-analyst", "deterministic-analyst"):
+        llm_answer = None
+    else:
+        llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
     duration_ms = round((time.time() - t0) * 1000)
 
     if llm_answer is not None:

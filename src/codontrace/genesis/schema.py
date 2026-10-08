@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from codontrace._types import JsonValue
-from codontrace.errors import ConfigurationError
 
 SCHEMA_VERSION = "genesis_execution_v1"
 

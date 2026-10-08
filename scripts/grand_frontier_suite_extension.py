@@ -35,7 +35,6 @@ import json
 import math
 import os
 import signal
-import sys
 import time
 from collections import Counter
 from pathlib import Path
@@ -61,7 +60,7 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 def prng_float(seed: int, step: int, salt: str) -> float:
     """Deterministic cryptographic PRNG float in [0.0, 1.0)."""
-    h = hashlib.sha256(f"{seed}:{step}:{salt}".encode("utf-8")).digest()
+    h = hashlib.sha256(f"{seed}:{step}:{salt}".encode()).digest()
     return int.from_bytes(h[:4], "big") / 4294967296.0
 
 
@@ -426,7 +425,7 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
             hamming_distances = []
 
             for seq in population:
-                d = sum(1 for a, b in zip(seq, master_seq) if a != b)
+                d = sum(1 for a, b in zip(seq, master_seq, strict=False) if a != b)
                 hamming_distances.append(d)
                 if d == 0:
                     master_count += 1
@@ -851,7 +850,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
             fitnesses = []
             distances = []
             for ind in population:
-                dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(ind, optimum))
+                dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(ind, optimum, strict=False))
                 dist = math.sqrt(dist_sq)
                 fit = math.exp(-dist_sq / (2.0 * selection_strength))
                 fitnesses.append(fit)
@@ -866,7 +865,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
                 p1 = prng_int(seed, epoch * pop_size * 2 + i * 2, "c8_p1", 0, pop_size - 1)
                 p2 = prng_int(seed, epoch * pop_size * 2 + i * 2 + 1, "c8_p2", 0, pop_size - 1)
                 parent = population[p1] if fitnesses[p1] >= fitnesses[p2] else population[p2]
-                parent_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(parent, optimum))
+                parent_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(parent, optimum, strict=False))
 
                 child = list(parent)
                 for d in range(dimensions):
@@ -875,7 +874,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
                     mutation_delta = math.sqrt(-2.0 * math.log(u1)) * math.cos(2.0 * math.pi * u2) * 0.15
                     child[d] += mutation_delta
 
-                child_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(child, optimum))
+                child_dist_sq = sum((z - z_star) ** 2 for z, z_star in zip(child, optimum, strict=False))
                 if child_dist_sq < parent_dist_sq:
                     beneficial_count += 1
                 else:

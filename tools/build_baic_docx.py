@@ -18,7 +18,6 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.section import WD_ORIENT, WD_SECTION
-from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -216,7 +215,7 @@ def _table(doc: Document, rows: list[list[str]]) -> None:
     parts = []
     for row in rows[1:]:
         cells = [cell.replace("`", "") for cell in row]
-        parts.append("، ".join(f"{head}: {cell}" for head, cell in zip(heads, cells)))
+        parts.append("، ".join(f"{head}: {cell}" for head, cell in zip(heads, cells, strict=False)))
     _para(doc, " — ".join(parts), 9, "both", after=3)
 
 

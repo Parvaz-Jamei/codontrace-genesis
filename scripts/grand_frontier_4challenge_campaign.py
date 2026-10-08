@@ -32,8 +32,6 @@ import hashlib
 import json
 import math
 import os
-import signal
-import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -51,12 +49,12 @@ NUM_TASKS = len(TASKS)
 
 def sha_seed(seed: int, salt: str) -> bytes:
     """Deterministic cryptographic pseudo-random byte stream."""
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode("utf-8")).digest()
+    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
 
 
 def prng_float(seed: int, step: int, salt: str) -> float:
     """Deterministic float in [0.0, 1.0) from seed and step."""
-    h = hashlib.sha256(f"{seed}:{step}:{salt}".encode("utf-8")).digest()
+    h = hashlib.sha256(f"{seed}:{step}:{salt}".encode()).digest()
     return int.from_bytes(h[:4], "big") / 4294967296.0
 
 
@@ -186,7 +184,7 @@ def run_worker_0_oee(
                 for i in range(pop_size):
                     h_bits = int.from_bytes(hosts[i], "big")
                     p_bits = int.from_bytes(parasites[i], "big")
-                    match_count = bin(h_bits & p_bits).count("1")
+                    _match_count = bin(h_bits & p_bits).count("1")
 
                     h_rand = prng_float(seed, gen * 1000 + i, "host_mut")
                     if h_rand < 0.15:
@@ -241,7 +239,7 @@ def run_worker_0_oee(
             n = len(activity_snapshots)
             x_vals = list(range(n))
             slope = (
-                (n * sum(x * y for x, y in zip(x_vals, activity_snapshots)) - sum(x_vals) * sum(activity_snapshots))
+                (n * sum(x * y for x, y in zip(x_vals, activity_snapshots, strict=True)) - sum(x_vals) * sum(activity_snapshots))
                 / (n * sum(x**2 for x in x_vals) - (sum(x_vals))**2)
                 if n > 1 else 0.0
             )

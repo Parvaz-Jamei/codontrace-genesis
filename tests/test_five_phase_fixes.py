@@ -9,33 +9,26 @@ Regression tests reproducing and verifying the Five-Phase Fix Suite:
 from __future__ import annotations
 
 import json
-from dataclasses import replace
 from pathlib import Path
-import pytest
 
 from codontrace.genesis.canonical import canonical_digest
+from codontrace.genesis.discovery_witness import (
+    D0BaselineConfig,
+    D0BaselineRun,
+    DiscoveryClaimLevel,
+    calibrate_d0_baseline,
+    evaluate_discovery_candidate,
+)
 from codontrace.genesis.phase_e import (
     PhaseEOrganismState,
-    DemeState,
     SensoryCue,
-    DifferentiationRole,
-    CapsuleMemoryState,
 )
 from codontrace.genesis.population import (
-    GenesisOrganism,
-    PopulationState,
-    create_population_with_unique_ids,
-    LineageRecord,
-    FitnessResult,
     BirthChamberState,
-)
-from codontrace.genesis.discovery_witness import (
-    evaluate_discovery_candidate,
-    DiscoveryClaimLevel,
-    D0BaselineSet,
-    D0BaselineRun,
-    D0BaselineConfig,
-    calibrate_d0_baseline,
+    FitnessResult,
+    GenesisOrganism,
+    LineageRecord,
+    create_population_with_unique_ids,
 )
 
 
@@ -154,7 +147,7 @@ def test_phase3_create_population_unique_id_collision_handling():
     assert ids[1] == "org-a#1"
     assert ids[2] == "org-a#2"
 
-    lineage_ids = [l.organism_id for l in pop.lineage]
+    lineage_ids = [rec.organism_id for rec in pop.lineage]
     assert lineage_ids == ids, "Lineage records must match organism IDs"
 
 

@@ -27,6 +27,7 @@ from scripts.grand_frontier_suite_extension import (
     run_worker_8_fisher_geometric,
 )
 
+
 def test_challenge_1_oee_novelty_micro_run(tmp_path: Path) -> None:
     """Verify Challenge 1 (OEE Novelty) execution and telemetry."""
     out_dir = tmp_path / "c1_oee"
@@ -198,7 +199,7 @@ def test_price_equation_analytical_verification():
     mean_Z = sum(deme_mean_z) / num_demes
 
     cov_between = sum((deme_fitnesses[d] - mean_W) * (deme_mean_z[d] - mean_Z) for d in range(num_demes)) / num_demes
-    between_term = cov_between / mean_W if mean_W > 1e-6 else 0.0
+    _between_term = cov_between / mean_W if mean_W > 1e-6 else 0.0
 
     within_covs = []
     contributions = []
@@ -230,7 +231,7 @@ def test_stop_file_semantics(tmp_path: Path) -> None:
         
     threading.Thread(target=write_stop).start()
     
-    summary = run_worker_0_oee(
+    _ = run_worker_0_oee(
         output_dir=out_dir,
         target_seconds=5.0, # Long enough to hit the stop file
         epoch_gens=10,

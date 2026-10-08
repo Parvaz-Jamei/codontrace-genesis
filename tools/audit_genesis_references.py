@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
+import fnmatch
+import json
+import re
+import sys
 from pathlib import Path
-import fnmatch, json, re, sys
 
 DEFAULT_SCAN = ("src/codontrace", "tests", "examples", "docs", "README.md", "RELEASE_EVIDENCE.md")
 DEFAULT_FORBIDDEN = {

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
+import json
+import re
 from pathlib import Path
-import json, re, sys
+
 
 def audit(root: str | Path = ".") -> dict:
     base = Path(root)

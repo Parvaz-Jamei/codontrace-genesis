@@ -18,10 +18,10 @@ from copy import deepcopy
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Inches
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import Inches
 from lxml import etree
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -248,7 +248,7 @@ def _table(doc: Document, rows: list[list[str]], widths: list[int]) -> None:
     _borders(table)
     grid = table._tbl.find(qn("w:tblGrid"))
     if grid is not None:
-        for col, width in zip(grid.findall(qn("w:gridCol")), widths):
+        for col, width in zip(grid.findall(qn("w:gridCol")), widths, strict=False):
             col.set(qn("w:w"), str(width))
     for r_index, row in enumerate(rows):
         for c_index, text in enumerate(row):

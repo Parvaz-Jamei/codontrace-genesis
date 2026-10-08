@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-from pathlib import Path
+
 import json
 import sys
+from pathlib import Path
 
 BAD_DIR_TOKENS = {"__pycache__", ".pytest_cache", ".phase3_", ".ipynb_checkpoints"}
 BAD_SUFFIXES = {".pyc", ".pyo"}

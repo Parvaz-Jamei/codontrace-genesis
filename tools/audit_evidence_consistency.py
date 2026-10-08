@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json, sys
+
+import json
+import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from codontrace.genesis.evidence_consistency import audit_result_evidence_consistency
 from codontrace.genesis.runtime_wiring_audit import integration_feature_catalog
+
 
 def main(argv=None) -> int:
     required = tuple(f.record_class_path for f in integration_feature_catalog())

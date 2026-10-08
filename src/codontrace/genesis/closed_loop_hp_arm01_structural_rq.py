@@ -15,8 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import cast
@@ -60,8 +59,7 @@ from codontrace.genesis.measurements.antagonist_population import (
 from codontrace.genesis.measurements.rq_frequency_clocks import (
     host_realised_pressure_from_contacts,
 )
-from codontrace.genesis.organism import GenesisOrganism
-from codontrace.genesis.population import MutationConfig, PopulationState
+from codontrace.genesis.population import MutationConfig
 from codontrace.genesis.rq_stream import open_stream
 from codontrace.genesis.text_digest import sha256_text_file
 from codontrace.rng import RNGManager, RNGSnapshot

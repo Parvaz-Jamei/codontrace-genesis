@@ -2,13 +2,14 @@
 
 import json
 from pathlib import Path
+
 from codontrace.console import runs
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import (
-    PopulationState,
     LineageRecord,
     create_population_with_unique_ids,
 )
+
 
 def test_r06_lineage_id_collision_connects_correct_history():
     """R06: Lineage after ID collision resolution must connect to the renamed ID.
@@ -109,9 +110,7 @@ def test_r10_panel_execution_form_mismatch_with_actual_command(tmp_path: Path, m
     assert "--workers 4" in cmd_str
     assert "--max-seconds 3600" in cmd_str
     
-    # BUG R10: The cores and track are ignored in the command, showing the mismatch
-    # If the bug is still present, this test passes (reproducing the bug).
-    # If the bug were fixed, it would include --cores or taskset.
-    assert "taskset" not in cmd_str
-    assert "--cores" not in cmd_str
-    assert "contracts" not in cmd_str
+    # R10 FIX VERIFICATION: The cores and track parameters are faithfully passed
+    assert "contracts" in cmd_str
+    assert manifest["params"]["cores"] == [0, 1, 2, 3]
+    assert manifest["params"]["track"] == "contracts"

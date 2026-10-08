@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json, sys, zipfile
+
+import json
+import sys
+import zipfile
+
 BAD = ("__pycache__", ".pytest_cache", ".phase3_", ".ipynb_checkpoints")
 BAD_SUFFIX = (".pyc", ".pyo")
 

@@ -166,7 +166,10 @@ def query_llm(
         all_messages.append({"role": "system", "content": system_prompt})
     all_messages.extend(messages)
 
-    chosen_model = model or status.get("model") or "local-model"
+    if not model or model == "board-model":
+        chosen_model = status.get("model") or "local-model"
+    else:
+        chosen_model = model
     payload_dict: dict[str, Any] = {
         "model": chosen_model,
         "messages": all_messages,
@@ -286,11 +289,12 @@ def chat_turn(
 
     if llm_answer is not None:
         status = check_llm_status()
+        resolved_model = status.get("model") if (model == "board-model" or not model) else model
         return {
             "source": "llm",
             "reply": llm_answer,
             "mounted": True,
-            "model": model or status.get("model") or "local-model",
+            "model": resolved_model or "local-model",
             "duration_ms": duration_ms,
             "fallback": False,
         }
@@ -298,12 +302,16 @@ def chat_turn(
     # Deterministic domain-aware fallback answer (R19)
     fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
     is_fallback = model not in ("local-analyst", "deterministic-analyst")
-
+    resolved_analyst_model = (
+        "deterministic-analyst"
+        if not is_fallback
+        else (status.get("model") if model == "board-model" and (status := check_llm_status()).get("model") else (model or "deterministic-analyst"))
+    )
     return {
         "source": "analyst",
         "reply": fallback_reply,
         "mounted": False,
-        "model": "deterministic-analyst" if not is_fallback else (model or "deterministic-analyst"),
+        "model": resolved_analyst_model,
         "duration_ms": duration_ms,
         "fallback": is_fallback,
     }

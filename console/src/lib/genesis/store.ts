@@ -75,6 +75,7 @@ type BenchState = {
   clearThread: (threadId: string) => void;
   clearChats: () => void;
   abortChat: (threadId?: string) => void;
+  retryLastAssistant: (threadId: string) => void;
   settle: () => void;
 };
 
@@ -214,6 +215,7 @@ export const useBench = create<BenchState>()(
           diagnostics: "not_run",
           serverManaged: true,
           isDemo: false,
+          pct: 0,
           gateFile: input.gateFile,
           scriptName: input.scriptName,
         };
@@ -252,7 +254,7 @@ export const useBench = create<BenchState>()(
                 logs,
               };
             } else {
-              const totalSteps = 6;
+              const totalSteps = sRun.totalSeeds || 12;
               const newJob: Job = {
                 id: sRun.id,
                 title: sRun.title,
@@ -295,6 +297,7 @@ export const useBench = create<BenchState>()(
                   updatedJobs[idx] = {
                     ...updatedJobs[idx],
                     status: mapServerStatus(details.status),
+                    pct: typeof details.pct === "number" && !isNaN(details.pct) ? details.pct : updatedJobs[idx].pct,
                     logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
                     execution: details.execution,
                     diagnosticsData: details.diagnostics,
@@ -438,11 +441,6 @@ export const useBench = create<BenchState>()(
               controller.signal.aborted ||
               (err instanceof Error && err.name === "AbortError")
             ) {
-              set({
-                threads: get().threads.map((item) =>
-                  item.id === threadId ? { ...item, isThinking: false } : item,
-                ),
-              });
               return;
             }
             const reply = answer(state.settings.lang, trimmed, job ?? null);
@@ -485,6 +483,103 @@ export const useBench = create<BenchState>()(
             ),
           });
         }
+      },
+      retryLastAssistant: (threadId) => {
+        const state = get();
+        const thread = state.threads.find((item) => item.id === threadId);
+        if (!thread) return;
+
+        // Remove the last assistant message (the failed one)
+        const msgs = [...thread.messages];
+        const lastAssistantIdx = msgs.map((m) => m.role).lastIndexOf("assistant");
+        if (lastAssistantIdx === -1) return;
+        msgs.splice(lastAssistantIdx, 1);
+
+        // Find the last user message to re-send
+        const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+        if (!lastUser) return;
+
+        const trimmed = lastUser.text;
+        const job = thread.jobId ? state.jobs.find((item) => item.id === thread.jobId) ?? null : null;
+        const at = Date.now();
+
+        // Update thread: remove failed assistant reply, set isThinking
+        set({
+          threads: get().threads.map((item) =>
+            item.id === threadId
+              ? { ...item, messages: msgs, updatedAt: at, isThinking: true }
+              : item,
+          ),
+        });
+
+        if (activeChatAbortController) {
+          activeChatAbortController.abort();
+        }
+        activeChatAbortController = new AbortController();
+        const controller = activeChatAbortController;
+
+        const activeModel =
+          state.settings.model === "board-model" && state.chatStatus?.model
+            ? state.chatStatus.model
+            : state.settings.model;
+
+        sendChatMessage(
+          trimmed,
+          state.settings.lang,
+          job,
+          job?.id,
+          activeModel,
+          controller.signal,
+        )
+          .then((res) => {
+            if (controller.signal.aborted) return;
+            const assistantMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant" as const,
+              text: res.reply,
+              at: Date.now(),
+              source: res.source,
+              model: res.model,
+              durationMs: res.duration_ms,
+              fallback: res.fallback,
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId
+                  ? { ...item, updatedAt: Date.now(), messages: [...item.messages, assistantMsg], isThinking: false }
+                  : item,
+              ),
+            });
+          })
+          .catch((err: unknown) => {
+            if (
+              controller.signal.aborted ||
+              (err instanceof Error && err.name === "AbortError")
+            ) {
+              return;
+              return;
+            }
+            const reply = answer(state.settings.lang, trimmed, job ?? null);
+            const spoken =
+              state.settings.lang === "fa"
+                ? `پاسخ از تحلیلگر محلی (مدل زنده در دسترس نیست):\n${reply}`
+                : `Local analyst fallback (live model offline):\n${reply}`;
+            const assistantMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant" as const,
+              text: spoken,
+              at: Date.now(),
+              source: "analyst",
+              fallback: true,
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId
+                  ? { ...item, updatedAt: Date.now(), messages: [...item.messages, assistantMsg], isThinking: false }
+                  : item,
+              ),
+            });
+          });
       },
       togglePin: (threadId) =>
         set({

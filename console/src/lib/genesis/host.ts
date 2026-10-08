@@ -138,6 +138,7 @@ export type ServerRunDetails = {
   diagnostics?: Record<string, unknown>;
   liveLogs: string[];
   consoleLogs: string[];
+  pct?: number;
 };
 
 export type LaunchRunPayload = {

@@ -33,7 +33,7 @@ export function StageReadout() {
   const host = useBench((state) => state.host);
   const job = useBench((state) => state.jobs.find((item) => item.id === state.selectedJobId) ?? null);
   const text = t(lang);
-  const progress = Math.round(jobProgress(job) * 100);
+  const progress = Math.min(100, Math.max(0, Math.round(jobProgress(job) * 1000) / 10));
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 p-4 sm:p-6">
       <div>

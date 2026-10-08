@@ -139,7 +139,11 @@ export function JobsView() {
         ) : (
           shown.map((job) => {
             const open = openIds.includes(job.id);
-            const pct = Math.round((job.cursor / Math.max(1, job.totalSteps)) * 100);
+            const rawPct =
+              typeof job.pct === "number" && !isNaN(job.pct)
+                ? job.pct
+                : (job.cursor / Math.max(1, job.totalSteps)) * 100;
+            const pct = Math.min(100, Math.max(0, Math.round(rawPct * 10) / 10));
             return (
             <article key={job.id} className={cn("rise min-w-0 overflow-hidden rounded-2xl", selected === job.id ? "bg-white/10" : "hover:bg-white/5")}>
               <button
@@ -154,7 +158,7 @@ export function JobsView() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate font-medium">{job.title}</span>
-                    <span className="shrink-0 text-xs text-subtle">{pct}%</span>
+                    <span className="shrink-0 text-xs text-subtle">{pct.toFixed(1)}%</span>
                   </span>
                   <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
                     <span className="meter block h-full bg-fg" style={{ width: `${pct}%` }} />
@@ -247,6 +251,7 @@ export function ChatView() {
   const activeId = useBench((state) => state.activeThreadId);
   const openThread = useBench((state) => state.openThread);
   const send = useBench((state) => state.send);
+  const retryLastAssistant = useBench((state) => state.retryLastAssistant);
   const togglePin = useBench((state) => state.togglePin);
   const clearThread = useBench((state) => state.clearThread);
   const abortChat = useBench((state) => state.abortChat);
@@ -428,12 +433,7 @@ export function ChatView() {
                           <span>fallback</span>
                           <button
                             type="button"
-                            onClick={() => {
-                              const lastUser = [...(active.messages)].reverse().find((m) => m.role === "user");
-                              if (lastUser) {
-                                send(active.id, lastUser.text);
-                              }
-                            }}
+                            onClick={() => retryLastAssistant(active.id)}
                             className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-fg hover:bg-white/20 transition-colors"
                           >
                             {lang === "fa" ? "تلاش مجدد" : "Retry"}

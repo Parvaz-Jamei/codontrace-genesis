@@ -24,15 +24,19 @@ import type {
 import { zipStore } from "./zip";
 
 const PREVIEW_HORIZON = 2;
+let isSyncing = false;
 
 export function mapServerStatus(st: string): Job["status"] {
   switch (st.toUpperCase()) {
     case "RUNNING":
     case "STARTING":
+    case "RESUMING":
       return "running";
     case "PAUSED":
+    case "PAUSING":
       return "paused";
     case "STOPPED":
+    case "STOPPING":
     case "CANCELLED":
     case "STALE":
       return "stopped";
@@ -231,115 +235,169 @@ export const useBench = create<BenchState>()(
         return runId;
       },
       syncServerRuns: async () => {
+        if (isSyncing) return;
+        isSyncing = true;
         try {
           const serverRuns = await fetchSimulationRuns();
           if (!serverRuns || !serverRuns.length) return;
-          const currentJobs = get().jobs;
-          const currentThreads = get().threads;
 
-          const updatedJobs = [...currentJobs];
-          const newThreads = [...currentThreads];
-
-          for (const sRun of serverRuns) {
-            const existingIndex = updatedJobs.findIndex((j) => j.id === sRun.id);
-            const mappedStatus = mapServerStatus(sRun.status);
-            const sRunPct = typeof sRun.pct === "number" && Number.isFinite(sRun.pct) ? sRun.pct : undefined;
-            const totalSteps = sRun.totalSeeds || 12;
-            const completedSeeds = typeof sRun.completedSeeds === "number" && Number.isFinite(sRun.completedSeeds)
-              ? sRun.completedSeeds
-              : (sRun.status === "COMPLETED" ? totalSteps : 0);
-
-            if (existingIndex >= 0) {
-              const existing = updatedJobs[existingIndex];
-              const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
-              updatedJobs[existingIndex] = {
-                ...existing,
-                title: sRun.title || existing.title,
-                status: mappedStatus,
-                pct: sRunPct ?? existing.pct,
-                totalSteps: sRun.totalSeeds || existing.totalSteps,
-                cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : completedSeeds,
-                logs,
-                snapshot: sRun.snapshot ?? existing.snapshot,
-                capabilities: sRun.capabilities ?? existing.capabilities,
-              };
-            } else {
-              const newJob: Job = {
-                id: sRun.id,
-                title: sRun.title,
-                kind: "engine",
-                preset: "custom",
-                seeds: [16001],
-                generations: 100,
-                previewGenerations: 2,
-                workers: 2,
-                cores: [],
-                status: mappedStatus,
-                cursor: sRun.status === "COMPLETED" ? totalSteps : completedSeeds,
-                totalSteps,
-                logs: sRun.recentLogs || [],
-                createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
-                note: "server run",
-                diagnostics: "not_run",
-                serverManaged: true,
-                isDemo: false,
-                pct: sRunPct,
-                snapshot: sRun.snapshot,
-                capabilities: sRun.capabilities,
-              };
-              updatedJobs.push(newJob);
-              if (!newThreads.some((t) => t.id === `thread-${sRun.id}`)) {
-                newThreads.push(emptyThread(sRun.id, sRun.title));
-              }
+          const selectedId = get().selectedJobId;
+          let details: Awaited<ReturnType<typeof fetchRunDetails>> | null = null;
+          if (selectedId) {
+            const currentSelected = get().jobs.find((j) => j.id === selectedId);
+            if (currentSelected && !currentSelected.isDemo) {
+              details = await fetchRunDetails(selectedId);
             }
           }
 
-          const selectedId = get().selectedJobId;
-          if (selectedId) {
-            const selectedJob = updatedJobs.find((j) => j.id === selectedId);
-            if (selectedJob && !selectedJob.isDemo) {
-              const details = await fetchRunDetails(selectedId);
-              if (details) {
-                const idx = updatedJobs.findIndex((j) => j.id === selectedId);
-                if (idx >= 0) {
-                  const liveLogs = details.liveLogs?.length ? details.liveLogs : details.consoleLogs || [];
-                  const detailsPct =
-                    typeof details.pct === "number" && Number.isFinite(details.pct)
-                      ? details.pct
-                      : typeof details.snapshot?.progress?.pct === "number" && Number.isFinite(details.snapshot.progress.pct)
-                      ? details.snapshot.progress.pct
-                      : undefined;
+          set((state) => {
+            const updatedJobs = [...state.jobs];
+            const newThreads = [...state.threads];
 
-                  let manifestSeeds = updatedJobs[idx].seeds;
-                  const rawParams = details.manifest?.params;
-                  if (rawParams && typeof rawParams === "object") {
-                    const rawSeeds = (rawParams as Record<string, unknown>).seeds;
-                    if (Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s) => typeof s === "number")) {
-                      manifestSeeds = rawSeeds as number[];
+            for (const sRun of serverRuns) {
+              const existingIndex = updatedJobs.findIndex((j) => j.id === sRun.id);
+              let mappedStatus = mapServerStatus(sRun.status);
+              const sRunPct = typeof sRun.pct === "number" && Number.isFinite(sRun.pct) ? sRun.pct : undefined;
+              const totalSteps = sRun.totalSeeds || 12;
+              const completedSeeds = typeof sRun.completedSeeds === "number" && Number.isFinite(sRun.completedSeeds)
+                ? sRun.completedSeeds
+                : (sRun.status === "COMPLETED" ? totalSteps : 0);
+
+              const incomingRev = sRun.snapshot?.revision ?? (sRun as any).revision ?? 0;
+
+              if (existingIndex >= 0) {
+                const existing = updatedJobs[existingIndex];
+                const existingRev = existing.snapshot?.revision ?? existing.revision ?? 0;
+
+                // Monotonic revision guard: Drop stale responses
+                if (existingRev > 0 && incomingRev > 0 && incomingRev < existingRev) {
+                  continue;
+                }
+
+                // Optimistic action grace period: Do not regress pending UI actions
+                if (existing.pendingAction && existing.pendingActionTime) {
+                  const elapsedPending = Date.now() - existing.pendingActionTime;
+                  if (elapsedPending < 5000) {
+                    if (existing.pendingAction === "pause" && mappedStatus !== "paused") {
+                      mappedStatus = existing.status;
+                    } else if (existing.pendingAction === "resume" && mappedStatus !== "running") {
+                      mappedStatus = existing.status;
+                    } else if (existing.pendingAction === "stop" && mappedStatus !== "stopped") {
+                      mappedStatus = existing.status;
+                    } else {
+                      existing.pendingAction = null;
                     }
+                  } else {
+                    existing.pendingAction = null;
                   }
+                }
 
-                  updatedJobs[idx] = {
-                    ...updatedJobs[idx],
-                    title: details.title || updatedJobs[idx].title,
-                    status: mapServerStatus(details.status),
-                    pct: detailsPct ?? updatedJobs[idx].pct,
-                    seeds: manifestSeeds,
-                    logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
-                    execution: details.execution,
-                    diagnosticsData: details.diagnostics,
-                    cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
-                    snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
-                    capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
-                  };
+                const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
+                updatedJobs[existingIndex] = {
+                  ...existing,
+                  title: sRun.title || existing.title,
+                  status: mappedStatus,
+                  pct: sRunPct ?? existing.pct,
+                  totalSteps: sRun.totalSeeds || existing.totalSteps,
+                  cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : completedSeeds,
+                  logs,
+                  snapshot: sRun.snapshot ?? existing.snapshot,
+                  capabilities: sRun.capabilities ?? existing.capabilities,
+                  revision: Math.max(incomingRev, existingRev),
+                  pendingAction: existing.pendingAction,
+                  pendingActionTime: existing.pendingActionTime,
+                };
+              } else {
+                const newJob: Job = {
+                  id: sRun.id,
+                  title: sRun.title,
+                  kind: "engine",
+                  preset: "custom",
+                  seeds: [16001],
+                  generations: 100,
+                  previewGenerations: 2,
+                  workers: 2,
+                  cores: [],
+                  status: mappedStatus,
+                  cursor: sRun.status === "COMPLETED" ? totalSteps : completedSeeds,
+                  totalSteps,
+                  logs: sRun.recentLogs || [],
+                  createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
+                  note: "server run",
+                  diagnostics: "not_run",
+                  serverManaged: true,
+                  isDemo: false,
+                  pct: sRunPct,
+                  snapshot: sRun.snapshot,
+                  capabilities: sRun.capabilities,
+                  revision: incomingRev,
+                };
+                updatedJobs.push(newJob);
+                if (!newThreads.some((t) => t.id === `thread-${sRun.id}`)) {
+                  newThreads.push(emptyThread(sRun.id, sRun.title));
                 }
               }
             }
-          }
 
-          set({ jobs: updatedJobs, threads: newThreads });
+            if (selectedId && details) {
+              const idx = updatedJobs.findIndex((j) => j.id === selectedId);
+              if (idx >= 0) {
+                const liveLogs = details.liveLogs?.length ? details.liveLogs : details.consoleLogs || [];
+                const detailsPct =
+                  typeof details.pct === "number" && Number.isFinite(details.pct)
+                    ? details.pct
+                    : typeof details.snapshot?.progress?.pct === "number" && Number.isFinite(details.snapshot.progress.pct)
+                    ? details.snapshot.progress.pct
+                    : undefined;
+
+                let manifestSeeds = updatedJobs[idx].seeds;
+                const rawParams = details.manifest?.params;
+                if (rawParams && typeof rawParams === "object") {
+                  const rawSeeds = (rawParams as Record<string, unknown>).seeds;
+                  if (Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s) => typeof s === "number")) {
+                    manifestSeeds = rawSeeds as number[];
+                  }
+                }
+
+                const dRev = details.snapshot?.revision ?? (details as any).revision ?? 0;
+                const curRev = updatedJobs[idx].snapshot?.revision ?? updatedJobs[idx].revision ?? 0;
+                let detStatus = mapServerStatus(details.status);
+                if (updatedJobs[idx].pendingAction && updatedJobs[idx].pendingActionTime) {
+                  const elapsedPending = Date.now() - (updatedJobs[idx].pendingActionTime || 0);
+                  if (elapsedPending < 5000) {
+                    if (updatedJobs[idx].pendingAction === "pause" && detStatus !== "paused") {
+                      detStatus = updatedJobs[idx].status;
+                    } else if (updatedJobs[idx].pendingAction === "resume" && detStatus !== "running") {
+                      detStatus = updatedJobs[idx].status;
+                    } else if (updatedJobs[idx].pendingAction === "stop" && detStatus !== "stopped") {
+                      detStatus = updatedJobs[idx].status;
+                    }
+                  }
+                }
+
+                updatedJobs[idx] = {
+                  ...updatedJobs[idx],
+                  title: details.title || updatedJobs[idx].title,
+                  status: detStatus,
+                  pct: detailsPct ?? updatedJobs[idx].pct,
+                  seeds: manifestSeeds,
+                  logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
+                  execution: details.execution,
+                  diagnosticsData: details.diagnostics,
+                  cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
+                  snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
+                  capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
+                  revision: Math.max(dRev, curRev),
+                };
+              }
+            }
+
+            return { jobs: updatedJobs, threads: newThreads };
+          });
         } catch {
           // Ignore transient network errors
+        } finally {
+          isSyncing = false;
         }
       },
       loadEngineCheck: () => {

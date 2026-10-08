@@ -13,9 +13,13 @@ export async function startJob(id: string) {
     clocks.set(id, timer);
     return;
   }
+  useBench.getState().patchJob(id, {
+    status: "running",
+    pendingAction: "resume",
+    pendingActionTime: Date.now(),
+  });
   try {
     await sendServerRunAction(id, "resume");
-    useBench.getState().patchJob(id, { status: "running" });
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to start/resume job:", err);
@@ -30,9 +34,13 @@ export async function pauseJob(id: string) {
     if (job.status === "running") useBench.getState().patchJob(id, { status: "paused" });
     return;
   }
+  useBench.getState().patchJob(id, {
+    status: "paused",
+    pendingAction: "pause",
+    pendingActionTime: Date.now(),
+  });
   try {
     await sendServerRunAction(id, "pause");
-    useBench.getState().patchJob(id, { status: "paused" });
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to pause job:", err);
@@ -48,9 +56,13 @@ export async function stopJob(id: string) {
     useBench.getState().patchJob(id, { status: "stopped" });
     return;
   }
+  useBench.getState().patchJob(id, {
+    status: "stopped",
+    pendingAction: "stop",
+    pendingActionTime: Date.now(),
+  });
   try {
     await sendServerRunAction(id, "stop");
-    useBench.getState().patchJob(id, { status: "stopped" });
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to stop job:", err);
@@ -71,10 +83,22 @@ export async function restartJob(id: string) {
     clocks.set(id, timer);
     return;
   }
+  if (job.status === "paused") {
+    await startJob(id);
+    return;
+  }
   try {
-    await sendServerRunAction(id, "resume");
-    useBench.getState().patchJob(id, { status: "running" });
-    void useBench.getState().syncServerRuns();
+    await useBench.getState().launchJob({
+      kind: job.kind,
+      preset: job.preset,
+      seedsText: job.seeds.join(", "),
+      generations: job.generations,
+      workers: job.workers,
+      cores: job.cores,
+      title: `${job.title} (restart)`,
+      gateFile: job.gateFile,
+      scriptName: job.scriptName,
+    });
   } catch (err) {
     console.error("Failed to restart job:", err);
   }
@@ -89,11 +113,11 @@ export async function removeJob(id: string) {
   }
   try {
     await sendServerRunAction(id, "delete");
+    useBench.getState().removeJob(id);
+    void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to delete job on server:", err);
   }
-  useBench.getState().removeJob(id);
-  void useBench.getState().syncServerRuns();
 }
 
 function tick(id: string) {

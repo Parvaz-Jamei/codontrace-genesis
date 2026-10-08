@@ -1354,6 +1354,27 @@ def run_phase5_history(
     archive_path = seed_dir / "archive.jsonl"
     failed: str | None = None
     completed = 0
+    ack_file = root / f"ack_paused_{int(seed)}"
+    ack_file_parent = root.parent / f"ack_paused_{int(seed)}"
+
+    def _wait_while_paused(gen: int = 0) -> None:
+        if (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
+            try:
+                ack_file.write_text(f"paused seed={seed} generation={gen}\n", encoding="utf-8")
+                if root.parent.is_dir():
+                    ack_file_parent.write_text(f"paused seed={seed} generation={gen}\n", encoding="utf-8")
+            except OSError:
+                pass
+            while (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
+                if stop.exists() or (root.parent / "STOP").is_file():
+                    break
+                time.sleep(0.2)
+            try:
+                ack_file.unlink(missing_ok=True)
+                ack_file_parent.unlink(missing_ok=True)
+            except OSError:
+                pass
+
     try:
         built = {name: build_phase5_arm(name, int(seed)) for name in arms}
         if passage_override is not None:
@@ -1365,20 +1386,14 @@ def run_phase5_history(
         founders = {name: {org.id for org in built[name]._hosts()} for name in arms}
         with archive_path.open("a", encoding="utf-8", buffering=1) as archive:
             for name in arms:
-                while (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
-                    if stop.exists() or (root.parent / "STOP").is_file():
-                        break
-                    time.sleep(0.2)
+                _wait_while_paused(0)
                 if failed or stop.exists() or (root.parent / "STOP").is_file():
                     if failed is None:
                         failed = "stopped"
                     break
                 arm = built[name]
                 for generation in range(1, int(generations) + 1):
-                    while (root / "PAUSE").is_file() or ((root.parent / "PAUSE").is_file()):
-                        if stop.exists() or (root.parent / "STOP").is_file():
-                            break
-                        time.sleep(0.2)
+                    _wait_while_paused(generation)
                     if stop.exists() or (root.parent / "STOP").is_file():
                         failed = "stopped"
                         break
@@ -1466,6 +1481,11 @@ def run_phase5_history(
                     break
     finally:
         live.close()
+        try:
+            ack_file.unlink(missing_ok=True)
+            ack_file_parent.unlink(missing_ok=True)
+        except OSError:
+            pass
     if failed is None:
         persisted = _load_jsonl(archive_path)
         expected = {(name, generation) for name in arms for generation in range(1, int(generations) + 1)}

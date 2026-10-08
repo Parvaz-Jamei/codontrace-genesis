@@ -61,6 +61,9 @@ export type Job = {
   diagnosticsData?: Record<string, unknown>;
   snapshot?: RunSnapshotV2;
   capabilities?: CapabilitiesV2;
+  revision?: number;
+  pendingAction?: "pause" | "resume" | "stop" | "delete" | null;
+  pendingActionTime?: number;
 };
 
 export type CapabilitiesV2 = {

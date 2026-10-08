@@ -201,6 +201,119 @@ def tail_file(path: Path, max_lines: int = 50, max_bytes: int = 65536) -> list[s
         return []
 
 
+
+class RunnerAdapter:
+    """Base adapter for simulation runners, providing output resolution and status reconciliation."""
+    backend: str = "custom_script"
+    primary_output_dir: str = "output"
+    supports_pause: bool = False
+    supports_resume: bool = False
+    supports_checkpoint: bool = False
+
+    def resolve_status_file(self, run_dir: Path) -> Path:
+        return run_dir / "status.json"
+
+    def resolve_capabilities(self, run_dir: Path | None = None) -> dict[str, bool]:
+        return {
+            "pause": self.supports_pause,
+            "resume": self.supports_resume,
+            "checkpoint_continue": self.supports_checkpoint,
+        }
+
+    def reconcile_status(self, run_dir: Path) -> dict[str, Any]:
+        """Reconcile nested output/status.json into root status.json atomically if newer."""
+        root_status_file = run_dir / "status.json"
+        nested_status_file = run_dir / self.primary_output_dir / "status.json"
+        root_data: dict[str, Any] = {}
+        nested_data: dict[str, Any] = {}
+
+        if root_status_file.is_file():
+            try:
+                loaded = json.loads(root_status_file.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    root_data = loaded
+            except (OSError, ValueError):
+                pass
+
+        if nested_status_file.is_file():
+            try:
+                loaded = json.loads(nested_status_file.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    nested_data = loaded
+            except (OSError, ValueError):
+                pass
+
+        if nested_data:
+            nested_rev = int(nested_data.get("revision", 0))
+            root_rev = int(root_data.get("revision", 0))
+            nested_mtime = nested_status_file.stat().st_mtime
+            root_mtime = root_status_file.stat().st_mtime if root_status_file.is_file() else 0.0
+
+            if nested_rev > root_rev or (nested_rev == root_rev and nested_mtime > root_mtime) or not root_data:
+                merged = {**root_data, **nested_data}
+                merged["revision"] = max(nested_rev, root_rev)
+                try:
+                    write_atomic_json(root_status_file, merged)
+                except Exception:
+                    pass
+                return merged
+
+        return root_data
+
+    def resolve_execution_data(self, run_dir: Path) -> dict[str, Any] | None:
+        exec_path = run_dir / self.primary_output_dir / "execution.json"
+        if not exec_path.is_file():
+            exec_path = run_dir / "execution.json"
+        if exec_path.is_file():
+            try:
+                data = json.loads(exec_path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+        return None
+
+
+class GenesisEngineRunnerAdapter(RunnerAdapter):
+    backend: str = "genesis_engine"
+    primary_output_dir: str = "output"
+    supports_pause: bool = True
+    supports_resume: bool = True
+    supports_checkpoint: bool = False
+
+
+class FrontierReferenceRunnerAdapter(RunnerAdapter):
+    backend: str = "frontier_reference_model"
+    primary_output_dir: str = "output"
+    supports_pause: bool = False
+    supports_resume: bool = False
+    supports_checkpoint: bool = False
+
+
+class CustomScriptRunnerAdapter(RunnerAdapter):
+    backend: str = "custom_script"
+    primary_output_dir: str = "output"
+    supports_pause: bool = False
+    supports_resume: bool = False
+    supports_checkpoint: bool = False
+
+
+def get_runner_adapter(manifest: dict[str, Any] | None = None, script_name: str | None = None) -> RunnerAdapter:
+    """Resolve the appropriate RunnerAdapter for a simulation run."""
+    manifest = manifest or {}
+    boundary = manifest.get("executionBoundary") or {}
+    backend = boundary.get("backend") or manifest.get("engine_backend") or ""
+    is_frontier = bool(boundary.get("isFrontierReference"))
+    script = script_name or manifest.get("params", {}).get("scriptName") or ""
+    s_lower = str(script).lower()
+
+    if is_frontier or "frontier" in s_lower or "challenge" in s_lower or backend == "frontier_reference_model":
+        return FrontierReferenceRunnerAdapter()
+    if backend == "genesis_engine" or (not script and not backend) or "rq_full_engine" in s_lower:
+        return GenesisEngineRunnerAdapter()
+    return CustomScriptRunnerAdapter()
+
+
 def build_run_snapshot(
     run_id: str,
     status_info: dict[str, Any],
@@ -214,7 +327,10 @@ def build_run_snapshot(
     state_map = {
         "STARTING": "STARTING",
         "RUNNING": "RUNNING",
+        "PAUSING": "PAUSING",
         "PAUSED": "PAUSED",
+        "RESUMING": "RESUMING",
+        "STOPPING": "STOPPING",
         "STOPPED": "STOPPED",
         "COMPLETED": "COMPLETED",
         "FAILED": "FAILED",
@@ -224,24 +340,55 @@ def build_run_snapshot(
     }
     state = state_map.get(raw_status, "RUNNING")
 
+    adapter = get_runner_adapter(manifest, script_name=status_info.get("params", {}).get("scriptName"))
     caps = status_info.get("capabilities") or manifest.get("capabilities")
     if not isinstance(caps, dict):
-        is_frontier = bool(manifest.get("executionBoundary", {}).get("isFrontierReference"))
-        script_name = str(manifest.get("params", {}).get("scriptName") or "")
-        s_lower = script_name.lower()
-        supports_pause = not (is_frontier or "frontier" in s_lower or "challenge" in s_lower)
-        caps = {
-            "pause": supports_pause,
-            "resume": supports_pause,
-            "checkpoint_continue": False,
-        }
+        caps = adapter.resolve_capabilities()
 
     workers_expected = int(
         status_info.get("params", {}).get("workers")
         or manifest.get("params", {}).get("workers")
         or 1
     )
-    workers_paused = workers_expected if state == "PAUSED" else 0
+
+    entry = get_safe_run_dir(run_id)
+    ack_files: set[str] = set()
+    if entry and entry.is_dir():
+        for p in entry.glob("ack_paused_*"):
+            ack_files.add(p.name)
+        out_dir = entry / adapter.primary_output_dir
+        if out_dir.is_dir():
+            for p in out_dir.glob("ack_paused_*"):
+                ack_files.add(p.name)
+
+    workers_paused = len(ack_files)
+
+    # Cooperative ACK-driven state refinement
+    if entry and entry.is_dir():
+        has_pause_file = (entry / "PAUSE").is_file() or ((entry / adapter.primary_output_dir / "PAUSE").is_file())
+        if has_pause_file:
+            if state in ("RUNNING", "STARTING", "PAUSING"):
+                if workers_paused >= workers_expected and workers_expected > 0:
+                    state = "PAUSED"
+                else:
+                    state = "PAUSING"
+            elif state == "PAUSED" and workers_paused == 0:
+                workers_paused = workers_expected
+        elif state == "PAUSED":
+            if workers_paused > 0:
+                state = "RESUMING"
+            else:
+                state = "RUNNING"
+    elif state == "PAUSED" and workers_paused == 0:
+        workers_paused = workers_expected
+
+    requested_state: str | None = None
+    if state == "PAUSING":
+        requested_state = "PAUSED"
+    elif state == "RESUMING":
+        requested_state = "RUNNING"
+    elif state == "STOPPING":
+        requested_state = "STOPPED"
 
     total_seeds = int(
         status_info.get("totalSeeds")
@@ -269,6 +416,25 @@ def build_run_snapshot(
     started_at = float(status_info.get("startedAt", 0.0))
     wall_elapsed = max(0.0, time.time() - started_at) if started_at > 0 else 0.0
     active_elapsed = wall_elapsed
+    paused_seconds = float(status_info.get("paused_seconds", 0.0))
+
+    if entry and entry.is_dir():
+        hlog = entry / adapter.primary_output_dir / "health.log"
+        if not hlog.is_file():
+            hlog = entry / "health.log"
+        if hlog.is_file():
+            try:
+                lines = hlog.read_text(encoding="utf-8").splitlines()
+                if lines:
+                    last_rec = json.loads(lines[-1])
+                    if "active_elapsed_seconds" in last_rec:
+                        active_elapsed = float(last_rec["active_elapsed_seconds"])
+                    if "paused_seconds" in last_rec:
+                        paused_seconds = float(last_rec["paused_seconds"])
+                    if "wall_elapsed_seconds" in last_rec:
+                        wall_elapsed = float(last_rec["wall_elapsed_seconds"])
+            except Exception:
+                pass
 
     return {
         "schema_version": "run_snapshot_v2",
@@ -276,7 +442,7 @@ def build_run_snapshot(
         "session_id": session_id,
         "revision": revision,
         "state": state,
-        "requested_state": None,
+        "requested_state": requested_state,
         "capabilities": {
             "pause": bool(caps.get("pause", True)),
             "resume": bool(caps.get("resume", True)),
@@ -292,7 +458,7 @@ def build_run_snapshot(
             "pct": round(pct_val, 1),
         },
         "active_elapsed_seconds": round(active_elapsed, 1),
-        "paused_seconds": 0.0,
+        "paused_seconds": round(paused_seconds, 1),
         "wall_elapsed_seconds": round(wall_elapsed, 1),
         "heartbeat_at": datetime.datetime.now(datetime.UTC).isoformat(),
         "pending_command_id": None,
@@ -316,19 +482,22 @@ def list_simulation_runs() -> list[dict[str, Any]]:
             continue
 
         run_id = entry.name
+        manifest_file = entry / "manifest.json"
+        if not manifest_file.is_file():
+            manifest_file = entry / "run_manifest.json"
+        manifest_data: dict[str, Any] = {}
+        if manifest_file.is_file():
+            try:
+                manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        adapter = get_runner_adapter(manifest_data)
+        status_info = adapter.reconcile_status(entry)
+        engine_dir = entry / adapter.primary_output_dir
         status_file = entry / "status.json"
-        engine_dir = entry / "output"
         live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
         console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
-
-        status_info: dict[str, Any] = {}
-        if status_file.is_file():
-            try:
-                status_info = json.loads(status_file.read_text(encoding="utf-8"))
-                if not isinstance(status_info, dict):
-                    status_info = {}
-            except (OSError, ValueError):
-                status_info = {}
 
         # Authoritative status determination
         st = status_info.get("status")
@@ -341,18 +510,13 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                 except (ValueError, OSError):
                     pid = None
 
-        exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (entry / "execution.json")
+        exec_data = adapter.resolve_execution_data(entry)
         has_complete_exec = False
-        if exec_json.is_file():
-            try:
-                rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                if isinstance(rep, dict) and rep.get("complete") is True:
-                    rep_id = rep.get("runId") or rep.get("run_id")
-                    if not rep_id or rep_id == run_id:
-                        if not rep.get("validation_failures") and not rep.get("errors") and not rep.get("failed"):
-                            has_complete_exec = True
-            except Exception:
-                pass
+        if exec_data and exec_data.get("complete") is True:
+            rep_id = exec_data.get("runId") or exec_data.get("run_id")
+            if not rep_id or rep_id == run_id:
+                if not exec_data.get("validation_failures") and not exec_data.get("errors") and not exec_data.get("failed"):
+                    has_complete_exec = True
 
         if st in ("RUNNING", "STARTING", "PAUSED"):
             alive = False
@@ -431,16 +595,22 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
     if entry is None:
         return None
 
-    status_file = entry / "status.json"
-    engine_dir = entry / "output"
-    status_info: dict[str, Any] = {}
-    if status_file.is_file():
+    manifest_file = entry / "run_manifest.json"
+    if not manifest_file.is_file():
+        manifest_file = entry / "manifest.json"
+    manifest_data: dict[str, Any] = {}
+    if manifest_file.is_file():
         try:
-            status_info = json.loads(status_file.read_text(encoding="utf-8"))
-            if not isinstance(status_info, dict):
-                status_info = {}
+            manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            if not isinstance(manifest_data, dict):
+                manifest_data = {}
         except (OSError, ValueError):
-            status_info = {}
+            pass
+
+    adapter = get_runner_adapter(manifest_data)
+    status_info = adapter.reconcile_status(entry)
+    engine_dir = entry / adapter.primary_output_dir
+    status_file = entry / "status.json"
 
     st = status_info.get("status")
     pid = status_info.get("pid")
@@ -452,7 +622,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             except (ValueError, OSError):
                 pid = None
 
-    if st in ("RUNNING", "STARTING", "PAUSED"):
+    if st in ("RUNNING", "STARTING", "PAUSED", "PAUSING", "RESUMING"):
         alive = False
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
@@ -467,19 +637,15 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
 
         if not alive:
             orig_st = status_info.get("status")
-            exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (entry / "execution.json")
-            if exec_json.is_file():
-                try:
-                    rep = json.loads(exec_json.read_text(encoding="utf-8"))
-                    is_complete = isinstance(rep, dict) and rep.get("complete") is True
-                    rep_id = rep.get("runId") or rep.get("run_id")
-                    if rep_id and rep_id != run_id:
-                        is_complete = False
-                    if isinstance(rep, dict) and (rep.get("validation_failures") or rep.get("errors") or rep.get("failed")):
-                        is_complete = False
-                    st = "COMPLETED" if is_complete else "FAILED"
-                except Exception:
-                    st = "FAILED"
+            exec_data_val = adapter.resolve_execution_data(entry)
+            if exec_data_val:
+                is_complete = exec_data_val.get("complete") is True
+                rep_id = exec_data_val.get("runId") or exec_data_val.get("run_id")
+                if rep_id and rep_id != run_id:
+                    is_complete = False
+                if exec_data_val.get("validation_failures") or exec_data_val.get("errors") or exec_data_val.get("failed"):
+                    is_complete = False
+                st = "COMPLETED" if is_complete else "FAILED"
             elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
                 st = "STOPPED"
             else:
@@ -494,16 +660,6 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                     status_info.setdefault("exitCode", 1)
                     status_info.setdefault("endedAt", time.time())
                 write_atomic_json(status_file, status_info)
-
-    manifest_file = entry / "run_manifest.json"
-    manifest_data: dict[str, Any] = {}
-    if manifest_file.is_file():
-        try:
-            manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
-            if not isinstance(manifest_data, dict):
-                manifest_data = {}
-        except (OSError, ValueError):
-            pass
 
     live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
     console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
@@ -836,7 +992,13 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
 
         ok = send_signal_to_run(run_id, "PAUSE")
         if ok:
-            status_info["status"] = "PAUSED"
+            ack_files = set()
+            for f in entry.glob("ack_paused_*"):
+                ack_files.add(f.name)
+            for f in (entry / "output").glob("ack_paused_*"):
+                ack_files.add(f.name)
+            workers_expected = int(status_info.get("params", {}).get("workers") or manifest_data.get("params", {}).get("workers") or 1)
+            status_info["status"] = "PAUSED" if (len(ack_files) >= workers_expected and workers_expected > 0) else "PAUSING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
             write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
@@ -868,7 +1030,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                 "status_code": 200,
             }
 
-        if current_status != "PAUSED":
+        if current_status not in ("PAUSED", "PAUSING"):
             return {
                 "ok": False,
                 "error": f"Cannot resume run in state '{current_status}' (must be PAUSED)",
@@ -888,7 +1050,12 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
 
         ok = send_signal_to_run(run_id, "CONT")
         if ok:
-            status_info["status"] = "RUNNING"
+            ack_files = set()
+            for f in entry.glob("ack_paused_*"):
+                ack_files.add(f.name)
+            for f in (entry / "output").glob("ack_paused_*"):
+                ack_files.add(f.name)
+            status_info["status"] = "RESUMING" if ack_files else "RUNNING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
             write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
@@ -906,6 +1073,11 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                     marker.unlink()
                 except OSError:
                     pass
+        for ack in list(entry.glob("ack_paused_*")) + list((entry / "output").glob("ack_paused_*")):
+            try:
+                ack.unlink(missing_ok=True)
+            except OSError:
+                pass
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")
         if (entry / "output").is_dir():
             ((entry / "output") / "STOP").write_text("stopped by console\n", encoding="utf-8")

@@ -94,13 +94,15 @@ def horizon_diagnostics(root: Path, seeds: tuple[int, ...], generations: int) ->
         lag=lag, permutations=8, exploratory=True, red_queen_proved=False))
 
 
-def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_seconds: float) -> dict[str, Any]:
+def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_seconds: float, budget_kind: str = 'active_time') -> dict[str, Any]:
     if not seeds or any(type(s) is not int or s < 0 for s in seeds) or len(set(seeds)) != len(seeds):
         raise ConfigurationError('history seeds must be unique nonnegative integers')
     if type(workers) is not int or workers < 1 or type(generations) is not int or generations < 2:
         raise ConfigurationError('invalid worker/generation budget')
     if isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float)) or not math.isfinite(max_seconds) or max_seconds <= 0:
         raise ConfigurationError('invalid time budget')
+    if budget_kind not in ('active_time', 'wall_deadline'):
+        raise ConfigurationError(f'invalid budget_kind: {budget_kind}')
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=False)
     source = Path(__file__).resolve()
@@ -110,25 +112,44 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
     expected_config = config_digest()
     write_json(root/'LOCK.json', dict(seeds=seeds, generations=generations, workers=workers,
         arms=ARMS, exploratory=True, compare_one_shot=True, max_seconds=max_seconds,
+        budget_kind=budget_kind,
         wall_budget_scope='worker simulation and one-shot checks; cooperative stop, diagnostics outside budget',
         driver_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
         source_sha256=source_hashes, config_digest=expected_config, red_queen_proved=False))
     stop = threading.Event()
     started = time.monotonic()
+    paused_accumulated = [0.0]
 
     def monitor() -> None:
         with (root/'health.log').open('w', encoding='utf-8', buffering=1) as log:
             while not stop.is_set():
-                while ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
-                    if stop.is_set() or (root/'STOP').exists() or ((root.parent/'STOP').is_file()):
-                        break
-                    time.sleep(0.2)
-                elapsed = time.monotonic()-started
-                log.write(json.dumps(dict(elapsed_seconds=elapsed, stop_file=(root/'STOP').exists()))+'\n')
-                if elapsed >= max_seconds:
-                    (root/'STOP').write_text('fixed wall-time budget exhausted\n', encoding='utf-8')
+                if ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
+                    pause_start = time.monotonic()
+                    while ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
+                        if stop.is_set() or (root/'STOP').exists() or ((root.parent/'STOP').is_file()):
+                            break
+                        time.sleep(0.2)
+                    pause_duration = time.monotonic() - pause_start
+                    paused_accumulated[0] += pause_duration
+
+                wall_elapsed = time.monotonic() - started
+                active_elapsed = max(0.0, wall_elapsed - paused_accumulated[0])
+                effective_elapsed = active_elapsed if budget_kind == 'active_time' else wall_elapsed
+
+                log.write(json.dumps(dict(
+                    elapsed_seconds=round(effective_elapsed, 2),
+                    active_elapsed_seconds=round(active_elapsed, 2),
+                    paused_seconds=round(paused_accumulated[0], 2),
+                    wall_elapsed_seconds=round(wall_elapsed, 2),
+                    budget_kind=budget_kind,
+                    stop_file=(root/'STOP').exists()
+                ))+'\n')
+
+                if effective_elapsed >= max_seconds:
+                    (root/'STOP').write_text(f'fixed {budget_kind} budget exhausted\n', encoding='utf-8')
                     return
-                stop.wait(min(600.0, max(.01, max_seconds-elapsed)))
+                remaining = max_seconds - effective_elapsed
+                stop.wait(min(600.0, max(0.01, remaining)))
 
     thread = threading.Thread(target=monitor, daemon=True)
     thread.start()
@@ -167,7 +188,14 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
                 errors.append(dict(seed=seed, reason=reason))
                 (root/'STOP').write_text(reason+'\n', encoding='utf-8')
                 break
-    report = dict(complete=complete, simulation_elapsed_seconds=time.monotonic()-started,
+    wall_total = time.monotonic() - started
+    active_total = max(0.0, wall_total - paused_accumulated[0])
+    report = dict(complete=complete,
+        simulation_elapsed_seconds=round(active_total, 2),
+        active_elapsed_seconds=round(active_total, 2),
+        paused_seconds=round(paused_accumulated[0], 2),
+        wall_elapsed_seconds=round(wall_total, 2),
+        budget_kind=budget_kind,
         outcomes=sorted(outcomes, key=lambda row: row['seed']), replays=replays,
         validation_failures=errors, diagnostics_complete=False,
         engine_backend='genesis_engine',
@@ -185,7 +213,12 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
             reason = f'{type(exc).__name__}: {exc}'
             errors.append(dict(seed=None, reason=reason, stage='diagnostics'))
             (root/'STOP').write_text(reason+'\n', encoding='utf-8')
-    report['elapsed_seconds'] = time.monotonic()-started
+    wall_total_end = time.monotonic() - started
+    active_total_end = max(0.0, wall_total_end - paused_accumulated[0])
+    report['elapsed_seconds'] = round(active_total_end if budget_kind == 'active_time' else wall_total_end, 2)
+    report['active_elapsed_seconds'] = round(active_total_end, 2)
+    report['paused_seconds'] = round(paused_accumulated[0], 2)
+    report['wall_elapsed_seconds'] = round(wall_total_end, 2)
     write_json(root/'execution.json', report)
     return report
 
@@ -199,6 +232,7 @@ def main() -> None:
     parser.add_argument('--seeds', type=str, default=None, help='Comma-separated explicit seeds')
     parser.add_argument('--workers', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--max-seconds', type=float, default=1800.0)
+    parser.add_argument('--budget-kind', choices=['active_time', 'wall_deadline'], default='active_time')
     args = parser.parse_known_args()[0]
     if args.seeds:
         parsed_seeds = tuple(int(s.strip()) for s in args.seeds.split(',') if s.strip())
@@ -207,7 +241,7 @@ def main() -> None:
             parser.error('histories must be positive')
         parsed_seeds = tuple(range(args.seed_start, args.seed_start + args.histories))
     report = run(args.output, parsed_seeds,
-        args.generations, args.workers, args.max_seconds)
+        args.generations, args.workers, args.max_seconds, budget_kind=args.budget_kind)
     print(json.dumps({k: v for k, v in report.items() if k not in ('outcomes', 'replays')}))
     if not report['complete']:
         sys.exit(2)

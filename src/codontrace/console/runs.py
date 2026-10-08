@@ -6,6 +6,7 @@ Works on Windows, Linux, and macOS.
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
 import math
@@ -200,6 +201,104 @@ def tail_file(path: Path, max_lines: int = 50, max_bytes: int = 65536) -> list[s
         return []
 
 
+def build_run_snapshot(
+    run_id: str,
+    status_info: dict[str, Any],
+    manifest_data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build unified RunSnapshot v2 dictionary for consistent list and details views."""
+    manifest = manifest_data or {}
+    session_id = str(status_info.get("session_id") or manifest.get("session_id") or f"sess_{run_id}")
+    revision = int(status_info.get("revision", 1))
+    raw_status = str(status_info.get("status", "UNKNOWN")).upper()
+    state_map = {
+        "STARTING": "STARTING",
+        "RUNNING": "RUNNING",
+        "PAUSED": "PAUSED",
+        "STOPPED": "STOPPED",
+        "COMPLETED": "COMPLETED",
+        "FAILED": "FAILED",
+        "QUEUED": "QUEUED",
+        "STALE": "STOPPED",
+        "CANCELLED": "STOPPED",
+    }
+    state = state_map.get(raw_status, "RUNNING")
+
+    caps = status_info.get("capabilities") or manifest.get("capabilities")
+    if not isinstance(caps, dict):
+        is_frontier = bool(manifest.get("executionBoundary", {}).get("isFrontierReference"))
+        script_name = str(manifest.get("params", {}).get("scriptName") or "")
+        s_lower = script_name.lower()
+        supports_pause = not (is_frontier or "frontier" in s_lower or "challenge" in s_lower)
+        caps = {
+            "pause": supports_pause,
+            "resume": supports_pause,
+            "checkpoint_continue": False,
+        }
+
+    workers_expected = int(
+        status_info.get("params", {}).get("workers")
+        or manifest.get("params", {}).get("workers")
+        or 1
+    )
+    workers_paused = workers_expected if state == "PAUSED" else 0
+
+    total_seeds = int(
+        status_info.get("totalSeeds")
+        or status_info.get("total_seeds")
+        or manifest.get("params", {}).get("totalSeeds")
+        or 1
+    )
+    completed_seeds = int(
+        status_info.get("completedSeeds")
+        or status_info.get("completed_seeds")
+        or 0
+    )
+
+    pct_raw = status_info.get("pct")
+    if pct_raw is None:
+        pct_val = 100.0 if state == "COMPLETED" else 0.0
+    else:
+        try:
+            pct_val = float(pct_raw)
+            if not math.isfinite(pct_val):
+                pct_val = 0.0
+        except (ValueError, TypeError):
+            pct_val = 0.0
+
+    started_at = float(status_info.get("startedAt", 0.0))
+    wall_elapsed = max(0.0, time.time() - started_at) if started_at > 0 else 0.0
+    active_elapsed = wall_elapsed
+
+    return {
+        "schema_version": "run_snapshot_v2",
+        "run_id": run_id,
+        "session_id": session_id,
+        "revision": revision,
+        "state": state,
+        "requested_state": None,
+        "capabilities": {
+            "pause": bool(caps.get("pause", True)),
+            "resume": bool(caps.get("resume", True)),
+            "checkpoint_continue": bool(caps.get("checkpoint_continue", False)),
+        },
+        "workers_expected": workers_expected,
+        "workers_paused": workers_paused,
+        "progress": {
+            "kind": "work_units",
+            "stage": "simulation",
+            "done": completed_seeds,
+            "total": total_seeds,
+            "pct": round(pct_val, 1),
+        },
+        "active_elapsed_seconds": round(active_elapsed, 1),
+        "paused_seconds": 0.0,
+        "wall_elapsed_seconds": round(wall_elapsed, 1),
+        "heartbeat_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        "pending_command_id": None,
+    }
+
+
 def list_simulation_runs() -> list[dict[str, Any]]:
     """Enumerate discovered simulation runs with authoritative status verification."""
     root = runs_directory()
@@ -300,17 +399,27 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     seed_count += 1
 
         logs = tail_file(live_log, 15) or tail_file(console_log, 15)
+        snapshot = build_run_snapshot(run_id, status_info, None)
+        pct_val = status_info.get("pct", 100.0 if st == "COMPLETED" else 0.0)
+        try:
+            pct_val = float(pct_val)
+            if not math.isfinite(pct_val):
+                pct_val = 0.0
+        except (ValueError, TypeError):
+            pct_val = 0.0
 
         runs.append({
             "id": run_id,
             "title": status_info.get("title") or run_id.replace("_", " ").title(),
             "status": st,
             "path": str(entry),
-            "pct": status_info.get("pct", 100.0 if st == "COMPLETED" else 0.0),
+            "pct": round(pct_val, 1),
             "completedSeeds": status_info.get("completed_seeds", status_info.get("completedSeeds", seed_count)),
             "totalSeeds": status_info.get("total_seeds", status_info.get("totalSeeds", max(12, seed_count))),
             "mtime": entry.stat().st_mtime,
             "recentLogs": logs,
+            "snapshot": snapshot,
+            "capabilities": snapshot["capabilities"],
         })
 
     return runs
@@ -421,16 +530,28 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             except Exception:
                 pass
 
+    snapshot = build_run_snapshot(run_id, status_info, manifest_data)
+    pct_val = status_info.get("pct", 100.0 if status_info.get("status") == "COMPLETED" else 0.0)
+    try:
+        pct_val = float(pct_val)
+        if not math.isfinite(pct_val):
+            pct_val = 0.0
+    except (ValueError, TypeError):
+        pct_val = 0.0
+
     return {
         "id": run_id,
         "title": status_info.get("title") or run_id.replace("_", " ").title(),
         "status": status_info.get("status", "UNKNOWN"),
+        "pct": round(pct_val, 1),
         "statusData": status_info,
         "manifest": manifest_data,
         "execution": exec_data,
         "diagnostics": diagnostics_data,
         "liveLogs": tail_file(live_log, 100),
         "consoleLogs": tail_file(console_log, 100),
+        "snapshot": snapshot,
+        "capabilities": snapshot["capabilities"],
     }
 
 
@@ -452,7 +573,11 @@ def send_signal_to_run(run_id: str, sig_name: str) -> bool:
             except (ValueError, OSError):
                 pid = None
 
-    if pid is None and not ((entry / "status.json").is_file()):
+    proc_alive = False
+    if proc and proc.poll() is None or pid and is_pid_alive(pid):
+        proc_alive = True
+
+    if not proc_alive:
         return False
 
     sig_upper = sig_name.upper()
@@ -622,31 +747,158 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         return {"ok": False, "error": f"Run '{run_id}' not found", "status_code": 200}
 
     act = action.lower().strip()
+    status_file = entry / "status.json"
+    status_info: dict[str, Any] = {}
+    if status_file.is_file():
+        try:
+            status_info = json.loads(status_file.read_text(encoding="utf-8"))
+            if not isinstance(status_info, dict):
+                status_info = {}
+        except Exception:
+            status_info = {}
+
+    manifest_file = entry / "run_manifest.json"
+    manifest_data: dict[str, Any] = {}
+    if manifest_file.is_file():
+        try:
+            manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            if not isinstance(manifest_data, dict):
+                manifest_data = {}
+        except Exception:
+            manifest_data = {}
+
+    # Determine capabilities
+    caps = status_info.get("capabilities") or manifest_data.get("capabilities")
+    if not isinstance(caps, dict):
+        is_frontier = bool(manifest_data.get("executionBoundary", {}).get("isFrontierReference"))
+        script_name = str(manifest_data.get("params", {}).get("scriptName") or "")
+        s_lower = script_name.lower()
+        supports_pause = not (is_frontier or "frontier" in s_lower or "challenge" in s_lower)
+        caps = {"pause": supports_pause, "resume": supports_pause, "checkpoint_continue": False}
+
+    # Determine process ownership and liveness
+    with _RUN_LOCK:
+        proc = _RUN_PROCESSES.get(run_id)
+
+    pid = status_info.get("pid")
+    if not pid:
+        pid_file = entry / "run.pid"
+        if pid_file.is_file():
+            try:
+                pid = int(pid_file.read_text(encoding="utf-8").strip())
+            except (ValueError, OSError):
+                pid = None
+
+    proc_alive = False
+    if proc and proc.poll() is None or pid and is_pid_alive(pid):
+        proc_alive = True
+
+    current_status = str(status_info.get("status", "UNKNOWN")).upper()
+
     if act == "pause":
+        if not caps.get("pause", True):
+            return {
+                "ok": False,
+                "error": "Runner does not support pause capability",
+                "error_code": "UNSUPPORTED_CAPABILITY",
+                "status_code": 409,
+            }
+
+        # Terminal and stale states are forbidden to pause (L01)
+        if current_status in ("COMPLETED", "FAILED", "STOPPED", "STALE"):
+            return {
+                "ok": False,
+                "error": f"Cannot pause a run in terminal or inactive state '{current_status}'",
+                "error_code": "INVALID_STATE",
+                "status_code": 409,
+            }
+
+        # Idempotent pause on already paused run
+        if current_status == "PAUSED":
+            return {
+                "ok": True,
+                "action": "pause",
+                "run_id": run_id,
+                "already_paused": True,
+                "status_code": 200,
+            }
+
+        # Must have living process
+        if not proc_alive:
+            status_info["status"] = "FAILED"
+            write_atomic_json(status_file, status_info)
+            return {
+                "ok": False,
+                "error": "Cannot pause run: process is no longer active",
+                "error_code": "PROCESS_NOT_ALIVE",
+                "status_code": 409,
+            }
+
         ok = send_signal_to_run(run_id, "PAUSE")
         if ok:
-            status_file = entry / "status.json"
-            if status_file.is_file():
-                try:
-                    st_info = json.loads(status_file.read_text(encoding="utf-8"))
-                    st_info["status"] = "PAUSED"
-                    write_atomic_json(status_file, st_info)
-                except Exception:
-                    pass
-        return {"ok": ok, "action": "pause", "run_id": run_id}
+            status_info["status"] = "PAUSED"
+            status_info["revision"] = int(status_info.get("revision", 1)) + 1
+            write_atomic_json(status_file, status_info)
+        return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
+
     elif act == "resume":
+        if not caps.get("resume", True):
+            return {
+                "ok": False,
+                "error": "Runner does not support resume capability",
+                "error_code": "UNSUPPORTED_CAPABILITY",
+                "status_code": 409,
+            }
+
+        # Cannot resume terminal or stopped runs (L03)
+        if current_status in ("COMPLETED", "FAILED", "STOPPED", "STALE"):
+            return {
+                "ok": False,
+                "error": f"Cannot resume run in terminal state '{current_status}'. Use restart instead.",
+                "error_code": "INVALID_STATE",
+                "status_code": 409,
+            }
+
+        if current_status == "RUNNING":
+            return {
+                "ok": True,
+                "action": "resume",
+                "run_id": run_id,
+                "already_running": True,
+                "status_code": 200,
+            }
+
+        if current_status != "PAUSED":
+            return {
+                "ok": False,
+                "error": f"Cannot resume run in state '{current_status}' (must be PAUSED)",
+                "error_code": "INVALID_STATE",
+                "status_code": 409,
+            }
+
+        if not proc_alive:
+            status_info["status"] = "FAILED"
+            write_atomic_json(status_file, status_info)
+            return {
+                "ok": False,
+                "error": "Cannot resume run: process is dead. Use restart.",
+                "error_code": "PROCESS_DEAD",
+                "status_code": 409,
+            }
+
         ok = send_signal_to_run(run_id, "CONT")
         if ok:
-            status_file = entry / "status.json"
-            if status_file.is_file():
-                try:
-                    st_info = json.loads(status_file.read_text(encoding="utf-8"))
-                    st_info["status"] = "RUNNING"
-                    write_atomic_json(status_file, st_info)
-                except Exception:
-                    pass
-        return {"ok": ok, "action": "resume", "run_id": run_id}
+            status_info["status"] = "RUNNING"
+            status_info["revision"] = int(status_info.get("revision", 1)) + 1
+            write_atomic_json(status_file, status_info)
+        return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
+
     elif act == "stop":
+        if current_status == "STOPPED":
+            return {"ok": True, "action": "stop", "run_id": run_id, "already_stopped": True, "status_code": 200}
+        if current_status in ("COMPLETED", "FAILED"):
+            return {"ok": True, "action": "stop", "run_id": run_id, "already_terminal": True, "status_code": 200}
+
         # Unlink any existing PAUSE markers so the process aborts cleanly
         for marker in (entry / "PAUSE", (entry / "output") / "PAUSE"):
             if marker.is_file():
@@ -657,8 +909,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")
         if (entry / "output").is_dir():
             ((entry / "output") / "STOP").write_text("stopped by console\n", encoding="utf-8")
-        with _RUN_LOCK:
-            proc = _RUN_PROCESSES.get(run_id)
+
         stopped = False
         if proc and proc.poll() is None:
             try:
@@ -670,31 +921,24 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                 except OSError:
                     pass
             stopped = True
-        else:
-            pid_file = entry / "run.pid"
-            if pid_file.is_file():
-                try:
-                    pid = int(pid_file.read_text(encoding="utf-8").strip())
-                    if sys.platform == "win32":
-                        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, timeout=5)
-                    else:
-                        os.kill(pid, signal.SIGTERM)
-                    stopped = True
-                except (ValueError, OSError, subprocess.SubprocessError):
-                    pass
-
-        status_file = entry / "status.json"
-        if status_file.is_file():
+        elif pid and proc_alive:
             try:
-                st_info = json.loads(status_file.read_text(encoding="utf-8"))
-                if isinstance(st_info, dict):
-                    st_info["status"] = "STOPPED"
-                    st_info["stoppedAt"] = time.time()
-                    write_atomic_json(status_file, st_info)
-            except Exception:
+                if sys.platform == "win32":
+                    subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, timeout=5)
+                else:
+                    os.kill(pid, signal.SIGTERM)
+                stopped = True
+            except (ValueError, OSError, subprocess.SubprocessError):
                 pass
+        else:
+            stopped = True
 
-        return {"ok": stopped, "action": "stop", "run_id": run_id}
+        status_info["status"] = "STOPPED"
+        status_info["stoppedAt"] = time.time()
+        status_info["revision"] = int(status_info.get("revision", 1)) + 1
+        write_atomic_json(status_file, status_info)
+
+        return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200}
     elif act == "delete":
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
@@ -944,6 +1188,13 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         model_scope = "full_digital_organism_simulation"
         boundary_notice = "Full Genesis digital organism coevolution engine with codon translation, contact dynamics, and biological assays."
 
+    supports_pause = not (script_name and ("frontier" in script_name.lower() or "challenge" in script_name.lower()))
+    capabilities_dict = {
+        "pause": bool(supports_pause),
+        "resume": bool(supports_pause),
+        "checkpoint_continue": False,
+    }
+
     param_record = {
         "generations": generations,
         "workers": workers,
@@ -955,6 +1206,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "scriptName": script_name,
         "engineBackend": engine_backend,
         "modelScope": model_scope,
+        "capabilities": capabilities_dict,
     }
 
     manifest_info = {
@@ -964,6 +1216,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "startedAt": started_at,
         "command": cmd,
         "params": param_record,
+        "capabilities": capabilities_dict,
         "executionBoundary": {
             "engineBackend": engine_backend,
             "modelScope": model_scope,
@@ -985,6 +1238,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "completedSeeds": 0,
         "totalSeeds": len(resolved_seeds) if resolved_seeds else 12,
         "params": param_record,
+        "capabilities": capabilities_dict,
         "engineBackend": engine_backend,
         "modelScope": model_scope,
     }

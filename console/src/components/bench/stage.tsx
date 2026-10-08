@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { mountGraphics, type StageFrame } from "@/lib/genesis/graphics";
-import { jobProgress, useBench } from "@/lib/genesis/store";
+import { getRunProgress, jobProgress, useBench } from "@/lib/genesis/store";
 import { t } from "@/lib/genesis/copy";
 
 export function Stage() {
@@ -33,7 +33,9 @@ export function StageReadout() {
   const host = useBench((state) => state.host);
   const job = useBench((state) => state.jobs.find((item) => item.id === state.selectedJobId) ?? null);
   const text = t(lang);
-  const progress = Math.min(100, Math.max(0, Math.round(jobProgress(job) * 1000) / 10));
+  const progress = getRunProgress(job);
+  const dashArray = progress !== null ? `${(progress / 100) * 88} 88` : "22 88";
+
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 p-4 sm:p-6">
       <div>
@@ -53,12 +55,13 @@ export function StageReadout() {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            strokeDasharray={`${(progress / 100) * 88} 88`}
+            strokeDasharray={dashArray}
             strokeLinecap="round"
             transform="rotate(-90 18 18)"
+            className={progress === null && job?.status === "running" ? "animate-spin origin-center" : undefined}
           />
         </svg>
-        <span className="col-start-1 row-start-1 font-mono text-xs">{progress}</span>
+        <span className="col-start-1 row-start-1 font-mono text-xs">{progress !== null ? `${progress}%` : "—"}</span>
       </div>
     </div>
   );

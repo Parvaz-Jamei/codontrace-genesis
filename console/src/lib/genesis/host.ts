@@ -1,5 +1,5 @@
 import { ENGINE_IDENTITY } from "./catalog";
-import type { ChatStatus, HostProfile, ReleaseReport } from "./types";
+import type { CapabilitiesV2, ChatStatus, HostProfile, ReleaseReport, RunSnapshotV2 } from "./types";
 
 export async function getHostProfile(): Promise<HostProfile> {
   const response = await fetch("/api/host", { headers: { accept: "application/json" } });
@@ -126,6 +126,8 @@ export type ServerRunSummary = {
   totalSeeds: number;
   mtime: number;
   recentLogs: string[];
+  snapshot?: RunSnapshotV2;
+  capabilities?: CapabilitiesV2;
 };
 
 export type ServerRunDetails = {
@@ -139,6 +141,8 @@ export type ServerRunDetails = {
   liveLogs: string[];
   consoleLogs: string[];
   pct?: number;
+  snapshot?: RunSnapshotV2;
+  capabilities?: CapabilitiesV2;
 };
 
 export type LaunchRunPayload = {

@@ -243,6 +243,12 @@ export const useBench = create<BenchState>()(
           for (const sRun of serverRuns) {
             const existingIndex = updatedJobs.findIndex((j) => j.id === sRun.id);
             const mappedStatus = mapServerStatus(sRun.status);
+            const sRunPct = typeof sRun.pct === "number" && Number.isFinite(sRun.pct) ? sRun.pct : undefined;
+            const totalSteps = sRun.totalSeeds || 12;
+            const completedSeeds = typeof sRun.completedSeeds === "number" && Number.isFinite(sRun.completedSeeds)
+              ? sRun.completedSeeds
+              : (sRun.status === "COMPLETED" ? totalSteps : 0);
+
             if (existingIndex >= 0) {
               const existing = updatedJobs[existingIndex];
               const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
@@ -250,35 +256,36 @@ export const useBench = create<BenchState>()(
                 ...existing,
                 title: sRun.title || existing.title,
                 status: mappedStatus,
-                pct: sRun.pct ?? existing.pct,
+                pct: sRunPct ?? existing.pct,
                 totalSteps: sRun.totalSeeds || existing.totalSteps,
-                cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : Math.round(((sRun.pct || 0) / 100) * (sRun.totalSeeds || existing.totalSteps)),
+                cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : completedSeeds,
                 logs,
+                snapshot: sRun.snapshot ?? existing.snapshot,
+                capabilities: sRun.capabilities ?? existing.capabilities,
               };
             } else {
-              const totalSteps = sRun.totalSeeds || 12;
               const newJob: Job = {
                 id: sRun.id,
                 title: sRun.title,
                 kind: "engine",
                 preset: "custom",
-                seeds: [sRun.completedSeeds || 16001],
+                seeds: [16001],
                 generations: 100,
                 previewGenerations: 2,
                 workers: 2,
                 cores: [],
                 status: mappedStatus,
-                cursor: sRun.status === "COMPLETED" ? totalSteps : Math.round(((sRun.pct || 0) / 100) * totalSteps),
+                cursor: sRun.status === "COMPLETED" ? totalSteps : completedSeeds,
                 totalSteps,
                 logs: sRun.recentLogs || [],
                 createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
                 note: "server run",
-
-
                 diagnostics: "not_run",
                 serverManaged: true,
                 isDemo: false,
-                pct: sRun.pct,
+                pct: sRunPct,
+                snapshot: sRun.snapshot,
+                capabilities: sRun.capabilities,
               };
               updatedJobs.push(newJob);
               if (!newThreads.some((t) => t.id === `thread-${sRun.id}`)) {
@@ -296,14 +303,34 @@ export const useBench = create<BenchState>()(
                 const idx = updatedJobs.findIndex((j) => j.id === selectedId);
                 if (idx >= 0) {
                   const liveLogs = details.liveLogs?.length ? details.liveLogs : details.consoleLogs || [];
+                  const detailsPct =
+                    typeof details.pct === "number" && Number.isFinite(details.pct)
+                      ? details.pct
+                      : typeof details.snapshot?.progress?.pct === "number" && Number.isFinite(details.snapshot.progress.pct)
+                      ? details.snapshot.progress.pct
+                      : undefined;
+
+                  let manifestSeeds = updatedJobs[idx].seeds;
+                  const rawParams = details.manifest?.params;
+                  if (rawParams && typeof rawParams === "object") {
+                    const rawSeeds = (rawParams as Record<string, unknown>).seeds;
+                    if (Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s) => typeof s === "number")) {
+                      manifestSeeds = rawSeeds as number[];
+                    }
+                  }
+
                   updatedJobs[idx] = {
                     ...updatedJobs[idx],
+                    title: details.title || updatedJobs[idx].title,
                     status: mapServerStatus(details.status),
-                    pct: typeof details.pct === "number" && !isNaN(details.pct) ? details.pct : updatedJobs[idx].pct,
+                    pct: detailsPct ?? updatedJobs[idx].pct,
+                    seeds: manifestSeeds,
                     logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
                     execution: details.execution,
                     diagnosticsData: details.diagnostics,
                     cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
+                    snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
+                    capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
                   };
                 }
               }
@@ -630,9 +657,39 @@ export const useBench = create<BenchState>()(
   ),
 );
 
-export function jobProgress(job: Job | null) {
-  if (!job || job.totalSteps < 1) return 0;
-  return Math.min(1, job.cursor / job.totalSteps);
+export function getRunProgress(job: Job | null): number | null {
+  if (!job) return null;
+
+  if (job.serverManaged) {
+    if (job.snapshot?.progress?.pct !== undefined && job.snapshot.progress.pct !== null) {
+      const snapPct = Number(job.snapshot.progress.pct);
+      if (Number.isFinite(snapPct)) {
+        return Math.min(100, Math.max(0, Math.round(snapPct * 10) / 10));
+      }
+    }
+    if (typeof job.pct === "number" && Number.isFinite(job.pct)) {
+      return Math.min(100, Math.max(0, Math.round(job.pct * 10) / 10));
+    }
+    if (job.status === "archived") {
+      return 100;
+    }
+    return null;
+  }
+
+  if (job.totalSteps > 0 && Number.isFinite(job.cursor)) {
+    const raw = (job.cursor / job.totalSteps) * 100;
+    if (Number.isFinite(raw)) {
+      return Math.min(100, Math.max(0, Math.round(raw * 10) / 10));
+    }
+  }
+
+  return null;
+}
+
+export function jobProgress(job: Job | null): number {
+  const p = getRunProgress(job);
+  if (p === null) return 0;
+  return p / 100;
 }
 
 export function nextLine(job: Job) {

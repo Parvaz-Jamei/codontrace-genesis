@@ -5,7 +5,7 @@ import { ChevronDown, MoreHorizontal, Pin, Archive, Trash2, ArrowUp, Square } fr
 import { t } from "@/lib/genesis/copy";
 import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/lib/genesis/catalog";
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
-import { artifactZip, seedSlots, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
+import { artifactZip, getRunProgress, seedSlots, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
 import { fetchRelease, pullRelease } from "@/lib/genesis/host";
 import type { Job, JobStatus, PresetId, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
@@ -139,11 +139,7 @@ export function JobsView() {
         ) : (
           shown.map((job) => {
             const open = openIds.includes(job.id);
-            const rawPct =
-              typeof job.pct === "number" && !isNaN(job.pct)
-                ? job.pct
-                : (job.cursor / Math.max(1, job.totalSteps)) * 100;
-            const pct = Math.min(100, Math.max(0, Math.round(rawPct * 10) / 10));
+            const progress = getRunProgress(job);
             return (
             <article key={job.id} className={cn("rise min-w-0 overflow-hidden rounded-2xl", selected === job.id ? "bg-white/10" : "hover:bg-white/5")}>
               <button
@@ -158,10 +154,16 @@ export function JobsView() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate font-medium">{job.title}</span>
-                    <span className="shrink-0 text-xs text-subtle">{pct.toFixed(1)}%</span>
+                    <span className="shrink-0 text-xs text-subtle">
+                      {progress !== null ? `${progress.toFixed(1)}%` : (lang === "fa" ? "پیشرفت نامشخص" : "Indeterminate")}
+                    </span>
                   </span>
                   <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <span className="meter block h-full bg-fg" style={{ width: `${pct}%` }} />
+                    {progress !== null ? (
+                      <span className="meter block h-full bg-fg" style={{ width: `${progress}%` }} />
+                    ) : (
+                      <span className="meter block h-full w-1/3 bg-fg/40 animate-pulse" />
+                    )}
                   </span>
                   <span className="mt-1.5 block truncate text-xs text-muted">
                     {kindLabel(text, job)} · {job.preset} · {job.seeds.length} · {job.cursor}/{job.totalSteps}

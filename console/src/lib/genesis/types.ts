@@ -59,6 +59,40 @@ export type Job = {
   mtime?: number;
   execution?: Record<string, unknown>;
   diagnosticsData?: Record<string, unknown>;
+  snapshot?: RunSnapshotV2;
+  capabilities?: CapabilitiesV2;
+};
+
+export type CapabilitiesV2 = {
+  pause: boolean;
+  resume: boolean;
+  checkpoint_continue: boolean;
+};
+
+export type ProgressV2 = {
+  kind: string;
+  stage: string;
+  done: number;
+  total: number;
+  pct: number | null;
+};
+
+export type RunSnapshotV2 = {
+  schema_version: "run_snapshot_v2";
+  run_id: string;
+  session_id: string;
+  revision: number;
+  state: string;
+  requested_state?: string | null;
+  capabilities: CapabilitiesV2;
+  workers_expected: number;
+  workers_paused: number;
+  progress: ProgressV2;
+  active_elapsed_seconds: number;
+  paused_seconds: number;
+  wall_elapsed_seconds: number;
+  heartbeat_at: string;
+  pending_command_id?: string | null;
 };
 
 export type HypothesisAssessment = {

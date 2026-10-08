@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis Phase 4 - Professional Public Panel</title>
+    <!-- Use Tailwind via CDN for rapid professional styling and RTL support -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+        }
+        .focus-visible:focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm px-6 py-4 flex justify-between items-center" aria-label="Main Navigation">
+        <h1 class="text-xl font-bold text-slate-900" tabindex="0">پروژه پیدایش (Genesis Project) - پنل عمومی</h1>
+        <div class="flex space-x-4 space-x-reverse">
+            <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 focus-visible transition-colors" tabindex="0">
+                ورود با ORCID
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Sidebar: Registry & Controls -->
+        <aside class="col-span-1 space-y-6">
+            <!-- Registry Panel -->
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4" tabindex="0">ثبت آزمایش (Experiment Registry)</h2>
+                <form id="registryForm" class="space-y-4">
+                    <div>
+                        <label for="hypothesisId" class="block text-sm font-medium text-slate-700">شناسه فرضیه (Hypothesis ID)</label>
+                        <input type="text" id="hypothesisId" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border focus-visible" placeholder="H-001" tabindex="0">
+                    </div>
+                    <div>
+                        <label for="dataType" class="block text-sm font-medium text-slate-700">نوع داده</label>
+                        <select id="dataType" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border focus-visible" tabindex="0">
+                            <option value="accepted_hypothesis">تایید شده (Accepted)</option>
+                            <option value="exploratory">اکتشافی (Exploratory)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700 focus-visible transition-colors" tabindex="0">
+                        ثبت و قفل آزمایش
+                    </button>
+                </form>
+                <div id="registryStatus" aria-live="polite" class="mt-4 text-sm font-medium text-green-600"></div>
+            </section>
+        </aside>
+
+        <!-- Main Plot Area -->
+        <section class="col-span-1 md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <header class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-bold" tabindex="0">نمودار زنده داده‌ها (Live Plot)</h2>
+                <div class="space-x-2 space-x-reverse">
+                    <button id="resumeBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus-visible transition-colors" tabindex="0">
+                        شروع / ادامه (Resume)
+                    </button>
+                    <button id="stopBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 focus-visible transition-colors" tabindex="0">
+                        توقف (Stop)
+                    </button>
+                </div>
+            </header>
+            
+            <div id="plotContainer" class="w-full h-96 border rounded bg-slate-50 flex items-center justify-center focus-visible" tabindex="0" aria-label="نمودار زنده داده های علمی">
+                <!-- Plotly will render here -->
+            </div>
+            
+            <!-- Hidden live region for screen readers about plot updates -->
+            <div id="plotAriaLive" aria-live="polite" class="sr-only">نمودار هنوز شروع نشده است.</div>
+        </section>
+
+    </main>
+
+    <script>
+        // Setup Plotly
+        const plotDiv = document.getElementById('plotContainer');
+        const plotAriaLive = document.getElementById('plotAriaLive');
+        
+        let trace1 = {
+            x: [],
+            y: [],
+            mode: 'lines',
+            line: {color: '#3b82f6'}
+        };
+        
+        let layout = {
+            title: 'داده‌های فرضیه (Hypothesis Data)',
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            margin: { t: 40, l: 40, r: 20, b: 40 },
+            xaxis: { title: 'زمان (Time)' },
+            yaxis: { title: 'مقدار (Value)' }
+        };
+        
+        Plotly.newPlot(plotDiv, [trace1], layout, {responsive: true});
+
+        // Simulation Variables
+        let streaming = false;
+        let counter = 0;
+        let streamInterval;
+
+        const updatePlot = () => {
+            counter++;
+            const newY = Math.random() * 100 + Math.sin(counter/5) * 50;
+            
+            Plotly.extendTraces(plotDiv, {
+                x: [[counter]],
+                y: [[newY]]
+            }, [0]);
+
+            // Keep only last 50 points
+            if(counter > 50) {
+                Plotly.relayout(plotDiv, {
+                    xaxis: {
+                        range: [counter - 50, counter]
+                    }
+                });
+            }
+
+            // Update aria-live for screen readers every 10 ticks so it's not too spammy
+            if(counter % 10 === 0) {
+                plotAriaLive.textContent = `داده جدید دریافت شد، مقدار فعلی: ${newY.toFixed(2)}`;
+            }
+        };
+
+        // Controls
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            if (!streaming) {
+                streaming = true;
+                streamInterval = setInterval(updatePlot, 500);
+                plotAriaLive.textContent = "جریان داده‌ها شروع شد.";
+            }
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (streaming) {
+                streaming = false;
+                clearInterval(streamInterval);
+                plotAriaLive.textContent = "جریان داده‌ها متوقف شد.";
+            }
+        });
+
+        // Registry Form Submission
+        document.getElementById('registryForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const hypId = document.getElementById('hypothesisId').value;
+            const dataType = document.getElementById('dataType').value;
+            
+            if(!hypId) {
+                alert("لطفا شناسه فرضیه را وارد کنید.");
+                return;
+            }
+
+            document.getElementById('registryStatus').textContent = `آزمایش ${hypId} با نوع ${dataType} ثبت و قفل شد (Immutable).`;
+            // Normally this would POST to the Genesis Phase 4 backend
+        });
+
+        // Login Stub
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            alert("هدایت به صفحه ورود با ORCID...");
+        });
+    </script>
+</body>
+</html>

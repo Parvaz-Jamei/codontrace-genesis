@@ -23,6 +23,7 @@ HypothesisVerdict = Literal[
 ]
 
 
+# @audit-control C3
 def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     """Evaluate empirical evidence for a simulation run without boolean locking."""
     now = time.time()

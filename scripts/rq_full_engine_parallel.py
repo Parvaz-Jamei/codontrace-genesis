@@ -199,7 +199,7 @@ def main() -> None:
     parser.add_argument('--seeds', type=str, default=None, help='Comma-separated explicit seeds')
     parser.add_argument('--workers', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--max-seconds', type=float, default=1800.0)
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
     if args.seeds:
         parsed_seeds = tuple(int(s.strip()) for s in args.seeds.split(',') if s.strip())
     else:

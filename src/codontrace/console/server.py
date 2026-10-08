@@ -594,6 +594,19 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
     def _respond(self, *, include_body: bool) -> None:
         path = urlparse(self.path).path
+        # @audit-control R10
+        # @audit-control R11
+        # @audit-control R19
+        if path in ("/api/version", "/api/v1/version"):
+            metadata = {
+                "dataset_version": "1.0",
+                "model_version": "1.0",
+                "adapter_engine_version": installed_version()
+            }
+            payload = json.dumps({"version": installed_version(), "metadata": metadata, "lifecycle": "active"}, allow_nan=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store",
+                       extra_headers={"Deprecation": "false", "Link": "<https://api.genesis.local/v1/docs>; rel=\"help\""})
+            return
         if path == "/api/host":
             payload = json.dumps(host_profile(), allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")

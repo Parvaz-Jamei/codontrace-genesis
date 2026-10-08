@@ -922,6 +922,11 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
                 "--histories", str(len(resolved_seeds)),
                 "--seed-start", str(min(resolved_seeds)),
             ])
+            
+        if track_val and track_val != "reference":
+            cmd.extend(["--track", track_val])
+        if cores_val:
+            cmd = ["taskset", "-c", ",".join(map(str, cores_val))] + cmd
 
     started_at = time.time()
     if script_name:

@@ -61,6 +61,7 @@ class EvidenceDependency:
         return _digest(self.to_dict())
 
 
+# @audit-control C2
 @dataclass(frozen=True, slots=True)
 class EvidenceLineageGraph:
     graph_id: str
@@ -555,6 +556,7 @@ class EvidenceLineageEdge:
     def digest(self) -> str:
         return _phase3_digest(self.to_dict())
 
+# @audit-control C2
 @dataclass(frozen=True, slots=True)
 class EvidenceLineageDAG:
     nodes: tuple[EvidenceLineageNode, ...]

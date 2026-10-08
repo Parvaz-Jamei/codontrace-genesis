@@ -85,7 +85,8 @@ def _import_class(path: str) -> type[Any]:
 def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWiringFeature, ...] | None = None) -> dict[str, JsonValue]:
     catalog = features or integration_feature_catalog()
     policy_paths = {item.class_path for item in replay_digest_class_policies()}
-    result_payload = result.to_dict() if result is not None and hasattr(result, "to_dict") else {}
+    has_runtime_result = result is not None and hasattr(result, "to_dict")
+    result_payload = result.to_dict() if has_runtime_result else {}
     manifest_map = {}
     if result is not None and hasattr(result, "evidence_manifest"):
         manifest_map = dict(result.evidence_manifest.artifact_digest_map)
@@ -101,19 +102,41 @@ def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWi
         replay_policy_registered = feature.record_class_path in policy_paths
         if not replay_policy_registered:
             issues.append(f"missing_replay_policy:{feature.feature_name}")
-        result_reachable = not result_payload or feature.result_key in result_payload or feature.result_key in manifest_map
-        if not result_reachable:
-            issues.append(f"missing_result_key:{feature.feature_name}:{feature.result_key}")
-        manifest_reachable = not manifest_map or feature.manifest_key in manifest_map
-        if not manifest_reachable:
-            issues.append(f"missing_manifest_key:{feature.feature_name}:{feature.manifest_key}")
-        digest = manifest_map.get(feature.manifest_key) if manifest_map else feature.digest()
-        if digest and isinstance(digest, str) and digest.startswith(("fake", "placeholder", "not_run:")):
-            issues.append(f"non_real_manifest_digest:{feature.feature_name}")
-        rows.append({**feature.to_dict(), "record_importable": importable, "result_reachable": result_reachable, "manifest_reachable": manifest_reachable, "replay_policy_registered": replay_policy_registered, "audit_digest": feature.digest()})
+
+        if has_runtime_result:
+            result_reachable = feature.result_key in result_payload or feature.result_key in manifest_map
+            if not result_reachable:
+                issues.append(f"missing_result_key:{feature.feature_name}:{feature.result_key}")
+            manifest_reachable = feature.manifest_key in manifest_map
+            if not manifest_reachable:
+                issues.append(f"missing_manifest_key:{feature.feature_name}:{feature.manifest_key}")
+            digest = manifest_map.get(feature.manifest_key)
+            if digest and isinstance(digest, str) and digest.startswith(("fake", "placeholder", "not_run:")):
+                issues.append(f"non_real_manifest_digest:{feature.feature_name}")
+        else:
+            result_reachable = False
+            manifest_reachable = False
+
+        rows.append({
+            **feature.to_dict(),
+            "record_importable": importable,
+            "result_reachable": result_reachable,
+            "manifest_reachable": manifest_reachable,
+            "replay_policy_registered": replay_policy_registered,
+            "runtime_observed": has_runtime_result and result_reachable and manifest_reachable,
+            "audit_digest": feature.digest(),
+        })
+
+    catalog_valid = not [i for i in issues if not i.startswith("missing_result_key") and not i.startswith("missing_manifest_key")]
+    runtime_verified = has_runtime_result and not issues
+
     return {
-        "schema_version": "integration_runtime_wiring_audit_v1",
-        "passed": not issues,
+        "schema_version": "integration_runtime_wiring_audit_v2",
+        "audit_mode": "runtime_verified" if has_runtime_result else "static_catalog_only",
+        "passed": runtime_verified if has_runtime_result else catalog_valid,
+        "catalog_valid": catalog_valid,
+        "runtime_verified": runtime_verified,
+        "has_runtime_result": has_runtime_result,
         "issues": cast(list[JsonValue], sorted(set(issues))),
         "features": cast(list[JsonValue], rows),
         "audit_digest": canonical_digest(rows, prefix="integration_wiring"),

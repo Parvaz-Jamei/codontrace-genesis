@@ -249,6 +249,7 @@ export function ChatView() {
   const send = useBench((state) => state.send);
   const togglePin = useBench((state) => state.togglePin);
   const clearThread = useBench((state) => state.clearThread);
+  const abortChat = useBench((state) => state.abortChat);
   const model = useBench((state) => state.settings.model ?? "local-analyst");
   const setSettings = useBench((state) => state.setSettings);
   const refreshChatStatus = useBench((state) => state.refreshChatStatus);
@@ -488,18 +489,25 @@ export function ChatView() {
                   className="min-w-0 flex-1"
                   onModel={(next) => setSettings({ model: next })}
                 />
-                <button
-                  type="submit"
-                  disabled={!canSend}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-fg text-bg disabled:opacity-40"
-                  aria-label={text.send}
-                >
-                  {active?.isThinking ? (
-                    <Square className="h-5 w-5 fill-current" />
-                  ) : (
+                {active?.isThinking ? (
+                  <button
+                    type="button"
+                    onClick={() => abortChat(active.id)}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
+                    aria-label={lang === "fa" ? "توقف تولید" : "Stop generation"}
+                  >
+                    <Square className="h-4 w-4 fill-current" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!canSend}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-fg text-bg disabled:opacity-40"
+                    aria-label={text.send}
+                  >
                     <ArrowUp className="h-5 w-5 stroke-[3]" />
-                  )}
-                </button>
+                  </button>
+                )}
               </div>
             </div>
             <div className="mx-auto mt-1 flex w-full max-w-2xl flex-wrap gap-1">
@@ -1556,27 +1564,32 @@ export function LogRail({ filterId = "log-filter" }: { filterId?: string }) {
 }
 
 function Reveal({ text, active }: { text: string; active: boolean }) {
-  const [count, setCount] = useState(active ? 0 : text.length);
+  const words = useMemo(() => text.split(/(\s+)/), [text]);
+  const [wordCount, setWordCount] = useState(active ? 0 : words.length);
+
   useEffect(() => {
     if (!active) {
-      setCount(text.length);
+      setWordCount(words.length);
       return;
     }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setCount(text.length);
+      setWordCount(words.length);
       return;
     }
-    let index = 0;
-    let frame = 0;
-    const step = () => {
-      index = Math.min(text.length, index + 3);
-      setCount(index);
-      if (index < text.length) frame = window.requestAnimationFrame(step);
-    };
-    frame = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(frame);
-  }, [text, active]);
-  return <>{text.slice(0, count)}</>;
+    setWordCount(0);
+    const interval = setInterval(() => {
+      setWordCount((prev) => {
+        if (prev >= words.length) {
+          clearInterval(interval);
+          return words.length;
+        }
+        return prev + 1;
+      });
+    }, 28);
+    return () => clearInterval(interval);
+  }, [words, active]);
+
+  return <>{words.slice(0, wordCount).join("")}</>;
 }
 
 function Status({ job }: { job: Job }) {

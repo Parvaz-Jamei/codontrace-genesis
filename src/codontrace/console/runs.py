@@ -873,7 +873,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     repo_root = Path(__file__).resolve().parents[3]
     cmd = [sys.executable]
 
-    script_name = params.get("scriptName")
+    script_name = params.get("scriptName") or params.get("script")
     if script_name:
         if not isinstance(script_name, str) or not script_name.endswith(".py") or Path(script_name).name != script_name:
             shutil.rmtree(run_dir, ignore_errors=True)
@@ -910,6 +910,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         ])
         if resolved_seeds:
             cmd.extend([
+                "--seeds", ",".join(str(s) for s in resolved_seeds),
                 "--histories", str(len(resolved_seeds)),
                 "--seed-start", str(min(resolved_seeds)),
             ])

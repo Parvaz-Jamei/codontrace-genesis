@@ -196,12 +196,17 @@ def main() -> None:
     parser.add_argument('--histories', type=int, default=12)
     parser.add_argument('--generations', type=int, default=100)
     parser.add_argument('--seed-start', type=int, default=16001)
+    parser.add_argument('--seeds', type=str, default=None, help='Comma-separated explicit seeds')
     parser.add_argument('--workers', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--max-seconds', type=float, default=1800.0)
     args = parser.parse_args()
-    if args.histories < 1:
-        parser.error('histories must be positive')
-    report = run(args.output, tuple(range(args.seed_start, args.seed_start+args.histories)),
+    if args.seeds:
+        parsed_seeds = tuple(int(s.strip()) for s in args.seeds.split(',') if s.strip())
+    else:
+        if args.histories < 1:
+            parser.error('histories must be positive')
+        parsed_seeds = tuple(range(args.seed_start, args.seed_start + args.histories))
+    report = run(args.output, parsed_seeds,
         args.generations, args.workers, args.max_seconds)
     print(json.dumps({k: v for k, v in report.items() if k not in ('outcomes', 'replays')}))
     if not report['complete']:

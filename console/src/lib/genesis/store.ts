@@ -74,6 +74,7 @@ type BenchState = {
   togglePin: (threadId: string) => void;
   clearThread: (threadId: string) => void;
   clearChats: () => void;
+  abortChat: (threadId?: string) => void;
   settle: () => void;
 };
 
@@ -97,6 +98,8 @@ const baseSettings: BenchSettings = {
   density: "comfortable",
   model: "local-analyst",
 };
+
+let activeChatAbortController: AbortController | null = null;
 
 export const useBench = create<BenchState>()(
   persist(
@@ -183,6 +186,7 @@ export const useBench = create<BenchState>()(
           track: input.track || "engine",
           cores: input.cores.length ? input.cores : null,
           script: input.scriptName,
+          scriptName: input.scriptName,
         });
         if (!res.ok || !res.runId) {
           throw new Error(res.error || "Failed to launch run");
@@ -385,64 +389,102 @@ export const useBench = create<BenchState>()(
           ),
         });
 
-        
-          const activeModel =
-            state.settings.model === "board-model" && state.chatStatus?.model
-              ? state.chatStatus.model
-              : state.settings.model;
-          sendChatMessage(trimmed, state.settings.lang, job, job?.id, activeModel)
-            .then((res) => {
-              const assistantMsg: ChatMessage = {
-                id: uid(),
-                role: "assistant" as const,
-                text: res.reply,
-                at: Date.now(),
-                source: res.source,
-                model: res.model,
-                durationMs: res.duration_ms,
-                fallback: res.fallback,
-              };
-              set({
-                threads: get().threads.map((item) =>
-                  item.id === threadId
-                    ? {
-                        ...item,
-                        updatedAt: Date.now(),
-                        messages: [...item.messages, assistantMsg],
-                        isThinking: false,
-                      }
-                    : item,
-                ),
-              });
-            })
-            .catch(() => {
-              const reply = answer(state.settings.lang, trimmed, job ?? null);
-              const spoken =
-                state.settings.lang === "fa"
-                  ? `پاسخ از تحلیلگر محلی (مدل زنده در دسترس نیست):\n${reply}`
-                  : `Local analyst fallback (live model offline):\n${reply}`;
-              const assistantMsg: ChatMessage = {
-                id: uid(),
-                role: "assistant" as const,
-                text: spoken,
-                at: Date.now(),
-                source: "analyst",
-                fallback: true,
-              };
-              set({
-                threads: get().threads.map((item) =>
-                  item.id === threadId
-                    ? {
-                        ...item,
-                        updatedAt: Date.now(),
-                        messages: [...item.messages, assistantMsg],
-                        isThinking: false,
-                      }
-                    : item,
-                ),
-              });
+        if (activeChatAbortController) {
+          activeChatAbortController.abort();
+        }
+        activeChatAbortController = new AbortController();
+        const controller = activeChatAbortController;
+
+        const activeModel =
+          state.settings.model === "board-model" && state.chatStatus?.model
+            ? state.chatStatus.model
+            : state.settings.model;
+
+        sendChatMessage(
+          trimmed,
+          state.settings.lang,
+          job,
+          job?.id,
+          activeModel,
+          controller.signal,
+        )
+          .then((res) => {
+            if (controller.signal.aborted) return;
+            const assistantMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant" as const,
+              text: res.reply,
+              at: Date.now(),
+              source: res.source,
+              model: res.model,
+              durationMs: res.duration_ms,
+              fallback: res.fallback,
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId
+                  ? {
+                      ...item,
+                      updatedAt: Date.now(),
+                      messages: [...item.messages, assistantMsg],
+                      isThinking: false,
+                    }
+                  : item,
+              ),
             });
-        
+          })
+          .catch((err: unknown) => {
+            if (
+              controller.signal.aborted ||
+              (err instanceof Error && err.name === "AbortError")
+            ) {
+              set({
+                threads: get().threads.map((item) =>
+                  item.id === threadId ? { ...item, isThinking: false } : item,
+                ),
+              });
+              return;
+            }
+            const reply = answer(state.settings.lang, trimmed, job ?? null);
+            const spoken =
+              state.settings.lang === "fa"
+                ? `پاسخ از تحلیلگر محلی (مدل زنده در دسترس نیست):\n${reply}`
+                : `Local analyst fallback (live model offline):\n${reply}`;
+            const assistantMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant" as const,
+              text: spoken,
+              at: Date.now(),
+              source: "analyst",
+              fallback: true,
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId
+                  ? {
+                      ...item,
+                      updatedAt: Date.now(),
+                      messages: [...item.messages, assistantMsg],
+                      isThinking: false,
+                    }
+                  : item,
+              ),
+            });
+          });
+      },
+      abortChat: (threadId) => {
+        if (activeChatAbortController) {
+          activeChatAbortController.abort();
+          activeChatAbortController = null;
+        }
+        const targetId = threadId ?? get().activeThreadId;
+        if (targetId) {
+          set({
+            threads: get().threads.map((item) =>
+              item.id === targetId ? { ...item, isThinking: false } : item,
+            ),
+          });
+        }
       },
       togglePin: (threadId) =>
         set({

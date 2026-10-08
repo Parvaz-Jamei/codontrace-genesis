@@ -90,6 +90,7 @@ export async function sendChatMessage(
   jobContext?: unknown,
   jobId?: string | null,
   model?: string | null,
+  signal?: AbortSignal,
 ): Promise<{
   reply: string;
   source: "llm" | "analyst";
@@ -102,6 +103,7 @@ export async function sendChatMessage(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, lang, jobContext, jobId, model }),
+    signal,
   });
   if (!res.ok) throw new Error(String(res.status));
   return (await res.json()) as {

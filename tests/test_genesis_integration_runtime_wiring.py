@@ -18,4 +18,15 @@ def test_integration_runtime_wiring_passes_against_real_result():
     result = _run()
     audit = audit_runtime_wiring(result)
     assert audit["passed"], audit["issues"]
+    assert audit["runtime_verified"] is True
     assert any(row["feature_name"] == "release_evidence_pack" for row in audit["features"])
+
+
+def test_integration_runtime_wiring_without_result_does_not_claim_runtime_reachability():
+    audit = audit_runtime_wiring(None)
+    assert audit["catalog_valid"] is True
+    assert audit["runtime_verified"] is False
+    assert audit["audit_mode"] == "static_catalog_only"
+    assert all(row["runtime_observed"] is False for row in audit["features"])
+    assert all(row["result_reachable"] is False for row in audit["features"])
+

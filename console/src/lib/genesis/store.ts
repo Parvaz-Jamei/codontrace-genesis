@@ -210,8 +210,8 @@ export const useBench = create<BenchState>()(
           logs: [`starting execution on board/host · ${input.track || "engine"} · red_queen_proved=false`],
           createdAt: Date.now(),
           note: input.track || "engine",
-          redQueenProved: false,
-          exploratory: true,
+
+
           diagnostics: "not_run",
           serverManaged: true,
           isDemo: false,
@@ -248,9 +248,11 @@ export const useBench = create<BenchState>()(
               const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
               updatedJobs[existingIndex] = {
                 ...existing,
+                title: sRun.title || existing.title,
                 status: mappedStatus,
                 pct: sRun.pct ?? existing.pct,
-                cursor: sRun.status === "COMPLETED" ? existing.totalSteps : Math.round(((sRun.pct || 0) / 100) * existing.totalSteps),
+                totalSteps: sRun.totalSeeds || existing.totalSteps,
+                cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : Math.round(((sRun.pct || 0) / 100) * (sRun.totalSeeds || existing.totalSteps)),
                 logs,
               };
             } else {
@@ -271,8 +273,8 @@ export const useBench = create<BenchState>()(
                 logs: sRun.recentLogs || [],
                 createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
                 note: "server run",
-                redQueenProved: false,
-                exploratory: true,
+
+
                 diagnostics: "not_run",
                 serverManaged: true,
                 isDemo: false,
@@ -656,7 +658,7 @@ export function seedSlots(job: Job) {
 export function artifactZip(job: Job) {
   const execution = {
     complete: job.status === "archived",
-    exploratory: true,
+
     red_queen_proved: false,
     diagnostics_complete: false,
     diagnostics: job.diagnostics,
@@ -693,7 +695,7 @@ export function suiteZip(jobs: Job[]) {
           cursor: job?.cursor ?? 0,
           total: job?.totalSteps ?? count,
           red_queen_proved: false,
-          exploratory: true,
+
           pytest: false,
           log: job?.logs ?? [],
         },
@@ -760,8 +762,8 @@ function buildJob(input: RunInput): Job | null {
     ],
     createdAt: Date.now(),
     note: input.track ?? "",
-    redQueenProved: false,
-    exploratory: true,
+
+
     diagnostics: "not_run",
     gateFile,
     scriptName: input.scriptName,
@@ -796,8 +798,8 @@ function engineCheck(): Job {
     logs: lines,
     createdAt: Date.now(),
     note: "Measured on the 0.3.0b15 engine tree. Not a campaign.",
-    redQueenProved: false,
-    exploratory: true,
+
+
     diagnostics: "not_run",
     isDemo: true,
     serverManaged: false,

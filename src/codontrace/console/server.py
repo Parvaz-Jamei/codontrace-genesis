@@ -333,6 +333,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         """Verify independent authorization token and origin security for release update (R18)."""
         client_ip = self.client_address[0] if self.client_address else ""
         is_local = _from_this_machine(client_ip)
+        
+        # If proxy headers are present, treat as remote to prevent reverse proxy bypass or spoofing
+        if self.headers.get("X-Forwarded-For") or self.headers.get("X-Real-IP"):
+            is_local = False
 
         configured_token = os.environ.get("CODONTRACE_UPDATE_TOKEN", "").strip()
 

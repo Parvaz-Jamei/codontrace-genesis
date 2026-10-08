@@ -22,9 +22,14 @@ BAD_DIR_NAMES = {
     ".hypothesis",
     ".ipynb_checkpoints",
     ".phase3_",
+    "outputs",
+    "local",
+    ".vscode",
+    ".idea",
+    "research_notes",
 }
 BAD_DIR_FRAGMENTS = ("__pycache__", ".pytest_cache", ".phase3_", ".ipynb_checkpoints")
-BAD_SUFFIX = {".pyc", ".pyo"}
+BAD_SUFFIX = {".pyc", ".pyo", ".log", ".db", ".env"}
 
 
 def build(root: str | Path, out: str | Path) -> Path:
@@ -48,7 +53,7 @@ def build(root: str | Path, out: str | Path) -> Path:
 
         for fname in sorted(filenames):
             p = current_dir / fname
-            if p.suffix in BAD_SUFFIX or fname == ".DS_Store" or fname.endswith("~"):
+            if p.suffix in BAD_SUFFIX or fname == ".DS_Store" or fname == ".env" or fname.endswith("~"):
                 continue
             if ".tmp." in fname:
                 continue

@@ -784,6 +784,9 @@ def validate_scientific_manifest(manifest: RunManifest) -> ScientificManifestVal
     )
 
 
+import functools
+
+@functools.lru_cache(maxsize=1)
 def compute_source_digest(root: str | None = None) -> str:
     """Compute a canonical source digest when git commit metadata is unavailable."""
 

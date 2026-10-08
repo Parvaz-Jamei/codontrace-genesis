@@ -49,9 +49,8 @@ export type Job = {
   logs: string[];
   createdAt: number;
   note: string;
-  redQueenProved: false;
-  exploratory: true;
-  diagnostics: "not_run";
+  assessments?: HypothesisAssessment[];
+  diagnostics?: string;
   gateFile?: string;
   scriptName?: string;
   isDemo?: boolean;
@@ -60,6 +59,13 @@ export type Job = {
   mtime?: number;
   execution?: Record<string, unknown>;
   diagnosticsData?: Record<string, unknown>;
+};
+
+export type HypothesisAssessment = {
+  hypothesis_id: string;
+  conclusion: string;
+  confidence: number;
+  evidence_digests: string[];
 };
 
 export type ChatStatus = {

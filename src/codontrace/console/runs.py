@@ -522,6 +522,14 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
                     continue
 
                 # Strict boundary containment check (prevent symlink path traversal - R05)
+                if file_path.is_symlink():
+                    omitted_files.append({
+                        "path": str(rel_path).replace("\\", "/"),
+                        "size": 0,
+                        "reason": "Symlinks are explicitly excluded to prevent path traversal",
+                    })
+                    continue
+
                 try:
                     target_path = file_path.resolve(strict=True)
                     if not target_path.is_relative_to(entry_root):
@@ -786,8 +794,8 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
             new_status = "COMPLETED"
             error_reason = None
         else:
-            new_status = "COMPLETED"
-            error_reason = None
+            new_status = "FAILED"
+            error_reason = "Run exited with 0 but produced no complete marker and no execution.json"
     else:
         new_status = "FAILED"
         console_log = run_dir / "console.log"

@@ -260,6 +260,10 @@ class RunnerAdapter:
 
         return root_data
 
+    def resolve_status_data(self, run_dir: Path) -> dict[str, Any]:
+        """Resolve and reconcile authoritative status data for run_dir."""
+        return self.reconcile_status(run_dir)
+
     def resolve_execution_data(self, run_dir: Path) -> dict[str, Any] | None:
         exec_path = run_dir / self.primary_output_dir / "execution.json"
         if not exec_path.is_file():
@@ -449,8 +453,11 @@ def build_run_snapshot(
 
     started_at = float(status_info.get("startedAt", 0.0))
     wall_elapsed = max(0.0, time.time() - started_at) if started_at > 0 else 0.0
-    active_elapsed = wall_elapsed
     paused_seconds = float(status_info.get("paused_seconds", 0.0))
+    if "active_elapsed_seconds" in status_info:
+        active_elapsed = float(status_info["active_elapsed_seconds"])
+    else:
+        active_elapsed = max(0.0, wall_elapsed - paused_seconds)
 
     if entry and entry.is_dir():
         hlog = entry / adapter.primary_output_dir / "health.log"
@@ -491,9 +498,9 @@ def build_run_snapshot(
             "total": float(total_seeds),
             "pct": round(pct_val, 1),
         },
-        "active_elapsed_seconds": round(active_elapsed, 1),
-        "paused_seconds": round(paused_seconds, 1),
-        "wall_elapsed_seconds": round(wall_elapsed, 1),
+        "active_elapsed_seconds": round(active_elapsed, 2),
+        "paused_seconds": round(paused_seconds, 2),
+        "wall_elapsed_seconds": round(wall_elapsed, 2),
         "heartbeat_at": datetime.datetime.now(datetime.UTC).isoformat(),
         "pending_command_id": None,
     }
@@ -610,7 +617,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
         runs.append({
             "id": run_id,
             "title": status_info.get("title") or run_id.replace("_", " ").title(),
-            "status": snapshot["state"],
+            "status": st if st == "STALE" else snapshot["state"],
             "path": str(entry),
             "pct": round(float(pct_val), 1),
             "completedSeeds": status_info.get("completed_seeds", status_info.get("completedSeeds", seed_count)),
@@ -689,7 +696,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 status_info["status"] = st
                 if st == "COMPLETED":
                     status_info.setdefault("exitCode", 0)
-                    status_info.setdefault("pct", 100.0)
+                    status_info["pct"] = 100.0
                     status_info.setdefault("endedAt", time.time())
                 elif st == "FAILED":
                     status_info.setdefault("exitCode", 1)
@@ -760,6 +767,9 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         "modelScope": "full_digital_organism_simulation" if status_info.get("engineBackend") == "genesis_engine" else "theoretical_reference_model",
         "modelBoundaryNotice": "Digital organism coevolution engine" if status_info.get("engineBackend") == "genesis_engine" else "Frontier theoretical reference benchmark.",
     }
+    if snapshot["state"] == "COMPLETED":
+        status_info["pct"] = 100.0
+        status_info.setdefault("exitCode", 0)
 
     return {
         "id": run_id,

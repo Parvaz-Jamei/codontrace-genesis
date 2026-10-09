@@ -206,6 +206,7 @@ def create_run_snapshot(
     supports_pause: bool = True,
     supports_resume: bool = True,
     supports_checkpoint: bool = False,
+    capabilities: Mapping[str, bool] | None = None,
     workers_expected: int = 1,
     workers_paused: int = 0,
     progress_kind: str = "work_units",
@@ -214,12 +215,28 @@ def create_run_snapshot(
     total: float = 100.0,
     pct: float | None = None,
     active_elapsed: float = 0.0,
+    active_elapsed_seconds: float | None = None,
     paused_elapsed: float = 0.0,
+    paused_seconds: float | None = None,
     wall_elapsed: float = 0.0,
+    wall_elapsed_seconds: float | None = None,
     heartbeat_at: str | None = None,
     pending_command_id: str | None = None,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """Helper to construct and validate a RunSnapshot dictionary."""
+    if capabilities is not None:
+        supports_pause = bool(capabilities.get("pause", supports_pause))
+        supports_resume = bool(capabilities.get("resume", supports_resume))
+        supports_checkpoint = bool(capabilities.get("checkpoint_continue", supports_checkpoint))
+
+    if active_elapsed_seconds is not None:
+        active_elapsed = active_elapsed_seconds
+    if paused_seconds is not None:
+        paused_elapsed = paused_seconds
+    if wall_elapsed_seconds is not None:
+        wall_elapsed = wall_elapsed_seconds
+
     if pct is None and total > 0:
         raw_pct = (done / total) * 100.0
         pct = round(max(0.0, min(100.0, raw_pct)), 1)

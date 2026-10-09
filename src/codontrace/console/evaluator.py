@@ -364,6 +364,36 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
                 "evaluated_at": now,
             }
+        is_censored = bool(
+            summary.get("censored")
+            or summary.get("bound_type") in ("censored", "upper_bound")
+            or summary.get("zero_success")
+            or (summary.get("viable_count") == 0 and "viable_count" in summary)
+        )
+        bound_type = str(summary.get("bound_type") or ("upper_bound" if is_censored else "point_estimate"))
+        zero_success = bool(summary.get("zero_success") or (summary.get("viable_count") == 0 and "viable_count" in summary))
+
+        if is_censored:
+            return {
+                "verdict": "inconclusive",
+                "hypothesis_id": "hazen_functional_info_accretion",
+                "protocol": "hazen_2007_functional_information",
+                "confidence": 0.60,
+                "rationale": (
+                    f"Zero viable mutants sampled in reference sequence space; "
+                    f"functional information ({fi_bits:.2f} bits) represents a censored upper bound with sampling uncertainty."
+                ),
+                "controls_passed": True,
+                "evidence_summary": {
+                    "fi_bits": fi_bits,
+                    "percolation": percolation,
+                    "censored": True,
+                    "bound_type": bound_type,
+                    "zero_success": zero_success,
+                },
+                "evaluated_at": now,
+            }
+
         if fi_bits > 0.0 and percolation > 0.0:
             return {
                 "verdict": "supported",
@@ -372,7 +402,13 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "confidence": 0.95,
                 "rationale": f"Functional information accretion ({fi_bits:.2f} bits) and neutral network percolation ({percolation*100:.1f}%) observed.",
                 "controls_passed": True,
-                "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
+                "evidence_summary": {
+                    "fi_bits": fi_bits,
+                    "percolation": percolation,
+                    "censored": False,
+                    "bound_type": "point_estimate",
+                    "zero_success": False,
+                },
                 "evaluated_at": now,
             }
         return {
@@ -382,7 +418,13 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
             "confidence": 0.70,
             "rationale": "Functional information threshold not exceeded in sampled sequence space.",
             "controls_passed": True,
-            "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
+            "evidence_summary": {
+                "fi_bits": fi_bits,
+                "percolation": percolation,
+                "censored": False,
+                "bound_type": "point_estimate",
+                "zero_success": False,
+            },
             "evaluated_at": now,
         }
 

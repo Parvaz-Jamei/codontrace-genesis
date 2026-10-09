@@ -163,14 +163,26 @@ def check_llm_status() -> dict[str, Any]:
     return dict(fallback_status)
 
 
+class LLMUpstreamError(RuntimeError):
+    """Raised when upstream LLM communication drops or times out without user cancellation."""
+    pass
+
+
 def query_llm(
     messages: list[dict[str, str]],
     system_prompt: str | None = None,
     model: str | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> str | None:
-    """Send query to local LLM server with explicit model and safe timeout handling."""
+    """Send query to local LLM server with explicit model, cancel event, and safe timeout handling."""
+    if cancel_event is not None and cancel_event.is_set():
+        return None
+
     status = check_llm_status()
     if not status["mounted"]:
+        return None
+
+    if cancel_event is not None and cancel_event.is_set():
         return None
 
     endpoint = status["endpoint"]
@@ -201,6 +213,9 @@ def query_llm(
         method="POST",
     )
 
+    if cancel_event is not None and cancel_event.is_set():
+        return None
+
     llm_timeout = float(os.environ.get("CODONTRACE_LLM_TIMEOUT", "180.0"))
     try:
         with urllib.request.urlopen(req, timeout=llm_timeout) as resp:
@@ -210,7 +225,11 @@ def query_llm(
                 if choices and isinstance(choices, list):
                     content = choices[0].get("message", {}).get("content", "")
                     return content.strip() if content else None
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        if cancel_event is not None and cancel_event.is_set():
+            return None
+        raise LLMUpstreamError("cancelled_upstream") from exc
+    except ValueError:
         return None
     return None
 
@@ -241,6 +260,8 @@ def chat_turn(
                 "duration_ms": 0,
                 "fallback": True,
                 "cancelled": True,
+                "cancelled_type": "cancelled_response",
+                "cancellation_reason": "cancelled_response",
             }
 
         sys_prompt = (
@@ -322,12 +343,43 @@ def chat_turn(
                 "duration_ms": round((time.time() - t0) * 1000),
                 "fallback": True,
                 "cancelled": True,
+                "cancelled_type": "cancelled_response",
+                "cancellation_reason": "cancelled_response",
             }
 
+        upstream_error = False
         if model in ("local-analyst", "deterministic-analyst"):
             llm_answer = None
         else:
-            llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
+            import concurrent.futures
+
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            try:
+                fut = executor.submit(
+                    query_llm,
+                    [{"role": "user", "content": text}],
+                    system_prompt=sys_prompt,
+                    model=model,
+                    cancel_event=cancel_event,
+                )
+                while not fut.done():
+                    if cancel_event.wait(timeout=0.05):
+                        break
+
+                if cancel_event.is_set():
+                    llm_answer = None
+                else:
+                    try:
+                        llm_answer = fut.result()
+                    except LLMUpstreamError:
+                        llm_answer = None
+                        upstream_error = True
+                    except Exception:
+                        llm_answer = None
+                        upstream_error = True
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
+
         duration_ms = round((time.time() - t0) * 1000)
 
         if cancel_event.is_set():
@@ -339,6 +391,8 @@ def chat_turn(
                 "duration_ms": duration_ms,
                 "fallback": True,
                 "cancelled": True,
+                "cancelled_type": "cancelled_response",
+                "cancellation_reason": "cancelled_response",
             }
 
         if llm_answer is not None:
@@ -351,6 +405,9 @@ def chat_turn(
                 "model": resolved_model or "local-model",
                 "duration_ms": duration_ms,
                 "fallback": False,
+                "cancelled": False,
+                "cancelled_type": "none",
+                "cancellation_reason": "none",
             }
 
         # Deterministic domain-aware fallback answer (R19)
@@ -369,6 +426,9 @@ def chat_turn(
             "model": resolved_analyst_model,
             "duration_ms": duration_ms,
             "fallback": is_fallback,
+            "cancelled": False,
+            "cancelled_type": "cancelled_upstream" if upstream_error else "none",
+            "cancellation_reason": "cancelled_upstream" if upstream_error else "none",
         }
     finally:
         if request_id:

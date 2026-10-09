@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -46,6 +47,10 @@ class MetricRecord:
     metric_name: str
     value: float
     unit: str | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, (int, float)) or not math.isfinite(self.value):
+            raise ValueError(f"MetricRecord '{self.metric_name}' value must be a finite float, got {self.value}")
     
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -61,6 +66,15 @@ class HypothesisAssessment:
     conclusion: str
     confidence: float
     evidence_digests: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.confidence, (int, float)) or not math.isfinite(self.confidence):
+            raise ValueError(f"HypothesisAssessment confidence must be finite, got {self.confidence}")
+        if not (0.0 <= self.confidence <= 1.0):
+            raise ValueError(f"HypothesisAssessment confidence must be between 0.0 and 1.0, got {self.confidence}")
+        for d in self.evidence_digests:
+            if not d or any(d.startswith(p) for p in ("fake", "placeholder", "not_run:")):
+                raise ValueError(f"HypothesisAssessment contains invalid or fake evidence digest: {d}")
     
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -79,5 +93,5 @@ class ArtifactManifest:
     def to_dict(self) -> dict[str, JsonValue]:
         return {
             "version": self.version,
-            "artifacts": list(self.artifacts),
+            "artifacts": [dict(a) for a in self.artifacts],
         }

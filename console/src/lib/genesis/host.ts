@@ -143,6 +143,23 @@ export type ServerRunDetails = {
   pct?: number;
   snapshot?: RunSnapshotV2;
   capabilities?: CapabilitiesV2;
+  hypothesis_assessment?: {
+    verdict: string;
+    hypothesis_id: string;
+    protocol: string;
+    confidence: number | null;
+    rationale: string;
+    controls_passed: boolean;
+    evidence_summary?: Record<string, unknown>;
+    evaluated_at?: number;
+  };
+  executionBoundary?: {
+    engineBackend: string;
+    isGenesisEngine: boolean;
+    isFrontierReference: boolean;
+    modelScope: string;
+    modelBoundaryNotice: string;
+  };
 };
 
 export type LaunchRunPayload = {

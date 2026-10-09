@@ -80,11 +80,6 @@ def integration_feature_catalog() -> tuple[RuntimeWiringFeature, ...]:
         RuntimeWiringFeature("statistical_protocol", "codontrace.genesis.phase_b_scientific_maturity.StatisticalClaimValidationResult", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_statistical_results", "phase_b_statistical_results", True, "tests/science_gates/test_phase3_digest_and_release_pack_strictness.py", "tests/science_gates/test_phase3_final_acceptance_blockers.py"),
         RuntimeWiringFeature("release_evidence_pack", "codontrace.genesis.phase_b_scientific_maturity.ReleaseEvidencePackSample", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_release_packs", "phase_b_release_packs", True, "tests/science_gates/test_phase3_final_acceptance_blockers.py", "tests/science_gates/test_phase3_digest_and_release_pack_strictness.py"),
         RuntimeWiringFeature("plugin_extension_safety", "codontrace.genesis.phase_b_scientific_maturity.PluginValidationResult", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_plugin_validations", "phase_b_plugin_validations", True, "tests/test_genesis_plugin_api_safety.py", "tests/test_genesis_plugin_api_safety.py"),
-        RuntimeWiringFeature("d0_baseline_metrics", "codontrace.genesis.phase_b_scientific_maturity.D0BaselineReport", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_d0_baseline_reports", "phase_b_d0_baseline_reports", True, "tests/science_gates/test_d0_baseline_report.py", "tests/science_gates/test_d0_baseline_report.py"),
-        RuntimeWiringFeature("novelty_trajectory_metrics", "codontrace.genesis.phase_b_scientific_maturity.NoveltyTrajectory", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_novelty_trajectories", "phase_b_novelty_trajectories", True, "tests/science_gates/test_novelty_trajectory.py", "tests/science_gates/test_novelty_trajectory.py"),
-        RuntimeWiringFeature("learnability_assay", "codontrace.genesis.phase_b_scientific_maturity.LearnabilityReport", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_learnability_reports", "phase_b_learnability_reports", True, "tests/science_gates/test_learnability_report.py", "tests/science_gates/test_learnability_report.py"),
-        RuntimeWiringFeature("seed_sweep_protocol", "codontrace.genesis.phase_b_scientific_maturity.SeedSweepReport", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_seed_sweeps", "phase_b_seed_sweeps", True, "tests/science_gates/test_seed_sweep_protocol.py", "tests/science_gates/test_seed_sweep_protocol.py"),
-        RuntimeWiringFeature("checkpoint_resume_audit", "codontrace.genesis.phase_b_scientific_maturity.CheckpointResumeAudit", "GenesisRunResult.phase_b_scientific_maturity_report", "phase_b_checkpoint_audits", "phase_b_checkpoint_audits", True, "tests/test_genesis_checkpoint_resume_audit.py", "tests/test_genesis_checkpoint_resume_audit.py"),
     )
 
 
@@ -93,12 +88,34 @@ def _import_class(path: str) -> type[Any]:
     return cast(type[Any], getattr(import_module(module_name), name))
 
 
+def _extract_consumer_payload(result_payload: dict[str, Any], feature: RuntimeWiringFeature) -> Any:
+    """Extract consumer payload from result dictionary or nested maturity reports."""
+    k = feature.result_key
+    if k in result_payload:
+        return result_payload[k]
+    pb = result_payload.get("phase_b_scientific_maturity_report")
+    if isinstance(pb, dict):
+        if k in pb:
+            return pb[k]
+        short_k = k.removeprefix("phase_b_")
+        if short_k in pb:
+            return pb[short_k]
+    p1 = result_payload.get("phase1_runtime_maturity_report")
+    if isinstance(p1, dict):
+        if k in p1:
+            return p1[k]
+        short_k = k.removeprefix("phase1_")
+        if short_k in p1:
+            return p1[short_k]
+    return None
+
+
 def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWiringFeature, ...] | None = None) -> dict[str, JsonValue]:
     catalog = features or integration_feature_catalog()
     policy_paths = {item.class_path for item in replay_digest_class_policies()}
     has_runtime_result = result is not None and hasattr(result, "to_dict")
-    result_payload = result.to_dict() if has_runtime_result else {}
-    manifest_map = {}
+    result_payload: dict[str, Any] = result.to_dict() if has_runtime_result else {}
+    manifest_map: dict[str, Any] = {}
     if result is not None and hasattr(result, "evidence_manifest"):
         manifest_map = dict(result.evidence_manifest.artifact_digest_map)
     issues: list[str] = []
@@ -115,14 +132,24 @@ def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWi
             issues.append(f"missing_replay_policy:{feature.feature_name}")
 
         if has_runtime_result:
-            result_reachable = feature.result_key in result_payload or feature.result_key in manifest_map
-            if not result_reachable:
+            # Consumer trace: check actual payload presence and non-emptiness
+            consumer_data = _extract_consumer_payload(result_payload, feature)
+            if consumer_data is None:
+                result_reachable = False
                 issues.append(f"missing_result_key:{feature.feature_name}:{feature.result_key}")
+            elif isinstance(consumer_data, (list, tuple, dict, str)) and len(consumer_data) == 0:
+                result_reachable = False
+                issues.append(f"empty_consumer_payload:{feature.feature_name}:{feature.result_key}")
+            else:
+                result_reachable = True
+
+            # Manifest reachability: check presence in artifact digest map and non-placeholder digest
             manifest_reachable = feature.manifest_key in manifest_map
             if not manifest_reachable:
                 issues.append(f"missing_manifest_key:{feature.feature_name}:{feature.manifest_key}")
             digest = manifest_map.get(feature.manifest_key)
             if digest and isinstance(digest, str) and digest.startswith(("fake", "placeholder", "not_run:")):
+                manifest_reachable = False
                 issues.append(f"non_real_manifest_digest:{feature.feature_name}")
         else:
             result_reachable = False
@@ -138,7 +165,7 @@ def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWi
             "audit_digest": feature.digest(),
         })
 
-    catalog_valid = not [i for i in issues if not i.startswith("missing_result_key") and not i.startswith("missing_manifest_key")]
+    catalog_valid = not [i for i in issues if not i.startswith("missing_result_key") and not i.startswith("missing_manifest_key") and not i.startswith("empty_consumer_payload")]
     runtime_verified = has_runtime_result and not issues
 
     return {

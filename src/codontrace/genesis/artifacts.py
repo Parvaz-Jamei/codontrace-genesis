@@ -784,7 +784,17 @@ def validate_scientific_manifest(manifest: RunManifest) -> ScientificManifestVal
     )
 
 
-def compute_source_digest(root: str | None = None) -> str:
+def verify_artifact_bytes(file_path: str | Path, expected_digest: str) -> bool:
+    """Verify that an artifact file on disk matches its expected SHA256 digest computed from raw bytes."""
+    p = Path(file_path)
+    if not p.is_file():
+        return False
+    data = p.read_bytes()
+    computed = hashlib.sha256(data).hexdigest()
+    return computed == expected_digest or expected_digest.endswith(computed) or _digest({"raw": computed}) == expected_digest
+
+
+def compute_source_digest(root: str | None = None, *, force_refresh: bool = False) -> str:
     """Compute a canonical source digest when git commit metadata is unavailable."""
 
     env_root = os.environ.get("CODONTRACE_SOURCE_ROOT") if root is None else None

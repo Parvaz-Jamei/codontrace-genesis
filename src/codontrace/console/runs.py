@@ -695,6 +695,22 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
     except (ValueError, TypeError):
         pct_val = 0.0
 
+    from codontrace.console.evaluator import evaluate_run_hypothesis
+
+    assessment = evaluate_run_hypothesis({
+        "status": status_info.get("status", "UNKNOWN"),
+        "execution": exec_data,
+        "diagnostics": diagnostics_data,
+        "manifest": manifest_data,
+    })
+    boundary = manifest_data.get("executionBoundary") or {
+        "engineBackend": status_info.get("engineBackend", "genesis_engine"),
+        "isGenesisEngine": status_info.get("engineBackend", "genesis_engine") == "genesis_engine",
+        "isFrontierReference": status_info.get("isFrontierReference", False),
+        "modelScope": "full_digital_organism_simulation" if status_info.get("engineBackend") == "genesis_engine" else "theoretical_reference_model",
+        "modelBoundaryNotice": "Digital organism coevolution engine" if status_info.get("engineBackend") == "genesis_engine" else "Frontier theoretical reference benchmark.",
+    }
+
     return {
         "id": run_id,
         "title": status_info.get("title") or run_id.replace("_", " ").title(),
@@ -708,6 +724,8 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         "consoleLogs": tail_file(console_log, 100),
         "snapshot": snapshot,
         "capabilities": snapshot["capabilities"],
+        "hypothesis_assessment": assessment,
+        "executionBoundary": boundary,
     }
 
 

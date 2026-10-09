@@ -375,6 +375,7 @@ export const useBench = create<BenchState>()(
                   }
                 }
 
+                const bnd = details.executionBoundary ?? (details.manifest?.executionBoundary as any);
                 updatedJobs[idx] = {
                   ...updatedJobs[idx],
                   title: details.title || updatedJobs[idx].title,
@@ -388,6 +389,11 @@ export const useBench = create<BenchState>()(
                   snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
                   capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
                   revision: Math.max(dRev, curRev),
+                  engineBackend: bnd?.engineBackend ?? (details.statusData?.engineBackend as string) ?? updatedJobs[idx].engineBackend,
+                  isFrontierReference: Boolean(bnd?.isFrontierReference ?? details.statusData?.isFrontierReference ?? updatedJobs[idx].isFrontierReference),
+                  modelScope: bnd?.modelScope ?? updatedJobs[idx].modelScope,
+                  modelBoundaryNotice: bnd?.modelBoundaryNotice ?? updatedJobs[idx].modelBoundaryNotice,
+                  hypothesisAssessment: details.hypothesis_assessment ?? (details.execution?.hypothesis_assessment as any) ?? updatedJobs[idx].hypothesisAssessment,
                 };
               }
             }

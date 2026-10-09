@@ -180,6 +180,37 @@ export function JobsView() {
                     <Stat k={text.workers} v={String(job.workers)} />
                     <Stat k={text.cores} v={job.cores.length ? job.cores.map((index) => `#${index}`).join(", ") : "—"} />
                   </dl>
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs">
+                    {job.isFrontierReference ? (
+                      <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                        Frontier Reference Model · Theoretical Benchmark
+                      </span>
+                    ) : (
+                      <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+                        Genesis Engine · Digital Organism Coevolution
+                      </span>
+                    )}
+                    {job.hypothesisAssessment ? (
+                      <span
+                        className={cn(
+                          "rounded-md border px-2 py-0.5 text-[11px] font-medium",
+                          job.hypothesisAssessment.verdict === "supported" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+                          job.hypothesisAssessment.verdict === "not_supported" && "border-zinc-500/30 bg-zinc-500/10 text-zinc-300",
+                          job.hypothesisAssessment.verdict === "inconclusive" && "border-sky-500/30 bg-sky-500/10 text-sky-300",
+                          job.hypothesisAssessment.verdict === "invalid" && "border-red-500/30 bg-red-500/10 text-red-300",
+                          job.hypothesisAssessment.verdict === "not_evaluated" && "border-zinc-700 bg-zinc-800 text-zinc-400",
+                        )}
+                      >
+                        Verdict: {job.hypothesisAssessment.verdict}
+                        {job.hypothesisAssessment.confidence !== null && ` (${(job.hypothesisAssessment.confidence * 100).toFixed(0)}%)`}
+                      </span>
+                    ) : null}
+                    {job.hypothesisAssessment?.controls_passed ? (
+                      <span className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                        Controls: Passed
+                      </span>
+                    ) : null}
+                  </div>
                   {job.execution ? (
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/5 px-3 py-2 text-xs text-muted">
                       <span>Status: <strong className="text-fg">{job.execution.complete ? "Complete" : "In Progress"}</strong></span>

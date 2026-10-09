@@ -64,6 +64,18 @@ export type Job = {
   revision?: number;
   pendingAction?: "pause" | "resume" | "stop" | "delete" | null;
   pendingActionTime?: number;
+  engineBackend?: string;
+  isFrontierReference?: boolean;
+  modelScope?: string;
+  modelBoundaryNotice?: string;
+  hypothesisAssessment?: {
+    verdict: string;
+    hypothesis_id: string;
+    protocol: string;
+    confidence: number | null;
+    rationale: string;
+    controls_passed: boolean;
+  };
 };
 
 export type CapabilitiesV2 = {

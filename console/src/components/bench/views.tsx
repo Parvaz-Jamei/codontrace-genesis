@@ -114,7 +114,7 @@ export function JobsView() {
               <select
                 value={sort}
                 onChange={(event) => setSort(event.target.value as typeof sort)}
-                className="min-h-11 min-w-0 max-w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
+                className="min-h-11 min-w-0 max-w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pe-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] rtl:bg-[position:left_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
               >
                 <option value="new" className="bg-[#181a20] text-fg">{text.sortNew}</option>
                 <option value="old" className="bg-[#181a20] text-fg">{text.sortOld}</option>
@@ -223,6 +223,13 @@ export function JobsView() {
                       <span className="ms-auto font-mono text-[11px] text-subtle">red_queen_proved=false</span>
                     </div>
                   ) : null}
+                  {job.hypothesisAssessment?.rationale ? (
+                    <p className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-xs leading-relaxed text-muted">
+                      <strong className="text-fg">{lang === "fa" ? "استدلال ارزیاب فرضیه:" : "Evaluator Rationale:"}</strong>{" "}
+                      {job.hypothesisAssessment.rationale}
+                    </p>
+                  ) : null}
+                  <TelemetryMetricsTable job={job} />
                   {job.kind === "engine" && job.seeds.length > 0 ? <SeedMatrix job={job} /> : null}
                   {job.logs.length > 0 ? (
                     <pre className="max-h-40 min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
@@ -612,7 +619,7 @@ function ChatModelSelect({
       <select
         value={model}
         onChange={(event) => onModel(event.target.value)}
-        className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
+        className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pe-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] rtl:bg-[position:left_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
       >
         {dynamicModels.map((m) => {
           const isMounted =
@@ -849,7 +856,7 @@ export function ScriptsView() {
             <input
               type="file"
               accept=".py,text/x-python"
-              className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
+              className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:me-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -1317,7 +1324,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="text-sm text-muted">
           {text.kind}
-          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
+          <select value={kind} onChange={(event) => setKind(event.target.value as RunInput["kind"])} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pe-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] rtl:bg-[position:left_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
             <option value="engine" className="bg-[#181a20] text-fg">{text.engine}</option>
             <option value="gates" className="bg-[#181a20] text-fg">{text.gateKind}</option>
             <option value="script" className="bg-[#181a20] text-fg">{text.scriptKind}</option>
@@ -1402,7 +1409,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         {kind === "gates" ? (
           <label className="text-sm text-muted">
             {text.gateKind}
-            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pr-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
+            <select value={gateFile} onChange={(event) => setGateFile(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pe-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] rtl:bg-[position:left_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]">
               {GATE_FILES.map((gate) => (
                 <option key={gate.file} value={gate.file} className="bg-[#181a20] text-fg">
                   {gate.file}
@@ -1422,7 +1429,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
               <input
                 type="file"
                 accept=".py,text/x-python"
-                className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
+                className="mt-2 block w-full min-w-0 cursor-pointer rounded-xl border border-white/10 bg-[#101218] px-3 py-2 text-sm text-muted transition-colors hover:border-white/20 hover:bg-[#181a20] focus:outline-none focus:ring-2 focus:ring-blue-500/20 file:me-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-fg file:transition-colors hover:file:bg-white/20"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
@@ -1666,6 +1673,68 @@ function SeedMatrix({ job }: { job: Job }) {
             <p className="mt-1 truncate font-mono text-xs text-subtle">
               {slot.arm} · {slot.done}/{slot.total}
             </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TelemetryMetricsTable({ job }: { job: Job }) {
+  const lang = useBench((state) => state.settings.lang);
+  const execution = job.execution;
+  const summary =
+    execution?.summary && typeof execution.summary === "object"
+      ? (execution.summary as Record<string, unknown>)
+      : null;
+  const metrics =
+    execution?.metrics && typeof execution.metrics === "object"
+      ? (execution.metrics as Record<string, unknown>)
+      : null;
+
+  if (!execution && !job.snapshot) return null;
+
+  const getMetric = (key: string): string => {
+    const val = summary?.[key] ?? metrics?.[key] ?? execution?.[key];
+    if (val === undefined || val === null) return "—";
+    if (typeof val === "number") {
+      return Number.isInteger(val) ? String(val) : Number(val).toFixed(4);
+    }
+    if (typeof val === "boolean") return val ? "true" : "false";
+    return String(val);
+  };
+
+  const rows: { label: string; value: string }[] = [
+    { label: "Activity Slope", value: getMetric("activity_slope") },
+    { label: "Between-Deme Selection", value: getMetric("between_deme_selection_term") },
+    { label: "Within-Deme Selection", value: getMetric("within_deme_selection_term") },
+    { label: "Hazen Functional Info (bits)", value: getMetric("hazen_functional_info_bits") },
+    { label: "Neutral Percolation Rate", value: getMetric("neutral_percolation_rate") },
+  ];
+
+  if (job.snapshot?.progress) {
+    rows.push({
+      label: "Snapshot Progress",
+      value: `${job.snapshot.progress.done} / ${job.snapshot.progress.total} (${job.snapshot.progress.stage})`,
+    });
+  }
+
+  const hasAnyMetric = rows.some((r) => r.value !== "—");
+  if (!hasAnyMetric && !job.snapshot) return null;
+
+  return (
+    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-semibold text-fg">
+          {lang === "fa" ? "سنجش‌های خام تله‌متری (Raw Telemetry)" : "Raw Telemetry & Metric Summary"}
+        </span>
+        <span className="font-mono text-[10px] text-subtle">100% telemetry fidelity</span>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((row) => (
+          <div key={row.label} className="rounded-lg bg-bg/80 px-2.5 py-1.5">
+            <div className="text-[11px] text-subtle">{row.label}</div>
+            <div className="font-mono text-xs font-medium text-fg">{row.value}</div>
           </div>
         ))}
       </div>

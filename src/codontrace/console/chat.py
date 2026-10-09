@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -21,6 +22,18 @@ DEFAULT_ENDPOINTS = (
 )
 
 _RUNTIME_ENDPOINT: str | None = None
+_ACTIVE_CHAT_REQUESTS: dict[str, threading.Event] = {}
+_CHAT_LOCK = threading.Lock()
+
+
+def abort_chat_request(request_id: str) -> bool:
+    """Abort an in-flight chat request by request_id."""
+    with _CHAT_LOCK:
+        event = _ACTIVE_CHAT_REQUESTS.get(request_id)
+        if event is not None:
+            event.set()
+            return True
+        return False
 
 
 def set_llm_endpoint(endpoint: str | None) -> None:
@@ -208,113 +221,159 @@ def chat_turn(
     job_context: dict[str, Any] | None = None,
     job_id: str | None = None,
     model: str | None = None,
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Execute an authoritative chat turn with LLM or deterministic fallback."""
     t0 = time.time()
-    sys_prompt = (
-        "You are the CodonTrace Genesis Research Assistant. "
-        "CodonTrace is a deterministic digital evolution and host-parasite coevolution engine. "
-        "Provide insightful, scientifically grounded evolutionary analysis. "
-        "Keep responses structured and focused. "
-        "EPISTEMOLOGICAL STANDARD: Accept valid positive results and valid negative results based on "
-        "empirical evidence, measurement quality, controls, and formal hypothesis evaluators. "
-        "Never falsely lock hypotheses to false, and never declare unvalidated runs as proven. "
-        f"Respond in {'Persian (Farsi)' if lang == 'fa' else 'English'}."
-    )
-
-    effective_run_id = job_id or (
-        str(job_context.get("id") or job_context.get("runId"))
-        if isinstance(job_context, dict) and (job_context.get("id") or job_context.get("runId"))
-        else None
-    )
-
-    if effective_run_id:
-        from codontrace.console.evaluator import evaluate_run_hypothesis
-        from codontrace.console.runs import get_run_details
-
-        run_data = get_run_details(effective_run_id)
-        if run_data is not None:
-            manifest = run_data.get("manifest") or {}
-            params = manifest.get("params") or {}
-            execution = run_data.get("execution")
-            diagnostics = run_data.get("diagnostics")
-            live_logs = run_data.get("liveLogs") or []
-            tail_lines = live_logs[-5:] if isinstance(live_logs, list) else []
-            assessment = evaluate_run_hypothesis(run_data)
-
-            ctx_summary = (
-                f"\n[Authoritative Server Run Context for {effective_run_id}]:\n"
-                f"- Title: {run_data.get('title')}\n"
-                f"- Status: {run_data.get('status')}\n"
-                f"- Generations: {params.get('generations', 'unspecified')}, Workers: {params.get('workers', 'unspecified')}\n"
-                f"- Seeds: {params.get('seeds', [])}\n"
-                f"- Hypothesis assessment: verdict={assessment['verdict']}, protocol={assessment.get('protocol')}, rationale={assessment.get('rationale')}\n"
-            )
-            if execution is not None and isinstance(execution, dict):
-                ctx_summary += (
-                    f"- Execution outcome: complete={execution.get('complete')}, "
-                    f"elapsed_seconds={execution.get('elapsed_seconds')}, "
-                    f"diagnostics_complete={execution.get('diagnostics_complete')}\n"
-                )
-            else:
-                ctx_summary += "- Execution outcome: no execution summary available yet (in progress or pending)\n"
-
-            if diagnostics is not None and isinstance(diagnostics, dict):
-                ctx_summary += f"- Diagnostics summary: lag={diagnostics.get('lag')}, permutations={diagnostics.get('permutations')}\n"
-            else:
-                ctx_summary += "- Diagnostics: no time-shift diagnostics data recorded for this run\n"
-
-            if tail_lines:
-                ctx_summary += "- Recent live logs:\n  " + "\n  ".join(tail_lines) + "\n"
-
-            sys_prompt += ctx_summary
-        else:
-            sys_prompt += (
-                f"\n[Run Context]: Run '{effective_run_id}' was queried but no server run details exist "
-                "(unmanaged client demo or archived).\n"
-            )
-    elif job_context:
-        ctx_summary = (
-            f"Active Job Context: title='{job_context.get('title')}', "
-            f"kind='{job_context.get('kind')}', status='{job_context.get('status')}', "
-            f"seeds={job_context.get('seeds')}, generations={job_context.get('generations')}."
-        )
-        sys_prompt += f" {ctx_summary}"
-
-    if model in ("local-analyst", "deterministic-analyst"):
-        llm_answer = None
+    if request_id:
+        with _CHAT_LOCK:
+            cancel_event = _ACTIVE_CHAT_REQUESTS.setdefault(request_id, threading.Event())
     else:
-        llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
-    duration_ms = round((time.time() - t0) * 1000)
+        cancel_event = threading.Event()
 
-    if llm_answer is not None:
+    try:
+        if cancel_event.is_set():
+            return {
+                "source": "analyst",
+                "reply": "Operation cancelled by user." if lang != "fa" else "عملیات توسط کاربر لغو شد.",
+                "mounted": False,
+                "model": "cancelled",
+                "duration_ms": 0,
+                "fallback": True,
+                "cancelled": True,
+            }
+
+        sys_prompt = (
+            "You are the CodonTrace Genesis Research Assistant. "
+            "CodonTrace is a deterministic digital evolution and host-parasite coevolution engine. "
+            "Provide insightful, scientifically grounded evolutionary analysis. "
+            "Keep responses structured and focused. "
+            "EPISTEMOLOGICAL STANDARD: Accept valid positive results and valid negative results based on "
+            "empirical evidence, measurement quality, controls, and formal hypothesis evaluators. "
+            "Never falsely lock hypotheses to false, and never declare unvalidated runs as proven. "
+            f"Respond in {'Persian (Farsi)' if lang == 'fa' else 'English'}."
+        )
+
+        effective_run_id = job_id or (
+            str(job_context.get("id") or job_context.get("runId"))
+            if isinstance(job_context, dict) and (job_context.get("id") or job_context.get("runId"))
+            else None
+        )
+
+        if effective_run_id:
+            from codontrace.console.evaluator import evaluate_run_hypothesis
+            from codontrace.console.runs import get_run_details
+
+            run_data = get_run_details(effective_run_id)
+            if run_data is not None:
+                manifest = run_data.get("manifest") or {}
+                params = manifest.get("params") or {}
+                execution = run_data.get("execution")
+                diagnostics = run_data.get("diagnostics")
+                live_logs = run_data.get("liveLogs") or []
+                tail_lines = live_logs[-5:] if isinstance(live_logs, list) else []
+                assessment = evaluate_run_hypothesis(run_data)
+
+                ctx_summary = (
+                    f"\n[Authoritative Server Run Context for {effective_run_id}]:\n"
+                    f"- Title: {run_data.get('title')}\n"
+                    f"- Status: {run_data.get('status')}\n"
+                    f"- Generations: {params.get('generations', 'unspecified')}, Workers: {params.get('workers', 'unspecified')}\n"
+                    f"- Seeds: {params.get('seeds', [])}\n"
+                    f"- Hypothesis assessment: verdict={assessment['verdict']}, protocol={assessment.get('protocol')}, rationale={assessment.get('rationale')}\n"
+                )
+                if execution is not None and isinstance(execution, dict):
+                    ctx_summary += (
+                        f"- Execution outcome: complete={execution.get('complete')}, "
+                        f"elapsed_seconds={execution.get('elapsed_seconds')}, "
+                        f"diagnostics_complete={execution.get('diagnostics_complete')}\n"
+                    )
+                else:
+                    ctx_summary += "- Execution outcome: no execution summary available yet (in progress or pending)\n"
+
+                if diagnostics is not None and isinstance(diagnostics, dict):
+                    ctx_summary += f"- Diagnostics summary: lag={diagnostics.get('lag')}, permutations={diagnostics.get('permutations')}\n"
+                else:
+                    ctx_summary += "- Diagnostics: no time-shift diagnostics data recorded for this run\n"
+
+                if tail_lines:
+                    ctx_summary += "- Recent live logs:\n  " + "\n  ".join(tail_lines) + "\n"
+
+                sys_prompt += ctx_summary
+            else:
+                sys_prompt += (
+                    f"\n[Run Context]: Run '{effective_run_id}' was queried but no server run details exist "
+                    "(unmanaged client demo or archived).\n"
+                )
+        elif job_context:
+            ctx_summary = (
+                f"Active Job Context: title='{job_context.get('title')}', "
+                f"kind='{job_context.get('kind')}', status='{job_context.get('status')}', "
+                f"seeds={job_context.get('seeds')}, generations={job_context.get('generations')}."
+            )
+            sys_prompt += f" {ctx_summary}"
+
+        if cancel_event.is_set():
+            return {
+                "source": "analyst",
+                "reply": "Operation cancelled by user." if lang != "fa" else "عملیات توسط کاربر لغو شد.",
+                "mounted": False,
+                "model": "cancelled",
+                "duration_ms": round((time.time() - t0) * 1000),
+                "fallback": True,
+                "cancelled": True,
+            }
+
+        if model in ("local-analyst", "deterministic-analyst"):
+            llm_answer = None
+        else:
+            llm_answer = query_llm([{"role": "user", "content": text}], system_prompt=sys_prompt, model=model)
+        duration_ms = round((time.time() - t0) * 1000)
+
+        if cancel_event.is_set():
+            return {
+                "source": "analyst",
+                "reply": "Operation cancelled by user." if lang != "fa" else "عملیات توسط کاربر لغو شد.",
+                "mounted": False,
+                "model": "cancelled",
+                "duration_ms": duration_ms,
+                "fallback": True,
+                "cancelled": True,
+            }
+
+        if llm_answer is not None:
+            status = check_llm_status()
+            resolved_model = status.get("model") if (model == "board-model" or not model) else model
+            return {
+                "source": "llm",
+                "reply": llm_answer,
+                "mounted": True,
+                "model": resolved_model or "local-model",
+                "duration_ms": duration_ms,
+                "fallback": False,
+            }
+
+        # Deterministic domain-aware fallback answer (R19)
+        fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
+        is_fallback = model not in ("local-analyst", "deterministic-analyst")
         status = check_llm_status()
-        resolved_model = status.get("model") if (model == "board-model" or not model) else model
+        resolved_analyst_model = (
+            "deterministic-analyst"
+            if not is_fallback
+            else (status.get("model") if model == "board-model" and status.get("model") else (model or "deterministic-analyst"))
+        )
         return {
-            "source": "llm",
-            "reply": llm_answer,
-            "mounted": True,
-            "model": resolved_model or "local-model",
+            "source": "analyst",
+            "reply": fallback_reply,
+            "mounted": False,
+            "model": resolved_analyst_model,
             "duration_ms": duration_ms,
-            "fallback": False,
+            "fallback": is_fallback,
         }
-
-    # Deterministic domain-aware fallback answer (R19)
-    fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
-    is_fallback = model not in ("local-analyst", "deterministic-analyst")
-    resolved_analyst_model = (
-        "deterministic-analyst"
-        if not is_fallback
-        else (status.get("model") if model == "board-model" and (status := check_llm_status()).get("model") else (model or "deterministic-analyst"))
-    )
-    return {
-        "source": "analyst",
-        "reply": fallback_reply,
-        "mounted": False,
-        "model": resolved_analyst_model,
-        "duration_ms": duration_ms,
-        "fallback": is_fallback,
-    }
+    finally:
+        if request_id:
+            with _CHAT_LOCK:
+                _ACTIVE_CHAT_REQUESTS.pop(request_id, None)
 
 
 def _generate_analyst_reply(

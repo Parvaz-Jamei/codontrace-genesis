@@ -18,7 +18,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from codontrace.console.chat import chat_turn, check_llm_status, list_discovered_models, set_llm_endpoint
+from codontrace.console.chat import (
+    abort_chat_request,
+    chat_turn,
+    check_llm_status,
+    list_discovered_models,
+    set_llm_endpoint,
+)
 from codontrace.console.release import (
     installed_version,
     refresh_release,
@@ -431,18 +437,41 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         assert body_json is not None
 
+        if path in ("/api/chat/abort", "/api/chat/cancel"):
+            req_id = str(body_json.get("request_id") or body_json.get("requestId") or "").strip()
+            if not req_id:
+                self._send(
+                    400,
+                    "application/json; charset=utf-8",
+                    json.dumps({"ok": False, "error": "Missing request_id"}, allow_nan=False).encode("utf-8"),
+                    include_body=True,
+                    cache="no-store",
+                )
+                return
+            aborted = abort_chat_request(req_id)
+            self._send(
+                200,
+                "application/json; charset=utf-8",
+                json.dumps({"ok": True, "aborted": aborted, "request_id": req_id}, allow_nan=False).encode("utf-8"),
+                include_body=True,
+                cache="no-store",
+            )
+            return
+
         if path == "/api/chat":
             text = str(body_json.get("text") or body_json.get("message") or "").strip()
             lang = str(body_json.get("lang", "en")).strip()
             ctx = body_json.get("jobContext")
             job_id = body_json.get("jobId") or body_json.get("runId")
             model = body_json.get("model")
+            req_id = str(body_json.get("request_id") or body_json.get("requestId") or "").strip() or None
             result = chat_turn(
                 text,
                 lang,
                 ctx if isinstance(ctx, dict) else None,
                 job_id=str(job_id).strip() if job_id else None,
                 model=str(model).strip() if model else None,
+                request_id=req_id,
             )
             self._send(
                 200,

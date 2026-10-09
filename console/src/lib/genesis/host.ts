@@ -99,10 +99,29 @@ export async function sendChatMessage(
   duration_ms?: number;
   fallback?: boolean;
 }> {
+  const requestId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  if (signal) {
+    signal.addEventListener(
+      "abort",
+      () => {
+        void fetch("/api/chat/abort", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestId }),
+        }).catch(() => {});
+      },
+      { once: true },
+    );
+  }
+
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, lang, jobContext, jobId, model }),
+    body: JSON.stringify({ text, lang, jobContext, jobId, model, requestId }),
     signal,
   });
   if (!res.ok) throw new Error(String(res.status));

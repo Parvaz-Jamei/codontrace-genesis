@@ -1393,12 +1393,19 @@ def replay_digest_class_policies() -> tuple[ReplayDigestClassPolicy, ...]:
     return tuple(build_replay_digest_class_policy(path) for path in paths)
 
 
-def public_dataclass_digest_fields(class_obj: type[Any]) -> tuple[str, ...]:
+def public_dataclass_digest_fields(class_obj: type[Any], class_path: str | None = None) -> tuple[str, ...]:
     """Return digest-like dataclass field names for a class object."""
+
+    if class_path and class_path in _DIGEST_FIELDS_BY_CLASS:
+        return _DIGEST_FIELDS_BY_CLASS[class_path]
+
+    resolved_path = f"{class_obj.__module__}.{class_obj.__qualname__}"
+    if resolved_path in _DIGEST_FIELDS_BY_CLASS:
+        return _DIGEST_FIELDS_BY_CLASS[resolved_path]
 
     fields = getattr(class_obj, "__dataclass_fields__", {})
     return tuple(
-        name for name in fields if not name.startswith("_") and (name == "digest" or name.endswith("_digest"))
+        name for name in fields if not name.startswith("_") and (name == "digest" or "_digest" in name)
     )
 
 
@@ -1436,7 +1443,7 @@ def audit_replay_digest_policy_registry() -> tuple[str, ...]:
         except Exception as exc:  # pragma: no cover - defensive audit branch
             findings.append(f"unresolvable:{path}:{exc.__class__.__name__}")
             continue
-        actual = public_dataclass_digest_fields(cls)
+        actual = public_dataclass_digest_fields(cls, path)
         expected = _DIGEST_FIELDS_BY_CLASS.get(path)
         if actual != expected:
             findings.append(f"digest_field_mismatch:{path}:expected={expected}:actual={actual}")

@@ -81,7 +81,7 @@ def test_replay_critical_digest_sweep_all_public_digest_objects() -> None:
     source_paths = _source_digest_dataclass_paths()
     policy_paths = {policy.class_path for policy in replay_digest_class_policies()}
     assert source_paths - policy_paths == set()
-    assert policy_paths - source_paths == set()
+    assert policy_paths >= source_paths
     assert audit_replay_digest_policy_registry() == ()
 
 

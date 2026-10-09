@@ -11,7 +11,6 @@ import argparse
 import hashlib
 import json
 import math
-import random
 import statistics
 import sys
 import threading
@@ -26,6 +25,7 @@ from codontrace.genesis.rq_bidirectional_timeshift import replay_archived_contac
 from codontrace.genesis.rq_bidirectional_timeshift_confirm import infectivity, student_t_ppf
 from codontrace.genesis.rq_mechanism_v2_phase5 import replay_phase5_archive, run_phase5_history
 from codontrace.genesis.rq_reciprocal_validity import matrix_margins
+from codontrace.rng import RNGManager
 
 ARMS = ("coevolve", "neutral", "host_selection_cut", "parasite_selection_cut")
 SCHEMA = "rq-controlled-benchmark/1"
@@ -68,10 +68,10 @@ class Design:
             raise ConfigurationError("invalid effect bound or alpha")
 
 
-def stream(seed: int, generation: int, species: str) -> random.Random:
+def stream(seed: int, generation: int, species: str) -> RNGManager:
     """Independent histories/species; common random numbers across paired arms."""
     digest = hashlib.sha256(f"{SCHEMA}/{seed}/{generation}/{species}".encode()).digest()
-    return random.Random(int.from_bytes(digest, "big"))
+    return RNGManager(seed=int.from_bytes(digest, "big"), namespace=f"{species}_{generation}")
 
 
 def contact_matrix() -> tuple[list[list[float]], list[dict[str, Any]]]:

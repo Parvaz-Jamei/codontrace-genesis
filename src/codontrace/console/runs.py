@@ -751,7 +751,7 @@ def send_signal_to_run(run_id: str, sig_name: str) -> bool:
     if proc and proc.poll() is None or pid and is_pid_alive(pid):
         proc_alive = True
 
-    if not proc_alive:
+    if (proc is not None or pid is not None) and not proc_alive:
         return False
 
     sig_upper = sig_name.upper()
@@ -825,7 +825,7 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
                     omitted_files.append({
                         "path": str(rel_path).replace("\\", "/"),
                         "size": 0,
-                        "reason": "Symlinks are explicitly excluded to prevent path traversal",
+                        "reason": "Symlink traversal outside run boundary rejected",
                     })
                     continue
 
@@ -998,7 +998,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
             }
 
         # Must have living process
-        if not proc_alive:
+        if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
             write_atomic_json(status_file, status_info)
             return {
@@ -1015,8 +1015,12 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                 ack_files.add(f.name)
             for f in (entry / "output").glob("ack_paused_*"):
                 ack_files.add(f.name)
-            workers_expected = int(status_info.get("params", {}).get("workers") or manifest_data.get("params", {}).get("workers") or 1)
-            status_info["status"] = "PAUSED" if (len(ack_files) >= workers_expected and workers_expected > 0) else "PAUSING"
+            workers_param = status_info.get("params", {}).get("workers") or manifest_data.get("params", {}).get("workers")
+            if workers_param is not None and int(workers_param) > 1:
+                workers_expected = int(workers_param)
+                status_info["status"] = "PAUSED" if len(ack_files) >= workers_expected else "PAUSING"
+            else:
+                status_info["status"] = "PAUSED"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
             write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
@@ -1056,7 +1060,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                 "status_code": 409,
             }
 
-        if not proc_alive:
+        if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
             write_atomic_json(status_file, status_info)
             return {

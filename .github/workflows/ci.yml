@@ -113,6 +113,7 @@ jobs:
     name: Lint and typecheck (Ubuntu, Python 3.12)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v6

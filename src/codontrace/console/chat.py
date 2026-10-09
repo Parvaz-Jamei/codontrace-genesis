@@ -54,11 +54,12 @@ def set_llm_endpoint(endpoint: str | None) -> None:
 def get_llm_endpoint() -> str:
     if _RUNTIME_ENDPOINT:
         return _RUNTIME_ENDPOINT
-    return os.environ.get("CODONTRACE_LLM_ENDPOINT", "").strip() or DEFAULT_ENDPOINTS[0]
+    return os.environ.get("CODONTRACE_LLM_ENDPOINT", "").strip() or os.environ.get("CODONTRACE_LLM_URL", "").strip() or DEFAULT_ENDPOINTS[0]
 
 
 def list_discovered_models() -> list[dict[str, Any]]:
     """Scan local storage directories for GGUF model files."""
+    import re
     from pathlib import Path
 
     candidates = []
@@ -83,10 +84,27 @@ def list_discovered_models() -> list[dict[str, Any]]:
                 if item.name not in seen:
                     seen.add(item.name)
                     stat = item.stat()
+                    
+                    name_no_ext = item.name.rsplit(".gguf", 1)[0]
+                    m = re.search(r'-(q\d_[a-z0-9_]+|iq\d_[a-z0-9_]+|i1-iq\d_[a-z0-9_]+)', name_no_ext, flags=re.IGNORECASE)
+                    if m:
+                        quant_tag = m.group(1).upper()
+                        display_name = name_no_ext[:m.start()].replace('-', ' ').title()
+                    else:
+                        quant_tag = ""
+                        display_name = name_no_ext.replace('-', ' ').title()
+
+                    size_mb = round(stat.st_size / (1024 * 1024))
+                    size_gb = round(stat.st_size / (1024 * 1024 * 1024), 1)
+
                     models.append({
                         "name": item.name,
                         "path": str(item),
-                        "sizeMb": round(stat.st_size / (1024 * 1024)),
+                        "sizeMb": size_mb,
+                        "sizeGb": size_gb,
+                        "displayName": display_name,
+                        "quantTag": quant_tag,
+                        "isAvailable": True,
                         "mtime": stat.st_mtime,
                         "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(stat.st_mtime)),
                     })
@@ -135,7 +153,7 @@ def check_llm_status() -> dict[str, Any]:
         if (now - cached_time) < _CACHE_TTL_SECONDS:
             return dict(cached_val)
 
-    env_set = bool(_RUNTIME_ENDPOINT or os.environ.get("CODONTRACE_LLM_ENDPOINT"))
+    env_set = bool(_RUNTIME_ENDPOINT or os.environ.get("CODONTRACE_LLM_ENDPOINT") or os.environ.get("CODONTRACE_LLM_URL"))
     endpoints_to_try = [endpoint] if env_set else list(DEFAULT_ENDPOINTS)
 
     import concurrent.futures
@@ -414,6 +432,27 @@ def chat_turn(
         fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
         is_fallback = model not in ("local-analyst", "deterministic-analyst")
         status = check_llm_status()
+        
+        if is_fallback and not status.get("mounted"):
+            model_name = model if model and model != "board-model" else "the board model"
+            if lang == "fa":
+                offline_msg = (
+                    f"مدل LLM درخواستی ('{model_name}') در حال حاضر آفلاین است یا در دسترس نیست.\n\n"
+                    "لطفاً مطمئن شوید که سرور محلی (مانند llama-server یا Ollama) روی پورت ۸۰۸۸ یا ۱۱۴۳۴ اجرا می‌شود.\n"
+                    "مثال اجرای مدل:\n"
+                    "  llama-server -m models/your-model.gguf --port 8088\n\n"
+                    "--- بازگشت به تحلیلگر قطعی ---\n\n"
+                )
+            else:
+                offline_msg = (
+                    f"The requested LLM model ('{model_name}') is currently offline or unreachable.\n\n"
+                    "Please ensure the local LLM server (e.g., llama-server or Ollama) is running on port 8088 or 11434.\n"
+                    "Example to launch a GGUF model:\n"
+                    "  llama-server -m models/your-model.gguf --port 8088\n\n"
+                    "--- Falling back to deterministic analyst ---\n\n"
+                )
+            fallback_reply = offline_msg + fallback_reply
+
         resolved_analyst_model = (
             "deterministic-analyst"
             if not is_fallback

@@ -102,6 +102,12 @@ class RNGManager:
         self._draw_count += 1
         return self._rng.random()
 
+    def shuffle(self, values: list[Any]) -> None:
+        """Shuffle a list in place using Fisher-Yates."""
+        for i in reversed(range(1, len(values))):
+            j = self.randrange(i + 1)
+            values[i], values[j] = values[j], values[i]
+
     def fork(self, namespace: str) -> RNGManager:
         """Create a deterministic child RNG for a named subsystem."""
 

@@ -599,28 +599,21 @@ function ChatModelSelect({
   className?: string;
 }) {
   const chatStatus = useBench((state) => state.chatStatus);
-  const [localModels, setLocalModels] = useState<string[]>([]);
+  const [localModels, setLocalModels] = useState<any[]>([]);
   
   useEffect(() => {
     fetch("/api/models")
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const names = data.map((item) => (typeof item === "string" ? item : item.name));
-          setLocalModels(names.filter(Boolean));
+          setLocalModels(data);
         }
       })
       .catch(() => {});
   }, []);
 
-  const dynamicModels = Array.from(
-    new Set([
-      "local-analyst",
-      "board-model",
-      ...(chatStatus?.available_models || []),
-      ...localModels,
-    ])
-  );
+  const boardModelName = chatStatus?.model || "board-model";
+  const boardModelMounted = Boolean(chatStatus?.mounted);
 
   return (
     <label className={cn("inline-flex min-h-11 min-w-0 items-center gap-2 text-sm text-muted", className)}>
@@ -630,17 +623,25 @@ function ChatModelSelect({
         onChange={(event) => onModel(event.target.value)}
         className="min-h-11 w-full min-w-0 truncate rounded-lg border border-white/10 appearance-none bg-[#181a20] px-3 py-2 pe-8 text-sm text-fg outline-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%23a1a1aa%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.5rem_center] rtl:bg-[position:left_0.5rem_center] bg-no-repeat bg-[length:1.25em_1.25em] transition-colors hover:border-white/20 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 [color-scheme:dark]"
       >
-        {dynamicModels.map((m) => {
-          const isMounted =
-            m === "local-analyst" ? true : m === "board-model" ? Boolean(chatStatus?.mounted) : true;
-          const label = m === "local-analyst" ? text.modelLocal : m === "board-model" ? text.modelBoard : m;
-          return (
-            <option key={m} value={m} className="bg-[#181a20] text-fg">
-              {label}
-              {isMounted ? "" : ` · ${text.modelMissing}`}
-            </option>
-          );
-        })}
+        <optgroup label="System Analysts">
+          <option value="local-analyst" className="bg-[#181a20] text-fg">
+            {text.modelLocal}
+          </option>
+        </optgroup>
+        <optgroup label="Server Endpoints">
+          <option value="board-model" className="bg-[#181a20] text-fg">
+            {boardModelName} {boardModelMounted ? " (Ready)" : ` · ${text.modelMissing}`}
+          </option>
+        </optgroup>
+        {localModels.length > 0 && (
+          <optgroup label="Local GGUF Models">
+            {localModels.map((m) => (
+              <option key={m.name} value={m.name} className="bg-[#181a20] text-fg">
+                {m.displayName || m.name} {m.quantTag ? `[${m.quantTag}]` : ""} ({m.sizeGb} GB) {m.isAvailable ? "(On Disk)" : ""}
+              </option>
+            ))}
+          </optgroup>
+        )}
       </select>
     </label>
   );

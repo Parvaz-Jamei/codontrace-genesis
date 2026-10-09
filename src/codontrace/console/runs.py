@@ -345,7 +345,8 @@ def build_run_snapshot(
         else:
             live_log = (entry / adapter.primary_output_dir / "live.log") if entry else None
             if live_log and not live_log.is_file():
-                live_log = entry / "live.log"
+                if entry is not None:
+                    live_log = entry / "live.log"
             if live_log and live_log.is_file() and (time.time() - live_log.stat().st_mtime < 120):
                 raw_status = "RUNNING"
             elif entry and ((entry / "STOP").is_file() or ((entry / adapter.primary_output_dir / "STOP").is_file())):

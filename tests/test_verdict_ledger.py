@@ -139,7 +139,7 @@ def test_mypy_is_optional_and_the_ledger_gate_is_not() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     blocks = _job_blocks(CI_PATH.read_text(encoding="utf-8"))
     assert ledger["mypy"]["required"] is False
-    assert "continue-on-error: true" in blocks["lint-type"]
+    assert "continue-on-error: true" not in blocks["lint-type"]
     assert "continue-on-error" not in blocks["verdict-ledger"]
     assert "continue-on-error" not in blocks["published-manifests"]
     assert "tests/test_published_manifests.py" in blocks["published-manifests"]

@@ -12,6 +12,7 @@ import enum
 import importlib
 import json
 import math
+import warnings
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import fields, is_dataclass, replace
@@ -67,6 +68,7 @@ from codontrace.genesis.artifacts import (
     compute_source_digest,
     manifest_from_parts,
 )
+from codontrace.genesis.behavior import BehaviorDescriptor
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.capsule import (
     CapsuleTransferConfig,
@@ -94,7 +96,11 @@ from codontrace.genesis.population import (
     ReproductionConfig,
 )
 from codontrace.genesis.population_runner import PopulationRunner
-from codontrace.genesis.qd_descriptors import compute_novelty_scores_from_archive
+from codontrace.genesis.qd_descriptors import (
+    _DEFAULT_RANGES,
+    QDDescriptorRegistry,
+    compute_novelty_scores_from_archive,
+)
 from codontrace.genesis.quality_diversity import (
     BehaviorDescriptorSchema,
     QDArchive,
@@ -143,6 +149,30 @@ def _default_qd_archive() -> QDArchive:
         max_values={"survival_ticks": 16.0, "blocked_ratio": 1.0},
     )
     return QDArchive.empty(QDArchiveConfig(schema=schema))
+
+
+KNOWN_DESCRIPTOR_ALIASES: dict[str, str] = {
+    "path_entropy": "path_entropy_lite",
+    "resource_gain": "resource_interactions",
+    "energy_efficiency": "energy_profile",
+    "capsules_emitted": "capsule_emit_count",
+    "capsules_read": "capsule_read_count",
+    "capsules_adopted": "capsule_adoption_count",
+    "capsule_usage": "capsule_adoption_count",
+    "action_distribution_entropy": "movement_diversity",
+    "offspring_count": "reproduction_count",
+    "nexus_interaction_count": "nexus_emitted",
+    "environmental_footprint": "unique_positions",
+    "causal_prediction_accuracy": "causal_prediction_correct",
+    "causal_graph_size": "causal_update_count",
+    "causal_graph_compactness": "causal_update_count",
+    "ADF_usage_count": "tool_chain_stage",
+    "ADF_reuse_score": "tool_chain_stage",
+    "cooperation_score": "social_interaction_count",
+    "free_rider_score": "social_interaction_count",
+    "mutation_distance": "survival_ticks",
+    "genome_length": "survival_ticks",
+}
 
 
 # --- fork isolation -----------------------------------------------------------
@@ -732,13 +762,16 @@ class GenesisEngine:
         run: GenesisRun,
         qd_archive: QDArchive | None = None,
         generation_boundary_observers: Sequence[GenerationBoundaryObserver] | None = None,
+        qd_descriptor_registry: QDDescriptorRegistry | None = None,
     ) -> None:
         self.spec = spec
         self.runner = runner
         self.run = run
         self.qd_archive = qd_archive
+        self.qd_descriptor_registry = qd_descriptor_registry
         self.element_grid = spec.element_grid
         self.review_status = ReviewStatus()
+        self.config_reconciliation: dict[str, Any] = {}
         self.generation_boundary_observers: list[GenerationBoundaryObserver] = list(
             generation_boundary_observers or ()
         )
@@ -755,6 +788,7 @@ class GenesisEngine:
         spec: GenesisExperimentSpec,
         *,
         generation_boundary_observers: Sequence[GenerationBoundaryObserver] | None = None,
+        qd_descriptor_registry: QDDescriptorRegistry | None = None,
     ) -> GenesisEngine:
         world = (
             element_grid_to_world2d(spec.element_grid)
@@ -801,8 +835,38 @@ class GenesisEngine:
                 CapsuleTransferConfig(enabled=True) if spec.engine_config.enable_capsules else None
             )
         )
+        reconciliation_applied = False
+        reconciliation_warnings: list[str] = []
         if spec.population_configs is not None:
             configs = spec.population_configs
+            if capsule_config is not None:
+                if configs.capsule_transfer is None:
+                    configs = replace(
+                        configs,
+                        capsule_transfer=capsule_config,
+                        enable_nexus_stigmergy=True,
+                    )
+                    reconciliation_applied = True
+                elif not configs.capsule_transfer.enabled and capsule_config.enabled:
+                    w = (
+                        "Conflicting capsule configuration: spec requested capsules but "
+                        "spec.population_configs.capsule_transfer is explicitly disabled. "
+                        "Respecting explicit population_configs setting."
+                    )
+                    warnings.warn(w, UserWarning, stacklevel=2)
+                    reconciliation_warnings.append(w)
+            elif (
+                configs.capsule_transfer is not None
+                and configs.capsule_transfer.enabled
+                and not spec.engine_config.enable_capsules
+            ):
+                w = (
+                    "Conflicting capsule configuration: spec.engine_config.enable_capsules is False but "
+                    "spec.population_configs.capsule_transfer is enabled. "
+                    "Respecting explicit population_configs setting."
+                )
+                warnings.warn(w, UserWarning, stacklevel=2)
+                reconciliation_warnings.append(w)
         else:
             configs = PopulationConfigs(
                 reproduction=spec.reproduction_config
@@ -819,13 +883,11 @@ class GenesisEngine:
         initial_deme = None
         if configs.phase_e.enabled:
             from codontrace.genesis.phase_e import attach_phase_e_to_organisms, build_deme_state
-
             organisms = list(attach_phase_e_to_organisms(organisms, configs.phase_e))
             if configs.phase_e.demes.enabled:
                 initial_deme = build_deme_state(organisms)
         if configs.materials.enabled:
             from codontrace.genesis.materials import attach_materials_to_organisms
-
             organisms = list(attach_materials_to_organisms(organisms, configs.materials))
         population = PopulationState(
             generation=0,
@@ -841,11 +903,26 @@ class GenesisEngine:
             configs=configs,
             nexus_layer=NexusStigmergyLayer() if spec.engine_config.enable_capsules else None,
         )
+        registry = qd_descriptor_registry or getattr(spec, "qd_descriptor_registry", None)
         qd_archive = (
             QDArchive.empty(spec.qd_archive_config)
             if spec.qd_archive_config is not None
             else (_default_qd_archive() if spec.engine_config.enable_qd else None)
         )
+        if qd_archive is not None:
+            for desc_name in qd_archive.config.schema.descriptor_names:
+                resolvable = (
+                    (registry is not None and desc_name in registry._extractors)
+                    or desc_name in BehaviorDescriptor.__dataclass_fields__
+                    or desc_name in KNOWN_DESCRIPTOR_ALIASES
+                    or desc_name in _DEFAULT_RANGES
+                )
+                if not resolvable:
+                    msg = (
+                        f"QD descriptor {desc_name!r} defined in schema cannot be extracted: "
+                        f"no extractor registered and field not present in BehaviorDescriptor."
+                    )
+                    raise ConfigurationError(msg)
         run_id = f"genesis-run-{spec.digest()[:16]}"
         engine = cls(
             spec=spec,
@@ -853,7 +930,30 @@ class GenesisEngine:
             run=GenesisRun(run_id=run_id, spec_digest=spec.digest(), seed=spec.seed),
             qd_archive=qd_archive,
             generation_boundary_observers=generation_boundary_observers,
+            qd_descriptor_registry=registry,
         )
+        engine.config_reconciliation = {
+            "requested_capsules_enabled": bool(
+                (spec.capsule_transfer_config is not None and spec.capsule_transfer_config.enabled)
+                or (spec.population_configs is None and spec.engine_config.enable_capsules)
+                or (
+                    spec.population_configs is not None
+                    and spec.population_configs.capsule_transfer is not None
+                    and spec.population_configs.capsule_transfer.enabled
+                )
+            ),
+            "effective_capsules_enabled": bool(
+                configs.capsule_transfer is not None and configs.capsule_transfer.enabled
+            ),
+            "requested_capsule_config": None
+            if capsule_config is None
+            else capsule_config.to_dict(),
+            "effective_capsule_config": None
+            if configs.capsule_transfer is None
+            else configs.capsule_transfer.to_dict(),
+            "reconciliation_applied": reconciliation_applied,
+            "warnings": tuple(reconciliation_warnings),
+        }
         engine.element_grid = spec.element_grid or world2d_to_element_grid(world)
         return engine
 
@@ -1208,6 +1308,52 @@ class GenesisEngine:
         self._last_result = self._build_result()
         return self._last_result
 
+    def _extract_qd_descriptor_value(
+        self,
+        name: str,
+        record: Any,
+        descriptor_dict: Mapping[str, Any],
+    ) -> float:
+        if self.qd_descriptor_registry is not None and name in self.qd_descriptor_registry._extractors:
+            extractor = self.qd_descriptor_registry._extractors[name]
+            try:
+                return float(extractor(record))
+            except Exception:
+                if getattr(record, "behavior_descriptor", None) is not None:
+                    return float(extractor(record.behavior_descriptor))
+                raise
+
+        if name in descriptor_dict:
+            val = descriptor_dict[name]
+            if isinstance(val, int | float) and not isinstance(val, bool):
+                return float(val)
+
+        if name in KNOWN_DESCRIPTOR_ALIASES:
+            alias = KNOWN_DESCRIPTOR_ALIASES[name]
+            if alias in descriptor_dict:
+                val = descriptor_dict[alias]
+                if isinstance(val, int | float) and not isinstance(val, bool):
+                    return float(val)
+
+        if hasattr(record, name):
+            val = getattr(record, name)
+            if isinstance(val, int | float) and not isinstance(val, bool):
+                return float(val)
+
+        if name in KNOWN_DESCRIPTOR_ALIASES:
+            alias = KNOWN_DESCRIPTOR_ALIASES[name]
+            if hasattr(record, alias):
+                val = getattr(record, alias)
+                if isinstance(val, int | float) and not isinstance(val, bool):
+                    return float(val)
+
+        if name == "causal_prediction_accuracy":
+            attempted = getattr(record, "causal_prediction_attempted", 0)
+            correct = getattr(record, "causal_prediction_correct", 0)
+            return float(correct / attempted) if attempted > 0 else 0.0
+
+        return 0.0
+
     def _update_qd(self, generation: GenerationResult) -> QDArchiveBatchUpdateResult | None:
         if self.qd_archive is None:
             return None
@@ -1217,8 +1363,8 @@ class GenesisEngine:
                 continue
             descriptor = record.behavior_descriptor.to_dict()
             reduced = {
-                "survival_ticks": _json_float_value(descriptor.get("survival_ticks", 0.0)),
-                "blocked_ratio": _json_float_value(descriptor.get("blocked_ratio", 0.0)),
+                name: _json_float_value(self._extract_qd_descriptor_value(name, record, descriptor))
+                for name in self.qd_archive.config.schema.descriptor_names
             }
             behavior_bin = assign_behavior_bin(reduced, self.qd_archive.config.schema)
             candidates.append(
@@ -1280,11 +1426,19 @@ class GenesisEngine:
         fitness_scores: dict[str, float] = {}
         for record in generation.organism_records:
             if record.behavior_descriptor is not None:
-                descriptors[record.organism_id] = {
+                desc_dict = {
                     key: _json_float_value(value)
                     for key, value in record.behavior_descriptor.to_dict().items()
                     if isinstance(value, int | float) and not isinstance(value, bool)
                 }
+                for name in self.qd_archive.config.schema.descriptor_names:
+                    if name not in desc_dict:
+                        desc_dict[name] = _json_float_value(
+                            self._extract_qd_descriptor_value(
+                                name, record, record.behavior_descriptor.to_dict()
+                            )
+                        )
+                descriptors[record.organism_id] = desc_dict
             fitness_scores[record.organism_id] = record.fitness_result.score
         novelty_scores = compute_novelty_scores_from_archive(
             organisms, descriptors, self.qd_archive

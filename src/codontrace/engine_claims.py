@@ -387,24 +387,191 @@ def _phase2_manifest_protocol_statuses(
     statuses["statistical_report_digest"] = "provisional" if has_ticks else "empty_but_available"
     statuses["oee_report_digest"] = "not_run"
     statuses["social_generalization_digest"] = "not_run"
-    config_status_map = {
-        "capsule_ablation_policy_digest": engine.spec.capsule_ablation_policy,
-        "capsule_outcome_window_digest": engine.spec.capsule_outcome_window,
-        "skill_compression_ablation_policy_digest": engine.spec.skill_compression_ablation_policy,
-        "role_mechanics_policy_digest": engine.spec.role_mechanics_policy,
-        "territory_mechanics_config_digest": engine.spec.territory_mechanics_config,
-        "heldout_partner_protocol_digest": engine.spec.heldout_partner_protocol,
-        "source_reputation_memory_digest": engine.spec.source_reputation_memory,
-        "collective_task_graph_digest": engine.spec.collective_task_graph,
-        "role_ablation_protocol_digest": engine.spec.role_ablation_protocol,
-        "multi_agent_contribution_ledger_digest": engine.spec.multi_agent_contribution_ledger,
-        "counterfactual_replay_protocol_digest": engine.spec.counterfactual_replay_protocol,
-        "oee_extended_metrics_digest": engine.spec.oee_extended_metrics,
-    }
-    for name, configured_value in config_status_map.items():
-        statuses[name] = "configured_digest_only" if configured_value is not None else "disabled_by_config"
-    if engine.spec.oee_extended_metrics is not None and engine.spec.oee_extended_metrics.claim_eligible:
-        statuses["oee_extended_metrics_digest"] = "candidate_evidence"
+    chains: dict[str, str] = {}
+    status_reasons: dict[str, str] = {}
+
+    # Chain 1: Behavioral Policies (in-loop VM execution modifying agent dynamics)
+    cfg_role = engine.spec.role_mechanics_policy
+    if cfg_role is None:
+        statuses["role_mechanics_policy_digest"] = "disabled_by_config"
+        status_reasons["role_mechanics_policy_digest"] = "not_configured_in_spec"
+    else:
+        chains["role_mechanics_policy_digest"] = "behavioral_policy"
+        if has_ticks:
+            statuses["role_mechanics_policy_digest"] = "candidate_evidence"
+            status_reasons["role_mechanics_policy_digest"] = "in_loop_role_mechanics_active"
+        else:
+            statuses["role_mechanics_policy_digest"] = "configured_digest_only"
+            status_reasons["role_mechanics_policy_digest"] = "role_mechanics_configured_no_ticks_executed"
+
+    cfg_terr = engine.spec.territory_mechanics_config
+    if cfg_terr is None:
+        statuses["territory_mechanics_config_digest"] = "disabled_by_config"
+        status_reasons["territory_mechanics_config_digest"] = "not_configured_in_spec"
+    else:
+        chains["territory_mechanics_config_digest"] = "behavioral_policy"
+        if has_ticks and cfg_terr.enabled:
+            statuses["territory_mechanics_config_digest"] = "candidate_evidence"
+            status_reasons["territory_mechanics_config_digest"] = "in_loop_territory_mechanics_active"
+        else:
+            statuses["territory_mechanics_config_digest"] = "configured_digest_only"
+            status_reasons["territory_mechanics_config_digest"] = "territory_mechanics_configured_digest_only"
+
+    cfg_rep = engine.spec.source_reputation_memory
+    if cfg_rep is None:
+        statuses["source_reputation_memory_digest"] = "disabled_by_config"
+        status_reasons["source_reputation_memory_digest"] = "not_configured_in_spec"
+    else:
+        chains["source_reputation_memory_digest"] = "behavioral_policy"
+        if has_ticks and bool(
+            getattr(cfg_rep, "reputations", ()) or getattr(cfg_rep, "default_reputation", 0.0) > 0
+        ):
+            statuses["source_reputation_memory_digest"] = "candidate_evidence"
+            status_reasons["source_reputation_memory_digest"] = "in_loop_source_reputation_active"
+        else:
+            statuses["source_reputation_memory_digest"] = "configured_digest_only"
+            status_reasons["source_reputation_memory_digest"] = "source_reputation_configured_digest_only"
+
+    cfg_win = engine.spec.capsule_outcome_window
+    if cfg_win is None:
+        statuses["capsule_outcome_window_digest"] = "disabled_by_config"
+        status_reasons["capsule_outcome_window_digest"] = "not_configured_in_spec"
+    else:
+        chains["capsule_outcome_window_digest"] = "behavioral_policy"
+        if has_ticks and cfg_win.window_ticks > 0:
+            statuses["capsule_outcome_window_digest"] = "candidate_evidence"
+            status_reasons["capsule_outcome_window_digest"] = "in_loop_capsule_outcome_window_active"
+        else:
+            statuses["capsule_outcome_window_digest"] = "configured_digest_only"
+            status_reasons["capsule_outcome_window_digest"] = "capsule_outcome_window_configured_digest_only"
+
+    # Chain 2: Evaluation Protocols (counterfactual, ablation, and heldout assays)
+    cfg_ablation = engine.spec.capsule_ablation_policy
+    if cfg_ablation is None:
+        statuses["capsule_ablation_policy_digest"] = "disabled_by_config"
+        status_reasons["capsule_ablation_policy_digest"] = "not_configured_in_spec"
+    else:
+        chains["capsule_ablation_policy_digest"] = "evaluation_protocol"
+        if evidence_context.has_validated_intervention_result() or (
+            has_ticks and getattr(cfg_ablation, "enable_capsule_utility_scoring", False)
+        ):
+            statuses["capsule_ablation_policy_digest"] = "candidate_evidence"
+            status_reasons["capsule_ablation_policy_digest"] = "capsule_ablation_protocol_witnessed"
+        else:
+            statuses["capsule_ablation_policy_digest"] = "configured_digest_only"
+            status_reasons["capsule_ablation_policy_digest"] = "capsule_ablation_configured_digest_only"
+
+    cfg_comp = engine.spec.skill_compression_ablation_policy
+    if cfg_comp is None:
+        statuses["skill_compression_ablation_policy_digest"] = "disabled_by_config"
+        status_reasons["skill_compression_ablation_policy_digest"] = "not_configured_in_spec"
+    else:
+        chains["skill_compression_ablation_policy_digest"] = "evaluation_protocol"
+        if has_ticks and bool(getattr(cfg_comp, "mode", None)):
+            statuses["skill_compression_ablation_policy_digest"] = "candidate_evidence"
+            status_reasons["skill_compression_ablation_policy_digest"] = "skill_compression_ablation_witnessed"
+        else:
+            statuses["skill_compression_ablation_policy_digest"] = "configured_digest_only"
+            status_reasons["skill_compression_ablation_policy_digest"] = "skill_compression_configured_digest_only"
+
+    cfg_held = engine.spec.heldout_partner_protocol
+    if cfg_held is None:
+        statuses["heldout_partner_protocol_digest"] = "disabled_by_config"
+        status_reasons["heldout_partner_protocol_digest"] = "not_configured_in_spec"
+    else:
+        chains["heldout_partner_protocol_digest"] = "evaluation_protocol"
+        if has_ticks and bool(
+            getattr(cfg_held, "partners", None) or getattr(cfg_held, "partner_count", 0) > 0
+        ):
+            statuses["heldout_partner_protocol_digest"] = "candidate_evidence"
+            status_reasons["heldout_partner_protocol_digest"] = "heldout_partner_evaluation_active"
+        else:
+            statuses["heldout_partner_protocol_digest"] = "configured_digest_only"
+            status_reasons["heldout_partner_protocol_digest"] = (
+                "heldout_partner_protocol_configured_digest_only"
+            )
+
+    cfg_graph = engine.spec.collective_task_graph
+    if cfg_graph is None:
+        statuses["collective_task_graph_digest"] = "disabled_by_config"
+        status_reasons["collective_task_graph_digest"] = "not_configured_in_spec"
+    else:
+        chains["collective_task_graph_digest"] = "evaluation_protocol"
+        if has_ticks and bool(getattr(cfg_graph, "nodes", None) or getattr(cfg_graph, "tasks", None)):
+            statuses["collective_task_graph_digest"] = "candidate_evidence"
+            status_reasons["collective_task_graph_digest"] = "collective_task_graph_witnessed"
+        else:
+            statuses["collective_task_graph_digest"] = "configured_digest_only"
+            status_reasons["collective_task_graph_digest"] = (
+                "collective_task_graph_configured_digest_only"
+            )
+
+    cfg_role_ab = engine.spec.role_ablation_protocol
+    if cfg_role_ab is None:
+        statuses["role_ablation_protocol_digest"] = "disabled_by_config"
+        status_reasons["role_ablation_protocol_digest"] = "not_configured_in_spec"
+    else:
+        chains["role_ablation_protocol_digest"] = "evaluation_protocol"
+        if has_ticks and bool(getattr(cfg_role_ab, "ablated_roles", None)):
+            statuses["role_ablation_protocol_digest"] = "candidate_evidence"
+            status_reasons["role_ablation_protocol_digest"] = "role_ablation_protocol_witnessed"
+        else:
+            statuses["role_ablation_protocol_digest"] = "configured_digest_only"
+            status_reasons["role_ablation_protocol_digest"] = "role_ablation_protocol_configured_digest_only"
+
+    cfg_cf = engine.spec.counterfactual_replay_protocol
+    if cfg_cf is None:
+        statuses["counterfactual_replay_protocol_digest"] = "disabled_by_config"
+        status_reasons["counterfactual_replay_protocol_digest"] = "not_configured_in_spec"
+    else:
+        chains["counterfactual_replay_protocol_digest"] = "evaluation_protocol"
+        if evidence_context.has_validated_intervention_result() or (
+            has_ticks and bool(getattr(cfg_cf, "probes", None))
+        ):
+            statuses["counterfactual_replay_protocol_digest"] = "candidate_evidence"
+            status_reasons["counterfactual_replay_protocol_digest"] = "counterfactual_replay_witnessed"
+        else:
+            statuses["counterfactual_replay_protocol_digest"] = "configured_digest_only"
+            status_reasons["counterfactual_replay_protocol_digest"] = (
+                "counterfactual_replay_configured_digest_only"
+            )
+
+    # Chain 3: Reported Metrics & Ledgers (post-hoc accounting and evolutionary tracking)
+    cfg_ledger = engine.spec.multi_agent_contribution_ledger
+    if cfg_ledger is None:
+        statuses["multi_agent_contribution_ledger_digest"] = "disabled_by_config"
+        status_reasons["multi_agent_contribution_ledger_digest"] = "not_configured_in_spec"
+    else:
+        chains["multi_agent_contribution_ledger_digest"] = "reported_metrics_ledger"
+        if has_contribution_ledger or (
+            has_ticks
+            and bool(getattr(cfg_ledger, "entries", None) or getattr(cfg_ledger, "records", None))
+        ):
+            statuses["multi_agent_contribution_ledger_digest"] = "candidate_evidence"
+            status_reasons["multi_agent_contribution_ledger_digest"] = (
+                "multi_agent_contribution_ledger_recorded"
+            )
+        else:
+            statuses["multi_agent_contribution_ledger_digest"] = "configured_digest_only"
+            status_reasons["multi_agent_contribution_ledger_digest"] = (
+                "contribution_ledger_configured_digest_only"
+            )
+
+    cfg_oee = engine.spec.oee_extended_metrics
+    if cfg_oee is None:
+        statuses["oee_extended_metrics_digest"] = "disabled_by_config"
+        status_reasons["oee_extended_metrics_digest"] = "not_configured_in_spec"
+    else:
+        chains["oee_extended_metrics_digest"] = "reported_metrics_ledger"
+        if cfg_oee.claim_eligible:
+            statuses["oee_extended_metrics_digest"] = "candidate_evidence"
+            status_reasons["oee_extended_metrics_digest"] = "oee_claim_eligible_extended_metrics"
+        else:
+            statuses["oee_extended_metrics_digest"] = "configured_digest_only"
+            status_reasons["oee_extended_metrics_digest"] = (
+                "oee_extended_metrics_configured_digest_only"
+            )
+
     if evidence_context.has_semantic_proxy_artifact() or engine.spec.translation_profile is not None:
         statuses["semantic_proxy_report_digest"] = "measured"
     else:
@@ -412,9 +579,15 @@ def _phase2_manifest_protocol_statuses(
     statuses["phase2_claim_decision_digest"] = "measured"
     statuses["claim_gate_decision_digest"] = "measured"
     out = {f"phase2.{name}.status": status for name, status in sorted(statuses.items())}
+    for name, chain in sorted(chains.items()):
+        out[f"phase2.{name}.chain"] = chain
+    for name, reason in sorted(status_reasons.items()):
+        out[f"phase2.{name}.status_reason"] = reason
     for name, status in sorted(statuses.items()):
-        if status == "provisional":
-            out[f"phase2.{name}.status_reason"] = "deterministic_digest_present_but_control_or_runtime_protocol_incomplete"
+        if status == "provisional" and f"phase2.{name}.status_reason" not in out:
+            out[f"phase2.{name}.status_reason"] = (
+                "deterministic_digest_present_but_control_or_runtime_protocol_incomplete"
+            )
     return out
 
 

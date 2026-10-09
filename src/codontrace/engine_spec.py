@@ -56,6 +56,7 @@ from codontrace.genesis.population import (
     PopulationConfigs,
     ReproductionConfig,
 )
+from codontrace.genesis.qd_descriptors import QDDescriptorRegistry
 from codontrace.genesis.quality_diversity import QDArchiveConfig
 from codontrace.genesis.ribosome import Ribosome
 from codontrace.genesis.role import (
@@ -173,6 +174,7 @@ class GenesisExperimentSpec:
     adf_execution_policy: ADFExecutionPolicy | None = None
     translation_profile: TranslationProfile | None = None
     translation_policy: TranslationPolicy | None = None
+    qd_descriptor_registry: QDDescriptorRegistry | None = None
     evidence_validation_context: EvidenceValidationContext | None = None
     enable_execution_source: bool = False
     substrate_bridge_mode: str = "world2d_mirror"
@@ -219,7 +221,7 @@ class GenesisExperimentSpec:
         ribosome = self.resolved_ribosome()
         table = self.codon_table or ribosome.codon_table
         genome_spec = self.genome_spec or table.spec.genome_spec
-        return {
+        payload: dict[str, JsonValue] = {
             "genome_bits": list(self.genome_bits),
             "seed": self.seed,
             "tick_count": self.tick_count,
@@ -275,6 +277,9 @@ class GenesisExperimentSpec:
             "enable_execution_source": self.enable_execution_source,
             "metadata": dict(sorted(self.metadata.items())),
         }
+        if self.qd_descriptor_registry is not None:
+            payload["qd_descriptor_registry_hash"] = self.qd_descriptor_registry.digest()
+        return payload
 
     def digest(self) -> str:
         return _digest(self.to_dict())

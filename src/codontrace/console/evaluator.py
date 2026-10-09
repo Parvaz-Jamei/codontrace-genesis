@@ -31,6 +31,17 @@ def _is_finite(val: Any) -> bool:
     return False
 
 
+ACTIVE_LIFECYCLE_STATES: tuple[str, ...] = (
+    "STARTING",
+    "QUEUED",
+    "RUNNING",
+    "PAUSING",
+    "PAUSED",
+    "RESUMING",
+    "STOPPING",
+)
+
+
 # @audit-control C3
 def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     """Evaluate empirical evidence for a simulation run without boolean locking."""
@@ -48,7 +59,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
         }
 
     status = str(run_data.get("status", "")).upper()
-    if status in ("STARTING", "QUEUED", "RUNNING", "PAUSED"):
+    if status in ACTIVE_LIFECYCLE_STATES:
         return {
             "verdict": "not_evaluated",
             "hypothesis_id": "pending_run_completion",
@@ -149,25 +160,37 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
         candidate = dict(execution["hypothesis_assessment"])
         v = candidate.get("verdict")
         conf = candidate.get("confidence")
-        if conf is not None and not _is_finite(conf):
-            return {
-                "verdict": "invalid",
-                "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
-                "protocol": str(candidate.get("protocol", "candidate_validation")),
-                "confidence": 0.0,
-                "rationale": f"Candidate assessment rejected: non-finite confidence ({conf}).",
-                "controls_passed": False,
-                "evidence_summary": candidate.get("evidence_summary", {}),
-                "evaluated_at": now,
-            }
-        if v == "supported":
-            if candidate.get("controls_passed") is False:
+        if conf is not None:
+            if isinstance(conf, bool) or not isinstance(conf, (int, float)) or not _is_finite(conf) or conf < 0.0 or conf > 1.0:
                 return {
                     "verdict": "invalid",
                     "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
                     "protocol": str(candidate.get("protocol", "candidate_validation")),
                     "confidence": 0.0,
-                    "rationale": "Candidate assessment claims 'supported' but controls_passed is False.",
+                    "rationale": f"Candidate assessment rejected: invalid confidence ({conf}), must be finite in [0.0, 1.0].",
+                    "controls_passed": False,
+                    "evidence_summary": candidate.get("evidence_summary", {}),
+                    "evaluated_at": now,
+                }
+        if v not in ("supported", "not_supported", "inconclusive", "invalid", "not_evaluated"):
+            return {
+                "verdict": "invalid",
+                "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
+                "protocol": str(candidate.get("protocol", "candidate_validation")),
+                "confidence": 0.0,
+                "rationale": f"Candidate assessment rejected: unrecognized verdict '{v}'.",
+                "controls_passed": False,
+                "evidence_summary": candidate.get("evidence_summary", {}),
+                "evaluated_at": now,
+            }
+        if v == "supported":
+            if candidate.get("controls_passed") is not True:
+                return {
+                    "verdict": "invalid",
+                    "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
+                    "protocol": str(candidate.get("protocol", "candidate_validation")),
+                    "confidence": 0.0,
+                    "rationale": "Candidate assessment claims 'supported' without verified passing controls.",
                     "controls_passed": False,
                     "evidence_summary": candidate.get("evidence_summary", {}),
                     "evaluated_at": now,
@@ -183,9 +206,8 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                     "evidence_summary": candidate.get("evidence_summary", {}),
                     "evaluated_at": now,
                 }
-        if v in ("supported", "not_supported", "inconclusive", "invalid", "not_evaluated"):
-            candidate.setdefault("evaluated_at", now)
-            return candidate
+        candidate.setdefault("evaluated_at", now)
+        return candidate
 
     # Frontier Challenge evaluations
     challenge = execution.get("challenge") or summary.get("challenge")
@@ -193,7 +215,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     if challenge == "OEE_NOVELTY":
         raw_slope = summary.get("activity_slope", 0.0)
         raw_gens = summary.get("total_generations", execution.get("total_generations", 0))
-        if not _is_finite(raw_slope) or not _is_finite(raw_gens):
+        if isinstance(raw_slope, bool) or isinstance(raw_gens, bool) or not _is_finite(raw_slope) or not _is_finite(raw_gens):
             return {
                 "verdict": "invalid",
                 "hypothesis_id": "oee_unbounded_novelty",
@@ -213,7 +235,18 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "protocol": "bedau_channon_oee",
                 "confidence": 0.4,
                 "rationale": f"Run halted before sufficient generational depth (gens={gens} < 1000).",
-                "controls_passed": True,
+                "controls_passed": False,
+                "evidence_summary": {"slope": slope, "generations": gens},
+                "evaluated_at": now,
+            }
+        if gens < 100:
+            return {
+                "verdict": "inconclusive",
+                "hypothesis_id": "oee_unbounded_novelty",
+                "protocol": "bedau_channon_oee",
+                "confidence": 0.4,
+                "rationale": f"Generational depth insufficient for evolutionary activity trend evaluation (gens={gens} < 100).",
+                "controls_passed": False,
                 "evidence_summary": {"slope": slope, "generations": gens},
                 "evaluated_at": now,
             }
@@ -223,7 +256,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "hypothesis_id": "oee_unbounded_novelty",
                 "protocol": "bedau_channon_oee",
                 "confidence": 0.95,
-                "rationale": f"Unbounded cumulative evolutionary activity confirmed (activity_slope={slope:.4f} >= 0.10).",
+                "rationale": f"Positive evolutionary activity trend confirmed across observed window (activity_slope={slope:.4f} >= 0.10).",
                 "controls_passed": True,
                 "evidence_summary": {"slope": slope, "generations": gens},
                 "evaluated_at": now,
@@ -242,7 +275,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     if challenge == "MLS_PRICE":
         raw_between = summary.get("between_deme_selection_term", 0.0)
         raw_within = summary.get("within_deme_selection_term", 0.0)
-        if not _is_finite(raw_between) or not _is_finite(raw_within):
+        if isinstance(raw_between, bool) or isinstance(raw_within, bool) or not _is_finite(raw_between) or not _is_finite(raw_within):
             return {
                 "verdict": "invalid",
                 "hypothesis_id": "mls_price_partition",
@@ -255,14 +288,14 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
             }
         between = float(raw_between)
         within = float(raw_within)
-        if not complete:
+        if not complete or status != "COMPLETED":
             return {
                 "verdict": "inconclusive",
                 "hypothesis_id": "mls_price_partition",
                 "protocol": "price_1972_mls",
                 "confidence": 0.5,
-                "rationale": "Multilevel selection run terminated prematurely.",
-                "controls_passed": True,
+                "rationale": "Multilevel selection run terminated prematurely or incomplete.",
+                "controls_passed": False,
                 "evidence_summary": {"between_term": between, "within_term": within},
                 "evaluated_at": now,
             }
@@ -291,7 +324,12 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     if challenge == "FUNCTIONAL_INFO":
         raw_fi = summary.get("hazen_functional_info_bits", summary.get("functional_info_bits", 0.0))
         raw_perc = summary.get("neutral_percolation_rate", 0.0)
-        if not _is_finite(raw_fi) or not _is_finite(raw_perc):
+        if (
+            isinstance(raw_fi, bool)
+            or isinstance(raw_perc, bool)
+            or not _is_finite(raw_fi)
+            or not _is_finite(raw_perc)
+        ):
             return {
                 "verdict": "invalid",
                 "hypothesis_id": "hazen_functional_info_accretion",
@@ -304,6 +342,28 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
             }
         fi_bits = float(raw_fi)
         percolation = float(raw_perc)
+        if percolation < 0.0 or percolation > 1.0:
+            return {
+                "verdict": "invalid",
+                "hypothesis_id": "hazen_functional_info_accretion",
+                "protocol": "hazen_2007_functional_information",
+                "confidence": 0.0,
+                "rationale": f"Invalid neutral percolation rate ({percolation}), must be bounded in [0.0, 1.0].",
+                "controls_passed": False,
+                "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
+                "evaluated_at": now,
+            }
+        if not complete or status != "COMPLETED":
+            return {
+                "verdict": "inconclusive",
+                "hypothesis_id": "hazen_functional_info_accretion",
+                "protocol": "hazen_2007_functional_information",
+                "confidence": 0.5,
+                "rationale": f"Functional information assessment requires completed run (status='{status}', complete={complete}).",
+                "controls_passed": False,
+                "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
+                "evaluated_at": now,
+            }
         if fi_bits > 0.0 and percolation > 0.0:
             return {
                 "verdict": "supported",
@@ -316,7 +376,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "evaluated_at": now,
             }
         return {
-            "verdict": "inconclusive" if not complete else "not_supported",
+            "verdict": "not_supported",
             "hypothesis_id": "hazen_functional_info_accretion",
             "protocol": "hazen_2007_functional_information",
             "confidence": 0.70,

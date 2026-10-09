@@ -150,7 +150,7 @@ export function JobsView() {
                   setOpenIds(open ? openIds.filter((id) => id !== job.id) : [...openIds, job.id]);
                 }}
               >
-                <span className={cn("h-2 w-2 shrink-0 rounded-full", dotClass(job.status))} aria-hidden />
+                <span className={cn("h-2 w-2 shrink-0 rounded-full", dotClass(job.status, job.snapshot?.state, job.pendingAction))} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate font-medium">{job.title}</span>
@@ -184,6 +184,10 @@ export function JobsView() {
                     {job.isFrontierReference ? (
                       <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
                         Frontier Reference Model · Theoretical Benchmark
+                      </span>
+                    ) : job.engineBackend && job.engineBackend !== "genesis_engine" ? (
+                      <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-medium text-purple-300">
+                        Custom Script · {job.scriptName || job.engineBackend}
                       </span>
                     ) : (
                       <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
@@ -235,6 +239,11 @@ export function JobsView() {
                     <pre className="max-h-40 min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-all rounded-xl bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-muted">
                       {job.logs.slice(-8).join("\n")}
                     </pre>
+                  ) : null}
+                  {job.actionError ? (
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                      <strong>{lang === "fa" ? "خطای عملیات:" : "Action Error:"}</strong> {job.actionError}
+                    </div>
                   ) : null}
                   <p className="text-xs text-subtle">
                     {text.sliceNote} {text.diag} · {text.exploratory}
@@ -753,7 +762,7 @@ export function GatesView() {
                           <span className="text-muted">
                             {gate.count} · {job.cursor}/{job.totalSteps}
                           </span>
-                          <span className={cn("font-medium", tone(job.status))}>{labelStatus(text, job.status)}</span>
+                          <span className={cn("font-medium", tone(job.status))}>{labelStatus(text, job.status, job.snapshot?.state, job.pendingAction)}</span>
                         </p>
                         <p className="mt-1 text-xs text-subtle">{text.sliceNote}</p>
                       </>
@@ -1635,15 +1644,24 @@ function Reveal({ text, active }: { text: string; active: boolean }) {
 function Status({ job }: { job: Job }) {
   const lang = useBench((state) => state.settings.lang);
   const text = t(lang);
+  const isTransitioning =
+    job.snapshot?.state === "PAUSING" ||
+    job.pendingAction === "pause" ||
+    job.snapshot?.state === "RESUMING" ||
+    job.pendingAction === "resume" ||
+    job.snapshot?.state === "STOPPING" ||
+    job.pendingAction === "stop";
   const tone =
     job.status === "failed" || job.status === "stopped"
       ? "text-bad"
-      : job.status === "running"
-        ? "text-ok"
-        : job.status === "paused"
-          ? "text-warn"
-          : "text-muted";
-  return <span className={cn("shrink-0 text-xs font-medium", tone)}>{labelStatus(text, job.status)}</span>;
+      : isTransitioning
+        ? "text-warn"
+        : job.status === "running"
+          ? "text-ok"
+          : job.status === "paused"
+            ? "text-warn"
+            : "text-muted";
+  return <span className={cn("shrink-0 text-xs font-medium", tone)}>{labelStatus(text, job.status, job.snapshot?.state, job.pendingAction)}</span>;
 }
 
 function Stat({ k, v }: { k: string; v: string }) {
@@ -1762,14 +1780,19 @@ function kindLabel(text: ReturnType<typeof t>, job: Job) {
   return text.trackEngine;
 }
 
-function dotClass(status: JobStatus) {
+function dotClass(status: JobStatus, snapshotState?: string, pendingAction?: string | null) {
+  if (snapshotState === "PAUSING" || pendingAction === "pause" || snapshotState === "RESUMING" || pendingAction === "resume") return "bg-warn live-dot";
+  if (snapshotState === "STOPPING" || pendingAction === "stop") return "bg-bad live-dot";
   if (status === "running") return "bg-ok live-dot";
   if (status === "paused") return "bg-warn";
   if (status === "failed" || status === "stopped") return "bg-bad";
   return "bg-subtle";
 }
 
-function labelStatus(text: ReturnType<typeof t>, status: JobStatus) {
+function labelStatus(text: ReturnType<typeof t>, status: JobStatus, snapshotState?: string, pendingAction?: string | null) {
+  if (snapshotState === "PAUSING" || pendingAction === "pause") return text.statusPausing;
+  if (snapshotState === "RESUMING" || pendingAction === "resume") return text.statusResuming;
+  if (snapshotState === "STOPPING" || pendingAction === "stop") return text.statusStopping;
   if (status === "queued") return text.statusQueued;
   if (status === "running") return text.statusRunning;
   if (status === "paused") return text.statusPaused;

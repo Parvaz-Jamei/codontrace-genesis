@@ -323,7 +323,32 @@ def build_run_snapshot(
     manifest = manifest_data or {}
     session_id = str(status_info.get("session_id") or manifest.get("session_id") or f"sess_{run_id}")
     revision = int(status_info.get("revision", 1))
-    raw_status = str(status_info.get("status", "UNKNOWN")).upper()
+
+    entry = get_safe_run_dir(run_id)
+    adapter = get_runner_adapter(manifest, script_name=status_info.get("params", {}).get("scriptName"))
+    exec_data = adapter.resolve_execution_data(entry) if entry else None
+    has_complete_exec = False
+    if exec_data and exec_data.get("complete") is True:
+        rep_id = exec_data.get("runId") or exec_data.get("run_id")
+        if not rep_id or rep_id == run_id:
+            if not exec_data.get("validation_failures") and not exec_data.get("errors") and not exec_data.get("failed"):
+                has_complete_exec = True
+
+    raw_status = str(status_info.get("status", "")).upper()
+    if not raw_status or raw_status == "UNKNOWN":
+        if has_complete_exec:
+            raw_status = "COMPLETED"
+        else:
+            live_log = (entry / adapter.primary_output_dir / "live.log") if entry else None
+            if live_log and not live_log.is_file():
+                live_log = entry / "live.log"
+            if live_log and live_log.is_file() and (time.time() - live_log.stat().st_mtime < 120):
+                raw_status = "RUNNING"
+            elif entry and ((entry / "STOP").is_file() or ((entry / adapter.primary_output_dir / "STOP").is_file())):
+                raw_status = "STOPPED"
+            else:
+                raw_status = "STOPPED"
+
     state_map = {
         "STARTING": "STARTING",
         "RUNNING": "RUNNING",
@@ -337,10 +362,12 @@ def build_run_snapshot(
         "QUEUED": "QUEUED",
         "STALE": "STOPPED",
         "CANCELLED": "STOPPED",
+        "INACTIVE": "STOPPED",
     }
-    state = state_map.get(raw_status, "RUNNING")
+    state = state_map.get(raw_status, "STOPPED")
+    if has_complete_exec:
+        state = "COMPLETED"
 
-    adapter = get_runner_adapter(manifest, script_name=status_info.get("params", {}).get("scriptName"))
     caps = status_info.get("capabilities") or manifest.get("capabilities")
     if not isinstance(caps, dict):
         caps = adapter.resolve_capabilities()
@@ -350,8 +377,27 @@ def build_run_snapshot(
         or manifest.get("params", {}).get("workers")
         or 1
     )
+    manifest_seeds = manifest.get("params", {}).get("seeds")
+    seeds_list_len = len(manifest_seeds) if isinstance(manifest_seeds, list) else 0
 
-    entry = get_safe_run_dir(run_id)
+    explicit_total_seeds = (
+        status_info.get("totalSeeds")
+        or status_info.get("total_seeds")
+        or manifest.get("params", {}).get("totalSeeds")
+        or (seeds_list_len if seeds_list_len > 0 else None)
+    )
+    total_seeds = int(explicit_total_seeds) if explicit_total_seeds is not None else max(1, workers_expected)
+    completed_seeds = int(
+        status_info.get("completedSeeds")
+        or status_info.get("completed_seeds")
+        or 0
+    )
+    if state == "COMPLETED":
+        completed_seeds = max(completed_seeds, total_seeds)
+
+    remaining_seeds = max(0, total_seeds - completed_seeds)
+    active_workers_expected = min(workers_expected, max(1, remaining_seeds)) if remaining_seeds > 0 else 0
+
     ack_files: set[str] = set()
     if entry and entry.is_dir():
         for p in entry.glob("ack_paused_*"):
@@ -361,26 +407,22 @@ def build_run_snapshot(
             for p in out_dir.glob("ack_paused_*"):
                 ack_files.add(p.name)
 
-    workers_paused = len(ack_files)
+    workers_paused = min(len(ack_files), max(workers_expected, 1))
 
     # Cooperative ACK-driven state refinement
     if entry and entry.is_dir():
         has_pause_file = (entry / "PAUSE").is_file() or ((entry / adapter.primary_output_dir / "PAUSE").is_file())
         if has_pause_file:
             if state in ("RUNNING", "STARTING", "PAUSING"):
-                if workers_paused >= workers_expected and workers_expected > 0:
+                if (active_workers_expected > 0 and workers_paused >= active_workers_expected) or (active_workers_expected == 0 and remaining_seeds == 0):
                     state = "PAUSED"
                 else:
                     state = "PAUSING"
-            elif state == "PAUSED" and workers_paused == 0:
-                workers_paused = workers_expected
         elif state == "PAUSED":
             if workers_paused > 0:
                 state = "RESUMING"
             else:
                 state = "RUNNING"
-    elif state == "PAUSED" and workers_paused == 0:
-        workers_paused = workers_expected
 
     requested_state: str | None = None
     if state == "PAUSING":
@@ -390,18 +432,6 @@ def build_run_snapshot(
     elif state == "STOPPING":
         requested_state = "STOPPED"
 
-    total_seeds = int(
-        status_info.get("totalSeeds")
-        or status_info.get("total_seeds")
-        or manifest.get("params", {}).get("totalSeeds")
-        or 1
-    )
-    completed_seeds = int(
-        status_info.get("completedSeeds")
-        or status_info.get("completed_seeds")
-        or 0
-    )
-
     pct_raw = status_info.get("pct")
     if pct_raw is None:
         pct_val = 100.0 if state == "COMPLETED" else 0.0
@@ -409,9 +439,13 @@ def build_run_snapshot(
         try:
             pct_val = float(pct_raw)
             if not math.isfinite(pct_val):
-                pct_val = 0.0
+                pct_val = 100.0 if state == "COMPLETED" else 0.0
         except (ValueError, TypeError):
-            pct_val = 0.0
+            pct_val = 100.0 if state == "COMPLETED" else 0.0
+
+    if state == "COMPLETED":
+        pct_val = 100.0
+    pct_val = max(0.0, min(100.0, pct_val))
 
     started_at = float(status_info.get("startedAt", 0.0))
     wall_elapsed = max(0.0, time.time() - started_at) if started_at > 0 else 0.0
@@ -436,7 +470,7 @@ def build_run_snapshot(
             except Exception:
                 pass
 
-    return {
+    snap_dict = {
         "schema_version": "run_snapshot_v2",
         "run_id": run_id,
         "session_id": session_id,
@@ -453,8 +487,8 @@ def build_run_snapshot(
         "progress": {
             "kind": "work_units",
             "stage": "simulation",
-            "done": completed_seeds,
-            "total": total_seeds,
+            "done": float(completed_seeds),
+            "total": float(total_seeds),
             "pct": round(pct_val, 1),
         },
         "active_elapsed_seconds": round(active_elapsed, 1),
@@ -463,6 +497,9 @@ def build_run_snapshot(
         "heartbeat_at": datetime.datetime.now(datetime.UTC).isoformat(),
         "pending_command_id": None,
     }
+    from codontrace.genesis.snapshot import validate_run_snapshot
+
+    return validate_run_snapshot(snap_dict)
 
 
 def list_simulation_runs() -> list[dict[str, Any]]:
@@ -555,6 +592,10 @@ def list_simulation_runs() -> list[dict[str, Any]]:
             else:
                 st = "INACTIVE"
 
+        status_info["status"] = st
+        if st == "COMPLETED":
+            status_info["pct"] = 100.0
+
         seeds_dir = (engine_dir / "by_seed") if (engine_dir / "by_seed").is_dir() else (entry / "by_seed")
         seed_count = 0
         if seeds_dir.is_dir():
@@ -563,21 +604,15 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     seed_count += 1
 
         logs = tail_file(live_log, 15) or tail_file(console_log, 15)
-        snapshot = build_run_snapshot(run_id, status_info, None)
-        pct_val = status_info.get("pct", 100.0 if st == "COMPLETED" else 0.0)
-        try:
-            pct_val = float(pct_val)
-            if not math.isfinite(pct_val):
-                pct_val = 0.0
-        except (ValueError, TypeError):
-            pct_val = 0.0
+        snapshot = build_run_snapshot(run_id, status_info, manifest_data)
+        pct_val = snapshot["progress"]["pct"] if (snapshot.get("progress") and snapshot["progress"].get("pct") is not None) else (100.0 if st == "COMPLETED" else 0.0)
 
         runs.append({
             "id": run_id,
             "title": status_info.get("title") or run_id.replace("_", " ").title(),
-            "status": st,
+            "status": snapshot["state"],
             "path": str(entry),
-            "pct": round(pct_val, 1),
+            "pct": round(float(pct_val), 1),
             "completedSeeds": status_info.get("completed_seeds", status_info.get("completedSeeds", seed_count)),
             "totalSeeds": status_info.get("total_seeds", status_info.get("totalSeeds", max(12, seed_count))),
             "mtime": entry.stat().st_mtime,
@@ -660,6 +695,27 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                     status_info.setdefault("exitCode", 1)
                     status_info.setdefault("endedAt", time.time())
                 write_atomic_json(status_file, status_info)
+        elif not st:
+            live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
+            exec_data_val = adapter.resolve_execution_data(entry)
+            has_complete_exec = False
+            if exec_data_val and exec_data_val.get("complete") is True:
+                rep_id = exec_data_val.get("runId") or exec_data_val.get("run_id")
+                if not rep_id or rep_id == run_id:
+                    if not exec_data_val.get("validation_failures") and not exec_data_val.get("errors") and not exec_data_val.get("failed"):
+                        has_complete_exec = True
+            complete_file = entry / "COMPLETE"
+            if has_complete_exec or complete_file.is_file():
+                st = "COMPLETED"
+                status_info["status"] = "COMPLETED"
+                status_info["pct"] = 100.0
+                status_info.setdefault("exitCode", 0)
+            elif live_log.is_file() and (time.time() - live_log.stat().st_mtime < 120):
+                st = "RUNNING"
+                status_info["status"] = "RUNNING"
+            else:
+                st = "STOPPED"
+                status_info["status"] = "STOPPED"
 
     live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
     console_log = (entry / "console.log") if (entry / "console.log").is_file() else (engine_dir / "console.log")
@@ -687,18 +743,12 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 pass
 
     snapshot = build_run_snapshot(run_id, status_info, manifest_data)
-    pct_val = status_info.get("pct", 100.0 if status_info.get("status") == "COMPLETED" else 0.0)
-    try:
-        pct_val = float(pct_val)
-        if not math.isfinite(pct_val):
-            pct_val = 0.0
-    except (ValueError, TypeError):
-        pct_val = 0.0
+    pct_val = snapshot["progress"]["pct"] if (snapshot.get("progress") and snapshot["progress"].get("pct") is not None) else (100.0 if status_info.get("status") == "COMPLETED" else 0.0)
 
     from codontrace.console.evaluator import evaluate_run_hypothesis
 
     assessment = evaluate_run_hypothesis({
-        "status": status_info.get("status", "UNKNOWN"),
+        "status": snapshot["state"],
         "execution": exec_data,
         "diagnostics": diagnostics_data,
         "manifest": manifest_data,
@@ -714,8 +764,8 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
     return {
         "id": run_id,
         "title": status_info.get("title") or run_id.replace("_", " ").title(),
-        "status": status_info.get("status", "UNKNOWN"),
-        "pct": round(pct_val, 1),
+        "status": snapshot["state"],
+        "pct": round(float(pct_val), 1),
         "statusData": status_info,
         "manifest": manifest_data,
         "execution": exec_data,
@@ -1018,7 +1068,20 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
             workers_param = status_info.get("params", {}).get("workers") or manifest_data.get("params", {}).get("workers")
             if workers_param is not None and int(workers_param) > 1:
                 workers_expected = int(workers_param)
-                status_info["status"] = "PAUSED" if len(ack_files) >= workers_expected else "PAUSING"
+                manifest_seeds = manifest_data.get("params", {}).get("seeds")
+                seeds_list_len = len(manifest_seeds) if isinstance(manifest_seeds, list) else 0
+                total_seeds = int(
+                    status_info.get("totalSeeds")
+                    or status_info.get("total_seeds")
+                    or manifest_data.get("params", {}).get("totalSeeds")
+                    or (seeds_list_len if seeds_list_len > 0 else 0)
+                    or 1
+                )
+                completed_seeds = int(status_info.get("completedSeeds") or status_info.get("completed_seeds") or 0)
+                remaining_seeds = max(0, total_seeds - completed_seeds)
+                active_expected = min(workers_expected, max(1, remaining_seeds)) if remaining_seeds > 0 else 0
+
+                status_info["status"] = "PAUSED" if len(ack_files) >= active_expected and active_expected > 0 else "PAUSING"
             else:
                 status_info["status"] = "PAUSED"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1

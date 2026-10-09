@@ -264,13 +264,16 @@ export const useBench = create<BenchState>()(
                 : (sRun.status === "COMPLETED" ? totalSteps : 0);
 
               const incomingRev = sRun.snapshot?.revision ?? (sRun as any).revision ?? 0;
+              const incomingSession = sRun.snapshot?.session_id ?? (sRun as any).session_id ?? null;
 
               if (existingIndex >= 0) {
                 const existing = updatedJobs[existingIndex];
                 const existingRev = existing.snapshot?.revision ?? existing.revision ?? 0;
+                const existingSession = existing.snapshot?.session_id ?? (existing as any).session_id ?? null;
+                const sameSession = !incomingSession || !existingSession || incomingSession === existingSession;
 
-                // Monotonic revision guard: Drop stale responses
-                if (existingRev > 0 && incomingRev > 0 && incomingRev < existingRev) {
+                // Monotonic revision guard: Drop stale responses from the same session
+                if (sameSession && existingRev > 0 && incomingRev > 0 && incomingRev < existingRev) {
                   continue;
                 }
 
@@ -303,21 +306,32 @@ export const useBench = create<BenchState>()(
                   logs,
                   snapshot: sRun.snapshot ?? existing.snapshot,
                   capabilities: sRun.capabilities ?? existing.capabilities,
-                  revision: Math.max(incomingRev, existingRev),
+                  revision: sameSession ? Math.max(incomingRev, existingRev) : incomingRev,
                   pendingAction: existing.pendingAction,
                   pendingActionTime: existing.pendingActionTime,
                 };
               } else {
+                const sRunParams = (sRun as any).manifest?.params || (sRun as any).params;
+                const rawSeeds = sRunParams?.seeds;
+                const initialSeeds = Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s: any) => typeof s === "number")
+                  ? (rawSeeds as number[])
+                  : [16001];
+                const initialGenerations = typeof sRunParams?.generations === "number" ? sRunParams.generations : 100;
+                const initialWorkers = typeof sRunParams?.workers === "number" ? sRunParams.workers : (sRun.snapshot?.workers_expected || 2);
+                const initialCores = Array.isArray(sRunParams?.cores) ? (sRunParams.cores as number[]) : [];
+                const initialScriptName = typeof sRunParams?.scriptName === "string" ? sRunParams.scriptName : undefined;
+
                 const newJob: Job = {
                   id: sRun.id,
                   title: sRun.title,
                   kind: "engine",
                   preset: "custom",
-                  seeds: [16001],
-                  generations: 100,
+                  seeds: initialSeeds,
+                  generations: initialGenerations,
                   previewGenerations: 2,
-                  workers: 2,
-                  cores: [],
+                  workers: initialWorkers,
+                  cores: initialCores,
+                  scriptName: initialScriptName,
                   status: mappedStatus,
                   cursor: sRun.status === "COMPLETED" ? totalSteps : completedSeeds,
                   totalSteps,
@@ -351,50 +365,98 @@ export const useBench = create<BenchState>()(
                     : undefined;
 
                 let manifestSeeds = updatedJobs[idx].seeds;
+                let manifestGenerations = updatedJobs[idx].generations;
+                let manifestWorkers = updatedJobs[idx].workers;
+                let manifestCores = updatedJobs[idx].cores;
+                let manifestScriptName = updatedJobs[idx].scriptName;
+
                 const rawParams = details.manifest?.params;
                 if (rawParams && typeof rawParams === "object") {
-                  const rawSeeds = (rawParams as Record<string, unknown>).seeds;
-                  if (Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s) => typeof s === "number")) {
-                    manifestSeeds = rawSeeds as number[];
+                  const p = rawParams as Record<string, unknown>;
+                  if (Array.isArray(p.seeds) && p.seeds.length > 0 && p.seeds.every((s) => typeof s === "number")) {
+                    manifestSeeds = p.seeds as number[];
                   }
+                  if (typeof p.generations === "number") {
+                    manifestGenerations = p.generations;
+                  }
+                  if (typeof p.workers === "number") {
+                    manifestWorkers = p.workers;
+                  }
+                  if (Array.isArray(p.cores)) {
+                    manifestCores = p.cores as number[];
+                  }
+                  if (typeof p.scriptName === "string") {
+                    manifestScriptName = p.scriptName;
+                  }
+                }
+                if (typeof details.manifest?.scriptName === "string" && !manifestScriptName) {
+                  manifestScriptName = details.manifest.scriptName as string;
                 }
 
                 const dRev = details.snapshot?.revision ?? (details as any).revision ?? 0;
                 const curRev = updatedJobs[idx].snapshot?.revision ?? updatedJobs[idx].revision ?? 0;
-                let detStatus = mapServerStatus(details.status);
-                if (updatedJobs[idx].pendingAction && updatedJobs[idx].pendingActionTime) {
-                  const elapsedPending = Date.now() - (updatedJobs[idx].pendingActionTime || 0);
-                  if (elapsedPending < 5000) {
-                    if (updatedJobs[idx].pendingAction === "pause" && detStatus !== "paused") {
-                      detStatus = updatedJobs[idx].status;
-                    } else if (updatedJobs[idx].pendingAction === "resume" && detStatus !== "running") {
-                      detStatus = updatedJobs[idx].status;
-                    } else if (updatedJobs[idx].pendingAction === "stop" && detStatus !== "stopped") {
-                      detStatus = updatedJobs[idx].status;
-                    }
-                  }
-                }
+                const dSession = details.snapshot?.session_id ?? (details as any).session_id ?? null;
+                const curSession = updatedJobs[idx].snapshot?.session_id ?? (updatedJobs[idx] as any).session_id ?? null;
+                const sameSession = !dSession || !curSession || dSession === curSession;
 
                 const bnd = details.executionBoundary ?? (details.manifest?.executionBoundary as any);
-                updatedJobs[idx] = {
-                  ...updatedJobs[idx],
-                  title: details.title || updatedJobs[idx].title,
-                  status: detStatus,
-                  pct: detailsPct ?? updatedJobs[idx].pct,
-                  seeds: manifestSeeds,
-                  logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
-                  execution: details.execution,
-                  diagnosticsData: details.diagnostics,
-                  cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
-                  snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
-                  capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
-                  revision: Math.max(dRev, curRev),
-                  engineBackend: bnd?.engineBackend ?? (details.statusData?.engineBackend as string) ?? updatedJobs[idx].engineBackend,
-                  isFrontierReference: Boolean(bnd?.isFrontierReference ?? details.statusData?.isFrontierReference ?? updatedJobs[idx].isFrontierReference),
-                  modelScope: bnd?.modelScope ?? updatedJobs[idx].modelScope,
-                  modelBoundaryNotice: bnd?.modelBoundaryNotice ?? updatedJobs[idx].modelBoundaryNotice,
-                  hypothesisAssessment: details.hypothesis_assessment ?? (details.execution?.hypothesis_assessment as any) ?? updatedJobs[idx].hypothesisAssessment,
-                };
+
+                if (sameSession && curRev > 0 && dRev > 0 && dRev < curRev) {
+                  // Stale details response: do not overwrite newer list state with stale details
+                  updatedJobs[idx] = {
+                    ...updatedJobs[idx],
+                    seeds: manifestSeeds,
+                    generations: manifestGenerations,
+                    workers: manifestWorkers,
+                    cores: manifestCores,
+                    scriptName: manifestScriptName,
+                    execution: details.execution ?? updatedJobs[idx].execution,
+                    diagnosticsData: details.diagnostics ?? updatedJobs[idx].diagnosticsData,
+                    engineBackend: bnd?.engineBackend ?? (details.statusData?.engineBackend as string) ?? updatedJobs[idx].engineBackend,
+                    isFrontierReference: Boolean(bnd?.isFrontierReference ?? details.statusData?.isFrontierReference ?? updatedJobs[idx].isFrontierReference),
+                    modelScope: bnd?.modelScope ?? updatedJobs[idx].modelScope,
+                    modelBoundaryNotice: bnd?.modelBoundaryNotice ?? updatedJobs[idx].modelBoundaryNotice,
+                    hypothesisAssessment: details.hypothesis_assessment ?? (details.execution?.hypothesis_assessment as any) ?? updatedJobs[idx].hypothesisAssessment,
+                  };
+                } else {
+                  let detStatus = mapServerStatus(details.status);
+                  if (updatedJobs[idx].pendingAction && updatedJobs[idx].pendingActionTime) {
+                    const elapsedPending = Date.now() - (updatedJobs[idx].pendingActionTime || 0);
+                    if (elapsedPending < 5000) {
+                      if (updatedJobs[idx].pendingAction === "pause" && detStatus !== "paused") {
+                        detStatus = updatedJobs[idx].status;
+                      } else if (updatedJobs[idx].pendingAction === "resume" && detStatus !== "running") {
+                        detStatus = updatedJobs[idx].status;
+                      } else if (updatedJobs[idx].pendingAction === "stop" && detStatus !== "stopped") {
+                        detStatus = updatedJobs[idx].status;
+                      }
+                    }
+                  }
+
+                  updatedJobs[idx] = {
+                    ...updatedJobs[idx],
+                    title: details.title || updatedJobs[idx].title,
+                    status: detStatus,
+                    pct: detailsPct ?? updatedJobs[idx].pct,
+                    seeds: manifestSeeds,
+                    generations: manifestGenerations,
+                    workers: manifestWorkers,
+                    cores: manifestCores,
+                    scriptName: manifestScriptName,
+                    logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
+                    execution: details.execution,
+                    diagnosticsData: details.diagnostics,
+                    cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
+                    snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
+                    capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
+                    revision: sameSession ? Math.max(dRev, curRev) : dRev,
+                    engineBackend: bnd?.engineBackend ?? (details.statusData?.engineBackend as string) ?? updatedJobs[idx].engineBackend,
+                    isFrontierReference: Boolean(bnd?.isFrontierReference ?? details.statusData?.isFrontierReference ?? updatedJobs[idx].isFrontierReference),
+                    modelScope: bnd?.modelScope ?? updatedJobs[idx].modelScope,
+                    modelBoundaryNotice: bnd?.modelBoundaryNotice ?? updatedJobs[idx].modelBoundaryNotice,
+                    hypothesisAssessment: details.hypothesis_assessment ?? (details.execution?.hypothesis_assessment as any) ?? updatedJobs[idx].hypothesisAssessment,
+                  };
+                }
               }
             }
 

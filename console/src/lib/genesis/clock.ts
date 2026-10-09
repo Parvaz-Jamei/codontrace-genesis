@@ -8,21 +8,29 @@ export async function startJob(id: string) {
   if (!job || job.status === "archived") return;
   if (job.isDemo) {
     stopClock(id);
-    useBench.getState().patchJob(id, { status: "running" });
+    useBench.getState().patchJob(id, { status: "running", actionError: null });
     const timer = window.setInterval(() => tick(id), 700);
     clocks.set(id, timer);
     return;
   }
+  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
     status: "running",
     pendingAction: "resume",
     pendingActionTime: Date.now(),
+    actionError: null,
   });
   try {
     await sendServerRunAction(id, "resume");
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to start/resume job:", err);
+    useBench.getState().patchJob(id, {
+      status: previousStatus,
+      pendingAction: null,
+      pendingActionTime: undefined,
+      actionError: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -31,19 +39,27 @@ export async function pauseJob(id: string) {
   if (!job) return;
   if (job.isDemo) {
     stopClock(id);
-    if (job.status === "running") useBench.getState().patchJob(id, { status: "paused" });
+    if (job.status === "running") useBench.getState().patchJob(id, { status: "paused", actionError: null });
     return;
   }
+  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
     status: "paused",
     pendingAction: "pause",
     pendingActionTime: Date.now(),
+    actionError: null,
   });
   try {
     await sendServerRunAction(id, "pause");
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to pause job:", err);
+    useBench.getState().patchJob(id, {
+      status: previousStatus,
+      pendingAction: null,
+      pendingActionTime: undefined,
+      actionError: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -53,19 +69,27 @@ export async function stopJob(id: string) {
   if (job.isDemo) {
     stopClock(id);
     useBench.getState().appendLog(id, "STOP");
-    useBench.getState().patchJob(id, { status: "stopped" });
+    useBench.getState().patchJob(id, { status: "stopped", actionError: null });
     return;
   }
+  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
     status: "stopped",
     pendingAction: "stop",
     pendingActionTime: Date.now(),
+    actionError: null,
   });
   try {
     await sendServerRunAction(id, "stop");
     void useBench.getState().syncServerRuns();
   } catch (err) {
     console.error("Failed to stop job:", err);
+    useBench.getState().patchJob(id, {
+      status: previousStatus,
+      pendingAction: null,
+      pendingActionTime: undefined,
+      actionError: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

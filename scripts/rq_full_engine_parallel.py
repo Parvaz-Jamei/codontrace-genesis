@@ -121,25 +121,29 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
     paused_accumulated = [0.0]
 
     def monitor() -> None:
+        pause_started_at: float | None = None
         with (root/'health.log').open('w', encoding='utf-8', buffering=1) as log:
             while not stop.is_set():
-                if ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
-                    pause_start = time.monotonic()
-                    while ((root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())):
-                        if stop.is_set() or (root/'STOP').exists() or ((root.parent/'STOP').is_file()):
-                            break
-                        time.sleep(0.2)
-                    pause_duration = time.monotonic() - pause_start
-                    paused_accumulated[0] += pause_duration
+                is_paused = (root/'PAUSE').is_file() or ((root.parent/'PAUSE').is_file())
+                if is_paused:
+                    if pause_started_at is None:
+                        pause_started_at = time.monotonic()
+                    current_pause_chunk = time.monotonic() - pause_started_at
+                    total_paused = paused_accumulated[0] + current_pause_chunk
+                else:
+                    if pause_started_at is not None:
+                        paused_accumulated[0] += (time.monotonic() - pause_started_at)
+                        pause_started_at = None
+                    total_paused = paused_accumulated[0]
 
                 wall_elapsed = time.monotonic() - started
-                active_elapsed = max(0.0, wall_elapsed - paused_accumulated[0])
+                active_elapsed = max(0.0, wall_elapsed - total_paused)
                 effective_elapsed = active_elapsed if budget_kind == 'active_time' else wall_elapsed
 
                 log.write(json.dumps(dict(
                     elapsed_seconds=round(effective_elapsed, 2),
                     active_elapsed_seconds=round(active_elapsed, 2),
-                    paused_seconds=round(paused_accumulated[0], 2),
+                    paused_seconds=round(total_paused, 2),
                     wall_elapsed_seconds=round(wall_elapsed, 2),
                     budget_kind=budget_kind,
                     stop_file=(root/'STOP').exists()
@@ -147,9 +151,17 @@ def run(root: Path, seeds: tuple[int, ...], generations: int, workers: int, max_
 
                 if effective_elapsed >= max_seconds:
                     (root/'STOP').write_text(f'fixed {budget_kind} budget exhausted\n', encoding='utf-8')
+                    if pause_started_at is not None:
+                        paused_accumulated[0] += (time.monotonic() - pause_started_at)
+                        pause_started_at = None
                     return
+
                 remaining = max_seconds - effective_elapsed
-                stop.wait(min(600.0, max(0.01, remaining)))
+                stop.wait(min(0.25, max(0.01, remaining)))
+
+            if pause_started_at is not None:
+                paused_accumulated[0] += (time.monotonic() - pause_started_at)
+                pause_started_at = None
 
     thread = threading.Thread(target=monitor, daemon=True)
     thread.start()

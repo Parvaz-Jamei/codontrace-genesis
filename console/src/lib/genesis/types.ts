@@ -64,6 +64,7 @@ export type Job = {
   revision?: number;
   pendingAction?: "pause" | "resume" | "stop" | "delete" | null;
   pendingActionTime?: number;
+  actionError?: string | null;
   engineBackend?: string;
   isFrontierReference?: boolean;
   modelScope?: string;

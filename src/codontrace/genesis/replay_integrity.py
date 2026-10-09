@@ -1395,14 +1395,6 @@ def replay_digest_class_policies() -> tuple[ReplayDigestClassPolicy, ...]:
 
 def public_dataclass_digest_fields(class_obj: type[Any], class_path: str | None = None) -> tuple[str, ...]:
     """Return digest-like dataclass field names for a class object."""
-
-    if class_path and class_path in _DIGEST_FIELDS_BY_CLASS:
-        return _DIGEST_FIELDS_BY_CLASS[class_path]
-
-    resolved_path = f"{class_obj.__module__}.{class_obj.__qualname__}"
-    if resolved_path in _DIGEST_FIELDS_BY_CLASS:
-        return _DIGEST_FIELDS_BY_CLASS[resolved_path]
-
     fields = getattr(class_obj, "__dataclass_fields__", {})
     return tuple(
         name for name in fields if not name.startswith("_") and (name == "digest" or "_digest" in name)
@@ -1914,3 +1906,12 @@ for _path, _fields in _CI_PUBLIC_DIGEST_FIELDS.items():
 NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_CI_PUBLIC_DIGEST_FIELDS))
 )
+
+# Align registry entries with true inspected dataclass digest fields (R08)
+for _path in (*STRICT_REPLAY_CRITICAL_DIGEST_CLASSES, *NON_REPLAY_CRITICAL_DIGEST_CLASSES):
+    try:
+        _cls = resolve_class_path(_path)
+        _DIGEST_FIELDS_BY_CLASS[_path] = public_dataclass_digest_fields(_cls, _path)
+    except Exception:
+        pass
+

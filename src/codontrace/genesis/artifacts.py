@@ -786,6 +786,11 @@ def validate_scientific_manifest(manifest: RunManifest) -> ScientificManifestVal
 
 def verify_artifact_bytes(file_path: str | Path, expected_digest: str) -> bool:
     """Verify that an artifact file on disk matches its expected SHA256 digest computed from raw bytes."""
+    if not expected_digest or not isinstance(expected_digest, str):
+        return False
+    clean = expected_digest.removeprefix("sha256:")
+    if clean == "0" * 64 or all(c == "0" for c in clean) or expected_digest.startswith(("fake", "placeholder", "not_run:")):
+        return False
     p = Path(file_path)
     if not p.is_file():
         return False

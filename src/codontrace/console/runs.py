@@ -302,7 +302,7 @@ def get_runner_adapter(manifest: dict[str, Any] | None = None, script_name: str 
     """Resolve the appropriate RunnerAdapter for a simulation run."""
     manifest = manifest or {}
     boundary = manifest.get("executionBoundary") or {}
-    backend = boundary.get("backend") or manifest.get("engine_backend") or ""
+    backend = boundary.get("backend") or boundary.get("engineBackend") or manifest.get("engine_backend") or ""
     is_frontier = bool(boundary.get("isFrontierReference"))
     script = script_name or manifest.get("params", {}).get("scriptName") or ""
     s_lower = str(script).lower()
@@ -994,11 +994,8 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
     # Determine capabilities
     caps = status_info.get("capabilities") or manifest_data.get("capabilities")
     if not isinstance(caps, dict):
-        is_frontier = bool(manifest_data.get("executionBoundary", {}).get("isFrontierReference"))
-        script_name = str(manifest_data.get("params", {}).get("scriptName") or "")
-        s_lower = script_name.lower()
-        supports_pause = not (is_frontier or "frontier" in s_lower or "challenge" in s_lower)
-        caps = {"pause": supports_pause, "resume": supports_pause, "checkpoint_continue": False}
+        adapter = get_runner_adapter(manifest_data, script_name=status_info.get("params", {}).get("scriptName"))
+        caps = adapter.resolve_capabilities(entry)
 
     # Determine process ownership and liveness
     with _RUN_LOCK:
@@ -1020,12 +1017,14 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
     current_status = str(status_info.get("status", "UNKNOWN")).upper()
 
     if act == "pause":
-        if not caps.get("pause", True):
+        if not caps.get("pause", False):
             return {
                 "ok": False,
-                "error": "Runner does not support pause capability",
-                "error_code": "UNSUPPORTED_CAPABILITY",
                 "status_code": 409,
+                "error_code": "UNSUPPORTED_CAPABILITY",
+                "message": f"Run {run_id} does not support {action} capability.",
+                "action": action,
+                "run_id": run_id,
             }
 
         # Terminal and stale states are forbidden to pause (L01)
@@ -1089,12 +1088,14 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "resume":
-        if not caps.get("resume", True):
+        if not caps.get("resume", False):
             return {
                 "ok": False,
-                "error": "Runner does not support resume capability",
-                "error_code": "UNSUPPORTED_CAPABILITY",
                 "status_code": 409,
+                "error_code": "UNSUPPORTED_CAPABILITY",
+                "message": f"Run {run_id} does not support {action} capability.",
+                "action": action,
+                "run_id": run_id,
             }
 
         # Cannot resume terminal or stopped runs (L03)
@@ -1445,12 +1446,20 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         model_scope = "full_digital_organism_simulation"
         boundary_notice = "Full Genesis digital organism coevolution engine with codon translation, contact dynamics, and biological assays."
 
-    supports_pause = not (script_name and ("frontier" in script_name.lower() or "challenge" in script_name.lower()))
-    capabilities_dict = {
-        "pause": bool(supports_pause),
-        "resume": bool(supports_pause),
-        "checkpoint_continue": False,
+    execution_boundary = {
+        "backend": engine_backend,
+        "engineBackend": engine_backend,
+        "modelScope": model_scope,
+        "boundaryNotice": boundary_notice,
+        "isFrontierReference": (engine_backend == "frontier_reference_model"),
+        "isGenesisEngine": (engine_backend == "genesis_engine"),
     }
+
+    adapter = get_runner_adapter(
+        {"executionBoundary": execution_boundary, "params": {"scriptName": script_name}},
+        script_name=script_name,
+    )
+    capabilities_dict = adapter.resolve_capabilities(run_dir)
 
     param_record = {
         "generations": generations,
@@ -1461,6 +1470,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "cores": cores_val,
         "title": title,
         "scriptName": script_name,
+        "backend": engine_backend,
         "engineBackend": engine_backend,
         "modelScope": model_scope,
         "capabilities": capabilities_dict,
@@ -1474,13 +1484,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "command": cmd,
         "params": param_record,
         "capabilities": capabilities_dict,
-        "executionBoundary": {
-            "engineBackend": engine_backend,
-            "modelScope": model_scope,
-            "boundaryNotice": boundary_notice,
-            "isFrontierReference": (engine_backend == "frontier_reference_model"),
-            "isGenesisEngine": (engine_backend == "genesis_engine"),
-        },
+        "executionBoundary": execution_boundary,
         "configDigest": hashlib.sha256(json.dumps(param_record, sort_keys=True).encode("utf-8")).hexdigest()[:16],
     }
     write_atomic_json(run_dir / "run_manifest.json", manifest_info)
@@ -1496,6 +1500,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "totalSeeds": len(resolved_seeds) if resolved_seeds else 12,
         "params": param_record,
         "capabilities": capabilities_dict,
+        "backend": engine_backend,
         "engineBackend": engine_backend,
         "modelScope": model_scope,
     }

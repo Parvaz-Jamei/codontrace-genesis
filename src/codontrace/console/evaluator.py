@@ -205,7 +205,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "evaluated_at": now,
             }
         slope = float(raw_slope)
-        gens = int(raw_gens)
+        gens = int(raw_gens or 0)
         if not complete and gens < 1000:
             return {
                 "verdict": "inconclusive",

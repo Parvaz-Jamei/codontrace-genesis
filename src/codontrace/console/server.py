@@ -464,14 +464,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             ctx = body_json.get("jobContext")
             job_id = body_json.get("jobId") or body_json.get("runId")
             model = body_json.get("model")
-            req_id = str(body_json.get("request_id") or body_json.get("requestId") or "").strip() or None
+            chat_req_id = str(body_json.get("request_id") or body_json.get("requestId") or "").strip() or None
             result = chat_turn(
                 text,
                 lang,
                 ctx if isinstance(ctx, dict) else None,
                 job_id=str(job_id).strip() if job_id else None,
                 model=str(model).strip() if model else None,
-                request_id=req_id,
+                request_id=chat_req_id,
             )
             self._send(
                 200,

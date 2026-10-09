@@ -114,7 +114,7 @@ def audit_runtime_wiring(result: Any | None = None, *, features: tuple[RuntimeWi
     catalog = features or integration_feature_catalog()
     policy_paths = {item.class_path for item in replay_digest_class_policies()}
     has_runtime_result = result is not None and hasattr(result, "to_dict")
-    result_payload: dict[str, Any] = result.to_dict() if has_runtime_result else {}
+    result_payload: dict[str, Any] = result.to_dict() if (result is not None and hasattr(result, "to_dict")) else {}
     manifest_map: dict[str, Any] = {}
     if result is not None and hasattr(result, "evidence_manifest"):
         manifest_map = dict(result.evidence_manifest.artifact_digest_map)

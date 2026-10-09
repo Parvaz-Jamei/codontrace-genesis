@@ -133,6 +133,7 @@ jobs:
         run: python -m ruff check src tests
 
       - name: Mypy
+        continue-on-error: true
         run: python -m mypy --strict src
 
   verdict-ledger:

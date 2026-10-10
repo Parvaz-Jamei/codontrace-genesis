@@ -211,7 +211,8 @@ def is_local_gguf_hosted(model: str | None) -> bool:
         s.connect(("127.0.0.1", 8088))
         s.close()
     except Exception:
-        return False
+        status = check_llm_status()
+        return bool(status.get("mounted"))
 
     try:
         req = urllib.request.Request(
@@ -222,6 +223,8 @@ def is_local_gguf_hosted(model: str | None) -> bool:
             if resp.status == 200:
                 data = json.loads(resp.read().decode("utf-8"))
                 models = [str(m.get("id", "")) for m in data.get("data", [])] if isinstance(data, dict) else []
+                if models:
+                    return True
                 target = Path(model).name.lower()
                 target_base = target.rsplit(".gguf", 1)[0]
                 for m_id in models:
@@ -231,11 +234,14 @@ def is_local_gguf_hosted(model: str | None) -> bool:
                         or m_str.endswith("/" + target)
                         or m_str.endswith("\\" + target)
                         or target_base in m_str
+                        or m_str in target_base
                     ):
                         return True
     except Exception:
-        return False
-    return False
+        status = check_llm_status()
+        return bool(status.get("mounted"))
+    status = check_llm_status()
+    return bool(status.get("mounted"))
 
 
 class LLMUpstreamError(RuntimeError):
@@ -256,6 +262,7 @@ def query_llm(
 
     if endpoint_override:
         endpoint = endpoint_override
+        status = check_llm_status()
     else:
         status = check_llm_status()
         if not status["mounted"]:
@@ -438,6 +445,13 @@ def chat_turn(
             else:
                 import concurrent.futures
 
+                status_now = check_llm_status()
+                endpoint_to_use = (
+                    status_now.get("endpoint")
+                    if (status_now.get("mounted") and status_now.get("endpoint"))
+                    else "http://127.0.0.1:8088/v1/chat/completions"
+                )
+
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
                 try:
                     fut = executor.submit(
@@ -446,7 +460,7 @@ def chat_turn(
                         system_prompt=sys_prompt,
                         model=model,
                         cancel_event=cancel_event,
-                        endpoint_override="http://127.0.0.1:8088/v1/chat/completions",
+                        endpoint_override=endpoint_to_use,
                     )
                     while not fut.done():
                         if cancel_event.wait(timeout=0.05):
@@ -538,7 +552,7 @@ def chat_turn(
 
         show_offline_banner = False
         if is_gguf:
-            show_offline_banner = True
+            show_offline_banner = not is_local_gguf_hosted(model) or upstream_error
         elif is_fallback:
             show_offline_banner = not status.get("mounted") or upstream_error
 

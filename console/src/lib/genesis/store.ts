@@ -251,7 +251,7 @@ export const useBench = create<BenchState>()(
           }
 
           set((state) => {
-            const updatedJobs = [...state.jobs];
+            let updatedJobs = [...state.jobs];
             const newThreads = [...state.threads];
 
             for (const sRun of serverRuns) {
@@ -352,6 +352,9 @@ export const useBench = create<BenchState>()(
                 }
               }
             }
+
+            const serverRunIds = new Set(serverRuns.map((r) => r.id));
+            updatedJobs = updatedJobs.filter((j) => !j.serverManaged || serverRunIds.has(j.id));
 
             if (selectedId && details) {
               const idx = updatedJobs.findIndex((j) => j.id === selectedId);

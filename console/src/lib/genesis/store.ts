@@ -558,6 +558,25 @@ export const useBench = create<BenchState>()(
             ? state.chatStatus.model
             : state.settings.model;
 
+        let timeoutId = setTimeout(() => {
+          const threads = get().threads;
+          const thread = threads.find((t) => t.id === threadId);
+          if (thread && thread.isThinking) {
+            const noticeMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant",
+              text: state.settings.lang === "fa" ? "مدل در حال پردازش است؛ به دلیل سنگین بودن مدل ممکن است زمان ببرد. در صورت تمایل می‌توانید مدل سبک‌تری انتخاب کنید" : "The model is processing; it may take time due to its size. You can select a lighter model if you prefer.",
+              at: Date.now(),
+              source: "analyst",
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId ? { ...item, messages: [...item.messages, noticeMsg] } : item
+              ),
+            });
+          }
+        }, 300000);
+
         sendChatMessage(
           trimmed,
           state.settings.lang,
@@ -567,6 +586,7 @@ export const useBench = create<BenchState>()(
           controller.signal,
         )
           .then((res) => {
+            clearTimeout(timeoutId);
             if (controller.signal.aborted) return;
             const assistantMsg: ChatMessage = {
               id: uid(),
@@ -592,6 +612,7 @@ export const useBench = create<BenchState>()(
             });
           })
           .catch((err: unknown) => {
+            clearTimeout(timeoutId);
             if (
               controller.signal.aborted ||
               (err instanceof Error && err.name === "AbortError")
@@ -678,6 +699,25 @@ export const useBench = create<BenchState>()(
             ? state.chatStatus.model
             : state.settings.model;
 
+        let timeoutId = setTimeout(() => {
+          const threads = get().threads;
+          const thread = threads.find((t) => t.id === threadId);
+          if (thread && thread.isThinking) {
+            const noticeMsg: ChatMessage = {
+              id: uid(),
+              role: "assistant",
+              text: state.settings.lang === "fa" ? "مدل در حال پردازش است؛ به دلیل سنگین بودن مدل ممکن است زمان ببرد. در صورت تمایل می‌توانید مدل سبک‌تری انتخاب کنید" : "The model is processing; it may take time due to its size. You can select a lighter model if you prefer.",
+              at: Date.now(),
+              source: "analyst",
+            };
+            set({
+              threads: get().threads.map((item) =>
+                item.id === threadId ? { ...item, messages: [...item.messages, noticeMsg] } : item
+              ),
+            });
+          }
+        }, 300000);
+
         sendChatMessage(
           trimmed,
           state.settings.lang,
@@ -687,6 +727,7 @@ export const useBench = create<BenchState>()(
           controller.signal,
         )
           .then((res) => {
+            clearTimeout(timeoutId);
             if (controller.signal.aborted) return;
             const assistantMsg: ChatMessage = {
               id: uid(),
@@ -707,6 +748,7 @@ export const useBench = create<BenchState>()(
             });
           })
           .catch((err: unknown) => {
+            clearTimeout(timeoutId);
             if (
               controller.signal.aborted ||
               (err instanceof Error && err.name === "AbortError")
@@ -763,7 +805,7 @@ export const useBench = create<BenchState>()(
         }),
     }),
     {
-      name: "genesis-console",
+      name: `genesis-console-${typeof window !== "undefined" ? window.location.host.replace(/:/g, "_") : "default"}`,
       partialize: (state) => ({
         settings: state.settings,
         jobs: state.jobs,

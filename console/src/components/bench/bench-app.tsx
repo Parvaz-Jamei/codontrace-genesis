@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { Check, CircleHelp, Cpu, Download, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings } from "lucide-react";
+import { Check, CircleHelp, Cpu, Download, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings, Server } from "lucide-react";
 import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
 import { t } from "@/lib/genesis/copy";
 import { useBench } from "@/lib/genesis/store";
@@ -176,7 +176,7 @@ export function BenchApp() {
           <button className="grid h-10 w-10 place-items-center rounded-lg text-muted hover:bg-surface lg:hidden" onClick={() => setMenu(true)} aria-label={text.menu}>
             <Menu className="h-5 w-5" />
           </button>
-          <p className="min-w-0 truncate text-sm font-medium text-muted">{titles[view]}</p>
+          <p className="min-w-0 truncate text-sm font-medium text-muted">{titles[view]}</p><div className="hidden sm:flex ms-3 items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 border border-blue-500/20"><Server className="mr-1.5 h-3.5 w-3.5" />{host?.hostname || "Local"} ({typeof window !== "undefined" ? window.location.host : ""})</div>
           <div className="ms-auto flex items-center gap-2">
             {isInstallable && (
               <button
@@ -445,10 +445,15 @@ function browserHost(): HostProfile {
   const cores = Math.max(1, navigator.hardwareConcurrency || 1);
   const ua = navigator.userAgent;
   const platform = /windows/i.test(ua) ? "win32" : /mac/i.test(ua) ? "darwin" : "linux";
+  const allowed = Array.from({ length: cores }, (_, index) => index);
   return {
     platform,
     arch: "browser",
     cores,
+    logicalCpuCount: cores,
+    allowedCpuIds: allowed,
+    usableCpuCount: cores,
+    affinitySupported: platform !== "darwin",
     memoryMb: 0,
     freeMb: 0,
     load1: 0,

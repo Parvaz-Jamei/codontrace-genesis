@@ -34,13 +34,17 @@ def main() -> int:
     
     agent_dir = repo_root / ".agents" / "teamwork" / "teamwork_preview_worker_m2" / "screenshots"
     agent_dir.mkdir(parents=True, exist_ok=True)
+    agent_dir_it2 = repo_root / ".agents" / "teamwork" / "teamwork_preview_worker_m2_it2" / "screenshots"
+    agent_dir_it2.mkdir(parents=True, exist_ok=True)
 
     def save_screenshot(driver: webdriver.Chrome, name: str) -> None:
         p1 = artifacts_dir / f"{name}.png"
         p2 = agent_dir / f"{name}.png"
+        p3 = agent_dir_it2 / f"{name}.png"
         driver.save_screenshot(str(p1))
         driver.save_screenshot(str(p2))
-        print(f"[SCREENSHOT] Saved: {p1} and {p2}")
+        driver.save_screenshot(str(p3))
+        print(f"[SCREENSHOT] Saved: {p1}, {p2}, and {p3}")
 
     print("=== Step 1: Initializing Headless Chrome ===")
     opts = Options()

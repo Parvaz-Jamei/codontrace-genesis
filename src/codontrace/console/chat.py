@@ -18,7 +18,6 @@ from typing import Any
 
 DEFAULT_ENDPOINTS = (
     "http://127.0.0.1:8088/v1/chat/completions",
-    "http://10.225.130.20:8088/v1/chat/completions",
     "http://127.0.0.1:11434/v1/chat/completions",
     "http://127.0.0.1:1234/v1/chat/completions",
 )
@@ -26,6 +25,7 @@ DEFAULT_ENDPOINTS = (
 
 _RUNTIME_ENDPOINT: str | None = None
 _ACTIVE_CHAT_REQUESTS: dict[str, threading.Event] = {}
+_ABORTED_REQUEST_IDS: set[str] = set()
 _CHAT_LOCK = threading.Lock()
 
 
@@ -36,6 +36,7 @@ def abort_chat_request(request_id: str) -> bool:
         if event is not None:
             event.set()
             return True
+        _ABORTED_REQUEST_IDS.add(request_id)
         return False
 
 
@@ -184,6 +185,59 @@ def check_llm_status() -> dict[str, Any]:
     return dict(fallback_status)
 
 
+def get_ip() -> str:
+    """Best-effort discovery of local LAN IP address."""
+    import socket
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        res = str(s.getsockname()[0])
+        s.close()
+        return str(res)
+    except Exception:
+        return "127.0.0.1"
+
+
+def is_local_gguf_hosted(model: str | None) -> bool:
+    """Verify whether a local server on http://127.0.0.1:8088 is running and hosting the requested GGUF model."""
+    if not (model and model.endswith(".gguf")):
+        return False
+    import socket
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.05)
+        s.connect(("127.0.0.1", 8088))
+        s.close()
+    except Exception:
+        return False
+
+    try:
+        req = urllib.request.Request(
+            "http://127.0.0.1:8088/v1/models",
+            headers={"User-Agent": "CodonTraceConsole/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=0.35) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                models = [str(m.get("id", "")) for m in data.get("data", [])] if isinstance(data, dict) else []
+                target = Path(model).name.lower()
+                target_base = target.rsplit(".gguf", 1)[0]
+                for m_id in models:
+                    m_str = m_id.lower()
+                    if (
+                        m_str == target
+                        or m_str.endswith("/" + target)
+                        or m_str.endswith("\\" + target)
+                        or target_base in m_str
+                    ):
+                        return True
+    except Exception:
+        return False
+    return False
+
+
 class LLMUpstreamError(RuntimeError):
     """Raised when upstream LLM communication drops or times out without user cancellation."""
     pass
@@ -194,19 +248,22 @@ def query_llm(
     system_prompt: str | None = None,
     model: str | None = None,
     cancel_event: threading.Event | None = None,
+    endpoint_override: str | None = None,
 ) -> str | None:
     """Send query to local LLM server with explicit model, cancel event, and safe timeout handling."""
     if cancel_event is not None and cancel_event.is_set():
         return None
 
-    status = check_llm_status()
-    if not status["mounted"]:
-        return None
+    if endpoint_override:
+        endpoint = endpoint_override
+    else:
+        status = check_llm_status()
+        if not status["mounted"]:
+            return None
+        endpoint = str(status["endpoint"])
 
     if cancel_event is not None and cancel_event.is_set():
         return None
-
-    endpoint = status["endpoint"]
     all_messages = []
     if system_prompt:
         all_messages.append({"role": "system", "content": system_prompt})
@@ -237,7 +294,7 @@ def query_llm(
     if cancel_event is not None and cancel_event.is_set():
         return None
 
-    llm_timeout = float(os.environ.get("CODONTRACE_LLM_TIMEOUT", "180.0"))
+    llm_timeout = float(os.environ.get("CODONTRACE_LLM_TIMEOUT", "1800.0"))
     try:
         with urllib.request.urlopen(req, timeout=llm_timeout) as resp:
             if resp.status == 200:
@@ -268,6 +325,9 @@ def chat_turn(
     if request_id:
         with _CHAT_LOCK:
             cancel_event = _ACTIVE_CHAT_REQUESTS.setdefault(request_id, threading.Event())
+            if request_id in _ABORTED_REQUEST_IDS:
+                cancel_event.set()
+                _ABORTED_REQUEST_IDS.discard(request_id)
     else:
         cancel_event = threading.Event()
 
@@ -369,39 +429,77 @@ def chat_turn(
             }
 
         upstream_error = False
-        status_now = check_llm_status()
-        model_is_unloaded_file = bool(model and model.endswith(".gguf") and model not in status_now.get("available_models", []))
-        if model in ("local-analyst", "deterministic-analyst") or not status_now.get("mounted") or model_is_unloaded_file:
+        is_gguf = bool(model and model.endswith(".gguf"))
+        is_analyst = model in ("local-analyst", "deterministic-analyst")
+
+        if is_gguf:
+            if not is_local_gguf_hosted(model):
+                llm_answer = None
+            else:
+                import concurrent.futures
+
+                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                try:
+                    fut = executor.submit(
+                        query_llm,
+                        [{"role": "user", "content": text}],
+                        system_prompt=sys_prompt,
+                        model=model,
+                        cancel_event=cancel_event,
+                        endpoint_override="http://127.0.0.1:8088/v1/chat/completions",
+                    )
+                    while not fut.done():
+                        if cancel_event.wait(timeout=0.05):
+                            break
+
+                    if cancel_event.is_set():
+                        llm_answer = None
+                    else:
+                        try:
+                            llm_answer = fut.result()
+                        except LLMUpstreamError:
+                            llm_answer = None
+                            upstream_error = True
+                        except Exception:
+                            llm_answer = None
+                            upstream_error = True
+                finally:
+                    executor.shutdown(wait=False, cancel_futures=True)
+        elif is_analyst:
             llm_answer = None
         else:
-            import concurrent.futures
+            status_now = check_llm_status()
+            if not status_now.get("mounted"):
+                llm_answer = None
+            else:
+                import concurrent.futures
 
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            try:
-                fut = executor.submit(
-                    query_llm,
-                    [{"role": "user", "content": text}],
-                    system_prompt=sys_prompt,
-                    model=model,
-                    cancel_event=cancel_event,
-                )
-                while not fut.done():
-                    if cancel_event.wait(timeout=0.05):
-                        break
+                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                try:
+                    fut = executor.submit(
+                        query_llm,
+                        [{"role": "user", "content": text}],
+                        system_prompt=sys_prompt,
+                        model=model,
+                        cancel_event=cancel_event,
+                    )
+                    while not fut.done():
+                        if cancel_event.wait(timeout=0.05):
+                            break
 
-                if cancel_event.is_set():
-                    llm_answer = None
-                else:
-                    try:
-                        llm_answer = fut.result()
-                    except LLMUpstreamError:
+                    if cancel_event.is_set():
                         llm_answer = None
-                        upstream_error = True
-                    except Exception:
-                        llm_answer = None
-                        upstream_error = True
-            finally:
-                executor.shutdown(wait=False, cancel_futures=True)
+                    else:
+                        try:
+                            llm_answer = fut.result()
+                        except LLMUpstreamError:
+                            llm_answer = None
+                            upstream_error = True
+                        except Exception:
+                            llm_answer = None
+                            upstream_error = True
+                finally:
+                    executor.shutdown(wait=False, cancel_futures=True)
 
         duration_ms = round((time.time() - t0) * 1000)
 
@@ -435,25 +533,24 @@ def chat_turn(
 
         # Deterministic domain-aware fallback answer (R19)
         fallback_reply = _generate_analyst_reply(text, lang, job_context, effective_run_id)
-        is_fallback = model not in ("local-analyst", "deterministic-analyst")
+        is_fallback = not is_analyst
         status = check_llm_status()
-        
-        is_unreachable = not status.get("mounted") or bool(model and model.endswith(".gguf") and model not in status.get("available_models", []))
-        if is_fallback and is_unreachable:
-            import socket
-            def get_ip() -> str:
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    res = str(s.getsockname()[0])
-                    s.close()
-                    return res
-                except Exception:
-                    return "127.0.0.1"
 
+        show_offline_banner = False
+        if is_gguf:
+            show_offline_banner = True
+        elif is_fallback:
+            show_offline_banner = not status.get("mounted") or upstream_error
+
+        if show_offline_banner:
             local_ip = get_ip()
             model_name = model if model and model != "board-model" else "the board model"
-            launcher_model = Path(model).name if (model and model.endswith(".gguf")) else "your-model.gguf"
+            if model and model.endswith(".gguf"):
+                launcher_model = Path(model).name
+            elif model == "board-model":
+                launcher_model = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+            else:
+                launcher_model = "your-model.gguf"
             launcher_cmd = f"llama-server -m models/{launcher_model} --port 8088"
             if lang == "fa":
                 offline_msg = (

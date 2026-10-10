@@ -33,6 +33,9 @@ from codontrace.console.release import (
     update_checkout,
 )
 from codontrace.console.runs import (
+    get_allowed_cpu_ids as _runs_get_allowed_cpu_ids,
+)
+from codontrace.console.runs import (
     get_run_details,
     get_run_zip,
     launch_simulation_run,
@@ -79,11 +82,22 @@ _CONTENT_TYPES = {
 }
 
 
+def get_allowed_cpu_ids() -> list[int]:
+    """Return sorted list of CPU core IDs allowed for this process."""
+    get_affinity = getattr(os, "sched_getaffinity", None)
+    if callable(get_affinity):
+        try:
+            aff = get_affinity(0)
+            if aff:
+                return sorted(int(x) for x in aff)
+        except OSError:
+            pass
+    return _runs_get_allowed_cpu_ids()
+
+
 def recommended_workers(cores: int) -> int:
-    count = cores if cores > 0 else 1
-    if count > 4:
-        return 4
-    return count
+    return cores if cores > 0 else 1
+
 
 
 def parse_temp_c(raw: str) -> float | None:
@@ -243,19 +257,32 @@ def arch_name() -> str:
 
 
 def host_profile() -> dict[str, object]:
-    cores = os.cpu_count() or 1
-    if cores < 1:
-        cores = 1
+    logical_cores = os.cpu_count() or 1
+    if logical_cores < 1:
+        logical_cores = 1
+    allowed_cpus = get_allowed_cpu_ids()
+    usable_cores = len(allowed_cpus) if allowed_cpus else logical_cores
+    affinity_supported = sys.platform in ("linux", "win32") or hasattr(os, "sched_getaffinity")
     total, free = memory_bytes()
+    rec_workers = recommended_workers(usable_cores)
     return {
         "platform": sys.platform,
         "arch": arch_name(),
-        "cores": cores,
+        "cores": logical_cores,
+        "logical_cpu_count": logical_cores,
+        "logicalCpuCount": logical_cores,
+        "allowed_cpu_ids": allowed_cpus,
+        "allowedCpuIds": allowed_cpus,
+        "usable_cpu_count": usable_cores,
+        "usableCpuCount": usable_cores,
+        "affinity_supported": affinity_supported,
+        "affinitySupported": affinity_supported,
         "memoryMb": round(total / (1024 * 1024)),
         "freeMb": round(free / (1024 * 1024)),
         "load1": load_average(),
         "tempC": read_temp_c(),
-        "recommendedWorkers": recommended_workers(cores),
+        "recommendedWorkers": rec_workers,
+        "recommended_workers": rec_workers,
         "hostname": socket.gethostname(),
         "source": "host",
         "packageVersion": installed_version(),
@@ -754,6 +781,29 @@ def make_server(host: str, port: int) -> ThreadingHTTPServer:
     return server
 
 
+def get_all_ips() -> list[str]:
+    ips = []
+    try:
+        host_name = socket.gethostname()
+        ips.extend(socket.gethostbyname_ex(host_name)[2])
+    except Exception:
+        pass
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        if ip not in ips:
+            ips.append(ip)
+    except Exception:
+        pass
+    finally:
+        s.close()
+        
+    if "127.0.0.1" not in ips:
+        ips.insert(0, "127.0.0.1")
+    return list(dict.fromkeys(ips))
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m codontrace.console",
@@ -762,26 +812,47 @@ def main(argv: list[str] | None = None) -> int:
             "Does not run the evolution engine and does not set red_queen_proved."
         ),
     )
-    parser.add_argument("--host", default="127.0.0.1", help="bind address (default: 127.0.0.1)")
+    parser.add_argument("--host", default="0.0.0.0", help="bind address (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8765, help="bind port (default: 8765)")
     parser.add_argument("--open", action="store_true", help="open the page in a browser")
     args = parser.parse_args(argv)
     if not STATIC_ROOT.joinpath("index.html").is_file():
         sys.stderr.write("console static page is missing\n")
         return 1
-    try:
-        server = make_server(args.host, args.port)
-    except OSError as exc:
-        sys.stderr.write(f"console-bind-error: {exc}\n")
+    
+    server = None
+    port = args.port
+    max_retries = 10 if args.port == 8765 else 1
+    for p in range(port, port + max_retries):
+        try:
+            server = make_server(args.host, p)
+            break
+        except OSError as exc:
+            if p == port + max_retries - 1:
+                sys.stderr.write(f"console-bind-error: Unable to bind to any port from {port} to {port + max_retries - 1}. ({exc})\n")
+                return 1
+    if not server:
         return 1
+        
     start_release_monitor()
     address = server.server_address
-    shown_host = address[0].decode("ascii") if isinstance(address[0], bytes) else str(address[0])
-    url = f"http://{shown_host}:{address[1]}/"
-    sys.stdout.write(url + "\n")
+    bind_host = address[0].decode("ascii") if isinstance(address[0], bytes) else str(address[0])
+    actual_port = address[1]
+    
+    sys.stdout.write("CodonTrace Console running on:\n")
+    if bind_host in ("0.0.0.0", "::"):
+        for ip in get_all_ips():
+            url = f"http://{ip}:{actual_port}/"
+            sys.stdout.write(f"  {url}\n")
+    else:
+        url = f"http://{bind_host}:{actual_port}/"
+        sys.stdout.write(f"  {url}\n")
     sys.stdout.flush()
+    
     if args.open:
-        webbrowser.open(url)
+        primary_ip = "127.0.0.1" if bind_host in ("0.0.0.0", "::") else bind_host
+        webbrowser.open(f"http://{primary_ip}:{actual_port}/")
+        
     try:
         server.serve_forever()
     except KeyboardInterrupt:

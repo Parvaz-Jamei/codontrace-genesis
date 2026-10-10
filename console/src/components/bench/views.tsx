@@ -955,7 +955,7 @@ export function HostView() {
     <section className="h-full overflow-auto bg-bg px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto grid w-full max-w-3xl min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
         <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5 border border-sky-500/20">
-          <h3 className="text-sm text-sky-400 mb-2 font-semibold">
+          <h3 className="text-sm text-sky-400 mb-2 font-semibold">Server Node: {host.hostname} ({typeof window !== "undefined" ? window.location.host : ""}) - 
             {lang === "fa" ? "منبع تلمتری سخت‌افزار" : "Hardware Telemetry Source"}
           </h3>
           <p className="text-sm text-muted">
@@ -1021,15 +1021,15 @@ export function HostView() {
         <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5">
           <h3 className="text-sm text-muted">{text.cores}</h3>
           <div className="mt-3 flex flex-wrap gap-2">
-            {Array.from({ length: host.cores }, (_, index) => (
+            {(host.allowedCpuIds ?? host.allowed_cpu_ids ?? Array.from({ length: host.cores }, (_, index) => index)).map((coreId) => (
               <span
-                key={index}
+                key={coreId}
                 className={cn(
                   "grid h-11 w-11 max-w-full place-items-center rounded-lg font-mono text-sm",
-                  index < host.recommendedWorkers ? "bg-white/10 text-fg" : "bg-bg text-muted",
+                  coreId < host.recommendedWorkers ? "bg-white/10 text-fg" : "bg-bg text-muted",
                 )}
               >
-                {index}
+                {coreId}
               </span>
             ))}
           </div>
@@ -1328,8 +1328,11 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
   const host = useBench((state) => state.host);
   const launchJob = useBench((state) => state.launchJob);
   const text = t(lang);
-  const cores = Math.max(1, host?.cores ?? 4);
-  const opened = pinPreset("smoke", cores);
+  const allowedCores: number[] = (host?.allowedCpuIds ?? host?.allowed_cpu_ids ?? (
+    Array.from({ length: Math.max(1, host?.cores ?? 4) }, (_, index) => index)
+  ));
+  const cores = allowedCores.length;
+  const opened = pinPreset("smoke", allowedCores);
   const [kind, setKind] = useState<RunInput["kind"]>("engine");
   const [preset, setPreset] = useState<RunInput["preset"]>("smoke");
   const [seedsText, setSeedsText] = useState(opened.seedsText);
@@ -1448,7 +1451,7 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
                     onClick={() => {
                       setPreset(id);
                       if (id === "custom") return;
-                      const next = pinPreset(id, cores);
+                      const next = pinPreset(id, allowedCores);
                       setSeedsText(next.seedsText);
                       setGenerations(next.generations);
                       setWorkers(next.workers);
@@ -1535,22 +1538,22 @@ export function NewRunDialog({ onClose }: { onClose: () => void }) {
         <div>
           <p className="text-sm text-muted">{text.cores}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {Array.from({ length: cores }, (_, index) => {
-              const on = picked.includes(index);
+            {allowedCores.map((coreId) => {
+              const on = picked.includes(coreId);
               return (
                 <button
-                  key={index}
+                  key={coreId}
                   type="button"
                   aria-pressed={on}
                   className={cn("h-11 w-11 rounded-lg text-sm", on ? "bg-white/10 text-fg" : "bg-white/5 text-muted")}
                   onClick={() => {
                     if (on && picked.length === 1) return;
-                    const next = on ? picked.filter((core) => core !== index) : [...picked, index].sort((a, b) => a - b);
+                    const next = on ? picked.filter((core) => core !== coreId) : [...picked, coreId].sort((a, b) => a - b);
                     setPicked(next);
                     setWorkers((count) => Math.max(1, Math.min(count, next.length, cores)));
                   }}
                 >
-                  {index}
+                  {coreId}
                 </button>
               );
             })}
@@ -1885,16 +1888,17 @@ function smokeInput(): RunInput {
   };
 }
 
-function pinPreset(id: Exclude<PresetId, "custom">, hostCores: number) {
+function pinPreset(id: Exclude<PresetId, "custom">, hostCores: number | number[]) {
   const spec = PRESETS[id];
-  const limit = Math.max(1, hostCores);
-  const available = Array.from({ length: limit }, (_, index) => index);
+  const available: number[] = Array.isArray(hostCores)
+    ? (hostCores.length > 0 ? hostCores : [0])
+    : Array.from({ length: Math.max(1, hostCores) }, (_, index) => index);
   const pinned = spec.cores.filter((core) => available.includes(core));
   const nextCores = pinned.length > 0 ? pinned : [available[0] ?? 0];
   return {
     seedsText: spec.seeds.join(", "),
     generations: spec.generations,
-    workers: Math.max(1, Math.min(spec.workers, nextCores.length, limit)),
+    workers: Math.max(1, Math.min(spec.workers, nextCores.length, available.length)),
     cores: nextCores,
   };
 }

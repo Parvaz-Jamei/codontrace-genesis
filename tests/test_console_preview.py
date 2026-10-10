@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -43,11 +44,12 @@ def test_server_source_does_not_import_the_engine() -> None:
     assert "--ff-only" in release_text
 
 
-def test_workers_stay_between_one_and_four() -> None:
+def test_workers_scale_with_cores() -> None:
     assert server.recommended_workers(0) == 1
     assert server.recommended_workers(1) == 1
     assert server.recommended_workers(3) == 3
-    assert server.recommended_workers(16) == 4
+    assert server.recommended_workers(16) == 16
+
 
 
 def test_temperature_parse_matches_the_sensor_file() -> None:
@@ -64,7 +66,7 @@ def test_host_profile_is_a_measurement_not_a_claim() -> None:
     assert profile["platform"] == server.sys.platform
     workers = profile["recommendedWorkers"]
     assert isinstance(workers, int)
-    assert 1 <= workers <= 4
+    assert 1 <= workers <= max(1, os.cpu_count() or 1)
     assert "red_queen_proved" not in profile
     assert isinstance(profile["packageVersion"], str)
     assert profile["packageVersion"]
@@ -90,7 +92,7 @@ def test_preview_serves_page_and_host_and_rejects_traversal(monkeypatch) -> None
             payload = json.loads(host_page.read().decode("utf-8"))
             assert host_page.headers.get("Access-Control-Allow-Origin") == "*"
         assert payload["source"] == "host"
-        assert payload["recommendedWorkers"] <= 4
+        assert payload["recommendedWorkers"] <= max(1, os.cpu_count() or 1)
         with urllib.request.urlopen(base + "/api/release", timeout=5) as release_page:
             info = json.loads(release_page.read().decode("utf-8"))
         assert info["currentVersion"]

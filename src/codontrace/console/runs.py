@@ -61,6 +61,82 @@ def is_pid_alive(pid: int) -> bool:
             return err.errno == errno.EPERM
 
 
+def get_allowed_cpu_ids() -> list[int]:
+    """Return sorted list of CPU core IDs allowed for this process across platforms."""
+    get_affinity = getattr(os, "sched_getaffinity", None)
+    if callable(get_affinity):
+        try:
+            aff = get_affinity(0)
+            if aff:
+                return sorted(int(x) for x in aff)
+        except OSError:
+            pass
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            loader: Any = getattr(ctypes, "windll", None)
+            if loader is not None:
+                kernel32: Any = getattr(loader, "kernel32", None)
+                if kernel32 is not None:
+                    process_mask = ctypes.c_uint64()
+                    system_mask = ctypes.c_uint64()
+                    cur_proc = kernel32.GetCurrentProcess()
+                    if kernel32.GetProcessAffinityMask(cur_proc, ctypes.byref(process_mask), ctypes.byref(system_mask)):
+                        mask_val = int(process_mask.value)
+                        if mask_val > 0:
+                            cpus = [i for i in range(64) if (mask_val & (1 << i))]
+                            if cpus:
+                                return cpus
+        except Exception:
+            pass
+    count = os.cpu_count() or 1
+    if count < 1:
+        count = 1
+    return list(range(count))
+
+
+def apply_windows_affinity(proc_or_pid: Any, cores: list[int]) -> bool:
+    """Apply 64-bit CPU affinity mask to a Windows process using SetProcessAffinityMask."""
+    if not cores or sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        loader: Any = getattr(ctypes, "windll", None)
+        if loader is None:
+            return False
+        kernel32: Any = getattr(loader, "kernel32", None)
+        if kernel32 is None:
+            return False
+        mask = 0
+        for c in cores:
+            if 0 <= c < 64:
+                mask |= (1 << c)
+        if mask == 0:
+            return False
+        affinity_mask = ctypes.c_uint64(mask)
+        kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+        kernel32.SetProcessAffinityMask.restype = ctypes.c_int
+
+        handle = getattr(proc_or_pid, "_handle", None)
+        if handle is not None:
+            return bool(kernel32.SetProcessAffinityMask(ctypes.c_void_p(int(handle)), affinity_mask))
+
+        pid = getattr(proc_or_pid, "pid", proc_or_pid)
+        if isinstance(pid, int) and pid > 0:
+            process_set_information = 0x0200
+            h = kernel32.OpenProcess(process_set_information, False, pid)
+            if h:
+                try:
+                    return bool(kernel32.SetProcessAffinityMask(h, affinity_mask))
+                finally:
+                    kernel32.CloseHandle(h)
+        return False
+    except Exception:
+        return False
+
+
 def parse_seeds(val: Any) -> list[int]:
     """Parse and validate seeds from a list, int, or string."""
     seeds: list[int] = []
@@ -1344,10 +1420,20 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
 
     # Workers validation
     raw_workers = params.get("workers", 2)
+    if isinstance(raw_workers, bool) or isinstance(raw_workers, float):
+        return {"ok": False, "error": "workers must be an integer >= 1", "status_code": 400}
     try:
-        workers = int(raw_workers)
-        if workers < 1 or workers > 16:
-            return {"ok": False, "error": "workers must be an integer between 1 and 16", "status_code": 400}
+        if isinstance(raw_workers, int):
+            workers = raw_workers
+        elif isinstance(raw_workers, str):
+            s = raw_workers.strip()
+            if not s.isdigit():
+                return {"ok": False, "error": "workers must be a valid integer string >= 1", "status_code": 400}
+            workers = int(s)
+        else:
+            return {"ok": False, "error": "workers must be an integer >= 1", "status_code": 400}
+        if workers < 1:
+            return {"ok": False, "error": "workers must be an integer >= 1", "status_code": 400}
     except (TypeError, ValueError):
         return {"ok": False, "error": "workers must be a valid integer", "status_code": 400}
 
@@ -1374,8 +1460,19 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     # Cores / affinity validation
     cores_val = params.get("cores")
     if cores_val is not None:
-        if not isinstance(cores_val, list) or not all(isinstance(c, int) and 0 <= c < 256 for c in cores_val):
+        if not isinstance(cores_val, list):
             return {"ok": False, "error": "cores must be a list of non-negative integer core IDs", "status_code": 400}
+        if len(cores_val) == 0:
+            return {"ok": False, "error": "cores list cannot be empty", "status_code": 400}
+        for c in cores_val:
+            if isinstance(c, bool) or not isinstance(c, int) or c < 0:
+                return {"ok": False, "error": "cores must be a list of non-negative integer core IDs", "status_code": 400}
+        if len(cores_val) != len(set(cores_val)):
+            return {"ok": False, "error": "cores must not contain duplicate core IDs", "status_code": 400}
+        allowed_cpus = set(get_allowed_cpu_ids())
+        if not set(cores_val).issubset(allowed_cpus):
+            return {"ok": False, "error": f"cores contains IDs not in allowed_cpu_ids: {sorted(set(cores_val) - allowed_cpus)}", "status_code": 400}
+        cores_val = sorted(cores_val)
 
     track_val = str(params.get("track") or "reference").strip()
     title = str(params.get("title") or "custom_run").strip()[:40]
@@ -1438,7 +1535,10 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
             
         if track_val and track_val != "reference":
             cmd.extend(["--track", track_val])
-        if cores_val and shutil.which("taskset"):
+
+    # Shared affinity command prefix for all runners (Linux taskset)
+    if cores_val and (sys.platform == "linux" or shutil.which("taskset")):
+        if shutil.which("taskset"):
             cmd = ["taskset", "-c", ",".join(map(str, cores_val))] + cmd
 
     started_at = time.time()
@@ -1472,6 +1572,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     )
     capabilities_dict = adapter.resolve_capabilities(run_dir)
 
+    effective_affinity = list(cores_val) if cores_val is not None else None
+
     param_record = {
         "generations": generations,
         "workers": workers,
@@ -1479,6 +1581,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "budget": max_seconds,
         "track": track_val,
         "cores": cores_val,
+        "effective_affinity": effective_affinity,
+        "effectiveAffinity": effective_affinity,
         "title": title,
         "scriptName": script_name,
         "backend": engine_backend,
@@ -1494,6 +1598,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "startedAt": started_at,
         "command": cmd,
         "params": param_record,
+        "effective_affinity": effective_affinity,
+        "effectiveAffinity": effective_affinity,
         "capabilities": capabilities_dict,
         "executionBoundary": execution_boundary,
         "configDigest": hashlib.sha256(json.dumps(param_record, sort_keys=True).encode("utf-8")).hexdigest()[:16],
@@ -1510,6 +1616,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "completedSeeds": 0,
         "totalSeeds": len(resolved_seeds) if resolved_seeds else 12,
         "params": param_record,
+        "effective_affinity": effective_affinity,
+        "effectiveAffinity": effective_affinity,
         "capabilities": capabilities_dict,
         "backend": engine_backend,
         "engineBackend": engine_backend,
@@ -1520,6 +1628,9 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     log_path = run_dir / "console.log"
     with open(log_path, "w", encoding="utf-8") as log_fp:
         proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root))
+
+    if cores_val and sys.platform == "win32":
+        apply_windows_affinity(proc, cores_val)
 
     with _RUN_LOCK:
         _RUN_PROCESSES[run_id] = proc

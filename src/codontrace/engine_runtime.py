@@ -933,14 +933,10 @@ class GenesisEngine:
             qd_descriptor_registry=registry,
         )
         engine.config_reconciliation = {
+            # Report the resolved top-level request, before population overrides.
+            # A non-None population config does not erase the engine default.
             "requested_capsules_enabled": bool(
-                (spec.capsule_transfer_config is not None and spec.capsule_transfer_config.enabled)
-                or (spec.population_configs is None and spec.engine_config.enable_capsules)
-                or (
-                    spec.population_configs is not None
-                    and spec.population_configs.capsule_transfer is not None
-                    and spec.population_configs.capsule_transfer.enabled
-                )
+                capsule_config is not None and capsule_config.enabled
             ),
             "effective_capsules_enabled": bool(
                 configs.capsule_transfer is not None and configs.capsule_transfer.enabled

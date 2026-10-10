@@ -1,0 +1,24 @@
+# bad: [5e7fefe1f0e5b0f3a99fe7242c3174cd8cd1638c] fix(console): improve percentage precision to 2 decimals and display explicit RAM MB usage
+# good: [3b1191b7ee7c307b1268b6ee8cc4f9f9ce58136f] Phase B: Avida-parity birth chamber sexual recombination (#2)
+git bisect start '5e7fefe' '3b1191b'
+# good: [dd3891cc62649858f7c02db5b49a6e17bbf2dd17] feat(closed-loop): HP-ARM01 structural RQ regime Stages A–D mechanism
+git bisect good dd3891cc62649858f7c02db5b49a6e17bbf2dd17
+# good: [83b0aca05018bebc1e856f83a88792e004862e5a] fix(rq): record suffixed twin ids in the host lineage
+git bisect good 83b0aca05018bebc1e856f83a88792e004862e5a
+# good: [1aebdb61c0859623f5a7e53506318adf9a66e8c3] style(console): resolve ruff lint rules and organize imports
+git bisect good 1aebdb61c0859623f5a7e53506318adf9a66e8c3
+# good: [fe4c3cf21a5084561f8a9ec94d0beb8b435a5e54] fix(ui): dynamic titles and steps for server jobs
+git bisect good fe4c3cf21a5084561f8a9ec94d0beb8b435a5e54
+# bad: [97dfc8ca15e8528818b930ed1e6c660a3221c9c9] feat(test): add Fisher-Yates uniformity chi-square suite and LLM multi-prompt test harness
+git bisect bad 97dfc8ca15e8528818b930ed1e6c660a3221c9c9
+# good: [a091196b9a76e22fbf32c7e4c93877eae3e8e83e] test(audit): add master 10-phase scientific invariant and deep integrity verification suite
+git bisect good a091196b9a76e22fbf32c7e4c93877eae3e8e83e
+# good: [04bce92f26a06602fd7d659e977932f32eb4c6b0] fix(phase1): resolve R01-R05 evaluator, pause duration, telemetry parity, and UI revision guards
+git bisect good 04bce92f26a06602fd7d659e977932f32eb4c6b0
+# good: [04bce92f26a06602fd7d659e977932f32eb4c6b0] fix(phase1): resolve R01-R05 evaluator, pause duration, telemetry parity, and UI revision guards
+git bisect good 04bce92f26a06602fd7d659e977932f32eb4c6b0
+# bad: [aadc97062a1a3e03840bc85afb66414e613d559b] fix(phase3): resolve R09 QD descriptors, population capsule reconciliation, and manifest chain wiring
+git bisect bad aadc97062a1a3e03840bc85afb66414e613d559b
+# good: [ab81af94a28d29f1c7dfc38956ad3abd314c0350] fix(phase2): resolve R06-R08 backend contract, runtime wiring audit, and replay policy registry
+git bisect good ab81af94a28d29f1c7dfc38956ad3abd314c0350
+# first bad commit: [aadc97062a1a3e03840bc85afb66414e613d559b] fix(phase3): resolve R09 QD descriptors, population capsule reconciliation, and manifest chain wiring

@@ -38,39 +38,48 @@ function CampaignReadiness() {
     };
   }, []);
   return (
-    <div className="rounded-2xl bg-white/5 p-3">
-      <p className="mb-2 text-sm text-fg">
-        {lang === "fa" ? "آمادگی T01–T12" : "T01–T12 readiness"}
-      </p>
-      <p className="mb-2 text-xs text-subtle">
-        {lang === "fa"
-          ? "حکم هر آزمایش مال خودش است. پرچم قدیمیِ دفتر، کارت این آزمایش نیست. دکمهٔ اجرا تا آماده شدن همان آزمایش بسته می‌ماند."
-          : "Each experiment keeps its own verdict. The old ledger flag is not this card. Run stays off until that experiment is ready."}
-      </p>
-      {failed ? (
-        <p className="text-xs text-muted">{lang === "fa" ? "فهرست آمادگی در دسترس نیست." : "Readiness list is unavailable."}</p>
-      ) : rows === null ? (
-        <p className="text-xs text-muted">{lang === "fa" ? "در حال خواندن…" : "Reading…"}</p>
-      ) : (
-        <div className="max-h-64 overflow-auto">
-          {rows.map((row) => (
-            <div key={row.experiment_id} className="flex min-w-0 flex-wrap items-center gap-2 border-t border-white/5 py-2 text-xs">
-              <span className="font-mono text-fg">{row.experiment_id}</span>
-              <span className="text-muted">{row.backend}</span>
-              <span className="text-muted">{row.status}</span>
-              <button
-                type="button"
-                disabled={!row.run_enabled}
-                className="ms-auto min-h-9 rounded-lg px-2 text-muted disabled:cursor-not-allowed disabled:opacity-40"
-                title={row.gap}
-              >
-                {lang === "fa" ? "اجرا" : "Run"}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <Accordion.Root type="single" collapsible className="rounded-2xl bg-white/5">
+      <Accordion.Item value="readiness" className="overflow-hidden">
+        <Accordion.Header className="flex">
+          <Accordion.Trigger className="flex flex-1 items-center justify-between px-3 py-3 text-sm text-fg outline-none group">
+            <span>{lang === "fa" ? "آمادگی T01–T12 (Campaign Readiness)" : "T01–T12 Readiness"}</span>
+            <ChevronDown className="h-4 w-4 text-subtle transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </Accordion.Trigger>
+        </Accordion.Header>
+        <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+          <div className="px-3 pb-3">
+            <p className="mb-2 text-xs text-subtle">
+              {lang === "fa"
+                ? "حکم هر آزمایش مال خودش است. پرچم قدیمیِ دفتر، کارت این آزمایش نیست. دکمهٔ اجرا تا آماده شدن همان آزمایش بسته می‌ماند."
+                : "Each experiment keeps its own verdict. The old ledger flag is not this card. Run stays off until that experiment is ready."}
+            </p>
+            {failed ? (
+              <p className="text-xs text-muted">{lang === "fa" ? "فهرست آمادگی در دسترس نیست." : "Readiness list is unavailable."}</p>
+            ) : rows === null ? (
+              <p className="text-xs text-muted">{lang === "fa" ? "در حال خواندن…" : "Reading…"}</p>
+            ) : (
+              <div className="max-h-64 overflow-auto">
+                {rows.map((row) => (
+                  <div key={row.experiment_id} className="flex min-w-0 flex-wrap items-center gap-2 border-t border-white/5 py-2 text-xs">
+                    <span className="font-mono text-fg">{row.experiment_id}</span>
+                    <span className="text-muted">{row.backend}</span>
+                    <span className={cn(row.run_enabled ? "text-emerald-400" : "text-muted")}>{row.status}</span>
+                    <button
+                      type="button"
+                      disabled={!row.run_enabled}
+                      className="ms-auto min-h-9 rounded-lg px-2 text-muted disabled:cursor-not-allowed disabled:opacity-40"
+                      title={row.gap}
+                    >
+                      {lang === "fa" ? "اجرا" : "Run"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Accordion.Content>
+      </Accordion.Item>
+    </Accordion.Root>
   );
 }
 

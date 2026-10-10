@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 STATUSES = (
     "طرح",
@@ -40,7 +40,7 @@ def assessments_are_distinct(left: str, right: str) -> bool:
 EXPERIMENTS: tuple[dict[str, Any], ...] = (
     {
         "experiment_id": "T01",
-        "backend": "ENGINE",
+        "backend": "REFERENCE",
         "runner": "scripts/genesis_long_board_campaign.py",
         "features": ["ecological selection", "quality-diversity archive", "held-out phenotype"],
         "runtime_consumer": None,
@@ -56,7 +56,7 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
     },
     {
         "experiment_id": "T02",
-        "backend": "ENGINE",
+        "backend": "REFERENCE",
         "runner": "scripts/genesis_long_board_campaign.py",
         "features": ["demes", "real offspring counts", "Price partition"],
         "runtime_consumer": None,
@@ -72,7 +72,7 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
     },
     {
         "experiment_id": "T03",
-        "backend": "INTEGRATED",
+        "backend": "REFERENCE",
         "runner": "scripts/genesis_long_board_campaign.py",
         "features": ["vertical transmission", "collective reproduction", "partner assay"],
         "runtime_consumer": None,
@@ -88,7 +88,7 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
     },
     {
         "experiment_id": "T04",
-        "backend": "ENGINE",
+        "backend": "REFERENCE",
         "runner": "scripts/genesis_long_board_campaign.py",
         "features": ["fork", "held-out function", "founder-clustered replay"],
         "runtime_consumer": None,
@@ -104,7 +104,7 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
     },
     {
         "experiment_id": "T05",
-        "backend": "ENGINE",
+        "backend": "REFERENCE",
         "runner": "scripts/genesis_long_board_campaign.py",
         "features": ["host-parasite contacts", "time-shift assay"],
         "runtime_consumer": None,
@@ -128,8 +128,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "held-out success against a matched ablation",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T06CausalLedgerRunner is a stub. It does not run, and it does not return NOT_SUPPORTED as a result.",
         "owner": "Coder 3",
         "gap": "No runner shows ledger change changing the chosen action.",
@@ -144,8 +144,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "evaluations until the locked criterion",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T07CapsuleTransferRunner is a stub. Capsule config elsewhere is not this experiment.",
         "owner": "Coder 3",
         "gap": "Transfer is not connected to a held-out task.",
@@ -160,8 +160,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "held-out success per real ATP",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T08SkillCompressionRunner is a stub. ADF types elsewhere are not this assay.",
         "owner": "Coder 3",
         "gap": "Skill compression is not connected to an energy-matched assay.",
@@ -176,8 +176,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "functional information in one fixed space",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T09FunctionalInfoRunner is a stub. The math helper for I(E) is not the locked sampler.",
         "owner": "Coder 4",
         "gap": "No sampler writes the successes this measure needs.",
@@ -192,8 +192,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "area of the functional drop after the first shock",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T10EcologicalResilienceRunner is a stub. The life-loop's resources are not this shock schedule.",
         "owner": "Coder 2",
         "gap": "Ecology in the preset is not the shock experiment.",
@@ -226,8 +226,8 @@ EXPERIMENTS: tuple[dict[str, Any], ...] = (
         "controls": None,
         "measure": "resources delivered on held-out episodes",
         "analyst": "scripts/board_campaign_analyst.py",
-        "status": "آمادهٔ پایلوت",
-        "run_enabled": True,
+        "status": "نیازمند اتصال",
+        "run_enabled": False,
         "evidence": "T12SwarmControlRunner is a stub. SimEsp32Bridge remains a stub. Neither is the swarm task.",
         "owner": "Coder 4",
         "gap": "The swarm task and its baseline are not implemented.",
@@ -239,12 +239,50 @@ def inventory() -> dict[str, Any]:
     rows = []
     for row in EXPERIMENTS:
         item = dict(row)
+        number = int(item["experiment_id"][1:])
+        item["run_enabled"] = number <= 5 or number == 11
+        if number <= 5:
+            item["backend"] = "REFERENCE"
+            item["status"] = "آمادهٔ پایلوت"
+            item["run_scope"] = "REFERENCE_PILOT"
+            item["runtime_consumer"] = "codontrace.experiments (standalone reference model)"
+            item["analyst"] = "console run artifacts; scientific assessment scoped to the model"
+            item["evidence"] = (
+                "Implemented standalone REFERENCE runner with live generation telemetry. It does not invoke GenesisEngine."
+            )
+            item["gap"] = (
+                "A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot."
+            )
+            item["launch_params"] = {
+                "scriptName": "genesis_long_board_campaign.py",
+                "experiment": item["experiment_id"],
+                "track": "REFERENCE",
+                "seeds": [42],
+                "generations": 50,
+                "population": 96,
+                "workers": 1,
+            }
+        elif number == 11:
+            item["run_scope"] = "ENGINE_CALIBRATION"
+            item["launch_params"] = {
+                "scriptName": "board_long_campaign.py",
+                "experiment": "T11",
+                "ticks": 4,
+                "population": 6,
+                "workers": 1,
+                "seeds": [7],
+                "arm": "uninterrupted",
+            }
+        else:
+            item["status"] = "نیازمند اتصال"
+            item["run_scope"] = "BLOCKED_IMPLEMENTATION"
+            item["launch_params"] = None
         item["schema_version"] = SCHEMA_VERSION
         item["long_campaign_ready"] = item["status"] == "آمادهٔ کمپین"
         rows.append(item)
     return {
         "schema_version": SCHEMA_VERSION,
-        "basis_sha": "e90f9cd1d7287d2b51531cae82cd75dc0a18b2f1",
+        "basis_sha": "runtime-capability-registry-v2",
         "program": "docs/campaigns/orange_pi_zero3_long_program.md",
         "board_rate_measured": False,
         "experiments": rows,
@@ -263,8 +301,8 @@ def render_readiness_markdown() -> str:
     lines = [
         "# T01–T12 readiness",
         "",
-        "Basis: `e90f9cd1d7287d2b51531cae82cd75dc0a18b2f1`. This table is not a result.",
-        "A config field or a class is not a connection. `run_enabled` is false until that experiment's long-campaign preconditions pass.",
+        "Basis: runtime-capability-registry-v2. This table is not a result.",
+        "run_enabled permits an explicitly scoped pilot, not a validated scientific campaign. T01–T05 are REFERENCE; T11 is ENGINE calibration; other stubs remain disabled.",
         "The Orange Pi rate has not been measured.",
         "",
         "| ID | Backend | Status | Runner | Consumer | Owner | Gap |",

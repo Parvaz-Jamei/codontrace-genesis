@@ -1,11 +1,16 @@
 import { sendServerRunAction } from "./host";
+import { runActionAvailable } from "./run-actions";
 import { gateLine, nextLine, scriptLine, useBench } from "./store";
 
 const clocks = new Map<string, number>();
 
 export async function startJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
-  if (!job || job.status === "archived") return;
+  if (!job || !runActionAvailable(job, "resume")) return;
+  if (!job.isDemo && ["stopped", "failed"].includes(job.status)) {
+    await restartJob(id);
+    return;
+  }
   if (job.isDemo) {
     stopClock(id);
     useBench.getState().patchJob(id, { status: "running", actionError: null });
@@ -13,9 +18,7 @@ export async function startJob(id: string) {
     clocks.set(id, timer);
     return;
   }
-  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
-    status: "running",
     pendingAction: "resume",
     pendingActionTime: Date.now(),
     actionError: null,
@@ -26,7 +29,6 @@ export async function startJob(id: string) {
   } catch (err) {
     console.error("Failed to start/resume job:", err);
     useBench.getState().patchJob(id, {
-      status: previousStatus,
       pendingAction: null,
       pendingActionTime: undefined,
       actionError: err instanceof Error ? err.message : String(err),
@@ -36,15 +38,13 @@ export async function startJob(id: string) {
 
 export async function pauseJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
-  if (!job) return;
+  if (!job || !runActionAvailable(job, "pause")) return;
   if (job.isDemo) {
     stopClock(id);
     if (job.status === "running") useBench.getState().patchJob(id, { status: "paused", actionError: null });
     return;
   }
-  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
-    status: "paused",
     pendingAction: "pause",
     pendingActionTime: Date.now(),
     actionError: null,
@@ -55,7 +55,6 @@ export async function pauseJob(id: string) {
   } catch (err) {
     console.error("Failed to pause job:", err);
     useBench.getState().patchJob(id, {
-      status: previousStatus,
       pendingAction: null,
       pendingActionTime: undefined,
       actionError: err instanceof Error ? err.message : String(err),
@@ -65,16 +64,14 @@ export async function pauseJob(id: string) {
 
 export async function stopJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
-  if (!job || job.status === "archived") return;
+  if (!job || !runActionAvailable(job, "stop")) return;
   if (job.isDemo) {
     stopClock(id);
     useBench.getState().appendLog(id, "STOP");
     useBench.getState().patchJob(id, { status: "stopped", actionError: null });
     return;
   }
-  const previousStatus = job.status;
   useBench.getState().patchJob(id, {
-    status: "stopped",
     pendingAction: "stop",
     pendingActionTime: Date.now(),
     actionError: null,
@@ -85,7 +82,6 @@ export async function stopJob(id: string) {
   } catch (err) {
     console.error("Failed to stop job:", err);
     useBench.getState().patchJob(id, {
-      status: previousStatus,
       pendingAction: null,
       pendingActionTime: undefined,
       actionError: err instanceof Error ? err.message : String(err),
@@ -95,7 +91,7 @@ export async function stopJob(id: string) {
 
 export async function restartJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
-  if (!job || job.id === "engine-check-17001") return;
+  if (!job || !runActionAvailable(job, "restart")) return;
   if (job.isDemo) {
     stopClock(id);
     useBench.getState().patchJob(id, {
@@ -107,40 +103,35 @@ export async function restartJob(id: string) {
     clocks.set(id, timer);
     return;
   }
-  if (job.status === "paused") {
-    await startJob(id);
-    return;
-  }
   try {
-    await useBench.getState().launchJob({
-      kind: job.kind,
-      preset: job.preset,
-      seedsText: job.seeds.join(", "),
-      generations: job.generations,
-      workers: job.workers,
-      cores: job.cores,
-      title: `${job.title} (restart)`,
-      gateFile: job.gateFile,
-      scriptName: job.scriptName,
-    });
+    useBench.getState().patchJob(id, {pendingAction:"restart",pendingActionTime:Date.now(),actionError:null});
+    const result = await sendServerRunAction(id, "restart");
+    if (!result.runId) throw new Error("Restart did not return a new run identifier.");
+    await useBench.getState().syncServerRuns();
+    useBench.getState().selectJob(result.runId);
+    useBench.getState().setView("jobs");
   } catch (err) {
-    console.error("Failed to restart job:", err);
+    useBench.getState().patchJob(id, {actionError:err instanceof Error ? err.message : String(err)});
+  } finally {
+    useBench.getState().patchJob(id, {pendingAction:null,pendingActionTime:undefined});
   }
 }
 
 export async function removeJob(id: string) {
   const job = useBench.getState().jobs.find((item) => item.id === id);
+  if (!job || !runActionAvailable(job, "delete")) return;
   stopClock(id);
   if (job?.isDemo) {
     useBench.getState().removeJob(id);
     return;
   }
   try {
+    useBench.getState().patchJob(id, {pendingAction:"delete",pendingActionTime:Date.now(),actionError:null});
     await sendServerRunAction(id, "delete");
     useBench.getState().removeJob(id);
     void useBench.getState().syncServerRuns();
   } catch (err) {
-    console.error("Failed to delete job on server:", err);
+    useBench.getState().patchJob(id, {pendingAction:null,pendingActionTime:undefined,actionError:err instanceof Error ? err.message : String(err)});
   }
 }
 

@@ -1,0 +1,24 @@
+{
+  "base_sha": "5e7fefe1f0e5b0f3a99fe7242c3174cd8cd1638c",
+  "seed": 7,
+  "tick_count": 12,
+  "population": 6,
+  "old_snapshot_pin": "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a",
+  "verified_snapshot_digest": "e9d404a0a50c5ac323a94306d582bd27596a752ecab00bd9406834947d27db78",
+  "payload_file_sha256": "01fa0c3ed2085b615f179ad53ca36c5a8dc9243eb0a748c2884d63319ea5a959",
+  "base_and_patch_payload_equal": true,
+  "payload": {
+    "element_grid_digest": "2ca93f3eabf9d9ed506e37edb1a5e6d1d2eb55bade7d597263b6c80da67f0a38",
+    "population": {
+      "agents": [],
+      "generation": 12,
+      "nexus_digest": "fa61b715f1cdc0739a17e293eef51922db0b721c14f0fbcedd4c966af6c18e30",
+      "population_digest": "30f991db21f6ef2f8f3a1696b5117948988fd2f39cee04b707c7170f9be6875c",
+      "tick": 40
+    },
+    "qd_archive_digest": null,
+    "run_id": "genesis-run-7d199ae513458722",
+    "substrate_bridge_mode": "element_grid_source",
+    "world_digest": "28a56855e495a5679d86e4c781e163b011c32c9de1dc1f82ca84e87c964cb66c"
+  }
+}

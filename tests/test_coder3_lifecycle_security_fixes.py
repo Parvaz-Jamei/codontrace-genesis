@@ -34,7 +34,7 @@ def test_r04_watch_run_process_corrupted_json_fails_closed(tmp_path: Path):
     # Create corrupted execution.json
     (engine_dir / "execution.json").write_text("{this is corrupt json!!", encoding="utf-8")
     status_file = run_dir / "status.json"
-    status_file.write_text(json.dumps({"status": "RUNNING"}), encoding="utf-8")
+    status_file.write_text(json.dumps({"status": "RUNNING", "capabilities": {"pause": True, "resume": True}}), encoding="utf-8")
 
     class DummyProc:
         def wait(self):
@@ -61,7 +61,7 @@ def test_r04_watch_run_process_failures_in_report_fails_closed(tmp_path: Path):
     }
     (engine_dir / "execution.json").write_text(json.dumps(report), encoding="utf-8")
     status_file = run_dir / "status.json"
-    status_file.write_text(json.dumps({"status": "RUNNING"}), encoding="utf-8")
+    status_file.write_text(json.dumps({"status": "RUNNING", "capabilities": {"pause": True, "resume": True}}), encoding="utf-8")
 
     class DummyProc:
         def wait(self):
@@ -224,7 +224,7 @@ def test_r17_cooperative_pause_signal_and_action(tmp_path: Path, monkeypatch):
     engine_dir = run_dir / "output"
     engine_dir.mkdir()
     status_file = run_dir / "status.json"
-    status_file.write_text(json.dumps({"status": "RUNNING"}), encoding="utf-8")
+    status_file.write_text(json.dumps({"status": "RUNNING", "capabilities": {"pause": True, "resume": True}}), encoding="utf-8")
 
     # 1. Action pause
     res_pause = runs.manage_run_action("run_pause_test", "pause")
@@ -234,9 +234,12 @@ def test_r17_cooperative_pause_signal_and_action(tmp_path: Path, monkeypatch):
     assert not (run_dir / "STOP").is_file(), "STOP marker MUST NOT be created for pause"
     assert not (engine_dir / "STOP").is_file(), "STOP marker MUST NOT be created in engine_dir for pause"
 
-    # Status must reflect PAUSED
+    # A marker requests pause; the worker must acknowledge before PAUSED.
     st_data = json.loads(status_file.read_text(encoding="utf-8"))
-    assert st_data["status"] == "PAUSED"
+    assert st_data["status"] == "PAUSING"
+    (run_dir / "ack_paused_worker").write_text("ack", encoding="utf-8")
+    assert runs.manage_run_action("run_pause_test", "pause")["ok"] is True
+    assert json.loads(status_file.read_text())["status"] == "PAUSED"
 
     # 2. Action resume
     res_resume = runs.manage_run_action("run_pause_test", "resume")
@@ -245,7 +248,7 @@ def test_r17_cooperative_pause_signal_and_action(tmp_path: Path, monkeypatch):
     assert not (engine_dir / "PAUSE").is_file(), "engine_dir PAUSE marker must be removed on resume"
 
     st_data = json.loads(status_file.read_text(encoding="utf-8"))
-    assert st_data["status"] == "RUNNING"
+    assert st_data["status"] == "RESUMING"
 
 
 # ============================================================================

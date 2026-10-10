@@ -1,16 +1,16 @@
 # T01–T12 readiness
 
-Basis: `e90f9cd1d7287d2b51531cae82cd75dc0a18b2f1`. This table is not a result.
-A config field or a class is not a connection. `run_enabled` is false until that experiment's long-campaign preconditions pass.
+Basis: runtime-capability-registry-v2. This table is not a result.
+run_enabled permits an explicitly scoped pilot, not a validated scientific campaign. T01–T05 are REFERENCE; T11 is ENGINE calibration; other stubs remain disabled.
 The Orange Pi rate has not been measured.
 
 | ID | Backend | Status | Runner | Consumer | Owner | Gap |
 |---|---|---|---|---|---|---|
-| T01 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 1 | No engine path consumes a functional phenotype for this question. |
-| T02 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 1 | The Price partition does not account this experiment's births. |
-| T03 | INTEGRATED | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 2 | No recorded exchange between a mutualism submodel and GenesisEngine. |
-| T04 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 3 | A checkpoint is not the historical-contingency experiment. |
-| T05 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 2 | Do not relabel the phase-5 script as T05. |
+| T01 | REFERENCE | آمادهٔ پایلوت | `scripts/genesis_long_board_campaign.py` | codontrace.experiments (standalone reference model) | Coder 1 | A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot. |
+| T02 | REFERENCE | آمادهٔ پایلوت | `scripts/genesis_long_board_campaign.py` | codontrace.experiments (standalone reference model) | Coder 1 | A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot. |
+| T03 | REFERENCE | آمادهٔ پایلوت | `scripts/genesis_long_board_campaign.py` | codontrace.experiments (standalone reference model) | Coder 2 | A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot. |
+| T04 | REFERENCE | آمادهٔ پایلوت | `scripts/genesis_long_board_campaign.py` | codontrace.experiments (standalone reference model) | Coder 3 | A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot. |
+| T05 | REFERENCE | آمادهٔ پایلوت | `scripts/genesis_long_board_campaign.py` | codontrace.experiments (standalone reference model) | Coder 2 | A registered cross-seed scientific campaign and GenesisEngine adapter are separate from this REFERENCE pilot. |
 | T06 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 3 | No runner shows ledger change changing the chosen action. |
 | T07 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 3 | Transfer is not connected to a held-out task. |
 | T08 | ENGINE | نیازمند اتصال | `scripts/genesis_long_board_campaign.py` | — | Coder 3 | Skill compression is not connected to an energy-matched assay. |

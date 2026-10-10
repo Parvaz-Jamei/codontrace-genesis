@@ -98,7 +98,7 @@ class CompletionSummary:
     status: str
     stop_reason: str
     scientific_assessment: AssessmentStatus
-    primary_endpoint_value: float
+    primary_endpoint_value: float | None
     summary_metrics: dict[str, Any]
     red_queen_proved: bool = RED_QUEEN_PROVED
     major_transition_proved: bool = MAJOR_TRANSITION_PROVED
@@ -118,3 +118,12 @@ class CompletionSummary:
             "red_queen_proved": self.red_queen_proved,
             "major_transition_proved": self.major_transition_proved,
         }
+
+
+def validate_reference_run(population_size: int, generations: int, track: ExecutionTrack) -> None:
+    """Validate budgets and execution boundary before work starts."""
+    for name, value in (("population_size", population_size), ("generations", generations)):
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{name} must be a positive integer")
+    if track != ExecutionTrack.REFERENCE:
+        raise ValueError("Standalone runners support REFERENCE only; engine dispatch is not implemented")

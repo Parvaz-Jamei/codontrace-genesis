@@ -1,7 +1,7 @@
-"""T01 — Open-Ended Evolution (OEE) & Functional Novelty Experiment.
+"""T01 — Bounded descriptor novelty and Quality-Diversity reference experiment.
 
 Evaluates whether ecological selection with Quality-Diversity archives generates
-sustained functional innovations evaluated on held-out tasks, beyond neutral genetic turnover.
+bounded descriptor novelty evaluated on held-out bit patterns, beyond neutral genetic turnover.
 
 Four experimental arms:
 1. REAL_SELECTION_WITH_QD: Full ecological selection with functional QD archive.
@@ -12,18 +12,21 @@ Four experimental arms:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from codontrace.experiments.math_utils import sha_prng_float, sha_prng_int
+from codontrace.experiments.math_utils import sha_prng_float
+from codontrace.experiments.math_utils import sha_prng_int_unbiased as sha_prng_int
 from codontrace.experiments.models import (
     AssessmentStatus,
     CompletionSummary,
     ExecutionTrack,
     MetricRecord,
+    validate_reference_run,
 )
 
-TASKS: tuple[str, ...] = ("nand", "and", "or", "nor", "xor", "equ", "not", "andn")
-HELDOUT_TASKS: tuple[str, ...] = ("parity3", "majority3", "mux2", "cmp4")
+TASKS: tuple[str, ...] = tuple(f"nibble_target_{i}" for i in range(8))
+HELDOUT_TASKS: tuple[str, ...] = tuple(f"heldout_bit_pattern_{i}" for i in range(4))
 
 
 @dataclass
@@ -35,7 +38,7 @@ class OrganismState:
 
 
 class T01OEERunner:
-    """Runner for T01 Open-Ended Evolution with exact mathematical controls."""
+    """Runner for T01 bounded descriptor matching, not executed Boolean programs."""
 
     def __init__(
         self,
@@ -50,6 +53,7 @@ class T01OEERunner:
         self.population_size = population_size
         self.generations = generations
         self.track = track
+        validate_reference_run(self.population_size, generations, track)
 
         self.population: list[OrganismState] = []
         self.discovered_phenotypes: set[int] = set()
@@ -57,6 +61,9 @@ class T01OEERunner:
         self.component_activity: dict[int, int] = {}
         self.cumulative_activity: int = 0
         self.metrics_history: list[MetricRecord] = []
+        self.qd_archive: dict[int, tuple[int, int]] = {}
+        if arm not in {"REAL_SELECTION_WITH_QD", "REAL_SELECTION_NO_QD", "NEUTRAL_DRIFT_CONTROL", "QD_RANDOM_DESCRIPTOR"}:
+            raise ValueError("Unknown T01 arm")
 
     def initialize_population(self) -> None:
         self.population.clear()
@@ -66,7 +73,7 @@ class T01OEERunner:
             self.population.append(OrganismState(genome=g0, atp=10.0, age=0))
 
     def evaluate_functional_phenotype(self, genome: int) -> int:
-        """Evaluates 8 computational tasks and returns an 8-bit behavioral phenotype."""
+        """Returns a bounded nibble-match descriptor, not executed Boolean tasks."""
         phenotype = 0
         for task_idx in range(len(TASKS)):
             # Task target matching logic based on 4-bit nibbles
@@ -77,7 +84,7 @@ class T01OEERunner:
         return phenotype
 
     def evaluate_heldout_task(self, genome: int) -> int:
-        """Evaluates non-trained held-out tasks for genuine functional innovation."""
+        """Evaluates held-out bit-pattern descriptors, not actual task execution."""
         heldout_bits = 0
         for h_idx in range(len(HELDOUT_TASKS)):
             sub_key = ((genome >> (h_idx * 7)) ^ (genome >> 13)) & 0x1F
@@ -96,6 +103,11 @@ class T01OEERunner:
             heldout = self.evaluate_heldout_task(org.genome)
 
             match_count = bin(phenotype).count("1")
+            if self.arm in ("REAL_SELECTION_WITH_QD", "QD_RANDOM_DESCRIPTOR"):
+                descriptor = phenotype if self.arm == "REAL_SELECTION_WITH_QD" else sha_prng_int(self.seed, org.genome, "random_descriptor", 0, 255)
+                old = self.qd_archive.get(descriptor)
+                if old is None or match_count > old[1]:
+                    self.qd_archive[descriptor] = (org.genome, match_count)
 
             # Tracking novel discoveries
             if phenotype not in self.discovered_phenotypes:
@@ -111,12 +123,8 @@ class T01OEERunner:
                 self.cumulative_activity += 1
 
             # Survival / ATP accounting based on Arm
-            if self.arm in ("REAL_SELECTION_WITH_QD", "REAL_SELECTION_NO_QD"):
+            if self.arm in ("REAL_SELECTION_WITH_QD", "REAL_SELECTION_NO_QD", "QD_RANDOM_DESCRIPTOR"):
                 survival_prob = min(0.95, 0.20 + 0.15 * match_count)
-            elif self.arm == "QD_RANDOM_DESCRIPTOR":
-                # Control: Descriptor preservation decoupled from functional fitness
-                rand_score = sha_prng_float(self.seed, gen * 1000 + idx, "random_desc")
-                survival_prob = 0.20 + 0.60 * rand_score
             else:  # NEUTRAL_DRIFT_CONTROL
                 survival_prob = 0.50
 
@@ -127,16 +135,19 @@ class T01OEERunner:
 
         # 2. Reproduction to restore population capacity
         if not survivors:
-            self.initialize_population()
-            survivors = list(self.population)
+            self.population = []
 
         offspring: list[OrganismState] = []
         needed = self.population_size - len(survivors)
         for i in range(max(0, needed)):
+            if not survivors:
+                break
             parent_idx = sha_prng_int(self.seed, gen * 2000 + i, "parent", 0, len(survivors) - 1)
-            parent = survivors[parent_idx]
-
-            child_genome = parent.genome
+            child_genome = survivors[parent_idx].genome
+            if self.qd_archive and sha_prng_float(self.seed, gen * 2000 + i, "archive_parent") < 0.25:
+                cells = sorted(self.qd_archive)
+                cell = cells[sha_prng_int(self.seed, gen * 2000 + i, "archive_cell", 0, len(cells) - 1)]
+                child_genome = self.qd_archive[cell][0]
             # Decoupled mutation: event probability vs uniform locus selection across all 32 bits
             p_mut = sha_prng_float(self.seed, gen * 3000 + i, "mut_event")
             if p_mut < 0.18:
@@ -149,7 +160,7 @@ class T01OEERunner:
 
         record = MetricRecord(
             generation=gen,
-            tick=gen * 16,
+            tick=0,
             population_size=len(self.population),
             primary_metric_name="cumulative_activity",
             primary_metric_value=float(self.cumulative_activity),
@@ -162,30 +173,40 @@ class T01OEERunner:
         self.metrics_history.append(record)
         return record
 
-    def run(self) -> CompletionSummary:
+    def run(self, on_generation: Callable[[MetricRecord], None] | None = None) -> CompletionSummary:
+        self.discovered_phenotypes.clear()
+        self.heldout_innovations.clear()
+        self.component_activity.clear()
+        self.qd_archive.clear()
+        self.metrics_history.clear()
+        self.cumulative_activity = 0
         self.initialize_population()
         for gen in range(1, self.generations + 1):
-            self.step_generation(gen)
+            record = self.step_generation(gen)
+            if on_generation is not None:
+                on_generation(record)
+            if not self.population:
+                break
 
         heldout_count = len(self.heldout_innovations)
-        assessment = (
-            AssessmentStatus.SUPPORTED_IN_THIS_MODEL
-            if heldout_count > 0 and self.arm == "REAL_SELECTION_WITH_QD"
-            else AssessmentStatus.NOT_SUPPORTED
-        )
+        assessment = AssessmentStatus.INCONCLUSIVE
 
         return CompletionSummary(
             experiment_id="T01_OEE_NOVELTY",
             track=self.track,
             seed=self.seed,
-            completed_generations=self.generations,
-            total_ticks=self.generations * 16,
-            status="COMPLETED",
-            stop_reason="HORIZON_REACHED",
+            completed_generations=gen,
+            total_ticks=0,
+            status="COMPLETED" if self.population else "EXTINCT",
+            stop_reason="HORIZON_REACHED" if self.population else "EXTINCTION",
             scientific_assessment=assessment,
             primary_endpoint_value=float(heldout_count),
             summary_metrics={
                 "arm": self.arm,
+                "assessed_claim": "bounded_descriptor_novelty",
+                "requires_between_arm_seed_comparison": True,
+                "qd_archive_cells": len(self.qd_archive),
+                "prng_int_stream_version": "sha256-rejection-v2", "engine_ticks_executed": 0,
                 "cumulative_activity": self.cumulative_activity,
                 "total_discovered_phenotypes": len(self.discovered_phenotypes),
                 "total_heldout_innovations": heldout_count,

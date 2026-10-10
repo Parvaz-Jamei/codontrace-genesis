@@ -14,19 +14,23 @@ Design:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from codontrace.experiments.math_utils import (
     PriceEquationAccounting,
     compute_exact_price_equation,
     sha_prng_float,
-    sha_prng_int,
+)
+from codontrace.experiments.math_utils import (
+    sha_prng_int_unbiased as sha_prng_int,
 )
 from codontrace.experiments.models import (
     AssessmentStatus,
     CompletionSummary,
     ExecutionTrack,
     MetricRecord,
+    validate_reference_run,
 )
 
 
@@ -52,6 +56,9 @@ class T02MLSPriceRunner:
         generations: int = 2000,
         track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
+        for name, value in (("num_demes", num_demes), ("deme_capacity", deme_capacity)):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer")
         self.seed = seed
         self.group_selection = group_selection
         self.high_migration = high_migration
@@ -60,10 +67,12 @@ class T02MLSPriceRunner:
         self.population_size = num_demes * deme_capacity
         self.generations = generations
         self.track = track
+        validate_reference_run(self.population_size, generations, track)
 
         self.population: list[Individual] = []
         self.price_history: list[PriceEquationAccounting] = []
         self.metrics_history: list[MetricRecord] = []
+        self.max_price_residual = 0.0
 
     def initialize_population(self) -> None:
         self.population.clear()
@@ -92,8 +101,9 @@ class T02MLSPriceRunner:
         for ind in self.population:
             deme_contributions[ind.deme_id] += ind.altruism_trait
 
+        deme_sizes = {d: sum(ind.deme_id == d for ind in self.population) for d in range(self.num_demes)}
         deme_returns: dict[int, float] = {
-            d: (b * deme_contributions[d]) / float(self.deme_capacity)
+            d: (b * deme_contributions[d]) / max(1, deme_sizes[d])
             for d in range(self.num_demes)
         }
 
@@ -105,14 +115,15 @@ class T02MLSPriceRunner:
         # Group productivity depends on mean altruism if group_selection is ON
         group_productivity: dict[int, float] = {}
         for d in range(self.num_demes):
-            mean_z = deme_contributions[d] / float(self.deme_capacity)
-            group_productivity[d] = 1.0 + (1.5 * mean_z if self.group_selection else 0.0)
+            mean_z = deme_contributions[d] / max(1, deme_sizes[d])
+            group_productivity[d] = (1.0 + (1.5 * mean_z if self.group_selection else 0.0)) if deme_sizes[d] else 0.0
 
         total_prod = sum(group_productivity.values())
-        group_target_slots = {
-            d: int(round((group_productivity[d] / total_prod) * (self.num_demes * self.deme_capacity)))
-            for d in range(self.num_demes)
-        }
+        quotas = {d: group_productivity[d] / total_prod * self.population_size for d in range(self.num_demes)}
+        group_target_slots = {d: int(quotas[d]) for d in quotas}
+        remaining = self.population_size - sum(group_target_slots.values())
+        for d in sorted(quotas, key=lambda d: (-(quotas[d] - group_target_slots[d]), d))[:remaining]:
+            group_target_slots[d] += 1
 
         # Reset realized offspring counts
         for ind in self.population:
@@ -127,7 +138,7 @@ class T02MLSPriceRunner:
                 (idx, ind) for idx, ind in enumerate(self.population) if ind.deme_id == d
             ]
             if not deme_parents:
-                deme_parents = list(enumerate(self.population))
+                continue
 
             slots = group_target_slots.get(d, self.deme_capacity)
             if slots <= 0:
@@ -155,10 +166,10 @@ class T02MLSPriceRunner:
                 p_ind.offspring_count += 1
 
                 # Offspring trait with mutation (lineage-keyed PRNG stream)
-                p_mut = sha_prng_float(self.seed, gen * 20000 + p_ind.lineage_id * 10 + s, "mls_mut_event")
+                p_mut = sha_prng_float(self.seed, gen * 20000 + d * self.population_size + s, "mls_mut_event")
                 child_z = p_ind.altruism_trait
                 if p_mut < 0.10:
-                    delta_z = (sha_prng_float(self.seed, gen * 30000 + p_ind.lineage_id * 10 + s, "mls_delta") - 0.5) * 0.1
+                    delta_z = (sha_prng_float(self.seed, gen * 30000 + d * self.population_size + s, "mls_delta") - 0.5) * 0.1
                     child_z = max(0.0, min(1.0, child_z + delta_z))
 
                 offspring_by_parent[selected_parent_idx].append(child_z)
@@ -187,7 +198,12 @@ class T02MLSPriceRunner:
             offspring_mean_z=offspring_mean_z,
             deme_ids=deme_ids,
         )
+        if not accounting.is_identity_exact:
+            raise ArithmeticError("Price accounting identity failed")
+        self.max_price_residual = max(self.max_price_residual, abs(accounting.identity_residual))
         self.price_history.append(accounting)
+        if len(self.price_history) > 100:
+            del self.price_history[:-100]
 
         # 4. Migration Phase
         migration_rate = 0.15 if self.high_migration else 0.02
@@ -202,12 +218,15 @@ class T02MLSPriceRunner:
                     atp=ind.atp,
                 )
 
-        self.population = next_generation[: self.num_demes * self.deme_capacity]
+        self.population = next_generation
 
         mean_pop_z = sum(ind.altruism_trait for ind in self.population) / len(self.population)
+        actual_delta = mean_pop_z - sum(parents_z) / len(parents_z)
+        if abs(actual_delta - accounting.delta_z_observed) > 1e-10:
+            raise ArithmeticError("Price endpoint does not match actual retained offspring")
         record = MetricRecord(
             generation=gen,
-            tick=gen * 16,
+            tick=0,
             population_size=len(self.population),
             primary_metric_name="mean_altruism_trait",
             primary_metric_value=mean_pop_z,
@@ -222,38 +241,41 @@ class T02MLSPriceRunner:
         self.metrics_history.append(record)
         return record
 
-    def run(self) -> CompletionSummary:
+    def run(self, on_generation: Callable[[MetricRecord], None] | None = None) -> CompletionSummary:
+        self.price_history.clear()
+        self.max_price_residual = 0.0
+        self.metrics_history.clear()
         self.initialize_population()
         for gen in range(1, self.generations + 1):
-            self.step_generation(gen)
+            record = self.step_generation(gen)
+            if on_generation is not None:
+                on_generation(record)
 
         final_altruism = sum(ind.altruism_trait for ind in self.population) / len(self.population)
-        mean_between = sum(p.between_group_term for p in self.price_history[-100:]) / 100.0
-        mean_within = sum(p.within_group_term for p in self.price_history[-100:]) / 100.0
+        mean_between = sum(p.between_group_term for p in self.price_history[-100:]) / len(self.price_history[-100:])
+        mean_within = sum(p.within_group_term for p in self.price_history[-100:]) / len(self.price_history[-100:])
 
         # Scientific assessment
-        assessment = (
-            AssessmentStatus.SUPPORTED_IN_THIS_MODEL
-            if self.group_selection and final_altruism > 0.40 and mean_between > 0
-            else AssessmentStatus.NOT_SUPPORTED
-        )
+        assessment = AssessmentStatus.INCONCLUSIVE
 
         return CompletionSummary(
             experiment_id="T02_MLS_PRICE",
             track=self.track,
             seed=self.seed,
             completed_generations=self.generations,
-            total_ticks=self.generations * 16,
+            total_ticks=0,
             status="COMPLETED",
             stop_reason="HORIZON_REACHED",
             scientific_assessment=assessment,
             primary_endpoint_value=final_altruism,
             summary_metrics={
                 "group_selection": self.group_selection,
+                "assessed_claim": "multilevel_selection_requires_factorial_comparison",
+                "prng_int_stream_version": "sha256-rejection-v2", "engine_ticks_executed": 0,
                 "high_migration": self.high_migration,
                 "final_mean_altruism": final_altruism,
                 "late_between_group_covariance": mean_between,
                 "late_within_group_covariance": mean_within,
-                "max_price_residual": max(abs(p.identity_residual) for p in self.price_history),
+                "max_price_residual": self.max_price_residual,
             },
         )

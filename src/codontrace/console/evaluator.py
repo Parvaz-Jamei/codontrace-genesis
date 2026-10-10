@@ -26,7 +26,7 @@ HypothesisVerdict = Literal[
 
 def _is_finite(val: Any) -> bool:
     """Return True if val is an int or a finite float."""
-    if isinstance(val, (int, float)):
+    if not isinstance(val, bool) and isinstance(val, (int, float)):
         return math.isfinite(val)
     return False
 
@@ -99,7 +99,10 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
     validation_failures = execution.get("validation_failures") or []
     stop_reason = execution.get("stop_reason")
     replays = execution.get("replays") or []
-    complete = bool(execution.get("complete", False))
+    complete = execution.get("complete") is True
+    if ("complete" in execution and not isinstance(execution["complete"], bool)) or not isinstance(validation_failures, list) or not isinstance(replays, list):
+        return {"verdict": "invalid", "hypothesis_id": "execution_integrity", "protocol": "schema_validation", "confidence": None,
+                "rationale": "Execution completion and integrity fields have invalid types.", "controls_passed": False, "evidence_summary": {}, "evaluated_at": now}
 
     if status in ("FAILED", "CANCELLED"):
         return {
@@ -140,6 +143,8 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
 
     # Reference controls validation
     summary = execution.get("summary") or {}
+    if not isinstance(summary, dict):
+        return {"verdict": "invalid", "hypothesis_id": "execution_integrity", "protocol": "schema_validation", "confidence": None, "rationale": "Execution summary is not a mapping.", "controls_passed": False, "evidence_summary": {}, "evaluated_at": now}
     controls_flag = execution.get("controls_passed")
     if controls_flag is None:
         controls_flag = summary.get("controls_passed")
@@ -183,14 +188,14 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "evidence_summary": candidate.get("evidence_summary", {}),
                 "evaluated_at": now,
             }
-        if v == "supported":
+        if v in ("supported", "not_supported"):
             if candidate.get("controls_passed") is not True:
                 return {
                     "verdict": "invalid",
                     "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
                     "protocol": str(candidate.get("protocol", "candidate_validation")),
                     "confidence": 0.0,
-                    "rationale": "Candidate assessment claims 'supported' without verified passing controls.",
+                    "rationale": "Candidate assessment claims a confirmatory verdict without verified passing controls.",
                     "controls_passed": False,
                     "evidence_summary": candidate.get("evidence_summary", {}),
                     "evaluated_at": now,
@@ -201,7 +206,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                     "hypothesis_id": str(candidate.get("hypothesis_id", "candidate_assessment")),
                     "protocol": str(candidate.get("protocol", "candidate_validation")),
                     "confidence": 0.0,
-                    "rationale": f"Candidate assessment claims 'supported' on incomplete run (status='{status}', complete={complete}).",
+                    "rationale": f"Candidate assessment claims a confirmatory verdict on incomplete run (status='{status}', complete={complete}).",
                     "controls_passed": False,
                     "evidence_summary": candidate.get("evidence_summary", {}),
                     "evaluated_at": now,
@@ -209,317 +214,92 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
         candidate.setdefault("evaluated_at", now)
         return candidate
 
-    # Frontier Challenge evaluations
+    # Numeric summaries are descriptive measurements, not registered decision rules.
+    # Statistical inference is accepted through the integrity-checked assessment
+    # interface above; there is no inferred threshold or fabricated confidence.
     challenge = execution.get("challenge") or summary.get("challenge")
-
-    if challenge == "OEE_NOVELTY":
-        raw_slope = summary.get("activity_slope", 0.0)
-        raw_gens = summary.get("total_generations", execution.get("total_generations", 0))
-        if isinstance(raw_slope, bool) or isinstance(raw_gens, bool) or not _is_finite(raw_slope) or not _is_finite(raw_gens):
-            return {
-                "verdict": "invalid",
-                "hypothesis_id": "oee_unbounded_novelty",
-                "protocol": "bedau_channon_oee",
-                "confidence": 0.0,
-                "rationale": f"Non-finite evolutionary activity metric detected: slope={raw_slope}, gens={raw_gens}.",
-                "controls_passed": False,
-                "evidence_summary": {"slope": raw_slope, "generations": raw_gens},
-                "evaluated_at": now,
-            }
-        slope = float(raw_slope)
-        gens = int(raw_gens or 0)
-        if not complete and gens < 1000:
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "oee_unbounded_novelty",
-                "protocol": "bedau_channon_oee",
-                "confidence": 0.4,
-                "rationale": f"Run halted before sufficient generational depth (gens={gens} < 1000).",
-                "controls_passed": False,
-                "evidence_summary": {"slope": slope, "generations": gens},
-                "evaluated_at": now,
-            }
-        if gens < 100:
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "oee_unbounded_novelty",
-                "protocol": "bedau_channon_oee",
-                "confidence": 0.4,
-                "rationale": f"Generational depth insufficient for evolutionary activity trend evaluation (gens={gens} < 100).",
-                "controls_passed": False,
-                "evidence_summary": {"slope": slope, "generations": gens},
-                "evaluated_at": now,
-            }
-        if slope >= 0.1:
-            return {
-                "verdict": "supported",
-                "hypothesis_id": "oee_unbounded_novelty",
-                "protocol": "bedau_channon_oee",
-                "confidence": 0.95,
-                "rationale": f"Positive evolutionary activity trend confirmed across observed window (activity_slope={slope:.4f} >= 0.10).",
-                "controls_passed": True,
-                "evidence_summary": {"slope": slope, "generations": gens},
-                "evaluated_at": now,
-            }
+    metrics_by_challenge = {
+        "OEE_NOVELTY": ("oee_unbounded_novelty", {"slope": summary.get("activity_slope"), "generations": summary.get("total_generations", execution.get("total_generations"))}),
+        "MLS_PRICE": ("mls_price_partition", {"between_term": summary.get("between_deme_selection_term"), "within_term": summary.get("within_deme_selection_term")}),
+        "FUNCTIONAL_INFO": ("hazen_functional_info_accretion", {"fi_bits": summary.get("hazen_functional_info_bits", summary.get("functional_info_bits")), "percolation": summary.get("neutral_percolation_rate")}),
+    }
+    if challenge in metrics_by_challenge:
+        hypothesis_id, evidence = metrics_by_challenge[challenge]
+        invalid = any(value is not None and not _is_finite(value) for value in evidence.values())
+        if challenge == "FUNCTIONAL_INFO":
+            percolation = evidence["percolation"]
+            bits = evidence["fi_bits"]
+            if _is_finite(percolation) and not 0.0 <= percolation <= 1.0:
+                invalid = True
+            if _is_finite(bits) and bits < 0:
+                invalid = True
+            zero_success = bool(summary.get("zero_success") or ("viable_count" in summary and summary.get("viable_count") == 0))
+            censored = bool(zero_success or summary.get("censored") or summary.get("bound_type") in ("censored", "upper_bound", "lower_bound"))
+            # With zero successes, an upper probability bound translates to a
+            # lower information bound under I=-log2(F), not an upper I bound.
+            evidence.update({"censored": censored, "zero_success": zero_success,
+                "bound_type": "lower_bound" if zero_success else str(summary.get("bound_type") or ("censored" if censored else "point_estimate")),
+                "reported_bound_type": summary.get("bound_type")})
+        if challenge == "OEE_NOVELTY":
+            generations = evidence["generations"]
+            if _is_finite(generations) and (generations < 0 or int(generations) != generations):
+                invalid = True
         return {
-            "verdict": "not_supported",
-            "hypothesis_id": "oee_unbounded_novelty",
-            "protocol": "bedau_channon_oee",
-            "confidence": 0.90,
-            "rationale": f"Evolutionary activity bounded into finite cycling (activity_slope={slope:.4f} < 0.10).",
-            "controls_passed": True,
-            "evidence_summary": {"slope": slope, "generations": gens},
-            "evaluated_at": now,
+            "verdict": "invalid" if invalid else "inconclusive", "hypothesis_id": hypothesis_id,
+            "protocol": "descriptive_metrics_without_registered_inference", "confidence": None,
+            "rationale": "Invalid numeric metric or domain constraint." if invalid else (
+                "Observed metrics remain exploratory without a verified preregistered assessment and replicated controls."
+                + (" Zero successes imply a censored lower information bound, not a finite point estimate." if evidence.get("zero_success") else "")),
+            "controls_passed": controls_flag is True, "evidence_summary": evidence, "evaluated_at": now,
         }
 
-    if challenge == "MLS_PRICE":
-        raw_between = summary.get("between_deme_selection_term", 0.0)
-        raw_within = summary.get("within_deme_selection_term", 0.0)
-        if isinstance(raw_between, bool) or isinstance(raw_within, bool) or not _is_finite(raw_between) or not _is_finite(raw_within):
-            return {
-                "verdict": "invalid",
-                "hypothesis_id": "mls_price_partition",
-                "protocol": "price_1972_mls",
-                "confidence": 0.0,
-                "rationale": f"Non-finite selection metric detected in MLS Price partition (between={raw_between}, within={raw_within}).",
-                "controls_passed": False,
-                "evidence_summary": {"between_term": raw_between, "within_term": raw_within},
-                "evaluated_at": now,
-            }
-        between = float(raw_between)
-        within = float(raw_within)
-        if not complete or status != "COMPLETED":
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "mls_price_partition",
-                "protocol": "price_1972_mls",
-                "confidence": 0.5,
-                "rationale": "Multilevel selection run terminated prematurely or incomplete.",
-                "controls_passed": False,
-                "evidence_summary": {"between_term": between, "within_term": within},
-                "evaluated_at": now,
-            }
-        if between > 0.0:
-            return {
-                "verdict": "supported",
-                "hypothesis_id": "mls_price_partition",
-                "protocol": "price_1972_mls",
-                "confidence": 0.92,
-                "rationale": f"Positive between-group selection confirmed under Price partition (between_term={between:.4f} > 0).",
-                "controls_passed": True,
-                "evidence_summary": {"between_term": between, "within_term": within},
-                "evaluated_at": now,
-            }
-        return {
-            "verdict": "not_supported",
-            "hypothesis_id": "mls_price_partition",
-            "protocol": "price_1972_mls",
-            "confidence": 0.88,
-            "rationale": f"Between-group selection term did not exceed zero (between_term={between:.4f} <= 0).",
-            "controls_passed": True,
-            "evidence_summary": {"between_term": between, "within_term": within},
-            "evaluated_at": now,
-        }
-
-    if challenge == "FUNCTIONAL_INFO":
-        raw_fi = summary.get("hazen_functional_info_bits", summary.get("functional_info_bits", 0.0))
-        raw_perc = summary.get("neutral_percolation_rate", 0.0)
-        if (
-            isinstance(raw_fi, bool)
-            or isinstance(raw_perc, bool)
-            or not _is_finite(raw_fi)
-            or not _is_finite(raw_perc)
-        ):
-            return {
-                "verdict": "invalid",
-                "hypothesis_id": "hazen_functional_info_accretion",
-                "protocol": "hazen_2007_functional_information",
-                "confidence": 0.0,
-                "rationale": f"Non-finite functional information metric detected (fi_bits={raw_fi}, percolation={raw_perc}).",
-                "controls_passed": False,
-                "evidence_summary": {"fi_bits": raw_fi, "percolation": raw_perc},
-                "evaluated_at": now,
-            }
-        fi_bits = float(raw_fi)
-        percolation = float(raw_perc)
-        if percolation < 0.0 or percolation > 1.0:
-            return {
-                "verdict": "invalid",
-                "hypothesis_id": "hazen_functional_info_accretion",
-                "protocol": "hazen_2007_functional_information",
-                "confidence": 0.0,
-                "rationale": f"Invalid neutral percolation rate ({percolation}), must be bounded in [0.0, 1.0].",
-                "controls_passed": False,
-                "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
-                "evaluated_at": now,
-            }
-        if not complete or status != "COMPLETED":
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "hazen_functional_info_accretion",
-                "protocol": "hazen_2007_functional_information",
-                "confidence": 0.5,
-                "rationale": f"Functional information assessment requires completed run (status='{status}', complete={complete}).",
-                "controls_passed": False,
-                "evidence_summary": {"fi_bits": fi_bits, "percolation": percolation},
-                "evaluated_at": now,
-            }
-        is_censored = bool(
-            summary.get("censored")
-            or summary.get("bound_type") in ("censored", "upper_bound")
-            or summary.get("zero_success")
-            or (summary.get("viable_count") == 0 and "viable_count" in summary)
-        )
-        bound_type = str(summary.get("bound_type") or ("upper_bound" if is_censored else "point_estimate"))
-        zero_success = bool(summary.get("zero_success") or (summary.get("viable_count") == 0 and "viable_count" in summary))
-
-        if is_censored:
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "hazen_functional_info_accretion",
-                "protocol": "hazen_2007_functional_information",
-                "confidence": 0.60,
-                "rationale": (
-                    f"Zero viable mutants sampled in reference sequence space; "
-                    f"functional information ({fi_bits:.2f} bits) represents a censored upper bound with sampling uncertainty."
-                ),
-                "controls_passed": True,
-                "evidence_summary": {
-                    "fi_bits": fi_bits,
-                    "percolation": percolation,
-                    "censored": True,
-                    "bound_type": bound_type,
-                    "zero_success": zero_success,
-                },
-                "evaluated_at": now,
-            }
-
-        if fi_bits > 0.0 and percolation > 0.0:
-            return {
-                "verdict": "supported",
-                "hypothesis_id": "hazen_functional_info_accretion",
-                "protocol": "hazen_2007_functional_information",
-                "confidence": 0.95,
-                "rationale": f"Functional information accretion ({fi_bits:.2f} bits) and neutral network percolation ({percolation*100:.1f}%) observed.",
-                "controls_passed": True,
-                "evidence_summary": {
-                    "fi_bits": fi_bits,
-                    "percolation": percolation,
-                    "censored": False,
-                    "bound_type": "point_estimate",
-                    "zero_success": False,
-                },
-                "evaluated_at": now,
-            }
-        return {
-            "verdict": "not_supported",
-            "hypothesis_id": "hazen_functional_info_accretion",
-            "protocol": "hazen_2007_functional_information",
-            "confidence": 0.70,
-            "rationale": "Functional information threshold not exceeded in sampled sequence space.",
-            "controls_passed": True,
-            "evidence_summary": {
-                "fi_bits": fi_bits,
-                "percolation": percolation,
-                "censored": False,
-                "bound_type": "point_estimate",
-                "zero_success": False,
-            },
-            "evaluated_at": now,
-        }
-
-    # Red Queen reciprocal time-shift evaluations
     diagnostics = run_data.get("diagnostics")
-    if diagnostics and isinstance(diagnostics, dict):
-        diag_complete = execution.get("diagnostics_complete", False)
-        if not diag_complete:
-            return {
-                "verdict": "inconclusive",
-                "hypothesis_id": "red_queen_time_shift",
-                "protocol": "papkou_timeshift_v2",
-                "confidence": 0.5,
-                "rationale": "Time-shift diagnostics incomplete or sample size too small for confirmatory inference.",
-                "controls_passed": True,
-                "evidence_summary": {"diagnostics_complete": False},
-                "evaluated_at": now,
-            }
-
-        # Check empirical outcomes from diagnostics
+    if isinstance(diagnostics, dict):
         by_seed = diagnostics.get("by_seed") or []
-        if isinstance(by_seed, list) and len(by_seed) >= 2:
-            # Check if any seed exhibits confirmed reciprocal adaptation
-            positive_signals = 0
-            negative_signals = 0
-            for s_entry in by_seed:
-                if not isinstance(s_entry, dict):
+        contrasts = []
+        seeds = set()
+        blocked = 0
+        invalid = not isinstance(by_seed, list)
+        if isinstance(by_seed, list):
+            for seed_entry in by_seed:
+                if not isinstance(seed_entry, dict):
+                    invalid = True
                     continue
-                matrices = s_entry.get("matrices") or []
-                for m in matrices:
-                    if not isinstance(m, dict):
+                seed = seed_entry.get("seed")
+                if isinstance(seed, (int, str)) and not isinstance(seed, bool):
+                    seeds.add(str(seed))
+                matrices = seed_entry.get("matrices") or []
+                if not isinstance(matrices, list):
+                    invalid = True
+                    continue
+                for matrix in matrices:
+                    if not isinstance(matrix, dict):
+                        invalid = True
                         continue
-                    if m.get("blocked_reason"):
+                    if matrix.get("blocked_reason"):
+                        blocked += 1
                         continue
-                    stat = m.get("mean_contrast") or m.get("slope")
-                    if isinstance(stat, (int, float)):
-                        if stat > 0.05:
-                            positive_signals += 1
-                        elif stat < -0.05:
-                            negative_signals += 1
-
-            total_signals = positive_signals + negative_signals
-            if total_signals == 0:
-                return {
-                    "verdict": "inconclusive",
-                    "hypothesis_id": "red_queen_time_shift",
-                    "protocol": "papkou_timeshift_v2",
-                    "confidence": 0.6,
-                    "rationale": "Time-shift matrices show neutral variance without directional or cyclical bias.",
-                    "controls_passed": True,
-                    "evidence_summary": {"seeds": len(by_seed), "positive_signals": positive_signals},
-                    "evaluated_at": now,
-                }
-            if positive_signals > negative_signals and (positive_signals / total_signals) >= 0.70:
-                return {
-                    "verdict": "supported",
-                    "hypothesis_id": "red_queen_time_shift",
-                    "protocol": "papkou_timeshift_v2",
-                    "confidence": 0.90,
-                    "rationale": "Empirical reciprocal time-shift confirms antagonistic coevolutionary lag and adaptation.",
-                    "controls_passed": True,
-                    "evidence_summary": {"seeds": len(by_seed), "positive_signals": positive_signals, "negative_signals": negative_signals},
-                    "evaluated_at": now,
-                }
-            return {
-                "verdict": "not_supported",
-                "hypothesis_id": "red_queen_time_shift",
-                "protocol": "papkou_timeshift_v2",
-                "confidence": 0.85,
-                "rationale": "Reciprocal time-shift does not show significant coevolutionary lag or parasite advantage.",
-                "controls_passed": True,
-                "evidence_summary": {"seeds": len(by_seed), "positive_signals": positive_signals, "negative_signals": negative_signals},
-                "evaluated_at": now,
-            }
-
-    # Fallback: check if execution outcome has a generic exploratory flag
-    if execution.get("exploratory"):
+                    value = matrix.get("mean_contrast", matrix.get("slope"))
+                    if value is None:
+                        continue
+                    if not _is_finite(value):
+                        invalid = True
+                    else:
+                        contrasts.append(float(value))
         return {
-            "verdict": "not_evaluated",
-            "hypothesis_id": "exploratory_run",
-            "protocol": "exploratory_sampling",
-            "confidence": None,
-            "rationale": "Exploratory simulation run completed without a registered hypothesis protocol.",
-            "controls_passed": True,
-            "evidence_summary": {"complete": complete},
+            "verdict": "invalid" if invalid else "inconclusive",
+            "hypothesis_id": "red_queen_time_shift", "protocol": "descriptive_time_shift",
+            "confidence": None, "rationale": "Invalid time-shift measurement schema or non-finite contrast." if invalid else
+                "Time-shift contrasts are descriptive. Registered seed-level inference, reciprocal endpoints and matched controls are needed for a hypothesis verdict.",
+            "controls_passed": controls_flag is True,
+            "evidence_summary": {"independent_seeds": len(seeds), "contrasts": contrasts,
+                "blocked_matrices": blocked, "diagnostics_complete": execution.get("diagnostics_complete") is True},
             "evaluated_at": now,
         }
 
     return {
-        "verdict": "not_evaluated",
-        "hypothesis_id": "unspecified",
-        "protocol": "general",
-        "confidence": None,
-        "rationale": "Simulation run completed; no active hypothesis evaluation rule triggered.",
-        "controls_passed": True,
-        "evidence_summary": {"complete": complete},
-        "evaluated_at": now,
+        "verdict": "not_evaluated", "hypothesis_id": "exploratory_run" if execution.get("exploratory") else "unspecified",
+        "protocol": "exploratory_sampling" if execution.get("exploratory") else "general",
+        "confidence": None, "rationale": "No verified hypothesis assessment was supplied; archived telemetry remains available for analysis.",
+        "controls_passed": controls_flag is True, "evidence_summary": {"complete": complete}, "evaluated_at": now,
     }

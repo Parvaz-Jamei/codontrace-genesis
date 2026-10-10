@@ -1,3 +1,4 @@
+import { CloudProviderSettings, CloudModelOptions, useCloudProviders } from "./cloud-providers";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Accordion from "@radix-ui/react-accordion";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -9,6 +10,10 @@ import { artifactZip, getRunProgress, seedSlots, suiteZip, useBench, type RunInp
 import { fetchRelease, pullRelease } from "@/lib/genesis/host";
 import type { Job, JobStatus, PresetId, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
+import { ScientificOutput, ScientificToolPicker } from "./scientific-output";
+import "katex/dist/katex.min.css";
+import { SCIENCE_API } from "@/lib/genesis/scientific-tools";
+import { runActionAvailable } from "@/lib/genesis/run-actions";
 
 type CampaignRow = {
   experiment_id: string;
@@ -17,12 +22,32 @@ type CampaignRow = {
   run_enabled: boolean;
   gap: string;
   pilot_command?: string;
+  launch_params?: Record<string, unknown>;
 };
 
 function CampaignReadiness() {
   const lang = useBench((state) => state.settings.lang);
   const [rows, setRows] = useState<CampaignRow[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [launching, setLaunching] = useState<string[]>([]);
+  const launchLocks = useRef(new Set<string>());
+  const [launchErrors, setLaunchErrors] = useState<Record<string, string>>({});
+  const launch = async (row: CampaignRow) => {
+    if (!row.run_enabled || !row.launch_params || launchLocks.current.has(row.experiment_id)) return;
+    launchLocks.current.add(row.experiment_id);
+    setLaunching(ids => [...ids, row.experiment_id]);
+    setLaunchErrors(errors => ({...errors, [row.experiment_id]: ""}));
+    try {
+      const response = await fetch(SCIENCE_API.launch, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(row.launch_params)});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error ?? `HTTP ${response.status}`);
+      await useBench.getState().syncServerRuns();
+      if (result.runId) useBench.getState().selectJob(result.runId);
+    } catch (error) { setLaunchErrors(errors => ({...errors, [row.experiment_id]: String(error)})); } finally {
+      launchLocks.current.delete(row.experiment_id);
+      setLaunching(ids => ids.filter(id => id !== row.experiment_id));
+    }
+  };
   useEffect(() => {
     let alive = true;
     fetch("/api/campaign/readiness")
@@ -66,12 +91,14 @@ function CampaignReadiness() {
                     <span className={cn(row.run_enabled ? "text-emerald-400" : "text-muted")}>{row.status}</span>
                     <button
                       type="button"
-                      disabled={!row.run_enabled}
+                      disabled={!row.run_enabled || !row.launch_params || launching.includes(row.experiment_id)}
+                      onClick={() => void launch(row)}
                       className="ms-auto min-h-9 rounded-lg px-2 text-muted disabled:cursor-not-allowed disabled:opacity-40"
                       title={row.gap}
                     >
-                      {lang === "fa" ? "اجرا" : "Run"}
+                      {launching.includes(row.experiment_id) ? "…" : lang === "fa" ? "اجرا" : "Run"}
                     </button>
+                    {launchErrors[row.experiment_id] ? <p role="alert" className="w-full text-xs text-red-400">{launchErrors[row.experiment_id]}</p> : null}
                   </div>
                 ))}
               </div>
@@ -215,7 +242,7 @@ export function JobsView() {
             const open = openIds.includes(job.id);
             const progress = getRunProgress(job);
             return (
-            <article key={job.id} className={cn("rise min-w-0 overflow-hidden rounded-2xl", selected === job.id ? "bg-white/10" : "hover:bg-white/5")}>
+            <article key={job.id} data-testid={`run-card-${job.id}`} data-run-id={job.id} className={cn("rise min-w-0 overflow-hidden rounded-2xl", selected === job.id ? "bg-white/10" : "hover:bg-white/5")}>
               <button
                 className="flex w-full min-w-0 items-center gap-3 px-3 py-3 text-start sm:px-4"
                 aria-expanded={open}
@@ -232,7 +259,7 @@ export function JobsView() {
                       {progress !== null ? (progress < 10 && progress > 0 ? progress.toFixed(2) : progress.toFixed(1)) + "%" : (lang === "fa" ? "پیشرفت نامشخص" : "Indeterminate")}
                     </span>
                   </span>
-                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <span role="progressbar" aria-label={`${job.title} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress ?? undefined} aria-valuetext={progress === null ? "Indeterminate" : `${progress}%`} className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
                     {progress !== null ? (
                       <span className="meter block h-full bg-fg" style={{ width: `${progress}%` }} />
                     ) : (
@@ -250,7 +277,7 @@ export function JobsView() {
                 <div className="rise flex min-w-0 flex-col gap-3 px-3 pb-3 sm:px-4">
                   <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-4">
                     <Stat k={text.requested} v={String(job.generations)} />
-                    <Stat k={text.preview} v={String(job.previewGenerations)} />
+                    <Stat k={text.preview} v={job.isDemo ? String(job.previewGenerations) : "—"} />
                     <Stat k={text.workers} v={String(job.workers)} />
                     <Stat k={text.cores} v={job.cores.length ? job.cores.map((index) => `#${index}`).join(", ") : "—"} />
                   </dl>
@@ -265,7 +292,7 @@ export function JobsView() {
                       </span>
                     ) : (
                       <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
-                        Genesis Engine · Digital Organism Coevolution
+                        {job.engineBackend === "genesis_engine" ? `Genesis Engine · ${String(job.launchParams?.experiment ?? job.modelScope ?? "Engine run")}` : "Execution backend not recorded"}
                       </span>
                     )}
                     {job.hypothesisAssessment ? (
@@ -291,12 +318,12 @@ export function JobsView() {
                   </div>
                   {job.execution ? (
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/5 px-3 py-2 text-xs text-muted">
-                      <span>Status: <strong className="text-fg">{job.execution.complete ? "Complete" : "In Progress"}</strong></span>
+                      <span>Status: <strong className="text-fg">{job.status === "archived" ? "Complete" : job.status}</strong></span>
                       {job.execution.elapsed_seconds != null ? (
                         <span>Elapsed: <strong className="text-fg">{Number(job.execution.elapsed_seconds).toFixed(1)}s</strong></span>
                       ) : null}
                       {Array.isArray(job.execution.replays) ? (
-                        <span>Replays: <strong className="text-fg">{job.execution.replays.length} verified</strong></span>
+                        <span>Replays: <strong className="text-fg">{job.execution.replays.filter((replay) => replay && typeof replay === "object" && ((replay as Record<string,unknown>).matched === true || (replay as Record<string,unknown>).verified === true)).length} matched / {job.execution.replays.length} records</strong></span>
                       ) : null}
                       <span className="ms-auto font-mono text-[11px] text-subtle">
                         {job.hypothesisAssessment
@@ -330,21 +357,21 @@ export function JobsView() {
                   </p>
                   <div className="flex flex-wrap items-center gap-1">
                     {job.status !== "archived" && job.status !== "running" ? (
-                      <button className="min-h-11 rounded-lg bg-fg px-3 text-sm text-bg" onClick={() => startJob(job.id)}>
-                        {job.status === "paused" ? text.resume : job.cursor > 0 ? text.resumeRemaining : text.start}
+                      <button className="min-h-11 rounded-lg bg-fg px-3 text-sm text-bg disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-resume-${job.id}`} disabled={!runActionAvailable(job, "resume")} title={runActionAvailable(job, "resume") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => startJob(job.id)}>
+                        {job.status === "stopped" || job.status === "failed" ? (lang === "fa" ? "اجرای تازه" : "Start new run") : job.status === "paused" ? text.resume : text.start}
                       </button>
                     ) : null}
                     {job.status === "running" ? (
-                      <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => pauseJob(job.id)}>
+                      <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-pause-${job.id}`} disabled={!runActionAvailable(job, "pause")} title={runActionAvailable(job, "pause") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => pauseJob(job.id)}>
                         {text.pause}
                       </button>
                     ) : null}
                     {job.status === "running" || job.status === "paused" ? (
-                      <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => stopJob(job.id)}>
+                      <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-stop-${job.id}`} disabled={!runActionAvailable(job, "stop")} title={runActionAvailable(job, "stop") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => stopJob(job.id)}>
                         {text.stop}
                       </button>
                     ) : null}
-                    <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => restartJob(job.id)}>
+                    <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-restart-${job.id}`} disabled={!runActionAvailable(job, "restart")} title={runActionAvailable(job, "restart") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => restartJob(job.id)}>
                       {text.restart}
                     </button>
                     <button className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => openThread(`thread-${job.id}`)}>
@@ -359,7 +386,7 @@ export function JobsView() {
                     >
                       {text.downloadLog}
                     </button>
-                    <button className="ms-auto min-h-11 rounded-lg px-3 text-sm text-bad hover:bg-white/10" onClick={() => removeJob(job.id)}>
+                    <button className="ms-auto min-h-11 rounded-lg px-3 text-sm text-bad hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-delete-${job.id}`} disabled={!runActionAvailable(job, "delete")} title={runActionAvailable(job, "delete") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => removeJob(job.id)}>
                       {text.remove}
                     </button>
                   </div>
@@ -550,6 +577,7 @@ export function ChatView() {
                   <p className="whitespace-pre-wrap break-words">
                     <Reveal text={message.text} active={message.id === lastAssistantId && Date.now() - message.at < 8000} />
                   </p>
+                  <ScientificOutput artifacts={message.artifacts} />
                   {(message.source || message.model) ? (
                     <div className="flex items-center gap-2 text-[11px] text-muted">
                       <span className="rounded bg-white/5 px-1.5 py-0.5 uppercase tracking-wider font-mono text-[10px]">
@@ -640,6 +668,7 @@ export function ChatView() {
               </div>
             </div>
             <div className="mx-auto mt-1 flex w-full max-w-2xl flex-wrap gap-1">
+              <ScientificToolPicker threadId={active.id} runId={active.jobId} />
               <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => togglePin(active.id)}>
                 {active.pinned ? text.unpin : text.pin}
               </button>
@@ -679,6 +708,7 @@ function ChatModelSelect({
   className?: string;
 }) {
   const chatStatus = useBench((state) => state.chatStatus);
+  const { providers: cloudProviders } = useCloudProviders();
   const [localModels, setLocalModels] = useState<any[]>([]);
   
   useEffect(() => {
@@ -713,6 +743,8 @@ function ChatModelSelect({
             {boardModelName} {boardModelMounted ? " (Ready)" : ` · ${text.modelMissing}`}
           </option>
         </optgroup>
+        <CloudModelOptions providers={cloudProviders} />
+        {model.includes("::") && !cloudProviders.some(p=>p.models.some(m=>m.id===model)) && <option value={model}>{model} · refresh catalog in Settings</option>}
         {localModels.length > 0 && (
           <optgroup label="Local GGUF Models">
             {localModels.map((m) => (
@@ -787,17 +819,17 @@ export function GatesView() {
                 {text.downloadSuite}
               </button>
               {allBusy?.status === "running" ? (
-                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => pauseJob(allBusy.id)}>
+                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-pause-${allBusy.id}`} disabled={!runActionAvailable(allBusy, "pause")} title={runActionAvailable(allBusy, "pause") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => pauseJob(allBusy.id)}>
                   {text.pause}
                 </button>
               ) : null}
               {allBusy && (allBusy.status === "running" || allBusy.status === "paused") ? (
-                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => stopJob(allBusy.id)}>
+                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-stop-${allBusy.id}`} disabled={!runActionAvailable(allBusy, "stop")} title={runActionAvailable(allBusy, "stop") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => stopJob(allBusy.id)}>
                   {text.stop}
                 </button>
               ) : null}
               {allBusy?.status === "paused" ? (
-                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => startJob(allBusy.id)}>
+                <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-resume-${allBusy.id}`} disabled={!runActionAvailable(allBusy, "resume")} title={runActionAvailable(allBusy, "resume") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => startJob(allBusy.id)}>
                   {text.resume}
                 </button>
               ) : null}
@@ -855,22 +887,22 @@ export function GatesView() {
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {job && job.status !== "archived" && job.status !== "running" ? (
-                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => startJob(job.id)}>
-                        {job.status === "paused" ? text.resume : text.start}
+                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-resume-${job.id}`} disabled={!runActionAvailable(job, "resume")} title={runActionAvailable(job, "resume") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => startJob(job.id)}>
+                        {job.status === "stopped" || job.status === "failed" ? (lang === "fa" ? "اجرای تازه" : "Start new run") : job.status === "paused" ? text.resume : text.start}
                       </button>
                     ) : null}
                     {job?.status === "running" ? (
-                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => pauseJob(job.id)}>
+                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-pause-${job.id}`} disabled={!runActionAvailable(job, "pause")} title={runActionAvailable(job, "pause") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => pauseJob(job.id)}>
                         {text.pause}
                       </button>
                     ) : null}
                     {job && (job.status === "running" || job.status === "paused") ? (
-                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => stopJob(job.id)}>
+                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-stop-${job.id}`} disabled={!runActionAvailable(job, "stop")} title={runActionAvailable(job, "stop") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => stopJob(job.id)}>
                         {text.stop}
                       </button>
                     ) : null}
                     {job && (job.status === "archived" || job.status === "stopped") ? (
-                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10" onClick={() => restartJob(job.id)}>
+                      <button type="button" className="min-h-11 rounded-lg px-3 text-sm text-muted hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed" data-testid={`run-restart-${job.id}`} disabled={!runActionAvailable(job, "restart")} title={runActionAvailable(job, "restart") ? undefined : "Unavailable for this state/capability; stop an active run before restart/delete."} onClick={() => restartJob(job.id)}>
                         {text.restart}
                       </button>
                     ) : null}
@@ -1315,6 +1347,7 @@ export function SettingsView() {
           className="flex min-w-0 flex-col gap-2"
         >
           <LLMSettingSection />
+          <SettingSection value="cloud" title={settings.lang === "fa" ? "مدل‌های ابری / OpenAI و DeepSeek" : "Cloud models / OpenAI & DeepSeek"}><CloudProviderSettings /></SettingSection>
           <SettingSection value="lang" title={text.settingsLang}>
             <div className="flex flex-wrap gap-2">
               <button
@@ -1815,7 +1848,7 @@ function Status({ job }: { job: Job }) {
           : job.status === "paused"
             ? "text-warn"
             : "text-muted";
-  return <span className={cn("shrink-0 text-xs font-medium", tone)}>{labelStatus(text, job.status, job.snapshot?.state, job.pendingAction)}</span>;
+  return <span role="status" aria-live="polite" className={cn("shrink-0 text-xs font-medium", tone)}>{labelStatus(text, job.status, job.snapshot?.state, job.pendingAction)}</span>;
 }
 
 function Stat({ k, v }: { k: string; v: string }) {
@@ -1832,14 +1865,14 @@ function SeedMatrix({ job }: { job: Job }) {
   const slots = seedSlots(job);
   return (
     <div>
-      <p className="mb-2 text-xs text-subtle">{text.seedMatrix}</p>
+      <p className="mb-2 text-xs text-subtle">{text.seedMatrix} · {job.isDemo ? "Synthetic preview" : "Recorded per-seed observations"}</p>
       <div className="grid max-h-56 grid-cols-2 gap-2 overflow-auto sm:grid-cols-3">
         {slots.map((slot) => (
           <div key={slot.seed} className="rounded-xl bg-bg px-3 py-2">
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-mono text-sm">{slot.seed}</span>
               <span className="text-xs text-muted">
-                {slot.state === "done" ? text.seedDone : slot.state === "active" ? text.seedActive : text.seedIdle}
+                {slot.state === "unknown" ? "No per-seed telemetry" : slot.state === "observed" ? "Observed" : slot.state === "done" ? text.seedDone : slot.state === "active" ? text.seedActive : text.seedIdle}
               </span>
             </div>
             <p className="mt-1 truncate font-mono text-xs text-subtle">
@@ -1864,25 +1897,16 @@ function TelemetryMetricsTable({ job }: { job: Job }) {
       ? (execution.metrics as Record<string, unknown>)
       : null;
 
-  if (!execution && !job.snapshot) return null;
+  if (!execution && !job.snapshot && !job.telemetry?.length) return null;
 
-  const getMetric = (key: string): string => {
-    const val = summary?.[key] ?? metrics?.[key] ?? execution?.[key];
-    if (val === undefined || val === null) return "—";
-    if (typeof val === "number") {
-      return Number.isInteger(val) ? String(val) : Number(val).toFixed(4);
-    }
-    if (typeof val === "boolean") return val ? "true" : "false";
-    return String(val);
-  };
-
-  const rows: { label: string; value: string }[] = [
-    { label: "Activity Slope", value: getMetric("activity_slope") },
-    { label: "Between-Deme Selection", value: getMetric("between_deme_selection_term") },
-    { label: "Within-Deme Selection", value: getMetric("within_deme_selection_term") },
-    { label: "Hazen Functional Info (bits)", value: getMetric("hazen_functional_info_bits") },
-    { label: "Neutral Percolation Rate", value: getMetric("neutral_percolation_rate") },
-  ];
+  const nested = summary?.summary_metrics && typeof summary.summary_metrics === "object" ? summary.summary_metrics as Record<string, unknown> : {};
+  const latest = job.telemetry?.at(-1);
+  const secondary = latest?.secondary_metrics && typeof latest.secondary_metrics === "object" ? latest.secondary_metrics as Record<string, unknown> : {};
+  const primary = typeof latest?.primary_metric_name === "string" ? {[latest.primary_metric_name]:latest.primary_metric_value} : {};
+  const raw = { ...execution, ...metrics, ...summary, ...nested, ...secondary, ...primary };
+  const rows: { label: string; value: string }[] = Object.entries(raw)
+    .filter(([key, value]) => !["complete", "red_queen_proved", "major_transition_proved", "open_ended_intelligence_proved"].includes(key) && (typeof value === "number" || typeof value === "boolean" || typeof value === "string"))
+    .map(([key, value]) => ({ label: key.replaceAll("_", " "), value: typeof value === "number" ? (Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toPrecision(6)) : "—") : String(value) }));
 
   if (job.snapshot?.progress) {
     rows.push({
@@ -1900,7 +1924,7 @@ function TelemetryMetricsTable({ job }: { job: Job }) {
         <span className="font-semibold text-fg">
           {lang === "fa" ? "سنجش‌های خام تله‌متری (Raw Telemetry)" : "Raw Telemetry & Metric Summary"}
         </span>
-        <span className="font-mono text-[10px] text-subtle">100% telemetry fidelity</span>
+        <span className="font-mono text-[10px] text-subtle">Recorded fields · no inferred values</span>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((row) => (
@@ -1931,7 +1955,7 @@ function SettingSection({ value, title, children }: { value: string; title: stri
 function kindLabel(text: ReturnType<typeof t>, job: Job) {
   if (job.kind === "gates") return job.gateFile ?? text.trackContracts;
   if (job.kind === "script") return job.scriptName || text.scripts;
-  return text.trackEngine;
+  return job.isFrontierReference || job.engineBackend === "reference" ? text.trackReference : job.engineBackend === "genesis_engine" || job.isDemo ? text.trackEngine : "Backend not recorded";
 }
 
 function dotClass(status: JobStatus, snapshotState?: string, pendingAction?: string | null) {
@@ -1944,6 +1968,8 @@ function dotClass(status: JobStatus, snapshotState?: string, pendingAction?: str
 }
 
 function labelStatus(text: ReturnType<typeof t>, status: JobStatus, snapshotState?: string, pendingAction?: string | null) {
+  if (pendingAction === "restart") return "Starting a fresh replay…";
+  if (pendingAction === "delete") return "Deleting…";
   if (snapshotState === "PAUSING" || pendingAction === "pause") return text.statusPausing;
   if (snapshotState === "RESUMING" || pendingAction === "resume") return text.statusResuming;
   if (snapshotState === "STOPPING" || pendingAction === "stop") return text.statusStopping;

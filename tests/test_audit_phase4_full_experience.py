@@ -64,7 +64,9 @@ def test_chat_turn_lifecycle_registers_and_cleans_up_request_id() -> None:
     
     assert res.get("source") == "analyst"
     assert res.get("cancelled") is not True
-    assert "گزارش وضعیت" in res.get("reply", "") or "درود" in res.get("reply", "")
+    # Without a selected run, ask for scope instead of exposing other projects.
+    assert "یک اجرا را انتخاب" in res.get("reply", "")
+    assert res.get("artifacts") == []
 
     # Cleanup verification
     with chat._CHAT_LOCK:

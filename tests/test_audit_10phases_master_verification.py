@@ -57,7 +57,7 @@ def test_hazen_functional_information_mathematical_bounds() -> None:
     info_3 = -math.log2(p_f_3) if p_f_3 > 0 else float(genome_len)
     assert info_3 == 32.0
 
-    # Evaluator must correctly assess valid functional information
+    # A valid measured FI endpoint alone does not supply a decision protocol.
     run_record = {
         "status": "COMPLETED",
         "execution": {
@@ -70,8 +70,8 @@ def test_hazen_functional_information_mathematical_bounds() -> None:
         },
     }
     assessment = evaluate_run_hypothesis(run_record)
-    assert assessment["verdict"] == "supported"
-    assert assessment["controls_passed"] is True
+    assert assessment["verdict"] == "inconclusive"
+    assert assessment["controls_passed"] is False
     assert assessment["evidence_summary"]["fi_bits"] == 8.0
 
 
@@ -113,7 +113,7 @@ def test_price_equation_multilevel_selection_covariance_partition() -> None:
     # Within-group variance is zero here (homogenous traits within demes)
     within_term = 0.0
 
-    # Evaluator must confirm positive between-group selection
+    # Algebraic covariance alone does not establish replicated selection evidence.
     eval_res = evaluate_run_hypothesis({
         "status": "COMPLETED",
         "execution": {
@@ -125,8 +125,8 @@ def test_price_equation_multilevel_selection_covariance_partition() -> None:
             },
         },
     })
-    assert eval_res["verdict"] == "supported"
-    assert eval_res["controls_passed"] is True
+    assert eval_res["verdict"] == "inconclusive"
+    assert eval_res["controls_passed"] is False
     assert eval_res["evidence_summary"]["between_term"] == between_term
 
 
@@ -478,9 +478,10 @@ def test_production_hazen_fi_zero_success_uncertainty_bounds() -> None:
         },
     }
     assessment = evaluate_run_hypothesis(run_record_zero_fi)
-    assert assessment["verdict"] == "not_supported"
-    assert assessment["controls_passed"] is True
-    assert assessment["confidence"] == 0.70
+    # A descriptive endpoint is neither a registered negative test nor proof.
+    assert assessment["verdict"] == "inconclusive"
+    assert assessment["controls_passed"] is False
+    assert assessment["confidence"] is None
 
 
 def test_production_price_equation_multilevel_unequal_demes_and_transmission() -> None:

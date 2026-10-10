@@ -67,7 +67,7 @@ def test_evaluator_rejects_validation_failures_with_embedded_supported() -> None
 
 
 def test_evaluator_rejects_nan_and_infinity_in_metrics() -> None:
-    """Non-finite floats (NaN, +Inf, -Inf) must evaluate to invalid with confidence 0.0."""
+    """Non-finite floats (NaN, +Inf, -Inf) must evaluate to invalid without a fabricated probability."""
     # 1. MLS_PRICE with Infinity in between_deme_selection_term
     res_mls_inf = evaluate_run_hypothesis({
         "status": "COMPLETED",
@@ -81,7 +81,7 @@ def test_evaluator_rejects_nan_and_infinity_in_metrics() -> None:
         },
     })
     assert res_mls_inf["verdict"] == "invalid"
-    assert res_mls_inf["confidence"] == 0.0
+    assert res_mls_inf["confidence"] is None
     assert res_mls_inf["controls_passed"] is False
 
     # 2. MLS_PRICE with NaN
@@ -97,7 +97,7 @@ def test_evaluator_rejects_nan_and_infinity_in_metrics() -> None:
         },
     })
     assert res_mls_nan["verdict"] == "invalid"
-    assert res_mls_nan["confidence"] == 0.0
+    assert res_mls_nan["confidence"] is None
 
     # 3. OEE_NOVELTY with Infinity in activity_slope
     res_oee_inf = evaluate_run_hypothesis({
@@ -112,7 +112,7 @@ def test_evaluator_rejects_nan_and_infinity_in_metrics() -> None:
         },
     })
     assert res_oee_inf["verdict"] == "invalid"
-    assert res_oee_inf["confidence"] == 0.0
+    assert res_oee_inf["confidence"] is None
 
     # 4. FUNCTIONAL_INFO with NaN
     res_fi_nan = evaluate_run_hypothesis({
@@ -127,7 +127,7 @@ def test_evaluator_rejects_nan_and_infinity_in_metrics() -> None:
         },
     })
     assert res_fi_nan["verdict"] == "invalid"
-    assert res_fi_nan["confidence"] == 0.0
+    assert res_fi_nan["confidence"] is None
 
     # 5. Candidate assessment with NaN confidence
     res_cand_nan = evaluate_run_hypothesis({
@@ -163,7 +163,7 @@ def test_evaluator_rejects_failed_reference_controls() -> None:
 
 
 def test_evaluator_accepts_valid_positive_controls() -> None:
-    """Valid runs with genuine positive signals and passing controls must be supported."""
+    """Legacy numeric summaries without control evidence stay inconclusive."""
     # OEE positive control
     res_oee = evaluate_run_hypothesis({
         "status": "COMPLETED",
@@ -177,9 +177,9 @@ def test_evaluator_accepts_valid_positive_controls() -> None:
             },
         },
     })
-    assert res_oee["verdict"] == "supported"
-    assert res_oee["confidence"] == 0.95
-    assert res_oee["controls_passed"] is True
+    assert res_oee["verdict"] == "inconclusive"
+    assert res_oee["confidence"] is None
+    assert res_oee["controls_passed"] is False
 
     # MLS Price positive control
     res_mls = evaluate_run_hypothesis({
@@ -193,9 +193,9 @@ def test_evaluator_accepts_valid_positive_controls() -> None:
             },
         },
     })
-    assert res_mls["verdict"] == "supported"
-    assert res_mls["confidence"] == 0.92
-    assert res_mls["controls_passed"] is True
+    assert res_mls["verdict"] == "inconclusive"
+    assert res_mls["confidence"] is None
+    assert res_mls["controls_passed"] is False
 
     # Hazen FI positive control
     res_fi = evaluate_run_hypothesis({
@@ -209,13 +209,13 @@ def test_evaluator_accepts_valid_positive_controls() -> None:
             },
         },
     })
-    assert res_fi["verdict"] == "supported"
-    assert res_fi["confidence"] == 0.95
-    assert res_fi["controls_passed"] is True
+    assert res_fi["verdict"] == "inconclusive"
+    assert res_fi["confidence"] is None
+    assert res_fi["controls_passed"] is False
 
 
 def test_evaluator_separates_not_supported_from_invalid() -> None:
-    """A valid run that simply fails to meet the empirical threshold is 'not_supported', not 'invalid'."""
+    """A finite descriptive endpoint remains distinct from invalid numeric evidence."""
     res_bounded = evaluate_run_hypothesis({
         "status": "COMPLETED",
         "execution": {
@@ -228,9 +228,9 @@ def test_evaluator_separates_not_supported_from_invalid() -> None:
             },
         },
     })
-    assert res_bounded["verdict"] == "not_supported"
-    assert res_bounded["confidence"] == 0.90
-    assert res_bounded["controls_passed"] is True
+    assert res_bounded["verdict"] == "inconclusive"
+    assert res_bounded["confidence"] is None
+    assert res_bounded["controls_passed"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -372,3 +372,20 @@ def test_get_run_details_includes_boundary_and_assessment(tmp_path: Path, monkey
     assert details["executionBoundary"]["isFrontierReference"] is False
     assert "hypothesis_assessment" in details
     assert "verdict" in details["hypothesis_assessment"]
+
+
+def test_registered_synthetic_assessment_accepts_positive_and_negative_without_probability_lock():
+    """Synthetic interface controls, not empirical discovery data."""
+    for verdict in ("supported", "not_supported"):
+        result = evaluate_run_hypothesis({
+            "status": "COMPLETED",
+            "execution": {"complete": True, "hypothesis_assessment": {
+                "verdict": verdict, "controls_passed": True,
+                "protocol": "SYNTHETIC_assessment_interface_control_v1",
+                "confidence": None,
+                "evidence_summary": {"synthetic": True},
+            }},
+        })
+        assert result["verdict"] == verdict
+        assert result["controls_passed"] is True
+        assert result["confidence"] is None

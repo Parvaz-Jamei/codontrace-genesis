@@ -24,10 +24,12 @@ def test_only_the_pilot_is_runnable() -> None:
     rows = {row["experiment_id"]: row for row in inventory()["experiments"]}
     assert set(rows) == {f"T{number:02d}" for number in range(1, 13)}
     assert rows["T11"]["status"] == "آمادهٔ پایلوت"
-    assert rows["T11"]["run_enabled"] is False
+    assert rows["T11"]["run_enabled"] is True
     assert rows["T11"]["backend"] == "ENGINE"
-    assert all(row["run_enabled"] is False for row in rows.values())
-    assert rows["T05"]["status"] == "نیازمند اتصال"
+    assert all(rows[f"T{n:02d}"]["run_enabled"] is True for n in range(1, 6))
+    assert all(rows[f"T{n:02d}"]["backend"] == "REFERENCE" for n in range(1, 6))
+    assert all(rows[f"T{n:02d}"]["run_enabled"] is False for n in (6, 7, 8, 9, 10, 12))
+    assert rows["T05"]["run_scope"] == "REFERENCE_PILOT"
     text = (ROOT / "docs" / "campaigns" / "T01_T12_READINESS.md").read_text(encoding="utf-8")
     assert text == render_readiness_markdown()
 

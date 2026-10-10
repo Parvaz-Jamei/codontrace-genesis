@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""Genesis Long Board Campaign Runner.
+"""Run implemented REFERENCE pilots locally, with live console artifacts."""
 
-CLI script to run experiments on Windows and the Orange Pi board.
-"""
+from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
-# Bootstrap src path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
 from codontrace.experiments import (
     CampaignOrchestrator,
     T01OEERunner,
@@ -18,59 +16,107 @@ from codontrace.experiments import (
     T03MutualismRunner,
     T04ContingencyRunner,
     T05RedQueenRunner,
-    T06CausalLedgerRunner,
-    T07CapsuleTransferRunner,
-    T08SkillCompressionRunner,
-    T09FunctionalInfoRunner,
-    T10EcologicalResilienceRunner,
-    T11EnduranceRunner,
-    T12SwarmControlRunner,
 )
 
+RUNNERS = {
+    "T01": T01OEERunner,
+    "T02": T02MLSPriceRunner,
+    "T03": T03MutualismRunner,
+    "T04": T04ContingencyRunner,
+    "T05": T05RedQueenRunner,
+}
+ARMS = {
+    "T01": ("REAL_SELECTION_WITH_QD", "REAL_SELECTION_NO_QD", "QD_RANDOM_DESCRIPTOR", "NEUTRAL_DRIFT_CONTROL"),
+    "T02": ("GROUP_SELECTION", "NO_GROUP_SELECTION", "HIGH_MIGRATION"),
+    "T03": ("VERTICAL", "HORIZONTAL", "LOW_VERTICAL"),
+    "T04": ("CONTINGENCY_REPLAY",),
+    "T05": ("COEVOLUTION", "NO_SELECTION", "FIXED_HOST", "FIXED_PARASITE"),
+}
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run Genesis Long Board Campaign")
-    parser.add_argument("--campaign-id", type=str, default="genesis_board_long_v1", help="Campaign ID")
-    parser.add_argument("--base-dir", type=str, default="campaign_runs", help="Base directory for runs")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--generations", type=int, default=50, help="Number of generations for iterative experiments")
-    parser.add_argument("--experiment", type=str, default="all", help="Target experiment: T01..T12 or 'all'")
-    args = parser.parse_args()
 
-    base_path = Path(args.base_dir).resolve()
-    orchestrator = CampaignOrchestrator(base_path, args.campaign_id)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-id", default="genesis_reference_pilot")
+    parser.add_argument("--base-dir", default="campaign_runs")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--generations", type=int, default=50)
+    parser.add_argument("--population", type=int, default=96)
+    parser.add_argument("--max-seconds", type=float, default=None)
+    parser.add_argument("--experiment", choices=(*RUNNERS, "all"), default="all")
+    parser.add_argument("--arm", default=None)
+    parser.add_argument("--num-demes", type=int, default=8)
+    parser.add_argument("--replay-branches", type=int, default=8)
+    parser.add_argument("--replay-generations", type=int, default=None)
+    parser.add_argument("--history-count", type=int, default=2)
+    parser.add_argument("--snapshot-generations", default=None)
+    parser.add_argument("--group-selection", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--high-migration", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--vertical-transmission-rate", type=float, default=None)
+    parser.add_argument("--cooperation-cost", type=float, default=0.20)
+    parser.add_argument("--console-run-id", default=None, help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    if args.max_seconds is not None and (not math.isfinite(args.max_seconds) or args.max_seconds <= 0):
+        parser.error("max-seconds must be finite and positive")
+    if args.seed < 0:
+        parser.error("seed must be nonnegative")
+    if args.generations < 1 or args.population < 2:
+        parser.error("generations >= 1 and population >= 2 required")
+    if args.experiment == "all" and (args.arm or args.console_run_id):
+        parser.error("--arm and --console-run-id require a single experiment")
+    targets = list(RUNNERS) if args.experiment == "all" else [args.experiment]
+    orchestrator = CampaignOrchestrator(
+        Path(args.base_dir).resolve(),
+        args.campaign_id,
+        console_run_id=args.console_run_id,
+        max_seconds=args.max_seconds,
+    )
+    for exp_id in targets:
+        arm = args.arm or ARMS[exp_id][0]
+        if arm not in ARMS[exp_id]:
+            parser.error(f"{exp_id} arm must be one of {ARMS[exp_id]}")
+        kwargs = {"seed": args.seed, "generations": args.generations}
+        if exp_id == "T02":
+            if args.num_demes < 1 or args.population % args.num_demes:
+                parser.error("T02 population must be divisible by positive num-demes")
+            kwargs.update(
+                num_demes=args.num_demes,
+                deme_capacity=args.population // args.num_demes,
+                group_selection=arm != "NO_GROUP_SELECTION" if args.group_selection is None else args.group_selection,
+                high_migration=arm == "HIGH_MIGRATION" if args.high_migration is None else args.high_migration,
+            )
+        elif exp_id == "T03":
+            kwargs.update(
+                population_size=args.population,
+                cooperation_cost=args.cooperation_cost,
+                vertical_transmission_rate={"VERTICAL": 0.75, "HORIZONTAL": 0.0, "LOW_VERTICAL": 0.25}[arm]
+                if args.vertical_transmission_rate is None
+                else args.vertical_transmission_rate,
+            )
+        else:
+            kwargs.update(population_size=args.population, arm=arm)
+        if exp_id == "T04":
+            kwargs.update(
+                replay_branches=args.replay_branches,
+                replay_generations=args.replay_generations,
+                history_count=args.history_count,
+            )
+            if args.snapshot_generations is not None:
+                try:
+                    kwargs["snapshot_generations"] = tuple(int(g) for g in args.snapshot_generations.split(","))
+                except ValueError:
+                    parser.error("snapshot-generations must contain comma-separated integers")
+        try:
+            runner = RUNNERS[exp_id](**kwargs)
+        except ValueError as exc:
+            parser.error(str(exc))
+        runner.experiment_id = exp_id
+        runner.arm = arm
+        result = orchestrator.run_experiment(runner)
+        print(f"{exp_id}: status={result.status}, assessment={result.scientific_assessment.value}", flush=True)
+        if result.status == "FAILED":
+            return 1
+    return 0
 
-    print(f"Starting campaign {args.campaign_id} at {base_path}")
-    print(f"Allowed CPUs: {orchestrator.get_allowed_cpus()}")
-
-    all_runners = {
-        "T01": T01OEERunner(seed=args.seed, generations=args.generations),
-        "T02": T02MLSPriceRunner(seed=args.seed, generations=args.generations),
-        "T03": T03MutualismRunner(seed=args.seed, generations=args.generations),
-        "T04": T04ContingencyRunner(seed=args.seed),
-        "T05": T05RedQueenRunner(seed=args.seed),
-        "T06": T06CausalLedgerRunner(seed=args.seed),
-        "T07": T07CapsuleTransferRunner(seed=args.seed),
-        "T08": T08SkillCompressionRunner(seed=args.seed),
-        "T09": T09FunctionalInfoRunner(seed=args.seed),
-        "T10": T10EcologicalResilienceRunner(seed=args.seed),
-        "T11": T11EnduranceRunner(seed=args.seed),
-        "T12": T12SwarmControlRunner(seed=args.seed),
-    }
-
-    target = args.experiment.upper()
-    if target != "ALL":
-        if target not in all_runners:
-            print(f"Unknown experiment '{target}'. Available: {list(all_runners.keys())}")
-            return
-        selected = {target: all_runners[target]}
-    else:
-        selected = all_runners
-
-    for exp_id, runner in selected.items():
-        print(f"Running {exp_id} ({runner.__class__.__name__})...")
-        summary = orchestrator.run_experiment(runner)
-        print(f"Completed {exp_id}: status={summary.status}, assessment={summary.scientific_assessment.value}")
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

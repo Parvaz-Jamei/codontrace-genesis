@@ -1,6 +1,9 @@
 """HARD_EXPERIMENT_02 knob + campaign gates. Pins A–E must stay green."""
 
 from __future__ import annotations
+# b28 snapshot pin audited against clean 5e7fefe and V4: full payloads equal.
+# Evidence: docs/validation/LIFE_LOOP_B28_BASELINE.json; no engine change.
+
 
 from dataclasses import replace
 
@@ -42,7 +45,7 @@ from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.stepping_stone_reward import SteppingStoneRewardConfig
 
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
-LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
+LIFE_LOOP_SNAPSHOT_DIGEST = "e9d404a0a50c5ac323a94306d582bd27596a752ecab00bd9406834947d27db78"
 
 
 def test_phase_a_life_loop_digest_pin_unchanged_by_hard_experiment_02() -> None:

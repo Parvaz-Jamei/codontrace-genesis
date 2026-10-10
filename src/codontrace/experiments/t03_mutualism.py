@@ -12,14 +12,17 @@ Implements 4 Standardized Assays at Snapshots (Generations 500, 1000, 1500, 2000
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
-from codontrace.experiments.math_utils import sha_prng_float, sha_prng_int
+from codontrace.experiments.math_utils import sha_prng_float
+from codontrace.experiments.math_utils import sha_prng_int_unbiased as sha_prng_int
 from codontrace.experiments.models import (
     AssessmentStatus,
     CompletionSummary,
     ExecutionTrack,
     MetricRecord,
+    validate_reference_run,
 )
 
 
@@ -40,6 +43,7 @@ class AssayResult:
     payoff_partner_removed: tuple[float, float]
     payoff_non_cooperative: tuple[float, float]
     payoff_scrambled_partner: tuple[float, float]
+    payoff_partner_removed_constitutive: tuple[float, float] | None = None
 
     @property
     def mutual_benefit_achieved(self) -> bool:
@@ -61,12 +65,17 @@ class T03MutualismRunner:
         generations: int = 2000,
         track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
+        if not 0.0 <= vertical_transmission_rate <= 1.0:
+            raise ValueError("vertical_transmission_rate must be in [0, 1]")
+        if not 0.0 <= cooperation_cost < float("inf"):
+            raise ValueError("cooperation_cost must be finite and nonnegative")
         self.seed = seed
         self.vertical_transmission_rate = vertical_transmission_rate
         self.cooperation_cost = cooperation_cost
         self.population_size = population_size
         self.generations = generations
         self.track = track
+        validate_reference_run(self.population_size, generations, track)
 
         self.population: list[SymbioticPair] = []
         self.assay_history: list[AssayResult] = []
@@ -92,8 +101,8 @@ class T03MutualismRunner:
         """Calculates interaction payoffs ensuring positive mutual gains are possible.
         
         Host baseline: 1.0 - cost * u + benefit * v
-        Symbiont baseline: 1.0 - cost * v + benefit * u
-        Synergy multiplier: 1.5 * (u * v)
+        Symbiont baseline: 0.8 - cost * v + benefit * u
+        Synergy multiplier: 1.2 * (u * v)
         """
         c = self.cooperation_cost
         b = 0.60
@@ -105,24 +114,30 @@ class T03MutualismRunner:
 
     def run_4_assays(self, gen: int) -> AssayResult:
         """Executes the 4 standardized assays on the contemporaneous population."""
-        mean_u = sum(p.host_cooperation for p in self.population) / len(self.population)
-        mean_v = sum(p.symbiont_cooperation for p in self.population) / len(self.population)
-
-        # 1. With native partner
-        native_payoffs = self.evaluate_pair_payoffs(mean_u, mean_v)
-
-        # 2. Partner removal (u or v set to 0, no partner benefit)
-        host_solo = max(0.05, 1.0 - self.cooperation_cost * mean_u)
-        sym_solo = 0.80  # Without host resources
-        removed_payoffs = (host_solo, sym_solo)
-
-        # 3. Non-cooperative cheater partner (partner cooperation = 0.0)
-        cheater_h = max(0.05, 1.0 - self.cooperation_cost * mean_u)
-        cheater_s = max(0.05, 0.8 + 0.60 * mean_u)
-        cheater_payoffs = (cheater_h, cheater_s)
-
-        # 4. Scrambled partner from contemporary population
-        scrambled_payoffs = self.evaluate_pair_payoffs(mean_u, mean_v * 0.8)
+        if not self.population:
+            raise ValueError("Cannot assay an empty population")
+        n = len(self.population)
+        def average(values: list[tuple[float, float]]) -> tuple[float, float]:
+            return sum(v[0] for v in values) / n, sum(v[1] for v in values) / n
+        native_payoffs = average([self.evaluate_pair_payoffs(p.host_cooperation, p.symbiont_cooperation) for p in self.population])
+        # Interaction investment is inducible: isolated individuals neither pay
+        # cooperation costs nor receive partner benefits. Equal external resources.
+        # This estimates NET interaction benefit; the previous persistent-cost
+        # counterfactual estimated only gross benefit and could not detect harm.
+        removed_payoffs = (1.0, 0.8)
+        # Preserve the old persistent-cost measurement as a separate diagnostic;
+        # it measures gross partner benefit and does not establish net mutualism.
+        constitutive_removed = average([
+            (max(0.05, 1.0 - self.cooperation_cost * p.host_cooperation),
+             max(0.05, 0.8 - self.cooperation_cost * p.symbiont_cooperation))
+            for p in self.population
+        ])
+        cheater_payoffs = average([self.evaluate_pair_payoffs(p.host_cooperation, 0.0) for p in self.population])
+        indices = list(range(n))
+        for i in range(n - 1, 0, -1):
+            j = sha_prng_int(self.seed, gen * n + i, "assay_shuffle", 0, i)
+            indices[i], indices[j] = indices[j], indices[i]
+        scrambled_payoffs = average([self.evaluate_pair_payoffs(p.host_cooperation, self.population[indices[i]].symbiont_cooperation) for i, p in enumerate(self.population)])
 
         assay = AssayResult(
             generation=gen,
@@ -130,6 +145,7 @@ class T03MutualismRunner:
             payoff_partner_removed=removed_payoffs,
             payoff_non_cooperative=cheater_payoffs,
             payoff_scrambled_partner=scrambled_payoffs,
+            payoff_partner_removed_constitutive=constitutive_removed,
         )
         self.assay_history.append(assay)
         return assay
@@ -198,7 +214,7 @@ class T03MutualismRunner:
 
         record = MetricRecord(
             generation=gen,
-            tick=gen * 16,
+            tick=0,
             population_size=len(self.population),
             primary_metric_name="mean_mutualism_cooperation",
             primary_metric_value=(mean_u + mean_v) / 2.0,
@@ -210,17 +226,21 @@ class T03MutualismRunner:
         self.metrics_history.append(record)
         return record
 
-    def run(self) -> CompletionSummary:
+    def run(self, on_generation: Callable[[MetricRecord], None] | None = None) -> CompletionSummary:
+        self.assay_history.clear()
+        self.metrics_history.clear()
         self.initialize_population()
         for gen in range(1, self.generations + 1):
-            self.step_generation(gen)
+            record = self.step_generation(gen)
+            if on_generation is not None:
+                on_generation(record)
 
-        final_assay = self.assay_history[-1] if self.assay_history else self.run_4_assays(self.generations)
+        final_assay = self.assay_history[-1] if self.assay_history and self.assay_history[-1].generation == self.generations else self.run_4_assays(self.generations)
         mutual_benefit = final_assay.mutual_benefit_achieved
 
         assessment = (
             AssessmentStatus.SUPPORTED_IN_THIS_MODEL
-            if mutual_benefit and self.vertical_transmission_rate >= 0.50
+            if mutual_benefit
             else AssessmentStatus.NOT_SUPPORTED
         )
 
@@ -229,12 +249,18 @@ class T03MutualismRunner:
             track=self.track,
             seed=self.seed,
             completed_generations=self.generations,
-            total_ticks=self.generations * 16,
+            total_ticks=0,
             status="COMPLETED",
             stop_reason="HORIZON_REACHED",
             scientific_assessment=assessment,
             primary_endpoint_value=1.0 if mutual_benefit else 0.0,
             summary_metrics={
+                "assessed_claim": "immediate_net_partner_removal_benefit_only",
+                "assay_counterfactual_version": "inducible-investment-removal-v2",
+                "removal_cost_policy": "interaction_costs_absent_in_isolation",
+                "collective_individuality_assessed": False,
+                "final_assay_generation": final_assay.generation,
+                "prng_int_stream_version": "sha256-rejection-v2", "engine_ticks_executed": 0,
                 "vertical_transmission_rate": self.vertical_transmission_rate,
                 "cooperation_cost": self.cooperation_cost,
                 "mutual_benefit_achieved": mutual_benefit,
@@ -242,5 +268,7 @@ class T03MutualismRunner:
                 "final_host_removed": final_assay.payoff_partner_removed[0],
                 "final_symbiont_with_partner": final_assay.payoff_with_partner[1],
                 "final_symbiont_removed": final_assay.payoff_partner_removed[1],
+                "constitutive_cost_removal_diagnostic": final_assay.payoff_partner_removed_constitutive,
+                "interpretation_notice": "Net benefit assumes inducible interaction investment; constitutive costs are reported separately. Neither assay establishes collective individuality.",
             },
         )

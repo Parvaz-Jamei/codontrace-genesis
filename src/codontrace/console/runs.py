@@ -23,7 +23,9 @@ from pathlib import Path
 from typing import Any
 
 _RUN_PROCESSES: dict[str, subprocess.Popen[Any]] = {}
+_RUN_FINALIZERS: dict[str, threading.Event] = {}
 _RUN_LOCK = threading.Lock()
+_RUN_ACTION_LOCKS: dict[str, Any] = {}
 
 
 def is_pid_alive(pid: int) -> bool:
@@ -40,6 +42,13 @@ def is_pid_alive(pid: int) -> bool:
             kernel32: Any = getattr(loader, "kernel32", None)
             if kernel32 is None:
                 return True
+            from ctypes import wintypes
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel32.CloseHandle.restype = wintypes.BOOL
             process_query_limited_information = 0x1000
             synchronize = 0x00100000
             handle = kernel32.OpenProcess(process_query_limited_information | synchronize, False, pid)
@@ -137,17 +146,82 @@ def apply_windows_affinity(proc_or_pid: Any, cores: list[int]) -> bool:
         return False
 
 
+def _process_identity(pid: int) -> dict[str, Any] | None:
+    """Identify a process incarnation so a recycled PID cannot own an old card."""
+    if pid <= 0:
+        return None
+    if sys.platform == "linux":
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+            start_ticks = stat.rsplit(")", 1)[1].split()[19]
+            boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="utf-8").strip()
+            return {"pid": pid, "start_ticks": start_ticks, "boot_id": boot_id}
+        except (OSError, IndexError):
+            return None
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            from ctypes import wintypes
+            loader: Any = getattr(ctypes, "windll", None)
+            kernel32: Any = getattr(loader, "kernel32", None)
+            if kernel32 is None:
+                return None
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE, *([ctypes.POINTER(wintypes.FILETIME)] * 4)]
+            kernel32.GetProcessTimes.restype = wintypes.BOOL
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel32.CloseHandle.restype = wintypes.BOOL
+            handle = kernel32.OpenProcess(0x1000, False, pid)
+            if not handle:
+                return None
+            creation, exit_time, kernel, user = (wintypes.FILETIME() for _ in range(4))
+            try:
+                if not kernel32.GetProcessTimes(handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel), ctypes.byref(user)):
+                    return None
+                created = (int(creation.dwHighDateTime) << 32) | int(creation.dwLowDateTime)
+                return {"pid": pid, "creation_time": created}
+            finally:
+                kernel32.CloseHandle(handle)
+        except (OSError, AttributeError):
+            return None
+    return None
+
+
+def _run_pid_alive(pid: int, entry: Path) -> bool:
+    """Respect a recorded process incarnation when reconciling card liveness."""
+    if not is_pid_alive(pid):
+        return False
+    identity_file = entry / "process_identity.json"
+    if identity_file.is_file():
+        try:
+            recorded = json.loads(identity_file.read_text(encoding="utf-8"))
+            current = _process_identity(pid)
+            if isinstance(recorded, dict) and current is not None:
+                return recorded == current
+        except (OSError, ValueError):
+            pass
+    return True
+
+
+def _native_process_is_owned(pid: int | None, status: dict[str, Any], manifest: dict[str, Any]) -> bool:
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    recorded = status.get("process_identity") or manifest.get("process_identity")
+    return isinstance(recorded, dict) and recorded == _process_identity(pid)
+
+
 def parse_seeds(val: Any) -> list[int]:
     """Parse and validate seeds from a list, int, or string."""
     seeds: list[int] = []
-    if isinstance(val, (int, float)) and not isinstance(val, bool):
+    if isinstance(val, int) and not isinstance(val, bool):
         s = int(val)
         if s >= 0:
             return [s]
         raise ValueError("Seed must be non-negative")
     elif isinstance(val, list):
         for item in val:
-            if isinstance(item, (int, float)) and not isinstance(item, bool):
+            if isinstance(item, int) and not isinstance(item, bool):
                 s = int(item)
                 if s < 0:
                     raise ValueError(f"Seed {s} must be non-negative")
@@ -370,6 +444,13 @@ class FrontierReferenceRunnerAdapter(RunnerAdapter):
     supports_checkpoint: bool = False
 
 
+class ReferenceExperimentRunnerAdapter(RunnerAdapter):
+    backend: str = "reference_experiment"
+    primary_output_dir: str = "."
+    supports_pause: bool = True
+    supports_resume: bool = True
+
+
 class CustomScriptRunnerAdapter(RunnerAdapter):
     backend: str = "custom_script"
     primary_output_dir: str = "output"
@@ -389,7 +470,9 @@ def get_runner_adapter(manifest: dict[str, Any] | None = None, script_name: str 
 
     if is_frontier or "frontier" in s_lower or "challenge" in s_lower or backend == "frontier_reference_model":
         return FrontierReferenceRunnerAdapter()
-    if backend == "genesis_engine" or (not script and not backend) or "rq_full_engine" in s_lower:
+    if s_lower == "genesis_long_board_campaign.py" or backend == "reference_experiment":
+        return ReferenceExperimentRunnerAdapter()
+    if backend == "genesis_engine" or "rq_full_engine" in s_lower:
         return GenesisEngineRunnerAdapter()
     return CustomScriptRunnerAdapter()
 
@@ -446,8 +529,29 @@ def build_run_snapshot(
         "INACTIVE": "STOPPED",
     }
     state = state_map.get(raw_status, "STOPPED")
-    if has_complete_exec:
+    if has_complete_exec and raw_status not in ("FAILED", "STOPPED", "CANCELLED", "STOPPING"):
         state = "COMPLETED"
+
+    # A reader can observe the sealed report before the watcher flushes final status.
+    # Use actual calibrated work, never done=total from a completion label alone.
+    sealed_summary = (exec_data or {}).get("summary") or {}
+    sealed_summary = sealed_summary if isinstance(sealed_summary, dict) else {}
+    sealed_work = sealed_summary.get("summary_metrics") or {}
+    sealed_work = sealed_work if isinstance(sealed_work, dict) else {}
+    expected_ticks = (manifest.get("params") or status_info.get("params") or {}).get("ticks")
+    if (
+        has_complete_exec and state == "COMPLETED"
+        and sealed_summary.get("experiment_id") == "T11"
+        and sealed_summary.get("track") == "ENGINE"
+        and sealed_work.get("validity") == "COMPLETE"
+        and isinstance(expected_ticks, int) and not isinstance(expected_ticks, bool)
+        and expected_ticks >= 2
+        and sealed_work.get("finished_ticks") == expected_ticks
+        and sealed_work.get("target_ticks") == expected_ticks
+    ):
+        status_info = dict(status_info)
+        status_info["work_done"] = sealed_work["finished_ticks"]
+        status_info["work_total"] = sealed_work["target_ticks"]
 
     caps = status_info.get("capabilities") or manifest.get("capabilities")
     if not isinstance(caps, dict):
@@ -524,7 +628,15 @@ def build_run_snapshot(
         except (ValueError, TypeError):
             pct_val = 100.0 if state == "COMPLETED" else 0.0
 
-    if state == "COMPLETED":
+    if "work_done" in status_info and "work_total" in status_info:
+        try:
+            work_done = float(status_info["work_done"])
+            work_total = float(status_info["work_total"])
+            if math.isfinite(work_done) and math.isfinite(work_total) and work_total > 0:
+                pct_val = 100.0 * max(0.0, min(work_total, work_done)) / work_total
+        except (TypeError, ValueError):
+            pct_val = 0.0
+    elif state == "COMPLETED":
         pct_val = 100.0
     pct_val = max(0.0, min(100.0, pct_val))
 
@@ -562,8 +674,8 @@ def build_run_snapshot(
         "state": state,
         "requested_state": requested_state,
         "capabilities": {
-            "pause": bool(caps.get("pause", True)),
-            "resume": bool(caps.get("resume", True)),
+            "pause": bool(caps.get("pause", False)),
+            "resume": bool(caps.get("resume", False)),
             "checkpoint_continue": bool(caps.get("checkpoint_continue", False)),
         },
         "workers_expected": workers_expected,
@@ -571,8 +683,8 @@ def build_run_snapshot(
         "progress": {
             "kind": "work_units",
             "stage": "simulation",
-            "done": float(completed_seeds),
-            "total": float(total_seeds),
+            "done": float(status_info.get("work_done", completed_seeds)),
+            "total": float(status_info.get("work_total", total_seeds)),
             "pct": round(pct_val, 2),
         },
         "active_elapsed_seconds": round(active_elapsed, 2),
@@ -639,21 +751,21 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                 if not exec_data.get("validation_failures") and not exec_data.get("errors") and not exec_data.get("failed"):
                     has_complete_exec = True
 
-        if st in ("RUNNING", "STARTING", "PAUSED"):
+        if st in ("RUNNING", "STARTING", "PAUSED", "PAUSING", "RESUMING", "STOPPING"):
             alive = False
             with _RUN_LOCK:
                 proc = _RUN_PROCESSES.get(run_id)
                 if proc and proc.poll() is None:
                     alive = True
             if not alive and pid:
-                alive = is_pid_alive(pid)
+                alive = _run_pid_alive(pid, entry)
 
             if not alive:
                 orig_st = status_info.get("status")
-                if has_complete_exec:
-                    st = "COMPLETED"
-                elif (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
+                if (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
                     st = "STOPPED"
+                elif has_complete_exec:
+                    st = "COMPLETED"
                 else:
                     st = "STALE"
                 if st != orig_st:
@@ -741,7 +853,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
             except (ValueError, OSError):
                 pid = None
 
-    if st in ("RUNNING", "STARTING", "PAUSED", "PAUSING", "RESUMING"):
+    if st in ("RUNNING", "STARTING", "PAUSED", "PAUSING", "RESUMING", "STOPPING"):
         alive = False
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
@@ -750,14 +862,20 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 if p_code is None:
                     alive = True
                 else:
+                    # The registered watcher still owns terminalization and seal
+                    # validation. Process exit alone is not a finished report.
+                    # Never persist STALE while that watcher is publishing T11.
+                    alive = True
                     status_info.setdefault("exitCode", p_code)
         if not alive and pid:
-            alive = is_pid_alive(pid)
+            alive = _run_pid_alive(pid, entry)
 
         if not alive:
             orig_st = status_info.get("status")
             exec_data_val = adapter.resolve_execution_data(entry)
-            if exec_data_val:
+            if (entry / "STOP").is_file() or (engine_dir / "STOP").is_file():
+                st = "STOPPED"
+            elif exec_data_val:
                 is_complete = exec_data_val.get("complete") is True
                 rep_id = exec_data_val.get("runId") or exec_data_val.get("run_id")
                 if rep_id and rep_id != run_id:
@@ -838,11 +956,11 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         "manifest": manifest_data,
     })
     boundary = manifest_data.get("executionBoundary") or {
-        "engineBackend": status_info.get("engineBackend", "genesis_engine"),
-        "isGenesisEngine": status_info.get("engineBackend", "genesis_engine") == "genesis_engine",
+        "engineBackend": status_info.get("engineBackend", "unknown"),
+        "isGenesisEngine": status_info.get("engineBackend", "unknown") == "genesis_engine",
         "isFrontierReference": status_info.get("isFrontierReference", False),
-        "modelScope": "full_digital_organism_simulation" if status_info.get("engineBackend") == "genesis_engine" else "theoretical_reference_model",
-        "modelBoundaryNotice": "Digital organism coevolution engine" if status_info.get("engineBackend") == "genesis_engine" else "Frontier theoretical reference benchmark.",
+        "modelScope": "full_digital_organism_simulation" if status_info.get("engineBackend") == "genesis_engine" else "unverified_execution",
+        "modelBoundaryNotice": "Digital organism coevolution engine" if status_info.get("engineBackend") == "genesis_engine" else "Execution backend has not been established by this run manifest.",
     }
     if snapshot["state"] == "COMPLETED":
         status_info["pct"] = 100.0
@@ -862,8 +980,56 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
         "snapshot": snapshot,
         "capabilities": snapshot["capabilities"],
         "hypothesis_assessment": assessment,
+        "scientificAssessment": (exec_data.get("summary") or {}).get("scientific_assessment", "UNASSESSED"),
+        "telemetry": _read_metrics_tail(entry / "metrics.jsonl"),
         "executionBoundary": boundary,
     }
+
+
+def _read_metrics_tail(path: Path) -> list[dict[str, Any]]:
+    """Bounded latest telemetry; a concurrent partial JSONL line is ignored."""
+    records = []
+    for line in tail_file(path, max_lines=200, max_bytes=262144):
+        try:
+            row = json.loads(line)
+            if isinstance(row, dict):
+                records.append(row)
+        except ValueError:
+            continue
+    return records
+
+
+def _seal_t11_console_report(run_id: str, run_dir: Path, engine_dir: Path, status: dict[str, Any]) -> None:
+    """Adapt the real calibrated pilot's sealed artifacts without claiming science."""
+    seed = status.get("params", {}).get("seeds", [7])[0]
+    arm = engine_dir / "runs" / "T11" / f"seed_{seed}" / "arm_uninterrupted"
+    try:
+        completion = json.loads((arm / "completion.json").read_text(encoding="utf-8"))
+        manifest = json.loads((arm / "artifacts_manifest.json").read_text(encoding="utf-8"))
+        valid = completion.get("validity") == "COMPLETE" and completion.get("finished_ticks") == completion.get("target_ticks") and completion.get("finished_ticks", 0) >= 2 and completion.get("target_ticks") == status.get("params", {}).get("ticks")
+        for relative, digest in manifest.get("files", {}).items():
+            artifact = (arm / relative).resolve()
+            if not artifact.is_relative_to(arm.resolve()) or hashlib.sha256(artifact.read_bytes()).hexdigest() != digest:
+                valid = False
+        if not manifest.get("files"):
+            valid = False
+        if not valid:
+            raise ValueError("T11 seal/horizon validation failed")
+        summary = {"experiment_id": "T11", "track": "ENGINE", "scientific_assessment": "UNASSESSED", "summary_metrics": completion}
+        # Preserve original raw files; publish a normalized observation for the
+        # generic analysis UI rather than pretending ticks are generations.
+        observations = _read_metrics_tail(arm / "metrics.jsonl")
+        with (run_dir / "metrics.jsonl").open("w", encoding="utf-8") as metrics:
+            for observation in observations:
+                normalized = {"tick": observation.get("tick"), "population_size": observation.get("living"), "primary_metric_name": "living_organisms", "primary_metric_value": observation.get("living"), "secondary_metrics": {}, "details": observation}
+                metrics.write(json.dumps(normalized, allow_nan=False) + "\n")
+        write_atomic_json(run_dir / "execution.json", {"runId": run_id, "complete": True, "summary": summary})
+        status["work_done"] = completion["finished_ticks"]
+        status["work_total"] = completion["target_ticks"]
+        status["completedSeeds"] = 1
+        status["totalSeeds"] = 1
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        write_atomic_json(run_dir / "execution.json", {"runId": run_id, "complete": False, "failed": True, "error": str(exc)})
 
 
 def send_signal_to_run(run_id: str, sig_name: str) -> bool:
@@ -885,7 +1051,7 @@ def send_signal_to_run(run_id: str, sig_name: str) -> bool:
                 pid = None
 
     proc_alive = False
-    if proc and proc.poll() is None or pid and is_pid_alive(pid):
+    if proc and proc.poll() is None or pid and _run_pid_alive(pid, entry):
         proc_alive = True
 
     if (proc is not None or pid is not None) and not proc_alive:
@@ -933,7 +1099,7 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
         except Exception:
             pass
 
-    is_partial = status_str in ("RUNNING", "STARTING")
+    is_partial = status_str != "COMPLETED"
 
     tmp_fd, tmp_path_str = tempfile.mkstemp(suffix=".zip", prefix=f"run_export_{run_id}_")
     os.close(tmp_fd)
@@ -988,15 +1154,21 @@ def generate_run_zip_file(run_id: str) -> tuple[Path | None, dict[str, Any] | No
                 file_size = file_path.stat().st_size
                 hasher = hashlib.sha256()
                 try:
-                    with file_path.open("rb") as f:
-                        while True:
-                            chunk = f.read(65536)
+                    # Hash the exact archived prefix, not a separate pre-export read
+                    # of a JSONL stream that can grow between operations.
+                    captured_bytes = 0
+                    with file_path.open("rb") as f, zf.open(str(rel_path).replace("\\", "/"), "w") as archived:
+                        remaining = file_size
+                        while remaining > 0:
+                            chunk = f.read(min(65536, remaining))
                             if not chunk:
                                 break
+                            archived.write(chunk)
                             hasher.update(chunk)
+                            captured_bytes += len(chunk)
+                            remaining -= len(chunk)
                     sha256_hex = hasher.hexdigest()
-
-                    zf.write(file_path, str(rel_path))
+                    file_size = captured_bytes
                     manifest_files.append({
                         "path": str(rel_path).replace("\\", "/"),
                         "size": file_size,
@@ -1047,7 +1219,37 @@ def get_run_zip(run_id: str) -> bytes | None:
             pass
 
 
-def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
+def manage_run_action(run_id: str, action: str, *, request_id: str | None = None) -> dict[str, Any]:
+    """Serialize one card's actions and make explicitly keyed restarts idempotent."""
+    if request_id is not None and (not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", request_id)):
+        return {"ok": False, "error": "Invalid request_id", "status_code": 400}
+    if validate_run_id(run_id) is None:
+        return _manage_run_action_unlocked(run_id, action)
+    with _RUN_LOCK:
+        action_lock = _RUN_ACTION_LOCKS.setdefault(run_id, threading.RLock())
+    with action_lock:
+        entry = get_safe_run_dir(run_id, must_exist=True)
+        cache: dict[str, Any] = {}
+        cache_file = entry / "restart_requests.json" if entry else None
+        cache_key = request_id if action.lower().strip() == "restart" else None
+        if cache_file is not None and cache_key is not None:
+            try:
+                loaded = json.loads(cache_file.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    cache = loaded
+            except (OSError, ValueError):
+                pass
+            if isinstance(cache.get(cache_key), dict):
+                return dict(cache[cache_key], idempotent_replay=True)
+        result = _manage_run_action_unlocked(run_id, action)
+        if cache_file is not None and cache_key is not None and result.get("ok"):
+            cache[cache_key] = result
+            cache = dict(list(cache.items())[-64:])
+            write_atomic_json(cache_file, cache)
+        return result
+
+
+def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
     """Execute lifecycle action on a simulation run with containment and process ownership."""
     valid_id = validate_run_id(run_id)
     if not valid_id:
@@ -1069,6 +1271,8 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
             status_info = {}
 
     manifest_file = entry / "run_manifest.json"
+    if not manifest_file.is_file():
+        manifest_file = entry / "manifest.json"
     manifest_data: dict[str, Any] = {}
     if manifest_file.is_file():
         try:
@@ -1098,10 +1302,15 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
                 pid = None
 
     proc_alive = False
-    if proc and proc.poll() is None or pid and is_pid_alive(pid):
+    if proc and proc.poll() is None or pid and _run_pid_alive(pid, entry):
         proc_alive = True
 
     current_status = str(status_info.get("status", "UNKNOWN")).upper()
+
+    # State errors take precedence over missing/unknown runner capabilities.
+    if act in ("pause", "resume") and current_status in ("COMPLETED", "FAILED", "STOPPED", "STALE"):
+        return {"ok": False, "status_code": 409, "error_code": "INVALID_STATE",
+                "error": f"Cannot {act} run in terminal state '{current_status}'. Use restart instead."}
 
     if act == "pause":
         if not caps.get("pause", False):
@@ -1169,7 +1378,7 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
 
                 status_info["status"] = "PAUSED" if len(ack_files) >= active_expected and active_expected > 0 else "PAUSING"
             else:
-                status_info["status"] = "PAUSED"
+                status_info["status"] = "PAUSED" if ack_files else "PAUSING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
             write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
@@ -1239,6 +1448,16 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         if current_status in ("COMPLETED", "FAILED"):
             return {"ok": True, "action": "stop", "run_id": run_id, "already_terminal": True, "status_code": 200}
 
+        if proc is None and pid and proc_alive and not caps.get("cooperative_stop", False):
+            identity_file = entry / "process_identity.json"
+            if identity_file.is_file():
+                try:
+                    status_info["process_identity"] = json.loads(identity_file.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    pass
+            if not _native_process_is_owned(pid, status_info, manifest_data):
+                return {"ok": False, "error": "Process ownership is unverified; refused to signal a possibly reused PID", "error_code": "UNVERIFIED_PROCESS_IDENTITY", "status_code": 409}
+
         # Unlink any existing PAUSE markers so the process aborts cleanly
         for marker in (entry / "PAUSE", (entry / "output") / "PAUSE"):
             if marker.is_file():
@@ -1254,6 +1473,12 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         (entry / "STOP").write_text("stopped by console\n", encoding="utf-8")
         if (entry / "output").is_dir():
             ((entry / "output") / "STOP").write_text("stopped by console\n", encoding="utf-8")
+
+        if caps.get("cooperative_stop", False) and proc_alive:
+            status_info["status"] = "STOPPING"
+            status_info["revision"] = int(status_info.get("revision", 1)) + 1
+            write_atomic_json(status_file, status_info)
+            return {"ok": True, "action": "stop", "run_id": run_id, "status_code": 200, "pending": True}
 
         stopped = False
         if proc and proc.poll() is None:
@@ -1278,19 +1503,50 @@ def manage_run_action(run_id: str, action: str) -> dict[str, Any]:
         else:
             stopped = True
 
-        status_info["status"] = "STOPPED"
+        still_alive = bool(proc is not None and proc.poll() is None or proc is None and pid and _run_pid_alive(pid, entry))
+        status_info["status"] = "STOPPING" if still_alive else "STOPPED"
         status_info["stoppedAt"] = time.time()
         status_info["revision"] = int(status_info.get("revision", 1)) + 1
         write_atomic_json(status_file, status_info)
 
-        return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200}
-    elif act == "delete":
+        return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200 if stopped else 500, "pending": still_alive}
+    elif act == "restart":
+        # Exit and sealed-report publication are separate events. Wait briefly
+        # for an exited owned worker's finalizer, never for an active simulation.
+        if proc is not None and proc.poll() is not None:
+            with _RUN_LOCK:
+                finalizer = _RUN_FINALIZERS.get(run_id)
+            if finalizer is not None and finalizer.wait(timeout=2.0):
+                with _RUN_LOCK:
+                    proc = _RUN_PROCESSES.get(run_id)
+                try:
+                    status_info = json.loads(status_file.read_text(encoding="utf-8"))
+                    current_status = str(status_info.get("status", "UNKNOWN")).upper()
+                except (OSError, ValueError, AttributeError):
+                    return {"ok": False, "error": "Final run status unavailable", "status_code": 409}
+        if proc is not None:
+            return {"ok": False, "error": "Run process or finalizer is still registered; wait for completion acknowledgement", "error_code": "INVALID_STATE", "status_code": 409}
+        if proc_alive or current_status in ("STARTING", "QUEUED", "RUNNING", "PAUSING", "PAUSED", "RESUMING", "STOPPING"):
+            return {"ok": False, "error": "Stop the active run and wait for its acknowledgement before restarting", "error_code": "INVALID_STATE", "status_code": 409}
+        replay_params = manifest_data.get("params") or status_info.get("params")
+        if not isinstance(replay_params, dict) or not replay_params:
+            return {"ok": False, "error": "No reproducible launch parameters are available", "status_code": 409}
+        result = launch_simulation_run(dict(replay_params))
+        if result.get("ok"):
+            new_dir = get_safe_run_dir(result["runId"], must_exist=True)
+            if new_dir:
+                write_atomic_json(new_dir / "restart_provenance.json", {"parentRunId": run_id, "parentConfigDigest": manifest_data.get("configDigest"), "restartedAt": time.time(), "mode": "fresh_replay"})
+            result.update({"action": "restart", "parentRunId": run_id, "mode": "fresh_replay"})
+        return result
+    elif act in ("delete", "remove"):
+        if proc_alive:
+            return {"ok": False, "error": "Cannot delete an actively running simulation. Stop it first.", "status_code": 409}
         with _RUN_LOCK:
             proc = _RUN_PROCESSES.get(run_id)
-            if proc and proc.poll() is None:
+            if proc is not None:
                 return {
                     "ok": False,
-                    "error": "Cannot delete an actively running simulation. Stop it first.",
+                    "error": "Cannot delete an actively running or finalizing simulation. Stop it and wait first.",
                     "status_code": 409,
                 }
 
@@ -1338,10 +1594,15 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
         except Exception:
             status_info = {}
 
+    if ret == 0 and status_info.get("params", {}).get("scriptName") == "board_long_campaign.py":
+        _seal_t11_console_report(run_id, run_dir, engine_dir, status_info)
     stopped_marker = (run_dir / "STOP").is_file() or (engine_dir / "STOP").is_file()
     if stopped_marker or status_info.get("status") in ("STOPPED", "CANCELLED"):
         new_status = "STOPPED"
         error_reason = None
+    elif status_info.get("status") == "FAILED":
+        new_status = "FAILED"
+        error_reason = status_info.get("errorReason") or "Run failed before process exit"
     elif ret == 0:
         exec_json = (engine_dir / "execution.json") if (engine_dir / "execution.json").is_file() else (run_dir / "execution.json")
         complete_marker = (run_dir / "COMPLETE").is_file() or (engine_dir / "COMPLETE").is_file()
@@ -1402,6 +1663,9 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
     write_atomic_json(status_file, status_info)
     with _RUN_LOCK:
         _RUN_PROCESSES.pop(run_id, None)
+        finalized = _RUN_FINALIZERS.pop(run_id, None)
+        if finalized is not None:
+            finalized.set()
 
 
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
@@ -1411,6 +1675,8 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
 
     # Generations validation
     raw_gen = params.get("generations", 100)
+    if isinstance(raw_gen, (bool, float)):
+        return {"ok": False, "error": "generations must be an integer", "status_code": 400}
     try:
         generations = int(raw_gen)
         if generations < 1 or generations > 100000:
@@ -1509,7 +1775,102 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
                     script_path = candidate
                     break
         if script_path and script_path.is_file():
-            cmd.extend([str(script_path), "--output", str(engine_dir)])
+            if script_name in ("genesis_long_board_campaign.py", "board_long_campaign.py"):
+                if workers != 1 or (resolved_seeds is not None and len(resolved_seeds) != 1):
+                    shutil.rmtree(run_dir, ignore_errors=True)
+                    return {"ok": False, "error": "Pilot launcher uses one seed and one worker per run; launch separate cards for independent seeds", "status_code": 400}
+                resolved_seeds = resolved_seeds or [42 if script_name == "genesis_long_board_campaign.py" else 7]
+                exp = str(params.get("experiment", ""))
+                try:
+                    if isinstance(params.get("population"), (bool, float)):
+                        raise ValueError("population must be an integer")
+                    pop = int(params.get("population", 96 if script_name == "genesis_long_board_campaign.py" else 6))
+                    if pop < 2 or pop > 100000:
+                        raise ValueError("population must be between 2 and 100000")
+                    from codontrace.campaigns.readiness import experiment
+                    row = experiment(exp)
+                    if not row["run_enabled"] or row["launch_params"]["scriptName"] != script_name:
+                        raise ValueError("Experiment does not have a runnable adapter for this script")
+                except (ValueError, TypeError, KeyError) as exc:
+                    shutil.rmtree(run_dir, ignore_errors=True)
+                    return {"ok": False, "error": str(exc), "status_code": 400}
+                if script_name == "genesis_long_board_campaign.py":
+                    if str(params.get("track", "REFERENCE")).upper() != "REFERENCE":
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": "Implemented pilots have REFERENCE boundary only", "status_code": 400}
+                    import runpy
+                    cli_namespace = runpy.run_path(str(script_path))
+                    arm = str(params.get("arm") or cli_namespace["ARMS"][exp][0])
+                    if arm not in cli_namespace["ARMS"][exp]:
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": "Invalid experiment arm", "status_code": 400}
+                    recorded_config = params.get("runner_config") or {}
+                    if not isinstance(recorded_config, dict):
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": "runner_config must be an object", "status_code": 400}
+                    pilot_config: dict[str, Any] = {}
+                    extras: list[str] = []
+                    try:
+                        def config_value(name: str, default: Any) -> Any:
+                            return params.get(name, recorded_config.get(name, default))
+                        if exp == "T02":
+                            num_demes = config_value("num_demes", 8)
+                            if isinstance(num_demes, bool) or not isinstance(num_demes, int) or num_demes < 1 or pop % num_demes:
+                                raise ValueError("population must be divisible by positive integer num_demes")
+                            group_selection = config_value("group_selection", arm != "NO_GROUP_SELECTION")
+                            high_migration = config_value("high_migration", arm == "HIGH_MIGRATION")
+                            if not isinstance(group_selection, bool) or not isinstance(high_migration, bool):
+                                raise ValueError("group_selection and high_migration must be booleans")
+                            pilot_config = {"num_demes": num_demes, "deme_capacity": pop // num_demes, "group_selection": group_selection, "high_migration": high_migration}
+                            extras = ["--num-demes", str(num_demes), "--group-selection" if group_selection else "--no-group-selection", "--high-migration" if high_migration else "--no-high-migration"]
+                        elif exp == "T03":
+                            rate = config_value("vertical_transmission_rate", {"VERTICAL": .75, "HORIZONTAL": 0.0, "LOW_VERTICAL": .25}[arm])
+                            cost = config_value("cooperation_cost", .20)
+                            if isinstance(rate, bool) or isinstance(cost, bool):
+                                raise ValueError("transmission rate and cooperation cost must be numeric")
+                            pilot_config = {"vertical_transmission_rate": float(rate), "cooperation_cost": float(cost)}
+                            extras = ["--vertical-transmission-rate", str(rate), "--cooperation-cost", str(cost)]
+                        elif exp == "T04":
+                            pilot_config = {name: config_value(name, default) for name, default in (("history_count", 2), ("replay_branches", 8), ("replay_generations", None), ("snapshot_generations", None))}
+                            if pilot_config["snapshot_generations"] is not None:
+                                if not isinstance(pilot_config["snapshot_generations"], (list, tuple)):
+                                    raise ValueError("snapshot_generations must be an integer list")
+                                pilot_config["snapshot_generations"] = tuple(pilot_config["snapshot_generations"])
+                            for name, value in pilot_config.items():
+                                if value is not None:
+                                    extras.extend(["--" + name.replace("_", "-"), ",".join(str(g) for g in value) if name == "snapshot_generations" else str(value)])
+                        constructor = dict(pilot_config, seed=resolved_seeds[0], generations=generations)
+                        if exp == "T02":
+                            pass
+                        else:
+                            constructor["population_size"] = pop
+                        if exp in ("T01", "T04", "T05"):
+                            constructor["arm"] = arm
+                        cli_namespace["RUNNERS"][exp](**constructor)
+                    except (ValueError, TypeError) as exc:
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": str(exc), "status_code": 400}
+                    cmd.extend([str(script_path), "--experiment", exp, "--seed", str(resolved_seeds[0]), "--generations", str(generations), "--population", str(pop), "--arm", arm, "--console-run-id", run_id, "--base-dir", str(run_dir / "campaign_index"), *extras])
+                    if "budget" in params and params["budget"] is None:
+                        max_seconds = None
+                    else:
+                        cmd.extend(["--max-seconds", str(max_seconds)])
+                else:
+                    try:
+                        if isinstance(params.get("ticks"), (bool, float)):
+                            raise ValueError("ticks must be an integer")
+                        ticks = int(params.get("ticks", 4))
+                        if ticks < 2:
+                            raise ValueError("ticks must be >= 2")
+                    except (ValueError, TypeError) as exc:
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": str(exc), "status_code": 400}
+                    if str(params.get("arm", "uninterrupted")) != "uninterrupted":
+                        shutil.rmtree(run_dir, ignore_errors=True)
+                        return {"ok": False, "error": "T11 calibration launch supports uninterrupted only", "status_code": 400}
+                    cmd.extend([str(script_path), "run", "--experiment", "T11", "--seed", str(resolved_seeds[0]), "--ticks", str(ticks), "--population", str(pop), "--workers", "1", "--arm", "uninterrupted", "--output", str(engine_dir)])
+            else:
+                cmd.extend([str(script_path), "--output", str(engine_dir)])
         else:
             shutil.rmtree(run_dir, ignore_errors=True)
             return {"ok": False, "error": f"Script '{script_name}' not found", "status_code": 404}
@@ -1544,7 +1905,15 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     started_at = time.time()
     if script_name:
         s_lower = script_name.lower()
-        if "frontier" in s_lower or "challenge" in s_lower:
+        if s_lower == "genesis_long_board_campaign.py":
+            engine_backend = "reference_experiment"
+            model_scope = "standalone_reference_model"
+            boundary_notice = "Standalone REFERENCE pilot, not GenesisEngine execution."
+        elif s_lower == "board_long_campaign.py":
+            engine_backend = "genesis_engine"
+            model_scope = "engine_calibration"
+            boundary_notice = "T11 GenesisEngine calibration; scientific campaign not assessed."
+        elif "frontier" in s_lower or "challenge" in s_lower:
             engine_backend = "frontier_reference_model"
             model_scope = "frontier_reference_exploration"
             boundary_notice = "Isolated mathematical reference exploration model executing on dedicated CPU core; distinct from full GenesisEngine codon VM."
@@ -1571,11 +1940,20 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         script_name=script_name,
     )
     capabilities_dict = adapter.resolve_capabilities(run_dir)
+    if script_name == "genesis_long_board_campaign.py":
+        capabilities_dict["cooperative_stop"] = True
+    elif script_name == "board_long_campaign.py":
+        capabilities_dict = {"pause": False, "resume": False, "checkpoint_continue": False}
 
     effective_affinity = list(cores_val) if cores_val is not None else None
 
     param_record = {
         "generations": generations,
+        "experiment": params.get("experiment"),
+        "population": pop if script_name in ("genesis_long_board_campaign.py", "board_long_campaign.py") else params.get("population"),
+        "runner_config": pilot_config if script_name == "genesis_long_board_campaign.py" else params.get("runner_config"),
+        "ticks": ticks if script_name == "board_long_campaign.py" else params.get("ticks"),
+        "arm": params.get("arm"),
         "workers": workers,
         "seeds": resolved_seeds,
         "budget": max_seconds,
@@ -1604,6 +1982,11 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "executionBoundary": execution_boundary,
         "configDigest": hashlib.sha256(json.dumps(param_record, sort_keys=True).encode("utf-8")).hexdigest()[:16],
     }
+    try:
+        manifest_info["source_sha"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True, stderr=subprocess.DEVNULL).strip()
+        manifest_info["source_dirty"] = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True))
+    except (OSError, subprocess.SubprocessError):
+        manifest_info["source_sha"] = "UNKNOWN"
     write_atomic_json(run_dir / "run_manifest.json", manifest_info)
 
     status_info = {
@@ -1626,18 +2009,37 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     write_atomic_json(run_dir / "status.json", status_info)
 
     log_path = run_dir / "console.log"
-    with open(log_path, "w", encoding="utf-8") as log_fp:
-        proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root))
+    child_env = dict(os.environ)
+    child_env["CODONTRACE_RUNS_DIR"] = str(runs_directory().resolve())
+    try:
+        with open(log_path, "w", encoding="utf-8") as log_fp:
+            proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root), env=child_env)
+    except OSError as exc:
+        status_info.update({"status": "FAILED", "endedAt": time.time(), "errorReason": str(exc)})
+        write_atomic_json(run_dir / "status.json", status_info)
+        return {"ok": False, "error": f"Process launch failed: {exc}", "runId": run_id, "status_code": 500}
 
     if cores_val and sys.platform == "win32":
         apply_windows_affinity(proc, cores_val)
 
     with _RUN_LOCK:
         _RUN_PROCESSES[run_id] = proc
+        _RUN_FINALIZERS[run_id] = threading.Event()
 
     (run_dir / "run.pid").write_text(f"{proc.pid}\n", encoding="utf-8")
+    identity = _process_identity(proc.pid)
+    if identity is not None:
+        write_atomic_json(run_dir / "process_identity.json", identity)
+        status_info["process_identity"] = identity
 
-    status_info["status"] = "RUNNING"
+    try:
+        current_child_status = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+        if current_child_status.get("revision", 0) > status_info.get("revision", 0):
+            status_info = current_child_status
+    except (OSError, ValueError):
+        pass
+    if status_info.get("status") == "STARTING":
+        status_info["status"] = "RUNNING"
     status_info["pid"] = proc.pid
     write_atomic_json(run_dir / "status.json", status_info)
 

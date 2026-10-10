@@ -50,7 +50,9 @@ from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.world import World2D
 
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
-LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
+# Reverified against clean b28 and patched source: identical full snapshot payload.
+# Evidence: docs/validation/LIFE_LOOP_B28_BASELINE.json
+LIFE_LOOP_SNAPSHOT_DIGEST = "e9d404a0a50c5ac323a94306d582bd27596a752ecab00bd9406834947d27db78"
 
 
 def test_default_configs_omit_phase_e_and_life_loop_stays_phase_a() -> None:

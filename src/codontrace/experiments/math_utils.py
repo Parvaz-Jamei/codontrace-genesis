@@ -24,6 +24,23 @@ def sha_prng_int(seed: int, step: int, salt: str, min_val: int, max_val: int) ->
     return min_val + int(val_float * span) % span
 
 
+def sha_prng_int_unbiased(seed: int, step: int, salt: str, min_val: int, max_val: int) -> int:
+    """Version2 rejection sampling; legacy sha_prng_int remains replay compatible."""
+    if max_val < min_val:
+        raise ValueError("max_val must be >= min_val")
+    span = max_val - min_val + 1
+    if span > 1 << 256:
+        raise ValueError("integer range exceeds the version2 stream width")
+    limit = (1 << 256) - ((1 << 256) % span)
+    attempt = 0
+    while True:
+        data = f"v2:{int(seed)}:{int(step)}:{salt}:{attempt}".encode()
+        value = int.from_bytes(hashlib.sha256(data).digest(), "big")
+        if value < limit:
+            return min_val + value % span
+        attempt += 1
+
+
 @dataclass(frozen=True, slots=True)
 class PriceEquationAccounting:
     """Exact discrete generation Price equation decomposition."""

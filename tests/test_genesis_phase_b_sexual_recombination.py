@@ -5,6 +5,9 @@ not claim artificial life, intelligence, cooperation, or instinct evolution.
 """
 
 from __future__ import annotations
+# b28 snapshot pin audited against clean 5e7fefe and V4: full payloads equal.
+# Evidence: docs/validation/LIFE_LOOP_B28_BASELINE.json; no engine change.
+
 
 from codontrace.genesis.birth import (
     BirthChamberState,
@@ -566,7 +569,7 @@ def test_asexual_life_loop_digest_matches_phase_a_baseline() -> None:
         "da6e4a7fbe0ee04cd5e3e05682cf6c54f0f04ad4ff81fede3254c5bbb98b6a5a",
         "a8311016a85a468952ac8cc004bafaadc1fc704018cffef24541ff81fa70ce24",
     ]
-    assert result.snapshot.digest() == "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
+    assert result.snapshot.digest() == "e9d404a0a50c5ac323a94306d582bd27596a752ecab00bd9406834947d27db78"
     assert result.digest() == replay.digest()
     observation = summarize_life_loop_observation(result)
     assert observation.heritable_asexual_pairs >= 1

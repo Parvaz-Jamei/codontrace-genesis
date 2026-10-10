@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0b29] — 2026-10-11
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b28`.
+
+- Local Patch V4 (PR #111): T01–T05 reference experiments compute their assessments instead of hardcoding them and report `INCONCLUSIVE` where the measurement cannot decide; T03 partner removal no longer carries the cooperation cost, so the mutualism verdict can fail; T05 fills the time-shift matrix; the orchestrator gains heartbeat, cooperative stop/pause/resume and explicit completion summaries; console run lifecycle hardening (process identity across reboots, idempotent restart, finalizer event for restart); server-side provider key settings; chart and science tools (bootstrap through `RNGManager`); chat and science-tool endpoints require `CODONTRACE_API_TOKEN` or a direct loopback connection; local inference timeout restored to 1800 s.
+- Life-loop digest drift explained (V5): bisect places the change of the `life_loop_world(seed=7, 12 ticks, population 6)` snapshot from `76a5e62c…` to `e9d404a0…` at `aadc970`, where the R09 capsule reconciliation started honouring the requested capsule/stigmergy wiring and each organism pays the configured 0.1 runtime-ATP capsule read cost (18.0 → 17.9 ATP at tick 0). The fix is kept. The Phase-A test now runs an explicit historical counterfactual, both full trajectories are pinned against archived payloads in `docs/validation/life_loop_digest_history/`, and `config_reconciliation["requested_capsules_enabled"]` reports the resolved request. Default engine snapshots and tick digests are unchanged.
+- Run watcher: an unexpected exception during finalization now records a terminal `FAILED` status naming the exception and always releases the run and its finalizer, so a card can no longer stay `RUNNING` forever.
+- Run-control authorization: launch, run actions (pause, resume, stop, restart, delete), `/api/runs/<id>/pause|resume`, script upload/run and gate runs require `CODONTRACE_API_TOKEN` or a direct loopback connection. Read-only endpoints are unchanged. The console sends the access token for these calls. **Remote console use now needs `CODONTRACE_API_TOKEN`.**
+- Run delete moves the run folder to `<runs root>/_trash/<run_id>-<UTC timestamp>` with a `.trashinfo.json` instead of deleting it; the trash folder is not listed or addressable as a run. Running runs still cannot be deleted.
+- Import order cleaned up (ruff I001); ruff passes on `src` and `tests`.
+- No worker ceiling is imposed on console runs. `red_queen_proved` stays false.
+
 ## [0.3.0b25] — 2026-10-07
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b24`.

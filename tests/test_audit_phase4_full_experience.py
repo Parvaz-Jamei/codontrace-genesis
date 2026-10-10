@@ -4,7 +4,7 @@ Tests Section 7 & Acceptance Matrix (AUDIT_P01_L05_PHASES1_4.md):
 - Client-server AbortController cancellation via request_id.
 - Dynamic cooperative termination in chat_turn.
 - Server /api/chat/abort and /api/chat/cancel endpoint contracts.
-- Server /api/host version alignment (0.3.0b27) and host telemetry contract.
+- Server /api/host version alignment (0.3.0b28) and host telemetry contract.
 - Telemetry fidelity and zero synthetic/fake points in execution metrics.
 - Analyst transparency and evidence-based hypothesis reasoning.
 """
@@ -140,7 +140,7 @@ def test_server_chat_abort_endpoints() -> None:
 # ---------------------------------------------------------------------------
 
 def test_server_host_profile_contract() -> None:
-    """Verify /api/host returns 0.3.0b27 and proper system diagnostics."""
+    """Verify /api/host returns 0.3.0b28 and proper system diagnostics."""
     srv = server.make_server("127.0.0.1", 0)
     port = srv.server_address[1]
     thread = threading.Thread(target=srv.serve_forever)
@@ -155,7 +155,7 @@ def test_server_host_profile_contract() -> None:
             assert resp.status == 200
             data = json.loads(resp.read().decode("utf-8"))
             
-            assert data["packageVersion"] == "0.3.0b27"
+            assert data["packageVersion"] == "0.3.0b28"
             assert data["packageVersion"] == installed_version()
             assert "cores" in data
             assert data["cores"] >= 1

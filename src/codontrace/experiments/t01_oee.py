@@ -43,7 +43,7 @@ class T01OEERunner:
         arm: str = "REAL_SELECTION_WITH_QD",
         population_size: int = 96,
         generations: int = 2000,
-        track: ExecutionTrack = ExecutionTrack.ENGINE,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.seed = seed
         self.arm = arm

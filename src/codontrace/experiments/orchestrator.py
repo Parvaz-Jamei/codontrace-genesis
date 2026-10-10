@@ -62,7 +62,7 @@ class CampaignOrchestrator:
         # 1. Manifest
         manifest = ExperimentManifest(
             experiment_id=exp_id,
-            track=getattr(runner, "track", ExecutionTrack.ENGINE),
+            track=getattr(runner, "track", ExecutionTrack.REFERENCE),
             backend_class=runner.__class__.__name__,
             source_sha="UNKNOWN",
             seed=seed,
@@ -99,7 +99,7 @@ class CampaignOrchestrator:
             else:
                 summary = CompletionSummary(
                     experiment_id=exp_id,
-                    track=getattr(runner, "track", ExecutionTrack.ENGINE),
+                    track=getattr(runner, "track", ExecutionTrack.REFERENCE),
                     seed=seed,
                     completed_generations=getattr(runner, "generations", 100),
                     total_ticks=getattr(runner, "generations", 100) * 16,
@@ -125,7 +125,7 @@ class CampaignOrchestrator:
                         f.write(json.dumps(record.to_dict()) + "\n")
             summary = CompletionSummary(
                 experiment_id=exp_id,
-                track=getattr(runner, "track", ExecutionTrack.ENGINE),
+                track=getattr(runner, "track", ExecutionTrack.REFERENCE),
                 seed=seed,
                 completed_generations=total_gens,
                 total_ticks=total_gens * 16,

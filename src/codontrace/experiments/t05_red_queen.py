@@ -34,7 +34,7 @@ class T05RedQueenRunner:
         arm: str = "COEVOLUTION",
         population_size: int = 96,
         generations: int = 4000,
-        track: ExecutionTrack = ExecutionTrack.ENGINE,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.seed = seed
         self.arm = arm

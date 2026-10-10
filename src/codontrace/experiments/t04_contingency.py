@@ -33,7 +33,7 @@ class T04ContingencyRunner:
         arm: str = "CONTINGENCY_REPLAY",
         population_size: int = 96,
         generations: int = 1500,
-        track: ExecutionTrack = ExecutionTrack.ENGINE,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.seed = seed
         self.arm = arm

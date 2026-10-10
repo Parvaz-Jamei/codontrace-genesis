@@ -59,7 +59,7 @@ class T03MutualismRunner:
         cooperation_cost: float = 0.20,
         population_size: int = 96,
         generations: int = 2000,
-        track: ExecutionTrack = ExecutionTrack.INTEGRATED,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.seed = seed
         self.vertical_transmission_rate = vertical_transmission_rate

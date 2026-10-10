@@ -50,7 +50,7 @@ class T02MLSPriceRunner:
         num_demes: int = 8,
         deme_capacity: int = 16,
         generations: int = 2000,
-        track: ExecutionTrack = ExecutionTrack.ENGINE,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.seed = seed
         self.group_selection = group_selection

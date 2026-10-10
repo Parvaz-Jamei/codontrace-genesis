@@ -24,7 +24,7 @@ class GenericRunner:
         arm: str = "DEFAULT",
         population_size: int = 96,
         generations: int = 2000,
-        track: ExecutionTrack = ExecutionTrack.ENGINE,
+        track: ExecutionTrack = ExecutionTrack.REFERENCE,
     ) -> None:
         self.experiment_id = experiment_id
         self.seed = seed
@@ -38,11 +38,11 @@ class GenericRunner:
             experiment_id=self.experiment_id,
             track=self.track,
             seed=self.seed,
-            completed_generations=self.generations,
-            total_ticks=self.generations * 16,
-            status="COMPLETED",
-            stop_reason="HORIZON_REACHED",
-            scientific_assessment=AssessmentStatus.NOT_SUPPORTED,
+            completed_generations=0,
+            total_ticks=0,
+            status="STUB",
+            stop_reason="NOT_IMPLEMENTED",
+            scientific_assessment=AssessmentStatus.UNASSESSED,
             primary_endpoint_value=0.0,
             summary_metrics={"arm": self.arm, "stub": True},
         )

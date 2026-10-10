@@ -1,6 +1,10 @@
 # CodonTrace Genesis
 
 <p align="center">
+  <img alt="CodonTrace Genesis — a laboratory for digital evolution" src="docs/assets/codontrace-genesis-banner.png" width="1200">
+</p>
+
+<p align="center">
   <a href="https://pypi.org/project/codontrace/"><img alt="PyPI" src="https://img.shields.io/pypi/v/codontrace?label=PyPI"></a>
   <a href="https://www.python.org/"><img alt="Python 3.11–3.14" src="https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white"></a>
   <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main"></a>
@@ -17,7 +21,7 @@ CodonTrace Genesis is a laboratory you can run twice and get the same world back
 
 You set down a small place. Simple agents eat, survive, and reproduce. The energy of each birth comes out of the parent. The questions are evolutionary: does an antagonist push a lineage somewhere new, does a costly behavior hold its ground, does a line recover after its path is cut. The library exists so those questions can be asked without the answer being talked into shape afterwards. A birth names its parent. A checkpoint is the moment it was taken, not whatever the run became later. A number is stored beside the only scope it is allowed to have.
 
-The aim is not to announce a Red Queen, an open-ended mind, or a medical device. The aim is a digital-evolution engine whose ledgers, forks, and verdicts stay weaker than the temptation to overclaim them. Four words are allowed at the end of a test, and only one of them is support, and only inside the model that was actually run: `SUPPORTED_IN_MODEL`, `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, `BLOCKED_MEASUREMENT`. On the standing ledger, the Red Queen is not proved.
+The aim is not to announce a Red Queen, an open-ended mind, or a medical device. The aim is a digital-evolution engine whose ledgers, forks, and verdicts stay weaker than the temptation to overclaim them. Four words are allowed at the end of a test, and only one of them is support, and only inside the model that was actually run: `SUPPORTED_IN_MODEL`, `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, `BLOCKED_MEASUREMENT`. On the 29 September 2026 ledger, the Red Queen is not proved. That ledger is the record of that program. It is not a permanent verdict for every later experiment.
 
 Domain modules sit beside that life-loop. They do not replace it. The installable package is `codontrace`. Product naming for contributors lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`STYLE.md`](STYLE.md).
 
@@ -29,7 +33,7 @@ A number in this repository is not a conclusion. A standing verdict is one of fo
 
 `SUPPORTED_IN_MODEL` · `FALSIFIED_IN_MODEL` · `INCONCLUSIVE` · `BLOCKED_MEASUREMENT`
 
-The single source for the 29 September 2026 program is [`docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json`](docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json). On that ledger `hypothesis_supported` is false and `red_queen_proved` is false. The confirmatory campaign is not open. A green workflow is not a scientific result: the lint and typecheck job is `continue-on-error`, so a green run is not a mypy pass.
+The record of the 29 September 2026 program is [`docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json`](docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json). On that ledger `hypothesis_supported` is false and `red_queen_proved` is false. Those two flags belong to that ledger. A later experiment reports its own verdict. The confirmatory campaign of that ledger is not open. A green workflow is not a scientific result: the lint and typecheck job is `continue-on-error`, so a green run is not a mypy pass.
 
 | Record | Standing verdict | What the scope actually is |
 |---|---|---|
@@ -133,8 +137,9 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Public PyPI wheel | `0.3.0b27`, tag [`v0.3.0b27`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b27). Cuts `0.3.0b4` through `0.3.0b20` are not recut. |
-| GitHub `main` | `0.3.0b27`, the `[project].version` in `pyproject.toml`. |
+| Git identity | `0.3.0b27`, the `[project].version` in `pyproject.toml`. This identity is not a release tag. |
+| Published GitHub release | [`v0.3.0b21`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b21). Already published tags are not recut. |
+| PyPI wheel | `0.3.0b20`. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -168,16 +173,16 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The published wheel is `codontrace==0.3.0b27`. An editable install of `main` prints `0.3.0b27`.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The PyPI wheel is `codontrace==0.3.0b20`. An editable install of `main` prints `0.3.0b27`, which is the git identity and not that wheel.
 
 ```bash
-pip install codontrace==0.3.0b27
+pip install codontrace==0.3.0b20
 ```
 
 ```bash
-pip install "codontrace[research]==0.3.0b27"
-pip install "codontrace[causal]==0.3.0b27"
-pip install "codontrace[qd]==0.3.0b27"
+pip install "codontrace[research]==0.3.0b20"
+pip install "codontrace[causal]==0.3.0b20"
+pip install "codontrace[qd]==0.3.0b20"
 ```
 
 From source, which may be ahead of PyPI:
@@ -229,7 +234,7 @@ Opt-in presets (sexual recombination, fluctuating environments, multi-generation
 
 ## Console
 
-The console is a local preview module. It does not run the evolution engine, it does not execute an uploaded `.py` file, and it does not set `red_queen_proved`. A gate row is the catalog plus the latest preview in the browser, not a pytest pass. On startup, and again every 24 hours, it asks GitHub whether a newer release exists. That query does not push. A clean checkout of this repository can fast-forward; a wheel install is left as it is.
+The console process does not import the evolution engine and does not set `red_queen_proved`. A launch without a script name starts `scripts/rq_full_engine_parallel.py` as a child. A script whose name contains `frontier` or `challenge` is recorded as a reference model, not as that engine. A gate row is the catalog plus the latest preview in the browser, not a pytest pass. On startup, and again every 24 hours, it asks GitHub whether a newer release exists. That query does not push. A clean checkout of this repository can fast-forward; a wheel install is left as it is.
 
 The same command works on Linux, Windows, and macOS after a normal install. No extra package and no Node process are required to open the page.
 
@@ -237,7 +242,7 @@ The same command works on Linux, Windows, and macOS after a normal install. No e
 python -m codontrace.console
 ```
 
-The default address is `http://127.0.0.1:8765/`. `--host` and `--port` change the bind. `--open` asks the desktop to open the page. Workers stay in 1–4. A temperature is reported only when the machine exposes a sensor file. Windows does not have a load average, so that field stays unmeasured there.
+The bind defaults to `0.0.0.0` and port `8765`. If 8765 is taken, the next ports are tried. `--host`, `--port`, and `--open` change the bind and can open a browser. Workers are an integer of at least 1. The default in a launch request is 2. The recommended count is the number of CPUs the process is allowed to use, not a fixed cap of 4. A requested core list is rejected unless every id is in that allowed set. A pause request stays `PAUSING` until the worker ack arrives; the request file alone is not a pause. A temperature is reported only when the machine exposes a sensor file. Windows does not have a load average, so that field stays unmeasured there.
 
 The page source lives in [`console/`](console/). Rebuild it with Node only when the interface itself changes; the result is stored under `src/codontrace/console/static` and shipped inside the wheel. The server is `codontrace.console` and does not import `engine.py`.
 
@@ -326,7 +331,8 @@ The second call stays on the biomedical port. It does not start the engine. Map:
 | [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) | Install, validation tiers, artifact preservation |
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols and the claim boundary |
 | [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Which public wheel an evidence pack covers |
-| This file, [Orange Pi Zero 3 long program](#orange-pi-zero-3-long-program) | Design for T01–T12. Not a runner, and not a verdict. |
+| [`docs/campaigns/orange_pi_zero3_long_program.md`](docs/campaigns/orange_pi_zero3_long_program.md) | The T01–T12 program. A design, not a verdict. |
+| [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md) | What is connected, what is not, and the one calibration command. |
 
 The benchmark smoke is a functionality check. It is not evidence of collective intelligence.
 
@@ -338,407 +344,7 @@ python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py
 
 ## Orange Pi Zero 3 long program
 
-This section is a design and an acceptance spec, dated 10 October 2026. It is not a runner, not a command, and not a result. Nothing in it has been executed on the board, and no board rate has been measured. It does not amend the 29 September 2026 ledger above. On that ledger `red_queen_proved` stays false.
-
-If a later campaign earns a reading, it uses its own four words, and only those: `SUPPORTED_IN_THIS_MODEL`, `NOT_SUPPORTED`, `INCONCLUSIVE`, `INVALID_MEASUREMENT`. They are not aliases of `SUPPORTED_IN_MODEL`, `FALSIFIED_IN_MODEL`, `INCONCLUSIVE`, and `BLOCKED_MEASUREMENT`. A long clock, a large population, or a large diff is not a discovery. A valid positive result is accepted. A valid negative result is also a result. Fix a technical fault. Do not fix an unwanted number.
-
-The four hypotheses named from [`scripts/grand_frontier_4challenge_campaign.py`](scripts/grand_frontier_4challenge_campaign.py) are `OEE_NOVELTY`, `MLS_PRICE`, `TRANSITION_MUTUALISM`, and `CONTINGENCY_REPLAY`. Red Queen, functional information, and engine-capability questions are separate additions. If "the four hypotheses" meant another set, the manager reconciles the names before the campaign is locked.
-
-The review behind this section read remote HEAD `bf5439355c3c378422b51b6c752156b5d9e5363c`. The scientific tree then matched `b836396502b4a8f102f5e9d6944d8d773b1d2677` except one line of panel model-path discovery. Commits after that instant are outside the review. Before code moves for an experiment, refresh HEAD and work on a clean checkout at a named SHA. A fetch is not a merge. After the lock, that experiment’s version does not move.
-
-### Three paths, kept apart
-
-| Path | What actually runs | Claim that path may carry |
-|---|---|---|
-| `REFERENCE` | An independent mathematical model, such as the current four-challenge campaign | Behavior of that model, a check of a measure, a reproduction of a theory |
-| `ENGINE` | GenesisEngine, with organism, translation and action, ecology, and real reproduction | Behavior and capability of one named engine version |
-| `INTEGRATED` | A recorded attachment of a submodel to the engine, with a real exchange of data or effect | Behavior of the integrated system, with evidence of the attachment |
-
-A `REFERENCE` output is never introduced as use of the engine’s facilities. The manifest records `engine_backend`, the runner class, and the call path. A capability with no consumer is `NOT_IMPLEMENTED`. A config field does not mean the feature is on.
-
-The notes below are what a reading of that script requires before the same campaign can be interpreted. They are not a reason to rewrite the project.
-
-1. **OEE.** `_match_count` is computed and is not consumed by selection, reproduction, or survival. Host and parasite populations currently change by mutation, and that loop is not evidence of selective coevolution. "Cumulative activity" also rises when an old part is seen again. A positive slope is not, by itself, novelty. The two-byte genome is a finite space. Draw the mutation event and the mutation site from separate random numbers. Re-using the same conditional draw as the site biases the distribution.
-2. **MLS.** A positive between-group term can come from a fitness formula that was written to produce it. Check the Price identity with the realized offspring count, and keep transmission and mutation in the account. Mutation noise for individuals who share an index, in the same generation, currently comes from the same key in every deme. The random key includes deme and lineage, unless that correlation is itself the experimental variable.
-3. **Transition.** The current model is `w_h = 1 − 0.85u` and `w_p = 1.2(1−v)u + 1.5v(1−0.85u)`. The slope of parasite fitness in harm `u` is `1.2 − 2.475v`, and it changes sign near `v = 0.484848`. A positive correlation past that point can be algebra. Host fitness beside the parasite also does not rise above the baseline of 1, so less harm is not yet mutual benefit. Record generations per regime. In the present loop each regime takes about `epoch_gens / 5` steps while the shared counter still advances by `epoch_gens`.
-4. **Contingency.** The present loop has no selection and no functional fitness. Genomes mostly mutate. Under `r < 0.18`, `int(r * 32)` only reaches sites 0 through 5, so the 32 bits are not uniformly mutable. The founder is built from a fixed string. `founder_seed` changes the future stream, not the founder. Genetic distance, and a threshold of 0.25, are not by themselves evidence that an innovation depended on history.
-5. **Every path.** Selectable seeds, a locked manifest, a checkpoint that includes the generator and the measure, an uninterrupted run compared with resume, and an independent analysis. A clock is a fit ending for an endurance test. A scientific comparison needs the same biological horizon, or the same number of evaluations.
-
-### Before a long run
-
-Build one `literature_review.md` per experiment: at least one foundational source and two works close to the question, a search of recent work up to the start date, DOI or URL, the date consulted, whether the item is a paper or a preprint, the exact definition of the measure, and how the proposed contrast differs. Count is not quality. Use the original text and method. An abstract, or a model’s paraphrase, is not enough for a detailed claim. If nothing recent is relevant, write that down. Do not add a fresh source that does not bear on the question.
-
-Before calling a result an innovation, read the nearest work in artificial life, evolutionary biology, learning, and control or robotics. A cross-field mix has to produce a distinct question or prediction. Using a known tool is not novelty. This design does not claim that nobody has done the work before.
-
-Every measure, before the long run, passes a constructed positive control, a zero control, and a counterexample control. Synthetic data stay in `SYNTHETIC_CONTROL` and do not enter the engine inference. An uncertain descriptor is computed from raw data by a versioned extractor, not from an alias: genome length from the genome, accuracy from correct over attempts, graph size from the graph.
-
-### Size
-
-These profiles are design proposals. They are not a present API, and they are not a claim about how long the board takes.
-
-| Profile | Independent repeats | Default horizon per arm | Population / ticks per generation | Use |
-|---|---:|---:|---|---|
-| `CALIBRATION` | 2 to 4 separate seeds | 100 to 200 generations | the final proposed size | Speed, memory, and tool correctness. No confirmatory result. |
-| `LONG` | 24 paired seeds | 2,000 generations | 96 / 16 | The main engine campaign. Controls spend the same budget. |
-| `ULTRA` | 24 new seeds | 6,000 generations | 96 / 16 | Long-run stability on arms named before the run, in a fresh cohort. |
-| `REFERENCE_LONG` | 24 seeds | 100,000 generations | the model’s own size | The fast reference model only, with its full controls. |
-
-Experiments with a different size say so in their own block. Twenty-four seeds are not a power guarantee. The smallest effect that would matter, and the pilot variance, are checked before the horizon is confirmed. If the budget is short, drop questions first. Cutting the repeats to 12, before the confirmatory result is seen, is allowed only with an exploratory label. One seed run for a million generations does not stand in for 24 repeats.
-
-On `LONG`, four arms and 24 seeds are `24 × 4 × 2,000 × 96 × 16 = 294,912,000` action opportunities. Real time also includes unequal action costs, snapshots, reproduction, and analysis. All twelve experiments on one board are not one 72-hour campaign. They may take several weeks or longer. Measure the time. Do not promise a calendar.
-
-Calibrate on the board with the RAM that will actually be used, and with the final cooling, for 60 to 120 minutes. Record cost per generation and per action, RSS of every process, archive growth, IO, temperature, and throttling. Estimate the campaign from seeds × arms × generations × mean generation time. Do not estimate by assuming four workers make the run four times faster. Leave time for the record and for stop and resume.
-
-Before the scientific endpoints are looked at, the manager locks one size that can be finished. If 2,000 generations do not fit, change the horizon beforehand, or run fewer experiments at once. Do not call a partial run complete. If time is left over, run only a pre-registered extension, or a fresh cohort.
-
-Start with two compute workers and one light analyst. After calibration, raise the count only to the CPUs the machine actually allows. Do not hard-code a universal cap of four cores in a general runner. A Zero 3 usually has four cores of hardware, but the allowed affinity is read from the system and checked after it is applied. Each worker holds one active seed and arm. BLAS and OpenMP stay at one thread, so the process tree does not nest. The interface and any local model do not spend the experiment’s RAM without an account.
-
-Compared arms share a biological horizon. Wall time and energy are outcomes, not ways to equalize the work. The seed and arm order is a random queue locked in advance, so day, temperature, and clock do not mix with the treatment.
-
-### Inference, and when a run may stop
-
-- The independent unit is the seed, or the founder. A thousand generations are not a thousand independent repeats. Arms of one seed share the founder and use named random streams. Where action order differs, share randomness on the meaningful event, not on a raw random index.
-- Each experiment locks one primary endpoint, a direction, a minimum effect that would matter, a time window, and the main comparison. The effect threshold comes from the problem, or from the pilot. It is not taken from the confirmatory result.
-- Intervals are at seed level. A paired effect uses a permutation or a sign flip only when exchangeability fits, or a bootstrap of the seed pairs. In the contingency design, replays are clustered inside the founder. A time series uses a block or a model that respects the series. Generations are not treated as independent.
-- For the twelve primary questions, the family and the multiplicity rule are registered first. The default for the full campaign’s primary endpoints is Holm. Diagnostics, and extra interactions, stay exploratory. Choosing the successful arm or the successful seed after the fact is not allowed.
-- Report the effect and the interval beside any p-value. A small p-value does not by itself establish a mechanism, a large effect, or novelty. A second person re-runs the statistical model and the sensitivity check.
-- Engineering status and scientific status are different fields. No hard-coded false, and no hard-coded true, replaces the evaluator.
-- Every ten minutes, check automatically that the worker is alive, that progress is real, that the output parses, and that RAM, disk, the generator, the checkpoint, temperature, and throttling are inside the registered limits. Stop for a bug, for broken data, or for a hardware limit that was written down. Do not stop, and do not edit the engine, because a plot looks weak or a p-value is large.
-- Read temperature limits from the board’s documentation and from the system policy. Do not invent one number for every board. Near the limit, drop a worker and record the event. Answer a RAM shortage by bounding the compute memory. Silent dropping of raw data is not allowed.
-- If a bug can change results, record the cause, the diff, the old data, and how far the contamination reaches. Re-run the affected confirmatory arms from the start, on the new version, under a separate version id. Do not load an incompatible checkpoint in silence. A valid negative result does not need a fix.
-
-### T01 — functional novelty that outlasts mutation turnover
-
-Does ecological selection, together with a diversity archive, produce functional solutions that still work in environments they were not trained on, or does it only count different genomes and old parts?
-
-`ENGINE`, with a separate `REFERENCE` null for the activity measure. Profile `LONG`. An `ULTRA` extension, if it is run, covers every primary arm in a fresh cohort, not only the best seed. Four arms: real selection without quality-diversity; real selection with it; neutral mutation and reproduction on the same budget, with fitness not in the loop; quality-diversity whose descriptors are random, as a control that keeps the same distribution. The random arm matches the real archive’s occupancy and the number of evaluations.
-
-The environment is a pre-registered, fixed distribution of tool, routing, and resource problems. Held-out families are separated before training. Do not raise difficulty after seeing success. If a curriculum is used, its schedule does not depend on the result, and it is the same on every arm. A task that the experimenter inserts is not spontaneous innovation.
-
-Record genotype, functional phenotype, first appearance, later reappearances, share of active generations, lineage, and held-out retention. Genetic, behavioral, and functional novelty stay separate. Seeing an old part again is not a new first appearance. Genome length is not functional complexity.
-
-**Primary endpoint.** Area under the curve of the count of valid functional phenotypes on the held-out set, in the second half of the campaign, against the arm without quality-diversity. Each phenotype has a locked behavioral definition and an independent check.
-
-**Secondary.** Rate of valid first appearances in four quarters, activity normalized against the null, extinction, archive saturation, and compute cost.
-
-**Measure controls.** A constructed cycle of only repeated parts scores zero novelty, even if cumulative activity is high. A stream with a genuinely new phenotype is detected. A finite space can saturate. The allowed scientific sentence is "stable novelty over horizon X". One finite run does not prove that novelty continues forever.
-
-### T02 — multilevel selection with real reproductive accounting
-
-Can a group advantage pay the individual cost of cooperation and produce roles that transmit?
-
-`ENGINE`, with real demes and real parent–offspring generations. If group generations do not exist yet, run `REFERENCE` and keep the claim inside that model. Population 128, as 8 demes of 16, for 2,000 generations and 24 founders. A 2×2: between-group selection on or off, crossed with low or high migration. Lock the migration rates from the pilot and from the sources. The off arm still replaces groups at random, at the same count.
-
-Cooperation costs real ATP or time, and it contributes to a shared product or to survival. A role is behavior that ran, not a threshold label on a trait. Record the role, the share of work, the benefit, individual offspring, and group offspring.
-
-For each generational transition, with `w_i` the realized offspring count, `z_i` the parent trait, and `z'_i` the mean trait of that parent’s offspring, the controlled identity is:
-
-`Δz̄ = Cov(w, z) / w̄ + E[w (z' − z)] / w̄`.
-
-Split the covariance, with the correct weights, into between-group and within-group parts. The parts, together with transmission, mutation, and the sampling rules, reconstruct the observed change. Do not hide mutation inside the residual. If generations overlap, or migration is more complicated than the identity assumes, derive the identity that matches that model. Record formula fitness before selection separately from offspring that were actually born.
-
-**Primary endpoint.** Difference in mean functional cooperation over the last 500 generations, between group selection on and off, at low migration. The migration interaction is secondary. The individual cost, and the share of group production, are the mechanism evidence.
-
-**Controls.** No cooperation cost. No shared benefit. Random groups of the same size. An accounting fixture with a generation that does not mutate, and one that does. The numerical residual stays inside a tolerance matched to the arithmetic. The tolerance does not hide a statistical mistake.
-
-A positive covariance inside a formula that was designed to be positive is not the whole result.
-
-### T03 — from less harm to mutual benefit and collective inheritance
-
-Can vertical transmission and a real coordination cost produce mutual dependence and a collective reproductive unit?
-
-`INTEGRATED`, or `ENGINE`, with a real interaction and transmission contract and with group offspring. The current harm model is only a theoretical baseline. Twenty-four founders, 2,000 generations, population 96. An exploratory screen at vertical-transmission rates 0, 0.25, 0.5, 0.75, and 1. Then three rates, chosen and locked before the main stage, crossed with two cooperation costs. Screening seeds do not enter the confirmation.
-
-To call the relation mutualism, assay host and partner at generations 500, 1,000, 1,500, and 2,000, on the same resources, in four conditions: the real partner; the partner removed; a non-cooperating partner at the same cost; partners mixed at the same count. Removal does not quietly change the resource inputs. Separate the immediate effect of removal from adaptation after removal.
-
-**Primary endpoint.** Probability that a mutually beneficial partnership is still intact at the end, against the locked transmission-rate baseline. Mutual benefit means both sides, in the standard assay, do better than a no-relationship baseline or a valid control. Reduced harm is a separate measure.
-
-A claim of a transition in individuality needs, in addition to mutualism, reproduction of a collective unit, transmission of collective traits, dependence of the parts, and a response to selection at the collective level. A fitness correlation, different roles, or less harm is not enough. Each condition has its own output. If only mutualism is supported, accept that and stop there.
-
-**Controls.** A formula surrogate must show the sign change at the algebraic boundary, and it is labeled calibration. Remove collective reproduction while keeping the interaction. Scramble partner inheritance while keeping the transmission rate. Control resources and cost. A "positive control" that builds the transition into the model only tests the measure.
-
-### T04 — replay history, with founder, chance, and environment taken apart
-
-Does an agent’s past change the probability of reaching a functional innovation, when the future environment is the same?
-
-`ENGINE`, with a real fork. Twelve independent histories. Snapshots at generations 0, 500, and 1,000. Eight independent future streams from each snapshot. Each branch runs 1,500 generations. That is 288 branches, not 288 independent founders. Execution order is randomized. The future environment is held fixed across the comparisons. The checkpoint includes genome, memory, policy, generator, ecology, and archive. Anything omitted is named as the intervention.
-
-First, a deterministic replay of the same snapshot and the same generator must match. Then change only the future generator. In separate interventions, clear or randomize memory or knowledge, and keep energy, size, and maintenance cost matched. Delete specified background genes only under a controlled assay, and record side effects.
-
-**Primary endpoint.** Difference in the probability of reaching the locked held-out function between early and late snapshots, clustered at founder level. The same performance, or the same phenotype, can sit on different genomes. Hamming distance is diagnostic only. Separate future chance from historical effect with a hierarchical model, or with a permutation that respects the founder structure.
-
-**Controls.** A neutral model with the same mutation, for genetic divergence. A task with one answer, to detect convergence. A task with several paths, to detect contingency. A uniform generator with an independent stream for the mutation site. Do not mistake the effect of clearing memory for a loss of energy.
-
-Eight random walks diverging is not enough evidence that an innovation depended on history.
-
-### T05 — Red Queen: time shift and two-sided causation
-
-Does change in each population create selection on the other, and does a pre-registered temporal pattern of adaptation appear?
-
-A real host–parasite submodel, with the backend boundary written down. If it is not attached to GenesisEngine, the result belongs to that submodel. Twenty-four seeds, 4,000 generations, a snapshot every 10 generations. Assay sampling every 40 generations, at lags 20, 40, and 80, with 40 as the primary lag. If the pilot shows a faster cycle, shorten the save interval before the lock. These settings do not guarantee a cycle.
-
-Four arms: two-sided coevolution; frozen parasite; frozen host; selective interaction cut, while the recorded contact load and cost are kept. If the benefit of exchange is being measured, exchange on or off is its own factor, with matched pairing. Do not attribute a mating difference to exchange.
-
-The raw matrix `M(t_h, t_p)` is built from real resistance or infection, on a matched budget. Past, present, and future of both sides are tested against one fixed standard. Exposure, resources, and contact counts match. A time-shift result depends on how the score is defined. Take the direction of the contrast from the locked model and from calibration.
-
-**Primary endpoint.** The paired two-sided temporal contrast on the coevolution arm, against the one-sided frozen controls. For a cyclic model, pre-register a lag or phase contrast. For an arms race, pre-register directional escalation. One of those is primary. The other is exploratory. A frozen control need not put every measure at zero: the side that still varies can adapt to the side that is held still.
-
-**Secondary.** Gene or trait frequency, diversity, lag and autocorrelation, extinction, and a spectral analysis against a null with the same autocorrelation. Oscillation alone is not a Red Queen. Beating ancestors is only one signature. A valid positive result is evidence for the Red Queen in the named model and regime, and it is accepted without resistance. Do not turn parameters until the p-value shrinks.
-
-### T06 — whether knowledge and the ledger causally earn their survival
-
-Does ledger information, or a causal model, actually change decisions and survival, or is it only printed?
-
-`ENGINE`, with a real consumer of knowledge in the decision or in the resources. An observer-only log is not enough for this claim. Profile `LONG`, 24 seeds, four arms: real knowledge; the relevant causal edge cut; a random cut of the same count and degree; a sham that does not change the information. If the match is two edges, both controls remove two edges. ATP, time, memory volume, and log overhead stay matched.
-
-The environment has a training confounder and a held-out change. A color cue can correlate with the resource in training and then move at evaluation. The true causal relation is known only to the measure-control, and hidden from the agent. The engine sees only the observations and actions it is allowed to see, not the simulator’s answer table.
-
-**Primary endpoint.** Success in the intervention or held-out environment: real knowledge against the targeted ablation, and against the matched control.
-
-**Secondary.** Survival area under the curve, and ATP per success. The log has to show `ledger change → decision or resource change → outcome`. If the ledger acts only by changing ATP, the claim is a resource-feedback effect. "The agent used a causal model" requires that the knowledge was consumed when the action was chosen.
-
-### T07 — capsule transfer, inherited skill, and social role
-
-Does transferred knowledge shorten learning of a new problem, or does it only hand over extra facilities or extra ATP?
-
-`ENGINE`, profile `LONG`, 24 seeds. A 2×2 of transfer on or off, crossed with valid or shuffled content. The off arm pays a sham transfer cost. Choose the knowledge source by training performance. The hold-out must not appear in the capsule, or in a prompt.
-
-Every 400 generations, introduce a new task from a table locked in advance, and record evaluations until the success criterion. Record donor to receiver to child by a content hash before and after, by adoption, by action bias, and by the action that actually ran. If a policy is built and never consumed, the run is invalid for this hypothesis.
-
-**Primary endpoint.** Evaluations until the locked functional criterion on the transfer tasks, with censoring of failures and extinctions.
-
-**Secondary.** Retention after transfer, lineage effect, harm from invalid knowledge, real specialization, and total ATP. A named role with no behavioral difference is not division of labor.
-
-### T08 — skill compression and the energy account
-
-Does an automatically defined function, or skill composition, improve transfer to an unseen problem per unit of real energy?
-
-`ENGINE`, 24 seeds, 3,000 generations. A 2×2 of the macro facility on or off, crossed with low or ordinary energy budget. Lock the budget and the price of each action in the pilot. The off arm has the equivalent primitive sequence and the same information. Count discovery, expansion, memory, and action execution. A macro that only hides the action account is not a real saving.
-
-**Primary endpoint.** Functional success on the held-out set per real ATP. Report success and ATP separately, so a small denominator cannot flatter the ratio.
-
-**Secondary.** Real trace length, reuse taken from the execution log, the speed and memory trade, and inheritance of the macro. Removing or expanding the macro from a snapshot, then assaying again, is the evidence that the result depended on it.
-
-### T09 — functional information in a defined reference space
-
-How does the probability of a specified function, in a fixed genome or program space, change under evolution, and how much does that number depend on the choice of reference space?
-
-`ENGINE` for the real function, and an independent sampler for the estimate. Twenty-four seeds, 2,000 generations, selection against neutral. At generations 0, 500, 1,000, and 2,000, assay a representative phenotype under a pre-registered rule. At least 10,000 independent reference samples for each primary definition of the space. If one reference pool is shared across thresholds, record that statistical dependence.
-
-`I(E) = −log2 F(E)` is defined only when the space, the length, the sampling distribution, and the threshold `E` are specified. A local neutral network around an elite is not a uniform sample of the whole space. If genome length changes, use spaces conditioned on length, or a length distribution fixed in advance. Do not compare `I` directly across two different spaces.
-
-**Primary endpoint.** Change in that defined functional information, in a fixed reference space, against the neutral arm, with a sampling interval and a between-seed interval. Local and global information stay separate. Zero successes in `N` samples do not mean the probability is exactly zero: an upper bound on `p` is a lower bound on `I`. The "rule of three" is only an approximation for independent identically distributed Bernoulli trials under a suitable sampler. Prefer an exact binomial, or the method that matches the sampler.
-
-### T10 — ecological adjustment, collapse, and recovery
-
-Do diversity and knowledge transfer increase resistance and recovery under a real environmental shock?
-
-`ENGINE`, profile `LONG` with a horizon of 3,000 generations, 24 seeds. Arms: baseline, quality-diversity only, transfer only, and both. First shock at generation 1,000: a resource cut at a locked intensity. Second shock at generation 2,000: the resource geography changes. Every arm sees the same schedule. Chemistry or an element grid enters only if consumption and production are real inputs to behavior.
-
-**Primary endpoint.** Area of the drop in functional output, relative to the pre-shock level, over generations 1,000–1,500. Extinction is its own event. A failed recovery is censored, or otherwise defined, and an extinct seed is not dropped from the mean.
-
-**Secondary.** Time to recover, diversity, resource use, migration, and the effect of the second shock.
-
-A positive recovery control, in a world whose replenishment is known, has to show that the measure can detect recovery. Check conservation of energy or materials, and the input–output account, inside a numerical tolerance. A clean account and a scientific effect are two separate conditions.
-
-### T11 — endurance, replay, and equivalence on ARM
-
-This one asks whether the engine, over multi-day runs, through stop and resume, and under interface load, keeps the data and the behavior. It is not, by itself, a biological discovery. It is what makes the other experiments interpretable.
-
-`ENGINE`. Seventy-two continuous hours for each of three workloads: ecology and reproduction; memory, macros, and transfer; quality-diversity and the ledger. Repeated seeds compare an uninterrupted run with resume. The cuts are controlled, at checkpoints chosen in advance. Do not pull power without a file-protection protocol. Inject crashes only on an isolated test path.
-
-Compare at the same horizon: one continuous run, pause and resume, restart from a checkpoint, and workers at 1, at 2, and at the allowed capacity. Parallel independent seeds must not change the result of a seed. Parallelism inside one simulation is a separate contract. Compare a canonical state hash that excludes timestamps and process ids. Register exact-or-tolerance for floating point before the run. Do not hide an architecture difference inside a tolerance chosen after the difference is seen.
-
-Every 60 seconds record RSS, CPU, IO, temperature, throttle, cache and archive and abort-set sizes, the command queue, and display lag. Bounded memory means the live structures do not grow without a bound, an eviction policy exists, and the memory curve shows it. A flat line over two hours is not a proof about three days.
-
-The interface tester issues pause, resume, and stop with a session and a `command_id`. The acknowledgement comes from the worker and from the real tick, not from writing a file. Percent complete is finished work over the work that was asked for. Endurance clock progress is shown separately. An old verdict must not cover a new run after a refresh. The live log is not the final scientific record. The sealed raw artifact is.
-
-The campaign surface, once this program is implemented, shows the active seed and arm, generation against target, finished seeds against the total, an approximate ETA with its method, worker health, RAM and temperature, the metric plot, and a link to the raw record. Provisional rows are labeled `RUNNING — UNSEALED`. The public title is `Genesis Experiments`. Cards are not named by a frozen Red Queen flag. Show the hypothesis name and the assessment that was actually reached. This paragraph does not describe the local preview console, which still does not run the engine.
-
-If a second machine, including x86, is available, run the same workload on the recorded CPU and version. Without that machine, do not claim ARM and x86 equivalence. Measure efficiency per equal work. Report power only from a meter or from valid telemetry, not from a CPU percentage.
-
-### T12 — a long-horizon swarm and control task
-
-Does the engine’s learning or logic path solve a realistic task, under delay, failure, and missing information, better than simple policies?
-
-`ENGINE`, inside a controlled environment simulator. One locked task: collect resources with 8 to 16 agents, a battery limit, a return to station, limited messages, obstacles, and sensor failure. Lock the task, the action interface, and the costs before the run. Train for 2,000 generations on 24 seeds. Evaluate 100 unseen episodes per seed, in each of: ordinary conditions, messages cut, delay, sensor failure, and an agent removed. Episodes are nested inside the seed. They are not independent evolutionary replicates.
-
-Arms: the full engine, on paths that actually run; without knowledge or logic; without messages or roles, paying a sham cost; a greedy, A*, or similarly simple control baseline. Information and evaluation budget match. Do not pick a weak baseline on purpose. Tune only on train and validation, and on the same budget.
-
-**Primary endpoint.** Resources delivered in the held-out episodes, against the locked baseline.
-
-**Secondary.** Collisions, battery death, fairness, recovery time, and communication cost. A microcontroller link is hardware-in-the-loop only with a real sensor, action, and acknowledgement, and with timestamps. A stub or a loopback is a simulation, which is already how `SimEsp32Bridge` is described above.
-
-A language model is optional, and only after these baselines: a fixed plan, or a tool-using model, with a token cap, a timeout, and the total cost recorded. Record that the other experiments did not use one. If a small model does not fit in the board’s RAM, an external host with the real latency is allowed, and the result is not "everything ran on the board". A claim of faster thought requires a measured comparison and a correct answer.
-
-### What a capability has to show
-
-| Capability | Main experiment | Real evidence |
-|---|---|---|
-| Codon translation, dispatch, and action | Every `ENGINE` run | A trace from translation to action to a world change |
-| Reproduction, mutation, lineage, inheritance | T01–T05, T07–T10 | Parent and child, genome difference, child config |
-| Resources, ATP, element grid, ecology | T02, T03, T08, T10, T12 | Input and output account, and an effect on survival |
-| Host and parasite, time-shift assay | T05 | Raw interaction matrix and a two-sided lineage |
-| Deme, role, communication, cooperation | T02, T03, T07, T12 | A real act, a cost, a collective output |
-| Knowledge, ledger, learning | T04, T06, T07 | Information consumed, and a causal intervention |
-| Macros and skill composition | T07, T08 | Expansion in the trace, and real reuse |
-| Quality-diversity and the archive | T01, T10, T11 | A correct extractor, parent choice, and retention |
-| Checkpoint, generator, replay, parallelism | T04, T11 | Hash match and equivalent events |
-| Panel, progress, commands | T11 | Worker acknowledgement, tick, run id, raw artifact |
-| Language-model API, microcontroller | Extension of T12 | Call and response, and the real latency |
-| Medical or materials specializations | Outside these twelve questions unless a question consumes them | A separate domain-validation protocol |
-
-"All capabilities" does not mean turning every option on in one experiment. Everything on can hide the cause. After the limited ablations, the T11 stress shows that the pieces which passed can run together. A claim of complete coverage waits on an automatic inventory of real call paths and of the features still unused.
-
-### Records
-
-The tree below is a delivery contract. The names are not all implemented in the repository today.
-
-```text
-campaign_id/
-  preregistration.yaml
-  literature_review.md
-  code_patch.diff
-  source_manifest.json
-  queue_manifest.json
-  runs/Txx/seed_x/arm_y/
-    manifest.json
-    live.log
-    status.json
-    metrics.jsonl
-    events.jsonl.zst
-    assays/
-    checkpoints/
-    artifacts_manifest.json
-    completion.json
-  analysis/
-    analyze.py
-    environment.lock
-    per_seed_endpoints.csv
-    hypothesis_assessment.json
-    figures/
-    limitations.md
-```
-
-`manifest.json` carries the SHA, the dirty flag and the diff hash, the real source hashes, the config and spec hashes, the extractor source and version hashes, the dependency lock, Python, OS, and ARM details, RAM, backend, seeds and the stream map, the budget table, and the parent snapshot name.
-
-`metrics.jsonl` carries run id, seed, arm, generation, the real tick, living count, births and deaths, ATP, task success and attempts, diversity, and the numerators and denominators of the measures. Keep raw counts. Do not round them away.
-
-`events` carries mutation and parentage, capsule transfer, action and outcome, interventions, and ledger edits. Calibrate a full action log against the board’s IO. If sampling is probabilistic, specify it in advance and record the sampling weight. Conservation, the endpoint, and provenance keep the events they need in full. Use compressed chunks with their own hashes. Silent truncation is forbidden.
-
-Assays are part of the delivery, not an optional figure. T05 needs the full matrix with time on both axes and the contact count. T06 needs the intervention trace. T09 needs the sampler definition and the successes. T04 needs the snapshot and the branch lineage. A plot without those data is not a complete delivery.
-
-`completion.json` carries target work and finished work, `stop_reason`, the real exit code, missing data, validity, and the assessment, in separate fields. `COMPLETE` is written only after the horizon is reached and the artifacts have been checked. A marker file is not evidence of completeness.
-
-Analysis reads the raw files and the manifest. It does not read the runner’s summary prose or a flag the runner set. Recompute file hashes from the bytes. An empty artifact, a fabricated file, and a forged digest fail a negative test. Every number in the report points at a file, a row, and the function that computed it. The person who wrote the runner is not the only judge of that runner.
-
-### Five phases, and who does what
-
-Each experiment walks the same five phases. Each phase has five short written rounds before the build, a split of tasks by the manager, two written critiques after the build, a test run, and two written critiques of the result. If a technical fault remains, at most two repair cycles stay inside that phase. The manager then writes the cause and the blocker. A negative scientific result is not a reason to open another repair cycle. The rounds are short, written, and about different questions. Volume of talk is not validation.
-
-| Phase | Output |
-|---|---|
-| Question and sources | Nearest work, backend, hypothesis, mechanism, and the edge of the claim. A literature note and a preregistration draft. |
-| Runner and measure | The required features actually attached, the measure, positive and zero controls, a fixture, and the invariants. A valid trace and a correct extractor. |
-| Pilot and lock | Speed, memory, the smallest effect that matters, the sampling plan, sensitivity, matched controls, and resume. A locked SHA, config, seed list, budget, and analysis. |
-| Long campaign | The seed and arm queue, a check every ten minutes, live data, and checkpoints. A complete dataset, or an explicit incomplete status. No hidden parameter change to improve a plot. |
-| Independent reanalysis | Artifact checks, statistics, controls, effect size, limitations, and a fresh cohort if one was planned. A report that can accept a valid positive or a valid negative. |
-
-| Role | Owns |
-|---|---|
-| Manager | Lock of question, version, and budget. Task split, the board queue, and the call on validity and completion. |
-| Coder 1 | T01 and T02: selection, quality-diversity, demes, and the Price account. |
-| Coder 2 | T03, T05, and T10: interaction, ecology, resources, and assays. |
-| Coder 3 | T04, T06, T07, and T08: fork, knowledge, transfer, and skill. |
-| Coder 4 | T09, T11, and T12: the sampler, the run substrate, data and interface, and the applied task. |
-| Tester 1 | Controls, engine attachment, invariants, replay, and mutation sensitivity. |
-| Tester 2 | An independent statistics and artifact pipeline, the interface tests, and the scientific check. |
-
-Suggested order, instead of launching every run at once: calibration, and a short T11 on the paths that will be used; then T05 and T06 for interaction and causation; then T01 through T04; then T07 through T10 and T12. The full T11 endurance runs beside a cohort whose size is compatible with it, without an unaccounted fight for the machine. Development can proceed in parallel. The board queue is limited by the capacity that was measured.
-
-### Preregistration, to be filled before lock
-
-This block is the team’s proposed contract. It is not an existing command. Replace every `REQUIRED` and every null before the lock. `positive_control_passed` stays false until the control has passed.
-
-```yaml
-campaign_id: genesis_board_long_v1
-source_sha: REQUIRED_FRESH_COMMIT
-dirty_tree_allowed: false
-hardware:
-  board: Orange_Pi_Zero_3
-  ram_bytes: null
-  allowed_cpu_ids: []
-  workers_initial: 2
-  workers_max: measured_available_capacity
-  inner_threads: 1
-profile: LONG
-randomness:
-  pilot_seed_namespace: pilot_v1
-  confirmatory_seed_namespace: confirm_v1
-  seed_count: 24
-  generator_version: REQUIRED
-  stream_mapping: REQUIRED_EVENT_KEYED_MAPPING
-execution:
-  horizon_type: fixed_biological_work
-  generations: 2000
-  population: 96
-  ticks_per_generation: 16
-  checkpoint_max_interval_seconds: 600
-  snapshot_interval_generations: REQUIRED_PER_TEST
-  health_interval_seconds: 60
-  integrity_review_interval_seconds: 600
-  action_on_technical_failure: checkpoint_stop_and_invalidate_affected_scope
-  action_on_negative_scientific_result: continue_to_locked_horizon
-measurement:
-  backend: REQUIRED_REFERENCE_ENGINE_OR_INTEGRATED
-  positive_control_passed: false
-  zero_control_passed: false
-  counterexample_control_passed: false
-  extractor_source_hash: REQUIRED
-  primary_endpoint: REQUIRED_PER_TEST
-  minimum_relevant_effect: REQUIRED_BEFORE_LOCK
-analysis:
-  independent_unit: seed_or_founder
-  clustered_subruns: REQUIRED_IF_APPLICABLE
-  main_comparison: REQUIRED
-  confidence_level: 0.95
-  multiple_testing: Holm_for_registered_primary_family
-  missing_data_policy: REQUIRED
-  extinction_policy: REQUIRED
-  optional_stopping: false
-  posthoc_parameter_tuning: false
-  frozen_analysis_hash: REQUIRED
-assessment:
-  allowed: [SUPPORTED_IN_THIS_MODEL, NOT_SUPPORTED, INCONCLUSIVE, INVALID_MEASUREMENT]
-  scientific_status: UNASSESSED
-```
-
-### What has to be true before, and after, a long run
-
-Before the long run of a question, only that question’s preconditions have to pass. Do not stop the project for an unrelated component. Required beforehand: a manifest of the fresh, real version; a runtime trace that the necessary features were consumed; a valid measure control; a complete preregistration; a board pilot and a budget that can be finished; a correct resume.
-
-After the run: every seed and arm, or an explicit reason for the gap; raw files for every endpoint; real hashes; an independent analysis; the effect and its interval; the mechanism conditions; the limitations and the scope. A valid positive is accepted. A null with a narrow interval can be informative. A wide interval means the question is still open. A solid piece of engineering is a result even when no biological discovery appears.
-
-Placeholder numbers, synthetic rows, `REFERENCE`, and `ENGINE` stay labeled apart in the dataset and in the report. "All capabilities" is allowed only with the real coverage matrix.
-
-### Sources this design started from
-
-This list is a start. Before each lock, read the methods of the relevant papers and the nearest new work. Do not present a preprint as a refereed paper. Naming a source here is not a claim that this repository has reproduced it. The header names for Price and multilevel selection still need to be matched, title and version, against the original method. This section does not treat those header names as an independent check of every citation. Novelty, if it is claimed later, rests on the finished result, the nearest studies, and a mechanism that can be run again.
-
-1. Dolson et al. (2019), *The MODES Toolbox: Measurements of Open-Ended Dynamics in Evolving Systems*, Artificial Life 25(1). Activity, change, novelty, and a multi-part measurement. Used for T01. <https://direct.mit.edu/artl/article/25/1/50/2915/The-MODES-Toolbox-Measurements-of-Open-Ended>
-2. de Pinho and Sinapayen (2026), *A speciation simulation that partly passes open-endedness tests*, preprint arXiv:2603.01701. Cumulative activity can rise while new activity is zero and normalized measures stay bounded. A nearby warning against reading a slope as novelty. <https://arxiv.org/abs/2603.01701>
-3. Hedayatian and Nikolaidis, *AutoQD: Automatic Discovery of Diverse Behaviors with Quality-Diversity Optimization*, arXiv:2506.05634v2 (March 2026; the page says ICLR 2026 accepted). Behavior descriptors and occupancy. Used for T01 and for placing quality-diversity novelty. <https://arxiv.org/abs/2506.05634>
-4. *CausalEvolve: Towards Open-Ended Discovery with Causal Scratchpad* (2026), arXiv:2603.14575, preprint. Nearby work on evolution plus reasoning and a language model. Used when searching whether T06 and the T12 extension repeat that work, not as evidence that this design works. <https://arxiv.org/abs/2603.14575>
-5. Ratcliff et al. (2012), *Experimental evolution of multicellularity*, PNAS. Reproduction, a bottleneck, and a collective transition. Used for T02 and T03. <https://pmc.ncbi.nlm.nih.gov/articles/PMC3277146/>
-6. West et al. (2015), *Major evolutionary transitions in individuality*, PNAS, DOI:10.1073/pnas.1421402112. What a transition is, and how it differs from cooperation. Used for T03. <https://pmc.ncbi.nlm.nih.gov/articles/PMC4547252/>
-7. Blount, Borland, and Lenski (2008), *Historical contingency and the evolution of a key innovation in an experimental population of Escherichia coli*, PNAS, DOI:10.1073/pnas.0803151105. Replay, and an innovation conditional on history. Used for T04. <https://pmc.ncbi.nlm.nih.gov/articles/PMC2430337/>
-8. Morran et al. (2011), *Running with the Red Queen: Host-Parasite Coevolution Selects for Biparental Sex*, Science, DOI:10.1126/science.1206360. A coevolving versus frozen comparison, and the limit of what a mating or exchange result can say. Used for T05. <https://pmc.ncbi.nlm.nih.gov/articles/PMC3402160/>
-9. Betts et al. (2018), *High Parasite Diversity Accelerates Host Adaptation and Diversification*, Science, DOI:10.1126/science.aam9974. Time shift and two-sided interaction. Used for T05. <https://pmc.ncbi.nlm.nih.gov/articles/PMC7612933/>
-10. Hazen et al. (2007), *Functional information and the emergence of biocomplexity*, PNAS, DOI:10.1073/pnas.0701744104. A reference space, a function, and information. Used for T09. <https://pmc.ncbi.nlm.nih.gov/articles/PMC1876432/>
-
-The point of the program is a campaign that can reveal a real effect, with enough power, and can show why. First the measure and the path. Then independent seeds and a long horizon. Then the result, taken from the data. In that order a board run is usable as science, and it also shows which engine capability actually helped.
-
----
+The program is [`docs/campaigns/orange_pi_zero3_long_program.md`](docs/campaigns/orange_pi_zero3_long_program.md). It is a design and an acceptance spec. It has not been executed as a campaign, and no board rate has been measured. Readiness, the one calibration that can actually run, and the gaps are in [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md).
 
 ## Testing
 
@@ -764,7 +370,7 @@ Cite the versioned software release. The DOI is the software archive, not a camp
   version = {0.3.0b27},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b27 is the git identity. Cuts 0.3.0b4 through 0.3.0b20 are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b27 is the git identity, not a published wheel. The GitHub release is v0.3.0b21 and the PyPI wheel is 0.3.0b20. Already published tags are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

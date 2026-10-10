@@ -10,6 +10,70 @@ import { fetchRelease, pullRelease } from "@/lib/genesis/host";
 import type { Job, JobStatus, PresetId, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 
+type CampaignRow = {
+  experiment_id: string;
+  backend: string;
+  status: string;
+  run_enabled: boolean;
+  gap: string;
+  pilot_command?: string;
+};
+
+function CampaignReadiness() {
+  const lang = useBench((state) => state.settings.lang);
+  const [rows, setRows] = useState<CampaignRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/campaign/readiness")
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("unavailable"))))
+      .then((body: { experiments?: CampaignRow[] }) => {
+        if (alive) setRows(body.experiments ?? []);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <div className="rounded-2xl bg-white/5 p-3">
+      <p className="mb-2 text-sm text-fg">
+        {lang === "fa" ? "آمادگی T01–T12" : "T01–T12 readiness"}
+      </p>
+      <p className="mb-2 text-xs text-subtle">
+        {lang === "fa"
+          ? "حکم هر آزمایش مال خودش است. پرچم قدیمیِ دفتر، کارت این آزمایش نیست. دکمهٔ اجرا تا آماده شدن همان آزمایش بسته می‌ماند."
+          : "Each experiment keeps its own verdict. The old ledger flag is not this card. Run stays off until that experiment is ready."}
+      </p>
+      {failed ? (
+        <p className="text-xs text-muted">{lang === "fa" ? "فهرست آمادگی در دسترس نیست." : "Readiness list is unavailable."}</p>
+      ) : rows === null ? (
+        <p className="text-xs text-muted">{lang === "fa" ? "در حال خواندن…" : "Reading…"}</p>
+      ) : (
+        <div className="max-h-64 overflow-auto">
+          {rows.map((row) => (
+            <div key={row.experiment_id} className="flex min-w-0 flex-wrap items-center gap-2 border-t border-white/5 py-2 text-xs">
+              <span className="font-mono text-fg">{row.experiment_id}</span>
+              <span className="text-muted">{row.backend}</span>
+              <span className="text-muted">{row.status}</span>
+              <button
+                type="button"
+                disabled={!row.run_enabled}
+                className="ms-auto min-h-9 rounded-lg px-2 text-muted disabled:cursor-not-allowed disabled:opacity-40"
+                title={row.gap}
+              >
+                {lang === "fa" ? "اجرا" : "Run"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function JobsView() {
   const lang = useBench((state) => state.settings.lang);
   const jobs = useBench((state) => state.jobs);
@@ -134,6 +198,7 @@ export function JobsView() {
             </button>
           </div>
         </div>
+        <CampaignReadiness />
         {shown.length === 0 ? (
           <p className="text-sm text-muted">{text.noMatch}</p>
         ) : (
@@ -224,7 +289,13 @@ export function JobsView() {
                       {Array.isArray(job.execution.replays) ? (
                         <span>Replays: <strong className="text-fg">{job.execution.replays.length} verified</strong></span>
                       ) : null}
-                      <span className="ms-auto font-mono text-[11px] text-subtle">red_queen_proved=false</span>
+                      <span className="ms-auto font-mono text-[11px] text-subtle">
+                        {job.hypothesisAssessment
+                          ? `${job.hypothesisAssessment.hypothesis_id}: ${job.hypothesisAssessment.verdict}`
+                          : lang === "fa"
+                            ? "این اجرا: ارزیابی‌نشده"
+                            : "this run: not evaluated"}
+                      </span>
                     </div>
                   ) : null}
                   {job.hypothesisAssessment?.rationale ? (
@@ -2038,8 +2109,8 @@ export function HomeView() {
           <div className="flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-2 text-sm text-muted">
             <div className={cn("h-2 w-2 rounded-full", host ? "bg-emerald-500" : "bg-amber-500")} />
             {lang === "fa" 
-              ? `${activeCount} چالش فعال | ${archivedCount} تکمیل‌شده | ${host ? (host.platform === "linux" ? `بورد آنلاین (${host.load1} بار پردازش)` : `میزبان ویندوز`) : "در حال اتصال..."} | red_queen_proved: نادرست` 
-              : `${activeCount} active challenges | ${archivedCount} completed | ${host ? (host.platform === "linux" ? `Board online (${host.load1} load)` : `Windows host`) : "Connecting..."} | red_queen_proved: False`}
+              ? `${activeCount} چالش فعال | ${archivedCount} تکمیل‌شده | ${host ? (host.platform === "linux" ? `بورد آنلاین (${host.load1} بار پردازش)` : `میزبان ویندوز`) : "در حال اتصال..."}`
+              : `${activeCount} active challenges | ${archivedCount} completed | ${host ? (host.platform === "linux" ? `Board online (${host.load1} load)` : `Windows host`) : "Connecting..."}`}
           </div>
         </div>
 

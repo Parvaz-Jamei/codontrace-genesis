@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from codontrace.campaigns.readiness import inventory as campaign_inventory
 from codontrace.console.chat import (
     abort_chat_request,
     chat_turn,
@@ -667,6 +668,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             payload = json.dumps(host_profile(), allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
+        if path == "/api/campaign/readiness":
+            payload = json.dumps(campaign_inventory(), allow_nan=False, ensure_ascii=False).encode("utf-8")
+            self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
         if path == "/api/release":
             query = parse_qs(urlparse(self.path).query)
             refresh = query.get("refresh", ["0"])[0] == "1"
@@ -808,8 +813,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m codontrace.console",
         description=(
-            "Serve the CodonTrace Genesis preview console. "
-            "Does not run the evolution engine and does not set red_queen_proved."
+            "Serve the CodonTrace Genesis console. "
+            "This process does not import the evolution engine and does not set red_queen_proved. "
+            "A launch can start a child script."
         ),
     )
     parser.add_argument("--host", default="0.0.0.0", help="bind address (default: 0.0.0.0)")

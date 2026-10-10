@@ -82,7 +82,7 @@ class T02MLSPriceRunner:
                 )
                 lineage_counter += 1
 
-    def step_generation(self, gen: int) -> tuple[PriceEquationAccounting, MetricRecord]:
+    def step_generation(self, gen: int) -> MetricRecord:
         # 1. Intra-group interaction & Common Good Contribution
         # Individual cost: -c * z_i; Group return: b * sum(z_i) distributed equally
         c = 0.25  # Individual altruism cost
@@ -126,7 +126,12 @@ class T02MLSPriceRunner:
             deme_parents = [
                 (idx, ind) for idx, ind in enumerate(self.population) if ind.deme_id == d
             ]
+            if not deme_parents:
+                deme_parents = list(enumerate(self.population))
+
             slots = group_target_slots.get(d, self.deme_capacity)
+            if slots <= 0:
+                continue
 
             # Within-deme relative fitness: individual payoff = 1.0 - c*z_i + return_d
             fitnesses = [
@@ -215,7 +220,7 @@ class T02MLSPriceRunner:
             },
         )
         self.metrics_history.append(record)
-        return accounting, record
+        return record
 
     def run(self) -> CompletionSummary:
         self.initialize_population()

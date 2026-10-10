@@ -90,32 +90,53 @@ class CampaignOrchestrator:
         # 4. Run and metrics.jsonl
         logger.info("Starting run")
         metrics_file = run_dir / "metrics.jsonl"
-        with open(metrics_file, "w", encoding="utf-8") as f:
-            for gen in range(1, runner.generations + 1):
-                if hasattr(runner, "step_generation"):
-                    record = runner.step_generation(gen)
-                    f.write(json.dumps(record.to_dict()) + "\n")
-        logger.info("Run complete")
 
-        # 5. completion.json
+        summary: CompletionSummary
         if hasattr(runner, "run"):
-            # if run() was not just a wrapper for step_generation
-            # We already stepped, but let's call run() and get summary if it exists and handles it gracefully
-            pass
-        
-        # Manually assemble summary if we stepped manually
-        summary = CompletionSummary(
-            experiment_id=exp_id,
-            track=runner.track,
-            seed=seed,
-            completed_generations=runner.generations,
-            total_ticks=runner.generations * 16,
-            status="COMPLETED",
-            stop_reason="HORIZON_REACHED",
-            scientific_assessment=AssessmentStatus.NOT_SUPPORTED,
-            primary_endpoint_value=0.0,
-            summary_metrics={"arm": arm}
-        )
+            raw_summary = runner.run()
+            if isinstance(raw_summary, CompletionSummary):
+                summary = raw_summary
+            else:
+                summary = CompletionSummary(
+                    experiment_id=exp_id,
+                    track=getattr(runner, "track", ExecutionTrack.ENGINE),
+                    seed=seed,
+                    completed_generations=getattr(runner, "generations", 100),
+                    total_ticks=getattr(runner, "generations", 100) * 16,
+                    status="COMPLETED",
+                    stop_reason="HORIZON_REACHED",
+                    scientific_assessment=AssessmentStatus.NOT_SUPPORTED,
+                    primary_endpoint_value=0.0,
+                    summary_metrics={"arm": arm},
+                )
+            with open(metrics_file, "w", encoding="utf-8") as f:
+                if hasattr(runner, "metrics_history"):
+                    for record in runner.metrics_history:
+                        f.write(json.dumps(record.to_dict()) + "\n")
+        else:
+            total_gens = getattr(runner, "generations", 100)
+            if hasattr(runner, "initialize_population"):
+                runner.initialize_population()
+            with open(metrics_file, "w", encoding="utf-8") as f:
+                for gen in range(1, total_gens + 1):
+                    if hasattr(runner, "step_generation"):
+                        step_out = runner.step_generation(gen)
+                        record = step_out[1] if isinstance(step_out, tuple) else step_out
+                        f.write(json.dumps(record.to_dict()) + "\n")
+            summary = CompletionSummary(
+                experiment_id=exp_id,
+                track=getattr(runner, "track", ExecutionTrack.ENGINE),
+                seed=seed,
+                completed_generations=total_gens,
+                total_ticks=total_gens * 16,
+                status="COMPLETED",
+                stop_reason="HORIZON_REACHED",
+                scientific_assessment=AssessmentStatus.NOT_SUPPORTED,
+                primary_endpoint_value=0.0,
+                summary_metrics={"arm": arm},
+            )
+
+        logger.info("Run complete")
 
         with open(run_dir / "completion.json", "w", encoding="utf-8") as f:
             json.dump(summary.to_dict(), f, indent=2)

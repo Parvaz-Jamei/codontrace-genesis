@@ -835,11 +835,11 @@ export function getRunProgress(job: Job | null): number | null {
     if (job.snapshot?.progress?.pct !== undefined && job.snapshot.progress.pct !== null) {
       const snapPct = Number(job.snapshot.progress.pct);
       if (Number.isFinite(snapPct)) {
-        return Math.min(100, Math.max(0, Math.round(snapPct * 10) / 10));
+        return Math.min(100, Math.max(0, Math.round(snapPct * 100) / 100));
       }
     }
     if (typeof job.pct === "number" && Number.isFinite(job.pct)) {
-      return Math.min(100, Math.max(0, Math.round(job.pct * 10) / 10));
+      return Math.min(100, Math.max(0, Math.round(job.pct * 100) / 100));
     }
     if (job.status === "archived") {
       return 100;
@@ -850,7 +850,7 @@ export function getRunProgress(job: Job | null): number | null {
   if (job.totalSteps > 0 && Number.isFinite(job.cursor)) {
     const raw = (job.cursor / job.totalSteps) * 100;
     if (Number.isFinite(raw)) {
-      return Math.min(100, Math.max(0, Math.round(raw * 10) / 10));
+      return Math.min(100, Math.max(0, Math.round(raw * 100) / 100));
     }
   }
 

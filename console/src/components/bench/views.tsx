@@ -229,7 +229,7 @@ export function JobsView() {
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate font-medium">{job.title}</span>
                     <span className="shrink-0 text-xs text-subtle">
-                      {progress !== null ? `${progress.toFixed(1)}%` : (lang === "fa" ? "پیشرفت نامشخص" : "Indeterminate")}
+                      {progress !== null ? (progress < 10 && progress > 0 ? progress.toFixed(2) : progress.toFixed(1)) + "%" : (lang === "fa" ? "پیشرفت نامشخص" : "Indeterminate")}
                     </span>
                   </span>
                   <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -1056,7 +1056,7 @@ export function HostView() {
             {memoryKnown ? <MemoryRing pct={pct} /> : null}
             <div className="min-w-0 flex-1">
               <h3 className="text-sm text-muted">{text.memory}</h3>
-              <p className="mt-1 font-mono text-sm">{memoryKnown ? `${used} / ${host.memoryMb} MB · ${pct}%` : "—"}</p>
+              <p className="mt-1 font-mono text-sm">{memoryKnown ? `${used} / ${host.memoryMb} MB (${host.freeMb} MB free) · ${pct}%` : "—"}</p>
               {memoryKnown ? (
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10" aria-hidden>
                   <div className="meter h-full bg-fg" style={{ width: `${pct}%` }} />

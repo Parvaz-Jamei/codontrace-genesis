@@ -325,6 +325,7 @@ function Sidebar({
     { id: "settings", label: text.settings, icon: Settings },
   ];
   const ram = host && host.memoryMb > 0 ? Math.round(((host.memoryMb - host.freeMb) / host.memoryMb) * 100) : null;
+  const usedMb = host && host.memoryMb > 0 ? Math.max(0, host.memoryMb - host.freeMb) : null;
   const recent = jobs.filter((job) => job.title.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 12);
   return (
     <aside className={cn("h-full shrink-0 flex-col overflow-hidden bg-[#060911] transition-[width] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]", collapsed && collapsible ? "w-[72px]" : "w-[260px]", className)}>
@@ -395,7 +396,7 @@ function Sidebar({
         <p className="px-3 py-1 text-xs text-subtle">
           {live ? "● " : ""}
           {collapsed ? host?.cores ?? "—" : host ? `${host.cores} cores` : "—"}
-          {!collapsed && ram !== null ? ` · ${ram}%` : ""}
+          {!collapsed && ram !== null ? ` · ${host && host.memoryMb > 0 ? `${host.memoryMb - host.freeMb}/${host?.memoryMb}MB` : `${ram}%`}` : ""}
           {!collapsed && host ? ` · ${host.platform}` : ""}
         </p>
         {collapsed ? null : <p className="px-3 text-[11px] text-subtle">{text.claim}</p>}
@@ -420,6 +421,7 @@ function Telemetry() {
   const lang = useBench((state) => state.settings.lang);
   const text = t(lang);
   const ram = host && host.memoryMb > 0 ? Math.round(((host.memoryMb - host.freeMb) / host.memoryMb) * 100) : null;
+  const usedMb = host && host.memoryMb > 0 ? Math.max(0, host.memoryMb - host.freeMb) : null;
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-3 py-2 font-mono text-xs text-muted">
       <span>
@@ -429,7 +431,7 @@ function Telemetry() {
         {text.temp} {host?.tempC === null || host?.tempC === undefined ? "—" : `${host.tempC}°C`}
       </span>
       <span className="inline-flex min-w-28 items-center gap-2">
-        {text.ram} {ram === null ? "—" : `${ram}%`}
+        {text.ram} {ram === null ? "—" : usedMb !== null ? `${usedMb} / ${host?.memoryMb} MB (${ram}%)` : `${ram}%`}
         <span className="h-1 w-16 overflow-hidden rounded-sm bg-surface-2">
           <span className="meter block h-full bg-fg" style={{ width: `${ram ?? 0}%` }} />
         </span>

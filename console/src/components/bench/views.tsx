@@ -8,6 +8,7 @@ import { ENGINE_COMMIT, ENGINE_IDENTITY, GATE_FILES, MODELS, PRESETS } from "@/l
 import { pauseJob, removeJob, restartJob, startJob, stopJob } from "@/lib/genesis/clock";
 import { artifactZip, getRunProgress, seedSlots, suiteZip, useBench, type RunInput } from "@/lib/genesis/store";
 import { fetchRelease, pullRelease } from "@/lib/genesis/host";
+import { authorizedFetch } from "@/lib/genesis/api-access";
 import type { Job, JobStatus, PresetId, ReleaseReport } from "@/lib/genesis/types";
 import { cn } from "@/lib/cn";
 import { ScientificOutput, ScientificToolPicker } from "./scientific-output";
@@ -38,7 +39,7 @@ function CampaignReadiness() {
     setLaunching(ids => [...ids, row.experiment_id]);
     setLaunchErrors(errors => ({...errors, [row.experiment_id]: ""}));
     try {
-      const response = await fetch(SCIENCE_API.launch, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(row.launch_params)});
+      const response = await authorizedFetch(SCIENCE_API.launch, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(row.launch_params)});
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error ?? `HTTP ${response.status}`);
       await useBench.getState().syncServerRuns();
@@ -1301,7 +1302,7 @@ function LLMSettingSection() {
           onClick={async () => {
             setLoading(true);
             try {
-              const res = await fetch("/api/chat/endpoint", {
+              const res = await authorizedFetch("/api/chat/endpoint", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ endpoint: val })

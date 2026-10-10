@@ -17,6 +17,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+
 def inference_timeout(*, cloud: bool) -> float:
     """Local low-power inference retains the original 30-minute budget."""
     default = 120.0 if cloud else 1800.0

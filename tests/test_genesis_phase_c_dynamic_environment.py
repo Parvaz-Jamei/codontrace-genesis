@@ -6,10 +6,9 @@ replaces Avida.
 """
 
 from __future__ import annotations
+
 # b28 snapshot pin audited against clean 5e7fefe and V4: full payloads equal.
 # Evidence: docs/validation/LIFE_LOOP_B28_BASELINE.json; no engine change.
-
-
 from dataclasses import replace
 
 from codontrace.genesis.birth import ReproductionMode

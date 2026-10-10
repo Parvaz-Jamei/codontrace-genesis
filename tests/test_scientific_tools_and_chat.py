@@ -345,8 +345,9 @@ def test_no_invented_intervals_or_invalid_log_coordinates(recorded):
 
 
 def test_deepseek_tool_round_preserves_protocol_reasoning_without_exposing_it(recorded, tmp_path, monkeypatch):
-    from codontrace.console import providers
     import io
+
+    from codontrace.console import providers
     _,create=recorded;create()
     monkeypatch.setenv('CODONTRACE_CONFIG_DIR',str(tmp_path/'config'))
     monkeypatch.delenv('DEEPSEEK_API_KEY',raising=False)

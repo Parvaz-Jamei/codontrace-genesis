@@ -255,12 +255,19 @@ def parse_seeds(val: Any) -> list[int]:
     return seeds
 
 
+# Deleted runs are moved here (sibling of the run folders, never listed or
+# addressable as a run) so archives are kept rather than permanently removed.
+RUN_TRASH_DIRNAME = "_trash"
+
+
 def validate_run_id(run_id: str) -> str | None:
     """Validate run identifier to prevent path traversal and unsafe characters."""
     if not isinstance(run_id, str):
         return None
     clean = run_id.strip()
     if not clean or len(clean) > 128:
+        return None
+    if clean == RUN_TRASH_DIRNAME:
         return None
     if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", clean):
         return None
@@ -307,6 +314,46 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
             except OSError:
                 pass
 
+
+
+def move_run_to_trash(run_id: str, entry: Path) -> Path:
+    """Move a run folder to ``<runs root>/_trash/<run_id>-<UTC timestamp>`` instead of deleting it.
+
+    Follows the freedesktop.org Trash spec ordering: a uniquely named info file is
+    created first with O_CREAT|O_EXCL (so concurrent deletes never collide or
+    overwrite an earlier trashed copy), then the folder is renamed into place.
+    The trash is a sibling inside the same runs root, so the rename is atomic on
+    one filesystem and preserves contents, mtimes and permissions.
+    """
+    trash = entry.parent / RUN_TRASH_DIRNAME
+    trash.mkdir(exist_ok=True)
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    for attempt in range(1000):
+        name = f"{run_id}-{stamp}" if attempt == 0 else f"{run_id}-{stamp}-{attempt}"
+        info_path = trash / f"{name}.trashinfo.json"
+        try:
+            fd = os.open(info_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        except FileExistsError:
+            continue
+        target = trash / name
+        if target.exists():
+            os.close(fd)
+            continue
+        info = {
+            "runId": run_id,
+            "originalPath": str(entry.resolve()),
+            "trashedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "trashedName": name,
+        }
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(info, handle, indent=2)
+        try:
+            os.rename(entry, target)
+        except OSError:
+            info_path.unlink(missing_ok=True)
+            raise
+        return target
+    raise OSError(f"Could not allocate a unique trash name for run {run_id}")
 
 
 def runs_directory() -> Path:
@@ -711,7 +758,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
         return []
 
     for entry in entries:
-        if not entry.is_dir():
+        if not entry.is_dir() or entry.name == RUN_TRASH_DIRNAME:
             continue
 
         run_id = entry.name
@@ -1566,10 +1613,10 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 pass
 
         try:
-            shutil.rmtree(entry)
+            trashed = move_run_to_trash(run_id, entry)
             with _RUN_LOCK:
                 _RUN_PROCESSES.pop(run_id, None)
-            return {"ok": True, "action": "delete", "run_id": run_id}
+            return {"ok": True, "action": "delete", "run_id": run_id, "trashPath": str(trashed)}
         except OSError as e:
             return {"ok": False, "error": str(e), "status_code": 500}
 
@@ -1577,7 +1624,50 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
 
 
 def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, engine_dir: Path) -> None:
-    """Monitor background simulation process, capture exit code and update status atomically."""
+    """Monitor a background run and always release it, even if finalization raises.
+
+    The watcher owns terminalization (see build_run_snapshot/list_simulation_runs),
+    so an exception here must not leave the run registered as alive or its
+    finalizer unset: the card would otherwise stay RUNNING forever and restart
+    would wait on an event that never fires.
+    """
+    try:
+        _finalize_watched_run(run_id, proc, run_dir, engine_dir)
+    except Exception as exc:
+        _record_watcher_failure(run_id, proc, run_dir, exc)
+    finally:
+        with _RUN_LOCK:
+            _RUN_PROCESSES.pop(run_id, None)
+            finalized = _RUN_FINALIZERS.pop(run_id, None)
+        if finalized is not None:
+            finalized.set()
+
+
+def _record_watcher_failure(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, exc: BaseException) -> None:
+    """Best-effort terminal FAILED status naming the unexpected watcher exception."""
+    status_file = run_dir / "status.json"
+    status_info: dict[str, Any] = {}
+    try:
+        loaded = json.loads(status_file.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            status_info = loaded
+    except Exception:
+        status_info = {}
+    status_info["status"] = "FAILED"
+    status_info["errorReason"] = f"Run watcher error: {type(exc).__name__}: {exc}"
+    try:
+        status_info["exitCode"] = proc.poll()
+    except Exception:
+        status_info.setdefault("exitCode", None)
+    status_info["endedAt"] = time.time()
+    try:
+        write_atomic_json(status_file, status_info)
+    except Exception:
+        pass
+
+
+def _finalize_watched_run(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, engine_dir: Path) -> None:
+    """Wait for the process, then validate artifacts and write the terminal status."""
     try:
         ret = proc.wait()
     except Exception:
@@ -1661,11 +1751,6 @@ def _watch_run_process(run_id: str, proc: subprocess.Popen[Any], run_dir: Path, 
         status_info["errorReason"] = error_reason
 
     write_atomic_json(status_file, status_info)
-    with _RUN_LOCK:
-        _RUN_PROCESSES.pop(run_id, None)
-        finalized = _RUN_FINALIZERS.pop(run_id, None)
-        if finalized is not None:
-            finalized.set()
 
 
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:

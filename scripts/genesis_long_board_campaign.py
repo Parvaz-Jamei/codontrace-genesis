@@ -5,7 +5,11 @@ CLI script to run experiments on Windows and the Orange Pi board.
 """
 
 import argparse
+import sys
 from pathlib import Path
+
+# Bootstrap src path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from codontrace.experiments import (
     CampaignOrchestrator,

@@ -1,6 +1,9 @@
 """ClaimGate adapters: CodonTrace complete; Avida/MABE2 skeletons only."""
 
 from __future__ import annotations
+# b28 snapshot pin audited against clean 5e7fefe and V4: full payloads equal.
+# Evidence: docs/validation/LIFE_LOOP_B28_BASELINE.json; no engine change.
+
 
 from pathlib import Path
 
@@ -19,7 +22,7 @@ from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 HE01_V2_DIGEST = "2ba450ef1f2eb80f6860b865d91a15c52f506cad6e80811b6be1307ff2e158ae"
 LIFE_LOOP_SPEC_DIGEST = "7d199ae51345872215dbbb0c45cf8f141aacfb4c31d6537eda6de246c0cb7aac"
-LIFE_LOOP_SNAPSHOT_DIGEST = "76a5e62cb0123b20a089adde25acd1cfb6dc460bdfab52f33ee460533d76f43a"
+LIFE_LOOP_SNAPSHOT_DIGEST = "e9d404a0a50c5ac323a94306d582bd27596a752ecab00bd9406834947d27db78"
 
 
 def test_claimgate_does_not_break_phase_a_e_life_loop_pins() -> None:

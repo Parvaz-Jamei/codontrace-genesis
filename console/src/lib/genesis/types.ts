@@ -1,8 +1,11 @@
 export type Lang = "en" | "fa";
-export type View = "home" | "jobs" | "chat" | "gates" | "scripts" | "host" | "settings";
+export type View =
+  "home" | "jobs" | "chat" | "gates" | "scripts" | "host" | "settings";
 export type JobKind = "engine" | "gates" | "script";
-export type JobStatus = "queued" | "running" | "paused" | "stopped" | "archived" | "failed";
-export type PresetId = "smoke" | "standard" | "overnight" | "expedition" | "custom";
+export type JobStatus =
+  "queued" | "running" | "paused" | "stopped" | "archived" | "failed";
+export type PresetId =
+  "smoke" | "standard" | "overnight" | "expedition" | "custom";
 
 export type HostProfile = {
   platform: string;
@@ -62,6 +65,7 @@ export type Job = {
   diagnostics?: string;
   gateFile?: string;
   scriptName?: string;
+  launchParams?: Record<string, unknown>;
   isDemo?: boolean;
   serverManaged?: boolean;
   pct?: number;
@@ -71,10 +75,11 @@ export type Job = {
   snapshot?: RunSnapshotV2;
   capabilities?: CapabilitiesV2;
   revision?: number;
-  pendingAction?: "pause" | "resume" | "stop" | "delete" | null;
+  pendingAction?: "pause" | "resume" | "stop" | "delete" | "restart" | null;
   pendingActionTime?: number;
   actionError?: string | null;
   engineBackend?: string;
+  telemetry?: Record<string, unknown>[];
   isFrontierReference?: boolean;
   modelScope?: string;
   modelBoundaryNotice?: string;
@@ -144,6 +149,8 @@ export type ChatMessage = {
   model?: string;
   durationMs?: number;
   fallback?: boolean;
+  artifacts?: ScientificArtifact[];
+  toolCalls?: unknown[];
 };
 
 export type Thread = {
@@ -169,4 +176,50 @@ export type BenchSettings = {
   followLog: boolean;
   density: "comfortable" | "compact";
   model: string;
+};
+
+export type ScientificChartSpec = {
+  chart_type: "line" | "step" | "area" | "scatter" | "bubble" | "heatmap" | "bar" | "histogram" | "ecdf" | "box" | "violin" | "density" | "errorbar";
+  title: string;
+  x_label?: string;
+  y_label?: string;
+  series?: { name: string; points: number[][] }[];
+  matrix?: (number | null)[][];
+  palette?: "accessible" | "cool" | "warm" | "mono";
+  x_scale?: "linear" | "log";
+  y_scale?: "linear" | "log";
+  bin_width?: number;
+  color_min?: number;
+  color_max?: number;
+  boxes?: { name: string; index: number; q1: number; median: number; q3: number; low: number; high: number; n: number; outliers: number[] }[];
+  row_labels?: string[];
+  column_labels?: string[];
+};
+export type ScientificArtifact = {
+  kind: "chart" | "math" | "code" | "table";
+  spec?: ScientificChartSpec;
+  latex?: string;
+  language?: string;
+  text?: string;
+  columns?: string[];
+  rows?: unknown[][];
+  provenance?: Record<string, unknown>;
+};
+export type ScientificTool = {
+  requires_project_opt_in?: boolean;
+  name: string;
+  title: string;
+  description: string;
+  parameters: {
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: unknown[];
+        default?: unknown;
+      }
+    >;
+    required?: string[];
+  };
 };

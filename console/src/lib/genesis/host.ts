@@ -1,3 +1,4 @@
+import { authorizedFetch } from "./api-access";
 import { ENGINE_IDENTITY } from "./catalog";
 import type { CapabilitiesV2, ChatStatus, HostProfile, ReleaseReport, RunSnapshotV2 } from "./types";
 
@@ -98,6 +99,8 @@ export async function sendChatMessage(
   model?: string;
   duration_ms?: number;
   fallback?: boolean;
+  artifacts?: import("./types").ScientificArtifact[];
+  tool_calls?: unknown[];
 }> {
   const requestId =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -108,7 +111,7 @@ export async function sendChatMessage(
     signal.addEventListener(
       "abort",
       () => {
-        void fetch("/api/chat/abort", {
+        void authorizedFetch("/api/chat/abort", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ requestId }),
@@ -118,13 +121,13 @@ export async function sendChatMessage(
     );
   }
 
-  const res = await fetch("/api/chat", {
+  const res = await authorizedFetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, lang, jobContext, jobId, model, requestId }),
     signal,
   });
-  if (!res.ok) throw new Error(String(res.status));
+  if (!res.ok) throw new Error(res.status === 403 ? "API access denied: set the chat/tools access token in Settings" : String(res.status));
   return (await res.json()) as {
     reply: string;
     source: "llm" | "analyst";
@@ -132,6 +135,8 @@ export async function sendChatMessage(
     model?: string;
     duration_ms?: number;
     fallback?: boolean;
+  artifacts?: import("./types").ScientificArtifact[];
+  tool_calls?: unknown[];
   };
 }
 
@@ -193,14 +198,17 @@ export type LaunchRunPayload = {
   scriptName?: string;
 };
 
-export async function fetchSimulationRuns(): Promise<ServerRunSummary[]> {
+export async function fetchSimulationRuns(): Promise<ServerRunSummary[] | null> {
   try {
     const res = await fetch("/api/runs");
-    if (res.ok) return (await res.json()) as ServerRunSummary[];
+    if (res.ok) {
+      const rows: unknown = await res.json();
+      return Array.isArray(rows) && rows.every(row => row && typeof row.id === "string") ? rows as ServerRunSummary[] : null;
+    }
   } catch {
     // fallback
   }
-  return [];
+  return null;
 }
 
 export async function fetchRunDetails(runId: string): Promise<ServerRunDetails | null> {
@@ -230,18 +238,19 @@ export async function launchServerRun(
 
 export async function sendServerRunAction(
   runId: string,
-  action: "pause" | "resume" | "stop" | "delete",
-): Promise<{ ok: boolean; error?: string }> {
+  action: "pause" | "resume" | "stop" | "delete" | "restart",
+  requestId: string = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `action_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+): Promise<{ ok: boolean; error?: string; runId?: string }> {
   const res = await fetch("/api/runs/action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ runId, action }),
+    body: JSON.stringify({ runId, action, requestId }),
   });
-  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; runId?: string };
   if (!res.ok || !data.ok) {
     throw new Error(data.error || `Failed action ${action} (status ${res.status})`);
   }
-  return { ok: true };
+  return { ok: true, runId: data.runId };
 }
 
 export async function fetchScripts(): Promise<unknown[]> {

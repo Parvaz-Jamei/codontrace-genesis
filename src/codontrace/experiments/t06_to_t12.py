@@ -11,6 +11,7 @@ from codontrace.experiments.models import (
     AssessmentStatus,
     CompletionSummary,
     ExecutionTrack,
+    validate_reference_run,
 )
 
 
@@ -32,6 +33,7 @@ class GenericRunner:
         self.population_size = population_size
         self.generations = generations
         self.track = track
+        validate_reference_run(self.population_size, generations, track)
 
     def run(self) -> CompletionSummary:
         return CompletionSummary(
@@ -43,7 +45,7 @@ class GenericRunner:
             status="STUB",
             stop_reason="NOT_IMPLEMENTED",
             scientific_assessment=AssessmentStatus.UNASSESSED,
-            primary_endpoint_value=0.0,
+            primary_endpoint_value=None,
             summary_metrics={"arm": self.arm, "stub": True},
         )
 

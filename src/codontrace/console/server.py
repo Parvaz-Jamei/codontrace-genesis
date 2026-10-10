@@ -336,6 +336,20 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         self._respond(include_body=True)
 
+    def _authorize_inference(self, *, include_body: bool = True) -> bool:
+        """Usage credentials are distinct from credentials granting key administration."""
+        import hmac
+        token = os.environ.get("CODONTRACE_API_TOKEN", "").strip()
+        local = (_from_this_machine(self.client_address[0])
+                 and not self.headers.get("X-Forwarded-For")
+                 and not self.headers.get("X-Real-IP"))
+        supplied = self.headers.get("Authorization", "")
+        allowed = hmac.compare_digest(supplied.encode("utf-8"), ("Bearer " + token).encode("utf-8")) if token else local
+        if not allowed:
+            self._send(403, "application/json", b'{"ok":false,"error":"API access requires CODONTRACE_API_TOKEN or a direct local connection"}',
+                       include_body=include_body, cache="no-store")
+        return allowed
+
     def _is_origin_allowed(self) -> bool:
         """Validate request Origin to prevent cross-origin mutation attacks."""
         origin = self.headers.get("Origin")
@@ -465,6 +479,42 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         assert body_json is not None
 
+        if path == "/api/providers":
+            import hmac
+            from codontrace.console import providers
+            token = os.environ.get("CODONTRACE_SETTINGS_TOKEN", "").strip()
+            supplied = self.headers.get("Authorization", "")
+            local = _from_this_machine(self.client_address[0]) and not self.headers.get("X-Forwarded-For") and not self.headers.get("X-Real-IP")
+            authorized = hmac.compare_digest(supplied.encode("utf-8"), ("Bearer " + token).encode("utf-8")) if token else local
+            if not authorized:
+                self._send(403, "application/json", b'{"ok":false,"error":"Provider settings require a local caller or CODONTRACE_SETTINGS_TOKEN"}', include_body=True, cache="no-store")
+                return
+            try:
+                provider = body_json.get("provider")
+                action = body_json.get("action", "refresh")
+                if action == "save":
+                    providers.configure(provider, api_key=body_json.get("api_key"))
+                    payload = providers.refresh(provider)
+                elif action == "disconnect":
+                    payload = providers.configure(provider, disconnect=True)
+                elif action == "refresh":
+                    payload = providers.refresh(provider)
+                else:
+                    raise providers.ProviderError("unknown_provider_action")
+                code = 200
+            except providers.ProviderError as exc:
+                payload = {"ok":False,"error":str(exc)}
+                code = 400
+            except (OSError, TypeError, ValueError):
+                payload = {"ok":False,"error":"provider_settings_unavailable"}
+                code = 400
+            self._send(code, "application/json", json.dumps(payload, allow_nan=False).encode(), include_body=True, cache="no-store")
+            return
+
+        if path in ("/api/chat", "/api/chat/abort", "/api/chat/cancel", "/api/chat/endpoint", "/api/science/tools"):
+            if not self._authorize_inference():
+                return
+
         if path in ("/api/chat/abort", "/api/chat/cancel"):
             req_id = str(body_json.get("request_id") or body_json.get("requestId") or "").strip()
             if not req_id:
@@ -484,6 +534,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 include_body=True,
                 cache="no-store",
             )
+            return
+
+        if path == "/api/science/tools":
+            from codontrace.console.science_tools import invoke_tool
+            result = invoke_tool(str(body_json.get("tool") or ""), body_json.get("args"),
+                                 allow_cross_project=body_json.get("allow_cross_project") is True)
+            self._send(200 if result["ok"] else 400, "application/json; charset=utf-8",
+                       json.dumps(result, allow_nan=False).encode("utf-8"), include_body=True, cache="no-store")
             return
 
         if path == "/api/chat":
@@ -547,7 +605,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if path == "/api/runs/action":
             run_id = str(body_json.get("runId") or body_json.get("run_id") or "")
             action = str(body_json.get("action", ""))
-            res = manage_run_action(run_id, action)
+            res = manage_run_action(run_id, action, request_id=body_json.get("requestId") or body_json.get("request_id"))
             code = int(res.get("status_code", 200 if res.get("ok") else 400))
             self._send(
                 code,
@@ -679,10 +737,27 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             payload = json.dumps(state, allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
+        if path == "/api/science/tools":
+            if not self._authorize_inference(include_body=include_body):
+                return
+            from codontrace.console.science_tools import tool_catalog
+            self._send(200, "application/json; charset=utf-8", json.dumps({"tools": tool_catalog()}, allow_nan=False).encode("utf-8"),
+                       include_body=include_body, cache="no-store")
+            return
+
         if path == "/api/chat/status":
             payload = json.dumps(check_llm_status(), allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
             return
+        if path == "/api/providers":
+            from codontrace.console import providers
+            try:
+                payload = providers.provider_catalog()
+            except providers.ProviderError as exc:
+                payload = {"ok":False,"error":str(exc),"providers":[]}
+            self._send(200, "application/json", json.dumps(payload, allow_nan=False).encode(), include_body=include_body, cache="no-store")
+            return
+
         if path == "/api/models":
             payload = json.dumps(list_discovered_models(), allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")

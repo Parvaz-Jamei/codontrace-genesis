@@ -24,19 +24,20 @@ import type {
 import { zipStore } from "./zip";
 
 const PREVIEW_HORIZON = 2;
-let isSyncing = false;
+let syncInFlight: Promise<void> | null = null;
 
 export function mapServerStatus(st: string): Job["status"] {
   switch (st.toUpperCase()) {
     case "RUNNING":
-    case "STARTING":
-    case "RESUMING":
-      return "running";
-    case "PAUSED":
     case "PAUSING":
+    case "STOPPING":
+      return "running";
+    case "STARTING":
+      return "queued";
+    case "PAUSED":
+    case "RESUMING":
       return "paused";
     case "STOPPED":
-    case "STOPPING":
     case "CANCELLED":
     case "STALE":
       return "stopped";
@@ -75,6 +76,7 @@ type BenchState = {
   removeJob: (id: string) => void;
   addScript: (name: string, note: string, body: string) => string | null;
   send: (threadId: string, text: string) => void;
+  appendToolResult: (threadId: string, text: string, artifacts: import("./types").ScientificArtifact[]) => void;
   togglePin: (threadId: string) => void;
   clearThread: (threadId: string) => void;
   clearChats: () => void;
@@ -95,6 +97,7 @@ export type RunInput = {
   scriptName?: string;
   track?: "engine" | "reference" | "contracts";
   isDemo?: boolean;
+  launchParams?: Record<string, unknown>;
 };
 
 const baseSettings: BenchSettings = {
@@ -182,7 +185,7 @@ export const useBench = create<BenchState>()(
           : input.preset !== "custom" && PRESETS[input.preset]
             ? PRESETS[input.preset].seeds.join(", ")
             : "16001";
-        const res = await launchServerRun({
+        const launchParams = input.launchParams ? { ...input.launchParams, title: input.title } : {
           title: input.title,
           generations: input.generations,
           workers: input.workers,
@@ -192,7 +195,8 @@ export const useBench = create<BenchState>()(
           cores: input.cores.length ? input.cores : null,
           script: input.scriptName,
           scriptName: input.scriptName,
-        });
+        };
+        const res = await launchServerRun(launchParams);
         if (!res.ok || !res.runId) {
           throw new Error(res.error || "Failed to launch run");
         }
@@ -210,8 +214,8 @@ export const useBench = create<BenchState>()(
           cores: input.cores,
           status: "running",
           cursor: 0,
-          totalSteps: 6,
-          logs: [`starting execution on board/host · ${input.track || "engine"} · red_queen_proved=false`],
+          totalSteps: Math.max(1, parsedSeeds.length * input.generations),
+          logs: [`starting execution on board/host · ${input.track || "engine"} · scientific assessment pending`],
           createdAt: Date.now(),
           note: input.track || "engine",
 
@@ -222,11 +226,12 @@ export const useBench = create<BenchState>()(
           pct: 0,
           gateFile: input.gateFile,
           scriptName: input.scriptName,
+          launchParams,
         };
         const thread = emptyThread(runId, initialJob.title);
         set({
-          jobs: [initialJob, ...get().jobs],
-          threads: [thread, ...get().threads],
+          jobs: [initialJob, ...get().jobs.filter(job => job.id !== runId)],
+          threads: [thread, ...get().threads.filter(item => item.id !== thread.id)],
           selectedJobId: runId,
           activeThreadId: thread.id,
           view: "jobs",
@@ -235,30 +240,35 @@ export const useBench = create<BenchState>()(
         return runId;
       },
       syncServerRuns: async () => {
-        if (isSyncing) return;
-        isSyncing = true;
+        if (syncInFlight) {
+          await syncInFlight;
+          return get().syncServerRuns();
+        }
+        let finishSync!: () => void;
+        syncInFlight = new Promise<void>(resolve => { finishSync = resolve; });
         try {
           const serverRuns = await fetchSimulationRuns();
-          if (!serverRuns || !serverRuns.length) return;
+          if (serverRuns === null) return;
 
-          const selectedId = get().selectedJobId;
-          let details: Awaited<ReturnType<typeof fetchRunDetails>> | null = null;
-          if (selectedId) {
-            const currentSelected = get().jobs.find((j) => j.id === selectedId);
-            if (currentSelected && !currentSelected.isDemo) {
-              details = await fetchRunDetails(selectedId);
-            }
+          const detailsById = new Map<string, NonNullable<Awaited<ReturnType<typeof fetchRunDetails>>>>();
+          // Bounded concurrency; each detail is bound by its own run ID, never selection.
+          for (let offset = 0; offset < serverRuns.length; offset += 4) {
+            await Promise.all(serverRuns.slice(offset, offset + 4).map(async (run) => {
+              const detail = await fetchRunDetails(run.id);
+              if (detail && detail.id === run.id) detailsById.set(run.id, detail);
+            }));
           }
 
           set((state) => {
-            let updatedJobs = [...state.jobs];
+            const presentIds = new Set(serverRuns.map(run => run.id));
+            let updatedJobs = state.jobs.filter(job => !job.serverManaged || job.isDemo || presentIds.has(job.id));
             const newThreads = [...state.threads];
 
             for (const sRun of serverRuns) {
               const existingIndex = updatedJobs.findIndex((j) => j.id === sRun.id);
               let mappedStatus = mapServerStatus(sRun.status);
               const sRunPct = typeof sRun.pct === "number" && Number.isFinite(sRun.pct) ? sRun.pct : undefined;
-              const totalSteps = sRun.totalSeeds || 12;
+              const totalSteps = sRun.snapshot?.progress?.total ?? sRun.totalSeeds ?? 0;
               const completedSeeds = typeof sRun.completedSeeds === "number" && Number.isFinite(sRun.completedSeeds)
                 ? sRun.completedSeeds
                 : (sRun.status === "COMPLETED" ? totalSteps : 0);
@@ -277,23 +287,9 @@ export const useBench = create<BenchState>()(
                   continue;
                 }
 
-                // Optimistic action grace period: Do not regress pending UI actions
-                if (existing.pendingAction && existing.pendingActionTime) {
-                  const elapsedPending = Date.now() - existing.pendingActionTime;
-                  if (elapsedPending < 5000) {
-                    if (existing.pendingAction === "pause" && mappedStatus !== "paused") {
-                      mappedStatus = existing.status;
-                    } else if (existing.pendingAction === "resume" && mappedStatus !== "running") {
-                      mappedStatus = existing.status;
-                    } else if (existing.pendingAction === "stop" && mappedStatus !== "stopped") {
-                      mappedStatus = existing.status;
-                    } else {
-                      existing.pendingAction = null;
-                    }
-                  } else {
-                    existing.pendingAction = null;
-                  }
-                }
+                const requestedTarget = {pause:"PAUSED",resume:"RUNNING",stop:"STOPPED"}[existing.pendingAction as "pause"|"resume"|"stop"];
+                const acknowledged = requestedTarget && (sRun.snapshot?.state ?? sRun.status).toUpperCase() === requestedTarget;
+                const pendingAction = acknowledged ? null : existing.pendingAction;
 
                 const logs = sRun.recentLogs?.length ? sRun.recentLogs : existing.logs;
                 updatedJobs[existingIndex] = {
@@ -301,13 +297,13 @@ export const useBench = create<BenchState>()(
                   title: sRun.title || existing.title,
                   status: mappedStatus,
                   pct: sRunPct ?? existing.pct,
-                  totalSteps: sRun.totalSeeds || existing.totalSteps,
-                  cursor: sRun.status === "COMPLETED" ? (sRun.totalSeeds || existing.totalSteps) : completedSeeds,
+                  totalSteps: sRun.snapshot?.progress?.total ?? sRun.totalSeeds ?? existing.totalSteps,
+                  cursor: sRun.snapshot?.progress?.done ?? (sRun.status === "COMPLETED" ? totalSteps : completedSeeds),
                   logs,
                   snapshot: sRun.snapshot ?? existing.snapshot,
                   capabilities: sRun.capabilities ?? existing.capabilities,
                   revision: sameSession ? Math.max(incomingRev, existingRev) : incomingRev,
-                  pendingAction: existing.pendingAction,
+                  pendingAction,
                   pendingActionTime: existing.pendingActionTime,
                 };
               } else {
@@ -315,9 +311,9 @@ export const useBench = create<BenchState>()(
                 const rawSeeds = sRunParams?.seeds;
                 const initialSeeds = Array.isArray(rawSeeds) && rawSeeds.length > 0 && rawSeeds.every((s: any) => typeof s === "number")
                   ? (rawSeeds as number[])
-                  : [16001];
-                const initialGenerations = typeof sRunParams?.generations === "number" ? sRunParams.generations : 100;
-                const initialWorkers = typeof sRunParams?.workers === "number" ? sRunParams.workers : (sRun.snapshot?.workers_expected || 2);
+                  : [];
+                const initialGenerations = typeof sRunParams?.generations === "number" ? sRunParams.generations : 0;
+                const initialWorkers = typeof sRunParams?.workers === "number" ? sRunParams.workers : (sRun.snapshot?.workers_expected ?? 0);
                 const initialCores = Array.isArray(sRunParams?.cores) ? (sRunParams.cores as number[]) : [];
                 const initialScriptName = typeof sRunParams?.scriptName === "string" ? sRunParams.scriptName : undefined;
 
@@ -333,7 +329,7 @@ export const useBench = create<BenchState>()(
                   cores: initialCores,
                   scriptName: initialScriptName,
                   status: mappedStatus,
-                  cursor: sRun.status === "COMPLETED" ? totalSteps : completedSeeds,
+                  cursor: sRun.snapshot?.progress?.done ?? (sRun.status === "COMPLETED" ? totalSteps : completedSeeds),
                   totalSteps,
                   logs: sRun.recentLogs || [],
                   createdAt: Math.round((sRun.mtime || Date.now() / 1000) * 1000),
@@ -356,8 +352,8 @@ export const useBench = create<BenchState>()(
             const serverRunIds = new Set(serverRuns.map((r) => r.id));
             updatedJobs = updatedJobs.filter((j) => !j.serverManaged || serverRunIds.has(j.id));
 
-            if (selectedId && details) {
-              const idx = updatedJobs.findIndex((j) => j.id === selectedId);
+            for (const [detailId, details] of detailsById) {
+              const idx = updatedJobs.findIndex((j) => j.id === detailId);
               if (idx >= 0) {
                 const liveLogs = details.liveLogs?.length ? details.liveLogs : details.consoleLogs || [];
                 const detailsPct =
@@ -405,51 +401,27 @@ export const useBench = create<BenchState>()(
                 const bnd = details.executionBoundary ?? (details.manifest?.executionBoundary as any);
 
                 if (sameSession && curRev > 0 && dRev > 0 && dRev < curRev) {
-                  // Stale details response: do not overwrite newer list state with stale details
-                  updatedJobs[idx] = {
-                    ...updatedJobs[idx],
-                    seeds: manifestSeeds,
-                    generations: manifestGenerations,
-                    workers: manifestWorkers,
-                    cores: manifestCores,
-                    scriptName: manifestScriptName,
-                    execution: details.execution ?? updatedJobs[idx].execution,
-                    diagnosticsData: details.diagnostics ?? updatedJobs[idx].diagnosticsData,
-                    engineBackend: bnd?.engineBackend ?? (details.statusData?.engineBackend as string) ?? updatedJobs[idx].engineBackend,
-                    isFrontierReference: Boolean(bnd?.isFrontierReference ?? details.statusData?.isFrontierReference ?? updatedJobs[idx].isFrontierReference),
-                    modelScope: bnd?.modelScope ?? updatedJobs[idx].modelScope,
-                    modelBoundaryNotice: bnd?.modelBoundaryNotice ?? updatedJobs[idx].modelBoundaryNotice,
-                    hypothesisAssessment: details.hypothesis_assessment ?? (details.execution?.hypothesis_assessment as any) ?? updatedJobs[idx].hypothesisAssessment,
-                  };
+                  // Keep the entire newer snapshot, including scientific evidence.
                 } else {
                   let detStatus = mapServerStatus(details.status);
-                  if (updatedJobs[idx].pendingAction && updatedJobs[idx].pendingActionTime) {
-                    const elapsedPending = Date.now() - (updatedJobs[idx].pendingActionTime || 0);
-                    if (elapsedPending < 5000) {
-                      if (updatedJobs[idx].pendingAction === "pause" && detStatus !== "paused") {
-                        detStatus = updatedJobs[idx].status;
-                      } else if (updatedJobs[idx].pendingAction === "resume" && detStatus !== "running") {
-                        detStatus = updatedJobs[idx].status;
-                      } else if (updatedJobs[idx].pendingAction === "stop" && detStatus !== "stopped") {
-                        detStatus = updatedJobs[idx].status;
-                      }
-                    }
-                  }
-
                   updatedJobs[idx] = {
                     ...updatedJobs[idx],
                     title: details.title || updatedJobs[idx].title,
                     status: detStatus,
+                    pendingAction: ({pause:"PAUSED",resume:"RUNNING",stop:"STOPPED"}[updatedJobs[idx].pendingAction as "pause"|"resume"|"stop"] === (details.snapshot?.state ?? details.status).toUpperCase()) ? null : updatedJobs[idx].pendingAction,
                     pct: detailsPct ?? updatedJobs[idx].pct,
                     seeds: manifestSeeds,
                     generations: manifestGenerations,
                     workers: manifestWorkers,
                     cores: manifestCores,
                     scriptName: manifestScriptName,
+                    launchParams: rawParams && typeof rawParams === "object" ? { ...(rawParams as Record<string,unknown>), scriptName: manifestScriptName } : updatedJobs[idx].launchParams,
+                    telemetry: Array.isArray((details as any).telemetry) ? (details as any).telemetry : updatedJobs[idx].telemetry,
                     logs: liveLogs.length ? liveLogs : updatedJobs[idx].logs,
-                    execution: details.execution,
-                    diagnosticsData: details.diagnostics,
-                    cursor: details.status === "COMPLETED" ? updatedJobs[idx].totalSteps : updatedJobs[idx].cursor,
+                    execution: details.execution ?? updatedJobs[idx].execution,
+                    diagnosticsData: details.diagnostics ?? updatedJobs[idx].diagnosticsData,
+                    cursor: details.snapshot?.progress?.done ?? updatedJobs[idx].cursor,
+                    totalSteps: details.snapshot?.progress?.total ?? updatedJobs[idx].totalSteps,
                     snapshot: details.snapshot ?? updatedJobs[idx].snapshot,
                     capabilities: details.capabilities ?? updatedJobs[idx].capabilities,
                     revision: sameSession ? Math.max(dRev, curRev) : dRev,
@@ -463,12 +435,13 @@ export const useBench = create<BenchState>()(
               }
             }
 
-            return { jobs: updatedJobs, threads: newThreads };
+            return { jobs: updatedJobs, threads: newThreads, selectedJobId: state.selectedJobId && !updatedJobs.some(job => job.id === state.selectedJobId) ? null : state.selectedJobId };
           });
         } catch {
           // Ignore transient network errors
         } finally {
-          isSyncing = false;
+          syncInFlight = null;
+          finishSync();
         }
       },
       loadEngineCheck: () => {
@@ -600,6 +573,8 @@ export const useBench = create<BenchState>()(
               model: res.model,
               durationMs: res.duration_ms,
               fallback: res.fallback,
+              artifacts: (res as typeof res & {artifacts?: import("./types").ScientificArtifact[]}).artifacts,
+              toolCalls: (res as typeof res & {tool_calls?: unknown[]}).tool_calls,
             };
             set({
               threads: get().threads.map((item) =>
@@ -648,6 +623,9 @@ export const useBench = create<BenchState>()(
               ),
             });
           });
+      },
+      appendToolResult: (threadId, text, artifacts) => {
+        set({ threads: get().threads.map((thread) => thread.id === threadId ? { ...thread, updatedAt: Date.now(), messages: [...thread.messages, { id: uid(), role: "assistant" as const, text, artifacts, at: Date.now(), source: "analyst" as const }] } : thread) });
       },
       abortChat: (threadId) => {
         if (activeChatAbortController) {
@@ -741,6 +719,8 @@ export const useBench = create<BenchState>()(
               model: res.model,
               durationMs: res.duration_ms,
               fallback: res.fallback,
+              artifacts: (res as typeof res & {artifacts?: import("./types").ScientificArtifact[]}).artifacts,
+              toolCalls: (res as typeof res & {tool_calls?: unknown[]}).tool_calls,
             };
             set({
               threads: get().threads.map((item) =>
@@ -873,6 +853,12 @@ export function nextLine(job: Job) {
 }
 
 export function seedSlots(job: Job) {
+  if (!job.isDemo) return job.seeds.map(seed => {
+    const records = (job.telemetry ?? []).filter(row => row.seed === seed || (row.seed === undefined && job.seeds.length === 1));
+    const generations = records.map(row => Number(row.generation)).filter(Number.isFinite);
+    const latest = records.at(-1);
+    return {seed, done: generations.length ? Math.max(...generations) : 0, total:job.generations, state:records.length ? "observed" : "unknown", arm:typeof latest?.arm === "string" ? latest.arm : "—"};
+  });
   const span = Math.max(1, job.previewGenerations * ARMS.length);
   return job.seeds.map((seed, index) => {
     const start = index * span;

@@ -13,6 +13,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from codontrace.console.chat import _generate_analyst_reply
 from codontrace.console.evaluator import evaluate_run_hypothesis
 
@@ -56,7 +58,7 @@ def test_evaluator_invalid_due_to_failures_or_replays() -> None:
     assert res_replay["verdict"] == "invalid"
 
 
-def test_evaluator_oee_novelty_supported_and_not_supported() -> None:
+def test_evaluator_oee_novelty_metrics_are_exploratory() -> None:
     # OEE novelty with slope >= 0.1
     res_supp = evaluate_run_hypothesis({
         "status": "COMPLETED",
@@ -70,8 +72,9 @@ def test_evaluator_oee_novelty_supported_and_not_supported() -> None:
             },
         },
     })
-    assert res_supp["verdict"] == "supported"
-    assert res_supp["controls_passed"] is True
+    assert res_supp["verdict"] == "inconclusive"
+    assert res_supp["confidence"] is None
+    assert res_supp["controls_passed"] is False
 
     # OEE novelty with slope < 0.1 (bounded cycling)
     res_not_supp = evaluate_run_hypothesis({
@@ -86,7 +89,7 @@ def test_evaluator_oee_novelty_supported_and_not_supported() -> None:
             },
         },
     })
-    assert res_not_supp["verdict"] == "not_supported"
+    assert res_not_supp["verdict"] == "inconclusive"
 
     # OEE novelty premature halt
     res_inconclusive = evaluate_run_hypothesis({
@@ -104,7 +107,7 @@ def test_evaluator_oee_novelty_supported_and_not_supported() -> None:
     assert res_inconclusive["verdict"] == "inconclusive"
 
 
-def test_evaluator_mls_price_supported() -> None:
+def test_evaluator_mls_price_coefficient_is_descriptive() -> None:
     res_mls = evaluate_run_hypothesis({
         "status": "COMPLETED",
         "execution": {
@@ -116,10 +119,11 @@ def test_evaluator_mls_price_supported() -> None:
             },
         },
     })
-    assert res_mls["verdict"] == "supported"
+    assert res_mls["verdict"] == "inconclusive"
+    assert res_mls["confidence"] is None
 
 
-def test_evaluator_functional_information_supported() -> None:
+def test_evaluator_functional_information_point_estimate_is_descriptive() -> None:
     res_fi = evaluate_run_hypothesis({
         "status": "COMPLETED",
         "execution": {
@@ -131,7 +135,8 @@ def test_evaluator_functional_information_supported() -> None:
             },
         },
     })
-    assert res_fi["verdict"] == "supported"
+    assert res_fi["verdict"] == "inconclusive"
+    assert res_fi["confidence"] is None
 
 
 def test_evaluator_red_queen_timeshift() -> None:
@@ -154,7 +159,8 @@ def test_evaluator_red_queen_timeshift() -> None:
         },
         "execution": {"complete": True, "diagnostics_complete": True},
     })
-    assert res_diag_supp["verdict"] == "supported"
+    assert res_diag_supp["verdict"] == "inconclusive"
+    assert res_diag_supp["confidence"] is None
 
     # Completed diagnostics with negative signals
     res_diag_neg = evaluate_run_hypothesis({
@@ -167,7 +173,7 @@ def test_evaluator_red_queen_timeshift() -> None:
         },
         "execution": {"complete": True, "diagnostics_complete": True},
     })
-    assert res_diag_neg["verdict"] == "not_supported"
+    assert res_diag_neg["verdict"] == "inconclusive"
 
 
 def test_chat_analyst_reply_evaluates_dynamically() -> None:
@@ -189,6 +195,7 @@ def test_chat_analyst_reply_evaluates_dynamically() -> None:
             "challenge": "OEE_NOVELTY",
             "total_generations": 10000,
             "summary": {"activity_slope": 0.25, "total_generations": 10000},
+            "hypothesis_assessment": {"verdict": "supported", "controls_passed": True, "confidence": None, "protocol": "verified_external_protocol"},
         },
     }
     rep_supp = _generate_analyst_reply("What is the hypothesis verdict for this run?", lang="en", job_context=supp_context, job_id=None)
@@ -232,3 +239,43 @@ def test_manifest_boundary_classification(tmp_path: Path, monkeypatch: Any) -> N
     assert manifest_f["executionBoundary"]["isFrontierReference"] is True
     assert manifest_f["executionBoundary"]["isGenesisEngine"] is False
     assert details_frontier["statusData"]["engineBackend"] == "frontier_reference_model"
+
+
+@pytest.mark.parametrize("contrast", [1.0, -1.0, 0.0])
+def test_raw_time_shift_sign_cannot_create_confirmatory_verdict(contrast: float) -> None:
+    assessment = evaluate_run_hypothesis({"status": "COMPLETED", "execution": {"complete": True, "diagnostics_complete": True},
+        "diagnostics": {"by_seed": [{"seed": 1, "matrices": [{"mean_contrast": contrast}]}, {"seed": 1, "matrices": [{"mean_contrast": contrast}]}]}})
+    assert assessment["verdict"] == "inconclusive"
+    assert assessment["confidence"] is None
+    assert assessment["controls_passed"] is False
+    assert assessment["evidence_summary"]["independent_seeds"] == 1
+
+
+@pytest.mark.parametrize("verdict", ["supported", "not_supported"])
+def test_valid_precomputed_confirmatory_assessment_is_accepted(verdict: str) -> None:
+    payload = {"status": "COMPLETED", "execution": {"complete": True, "hypothesis_assessment": {
+        "verdict": verdict, "confidence": None, "controls_passed": True, "protocol": "registered_seed_level_analysis",
+        "evidence_summary": {"protocol_sha256": "example_fixture", "scope": "synthetic_control"}}}}
+    assert evaluate_run_hypothesis(payload)["verdict"] == verdict
+    payload["execution"]["validation_failures"] = ["archive_hash_mismatch"]
+    assert evaluate_run_hypothesis(payload)["verdict"] == "invalid"
+
+
+@pytest.mark.parametrize("invalid_contrast", [float("nan"), float("inf"), True, "0.1"])
+def test_time_shift_nonfinite_and_nonnumeric_measurements_are_invalid(invalid_contrast: Any) -> None:
+    result = evaluate_run_hypothesis({"status": "COMPLETED", "execution": {"complete": True},
+        "diagnostics": {"by_seed": [{"seed": 1, "matrices": [{"mean_contrast": invalid_contrast}]}]}})
+    assert result["verdict"] == "invalid"
+    assert result["confidence"] is None
+
+
+def test_missing_metrics_are_not_synthesized_as_zero() -> None:
+    result = evaluate_run_hypothesis({"status": "COMPLETED", "execution": {"complete": True, "challenge": "MLS_PRICE", "summary": {}}})
+    assert result["verdict"] == "inconclusive"
+    assert result["evidence_summary"]["between_term"] is None
+    assert result["confidence"] is None
+
+
+def test_completion_string_cannot_accept_confirmatory_assessment() -> None:
+    result = evaluate_run_hypothesis({"status": "COMPLETED", "execution": {"complete": "false", "hypothesis_assessment": {"verdict": "supported", "controls_passed": True}}})
+    assert result["verdict"] == "invalid"

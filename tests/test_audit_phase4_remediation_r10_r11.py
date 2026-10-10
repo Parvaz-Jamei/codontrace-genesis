@@ -289,12 +289,12 @@ def test_r10_hazen_evaluator_rejects_unhedged_discovery_on_zero_success() -> Non
     assessment = evaluate_run_hypothesis(zero_success_run)
     # Evaluator must NOT unreservedly declare supported
     assert assessment["verdict"] == "inconclusive"
-    assert assessment["confidence"] <= 0.60
-    assert assessment["controls_passed"] is True
+    assert assessment["confidence"] is None
+    assert assessment["controls_passed"] is False
     assert assessment["evidence_summary"]["censored"] is True
-    assert assessment["evidence_summary"]["bound_type"] == "upper_bound"
+    assert assessment["evidence_summary"]["bound_type"] == "lower_bound"
     assert assessment["evidence_summary"]["zero_success"] is True
-    assert "censored upper bound" in assessment["rationale"].lower()
+    assert "censored lower information bound" in assessment["rationale"].lower()
 
 
 def test_r10_hazen_evaluator_distinguishes_point_estimate_from_censored_bound() -> None:
@@ -316,8 +316,8 @@ def test_r10_hazen_evaluator_distinguishes_point_estimate_from_censored_bound() 
         },
     }
     eval_point = evaluate_run_hypothesis(point_est_run)
-    assert eval_point["verdict"] == "supported"
-    assert eval_point["confidence"] == 0.95
+    assert eval_point["verdict"] == "inconclusive"
+    assert eval_point["confidence"] is None
     assert eval_point["evidence_summary"]["censored"] is False
     assert eval_point["evidence_summary"]["bound_type"] == "point_estimate"
     assert eval_point["evidence_summary"]["zero_success"] is False
@@ -575,6 +575,6 @@ def test_r10_production_price_equation_unequal_demes_and_transmission() -> None:
             },
         },
     })
-    assert eval_res["verdict"] == "supported"
-    assert eval_res["controls_passed"] is True
+    assert eval_res["verdict"] == "inconclusive"
+    assert eval_res["controls_passed"] is False
     assert eval_res["evidence_summary"]["between_term"] == between_term

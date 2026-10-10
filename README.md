@@ -27,6 +27,16 @@ Domain modules sit beside that life-loop. They do not replace it. The installabl
 
 ---
 
+## Local scientific tools
+
+The local console has read-only scientific tools for recorded trajectories, seed comparisons, time-shift matrices, Price terms, mathematical output and reproduction code. Analysis is available for paused, stopped, failed and completed runs as well as live runs. A compatible local LLM can call these tools; charts and calculations run on the host. Inspecting other projects or board processes requires an explicit request.
+
+T01–T05 are standalone **REFERENCE pilots**, not Genesis VM experiments. T11 has an **ENGINE calibration** route. Unimplemented adapters remain disabled. Recorded scientific support is accepted within its validated protocol and model; historic ledger flags are not universal conclusions about later runs.
+
+Every run has its own card, counters, metrics, controls and chat thread. Pause/resume wait for worker acknowledgement. Restart (or play after stop/failure) creates a fresh run with the original parameters and preserves prior data; removing a run requires stopping it first. Default charts use that run alone; seed comparisons are explicit.
+
+See [implementation, scientific scope and local acceptance checks](docs/LOCAL_SCIENTIFIC_CONSOLE.md).
+
 ## How to read a result
 
 A number in this repository is not a conclusion. A standing verdict is one of four words, and only one of them may be attached to a test:
@@ -138,8 +148,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 |---|---|
 | Package | `codontrace` |
 | Git identity | `0.3.0b28`, the `[project].version` in `pyproject.toml`. This identity is not a release tag. |
-| Published GitHub release | [`v0.3.0b21`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b21). Already published tags are not recut. |
-| PyPI wheel | `0.3.0b20`. |
+| Published GitHub releases | [Release history](https://github.com/Parvaz-Jamei/codontrace-genesis/releases). This local patch creates no release tag. |
+| PyPI distribution | [Published package and version history](https://pypi.org/project/codontrace/). Local source changes require installation from this checkout to use the patched console. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
 | License | AGPL-3.0-or-later |
@@ -234,7 +244,7 @@ Opt-in presets (sexual recombination, fluctuating environments, multi-generation
 
 ## Console
 
-The console process does not import the evolution engine and does not set `red_queen_proved`. A launch without a script name starts `scripts/rq_full_engine_parallel.py` as a child. A script whose name contains `frontier` or `challenge` is recorded as a reference model, not as that engine. A gate row is the catalog plus the latest preview in the browser, not a pytest pass. On startup, and again every 24 hours, it asks GitHub whether a newer release exists. That query does not push. A clean checkout of this repository can fast-forward; a wheel install is left as it is.
+The console process does not import the evolution engine and does not set `red_queen_proved`. A launch without a script name starts `scripts/rq_full_engine_parallel.py` as a child. Explicit T01–T05 launches use standalone REFERENCE runners; T11 uses the ENGINE calibration adapter. Backend labels are recorded in the manifest and never inferred into proof from a script name. A gate row is the catalog plus the latest preview in the browser, not a pytest pass. On startup, and again every 24 hours, it asks GitHub whether a newer release exists. That query does not push. A clean checkout of this repository can fast-forward; a wheel install is left as it is.
 
 The same command works on Linux, Windows, and macOS after a normal install. No extra package and no Node process are required to open the page.
 
@@ -332,7 +342,7 @@ The second call stays on the biomedical port. It does not start the engine. Map:
 | [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark protocols and the claim boundary |
 | [`RELEASE_EVIDENCE.md`](RELEASE_EVIDENCE.md) | Which public wheel an evidence pack covers |
 | [`docs/campaigns/orange_pi_zero3_long_program.md`](docs/campaigns/orange_pi_zero3_long_program.md) | The T01–T12 program. A design, not a verdict. |
-| [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md) | What is connected, what is not, and the one calibration command. |
+| [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md) | What is connected, what is not, implemented REFERENCE pilot routes, the ENGINE calibration command, and remaining gaps. |
 
 The benchmark smoke is a functionality check. It is not evidence of collective intelligence.
 
@@ -344,7 +354,7 @@ python -m pytest tests/examples/test_collective_joss_evidence_benchmark_smoke.py
 
 ## Orange Pi Zero 3 long program
 
-The program is [`docs/campaigns/orange_pi_zero3_long_program.md`](docs/campaigns/orange_pi_zero3_long_program.md). It is a design and an acceptance spec. It has not been executed as a campaign, and no board rate has been measured. Readiness, the one calibration that can actually run, and the gaps are in [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md).
+The program is [`docs/campaigns/orange_pi_zero3_long_program.md`](docs/campaigns/orange_pi_zero3_long_program.md). It is a design and an acceptance spec. It has not been executed as a campaign, and no board rate has been measured. Implemented T01–T05 REFERENCE pilots, T11 ENGINE calibration, and remaining adapter gaps are documented in [`docs/campaigns/T01_T12_READINESS.md`](docs/campaigns/T01_T12_READINESS.md).
 
 ## Testing
 
@@ -355,7 +365,7 @@ python -m pytest tests/science_gates -q
 python -m pytest tests -q
 ```
 
-The full suite is what CI runs. Tiers: [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+These are broader suites; passing a focused patch suite does not imply that every repository test was run. The current CI workflow defines its required gates. Tiers: [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 
 ---
 
@@ -407,3 +417,15 @@ GitHub: [@Parvaz-Jamei](https://github.com/Parvaz-Jamei)
 ---
 
 **CodonTrace Genesis** — replayable evidence for digital evolution. A run is not a verdict.
+
+### Scientific charts: two modes
+
+**As recorded** displays the selected run with no user filters, smoothing or statistical transform. Bounded source reads and display downsampling are disclosed in provenance; this is not a full-file raw-data export. **Configurable / LLM** uses the same read-only `scientific_plot` tool and typed options for metric, seed range, generation range, exact arm, palette and axes. Available geometries: line, step, area, scatter, bubble, bar, histogram, ECDF, Tukey box, Gaussian KDE density, violin, pairwise Pearson correlation heatmap and recorded error bars. Existing measured time-shift and confusion-matrix tools remain available.
+
+Charts have SVG/PNG export, displayed-data tables, JSON with provenance, labels and line dash patterns. No arbitrary model code runs. Invalid log coordinates, absent paired measurements and fabricated intervals are rejected. KDE bandwidth and pair counts are recorded; repeated generations are not independent replicates.
+
+### OpenAI / GPT and DeepSeek
+
+Settings → Cloud models supports official OpenAI and DeepSeek APIs alongside the existing local analyst, local server and GGUF choices. Save a key or set `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` on the server, then discover/refresh account model IDs. Namespaced model choices route authenticated requests to the matching provider, including scientific tools. API errors remain explicit; they are not silently presented as local-model answers.
+
+Keys never enter model messages, browser storage or returned catalogs. Saved keys live in the server configuration file with mode 0600 on POSIX; environment keys take precedence. For remote configuration use `CODONTRACE_SETTINGS_TOKEN` or a local SSH tunnel. Remote chat/scientific tools also require `CODONTRACE_API_TOKEN`, entered separately in Settings; without it these operations accept only direct loopback clients. Use HTTPS or SSH for credential transport. Local model timeout remains 1800 seconds by default. Selecting a cloud model sends message/selected-run context to that provider and uses account API credits. Actual paid-account compatibility must be verified locally; model listing does not prove endpoint/tool support.

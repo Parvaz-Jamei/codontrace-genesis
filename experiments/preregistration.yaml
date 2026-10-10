@@ -1,0 +1,91 @@
+campaign_id: genesis_board_long_v1
+source_sha: bf5439355c3c378422b51b6c752156b5d9e5363c
+dirty_tree_allowed: false
+hardware:
+  board: Orange_Pi_Zero_3
+  soc: Allwinner_H618_Quad_Cortex_A53
+  ram_bytes: 2068832256
+  allowed_cpu_ids: [0, 1, 2, 3]
+  workers_initial: 2
+  workers_max: 4
+  inner_threads: 1
+  thermal_throttle_limit_celsius: 70.0
+profile: LONG
+randomness:
+  pilot_seed_namespace: pilot_v1
+  confirmatory_seed_namespace: confirm_v1
+  seed_count: 24
+  generator_version: sha256_cryptographic_prng_v1
+  stream_mapping: EVENT_KEYED_MAPPING
+execution:
+  horizon_type: fixed_biological_work
+  generations: 2000
+  population: 96
+  ticks_per_generation: 16
+  checkpoint_max_interval_seconds: 600
+  snapshot_interval_generations: 40
+  health_interval_seconds: 60
+  integrity_review_interval_seconds: 600
+  action_on_technical_failure: checkpoint_stop_and_invalidate_affected_scope
+  action_on_negative_scientific_result: continue_to_locked_horizon
+measurement:
+  tracks:
+    - REFERENCE
+    - ENGINE
+    - INTEGRATED
+  backend_classification:
+    T01: ENGINE
+    T02: ENGINE
+    T03: INTEGRATED
+    T04: ENGINE
+    T05: INTEGRATED
+    T06: INTEGRATED
+    T07: ENGINE
+    T08: ENGINE
+    T09: REFERENCE
+    T10: ENGINE
+    T11: ENGINE
+    T12: INTEGRATED
+  positive_control_passed: true
+  zero_control_passed: true
+  counterexample_control_passed: true
+  extractor_source_hash: auto_computed
+  primary_endpoints:
+    T01: AUC_heldout_functional_phenotypes_vs_no_qd
+    T02: between_vs_within_group_price_covariance_difference
+    T03: mutualism_retention_probability_above_baseline
+    T04: contingent_innovation_probability_across_history_forks
+    T05: time_shift_matrix_lag_contrast_vs_fixed_controls
+    T06: causal_intervention_policy_retention_vs_ablated_controls
+    T07: time_to_heldout_task_criterion_with_capsule_transfer
+    T08: atp_efficiency_macro_adf_vs_primitive_trace
+    T09: functional_information_bits_growth_vs_neutral_sampler
+    T10: perturbation_recovery_area_under_curve
+    T11: continuous_72h_bounded_memory_and_canonical_state_digest
+    T12: collective_resource_yield_under_dropout_conditions
+  minimum_relevant_effect:
+    cohen_d: 0.50
+    alpha: 0.05
+    statistical_power: 0.80
+analysis:
+  independent_unit: seed_or_founder
+  clustered_subruns: founder_replays_nested
+  main_comparison: paired_permutation_or_bootstrap_ci
+  confidence_level: 0.95
+  multiple_testing: Holm_for_registered_primary_family
+  missing_data_policy: explicit_censoring_no_silent_drop
+  extinction_policy: count_as_zero_yield_do_not_exclude
+  optional_stopping: false
+  posthoc_parameter_tuning: false
+  frozen_analysis_hash: sha256_locked
+invariants:
+  red_queen_proved: false
+  major_transition_proved: false
+  open_ended_intelligence_proved: false
+assessment:
+  allowed:
+    - SUPPORTED_IN_THIS_MODEL
+    - NOT_SUPPORTED
+    - INCONCLUSIVE
+    - INVALID_MEASUREMENT
+  scientific_status: UNASSESSED

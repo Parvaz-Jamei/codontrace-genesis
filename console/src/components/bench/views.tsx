@@ -954,6 +954,16 @@ export function HostView() {
   return (
     <section className="h-full overflow-auto bg-bg px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto grid w-full max-w-3xl min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+        <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5 border border-sky-500/20">
+          <h3 className="text-sm text-sky-400 mb-2 font-semibold">
+            {lang === "fa" ? "منبع تلمتری سخت‌افزار" : "Hardware Telemetry Source"}
+          </h3>
+          <p className="text-sm text-muted">
+            {lang === "fa"
+              ? `این آمار متعلق به سیستم میزبان کنسول (${host.platform === "win32" ? "ویندوز" : "بورد لینوکس"}) است. اگر آدرس اندپوینت LLM شما روی سرور دیگری (مثل بورد اورنج‌پای) تنظیم شده باشد، این اطلاعات مربوط به آن بورد نیست.`
+              : `These metrics represent the local console host (${host.platform === "win32" ? "Windows" : "Linux board"}). If your LLM endpoint is set to a remote server (e.g., Orange Pi), these stats do not reflect that remote hardware.`}
+          </p>
+        </article>
         <article className="min-w-0 rounded-2xl bg-white/5 p-4 sm:col-span-2 sm:p-5">
           <h3 className="text-sm text-muted">{text.platform}</h3>
           <p className="mt-1 break-words font-medium">
@@ -1146,6 +1156,65 @@ function MemoryRing({ pct }: { pct: number }) {
   );
 }
 
+function LLMSettingSection() {
+  const settings = useBench((state) => state.settings);
+  const chatStatus = useBench((state) => state.chatStatus);
+  const refreshChatStatus = useBench((state) => state.refreshChatStatus);
+  const [val, setVal] = useState(chatStatus?.endpoint || "");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (chatStatus?.endpoint && !val) {
+      setVal(chatStatus.endpoint);
+    }
+  }, [chatStatus?.endpoint, val]);
+  
+  return (
+    <SettingSection value="llm" title={settings.lang === "fa" ? "تنظیمات سرور مدل (LLM)" : "LLM Server Settings"}>
+      <p className="text-sm text-muted">
+        {settings.lang === "fa" ? "آدرس سرور مدل (مثلاً http://192.168.1.100:8088)" : "Model server endpoint (e.g., http://192.168.1.100:8088)"}
+      </p>
+      <div className="mt-2 flex max-w-sm flex-col gap-2">
+        <input 
+          type="text" 
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="http://192.168.1.100:8088"
+          className="min-h-11 w-full rounded-lg bg-white/5 px-3 text-sm text-fg outline-none placeholder:text-subtle focus:bg-white/10"
+        />
+        <button 
+          type="button" 
+          disabled={loading}
+          className="min-h-11 w-full rounded-lg bg-white/10 px-3 text-sm text-fg hover:bg-white/20 transition-colors disabled:opacity-50"
+          onClick={async () => {
+            setLoading(true);
+            try {
+              const res = await fetch("/api/chat/endpoint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endpoint: val })
+              });
+              if (res.ok) {
+                await refreshChatStatus();
+                alert(settings.lang === "fa" ? "تنظیمات با موفقیت ذخیره شد." : "Endpoint updated successfully.");
+              } else {
+                const err = await res.json();
+                alert("Error: " + err.error);
+              }
+            } catch (e) {
+              alert("Network error updating endpoint.");
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {settings.lang === "fa" ? "بررسی و ثبت" : "Test & Save Endpoint"}
+        </button>
+      </div>
+    </SettingSection>
+  );
+}
+
 export function SettingsView() {
   const settings = useBench((state) => state.settings);
   const setSettings = useBench((state) => state.setSettings);
@@ -1161,10 +1230,11 @@ export function SettingsView() {
       <div className="mx-auto w-full max-w-3xl min-w-0">
         <Accordion.Root
           type="multiple"
-          defaultValue={["lang", "log"]}
+          defaultValue={["llm", "lang", "log"]}
           dir={settings.lang === "fa" ? "rtl" : "ltr"}
           className="flex min-w-0 flex-col gap-2"
         >
+          <LLMSettingSection />
           <SettingSection value="lang" title={text.settingsLang}>
             <div className="flex flex-wrap gap-2">
               <button
@@ -1964,8 +2034,8 @@ export function HomeView() {
           <div className="flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-2 text-sm text-muted">
             <div className={cn("h-2 w-2 rounded-full", host ? "bg-emerald-500" : "bg-amber-500")} />
             {lang === "fa" 
-              ? `${activeCount} چالش فعال | ${archivedCount} تکمیل‌شده | ${host ? `بورد آنلاین (${host.load1} بار پردازش)` : "اتصال بورد در انتظار..."} | red_queen_proved: نادرست` 
-              : `${activeCount} active challenges | ${archivedCount} completed | ${host ? `Board online (${host.load1} load)` : "Connecting to board..."} | red_queen_proved: False`}
+              ? `${activeCount} چالش فعال | ${archivedCount} تکمیل‌شده | ${host ? (host.platform === "linux" ? `بورد آنلاین (${host.load1} بار پردازش)` : `میزبان ویندوز`) : "در حال اتصال..."} | red_queen_proved: نادرست` 
+              : `${activeCount} active challenges | ${archivedCount} completed | ${host ? (host.platform === "linux" ? `Board online (${host.load1} load)` : `Windows host`) : "Connecting..."} | red_queen_proved: False`}
           </div>
         </div>
 

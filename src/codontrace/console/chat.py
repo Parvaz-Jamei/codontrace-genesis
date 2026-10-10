@@ -13,13 +13,16 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 DEFAULT_ENDPOINTS = (
     "http://127.0.0.1:8088/v1/chat/completions",
+    "http://10.225.130.20:8088/v1/chat/completions",
     "http://127.0.0.1:11434/v1/chat/completions",
     "http://127.0.0.1:1234/v1/chat/completions",
 )
+
 
 _RUNTIME_ENDPOINT: str | None = None
 _ACTIVE_CHAT_REQUESTS: dict[str, threading.Event] = {}
@@ -366,7 +369,9 @@ def chat_turn(
             }
 
         upstream_error = False
-        if model in ("local-analyst", "deterministic-analyst"):
+        status_now = check_llm_status()
+        model_is_unloaded_file = bool(model and model.endswith(".gguf") and model not in status_now.get("available_models", []))
+        if model in ("local-analyst", "deterministic-analyst") or not status_now.get("mounted") or model_is_unloaded_file:
             llm_answer = None
         else:
             import concurrent.futures
@@ -433,25 +438,45 @@ def chat_turn(
         is_fallback = model not in ("local-analyst", "deterministic-analyst")
         status = check_llm_status()
         
-        if is_fallback and not status.get("mounted"):
+        is_unreachable = not status.get("mounted") or bool(model and model.endswith(".gguf") and model not in status.get("available_models", []))
+        if is_fallback and is_unreachable:
+            import socket
+            def get_ip() -> str:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    res = str(s.getsockname()[0])
+                    s.close()
+                    return res
+                except Exception:
+                    return "127.0.0.1"
+
+            local_ip = get_ip()
             model_name = model if model and model != "board-model" else "the board model"
+            launcher_model = Path(model).name if (model and model.endswith(".gguf")) else "your-model.gguf"
+            launcher_cmd = f"llama-server -m models/{launcher_model} --port 8088"
             if lang == "fa":
                 offline_msg = (
                     f"مدل LLM درخواستی ('{model_name}') در حال حاضر آفلاین است یا در دسترس نیست.\n\n"
-                    "لطفاً مطمئن شوید که سرور محلی (مانند llama-server یا Ollama) روی پورت ۸۰۸۸ یا ۱۱۴۳۴ اجرا می‌شود.\n"
-                    "مثال اجرای مدل:\n"
-                    "  llama-server -m models/your-model.gguf --port 8088\n\n"
+                    "دستور نمونه اجرای مدل:\n"
+                    f"  {launcher_cmd}\n\n"
+                    "تشخیص شبکه و سخت‌افزار:\n"
+                    f"۱. آی‌پی فعلی سیستم شما: {local_ip}. اگر اورنج پای روی ساب‌نت دیگری قرار دارد، آدرس Endpoint مدل را در UI تنظیم کنید.\n"
+                    "۲. اگر سرور را محلی روی ویندوز اجرا کردید و خطای 0xc000001d دریافت کردید، پردازنده شما فاقد AVX2 است. لطفاً از نسخه‌های No-AVX برای llama.cpp استفاده کنید.\n\n"
                     "--- بازگشت به تحلیلگر قطعی ---\n\n"
                 )
             else:
                 offline_msg = (
                     f"The requested LLM model ('{model_name}') is currently offline or unreachable.\n\n"
-                    "Please ensure the local LLM server (e.g., llama-server or Ollama) is running on port 8088 or 11434.\n"
-                    "Example to launch a GGUF model:\n"
-                    "  llama-server -m models/your-model.gguf --port 8088\n\n"
+                    "Example launcher command:\n"
+                    f"  {launcher_cmd}\n\n"
+                    "Network & Hardware Diagnostics:\n"
+                    f"1. Your current subnet IP is: {local_ip}. If the Orange Pi is on a different subnet, configure the Endpoint URL in the UI.\n"
+                    "2. If you ran the server locally on Windows and it crashed with 0xc000001d, your CPU lacks AVX2 instructions. Please use a No-AVX build of llama.cpp.\n\n"
                     "--- Falling back to deterministic analyst ---\n\n"
                 )
             fallback_reply = offline_msg + fallback_reply
+
 
         resolved_analyst_model = (
             "deterministic-analyst"

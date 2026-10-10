@@ -57,6 +57,7 @@ class T02MLSPriceRunner:
         self.high_migration = high_migration
         self.num_demes = num_demes
         self.deme_capacity = deme_capacity
+        self.population_size = num_demes * deme_capacity
         self.generations = generations
         self.track = track
 

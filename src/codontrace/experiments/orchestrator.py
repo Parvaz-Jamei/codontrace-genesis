@@ -13,7 +13,12 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from codontrace.experiments.models import AssessmentStatus, CompletionSummary, ExperimentManifest
+from codontrace.experiments.models import (
+    AssessmentStatus,
+    CompletionSummary,
+    ExecutionTrack,
+    ExperimentManifest,
+)
 
 
 class CampaignOrchestrator:
@@ -57,12 +62,12 @@ class CampaignOrchestrator:
         # 1. Manifest
         manifest = ExperimentManifest(
             experiment_id=exp_id,
-            track=runner.track,
+            track=getattr(runner, "track", ExecutionTrack.ENGINE),
             backend_class=runner.__class__.__name__,
             source_sha="UNKNOWN",
             seed=seed,
-            generations=runner.generations,
-            population_size=runner.population_size,
+            generations=getattr(runner, "generations", 100),
+            population_size=getattr(runner, "population_size", 96),
             worker_affinity=None,
             platform_info={"system": platform.system(), "release": platform.release()}
         )

@@ -224,7 +224,7 @@ export async function fetchRunDetails(runId: string): Promise<ServerRunDetails |
 export async function launchServerRun(
   payload: LaunchRunPayload,
 ): Promise<{ ok: boolean; runId?: string; error?: string }> {
-  const res = await fetch("/api/runs/launch", {
+  const res = await authorizedFetch("/api/runs/launch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -241,7 +241,7 @@ export async function sendServerRunAction(
   action: "pause" | "resume" | "stop" | "delete" | "restart",
   requestId: string = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `action_${Date.now()}_${Math.random().toString(36).slice(2)}`,
 ): Promise<{ ok: boolean; error?: string; runId?: string }> {
-  const res = await fetch("/api/runs/action", {
+  const res = await authorizedFetch("/api/runs/action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ runId, action, requestId }),

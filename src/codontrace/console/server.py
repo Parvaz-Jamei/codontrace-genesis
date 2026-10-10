@@ -317,6 +317,22 @@ def _can_serve_app_shell(url_path: str) -> bool:
     return "." not in name
 
 
+RUN_MUTATING_PATHS = frozenset({
+    "/api/runs/launch",
+    "/api/runs/action",  # pause / resume / stop / restart / delete
+    "/api/scripts/upload",
+    "/api/scripts/run",
+    "/api/gates/run",
+})
+
+
+def _is_run_mutating_path(path: str) -> bool:
+    """POST routes that start, change, delete runs or execute code on this host."""
+    if path in RUN_MUTATING_PATHS:
+        return True
+    return path.startswith("/api/runs/") and (path.endswith("/pause") or path.endswith("/resume"))
+
+
 def _from_this_machine(address: str) -> bool:
     host = address.split("%", 1)[0].lower()
     if host.startswith("::ffff:"):
@@ -481,6 +497,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path == "/api/providers":
             import hmac
+
             from codontrace.console import providers
             token = os.environ.get("CODONTRACE_SETTINGS_TOKEN", "").strip()
             supplied = self.headers.get("Authorization", "")
@@ -512,6 +529,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
 
         if path in ("/api/chat", "/api/chat/abort", "/api/chat/cancel", "/api/chat/endpoint", "/api/science/tools"):
+            if not self._authorize_inference():
+                return
+
+        # Run-mutating and code-executing endpoints use the same usage credential:
+        # CODONTRACE_API_TOKEN when configured, otherwise a direct loopback caller.
+        if _is_run_mutating_path(path):
             if not self._authorize_inference():
                 return
 

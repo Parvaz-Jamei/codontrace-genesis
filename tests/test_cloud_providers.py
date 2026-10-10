@@ -1,5 +1,6 @@
 """Cloud wiring uses fake provider responses; never spends API credits."""
 from __future__ import annotations
+
 import io
 import json
 import os
@@ -8,7 +9,9 @@ import urllib.error
 import urllib.request
 
 import pytest
-from codontrace.console import providers, chat, server
+
+from codontrace.console import chat, providers, server
+
 
 class Response(io.BytesIO):
     def __init__(self, value):super().__init__(json.dumps(value).encode())

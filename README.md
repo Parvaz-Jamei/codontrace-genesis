@@ -147,8 +147,8 @@ Claims have to pass evidence gates. See [`CLAIMS.md`](CLAIMS.md) and [`docs/WHY_
 | Field | Current status |
 |---|---|
 | Package | `codontrace` |
-| Git identity | `0.3.0b28`, the `[project].version` in `pyproject.toml`. This identity is not a release tag. |
-| Published GitHub releases | [Release history](https://github.com/Parvaz-Jamei/codontrace-genesis/releases). This local patch creates no release tag. |
+| Git identity | `0.3.0b29`, the `[project].version` in `pyproject.toml`, tagged as `v0.3.0b29`. |
+| Published GitHub releases | [Release history](https://github.com/Parvaz-Jamei/codontrace-genesis/releases). Latest GitHub release: [`v0.3.0b29`](https://github.com/Parvaz-Jamei/codontrace-genesis/releases/tag/v0.3.0b29). |
 | PyPI distribution | [Published package and version history](https://pypi.org/project/codontrace/). Local source changes require installation from this checkout to use the patched console. |
 | Python | 3.11–3.14 |
 | DOI | [`10.5281/zenodo.20337435`](https://doi.org/10.5281/zenodo.20337435), the software archive, not a campaign archive |
@@ -183,7 +183,7 @@ Still blocked: bare `collective_intelligence`, `intelligence`, AGI, `tokyo_type1
 
 ## Installation
 
-Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The PyPI wheel is `codontrace==0.3.0b20`. An editable install of `main` prints `0.3.0b28`, which is the git identity and not that wheel.
+Python 3.11–3.14. CI smokes Ubuntu, Windows, and macOS on that range. The PyPI wheel is `codontrace==0.3.0b20`. An editable install of `main` prints `0.3.0b29`, which is the git identity and not that wheel.
 
 ```bash
 pip install codontrace==0.3.0b20
@@ -377,10 +377,10 @@ Cite the versioned software release. The DOI is the software archive, not a camp
 @software{codontrace_genesis_2026,
   title = {CodonTrace Genesis},
   author = {Jamei, Parvaz},
-  version = {0.3.0b28},
+  version = {0.3.0b29},
   doi = {10.5281/zenodo.20337435},
   url = {https://github.com/Parvaz-Jamei/codontrace-genesis},
-  note = {0.3.0b28 is the git identity, not a published wheel. The GitHub release is v0.3.0b21 and the PyPI wheel is 0.3.0b20. Already published tags are not recut. The DOI is the software archive, not a campaign archive.}
+  note = {0.3.0b29 is the git identity and the GitHub release v0.3.0b29, not a published wheel. The PyPI wheel is 0.3.0b20. Already published tags are not recut. The DOI is the software archive, not a campaign archive.}
 }
 ```
 

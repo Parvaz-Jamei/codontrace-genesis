@@ -9,7 +9,9 @@ import json
 import logging
 import os
 import platform
+import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -145,4 +147,84 @@ class CampaignOrchestrator:
         with open(run_dir / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f, indent=2)
 
+        self._publish_to_console(exp_id, seed, arm, run_dir, summary, runner)
+
         return summary
+
+    def _resolve_console_runs_dir(self) -> Path | None:
+        custom = os.environ.get("CODONTRACE_RUNS_DIR", "").strip()
+        if custom:
+            p = Path(custom).expanduser()
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+        home_runs = Path.home() / "simulation_runs"
+        if home_runs.is_dir():
+            return home_runs
+        local_runs = Path("simulation_runs").resolve()
+        if local_runs.is_dir():
+            return local_runs
+        return None
+
+    def _publish_to_console(
+        self,
+        exp_id: str,
+        seed: int,
+        arm: str,
+        run_dir: Path,
+        summary: CompletionSummary,
+        runner: Any,
+    ) -> None:
+        console_root = self._resolve_console_runs_dir()
+        if not console_root:
+            return
+        console_run_id = f"genesis_{exp_id.lower()}_board_pilot"
+        target_dir = console_root / console_run_id
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        manifest_info = {
+            "schemaVersion": 1,
+            "runId": console_run_id,
+            "title": f"Genesis {exp_id}: {runner.__class__.__name__} ({getattr(runner, 'track', ExecutionTrack.ENGINE).value})",
+            "startedAt": int(time.time()),
+            "command": ["python3", "scripts/genesis_long_board_campaign.py", "--experiment", exp_id],
+            "params": {
+                "track": getattr(runner, "track", ExecutionTrack.ENGINE).value,
+                "experiment": exp_id,
+                "seed": seed,
+                "arm": arm,
+            },
+        }
+        with open(target_dir / "run_manifest.json", "w", encoding="utf-8") as f:
+            json.dump(manifest_info, f, indent=2)
+
+        status_info = {
+            "id": console_run_id,
+            "title": f"Genesis {exp_id}: {runner.__class__.__name__}",
+            "status": "COMPLETED",
+            "pct": 100.0,
+            "completed_seeds": 1,
+            "total_seeds": 1,
+            "red_queen_proved": False,
+            "summary": summary.to_dict(),
+        }
+        with open(target_dir / "status.json", "w", encoding="utf-8") as f:
+            json.dump(status_info, f, indent=2)
+
+        exec_info = {
+            "complete": True,
+            "runId": console_run_id,
+            "summary": summary.to_dict(),
+        }
+        with open(target_dir / "execution.json", "w", encoding="utf-8") as f:
+            json.dump(exec_info, f, indent=2)
+
+        live_log = run_dir / "live.log"
+        if live_log.is_file():
+            shutil.copy2(live_log, target_dir / "live.log")
+            shutil.copy2(live_log, target_dir / "console.log")
+
+        metrics_file = run_dir / "metrics.jsonl"
+        if metrics_file.is_file():
+            shutil.copy2(metrics_file, target_dir / "metrics.jsonl")
+
+        (target_dir / "COMPLETE").write_text("COMPLETE\n", encoding="utf-8")

@@ -95,7 +95,7 @@ Changelog = "https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/CHANGE
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
-addopts = "-q --disable-plugin-autoload --import-mode=importlib"
+addopts = "-q --import-mode=importlib"
 markers = [
   "unit: fast domain-free or module unit tests (no long campaigns)",
   "campaign: HostParasiteWorld / analytics / calibration campaign tests",

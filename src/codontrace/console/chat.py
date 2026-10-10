@@ -75,6 +75,7 @@ def list_discovered_models() -> list[dict[str, Any]]:
         Path("models"),
         Path.home() / "models",
         Path("E:/Zero3/models"),
+        Path("I:/LM Studio"),
         Path("/home/parvaz/models"),
     ])
 

@@ -4,7 +4,13 @@
 never sampled counts as older than the TTL); it is not claimed to maximize
 information gain. ``measurement_candidates`` filters host channel models to
 fresh, online, sample-capable, unit-matched scalar channels with no pending
-request, for a separate scheduler.
+request, for a separate scheduler. ``schedule_measurements`` is that
+scheduler: greedy expected-error reduction per byte with a per-group
+redundancy discount, the cost-benefit greedy rule of budgeted sensor
+selection (Krause & Guestrin 2005, "Near-optimal nonmyopic value of
+information in graphical models", UAI; Leskovec et al. 2007, KDD,
+doi:10.1145/1281192.1281239). No approximation guarantee is claimed here:
+the gain proxy is not shown to be submodular for arbitrary inputs.
 """
 from __future__ import annotations
 
@@ -12,10 +18,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from codontrace.contracts.channels import scalar_frame
-from codontrace.contracts.wire_validation import exact_keys, identifier
+from codontrace.contracts.wire_validation import bounded_int, exact_keys, finite_number, identifier
 from codontrace.genesis.swarm.commands import pending_for
 
-__all__ = ['CHANNEL_MODEL_FIELDS', 'measurement_candidates', 'plan_oldest_first']
+__all__ = ['CHANNEL_MODEL_FIELDS', 'measurement_candidates', 'plan_oldest_first', 'schedule_measurements']
 
 CHANNEL_MODEL_FIELDS = frozenset({'group', 'noise_variance', 'process_variance_per_ms', 'latency_ms',
                                   'success_probability', 'payload_bytes', 'evidence_id'})
@@ -68,3 +74,54 @@ def measurement_candidates(view: Mapping[str, Any], models: Any, quantity: str, 
         else:
             excluded.append(key)
     return candidates, excluded
+
+
+def schedule_measurements(candidates: list[dict[str, Any]], *, now_ms: int,
+                          byte_budget: int, request_budget: int = 8) -> dict[str, Any]:
+    """Greedy estimated-error reduction per byte with group redundancy discount.
+
+    Scalar random-walk proxy: noise + q*age; successful fresh reading arrives
+    with age=latency. Group utility is max, not a sum of correlated sensors.
+    A user-declared group is not an estimated covariance model. No optimality claim.
+    """
+    bounded_int(now_ms); bounded_int(byte_budget, high=16*1024*1024); bounded_int(request_budget, high=32)
+    if not isinstance(candidates, list) or len(candidates)>256:
+        raise ValueError('bounded candidate list required')
+    rows: list[dict[str, Any]]=[];seen: set[str]=set()
+    for raw in candidates:
+        row=exact_keys(raw, {'key','group','sample_ms','noise_variance','process_variance_per_ms',
+                             'latency_ms','success_probability','payload_bytes','evidence_id'})
+        key=row['key']
+        if not isinstance(key,str) or len(key.split('/')) not in (1,2):
+            raise ValueError('candidate key must identify a node/channel')
+        for part in key.split('/'): identifier(part)
+        identifier(row['group']);identifier(row['evidence_id'])
+        if key in seen: raise ValueError('duplicate candidate identity')
+        seen.add(key);sample=bounded_int(row['sample_ms'])
+        if sample>now_ms: raise ValueError('scheduling requires synchronized nonfuture timestamps')
+        noise=finite_number(row['noise_variance'],low=0,high=1e6)
+        q=finite_number(row['process_variance_per_ms'],low=0,high=1e6)
+        latency=bounded_int(row['latency_ms'],high=3600000);cost=bounded_int(row['payload_bytes'],high=65536)
+        if not cost: raise ValueError('positive estimated payload cost required')
+        probability=finite_number(row['success_probability'],low=0,high=1)
+        age=now_ms-sample
+        if age>3600000: raise ValueError('candidate age exceeds modeled one-hour horizon')
+        gain=probability*max(0.,q*(age-latency))
+        rows.append({**row,'age_ms':age,'current_variance_proxy':noise+q*age,
+                     'refreshed_variance_proxy':noise+q*latency,'expected_gain_proxy':gain})
+    selected: list[dict[str, Any]]=[];remaining=list(rows);group_best: dict[str, float]={};spent=0
+    while len(selected)<request_budget:
+        scored=[]
+        for row in remaining:
+            gain=max(0.,row['expected_gain_proxy']-group_best.get(row['group'],0.))
+            if row['payload_bytes']<=byte_budget-spent and gain>0:
+                scored.append((gain/row['payload_bytes'],gain,row))
+        if not scored: break
+        _,gain,row=min(scored,key=lambda item:(-item[0],-item[1],item[2]['key']))
+        selected.append({**row,'marginal_gain_proxy':gain})
+        spent+=row['payload_bytes'];group_best[row['group']]=row['expected_gain_proxy'];remaining.remove(row)
+    return {'schema':'genesis_freshness_schedule_v1','selected':selected,'candidates':rows,
+            'estimated_payload_bytes':spent,'byte_budget':byte_budget,
+            'expected_group_gain_proxy':sum(group_best.values()),'command_sent':False,
+            'scope':'advisory_greedy_random_walk_proxy_with_declared_redundancy_groups',
+            'limitations':'costs/probabilities/q supplied by caller; no actual wire-byte, energy, covariance or optimality guarantee'}

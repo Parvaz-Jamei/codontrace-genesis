@@ -16,6 +16,7 @@ from codontrace.genesis.qd_parametric import (
     tell_parameter_results,
 )
 from codontrace.genesis.qd_search import QDDescriptorConfig, QDSearchArchive
+from codontrace.genesis.shadow_evaluation import paired_mse_gain
 from codontrace.genesis.swarm.diagnosis import peer_disagreement
 from codontrace.rng import RNGManager
 from codontrace.swarm.protocol import canonical, number
@@ -120,8 +121,7 @@ def transfer_decision(candidate: Pipeline, baseline: Pipeline, values: list[floa
         raise ValueError('local paired validation data required')
     for v in references:
         number(v)
-    a, _ = candidate.process(values); b, _ = baseline.process(values)
-    gain = statistics.mean((x-y)**2 - (z-y)**2 for x, z, y in zip(b, a, references, strict=True))
+    gain = paired_mse_gain(candidate, baseline, values, references)
     return {'accepted': gain > minimum_gain, 'local_mse_gain': gain,
             'candidate_digest': candidate.digest, 'sample_count': len(values),
             'claim': 'local_validation_only'}

@@ -258,6 +258,22 @@
    "select_population"
   ]
  },
+ "codontrace.genesis.shadow_evaluation": {
+  "__all__": [
+   "Processor",
+   "SHADOW_PHASES",
+   "ShadowEvaluation",
+   "paired_mse_gain",
+   "paired_shadow"
+  ],
+  "public": [
+   "Processor",
+   "SHADOW_PHASES",
+   "ShadowEvaluation",
+   "paired_mse_gain",
+   "paired_shadow"
+  ]
+ },
  "codontrace.genesis.swarm": {
   "__all__": [
    "PopulationMember",
@@ -303,9 +319,28 @@
    "ConfigurationError",
    "ConformalBandResult",
    "SCHEMA_VERSION",
+   "SPLIT_RESIDUAL_SCHEMA",
+   "SplitResidualInterval",
    "canonical_digest",
    "conformal_risk_band",
-   "require_finite_float"
+   "require_finite_float",
+   "split_conformal_rank",
+   "split_residual_interval"
+  ]
+ },
+ "codontrace.life_loop.disturbance": {
+  "__all__": [
+   "DisturbanceFamily",
+   "SCHEMA_VERSION",
+   "apply_disturbance"
+  ],
+  "public": [
+   "ConfigurationError",
+   "DisturbanceFamily",
+   "RNGManager",
+   "SCHEMA_VERSION",
+   "apply_disturbance",
+   "canonical_digest"
   ]
  },
  "codontrace.life_loop.farm_orchestrator": {
@@ -396,8 +431,10 @@
    "integer",
    "number",
    "object_keys",
+   "paired_shadow",
    "residual_interval",
-   "schedule_measurements"
+   "schedule_measurements",
+   "split_residual_interval"
   ]
  },
  "codontrace.swarm.engine": {
@@ -457,6 +494,7 @@
    "canonical",
    "diagnose",
    "number",
+   "paired_mse_gain",
    "peer_disagreement",
    "pipeline_measures",
    "tell_parameter_results",
@@ -487,8 +525,10 @@
  "codontrace.swarm.research": {
   "__all__": [],
   "public": [
+   "DisturbanceFamily",
    "RNGManager",
    "SensorTwin",
+   "apply_disturbance",
    "canonical",
    "information_level",
    "integer",

@@ -23,7 +23,7 @@ SINGLE = ('codontrace.claimgate.adapters.esp32_bridge', 'codontrace.engine', 'co
           'codontrace.life_loop.conformal_bands', 'codontrace.life_loop.farm_orchestrator',
           'codontrace.genesis.qd_search', 'codontrace.genesis.selection', 'codontrace.genesis.artifacts',
           'codontrace.genesis.journal', 'codontrace.genesis.swarm', 'codontrace.genesis.qd_parametric',
-          'codontrace.genesis.coevolution')
+          'codontrace.genesis.coevolution', 'codontrace.genesis.shadow_evaluation', 'codontrace.life_loop.disturbance')
 GOLDEN = 'public_import_surface.json'
 SIGNATURES = 'public_signatures.json'
 _TYPING_MODULES = ('typing', 'typing_extensions', 'collections.abc', '_collections_abc', 'types', '__future__')

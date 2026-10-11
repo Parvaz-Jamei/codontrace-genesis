@@ -49,6 +49,10 @@
   "policy_from_name": "(name: 'str', *, elitism_count: 'int' = 1, tournament_size: 'int' = 3, novelty_weight: 'float' = 1.0, fitness_weight: 'float' = 1.0) -> 'SelectionPolicy'",
   "select_population": "(candidates: 'Sequence[object]', *, fitness_scores: 'Mapping[str, float]', max_population: 'int', config: 'EvolutionConfig | None' = None, novelty_scores: 'Mapping[str, float] | None' = None, ages: 'Mapping[str, int] | None' = None, qd_mode: 'str | None' = None) -> 'tuple[tuple[object, ...], EvolutionSelectionResult]'"
  },
+ "codontrace.genesis.shadow_evaluation": {
+  "paired_mse_gain": "(candidate: 'Processor', baseline: 'Processor', values: 'list[float]', references: 'Sequence[float]') -> 'float'",
+  "paired_shadow": "(candidate: 'Processor', baseline: 'Processor', values: 'list[float]', references: 'Sequence[float]', *, phase: 'str' = 'qualification', minimum_gain: 'float' = 0.0, maximum_regression: 'float' = 0.0) -> 'ShadowEvaluation'"
+ },
  "codontrace.genesis.swarm": {
   "measurement_candidates": "(view: 'Mapping[str, Any]', models: 'Any', quantity: 'str', unit: 'str', *, now_ms: 'int') -> 'tuple[list[dict[str, Any]], list[str]]'",
   "median_absolute_deviation": "(values: 'list[float]') -> 'float'",
@@ -61,7 +65,13 @@
  "codontrace.life_loop.conformal_bands": {
   "canonical_digest": "(value: 'Any', *, prefix: 'str | None' = None) -> 'str'",
   "conformal_risk_band": "(*, result_id: 'str', point_prediction: 'float', calibration_residuals: 'Sequence[float]', alpha: 'float' = 0.1, max_width: 'float | None' = None, claim_ceiling: 'str' = 'runtime_observation') -> 'ConformalBandResult'",
-  "require_finite_float": "(name: 'str', value: 'object', *, non_negative: 'bool' = False, probability: 'bool' = False) -> 'float'"
+  "require_finite_float": "(name: 'str', value: 'object', *, non_negative: 'bool' = False, probability: 'bool' = False) -> 'float'",
+  "split_conformal_rank": "(n_calibration: 'int', alpha: 'float | str | Fraction') -> 'int'",
+  "split_residual_interval": "(predictions: 'Sequence[float]', references: 'Sequence[float]', *, estimate: 'float', alpha: 'float' = 0.1) -> 'SplitResidualInterval'"
+ },
+ "codontrace.life_loop.disturbance": {
+  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object]' = <function _check_value at 0x7fceccb69d00>) -> 'list[float | None]'",
+  "canonical_digest": "(value: 'Any', *, prefix: 'str | None' = None) -> 'str'"
  },
  "codontrace.life_loop.farm_orchestrator": {
   "apply_ablation": "(template: 'AblationTemplate', bag: 'Mapping[str, Any]', *, tick: 'int' = 0, census: 'AblationAttemptCensus | None' = None) -> 'tuple[AblationApplyRecord, AblationAttemptCensus]'",
@@ -93,8 +103,10 @@
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
   "object_keys": "(value: 'Any', required: 'set[str]', optional: 'set[str] | None' = None) -> 'dict[str, Any]'",
+  "paired_shadow": "(candidate: 'Processor', baseline: 'Processor', values: 'list[float]', references: 'Sequence[float]', *, phase: 'str' = 'qualification', minimum_gain: 'float' = 0.0, maximum_regression: 'float' = 0.0) -> 'ShadowEvaluation'",
   "residual_interval": "(predictions: 'list[float]', references: 'list[float]', *, estimate: 'float', training_id: 'str', calibration_id: 'str', model_id: 'str', alpha: 'float' = 0.1) -> 'dict[str, Any]'",
-  "schedule_measurements": "(candidates: 'list[dict[str, Any]]', *, now_ms: 'int', byte_budget: 'int', request_budget: 'int' = 8) -> 'dict[str, Any]'"
+  "schedule_measurements": "(candidates: 'list[dict[str, Any]]', *, now_ms: 'int', byte_budget: 'int', request_budget: 'int' = 8) -> 'dict[str, Any]'",
+  "split_residual_interval": "(predictions: 'Sequence[float]', references: 'Sequence[float]', *, estimate: 'float', alpha: 'float' = 0.1) -> 'SplitResidualInterval'"
  },
  "codontrace.swarm.engine": {},
  "codontrace.swarm.experiments": {
@@ -119,6 +131,7 @@
   "canonical": "(value: 'Any') -> 'str'",
   "diagnose": "(values: 'dict[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
+  "paired_mse_gain": "(candidate: 'Processor', baseline: 'Processor', values: 'list[float]', references: 'Sequence[float]') -> 'float'",
   "peer_disagreement": "(values: 'Mapping[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "pipeline_measures": "(pipeline: 'Pipeline') -> 'dict[str, float]'",
   "tell_parameter_results": "(archive: 'QDSearchArchive', config: 'QDDescriptorConfig', candidates: 'Sequence[ParameterCandidate]', qualities: 'Sequence[float]', measures: 'Sequence[Mapping[str, float]] | None' = None) -> 'tuple[QDSearchArchive, int]'",
@@ -139,6 +152,7 @@
   "wire_canonical": "(value: 'Any') -> 'str'"
  },
  "codontrace.swarm.research": {
+  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object]' = <function _check_value at 0x7fceccb69d00>) -> 'list[float | None]'",
   "canonical": "(value: 'Any') -> 'str'",
   "information_level": "(options: 'dict[str, Any]', *, byte_budget: 'int', maximum_mse: 'float') -> 'dict[str, Any]'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",

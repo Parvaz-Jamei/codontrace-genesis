@@ -38,6 +38,16 @@
    "str_stop_criterion_met"
   ]
  },
+ "codontrace.contracts.run_roots": {
+  "__all__": [
+   "SHARED_ROOT_KINDS",
+   "resolve_run_root"
+  ],
+  "public": [
+   "SHARED_ROOT_KINDS",
+   "resolve_run_root"
+  ]
+ },
  "codontrace.engine": {
   "__all__": [
    "ConsistencyValidationResult",
@@ -144,14 +154,17 @@
    "JournalHealth",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
+   "anchor",
    "archived_to_delete",
    "checkpoint",
    "fsync_dir",
+   "journal_anchor",
    "journal_file_lock",
    "locking",
    "retention",
    "segments_to_archive",
-   "store"
+   "store",
+   "verify_anchor"
   ],
   "public": [
    "CHECKPOINTS_KEPT",
@@ -162,8 +175,10 @@
    "NotRecorded",
    "archived_to_delete",
    "fsync_dir",
+   "journal_anchor",
    "journal_file_lock",
-   "segments_to_archive"
+   "segments_to_archive",
+   "verify_anchor"
   ]
  },
  "codontrace.genesis.qd_parametric": {
@@ -233,6 +248,23 @@
    "qd_candidate_from_dict",
    "tell_qd_results",
    "validate_qd_candidate_digest"
+  ]
+ },
+ "codontrace.genesis.run_refs": {
+  "__all__": [
+   "RUN_KINDS",
+   "RUN_REFERENCE_SCHEMA",
+   "module_run_reference",
+   "resolve_run_root",
+   "write_run_reference"
+  ],
+  "public": [
+   "RUN_KINDS",
+   "RUN_REFERENCE_SCHEMA",
+   "TYPE_CHECKING",
+   "module_run_reference",
+   "resolve_run_root",
+   "write_run_reference"
   ]
  },
  "codontrace.genesis.selection": {
@@ -604,6 +636,7 @@
    "invoke",
    "object_keys",
    "release",
+   "resolve_run_root",
    "transfer_decision"
   ]
  },

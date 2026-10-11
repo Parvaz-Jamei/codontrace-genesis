@@ -1,7 +1,6 @@
 """Console-facing service. Authentication is owned by the HTTP/MQTT transport."""
 from __future__ import annotations
 
-import os
 import threading
 import time
 from collections import OrderedDict
@@ -9,6 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from codontrace.contracts.run_roots import resolve_run_root
 from codontrace.swarm.policies import Pipeline, PolicyArchive, transfer_decision
 from codontrace.swarm.protocol import identifier, object_keys
 from codontrace.swarm.runtime import SwarmCoordinator
@@ -41,10 +41,7 @@ WRITE_ACTIONS = frozenset({'journal_recover', 'configure_channel', 'ingest', 'co
 
 
 def _root() -> Path:
-    root = Path(os.environ.get('CODONTRACE_SWARM_DIR', str(Path.home() / '.local' / 'share' / 'codontrace' / 'swarm_runs'))).expanduser()
-    if not root.is_absolute():
-        raise ValueError('CODONTRACE_SWARM_DIR must be absolute; storage must not depend on CWD')
-    return root.resolve()
+    return resolve_run_root('swarm')
 
 
 def _evict_idle() -> None:

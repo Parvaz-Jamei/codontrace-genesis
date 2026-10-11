@@ -5,6 +5,9 @@
   "parse_sensor_payload": "(raw: 'Mapping[str, object]') -> 'SensorReading'",
   "str_stop_criterion_met": "(*, n_real_tests: 'int', disparity_with_transfer: 'float', disparity_without_transfer: 'float', real_test_budget: 'int' = 20) -> 'bool'"
  },
+ "codontrace.contracts.run_roots": {
+  "resolve_run_root": "(kind: 'str') -> 'Path'"
+ },
  "codontrace.engine": {
   "apply_human_review": "(result: 'GenesisRunResult', decision: 'HumanReviewDecision') -> 'GenesisRunResult'",
   "attach_review_result": "(result: 'GenesisRunResult', review: 'LLMReviewResult') -> 'GenesisRunResult'"
@@ -27,8 +30,10 @@
  "codontrace.genesis.journal": {
   "archived_to_delete": "(rows: 'Sequence[tuple[int, int]]', archive_max_bytes: 'int') -> 'list[int]'",
   "fsync_dir": "(folder: 'Path') -> 'None'",
+  "journal_anchor": "(journal: 'HashChainedJournal') -> 'dict[str, Any]'",
   "journal_file_lock": "(lock_path: 'Path', timeout_s: 'float', busy_message: 'str') -> 'Iterator[None]'",
-  "segments_to_archive": "(rows: 'Sequence[tuple[int, int]]', live_bytes: 'int', retention_bytes: 'int', covered: 'int') -> 'list[int]'"
+  "segments_to_archive": "(rows: 'Sequence[tuple[int, int]]', live_bytes: 'int', retention_bytes: 'int', covered: 'int') -> 'list[int]'",
+  "verify_anchor": "(journal: 'HashChainedJournal', anchor: 'dict[str, Any]') -> 'dict[str, Any]'"
  },
  "codontrace.genesis.qd_parametric": {
   "ask_parameter_candidates": "(space: 'ParameterSpace', emitter: 'ParameterEmitter', parent: 'Mapping[str, float]', rng: 'RNGManager', count: 'int') -> 'tuple[ParameterCandidate, ...]'",
@@ -42,6 +47,11 @@
   "qd_candidate_from_dict": "(data: 'Mapping[str, JsonValue]') -> 'QDCandidate'",
   "tell_qd_results": "(archive_before_digest: 'str', archive_after_digest: 'str', evaluations: 'Sequence[QDEvaluateResult]', *, coverage: 'float', qd_score: 'float', archive_update: 'object | None' = None) -> 'QDTellResult'",
   "validate_qd_candidate_digest": "(data: 'Mapping[str, JsonValue]', expected_digest: 'str') -> 'QDCandidate'"
+ },
+ "codontrace.genesis.run_refs": {
+  "module_run_reference": "(kind: 'str', run_id: 'str', *, manifest: 'RunManifest | None' = None, replay_bundle: 'ReplayBundle | None' = None, journal_anchor: 'Mapping[str, Any] | None' = None, legacy_files: 'Mapping[str, str] | None' = None, extra: 'Mapping[str, Any] | None' = None) -> 'dict[str, Any]'",
+  "resolve_run_root": "(kind: 'str') -> 'Path'",
+  "write_run_reference": "(path: 'Path', reference: 'Mapping[str, Any]') -> 'Path'"
  },
  "codontrace.genesis.selection": {
   "finite_float": "(name: 'str', value: 'object', *, non_negative: 'bool' = False, probability: 'bool' = False, allow_none: 'bool' = False) -> 'float | None'",
@@ -197,6 +207,7 @@
   "invoke": "(action: 'str', args: 'Any', *, now_ms: 'int | None' = None) -> 'dict[str, Any]'",
   "object_keys": "(value: 'Any', required: 'set[str]', optional: 'set[str] | None' = None) -> 'dict[str, Any]'",
   "release": "(swarm_id: 'str') -> 'None'",
+  "resolve_run_root": "(kind: 'str') -> 'Path'",
   "transfer_decision": "(candidate: 'Pipeline', baseline: 'Pipeline', values: 'list[float]', references: 'list[float]', *, minimum_gain: 'float' = 0.0) -> 'dict[str, Any]'"
  },
  "codontrace.visualization": {},

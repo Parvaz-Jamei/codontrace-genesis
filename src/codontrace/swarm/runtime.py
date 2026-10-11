@@ -132,6 +132,13 @@ class SwarmCoordinator(HashChainedJournal):
                     'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,
                     'state': state, 'journal_digest': self._chain, **self.journal_health()}
 
+    def run_reference(self) -> dict[str, Any]:
+        """Module run reference with the journal head anchor (see genesis.run_refs, genesis.journal.anchor)."""
+        from codontrace.genesis.journal.anchor import journal_anchor
+        from codontrace.genesis.run_refs import module_run_reference
+        return module_run_reference('swarm', self.swarm_id, journal_anchor=journal_anchor(self),
+                                    extra={'coordination_mode': 'genesis_orchestrated_sensor_swarm'})
+
     def frames(self, quantity: str, unit: str, *, now_ms: int) -> dict[str, dict[str, Any]]:
         text(quantity); text(unit)
         snapshot = self.snapshot(now_ms=now_ms)['state']

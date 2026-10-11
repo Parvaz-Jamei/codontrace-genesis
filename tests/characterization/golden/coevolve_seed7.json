@@ -1,0 +1,92 @@
+{
+ "disturbance": {
+  "amplitude": 0.09305289659947458,
+  "bias": 0.7069471034005255,
+  "frequency": 2
+ },
+ "history": [
+  {
+   "disturbance": {
+    "amplitude": 0.09305289659947458,
+    "bias": 0.7069471034005255,
+    "frequency": 2
+   },
+   "generation": 0,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5194253761081655
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.09305289659947458,
+    "bias": 0.7069471034005255,
+    "frequency": 2
+   },
+   "generation": 1,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.49614234945384394
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.09305289659947458,
+    "bias": 0.7069471034005255,
+    "frequency": 2
+   },
+   "generation": 2,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5052213517757954
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.09305289659947458,
+    "bias": 0.7069471034005255,
+    "frequency": 2
+   },
+   "generation": 3,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.49193060796298077
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.09305289659947458,
+    "bias": 0.7069471034005255,
+    "frequency": 2
+   },
+   "generation": 4,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5020417718542193
+  }
+ ],
+ "hypothesis_verdict": null,
+ "pipeline": {
+  "alpha": 1.0,
+  "clip": 5.0,
+  "event_threshold": 2.0
+ },
+ "red_queen_proved": null,
+ "rng": {
+  "draw_count": 220,
+  "namespace": "swarm/coevolution",
+  "seed": 7
+ },
+ "scope": "training_only_bounded_coadaptation"
+}

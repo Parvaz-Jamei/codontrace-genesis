@@ -1,0 +1,188 @@
+[
+ {
+  "agents": [
+   {
+    "energy": 2.5,
+    "genome_digest": "g-p",
+    "id": "p",
+    "position": [
+     1,
+     1
+    ]
+   },
+   {
+    "energy": null,
+    "genome_digest": "g-q",
+    "id": "q",
+    "position": [
+     2,
+     2
+    ]
+   },
+   {
+    "energy": 1.0,
+    "genome_digest": "g-r",
+    "id": "r",
+    "position": [
+     3,
+     3
+    ]
+   }
+  ],
+  "born_ids": [],
+  "deaths": [],
+  "events_scope": "explicit_engine_records_only",
+  "generation": 0,
+  "lineage_recorded": true,
+  "links": [],
+  "metrics": {
+   "births": null,
+   "deaths": null,
+   "population": 3,
+   "two_parent_births": null
+  },
+  "population_digest": null,
+  "position_scope": "generation_boundary",
+  "run_id": "synthetic",
+  "schema": "genesis_simulation_frame_v1",
+  "seed": 1,
+  "tick": 0,
+  "world": {
+   "height": 8,
+   "width": 8
+  },
+  "world_digest": null
+ },
+ {
+  "agents": [
+   {
+    "energy": null,
+    "genome_digest": "g-q",
+    "id": "q",
+    "position": [
+     2,
+     3
+    ]
+   },
+   {
+    "energy": null,
+    "genome_digest": "g-r",
+    "id": "r",
+    "position": [
+     3,
+     3
+    ]
+   },
+   {
+    "energy": 0.5,
+    "genome_digest": "g-c1",
+    "id": "c1",
+    "position": [
+     4,
+     4
+    ]
+   },
+   {
+    "energy": null,
+    "genome_digest": "g-c2",
+    "id": "c2",
+    "position": [
+     5,
+     5
+    ]
+   }
+  ],
+  "born_ids": [
+   "c1",
+   "c2"
+  ],
+  "deaths": [
+   {
+    "id": "p",
+    "position": [
+     1,
+     1
+    ],
+    "position_scope": "last_recorded_position"
+   }
+  ],
+  "events_scope": "explicit_engine_records_only",
+  "generation": 1,
+  "lineage_recorded": true,
+  "links": [
+   {
+    "historical_source": true,
+    "kind": "parentage",
+    "source": "p",
+    "source_position": [
+     1,
+     1
+    ],
+    "target": "c1",
+    "target_position": [
+     4,
+     4
+    ]
+   },
+   {
+    "historical_source": false,
+    "kind": "parentage",
+    "source": "q",
+    "source_position": [
+     2,
+     3
+    ],
+    "target": "c1",
+    "target_position": [
+     4,
+     4
+    ]
+   },
+   {
+    "historical_source": true,
+    "kind": "two_parent_birth",
+    "source": "p",
+    "source_position": [
+     1,
+     1
+    ],
+    "target": "q",
+    "target_position": [
+     2,
+     3
+    ]
+   },
+   {
+    "historical_source": false,
+    "kind": "parentage",
+    "source": "q",
+    "source_position": [
+     2,
+     3
+    ],
+    "target": "c2",
+    "target_position": [
+     5,
+     5
+    ]
+   }
+  ],
+  "metrics": {
+   "births": 2,
+   "deaths": 1,
+   "population": 4,
+   "two_parent_births": 1
+  },
+  "population_digest": null,
+  "position_scope": "generation_boundary",
+  "run_id": "synthetic",
+  "schema": "genesis_simulation_frame_v1",
+  "seed": 1,
+  "tick": 5,
+  "world": {
+   "height": 8,
+   "width": 8
+  },
+  "world_digest": null
+ }
+]

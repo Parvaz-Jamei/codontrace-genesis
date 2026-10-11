@@ -69,3 +69,18 @@ def test_synthetic_two_parent_frames_golden():
                                    summary={'births': 2, 'deaths': 1, 'after_count': 4}, previous=first)
     assert second['metrics']['two_parent_births'] == 1
     check_json('simulation_frames_synthetic.json', [first, second])
+
+    # Lower interval edge (review F5): a death or birth exactly at the previous
+    # frame's tick belongs to the earlier interval and must not be replayed.
+    lineage3 = [{'organism_id': 'q'}, {'organism_id': 'r', 'death_tick': 5},
+                {'organism_id': 'c1', 'parent_id': 'p', 'second_parent_id': 'q', 'birth_tick': 5},
+                {'organism_id': 'c2', 'parent_id': 'q', 'birth_tick': 1, 'death_tick': 7},
+                {'organism_id': 'c4', 'parent_id': 'q', 'birth_tick': 6}]
+    third = frame_from_population({'generation': 2, 'tick': 9, 'agents': [agent('q', 2, 3), agent('c1', 4, 4, 0.5),
+                                                                         agent('c4', 6, 6)],
+                                   'lineage': lineage3}, world, run_id='synthetic', seed=1,
+                                  summary={'births': 1, 'deaths': 2, 'after_count': 3}, previous=second)
+    assert [d['id'] for d in third['deaths']] == ['c2']
+    assert third['born_ids'] == ['c4'] and third['metrics']['two_parent_births'] == 0
+    assert {(link['source'], link['target']) for link in third['links']} == {('q', 'c4')}
+    check_json('simulation_frames_synthetic_lower_edge.json', third)

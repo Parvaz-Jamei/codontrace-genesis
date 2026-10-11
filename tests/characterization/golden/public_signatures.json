@@ -97,13 +97,18 @@
   "transfer_decision": "(candidate: 'Pipeline', baseline: 'Pipeline', values: 'list[float]', references: 'list[float]', *, minimum_gain: 'float' = 0.0) -> 'dict[str, Any]'"
  },
  "codontrace.swarm.protocol": {
+  "bounded_int": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
+  "bounded_text": "(value: 'Any', maximum: 'int' = 96) -> 'str'",
   "canonical": "(value: 'Any') -> 'str'",
   "decode": "(raw: 'bytes | str | Mapping[str, Any]') -> 'dict[str, Any]'",
+  "exact_keys": "(value: 'Any', required: 'set[str]', optional: 'set[str] | None' = None) -> 'dict[str, Any]'",
+  "finite_number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
   "identifier": "(value: 'Any') -> 'str'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
   "object_keys": "(value: 'Any', required: 'set[str]', optional: 'set[str] | None' = None) -> 'dict[str, Any]'",
-  "text": "(value: 'Any', maximum: 'int' = 96) -> 'str'"
+  "text": "(value: 'Any', maximum: 'int' = 96) -> 'str'",
+  "wire_canonical": "(value: 'Any') -> 'str'"
  },
  "codontrace.swarm.research": {
   "canonical": "(value: 'Any') -> 'str'",

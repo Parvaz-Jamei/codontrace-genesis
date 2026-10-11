@@ -41,7 +41,9 @@
  "codontrace.engine": {
   "__all__": [
    "ConsistencyValidationResult",
+   "ExogenousInputRecord",
    "GenerationBoundaryObserver",
+   "GenerationInputProvider",
    "GenesisEngine",
    "GenesisEngineConfig",
    "GenesisExperimentSpec",
@@ -72,7 +74,9 @@
   ],
   "public": [
    "ConsistencyValidationResult",
+   "ExogenousInputRecord",
    "GenerationBoundaryObserver",
+   "GenerationInputProvider",
    "GenesisEngine",
    "GenesisEngineConfig",
    "GenesisExperimentSpec",
@@ -331,13 +335,18 @@
    "OPERATIONS",
    "VERSION",
    "VERSION2",
+   "bounded_int",
+   "bounded_text",
    "canonical",
    "decode",
+   "exact_keys",
+   "finite_number",
    "identifier",
    "integer",
    "number",
    "object_keys",
-   "text"
+   "text",
+   "wire_canonical"
   ]
  },
  "codontrace.swarm.research": {

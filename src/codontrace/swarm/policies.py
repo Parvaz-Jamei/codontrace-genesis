@@ -7,6 +7,15 @@ import statistics
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from codontrace.genesis.qd_parametric import (
+    HillClimbEmitter,
+    MutationRule,
+    ParameterBound,
+    ParameterCandidate,
+    ParameterSpace,
+    tell_parameter_results,
+)
+from codontrace.genesis.qd_search import QDDescriptorConfig, QDSearchArchive
 from codontrace.genesis.swarm.diagnosis import peer_disagreement
 from codontrace.rng import RNGManager
 from codontrace.swarm.protocol import canonical, number
@@ -42,13 +51,42 @@ class Pipeline:
         return filtered, events
 
 
+# Pipeline as an engine parameter space. The mutation rules reproduce the
+# original hill-climb expressions exactly (see HillClimbEmitter).
+PIPELINE_SPACE = ParameterSpace((
+    ParameterBound('alpha', 0.01, 1.0, 1.0, MutationRule('additive', 0.4, low=0.01, high=1.0)),
+    ParameterBound('clip', 0.01, 1e6, 5.0, MutationRule('multiplicative', 0.5, low=0.01)),
+    ParameterBound('event_threshold', 0.01, 1e6, 2.0),
+))
+# Archive measures: alpha and log10(clip), 8 bins each.
+PIPELINE_MEASURES = QDDescriptorConfig(descriptor_names=('alpha', 'log10_clip'),
+                                       bins_per_descriptor={'alpha': 8, 'log10_clip': 8},
+                                       min_values={'alpha': 0.01, 'log10_clip': -2.0},
+                                       max_values={'alpha': 1.0, 'log10_clip': 6.0})
+
+
+def pipeline_measures(pipeline: Pipeline) -> dict[str, float]:
+    return {'alpha': pipeline.alpha, 'log10_clip': math.log10(pipeline.clip)}
+
+
 class PolicyArchive:
-    """Small evolutionary search over pipelines, separate from ALife birth fitness."""
+    """Small evolutionary search over pipelines, separate from ALife birth fitness.
+
+    Candidates come from ``genesis.qd_parametric.HillClimbEmitter`` over
+    ``PIPELINE_SPACE``; every evaluation is logged in ``entries`` (newest 4096,
+    keyed by pipeline digest) and offered to a MAP-Elites ``QDSearchArchive``
+    (``qd_archive``, quality = -training MSE, measures ``PIPELINE_MEASURES``).
+    """
     def __init__(self, seed: int = 0) -> None:
         if type(seed) is not int or not 0 <= seed <= 2**53-1:
             raise ValueError("bounded integer seed required")
         self.rng = RNGManager(seed=seed, namespace='swarm/pipelines')
         self.entries: dict[str, dict[str, Any]] = {}
+        self.emitter = HillClimbEmitter()
+        self.qd_archive = QDSearchArchive()
+
+    def archive_digest(self) -> str:
+        return self.qd_archive.digest()
 
     def fit(self, values: list[float], references: list[float], *, rounds: int = 8) -> Pipeline:
         if not isinstance(values, list) or not isinstance(references, list) or len(values) > 4096:
@@ -60,16 +98,16 @@ class PolicyArchive:
         # Training-only fit; caller must use a separate device/day/history for evaluation.
         best = Pipeline(); best_loss = math.inf
         for i in range(rounds * 4):
-            candidate = Pipeline() if i == 0 else Pipeline(
-                alpha=max(0.01, min(1.0, best.alpha + (self.rng.random() - 0.5) * 0.4)),
-                clip=max(0.01, best.clip * (0.5 + self.rng.random())),
-                event_threshold=best.event_threshold,
-            )
+            candidate = Pipeline() if i == 0 else Pipeline(**self.emitter.emit(PIPELINE_SPACE, asdict(best), self.rng))
             output, _ = candidate.process(values)
             loss = statistics.mean((x-y)**2 for x, y in zip(output, references, strict=True))
             self.entries[candidate.digest] = {'pipeline': asdict(candidate), 'training_mse': loss}
             if len(self.entries) > 4096:
                 del self.entries[next(iter(self.entries))]
+            if math.isfinite(loss):
+                self.qd_archive, _ = tell_parameter_results(
+                    self.qd_archive, PIPELINE_MEASURES, [ParameterCandidate(asdict(candidate))], [-loss],
+                    [pipeline_measures(candidate)])
             if loss < best_loss:
                 best = candidate; best_loss = loss
         return best

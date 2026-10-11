@@ -124,6 +124,18 @@
    "verify_replay_bundle"
   ]
  },
+ "codontrace.genesis.coevolution": {
+  "__all__": [
+   "CoevolutionResult",
+   "CoevolutionRound",
+   "minimax_coevolve"
+  ],
+  "public": [
+   "CoevolutionResult",
+   "CoevolutionRound",
+   "minimax_coevolve"
+  ]
+ },
  "codontrace.genesis.journal": {
   "__all__": [
    "CHECKPOINTS_KEPT",
@@ -152,6 +164,39 @@
    "fsync_dir",
    "journal_file_lock",
    "segments_to_archive"
+  ]
+ },
+ "codontrace.genesis.qd_parametric": {
+  "__all__": [
+   "GaussianEmitter",
+   "HillClimbEmitter",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterEmitter",
+   "ParameterSpace",
+   "PyribsGridBackend",
+   "ask_parameter_candidates",
+   "parameter_descriptor_config",
+   "tell_parameter_results"
+  ],
+  "public": [
+   "GaussianEmitter",
+   "HillClimbEmitter",
+   "MUTATION_KINDS",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterEmitter",
+   "ParameterSpace",
+   "PyribsGridBackend",
+   "QDDescriptorConfig",
+   "QDSearchArchive",
+   "QDSearchCandidate",
+   "RNGManager",
+   "ask_parameter_candidates",
+   "parameter_descriptor_config",
+   "tell_parameter_results"
   ]
  },
  "codontrace.genesis.qd_search": {
@@ -327,10 +372,16 @@
  "codontrace.swarm.coevolution": {
   "__all__": [],
   "public": [
+   "DEFENDER_SPACE",
+   "HillClimbEmitter",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterSpace",
    "Pipeline",
    "RNGManager",
    "coevolve",
    "integer",
+   "minimax_coevolve",
    "mse",
    "number"
   ]
@@ -391,13 +442,24 @@
  "codontrace.swarm.policies": {
   "__all__": [],
   "public": [
+   "HillClimbEmitter",
+   "MutationRule",
+   "PIPELINE_MEASURES",
+   "PIPELINE_SPACE",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterSpace",
    "Pipeline",
    "PolicyArchive",
+   "QDDescriptorConfig",
+   "QDSearchArchive",
    "RNGManager",
    "canonical",
    "diagnose",
    "number",
    "peer_disagreement",
+   "pipeline_measures",
+   "tell_parameter_results",
    "transfer_decision"
   ]
  },

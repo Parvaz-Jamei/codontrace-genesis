@@ -21,11 +21,19 @@
   "verify_artifact_bytes": "(file_path: 'str | Path', expected_digest: 'str') -> 'bool'",
   "verify_replay_bundle": "(bundle: 'ReplayBundle', result: 'object') -> 'ReplayVerificationResult'"
  },
+ "codontrace.genesis.coevolution": {
+  "minimax_coevolve": "(defender: 'D', challenger: 'C', *, rounds: 'int', begin_round: 'Callable[[int], X]', propose_challengers: 'Callable[[C, X], Sequence[C]]', propose_defenders: 'Callable[[D, X], Sequence[D]]', score: 'Callable[[D, C, X], float]') -> 'CoevolutionResult[D, C]'"
+ },
  "codontrace.genesis.journal": {
   "archived_to_delete": "(rows: 'Sequence[tuple[int, int]]', archive_max_bytes: 'int') -> 'list[int]'",
   "fsync_dir": "(folder: 'Path') -> 'None'",
   "journal_file_lock": "(lock_path: 'Path', timeout_s: 'float', busy_message: 'str') -> 'Iterator[None]'",
   "segments_to_archive": "(rows: 'Sequence[tuple[int, int]]', live_bytes: 'int', retention_bytes: 'int', covered: 'int') -> 'list[int]'"
+ },
+ "codontrace.genesis.qd_parametric": {
+  "ask_parameter_candidates": "(space: 'ParameterSpace', emitter: 'ParameterEmitter', parent: 'Mapping[str, float]', rng: 'RNGManager', count: 'int') -> 'tuple[ParameterCandidate, ...]'",
+  "parameter_descriptor_config": "(space: 'ParameterSpace', *, bins: 'int' = 8, names: 'Sequence[str] | None' = None) -> 'QDDescriptorConfig'",
+  "tell_parameter_results": "(archive: 'QDSearchArchive', config: 'QDDescriptorConfig', candidates: 'Sequence[ParameterCandidate]', qualities: 'Sequence[float]', measures: 'Sequence[Mapping[str, float]] | None' = None) -> 'tuple[QDSearchArchive, int]'"
  },
  "codontrace.genesis.qd_search": {
   "ask_qd_candidates": "(parents: 'Sequence[QDCandidate]', *, rng: 'RNGManager', count: 'int', emitter_name: 'str' = 'mutation_emitter') -> 'QDAskResult'",
@@ -74,6 +82,7 @@
  "codontrace.swarm.coevolution": {
   "coevolve": "(references: 'list[float]', *, seed: 'int', rounds: 'int' = 8, disturbance_budget: 'float' = 1.0) -> 'dict[str, Any]'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
+  "minimax_coevolve": "(defender: 'D', challenger: 'C', *, rounds: 'int', begin_round: 'Callable[[int], X]', propose_challengers: 'Callable[[C, X], Sequence[C]]', propose_defenders: 'Callable[[D, X], Sequence[D]]', score: 'Callable[[D, C, X], float]') -> 'CoevolutionResult[D, C]'",
   "mse": "(values: 'list[float]', references: 'list[float]') -> 'float'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'"
  },
@@ -111,6 +120,8 @@
   "diagnose": "(values: 'dict[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
   "peer_disagreement": "(values: 'Mapping[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
+  "pipeline_measures": "(pipeline: 'Pipeline') -> 'dict[str, float]'",
+  "tell_parameter_results": "(archive: 'QDSearchArchive', config: 'QDDescriptorConfig', candidates: 'Sequence[ParameterCandidate]', qualities: 'Sequence[float]', measures: 'Sequence[Mapping[str, float]] | None' = None) -> 'tuple[QDSearchArchive, int]'",
   "transfer_decision": "(candidate: 'Pipeline', baseline: 'Pipeline', values: 'list[float]', references: 'list[float]', *, minimum_gain: 'float' = 0.0) -> 'dict[str, Any]'"
  },
  "codontrace.swarm.protocol": {

@@ -11,8 +11,10 @@ from codontrace.genesis.journal import (  # noqa: F401  (public names)
     CHECKPOINTS_KEPT,
     MAX_CHECKPOINT_BYTES,
     HashChainedJournal,
-    JournalBusyError,
     NotRecorded,
+)
+from codontrace.genesis.journal import (
+    JournalBusyError as JournalBusyError,
 )
 from codontrace.swarm.policies import Pipeline, diagnose
 from codontrace.swarm.protocol import VERSION2, canonical, decode, identifier, integer, number, object_keys, text  # noqa: F401  (canonical is a public name)

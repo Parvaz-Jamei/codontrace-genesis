@@ -1,0 +1,6 @@
+{
+  "notice": "Synthetic parameter examples. Replace history/model ids and units with actual independent measured data. None of these actions sends a device command.",
+  "uncertainty": {"action":"uncertainty_interval","args":{"swarm_id":"lab","predictions":[0,0,0,0,0,0,0,0,0,0],"references":[0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2],"estimate":0,"training_id":"frozen-model","calibration_id":"independent-cal","model_id":"model-1","alpha":0.1}},
+  "live_schedule": {"action":"freshness_plan","args":{"swarm_id":"lab","quantity":"signal","unit":"arb","byte_budget":200,"request_budget":2,"models":{"a/s":{"group":"region-1","noise_variance":0.1,"process_variance_per_ms":0.01,"latency_ms":10,"success_probability":0.9,"payload_bytes":100,"evidence_id":"cost-cal-1"}}}},
+  "shadow": {"action":"capsule_shadow","args":{"swarm_id":"lab","candidate":{"alpha":0.1},"baseline":{},"values":[0,1,-1,1,-1,0],"references":[0,0,0,0,0,0],"training_id":"train-history","evaluation_id":"heldout-history","phase":"qualification","minimum_gain":0.01}}
+}

@@ -54,5 +54,6 @@ export default defineConfig({
     outDir: path.resolve(root, "../src/codontrace/console/static"),
     emptyOutDir: true,
     sourcemap: false,
+    rollupOptions: { input: { console: path.resolve(root, 'index.html'), simulation: path.resolve(root, 'simulation.html') } },
   },
 });

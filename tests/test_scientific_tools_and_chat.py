@@ -203,7 +203,9 @@ def test_http_catalog_and_manual_tool_integration(recorded):
     base = f"http://127.0.0.1:{httpd.server_port}"
     try:
         catalog = json.load(urllib.request.urlopen(base + "/api/science/tools"))
-        assert len(catalog["tools"]) == 14
+        names = {tool['name'] for tool in catalog['tools']}
+        assert {'metric_series', 'simulation_inspect', 'swarm_inspect', 'swarm_decision_report'} <= names
+        assert len(names) == len(catalog['tools']) == 17
         body = json.dumps({"tool": "metric_series", "args": {"run_id": "run_alpha"}}).encode()
         response = json.load(
             urllib.request.urlopen(

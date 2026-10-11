@@ -1,0 +1,1 @@
+import{e as t,j as e}from"./zip-CfxBpjDT.js";import{SimulationApp as o}from"./app-Cg0r4yLA.js";const r=new URLSearchParams(location.search).get("run")||"";t.createRoot(document.getElementById("root")).render(e.jsx(o,{initialRunId:r}));

@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, lazy, Suspense, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { Check, CircleHelp, Cpu, Download, FileCode, Home, List, Menu, MessageSquare, PanelLeft, Plus, Settings, Server } from "lucide-react";
+import { Check, CircleHelp, Cpu, Download, FileCode, Home, Layers, List, Menu, MessageSquare, PanelLeft, Plus, Settings, Server } from "lucide-react";
 import { fetchRelease, getHostProfile } from "@/lib/genesis/host";
 import { t } from "@/lib/genesis/copy";
 import { useBench } from "@/lib/genesis/store";
@@ -10,7 +10,10 @@ import { cn } from "@/lib/cn";
 import { Stage } from "./stage";
 import { ChatView, GatesView, HelpDialog, HostView, JobsView, LogRail, NewRunDialog, ScriptsView, SettingsView, HomeView } from "./views";
 
+const SimulationApp = lazy(() => import("../../simulation/app").then(m => ({ default: m.SimulationApp })));
+
 export function BenchApp() {
+  const selectedJobId = useBench((state) => state.selectedJobId);
   const settings = useBench((state) => state.settings);
   const view = useBench((state) => state.view);
   const setView = useBench((state) => state.setView);
@@ -54,7 +57,7 @@ export function BenchApp() {
   useEffect(() => {
     const syncFromLocation = () => {
       const rawHash = window.location.hash.replace(/^#\/?/, "").toLowerCase();
-      const validViews: View[] = ["home", "jobs", "chat", "gates", "scripts", "host", "settings"];
+      const validViews: View[] = ["home", "jobs", "simulation", "chat", "gates", "scripts", "host", "settings"];
       if (validViews.includes(rawHash as View)) {
         setView(rawHash as View);
       } else if (!rawHash) {
@@ -146,6 +149,7 @@ export function BenchApp() {
   const titles: Record<View, string> = {
     home: settings.lang === "fa" ? "خانه و دستیار هوشمند" : "Home & AI Assistant",
     jobs: settings.lang === "fa" ? "کارزارهای تکامل" : "Evolution Campaigns",
+    simulation: settings.lang === "fa" ? "اطلس شبیه‌سازی" : "Simulation Atlas",
     chat: settings.lang === "fa" ? "دستیار پژوهش" : "Research Assistant",
     gates: settings.lang === "fa" ? "مجموعه ۲۹ گیت" : "Test Suite · 29 gates",
     scripts: settings.lang === "fa" ? "آزمون‌های سفارشی" : "Custom Tests",
@@ -212,6 +216,7 @@ export function BenchApp() {
               <div key={view} className="relative z-10 h-full min-h-0">
                 {view === "home" ? <HomeView /> : null}
                 {view === "jobs" ? <JobsView /> : null}
+                {view === "simulation" ? <Suspense fallback={<div className="p-6 text-muted">Loading Simulation Atlas…</div>}><SimulationApp embedded initialRunId={selectedJobId ?? ""} /></Suspense> : null}
                 {view === "chat" ? <ChatView /> : null}
                 {view === "gates" ? <GatesView /> : null}
                 {view === "scripts" ? <ScriptsView /> : null}
@@ -318,6 +323,7 @@ function Sidebar({
   const items: { id: View; label: string; icon: typeof List }[] = [
     { id: "home", label: lang === "fa" ? "خانه / دستیار" : "Home / AI", icon: Home },
     { id: "jobs", label: lang === "fa" ? "شبیه‌سازی‌ها" : "Simulations", icon: List },
+    { id: "simulation", label: lang === "fa" ? "اطلس لایه‌ها" : "Layer Atlas", icon: Layers },
     { id: "chat", label: lang === "fa" ? "تحلیلگر" : "Analyst", icon: MessageSquare },
     { id: "gates", label: lang === "fa" ? "گیت‌ها" : "Gates", icon: Check },
     { id: "scripts", label: lang === "fa" ? "اسکریپت" : "Scripts", icon: FileCode },

@@ -42,6 +42,23 @@ COMMON = {
 
 DEFINITIONS = (
     (
+        "swarm_decision_report", "Swarm calibration and shadow report",
+        "Read the selected run's saved decision-support report in every lifecycle state. Shows observed calibration/transfer/budget metrics and synthetic labels; no deployment commands or guaranteed safety.",
+        _schema(run_id=COMMON["run_id"], seed={"type": "integer", "minimum": 0}),
+    ),
+    (
+        "simulation_inspect", "Recorded simulation layers",
+        "Read real Atlas generation counts for one selected run/seed in any lifecycle state. Cursor is a recorded-frame index. Returns a table and population chart, never device commands or a hypothesis verdict.",
+        _schema(run_id=COMMON["run_id"], seed={"type": "integer", "minimum": 0},
+                cursor={"type": "integer", "minimum": 0, "maximum": 100000},
+                limit={"type": "integer", "minimum": 1, "maximum": 32, "default": 8}),
+    ),
+    (
+        "swarm_inspect", "Sensor swarm data",
+        "Read the selected sensor swarm's recorded nodes, commands and measurements; works while paused/stopped. No device commands or inferred verdict.",
+        _schema(swarm_id={"type": "string"}),
+    ),
+    (
         "scientific_plot",
         "Scientific chart studio",
         "Two modes: raw (default, no options) plots selected run as recorded; tool permits bounded filters/style. No arbitrary code, smoothing or inferred verdict. inspect_run lists metric keys.",
@@ -488,10 +505,95 @@ def invoke_tool(
                 "artifacts": artifacts,
                 "summary": "Local metadata; unregistered programs are not inferred to be simulation projects.",
             }
+        if name == "swarm_inspect":
+            from codontrace.swarm.service import invoke as invoke_swarm
+            sid = args.get("swarm_id") or selected_run_id
+            if selected_run_id and sid != selected_run_id:
+                raise ValueError("swarm scope must match selected run")
+            snapshot = invoke_swarm("snapshot", {"swarm_id": sid})["result"]
+            state = snapshot["state"]
+            provenance = {"swarm_id": sid, "journal_digest": snapshot["journal_digest"], "descriptive_only": True}
+            artifacts = [{"kind": "table", "columns": ["node", "online", "channels", "last sequence"],
+                          "rows": [[k, n["online"], ", ".join(n["channels"]), n["seq"]] for k, n in state["nodes"].items()],
+                          "provenance": provenance}]
+            groups = {}
+            for frame in state["history"]:
+                key = frame["node_id"] + "/" + frame["channel"] + " (" + frame["unit"] + ")"
+                group = (frame["quantity"], frame["unit"])
+                groups.setdefault(group, {}).setdefault(key, []).append([frame["sample_ms"], frame["value"]])
+            for (quantity, unit), series in groups.items():
+                artifacts.append({"kind": "chart", "spec": {"chart_type": "line", "title": "Recorded swarm measurements: " + quantity,
+                    "x_label": "sample UTC ms", "y_label": unit,
+                    "series": [{"name": k, "points": v} for k, v in series.items()]}, "provenance": provenance})
+            return {"ok": True, "tool": name, "run_id": sid, "artifacts": artifacts,
+                    "summary": "Recorded measurements; no smoothing, causal verdict or device command."}
         run_id = args.get("run_id") or selected_run_id
         if selected_run_id and run_id != selected_run_id:
             raise ValueError("tool scope is the selected run; select another run explicitly")
+        if name == "simulation_inspect":
+            from codontrace.console.simulation import read_simulation
+            page = read_simulation(run_id, seed=args.get("seed"), cursor=args.get("cursor", 0), limit=args.get("limit", 8))
+            frames = page["frames"]
+            provenance = {"run_id": run_id, "seed": page.get("seed"),
+                          "engine_run_id": frames[0]["run_id"] if frames else None,
+                          "page_sha256": hashlib.sha256(json.dumps(page, sort_keys=True, allow_nan=False).encode()).hexdigest(),
+                          "source": "recorded_generation_boundaries", "descriptive_only": True}
+            artifacts = [{"kind": "table", "columns": ["generation", "tick", "population", "births", "deaths", "two-parent births"],
+                          "rows": [[f["generation"], f["tick"], *(f["metrics"][k] for k in ("population", "births", "deaths", "two_parent_births"))] for f in frames],
+                          "provenance": provenance}]
+            if frames:
+                artifacts.append({"kind": "chart", "spec": {"chart_type": "line", "title": "Recorded population",
+                    "x_label": "generation", "y_label": "organism count",
+                    "series": [{"name": "population", "points": [[f["generation"], f["metrics"]["population"]] for f in frames]}]}, "provenance": provenance})
+            return {"ok": True, "tool": name, "run_id": run_id, "artifacts": artifacts,
+                    "summary": page.get("reason", "Recorded counts only; replay controls do not control the engine."),
+                    "seeds": page["seeds"], "total_frames": page["total_frames"], "next_cursor": page.get("next_cursor", 0)}
         details, folder, provenance = _context(run_id)
+        if name == "swarm_decision_report":
+            path = folder / "swarm_decision_support.json"
+            if path.is_symlink() or not path.resolve().is_relative_to(folder.resolve()):
+                raise ValueError("report path escapes selected run")
+            with path.open("rb") as handle:
+                content = handle.read(MAX_BYTES+1)
+            if len(content)>MAX_BYTES:
+                raise ValueError("oversized decision report")
+            try:
+                report=json.loads(content)
+            except RecursionError as exc:
+                raise ValueError("decision report nesting too deep") from exc
+            from codontrace.swarm.protocol import canonical, integer
+            canonical(report)
+            if not isinstance(report,dict) or report.get("schema")!="genesis_swarm_decision_report_v1" or type(report.get("synthetic")) is not bool:
+                raise ValueError("invalid decision report schema")
+            reports=report.get("reports")
+            if not isinstance(reports,list) or len(reports)>256:
+                raise ValueError("bounded report rows required")
+            if any(not isinstance(r,dict) for r in reports):
+                raise ValueError("decision report rows must be objects")
+            seeds=[integer(r["seed"]) for r in reports]
+            if len(set(seeds))!=len(seeds):
+                raise ValueError("duplicate seed in decision report")
+            for r in reports:
+                if r.get("synthetic") is not report["synthetic"]:
+                    raise ValueError("inconsistent synthetic label")
+                for key,schema in (("interval","genesis_residual_interval_v1"),("shadow","genesis_capsule_shadow_v1"),
+                                   ("rollback_control","genesis_capsule_shadow_v1"),("schedule","genesis_freshness_schedule_v1")):
+                    if not isinstance(r.get(key),dict) or r[key].get("schema")!=schema:
+                        raise ValueError("invalid decision measurement schema")
+                radius=r["interval"]["radius"]
+                if (radius is not None and (not _finite(radius) or radius<0)) or not _finite(r["heldout_coverage"]) or not 0<=r["heldout_coverage"]<=1:
+                    raise ValueError("invalid calibration measurement")
+                if not _finite(r["shadow"]["gain_mse"]) or type(r["rollback_control"]["rollback_advised"]) is not bool:
+                    raise ValueError("invalid shadow measurement")
+                integer(r["schedule"]["estimated_payload_bytes"],high=16*1024*1024)
+            if "seed" in args:
+                reports=[r for r in reports if r["seed"]==args["seed"]]
+            provenance.update(artifact_sha256=hashlib.sha256(content).hexdigest(),synthetic=report["synthetic"])
+            artifacts=[{"kind":"table","columns":["seed","synthetic","interval radius","held-out coverage","shadow MSE gain","rollback advised","estimated payload bytes"],
+                "rows":[[r["seed"],report["synthetic"],r["interval"]["radius"],r["heldout_coverage"],r["shadow"]["gain_mse"],r["rollback_control"]["rollback_advised"],r["schedule"]["estimated_payload_bytes"]] for r in reports],
+                "provenance":provenance}]
+            return {"ok":True,"tool":name,"run_id":run_id,"artifacts":artifacts,
+                "summary":"Saved decision-support measurements; synthetic="+str(report["synthetic"])+". No device commands, physical validation or safety theorem inferred."}
         execution = details.get("execution") or {}
         summary = execution.get("summary") or {}
         nested = summary.get("summary_metrics") or {}

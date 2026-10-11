@@ -39,6 +39,7 @@ from codontrace.engine_digest import (
 )
 from codontrace.engine_results import (
     ConsistencyValidationResult,
+    ExogenousInputRecord,
     GenesisRun,
     GenesisRunSummary,
     GenesisSnapshot,
@@ -52,13 +53,16 @@ from codontrace.engine_runtime import (
 )
 from codontrace.engine_spec import (
     GenerationBoundaryObserver,
+    GenerationInputProvider,
     GenesisEngineConfig,
     GenesisExperimentSpec,
 )
 
 __all__ = [
     "ConsistencyValidationResult",
+    "ExogenousInputRecord",
     "GenerationBoundaryObserver",
+    "GenerationInputProvider",
     "GenesisEngine",
     "GenesisEngineConfig",
     "GenesisExperimentSpec",

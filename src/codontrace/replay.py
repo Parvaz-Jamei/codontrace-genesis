@@ -4,20 +4,22 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from codontrace._types import JsonValue, Position
 from codontrace.actions import ActionContext, ActionHandler, ActionRegistry, default_action_registry
 from codontrace.codon import CodonTable
 from codontrace.energy import ATPAccount
+from codontrace.errors import ReplayError
 from codontrace.genome import SemanticGenome
 from codontrace.trace import TimelineFrame, Trace, TraceEvent, WorldEvent
 from codontrace.world import World2D
 
 if TYPE_CHECKING:
     from codontrace.agent import WhiteBoxAgent
+    from codontrace.engine_results import ExogenousInputRecord
 
 
 @dataclass(frozen=True, slots=True)
@@ -484,6 +486,59 @@ def digest_payload(payload: object) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
+
+
+class RecordedInputProvider:
+    """Replay ``GenesisEngine.exogenous_inputs`` as a ``GenerationInputProvider``.
+
+    Feeds each recorded generation the same events, so a recorded run can be
+    re-executed without the live source. With ``verify_world`` (default) the
+    world the engine offers must match the recorded ``world_digest_before``;
+    a mismatch raises ``ReplayError`` before anything is applied. Generations
+    with no record receive no events.
+    """
+
+    __slots__ = ("_by_generation", "records", "verify_world")
+
+    def __init__(self, records: Sequence[ExogenousInputRecord], *, verify_world: bool = True) -> None:
+        by_generation: dict[int, ExogenousInputRecord] = {}
+        for record in records:
+            if record.generation_index in by_generation:
+                msg = f"duplicate exogenous input record for generation {record.generation_index}."
+                raise ReplayError(msg)
+            by_generation[record.generation_index] = record
+        self.records: tuple[ExogenousInputRecord, ...] = tuple(records)
+        self.verify_world = verify_world
+        self._by_generation = by_generation
+
+    @classmethod
+    def from_records(
+        cls,
+        records: Iterable[ExogenousInputRecord | Mapping[str, Any]],
+        *,
+        verify_world: bool = True,
+    ) -> RecordedInputProvider:
+        """Build from records or their ``to_dict()`` form (``result.to_dict()["exogenous_inputs"]``)."""
+
+        from codontrace.engine_results import ExogenousInputRecord
+
+        items = tuple(
+            item if isinstance(item, ExogenousInputRecord) else ExogenousInputRecord.from_dict(item)
+            for item in records
+        )
+        return cls(items, verify_world=verify_world)
+
+    def __call__(self, *, generation_index: int, world_view: World2D) -> tuple[WorldEvent, ...]:
+        record = self._by_generation.get(generation_index)
+        if record is None:
+            return ()
+        if self.verify_world and world_view.digest() != record.world_digest_before:
+            msg = (
+                f"recorded inputs for generation {generation_index} expect world "
+                f"{record.world_digest_before[:12]}, found {world_view.digest()[:12]}."
+            )
+            raise ReplayError(msg)
+        return record.events
 
 def _resolve_handler(
     *,

@@ -18,7 +18,10 @@ MAX_SESSION_EXPIRY_S = 7 * 24 * 3600
 
 
 def paho_available() -> bool:
-    return importlib.util.find_spec("paho.mqtt.client") is not None
+    try:
+        return importlib.util.find_spec("paho.mqtt.client") is not None
+    except ModuleNotFoundError:  # find_spec imports the parent package ``paho``
+        return False
 
 
 def session_expiry_properties(session_expiry_s: int | None, client_id: str) -> Any:

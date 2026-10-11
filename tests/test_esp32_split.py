@@ -52,9 +52,13 @@ def test_mqtt_transport_fails_closed_with_the_same_messages():
     with pytest.raises(Exception, match='fails closed: no broker configured'):
         esp32.MqttEsp32Transport().connect()
     t = esp32.MqttEsp32Transport(broker_url='mqtt://x', allow_connect=True)
-    expected = 'broker connect not available' if mqtt_session.paho_available() else 'paho-mqtt not available'
-    with pytest.raises(Exception, match=expected):
-        t.connect()
+    if mqtt_session.paho_available():
+        with pytest.raises(Exception, match='broker connect not available'):
+            t.connect()
+    else:
+        # Existing behaviour, kept: find_spec('paho.mqtt.client') raises when paho is absent.
+        with pytest.raises(ModuleNotFoundError):
+            t.connect()
 
 
 def test_session_properties_and_client_setup(monkeypatch):

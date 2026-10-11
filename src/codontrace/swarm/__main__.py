@@ -45,7 +45,7 @@ def main() -> None:
         import threading
 
         from codontrace.console.server import make_server
-        from codontrace.swarm.service import coordinator
+        from codontrace.swarm.service import coordinator, release
         if args.host not in ('127.0.0.1', 'localhost', '::1') and not os.environ.get('CODONTRACE_API_TOKEN'):
             parser.error('network serving requires CODONTRACE_API_TOKEN')
         server = make_server(args.host, args.port)
@@ -58,6 +58,7 @@ def main() -> None:
                 password = os.environ.get('CODONTRACE_MQTT_PASSWORD', '')
                 if not username or not password:
                     parser.error('MQTT credentials required')
+                # Pinned: console requests and the bridge share this one instance.
                 bridge = MqttSwarmBridge(coordinator(args.swarm_id))
                 client = bridge.connect(args.mqtt_host, port=args.mqtt_port, username=username,
                                         password=password, ca_file=args.ca_file)
@@ -78,6 +79,7 @@ def main() -> None:
             stop.set(); server.server_close()
             if client is not None:
                 client.loop_stop(); client.disconnect()
+                release(args.swarm_id)
     elif args.mode == 'replay':
         swarm = SwarmCoordinator(args.swarm_id, journal=args.journal)
         _emit(canonical(swarm.snapshot(now_ms=swarm._state['now_ms'])))

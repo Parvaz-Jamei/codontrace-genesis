@@ -14,10 +14,21 @@ from codontrace.swarm.protocol import identifier, object_keys
 from codontrace.swarm.runtime import SwarmCoordinator
 
 _LOCK = threading.RLock()
-# Least-recently-used first. Coordinators are reopened from their journal on demand.
+# Least-recently-used first. Only fully restored coordinators are cached; they are
+# reopened from their journal on demand after eviction.
 _SWARMS: OrderedDict[str, SwarmCoordinator] = OrderedDict()
-_LEASES: dict[str, int] = {}
+_LEASES: dict[str, int] = {}   # in-flight service requests
+_PINS: dict[str, int] = {}     # long-lived holders (MQTT bridge, engine links)
+_OPENING: dict[str, list[Any]] = {}  # per-swarm [lock, users] so opening happens outside _LOCK
 MAX_CACHED_SWARMS = 32
+
+
+class SwarmCapacityError(ValueError):
+    """Every cached coordinator is in use; nothing can be evicted."""
+
+
+class SwarmRecoveryRequired(ValueError):
+    """Recorded history exists but is not loaded; only journal_recover is served."""
 
 # Pure computations on caller-supplied data: no swarm state, no storage.
 STATELESS_ACTIONS = frozenset({'fdc_decode', 'pipeline_fit', 'information_level', 'processing_contrast',
@@ -37,38 +48,97 @@ def _root() -> Path:
 
 
 def _evict_idle() -> None:
-    """Drop least-recently-used coordinators that no request is using.
+    """Drop least-recently-used coordinators nobody is using (caller holds _LOCK).
 
-    Skipped: swarms leased by an in-flight request, swarms whose lock is held,
-    and swarms that need journal recovery (their flag would be lost).
+    Skipped: swarms pinned by a long-lived holder, leased by an in-flight request,
+    whose lock is held, or that need journal recovery (their flag would be lost).
     """
     for sid in list(_SWARMS):
         if len(_SWARMS) < MAX_CACHED_SWARMS:
             return
         swarm = _SWARMS[sid]
-        if _LEASES.get(sid) or swarm._write_failed or not swarm._lock.acquire(blocking=False):
+        if _PINS.get(sid) or _LEASES.get(sid) or swarm._write_failed or not swarm._lock.acquire(blocking=False):
             continue
         try:
             del _SWARMS[sid]
         finally:
             swarm._lock.release()
     if len(_SWARMS) >= MAX_CACHED_SWARMS:
-        raise ValueError('swarm session capacity reached; all cached swarms are busy')
+        raise SwarmCapacityError('swarm session capacity reached; all cached swarms are busy')
 
 
-def coordinator(swarm_id: str, *, create: bool = True, restore: bool = True) -> SwarmCoordinator | None:
-    """Cached coordinator; with ``create=False`` an unrecorded swarm returns None."""
+@contextmanager
+def _opening(swarm_id: str):
+    """Per-swarm open lock: one opener per swarm, other swarms are never blocked."""
+    with _LOCK:
+        entry = _OPENING.setdefault(swarm_id, [threading.Lock(), 0])
+        entry[1] += 1
+    try:
+        with entry[0]:
+            yield
+    finally:
+        with _LOCK:
+            entry[1] -= 1
+            if not entry[1]:
+                del _OPENING[swarm_id]
+
+
+def _insert(swarm_id: str, swarm: SwarmCoordinator, pin: bool) -> SwarmCoordinator:
+    with _LOCK:
+        _evict_idle()
+        _SWARMS[swarm_id] = swarm
+        if pin:
+            _PINS[swarm_id] = _PINS.get(swarm_id, 0) + 1
+        return swarm
+
+
+def _cached(swarm_id: str, *, create: bool, pin: bool = False) -> SwarmCoordinator | None:
     identifier(swarm_id)
     with _LOCK:
         if swarm_id in _SWARMS:
             _SWARMS.move_to_end(swarm_id)
+            if pin:
+                _PINS[swarm_id] = _PINS.get(swarm_id, 0) + 1
             return _SWARMS[swarm_id]
-        folder = _root() / swarm_id
-        if not create and not folder.is_dir():
-            return None
-        _evict_idle()
-        _SWARMS[swarm_id] = SwarmCoordinator(swarm_id, journal=folder / 'events.jsonl', restore=restore)
-        return _SWARMS[swarm_id]
+    folder = _root() / swarm_id
+    if not create and not folder.is_dir():
+        return None
+    with _opening(swarm_id):
+        with _LOCK:
+            if swarm_id in _SWARMS:  # opened by another thread meanwhile
+                _SWARMS.move_to_end(swarm_id)
+                if pin:
+                    _PINS[swarm_id] = _PINS.get(swarm_id, 0) + 1
+                return _SWARMS[swarm_id]
+            if len(_SWARMS) >= MAX_CACHED_SWARMS:
+                _evict_idle()  # fail fast before a possibly long open
+        try:
+            # Lock wait and replay happen outside _LOCK.
+            swarm = SwarmCoordinator(swarm_id, journal=folder / 'events.jsonl')
+        except ValueError as error:
+            raise SwarmRecoveryRequired(f'recovery_required: {error}; run journal_recover') from error
+        return _insert(swarm_id, swarm, pin)
+
+
+def coordinator(swarm_id: str, *, create: bool = True) -> SwarmCoordinator | None:
+    """Long-lived coordinator handle shared with the service cache.
+
+    The returned coordinator is pinned (never evicted) so a holder such as the
+    MQTT bridge and HTTP requests always use the same instance. Call
+    ``release(swarm_id)`` when done. With ``create=False`` an unrecorded swarm
+    returns None and nothing is pinned.
+    """
+    return _cached(swarm_id, create=create, pin=True)
+
+
+def release(swarm_id: str) -> None:
+    """Drop one pin taken by ``coordinator()``; the swarm becomes evictable when idle."""
+    with _LOCK:
+        if not _PINS.get(swarm_id):
+            raise ValueError('swarm is not pinned')
+        _PINS[swarm_id] -= 1
+        if not _PINS[swarm_id]:
+            del _PINS[swarm_id]
 
 
 @contextmanager
@@ -84,13 +154,39 @@ def _lease(swarm_id: str):
                 del _LEASES[swarm_id]
 
 
-def _recovering(swarm_id: str) -> SwarmCoordinator:
-    """Coordinator for journal_recover even when normal opening fails."""
+def _recover(swarm_id: str, full_replay: Any) -> dict[str, Any]:
+    """journal_recover, reachable even when normal opening fails.
+
+    An instance opened without restore is cached only after recovery succeeded,
+    so reads never see its empty placeholder state.
+    """
     try:
-        swarm = coordinator(swarm_id)
-    except ValueError:
-        swarm = coordinator(swarm_id, restore=False)
-    assert swarm is not None
+        swarm = _cached(swarm_id, create=True)
+    except SwarmRecoveryRequired:
+        swarm = None
+    if swarm is not None:
+        try:
+            return swarm.recover(full_replay=full_replay)
+        except BaseException:
+            # Unpinned: drop it so reads reopen from disk (and refuse if that fails).
+            with _LOCK:
+                if not _PINS.get(swarm_id) and _SWARMS.get(swarm_id) is swarm:
+                    del _SWARMS[swarm_id]
+            raise
+    with _opening(swarm_id):
+        with _LOCK:
+            cached = _SWARMS.get(swarm_id)
+        if cached is not None:
+            return cached.recover(full_replay=full_replay)
+        fresh = SwarmCoordinator(swarm_id, journal=_root() / swarm_id / 'events.jsonl', restore=False)
+        result = fresh.recover(full_replay=full_replay)  # raises: nothing is cached
+        _insert(swarm_id, fresh, False)
+        return result
+
+
+def _readable(swarm: SwarmCoordinator) -> SwarmCoordinator:
+    if swarm._write_failed:
+        raise SwarmRecoveryRequired('recovery_required: journal failure; run journal_recover')
     return swarm
 
 
@@ -111,17 +207,19 @@ def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> 
     if action in STATELESS_ACTIONS:
         swarm = None
     elif action in READ_ONLY_ACTIONS:
-        swarm = coordinator(sid, create=False)
+        swarm = _cached(sid, create=False)
         if swarm is None:
             recorded = False
             swarm = SwarmCoordinator(sid)  # empty, in memory, never cached
+        else:
+            swarm = _readable(swarm)
     elif action == 'journal_recover':
-        swarm = _recovering(sid)
+        swarm = None
     else:
-        swarm = coordinator(sid)
+        swarm = _cached(sid, create=True)
     if action == 'journal_recover':
         object_keys(args, {'swarm_id'}, {'full_replay'})
-        result = swarm.recover(full_replay=args.get('full_replay', False))
+        result = _recover(sid, args.get('full_replay', False))
     elif action == 'snapshot':
         object_keys(args, {'swarm_id'})
         result = swarm.snapshot(now_ms=now)

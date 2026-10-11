@@ -110,10 +110,11 @@ def test_journal_recover_reaches_a_swarm_that_cannot_open_and_heals_after_repair
             SwarmCoordinator('lab', journal=folder / 'events.jsonl')
         with pytest.raises(ValueError, match='full replay unavailable'):
             service.invoke('journal_recover', {'swarm_id': 'lab', 'full_replay': True}, now_ms=10**7)
-        snap = service.invoke('snapshot', {'swarm_id': 'lab'}, now_ms=10**7)['result']
-        assert snap['journal_health'] == 'recovery_required'
-        with pytest.raises(OSError):
+        with pytest.raises(service.SwarmRecoveryRequired, match='recovery_required'):
+            service.invoke('snapshot', {'swarm_id': 'lab'}, now_ms=10**7)
+        with pytest.raises(service.SwarmRecoveryRequired):
             service.invoke('status', {'swarm_id': 'lab', 'status': 'paused'}, now_ms=10**7)
+        assert 'lab' not in service._SWARMS
         shutil.move(backup, first_archived)  # operator restores the archived segment
         result = service.invoke('journal_recover', {'swarm_id': 'lab', 'full_replay': True}, now_ms=10**7)
         assert result['result']['journal_digest'] == expected['journal_digest']
@@ -141,7 +142,7 @@ def test_service_cache_evicts_idle_swarms_lru_and_reopens_from_disk(tmp_path, mo
         service.coordinator('s4')
         assert list(service._SWARMS) == ['s1', 's4']
     finally:
-        service._SWARMS.clear(); service._LEASES.clear()
+        service._SWARMS.clear(); service._LEASES.clear(); service._PINS.clear()
 
 
 def test_fusion_rejects_non_text_quantity_and_unit():

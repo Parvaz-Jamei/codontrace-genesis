@@ -72,6 +72,10 @@
   "plan_oldest_first": "(view: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, now_ms: 'int', ttl_ms: 'int', budget: 'int') -> 'list[tuple[str, str]]'",
   "robust_fuse": "(frames: 'Mapping[str, dict[str, Any]]', trust: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, mode: 'str' = 'median', max_span_ms: 'int' = 1000) -> 'dict[str, Any]'"
  },
+ "codontrace.genesis.transferability": {
+  "compute_str_disparity": "(sim_metrics: 'Mapping[str, float]', physical_metrics: 'Mapping[str, float]', *, transfer_method: 'str' = 'none', notes: 'Sequence[str]' = (), epsilon: 'float' = 1e-09) -> 'STRDisparityResult'",
+  "str_stop_criterion_met": "(*, n_real_tests: 'int', disparity_with_transfer: 'float', disparity_without_transfer: 'float', real_test_budget: 'int' = 20) -> 'bool'"
+ },
  "codontrace.life_loop.conformal_bands": {
   "canonical_digest": "(value: 'Any', *, prefix: 'str | None' = None) -> 'str'",
   "conformal_risk_band": "(*, result_id: 'str', point_prediction: 'float', calibration_residuals: 'Sequence[float]', alpha: 'float' = 0.1, max_width: 'float | None' = None, claim_ceiling: 'str' = 'runtime_observation') -> 'ConformalBandResult'",
@@ -99,6 +103,13 @@
   "run_seed": "(seed: 'int', *, samples: 'int' = 64) -> 'list[dict[str, Any]]'"
  },
  "codontrace.swarm.adapters": {},
+ "codontrace.swarm.adapters.esp32": {
+  "esp32_channels": "(*, config_id: 'str', source_unit: 'str' = 'device_unit', normalization: 'Mapping[str, Mapping[str, Any]] | None' = None) -> 'dict[str, dict[str, Any]]'",
+  "esp32_samples": "(reading: 'SensorReading', channels: 'Mapping[str, Mapping[str, Any]]') -> 'dict[str, dict[str, Any]]'",
+  "identifier": "(value: 'Any') -> 'str'",
+  "normalize_sample": "(payload: 'dict[str, Any]', channel: 'dict[str, Any]') -> 'dict[str, Any]'",
+  "validate_descriptor": "(raw: 'Any') -> 'dict[str, Any]'"
+ },
  "codontrace.swarm.coevolution": {
   "coevolve": "(references: 'list[float]', *, seed: 'int', rounds: 'int' = 8, disturbance_budget: 'float' = 1.0) -> 'dict[str, Any]'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
@@ -118,6 +129,11 @@
   "schedule_measurements": "(candidates: 'list[dict[str, Any]]', *, now_ms: 'int', byte_budget: 'int', request_budget: 'int' = 8) -> 'dict[str, Any]'",
   "split_residual_interval": "(predictions: 'Sequence[float]', references: 'Sequence[float]', *, estimate: 'float', alpha: 'float' = 0.1) -> 'SplitResidualInterval'"
  },
+ "codontrace.swarm.devices": {},
+ "codontrace.swarm.devices.esp32": {
+  "execute_sense": "(bridge: 'Esp32Bridge', left: 'float', right: 'float', duration: 'float') -> 'SensorReading'",
+  "parse_sensor_payload": "(raw: 'Mapping[str, object]') -> 'SensorReading'"
+ },
  "codontrace.swarm.engine": {},
  "codontrace.swarm.experiments": {
   "canonical": "(value: 'Any') -> 'str'",
@@ -135,7 +151,9 @@
  "codontrace.swarm.mqtt": {
   "canonical": "(value: 'Any') -> 'str'",
   "decode": "(raw: 'bytes | str | Mapping[str, Any]') -> 'dict[str, Any]'",
-  "identifier": "(value: 'Any') -> 'str'"
+  "identifier": "(value: 'Any') -> 'str'",
+  "mqtt_v5_client": "(client_id: 'str', *, username: 'str', password: 'str', ca_file: 'str | None', manual_ack: 'bool' = True) -> 'Any'",
+  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str') -> 'Any'"
  },
  "codontrace.swarm.policies": {
   "canonical": "(value: 'Any') -> 'str'",
@@ -209,6 +227,12 @@
   "release": "(swarm_id: 'str') -> 'None'",
   "resolve_run_root": "(kind: 'str') -> 'Path'",
   "transfer_decision": "(candidate: 'Pipeline', baseline: 'Pipeline', values: 'list[float]', references: 'list[float]', *, minimum_gain: 'float' = 0.0) -> 'dict[str, Any]'"
+ },
+ "codontrace.swarm.transport": {},
+ "codontrace.swarm.transport.mqtt_session": {
+  "mqtt_v5_client": "(client_id: 'str', *, username: 'str', password: 'str', ca_file: 'str | None', manual_ack: 'bool' = True) -> 'Any'",
+  "paho_available": "() -> 'bool'",
+  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str') -> 'Any'"
  },
  "codontrace.visualization": {},
  "codontrace.visualization.__main__": {

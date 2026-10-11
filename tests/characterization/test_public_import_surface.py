@@ -24,7 +24,8 @@ SINGLE = ('codontrace.claimgate.adapters.esp32_bridge', 'codontrace.engine', 'co
           'codontrace.genesis.qd_search', 'codontrace.genesis.selection', 'codontrace.genesis.artifacts',
           'codontrace.genesis.journal', 'codontrace.genesis.swarm', 'codontrace.genesis.qd_parametric',
           'codontrace.genesis.coevolution', 'codontrace.genesis.shadow_evaluation', 'codontrace.life_loop.disturbance',
-          'codontrace.contracts.run_roots', 'codontrace.genesis.run_refs')
+          'codontrace.contracts.run_roots', 'codontrace.genesis.run_refs', 'codontrace.genesis.transferability',
+          'codontrace.swarm.devices.esp32', 'codontrace.swarm.adapters.esp32', 'codontrace.swarm.transport.mqtt_session')
 GOLDEN = 'public_import_surface.json'
 SIGNATURES = 'public_signatures.json'
 _TYPING_MODULES = ('typing', 'typing_extensions', 'collections.abc', '_collections_abc', 'types', '__future__')

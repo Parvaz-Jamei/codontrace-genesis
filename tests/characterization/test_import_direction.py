@@ -38,13 +38,13 @@ KNOWN_ADAPTER_EDGES = frozenset({
 })
 
 
-# Runtime edges seen by ``_runtime_edges`` while importing CORE_IMPORTS. Besides
-# the host-parasite drivers, genesis.replay_integrity resolves its digest-class
-# registry with import_module at import time and so loads esp32_bridge.
+# Runtime edges seen by ``_runtime_edges`` while importing CORE_IMPORTS: the
+# host-parasite drivers. (genesis.replay_integrity used to load esp32_bridge
+# through its digest-class registry; STRDisparityResult now lives in
+# genesis.transferability.)
 # Exact and shrink-only: a new runtime edge (static or dynamic) fails, and so
 # does a removed one until this set is updated.
 KNOWN_RUNTIME_ADAPTER_EDGES = frozenset({
-    ('codontrace.genesis.replay_integrity', 'codontrace.claimgate.adapters.esp32_bridge'),
     *((f'codontrace.genesis.{name}', target)
       for name in ('host_parasite_cell_microbe_hard_campaigns', 'host_parasite_diff_campaigns',
                    'host_parasite_sim_fidelity_campaigns', 'host_parasite_wave6_smoke')

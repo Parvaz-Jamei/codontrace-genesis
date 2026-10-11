@@ -1734,7 +1734,7 @@ _DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "candidate_digest",
         "audit_digest",
     ),
-    "codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult": ("record_digest",),
+    "codontrace.genesis.transferability.STRDisparityResult": ("record_digest",),
 }
 for _path, _fields in _DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS.items():
     _DIGEST_FIELDS_BY_CLASS[_path] = _fields

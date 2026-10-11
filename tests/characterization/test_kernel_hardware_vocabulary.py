@@ -29,7 +29,8 @@ KERNEL_FILES = ('engine.py', 'engine_spec.py', 'engine_runtime.py', 'engine_resu
                 'engine_run_result.py', 'engine_claims.py', 'rng.py', 'world.py', 'recorder.py', 'replay.py',
                 'trace.py', 'plugins.py', 'topology.py', 'scheduling.py')
 KERNEL_DIRS = ('contracts', 'life_loop')
-PLANNED = ('genesis/swarm', 'genesis/journal', 'genesis/qd_parametric.py', 'genesis/coevolution.py')
+PLANNED = ('genesis/swarm', 'genesis/journal', 'genesis/qd_parametric.py', 'genesis/coevolution.py',
+           'genesis/transferability.py')
 
 _WIFI = re.compile(r'wi[-_ ]?fi', re.IGNORECASE)
 _WORD = re.compile(r'[A-Za-z0-9]+')

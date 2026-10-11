@@ -344,6 +344,19 @@
    "robust_fuse"
   ]
  },
+ "codontrace.genesis.transferability": {
+  "__all__": [
+   "STRDisparityResult",
+   "compute_str_disparity",
+   "str_stop_criterion_met"
+  ],
+  "public": [
+   "ConfigurationError",
+   "STRDisparityResult",
+   "compute_str_disparity",
+   "str_stop_criterion_met"
+  ]
+ },
  "codontrace.life_loop.conformal_bands": {
   "__all__": [],
   "public": [
@@ -436,6 +449,22 @@
   "__all__": [],
   "public": []
  },
+ "codontrace.swarm.adapters.esp32": {
+  "__all__": [
+   "ESP32_CHANNEL_FIELDS",
+   "esp32_channels",
+   "esp32_samples"
+  ],
+  "public": [
+   "ESP32_CHANNEL_FIELDS",
+   "SensorReading",
+   "esp32_channels",
+   "esp32_samples",
+   "identifier",
+   "normalize_sample",
+   "validate_descriptor"
+  ]
+ },
  "codontrace.swarm.coevolution": {
   "__all__": [],
   "public": [
@@ -467,6 +496,42 @@
    "residual_interval",
    "schedule_measurements",
    "split_residual_interval"
+  ]
+ },
+ "codontrace.swarm.devices": {
+  "__all__": [],
+  "public": []
+ },
+ "codontrace.swarm.devices.esp32": {
+  "__all__": [
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "execute_sense",
+   "parse_sensor_payload"
+  ],
+  "public": [
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "execute_sense",
+   "parse_sensor_payload"
   ]
  },
  "codontrace.swarm.engine": {
@@ -505,7 +570,9 @@
    "SwarmCoordinator",
    "canonical",
    "decode",
-   "identifier"
+   "identifier",
+   "mqtt_v5_client",
+   "session_expiry_properties"
   ]
  },
  "codontrace.swarm.policies": {
@@ -638,6 +705,24 @@
    "release",
    "resolve_run_root",
    "transfer_decision"
+  ]
+ },
+ "codontrace.swarm.transport": {
+  "__all__": [],
+  "public": []
+ },
+ "codontrace.swarm.transport.mqtt_session": {
+  "__all__": [
+   "MAX_SESSION_EXPIRY_S",
+   "mqtt_v5_client",
+   "paho_available",
+   "session_expiry_properties"
+  ],
+  "public": [
+   "MAX_SESSION_EXPIRY_S",
+   "mqtt_v5_client",
+   "paho_available",
+   "session_expiry_properties"
   ]
  },
  "codontrace.visualization": {

@@ -6,7 +6,8 @@
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.tsx"
+    "test": "node --import tsx --test tests/*.test.tsx",
+    "build:simulation": "tsc --noEmit && vite build --config vite.simulation.config.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.6",

@@ -429,3 +429,19 @@ Charts have SVG/PNG export, displayed-data tables, JSON with provenance, labels 
 Settings → Cloud models supports official OpenAI and DeepSeek APIs alongside the existing local analyst, local server and GGUF choices. Save a key or set `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` on the server, then discover/refresh account model IDs. Namespaced model choices route authenticated requests to the matching provider, including scientific tools. API errors remain explicit; they are not silently presented as local-model answers.
 
 Keys never enter model messages, browser storage or returned catalogs. Saved keys live in the server configuration file with mode 0600 on POSIX; environment keys take precedence. For remote configuration use `CODONTRACE_SETTINGS_TOKEN` or a local SSH tunnel. Remote chat/scientific tools also require `CODONTRACE_API_TOKEN`, entered separately in Settings; without it these operations accept only direct loopback clients. Use HTTPS or SSH for credential transport. Local model timeout remains 1800 seconds by default. Selecting a cloud model sends message/selected-run context to that provider and uses account API credits. Actual paid-account compatibility must be verified locally; model listing does not prove endpoint/tool support.
+
+## Optional Wi-Fi sensor swarm
+
+Board-neutral telemetry, host-side processing policies, bounded cooperative sensing and a standalone dashboard.
+See [setup and API](docs/swarm/README_FA.md), [research plan](docs/swarm/RESEARCH_PLAN_FA.md) and [sources](docs/swarm/SOURCES.md).
+Firmware remains outside Genesis. Synthetic probes are engineering checks, not physical discoveries.
+
+## Simulation Atlas
+
+A React isometric generation viewer with seed selection, layer playback, explicit lifecycle records and SVG image-sequence export. [Recording and panel guide](docs/simulation/README_FA.md).
+
+### Swarm decision support (V4)
+
+Bounded split-residual calibration, freshness-aware advisory scheduling over actual node snapshots, and paired capsule shadow comparison are available through the authenticated Swarm API. The LLM can read saved per-seed decision reports without device commands. See [research assumptions, examples and five-phase evaluation](docs/swarm/DECISION_SUPPORT_V4_FA.md). These components do not assert conformal coverage under arbitrary time dependence, optimal scheduling, SPIBB safety, or physical rollback without an acknowledgement.
+
+Swarm V5 adds backward-compatible typed sensor observations, explicit host normalization, an FDCxCapSense reading adapter, hash-chained journal segments and explicit recovery. Receipt/visualization support is distinct from scalar processing support. See [the V5 audit](docs/swarm/AUDIT_V5_FA.md) for tested behavior and remaining hardware/performance limits.

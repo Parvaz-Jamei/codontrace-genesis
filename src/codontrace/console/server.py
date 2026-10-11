@@ -495,6 +495,39 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             return
         assert body_json is not None
 
+        if path == "/api/swarm":
+            # Device credentials only grant ingestion for one swarm/node.
+            # Operator API credentials remain required for commands and inspection.
+            import hmac
+            node_allowed = False
+            if body_json.get("action") == "ingest":
+                try:
+                    keys = json.loads(os.environ.get("CODONTRACE_SWARM_NODE_TOKENS", "{}"))
+                    args = body_json.get("args") or {}
+                    message = args.get("message") or {}
+                    key = str(args.get("swarm_id", "")) + "/" + str(message.get("node_id", ""))
+                    expected = keys.get(key, "")
+                    supplied = self.headers.get("Authorization", "")
+                    node_allowed = isinstance(expected, str) and bool(expected) and hmac.compare_digest(
+                        supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8"))
+                except (ValueError, TypeError, AttributeError):
+                    node_allowed = False
+            if not node_allowed and not self._authorize_inference():
+                return
+            from codontrace.swarm.service import invoke
+            try:
+                result = invoke(body_json.get("action", "snapshot"), body_json.get("args"))
+                status = 200
+            except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
+                result = {"ok": False, "error": "Invalid swarm request"}
+                status = 400
+            except OSError:
+                result = {"ok": False, "error": "Swarm journal unavailable"}
+                status = 503
+            self._send(status, "application/json; charset=utf-8", json.dumps(result, allow_nan=False).encode("utf-8"),
+                       include_body=True, cache="no-store")
+            return
+
         if path == "/api/providers":
             import hmac
 
@@ -759,6 +792,42 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             state = refresh_release(force=True) if refresh else release_state()
             payload = json.dumps(state, allow_nan=False).encode("utf-8")
             self._send(200, "application/json; charset=utf-8", payload, include_body=include_body, cache="no-store")
+            return
+        if path.startswith("/api/runs/") and path.endswith("/simulation"):
+            if not self._authorize_inference(include_body=include_body):
+                return
+            from codontrace.console.simulation import read_simulation
+            try:
+                run_id = path.removeprefix("/api/runs/").removesuffix("/simulation")
+                q = parse_qs(urlparse(self.path).query)
+                result = read_simulation(run_id, seed=int(q["seed"][0]) if "seed" in q else None,
+                                         cursor=int(q.get("cursor", ["0"])[0]), limit=int(q.get("limit", ["8"])[0]))
+                status = 200
+            except FileNotFoundError:
+                result = {"error": "Run not found"}; status = 404
+            except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
+                result = {"error": "Invalid simulation artifact or query"}; status = 400
+            except OSError:
+                result = {"error": "Simulation artifact unavailable"}; status = 503
+            self._send(status, "application/json", json.dumps(result, allow_nan=False).encode("utf-8"),
+                       include_body=include_body, cache="no-store")
+            return
+        if path == "/api/swarm":
+            if not self._authorize_inference(include_body=include_body):
+                return
+            from codontrace.swarm.service import invoke
+            try:
+                query = parse_qs(urlparse(self.path).query)
+                result = invoke("snapshot", {"swarm_id": query.get("swarm_id", [""])[0]})
+                status = 200
+            except (ValueError, TypeError, KeyError):
+                result = {"ok": False, "error": "Invalid swarm identifier"}
+                status = 400
+            except OSError:
+                result = {"ok": False, "error": "Swarm journal unavailable"}
+                status = 503
+            self._send(status, "application/json", json.dumps(result, allow_nan=False).encode("utf-8"),
+                       include_body=include_body, cache="no-store")
             return
         if path == "/api/science/tools":
             if not self._authorize_inference(include_body=include_body):

@@ -16,3 +16,10 @@ test("usage token reaches requests without persisting provider secrets", async (
     assert.equal(new Headers(requests[1].headers).get("Authorization"), null);
   } finally { setApiAccessToken(""); globalThis.fetch = original; }
 });
+
+test('explicit Atlas authorization takes precedence over the console session token',async()=>{
+ const original=globalThis.fetch;let header='';
+ globalThis.fetch=async(_input,init)=>{header=new Headers(init?.headers).get('Authorization')||'';return new Response('{}')};
+ try{setApiAccessToken('console');await authorizedFetch('/api/runs/run/simulation',{headers:{Authorization:'Bearer atlas'}});assert.equal(header,'Bearer atlas')}
+ finally{setApiAccessToken('');globalThis.fetch=original}
+});

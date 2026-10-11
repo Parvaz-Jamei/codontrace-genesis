@@ -1,6 +1,6 @@
 export type Lang = "en" | "fa";
 export type View =
-  "home" | "jobs" | "chat" | "gates" | "scripts" | "host" | "settings";
+  "home" | "jobs" | "simulation" | "chat" | "gates" | "scripts" | "host" | "settings";
 export type JobKind = "engine" | "gates" | "script";
 export type JobStatus =
   "queued" | "running" | "paused" | "stopped" | "archived" | "failed";

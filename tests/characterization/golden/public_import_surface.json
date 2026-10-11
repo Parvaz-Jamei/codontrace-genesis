@@ -107,6 +107,7 @@
    "RunId",
    "RunManifest",
    "ScientificManifestValidationResult",
+   "UTC",
    "compute_source_digest",
    "manifest_from_parts",
    "phase2_manifest_field_statuses",

@@ -23,10 +23,18 @@ MAX_CHECKPOINT_BYTES = 256 * 1024 * 1024
 
 
 class JournalBusyError(BlockingIOError):
-    """The journal lock (in-process or cross-process) was not obtained within the wait bound.
+    """A journal lock was not obtained within its wait bound.
 
-    Nothing was written and the coordinator stays writable; the caller may retry later.
+    ``scope`` is ``'file'`` when the cross-process journal file lock is held by
+    another writer (normally another process), or ``'in_process'`` when this
+    coordinator's own lock stayed busy (another thread of this process is
+    writing, fsyncing, checkpointing or running ``recover()``). Nothing was
+    written and the coordinator stays writable; the caller may retry later.
     """
+
+    def __init__(self, message: str, *, scope: str = 'file') -> None:
+        super().__init__(message)
+        self.scope = scope
 
 
 class _NotRecorded(dict):
@@ -137,7 +145,7 @@ class SwarmCoordinator:
                     break
                 except OSError as error:
                     if time.monotonic() >= deadline:
-                        raise JournalBusyError('swarm journal is locked by another writer') from error
+                        raise JournalBusyError('swarm journal is locked by another writer', scope='file') from error
                     time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
                     delay = min(delay * 2, 0.05)
             try:
@@ -492,28 +500,39 @@ class SwarmCoordinator:
                     'full_replay': full_replay, 'checkpoint_index': self._checkpoint_index}
 
     @contextmanager
-    def _write_locks(self, lock_timeout_s: float | None) -> Iterator[None]:
-        """In-process lock, then the journal file lock. ``lock_timeout_s`` bounds both waits
-        (``JournalBusyError``); ``None`` keeps the default (unbounded in-process wait,
-        ``self.lock_timeout_s`` for the file lock)."""
-        if lock_timeout_s is None:
+    def _write_locks(self, lock_timeout_s: float | None,
+                     in_process_timeout_s: float | None = None) -> Iterator[None]:
+        """In-process serialization, then the cross-process journal file lock.
+
+        The two waits have separate bounds. ``lock_timeout_s`` bounds only the
+        wait for the journal *file* lock (default ``self.lock_timeout_s``).
+        ``in_process_timeout_s`` bounds the wait for this coordinator's own lock,
+        which other threads of this process hold while they write (including a
+        slow fsync or a checkpoint at segment rotation) or run ``recover()``;
+        ``None`` waits as long as that takes, as before. A bound that expires
+        raises ``JournalBusyError`` with ``scope`` ``'file'`` or ``'in_process'``.
+        """
+        if lock_timeout_s is None and in_process_timeout_s is None:
             with self._lock, self._journal_guard():
                 yield
             return
-        timeout = number(lock_timeout_s, low=0, high=60)
-        start = time.monotonic()
-        if not self._lock.acquire(timeout=timeout):
-            raise JournalBusyError('swarm coordinator is busy')
+        file_timeout = None if lock_timeout_s is None else number(lock_timeout_s, low=0, high=60)
+        if in_process_timeout_s is None:
+            acquired = self._lock.acquire()
+        else:
+            acquired = self._lock.acquire(timeout=number(in_process_timeout_s, low=0, high=60))
+        if not acquired:
+            raise JournalBusyError('swarm coordinator is busy in this process', scope='in_process')
         try:
-            with self._journal_guard(max(0.0, timeout - (time.monotonic() - start))):
+            with self._journal_guard(file_timeout):
                 yield
         finally:
             self._lock.release()
 
     def _transaction(self, action: str, args: dict[str, Any], now_ms: int, *,
-                     lock_timeout_s: float | None = None) -> Any:
+                     lock_timeout_s: float | None = None, in_process_timeout_s: float | None = None) -> Any:
         now_ms = integer(now_ms)
-        with self._write_locks(lock_timeout_s):
+        with self._write_locks(lock_timeout_s, in_process_timeout_s):
             if self.journal is not None:
                 size = self.journal.stat().st_size if self.journal.exists() else 0
                 if size != self._journal_size or self._disk_token() != self._journal_token:
@@ -734,9 +753,16 @@ class SwarmCoordinator:
             raise ValueError('unsupported command')
         return p
 
-    def ingest(self, message: Any, *, now_ms: int, lock_timeout_s: float | None = None) -> dict[str, Any]:
-        """``lock_timeout_s`` optionally bounds the wait for a busy journal (``JournalBusyError``)."""
-        return self._transaction('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s)
+    def ingest(self, message: Any, *, now_ms: int, lock_timeout_s: float | None = None,
+               in_process_timeout_s: float | None = None) -> dict[str, Any]:
+        """Journal one device message.
+
+        ``lock_timeout_s`` optionally bounds the wait for the journal file lock
+        and ``in_process_timeout_s`` the wait for this coordinator's own lock
+        (see ``_write_locks``); either raises ``JournalBusyError`` when exceeded.
+        """
+        return self._transaction('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s,
+                                 in_process_timeout_s=in_process_timeout_s)
 
     def command(self, node_id: str, operation: str, params: dict[str, Any], *, now_ms: int,
                 timeout_ms: int = 5000) -> dict[str, Any]:
@@ -752,23 +778,34 @@ class SwarmCoordinator:
         return self._transaction('trust', {'key': key, 'reference': reference,
                                            'reference_id': reference_id, 'scale': scale}, now_ms)
 
-    def snapshot(self, *, now_ms: int) -> dict[str, Any]:
+    def snapshot(self, *, now_ms: int, lock_timeout_s: float | None = None) -> dict[str, Any]:
+        """Copy of the state. ``lock_timeout_s`` optionally bounds the wait for this
+        coordinator's lock (``JournalBusyError``, scope ``'in_process'``)."""
         integer(now_ms)
-        with self._lock:
-            state = copy.deepcopy(self._state)
-            for node in state['nodes'].values():
-                node['online'] = now_ms - node['last_seen_ms'] <= self.ttl_ms
-            for c in state['commands'].values():
-                if c['status'] == 'pending' and c['expires_ms'] <= now_ms:
-                    c['status'] = 'expired'
-            return {'schema': 'genesis_swarm_snapshot_v1', 'swarm_id': self.swarm_id,
-                    'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,
-                    'state': state, 'journal_digest': self._chain,
-                    'journal_health': 'recovery_required' if self._write_failed else 'ready',
-                    'journal_segment_count': len(self._segments()) if self.journal is not None else 0,
-                    'journal_checkpoint_index': self._checkpoint_index,
-                    'checkpoint_health': 'ok' if self._checkpoint_error is None else self._checkpoint_error,
-                    'retention_health': 'ok' if self._retention_error is None else self._retention_error}
+        if lock_timeout_s is None:
+            self._lock.acquire()
+        elif not self._lock.acquire(timeout=number(lock_timeout_s, low=0, high=60)):
+            raise JournalBusyError('swarm coordinator is busy in this process', scope='in_process')
+        try:
+            return self._snapshot_locked(now_ms)
+        finally:
+            self._lock.release()
+
+    def _snapshot_locked(self, now_ms: int) -> dict[str, Any]:
+        state = copy.deepcopy(self._state)
+        for node in state['nodes'].values():
+            node['online'] = now_ms - node['last_seen_ms'] <= self.ttl_ms
+        for c in state['commands'].values():
+            if c['status'] == 'pending' and c['expires_ms'] <= now_ms:
+                c['status'] = 'expired'
+        return {'schema': 'genesis_swarm_snapshot_v1', 'swarm_id': self.swarm_id,
+                'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,
+                'state': state, 'journal_digest': self._chain,
+                'journal_health': 'recovery_required' if self._write_failed else 'ready',
+                'journal_segment_count': len(self._segments()) if self.journal is not None else 0,
+                'journal_checkpoint_index': self._checkpoint_index,
+                'checkpoint_health': 'ok' if self._checkpoint_error is None else self._checkpoint_error,
+                'retention_health': 'ok' if self._retention_error is None else self._retention_error}
 
     def frames(self, quantity: str, unit: str, *, now_ms: int) -> dict[str, dict[str, Any]]:
         text(quantity); text(unit)

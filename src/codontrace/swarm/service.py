@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 import threading
 import time
+from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +14,10 @@ from codontrace.swarm.protocol import identifier, object_keys
 from codontrace.swarm.runtime import SwarmCoordinator
 
 _LOCK = threading.RLock()
-_SWARMS: dict[str, SwarmCoordinator] = {}
+# Least-recently-used first. Coordinators are reopened from their journal on demand.
+_SWARMS: OrderedDict[str, SwarmCoordinator] = OrderedDict()
+_LEASES: dict[str, int] = {}
+MAX_CACHED_SWARMS = 32
 
 # Pure computations on caller-supplied data: no swarm state, no storage.
 STATELESS_ACTIONS = frozenset({'fdc_decode', 'pipeline_fit', 'information_level', 'processing_contrast',
@@ -31,26 +36,75 @@ def _root() -> Path:
     return root.resolve()
 
 
-def coordinator(swarm_id: str, *, create: bool = True) -> SwarmCoordinator | None:
+def _evict_idle() -> None:
+    """Drop least-recently-used coordinators that no request is using.
+
+    Skipped: swarms leased by an in-flight request, swarms whose lock is held,
+    and swarms that need journal recovery (their flag would be lost).
+    """
+    for sid in list(_SWARMS):
+        if len(_SWARMS) < MAX_CACHED_SWARMS:
+            return
+        swarm = _SWARMS[sid]
+        if _LEASES.get(sid) or swarm._write_failed or not swarm._lock.acquire(blocking=False):
+            continue
+        try:
+            del _SWARMS[sid]
+        finally:
+            swarm._lock.release()
+    if len(_SWARMS) >= MAX_CACHED_SWARMS:
+        raise ValueError('swarm session capacity reached; all cached swarms are busy')
+
+
+def coordinator(swarm_id: str, *, create: bool = True, restore: bool = True) -> SwarmCoordinator | None:
     """Cached coordinator; with ``create=False`` an unrecorded swarm returns None."""
     identifier(swarm_id)
     with _LOCK:
-        if swarm_id not in _SWARMS:
-            folder = _root() / swarm_id
-            if not create and not folder.is_dir():
-                return None
-            if len(_SWARMS) >= 32:
-                raise ValueError('swarm session capacity reached')
-            _SWARMS[swarm_id] = SwarmCoordinator(swarm_id, journal=folder / 'events.jsonl')
+        if swarm_id in _SWARMS:
+            _SWARMS.move_to_end(swarm_id)
+            return _SWARMS[swarm_id]
+        folder = _root() / swarm_id
+        if not create and not folder.is_dir():
+            return None
+        _evict_idle()
+        _SWARMS[swarm_id] = SwarmCoordinator(swarm_id, journal=folder / 'events.jsonl', restore=restore)
         return _SWARMS[swarm_id]
+
+
+@contextmanager
+def _lease(swarm_id: str):
+    with _LOCK:
+        _LEASES[swarm_id] = _LEASES.get(swarm_id, 0) + 1
+    try:
+        yield
+    finally:
+        with _LOCK:
+            _LEASES[swarm_id] -= 1
+            if not _LEASES[swarm_id]:
+                del _LEASES[swarm_id]
+
+
+def _recovering(swarm_id: str) -> SwarmCoordinator:
+    """Coordinator for journal_recover even when normal opening fails."""
+    try:
+        swarm = coordinator(swarm_id)
+    except ValueError:
+        swarm = coordinator(swarm_id, restore=False)
+    assert swarm is not None
+    return swarm
 
 
 def invoke(action: str, args: Any, *, now_ms: int | None = None) -> dict[str, Any]:
     args = dict(args) if isinstance(args, dict) else None
     if args is None:
         raise ValueError('swarm args must be an object')
-    now = int(time.time() * 1000) if now_ms is None else now_ms
     sid = identifier(args.get('swarm_id'))
+    with _lease(sid):
+        return _invoke(action, args, sid, now_ms)
+
+
+def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> dict[str, Any]:
+    now = int(time.time() * 1000) if now_ms is None else now_ms
     if action not in STATELESS_ACTIONS | READ_ONLY_ACTIONS | WRITE_ACTIONS:
         raise ValueError('unknown swarm action')
     recorded = True
@@ -61,6 +115,8 @@ def invoke(action: str, args: Any, *, now_ms: int | None = None) -> dict[str, An
         if swarm is None:
             recorded = False
             swarm = SwarmCoordinator(sid)  # empty, in memory, never cached
+    elif action == 'journal_recover':
+        swarm = _recovering(sid)
     else:
         swarm = coordinator(sid)
     if action == 'journal_recover':

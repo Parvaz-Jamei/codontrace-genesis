@@ -8,6 +8,7 @@ import hashlib
 import math
 import statistics
 from dataclasses import asdict
+from fractions import Fraction
 from typing import Any
 
 from codontrace.swarm.policies import Pipeline
@@ -34,7 +35,8 @@ def residual_interval(predictions: list[float], references: list[float], *, esti
     number(alpha, low=.001, high=.5); estimate = number(estimate)
     predictions, references = _pairs(predictions, references)
     scores = sorted(abs(p-r) for p, r in zip(predictions, references, strict=True))
-    rank = math.ceil((len(scores)+1)*(1-alpha))
+    # Exact rational arithmetic: float rounding can move ceil((n+1)(1-alpha)) by one.
+    rank = math.ceil((len(scores)+1)*(1-Fraction(str(alpha))))
     radius = scores[rank-1] if rank <= len(scores) else None
     return {'schema': 'genesis_residual_interval_v1', 'estimate': estimate,
             'lower': None if radius is None else estimate-radius,

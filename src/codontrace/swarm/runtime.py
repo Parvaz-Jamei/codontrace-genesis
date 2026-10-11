@@ -7,12 +7,13 @@ import json
 import os
 import statistics
 import threading
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 from codontrace.swarm.policies import Pipeline, diagnose
-from codontrace.swarm.protocol import VERSION2, canonical, decode, identifier, integer, number, object_keys
+from codontrace.swarm.protocol import VERSION2, canonical, decode, identifier, integer, number, object_keys, text
 from codontrace.swarm.sensors import descriptor, normalize, scalar_frame
 
 CHECKPOINT_SCHEMA = 'genesis_swarm_checkpoint_v1'
@@ -28,16 +29,28 @@ class SwarmCoordinator:
 
     Journal layout: closed segments ``<journal>.part.NNNNNNNN`` plus the active
     file. Each rotation writes a hashed state checkpoint bound to the last record
-    of the closed segment; startup restores the newest valid checkpoint and
-    replays only later records, falling back to older checkpoints or full replay
+    of the closed segment; startup restores the newest checkpoint verified against
+    the current journal and replays only later records, falling back to older
+    checkpoints or to a full replay that includes ``<journal>.archive/``
     (checkpoints are a rebuildable cache, never authoritative history). With
-    ``journal_retention_bytes`` set, closed segments already covered by a
-    checkpoint move to ``<journal>.archive/``; archived segments are deleted
-    only when ``archive_max_bytes`` is set and exceeded.
+    ``journal_retention_bytes`` set, closed segments already covered by a verified
+    checkpoint move to the archive; archived segments are deleted only when
+    ``archive_max_bytes`` is set and exceeded.
+
+    Integrity scope: SHA-256 links are unkeyed, so they detect corruption and
+    accidental edits, not a deliberate rewrite by someone with write access.
+    Startup checks every live record's link; archived segments are only checked
+    by full replay. Removal of trailing records or of the whole active file is a
+    consistent shorter history and is not detected without an external anchor.
+
+    One instance per journal per process is expected. Another instance (or
+    process) that appended in the meantime makes this instance refuse writes with
+    'journal changed externally'; ``recover()`` reloads it from disk.
     """
     def __init__(self, swarm_id: str, *, journal: Path | None = None, ttl_ms: int = 10000,
                  max_skew_ms: int = 2000, journal_segment_bytes: int = 4*1024*1024,
-                 journal_retention_bytes: int | None = None, archive_max_bytes: int | None = None) -> None:
+                 journal_retention_bytes: int | None = None, archive_max_bytes: int | None = None,
+                 lock_timeout_s: float = 2.0, restore: bool = True) -> None:
         self.swarm_id = identifier(swarm_id)
         self.ttl_ms = integer(ttl_ms, high=3600000)
         if ttl_ms < 1:
@@ -53,25 +66,36 @@ class SwarmCoordinator:
                 raise ValueError('journal retention must be at least one segment')
         if archive_max_bytes is not None:
             integer(archive_max_bytes, high=2**40)
+        self.lock_timeout_s = number(lock_timeout_s, low=0, high=60)
+        if type(restore) is not bool:
+            raise ValueError('restore must be boolean')
         self.journal_retention_bytes = journal_retention_bytes
         self.archive_max_bytes = archive_max_bytes
         self._checkpoint_index: int | None = None
         self._checkpoint_error: str | None = None
+        self._retention_error: str | None = None
         self._pending_checkpoint: tuple[int, dict[str, Any], str] | None = None
         journal = self.journal
         self._lock = threading.RLock()
         self._chain = '0' * 64
         self._write_failed = False
         self._journal_size = 0
-        self._state: dict[str, Any] = {'nodes': {}, 'frames': {}, 'commands': {}, 'command_counter': 0,
-                                      'trust': {}, 'history': [], 'engine_boundaries': [], 'status': 'running', 'now_ms': 0}
+        self._journal_token: tuple[Any, ...] = ()
+        self._state: dict[str, Any] = self._empty_state()
         if journal is not None:
             with self._journal_guard():
-                if journal.exists() or self._segments():
+                if not restore:
+                    # Opened only to run recover(): no writes until it succeeds.
+                    self._write_failed = journal.exists() or bool(self._segment_rows()) or self._archive_dir().is_dir()
+                elif journal.exists() or self._segment_rows() or self._archive_dir().is_dir():
                     self._restore()
                     self._write_pending_checkpoint()
-                self._journal_size = journal.stat().st_size if journal.exists() else 0
-                self._journal_token = self._disk_token()
+                self._refresh_disk_state()
+
+    @staticmethod
+    def _empty_state() -> dict[str, Any]:
+        return {'nodes': {}, 'frames': {}, 'commands': {}, 'command_counter': 0,
+                'trust': {}, 'history': [], 'engine_boundaries': [], 'status': 'running', 'now_ms': 0}
 
     @contextmanager
     def _journal_guard(self):
@@ -79,17 +103,29 @@ class SwarmCoordinator:
             yield
             return
         self.journal.parent.mkdir(parents=True, exist_ok=True)
-        # Cross-process serialization; stale writers fail instead of forking the chain.
+        # Cross-process serialization with a bounded wait; a writer that cannot
+        # get the lock in time fails instead of forking the chain.
         with self.journal.with_suffix(self.journal.suffix + '.lock').open('a+b') as handle:
             if os.name == 'nt':
                 import msvcrt
                 if handle.tell() == 0:
                     handle.write(b'0'); handle.flush()
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
             else:
                 import fcntl
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            deadline = time.monotonic() + self.lock_timeout_s
+            delay = 0.001
+            while True:
+                try:
+                    if os.name == 'nt':
+                        handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    else:
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except OSError as error:
+                    if time.monotonic() >= deadline:
+                        raise BlockingIOError('swarm journal is locked by another writer') from error
+                    time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
+                    delay = min(delay * 2, 0.05)
             try:
                 yield
             finally:
@@ -99,13 +135,34 @@ class SwarmCoordinator:
                     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     @staticmethod
+    def _fsync_dir(folder: Path) -> None:
+        """Persist directory entries (create/rename); fsync(2) on a file does not."""
+        if os.name == 'nt':
+            return
+        fd = os.open(folder, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    @staticmethod
     def _numbered(paths: list[Path], prefix: str, suffix: str = '', *, strict: bool = True) -> list[tuple[int, Path]]:
+        """Files named exactly ``prefix + 8 digits + suffix``; other names are ignored.
+
+        A matching name that is a symlink or not a regular file is an error when
+        strict (journal segments) and skipped otherwise (checkpoint cache files).
+        """
         rows = []
         for path in paths:
-            middle = path.name[len(prefix):len(path.name)-len(suffix) if suffix else None]
-            if len(middle) != 8 or not middle.isdigit() or path.is_symlink() or not path.is_file():
+            name = path.name
+            if not name.startswith(prefix) or (suffix and not name.endswith(suffix)):
+                continue
+            middle = name[len(prefix):len(name)-len(suffix) if suffix else None]
+            if len(middle) != 8 or not middle.isdigit():
+                continue
+            if path.is_symlink() or not path.is_file():
                 if strict:
-                    raise ValueError('invalid journal file name')
+                    raise ValueError('invalid journal file')
                 continue
             rows.append((int(middle), path))
         return sorted(rows)
@@ -143,21 +200,33 @@ class SwarmCoordinator:
         return tuple((p.name, p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns)
                      for p in paths if p.exists())
 
-    def _replay_file(self, path: Path) -> None:
+    def _refresh_disk_state(self) -> None:
+        """Adopt the current on-disk layout after this instance changed it."""
+        if self.journal is not None:
+            self._journal_size = self.journal.stat().st_size if self.journal.exists() else 0
+            self._journal_token = self._disk_token()
+
+    def _records(self, path: Path):
         with path.open(encoding='utf-8') as handle:
             for line in handle:
                 if len(line) > 100000 or not line.endswith('\n'):
                     raise ValueError('truncated or oversized swarm journal')
                 record = json.loads(line)
                 digest = record.pop('digest', None)
-                if record.get('previous') != self._chain or hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
+                if hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
                     raise ValueError('swarm journal integrity failure')
                 if record.get('swarm_id') != self.swarm_id or record.get('ttl_ms') != self.ttl_ms or record.get('max_skew_ms') != self.max_skew_ms:
                     raise ValueError('swarm journal configuration mismatch')
-                self._apply(record['action'], record['args'], record['now_ms'])
-                if hashlib.sha256(canonical(self._state).encode()).hexdigest() != record.get('state_digest'):
-                    raise ValueError('swarm replay state divergence')
-                self._chain = digest
+                yield record, digest
+
+    def _replay_file(self, path: Path) -> None:
+        for record, digest in self._records(path):
+            if record.get('previous') != self._chain:
+                raise ValueError('swarm journal integrity failure')
+            self._apply(record['action'], record['args'], record['now_ms'])
+            if hashlib.sha256(canonical(self._state).encode()).hexdigest() != record.get('state_digest'):
+                raise ValueError('swarm replay state divergence')
+            self._chain = digest
 
     def _verify_links(self, rows: list[tuple[int, Path]], end_chain: str) -> None:
         """Hash-chain check of covered segments without re-applying their records.
@@ -167,19 +236,12 @@ class SwarmCoordinator:
         """
         chain = '0' * 64 if rows and rows[0][0] == 1 else None
         for _, path in rows:
-            with path.open(encoding='utf-8') as handle:
-                for line in handle:
-                    if len(line) > 100000 or not line.endswith('\n'):
-                        raise ValueError('truncated or oversized swarm journal')
-                    record = json.loads(line)
-                    digest = record.pop('digest', None)
-                    if chain is None:
-                        chain = record.get('previous')
-                    if record.get('previous') != chain or hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
-                        raise ValueError('swarm journal integrity failure')
-                    if record.get('swarm_id') != self.swarm_id or record.get('ttl_ms') != self.ttl_ms or record.get('max_skew_ms') != self.max_skew_ms:
-                        raise ValueError('swarm journal configuration mismatch')
-                    chain = digest
+            for record, digest in self._records(path):
+                if chain is None:
+                    chain = record.get('previous')
+                if record.get('previous') != chain:
+                    raise ValueError('swarm journal integrity failure')
+                chain = digest
         if chain != end_chain:
             raise ValueError('swarm journal integrity failure')
 
@@ -201,6 +263,38 @@ class SwarmCoordinator:
         record['digest'] = digest
         return record
 
+    def _read_checkpoint(self, index: int, path: Path, live: dict[int, Path]) -> tuple[dict[str, Any], str]:
+        """Verify one checkpoint against the current journal; raise if unusable."""
+        if index not in live:
+            raise ValueError('checkpoint position is not in the live journal')
+        if path.stat().st_size > MAX_CHECKPOINT_BYTES:
+            raise ValueError('oversized checkpoint')
+        payload = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(payload, dict):
+            raise ValueError('checkpoint must be an object')
+        digest = payload.pop('digest', None)
+        if hashlib.sha256(canonical(payload).encode()).hexdigest() != digest:
+            raise ValueError('checkpoint digest mismatch')
+        if (payload.get('schema') != CHECKPOINT_SCHEMA or payload.get('swarm_id') != self.swarm_id
+                or payload.get('ttl_ms') != self.ttl_ms or payload.get('max_skew_ms') != self.max_skew_ms
+                or payload.get('segment_index') != index):
+            raise ValueError('checkpoint identity or configuration mismatch')
+        state = payload['state']
+        if hashlib.sha256(canonical(state).encode()).hexdigest() != payload.get('state_digest'):
+            raise ValueError('checkpoint state digest mismatch')
+        last = self._last_record(live[index])
+        if last['digest'] != payload.get('chain') or last.get('state_digest') != payload['state_digest']:
+            raise ValueError('checkpoint is not bound to the closed segment')
+        return state, payload['chain']
+
+    def _checkpoint_valid(self, index: int, live: dict[int, Path] | None = None) -> bool:
+        live = dict(self._segment_rows()) if live is None else live
+        try:
+            self._read_checkpoint(index, self._checkpoint_path(index), live)
+            return True
+        except (OSError, ValueError, KeyError, TypeError, RecursionError):
+            return False
+
     def _load_checkpoint(self, live: dict[int, Path]) -> tuple[int, dict[str, Any], str] | None:
         """Newest checkpoint whose position exists in the live stream and matches it."""
         errors = []
@@ -208,25 +302,8 @@ class SwarmCoordinator:
             if index not in live:
                 continue
             try:
-                if path.stat().st_size > MAX_CHECKPOINT_BYTES:
-                    raise ValueError('oversized checkpoint')
-                payload = json.loads(path.read_text(encoding='utf-8'))
-                if not isinstance(payload, dict):
-                    raise ValueError('checkpoint must be an object')
-                digest = payload.pop('digest', None)
-                if hashlib.sha256(canonical(payload).encode()).hexdigest() != digest:
-                    raise ValueError('checkpoint digest mismatch')
-                if (payload.get('schema') != CHECKPOINT_SCHEMA or payload.get('swarm_id') != self.swarm_id
-                        or payload.get('ttl_ms') != self.ttl_ms or payload.get('max_skew_ms') != self.max_skew_ms
-                        or payload.get('segment_index') != index):
-                    raise ValueError('checkpoint identity or configuration mismatch')
-                state = payload['state']
-                if hashlib.sha256(canonical(state).encode()).hexdigest() != payload.get('state_digest'):
-                    raise ValueError('checkpoint state digest mismatch')
-                last = self._last_record(live[index])
-                if last['digest'] != payload.get('chain') or last.get('state_digest') != payload['state_digest']:
-                    raise ValueError('checkpoint is not bound to the closed segment')
-                return index, state, payload['chain']
+                state, chain = self._read_checkpoint(index, path, live)
+                return index, state, chain
             except (OSError, ValueError, KeyError, TypeError, RecursionError) as error:
                 errors.append(f'{path.name}: {type(error).__name__}')
         self._checkpoint_error = '; '.join(errors) or None
@@ -234,14 +311,10 @@ class SwarmCoordinator:
 
     def _restore(self, *, full_replay: bool = False) -> None:
         assert self.journal is not None
-        rows = self._segment_rows()
-        if full_replay:
-            rows = self._segment_rows(self._archive_dir()) + rows
-            for (a, _), (b, _) in zip(rows, rows[1:], strict=False):
-                if b != a + 1:
-                    raise ValueError('archived and live segments are not contiguous')
-        live = dict(rows)
+        live_rows = self._segment_rows()
+        live = dict(live_rows)
         start = None if full_replay else self._load_checkpoint(live)
+        rows = live_rows
         if start is not None:
             index, state, chain = start
             # Covered live history keeps its hash-chain check; only re-application is skipped.
@@ -249,15 +322,25 @@ class SwarmCoordinator:
             self._state, self._chain, self._checkpoint_index = copy.deepcopy(state), chain, index
             rows = [row for row in rows if row[0] > index]
         else:
+            # Full replay from the first segment; after archiving that includes the
+            # archive, and replaying across it verifies the archive -> live link.
             self._checkpoint_index = None
+            if not rows or rows[0][0] != 1 or full_replay:
+                archived = self._segment_rows(self._archive_dir())
+                if archived and rows and archived[-1][0] >= rows[0][0]:
+                    archived = [row for row in archived if row[0] < rows[0][0]]
+                rows = archived + rows
+                for (a, _), (b, _) in zip(rows, rows[1:], strict=False):
+                    if b != a + 1:
+                        raise ValueError('archived and live segments are not contiguous')
             if rows and rows[0][0] != 1:
-                raise ValueError('earliest archived segments were deleted; full replay unavailable' if full_replay else
-                                 'earliest segments archived and no valid checkpoint covers them; '
-                                 'use full replay with the archive')
+                raise ValueError('earliest archived segments were deleted and no valid checkpoint covers '
+                                 'the live journal; full replay unavailable')
         self._pending_checkpoint = None
+        last_live = max(live) if live else None
         for index, path in rows:
             self._replay_file(path)
-            if index == max(live) and index != self._checkpoint_index:
+            if index == last_live and index != self._checkpoint_index:
                 self._pending_checkpoint = (index, copy.deepcopy(self._state), self._chain)
         if self.journal.exists():
             self._replay_file(self.journal)
@@ -278,18 +361,27 @@ class SwarmCoordinator:
                 os.replace(temp, target)
             finally:
                 temp.unlink(missing_ok=True)
-            if os.name != 'nt':
-                fd = os.open(target.parent, os.O_RDONLY)
-                try:
-                    os.fsync(fd)
-                finally:
-                    os.close(fd)
+            self._fsync_dir(target.parent)
             self._checkpoint_index, self._checkpoint_error = index, None
-            for _, old in self._checkpoint_rows()[:-CHECKPOINTS_KEPT]:
-                old.unlink(missing_ok=True)
+            self._prune_checkpoints(index)
             self._enforce_retention()
         except (OSError, ValueError) as error:
             self._checkpoint_error = f'checkpoint {index}: {type(error).__name__}'
+        finally:
+            self._refresh_disk_state()
+
+    def _prune_checkpoints(self, keep: int) -> None:
+        """Keep the just-written checkpoint and one older checkpoint valid for this
+        journal; delete stale ones (other history, beyond the live end, unbound)."""
+        live = dict(self._segment_rows())
+        spare = None
+        for index, path in reversed(self._checkpoint_rows()):
+            if index == keep:
+                continue
+            if spare is None and index < keep and self._checkpoint_valid(index, live):
+                spare = index
+                continue
+            path.unlink(missing_ok=True)
 
     def _write_pending_checkpoint(self) -> None:
         if self._pending_checkpoint is not None:
@@ -298,32 +390,57 @@ class SwarmCoordinator:
             self._write_checkpoint(index, state, chain)
 
     def _enforce_retention(self) -> None:
-        """Archive covered closed segments beyond the live cap; delete only past the archive cap."""
+        """Archive covered closed segments beyond the live cap; delete only past the archive cap.
+
+        Only a checkpoint re-verified against the current journal is trusted.
+        Errors are reported in ``retention_health`` and never block journal writes.
+        """
         if self.journal_retention_bytes is None or self._checkpoint_index is None:
             return
-        rows = self._segment_rows()
-        live_bytes = sum(path.stat().st_size for _, path in rows)
-        live_bytes += self.journal.stat().st_size if self.journal.exists() else 0
-        archive = self._archive_dir()
-        for index, path in rows:
-            # Keep the checkpoint's own segment live: its tail binds the checkpoint.
-            if live_bytes <= self.journal_retention_bytes or index >= self._checkpoint_index:
-                break
-            archive.mkdir(exist_ok=True)
-            target = archive / path.name
-            if target.exists():
-                raise OSError('archived segment already exists')
-            size = path.stat().st_size
-            os.replace(path, target)
-            live_bytes -= size
-        if self.archive_max_bytes is not None and archive.is_dir():
-            archived = self._segment_rows(archive)
-            total = sum(path.stat().st_size for _, path in archived)
-            for _, path in archived:
-                if total <= self.archive_max_bytes:
+        try:
+            live = dict(self._segment_rows())
+            covered = self._checkpoint_index
+            if not self._checkpoint_valid(covered, live):
+                raise ValueError('current checkpoint does not verify against the journal')
+            rows = sorted(live.items())
+            live_bytes = sum(path.stat().st_size for _, path in rows)
+            live_bytes += self.journal.stat().st_size if self.journal.exists() else 0
+            archive = self._archive_dir()
+            moved = False
+            for index, path in rows:
+                # Keep the checkpoint's own segment live: its tail binds the checkpoint.
+                if live_bytes <= self.journal_retention_bytes or index >= covered:
                     break
-                total -= path.stat().st_size
-                path.unlink()
+                if not archive.is_dir():
+                    archive.mkdir()
+                    self._fsync_dir(archive.parent)
+                target = archive / path.name
+                if target.exists():
+                    raise OSError('archived segment already exists')
+                size = path.stat().st_size
+                os.replace(path, target)
+                moved = True
+                live_bytes -= size
+            if moved:
+                self._fsync_dir(archive)
+                self._fsync_dir(self.journal.parent)
+            if self.archive_max_bytes is not None and archive.is_dir():
+                archived = self._segment_rows(archive)
+                total = sum(path.stat().st_size for _, path in archived)
+                deleted = False
+                for _, path in archived:
+                    if total <= self.archive_max_bytes:
+                        break
+                    total -= path.stat().st_size
+                    path.unlink()
+                    deleted = True
+                if deleted:
+                    self._fsync_dir(archive)
+            self._retention_error = None
+        except (OSError, ValueError) as error:
+            self._retention_error = f'retention: {type(error).__name__}: {error}'
+        finally:
+            self._refresh_disk_state()
 
     def recover(self, *, full_replay: bool = False) -> dict[str, Any]:
         """Explicit replay of complete records; never truncate a corrupt tail.
@@ -331,31 +448,31 @@ class SwarmCoordinator:
         An append that failed during fsync can exist on disk. Recovery adopts
         validated durable records; callers must inspect pending command IDs.
         ``full_replay`` ignores checkpoints and re-verifies the whole chain from
-        the first archived or live segment.
+        the first archived or live segment. Also reloads a stale instance.
         """
         if type(full_replay) is not bool:
             raise ValueError('full_replay must be boolean')
         with self._lock, self._journal_guard():
             original, chain = self._state, self._chain
-            self._state = {'nodes': {}, 'frames': {}, 'commands': {}, 'command_counter': 0,
-                           'trust': {}, 'history': [], 'engine_boundaries': [], 'status': 'running', 'now_ms': 0}
+            self._state = self._empty_state()
             self._chain = '0'*64
             try:
                 if self.journal is None:
                     self._state, self._chain = original, chain
                 else:
                     self._restore(full_replay=full_replay)
-                    with self.journal.open('ab') as handle:
-                        handle.flush(); os.fsync(handle.fileno())
-                    self._journal_size = self.journal.stat().st_size
-                    self._journal_token = self._disk_token()
+                    # Checkpoint (and any retention it triggers) first, then adopt
+                    # the resulting on-disk layout so the next write is not refused.
+                    self._write_pending_checkpoint()
+                    if self.journal.exists():
+                        with self.journal.open('ab') as handle:
+                            handle.flush(); os.fsync(handle.fileno())
+                    self._refresh_disk_state()
                 self._write_failed = False
             except BaseException:
                 self._state, self._chain = original, chain
                 self._write_failed = True
                 raise
-            if self.journal is not None and not full_replay:
-                self._write_pending_checkpoint()
             return {'recovered': True, 'journal_digest': self._chain,
                     'state_changed': chain != self._chain, 'records_not_truncated': True,
                     'full_replay': full_replay, 'checkpoint_index': self._checkpoint_index}
@@ -366,7 +483,7 @@ class SwarmCoordinator:
             if self.journal is not None:
                 size = self.journal.stat().st_size if self.journal.exists() else 0
                 if size != self._journal_size or self._disk_token() != self._journal_token:
-                    raise OSError('journal changed externally; reload coordinator before writing')
+                    raise OSError('journal changed externally; recover() reloads this coordinator')
             if self._write_failed:
                 raise OSError("journal failure requires recovery before further writes")
             original = self._state
@@ -389,10 +506,12 @@ class SwarmCoordinator:
                         self._journal_size = 0
                         # State/chain at the end of the closed segment = before this record.
                         self._write_checkpoint(index, original, self._chain)
+                    created = not self.journal.exists()
                     with self.journal.open('a', encoding='utf-8') as handle:
                         handle.write(canonical({**record, 'digest': digest}) + '\n'); handle.flush(); os.fsync(handle.fileno())
-                    self._journal_size = self.journal.stat().st_size
-                    self._journal_token = self._disk_token()
+                    if created:
+                        self._fsync_dir(self.journal.parent)
+                    self._refresh_disk_state()
                 self._chain = digest
                 return copy.deepcopy(result)
             except OSError:
@@ -610,9 +729,11 @@ class SwarmCoordinator:
                     'journal_health': 'recovery_required' if self._write_failed else 'ready',
                     'journal_segment_count': len(self._segments()) if self.journal is not None else 0,
                     'journal_checkpoint_index': self._checkpoint_index,
-                    'checkpoint_health': 'ok' if self._checkpoint_error is None else self._checkpoint_error}
+                    'checkpoint_health': 'ok' if self._checkpoint_error is None else self._checkpoint_error,
+                    'retention_health': 'ok' if self._retention_error is None else self._retention_error}
 
     def frames(self, quantity: str, unit: str, *, now_ms: int) -> dict[str, dict[str, Any]]:
+        text(quantity); text(unit)
         snapshot = self.snapshot(now_ms=now_ms)['state']
         return {k: f for k, f in snapshot['frames'].items()
                 if scalar_frame(f) and f['quantity'] == quantity and f['unit'] == unit and
@@ -656,7 +777,7 @@ class SwarmCoordinator:
         return diagnose({k: f['value'] for k, f in frames.items()}, reference=reference, tolerance=tolerance)
 
     def plan(self, quantity: str, unit: str, *, now_ms: int, budget: int = 2) -> list[dict[str, Any]]:
-        integer(budget, high=32)
+        text(quantity); text(unit); integer(budget, high=32)
         with self._lock:
             snapshot = self.snapshot(now_ms=now_ms)['state']
             candidates = []
@@ -687,6 +808,7 @@ class SwarmCoordinator:
         A stale/offline, wrong-unit or already-pending channel is not selected.
         """
         from codontrace.swarm.decision_support import schedule_measurements
+        text(quantity); text(unit)
         if not isinstance(models,dict) or len(models)>256:
             raise ValueError('bounded channel model dictionary required')
         with self._lock:

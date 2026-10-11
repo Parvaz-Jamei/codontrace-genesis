@@ -8,6 +8,7 @@ import os
 import statistics
 import threading
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,13 @@ from codontrace.swarm.sensors import descriptor, normalize, scalar_frame
 CHECKPOINT_SCHEMA = 'genesis_swarm_checkpoint_v1'
 CHECKPOINTS_KEPT = 2
 MAX_CHECKPOINT_BYTES = 256 * 1024 * 1024
+
+
+class JournalBusyError(BlockingIOError):
+    """The journal lock (in-process or cross-process) was not obtained within the wait bound.
+
+    Nothing was written and the coordinator stays writable; the caller may retry later.
+    """
 
 
 class _NotRecorded(dict):
@@ -104,7 +112,7 @@ class SwarmCoordinator:
                 'trust': {}, 'history': [], 'engine_boundaries': [], 'status': 'running', 'now_ms': 0}
 
     @contextmanager
-    def _journal_guard(self):
+    def _journal_guard(self, timeout_s: float | None = None):
         if self.journal is None:
             yield
             return
@@ -118,7 +126,7 @@ class SwarmCoordinator:
                     handle.write(b'0'); handle.flush()
             else:
                 import fcntl
-            deadline = time.monotonic() + self.lock_timeout_s
+            deadline = time.monotonic() + (self.lock_timeout_s if timeout_s is None else timeout_s)
             delay = 0.001
             while True:
                 try:
@@ -129,7 +137,7 @@ class SwarmCoordinator:
                     break
                 except OSError as error:
                     if time.monotonic() >= deadline:
-                        raise BlockingIOError('swarm journal is locked by another writer') from error
+                        raise JournalBusyError('swarm journal is locked by another writer') from error
                     time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
                     delay = min(delay * 2, 0.05)
             try:
@@ -483,9 +491,29 @@ class SwarmCoordinator:
                     'state_changed': chain != self._chain, 'records_not_truncated': True,
                     'full_replay': full_replay, 'checkpoint_index': self._checkpoint_index}
 
-    def _transaction(self, action: str, args: dict[str, Any], now_ms: int) -> Any:
+    @contextmanager
+    def _write_locks(self, lock_timeout_s: float | None) -> Iterator[None]:
+        """In-process lock, then the journal file lock. ``lock_timeout_s`` bounds both waits
+        (``JournalBusyError``); ``None`` keeps the default (unbounded in-process wait,
+        ``self.lock_timeout_s`` for the file lock)."""
+        if lock_timeout_s is None:
+            with self._lock, self._journal_guard():
+                yield
+            return
+        timeout = number(lock_timeout_s, low=0, high=60)
+        start = time.monotonic()
+        if not self._lock.acquire(timeout=timeout):
+            raise JournalBusyError('swarm coordinator is busy')
+        try:
+            with self._journal_guard(max(0.0, timeout - (time.monotonic() - start))):
+                yield
+        finally:
+            self._lock.release()
+
+    def _transaction(self, action: str, args: dict[str, Any], now_ms: int, *,
+                     lock_timeout_s: float | None = None) -> Any:
         now_ms = integer(now_ms)
-        with self._lock, self._journal_guard():
+        with self._write_locks(lock_timeout_s):
             if self.journal is not None:
                 size = self.journal.stat().st_size if self.journal.exists() else 0
                 if size != self._journal_size or self._disk_token() != self._journal_token:
@@ -706,8 +734,9 @@ class SwarmCoordinator:
             raise ValueError('unsupported command')
         return p
 
-    def ingest(self, message: Any, *, now_ms: int) -> dict[str, Any]:
-        return self._transaction('ingest', {'message': decode(message)}, now_ms)
+    def ingest(self, message: Any, *, now_ms: int, lock_timeout_s: float | None = None) -> dict[str, Any]:
+        """``lock_timeout_s`` optionally bounds the wait for a busy journal (``JournalBusyError``)."""
+        return self._transaction('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s)
 
     def command(self, node_id: str, operation: str, params: dict[str, Any], *, now_ms: int,
                 timeout_ms: int = 5000) -> dict[str, Any]:

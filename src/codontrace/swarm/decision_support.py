@@ -9,7 +9,9 @@ from dataclasses import asdict
 from typing import Any
 
 from codontrace.genesis.shadow_evaluation import paired_shadow
-from codontrace.genesis.swarm.active_sampling import schedule_measurements  # noqa: F401  (moved; public name)
+from codontrace.genesis.swarm.active_sampling import (  # moved; public name
+    schedule_measurements as schedule_measurements,
+)
 from codontrace.life_loop.conformal_bands import split_residual_interval
 from codontrace.swarm.policies import Pipeline
 from codontrace.swarm.protocol import canonical, identifier, integer, number, object_keys  # noqa: F401  (public names)

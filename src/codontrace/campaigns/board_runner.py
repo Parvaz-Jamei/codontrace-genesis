@@ -118,7 +118,7 @@ def _living(engine: GenesisEngine) -> int | None:
 
 def _run_until(engine: GenesisEngine, ticks: int, events: Path) -> tuple[str, dict[str, Any]]:
     engine.run_ticks(ticks)
-    for tick in engine._tick_results:
+    for tick in engine.tick_results:
         _append_jsonl(events, {"kind": "tick", "tick": int(tick.index) + 1})
     fork = engine.capture_fork()
     digest = str(fork["state_digest"])

@@ -1262,6 +1262,30 @@ class GenesisEngine:
             raise ConfigurationError(msg)
         return engine
 
+    @property
+    def tick_results(self) -> tuple[GenesisTickResult, ...]:
+        """Committed tick results of this engine instance, oldest first (read-only copy).
+
+        After ``from_fork`` this holds only ticks run since the restore.
+        """
+
+        return tuple(self._tick_results)
+
+    @property
+    def latest_snapshot(self) -> PopulationSnapshot | None:
+        """Population snapshot recorded at the last committed boundary, if any.
+
+        A fresh engine holds its initial snapshot; an engine restored with
+        ``from_fork`` holds none until it commits a tick.
+        """
+
+        return self._snapshots[-1] if self._snapshots else None
+
+    def world_digest(self) -> str:
+        """Stable digest of the current world state (same as ``snapshot().world_digest``)."""
+
+        return self.runner.world.digest()
+
     def snapshot(self) -> GenesisSnapshot:
         return GenesisSnapshot(
             run_id=self.run.run_id,

@@ -96,7 +96,7 @@ class SimulationRecorder:
         with self._lock:
             if self.engine is None:
                 raise ValueError('attach recorder first')
-            latest = self.engine._tick_results[-1].generation_result
+            latest = self.engine.tick_results[-1].generation_result
             self._births += latest.births; self._deaths += latest.deaths
             if generation_index % self.every == 0:
                 self.capture(summary={'births': self._births, 'deaths': self._deaths,
@@ -108,7 +108,7 @@ class SimulationRecorder:
                 raise ValueError('attach recorder first')
             if self.previous is not None and self.previous['generation'] == self.engine.runner.population.generation:
                 return copy.deepcopy(self.previous)
-            latest = self.engine._tick_results[-1].generation_result
+            latest = self.engine.tick_results[-1].generation_result
             return self.capture(summary={'births': self._births, 'deaths': self._deaths,
                                          'after_count': latest.after_count, 'world_after_digest': latest.world_after_digest})
 
@@ -117,8 +117,9 @@ class SimulationRecorder:
             if self.engine is None:
                 raise ValueError('attach recorder first')
             population = self.engine.runner.population
-            snapshots = self.engine._snapshots
-            committed = snapshots[-1] if snapshots and snapshots[-1].generation == population.generation else self.engine.snapshot().population
+            latest_snapshot = self.engine.latest_snapshot
+            committed = (latest_snapshot if latest_snapshot is not None and latest_snapshot.generation == population.generation
+                         else self.engine.snapshot().population)
             pop = committed.to_dict()
             previous_tick = -1 if self.previous is None else self.previous['tick']
             cursor = (self._lineage_seen, dict(self._lineage_open))

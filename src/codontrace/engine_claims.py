@@ -181,7 +181,7 @@ def _claim_evidence_flags(
         or oee_flags.pop("claim_gate_decision_digest", False)
     )
     custom_handlers_replayable = _action_registry_replayable(engine.spec.action_registry)
-    has_runtime_ticks = bool(engine._tick_results)
+    has_runtime_ticks = bool(engine.tick_results)
     return {
         "manifest": True,
         "runtime_effect": has_runtime_ticks,
@@ -204,13 +204,13 @@ def _claim_evidence_flags(
         and metadata.get("claim_allowed", True) is True
         and metadata.get("behavior_digest_equal_baseline_treatment", False) is not True,
         "execution_source_map": engine.spec.enable_execution_source
-        and bool(_execution_records_from_raw_events(_raw_events(engine._tick_results))),
+        and bool(_execution_records_from_raw_events(_raw_events(engine.tick_results))),
         "genome_program_digest": True,
-        "births_positive": any(t.generation_result.births > 0 for t in engine._tick_results),
+        "births_positive": any(t.generation_result.births > 0 for t in engine.tick_results),
         "heritable_variation": bool(engine.spec.mutation_config is not None and engine.spec.mutation_config.bit_flip_rate > 0.0),
         "differential_fitness": any(
             t.generation_result.selection_best_fitness > t.generation_result.selection_mean_fitness
-            for t in engine._tick_results
+            for t in engine.tick_results
         ),
         "structural_mutation_record": bool(engine.spec.structural_mutation_config is not None),
         "adf_macro_expansion": engine.spec.adf_macro_registry is not None,
@@ -219,7 +219,7 @@ def _claim_evidence_flags(
         "contribution_ledger": bool(contribution_ledgers)
         or bool(evidence_context.contribution_ledgers),
         "execution_records": bool(
-            _execution_records_from_raw_events(_raw_events(engine._tick_results))
+            _execution_records_from_raw_events(_raw_events(engine.tick_results))
         ),
         "event_graph": True,
         "event_graph_digest": has_runtime_ticks,
@@ -246,7 +246,7 @@ def _qd_scheduler_manifest_digest(
         None if engine.qd_archive is None else engine.qd_archive.config.schema.digest()
     )
     parent_feedback_digest = (
-        _digest({"parent_selection_feedback": True, "ticks": len(engine._tick_results)})
+        _digest({"parent_selection_feedback": True, "ticks": len(engine.tick_results)})
         if engine._qd_parent_feedback_applied
         else None
     )
@@ -255,7 +255,7 @@ def _qd_scheduler_manifest_digest(
             "archive_digest": archive_digest,
             "descriptor_schema_digest": descriptor_schema_digest,
             "emitter_state_digest": phase2_hashes.get("qd_emitter_state_digest", "default_emitter"),
-            "scheduler_generation": len(engine._tick_results),
+            "scheduler_generation": len(engine.tick_results),
             "selection_feedback_policy": "archive_parent_feedback"
             if engine._qd_parent_feedback_applied
             else "reporting_only",
@@ -337,16 +337,16 @@ def _phase2_manifest_protocol_statuses(
     """
 
     evidence_context = engine.spec.evidence_validation_context or EvidenceValidationContext()
-    has_ticks = bool(engine._tick_results)
+    has_ticks = bool(engine.tick_results)
     has_mutation_event = any(
         isinstance(event.world_delta.get("mutation_digest"), str)
-        for tick in engine._tick_results
+        for tick in engine.tick_results
         for trace in tick.generation_result.traces
         for event in trace.events
     )
     has_contribution_ledger = bool(phase2_hashes.get("contribution_ledger_digest")) and (
         bool(getattr(evidence_context, "contribution_ledgers", ()))
-        or any(_execution_records_from_raw_events(_raw_events(engine._tick_results)))
+        or any(_execution_records_from_raw_events(_raw_events(engine.tick_results)))
     )
     benchmark_runtime = (
         "benchmark_scenario_digest" in engine.spec.metadata
@@ -740,7 +740,7 @@ def _phase2_hashes(
         )
         genome_program_payload.append(program.to_dict())
     mutation_digests = []
-    for tick in engine._tick_results:
+    for tick in engine.tick_results:
         for trace in tick.generation_result.traces:
             for event in trace.events:
                 digest = event.world_delta.get("mutation_digest")
@@ -774,7 +774,7 @@ def _phase2_hashes(
         else _digest({"translation_profile": "fixed_base_table"})
     )
     statistical_digest = _digest(
-        {"tick_count": len(engine._tick_results), "population_size": len(organisms)}
+        {"tick_count": len(engine.tick_results), "population_size": len(organisms)}
     )
     oee_digest = _digest(
         {
@@ -802,12 +802,12 @@ def _phase2_hashes(
         "contribution_ledger_digest": contribution_digest,
         "micro_ablation_attribution_digest": _digest({"micro_ablation": "not_run", "ledger_digest": contribution_digest}),
         "innovation_registry_digest": innovation_digest,
-        "event_graph_digest": _event_graph_digest_from_ticks(engine._tick_results),
+        "event_graph_digest": _event_graph_digest_from_ticks(engine.tick_results),
         "predictive_probe_digest": _digest({"predictive_probe": "not_run"}),
         "intervention_protocol_digest": _digest({"intervention_protocol": "not_run"}),
         "intervention_result_digest": _digest({"intervention_result": "not_run"}),
         "causal_intervention_result_digest": _digest({"intervention_result": "not_run"}),
-        "discovery_witness_digest": _digest({"discovery_witness": "not_run", "tick_count": len(engine._tick_results)}),
+        "discovery_witness_digest": _digest({"discovery_witness": "not_run", "tick_count": len(engine.tick_results)}),
         "benchmark_scenario_digest": str(engine.spec.metadata.get("benchmark_scenario_digest"))
         if "benchmark_scenario_digest" in engine.spec.metadata
         else _digest({"benchmark_scenario": "not_configured"}),

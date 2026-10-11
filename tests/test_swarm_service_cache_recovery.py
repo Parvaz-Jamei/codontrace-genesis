@@ -274,10 +274,12 @@ def test_bridge_acks_only_journaled_or_invalid_telemetry_with_cache_of_two(swarm
     monkeypatch.setattr(type(swarm_dir), 'open', broken)
     assert not bridge.on_message(client, _Msg(topic, canonical(reading('lab', 'a', 9, int(time.time() * 1000), 9.0)).encode(), 60))
     monkeypatch.setattr(type(swarm_dir), 'open', real_open)
-    assert client.acks == [1, 10, 11, 12, 13, 50]  # 60 not acknowledged: broker may redeliver
+    assert client.acks == [1, 10, 11, 12, 13, 50, 60]  # always acknowledged; the loss is recorded
     health = bridge.health()
-    assert health['journaled'] == 5 and health['rejected'] == 1 and health['journal_failures'] == 1
-    assert health['journal_ok'] is False and health['last_error'] == 'swarm_journal_unavailable'
+    assert health['journaled'] == 5 and health['rejected'] == 1 and health['lost'] == 1
+    assert health['journal_failures'] == 1 + len(bridge.retry_delays)  # bounded in-bridge retry
+    assert health['state'] == 'degraded' and health['last_error'] == 'telemetry_lost_journal_unavailable'
+    assert health['recent_losses'][0]['seq'] == 9
     disk = SwarmCoordinator('lab', journal=swarm_dir / 'lab' / 'events.jsonl')
     assert disk.snapshot(now_ms=int(time.time() * 1000))['state']['frames']['a/s']['value'] == 3.0  # every acked reading journaled
 

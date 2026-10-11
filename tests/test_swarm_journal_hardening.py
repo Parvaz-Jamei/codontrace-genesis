@@ -165,3 +165,16 @@ def test_conformal_rank_is_exact_rational():
                                calibration_id='c', model_id='m', alpha=alpha)
     assert result['quantile_rank'] == 941  # ceil(1000 * 0.941); float arithmetic gives 942
     assert result['radius'] == 940.0
+
+
+def test_duplicate_or_reordered_packets_write_no_journal_record(tmp_path):
+    path = tmp_path / 'events.jsonl'
+    s = SwarmCoordinator('lab', journal=path)
+    s.ingest(hello('lab', 'a'), now_ms=1000)
+    s.ingest(reading('lab', 'a', 2, 1000, 1.0), now_ms=1000)
+    before, digest = path.read_bytes(), s.snapshot(now_ms=1001)['journal_digest']
+    for message in (hello('lab', 'a'), reading('lab', 'a', 2, 1001, 5.0), reading('lab', 'a', 1, 1001, 5.0)):
+        assert s.ingest(message, now_ms=1001) == {'accepted': False, 'reason': 'duplicate_or_reordered'}
+    assert path.read_bytes() == before and s.snapshot(now_ms=1001)['journal_digest'] == digest
+    assert s.snapshot(now_ms=1001)['state']['frames']['a/s']['value'] == 1.0
+    assert SwarmCoordinator('lab', journal=path).snapshot(now_ms=1001)['state'] == s.snapshot(now_ms=1001)['state']

@@ -514,10 +514,14 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     node_allowed = False
             if not node_allowed and not self._authorize_inference():
                 return
-            from codontrace.swarm.service import invoke
+            from codontrace.swarm.service import SwarmRecoveryRequired, invoke
             try:
                 result = invoke(body_json.get("action", "snapshot"), body_json.get("args"))
                 status = 200
+            except SwarmRecoveryRequired:
+                result = {"ok": False, "error": "recovery_required",
+                          "detail": "Recorded swarm history is not loaded; run the journal_recover action."}
+                status = 409
             except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
                 result = {"ok": False, "error": "Invalid swarm request"}
                 status = 400
@@ -815,11 +819,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if path == "/api/swarm":
             if not self._authorize_inference(include_body=include_body):
                 return
-            from codontrace.swarm.service import invoke
+            from codontrace.swarm.service import SwarmRecoveryRequired, invoke
             try:
                 query = parse_qs(urlparse(self.path).query)
                 result = invoke("snapshot", {"swarm_id": query.get("swarm_id", [""])[0]})
                 status = 200
+            except SwarmRecoveryRequired:
+                result = {"ok": False, "error": "recovery_required",
+                          "detail": "Recorded swarm history is not loaded; run the journal_recover action."}
+                status = 409
             except (ValueError, TypeError, KeyError):
                 result = {"ok": False, "error": "Invalid swarm identifier"}
                 status = 400

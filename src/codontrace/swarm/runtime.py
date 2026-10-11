@@ -21,6 +21,12 @@ CHECKPOINTS_KEPT = 2
 MAX_CHECKPOINT_BYTES = 256 * 1024 * 1024
 
 
+class _NotRecorded(dict):
+    """An _apply result that changes nothing durable (e.g. a duplicate packet):
+    live writes discard it without a journal record; replay of older journals
+    that contain such records still applies them unchanged."""
+
+
 class SwarmCoordinator:
     """One isolated sensor swarm; centralized orchestration, not decentralized proof.
 
@@ -490,6 +496,9 @@ class SwarmCoordinator:
             self._state = copy.deepcopy(original)
             try:
                 result = self._apply(action, json.loads(canonical(args)), now_ms)
+                if isinstance(result, _NotRecorded):
+                    self._state = original  # nothing to journal
+                    return dict(result)
                 record = {'swarm_id': self.swarm_id, 'ttl_ms': self.ttl_ms, 'max_skew_ms': self.max_skew_ms,
                           'previous': self._chain, 'action': action, 'args': args, 'now_ms': now_ms,
                           'state_digest': hashlib.sha256(canonical(self._state).encode()).hexdigest()}
@@ -542,7 +551,7 @@ class SwarmCoordinator:
                     if node['channels'] != p['channels'] or node['operations'] != p['operations']:
                         raise ValueError('capabilities changed within boot session')
                     if m['seq'] <= node['seq']:
-                        return {'accepted': False, 'reason': 'duplicate_or_reordered'}
+                        return _NotRecorded(accepted=False, reason='duplicate_or_reordered')
                 if node is not None and node['boot_id'] != m['boot_id']:
                     for config_key in list(self._state.get('channel_configs', {})):
                         if config_key.startswith(node_id + '/'):
@@ -559,7 +568,7 @@ class SwarmCoordinator:
             if node is None or m['boot_id'] != node['boot_id']:
                 raise ValueError('hello required for this boot session')
             if m['seq'] <= node['seq']:
-                return {'accepted': False, 'reason': 'duplicate_or_reordered'}
+                return _NotRecorded(accepted=False, reason='duplicate_or_reordered')
             if m['kind'] == 'reading':
                 if self._state['status'] != 'running':
                     raise ValueError('swarm is paused or stopped')

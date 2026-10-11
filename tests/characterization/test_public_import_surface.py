@@ -22,7 +22,7 @@ ROOTS = ('codontrace.swarm', 'codontrace.visualization')
 SINGLE = ('codontrace.claimgate.adapters.esp32_bridge', 'codontrace.engine', 'codontrace.rng',
           'codontrace.life_loop.conformal_bands', 'codontrace.life_loop.farm_orchestrator',
           'codontrace.genesis.qd_search', 'codontrace.genesis.selection', 'codontrace.genesis.artifacts',
-          'codontrace.genesis.journal')
+          'codontrace.genesis.journal', 'codontrace.genesis.swarm')
 GOLDEN = 'public_import_surface.json'
 SIGNATURES = 'public_signatures.json'
 _TYPING_MODULES = ('typing', 'typing_extensions', 'collections.abc', '_collections_abc', 'types', '__future__')

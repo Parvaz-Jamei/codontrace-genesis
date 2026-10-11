@@ -41,6 +41,15 @@
   "policy_from_name": "(name: 'str', *, elitism_count: 'int' = 1, tournament_size: 'int' = 3, novelty_weight: 'float' = 1.0, fitness_weight: 'float' = 1.0) -> 'SelectionPolicy'",
   "select_population": "(candidates: 'Sequence[object]', *, fitness_scores: 'Mapping[str, float]', max_population: 'int', config: 'EvolutionConfig | None' = None, novelty_scores: 'Mapping[str, float] | None' = None, ages: 'Mapping[str, int] | None' = None, qd_mode: 'str | None' = None) -> 'tuple[tuple[object, ...], EvolutionSelectionResult]'"
  },
+ "codontrace.genesis.swarm": {
+  "measurement_candidates": "(view: 'Mapping[str, Any]', models: 'Any', quantity: 'str', unit: 'str', *, now_ms: 'int') -> 'tuple[list[dict[str, Any]], list[str]]'",
+  "median_absolute_deviation": "(values: 'list[float]') -> 'float'",
+  "members_from_population": "(population: 'PopulationState', *, include_demes: 'bool' = True) -> 'tuple[PopulationMember, ...]'",
+  "members_from_registry": "(registry: 'PopulationRegistry') -> 'tuple[PopulationMember, ...]'",
+  "peer_disagreement": "(values: 'Mapping[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
+  "plan_oldest_first": "(view: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, now_ms: 'int', ttl_ms: 'int', budget: 'int') -> 'list[tuple[str, str]]'",
+  "robust_fuse": "(frames: 'Mapping[str, dict[str, Any]]', trust: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, mode: 'str' = 'median', max_span_ms: 'int' = 1000) -> 'dict[str, Any]'"
+ },
  "codontrace.life_loop.conformal_bands": {
   "canonical_digest": "(value: 'Any', *, prefix: 'str | None' = None) -> 'str'",
   "conformal_risk_band": "(*, result_id: 'str', point_prediction: 'float', calibration_residuals: 'Sequence[float]', alpha: 'float' = 0.1, max_width: 'float | None' = None, claim_ceiling: 'str' = 'runtime_observation') -> 'ConformalBandResult'",
@@ -101,6 +110,7 @@
   "canonical": "(value: 'Any') -> 'str'",
   "diagnose": "(values: 'dict[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
+  "peer_disagreement": "(values: 'Mapping[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "transfer_decision": "(candidate: 'Pipeline', baseline: 'Pipeline', values: 'list[float]', references: 'list[float]', *, minimum_gain: 'float' = 0.0) -> 'dict[str, Any]'"
  },
  "codontrace.swarm.protocol": {
@@ -134,9 +144,12 @@
   "diagnose": "(values: 'dict[str, float]', *, reference: 'float | None' = None, tolerance: 'float' = 2.0) -> 'dict[str, Any]'",
   "identifier": "(value: 'Any') -> 'str'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",
+  "measurement_candidates": "(view: 'Mapping[str, Any]', models: 'Any', quantity: 'str', unit: 'str', *, now_ms: 'int') -> 'tuple[list[dict[str, Any]], list[str]]'",
   "normalize": "(payload: 'dict[str, Any]', channel: 'dict[str, Any]') -> 'dict[str, Any]'",
   "number": "(value: 'Any', *, low: 'float' = -1000000000000.0, high: 'float' = 1000000000000.0) -> 'float'",
   "object_keys": "(value: 'Any', required: 'set[str]', optional: 'set[str] | None' = None) -> 'dict[str, Any]'",
+  "plan_oldest_first": "(view: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, now_ms: 'int', ttl_ms: 'int', budget: 'int') -> 'list[tuple[str, str]]'",
+  "robust_fuse": "(frames: 'Mapping[str, dict[str, Any]]', trust: 'Mapping[str, Any]', quantity: 'str', unit: 'str', *, mode: 'str' = 'median', max_span_ms: 'int' = 1000) -> 'dict[str, Any]'",
   "scalar_frame": "(frame: 'dict[str, Any]') -> 'bool'",
   "text": "(value: 'Any', maximum: 'int' = 96) -> 'str'"
  },

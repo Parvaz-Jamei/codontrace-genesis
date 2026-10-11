@@ -7,6 +7,7 @@ import statistics
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from codontrace.genesis.swarm.diagnosis import peer_disagreement
 from codontrace.rng import RNGManager
 from codontrace.swarm.protocol import canonical, number
 
@@ -90,13 +91,5 @@ def transfer_decision(candidate: Pipeline, baseline: Pipeline, values: list[floa
 
 def diagnose(values: dict[str, float], *, reference: float | None = None,
              tolerance: float = 2.0) -> dict[str, Any]:
-    number(tolerance, low=0.001, high=1e6)
-    for v in values.values():
-        number(v)
-    if not values:
-        return {'status': 'insufficient_data', 'suspects': [], 'causal_proof': False}
-    center = statistics.median(values.values()) if reference is None else number(reference)
-    suspects = sorted(k for k, v in values.items() if abs(v-center) > tolerance)
-    return {'status': 'reference_comparison' if reference is not None else 'peer_disagreement_candidate',
-            'suspects': suspects, 'center': center, 'causal_proof': False,
-            'identifiability': 'external_reference_required_for_common_mode_faults'}
+    """Peer-disagreement screening; see ``codontrace.genesis.swarm.diagnosis``."""
+    return peer_disagreement(values, reference=reference, tolerance=tolerance)

@@ -54,6 +54,10 @@ class MqttSwarmBridge:
       ``dispatch_failures``; the message stays counted as ``journaled`` only.
       If the coordinator is busy at that moment the drain is skipped
       (``drains_deferred``) and retried after the next journaled message.
+    * every outcome above is counted before the message is acknowledged; a
+      failing ``client.ack`` is logged and counted as ``ack_failures`` and
+      changes nothing else (no second loss, a journaled reading stays
+      ``journaled`` and the stall reset and drain still run).
     * nothing raised by the bridge propagates into paho's loop thread
       (``KeyboardInterrupt``/``SystemExit`` excepted).
 
@@ -102,7 +106,7 @@ class MqttSwarmBridge:
         self.retry_delays = retry_delays
         self.last_error: str | None = None
         self.counters = {'journaled': 0, 'duplicates': 0, 'rejected': 0, 'journal_failures': 0, 'lost': 0,
-                         'unexpected_errors': 0, 'dispatch_failures': 0, 'drains_deferred': 0}
+                         'unexpected_errors': 0, 'dispatch_failures': 0, 'drains_deferred': 0, 'ack_failures': 0}
         self.loss_reasons: dict[str, int] = {}
         self.last_rejection: str | None = None
         self.losses: deque[dict[str, Any]] = deque(maxlen=self.LOSS_LOG_SIZE)
@@ -177,27 +181,35 @@ class MqttSwarmBridge:
         return client
 
     def on_message(self, client: Any, message: Any) -> bool:
-        """Process one telemetry message and always acknowledge it (see class docstring)."""
+        """Process one telemetry message and always acknowledge it (see class docstring).
+
+        Every outcome is counted before the acknowledgement is sent, and a
+        failing ``client.ack`` is contained in ``ack`` (counted as
+        ``ack_failures`` and logged), so it neither changes the outcome nor
+        counts the message twice.
+        """
         acked = False
-        progress = {'journaled': False}
+        progress = {'journaled': False, 'accounted': False}
 
         def ack() -> None:
             nonlocal acked
-            if not acked:
-                acked = True
+            if acked:
+                return
+            acked = True
+            try:
                 client.ack(message.mid, message.qos)
+            except Exception as ack_error:  # noqa: BLE001 - the outcome is already counted
+                self.counters['ack_failures'] += 1
+                self._log_error('acknowledging a message failed', ack_error)
         try:
             return self._on_message(message, ack, client, progress)
         except Exception as error:  # noqa: BLE001 - must not escape into paho's loop thread
             self.counters['unexpected_errors'] += 1
-            if not progress['journaled']:
+            if not progress['journaled'] and not progress['accounted']:
                 self._record_loss(message, 'unexpected:' + type(error).__name__)
             self.last_error = f'unexpected_bridge_error: {type(error).__name__}'
             self._log_error('unexpected error while handling a telemetry message', error)
-            try:
-                ack()
-            except Exception as ack_error:  # noqa: BLE001
-                self._log_error('acknowledging a message failed', ack_error)
+            ack()
             return False
 
     def _on_message(self, message: Any, ack: Any, client: Any, progress: dict[str, bool]) -> bool:
@@ -220,10 +232,12 @@ class MqttSwarmBridge:
                     time.sleep(delays[attempt])
         except JournalBusyError as error:
             self._record_loss(message, 'CoordinatorBusy' if error.scope == 'in_process' else 'JournalBusyError')
+            progress['accounted'] = True
             ack()
             return False
         except OSError as error:
             self._record_loss(message, type(error).__name__)
+            progress['accounted'] = True
             ack()
             return False
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError, json.JSONDecodeError) as error:
@@ -231,10 +245,10 @@ class MqttSwarmBridge:
             self.last_error = 'invalid_swarm_message'  # no secrets/payload in logs
             # Validation messages are short and payload-free by protocol design.
             self.last_rejection = f'{type(error).__name__}: {str(error)[:120]}'
+            progress['accounted'] = True
             ack()
             return False
         progress['journaled'] = True
-        ack()
         if self._stalled:
             _LOG.warning('swarm %s: journal writes resumed after %d lost telemetry messages',
                          self.swarm.swarm_id, self._outage_losses)
@@ -243,9 +257,11 @@ class MqttSwarmBridge:
         self._last_loss_log = None
         if result.get('accepted') is False:
             self.counters['duplicates'] += 1
+            ack()
             return False
         self.counters['journaled'] += 1
         self.last_error = None
+        ack()
         try:
             self.drain(client, now_ms=int(time.time()*1000), lock_timeout_s=self.lock_timeout_s)
         except JournalBusyError:

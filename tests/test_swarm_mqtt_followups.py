@@ -308,8 +308,11 @@ def test_failing_ack_does_not_escape(bridge):
     class Broken(_Client):
         def ack(self, mid, qos):
             raise RuntimeError('socket closed')
-    assert bridge.on_message(Broken(), _Msg(reading('lab', 'a', 1, _now(), 1.0))) is False
-    assert bridge.counters['unexpected_errors'] == 1
+    # Review F1: the reading is journaled, so the outcome stays a success; the
+    # failing ack is counted on its own and is not an unexpected error.
+    assert bridge.on_message(Broken(), _Msg(reading('lab', 'a', 1, _now(), 1.0))) is True
+    assert bridge.counters['ack_failures'] == 1 and bridge.counters['unexpected_errors'] == 0
+    assert bridge.counters['journaled'] == 2 and bridge.counters['lost'] == 0
 
 
 paho = pytest.importorskip('paho.mqtt.client')

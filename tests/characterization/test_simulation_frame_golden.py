@@ -21,7 +21,7 @@ def _record(root, **kw):
     return recorder.finalize(), result
 
 
-def test_recorder_frames_match_golden_bytes(tmp_path):
+def test_recorder_frames_match_golden_bytes(tmp_path, neutral_source_digest):
     final, result = _record(tmp_path / 'run')
     frames = tmp_path / 'run' / 'simulation' / 'seed_7'
     assert len(list(frames.glob('frame_*.json'))) == 5  # initial + 4 generations

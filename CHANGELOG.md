@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0b30] — 2026-10-11
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b29`.
+
+- Wi-Fi sensor swarm (PR #113): new `codontrace.swarm` package with a versioned node protocol, a hash-chained write-ahead journal, fusion and diagnosis policies, an optional MQTT 5 bridge (`pip install "codontrace[swarm]"`, TLS required), descriptive research probes, decision support (residual intervals on separate calibration data, freshness planning, capsule shadow with rollback), an engine link and a CLI. `/api/swarm` and the swarm console page need `CODONTRACE_API_TOKEN` remotely; node tokens (`CODONTRACE_SWARM_NODE_TOKENS`) only allow ingesting for their own node. All swarm outputs are marked as engineering probes without physical validation.
+- Typed sensors: scalar, vector, short waveform, boolean and category channels with affine or table normalization and type-aware rejection. FDC adapter for TI FDC1004 and FDC2x1x capacitance readings (reserved FIN_SEL value rejected); decoding is a preview, no device commands are sent.
+- Simulation atlas: `codontrace.visualization` recorder writes per-frame agent positions, lineage events and metrics under the run folder; a simulation observatory page and `/api/runs/<id>/simulation` read them. The recorder follows lineage with an incremental cursor and produces frames identical to a full scan.
+- Journal checkpoints and retention: a hashed state checkpoint at every segment rotation lets startup replay only newer records while still hash-checking every live record. Without a usable checkpoint startup replays the full chain including the archive. `journal_retention_bytes` moves covered segments to an archive (data kept; only `archive_max_bytes` deletes); `checkpoint_health` and `retention_health` report problems without blocking writes. `journal_recover` (optionally `full_replay`) works even when normal opening fails. Directory fsync after create/rename/archive moves and a bounded wait on cross-process lock contention. The README documents the integrity scope (unkeyed SHA-256; tail truncation is not detected).
+- Storage-free reads: read-only swarm actions on an unknown swarm id answer from empty state without creating folders or lock files.
+- Service cache: idle swarms are evicted least-recently-used first; `service.coordinator()` pins the instance shared with the MQTT bridge; coordinators open outside the global lock. A swarm whose history cannot be loaded answers HTTP 409 `{"error": "recovery_required"}` until `journal_recover` succeeds, and is never served from placeholder state.
+- MQTT bridge delivery: every message is acknowledged (MQTT 5 brokers do not resend on the same connection). Journal errors are retried briefly, then recorded as lost with node, boot and sequence (no values) and `health()` reports `degraded`. Duplicate or reordered packets are not journaled and are counted separately. Optional persistent broker session via `connect(session_expiry_s=..., client_id=...)`.
+- No worker ceiling is imposed on console runs. `red_queen_proved` stays false.
+
 ## [0.3.0b29] — 2026-10-11
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b28`.

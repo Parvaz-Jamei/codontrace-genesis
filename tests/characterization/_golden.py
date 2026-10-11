@@ -14,6 +14,7 @@ by accident.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 from pathlib import Path
@@ -92,3 +93,53 @@ def check_tree(name: str, produced: Path) -> None:
     assert sorted(got) == sorted(expected), f'{name}: file layout drifted'
     for rel in sorted(expected):
         check_bytes(f'{name}/{rel}', got[rel])
+
+
+def _close_diff(got: Any, expected: Any, path: str, rel_tol: float, abs_tol: float,
+                loose_ints: dict[str, float] | None = None) -> str | None:
+    """First structural or numeric difference, or None. Floats compare with a tolerance, all else exactly."""
+    if isinstance(expected, bool) or isinstance(got, bool) or expected is None or isinstance(expected, str):
+        return None if (type(got) is type(expected) and got == expected) else f'{path}: {got!r} != {expected!r}'
+    if isinstance(expected, (int, float)) and isinstance(got, (int, float)):
+        if isinstance(expected, int) and isinstance(got, int):
+            loose = (loose_ints or {}).get(path.rsplit('.', 1)[-1])
+            if got == expected or (loose is not None and abs(got - expected) <= loose * abs(expected)):
+                return None
+            return f'{path}: {got!r} != {expected!r}'
+        if math.isclose(got, expected, rel_tol=rel_tol, abs_tol=abs_tol):
+            return None
+        return f'{path}: {got!r} not within rel {rel_tol}/abs {abs_tol} of {expected!r}'
+    if isinstance(expected, list) and isinstance(got, list):
+        if len(got) != len(expected):
+            return f'{path}: length {len(got)} != {len(expected)}'
+        for i, (a, b) in enumerate(zip(got, expected)):
+            if (diff := _close_diff(a, b, f'{path}[{i}]', rel_tol, abs_tol, loose_ints)) is not None:
+                return diff
+        return None
+    if isinstance(expected, dict) and isinstance(got, dict):
+        if sorted(got) != sorted(expected):
+            return f'{path}: keys {sorted(got)} != {sorted(expected)}'
+        for key in sorted(expected):
+            if (diff := _close_diff(got[key], expected[key], f'{path}.{key}', rel_tol, abs_tol, loose_ints)) is not None:
+                return diff
+        return None
+    return f'{path}: type {type(got).__name__} != {type(expected).__name__}'
+
+
+def check_json_close(name: str, value: Any, *, rel_tol: float = 1e-9, abs_tol: float = 1e-12,
+                     loose_ints: dict[str, float] | None = None) -> None:
+    """Like ``check_json`` but floats only need to agree to ``rel_tol``/``abs_tol``.
+
+    For outputs of float arithmetic that legitimately differs in the last bits
+    across Python versions or platforms (``sum()`` became compensated in 3.12;
+    ``math.sin`` comes from the platform libm). Structure, keys, strings,
+    booleans and integers (RNG draw counts, ids) are still exact, except the
+    integers named in ``loose_ints`` (key -> relative tolerance), for counts
+    derived from float text such as the byte length of a JSON payload.
+    """
+    value = json.loads(golden_json_bytes(value))  # same normalization as the stored form
+    if updating():
+        check_json(name, value)
+        return
+    if (diff := _close_diff(value, load_json(name), '$', rel_tol, abs_tol, loose_ints)) is not None:
+        pytest.fail(f'{name} drifted from golden fixture: {diff}')

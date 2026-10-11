@@ -58,9 +58,10 @@ def _check_value(value: float) -> object:
 
 
 def apply_disturbance(values: Sequence[float], family: DisturbanceFamily, rng: RNGManager, *,
-                      check: Callable[[float], object] = _check_value) -> list[float | None]:
+                      check: Callable[[float], object] | None = None) -> list[float | None]:
     """Disturb ``values``; each value is checked just before its draws (``check``
     lets a caller keep its own validation errors)."""
+    check = check or _check_value
     result: list[float | None] = []
     for value in values:
         check(value)

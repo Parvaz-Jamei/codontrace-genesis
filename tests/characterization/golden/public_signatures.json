@@ -70,7 +70,7 @@
   "split_residual_interval": "(predictions: 'Sequence[float]', references: 'Sequence[float]', *, estimate: 'float', alpha: 'float' = 0.1) -> 'SplitResidualInterval'"
  },
  "codontrace.life_loop.disturbance": {
-  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object]' = <function _check_value at 0x7fceccb69d00>) -> 'list[float | None]'",
+  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object] | None' = None) -> 'list[float | None]'",
   "canonical_digest": "(value: 'Any', *, prefix: 'str | None' = None) -> 'str'"
  },
  "codontrace.life_loop.farm_orchestrator": {
@@ -152,7 +152,7 @@
   "wire_canonical": "(value: 'Any') -> 'str'"
  },
  "codontrace.swarm.research": {
-  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object]' = <function _check_value at 0x7fceccb69d00>) -> 'list[float | None]'",
+  "apply_disturbance": "(values: 'Sequence[float]', family: 'DisturbanceFamily', rng: 'RNGManager', *, check: 'Callable[[float], object] | None' = None) -> 'list[float | None]'",
   "canonical": "(value: 'Any') -> 'str'",
   "information_level": "(options: 'dict[str, Any]', *, byte_budget: 'int', maximum_mse: 'float') -> 'dict[str, Any]'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",

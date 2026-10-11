@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from codontrace.errors import ConfigurationError
@@ -15,6 +17,9 @@ from codontrace.genesis.campaigns.discovery_q_20260928_idea4_engine import (
     run_idea4_engine_cell,
 )
 from codontrace.genesis.campaigns.discovery_q_20260928_idea5 import run_idea5_smoke
+from codontrace.genesis.campaigns.discovery_q_20260928_jsonl_engine import (
+    _idea2_arm_cell_survival_stats,
+)
 from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
     GENOTYPE_SET_IS_ABUNDANCE,
     GENOTYPE_SET_IS_PRESENCE_ONLY,
@@ -34,6 +39,7 @@ from codontrace.genesis.campaigns.discovery_q_20260928_measurement import (
     same_genotype_counts,
     same_genotype_set,
 )
+from codontrace.genesis.engine import GenesisEngine, GenesisExperimentSpec
 from codontrace.life_loop.contact_atp_ledger import build_engine_scaffold_ledger
 
 
@@ -97,12 +103,34 @@ def test_p2_survival_is_host_census_not_energy_blend() -> None:
     assert set(alive) == {"gene", "pattern", "causal"}
 
 
+# survival_to_T is a founder-lineage census (alive / 6 founded), so one run
+# can only take values in steps of 1/6. Two such censuses can coincide while
+# the runs differ: since aadc970 (capsule reconciliation, 0.1 ATP read cost)
+# seeds 301 and 305 both give {gene: 1/6, pattern: 2/6, causal: 1/6}; before
+# it seed 305 had gene 0/6. Comparing two runs at that resolution tests the
+# seed pair, not the meter. Seed sensitivity of a stochastic simulator is a
+# property of the outcome distribution over independent seeds, so the census
+# is read over the pre-declared pilot range 301-308 and must not collapse to
+# one value in every arm (the jsonl_engine collapse rule, n_unique == 1).
+# No arm is required to reach any particular value.
+IDEA2_SEED_PANEL = tuple(range(301, 309))
+
+
 def test_p2_survival_varies_across_seeds() -> None:
-    a = run_idea2_engine_cell(seed=301, cell="baseline")
-    b = run_idea2_engine_cell(seed=305, cell="baseline")
-    assert {row["arm"]: row["survival_to_T"] for row in a} != {
-        row["arm"]: row["survival_to_T"] for row in b
+    records = [
+        row
+        for seed in IDEA2_SEED_PANEL
+        for row in run_idea2_engine_cell(seed=seed, cell="baseline")
+    ]
+    stats = {
+        arm: _idea2_arm_cell_survival_stats(records, cell="baseline", arm=arm)
+        for arm in ("gene", "pattern", "causal")
     }
+    for arm_stats in stats.values():
+        assert arm_stats["n_records"] == len(IDEA2_SEED_PANEL)
+        assert arm_stats["soft_pass"] is False
+    assert not all(s["collapse_unique_surv_eq_1"] for s in stats.values())
+    assert max(s["n_unique_survival_to_T"] for s in stats.values()) > 1
 
 
 def test_p3_seed_301_matched_cut_is_exact_mirror() -> None:
@@ -619,8 +647,22 @@ def test_p2_harness_score_is_not_the_hypothesis_test() -> None:
         assert row["red_queen_proved"] is False
 
 
+# Seed-301 ATP lost by the scaffold cut, as a regression pin (a change detector,
+# not an independently verified value; the structural mirror checks below are
+# the oracle). 1.8868976316601382 was published before aadc970. That commit's
+# R09 capsule reconciliation lets the life-loop profile's capsule request reach
+# population_configs, so every organism pays the 0.1 runtime-ATP capsule read
+# cost. Mean ATP at the generation-2 boundary drops 11.3708 -> 11.2458,
+# ecology_scale drops 0.857681 -> 0.855864 (ratio 0.997882), and the rescaled
+# E0/E1 yields give 1.882900509084451. The reconciliation is a kept wiring fix
+# (docs/validation/LIFE_LOOP_DIGEST_HISTORY.md), so the current value is pinned
+# and the historical one is reproduced by the counterfactual test below.
+PUBLISHED_ATP_301_PRE_AADC970 = 1.8868976316601382
+PUBLISHED_ATP_301 = 1.882900509084451
+
+
 def test_p3_four_quantities_match_and_stay_a_planted_mirror() -> None:
-    published_atp_301 = 1.8868976316601382
+    published_atp_301 = PUBLISHED_ATP_301
     for seed in (301, 302, 303):
         row = run_idea4_engine_cell(
             seed=seed,
@@ -657,6 +699,36 @@ def test_p3_four_quantities_match_and_stay_a_planted_mirror() -> None:
         assert row["window_law_tested"] is False
         if seed == 301:
             assert report["atp_lost_scaffold"] == pytest.approx(published_atp_301)
+
+
+def test_p3_published_atp_301_drift_is_the_capsule_reconciliation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only the aadc970 reconciliation separates the two seed-301 pins."""
+    from codontrace.genesis.campaigns import discovery_q_20260928_idea4_engine as idea4
+
+    class _PreReconciliationEngine(GenesisEngine):
+        @classmethod
+        def from_spec(cls, spec: GenesisExperimentSpec, **kwargs: Any) -> GenesisEngine:
+            engine = super().from_spec(spec, **kwargs)
+            assert spec.population_configs is not None
+            # Pre-aadc970 used population_configs verbatim; this is NOT a public mode.
+            engine.runner.configs = spec.population_configs
+            return engine
+
+    def _atp_lost() -> float:
+        row = run_idea4_engine_cell(
+            seed=301,
+            ops_cell="cut_matched_random",
+            t_intervene=2,
+            t_horizon=5,
+            population=4,
+        )
+        return float(row["match_report"]["atp_lost_scaffold"])
+
+    assert _atp_lost() == pytest.approx(PUBLISHED_ATP_301)
+    monkeypatch.setattr(idea4, "GenesisEngine", _PreReconciliationEngine)
+    assert _atp_lost() == pytest.approx(PUBLISHED_ATP_301_PRE_AADC970)
 
 
 def test_token_penalty_is_not_a_contact_structure_effect() -> None:

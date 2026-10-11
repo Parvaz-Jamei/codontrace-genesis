@@ -108,12 +108,28 @@ def test_idea2_engine_sham_not_nc() -> None:
 
 
 def test_idea2_engine_seed_variance_survival() -> None:
+    # The engine path must respond to the seed and reproduce it exactly. The
+    # survival_to_T census is quantized to 1/6 (six founders), and since
+    # aadc970 seeds 301 and 305 give the same census, so per-run seed
+    # sensitivity is read from full-resolution outputs: the engine digest,
+    # the per-arm ledger digest, the realised pressure trajectory and the
+    # parasite birth counts. The census distribution over seeds is checked in
+    # test_owner_measurement_fixes.test_p2_survival_varies_across_seeds.
     a = run_idea2_engine_cell(seed=301, cell="baseline")
+    a_again = run_idea2_engine_cell(seed=301, cell="baseline")
     b = run_idea2_engine_cell(seed=305, cell="baseline")
+    assert a == a_again
     assert a[0]["engine_result_digest"] != b[0]["engine_result_digest"]
-    surv_a = {r["arm"]: r["survival_to_T"] for r in a}
-    surv_b = {r["arm"]: r["survival_to_T"] for r in b}
-    assert surv_a != surv_b
+    by_arm_a = {str(r["arm"]): r for r in a}
+    by_arm_b = {str(r["arm"]): r for r in b}
+    assert set(by_arm_a) == set(by_arm_b) == {"gene", "pattern", "causal"}
+    for arm, row_a in by_arm_a.items():
+        row_b = by_arm_b[arm]
+        assert row_a["ledger_digest"] != row_b["ledger_digest"]
+        assert row_a["pressure_series_tail"] != row_b["pressure_series_tail"]
+    births_a = [by_arm_a[arm]["parasite_births"] for arm in sorted(by_arm_a)]
+    births_b = [by_arm_b[arm]["parasite_births"] for arm in sorted(by_arm_b)]
+    assert births_a != births_b
 
 
 def test_mini_engine_campaign_writes_jsonl_engine(tmp_path: Path) -> None:

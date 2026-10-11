@@ -22,6 +22,14 @@ from codontrace.contracts.life_loop_events import (
     ScheduleLockEvent,
     load_event,
 )
+from codontrace.contracts.wire_validation import (
+    bounded_int,
+    bounded_text,
+    exact_keys,
+    finite_number,
+    identifier,
+    wire_canonical,
+)
 
 __all__ = [
     "AblationArmEvent",
@@ -38,6 +46,12 @@ __all__ = [
     "PopulationRegistryEvent",
     "SCHEMA_VERSION",
     "ScheduleLockEvent",
+    "bounded_int",
+    "bounded_text",
+    "exact_keys",
+    "finite_number",
+    "identifier",
     "load_event",
+    "wire_canonical",
     "world_digest",
 ]

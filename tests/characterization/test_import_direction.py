@@ -124,8 +124,15 @@ def test_swarm_and_visualization_import_without_paho():
     assert [m for m in loaded if within(m, ('paho',))] == []
 
 
-@pytest.mark.xfail(strict=True, reason='visualization.frames imports validators from swarm.protocol; '
-                   'moves to contracts.wire_validation in P1, which removes this xfail.')
 def test_visualization_does_not_import_swarm():
     found = chains(('codontrace.visualization',), ('codontrace.swarm',))
     assert not found, _fmt(found)
+
+
+def test_console_simulation_does_not_import_swarm():
+    found = chains(('codontrace.console.simulation',), ('codontrace.swarm',))
+    assert not found, _fmt(found)
+
+
+def test_wire_validation_imports_nothing_from_the_engine():
+    assert [t for t in resolved_edges('codontrace.contracts.wire_validation') if within(t, ('codontrace',))] == []

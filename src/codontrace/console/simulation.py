@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from codontrace.console.runs import get_safe_run_dir
-from codontrace.swarm.protocol import canonical, integer, number, text
+from codontrace.contracts.wire_validation import bounded_int as integer
+from codontrace.contracts.wire_validation import bounded_text as text
+from codontrace.contracts.wire_validation import finite_number as number
+from codontrace.contracts.wire_validation import wire_canonical as canonical
 
 MAX_FILE_BYTES = 8 * 1024 * 1024
 
@@ -32,7 +35,7 @@ def validate_frame(row: Any, seed: int) -> dict[str, Any]:
     if not all(isinstance(x,list) for x in (agents,links,deaths,born)) or len(agents)>20000 or len(links)>60000 or len(deaths)>20000 or len(born)>20000:
         raise ValueError('bounded frame arrays required')
     ids=set()
-    def position(p):
+    def position(p: Any) -> None:
         if not isinstance(p,list) or len(p)!=2: raise ValueError('position pair required')
         integer(p[0], high=width-1);integer(p[1], high=height-1)
     for a in agents:

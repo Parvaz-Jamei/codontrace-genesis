@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from codontrace.swarm.protocol import integer, number, text
+from codontrace.contracts.wire_validation import bounded_int as integer
+from codontrace.contracts.wire_validation import bounded_text as text
+from codontrace.contracts.wire_validation import finite_number as number
 
 MAX_AGENTS = 20000
 

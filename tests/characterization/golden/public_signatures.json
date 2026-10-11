@@ -21,6 +21,12 @@
   "verify_artifact_bytes": "(file_path: 'str | Path', expected_digest: 'str') -> 'bool'",
   "verify_replay_bundle": "(bundle: 'ReplayBundle', result: 'object') -> 'ReplayVerificationResult'"
  },
+ "codontrace.genesis.journal": {
+  "archived_to_delete": "(rows: 'Sequence[tuple[int, int]]', archive_max_bytes: 'int') -> 'list[int]'",
+  "fsync_dir": "(folder: 'Path') -> 'None'",
+  "journal_file_lock": "(lock_path: 'Path', timeout_s: 'float', busy_message: 'str') -> 'Iterator[None]'",
+  "segments_to_archive": "(rows: 'Sequence[tuple[int, int]]', live_bytes: 'int', retention_bytes: 'int', covered: 'int') -> 'list[int]'"
+ },
  "codontrace.genesis.qd_search": {
   "ask_qd_candidates": "(parents: 'Sequence[QDCandidate]', *, rng: 'RNGManager', count: 'int', emitter_name: 'str' = 'mutation_emitter') -> 'QDAskResult'",
   "finite_float": "(name: 'str', value: 'object', *, non_negative: 'bool' = False, probability: 'bool' = False, allow_none: 'bool' = False) -> 'float | None'",

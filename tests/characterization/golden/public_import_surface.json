@@ -124,6 +124,36 @@
    "verify_replay_bundle"
   ]
  },
+ "codontrace.genesis.journal": {
+  "__all__": [
+   "CHECKPOINTS_KEPT",
+   "EventSourcedMachine",
+   "HashChainedJournal",
+   "JournalHealth",
+   "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
+   "archived_to_delete",
+   "checkpoint",
+   "fsync_dir",
+   "journal_file_lock",
+   "locking",
+   "retention",
+   "segments_to_archive",
+   "store"
+  ],
+  "public": [
+   "CHECKPOINTS_KEPT",
+   "EventSourcedMachine",
+   "HashChainedJournal",
+   "JournalHealth",
+   "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
+   "archived_to_delete",
+   "fsync_dir",
+   "journal_file_lock",
+   "segments_to_archive"
+  ]
+ },
  "codontrace.genesis.qd_search": {
   "__all__": [],
   "public": [
@@ -373,7 +403,9 @@
   "public": [
    "CHECKPOINTS_KEPT",
    "CHECKPOINT_SCHEMA",
+   "HashChainedJournal",
    "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
    "Pipeline",
    "SwarmCoordinator",
    "VERSION2",

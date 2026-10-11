@@ -1,0 +1,92 @@
+{
+ "disturbance": {
+  "amplitude": 0.081234476646039,
+  "bias": 0.718765523353961,
+  "frequency": 2
+ },
+ "history": [
+  {
+   "disturbance": {
+    "amplitude": 0.8,
+    "bias": 0.0,
+    "frequency": 1
+   },
+   "generation": 0,
+   "pipeline": {
+    "alpha": 0.8440270528610174,
+    "clip": 2.817838269076928,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.19351715936263636
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.081234476646039,
+    "bias": 0.718765523353961,
+    "frequency": 2
+   },
+   "generation": 1,
+   "pipeline": {
+    "alpha": 1,
+    "clip": 2.7997944733274593,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.4950825324805893
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.081234476646039,
+    "bias": 0.718765523353961,
+    "frequency": 2
+   },
+   "generation": 2,
+   "pipeline": {
+    "alpha": 1,
+    "clip": 2.7997944733274593,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5310644784045555
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.081234476646039,
+    "bias": 0.718765523353961,
+    "frequency": 2
+   },
+   "generation": 3,
+   "pipeline": {
+    "alpha": 1,
+    "clip": 2.7997944733274593,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5269348492271377
+  },
+  {
+   "disturbance": {
+    "amplitude": 0.081234476646039,
+    "bias": 0.718765523353961,
+    "frequency": 2
+   },
+   "generation": 4,
+   "pipeline": {
+    "alpha": 1,
+    "clip": 2.7997944733274593,
+    "event_threshold": 2.0
+   },
+   "training_worst_mse": 0.5162548433557652
+  }
+ ],
+ "hypothesis_verdict": null,
+ "pipeline": {
+  "alpha": 1,
+  "clip": 2.7997944733274593,
+  "event_threshold": 2.0
+ },
+ "red_queen_proved": null,
+ "rng": {
+  "draw_count": 220,
+  "namespace": "swarm/coevolution",
+  "seed": 0
+ },
+ "scope": "training_only_bounded_coadaptation"
+}

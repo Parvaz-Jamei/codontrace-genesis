@@ -1,0 +1,3 @@
+{
+ "appended_line": "{\"action\":\"status\",\"args\":{\"status\":\"stopped\"},\"digest\":\"848fe26841065597c8348b7835a33641cfd5bd149e046701d4c5c88d5d4c3a7f\",\"max_skew_ms\":2000,\"now_ms\":100000,\"previous\":\"bfad922f2196e16819bccabde4c79f344400c71fc29472d5b2db230fcc5efea4\",\"state_digest\":\"d1c7add2c44b7ebc21dab8fe8720fefcd25d389722a74c22300de7db7175847d\",\"swarm_id\":\"lab\",\"ttl_ms\":10000}\n"
+}

@@ -1,0 +1,257 @@
+{
+ "best": {
+  "alpha": 0.3510316080779413,
+  "clip": 4.235642328879084,
+  "event_threshold": 2.0
+ },
+ "best_digest": "dc410e8860c93470c498c4a1e58d07b22468febc6da71a54d6ff91da58e1d4dc",
+ "entries": {
+  "03255a60973a9b26d51bbc8f97edea770dc6fbeb1b9a33ace7555c1dcc01fc45": {
+   "pipeline": {
+    "alpha": 0.7409748782979682,
+    "clip": 3.08813725001812,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.16415010389133422
+  },
+  "057b3b7123f81375a22d28851fe4fb87eb82e46067fc36fa96f495dc8f971523": {
+   "pipeline": {
+    "alpha": 0.8800406444798431,
+    "clip": 5.811020258341659,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.22997493791741666
+  },
+  "1fbdc2205358c358a79c9f92c3e0aa79676cbc6da1bebf8f650234bc1a5373f7": {
+   "pipeline": {
+    "alpha": 0.35047012135434286,
+    "clip": 3.8084778172272915,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.07897282305789839
+  },
+  "24c2f47a16b4ccd368edce19ad5aedbdb8e8a1e625580e0566c2f5579326a068": {
+   "pipeline": {
+    "alpha": 0.659232474444046,
+    "clip": 5.53537102875791,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.13300078691551162
+  },
+  "2f2ac09f1d9f27d17e5008faaa90234974fe1892b4a93b19da4a646f76b26b45": {
+   "pipeline": {
+    "alpha": 0.7088637519124855,
+    "clip": 6.462598323928058,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.151243524830144
+  },
+  "406174a959f0b45afb1e6741c732a7ea5c03559b061d75d5d79c5d349f543735": {
+   "pipeline": {
+    "alpha": 0.1775631123754962,
+    "clip": 3.102230368159427,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.1722697678172704
+  },
+  "53cd3d7e2353addebb28a5c10f247e8c1942e853173b15530e829b33c1f0c83e": {
+   "pipeline": {
+    "alpha": 0.7613332446537362,
+    "clip": 4.592440599915591,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.172778122186936
+  },
+  "64a92968e2316bcdae65532f0bc8058332bab0bbd0897120c3de3e3f1c98e108": {
+   "pipeline": {
+    "alpha": 0.48275585123346354,
+    "clip": 5.857294088752274,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.08649200080961901
+  },
+  "70aa532dce439f9d875ed7a4826172e029f51f11b5eb83c78cb962a9cf45ceef": {
+   "pipeline": {
+    "alpha": 0.2057384094563671,
+    "clip": 2.0563329512308135,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.14447779269597716
+  },
+  "7d2476c4945cf322abe2685222c9018b158948059df92d10f1c9cf2e44a08a5f": {
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 4.338384413871682,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.29996102736664265
+  },
+  "8d32c0bb0418d2113c2ee6ab029fd47429543794bdef1c8d60211df3a56894b7": {
+   "pipeline": {
+    "alpha": 0.605730901037845,
+    "clip": 6.944478743808478,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.11571705084257883
+  },
+  "94c96eff4333a26f2fee8791e53eb1a6b616922fb23c9c8ac787d4e09f8f229f": {
+   "pipeline": {
+    "alpha": 0.980252672334776,
+    "clip": 4.708444572381108,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.2875730737498362
+  },
+  "c19d6ff07bb7aecdeab00bbefb8fb80571c9555e276e9ab977d56b93e324f4c7": {
+   "pipeline": {
+    "alpha": 0.748445399534888,
+    "clip": 8.053980306444986,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.16727608934081367
+  },
+  "c2072b3e6615fb8dc46e43eb867ab3c27cc902b44215f091cba150a5ae44876b": {
+   "pipeline": {
+    "alpha": 0.44607890982430354,
+    "clip": 3.7866835310294062,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.08124842428680502
+  },
+  "c2c6f5c6638d9c4a3342e6309c19f364df60fb67f664421d4909587ab734c39f": {
+   "pipeline": {
+    "alpha": 0.33239008498140193,
+    "clip": 2.0533954052531525,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.08075521920470029
+  },
+  "ce6e4215ce8a298093472ef097975cef1acf3fbf243202545df24cd21f1909b4": {
+   "pipeline": {
+    "alpha": 0.8543279703664445,
+    "clip": 5.018855862305647,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.2165830162370332
+  },
+  "dc410e8860c93470c498c4a1e58d07b22468febc6da71a54d6ff91da58e1d4dc": {
+   "pipeline": {
+    "alpha": 0.3510316080779413,
+    "clip": 4.235642328879084,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.07892233030238933
+  },
+  "df8e2c8d5f2e5c074867f9e11ea457ab8b69dc248566b513ffc3f3cde3fa9134": {
+   "pipeline": {
+    "alpha": 0.7116012012918843,
+    "clip": 7.893703700842752,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.15231019021255615
+  },
+  "e866cdd0507effbce45ffdfedb6a7973a52fe0f376bde6238974fd97b516e222": {
+   "pipeline": {
+    "alpha": 0.5190433398865203,
+    "clip": 4.006156677288591,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.09341636788799376
+  },
+  "e92270e692dd525887ac8630c0948d146b467136bca43c4d8583168f2dc7a7d6": {
+   "pipeline": {
+    "alpha": 0.28229775870146323,
+    "clip": 6.019331044791314,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.09361423083717428
+  },
+  "ec8424341c021d1e9f2ad22ed0ebab33c9cf4d9a2166871ff9858c361549ea01": {
+   "pipeline": {
+    "alpha": 0.6736121110706094,
+    "clip": 7.643219418951075,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.13807113373607194
+  },
+  "f058e919ef97f5a331f128c7f7ce9fd51d47ce552d176afcdb8c6e64831b09a4": {
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 3.0517023866474813,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.29996102736664265
+  },
+  "f1e65712f995acf6e7e19bb3209b03aeedb3d720156b865ece0f5ae71a2d515c": {
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.29996102736664265
+  },
+  "f6b8232c61cbf202904e4e2b6b439f81bc7a8f5db960b253bb44e4ea8f3fee5c": {
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 2.8984510261193104,
+    "event_threshold": 2.0
+   },
+   "training_mse": 0.29996102736664265
+  }
+ },
+ "entry_order": [
+  "f1e65712f995acf6e7e19bb3209b03aeedb3d720156b865ece0f5ae71a2d515c",
+  "7d2476c4945cf322abe2685222c9018b158948059df92d10f1c9cf2e44a08a5f",
+  "f6b8232c61cbf202904e4e2b6b439f81bc7a8f5db960b253bb44e4ea8f3fee5c",
+  "ce6e4215ce8a298093472ef097975cef1acf3fbf243202545df24cd21f1909b4",
+  "057b3b7123f81375a22d28851fe4fb87eb82e46067fc36fa96f495dc8f971523",
+  "94c96eff4333a26f2fee8791e53eb1a6b616922fb23c9c8ac787d4e09f8f229f",
+  "f058e919ef97f5a331f128c7f7ce9fd51d47ce552d176afcdb8c6e64831b09a4",
+  "24c2f47a16b4ccd368edce19ad5aedbdb8e8a1e625580e0566c2f5579326a068",
+  "df8e2c8d5f2e5c074867f9e11ea457ab8b69dc248566b513ffc3f3cde3fa9134",
+  "53cd3d7e2353addebb28a5c10f247e8c1942e853173b15530e829b33c1f0c83e",
+  "2f2ac09f1d9f27d17e5008faaa90234974fe1892b4a93b19da4a646f76b26b45",
+  "ec8424341c021d1e9f2ad22ed0ebab33c9cf4d9a2166871ff9858c361549ea01",
+  "03255a60973a9b26d51bbc8f97edea770dc6fbeb1b9a33ace7555c1dcc01fc45",
+  "c19d6ff07bb7aecdeab00bbefb8fb80571c9555e276e9ab977d56b93e324f4c7",
+  "8d32c0bb0418d2113c2ee6ab029fd47429543794bdef1c8d60211df3a56894b7",
+  "c2072b3e6615fb8dc46e43eb867ab3c27cc902b44215f091cba150a5ae44876b",
+  "1fbdc2205358c358a79c9f92c3e0aa79676cbc6da1bebf8f650234bc1a5373f7",
+  "70aa532dce439f9d875ed7a4826172e029f51f11b5eb83c78cb962a9cf45ceef",
+  "c2c6f5c6638d9c4a3342e6309c19f364df60fb67f664421d4909587ab734c39f",
+  "dc410e8860c93470c498c4a1e58d07b22468febc6da71a54d6ff91da58e1d4dc",
+  "406174a959f0b45afb1e6741c732a7ea5c03559b061d75d5d79c5d349f543735",
+  "64a92968e2316bcdae65532f0bc8058332bab0bbd0897120c3de3e3f1c98e108",
+  "e866cdd0507effbce45ffdfedb6a7973a52fe0f376bde6238974fd97b516e222",
+  "e92270e692dd525887ac8630c0948d146b467136bca43c4d8583168f2dc7a7d6"
+ ],
+ "processed": [
+  [
+   0.0,
+   0.16266649415951207,
+   0.19351019251287888,
+   0.1963784512095758,
+   0.3965455753149223,
+   1.1278066920444407,
+   0.9535903671713596,
+   0.8765085573858316,
+   1.0004851595005413,
+   1.0412160587129975,
+   0.9238916950966052,
+   0.9228888858719964
+  ],
+  []
+ ],
+ "rng": {
+  "draw_count": 46,
+  "namespace": "swarm/pipelines",
+  "seed": 1
+ },
+ "transfer_decision": {
+  "accepted": true,
+  "candidate_digest": "dc410e8860c93470c498c4a1e58d07b22468febc6da71a54d6ff91da58e1d4dc",
+  "claim": "local_validation_only",
+  "local_mse_gain": 0.2210386970642533,
+  "sample_count": 48
+ }
+}

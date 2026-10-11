@@ -1,0 +1,249 @@
+[
+ {
+  "claim": "engineering_probe_only",
+  "idea": "01_contextual_trust",
+  "independent_history_id": "synthetic-seed-7",
+  "learned_mse": 0.021042738396823774,
+  "limitation": "training references externally supplied; shared faults need independent reference",
+  "mean_mse": 2.770684846685869,
+  "physical_validation": false,
+  "seed": 7,
+  "synthetic": true
+ },
+ {
+  "claim": "engineering_probe_only",
+  "diagnosis": {
+   "causal_proof": false,
+   "center": -0.39694437999324705,
+   "identifiability": "external_reference_required_for_common_mode_faults",
+   "status": "reference_comparison",
+   "suspects": [
+    "c/s"
+   ]
+  },
+  "idea": "02_fault_vs_change",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "single seeded fault instrument check, not population-level diagnostic accuracy",
+  "physical_validation": false,
+  "seed": 7,
+  "suspect_count": 1,
+  "synthetic": true
+ },
+ {
+  "claim": "engineering_probe_only",
+  "idea": "03_active_measurement",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "capability-aware oldest-first baseline; information-gain optimizer is a research extension",
+  "physical_validation": false,
+  "requested_count": 2,
+  "requested_nodes": [
+   "a",
+   "b"
+  ],
+  "seed": 7,
+  "synthetic": true
+ },
+ {
+  "archive_size": 32,
+  "claim": "engineering_probe_only",
+  "fixed_mse": 0.2846550675000938,
+  "heldout_mse": 0.1397411847039986,
+  "idea": "04_pipeline_evolution",
+  "independent_history_id": "synthetic-seed-7",
+  "physical_validation": false,
+  "pipeline": {
+   "alpha": 0.2423806243819961,
+   "clip": 10.867272469332267,
+   "event_threshold": 2.0
+  },
+  "raw_event_count": 0,
+  "seed": 7,
+  "synthetic": true
+ },
+ {
+  "accepted": true,
+  "candidate_digest": "66e539814c84783a6862b86afb1601c4d25d9ef08c7e5f888f7dbeb0c4c87b0c",
+  "claim": "engineering_probe_only",
+  "idea": "05_selective_capsule",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "local validation result; independent post-adoption test required",
+  "local_mse_gain": 0.1449138827960952,
+  "physical_validation": false,
+  "sample_count": 24,
+  "seed": 7,
+  "synthetic": true,
+  "validation_scope": "local_validation_only"
+ },
+ {
+  "causal_proof": false,
+  "claim": "engineering_probe_only",
+  "idea": "06_processing_audit",
+  "independent_history_id": "synthetic-seed-7",
+  "physical_validation": false,
+  "processed_error": 5.0,
+  "raw_error": 0.0,
+  "seed": 7,
+  "status": "processing_disagreement_candidate",
+  "synthetic": true
+ },
+ {
+  "claim": "engineering_probe_only",
+  "estimate": null,
+  "idea": "07_dropout_reconfiguration",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "availability instrument check; live reallocation tested separately",
+  "physical_validation": false,
+  "seed": 7,
+  "stale_contributors": 0,
+  "synthetic": true
+ },
+ {
+  "claim": "engineering_probe_only",
+  "feature_payload_bytes": 29,
+  "idea": "08_information_level",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "application payload bytes only; no claimed Wi-Fi energy savings",
+  "physical_validation": false,
+  "raw_payload_bytes": 946,
+  "seed": 7,
+  "synthetic": true
+ },
+ {
+  "claim": "engineering_probe_only",
+  "heldout_mse": 1.2531384171479614e-31,
+  "idea": "09_sensor_twin",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "linear synthetic calibration, not a complete physical network twin",
+  "physical_validation": false,
+  "seed": 7,
+  "synthetic": true,
+  "twin": {
+   "intercept": 3.0,
+   "residual_mae": 2.0354088784794536e-16,
+   "slope": 2.0000000000000004,
+   "training_count": 24
+  }
+ },
+ {
+  "claim": "engineering_probe_only",
+  "fixed_mse": 1.0319118701508374,
+  "heldout_mse": 1.0319118701508374,
+  "idea": "10_disturbance_competition",
+  "independent_history_id": "synthetic-seed-7",
+  "limitation": "bounded co-adaptation, independent noisy held-out sequence; not biological Red Queen evidence",
+  "physical_validation": false,
+  "rng": {
+   "draw_count": 288,
+   "namespace": "swarm/engineering-probes",
+   "seed": 7
+  },
+  "seed": 7,
+  "synthetic": true,
+  "training": {
+   "disturbance": {
+    "amplitude": 0.0578674204613272,
+    "bias": -0.9421325795386728,
+    "frequency": 2
+   },
+   "history": [
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 0,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.8826499321110473
+    },
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 1,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.9125170556185803
+    },
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 2,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.9030734011809453
+    },
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 3,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.8858026836255848
+    },
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 4,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.8933568109945829
+    },
+    {
+     "disturbance": {
+      "amplitude": 0.0578674204613272,
+      "bias": -0.9421325795386728,
+      "frequency": 2
+     },
+     "generation": 5,
+     "pipeline": {
+      "alpha": 1.0,
+      "clip": 5.0,
+      "event_threshold": 2.0
+     },
+     "training_worst_mse": 0.8925232614416202
+    }
+   ],
+   "hypothesis_verdict": null,
+   "pipeline": {
+    "alpha": 1.0,
+    "clip": 5.0,
+    "event_threshold": 2.0
+   },
+   "red_queen_proved": null,
+   "rng": {
+    "draw_count": 216,
+    "namespace": "swarm/coevolution",
+    "seed": 7
+   },
+   "scope": "training_only_bounded_coadaptation"
+  }
+ }
+]

@@ -154,11 +154,13 @@ def fdc_sample(reading: dict[str, Any], *, variant: str, config_id: str) -> tupl
             'normalization': {'method': 'affine', 'scale': 1e-12, 'offset': 0., 'output_unit': 'F', 'evidence_id': 'SI-prefix'}}}
     else:
         integer(row['rawCode'],high=(2**12-1 if variant.startswith('FDC211') else 2**28-1))
-        number(row['frequencyHz']);number(row['frefHz'],low=0);integer(row['finSelMultiplier'],high=3);integer(row['frefDivider'],high=1023)
+        # CHx_FIN_SEL: b01 = divide by 1, b10 = divide by 2; b11 is reserved (FDC2x1x datasheet,
+        # CLOCK_DIVIDERS_CHx). FDCxCapSense reports the multiplier (1 or 2), 0 when unread.
+        number(row['frequencyHz']);number(row['frefHz'],low=0);integer(row['finSelMultiplier'],high=2);integer(row['frefDivider'],high=1023)
         if type(row['dataReady']) is not bool: raise ValueError('dataReady must be boolean')
         if variant.startswith('FDC211') and valid: raise ValueError('FDC211x frequency conversion is not supported in FDCxCapSense 0.6.13')
         valid = valid and row['dataReady']
-        if valid and (row['frefHz'] <= 0 or row['frequencyHz'] <= 0 or row['finSelMultiplier'] not in (1,2,3)):
+        if valid and (row['frefHz'] <= 0 or row['frequencyHz'] <= 0 or row['finSelMultiplier'] not in (1,2) or row['frefDivider'] < 1):
             raise ValueError('valid resonant frequency requires clock/multiplier metadata')
         value = number(row['frequencyHz']) if valid else None
         channel = {'quantity': 'frequency', 'unit': 'Hz', 'descriptor': {'value_type': 'scalar',

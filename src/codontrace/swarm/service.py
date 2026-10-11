@@ -14,18 +14,34 @@ from codontrace.swarm.runtime import SwarmCoordinator
 _LOCK = threading.RLock()
 _SWARMS: dict[str, SwarmCoordinator] = {}
 
+# Pure computations on caller-supplied data: no swarm state, no storage.
+STATELESS_ACTIONS = frozenset({'fdc_decode', 'pipeline_fit', 'information_level', 'processing_contrast',
+                               'twin_fit', 'coevolve', 'uncertainty_interval', 'freshness_schedule',
+                               'capsule_shadow', 'capsule_validate'})
+# Reads of recorded state: an unknown swarm id is answered from empty state
+# without creating its folder, journal or lock file.
+READ_ONLY_ACTIONS = frozenset({'snapshot', 'fusion', 'diagnosis', 'freshness_plan'})
+WRITE_ACTIONS = frozenset({'journal_recover', 'configure_channel', 'ingest', 'command', 'status', 'plan', 'calibrate'})
 
-def coordinator(swarm_id: str) -> SwarmCoordinator:
+
+def _root() -> Path:
+    root = Path(os.environ.get('CODONTRACE_SWARM_DIR', str(Path.home() / '.local' / 'share' / 'codontrace' / 'swarm_runs'))).expanduser()
+    if not root.is_absolute():
+        raise ValueError('CODONTRACE_SWARM_DIR must be absolute; storage must not depend on CWD')
+    return root.resolve()
+
+
+def coordinator(swarm_id: str, *, create: bool = True) -> SwarmCoordinator | None:
+    """Cached coordinator; with ``create=False`` an unrecorded swarm returns None."""
     identifier(swarm_id)
     with _LOCK:
         if swarm_id not in _SWARMS:
+            folder = _root() / swarm_id
+            if not create and not folder.is_dir():
+                return None
             if len(_SWARMS) >= 32:
                 raise ValueError('swarm session capacity reached')
-            root = Path(os.environ.get('CODONTRACE_SWARM_DIR', str(Path.home() / '.local' / 'share' / 'codontrace' / 'swarm_runs'))).expanduser()
-            if not root.is_absolute():
-                raise ValueError('CODONTRACE_SWARM_DIR must be absolute; storage must not depend on CWD')
-            root = root.resolve()
-            _SWARMS[swarm_id] = SwarmCoordinator(swarm_id, journal=root / swarm_id / 'events.jsonl')
+            _SWARMS[swarm_id] = SwarmCoordinator(swarm_id, journal=folder / 'events.jsonl')
         return _SWARMS[swarm_id]
 
 
@@ -35,10 +51,21 @@ def invoke(action: str, args: Any, *, now_ms: int | None = None) -> dict[str, An
         raise ValueError('swarm args must be an object')
     now = int(time.time() * 1000) if now_ms is None else now_ms
     sid = identifier(args.get('swarm_id'))
-    swarm = coordinator(sid)
+    if action not in STATELESS_ACTIONS | READ_ONLY_ACTIONS | WRITE_ACTIONS:
+        raise ValueError('unknown swarm action')
+    recorded = True
+    if action in STATELESS_ACTIONS:
+        swarm = None
+    elif action in READ_ONLY_ACTIONS:
+        swarm = coordinator(sid, create=False)
+        if swarm is None:
+            recorded = False
+            swarm = SwarmCoordinator(sid)  # empty, in memory, never cached
+    else:
+        swarm = coordinator(sid)
     if action == 'journal_recover':
-        object_keys(args, {'swarm_id'})
-        result = swarm.recover()
+        object_keys(args, {'swarm_id'}, {'full_replay'})
+        result = swarm.recover(full_replay=args.get('full_replay', False))
     elif action == 'snapshot':
         object_keys(args, {'swarm_id'})
         result = swarm.snapshot(now_ms=now)
@@ -125,4 +152,4 @@ def invoke(action: str, args: Any, *, now_ms: int | None = None) -> dict[str, An
                                    args['values'], args['references'], minimum_gain=args.get('minimum_gain', 0))
     else:
         raise ValueError('unknown swarm action')
-    return {'ok': True, 'swarm_id': sid, 'action': action, 'result': result}
+    return {'ok': True, 'swarm_id': sid, 'action': action, 'result': result, 'swarm_recorded': recorded}

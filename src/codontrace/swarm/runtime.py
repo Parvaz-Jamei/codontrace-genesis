@@ -15,15 +15,29 @@ from codontrace.swarm.policies import Pipeline, diagnose
 from codontrace.swarm.protocol import VERSION2, canonical, decode, identifier, integer, number, object_keys
 from codontrace.swarm.sensors import descriptor, normalize, scalar_frame
 
+CHECKPOINT_SCHEMA = 'genesis_swarm_checkpoint_v1'
+CHECKPOINTS_KEPT = 2
+MAX_CHECKPOINT_BYTES = 256 * 1024 * 1024
+
 
 class SwarmCoordinator:
     """One isolated sensor swarm; centralized orchestration, not decentralized proof.
 
     A hash-chained write-ahead journal replays host decisions, not physical reality.
     All times are host UTC milliseconds; sample clocks must be synchronized.
+
+    Journal layout: closed segments ``<journal>.part.NNNNNNNN`` plus the active
+    file. Each rotation writes a hashed state checkpoint bound to the last record
+    of the closed segment; startup restores the newest valid checkpoint and
+    replays only later records, falling back to older checkpoints or full replay
+    (checkpoints are a rebuildable cache, never authoritative history). With
+    ``journal_retention_bytes`` set, closed segments already covered by a
+    checkpoint move to ``<journal>.archive/``; archived segments are deleted
+    only when ``archive_max_bytes`` is set and exceeded.
     """
     def __init__(self, swarm_id: str, *, journal: Path | None = None, ttl_ms: int = 10000,
-                 max_skew_ms: int = 2000, journal_segment_bytes: int = 4*1024*1024) -> None:
+                 max_skew_ms: int = 2000, journal_segment_bytes: int = 4*1024*1024,
+                 journal_retention_bytes: int | None = None, archive_max_bytes: int | None = None) -> None:
         self.swarm_id = identifier(swarm_id)
         self.ttl_ms = integer(ttl_ms, high=3600000)
         if ttl_ms < 1:
@@ -33,6 +47,17 @@ class SwarmCoordinator:
         self.journal_segment_bytes = integer(journal_segment_bytes, high=64*1024*1024)
         if self.journal_segment_bytes < 1024:
             raise ValueError("journal segment size must be at least 1024 bytes")
+        if journal_retention_bytes is not None:
+            integer(journal_retention_bytes, high=2**40)
+            if journal_retention_bytes < self.journal_segment_bytes:
+                raise ValueError('journal retention must be at least one segment')
+        if archive_max_bytes is not None:
+            integer(archive_max_bytes, high=2**40)
+        self.journal_retention_bytes = journal_retention_bytes
+        self.archive_max_bytes = archive_max_bytes
+        self._checkpoint_index: int | None = None
+        self._checkpoint_error: str | None = None
+        self._pending_checkpoint: tuple[int, dict[str, Any], str] | None = None
         journal = self.journal
         self._lock = threading.RLock()
         self._chain = '0' * 64
@@ -44,6 +69,7 @@ class SwarmCoordinator:
             with self._journal_guard():
                 if journal.exists() or self._segments():
                     self._restore()
+                    self._write_pending_checkpoint()
                 self._journal_size = journal.stat().st_size if journal.exists() else 0
                 self._journal_token = self._disk_token()
 
@@ -72,13 +98,44 @@ class SwarmCoordinator:
                 else:
                     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
-    def _segments(self) -> list[Path]:
+    @staticmethod
+    def _numbered(paths: list[Path], prefix: str, suffix: str = '', *, strict: bool = True) -> list[tuple[int, Path]]:
+        rows = []
+        for path in paths:
+            middle = path.name[len(prefix):len(path.name)-len(suffix) if suffix else None]
+            if len(middle) != 8 or not middle.isdigit() or path.is_symlink() or not path.is_file():
+                if strict:
+                    raise ValueError('invalid journal file name')
+                continue
+            rows.append((int(middle), path))
+        return sorted(rows)
+
+    def _segment_rows(self, directory: Path | None = None) -> list[tuple[int, Path]]:
         assert self.journal is not None
-        parts = sorted(self.journal.parent.glob(self.journal.name + '.part.*'))
-        for index, path in enumerate(parts, 1):
-            if path.name != self.journal.name + f'.part.{index:08d}' or path.is_symlink():
+        prefix = self.journal.name + '.part.'
+        folder = self.journal.parent if directory is None else directory
+        rows = self._numbered(list(folder.glob(prefix + '*')), prefix) if folder.is_dir() else []
+        for (a, _), (b, _) in zip(rows, rows[1:], strict=False):
+            if b != a + 1:
                 raise ValueError('invalid or missing journal segment')
-        return parts
+        return rows
+
+    def _segments(self) -> list[Path]:
+        return [path for _, path in self._segment_rows()]
+
+    def _archive_dir(self) -> Path:
+        assert self.journal is not None
+        return self.journal.with_name(self.journal.name + '.archive')
+
+    def _checkpoint_path(self, index: int) -> Path:
+        assert self.journal is not None
+        return self.journal.with_name(self.journal.name + f'.checkpoint.{index:08d}.json')
+
+    def _checkpoint_rows(self) -> list[tuple[int, Path]]:
+        assert self.journal is not None
+        prefix = self.journal.name + '.checkpoint.'
+        # Checkpoints are a cache: unrecognised names are ignored, not fatal.
+        return self._numbered(list(self.journal.parent.glob(prefix + '*.json')), prefix, '.json', strict=False)
 
     def _disk_token(self) -> tuple[Any, ...]:
         assert self.journal is not None
@@ -86,31 +143,198 @@ class SwarmCoordinator:
         return tuple((p.name, p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns)
                      for p in paths if p.exists())
 
-    def _restore(self) -> None:
-        assert self.journal is not None
-        paths = [*self._segments(), *([self.journal] if self.journal.exists() else [])]
-        for path in paths:
+    def _replay_file(self, path: Path) -> None:
+        with path.open(encoding='utf-8') as handle:
+            for line in handle:
+                if len(line) > 100000 or not line.endswith('\n'):
+                    raise ValueError('truncated or oversized swarm journal')
+                record = json.loads(line)
+                digest = record.pop('digest', None)
+                if record.get('previous') != self._chain or hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
+                    raise ValueError('swarm journal integrity failure')
+                if record.get('swarm_id') != self.swarm_id or record.get('ttl_ms') != self.ttl_ms or record.get('max_skew_ms') != self.max_skew_ms:
+                    raise ValueError('swarm journal configuration mismatch')
+                self._apply(record['action'], record['args'], record['now_ms'])
+                if hashlib.sha256(canonical(self._state).encode()).hexdigest() != record.get('state_digest'):
+                    raise ValueError('swarm replay state divergence')
+                self._chain = digest
+
+    def _verify_links(self, rows: list[tuple[int, Path]], end_chain: str) -> None:
+        """Hash-chain check of covered segments without re-applying their records.
+
+        Starts from the zero digest when segment 1 is live; after archiving, the
+        first live record's predecessor is anchored by the archive (full replay).
+        """
+        chain = '0' * 64 if rows and rows[0][0] == 1 else None
+        for _, path in rows:
             with path.open(encoding='utf-8') as handle:
                 for line in handle:
                     if len(line) > 100000 or not line.endswith('\n'):
                         raise ValueError('truncated or oversized swarm journal')
                     record = json.loads(line)
                     digest = record.pop('digest', None)
-                    if record.get('previous') != self._chain or hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
+                    if chain is None:
+                        chain = record.get('previous')
+                    if record.get('previous') != chain or hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
                         raise ValueError('swarm journal integrity failure')
                     if record.get('swarm_id') != self.swarm_id or record.get('ttl_ms') != self.ttl_ms or record.get('max_skew_ms') != self.max_skew_ms:
                         raise ValueError('swarm journal configuration mismatch')
-                    self._apply(record['action'], record['args'], record['now_ms'])
-                    if hashlib.sha256(canonical(self._state).encode()).hexdigest() != record.get('state_digest'):
-                        raise ValueError('swarm replay state divergence')
-                    self._chain = digest
+                    chain = digest
+        if chain != end_chain:
+            raise ValueError('swarm journal integrity failure')
 
-    def recover(self) -> dict[str, Any]:
+    @staticmethod
+    def _last_record(path: Path) -> dict[str, Any]:
+        """Read and self-verify the final complete record of a closed segment."""
+        with path.open('rb') as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            handle.seek(max(0, size - 200002))
+            tail = handle.read()
+        if not tail.endswith(b'\n'):
+            raise ValueError('closed segment has a partial final record')
+        line = tail[:-1].rsplit(b'\n', 1)[-1]
+        record = json.loads(line)
+        digest = record.pop('digest', None)
+        if hashlib.sha256(canonical(record).encode()).hexdigest() != digest:
+            raise ValueError('closed segment final record fails its digest')
+        record['digest'] = digest
+        return record
+
+    def _load_checkpoint(self, live: dict[int, Path]) -> tuple[int, dict[str, Any], str] | None:
+        """Newest checkpoint whose position exists in the live stream and matches it."""
+        errors = []
+        for index, path in reversed(self._checkpoint_rows()):
+            if index not in live:
+                continue
+            try:
+                if path.stat().st_size > MAX_CHECKPOINT_BYTES:
+                    raise ValueError('oversized checkpoint')
+                payload = json.loads(path.read_text(encoding='utf-8'))
+                if not isinstance(payload, dict):
+                    raise ValueError('checkpoint must be an object')
+                digest = payload.pop('digest', None)
+                if hashlib.sha256(canonical(payload).encode()).hexdigest() != digest:
+                    raise ValueError('checkpoint digest mismatch')
+                if (payload.get('schema') != CHECKPOINT_SCHEMA or payload.get('swarm_id') != self.swarm_id
+                        or payload.get('ttl_ms') != self.ttl_ms or payload.get('max_skew_ms') != self.max_skew_ms
+                        or payload.get('segment_index') != index):
+                    raise ValueError('checkpoint identity or configuration mismatch')
+                state = payload['state']
+                if hashlib.sha256(canonical(state).encode()).hexdigest() != payload.get('state_digest'):
+                    raise ValueError('checkpoint state digest mismatch')
+                last = self._last_record(live[index])
+                if last['digest'] != payload.get('chain') or last.get('state_digest') != payload['state_digest']:
+                    raise ValueError('checkpoint is not bound to the closed segment')
+                return index, state, payload['chain']
+            except (OSError, ValueError, KeyError, TypeError, RecursionError) as error:
+                errors.append(f'{path.name}: {type(error).__name__}')
+        self._checkpoint_error = '; '.join(errors) or None
+        return None
+
+    def _restore(self, *, full_replay: bool = False) -> None:
+        assert self.journal is not None
+        rows = self._segment_rows()
+        if full_replay:
+            rows = self._segment_rows(self._archive_dir()) + rows
+            for (a, _), (b, _) in zip(rows, rows[1:], strict=False):
+                if b != a + 1:
+                    raise ValueError('archived and live segments are not contiguous')
+        live = dict(rows)
+        start = None if full_replay else self._load_checkpoint(live)
+        if start is not None:
+            index, state, chain = start
+            # Covered live history keeps its hash-chain check; only re-application is skipped.
+            self._verify_links([row for row in rows if row[0] <= index], chain)
+            self._state, self._chain, self._checkpoint_index = copy.deepcopy(state), chain, index
+            rows = [row for row in rows if row[0] > index]
+        else:
+            self._checkpoint_index = None
+            if rows and rows[0][0] != 1:
+                raise ValueError('earliest archived segments were deleted; full replay unavailable' if full_replay else
+                                 'earliest segments archived and no valid checkpoint covers them; '
+                                 'use full replay with the archive')
+        self._pending_checkpoint = None
+        for index, path in rows:
+            self._replay_file(path)
+            if index == max(live) and index != self._checkpoint_index:
+                self._pending_checkpoint = (index, copy.deepcopy(self._state), self._chain)
+        if self.journal.exists():
+            self._replay_file(self.journal)
+
+    def _write_checkpoint(self, index: int, state: dict[str, Any], chain: str) -> None:
+        """Atomic, fsynced checkpoint; failures are reported, never fatal to writes."""
+        assert self.journal is not None
+        try:
+            payload = {'schema': CHECKPOINT_SCHEMA, 'swarm_id': self.swarm_id, 'ttl_ms': self.ttl_ms,
+                       'max_skew_ms': self.max_skew_ms, 'segment_index': index, 'chain': chain,
+                       'state': state, 'state_digest': hashlib.sha256(canonical(state).encode()).hexdigest()}
+            body = canonical({**payload, 'digest': hashlib.sha256(canonical(payload).encode()).hexdigest()})
+            target = self._checkpoint_path(index)
+            temp = target.with_name(target.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
+            try:
+                with temp.open('x', encoding='utf-8') as handle:
+                    handle.write(body); handle.flush(); os.fsync(handle.fileno())
+                os.replace(temp, target)
+            finally:
+                temp.unlink(missing_ok=True)
+            if os.name != 'nt':
+                fd = os.open(target.parent, os.O_RDONLY)
+                try:
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+            self._checkpoint_index, self._checkpoint_error = index, None
+            for _, old in self._checkpoint_rows()[:-CHECKPOINTS_KEPT]:
+                old.unlink(missing_ok=True)
+            self._enforce_retention()
+        except (OSError, ValueError) as error:
+            self._checkpoint_error = f'checkpoint {index}: {type(error).__name__}'
+
+    def _write_pending_checkpoint(self) -> None:
+        if self._pending_checkpoint is not None:
+            index, state, chain = self._pending_checkpoint
+            self._pending_checkpoint = None
+            self._write_checkpoint(index, state, chain)
+
+    def _enforce_retention(self) -> None:
+        """Archive covered closed segments beyond the live cap; delete only past the archive cap."""
+        if self.journal_retention_bytes is None or self._checkpoint_index is None:
+            return
+        rows = self._segment_rows()
+        live_bytes = sum(path.stat().st_size for _, path in rows)
+        live_bytes += self.journal.stat().st_size if self.journal.exists() else 0
+        archive = self._archive_dir()
+        for index, path in rows:
+            # Keep the checkpoint's own segment live: its tail binds the checkpoint.
+            if live_bytes <= self.journal_retention_bytes or index >= self._checkpoint_index:
+                break
+            archive.mkdir(exist_ok=True)
+            target = archive / path.name
+            if target.exists():
+                raise OSError('archived segment already exists')
+            size = path.stat().st_size
+            os.replace(path, target)
+            live_bytes -= size
+        if self.archive_max_bytes is not None and archive.is_dir():
+            archived = self._segment_rows(archive)
+            total = sum(path.stat().st_size for _, path in archived)
+            for _, path in archived:
+                if total <= self.archive_max_bytes:
+                    break
+                total -= path.stat().st_size
+                path.unlink()
+
+    def recover(self, *, full_replay: bool = False) -> dict[str, Any]:
         """Explicit replay of complete records; never truncate a corrupt tail.
 
         An append that failed during fsync can exist on disk. Recovery adopts
         validated durable records; callers must inspect pending command IDs.
+        ``full_replay`` ignores checkpoints and re-verifies the whole chain from
+        the first archived or live segment.
         """
+        if type(full_replay) is not bool:
+            raise ValueError('full_replay must be boolean')
         with self._lock, self._journal_guard():
             original, chain = self._state, self._chain
             self._state = {'nodes': {}, 'frames': {}, 'commands': {}, 'command_counter': 0,
@@ -120,7 +344,7 @@ class SwarmCoordinator:
                 if self.journal is None:
                     self._state, self._chain = original, chain
                 else:
-                    self._restore()
+                    self._restore(full_replay=full_replay)
                     with self.journal.open('ab') as handle:
                         handle.flush(); os.fsync(handle.fileno())
                     self._journal_size = self.journal.stat().st_size
@@ -130,8 +354,11 @@ class SwarmCoordinator:
                 self._state, self._chain = original, chain
                 self._write_failed = True
                 raise
+            if self.journal is not None and not full_replay:
+                self._write_pending_checkpoint()
             return {'recovered': True, 'journal_digest': self._chain,
-                    'state_changed': chain != self._chain, 'records_not_truncated': True}
+                    'state_changed': chain != self._chain, 'records_not_truncated': True,
+                    'full_replay': full_replay, 'checkpoint_index': self._checkpoint_index}
 
     def _transaction(self, action: str, args: dict[str, Any], now_ms: int) -> Any:
         now_ms = integer(now_ms)
@@ -153,10 +380,15 @@ class SwarmCoordinator:
                 if self.journal is not None:
                     self.journal.parent.mkdir(parents=True, exist_ok=True)
                     if self._journal_size >= self.journal_segment_bytes:
-                        target = self.journal.with_name(self.journal.name + f'.part.{len(self._segments())+1:08d}')
+                        rows = self._segment_rows()
+                        index = (rows[-1][0] if rows else 0) + 1
+                        target = self.journal.with_name(self.journal.name + f'.part.{index:08d}')
                         if target.exists():
                             raise OSError('journal segment already exists')
                         os.rename(self.journal, target)
+                        self._journal_size = 0
+                        # State/chain at the end of the closed segment = before this record.
+                        self._write_checkpoint(index, original, self._chain)
                     with self.journal.open('a', encoding='utf-8') as handle:
                         handle.write(canonical({**record, 'digest': digest}) + '\n'); handle.flush(); os.fsync(handle.fileno())
                     self._journal_size = self.journal.stat().st_size
@@ -376,7 +608,9 @@ class SwarmCoordinator:
                     'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,
                     'state': state, 'journal_digest': self._chain,
                     'journal_health': 'recovery_required' if self._write_failed else 'ready',
-                    'journal_segment_count': len(self._segments()) if self.journal is not None else 0}
+                    'journal_segment_count': len(self._segments()) if self.journal is not None else 0,
+                    'journal_checkpoint_index': self._checkpoint_index,
+                    'checkpoint_health': 'ok' if self._checkpoint_error is None else self._checkpoint_error}
 
     def frames(self, quantity: str, unit: str, *, now_ms: int) -> dict[str, dict[str, Any]]:
         snapshot = self.snapshot(now_ms=now_ms)['state']

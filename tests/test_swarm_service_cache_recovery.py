@@ -126,16 +126,12 @@ def _wait_until(predicate, what):
         time.sleep(0.001)
 
 
-def _owned_elsewhere(lock):
-    """True while another thread holds ``lock`` (an RLock is reentrant only for its owner)."""
-    if lock.acquire(blocking=False):
-        lock.release()
-        return False
-    return True
+def _pause_inside(monkeypatch, obj, name):
+    """Make ``obj.<name>`` block once (inside the journal lock) until released.
 
-
-def _pause_inside(obj, name):
-    """Make ``obj.<name>`` block once (inside the journal lock) until released."""
+    Returns ``(entered, release, restore)``; ``restore`` removes the patch and
+    the test's monkeypatch also undoes it on failure.
+    """
     entered, release = threading.Event(), threading.Event()
     real = getattr(obj, name)
 
@@ -144,11 +140,31 @@ def _pause_inside(obj, name):
             entered.set()
             assert release.wait(WAIT_S), 'paused call was never released'
         return real(*args, **kwargs)
-    setattr(obj, name, paused)
-    return entered, release
+    monkeypatch.setattr(obj, name, paused, raising=False)
+
+    def restore():
+        if name in vars(obj):
+            delattr(obj, name)
+    return entered, release, restore
 
 
-def test_restore_false_and_normal_instance_race(swarm_dir):
+class _FlockProbe:
+    """Records threads whose non-blocking ``flock`` attempt found the lock held."""
+
+    def __init__(self, monkeypatch):
+        self.blocked: set[int] = set()
+        real = fcntl.flock
+
+        def flock(fd, op):
+            try:
+                return real(fd, op)
+            except OSError:
+                self.blocked.add(threading.get_ident())
+                raise
+        monkeypatch.setattr(fcntl, 'flock', flock)
+
+
+def test_restore_false_and_normal_instance_race(swarm_dir, monkeypatch):
     """A restore=False instance recovering while another instance writes the same journal.
 
     Deterministic replacement of a sleep/scheduling race (it starved the
@@ -193,28 +209,36 @@ def test_restore_false_and_normal_instance_race(swarm_dir):
         assert rec.recover()['journal_digest'] == normal.snapshot(now_ms=2 * 10**6)['journal_digest']
     assert normal.snapshot(now_ms=2 * 10**6)['journal_segment_count'] > 1
 
+    probe = _FlockProbe(monkeypatch)
+
     # 2. Recovery starts while a write holds the journal lock: it waits, then adopts that record.
-    entered, release = _pause_inside(normal, '_apply')
-    writer = in_thread(write)
-    assert entered.wait(WAIT_S)
-    recovering = in_thread(rec.recover)
-    _wait_until(lambda: _owned_elsewhere(rec._lock), 'recover() to wait on the journal lock')
-    assert recovering[0].is_alive()
-    release.set()
+    entered, release, restore = _pause_inside(monkeypatch, normal, '_apply')
+    try:
+        writer = in_thread(write)
+        assert entered.wait(WAIT_S)
+        recovering = in_thread(rec.recover)
+        # Blocked on the cross-process file lock, not merely holding its own RLock.
+        _wait_until(lambda: recovering[0].ident in probe.blocked, 'recover() to find the journal flock held')
+        assert recovering[0].is_alive()
+    finally:
+        release.set()
     assert joined(*writer) == {'accepted': True}
     assert joined(*recovering)['journal_digest'] == normal.snapshot(now_ms=2 * 10**6)['journal_digest']
-    del normal._apply
+    restore()
 
     # 3. A write starts while recovery holds the lock: it waits, then appends on the same chain.
-    entered, release = _pause_inside(rec, '_restore')
-    recovering = in_thread(rec.recover)
-    assert entered.wait(WAIT_S)
-    writer = in_thread(write)
-    _wait_until(lambda: _owned_elsewhere(normal._lock), 'ingest() to wait on the journal lock')
-    release.set()
+    entered, release, restore = _pause_inside(monkeypatch, rec, '_restore')
+    try:
+        recovering = in_thread(rec.recover)
+        assert entered.wait(WAIT_S)
+        writer = in_thread(write)
+        _wait_until(lambda: writer[0].ident in probe.blocked, 'ingest() to find the journal flock held')
+        assert writer[0].is_alive()
+    finally:
+        release.set()
     joined(*recovering)
     assert joined(*writer) == {'accepted': True}
-    del rec._restore
+    restore()
 
     rec.recover()
     final = SwarmCoordinator('lab', journal=path, journal_segment_bytes=SEG)

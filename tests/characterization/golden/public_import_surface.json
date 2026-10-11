@@ -129,6 +129,7 @@
    "CHECKPOINTS_KEPT",
    "EventSourcedMachine",
    "HashChainedJournal",
+   "JournalBusyError",
    "JournalHealth",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
@@ -145,6 +146,7 @@
    "CHECKPOINTS_KEPT",
    "EventSourcedMachine",
    "HashChainedJournal",
+   "JournalBusyError",
    "JournalHealth",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
@@ -343,6 +345,7 @@
  "codontrace.swarm.mqtt": {
   "__all__": [],
   "public": [
+   "JournalBusyError",
    "MqttSwarmBridge",
    "SwarmCoordinator",
    "canonical",
@@ -404,6 +407,7 @@
    "CHECKPOINTS_KEPT",
    "CHECKPOINT_SCHEMA",
    "HashChainedJournal",
+   "JournalBusyError",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
    "Pipeline",

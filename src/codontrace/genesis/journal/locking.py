@@ -7,7 +7,22 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-__all__ = ['fsync_dir', 'journal_file_lock']
+__all__ = ['JournalBusyError', 'fsync_dir', 'journal_file_lock']
+
+
+class JournalBusyError(BlockingIOError):
+    """A journal lock was not obtained within its wait bound.
+
+    ``scope`` is ``'file'`` when the cross-process journal file lock is held by
+    another writer (normally another process), or ``'in_process'`` when the
+    journal's own lock stayed busy (another thread of this process is writing,
+    fsyncing, checkpointing or recovering). Nothing was written and the journal
+    stays writable; the caller may retry later.
+    """
+
+    def __init__(self, message: str, *, scope: str = 'file') -> None:
+        super().__init__(message)
+        self.scope = scope
 
 
 @contextmanager
@@ -15,7 +30,8 @@ def journal_file_lock(lock_path: Path, timeout_s: float, busy_message: str) -> I
     """Exclusive lock on ``lock_path`` with a bounded, backing-off wait.
 
     A writer that cannot get the lock within ``timeout_s`` raises
-    ``BlockingIOError(busy_message)`` instead of forking the hash chain. The lock
+    ``JournalBusyError(busy_message, scope='file')`` (a ``BlockingIOError``)
+    instead of forking the hash chain. The lock
     file itself carries no data (Windows needs one byte to lock).
     """
     with lock_path.open('a+b') as handle:
@@ -36,7 +52,7 @@ def journal_file_lock(lock_path: Path, timeout_s: float, busy_message: str) -> I
                 break
             except OSError as error:
                 if time.monotonic() >= deadline:
-                    raise BlockingIOError(busy_message) from error
+                    raise JournalBusyError(busy_message, scope='file') from error
                 time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
                 delay = min(delay * 2, 0.05)
         try:

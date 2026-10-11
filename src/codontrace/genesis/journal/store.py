@@ -14,8 +14,15 @@ digest}``, where ``digest`` is the SHA-256 of the record without it and
 ``<journal>.part.NNNNNNNN``; checkpoints ``<journal>.checkpoint.NNNNNNNN.json``
 bind the state at the end of a closed segment to its last record; covered
 segments may move to ``<journal>.archive/``. A lock file ``<journal>.lock``
-serializes writers across processes. See ``SwarmCoordinator`` for the
-restore, retention and integrity-scope rules, which are unchanged.
+serializes writers across processes.
+
+Lock waits: writes take the journal's in-process ``RLock`` and then the file
+lock. ``lock_timeout_s`` (constructor) bounds the file-lock wait by default.
+``_transaction(lock_timeout_s=..., in_process_timeout_s=...)`` can bound the two
+waits separately for one call: ``lock_timeout_s`` bounds only the file lock and
+``in_process_timeout_s`` only the in-process lock (``None`` waits as long as the
+other thread needs). An expired bound raises ``JournalBusyError`` with
+``scope`` ``'file'`` or ``'in_process'`` and writes nothing.
 """
 from __future__ import annotations
 
@@ -36,10 +43,10 @@ from codontrace.genesis.journal.checkpoint import (
     state_digest,
     verify_checkpoint_text,
 )
-from codontrace.genesis.journal.locking import fsync_dir, journal_file_lock
+from codontrace.genesis.journal.locking import JournalBusyError, fsync_dir, journal_file_lock
 from codontrace.genesis.journal.retention import archived_to_delete, segments_to_archive
 
-__all__ = ['EventSourcedMachine', 'HashChainedJournal', 'JournalHealth', 'NotRecorded']
+__all__ = ['EventSourcedMachine', 'HashChainedJournal', 'JournalBusyError', 'JournalHealth', 'NotRecorded']
 
 
 class NotRecorded(dict):  # type: ignore[type-arg]
@@ -136,15 +143,42 @@ class HashChainedJournal:
             'retention_health': 'ok' if self._retention_error is None else self._retention_error})
 
     @contextmanager
-    def _journal_guard(self) -> Iterator[None]:
+    def _journal_guard(self, timeout_s: float | None = None) -> Iterator[None]:
         if self.journal is None:
             yield
             return
         self.journal.parent.mkdir(parents=True, exist_ok=True)
         # Cross-process serialization with a bounded wait; a writer that cannot
         # get the lock in time fails instead of forking the chain.
-        with journal_file_lock(self.journal.with_suffix(self.journal.suffix + '.lock'), self.lock_timeout_s,
+        with journal_file_lock(self.journal.with_suffix(self.journal.suffix + '.lock'),
+                               self.lock_timeout_s if timeout_s is None else timeout_s,
                                f'{self._journal_label} journal is locked by another writer'):
+            yield
+
+    @contextmanager
+    def _in_process_lock(self, timeout_s: float | None) -> Iterator[None]:
+        """The journal's own lock, with an optional wait bound (``JournalBusyError``, scope ``'in_process'``)."""
+        if timeout_s is None:
+            acquired = self._lock.acquire()
+        else:
+            acquired = self._lock.acquire(timeout=finite_number(timeout_s, low=0, high=60))
+        if not acquired:
+            raise JournalBusyError(f'{self._journal_label} coordinator is busy in this process', scope='in_process')
+        try:
+            yield
+        finally:
+            self._lock.release()
+
+    @contextmanager
+    def _write_locks(self, lock_timeout_s: float | None,
+                     in_process_timeout_s: float | None = None) -> Iterator[None]:
+        """In-process serialization, then the cross-process file lock, each with its own bound."""
+        if lock_timeout_s is None and in_process_timeout_s is None:
+            with self._lock, self._journal_guard():
+                yield
+            return
+        file_timeout = None if lock_timeout_s is None else finite_number(lock_timeout_s, low=0, high=60)
+        with self._in_process_lock(in_process_timeout_s), self._journal_guard(file_timeout):
             yield
 
     @staticmethod
@@ -467,9 +501,10 @@ class HashChainedJournal:
                     'state_changed': chain != self._chain, 'records_not_truncated': True,
                     'full_replay': full_replay, 'checkpoint_index': self._checkpoint_index}
 
-    def _transaction(self, action: str, args: dict[str, Any], now_ms: int) -> Any:
+    def _transaction(self, action: str, args: dict[str, Any], now_ms: int, *,
+                     lock_timeout_s: float | None = None, in_process_timeout_s: float | None = None) -> Any:
         now_ms = bounded_int(now_ms)
-        with self._lock, self._journal_guard():
+        with self._write_locks(lock_timeout_s, in_process_timeout_s):
             if self.journal is not None:
                 size = self.journal.stat().st_size if self.journal.exists() else 0
                 if size != self._journal_size or self._disk_token() != self._journal_token:

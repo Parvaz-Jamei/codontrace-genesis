@@ -252,6 +252,10 @@
    "run_seed"
   ]
  },
+ "codontrace.swarm.adapters": {
+  "__all__": [],
+  "public": []
+ },
  "codontrace.swarm.coevolution": {
   "__all__": [],
   "public": [

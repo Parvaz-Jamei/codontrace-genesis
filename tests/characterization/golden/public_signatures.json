@@ -55,6 +55,7 @@
   "main": "() -> 'None'",
   "run_seed": "(seed: 'int', *, samples: 'int' = 64) -> 'list[dict[str, Any]]'"
  },
+ "codontrace.swarm.adapters": {},
  "codontrace.swarm.coevolution": {
   "coevolve": "(references: 'list[float]', *, seed: 'int', rounds: 'int' = 8, disturbance_budget: 'float' = 1.0) -> 'dict[str, Any]'",
   "integer": "(value: 'Any', *, high: 'int' = 9007199254740991) -> 'int'",

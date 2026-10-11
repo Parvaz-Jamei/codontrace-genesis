@@ -23,6 +23,7 @@ from codontrace.engine_digest import (
 )
 from codontrace.engine_results import (
     ConsistencyValidationResult,
+    ExogenousInputRecord,
     GenesisRun,
     GenesisRunSummary,
     GenesisSnapshot,
@@ -116,6 +117,9 @@ class GenesisRunResult:
     )
     strong_claim_ladder_records: tuple[StrongClaimLadderResult, ...] = field(default_factory=tuple)
     external_review_record: ExternalReviewRecord | None = None
+    # Present only for runs with a GenerationInputProvider that supplied events;
+    # omitted from to_dict() when empty so existing digests are unchanged.
+    exogenous_inputs: tuple[ExogenousInputRecord, ...] = ()
 
     def summary(self) -> GenesisRunSummary:
         return GenesisRunSummary(
@@ -125,7 +129,7 @@ class GenesisRunResult:
         )
 
     def _core_payload(self) -> dict[str, JsonValue]:
-        return {
+        payload: dict[str, JsonValue] = {
             "run": self.run.to_dict(),
             "ticks": [item.to_dict() for item in self.ticks],
             "manifest": self.manifest.to_dict(),
@@ -138,6 +142,9 @@ class GenesisRunResult:
             if self.external_review_record is None
             else self.external_review_record.to_dict(),
         }
+        if self.exogenous_inputs:
+            payload["exogenous_inputs"] = [item.to_dict() for item in self.exogenous_inputs]
+        return payload
 
     def to_dict(self) -> dict[str, JsonValue]:
         payload = self._core_payload()

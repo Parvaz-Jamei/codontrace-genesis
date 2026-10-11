@@ -1,0 +1,498 @@
+{
+ "codontrace.claimgate.adapters.esp32_bridge": {
+  "__all__": [
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "STRDisparityResult",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "compute_str_disparity",
+   "execute_sense",
+   "parse_sensor_payload",
+   "str_stop_criterion_met"
+  ],
+  "public": [
+   "ConfigurationError",
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "STRDisparityResult",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "compute_str_disparity",
+   "execute_sense",
+   "parse_sensor_payload",
+   "str_stop_criterion_met"
+  ]
+ },
+ "codontrace.engine": {
+  "__all__": [
+   "ConsistencyValidationResult",
+   "ExogenousInputRecord",
+   "GenerationBoundaryObserver",
+   "GenerationInputProvider",
+   "GenesisEngine",
+   "GenesisEngineConfig",
+   "GenesisExperimentSpec",
+   "GenesisRun",
+   "GenesisRunResult",
+   "GenesisRunSummary",
+   "GenesisSnapshot",
+   "GenesisTickResult",
+   "_action_registry_hash",
+   "_adf_vocabulary_hash",
+   "_codon_table_hash",
+   "_default_qd_archive",
+   "_digest",
+   "_digest_sequence",
+   "_effective_evolution_config",
+   "_execution_source_digest",
+   "_genome_spec_hash",
+   "_json_float_value",
+   "_json_str_tuple",
+   "_jsonish_for_digest",
+   "_object_hash",
+   "_phase2_hashes",
+   "_ribosome_hash",
+   "_stable_default_action_registry_hash",
+   "_status_registry_digest",
+   "apply_human_review",
+   "attach_review_result"
+  ],
+  "public": [
+   "ConsistencyValidationResult",
+   "ExogenousInputRecord",
+   "GenerationBoundaryObserver",
+   "GenerationInputProvider",
+   "GenesisEngine",
+   "GenesisEngineConfig",
+   "GenesisExperimentSpec",
+   "GenesisRun",
+   "GenesisRunResult",
+   "GenesisRunSummary",
+   "GenesisSnapshot",
+   "GenesisTickResult",
+   "apply_human_review",
+   "attach_review_result"
+  ]
+ },
+ "codontrace.genesis.artifacts": {
+  "__all__": [],
+  "public": [
+   "AgentSnapshot",
+   "ArtifactDigest",
+   "ArtifactExporterProtocol",
+   "ClaimDecision",
+   "ConfigHash",
+   "ConfigurationError",
+   "DiscoveryRecord",
+   "ExperimentSummary",
+   "JsonArtifactExporter",
+   "PHASE2_MANIFEST_FIELDS",
+   "PopulationSnapshot",
+   "RawEventSchema",
+   "ReplayBundle",
+   "ReplayVerificationResult",
+   "ReviewStatus",
+   "RunArtifactSchema",
+   "RunId",
+   "RunManifest",
+   "ScientificManifestValidationResult",
+   "UTC",
+   "compute_source_digest",
+   "manifest_from_parts",
+   "phase2_manifest_field_statuses",
+   "phase2_runtime_hashes",
+   "utc_timestamp",
+   "validate_phase1_manifest_fields",
+   "validate_phase2_manifest_fields",
+   "validate_scientific_manifest",
+   "verify_artifact_bytes",
+   "verify_replay_bundle"
+  ]
+ },
+ "codontrace.genesis.journal": {
+  "__all__": [
+   "CHECKPOINTS_KEPT",
+   "EventSourcedMachine",
+   "HashChainedJournal",
+   "JournalHealth",
+   "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
+   "archived_to_delete",
+   "checkpoint",
+   "fsync_dir",
+   "journal_file_lock",
+   "locking",
+   "retention",
+   "segments_to_archive",
+   "store"
+  ],
+  "public": [
+   "CHECKPOINTS_KEPT",
+   "EventSourcedMachine",
+   "HashChainedJournal",
+   "JournalHealth",
+   "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
+   "archived_to_delete",
+   "fsync_dir",
+   "journal_file_lock",
+   "segments_to_archive"
+  ]
+ },
+ "codontrace.genesis.qd_search": {
+  "__all__": [],
+  "public": [
+   "ArchiveSamplingEmitter",
+   "ArchiveSummary",
+   "ConfigurationError",
+   "DiscoveryWireConfig",
+   "DiscoveryWireEvent",
+   "MutationEmitter",
+   "NoveltyBiasedEmitter",
+   "QDAskResult",
+   "QDCandidate",
+   "QDCandidateSearchRunner",
+   "QDDescriptorConfig",
+   "QDDescriptorFamily",
+   "QDEmitter",
+   "QDEvaluateResult",
+   "QDParentSelection",
+   "QDSchedulerState",
+   "QDSearchArchive",
+   "QDSearchCandidate",
+   "QDSearchConfig",
+   "QDSearchRunResult",
+   "QDSearchRunner",
+   "QDSearchStepResult",
+   "QDTellResult",
+   "RNGManager",
+   "RandomEmitter",
+   "ask_qd_candidates",
+   "finite_float",
+   "finite_json_dumps",
+   "qd_candidate_from_dict",
+   "tell_qd_results",
+   "validate_qd_candidate_digest"
+  ]
+ },
+ "codontrace.genesis.selection": {
+  "__all__": [],
+  "public": [
+   "AgeLayeredSelection",
+   "ConfigurationError",
+   "ElitismSelection",
+   "EvolutionConfig",
+   "EvolutionSelectionResult",
+   "FitnessProportionalSelection",
+   "NoveltyScore",
+   "NoveltyWeightedSelection",
+   "QDFallbackReason",
+   "QDParentFeedback",
+   "QDSelectionAuditRecord",
+   "QDSelectionFeedback",
+   "SelectionPolicy",
+   "TournamentSelection",
+   "finite_float",
+   "finite_json_dumps",
+   "policy_from_name",
+   "select_population"
+  ]
+ },
+ "codontrace.life_loop.conformal_bands": {
+  "__all__": [],
+  "public": [
+   "BANNED_DOMAIN_TOKENS",
+   "ConfigurationError",
+   "ConformalBandResult",
+   "SCHEMA_VERSION",
+   "canonical_digest",
+   "conformal_risk_band",
+   "require_finite_float"
+  ]
+ },
+ "codontrace.life_loop.farm_orchestrator": {
+  "__all__": [],
+  "public": [
+   "ABLATION_MODES",
+   "AblationApplyRecord",
+   "AblationTemplate",
+   "BANNED_DOMAIN_TOKENS",
+   "ConfigurationError",
+   "FarmApplyRecord",
+   "FarmPlan",
+   "LOCK_MODES",
+   "PopulationRegistry",
+   "SCHEMA_VERSION",
+   "ScheduleLock",
+   "ScheduleLockApplyRecord",
+   "ScheduleLockState",
+   "apply_ablation",
+   "apply_farm",
+   "apply_schedule_lock",
+   "canonical_digest"
+  ]
+ },
+ "codontrace.rng": {
+  "__all__": [],
+  "public": [
+   "NumpyGeneratorBackend",
+   "RNGManager",
+   "RNGManagerBackend",
+   "RNGProtocol",
+   "StdlibSeedRNG"
+  ]
+ },
+ "codontrace.swarm": {
+  "__all__": [
+   "Pipeline",
+   "PolicyArchive",
+   "SwarmCoordinator",
+   "SwarmEngineLink",
+   "transfer_decision"
+  ],
+  "public": [
+   "Pipeline",
+   "PolicyArchive",
+   "SwarmCoordinator",
+   "SwarmEngineLink",
+   "transfer_decision"
+  ]
+ },
+ "codontrace.swarm.__main__": {
+  "__all__": [],
+  "public": [
+   "SwarmCoordinator",
+   "canonical",
+   "main",
+   "run_seed"
+  ]
+ },
+ "codontrace.swarm.adapters": {
+  "__all__": [],
+  "public": []
+ },
+ "codontrace.swarm.coevolution": {
+  "__all__": [],
+  "public": [
+   "Pipeline",
+   "RNGManager",
+   "coevolve",
+   "integer",
+   "mse",
+   "number"
+  ]
+ },
+ "codontrace.swarm.decision_support": {
+  "__all__": [],
+  "public": [
+   "Pipeline",
+   "canonical",
+   "capsule_shadow",
+   "identifier",
+   "integer",
+   "number",
+   "object_keys",
+   "residual_interval",
+   "schedule_measurements"
+  ]
+ },
+ "codontrace.swarm.engine": {
+  "__all__": [],
+  "public": [
+   "SwarmCoordinator",
+   "SwarmEngineLink"
+  ]
+ },
+ "codontrace.swarm.experiments": {
+  "__all__": [],
+  "public": [
+   "Pipeline",
+   "PolicyArchive",
+   "RNGManager",
+   "SensorTwin",
+   "SwarmCoordinator",
+   "VERSION",
+   "canonical",
+   "coevolve",
+   "hello",
+   "integer",
+   "mse",
+   "packet",
+   "perturb",
+   "processing_contrast",
+   "reading",
+   "run_seed",
+   "transfer_decision"
+  ]
+ },
+ "codontrace.swarm.mqtt": {
+  "__all__": [],
+  "public": [
+   "MqttSwarmBridge",
+   "SwarmCoordinator",
+   "canonical",
+   "decode",
+   "identifier"
+  ]
+ },
+ "codontrace.swarm.policies": {
+  "__all__": [],
+  "public": [
+   "Pipeline",
+   "PolicyArchive",
+   "RNGManager",
+   "canonical",
+   "diagnose",
+   "number",
+   "transfer_decision"
+  ]
+ },
+ "codontrace.swarm.protocol": {
+  "__all__": [],
+  "public": [
+   "MAX_BYTES",
+   "OPERATIONS",
+   "VERSION",
+   "VERSION2",
+   "bounded_int",
+   "bounded_text",
+   "canonical",
+   "decode",
+   "exact_keys",
+   "finite_number",
+   "identifier",
+   "integer",
+   "number",
+   "object_keys",
+   "text",
+   "wire_canonical"
+  ]
+ },
+ "codontrace.swarm.research": {
+  "__all__": [],
+  "public": [
+   "RNGManager",
+   "SensorTwin",
+   "canonical",
+   "information_level",
+   "integer",
+   "mse",
+   "number",
+   "object_keys",
+   "perturb",
+   "processing_contrast"
+  ]
+ },
+ "codontrace.swarm.runtime": {
+  "__all__": [],
+  "public": [
+   "CHECKPOINTS_KEPT",
+   "CHECKPOINT_SCHEMA",
+   "HashChainedJournal",
+   "MAX_CHECKPOINT_BYTES",
+   "NotRecorded",
+   "Pipeline",
+   "SwarmCoordinator",
+   "VERSION2",
+   "canonical",
+   "decode",
+   "descriptor",
+   "diagnose",
+   "identifier",
+   "integer",
+   "normalize",
+   "number",
+   "object_keys",
+   "scalar_frame",
+   "text"
+  ]
+ },
+ "codontrace.swarm.sensors": {
+  "__all__": [],
+  "public": [
+   "MODELS",
+   "TYPES",
+   "canonical",
+   "descriptor",
+   "fdc_sample",
+   "identifier",
+   "integer",
+   "normalize",
+   "number",
+   "object_keys",
+   "scalar_frame",
+   "text",
+   "typed_value"
+  ]
+ },
+ "codontrace.swarm.service": {
+  "__all__": [],
+  "public": [
+   "MAX_CACHED_SWARMS",
+   "Pipeline",
+   "PolicyArchive",
+   "READ_ONLY_ACTIONS",
+   "STATELESS_ACTIONS",
+   "SwarmCapacityError",
+   "SwarmCoordinator",
+   "SwarmRecoveryRequired",
+   "WRITE_ACTIONS",
+   "coordinator",
+   "identifier",
+   "invoke",
+   "object_keys",
+   "release",
+   "transfer_decision"
+  ]
+ },
+ "codontrace.visualization": {
+  "__all__": [
+   "SimulationRecorder"
+  ],
+  "public": [
+   "SimulationRecorder"
+  ]
+ },
+ "codontrace.visualization.__main__": {
+  "__all__": [],
+  "public": [
+   "export",
+   "frame_from_population",
+   "main",
+   "publish_frame"
+  ]
+ },
+ "codontrace.visualization.frames": {
+  "__all__": [],
+  "public": [
+   "MAX_AGENTS",
+   "frame_from_population",
+   "integer",
+   "number",
+   "text"
+  ]
+ },
+ "codontrace.visualization.recorder": {
+  "__all__": [],
+  "public": [
+   "SimulationRecorder",
+   "frame_from_population",
+   "publish_frame"
+  ]
+ }
+}

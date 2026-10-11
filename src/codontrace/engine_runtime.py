@@ -49,6 +49,7 @@ from codontrace.engine_digest import (
     _ribosome_hash,
 )
 from codontrace.engine_results import (
+    ExogenousInputRecord,
     GenesisRun,
     GenesisSnapshot,
     GenesisTickResult,
@@ -56,6 +57,7 @@ from codontrace.engine_results import (
 from codontrace.engine_run_result import GenesisRunResult
 from codontrace.engine_spec import (
     GenerationBoundaryObserver,
+    GenerationInputProvider,
     GenesisExperimentSpec,
 )
 from codontrace.errors import ConfigurationError
@@ -127,7 +129,38 @@ from codontrace.genesis.substrate import (
 )
 from codontrace.genesis.translation_profile import build_semantic_proxy_report
 from codontrace.rng import RNGManager
+from codontrace.trace import (
+    WORLD_EVENT_CUSTOM_CELL_CLEARED,
+    WORLD_EVENT_CUSTOM_CELL_SET,
+    WORLD_EVENT_EXTERNAL_REPLENISHMENT,
+    WORLD_EVENT_OBJECT_ADDED,
+    WORLD_EVENT_OBJECT_REMOVED,
+    WORLD_EVENT_RESOURCE_CHANGED,
+    WORLD_EVENT_RESOURCE_PLACED,
+    WORLD_EVENT_RESOURCE_REMOVED,
+    WORLD_EVENT_WALL_ADDED,
+    WORLD_EVENT_WALL_REMOVED,
+    WorldEvent,
+)
 from codontrace.world import World2D
+
+# Event types ``World2D.apply_world_event`` actually applies. Other types are
+# accepted by the world as no-ops, so an exogenous input of that type would be
+# recorded without effect; the input seam refuses them instead.
+EXOGENOUS_WORLD_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        WORLD_EVENT_RESOURCE_PLACED,
+        WORLD_EVENT_RESOURCE_CHANGED,
+        WORLD_EVENT_RESOURCE_REMOVED,
+        WORLD_EVENT_EXTERNAL_REPLENISHMENT,
+        WORLD_EVENT_WALL_ADDED,
+        WORLD_EVENT_WALL_REMOVED,
+        WORLD_EVENT_CUSTOM_CELL_SET,
+        WORLD_EVENT_CUSTOM_CELL_CLEARED,
+        WORLD_EVENT_OBJECT_ADDED,
+        WORLD_EVENT_OBJECT_REMOVED,
+    }
+)
 
 
 def _effective_evolution_config(spec: GenesisExperimentSpec) -> EvolutionConfig | None:
@@ -763,6 +796,7 @@ class GenesisEngine:
         qd_archive: QDArchive | None = None,
         generation_boundary_observers: Sequence[GenerationBoundaryObserver] | None = None,
         qd_descriptor_registry: QDDescriptorRegistry | None = None,
+        generation_input_provider: GenerationInputProvider | None = None,
     ) -> None:
         self.spec = spec
         self.runner = runner
@@ -775,6 +809,8 @@ class GenesisEngine:
         self.generation_boundary_observers: list[GenerationBoundaryObserver] = list(
             generation_boundary_observers or ()
         )
+        self.generation_input_provider = generation_input_provider
+        self._exogenous_inputs: list[ExogenousInputRecord] = []
         self._tick_results: list[GenesisTickResult] = []
         self._snapshots: list[PopulationSnapshot] = [
             PopulationSnapshot.from_population(self.runner.population, self.runner.nexus_layer)
@@ -789,6 +825,7 @@ class GenesisEngine:
         *,
         generation_boundary_observers: Sequence[GenerationBoundaryObserver] | None = None,
         qd_descriptor_registry: QDDescriptorRegistry | None = None,
+        generation_input_provider: GenerationInputProvider | None = None,
     ) -> GenesisEngine:
         world = (
             element_grid_to_world2d(spec.element_grid)
@@ -931,6 +968,7 @@ class GenesisEngine:
             qd_archive=qd_archive,
             generation_boundary_observers=generation_boundary_observers,
             qd_descriptor_registry=registry,
+            generation_input_provider=generation_input_provider,
         )
         engine.config_reconciliation = {
             # Report the resolved top-level request, before population overrides.
@@ -960,6 +998,8 @@ class GenesisEngine:
             raise ValueError(msg)
         base = int(getattr(self, "_tick_offset", 0)) + len(self._tick_results)
         for index in range(count):
+            if self.generation_input_provider is not None:
+                self._apply_generation_inputs(self.generation_input_provider, tick_index=base + index)
             generation = self.runner.step_generation(seed=self.spec.seed + base + index)
             self._apply_qd_parent_feedback(generation)
             qd_update = self._update_qd(generation)
@@ -979,6 +1019,43 @@ class GenesisEngine:
         self._last_result = self._build_result()
         return self._last_result
 
+
+    def _apply_generation_inputs(self, provider: GenerationInputProvider, *, tick_index: int) -> None:
+        """Apply provider events before a step: all of them, or none (world unchanged on error)."""
+
+        world = self.runner.world
+        generation_index = int(self.runner.population.generation)
+        events = tuple(provider(generation_index=generation_index, world_view=world.clone()))
+        if not events:
+            return
+        staged = world.clone()
+        for event in events:
+            if not isinstance(event, WorldEvent):
+                msg = f"generation input provider returned {type(event).__name__}, expected WorldEvent."
+                raise ConfigurationError(msg)
+            if event.event_type not in EXOGENOUS_WORLD_EVENT_TYPES or event.position is None:
+                msg = (
+                    f"exogenous input {event.event_type!r} does not change the world; "
+                    f"use one of {sorted(EXOGENOUS_WORLD_EVENT_TYPES)} with a position."
+                )
+                raise ConfigurationError(msg)
+            staged.apply_world_event(event)
+        before = world.digest()
+        for event in events:
+            world.apply_world_event(event)
+        after = world.digest()
+        if after != staged.digest():
+            msg = "exogenous inputs applied differently to the live world than to its clone."
+            raise ConfigurationError(msg)
+        self._exogenous_inputs.append(
+            ExogenousInputRecord(
+                tick_index=tick_index,
+                generation_index=generation_index,
+                events=events,
+                world_digest_before=before,
+                world_digest_after=after,
+            )
+        )
 
     def capture_fork(self, *, parent_snapshot_id: str | None = None) -> dict[str, Any]:
         """Freeze a recoverable checkpoint. The payload does not alias the parent.
@@ -1166,6 +1243,7 @@ class GenesisEngine:
         fork: Mapping[str, Any],
         *,
         generation_boundary_observers: Sequence[Any] | None = None,
+        generation_input_provider: GenerationInputProvider | None = None,
         allow_spec_change: bool = False,
         spec_change_reason: str | None = None,
         require_exact: bool = False,
@@ -1206,7 +1284,11 @@ class GenesisEngine:
             if not spec_change_reason:
                 msg = "an intentional spec change requires spec_change_reason."
                 raise ConfigurationError(msg)
-        engine = cls.from_spec(spec, generation_boundary_observers=generation_boundary_observers)
+        engine = cls.from_spec(
+            spec,
+            generation_boundary_observers=generation_boundary_observers,
+            generation_input_provider=generation_input_provider,
+        )
         engine.spec = _isolated_copy(spec)
         isolation: dict[str, str] = {}
         taken: dict[str, Any] = {}
@@ -1261,6 +1343,36 @@ class GenesisEngine:
             )
             raise ConfigurationError(msg)
         return engine
+
+    @property
+    def tick_results(self) -> tuple[GenesisTickResult, ...]:
+        """Committed tick results of this engine instance, oldest first (read-only copy).
+
+        After ``from_fork`` this holds only ticks run since the restore.
+        """
+
+        return tuple(self._tick_results)
+
+    @property
+    def exogenous_inputs(self) -> tuple[ExogenousInputRecord, ...]:
+        """Inputs applied by ``generation_input_provider`` in this instance, oldest first."""
+
+        return tuple(self._exogenous_inputs)
+
+    @property
+    def latest_snapshot(self) -> PopulationSnapshot | None:
+        """Population snapshot recorded at the last committed boundary, if any.
+
+        A fresh engine holds its initial snapshot; an engine restored with
+        ``from_fork`` holds none until it commits a tick.
+        """
+
+        return self._snapshots[-1] if self._snapshots else None
+
+    def world_digest(self) -> str:
+        """Stable digest of the current world state (same as ``snapshot().world_digest``)."""
+
+        return self.runner.world.digest()
 
     def snapshot(self) -> GenesisSnapshot:
         return GenesisSnapshot(
@@ -1627,6 +1739,7 @@ class GenesisEngine:
             replay_bundle=replay_bundle,
             action_wiring_matrix=action_wiring_matrix,
             strong_claim_ladder_records=(),
+            exogenous_inputs=tuple(self._exogenous_inputs),
         )
         return replace(
             provisional_result,

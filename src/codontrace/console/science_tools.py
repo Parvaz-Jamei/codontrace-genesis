@@ -561,7 +561,8 @@ def invoke_tool(
                 report=json.loads(content)
             except RecursionError as exc:
                 raise ValueError("decision report nesting too deep") from exc
-            from codontrace.swarm.protocol import canonical, integer
+            from codontrace.contracts.wire_validation import bounded_int as integer
+            from codontrace.contracts.wire_validation import wire_canonical as canonical
             canonical(report)
             if not isinstance(report,dict) or report.get("schema")!="genesis_swarm_decision_report_v1" or type(report.get("synthetic")) is not bool:
                 raise ValueError("invalid decision report schema")

@@ -115,30 +115,139 @@ def test_restore_false_instance_cannot_write_before_recovery(swarm_dir):
     assert s.set_status('paused', now_ms=5000) == {'status': 'paused'}
 
 
-def test_restore_false_and_normal_instance_race(swarm_dir):
+WAIT_S = 30  # upper bound for a hang only; no step depends on how fast a thread runs
+
+
+def _wait_until(predicate, what):
+    deadline = time.monotonic() + WAIT_S
+    while not predicate():
+        if time.monotonic() > deadline:
+            raise AssertionError(f'timed out waiting for {what}')
+        time.sleep(0.001)
+
+
+def _pause_inside(monkeypatch, obj, name):
+    """Make ``obj.<name>`` block once (inside the journal lock) until released.
+
+    Returns ``(entered, release, restore)``; ``restore`` removes the patch and
+    the test's monkeypatch also undoes it on failure.
+    """
+    entered, release = threading.Event(), threading.Event()
+    real = getattr(obj, name)
+
+    def paused(*args, **kwargs):
+        if not entered.is_set():
+            entered.set()
+            assert release.wait(WAIT_S), 'paused call was never released'
+        return real(*args, **kwargs)
+    monkeypatch.setattr(obj, name, paused, raising=False)
+
+    def restore():
+        if name in vars(obj):
+            delattr(obj, name)
+    return entered, release, restore
+
+
+class _FlockProbe:
+    """Records threads whose non-blocking ``flock`` attempt found the lock held."""
+
+    def __init__(self, monkeypatch):
+        self.blocked: set[int] = set()
+        real = fcntl.flock
+
+        def flock(fd, op):
+            try:
+                return real(fd, op)
+            except OSError:
+                self.blocked.add(threading.get_ident())
+                raise
+        monkeypatch.setattr(fcntl, 'flock', flock)
+
+
+def test_restore_false_and_normal_instance_race(swarm_dir, monkeypatch):
+    """A restore=False instance recovering while another instance writes the same journal.
+
+    Deterministic replacement of a sleep/scheduling race (it starved the
+    recovering instance's bounded lock wait under load, ``journal is locked by
+    another writer``). The schedule is explicit: interleaved writes and
+    recoveries across segment rotations, then real lock contention in both
+    directions, forced with events instead of timing.
+    """
     folder = swarm_dir / 'lab'; folder.mkdir()
     path = folder / 'events.jsonl'
     _fill(path, n=10)
-    normal = SwarmCoordinator('lab', journal=path, journal_segment_bytes=SEG)
-    rec = SwarmCoordinator('lab', journal=path, journal_segment_bytes=SEG, restore=False)
-    errors = []
+    opts = {'journal_segment_bytes': SEG, 'lock_timeout_s': WAIT_S}
+    normal = SwarmCoordinator('lab', journal=path, **opts)
+    rec = SwarmCoordinator('lab', journal=path, restore=False, **opts)
+    seq = iter(range(100, 10**6))
 
-    def w():
-        for i in range(200):
+    def write():
+        i = next(seq)
+        return normal.ingest(reading('lab', 'a', i, 10**6 + i, 1.0), now_ms=10**6 + i)
+
+    def in_thread(fn):
+        out = {}
+        def run():
             try:
-                normal.ingest(reading('lab', 'a', 100 + i, 10**6 + i, 1.0), now_ms=10**6 + i)
-            except OSError as e:
-                errors.append(e); break
-    t = threading.Thread(target=w); t.start()
+                out['result'] = fn()
+            except BaseException as error:  # surfaced in the main thread
+                out['error'] = error
+        t = threading.Thread(target=run, daemon=True); t.start()
+        return t, out
+
+    def joined(t, out):
+        t.join(WAIT_S)
+        assert not t.is_alive(), 'worker thread hung'
+        if 'error' in out:
+            raise out['error']
+        return out['result']
+
+    # 1. Interleaved schedule: 20 recoveries between 200 writes (several rotations).
     for _ in range(20):
-        rec.recover()
-    t.join()
+        for _ in range(10):
+            assert write() == {'accepted': True}
+        assert rec.recover()['journal_digest'] == normal.snapshot(now_ms=2 * 10**6)['journal_digest']
+    assert normal.snapshot(now_ms=2 * 10**6)['journal_segment_count'] > 1
+
+    probe = _FlockProbe(monkeypatch)
+
+    # 2. Recovery starts while a write holds the journal lock: it waits, then adopts that record.
+    entered, release, restore = _pause_inside(monkeypatch, normal, '_apply')
+    try:
+        writer = in_thread(write)
+        assert entered.wait(WAIT_S)
+        recovering = in_thread(rec.recover)
+        # Blocked on the cross-process file lock, not merely holding its own RLock.
+        _wait_until(lambda: recovering[0].ident in probe.blocked, 'recover() to find the journal flock held')
+        assert recovering[0].is_alive()
+    finally:
+        release.set()
+    assert joined(*writer) == {'accepted': True}
+    assert joined(*recovering)['journal_digest'] == normal.snapshot(now_ms=2 * 10**6)['journal_digest']
+    restore()
+
+    # 3. A write starts while recovery holds the lock: it waits, then appends on the same chain.
+    entered, release, restore = _pause_inside(monkeypatch, rec, '_restore')
+    try:
+        recovering = in_thread(rec.recover)
+        assert entered.wait(WAIT_S)
+        writer = in_thread(write)
+        _wait_until(lambda: writer[0].ident in probe.blocked, 'ingest() to find the journal flock held')
+        assert writer[0].is_alive()
+    finally:
+        release.set()
+    joined(*recovering)
+    assert joined(*writer) == {'accepted': True}
+    restore()
+
     rec.recover()
     final = SwarmCoordinator('lab', journal=path, journal_segment_bytes=SEG)
     assert final.snapshot(now_ms=2 * 10**6)['journal_digest'] == rec.snapshot(now_ms=2 * 10**6)['journal_digest']
+    assert final.snapshot(now_ms=2 * 10**6)['journal_digest'] == normal.snapshot(now_ms=2 * 10**6)['journal_digest']
     full = SwarmCoordinator('lab', journal=path, journal_segment_bytes=SEG)
     full.recover(full_replay=True)
     assert full.snapshot(now_ms=2 * 10**6)['state'] == final.snapshot(now_ms=2 * 10**6)['state']
+    assert full.snapshot(now_ms=2 * 10**6)['state']['nodes']['a']['seq'] == next(seq) - 1
 
 
 def test_eviction_reload_preserves_pending_commands_and_state(swarm_dir, monkeypatch):

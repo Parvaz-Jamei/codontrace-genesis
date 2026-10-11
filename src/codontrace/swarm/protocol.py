@@ -2,10 +2,17 @@
 from __future__ import annotations
 
 import json
-import math
-import re
 from collections.abc import Mapping
 from typing import Any
+
+from codontrace.contracts.wire_validation import (
+    bounded_int,
+    bounded_text,
+    exact_keys,
+    finite_number,
+    identifier,
+    wire_canonical,
+)
 
 VERSION = 'genesis_swarm_v1'
 VERSION2 = 'genesis_swarm_v2'
@@ -13,43 +20,13 @@ MAX_BYTES = 65536
 OPERATIONS = frozenset({'sample', 'raw', 'features', 'result', 'set_rate', 'pipeline', 'capsule'})
 
 
-def identifier(value: Any) -> str:
-    if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', value):
-        raise ValueError('invalid identifier')
-    return value
-
-
-def number(value: Any, *, low: float = -1e12, high: float = 1e12) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError('finite number required')
-    # Range-check integers before float conversion to avoid OverflowError on hostile JSON.
-    if not low <= value <= high:
-        raise ValueError('number outside supported range')
-    if not math.isfinite(value):
-        raise ValueError('finite number required')
-    return float(value)
-
-
-def integer(value: Any, *, high: int = 2**53 - 1) -> int:
-    if type(value) is not int or not 0 <= value <= high:
-        raise ValueError('bounded nonnegative integer required')
-    return value
-
-
-def text(value: Any, maximum: int = 96) -> str:
-    if not isinstance(value, str) or not value.strip() or len(value) > maximum:
-        raise ValueError('bounded nonempty string required')
-    return value
-
-
-def object_keys(value: Any, required: set[str], optional: set[str] | None = None) -> dict[str, Any]:
-    if not isinstance(value, Mapping) or not required <= value.keys() or value.keys() - required - (optional or set()):
-        raise ValueError('missing or unknown fields')
-    return dict(value)
-
-
-def canonical(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+# Generic validators live in codontrace.contracts.wire_validation; these names
+# are kept as aliases (same objects) for existing callers and journal formats.
+number = finite_number
+integer = bounded_int
+text = bounded_text
+object_keys = exact_keys
+canonical = wire_canonical
 
 
 def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
@@ -141,4 +118,5 @@ def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
             text(p['message'], 256)
     else:
         raise ValueError('unsupported message kind')
-    return json.loads(canonical(m))  # defensive copy, including nested arrays
+    copy: dict[str, Any] = json.loads(canonical(m))  # defensive copy, including nested arrays
+    return copy

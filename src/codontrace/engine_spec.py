@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from codontrace._types import JsonValue
 from codontrace.actions import (
@@ -73,6 +73,12 @@ from codontrace.genesis.translation_profile import (
 )
 from codontrace.specs import GenomeSpec
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from codontrace.trace import WorldEvent
+    from codontrace.world import World2D
+
 
 @dataclass(frozen=True, slots=True)
 class GenesisEngineConfig:
@@ -119,6 +125,21 @@ class GenerationBoundaryObserver(Protocol):
     """
 
     def __call__(self, *, generation_index: int) -> None: ...
+
+
+class GenerationInputProvider(Protocol):
+    """Domain-free pre-generation seam: exogenous world events for the next step.
+
+    Called once per generation, before ``step_generation``, with the index of
+    the generation about to be stepped (``population.generation`` before the
+    step) and ``world_view``, a clone of the current world that the provider
+    may read freely; changes to it are discarded. The returned events are
+    applied to the live world through ``World2D.apply_world_event`` and kept in
+    ``GenesisEngine.exogenous_inputs``. Raising, or returning an event that
+    cannot be applied, fails the generation before the world is changed.
+    """
+
+    def __call__(self, *, generation_index: int, world_view: World2D) -> Sequence[WorldEvent]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -297,5 +318,6 @@ class GenesisExperimentSpec:
 __all__ = [
     "GenesisEngineConfig",
     "GenerationBoundaryObserver",
+    "GenerationInputProvider",
     "GenesisExperimentSpec",
 ]

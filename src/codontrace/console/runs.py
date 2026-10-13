@@ -1799,7 +1799,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
 
     # Budget / max_seconds validation
     raw_budget = params.get("budget") if "budget" in params else params.get("max_seconds", params.get("maxSeconds"))
-    max_seconds = 1800.0
+    max_seconds: float | None = 1800.0
     if raw_budget is not None:
         try:
             max_seconds = float(raw_budget)

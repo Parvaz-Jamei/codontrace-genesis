@@ -100,10 +100,10 @@ class T05RedQueenRunner:
         generations = sorted(self.archive)
         # Rows: host sample generation; columns: parasite sample generation.
         # Value: mean parasite infection probability across all sampled pairs.
-        matrix = []
+        matrix: list[list[float | None]] = []
         valid = True
         for h_gen in generations:
-            row = []
+            row: list[float | None] = []
             for p_gen in generations:
                 hosts, parasites = self.archive[h_gen][0], self.archive[p_gen][1]
                 if not hosts or not parasites:
@@ -117,8 +117,12 @@ class T05RedQueenRunner:
         if valid and len(matrix) >= 2:
             # Current hosts resist past parasites relative to past hosts;
             # current parasites infect past hosts relative to past parasites.
-            host_margin = matrix[-2][-2] - matrix[-1][-2]
-            parasite_margin = matrix[-2][-1] - matrix[-2][-2]
+            m_prev_prev = matrix[-2][-2]
+            m_curr_prev = matrix[-1][-2]
+            m_prev_curr = matrix[-2][-1]
+            if m_prev_prev is not None and m_curr_prev is not None and m_prev_curr is not None:
+                host_margin = m_prev_prev - m_curr_prev
+                parasite_margin = m_prev_curr - m_prev_prev
         return {"matrix": matrix, "row_labels": generations, "column_labels": generations,
                 "host_generations": generations, "parasite_generations": generations,
                 "value": "mean_infection_probability", "archive_stride": self.archive_stride,

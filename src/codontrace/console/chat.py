@@ -396,11 +396,18 @@ def query_llm(
                     context.setdefault("tool_calls", []).append({"name": name, "ok": result.get("ok"), "summary": result.get("summary") or result.get("error")})
                     context.setdefault("artifacts", []).extend(result.get("artifacts") or [])
                     # Small summaries in LLM context; full series stay in structured UI artifacts.
-                    compact = {"ok": result.get("ok"), "summary": result.get("summary") or result.get("error"),
-                               "run_id": result.get("run_id"), "artifact_types": [a.get("kind") for a in result.get("artifacts", [])]}
-                    compact["measurements"] = []
-                    for artifact in (result.get("artifacts") or [])[:8]:
-                        item = {"kind": artifact.get("kind"), "provenance": artifact.get("provenance")}
+                    raw_artifacts = result.get("artifacts")
+                    artifacts_list: list[dict[str, Any]] = [a for a in raw_artifacts if isinstance(a, dict)] if isinstance(raw_artifacts, list) else []
+                    measurements_list: list[dict[str, Any]] = []
+                    compact: dict[str, Any] = {
+                        "ok": result.get("ok"),
+                        "summary": result.get("summary") or result.get("error"),
+                        "run_id": result.get("run_id"),
+                        "artifact_types": [a.get("kind") for a in artifacts_list],
+                        "measurements": measurements_list,
+                    }
+                    for artifact in artifacts_list[:8]:
+                        item: dict[str, Any] = {"kind": artifact.get("kind"), "provenance": artifact.get("provenance")}
                         if artifact.get("kind") == "table":
                             item.update(columns=artifact.get("columns"), rows=(artifact.get("rows") or [])[:20])
                         elif artifact.get("kind") == "chart":
@@ -412,7 +419,7 @@ def query_llm(
                                 item["notice"] = "Matrix shown in UI; no uncomputed hypothesis inference."
                         else:
                             item["description"] = artifact.get("description")
-                        compact["measurements"].append(item)
+                        measurements_list.append(item)
                     payload_dict["messages"].append({"role": "tool", "tool_call_id": str(call.get("id") or f"call_{index}"), "content": json.dumps(compact)})
                 continue
             content = message.get("content")

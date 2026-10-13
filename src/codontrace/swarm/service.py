@@ -217,6 +217,7 @@ def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> 
         swarm = None
     else:
         swarm = _cached(sid, create=True)
+    result: Any = None
     if action == 'journal_recover':
         object_keys(args, {'swarm_id'}, {'full_replay'})
         result = _recover(sid, args.get('full_replay', False))

@@ -516,18 +516,21 @@ def invoke_tool(
             artifacts = [{"kind": "table", "columns": ["node", "online", "channels", "last sequence"],
                           "rows": [[k, n["online"], ", ".join(n["channels"]), n["seq"]] for k, n in state["nodes"].items()],
                           "provenance": provenance}]
-            groups = {}
+            groups: dict[tuple[str, str], dict[str, list[list[Any]]]] = {}
             for frame in state["history"]:
                 key = frame["node_id"] + "/" + frame["channel"] + " (" + frame["unit"] + ")"
                 group = (frame["quantity"], frame["unit"])
                 groups.setdefault(group, {}).setdefault(key, []).append([frame["sample_ms"], frame["value"]])
-            for (quantity, unit), series in groups.items():
+            for (quantity, unit), measurement_series in groups.items():
                 artifacts.append({"kind": "chart", "spec": {"chart_type": "line", "title": "Recorded swarm measurements: " + quantity,
                     "x_label": "sample UTC ms", "y_label": unit,
-                    "series": [{"name": k, "points": v} for k, v in series.items()]}, "provenance": provenance})
+                    "series": [{"name": k, "points": v} for k, v in measurement_series.items()]}, "provenance": provenance})
             return {"ok": True, "tool": name, "run_id": sid, "artifacts": artifacts,
                     "summary": "Recorded measurements; no smoothing, causal verdict or device command."}
-        run_id = args.get("run_id") or selected_run_id
+        raw_run_id = args.get("run_id") or selected_run_id
+        if not raw_run_id or not isinstance(raw_run_id, str):
+            raise ValueError("tool scope requires a valid run_id; select a run explicitly")
+        run_id: str = raw_run_id
         if selected_run_id and run_id != selected_run_id:
             raise ValueError("tool scope is the selected run; select another run explicitly")
         if name == "simulation_inspect":
@@ -734,17 +737,17 @@ def invoke_tool(
                     "identity_residual",
                     "realized_identity_residual",
                 )
-                all_series = []
+                price_series: list[dict[str, Any]] = []
                 axis = "generation"
                 for key in terms:
                     try:
-                        series, _, axis = _numeric_series(rows, key, maximum)
+                        decomp_series, _, axis = _numeric_series(rows, key, maximum)
                     except ValueError:
                         continue
-                    for s in series:
-                        s["name"] = key + " · " + s["name"]
-                    all_series.extend(series)
-                if not all_series:
+                    for item in decomp_series:
+                        item["name"] = key + " · " + str(item["name"])
+                    price_series.extend(decomp_series)
+                if not price_series:
                     raise ValueError("no recorded Price decomposition terms")
                 artifacts = [
                     {
@@ -754,7 +757,7 @@ def invoke_tool(
                             "title": "Recorded Price decomposition",
                             "x_label": axis,
                             "y_label": "trait change / residual",
-                            "series": all_series,
+                            "series": price_series,
                         },
                         "provenance": provenance,
                     }
@@ -789,17 +792,21 @@ def invoke_tool(
                     }
                 ]
             elif name in {"seed_comparison", "effect_summary"}:
-                metric = metric or next(
-                    (r.get("primary_metric_name") for r in rows if isinstance(r.get("primary_metric_name"), str)), None
+                raw_metric = metric or next(
+                    (str(r.get("primary_metric_name")) for r in rows if isinstance(r.get("primary_metric_name"), str)), None
                 )
-                endpoints = {}
-                seed_sources = {}
+                if not raw_metric or not isinstance(raw_metric, str):
+                    raise ValueError("no seed-labelled measurements for this metric")
+                metric_name: str = raw_metric
+                endpoints: dict[tuple[int, str], tuple[int, float]] = {}
+                seed_sources: dict[tuple[int, str], Any] = {}
                 for r in rows:
-                    val = _metric_map(r).get(metric)
-                    if r.get("synthetic") is True or not _finite(val) or not isinstance(r.get("seed"), int):
+                    val = _metric_map(r).get(metric_name)
+                    if r.get("synthetic") is True or not _finite(val) or not isinstance(r.get("seed"), int) or val is None:
                         continue
                     key = (r["seed"], str(r.get("arm", "DEFAULT")))
-                    timepoint = r.get("generation", r.get("tick", 0))
+                    raw_tp = r.get("generation", r.get("tick", 0))
+                    timepoint = int(raw_tp) if isinstance(raw_tp, (int, float)) else 0
                     source = r.get("_source_run_id")
                     if key in seed_sources and seed_sources[key] != source:
                         raise ValueError(
@@ -811,7 +818,7 @@ def invoke_tool(
                 if not endpoints:
                     raise ValueError("no seed-labelled measurements for this metric")
                 if name == "seed_comparison":
-                    byarm = {}
+                    byarm: dict[str, list[list[Any]]] = {}
                     for (seed, arm), (_, val) in sorted(endpoints.items()):
                         byarm.setdefault(arm, []).append([seed, val])
                     artifacts = [
@@ -821,30 +828,30 @@ def invoke_tool(
                                 "chart_type": "scatter",
                                 "title": "Last observed endpoint per seed and arm",
                                 "x_label": "seed ID (independent runs)",
-                                "y_label": metric,
+                                "y_label": metric_name,
                                 "series": [{"name": a, "points": v} for a, v in byarm.items()],
                             },
                             "provenance": provenance,
                         }
                     ]
                 else:
-                    byarm = {}
+                    byarm_vals: dict[str, list[float]] = {}
                     for (_, arm), (_, value) in endpoints.items():
-                        byarm.setdefault(arm, []).append(value)
+                        byarm_vals.setdefault(arm, []).append(value)
                     output = []
                     provenance["bootstrap_method"] = "seed-endpoint-percentile-rngmanager-v2"
                     provenance["rng_streams"] = {}
-                    for arm, values in sorted(byarm.items()):
+                    for arm, arm_samples in sorted(byarm_vals.items()):
                         rng = RNGManager(seed=20261010, namespace="science.effect_summary." + arm)
                         lo = hi = None
-                        if len(values) >= 2:
+                        if len(arm_samples) >= 2:
                             bootstrap = sorted(
-                                statistics.fmean([rng.choice(values) for _ in values]) for _ in range(1000)
+                                statistics.fmean([rng.choice(arm_samples) for _ in arm_samples]) for _ in range(1000)
                             )
                             lo = bootstrap[24]
                             hi = bootstrap[974]
                         provenance["rng_streams"][arm] = rng.snapshot()
-                        output.append([arm, len(values), statistics.fmean(values), lo, hi])
+                        output.append([arm, len(arm_samples), statistics.fmean(arm_samples), lo, hi])
                     artifacts = [
                         {
                             "kind": "table",
@@ -863,16 +870,16 @@ def invoke_tool(
                         "Descriptive seed bootstrap, 1000 resamples, PRNG seed 20261010. Partial endpoints, shared history and dependence require separate confirmatory analysis; no p-value or verdict computed."
                     )
             else:
-                series, metric, axis = _numeric_series(rows, metric, maximum)
+                metric_series, metric, axis = _numeric_series(rows, metric, maximum)
                 artifacts = [
                     {
                         "kind": "chart",
                         "spec": {
                             "chart_type": "line",
-                            "title": "Recorded " + metric,
+                            "title": "Recorded " + str(metric or "metric"),
                             "x_label": axis,
                             "y_label": metric,
-                            "series": series,
+                            "series": metric_series,
                         },
                         "provenance": provenance,
                     }

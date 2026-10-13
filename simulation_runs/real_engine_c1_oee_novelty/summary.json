@@ -1,0 +1,15 @@
+{
+  "run_id": "real_engine_c1_oee_novelty",
+  "status": "COMPLETED",
+  "duration_seconds": 25208.87125468254,
+  "metrics": {
+    "epoch": 2058,
+    "total_ticks": 12348,
+    "cumulative_births": 4116,
+    "cumulative_deaths": 16464,
+    "discovered_genotypes": 64,
+    "bedau_cumulative_activity": 532.66,
+    "shannon_genotypic_entropy": 6.0,
+    "novelty_slope": 0.0311
+  }
+}

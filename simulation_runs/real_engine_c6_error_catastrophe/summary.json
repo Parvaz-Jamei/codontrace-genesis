@@ -1,0 +1,12 @@
+{
+  "run_id": "real_engine_c6_error_catastrophe",
+  "status": "COMPLETED",
+  "duration_seconds": 25211.087088108063,
+  "metrics": {
+    "epoch": 2238,
+    "population": 10,
+    "master_retention_ratio": 0.0,
+    "quasispecies_cloud_size": 8,
+    "error_catastrophe_status": "DRIFT_REGIME"
+  }
+}

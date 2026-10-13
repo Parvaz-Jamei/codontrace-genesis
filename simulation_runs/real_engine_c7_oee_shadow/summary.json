@@ -1,0 +1,15 @@
+{
+  "run_id": "real_engine_c7_oee_shadow",
+  "status": "COMPLETED",
+  "duration_seconds": 25210.72005558014,
+  "metrics": {
+    "epoch": 1150,
+    "real_population": 10,
+    "shadow_population": 10,
+    "cumulative_activity_real": 3450.0,
+    "cumulative_activity_shadow": 3450.0,
+    "excess_adaptive_activity": 0.0,
+    "excess_activity_slope": 0.0,
+    "null_hypothesis_rejected": false
+  }
+}

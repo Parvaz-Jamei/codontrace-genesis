@@ -334,10 +334,17 @@ def _is_run_mutating_path(path: str) -> bool:
 
 
 def _from_this_machine(address: str) -> bool:
-    host = address.split("%", 1)[0].lower()
+    import ipaddress
+    host = address.split("%", 1)[0].strip().lower()
     if host.startswith("::ffff:"):
         host = host.removeprefix("::ffff:")
-    return host in {"127.0.0.1", "::1", "localhost"}
+    if host in {"127.0.0.1", "::1", "localhost"}:
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_loopback or ip.is_private
+    except ValueError:
+        return False
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -378,7 +385,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         from urllib.parse import urlparse
         parsed = urlparse(origin)
         origin_host = (parsed.hostname or "").lower()
-        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _from_this_machine(origin_host):
             return True
 
         host_header = self.headers.get("Host", "")

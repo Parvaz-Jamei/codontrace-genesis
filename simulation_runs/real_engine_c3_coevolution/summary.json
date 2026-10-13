@@ -1,0 +1,13 @@
+{
+  "run_id": "real_engine_c3_coevolution",
+  "status": "COMPLETED",
+  "duration_seconds": 25220.646744012833,
+  "metrics": {
+    "epoch": 1154,
+    "vt_population": 10,
+    "ht_population": 10,
+    "cum_births_vertical": 2308,
+    "cum_births_horizontal": 2308,
+    "cooperation_advantage_ratio": 1.0
+  }
+}

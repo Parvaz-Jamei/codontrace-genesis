@@ -31,6 +31,7 @@ def inference_timeout(*, cloud: bool) -> float:
 
 DEFAULT_ENDPOINTS = (
     "http://127.0.0.1:8088/v1/chat/completions",
+    f"http://{os.environ.get('CODONTRACE_BOARD_IP', '10.225.130.20').strip()}:8088/v1/chat/completions",
     "http://127.0.0.1:11434/v1/chat/completions",
     "http://127.0.0.1:1234/v1/chat/completions",
 )
@@ -141,7 +142,7 @@ def _probe_single_endpoint(ep: str) -> dict[str, Any] | None:
         base_url = ep.split("/v1/")[0]
         models_url = f"{base_url}/v1/models"
         req = urllib.request.Request(models_url, headers={"User-Agent": "CodonTraceConsole/1.0"})
-        with urllib.request.urlopen(req, timeout=0.35) as resp:
+        with urllib.request.urlopen(req, timeout=0.8) as resp:
             if resp.status == 200:
                 data = json.loads(resp.read().decode("utf-8"))
                 models = [m.get("id", "model") for m in data.get("data", [])] if isinstance(data, dict) else []
@@ -177,16 +178,15 @@ def check_llm_status() -> dict[str, Any]:
     import concurrent.futures
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(endpoints_to_try))) as executor:
-        futures = [executor.submit(_probe_single_endpoint, ep) for ep in endpoints_to_try]
-        done, _ = concurrent.futures.wait(futures, timeout=0.5)
-        for fut in done:
-            try:
+        futures = {executor.submit(_probe_single_endpoint, ep): ep for ep in endpoints_to_try}
+        try:
+            for fut in concurrent.futures.as_completed(futures, timeout=1.5):
                 res = fut.result()
                 if res and res.get("mounted"):
                     _STATUS_CACHE[endpoint] = (now, res)
                     return dict(res)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     fallback_status = {
         "mounted": False,
@@ -301,7 +301,7 @@ def query_llm(
     if cloud:
         chosen_model = resolved_cloud_model
     elif not model or model == "board-model":
-        chosen_model = status.get("model") or "local-model"
+        chosen_model = str(status.get("model") or "local-model")
     else:
         chosen_model = model
     payload_dict: dict[str, Any] = {

@@ -1,0 +1,121 @@
+{
+  "challenge": "C6_QUASISPECIES_ERROR_CATASTROPHE",
+  "literature": "Manfred Eigen 1971; Martin A. Nowak 2006 (Evolutionary Dynamics); Claus O. Wilke 2005",
+  "engine": "GenesisEngine",
+  "master_sequence": "101111000",
+  "genome_length_bits": 9,
+  "superiority_parameter_sigma": 3.0,
+  "theoretical_eigen_mu_c": 0.1221,
+  "empirical_mu_c_estimate": 0.0687,
+  "relative_error": 0.4375,
+  "simulation_atlas_frames": 11,
+  "regime_results": [
+    {
+      "mutation_rate_mu": 0.0,
+      "bit_flip_rate": 0.0,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 1.0,
+      "nowak_theoretical_x0": 1.0,
+      "mean_hamming_distance": 0.0,
+      "quasispecies_variance": 0.0,
+      "regime": "STABLE_QUASISPECIES",
+      "sample_children": [
+        "101111000",
+        "101111000",
+        "101111000",
+        "101111000"
+      ]
+    },
+    {
+      "mutation_rate_mu": 0.03,
+      "bit_flip_rate": 0.03,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 0.6,
+      "nowak_theoretical_x0": 0.6451,
+      "mean_hamming_distance": 0.6,
+      "quasispecies_variance": 0.64,
+      "regime": "STABLE_QUASISPECIES",
+      "sample_children": [
+        "101111000",
+        "101111010",
+        "101111000",
+        "001111000"
+      ]
+    },
+    {
+      "mutation_rate_mu": 0.08,
+      "bit_flip_rate": 0.08,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 0.3,
+      "nowak_theoretical_x0": 0.2301,
+      "mean_hamming_distance": 1.0,
+      "quasispecies_variance": 0.8,
+      "regime": "CRITICAL_BOUNDARY",
+      "sample_children": [
+        "101111000",
+        "101111010",
+        "101111000",
+        "001111000"
+      ]
+    },
+    {
+      "mutation_rate_mu": 0.12,
+      "bit_flip_rate": 0.12,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 0.3,
+      "nowak_theoretical_x0": 0.0094,
+      "mean_hamming_distance": 1.1,
+      "quasispecies_variance": 1.09,
+      "regime": "CRITICAL_BOUNDARY",
+      "sample_children": [
+        "101111000",
+        "101111010",
+        "101111000",
+        "001111000"
+      ]
+    },
+    {
+      "mutation_rate_mu": 0.22,
+      "bit_flip_rate": 0.22,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 0.1,
+      "nowak_theoretical_x0": 0.0,
+      "mean_hamming_distance": 1.4,
+      "quasispecies_variance": 0.84,
+      "regime": "ERROR_CATASTROPHE_DRIFT",
+      "sample_children": [
+        "111111000",
+        "111111100",
+        "101111000",
+        "001111000"
+      ]
+    },
+    {
+      "mutation_rate_mu": 0.38,
+      "bit_flip_rate": 0.38,
+      "offspring_count": 10,
+      "evaluated_genomes": 10,
+      "master_sequence_retention": 0.0,
+      "nowak_theoretical_x0": 0.0,
+      "mean_hamming_distance": 3.5,
+      "quasispecies_variance": 1.85,
+      "regime": "ERROR_CATASTROPHE_DRIFT",
+      "sample_children": [
+        "110111100",
+        "110010001",
+        "111111000",
+        "001001001"
+      ]
+    }
+  ],
+  "epistemic_invariants": {
+    "red_queen_proved": false,
+    "open_ended_intelligence": false,
+    "major_transition_proved": false
+  }
+}

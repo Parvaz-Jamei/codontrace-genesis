@@ -7,9 +7,23 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-from codontrace.genesis.journal import CHECKPOINTS_KEPT, MAX_CHECKPOINT_BYTES, HashChainedJournal, NotRecorded  # noqa: F401  (public names)
+from codontrace.genesis.journal import (  # noqa: F401  (public names)
+    CHECKPOINTS_KEPT,
+    MAX_CHECKPOINT_BYTES,
+    HashChainedJournal,
+    NotRecorded,
+)
 from codontrace.swarm.policies import Pipeline, diagnose
-from codontrace.swarm.protocol import VERSION2, canonical, decode, identifier, integer, number, object_keys, text  # noqa: F401  (canonical is a public name)
+from codontrace.swarm.protocol import (  # noqa: F401  (canonical is a public name)
+    VERSION2,
+    canonical,
+    decode,
+    identifier,
+    integer,
+    number,
+    object_keys,
+    text,
+)
 from codontrace.swarm.sensors import descriptor, normalize, scalar_frame
 
 CHECKPOINT_SCHEMA = 'genesis_swarm_checkpoint_v1'

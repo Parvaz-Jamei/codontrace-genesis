@@ -31,10 +31,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import shutil
-import sys
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -56,7 +54,6 @@ from codontrace.genesis.multi_generation import (
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 from codontrace.genesis.substrate import world2d_to_element_grid
 from codontrace.genesis.tokyo_type1 import (
-    CHANNON_2024_MEASUREMENT_STEPS,
     build_tokyo_type1_measurement_protocol,
     evaluate_tokyo_type1_measurement_claim,
     evaluate_tokyo_type1_pass_claim,
@@ -374,8 +371,8 @@ def run_oee_shadow_experiment(
         seed_count=2,
     )
 
-    measurement_decision = evaluate_tokyo_type1_measurement_claim(protocol)
-    pass_decision = evaluate_tokyo_type1_pass_claim(protocol)
+    evaluate_tokyo_type1_measurement_claim(protocol)
+    evaluate_tokyo_type1_pass_claim(protocol)
 
     log_event(
         run_dir,

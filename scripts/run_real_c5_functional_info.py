@@ -26,7 +26,6 @@ where the virtual machine executes codons, metabolizes food, expends basal ATP, 
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import json
 import math
 import os
@@ -47,8 +46,6 @@ from codontrace.console.runs import runs_directory
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.runtime_profiles import (
     GenesisRuntimeProfile,
-    LIFE_LOOP_EATER_GENOME,
-    LIFE_LOOP_WAITER_GENOME,
 )
 from codontrace.visualization import SimulationRecorder
 
@@ -145,7 +142,7 @@ def run_c5_functional_info_experiment(total_ticks: int = 8, init_pop: int = 8) -
     # Initialize GenesisEngine with LifeLoop world
     profile = GenesisRuntimeProfile.life_loop_world(seed=501, tick_count=total_ticks, population=init_pop)
     engine = GenesisEngine.from_spec(profile)
-    recorder = SimulationRecorder(run_dir).attach(engine)
+    SimulationRecorder(run_dir).attach(engine)
 
     history_file = run_dir / "history.jsonl"
     metrics_file = run_dir / "metrics.jsonl"

@@ -29,7 +29,7 @@ from typing import Any
 from codontrace.console.runs import runs_directory
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.population import MutationConfig
-from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile, LIFE_LOOP_EATER_GENOME
+from codontrace.genesis.runtime_profiles import LIFE_LOOP_EATER_GENOME, GenesisRuntimeProfile
 from codontrace.visualization import SimulationRecorder
 
 # Epistemic Invariants
@@ -154,7 +154,7 @@ def run_quasispecies_experiment(run_dir: Path | None = None) -> dict[str, Any]:
     log_event(run_dir, "[PHASE 1] Recording Primary Spatial Frames for Simulation Atlas (Seed 601)...")
     profile = GenesisRuntimeProfile.life_loop_world(seed=601, tick_count=10, population=8)
     engine = GenesisEngine.from_spec(profile)
-    recorder = SimulationRecorder(run_dir).attach(engine)
+    SimulationRecorder(run_dir).attach(engine)
 
     res = engine.run_ticks()
     founder_digest = res.ticks[0].digest()

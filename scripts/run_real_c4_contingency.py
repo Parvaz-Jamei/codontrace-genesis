@@ -141,7 +141,7 @@ def run_historical_contingency_experiment(
 
     log_event(run_dir, "==========================================================================")
     log_event(run_dir, "STARTING CHALLENGE 4: HISTORICAL CONTINGENCY & REPLAY FORKS")
-    log_event(run_dir, f"Theoretical Model: Stephen Jay Gould (1989) & Lenski LTEE (2008)")
+    log_event(run_dir, "Theoretical Model: Stephen Jay Gould (1989) & Lenski LTEE (2008)")
     log_event(run_dir, f"Protocol: Ancestor Seed={base_seed} -> Checkpoint T={checkpoint_tick} -> Forks={fork_seeds}")
     log_event(run_dir, "==========================================================================")
 
@@ -156,8 +156,8 @@ def run_historical_contingency_experiment(
     )
     base_engine = GenesisEngine.from_spec(base_profile)
     base_engine.run = GenesisRun(run_id=run_id, spec_digest=base_engine.run.spec_digest, seed=base_seed)
-    rec_base = SimulationRecorder(run_dir).attach(base_engine)
-    res_base_pre = base_engine.run_ticks(checkpoint_tick)
+    SimulationRecorder(run_dir).attach(base_engine)
+    base_engine.run_ticks(checkpoint_tick)
 
     ckpt_pop = len(base_engine.runner.population.organisms)
     log_event(run_dir, f"[Phase 1: Complete] Checkpoint reached at T={checkpoint_tick}. Living organisms: {ckpt_pop}")
@@ -175,7 +175,7 @@ def run_historical_contingency_experiment(
     # --------------------------------------------------------------------------
     # Phase 3: Branch 1 (Deterministic Control Continuation)
     # --------------------------------------------------------------------------
-    log_event(run_dir, f"[Phase 3: Branch 401] Running deterministic control continuation...")
+    log_event(run_dir, "[Phase 3: Branch 401] Running deterministic control continuation...")
     res_branch1 = base_engine.run_ticks(fork_ticks)
     branches: dict[int, dict[str, Any]] = {
         base_seed: {
@@ -203,7 +203,7 @@ def run_historical_contingency_experiment(
             spec_change_reason=f"Gouldian Historical Contingency Replay Branch (Seed {s})",
         )
         fork_engine.run = GenesisRun(run_id=run_id, spec_digest=fork_engine.run.spec_digest, seed=s)
-        rec_fork = SimulationRecorder(run_dir).attach(fork_engine)
+        SimulationRecorder(run_dir).attach(fork_engine)
         res_fork = fork_engine.run_ticks(fork_ticks)
 
         # Replicate ancestral frames 0..T-1 so the Simulation Atlas contains the full continuous timeline
@@ -246,7 +246,7 @@ def run_historical_contingency_experiment(
         ys = [org.position[1] for org in orgs] if orgs else [0]
         mean_x = sum(xs) / len(xs) if xs else 0.0
         mean_y = sum(ys) / len(ys) if ys else 0.0
-        rg = math.sqrt(sum((x - mean_x) ** 2 + (y - mean_y) ** 2 for x, y in zip(xs, ys)) / len(xs)) if xs else 0.0
+        rg = math.sqrt(sum((x - mean_x) ** 2 + (y - mean_y) ** 2 for x, y in zip(xs, ys, strict=False)) / len(xs)) if xs else 0.0
 
         total_births = sum(t.generation_result.births for t in eng.tick_results)
         total_deaths = sum(t.generation_result.deaths for t in eng.tick_results)
@@ -295,7 +295,7 @@ def run_historical_contingency_experiment(
                     max_len = max(len(g1), len(g2))
                     if max_len == 0:
                         continue
-                    mismatches = sum(1 for c1, c2 in zip(g1, g2) if c1 != c2) + abs(len(g1) - len(g2))
+                    mismatches = sum(1 for c1, c2 in zip(g1, g2, strict=False) if c1 != c2) + abs(len(g1) - len(g2))
                     seq_dists.append(mismatches / max_len)
             avg_seq_dist = sum(seq_dists) / len(seq_dists) if seq_dists else 0.0
             d_gen = round(0.5 * jaccard_dist + 0.5 * avg_seq_dist, 4)

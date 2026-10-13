@@ -268,9 +268,9 @@ def run_c1_oee_novelty(total_ticks: int = 20, seed: int = 101) -> None:
 
     log_event(run_dir, "=================================================================")
     log_event(run_dir, f"Starting {title}")
-    log_event(run_dir, f"Framework: Bedau (1998) Activity Statistics & Stanley Novelty Search")
+    log_event(run_dir, "Framework: Bedau (1998) Activity Statistics & Stanley Novelty Search")
     log_event(run_dir, f"World dimensions: 8x6 | Initial Population: 8 | Ticks: {total_ticks}")
-    log_event(run_dir, f"Fitness function: NONE (Intrinsic metabolic survival & homeostasis)")
+    log_event(run_dir, "Fitness function: NONE (Intrinsic metabolic survival & homeostasis)")
     log_event(run_dir, "=================================================================")
 
     # Initialize Engine Spec
@@ -278,7 +278,7 @@ def run_c1_oee_novelty(total_ticks: int = 20, seed: int = 101) -> None:
     engine = GenesisEngine.from_spec(spec)
 
     # Attach official SimulationRecorder to output 2D spatial frames for Atlas
-    recorder = SimulationRecorder(run_dir).attach(engine)
+    SimulationRecorder(run_dir).attach(engine)
     log_event(run_dir, f"Attached SimulationRecorder to engine -> writing frames to {run_dir / 'simulation'}")
 
     # Evolutionary Activity Tracking Structures (Bedau et al. 1998)
@@ -289,7 +289,7 @@ def run_c1_oee_novelty(total_ticks: int = 20, seed: int = 101) -> None:
     total_births = 0
     total_deaths = 0
 
-    log_event(run_dir, f"Launching tick-by-tick virtual machine execution...")
+    log_event(run_dir, "Launching tick-by-tick virtual machine execution...")
 
     for tick_idx in range(1, total_ticks + 1):
         # Advance 1 tick in GenesisEngine

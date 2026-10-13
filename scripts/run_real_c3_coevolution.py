@@ -33,12 +33,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import shutil
 import sys
 import time
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -54,12 +52,10 @@ from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.population import OffspringPlacementPolicy
 from codontrace.genesis.runtime_profiles import (
     GenesisRuntimeProfile,
-    LIFE_LOOP_EATER_GENOME,
-    LIFE_LOOP_WAITER_GENOME,
 )
 from codontrace.genesis.social import (
-    social_events_from_local_resource_context,
     score_social_interactions,
+    social_events_from_local_resource_context,
 )
 from codontrace.visualization import SimulationRecorder
 
@@ -208,7 +204,7 @@ def run_c3_coevolution_experiment(run_dir: Path | None = None) -> dict[str, Any]
         offspring_placement=OffspringPlacementPolicy.ADJACENT_FREE,
     )
     engine_vt = GenesisEngine.from_spec(profile_vt)
-    recorder_vt = SimulationRecorder(run_dir).attach(engine_vt)
+    SimulationRecorder(run_dir).attach(engine_vt)
     res_vt = engine_vt.run_ticks()
 
     events_vt = []
@@ -280,7 +276,7 @@ def run_c3_coevolution_experiment(run_dir: Path | None = None) -> dict[str, Any]
         offspring_placement=OffspringPlacementPolicy.REPLACE_OCCUPIED,
     )
     engine_ht = GenesisEngine.from_spec(profile_ht)
-    recorder_ht = SimulationRecorder(run_dir).attach(engine_ht)
+    SimulationRecorder(run_dir).attach(engine_ht)
     res_ht = engine_ht.run_ticks()
 
     events_ht = []

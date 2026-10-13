@@ -47,15 +47,13 @@ from codontrace.console.runs import runs_directory
 from codontrace.experiments.math_utils import compute_exact_price_equation
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.population import (
-    MetabolicConfig,
     MutationConfig,
     OffspringPlacementPolicy,
-    RuntimeResourcePolicy,
 )
 from codontrace.genesis.runtime_profiles import (
-    GenesisRuntimeProfile,
     LIFE_LOOP_EATER_GENOME,
     LIFE_LOOP_WAITER_GENOME,
+    GenesisRuntimeProfile,
 )
 from codontrace.visualization import SimulationRecorder
 
@@ -198,10 +196,9 @@ def worker_c1_oee(duration_sec: float) -> None:
         epoch += 1
         spec = GenesisRuntimeProfile.life_loop_world(seed=100 + (epoch % 1000), tick_count=6, population=8)
         engine = GenesisEngine.from_spec(spec)
-        recorder = None
         if epoch % 5 == 1 or epoch == 1:
             try:
-                recorder = SimulationRecorder(run_dir, every=1).attach(engine)
+                SimulationRecorder(run_dir, every=1).attach(engine)
             except Exception:
                 pass
 
@@ -274,7 +271,7 @@ def worker_c2_mls(duration_sec: float) -> None:
         offspring_mean_z: list[float] = []
         deme_ids: list[int] = []
 
-        for d_idx, (base_s, d_name, genomes) in enumerate(deme_configs):
+        for d_idx, (base_s, _d_name, genomes) in enumerate(deme_configs):
             spec = GenesisRuntimeProfile.life_loop_world(seed=base_s + (epoch % 500), tick_count=4, population=8)
             spec = dataclasses.replace(spec, genome_bits=genomes)
             eng = GenesisEngine.from_spec(spec)

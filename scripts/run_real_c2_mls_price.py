@@ -31,7 +31,6 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
-import math
 import os
 import shutil
 import sys
@@ -50,9 +49,9 @@ from codontrace.console.runs import runs_directory
 from codontrace.experiments.math_utils import compute_exact_price_equation
 from codontrace.genesis.engine import GenesisEngine
 from codontrace.genesis.runtime_profiles import (
-    GenesisRuntimeProfile,
     LIFE_LOOP_EATER_GENOME,
     LIFE_LOOP_WAITER_GENOME,
+    GenesisRuntimeProfile,
 )
 from codontrace.visualization import SimulationRecorder
 

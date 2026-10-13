@@ -1,4 +1,0 @@
-{"tick": 1, "population": 8, "total_births": 0, "total_deaths": 0, "sampled_genomes_count": 4, "functional_genomes_count": 2, "fraction_functional_F_E": 0.5, "hazen_functional_information_bits": 1.0, "neutral_connectivity": 0.5}
-{"tick": 2, "population": 10, "total_births": 2, "total_deaths": 0, "sampled_genomes_count": 4, "functional_genomes_count": 2, "fraction_functional_F_E": 0.5, "hazen_functional_information_bits": 1.0, "neutral_connectivity": 0.5}
-{"tick": 3, "population": 10, "total_births": 2, "total_deaths": 0, "sampled_genomes_count": 4, "functional_genomes_count": 2, "fraction_functional_F_E": 0.5, "hazen_functional_information_bits": 1.0, "neutral_connectivity": 0.5}
-{"tick": 4, "population": 4, "total_births": 2, "total_deaths": 6, "sampled_genomes_count": 4, "functional_genomes_count": 2, "fraction_functional_F_E": 0.5, "hazen_functional_information_bits": 1.0, "neutral_connectivity": 0.5}

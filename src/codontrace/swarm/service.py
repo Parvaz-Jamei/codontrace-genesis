@@ -4,9 +4,10 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from codontrace.contracts.run_roots import resolve_run_root
 from codontrace.swarm.policies import Pipeline, PolicyArchive, transfer_decision
@@ -65,7 +66,7 @@ def _evict_idle() -> None:
 
 
 @contextmanager
-def _opening(swarm_id: str):
+def _opening(swarm_id: str) -> Iterator[None]:
     """Per-swarm open lock: one opener per swarm, other swarms are never blocked."""
     with _LOCK:
         entry = _OPENING.setdefault(swarm_id, [threading.Lock(), 0])
@@ -89,6 +90,10 @@ def _insert(swarm_id: str, swarm: SwarmCoordinator, pin: bool) -> SwarmCoordinat
         return swarm
 
 
+@overload
+def _cached(swarm_id: str, *, create: Literal[True], pin: bool = False) -> SwarmCoordinator: ...
+@overload
+def _cached(swarm_id: str, *, create: bool, pin: bool = False) -> SwarmCoordinator | None: ...
 def _cached(swarm_id: str, *, create: bool, pin: bool = False) -> SwarmCoordinator | None:
     identifier(swarm_id)
     with _LOCK:
@@ -117,6 +122,10 @@ def _cached(swarm_id: str, *, create: bool, pin: bool = False) -> SwarmCoordinat
         return _insert(swarm_id, swarm, pin)
 
 
+@overload
+def coordinator(swarm_id: str, *, create: Literal[True] = True) -> SwarmCoordinator: ...
+@overload
+def coordinator(swarm_id: str, *, create: bool) -> SwarmCoordinator | None: ...
 def coordinator(swarm_id: str, *, create: bool = True) -> SwarmCoordinator | None:
     """Long-lived coordinator handle shared with the service cache.
 
@@ -139,7 +148,7 @@ def release(swarm_id: str) -> None:
 
 
 @contextmanager
-def _lease(swarm_id: str):
+def _lease(swarm_id: str) -> Iterator[None]:
     with _LOCK:
         _LEASES[swarm_id] = _LEASES.get(swarm_id, 0) + 1
     try:
@@ -196,6 +205,13 @@ def invoke(action: str, args: Any, *, now_ms: int | None = None) -> dict[str, An
         return _invoke(action, args, sid, now_ms)
 
 
+def _live(swarm: SwarmCoordinator | None) -> SwarmCoordinator:
+    """Every non-stateless action has opened a coordinator; None here is a bug."""
+    if swarm is None:
+        raise RuntimeError('swarm action reached without a coordinator')
+    return swarm
+
+
 def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> dict[str, Any]:
     now = int(time.time() * 1000) if now_ms is None else now_ms
     if action not in STATELESS_ACTIONS | READ_ONLY_ACTIONS | WRITE_ACTIONS:
@@ -220,10 +236,10 @@ def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> 
         result = _recover(sid, args.get('full_replay', False))
     elif action == 'snapshot':
         object_keys(args, {'swarm_id'})
-        result = swarm.snapshot(now_ms=now)
+        result = _live(swarm).snapshot(now_ms=now)
     elif action == 'configure_channel':
         object_keys(args, {'swarm_id', 'key', 'changes'})
-        result = swarm._transaction('configure_channel', {'key': args['key'], 'changes': args['changes']}, now)
+        result = _live(swarm)._transaction('configure_channel', {'key': args['key'], 'changes': args['changes']}, now)
     elif action == 'fdc_decode':
         from codontrace.swarm.sensors import fdc_sample
         object_keys(args, {'swarm_id', 'reading', 'variant', 'config_id'})
@@ -231,27 +247,27 @@ def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> 
         result = {'channel': channel, 'payload': payload, 'device_command_sent': False, 'scope': 'adapter_preview_not_ingestion'}
     elif action == 'ingest':
         object_keys(args, {'swarm_id', 'message'})
-        result = swarm.ingest(args['message'], now_ms=now)
+        result = _live(swarm).ingest(args['message'], now_ms=now)
     elif action == 'command':
         object_keys(args, {'swarm_id', 'node_id', 'operation', 'params'}, {'timeout_ms'})
-        result = swarm.command(args['node_id'], args['operation'], args['params'], now_ms=now,
+        result = _live(swarm).command(args['node_id'], args['operation'], args['params'], now_ms=now,
                                timeout_ms=args.get('timeout_ms', 5000))
     elif action == 'status':
         object_keys(args, {'swarm_id', 'status'})
-        result = swarm.set_status(args['status'], now_ms=now)
+        result = _live(swarm).set_status(args['status'], now_ms=now)
     elif action in ('fusion', 'diagnosis', 'plan'):
         optional = {'mode'} if action == 'fusion' else {'reference', 'tolerance'} if action == 'diagnosis' else {'budget'}
         object_keys(args, {'swarm_id', 'quantity', 'unit'}, optional)
         if action == 'fusion':
-            result = swarm.fuse(args['quantity'], args['unit'], now_ms=now, mode=args.get('mode', 'median'))
+            result = _live(swarm).fuse(args['quantity'], args['unit'], now_ms=now, mode=args.get('mode', 'median'))
         elif action == 'diagnosis':
-            result = swarm.diagnose(args['quantity'], args['unit'], now_ms=now,
+            result = _live(swarm).diagnose(args['quantity'], args['unit'], now_ms=now,
                                     reference=args.get('reference'), tolerance=args.get('tolerance', 2))
         else:
-            result = swarm.plan(args['quantity'], args['unit'], now_ms=now, budget=args.get('budget', 2))
+            result = _live(swarm).plan(args['quantity'], args['unit'], now_ms=now, budget=args.get('budget', 2))
     elif action == 'calibrate':
         object_keys(args, {'swarm_id', 'key', 'reference', 'reference_id'}, {'scale'})
-        result = swarm.calibrate(args['key'], args['reference'], args['reference_id'], now_ms=now,
+        result = _live(swarm).calibrate(args['key'], args['reference'], args['reference_id'], now_ms=now,
                                  scale=args.get('scale', 1))
     elif action == 'pipeline_fit':
         object_keys(args, {'swarm_id', 'values', 'references', 'seed'}, {'rounds'})
@@ -289,7 +305,7 @@ def _invoke(action: str, args: dict[str, Any], sid: str, now_ms: int | None) -> 
         result = schedule_measurements(args['candidates'], now_ms=now, byte_budget=args['byte_budget'], request_budget=args.get('request_budget', 8))
     elif action == 'freshness_plan':
         object_keys(args, {'swarm_id','models','quantity','unit','byte_budget'}, {'request_budget'})
-        result = swarm.freshness_plan(args['models'],args['quantity'],args['unit'],now_ms=now,
+        result = _live(swarm).freshness_plan(args['models'],args['quantity'],args['unit'],now_ms=now,
                                      byte_budget=args['byte_budget'],request_budget=args.get('request_budget',8))
     elif action == 'capsule_shadow':
         from codontrace.swarm.decision_support import capsule_shadow

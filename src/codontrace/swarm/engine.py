@@ -89,7 +89,7 @@ class SwarmEngineLink:
                 fusion = {'value': None, 'status': 'swarm_unavailable'}
             before = self.engine.runner.world.digest()
             mapped = self.environment_mapper is not None and fusion['value'] is not None
-            if mapped:
+            if mapped and self.environment_mapper is not None:  # same condition; narrows for mypy
                 self.environment_mapper(self.engine.runner.world, fusion)
             self._mapping = {'mapped': mapped, 'before': before, 'after': self.engine.runner.world.digest(), 'fusion': fusion}
             try:

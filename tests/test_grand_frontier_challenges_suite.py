@@ -12,11 +12,7 @@ Validates that:
 from __future__ import annotations
 
 import json
-import os
-from collections.abc import Iterator
 from pathlib import Path
-
-import pytest
 
 from scripts.grand_frontier_4challenge_campaign import (
     run_worker_0_oee,
@@ -31,19 +27,6 @@ from scripts.grand_frontier_suite_extension import (
     run_worker_8_fisher_geometric,
 )
 
-
-@pytest.fixture(autouse=True)
-def _restore_cpu_affinity() -> Iterator[None]:
-    """The campaign workers call os.sched_setaffinity(0, {core}) on the
-    calling process. In-process, that pinned the whole pytest process to one
-    CPU for every later test (it made test_tester1_r06_r10's cores check fail
-    on serial CI and slowed the rest of the suite). Restore the mask."""
-    get_affinity = getattr(os, "sched_getaffinity", None)
-    set_affinity = getattr(os, "sched_setaffinity", None)
-    before = get_affinity(0) if callable(get_affinity) else None
-    yield
-    if before is not None and callable(set_affinity):
-        set_affinity(0, before)
 
 def test_challenge_1_oee_novelty_micro_run(tmp_path: Path) -> None:
     """Verify Challenge 1 (OEE Novelty) execution and telemetry."""

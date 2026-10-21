@@ -29,7 +29,6 @@ ADAPTERS = ('codontrace.claimgate.adapters',)
 # ``test_adapter_exceptions_are_exact`` fails on new and on stale entries.
 _HP = 'codontrace.claimgate.adapters.host_parasite'
 KNOWN_ADAPTER_EDGES = frozenset({
-    ('codontrace.genesis.host_parasite_attach_registry', 'codontrace.claimgate.adapters'),
     ('codontrace.genesis.host_parasite_attach_registry', _HP),
     *((f'codontrace.genesis.{name}', target)
       for name in ('host_parasite_cell_microbe_hard_campaigns', 'host_parasite_diff_campaigns',

@@ -30,7 +30,7 @@ robots. Domains attach at the **adapter** port.
 | Declared score table | `claimgate.domain` | no |
 | Biomedical labels | `adapters.biomedical` → `domain.BIOMEDICAL` | no |
 | Device-model analog (SiMD/SaMD labels) | `bundle_from_device_model_cou` | no |
-| ESP32 stub | `adapters.esp32_bridge` | optional |
+| ESP32 stub | `adapters.esp32_bridge` (re-export of `swarm.devices.esp32`) | optional |
 | Text-file digest (LF identity) | `genesis.text_digest.sha256_text_file` | no |
 | Arm-role translation | `adapters.roles.canonical_role` | no |
 
@@ -57,7 +57,7 @@ Module-side implementations of those ports:
 | `swarm.policies`, `swarm.coevolution` | `genesis.qd_parametric`, `genesis.coevolution`, `genesis.shadow_evaluation` |
 | `swarm.decision_support`, `swarm.research` | `life_loop.conformal_bands`, `genesis.shadow_evaluation`, `life_loop.disturbance` |
 | `swarm.adapters.fdc`, `swarm.adapters.esp32` | `contracts.channels` |
-| `swarm.devices.esp32` | device I/O from `adapters.esp32_bridge` |
+| `swarm.devices.esp32` | device I/O implementation (`adapters.esp32_bridge` re-exports it); STR record from `genesis.transferability` |
 | `swarm.transport.mqtt_session` | MQTT client setup for `swarm.mqtt` |
 
 Adding a domain means a new `DomainProfile` or ingest adapter.

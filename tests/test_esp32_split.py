@@ -104,3 +104,28 @@ def test_reading_maps_to_described_channels():
         esp32_channels(config_id='cfg1', normalization={'bump': {}})
     with pytest.raises(TypeError):
         esp32_samples(SimpleNamespace(distance=1, light=1, bump=False), channels)
+
+
+def test_device_implementation_lives_in_swarm_devices():
+    assert esp32.SimEsp32Bridge.__module__ == 'codontrace.swarm.devices.esp32'
+    assert esp32_bridge.ConfigurationError is __import__('codontrace.errors', fromlist=['x']).ConfigurationError
+
+
+def test_adapters_package_loads_device_io_lazily():
+    import subprocess
+    import sys
+    code = ("import sys\n"
+            "import codontrace.claimgate.adapters as a\n"
+            "import codontrace.genesis.host_parasite_attach_registry\n"
+            "assert 'codontrace.swarm' not in sys.modules, 'swarm loaded eagerly'\n"
+            "assert 'codontrace.claimgate.adapters.esp32_bridge' not in sys.modules\n"
+            "assert 'SimEsp32Bridge' in dir(a) and 'SimEsp32Bridge' in a.__all__\n"
+            "from codontrace.claimgate.adapters import SimEsp32Bridge, STRDisparityResult\n"
+            "from codontrace.swarm.devices import esp32\n"
+            "from codontrace.genesis import transferability\n"
+            "assert SimEsp32Bridge is esp32.SimEsp32Bridge\n"
+            "assert STRDisparityResult is transferability.STRDisparityResult\n"
+            "ns = {}\n"
+            "exec('from codontrace.claimgate.adapters import *', ns)\n"
+            "assert ns['TransportEsp32Bridge'] is esp32.TransportEsp32Bridge\n")
+    subprocess.run([sys.executable, '-c', code], check=True)

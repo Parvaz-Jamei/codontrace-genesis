@@ -15,7 +15,7 @@ them. Each section has its own tests.
 | Sampling schedule | `src/codontrace/genesis/swarm/active_sampling.py` | `swarm/decision_support.py` | `tests/test_decision_support_unification.py` |
 | Run root | `src/codontrace/contracts/run_roots.py` | `swarm/service.py` (`CODONTRACE_SWARM_DIR`) | `tests/test_run_refs.py` |
 | MQTT client setup | `src/codontrace/swarm/transport/mqtt_session.py` | `swarm/mqtt.py` | `tests/test_esp32_split.py`, `tests/test_swarm_mqtt_broker.py` |
-| ESP32 device I/O | `src/codontrace/claimgate/adapters/esp32_bridge.py` | `swarm/devices/esp32.py` | `tests/test_discovery_qd_wire_esp32_bridge.py` |
+| ESP32 device I/O | `src/codontrace/genesis/transferability.py` (STR record only) | `swarm/devices/esp32.py` (implementation; `claimgate/adapters/esp32_bridge.py` re-exports it) | `tests/test_discovery_qd_wire_esp32_bridge.py`, `tests/test_esp32_split.py` |
 
 Rules that hold for every row: same seeds give the same outputs as before the
 move (pinned in `tests/characterization`), randomness comes from

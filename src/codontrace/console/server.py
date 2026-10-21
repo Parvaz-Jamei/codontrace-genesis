@@ -334,15 +334,21 @@ def _is_run_mutating_path(path: str) -> bool:
 
 
 def _from_this_machine(address: str) -> bool:
+    """True only for a loopback peer (127.0.0.0/8, ::1, IPv4-mapped loopback).
+
+    A private (RFC 1918 / RFC 4193) address is another machine on the network,
+    not this one, so it must never count as local for authorization. In the
+    Python ``ipaddress`` docs ``is_private`` means "not globally reachable",
+    whereas ``is_loopback`` is the host itself.
+    """
     import ipaddress
     host = address.split("%", 1)[0].strip().lower()
     if host.startswith("::ffff:"):
         host = host.removeprefix("::ffff:")
-    if host in {"127.0.0.1", "::1", "localhost"}:
+    if host == "localhost":
         return True
     try:
-        ip = ipaddress.ip_address(host)
-        return ip.is_loopback or ip.is_private
+        return ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
 

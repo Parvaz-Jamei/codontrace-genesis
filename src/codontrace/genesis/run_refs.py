@@ -14,7 +14,6 @@ Legacy module files are not changed.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from collections.abc import Mapping
@@ -22,6 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from codontrace.contracts.run_roots import resolve_run_root
+from codontrace.genesis.canonical import canonical_digest
 
 if TYPE_CHECKING:
     from codontrace.genesis.artifacts import ReplayBundle, RunManifest
@@ -33,8 +33,9 @@ RUN_REFERENCE_SCHEMA = 'genesis_module_run_ref_v1'
 
 
 def _sha256_json(payload: Any) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
-                                     allow_nan=False).encode()).hexdigest()
+    # Same bytes as json.dumps(sort_keys, compact separators, allow_nan=False)
+    # for these string-keyed JSON payloads; see tests/test_canonical_helpers.py.
+    return canonical_digest(payload)
 
 
 def module_run_reference(kind: str, run_id: str, *, manifest: RunManifest | None = None,

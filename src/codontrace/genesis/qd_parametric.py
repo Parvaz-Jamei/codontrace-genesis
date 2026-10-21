@@ -17,13 +17,13 @@ bit-for-bit.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.qd_search import QDDescriptorConfig, QDSearchArchive, QDSearchCandidate
 from codontrace.rng import RNGManager
 
@@ -42,8 +42,9 @@ def _gauss(rng: RNGManager, sigma: float) -> float:
 
 
 def _digest(payload: Any) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
-                                     allow_nan=False).encode()).hexdigest()
+    # Same bytes as json.dumps(sort_keys, compact separators, allow_nan=False)
+    # for these string-keyed JSON payloads; see tests/test_canonical_helpers.py.
+    return canonical_digest(payload)
 
 
 @dataclass(frozen=True, slots=True)

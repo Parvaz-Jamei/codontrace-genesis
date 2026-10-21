@@ -30,12 +30,12 @@ SCHEMA = "61e02b6c90de34000ae3447a"
 
 def _replay(manifest, *, posted=None, **reg_overrides):
     draft = {"data": {"id": "62716076d90ebe0017f2bf42", "type": "draft_registrations",
-                      "attributes": {"registration_responses": {}, "datetime_initiated": "2026-10-21T20:00:00.288542",
+                      "attributes": {"registration_responses": {}, "datetime_initiated": "2026-10-21T20:00:00.288542Z",
                                      "title": "t", "description": ""},
                       "relationships": {"registration_schema": {"data": {"id": SCHEMA, "type": "registration-schemas"}},
                                         "provider": {"data": {"id": "osf", "type": "registration-providers"}}}}}
     reg_attrs = {"title": "t", "description": f"Preregistration manifest, SHA-256 {manifest.digest}.",
-                 "date_registered": "2026-10-21T20:01:00.123456", "public": True,
+                 "date_registered": "2026-10-21T20:01:00.123456Z", "public": True,
                  "pending_registration_approval": False, "embargoed": False, "pending_embargo_approval": False,
                  "withdrawn": False, **reg_overrides}
     reg = {"data": {"id": "abc12", "type": "registrations", "attributes": reg_attrs,
@@ -172,3 +172,13 @@ def test_malformed_date_is_a_configuration_error(stamp):
     replay, _ = _replay(manifest, date_registered=stamp)
     with pytest.raises(ConfigurationError, match="date_registered"):
         OSFClient("tok", transport=replay).fetch("abc12", manifest)
+
+
+def test_pinned_version_dates_carry_z_and_a_legacy_zoneless_date_is_utc():
+    manifest = hash_plan(["plan_fixture.md"], root=FIX)
+    replay, _ = _replay(manifest)
+    assert OSFClient("tok", transport=replay).fetch("abc12", manifest).registered_at == datetime(
+        2026, 10, 21, 20, 1, 0, 123456, tzinfo=UTC)
+    replay, _ = _replay(manifest, date_registered="2026-10-21T20:01:00.123456")
+    legacy = OSFClient("tok", transport=replay).fetch("abc12", manifest).registered_at
+    assert legacy == datetime(2026, 10, 21, 20, 1, 0, 123456, tzinfo=UTC)

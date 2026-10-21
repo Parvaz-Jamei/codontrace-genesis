@@ -31,8 +31,11 @@ therefore only submits with ``submit=True``. A draft is private and is not
 evidence. Neither is a registration that is still pending approval or
 embargoed, because nobody outside can see it yet.
 
-OSF reports ``date_registered`` without a zone. The server stores UTC, so the
-client attaches UTC. The token is passed in by the caller and is never stored.
+From API version 2.2 on, OSF writes ``date_registered`` in UTC with a ``Z``
+suffix, ``%Y-%m-%dT%H:%M:%S.%fZ`` (``api/base/serializers.py:
+VersionedDateTimeField``), so at the pinned 2.20 the zone is explicit. Only a
+pre-2.2 reply would be zone-less; the server stores UTC, so the client would
+attach UTC to it. Anything else is a :class:`ConfigurationError`. The token is passed in by the caller and is never stored.
 """
 
 from __future__ import annotations

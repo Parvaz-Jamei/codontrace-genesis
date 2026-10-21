@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import importlib
+import os
 from itertools import product as cartesian
 
+import pytest
 from hypothesis import strategies as st
 
 from codontrace.causal_inference import CausalDiagram
@@ -98,3 +101,42 @@ def frontdoor_value(joint, x, y, z):
 __all__ = [
     "admgs", "assignments", "backdoor_value", "brute_force_d_separated", "frontdoor_value",
 ]
+
+
+def require_y0(module: str):
+    """Import a y0 module for the oracle tests.
+
+    Skips when y0 is not installed, except under ``CODONTRACE_REQUIRE_Y0=1``
+    (set by the CI oracle job), where a missing y0 is a failure, not a skip.
+    """
+    if os.environ.get("CODONTRACE_REQUIRE_Y0") == "1":
+        return importlib.import_module(module)
+    return pytest.importorskip(module)
+
+
+def to_y0(g):
+    from y0.dsl import Variable
+    from y0.graph import NxMixedGraph
+
+    ng = NxMixedGraph()
+    for v in sorted(g.nodes):  # y0 0.2.11 needs every node in both layers
+        ng.directed.add_node(Variable(v))
+        ng.undirected.add_node(Variable(v))
+    for a, b in sorted(g.directed):
+        ng.add_directed_edge(Variable(a), Variable(b))
+    for a, b in sorted(g.bidirected):
+        ng.add_undirected_edge(Variable(a), Variable(b))
+    return ng
+
+
+def networkx_m_separated(g, xs, ys, zs):
+    """m-separation via networkx on an independent latent expansion (no project code)."""
+    import networkx as nx
+
+    dag = nx.DiGraph()
+    dag.add_nodes_from(g.nodes)
+    dag.add_edges_from(g.directed)
+    for k, (a, b) in enumerate(sorted(g.bidirected)):
+        dag.add_edge(("latent", k), a)
+        dag.add_edge(("latent", k), b)
+    return nx.is_d_separator(dag, set(xs), set(ys), set(zs))

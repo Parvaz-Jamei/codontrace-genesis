@@ -24,11 +24,39 @@ def test_do_bit_only_edits_primary_founders():
     assert set_founder_bits(bits, {1: 1, 2: 0}) == ("110111000", "110111000", "000000000")
 
 
-def test_identified_effect_matches_engine_reruns(report):
+def test_identified_effect_matches_fresh_seed_truth(report):
     assert report.adjustment == ("bit:2", "env:population")
+    assert report.truth_seeds == (1000, 1001, 1002)
     lo, hi = report.bootstrap_ci
-    assert lo <= report.true_ate <= hi
+    tlo, thi = report.truth_ci
+    assert tlo <= report.true_ate <= thi
+    # The truth comes from independent runs, so compare the two intervals.
+    assert lo <= thi and tlo <= hi
     assert abs(report.identified_ate - report.true_ate) < 0.1 * abs(report.true_ate) + 0.5
+
+
+def test_truth_runs_use_only_fresh_seeds_and_never_observational_runs():
+    calls = []
+
+    def runner(seed, pop, bits, ticks):
+        calls.append(seed)
+        return seed % 3 + bits[1] * (1 + bits[2])
+
+    study = EngineBitStudy(seeds=(0, 1, 2), truth_seeds=(7, 8, 9), runner=runner)
+    units = study.observational_sample(40, seed=0)
+    assert {u.seed for u in units} <= {0, 1, 2} and set(calls) <= {0, 1, 2}
+    calls.clear()
+    truth = study.ground_truth()
+    assert set(calls) == {7, 8, 9} and len(calls) == 3 * 2 * 2 * 2
+    assert truth.means[1] - truth.means[0] == pytest.approx(1.5)
+    assert truth.ate_ci == pytest.approx((1.5, 1.5))
+
+
+def test_truth_seeds_must_be_fresh():
+    with pytest.raises(ConfigurationError, match="disjoint"):
+        EngineBitStudy(seeds=(0, 1, 2), truth_seeds=(2, 3))
+    with pytest.raises(ConfigurationError, match="two distinct"):
+        EngineBitStudy(truth_seeds=(5, 5))
 
 
 def test_naive_contrast_is_confounded_and_excluded(report):

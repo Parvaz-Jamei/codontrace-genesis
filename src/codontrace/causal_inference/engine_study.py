@@ -10,17 +10,24 @@ Variables are named by layer:
 
 ``do(bit:i = b)`` is a real engine intervention: the founders that carry the
 preset's primary genome get bit ``i`` set to ``b`` in
-``GenesisExperimentSpec.genome_bits`` and the engine is rerun with the same
-seed (common random numbers; the rest of the spec is unchanged). The engine
-is not modified.
+``GenesisExperimentSpec.genome_bits`` and the engine is run. The engine is
+not modified.
 
 :class:`EngineBitStudy` draws an *observational* sample in which the focal
 bit is assigned with probabilities that depend on the environment and on the
-background bit (confounding by design, drawn from ``RNGManager``), runs the
-engine for every unit, identifies ``E[Y | do(focal)]`` from the diagram with
-ID, estimates it on the observational sample, and compares it with the ground
-truth from interventional reruns of the *same* units (each unit's seed,
-environment and background, with the focal bit forced to 0 and to 1).
+background bit (confounding by design, drawn from ``RNGManager``; no engine
+mechanism confounds them), runs the engine for every unit on a seed from
+``seeds``, identifies ``E[Y | do(focal)]`` from the diagram with ID and
+estimates it on that sample.
+
+The ground truth is independent of that sample. It is the population mean
+``E[Y | do(focal = b)]`` over the same design distribution of environment
+and background (uniform, as in the sample), computed from separate engine
+runs on ``truth_seeds``, a pool of fresh seeds disjoint from ``seeds``
+(checked). So no observational outcome is ever reused as an interventional
+one, or the reverse. Within each truth seed the two arms share the seed
+(a paired design), and the truth interval is a t-interval over truth seeds
+of the per-seed paired effect.
 """
 
 from __future__ import annotations
@@ -41,6 +48,7 @@ __all__ = [
     "EngineBitStudy",
     "EngineUnit",
     "EngineValidationReport",
+    "GroundTruth",
     "life_loop_births",
     "set_founder_bits",
     "DIRECTED_EVIDENCE_RELATIONS",
@@ -87,6 +95,28 @@ class EngineUnit:
     outcome: int
 
 
+# Two-sided 95% Student-t quantiles t_{0.975, df}, df = 1..30 (Abramowitz &
+# Stegun 1964, Table 26.10); the normal 1.96 is used above 30.
+_T975 = (12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
+         2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086,
+         2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042)
+
+
+def _t975(df: int) -> float:
+    return _T975[df - 1] if df <= len(_T975) else 1.96
+
+
+@dataclass(frozen=True)
+class GroundTruth:
+    means: dict[int, float]
+    ate_ci: tuple[float, float]
+    seeds: tuple[int, ...]
+
+    @property
+    def ate(self) -> float:
+        return self.means[1] - self.means[0]
+
+
 @dataclass(frozen=True)
 class EngineValidationReport:
     expression: str
@@ -96,6 +126,8 @@ class EngineValidationReport:
     naive: dict[int, float]
     n_units: int
     bootstrap_ci: tuple[float, float]
+    truth_ci: tuple[float, float] = (float("nan"), float("nan"))
+    truth_seeds: tuple[int, ...] = ()
 
     @property
     def identified_ate(self) -> float:
@@ -120,6 +152,8 @@ class EngineValidationReport:
             "true_ate": self.true_ate,
             "naive_ate": self.naive_ate,
             "bootstrap_ci_identified_ate": list(self.bootstrap_ci),
+            "truth_ci_ate": list(self.truth_ci),
+            "truth_seeds": list(self.truth_seeds),
             "n_units": self.n_units,
         }
 
@@ -134,6 +168,8 @@ class EngineBitStudy:
     populations: tuple[int, int] = (4, 8)
     ticks: int = 12
     seeds: tuple[int, ...] = (0, 1, 2)
+    # Fresh engine seeds for the interventional ground truth; disjoint from ``seeds``.
+    truth_seeds: tuple[int, ...] = (1000, 1001, 1002)
     # P(focal = 1 | env, background): confounded assignment
     assignment: Mapping[tuple[int, int], float] = field(
         default_factory=lambda: {(0, 0): 0.2, (0, 1): 0.3, (1, 0): 0.6, (1, 1): 0.85}
@@ -196,12 +232,34 @@ class EngineBitStudy:
             total += float(y) * joint.evaluate(expr, a, fill_unbound=True)
         return total
 
-    def ground_truth(self, units: Sequence[EngineUnit]) -> dict[int, float]:
-        """Mean outcome of the same units rerun under do(focal = 0) and do(focal = 1)."""
-        return {
-            b: sum(self.run(u.seed, u.env, u.background, b) for u in units) / len(units)
-            for b in (0, 1)
-        }
+    def __post_init__(self) -> None:
+        overlap = set(self.seeds) & set(self.truth_seeds)
+        if overlap:
+            raise ConfigurationError(
+                f"truth_seeds must be fresh, disjoint from the observational seeds; shared: {sorted(overlap)}"
+            )
+        if len(set(self.truth_seeds)) < 2:
+            raise ConfigurationError("the ground truth needs at least two distinct truth seeds")
+
+    def ground_truth(self) -> GroundTruth:
+        """``E[Y | do(focal = b)]`` from fresh engine runs on ``truth_seeds``.
+
+        Every (truth seed, environment, background) cell is run under both
+        arms; environment and background are averaged with the design's
+        uniform weights. The interval is a two-sided 95% t-interval, over
+        truth seeds, of the per-seed paired effect.
+        """
+        cells = [(e, bg) for e in (0, 1) for bg in (0, 1)]
+        per_seed: list[dict[int, float]] = []
+        for s in sorted(set(self.truth_seeds)):
+            per_seed.append({b: sum(self.run(s, e, bg, b) for e, bg in cells) / len(cells) for b in (0, 1)})
+        k = len(per_seed)
+        means = {b: sum(p[b] for p in per_seed) / k for b in (0, 1)}
+        diffs = [p[1] - p[0] for p in per_seed]
+        ate = sum(diffs) / k
+        sd = (sum((d - ate) ** 2 for d in diffs) / (k - 1)) ** 0.5
+        half = _t975(k - 1) * sd / k**0.5
+        return GroundTruth(means, (ate - half, ate + half), tuple(sorted(set(self.truth_seeds))))
 
     def validate(
         self, n_units: int = 200, seed: int = 0, n_bootstrap: int = 200
@@ -232,14 +290,17 @@ class EngineBitStudy:
         from .adjustment import backdoor_adjustment_sets
 
         adj = backdoor_adjustment_sets(g, {self.focal_var}, {self.outcome_var})
+        truth = self.ground_truth()
         return EngineValidationReport(
             expression=str(expr),
             adjustment=tuple(sorted(adj[0])) if adj else (),
             identified=ident,
-            truth=self.ground_truth(units),
+            truth=truth.means,
             naive=naive,
             n_units=n_units,
             bootstrap_ci=(lo, hi),
+            truth_ci=truth.ate_ci,
+            truth_seeds=truth.seeds,
         )
 
     def hidden_environment_is_not_identifiable(self) -> bool:

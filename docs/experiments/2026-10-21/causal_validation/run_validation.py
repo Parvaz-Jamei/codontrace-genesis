@@ -17,7 +17,7 @@ from codontrace.causal_inference.engine_study import EngineBitStudy
 
 def main() -> None:
     here = Path(__file__).resolve().parent
-    study = EngineBitStudy(seeds=tuple(range(8)))
+    study = EngineBitStudy(seeds=tuple(range(8)), truth_seeds=tuple(range(1000, 1008)))
     out: dict[str, object] = {
         "codontrace_version": codontrace.__version__,
         "python": platform.python_version(),
@@ -29,6 +29,7 @@ def main() -> None:
             "focal_bit": study.focal_bit,
             "background_bit": study.background_bit,
             "seeds": list(study.seeds),
+            "truth_seeds": list(study.truth_seeds),
             "assignment_p_focal_1": {f"env={k[0]},bg={k[1]}": v for k, v in study.assignment.items()},
         },
         "validation": {

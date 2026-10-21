@@ -82,7 +82,7 @@ def schedule_measurements(candidates: list[dict[str, Any]], *, now_ms: int,
         gain=probability*max(0.,q*(age-latency))
         rows.append({**row,'age_ms':age,'current_variance_proxy':noise+q*age,
                      'refreshed_variance_proxy':noise+q*latency,'expected_gain_proxy':gain})
-    selected=[];remaining=list(rows);group_best={};spent=0
+    selected: list[dict[str, Any]]=[];remaining=list(rows);group_best: dict[Any, float]={};spent=0
     while len(selected)<request_budget:
         scored=[]
         for row in remaining:

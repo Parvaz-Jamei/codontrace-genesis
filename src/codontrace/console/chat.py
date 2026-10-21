@@ -17,6 +17,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from codontrace.contracts.wire_validation import loads_bounded
+
 
 def inference_timeout(*, cloud: bool) -> float:
     """Local low-power inference retains the original 30-minute budget."""
@@ -166,7 +168,7 @@ def _probe_single_endpoint(ep: str) -> dict[str, Any] | None:
         req = urllib.request.Request(models_url, headers={"User-Agent": "CodonTraceConsole/1.0"})
         with urllib.request.urlopen(req, timeout=0.8) as resp:
             if resp.status == 200:
-                data = json.loads(resp.read().decode("utf-8"))
+                data = loads_bounded(resp.read().decode("utf-8"))
                 models = [m.get("id", "model") for m in data.get("data", [])] if isinstance(data, dict) else []
                 active_model = models[0] if models else "active-model"
                 provider = "llama-server" if ":8088" in ep else ("ollama" if ":11434" in ep else "local-llm")
@@ -257,7 +259,7 @@ def is_local_gguf_hosted(model: str | None) -> bool:
         )
         with urllib.request.urlopen(req, timeout=0.35) as resp:
             if resp.status == 200:
-                data = json.loads(resp.read().decode("utf-8"))
+                data = loads_bounded(resp.read().decode("utf-8"))
                 models = [str(m.get("id", "")) for m in data.get("data", [])] if isinstance(data, dict) else []
                 if models:
                     return True
@@ -385,7 +387,7 @@ def query_llm(
                 raw = resp.read(1024 * 1024 + 1)
                 if len(raw) > 1024 * 1024:
                     raise LLMUpstreamError("upstream_response_too_large")
-                body = json.loads(raw)
+                body = loads_bounded(raw)
             choices = body.get("choices", [])
             if not choices:
                 return None
@@ -406,7 +408,7 @@ def query_llm(
                     function = call.get("function") or {}
                     name = function.get("name", "")
                     try:
-                        args = json.loads(function.get("arguments") or "{}")
+                        args = loads_bounded(function.get("arguments") or "{}")
                     except (ValueError, TypeError):
                         args = None
                     if not isinstance(args, dict):

@@ -58,6 +58,21 @@ def json_depth_within(text: str | bytes, limit: int = MAX_JSON_DEPTH) -> bool:
             depth -= 1
     return True
 
+
+def loads_bounded(text: str | bytes, limit: int = MAX_JSON_DEPTH, **kwargs: Any) -> Any:
+    """``json.loads`` that rejects nesting deeper than ``limit`` before parsing.
+
+    Too-deep input raises ``json.JSONDecodeError`` (a ``ValueError``), the
+    same exception as any other malformed JSON, so callers keep one error
+    path and never see RecursionError. Other argument types go straight to
+    ``json.loads``, which raises TypeError as before.
+    """
+    if isinstance(text, (str, bytes, bytearray)) and not json_depth_within(bytes(text) if isinstance(text, bytearray) else text, limit):
+        doc = text if isinstance(text, str) else bytes(text).decode('utf-8', 'replace')
+        raise json.JSONDecodeError(f'JSON nesting deeper than {limit} levels', doc, 0)
+    return json.loads(text, **kwargs)
+
+
 IDENTIFIER_PATTERN = r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}'
 _IDENTIFIER = re.compile(IDENTIFIER_PATTERN)
 

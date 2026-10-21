@@ -17,6 +17,8 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TypedDict, cast
 
+from codontrace.contracts.wire_validation import loads_bounded
+
 CANONICAL_REMOTE = "https://github.com/Parvaz-Jamei/codontrace-genesis.git"
 LATEST_RELEASE_URL = "https://api.github.com/repos/Parvaz-Jamei/codontrace-genesis/releases/latest"
 CHECK_INTERVAL_SECONDS = 24 * 60 * 60
@@ -131,7 +133,7 @@ def _latest_release() -> tuple[str | None, str | None, str | None]:
     )
     try:
         with urllib.request.urlopen(request, timeout=12) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+            payload = loads_bounded(response.read().decode("utf-8"))
     except (OSError, urllib.error.URLError, json.JSONDecodeError, TimeoutError) as exc:
         return None, None, str(exc)
     if not isinstance(payload, dict):

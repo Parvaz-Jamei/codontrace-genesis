@@ -39,7 +39,7 @@ def session_expiry_properties(session_expiry_s: int | None, client_id: str) -> A
         raise ValueError('a persistent session needs an explicit stable client_id')
     from paho.mqtt.packettypes import PacketTypes
     from paho.mqtt.properties import Properties
-    properties = Properties(PacketTypes.CONNECT)  # type: ignore[no-untyped-call]
+    properties = Properties(PacketTypes.CONNECT)  # type: ignore[no-untyped-call, unused-ignore]
     properties.SessionExpiryInterval = session_expiry_s
     return properties
 
@@ -48,7 +48,7 @@ def mqtt_v5_client(client_id: str, *, username: str, password: str, ca_file: str
                    manual_ack: bool = True) -> Any:
     """paho v5 client with TLS, credentials and reconnect backoff; not connected."""
     import paho.mqtt.client as mqtt
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,  # type: ignore[attr-defined]
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,  # type: ignore[attr-defined, unused-ignore]
                          client_id=client_id, protocol=mqtt.MQTTv5, manual_ack=manual_ack)
     client.reconnect_delay_set(min_delay=1, max_delay=60)
     client.username_pw_set(username, password)

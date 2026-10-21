@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import logging
-import ssl
 import threading
 import time
 import uuid
@@ -12,6 +11,7 @@ from typing import Any
 
 from codontrace.swarm.protocol import canonical, decode, identifier
 from codontrace.swarm.runtime import JournalBusyError, SwarmCoordinator
+from codontrace.swarm.transport.mqtt_session import mqtt_v5_client, session_expiry_properties
 
 _LOG = logging.getLogger(__name__)
 
@@ -144,25 +144,9 @@ class MqttSwarmBridge:
         ``session_expiry_s`` (opt-in) requests a persistent session; it needs a
         stable ``client_id`` so the broker can match the session on reconnect.
         """
-        import paho.mqtt.client as mqtt
-        properties = None
-        if session_expiry_s is not None:
-            if type(session_expiry_s) is not int or not 1 <= session_expiry_s <= 7 * 24 * 3600:
-                raise ValueError('session_expiry_s must be 1..604800 seconds')
-            if not self._explicit_client_id:
-                raise ValueError('a persistent session needs an explicit stable client_id')
-            from paho.mqtt.packettypes import PacketTypes
-            from paho.mqtt.properties import Properties
-            properties = Properties(PacketTypes.CONNECT)
-            properties.SessionExpiryInterval = session_expiry_s
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
-                             client_id=self.client_id, protocol=mqtt.MQTTv5, manual_ack=True)
-        # Defence in depth: on_message already contains its errors; a callback
-        # error must never stop the network loop thread.
-        client.suppress_exceptions = True
-        client.reconnect_delay_set(min_delay=1, max_delay=60)
-        client.username_pw_set(username, password)
-        client.tls_set(ca_certs=ca_file, tls_version=ssl.PROTOCOL_TLS_CLIENT)
+        properties = session_expiry_properties(session_expiry_s, self.client_id,
+                                               explicit_client_id=self._explicit_client_id)
+        client = mqtt_v5_client(self.client_id, username=username, password=password, ca_file=ca_file)
 
         def on_connect(c: Any, userdata: Any, flags: Any, reason: Any, properties: Any) -> None:
             if reason.is_failure:

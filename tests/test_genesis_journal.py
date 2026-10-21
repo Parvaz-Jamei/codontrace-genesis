@@ -251,3 +251,12 @@ def test_swarm_coordinator_is_a_hash_chained_journal():
     from codontrace.genesis.journal import NotRecorded
     from codontrace.swarm.runtime import SwarmCoordinator, _NotRecorded
     assert issubclass(SwarmCoordinator, HashChainedJournal) and _NotRecorded is NotRecorded
+
+
+def test_journal_docs_do_not_point_at_module_classes():
+    """Review F8: the journal documents its own rules instead of referring to a module class."""
+    from pathlib import Path
+
+    import codontrace.genesis.journal as package
+    for path in Path(package.__file__).parent.glob('*.py'):
+        assert 'SwarmCoordinator' not in path.read_text(encoding='utf-8'), path.name

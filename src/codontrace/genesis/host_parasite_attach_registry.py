@@ -245,7 +245,7 @@ def assert_wave5_attach_surface_wired() -> None:
             f"WAVE5_ATTACH_CALLABLES has orphan keys not in WAVE5_ATTACH_KEYS: {orphan}"
         )
     # Import locally to avoid circular imports at module load.
-    from codontrace.claimgate.adapters import host_parasite as hp_adapter
+    import codontrace.claimgate.adapters.host_parasite as hp_adapter
 
     missing_fns: list[str] = []
     for key, fn_name in WAVE5_ATTACH_CALLABLES.items():
@@ -271,7 +271,7 @@ def assert_wave6_attach_surface_wired() -> None:
         raise ConfigurationError(
             f"WAVE6_ATTACH_CALLABLES has orphan keys not in WAVE6_ATTACH_KEYS: {orphan}"
         )
-    from codontrace.claimgate.adapters import host_parasite as hp_adapter
+    import codontrace.claimgate.adapters.host_parasite as hp_adapter
 
     missing_fns: list[str] = []
     for key, fn_name in WAVE6_ATTACH_CALLABLES.items():

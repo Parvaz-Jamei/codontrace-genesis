@@ -77,7 +77,31 @@ _STABLE_SYMBOLS: tuple[tuple[str, str, str, bool], ...] = (
     ("EvidenceLineageDAGSample", "codontrace.genesis", "0.3.0a1-phaseB", False),
 )
 
-_PROVISIONAL_SYMBOLS: tuple[tuple[str, str, str], ...] = ()
+# Engine-integration sections (experimental): importable and documented, not
+# claim-ready. See docs/ARCHITECTURE_PORTS.md and docs/ENGINE_REPLAY_CONTRACT.md.
+_ENGINE_INTEGRATION = "0.3.0b30-engine-integration"
+_PROVISIONAL_SYMBOLS: tuple[tuple[str, str, str], ...] = (
+    ("GenerationInputProvider", "codontrace.engine_spec", _ENGINE_INTEGRATION),
+    ("RecordedInputProvider", "codontrace.replay", _ENGINE_INTEGRATION),
+    ("ChannelDescriptor", "codontrace.contracts.channels", _ENGINE_INTEGRATION),
+    ("Normalization", "codontrace.contracts.channels", _ENGINE_INTEGRATION),
+    ("resolve_run_root", "codontrace.contracts.run_roots", _ENGINE_INTEGRATION),
+    ("HashChainedJournal", "codontrace.genesis.journal", _ENGINE_INTEGRATION),
+    ("journal_anchor", "codontrace.genesis.journal", _ENGINE_INTEGRATION),
+    ("verify_anchor", "codontrace.genesis.journal", _ENGINE_INTEGRATION),
+    ("SwarmCoordinatorCore", "codontrace.genesis.swarm", _ENGINE_INTEGRATION),
+    ("SwarmConfig", "codontrace.genesis.swarm", _ENGINE_INTEGRATION),
+    ("ParameterSpace", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("HillClimbEmitter", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("GaussianEmitter", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("minimax_coevolve", "codontrace.genesis.coevolution", _ENGINE_INTEGRATION),
+    ("paired_shadow", "codontrace.genesis.shadow_evaluation", _ENGINE_INTEGRATION),
+    ("paired_mse_gain", "codontrace.genesis.shadow_evaluation", _ENGINE_INTEGRATION),
+    ("compute_str_disparity", "codontrace.genesis.transferability", _ENGINE_INTEGRATION),
+    ("module_run_reference", "codontrace.genesis.run_refs", _ENGINE_INTEGRATION),
+    ("split_residual_interval", "codontrace.life_loop.conformal_bands", _ENGINE_INTEGRATION),
+    ("apply_disturbance", "codontrace.life_loop.disturbance", _ENGINE_INTEGRATION),
+)
 
 _DEPRECATED_SYMBOLS: tuple[tuple[str, str, str, str], ...] = ()
 

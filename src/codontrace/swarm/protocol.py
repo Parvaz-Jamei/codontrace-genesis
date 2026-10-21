@@ -10,8 +10,10 @@ from codontrace.contracts.wire_validation import (
     bounded_text,
     exact_keys,
     finite_number,
-    identifier,
     wire_canonical,
+)
+from codontrace.contracts.wire_validation import (
+    identifier as identifier,  # re-exported for swarm callers
 )
 
 VERSION = 'genesis_swarm_v1'

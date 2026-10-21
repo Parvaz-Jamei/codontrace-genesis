@@ -1,9 +1,7 @@
 """Transactional host coordinator, measured data only; no board firmware."""
 from __future__ import annotations
 
-import copy
 import os  # noqa: F401  (tests patch codontrace.swarm.runtime.os.fsync)
-import statistics
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +14,14 @@ from codontrace.genesis.journal import (  # noqa: F401  (public names)
 from codontrace.genesis.journal import (
     JournalBusyError as JournalBusyError,
 )
+from codontrace.genesis.swarm import (
+    SwarmConfig,
+    SwarmCoordinatorCore,
+    measurement_candidates,
+    plan_oldest_first,
+    robust_fuse,
+)
+from codontrace.genesis.swarm.fusion import FUSION_MODES
 from codontrace.swarm.policies import Pipeline, diagnose
 from codontrace.swarm.protocol import (  # noqa: F401  (canonical is a public name)
     VERSION2,
@@ -27,7 +33,7 @@ from codontrace.swarm.protocol import (  # noqa: F401  (canonical is a public na
     object_keys,
     text,
 )
-from codontrace.swarm.sensors import descriptor, normalize, scalar_frame
+from codontrace.swarm.sensors import descriptor, normalize, scalar_frame  # noqa: F401  (public names)
 
 CHECKPOINT_SCHEMA = 'genesis_swarm_checkpoint_v1'
 _NotRecorded = NotRecorded  # historical name
@@ -74,6 +80,8 @@ class SwarmCoordinator(HashChainedJournal):
         if ttl_ms < 1:
             raise ValueError('positive TTL required')
         self.max_skew_ms = integer(max_skew_ms, high=60000)
+        self._core = SwarmCoordinatorCore(SwarmConfig(self.swarm_id, self.ttl_ms, self.max_skew_ms), decode=decode,
+                                          typed_schema=VERSION2, command_params=self._command_params)
         self._init_journal(journal, segment_bytes=journal_segment_bytes, retention_bytes=journal_retention_bytes,
                            archive_max_bytes=archive_max_bytes, lock_timeout_s=lock_timeout_s, restore=restore)
 
@@ -83,155 +91,10 @@ class SwarmCoordinator(HashChainedJournal):
 
     @staticmethod
     def _empty_state() -> dict[str, Any]:
-        return {'nodes': {}, 'frames': {}, 'commands': {}, 'command_counter': 0,
-                'trust': {}, 'history': [], 'engine_boundaries': [], 'status': 'running', 'now_ms': 0}
+        return SwarmCoordinatorCore.empty_state()
 
     def _apply(self, action: str, args: dict[str, Any], now: int) -> Any:
-        if now < self._state['now_ms']:
-            raise ValueError('host clock moved backwards')
-        self._state['now_ms'] = now
-        nodes = self._state['nodes']
-        for command in self._state['commands'].values():
-            if command['status'] == 'pending' and command['expires_ms'] <= now:
-                command['status'] = 'expired'
-        if action == 'ingest':
-            m = decode(args['message'])
-            if m['swarm_id'] != self.swarm_id:
-                raise ValueError('cross-swarm message rejected')
-            node_id = m['node_id']; p = m['payload']; node = nodes.get(node_id)
-            if m['kind'] == 'hello':
-                if node is None and len(nodes) >= 256:
-                    raise ValueError('node capacity reached')
-                if node is not None and node['boot_id'] == m['boot_id']:
-                    if node['channels'] != p['channels'] or node['operations'] != p['operations']:
-                        raise ValueError('capabilities changed within boot session')
-                    if m['seq'] <= node['seq']:
-                        return _NotRecorded(accepted=False, reason='duplicate_or_reordered')
-                if node is not None and node['boot_id'] != m['boot_id']:
-                    for config_key in list(self._state.get('channel_configs', {})):
-                        if config_key.startswith(node_id + '/'):
-                            del self._state['channel_configs'][config_key]
-                    for key in list(self._state['frames']):
-                        if key.startswith(node_id + '/'):
-                            del self._state['frames'][key]
-                            self._state['trust'].pop(key, None)
-                    for c in self._state['commands'].values():
-                        if c['node_id'] == node_id and c['status'] == 'pending':
-                            c['status'] = 'boot_replaced'
-                nodes[node_id] = {**p, 'boot_id': m['boot_id'], 'seq': m['seq'], 'last_seen_ms': now}
-                return {'accepted': True}
-            if node is None or m['boot_id'] != node['boot_id']:
-                raise ValueError('hello required for this boot session')
-            if m['seq'] <= node['seq']:
-                return _NotRecorded(accepted=False, reason='duplicate_or_reordered')
-            if m['kind'] == 'reading':
-                if self._state['status'] != 'running':
-                    raise ValueError('swarm is paused or stopped')
-                if p['channel'] not in node['channels']:
-                    raise ValueError('undeclared channel')
-                channel_config = node['channels'][p['channel']]
-                if ('descriptor' in channel_config) != (m['schema'] == VERSION2):
-                    raise ValueError('reading schema differs from advertised channel')
-                if p['sample_ms'] > now + self.max_skew_ms or now - p['sample_ms'] > self.ttl_ms:
-                    raise ValueError('stale sample or clock skew')
-                key = node_id + '/' + p['channel']
-                if m['schema'] == VERSION2:
-                    channel_config = {**channel_config, 'descriptor': self._state.get('channel_configs', {}).get(key, channel_config['descriptor'])}
-                    p = normalize(p, channel_config)
-                    if 'reference' in p and p.get('reference_unit') != channel_config['unit']:
-                        raise ValueError('reference must explicitly use normalized channel unit')
-                    if 'reference' in p and channel_config['descriptor']['value_type'] != 'scalar':
-                        raise ValueError('scalar reference not supported for non-scalar channel')
-                previous = self._state['frames'].get(key)
-                if previous and p['sample_ms'] < previous['sample_ms']:
-                    raise ValueError('sample clock reordered')
-                if previous and (previous['processing_version'] != p['processing_version'] or previous.get('descriptor_digest') != p.get('descriptor_digest')):
-                    self._state['trust'].pop(key, None)
-                self._state['frames'][key] = {**p, **node['channels'][p['channel']],
-                                              'node_id': node_id, 'boot_id': m['boot_id'], 'received_ms': now, 'seq': m['seq']}
-                self._state['history'].append(self._state['frames'][key])
-                self._state['history'] = self._state['history'][-512:]
-            elif m['kind'] == 'reply':
-                c = self._state['commands'].get(p['command_id'])
-                if c is None or c['node_id'] != node_id or c['boot_id'] != m['boot_id']:
-                    raise ValueError('reply identity mismatch')
-                if c['status'] != 'pending':
-                    raise ValueError('reply to non-pending command')
-                c['status'] = 'acknowledged' if p['ok'] else 'rejected'
-                c['reply'] = p
-            node['seq'] = m['seq']; node['last_seen_ms'] = now
-            return {'accepted': True}
-        if action == 'command':
-            if self._state['status'] != 'running':
-                raise ValueError('commands require a running swarm')
-            node_id = identifier(args['node_id']); node = nodes.get(node_id)
-            op = args['operation']
-            if node is None or now - node['last_seen_ms'] > self.ttl_ms:
-                raise ValueError('node unavailable')
-            if op not in node['operations']:
-                raise ValueError('operation not advertised by node')
-            params = self._command_params(op, args['params'], node)
-            lifetime = integer(args['timeout_ms'], high=60000)
-            if lifetime < 1:
-                raise ValueError('positive timeout required')
-            if sum(c['status'] == 'pending' for c in self._state['commands'].values()) >= 256:
-                raise ValueError('pending command capacity reached')
-            if len(self._state['commands']) >= 1024:
-                oldest = next((k for k, c in self._state['commands'].items() if c['status'] != 'pending'), None)
-                if oldest is not None:
-                    del self._state['commands'][oldest]
-            self._state['command_counter'] += 1
-            command_id = 'cmd-' + str(self._state['command_counter'])
-            c = {'schema': 'genesis_swarm_command_v1', 'swarm_id': self.swarm_id, 'node_id': node_id,
-                 'boot_id': node['boot_id'], 'command_id': command_id, 'operation': op, 'params': params,
-                 'created_ms': now, 'expires_ms': now + lifetime, 'status': 'pending'}
-            self._state['commands'][command_id] = c
-            return c
-        if action == 'status':
-            status = args['status']
-            if status not in ('running', 'paused', 'stopped'):
-                raise ValueError('invalid swarm status')
-            self._state['status'] = status
-            if status != 'running':
-                for c in self._state['commands'].values():
-                    if c['status'] == 'pending':
-                        c['status'] = 'cancelled'
-            return {'status': status}
-        if action == 'trust':
-            key = args['key']; frame = self._state['frames'].get(key)
-            if frame is None or not scalar_frame(frame) or now-frame['sample_ms'] > self.ttl_ms:
-                raise ValueError('fresh frame required')
-            reference = number(args['reference']); scale = number(args['scale'], low=0.001, high=1e6)
-            reliability = 1 / (1 + abs(frame['value'] - reference) / scale)
-            old = self._state['trust'].get(key, {'weight': 1.0, 'samples': 0})
-            self._state['trust'][key] = {'weight': 0.8 * old['weight'] + 0.2 * reliability,
-                                         'samples': old['samples'] + 1, 'reference_id': args['reference_id']}
-            return self._state['trust'][key]
-        if action == 'configure_channel':
-            key = args['key']
-            if not isinstance(key, str) or len(key.split('/')) != 2: raise ValueError('node/channel key required')
-            node_id, channel_id = key.split('/');identifier(node_id);identifier(channel_id)
-            node = nodes.get(node_id)
-            if node is None or channel_id not in node['channels']: raise ValueError('unknown channel')
-            channel = node['channels'][channel_id]
-            if 'descriptor' not in channel: raise ValueError('typed v2 channel required')
-            changes = object_keys(args['changes'], set(), {'normalization', 'range'})
-            d = dict(self._state.get('channel_configs', {}).get(key, channel['descriptor']))
-            for field, value in changes.items():
-                if value is None: d.pop(field, None)
-                else: d[field] = value
-            d = descriptor(d)
-            if d.get('normalization', {}).get('output_unit', d['source_unit']) != channel['unit']:
-                raise ValueError('configured normalization must preserve declared output unit')
-            self._state.setdefault('channel_configs', {})[key] = d
-            self._state['frames'].pop(key, None); self._state['trust'].pop(key, None)
-            return {'key': key, 'descriptor': d, 'host_configuration_applied': True, 'device_command_sent': False}
-        if action == 'boundary':
-            row = args['row']
-            self._state['engine_boundaries'].append(row)
-            self._state['engine_boundaries'] = self._state['engine_boundaries'][-128:]
-            return row
-        raise ValueError('unknown swarm action')
+        return self._core.apply(self._state, action, args, now)
 
     @staticmethod
     def _command_params(op: str, params: Any, node: dict[str, Any]) -> dict[str, Any]:
@@ -295,54 +158,31 @@ class SwarmCoordinator(HashChainedJournal):
         coordinator's lock (``JournalBusyError``, scope ``'in_process'``)."""
         integer(now_ms)
         with self._in_process_lock(lock_timeout_s):
-            state = copy.deepcopy(self._state)
-            for node in state['nodes'].values():
-                node['online'] = now_ms - node['last_seen_ms'] <= self.ttl_ms
-            for c in state['commands'].values():
-                if c['status'] == 'pending' and c['expires_ms'] <= now_ms:
-                    c['status'] = 'expired'
+            state = self._core.view(self._state, now_ms)
             return {'schema': 'genesis_swarm_snapshot_v1', 'swarm_id': self.swarm_id,
                     'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,
                     'state': state, 'journal_digest': self._chain, **self.journal_health()}
 
+    def run_reference(self) -> dict[str, Any]:
+        """Module run reference with the journal head anchor (see genesis.run_refs, genesis.journal.anchor)."""
+        from codontrace.genesis.journal.anchor import journal_anchor
+        from codontrace.genesis.run_refs import module_run_reference
+        return module_run_reference('swarm', self.swarm_id, journal_anchor=journal_anchor(self),
+                                    extra={'coordination_mode': 'genesis_orchestrated_sensor_swarm'})
+
     def frames(self, quantity: str, unit: str, *, now_ms: int) -> dict[str, dict[str, Any]]:
         text(quantity); text(unit)
         snapshot = self.snapshot(now_ms=now_ms)['state']
-        return {k: f for k, f in snapshot['frames'].items()
-                if scalar_frame(f) and f['quantity'] == quantity and f['unit'] == unit and
-                -self.max_skew_ms <= now_ms-f['sample_ms'] <= self.ttl_ms and
-                snapshot['nodes'][f['node_id']]['online'] and f.get('quality', 1) > 0}
+        return self._core.frames(snapshot, quantity, unit, now_ms)
 
     def fuse(self, quantity: str, unit: str, *, now_ms: int, mode: str = 'median', max_span_ms: int = 1000) -> dict[str, Any]:
         integer(max_span_ms, high=3600000)
-        if mode not in ('median', 'mean', 'calibrated'):
+        if mode not in FUSION_MODES:
             raise ValueError('unknown fusion mode')
         # Hold one lock across frames and learned weights: no mixed snapshots.
         with self._lock:
             frames = self.frames(quantity, unit, now_ms=now_ms)
-            if not frames:
-                return {'value': None, 'count': 0, 'status': 'insufficient_data', 'unit': unit}
-            latest = max(f['sample_ms'] for f in frames.values())
-            frames = {k: f for k, f in frames.items() if latest-f['sample_ms'] <= max_span_ms}
-            semantics = {(f.get('sensor_descriptor', {}).get('feature_id'), f.get('sensor_descriptor', {}).get('measurement_model'),
-                          f.get('sensor_descriptor', {}).get('model_id')) for f in frames.values()}
-            if len(semantics) > 1:
-                return {'value': None, 'count': len(frames), 'status': 'incompatible_measurement_semantics', 'unit': unit}
-            values = [f['value'] for f in frames.values()]
-            center = statistics.median(values)
-            if mode == 'mean':
-                center = statistics.mean(values)
-            if mode == 'calibrated':
-                weights = {k: self._state['trust'].get(k, {'weight': 1.0})['weight'] * f.get('quality', 1)
-                           for k, f in frames.items()}
-                total = sum(weights.values())
-                if total == 0:
-                    return {'value': None, 'count': len(frames), 'status': 'zero_weight', 'unit': unit}
-                center = sum(frames[k]['value'] * w for k, w in weights.items()) / total
-            return {'value': center, 'count': len(frames), 'status': 'descriptive_estimate',
-                    'quantity': quantity, 'unit': unit, 'mode': mode,
-                    'disagreement_mad': statistics.median(abs(v-statistics.median(values)) for v in values),
-                    'contributors': sorted(frames), 'confidence_interval': None}
+            return robust_fuse(frames, self._state['trust'], quantity, unit, mode=mode, max_span_ms=max_span_ms)
 
     def diagnose(self, quantity: str, unit: str, *, now_ms: int,
                  reference: float | None = None, tolerance: float = 2.0) -> dict[str, Any]:
@@ -353,22 +193,10 @@ class SwarmCoordinator(HashChainedJournal):
         text(quantity); text(unit); integer(budget, high=32)
         with self._lock:
             snapshot = self.snapshot(now_ms=now_ms)['state']
-            candidates = []
-            for node_id, node in snapshot['nodes'].items():
-                if not node['online'] or 'sample' not in node['operations']:
-                    continue
-                for channel, config in node['channels'].items():
-                    if config.get('quantity') != quantity or config.get('unit') != unit or config.get('descriptor', {}).get('value_type', 'scalar') != 'scalar':
-                        continue
-                    if any(c['status'] == 'pending' and c['node_id'] == node_id and
-                           c['params'].get('channel') == channel for c in snapshot['commands'].values()):
-                        continue
-                    frame = snapshot['frames'].get(node_id + '/' + channel)
-                    age = self.ttl_ms+1 if frame is None else now_ms - frame['sample_ms']
-                    candidates.append((-age, node_id, channel))
             # Capability-aware oldest-first allocation, not claimed optimal information gain.
             return [self.command(node_id, 'sample', {'channel': channel}, now_ms=now_ms)
-                    for _, node_id, channel in sorted(candidates)[:budget]]
+                    for node_id, channel in plan_oldest_first(snapshot, quantity, unit, now_ms=now_ms,
+                                                              ttl_ms=self.ttl_ms, budget=budget)]
 
     def boundary(self, row: dict[str, Any], *, now_ms: int) -> dict[str, Any]:
         return self._transaction('boundary', {'row': row}, now_ms)
@@ -382,30 +210,10 @@ class SwarmCoordinator(HashChainedJournal):
         """
         from codontrace.swarm.decision_support import schedule_measurements
         text(quantity); text(unit)
-        if not isinstance(models,dict) or len(models)>256:
-            raise ValueError('bounded channel model dictionary required')
         with self._lock:
             snapshot=self.snapshot(now_ms=now_ms)
-            state=snapshot['state'];candidates=[];excluded=[]
-            for key,model in models.items():
-                if not isinstance(key,str) or len(key.split('/'))!=2:
-                    raise ValueError('model key must be node/channel')
-                node_id,channel=key.split('/');identifier(node_id);identifier(channel)
-                node=state['nodes'].get(node_id)
-                if node is None or channel not in node['channels']:
-                    raise ValueError('model channel has not been advertised')
-                object_keys(model,{'group','noise_variance','process_variance_per_ms','latency_ms',
-                                   'success_probability','payload_bytes','evidence_id'})
-                frame=state['frames'].get(key)
-                eligible=(node['online'] and 'sample' in node['operations'] and frame is not None
-                          and frame['sample_ms']<=now_ms
-                          and node['channels'][channel].get('quantity')==quantity and node['channels'][channel].get('unit')==unit
-                          and scalar_frame(frame)
-                          and not any(c['status']=='pending' and c['node_id']==node_id and c['params'].get('channel')==channel
-                                      for c in state['commands'].values()))
-                if eligible:
-                    candidates.append({**model,'key':key,'sample_ms':frame['sample_ms']})
-                else: excluded.append(key)
+            state=snapshot['state']
+            candidates,excluded=measurement_candidates(state,models,quantity,unit,now_ms=now_ms)
             result=schedule_measurements(candidates,now_ms=now_ms,byte_budget=byte_budget,request_budget=request_budget)
             result.update(swarm_id=self.swarm_id,quantity=quantity,unit=unit,excluded_channels=excluded,
                           journal_digest=snapshot['journal_digest'],swarm_status=state['status'])

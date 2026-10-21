@@ -20,6 +20,7 @@ Interventional Distributions in Recursive Semi-Markovian Causal Models"):
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
@@ -180,10 +181,14 @@ class CausalDiagram:
             comps.append(comp)
         return tuple(sorted(comps, key=lambda c: sorted(c)))
 
-    def latent_projection_dag(self) -> tuple[CausalDiagram, frozenset[str]]:
-        """Replace each ``a <-> b`` by an explicit latent ``U[a,b]`` with ``a <- U -> b``.
+    def canonical_dag(self) -> tuple[CausalDiagram, frozenset[str]]:
+        """The canonical DAG: each ``a <-> b`` becomes a latent ``U[a,b]`` with ``a <- U -> b``.
 
-        Returns the DAG and the set of latent node names. Used to reduce
+        Returns the DAG and the set of latent node names. This is the
+        *inverse* direction of Verma's latent projection (which maps a DAG
+        with latents to an ADMG over the observed nodes; Richardson et al.
+        2023, Ann. Statist. 51(1):334-361; Verma & Pearl 1990); projecting the result
+        back over ``self.nodes`` returns ``self``. Used to reduce
         m-separation in an ADMG to d-separation in a DAG (Richardson 2003).
         """
         latents = {f"U[{a},{b}]": (a, b) for a, b in self.bidirected}
@@ -198,6 +203,14 @@ class CausalDiagram:
             CausalDiagram(self.nodes | frozenset(latents), frozenset(directed), frozenset()),
             frozenset(latents),
         )
+
+    def latent_projection_dag(self) -> tuple[CausalDiagram, frozenset[str]]:
+        """Deprecated name of :meth:`canonical_dag` (it is not a latent projection)."""
+        warnings.warn(
+            "CausalDiagram.latent_projection_dag is deprecated; use canonical_dag",
+            DeprecationWarning, stacklevel=2,
+        )
+        return self.canonical_dag()
 
     def _check(self, vs: Iterable[str]) -> frozenset[str]:
         s = frozenset([vs] if isinstance(vs, str) else vs)

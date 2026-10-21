@@ -35,7 +35,7 @@ def admgs(draw, min_nodes=2, max_nodes=6, bidirected=True):
 
 def brute_force_d_separated(g, x, y, z):
     """Enumerate every simple path of the skeleton (Pearl 2009, Def. 1.2.3)."""
-    dag, _ = g.latent_projection_dag()
+    dag, _ = g.canonical_dag()
     adj = {v: set() for v in dag.nodes}
     for a, b in dag.directed:
         adj[a].add(b)

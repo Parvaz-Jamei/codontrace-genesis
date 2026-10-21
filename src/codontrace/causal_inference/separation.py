@@ -26,9 +26,14 @@ __all__ = ["d_separated", "reachable"]
 
 
 def reachable(g: CausalDiagram, xs: Iterable[str], zs: Iterable[str]) -> frozenset[str]:
-    """Nodes reachable from X by an active trail given Z (DAG only)."""
+    """Nodes reachable from X by an active trail given Z.
+
+    Accepts a DAG or an ADMG. An ADMG is first replaced by its canonical DAG
+    (:meth:`CausalDiagram.canonical_dag`), so the result can include latent
+    ``U[a,b]`` nodes; :func:`d_separated` only intersects it with Y.
+    """
     if g.bidirected:
-        g, _ = g.latent_projection_dag()
+        g, _ = g.canonical_dag()
     x = g._check(xs)
     z = g._check(zs)
     parents = g._parent_map()

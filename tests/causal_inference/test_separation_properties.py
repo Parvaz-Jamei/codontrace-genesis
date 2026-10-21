@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -55,3 +56,12 @@ def test_d_separation_is_symmetric(data):
     y = data.draw(st.sets(st.sampled_from(rest), min_size=1, max_size=2))
     z = [v for v in rest if v not in y][:1]
     assert d_separated(g, x, y, z) == d_separated(g, y, x, z)
+
+
+def test_canonical_dag_and_deprecated_alias():
+    g = CausalDiagram.build([("X", "Y")], [("X", "Y")])
+    dag, latents = g.canonical_dag()
+    assert latents == {"U[X,Y]"} and not dag.bidirected
+    assert {("U[X,Y]", "X"), ("U[X,Y]", "Y"), ("X", "Y")} == set(dag.directed)
+    with pytest.warns(DeprecationWarning, match="canonical_dag"):
+        assert g.latent_projection_dag() == (dag, latents)

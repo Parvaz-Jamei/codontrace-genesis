@@ -87,3 +87,5 @@ probe ده مسیر را واقعاً اجرا و metrics.jsonl را زنده fl
 ## V5: حسگرهای typed و پایداری
 
 پروتکل v1 حفظ و v2 برای scalar/vector/waveform/boolean/category اضافه شده است. پشتیبانی از داده با پشتیبانی همهٔ الگوریتم‌ها برابر نیست. اتصال واقعی FDCxCapSense، normalization قابل تنظیم میزبان، replay journal چرخیده و جزئیات آزمون/محدودیت: [AUDIT_V5_FA.md](AUDIT_V5_FA.md). نمونه: `examples/swarm_generic_sensors.py`.
+
+مسیر کد بخش‌های عمومی موتور (journal، coordination core، channel descriptors، QD، decision support): [ENGINE_SECTIONS.md](ENGINE_SECTIONS.md).

@@ -78,3 +78,33 @@ def test_pipeline_event_threshold_is_inclusive():
     filtered, events = Pipeline(alpha=0.5, clip=1.0, event_threshold=2.0).process([0.0, 2.0, 2.5, 0.5, 0.5])
     assert events == [1, 3]  # |2.0 - 0.0| == threshold counts; |0.5 - 2.5| == 2.0 counts
     assert filtered == [0.0, 0.5, 1.0, 0.75, 0.625]
+
+
+def test_probe_07_queries_past_the_sample_ttl(monkeypatch):
+    """Review F5 (mutant R2): probe 07 fuses 11 s after the last reading, beyond
+    the 10 s sample TTL. The probe output (0 contributors) cannot tell 11000 from
+    10999, so the query time itself and the TTL edge it relies on are pinned."""
+    from codontrace.swarm.experiments import hello, reading
+    from codontrace.swarm.runtime import SwarmCoordinator
+
+    calls = []
+    real = SwarmCoordinator.fuse
+
+    def spy(self, quantity, unit, *, now_ms, **kw):
+        out = real(self, quantity, unit, now_ms=now_ms, **kw)
+        calls.append((now_ms, kw.get('mode', 'median'), out['count']))
+        return out
+    monkeypatch.setattr(SwarmCoordinator, 'fuse', spy)
+    samples = 16
+    run_seed(3, samples=samples)
+    last_sample = 1000 + samples - 1
+    assert calls[-1] == (last_sample + 11000, 'median', 0)
+    assert max(c[0] for c in calls[:-1]) == last_sample
+
+    monkeypatch.setattr(SwarmCoordinator, 'fuse', real)
+    swarm = SwarmCoordinator('probe')
+    swarm.ingest(hello('probe', 'a'), now_ms=1000)
+    swarm.ingest(reading('probe', 'a', 1, 1000, 1.0), now_ms=1000)
+    assert swarm.ttl_ms == 10000
+    assert swarm.fuse('signal', 'arb', now_ms=1000 + 10000)['count'] == 1
+    assert swarm.fuse('signal', 'arb', now_ms=1000 + 10001)['count'] == 0

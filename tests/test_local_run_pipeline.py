@@ -309,27 +309,44 @@ def test_active_clock_freezes_during_acknowledged_pause_and_resumes(env, tmp_pat
         target=lambda: results.append(orchestrator.run_experiment(ObservableRunner(boundary=boundary)))
     )
     thread.start()
-    assert gate.wait(5)
-    run_id = orchestrator.last_run_dir.name
-    assert manage_run_action(run_id, "pause")["ok"]
-    continued.set()
-    for _ in range(100):
-        if get_run_details(run_id)["status"] == "PAUSED":
-            break
-        time.sleep(0.01)
-    first = get_run_details(run_id)["snapshot"]
-    assert first["state"] == "PAUSED"
-    time.sleep(0.2)
-    second = get_run_details(run_id)["snapshot"]
-    assert second["state"] == "PAUSED"
-    assert second["active_elapsed_seconds"] <= first["active_elapsed_seconds"] + 0.03
-    assert second["paused_seconds"] >= first["paused_seconds"] + 0.15
-    assert second["progress"] == first["progress"]
-    assert manage_run_action(run_id, "resume")["ok"]
-    thread.join(5)
-    assert not thread.is_alive()
-    assert results[0].status == "COMPLETED"
-    assert get_run_details(run_id)["snapshot"]["paused_seconds"] >= 0.15
+    resumed = False
+    try:
+        assert gate.wait(5)
+        run_id = orchestrator.last_run_dir.name
+        assert manage_run_action(run_id, "pause")["ok"]
+        continued.set()
+        for _ in range(100):
+            if get_run_details(run_id)["status"] == "PAUSED":
+                break
+            time.sleep(0.01)
+        first = get_run_details(run_id)["snapshot"]
+        assert first["state"] == "PAUSED"
+        # paused_seconds comes from the status file written by the heartbeat, so
+        # poll until the pause has been recorded as at least 0.15 s longer
+        # instead of trusting one fixed sleep.
+        deadline = time.monotonic() + 5
+        while True:
+            second = get_run_details(run_id)["snapshot"]
+            if second["paused_seconds"] >= first["paused_seconds"] + 0.15 or time.monotonic() > deadline:
+                break
+            time.sleep(0.02)
+        assert second["state"] == "PAUSED"
+        assert second["active_elapsed_seconds"] <= first["active_elapsed_seconds"] + 0.03
+        assert second["paused_seconds"] >= first["paused_seconds"] + 0.15
+        assert second["progress"] == first["progress"]
+        assert manage_run_action(run_id, "resume")["ok"]
+        resumed = True
+        thread.join(5)
+        assert not thread.is_alive()
+        assert results[0].status == "COMPLETED"
+        assert get_run_details(run_id)["snapshot"]["paused_seconds"] >= 0.15
+    finally:
+        # A failed assertion must not leave the non-daemon run thread paused.
+        continued.set()
+        if thread.is_alive():
+            if not resumed and orchestrator.last_run_dir is not None:
+                manage_run_action(orchestrator.last_run_dir.name, "resume")
+            thread.join(10)
 
 
 def test_active_time_budget_stops_at_boundary_without_false_completion(env, tmp_path):

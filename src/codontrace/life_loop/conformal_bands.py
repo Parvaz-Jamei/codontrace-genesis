@@ -7,8 +7,10 @@ Never coverage_guaranteed_proved — finite-sample exchangeability is a label.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 
 from codontrace._types import JsonValue
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
@@ -185,3 +187,82 @@ def conformal_risk_band(
         n_calibration=n,
         claim_ceiling=claim_ceiling,
     )
+
+
+SPLIT_RESIDUAL_SCHEMA = "life_loop_split_residual_interval_v1"
+
+
+def split_conformal_rank(n_calibration: int, alpha: float | str | Fraction) -> int:
+    """1-based rank ``ceil((n + 1) * (1 - alpha))`` in exact rational arithmetic.
+
+    ``alpha`` is read through ``Fraction(str(alpha))``, so 0.45 is exactly
+    9/20: for n = 99 the rank is 55, where float arithmetic
+    (``100 * (1 - 0.45) = 55.00000000000001``) gives 56. A rank above
+    ``n`` means no finite interval exists at this level (Vovk, Gammerman &
+    Shafer 2005; Lei et al. 2018, doi:10.1080/01621459.2017.1307116;
+    Angelopoulos & Bates 2023, doi:10.1561/2200000101).
+    """
+    n = _as_int(n_calibration, "n_calibration", minimum=0)
+    a = alpha if isinstance(alpha, Fraction) else Fraction(str(alpha))
+    if not 0 < a < 1:
+        raise ConfigurationError("alpha must be in (0, 1).")
+    return math.ceil((n + 1) * (1 - a))
+
+
+@dataclass(frozen=True, slots=True)
+class SplitResidualInterval:
+    """Split-conformal interval from absolute residuals, exact order-statistic rank.
+
+    Unlike ``conformal_risk_band`` (interpolated quantile), the radius is the
+    ``rank``-th smallest calibration score, or ``None`` when ``rank > n``: an
+    unavailable quantile is never clamped into a narrower finite interval.
+    """
+
+    estimate: float
+    radius: float | None
+    quantile_rank: int
+    calibration_count: int
+    alpha: float
+
+    @property
+    def lower(self) -> float | None:
+        return None if self.radius is None else self.estimate - self.radius
+
+    @property
+    def upper(self) -> float | None:
+        return None if self.radius is None else self.estimate + self.radius
+
+    @property
+    def finite(self) -> bool:
+        return self.radius is not None
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {"schema_version": SPLIT_RESIDUAL_SCHEMA, "estimate": self.estimate, "lower": self.lower,
+                "upper": self.upper, "radius": self.radius, "quantile_rank": self.quantile_rank,
+                "calibration_count": self.calibration_count, "alpha": self.alpha,
+                "coverage_guaranteed_proved": False, "exchangeability_label": "finite_sample_assumption"}
+
+    def digest(self) -> str:
+        return canonical_digest(self.to_dict(), prefix="split_residual")
+
+
+def split_residual_interval(
+    predictions: Sequence[float], references: Sequence[float], *, estimate: float, alpha: float = 0.1
+) -> SplitResidualInterval:
+    """Interval ``estimate +- radius`` from paired calibration predictions and references.
+
+    The caller keeps training and calibration data apart; coverage needs a
+    frozen predictor and exchangeable calibration/test scores.
+    """
+    if len(predictions) != len(references):
+        raise ConfigurationError("predictions and references must be paired.")
+    for i, (p, r) in enumerate(zip(predictions, references, strict=True)):
+        require_finite_float(f"predictions[{i}]", p)
+        require_finite_float(f"references[{i}]", r)
+    require_finite_float("estimate", estimate)
+    # Values are used as given (no float coercion), so integer inputs stay integers.
+    scores = sorted(abs(p - r) for p, r in zip(predictions, references, strict=True))
+    rank = split_conformal_rank(len(scores), alpha)
+    radius = scores[rank - 1] if rank <= len(scores) else None
+    return SplitResidualInterval(estimate=estimate, radius=radius, quantile_rank=rank,
+                                 calibration_count=len(scores), alpha=alpha)

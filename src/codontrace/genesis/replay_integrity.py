@@ -1401,12 +1401,22 @@ def public_dataclass_digest_fields(class_obj: type[Any], class_path: str | None 
     )
 
 
+# Registry keys kept for classes that moved; each maps to the class's current path.
+_CLASS_PATH_ALIASES: dict[str, str] = {
+    "codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult":
+        "codontrace.genesis.transferability.STRDisparityResult",
+}
+
+
 def resolve_class_path(class_path: str) -> type[Any]:
     """Import and return a class from its fully qualified path."""
 
     if "." not in class_path:
         raise ValueError(f"Invalid class path (no module separator): {class_path!r}")
 
+    # Moved classes: resolve the old path to the new one without importing the
+    # old module (it may be a module-side shim the engine must not load).
+    class_path = _CLASS_PATH_ALIASES.get(class_path, class_path)
     module_name, _, class_name = class_path.rpartition(".")
     if not module_name or not class_name:
         raise ValueError(f"Invalid class path: {class_path!r}")
@@ -1734,6 +1744,9 @@ _DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
         "candidate_digest",
         "audit_digest",
     ),
+    "codontrace.genesis.transferability.STRDisparityResult": ("record_digest",),
+    # Alias: the class moved from the ClaimGate device adapter module, which
+    # still re-exports it. Callers that audit the old path keep the same policy.
     "codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult": ("record_digest",),
 }
 for _path, _fields in _DISCOVERY_WIRE_ESP32_PUBLIC_DIGEST_FIELDS.items():

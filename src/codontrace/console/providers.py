@@ -15,6 +15,8 @@ from collections import deque
 from pathlib import Path
 from typing import Any
 
+from codontrace.contracts.wire_validation import loads_bounded
+
 PROVIDERS = {
     "openai": ("OpenAI / GPT", "https://api.openai.com/v1", "OPENAI_API_KEY"),
     "deepseek": ("DeepSeek", "https://api.deepseek.com", "DEEPSEEK_API_KEY"),
@@ -180,7 +182,7 @@ def refresh(provider: str) -> dict[str, Any]:
             raw = response.read(512 * 1024 + 1)
             if len(raw) > 512 * 1024:
                 raise ProviderError("provider_catalog_too_large")
-            body = json.loads(raw)
+            body = loads_bounded(raw)
         if not isinstance(body, dict) or not isinstance(body.get("data"), list):
             raise ProviderError("provider_catalog_invalid")
         ids = sorted(

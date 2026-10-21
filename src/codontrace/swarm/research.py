@@ -5,6 +5,7 @@ import statistics
 from dataclasses import dataclass
 from typing import Any
 
+from codontrace.life_loop.disturbance import DisturbanceFamily, apply_disturbance
 from codontrace.rng import RNGManager
 from codontrace.swarm.protocol import canonical, integer, number, object_keys
 
@@ -57,13 +58,8 @@ def perturb(values: list[float], *, rng: RNGManager, amplitude: float = 1,
     number(amplitude, low=0, high=1e6); number(bias); number(dropout, low=0, high=1)
     if not isinstance(values, list) or len(values) > 4096:
         raise ValueError('bounded disturbance input required')
-    result: list[float | None] = []
-    for value in values:
-        number(value)
-        lost = rng.random() < dropout
-        noise = (rng.random()*2-1)*amplitude
-        result.append(None if lost else value + bias + noise)
-    return result
+    return apply_disturbance(values, DisturbanceFamily(amplitude=amplitude, bias=bias, dropout=dropout), rng,
+                             check=number)
 
 
 def mse(values: list[float], references: list[float]) -> float:

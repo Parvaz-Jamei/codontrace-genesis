@@ -112,6 +112,28 @@ class SimulationRecorder:
             return self.capture(summary={'births': self._births, 'deaths': self._deaths,
                                          'after_count': latest.after_count, 'world_after_digest': latest.world_after_digest})
 
+    def run_reference(self, *, result: Any = None, run_id: str | None = None) -> dict[str, Any]:
+        """Reference record for this recording (opt-in; nothing is written unless asked).
+
+        ``result`` is the ``GenesisRunResult`` of the observed run, when known.
+        """
+        from codontrace.genesis.run_refs import module_run_reference
+        with self._lock:
+            if self.engine is None:
+                raise ValueError('attach recorder first')
+            extra = {'frames_directory': str(self.directory), 'every': self.every,
+                     'last_frame_generation': None if self.previous is None else self.previous['generation'],
+                     'world_digest': self.engine.world_digest()}
+        return module_run_reference('visualization', run_id or self.directory.name,
+                                    manifest=None if result is None else result.manifest,
+                                    replay_bundle=None if result is None else result.replay_bundle, extra=extra)
+
+    def write_run_reference(self, *, result: Any = None, run_id: str | None = None) -> Path:
+        """Write ``run_ref.json`` beside the frame directory (not inside it, so frame trees are unchanged)."""
+        from codontrace.genesis.run_refs import write_run_reference
+        target = self.directory.with_name(self.directory.name + '.run_ref.json')
+        return write_run_reference(target, self.run_reference(result=result, run_id=run_id))
+
     def capture(self, *, summary: dict[str, Any] | None) -> dict[str, Any]:
         with self._lock:
             if self.engine is None:

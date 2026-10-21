@@ -38,6 +38,16 @@
    "str_stop_criterion_met"
   ]
  },
+ "codontrace.contracts.run_roots": {
+  "__all__": [
+   "SHARED_ROOT_KINDS",
+   "resolve_run_root"
+  ],
+  "public": [
+   "SHARED_ROOT_KINDS",
+   "resolve_run_root"
+  ]
+ },
  "codontrace.engine": {
   "__all__": [
    "ConsistencyValidationResult",
@@ -124,6 +134,18 @@
    "verify_replay_bundle"
   ]
  },
+ "codontrace.genesis.coevolution": {
+  "__all__": [
+   "CoevolutionResult",
+   "CoevolutionRound",
+   "minimax_coevolve"
+  ],
+  "public": [
+   "CoevolutionResult",
+   "CoevolutionRound",
+   "minimax_coevolve"
+  ]
+ },
  "codontrace.genesis.journal": {
   "__all__": [
    "CHECKPOINTS_KEPT",
@@ -132,14 +154,17 @@
    "JournalHealth",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
+   "anchor",
    "archived_to_delete",
    "checkpoint",
    "fsync_dir",
+   "journal_anchor",
    "journal_file_lock",
    "locking",
    "retention",
    "segments_to_archive",
-   "store"
+   "store",
+   "verify_anchor"
   ],
   "public": [
    "CHECKPOINTS_KEPT",
@@ -150,8 +175,43 @@
    "NotRecorded",
    "archived_to_delete",
    "fsync_dir",
+   "journal_anchor",
    "journal_file_lock",
-   "segments_to_archive"
+   "segments_to_archive",
+   "verify_anchor"
+  ]
+ },
+ "codontrace.genesis.qd_parametric": {
+  "__all__": [
+   "GaussianEmitter",
+   "HillClimbEmitter",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterEmitter",
+   "ParameterSpace",
+   "PyribsGridBackend",
+   "ask_parameter_candidates",
+   "parameter_descriptor_config",
+   "tell_parameter_results"
+  ],
+  "public": [
+   "GaussianEmitter",
+   "HillClimbEmitter",
+   "MUTATION_KINDS",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterEmitter",
+   "ParameterSpace",
+   "PyribsGridBackend",
+   "QDDescriptorConfig",
+   "QDSearchArchive",
+   "QDSearchCandidate",
+   "RNGManager",
+   "ask_parameter_candidates",
+   "parameter_descriptor_config",
+   "tell_parameter_results"
   ]
  },
  "codontrace.genesis.qd_search": {
@@ -190,6 +250,23 @@
    "validate_qd_candidate_digest"
   ]
  },
+ "codontrace.genesis.run_refs": {
+  "__all__": [
+   "RUN_KINDS",
+   "RUN_REFERENCE_SCHEMA",
+   "module_run_reference",
+   "resolve_run_root",
+   "write_run_reference"
+  ],
+  "public": [
+   "RUN_KINDS",
+   "RUN_REFERENCE_SCHEMA",
+   "TYPE_CHECKING",
+   "module_run_reference",
+   "resolve_run_root",
+   "write_run_reference"
+  ]
+ },
  "codontrace.genesis.selection": {
   "__all__": [],
   "public": [
@@ -213,6 +290,73 @@
    "select_population"
   ]
  },
+ "codontrace.genesis.shadow_evaluation": {
+  "__all__": [
+   "Processor",
+   "SHADOW_PHASES",
+   "ShadowEvaluation",
+   "paired_mse_gain",
+   "paired_shadow"
+  ],
+  "public": [
+   "Processor",
+   "SHADOW_PHASES",
+   "ShadowEvaluation",
+   "paired_mse_gain",
+   "paired_shadow"
+  ]
+ },
+ "codontrace.genesis.swarm": {
+  "__all__": [
+   "PopulationMember",
+   "SwarmConfig",
+   "SwarmCoordinatorCore",
+   "SwarmMember",
+   "active_sampling",
+   "commands",
+   "coordinator",
+   "diagnosis",
+   "fusion",
+   "measurement_candidates",
+   "median_absolute_deviation",
+   "members_from_population",
+   "members_from_registry",
+   "membership",
+   "metrics",
+   "peer_disagreement",
+   "plan_oldest_first",
+   "population_adapter",
+   "readings",
+   "robust_fuse",
+   "trust"
+  ],
+  "public": [
+   "PopulationMember",
+   "SwarmConfig",
+   "SwarmCoordinatorCore",
+   "SwarmMember",
+   "measurement_candidates",
+   "median_absolute_deviation",
+   "members_from_population",
+   "members_from_registry",
+   "peer_disagreement",
+   "plan_oldest_first",
+   "robust_fuse"
+  ]
+ },
+ "codontrace.genesis.transferability": {
+  "__all__": [
+   "STRDisparityResult",
+   "compute_str_disparity",
+   "str_stop_criterion_met"
+  ],
+  "public": [
+   "ConfigurationError",
+   "STRDisparityResult",
+   "compute_str_disparity",
+   "str_stop_criterion_met"
+  ]
+ },
  "codontrace.life_loop.conformal_bands": {
   "__all__": [],
   "public": [
@@ -220,9 +364,28 @@
    "ConfigurationError",
    "ConformalBandResult",
    "SCHEMA_VERSION",
+   "SPLIT_RESIDUAL_SCHEMA",
+   "SplitResidualInterval",
    "canonical_digest",
    "conformal_risk_band",
-   "require_finite_float"
+   "require_finite_float",
+   "split_conformal_rank",
+   "split_residual_interval"
+  ]
+ },
+ "codontrace.life_loop.disturbance": {
+  "__all__": [
+   "DisturbanceFamily",
+   "SCHEMA_VERSION",
+   "apply_disturbance"
+  ],
+  "public": [
+   "ConfigurationError",
+   "DisturbanceFamily",
+   "RNGManager",
+   "SCHEMA_VERSION",
+   "apply_disturbance",
+   "canonical_digest"
   ]
  },
  "codontrace.life_loop.farm_orchestrator": {
@@ -286,13 +449,35 @@
   "__all__": [],
   "public": []
  },
+ "codontrace.swarm.adapters.esp32": {
+  "__all__": [
+   "ESP32_CHANNEL_FIELDS",
+   "esp32_channels",
+   "esp32_samples"
+  ],
+  "public": [
+   "ESP32_CHANNEL_FIELDS",
+   "SensorReading",
+   "esp32_channels",
+   "esp32_samples",
+   "identifier",
+   "normalize_sample",
+   "validate_descriptor"
+  ]
+ },
  "codontrace.swarm.coevolution": {
   "__all__": [],
   "public": [
+   "DEFENDER_SPACE",
+   "HillClimbEmitter",
+   "MutationRule",
+   "ParameterBound",
+   "ParameterSpace",
    "Pipeline",
    "RNGManager",
    "coevolve",
    "integer",
+   "minimax_coevolve",
    "mse",
    "number"
   ]
@@ -307,8 +492,46 @@
    "integer",
    "number",
    "object_keys",
+   "paired_shadow",
    "residual_interval",
-   "schedule_measurements"
+   "schedule_measurements",
+   "split_residual_interval"
+  ]
+ },
+ "codontrace.swarm.devices": {
+  "__all__": [],
+  "public": []
+ },
+ "codontrace.swarm.devices.esp32": {
+  "__all__": [
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "execute_sense",
+   "parse_sensor_payload"
+  ],
+  "public": [
+   "Esp32Bridge",
+   "Esp32LineTransport",
+   "Esp32MoveAckModel",
+   "Esp32SensorPayloadModel",
+   "LoopbackEsp32Transport",
+   "MoveCommand",
+   "MqttEsp32Transport",
+   "SensorReading",
+   "SerialEsp32Transport",
+   "SimEsp32Bridge",
+   "TransportEsp32Bridge",
+   "execute_sense",
+   "parse_sensor_payload"
   ]
  },
  "codontrace.swarm.engine": {
@@ -347,18 +570,33 @@
    "SwarmCoordinator",
    "canonical",
    "decode",
-   "identifier"
+   "identifier",
+   "mqtt_v5_client",
+   "session_expiry_properties"
   ]
  },
  "codontrace.swarm.policies": {
   "__all__": [],
   "public": [
+   "HillClimbEmitter",
+   "MutationRule",
+   "PIPELINE_MEASURES",
+   "PIPELINE_SPACE",
+   "ParameterBound",
+   "ParameterCandidate",
+   "ParameterSpace",
    "Pipeline",
    "PolicyArchive",
+   "QDDescriptorConfig",
+   "QDSearchArchive",
    "RNGManager",
    "canonical",
    "diagnose",
    "number",
+   "paired_mse_gain",
+   "peer_disagreement",
+   "pipeline_measures",
+   "tell_parameter_results",
    "transfer_decision"
   ]
  },
@@ -386,8 +624,10 @@
  "codontrace.swarm.research": {
   "__all__": [],
   "public": [
+   "DisturbanceFamily",
    "RNGManager",
    "SensorTwin",
+   "apply_disturbance",
    "canonical",
    "information_level",
    "integer",
@@ -403,11 +643,14 @@
   "public": [
    "CHECKPOINTS_KEPT",
    "CHECKPOINT_SCHEMA",
+   "FUSION_MODES",
    "HashChainedJournal",
    "MAX_CHECKPOINT_BYTES",
    "NotRecorded",
    "Pipeline",
+   "SwarmConfig",
    "SwarmCoordinator",
+   "SwarmCoordinatorCore",
    "VERSION2",
    "canonical",
    "decode",
@@ -415,9 +658,12 @@
    "diagnose",
    "identifier",
    "integer",
+   "measurement_candidates",
    "normalize",
    "number",
    "object_keys",
+   "plan_oldest_first",
+   "robust_fuse",
    "scalar_frame",
    "text"
   ]
@@ -457,7 +703,26 @@
    "invoke",
    "object_keys",
    "release",
+   "resolve_run_root",
    "transfer_decision"
+  ]
+ },
+ "codontrace.swarm.transport": {
+  "__all__": [],
+  "public": []
+ },
+ "codontrace.swarm.transport.mqtt_session": {
+  "__all__": [
+   "MAX_SESSION_EXPIRY_S",
+   "mqtt_v5_client",
+   "paho_available",
+   "session_expiry_properties"
+  ],
+  "public": [
+   "MAX_SESSION_EXPIRY_S",
+   "mqtt_v5_client",
+   "paho_available",
+   "session_expiry_properties"
   ]
  },
  "codontrace.visualization": {

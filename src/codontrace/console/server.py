@@ -338,51 +338,117 @@ def _is_run_mutating_path(path: str) -> bool:
     return path.startswith("/api/runs/") and (path.endswith("/pause") or path.endswith("/resume"))
 
 
+def _peer_ip(address: object) -> Any:
+    """Parse a peer address; IPv4-mapped IPv6 (any spelling) becomes IPv4.
+
+    ``ipaddress.IPv6Address.ipv4_mapped`` handles both ``::ffff:127.0.0.1``
+    and the hex form ``::ffff:7f00:1`` (RFC 4291 section 2.5.5.2). Returns
+    None for anything that is not an IP address.
+    """
+    import ipaddress
+    if not isinstance(address, str):
+        return None
+    host = address.split("%", 1)[0].strip()
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return None
+    if ip.version == 6 and ip.ipv4_mapped is not None:
+        return ip.ipv4_mapped
+    return ip
+
+
+def _is_loopback(address: str) -> bool:
+    """True only for a loopback address (127.0.0.0/8, ::1, IPv4-mapped loopback)."""
+    if isinstance(address, str) and address.strip().lower() == "localhost":
+        return True
+    ip = _peer_ip(address)
+    return ip is not None and bool(ip.is_loopback)
+
+
 def _from_this_machine(address: str) -> bool:
-    """True only for a loopback peer (127.0.0.0/8, ::1, IPv4-mapped loopback).
+    """True for a loopback peer, or a peer inside an opted-in trusted network.
 
     A private (RFC 1918 / RFC 4193) address is another machine on the network,
     not this one, so it must never count as local for authorization. In the
     Python ``ipaddress`` docs ``is_private`` means "not globally reachable",
     whereas ``is_loopback`` is the host itself.
     """
-    import ipaddress
     if not isinstance(address, str):
         return False  # fail closed: no peer address is never this machine
-    host = address.split("%", 1)[0].strip().lower()
-    if host.startswith("::ffff:"):
-        host = host.removeprefix("::ffff:")
-    if host == "localhost":
+    if _is_loopback(address):
         return True
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
+    ip = _peer_ip(address)
+    if ip is None:
         return False
-    if ip.is_loopback:
-        return True
-    return any(ip in net for net in _trusted_networks())
+    return any(ip.version == net.version and ip in net for net in _trusted_networks())
 
 
-def _trusted_networks() -> list[Any]:
-    """Explicit opt-in: CODONTRACE_CONSOLE_TRUSTED_NETWORKS="10.225.130.0/24,...".
+# Broadest prefix accepted in CODONTRACE_CONSOLE_TRUSTED_NETWORKS. IPv4 /16
+# is the largest single RFC 1918 block a site normally uses (192.168.0.0/16,
+# 65,536 addresses); anything wider spans several sites or public space, and
+# 0.0.0.0/0 would disable the token check. IPv6 /48 is the standard end-site
+# assignment (RFC 6177); wider prefixes, up to ::/0, are rejected the same way.
+MIN_TRUSTED_PREFIX = {4: 16, 6: 48}
+TRUSTED_NETWORKS_ENV = "CODONTRACE_CONSOLE_TRUSTED_NETWORKS"
 
-    744f6cf treated every private address as local so the console could be
-    driven from the lab board's LAN (CODONTRACE_BOARD_IP) without a token.
-    That intent is kept only for networks the operator names here. Unset
-    (the default) means loopback only. Invalid entries are ignored, so a
-    typo never widens access.
+# Parsed once by configure_trusted_networks() when the server starts; empty
+# (the default) means loopback only.
+_TRUSTED: tuple[Any, ...] = ()
+
+
+def parse_trusted_networks(value: str) -> tuple[Any, ...]:
+    """Parse a comma-separated list of networks or bare addresses.
+
+    Raises ValueError, naming the entry, for anything that is not a network,
+    a CIDR with host bits set (``ipaddress.ip_network(strict=True)``, so
+    ``172.30.0.5/16`` is an error rather than a silent /16), or a prefix
+    broader than MIN_TRUSTED_PREFIX (``0.0.0.0/0``, ``::/0``, ``10.0.0.0/8``).
+    A bare address is a single host (/32 or /128). Empty items are skipped.
     """
     import ipaddress
     nets: list[Any] = []
-    for item in os.environ.get("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "").split(","):
-        item = item.strip()
+    for raw in value.split(","):
+        item = raw.strip()
         if not item:
             continue
         try:
-            nets.append(ipaddress.ip_network(item, strict=False))
-        except ValueError:
-            continue
+            net = ipaddress.ip_network(item, strict=True)
+        except ValueError as exc:
+            raise ValueError(f"{TRUSTED_NETWORKS_ENV}: invalid entry {item!r}: {exc}") from None
+        if net.prefixlen < MIN_TRUSTED_PREFIX[net.version]:
+            raise ValueError(
+                f"{TRUSTED_NETWORKS_ENV}: {item!r} is broader than "
+                f"/{MIN_TRUSTED_PREFIX[net.version]} (IPv{net.version}); name a smaller network"
+            )
+        nets.append(net)
+    return tuple(nets)
+
+
+def configure_trusted_networks(value: str | None = None) -> tuple[Any, ...]:
+    """Read and validate CODONTRACE_CONSOLE_TRUSTED_NETWORKS once, at startup.
+
+    744f6cf treated every private address as local so the console could be
+    driven from the lab board's LAN without a token. That intent is kept only
+    for networks the operator names here. An invalid entry raises ValueError,
+    so the server refuses to start instead of silently dropping it. The
+    active set is logged to stderr. Trusted networks authorize peers only;
+    they never become allowed Origins.
+    """
+    global _TRUSTED
+    if value is None:
+        value = os.environ.get(TRUSTED_NETWORKS_ENV, "")
+    nets = parse_trusted_networks(value)
+    _TRUSTED = nets
+    if nets:
+        sys.stderr.write(
+            f"{TRUSTED_NETWORKS_ENV}: token-free peers allowed from {', '.join(map(str, nets))}\n"
+        )
     return nets
+
+
+def _trusted_networks() -> tuple[Any, ...]:
+    return _TRUSTED
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -401,7 +467,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         """Usage credentials are distinct from credentials granting key administration."""
         import hmac
         token = os.environ.get("CODONTRACE_API_TOKEN", "").strip()
-        local = (_from_this_machine(self.client_address[0])
+        local = (_from_this_machine(self.client_address[0] if self.client_address else "")
                  and not self.headers.get("X-Forwarded-For")
                  and not self.headers.get("X-Real-IP"))
         supplied = self.headers.get("Authorization", "")
@@ -423,7 +489,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         from urllib.parse import urlparse
         parsed = urlparse(origin)
         origin_host = (parsed.hostname or "").lower()
-        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _from_this_machine(origin_host):
+        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _is_loopback(origin_host):
             return True
 
         host_header = self.headers.get("Host", "")
@@ -583,7 +649,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             from codontrace.console import providers
             token = os.environ.get("CODONTRACE_SETTINGS_TOKEN", "").strip()
             supplied = self.headers.get("Authorization", "")
-            local = _from_this_machine(self.client_address[0]) and not self.headers.get("X-Forwarded-For") and not self.headers.get("X-Real-IP")
+            local = _from_this_machine(self.client_address[0] if self.client_address else "") and not self.headers.get("X-Forwarded-For") and not self.headers.get("X-Real-IP")
             authorized = hmac.compare_digest(supplied.encode("utf-8"), ("Bearer " + token).encode("utf-8")) if token else local
             if not authorized:
                 self._send(403, "application/json", b'{"ok":false,"error":"Provider settings require a local caller or CODONTRACE_SETTINGS_TOKEN"}', include_body=True, cache="no-store")
@@ -1004,6 +1070,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
 
 def make_server(host: str, port: int) -> ThreadingHTTPServer:
+    configure_trusted_networks()
     server = ThreadingHTTPServer((host, port), ConsoleHandler)
     server.daemon_threads = True
     return server

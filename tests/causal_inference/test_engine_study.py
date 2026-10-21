@@ -11,6 +11,7 @@ from codontrace.causal_inference.engine_study import (
     diagram_from_evidence_graph,
     set_founder_bits,
 )
+from codontrace.errors import ConfigurationError
 
 
 @pytest.fixture(scope="module")
@@ -82,3 +83,10 @@ def test_evidence_graph_bridge():
     d = diagram_from_evidence_graph(g, confounded=[("action:move", "resource:lumen")])
     assert d.directed == frozenset({("event:action:eat", "event:resource:lumen")})
     assert ("event:action:move", "event:resource:lumen") in d.bidirected
+
+
+def test_empty_focal_arm_names_the_value():
+    study = EngineBitStudy(assignment={(0, 0): 0.0, (0, 1): 0.0, (1, 0): 0.0, (1, 1): 0.0},
+                           runner=lambda seed, pop, bits, ticks: 0)
+    with pytest.raises(ConfigurationError, match="no unit received focal value 1;"):
+        study.validate(n_units=4, seed=0, n_bootstrap=2)

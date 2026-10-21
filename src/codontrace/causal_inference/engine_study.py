@@ -215,7 +215,7 @@ class EngineBitStudy:
         for b in (0, 1):
             sel = [u.outcome for u in units if u.focal == b]
             if not sel:
-                raise ConfigurationError("no unit received focal value {b}; enlarge the sample")
+                raise ConfigurationError(f"no unit received focal value {b}; enlarge the sample")
             naive[b] = sum(sel) / len(sel)
         rng = RNGManager(seed=seed, namespace="causal_inference/engine_study/bootstrap")
         ates = []

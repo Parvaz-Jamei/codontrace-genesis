@@ -64,11 +64,29 @@ class OSFRegistration:
     html_url: str | None
     registered_at: datetime | None
     description: str
+    withdrawn: bool = False
+    pending_withdrawal: bool = False
+    archiving: bool = False
 
 
 def _parse_time(value: object) -> datetime:
-    t = datetime.fromisoformat(str(value))
+    if not isinstance(value, str):
+        raise ConfigurationError(f"OSF date_registered is not a string: {value!r}")
+    try:
+        t = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ConfigurationError(f"OSF date_registered is not an ISO-8601 time: {value!r}") from exc
     return t if t.tzinfo is not None else t.replace(tzinfo=UTC)
+
+
+def _flag(attrs: dict[str, object], key: str) -> bool:
+    """A JSON boolean attribute. Absent (OSF hides some fields once withdrawn) is False."""
+    value = attrs.get(key)
+    if value is None:
+        return False
+    if not isinstance(value, bool):
+        raise ConfigurationError(f"OSF attribute {key} is not a JSON boolean: {value!r}")
+    return value
 
 
 @dataclass
@@ -149,10 +167,13 @@ class OSFClient:
             draft_id=draft_id,
             registration_id=str(reg.get("id")) if reg.get("id") else None,
             submitted=True,
-            public=bool(attrs.get("public")),
-            pending_approval=bool(attrs.get("pending_registration_approval")),
-            embargoed=bool(attrs.get("embargoed")) or bool(attrs.get("pending_embargo_approval")),
+            public=_flag(attrs, "public"),
+            pending_approval=_flag(attrs, "pending_registration_approval"),
+            embargoed=_flag(attrs, "embargoed") or _flag(attrs, "pending_embargo_approval"),
             html_url=str(html) if html else None,
             registered_at=_parse_time(stamp) if stamp else None,
             description=stored,
+            withdrawn=_flag(attrs, "withdrawn"),
+            pending_withdrawal=_flag(attrs, "pending_withdrawal"),
+            archiving=_flag(attrs, "archiving"),
         )

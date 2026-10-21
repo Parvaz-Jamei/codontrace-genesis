@@ -142,3 +142,33 @@ def test_fetch_refuses_a_different_registration():
 
     with pytest.raises(ConfigurationError, match="different registration"):
         OSFClient("tok", transport=other).fetch("abc12", manifest)
+
+
+@pytest.mark.parametrize(
+    "override",
+    [{"withdrawn": True}, {"pending_withdrawal": True}, {"archiving": True}],
+)
+def test_withdrawn_or_archiving_is_not_evidence(override):
+    manifest = hash_plan(["plan_fixture.md"], root=FIX)
+    replay, _ = _replay(manifest, **override)
+    reg = OSFClient("tok", transport=replay).fetch("abc12", manifest)
+    assert reg.public is True
+    with pytest.raises(ConfigurationError, match="not evidence"):
+        TimestampEvidence.from_osf(reg, manifest)
+
+
+@pytest.mark.parametrize("key", ["public", "pending_registration_approval", "withdrawn", "archiving"])
+@pytest.mark.parametrize("value", ["false", "true", 0, 1])
+def test_non_boolean_flags_are_refused(key, value):
+    manifest = hash_plan(["plan_fixture.md"], root=FIX)
+    replay, _ = _replay(manifest, **{key: value})
+    with pytest.raises(ConfigurationError, match="not a JSON boolean"):
+        OSFClient("tok", transport=replay).fetch("abc12", manifest)
+
+
+@pytest.mark.parametrize("stamp", ["yesterday", 12345, "2026-13-01T00:00:00.000000Z"])
+def test_malformed_date_is_a_configuration_error(stamp):
+    manifest = hash_plan(["plan_fixture.md"], root=FIX)
+    replay, _ = _replay(manifest, date_registered=stamp)
+    with pytest.raises(ConfigurationError, match="date_registered"):
+        OSFClient("tok", transport=replay).fetch("abc12", manifest)

@@ -15,7 +15,10 @@ jobs:
   ubuntu-full-tests:
     name: Full pytest (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    # Plain runs took 12-31 min and the 3.14 coverage run 24 min on
+    # ubuntu-latest (runs 39653320109, 39663305983); 75 leaves headroom
+    # without letting a hung job idle for hours.
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -75,7 +78,22 @@ jobs:
 
       # pytest-xdist and pytest-cov are loaded explicitly with -p because
       # --disable-plugin-autoload keeps every other entry-point plugin out.
+      #
+      # Coverage is collected on Python 3.14 only. coverage.py's sys.monitoring
+      # core ("sysmon") is the default on 3.14 and supports branch coverage
+      # there; on 3.12 and 3.13 sysmon does not support branch coverage, and
+      # the settrace core made those jobs take 58-60 min (run 39663305983,
+      # 3.13 cancelled at the timeout). The other versions run the same full
+      # suite without coverage.
+      # https://coverage.readthedocs.io/en/latest/config.html#config-run-core
+      - name: Run full test suite
+        if: matrix.python-version != '3.14'
+        run: python -m pytest tests --disable-plugin-autoload -p xdist -n auto
+
       - name: Run full test suite with branch coverage
+        if: matrix.python-version == '3.14'
+        env:
+          COVERAGE_CORE: sysmon
         run: >
           python -m pytest tests --disable-plugin-autoload
           -p xdist -p pytest_cov -n auto
@@ -83,11 +101,11 @@ jobs:
           --cov-report=term --cov-report=xml:coverage.xml
 
       - name: Coverage summary
-        if: always()
+        if: always() && matrix.python-version == '3.14'
         run: |
           if [ -f .coverage ]; then
             {
-              echo "### Coverage (Python ${{ matrix.python-version }}, line + branch)"
+              echo "### Coverage (Python ${{ matrix.python-version }}, line + branch, sysmon core)"
               echo '```'
               python -m coverage report --format=total
               echo '```'
@@ -95,7 +113,7 @@ jobs:
           fi
 
       - name: Upload coverage report
-        if: always() && matrix.python-version == '3.12'
+        if: always() && matrix.python-version == '3.14'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-xml

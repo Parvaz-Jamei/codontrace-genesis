@@ -70,6 +70,7 @@ dev = [
   "twine>=6.2,<7",
   "pip-audit>=2.10,<3",
   "hypothesis>=6.0,<7",
+  "import-linter>=2.15,<3",
   "pydantic>=2.0,<3"
 ]
 science = [

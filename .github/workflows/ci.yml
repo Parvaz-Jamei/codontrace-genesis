@@ -178,6 +178,9 @@ jobs:
       - name: Mypy
         run: python -m mypy --strict --platform linux src
 
+      - name: Import contracts (import-linter)
+        run: lint-imports --no-cache
+
   verdict-ledger:
     name: Standing verdict ledger (required; not optional)
     runs-on: ubuntu-latest

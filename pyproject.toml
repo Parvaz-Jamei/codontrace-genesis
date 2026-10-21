@@ -57,6 +57,9 @@ dependencies = []
 swarm = ["paho-mqtt>=2.1,<3"]
 dev = [
   "pytest>=9.0,<10",
+  "pytest-xdist>=3.8,<4",
+  "pytest-cov>=7.1,<8",
+  "coverage[toml]>=7.16,<8",
   "ruff>=0.15,<1",
   "mypy>=2.0,<3",
   "build>=1.5,<2",
@@ -172,6 +175,10 @@ disable_error_code = [
   "var-annotated",
 ]
 
+# Recorded baseline: without this block `mypy --strict src` reports 31
+# errors in 8 codontrace.swarm modules (implicit re-exports, Optional
+# coordinator, untyped helpers). The swarm adapter is optional I/O, not the
+# engine; the block stays until those modules are typed, and the README says so.
 [[tool.mypy.overrides]]
 module = ["codontrace.swarm.*"]
 disallow_untyped_defs = false
@@ -198,3 +205,12 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = ["paho", "paho.*"]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+source_pkgs = ["codontrace"]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+show_missing = false
+skip_empty = true

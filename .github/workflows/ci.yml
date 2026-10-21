@@ -34,7 +34,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -e ".[dev]" pytest
+          python -m pip install -e ".[dev]"
 
       - name: Compile package, tests, examples, and tools
         run: python -m compileall -q src tests examples tools
@@ -73,8 +73,34 @@ jobs:
           print("no probe leftovers")
           PY
 
-      - name: Run full test suite
-        run: python -m pytest tests --disable-plugin-autoload
+      # pytest-xdist and pytest-cov are loaded explicitly with -p because
+      # --disable-plugin-autoload keeps every other entry-point plugin out.
+      - name: Run full test suite with branch coverage
+        run: >
+          python -m pytest tests --disable-plugin-autoload
+          -p xdist -p pytest_cov -n auto
+          --cov=codontrace --cov-branch
+          --cov-report=term --cov-report=xml:coverage.xml
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f .coverage ]; then
+            {
+              echo "### Coverage (Python ${{ matrix.python-version }}, line + branch)"
+              echo '```'
+              python -m coverage report --format=total
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always() && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
 
   core-smoke-cross-os:
     name: Core smoke (${{ matrix.os }}, Python ${{ matrix.python-version }})

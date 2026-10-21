@@ -6,8 +6,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/codontrace/"><img alt="PyPI" src="https://img.shields.io/pypi/v/codontrace?label=PyPI"></a>
-  <a href="https://www.python.org/"><img alt="Python 3.11–3.14" src="https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?logo=python&logoColor=white"></a>
-  <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://pypi.org/project/codontrace/"><img alt="Python versions (PyPI classifiers)" src="https://img.shields.io/pypi/pyversions/codontrace?label=Python"></a>
+  <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml?query=branch%3Amain"><img alt="CI on main" src="https://github.com/Parvaz-Jamei/codontrace-genesis/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="https://doi.org/10.5281/zenodo.20337435"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20337435.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/codontrace-genesis/blob/main/LICENSE"><img alt="License AGPL v3+" src="https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg"></a>
 </p>
@@ -43,7 +43,7 @@ A number in this repository is not a conclusion. A standing verdict is one of fo
 
 `SUPPORTED_IN_MODEL` · `FALSIFIED_IN_MODEL` · `INCONCLUSIVE` · `BLOCKED_MEASUREMENT`
 
-The record of the 29 September 2026 program is [`docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json`](docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json). On that ledger `hypothesis_supported` is false and `red_queen_proved` is false. Those two flags belong to that ledger. A later experiment reports its own verdict. The confirmatory campaign of that ledger is not open. A green workflow is not a scientific result: the lint and typecheck job is `continue-on-error`, so a green run is not a mypy pass.
+The record of the 29 September 2026 program is [`docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json`](docs/experiments/2026-09-29/VERDICT_LEDGER_V1.json). On that ledger `hypothesis_supported` is false and `red_queen_proved` is false. Those two flags belong to that ledger. A later experiment reports its own verdict. The confirmatory campaign of that ledger is not open. A green workflow is not a scientific result. The CI badge reports the `CI` workflow on `main`: full pytest with line and branch coverage on Python 3.11–3.14 (the total is printed in each run summary; no coverage service is configured), and gating `ruff` and `mypy --strict` on `src`. `mypy` still relaxes some error codes for `codontrace.swarm.*` (see `pyproject.toml`), so the swarm adapter is not yet strict-clean.
 
 | Record | Standing verdict | What the scope actually is |
 |---|---|---|

@@ -31,10 +31,32 @@ def inference_timeout(*, cloud: bool) -> float:
 
 DEFAULT_ENDPOINTS = (
     "http://127.0.0.1:8088/v1/chat/completions",
-    f"http://{os.environ.get('CODONTRACE_BOARD_IP', '10.225.130.20').strip()}:8088/v1/chat/completions",
     "http://127.0.0.1:11434/v1/chat/completions",
     "http://127.0.0.1:1234/v1/chat/completions",
 )
+
+
+def _default_endpoints() -> list[str]:
+    """Loopback endpoints, plus the lab board only when CODONTRACE_BOARD_IP is set.
+
+    The board probe used to default to 10.225.130.20, so every console
+    probed that LAN host. It is now opt-in and off by default.
+    """
+    endpoints = list(DEFAULT_ENDPOINTS)
+    board = os.environ.get("CODONTRACE_BOARD_IP", "").strip()
+    if not board:
+        return endpoints
+    import ipaddress
+    import re
+    try:
+        ip = ipaddress.ip_address(board)
+        host = f"[{ip}]" if ip.version == 6 else str(ip)
+    except ValueError:
+        if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?", board):
+            return endpoints  # not an IP or host name: ignored, never spliced into a URL
+        host = board
+    endpoints.insert(1, f"http://{host}:8088/v1/chat/completions")
+    return endpoints
 
 
 _RUNTIME_ENDPOINT: str | None = None
@@ -173,7 +195,7 @@ def check_llm_status() -> dict[str, Any]:
             return dict(cached_val)
 
     env_set = bool(_RUNTIME_ENDPOINT or os.environ.get("CODONTRACE_LLM_ENDPOINT") or os.environ.get("CODONTRACE_LLM_URL"))
-    endpoints_to_try = [endpoint] if env_set else list(DEFAULT_ENDPOINTS)
+    endpoints_to_try = [endpoint] if env_set else _default_endpoints()
 
     import concurrent.futures
 

@@ -200,13 +200,14 @@ def test_unbiased_sampler_rejects_high_tail_instead_of_modulo(monkeypatch):
     from types import SimpleNamespace
 
     import codontrace.experiments.math_utils as module
+    import codontrace.rng as rng_module
     draws = [b"\xff" * 32, b"\x00" * 32]
     calls = []
     def digest(data):
         calls.append(data)
         value = draws.pop(0)
         return SimpleNamespace(digest=lambda: value)
-    monkeypatch.setattr(module.hashlib, "sha256", digest)
+    monkeypatch.setattr(rng_module.hashlib, "sha256", digest)
     assert module.sha_prng_int_unbiased(4,2,"tail",0,2) == 0
     assert len(calls) == 2
     assert calls[0] != calls[1]

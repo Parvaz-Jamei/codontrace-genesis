@@ -2,43 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from codontrace.rng import RNGManager
 
-def sha_prng_float(seed: int, step: int, salt: str) -> float:
-    """Cryptographic deterministic float in [0.0, 1.0) with salt separation."""
-    data = f"{int(seed)}:{int(step)}:{salt}".encode()
-    digest = hashlib.sha256(data).digest()
-    return int.from_bytes(digest[:4], "big") / 4294967296.0
-
-
-def sha_prng_int(seed: int, step: int, salt: str, min_val: int, max_val: int) -> int:
-    """Cryptographic deterministic integer in [min_val, max_val] inclusive."""
-    if max_val < min_val:
-        raise ValueError(f"max_val ({max_val}) must be >= min_val ({min_val})")
-    span = max_val - min_val + 1
-    val_float = sha_prng_float(seed, step, salt)
-    return min_val + int(val_float * span) % span
-
-
-def sha_prng_int_unbiased(seed: int, step: int, salt: str, min_val: int, max_val: int) -> int:
-    """Version2 rejection sampling; legacy sha_prng_int remains replay compatible."""
-    if max_val < min_val:
-        raise ValueError("max_val must be >= min_val")
-    span = max_val - min_val + 1
-    if span > 1 << 256:
-        raise ValueError("integer range exceeds the version2 stream width")
-    limit = (1 << 256) - ((1 << 256) % span)
-    attempt = 0
-    while True:
-        data = f"v2:{int(seed)}:{int(step)}:{salt}:{attempt}".encode()
-        value = int.from_bytes(hashlib.sha256(data).digest(), "big")
-        if value < limit:
-            return min_val + value % span
-        attempt += 1
+# The counter-based PRNG lives in RNGManager (codontrace.rng), the single RNG
+# source. These names are kept for the T01-T05 experiments and for replay.
+sha_prng_float = RNGManager.counter_float
+sha_prng_int = RNGManager.counter_int
+sha_prng_int_unbiased = RNGManager.counter_int_unbiased
 
 
 @dataclass(frozen=True, slots=True)

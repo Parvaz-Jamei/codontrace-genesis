@@ -98,8 +98,11 @@ def test_p2_survival_is_host_census_not_energy_blend() -> None:
 
 
 def test_p2_survival_varies_across_seeds() -> None:
+    # 301 and 305 tie after the R09 capsule reconciliation (aadc970); see
+    # test_jsonl_engine.py::test_idea2_seed_pair_tie_is_the_capsule_migration.
+    # 301 and 306 differ under the current model condition.
     a = run_idea2_engine_cell(seed=301, cell="baseline")
-    b = run_idea2_engine_cell(seed=305, cell="baseline")
+    b = run_idea2_engine_cell(seed=306, cell="baseline")
     assert {row["arm"]: row["survival_to_T"] for row in a} != {
         row["arm"]: row["survival_to_T"] for row in b
     }
@@ -620,7 +623,11 @@ def test_p2_harness_score_is_not_the_hypothesis_test() -> None:
 
 
 def test_p3_four_quantities_match_and_stay_a_planted_mirror() -> None:
-    published_atp_301 = 1.8868976316601382
+    # Re-pinned for the R09 capsule reconciliation (aadc970): capsule reads
+    # now charge runtime ATP, so the seed-301 scaffold cut loses 1.8829...
+    # instead of the pre-migration 1.8868976316601382. The old number is
+    # kept and reproduced by test_p3_pre_migration_pin_is_legacy_dispatch.
+    published_atp_301 = 1.882900509084451
     for seed in (301, 302, 303):
         row = run_idea4_engine_cell(
             seed=seed,
@@ -657,6 +664,15 @@ def test_p3_four_quantities_match_and_stay_a_planted_mirror() -> None:
         assert row["window_law_tested"] is False
         if seed == 301:
             assert report["atp_lost_scaffold"] == pytest.approx(published_atp_301)
+
+
+def test_p3_pre_migration_pin_is_legacy_dispatch(legacy_capsule_dispatch: None) -> None:
+    """Counterfactual: the old 301 pin returns under pre-aadc970 dispatch only."""
+    row = run_idea4_engine_cell(
+        seed=301, ops_cell="cut_matched_random", t_intervene=2, t_horizon=5, population=4
+    )
+    assert row["match_report"]["atp_lost_scaffold"] == pytest.approx(1.8868976316601382)
+    assert row["match_report"]["atp_lost_scaffold"] != pytest.approx(1.882900509084451)
 
 
 def test_token_penalty_is_not_a_contact_structure_effect() -> None:

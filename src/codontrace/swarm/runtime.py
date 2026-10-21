@@ -124,6 +124,13 @@ class SwarmCoordinator(HashChainedJournal):
             raise ValueError('unsupported command')
         return p
 
+    def _txn(self, action: str, args: dict[str, Any], now_ms: int, *, lock_timeout_s: float | None = None,
+             in_process_timeout_s: float | None = None) -> dict[str, Any]:
+        """Typed view of the journal transaction; every swarm action returns a dict."""
+        result: dict[str, Any] = self._transaction(action, args, now_ms, lock_timeout_s=lock_timeout_s,
+                                                   in_process_timeout_s=in_process_timeout_s)
+        return result
+
     def ingest(self, message: Any, *, now_ms: int, lock_timeout_s: float | None = None,
                in_process_timeout_s: float | None = None) -> dict[str, Any]:
         """Journal one device message.
@@ -136,21 +143,21 @@ class SwarmCoordinator(HashChainedJournal):
         ``lock_timeout_s`` bounded both waits; since 55e5b8b it bounds only the
         file lock, so a slow same-process writer does not make callers drop data.
         """
-        return self._transaction('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s,
-                                 in_process_timeout_s=in_process_timeout_s)
+        return self._txn('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s,
+                         in_process_timeout_s=in_process_timeout_s)
 
     def command(self, node_id: str, operation: str, params: dict[str, Any], *, now_ms: int,
                 timeout_ms: int = 5000) -> dict[str, Any]:
-        return self._transaction('command', {'node_id': node_id, 'operation': operation,
+        return self._txn('command', {'node_id': node_id, 'operation': operation,
                                              'params': params, 'timeout_ms': timeout_ms}, now_ms)
 
     def set_status(self, status: str, *, now_ms: int) -> dict[str, Any]:
-        return self._transaction('status', {'status': status}, now_ms)
+        return self._txn('status', {'status': status}, now_ms)
 
     def calibrate(self, key: str, reference: float, reference_id: str, *, now_ms: int,
                   scale: float = 1.0) -> dict[str, Any]:
         identifier(reference_id)
-        return self._transaction('trust', {'key': key, 'reference': reference,
+        return self._txn('trust', {'key': key, 'reference': reference,
                                            'reference_id': reference_id, 'scale': scale}, now_ms)
 
     def snapshot(self, *, now_ms: int, lock_timeout_s: float | None = None) -> dict[str, Any]:
@@ -199,7 +206,7 @@ class SwarmCoordinator(HashChainedJournal):
                                                               ttl_ms=self.ttl_ms, budget=budget)]
 
     def boundary(self, row: dict[str, Any], *, now_ms: int) -> dict[str, Any]:
-        return self._transaction('boundary', {'row': row}, now_ms)
+        return self._txn('boundary', {'row': row}, now_ms)
 
     def freshness_plan(self, models: dict[str, Any], quantity: str, unit: str, *, now_ms: int,
                        byte_budget: int, request_budget: int = 8) -> dict[str, Any]:

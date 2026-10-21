@@ -20,6 +20,10 @@ from codontrace.contracts.wire_validation import (
 VERSION = 'genesis_swarm_v1'
 VERSION2 = 'genesis_swarm_v2'
 MAX_BYTES = 65536
+# A v2 reading value is at most one array deep: the flat vector/waveform lists of
+# contracts.channels.typed_value (CodonTraceSwarm MaxValues = 256).
+MAX_VALUE_ITEMS = 256
+MAX_CATEGORY_CHARS = 128
 OPERATIONS = frozenset({'sample', 'raw', 'features', 'result', 'set_rate', 'pipeline', 'capsule'})
 
 
@@ -32,6 +36,24 @@ object_keys = exact_keys
 canonical = wire_canonical
 
 
+def reading_value(value: Any) -> Any:
+    """Check a valid v2 reading value against the union of the descriptor value types.
+
+    scalar: finite number; vector/waveform: flat list of 1..256 finite numbers;
+    boolean: bool; category: text of at most 128 characters. Nesting is limited
+    to 1 array level; the per-channel shape is checked later against the descriptor.
+    """
+    if type(value) is bool:
+        return value
+    if isinstance(value, str):
+        return text(value, MAX_CATEGORY_CHARS)
+    if isinstance(value, list):
+        if not 1 <= len(value) <= MAX_VALUE_ITEMS:
+            raise ValueError('reading value array must contain 1..256 numbers')
+        return [number(v) for v in value]
+    return number(value)
+
+
 def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
     def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         out: dict[str, Any] = {}
@@ -40,12 +62,14 @@ def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
                 raise ValueError('duplicate JSON key')
             out[key] = value
         return out
+    def non_finite(token: str) -> Any:
+        raise ValueError('finite number required')  # NaN/Infinity are not JSON (RFC 8259 s6)
     if isinstance(raw, (str, bytes)):
         if len(raw.encode() if isinstance(raw, str) else raw) > MAX_BYTES:
             raise ValueError('payload too large')
         if not json_depth_within(raw):
             raise ValueError('JSON nesting too deep')
-        raw = json.loads(raw, object_pairs_hook=unique)
+        raw = json.loads(raw, object_pairs_hook=unique, parse_constant=non_finite)
     try:
         encoded = canonical(raw).encode()
     except RecursionError:
@@ -88,6 +112,8 @@ def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
             if type(p['valid']) is not bool or (not p['valid'] and p['value'] is not None):
                 raise ValueError('invalid typed sample validity')
             if p['valid'] and p['status'] != 'ok': raise ValueError('valid sample requires ok status')
+            if p['valid']:
+                reading_value(p['value'])
             if 'metadata' in p:
                 metadata = p['metadata']
                 if not isinstance(metadata, dict) or len(metadata) > 32: raise ValueError('bounded metadata object required')

@@ -10,6 +10,7 @@ from codontrace.contracts.wire_validation import (
     bounded_text,
     exact_keys,
     finite_number,
+    json_depth_within,
     wire_canonical,
 )
 from codontrace.contracts.wire_validation import (
@@ -42,8 +43,14 @@ def decode(raw: bytes | str | Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(raw, (str, bytes)):
         if len(raw.encode() if isinstance(raw, str) else raw) > MAX_BYTES:
             raise ValueError('payload too large')
+        if not json_depth_within(raw):
+            raise ValueError('JSON nesting too deep')
         raw = json.loads(raw, object_pairs_hook=unique)
-    if len(canonical(raw).encode()) > MAX_BYTES:
+    try:
+        encoded = canonical(raw).encode()
+    except RecursionError:
+        raise ValueError('JSON nesting too deep') from None
+    if len(encoded) > MAX_BYTES:
         raise ValueError('payload too large')
     m = object_keys(raw, {'schema', 'swarm_id', 'node_id', 'boot_id', 'seq', 'kind', 'payload'})
     if m['schema'] not in (VERSION, VERSION2):

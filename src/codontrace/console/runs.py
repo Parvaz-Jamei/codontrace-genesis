@@ -22,6 +22,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from codontrace.contracts.run_roots import resolve_run_root
+
 _RUN_PROCESSES: dict[str, subprocess.Popen[Any]] = {}
 _RUN_FINALIZERS: dict[str, threading.Event] = {}
 _RUN_LOCK = threading.Lock()
@@ -357,26 +359,8 @@ def move_run_to_trash(run_id: str, entry: Path) -> Path:
 
 
 def runs_directory() -> Path:
-    """Find the simulation runs directory across different environments."""
-    custom = os.environ.get("CODONTRACE_RUNS_DIR", "").strip()
-    if custom:
-        p = Path(custom).expanduser()
-        p.mkdir(parents=True, exist_ok=True)
-        return p
-
-    # Local project directory
-    local = Path("simulation_runs").resolve()
-    if local.is_dir():
-        return local
-
-    # User home directory (typical on Linux SBC / desktop)
-    home_runs = Path.home() / "simulation_runs"
-    if home_runs.is_dir():
-        return home_runs
-
-    # Fallback to local
-    local.mkdir(parents=True, exist_ok=True)
-    return local
+    """Find the simulation runs directory across different environments (see genesis.run_refs)."""
+    return resolve_run_root("simulation")
 
 
 def tail_file(path: Path, max_lines: int = 50, max_bytes: int = 65536) -> list[str]:

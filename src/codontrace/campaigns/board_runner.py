@@ -18,6 +18,7 @@ from typing import Any
 from codontrace.campaigns.readiness import experiment
 from codontrace.engine_runtime import GenesisEngine, checkpoint_bytes, checkpoint_from_bytes
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.run_refs import module_run_reference, write_run_reference
 from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
 
 BASIS_SHA = "e90f9cd1d7287d2b51531cae82cd75dc0a18b2f1"
@@ -116,14 +117,30 @@ def _living(engine: GenesisEngine) -> int | None:
     return None
 
 
-def _run_until(engine: GenesisEngine, ticks: int, events: Path) -> tuple[str, dict[str, Any]]:
-    engine.run_ticks(ticks)
+def _run_until(engine: GenesisEngine, ticks: int, events: Path) -> tuple[str, dict[str, Any], Any]:
+    result = engine.run_ticks(ticks)
     for tick in engine.tick_results:
         _append_jsonl(events, {"kind": "tick", "tick": int(tick.index) + 1})
     fork = engine.capture_fork()
     digest = str(fork["state_digest"])
     _append_jsonl(events, {"kind": "checkpoint", "tick": int(fork["tick_index"]), "state_digest": digest})
-    return digest, fork
+    return digest, fork, result
+
+
+RUN_REFERENCE_NAME = "engine_run_ref.json"
+
+
+def _write_run_reference(arm_dir: Path, result: Any, *, seed: int, arm: str) -> None:
+    """Engine RunManifest / ReplayBundle reference next to the legacy files (which it hashes, never rewrites)."""
+    legacy = {name: _sha256(arm_dir / name) for name in ("artifacts_manifest.json", "manifest.json", "completion.json")}
+    reference = module_run_reference(
+        "board", f"T11/seed_{seed}/arm_{arm}",
+        manifest=None if result is None else result.manifest,
+        replay_bundle=None if result is None else result.replay_bundle,
+        legacy_files=legacy,
+        extra={"segment": "full_run" if arm == "uninterrupted" else "resumed_second_half"},
+    )
+    write_run_reference(arm_dir / RUN_REFERENCE_NAME, reference)
 
 
 def _arm_dir(output: Path, seed: int, arm: str) -> Path:
@@ -240,7 +257,7 @@ def run_uninterrupted(
     events = arm_dir / "events.jsonl"
     spec = _spec(seed, ticks, population)
     engine = GenesisEngine.from_spec(spec)
-    digest, end = _run_until(engine, ticks, events)
+    digest, end, result = _run_until(engine, ticks, events)
     (arm_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
     (arm_dir / "checkpoints" / "end.bin").write_bytes(checkpoint_bytes(end))
     # A mid checkpoint is the resume point. It is taken from a second, identical prefix.
@@ -259,6 +276,7 @@ def run_uninterrupted(
         state_digest=digest,
         living=_living(engine),
     )
+    _write_run_reference(arm_dir, result, seed=seed, arm="uninterrupted")
     _write_campaign_manifest(output, seed=seed, ticks=ticks, population=population, workers=workers, cores=cores)
     return arm_dir
 
@@ -300,7 +318,7 @@ def resume(
     except (ConfigurationError, ValueError) as exc:
         raise CampaignRejected(f"incompatible checkpoint: {exc}") from exc
     events = arm_dir / "events.jsonl"
-    restored.run_ticks(ticks - (ticks // 2))
+    resumed = restored.run_ticks(ticks - (ticks // 2))
     fork = restored.capture_fork()
     if int(fork["tick_index"]) != ticks:
         raise CampaignRejected("resumed engine did not reach the locked horizon")
@@ -318,6 +336,7 @@ def resume(
         state_digest=digest,
         living=_living(restored),
     )
+    _write_run_reference(arm_dir, resumed, seed=seed, arm="resume")
     _write_campaign_manifest(output, seed=seed, ticks=ticks, population=population, workers=workers, cores=cores)
     return arm_dir
 

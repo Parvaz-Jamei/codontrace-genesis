@@ -14,8 +14,38 @@ digest}``, where ``digest`` is the SHA-256 of the record without it and
 ``<journal>.part.NNNNNNNN``; checkpoints ``<journal>.checkpoint.NNNNNNNN.json``
 bind the state at the end of a closed segment to its last record; covered
 segments may move to ``<journal>.archive/``. A lock file ``<journal>.lock``
-serializes writers across processes. See ``SwarmCoordinator`` for the
-restore, retention and integrity-scope rules, which are unchanged.
+serializes writers across processes.
+
+Restore: startup uses the newest checkpoint that verifies against the current
+journal (its segment must still be live and its chain must equal that
+segment's last record), hash-checks the covered live segments without
+re-applying them, and replays only later records. Without a usable checkpoint
+the whole chain is replayed, including ``<journal>.archive/``, which also
+checks the archive-to-live link. ``recover(full_replay=...)`` works when normal
+opening fails. A checkpoint is written at every segment rotation; at most
+``CHECKPOINTS_KEPT`` are kept.
+
+Retention: ``retention_bytes`` moves segments already covered by a checkpoint
+to the archive (data is kept); only ``archive_max_bytes`` deletes archived
+segments, oldest first. Checkpoint and retention problems are reported in
+``journal_health()`` (``checkpoint_health``, ``retention_health``) and never
+block writes.
+
+Integrity scope: the SHA-256 chain is unkeyed, so it detects corruption and
+accidental edits, not a deliberate rewrite by someone with write access.
+Startup checks every live record; archived segments are checked only by a
+full replay. Dropping trailing records leaves a valid shorter chain; use an
+external anchor (``genesis.journal.anchor``) to detect that. A writer whose view
+is behind the file refuses to write ("journal changed externally") until
+``recover()`` reloads it.
+
+Design note: state machines subclass ``HashChainedJournal`` and provide the
+``EventSourcedMachine`` hooks, rather than holding a journal object. Restore
+and replay call those hooks on ``self._state`` inside the journal's lock, and
+the existing module classes expose the journal attributes (``journal``,
+``_chain``, ``_lock``) as part of their own surface, so subclassing keeps both
+the byte format and that surface unchanged. The journal can still be used and
+tested on its own with any machine (``tests/_journal_machine.py``).
 """
 from __future__ import annotations
 

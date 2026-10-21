@@ -31,6 +31,7 @@ def inference_timeout(*, cloud: bool) -> float:
 
 DEFAULT_ENDPOINTS = (
     "http://127.0.0.1:8088/v1/chat/completions",
+    f"http://{os.environ.get('CODONTRACE_BOARD_IP', '10.225.130.20').strip()}:8088/v1/chat/completions",
     "http://127.0.0.1:11434/v1/chat/completions",
     "http://127.0.0.1:1234/v1/chat/completions",
 )
@@ -141,7 +142,7 @@ def _probe_single_endpoint(ep: str) -> dict[str, Any] | None:
         base_url = ep.split("/v1/")[0]
         models_url = f"{base_url}/v1/models"
         req = urllib.request.Request(models_url, headers={"User-Agent": "CodonTraceConsole/1.0"})
-        with urllib.request.urlopen(req, timeout=0.35) as resp:
+        with urllib.request.urlopen(req, timeout=0.8) as resp:
             if resp.status == 200:
                 data = json.loads(resp.read().decode("utf-8"))
                 models = [m.get("id", "model") for m in data.get("data", [])] if isinstance(data, dict) else []
@@ -177,16 +178,15 @@ def check_llm_status() -> dict[str, Any]:
     import concurrent.futures
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(endpoints_to_try))) as executor:
-        futures = [executor.submit(_probe_single_endpoint, ep) for ep in endpoints_to_try]
-        done, _ = concurrent.futures.wait(futures, timeout=0.5)
-        for fut in done:
-            try:
+        futures = {executor.submit(_probe_single_endpoint, ep): ep for ep in endpoints_to_try}
+        try:
+            for fut in concurrent.futures.as_completed(futures, timeout=1.5):
                 res = fut.result()
                 if res and res.get("mounted"):
                     _STATUS_CACHE[endpoint] = (now, res)
                     return dict(res)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     fallback_status = {
         "mounted": False,
@@ -301,7 +301,7 @@ def query_llm(
     if cloud:
         chosen_model = resolved_cloud_model
     elif not model or model == "board-model":
-        chosen_model = status.get("model") or "local-model"
+        chosen_model = str(status.get("model") or "local-model")
     else:
         chosen_model = model
     payload_dict: dict[str, Any] = {
@@ -396,11 +396,18 @@ def query_llm(
                     context.setdefault("tool_calls", []).append({"name": name, "ok": result.get("ok"), "summary": result.get("summary") or result.get("error")})
                     context.setdefault("artifacts", []).extend(result.get("artifacts") or [])
                     # Small summaries in LLM context; full series stay in structured UI artifacts.
-                    compact = {"ok": result.get("ok"), "summary": result.get("summary") or result.get("error"),
-                               "run_id": result.get("run_id"), "artifact_types": [a.get("kind") for a in result.get("artifacts", [])]}
-                    compact["measurements"] = []
-                    for artifact in (result.get("artifacts") or [])[:8]:
-                        item = {"kind": artifact.get("kind"), "provenance": artifact.get("provenance")}
+                    raw_artifacts = result.get("artifacts")
+                    artifacts_list: list[dict[str, Any]] = [a for a in raw_artifacts if isinstance(a, dict)] if isinstance(raw_artifacts, list) else []
+                    measurements_list: list[dict[str, Any]] = []
+                    compact: dict[str, Any] = {
+                        "ok": result.get("ok"),
+                        "summary": result.get("summary") or result.get("error"),
+                        "run_id": result.get("run_id"),
+                        "artifact_types": [a.get("kind") for a in artifacts_list],
+                        "measurements": measurements_list,
+                    }
+                    for artifact in artifacts_list[:8]:
+                        item: dict[str, Any] = {"kind": artifact.get("kind"), "provenance": artifact.get("provenance")}
                         if artifact.get("kind") == "table":
                             item.update(columns=artifact.get("columns"), rows=(artifact.get("rows") or [])[:20])
                         elif artifact.get("kind") == "chart":
@@ -412,7 +419,7 @@ def query_llm(
                                 item["notice"] = "Matrix shown in UI; no uncomputed hypothesis inference."
                         else:
                             item["description"] = artifact.get("description")
-                        compact["measurements"].append(item)
+                        measurements_list.append(item)
                     payload_dict["messages"].append({"role": "tool", "tool_call_id": str(call.get("id") or f"call_{index}"), "content": json.dumps(compact)})
                 continue
             content = message.get("content")

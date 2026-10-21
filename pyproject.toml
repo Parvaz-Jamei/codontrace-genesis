@@ -171,3 +171,30 @@ disable_error_code = [
   "unused-ignore",
   "var-annotated",
 ]
+
+[[tool.mypy.overrides]]
+module = ["codontrace.swarm.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disable_error_code = [
+  "arg-type",
+  "attr-defined",
+  "call-arg",
+  "no-untyped-call",
+  "no-untyped-def",
+  "no-any-return",
+  "import-not-found",
+  "import-untyped",
+  "dict-item",
+  "call-overload",
+  "index",
+  "misc",
+  "operator",
+  "union-attr",
+  "unused-ignore",
+  "var-annotated",
+]
+
+[[tool.mypy.overrides]]
+module = ["paho", "paho.*"]
+ignore_missing_imports = true

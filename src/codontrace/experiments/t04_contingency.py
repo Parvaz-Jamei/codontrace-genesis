@@ -218,7 +218,7 @@ class T04ContingencyRunner:
                         break
                     record = self.step_generation(snapshot.generation + offset, future_seed)
                     record = replace(record, details={"snapshot_index": snapshot_index, "future_seed": future_seed, "history_seed": snapshot.history_seed})
-                    source_history_index = next(int(h["history_index"]) for h in history_hashes if h["history_seed"] == snapshot.history_seed)
+                    source_history_index = next(int(str(h["history_index"])) for h in history_hashes if h["history_seed"] == snapshot.history_seed)
                     publish(record, source_history_index, "replay", branch_index)
                     branch_work += 1
                     self.metrics_history.clear()
@@ -241,13 +241,15 @@ class T04ContingencyRunner:
             if len(matched) > 1:
                 differences.append({"snapshot_generation": generation,
                     "matched_future_seed": matched[0]["future_seed"],
-                    "endpoint_difference": float(matched[1]["endpoint"]) - float(matched[0]["endpoint"])})
+                    "endpoint_difference": float(str(matched[1]["endpoint"])) - float(str(matched[0]["endpoint"]))})
         self.completed_generations = work_units
+        endpoint_vals: list[float] = [float(str(b["endpoint"])) for b in branches]
+        mean_endpoint = sum(endpoint_vals) / len(endpoint_vals) if endpoint_vals else None
         return CompletionSummary(
             experiment_id="T04_CONTINGENCY_REPLAY", track=self.track, seed=self.seed,
             completed_generations=work_units, total_ticks=0, status="COMPLETED",
             stop_reason="ENSEMBLE_FINISHED", scientific_assessment=AssessmentStatus.INCONCLUSIVE if exact_replay else AssessmentStatus.INVALID_MEASUREMENT,
-            primary_endpoint_value=sum(float(b["endpoint"]) for b in branches) / len(branches) if branches else None,
+            primary_endpoint_value=mean_endpoint,
             summary_metrics={"arm": self.arm, "replay_ensemble_implemented": True,
                 "history_horizon": self.generations, "replay_horizon": self.replay_generations,
                 "planned_work_units": self.planned_work_units, "completed_work_units": work_units,

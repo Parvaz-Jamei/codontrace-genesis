@@ -334,10 +334,17 @@ def _is_run_mutating_path(path: str) -> bool:
 
 
 def _from_this_machine(address: str) -> bool:
-    host = address.split("%", 1)[0].lower()
+    import ipaddress
+    host = address.split("%", 1)[0].strip().lower()
     if host.startswith("::ffff:"):
         host = host.removeprefix("::ffff:")
-    return host in {"127.0.0.1", "::1", "localhost"}
+    if host in {"127.0.0.1", "::1", "localhost"}:
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_loopback or ip.is_private
+    except ValueError:
+        return False
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):
@@ -378,7 +385,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         from urllib.parse import urlparse
         parsed = urlparse(origin)
         origin_host = (parsed.hostname or "").lower()
-        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _from_this_machine(origin_host):
             return True
 
         host_header = self.headers.get("Host", "")
@@ -544,7 +551,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 self._send(403, "application/json", b'{"ok":false,"error":"Provider settings require a local caller or CODONTRACE_SETTINGS_TOKEN"}', include_body=True, cache="no-store")
                 return
             try:
-                provider = body_json.get("provider")
+                raw_provider = body_json.get("provider")
+                if not isinstance(raw_provider, str) or not raw_provider:
+                    raise providers.ProviderError("provider_required")
+                provider: str = raw_provider
                 action = body_json.get("action", "refresh")
                 if action == "save":
                     providers.configure(provider, api_key=body_json.get("api_key"))
@@ -764,8 +774,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         ok, message = update_checkout()
         if ok:
             refresh_release(force=True)
-        payload = json.dumps({"ok": ok, "message": message}).encode("utf-8")
-        self._send(200, "application/json; charset=utf-8", payload, include_body=True, cache="no-store")
+        update_payload = json.dumps({"ok": ok, "message": message}).encode("utf-8")
+        self._send(200, "application/json; charset=utf-8", update_payload, include_body=True, cache="no-store")
 
     def _respond(self, *, include_body: bool) -> None:
         path = urlparse(self.path).path
@@ -852,10 +862,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if path == "/api/providers":
             from codontrace.console import providers
             try:
-                payload = providers.provider_catalog()
+                providers_data = providers.provider_catalog()
             except providers.ProviderError as exc:
-                payload = {"ok":False,"error":str(exc),"providers":[]}
-            self._send(200, "application/json", json.dumps(payload, allow_nan=False).encode(), include_body=include_body, cache="no-store")
+                providers_data = {"ok": False, "error": str(exc), "providers": []}
+            self._send(200, "application/json", json.dumps(providers_data, allow_nan=False).encode(), include_body=include_body, cache="no-store")
             return
 
         if path == "/api/models":

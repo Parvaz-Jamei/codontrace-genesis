@@ -21,6 +21,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_SECONDARY,
     ClosedLoopHPLifeConfig,
     assert_single_atp_owner,
+    hp_life_config,
     role_of,
 )
 from codontrace.genesis.organism import GenesisOrganism
@@ -136,7 +137,7 @@ class ClosedLoopP1Session:
             # Same inner API GenesisEngine.run_ticks uses.
             self.runner.step_generation(seed=self.seed + self.tick_index + i)
             self.tick_index += 1
-            role_map = self.runner.configs.closed_loop_hp_life.role_map()
+            role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
             self.roles = {
                 org.id: (role_of(org.id, role_map) or self.roles.get(org.id, "unknown"))
                 for org in self.runner.population.organisms
@@ -158,7 +159,7 @@ class ClosedLoopP1Session:
         return canonical_digest(payload, prefix="clp1snap")
 
     def summary(self) -> dict[str, Any]:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         primary = [
             o
             for o in self.runner.population.organisms
@@ -189,7 +190,7 @@ class ClosedLoopP1Session:
         }
 
     def secondary_genome_digests(self) -> dict[str, str]:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         return {
             o.id: _genome_digest(o)
             for o in self.runner.population.organisms

@@ -28,6 +28,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ClosedLoopHPLifeConfig,
     assert_single_atp_owner,
     decode_kappa,
+    hp_life_config,
     kappa_transfer_amount,
     role_of,
     with_inherited_birth_roles,
@@ -240,7 +241,7 @@ class ClosedLoopP3Session:
         )
 
     def _record_births(self, result: GenerationResult) -> None:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         new_births: list[tuple[str, str]] = []
         for record in result.organism_records:
             rr = record.reproduction_result
@@ -279,7 +280,7 @@ class ClosedLoopP3Session:
 
         if new_births:
             life = with_inherited_birth_roles(
-                self.runner.configs.closed_loop_hp_life, new_births
+                hp_life_config(self.runner.configs.closed_loop_hp_life), new_births
             )
             self.runner.configs = replace(
                 self.runner.configs, closed_loop_hp_life=life
@@ -299,7 +300,7 @@ class ClosedLoopP3Session:
     def _apply_kappa_couplings(self) -> None:
         if not self.kappa_enabled:
             return
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         primaries = sorted(
             [
                 o
@@ -434,7 +435,7 @@ class ClosedLoopP3Session:
         return self.summary()
 
     def mean_kappa(self, role: str) -> float:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         vals = [
             _kappa_of(
                 o,
@@ -450,7 +451,7 @@ class ClosedLoopP3Session:
         return sum(vals) / len(vals)
 
     def atp_skew(self) -> float:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         primary = [
             _atp_of(o)
             for o in self.runner.population.organisms
@@ -489,7 +490,7 @@ class ClosedLoopP3Session:
         return canonical_digest(payload, prefix="clp3snap")
 
     def summary(self) -> dict[str, Any]:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         primary = [
             o
             for o in self.runner.population.organisms

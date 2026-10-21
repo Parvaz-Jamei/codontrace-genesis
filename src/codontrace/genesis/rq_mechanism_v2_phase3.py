@@ -55,6 +55,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_PRIMARY,
     ROLE_SECONDARY,
     ClosedLoopHPLifeConfig,
+    hp_life_config,
     outcross_runtime_cost,
     silence_outcross_locus,
 )
@@ -499,7 +500,7 @@ def install_locked_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]
         )
         if _window(organism) != str(seat["window"]):
             raise ConfigurationError("installed genome does not decode to its window")
-        silence_outcross_locus(organism, arm.runner.configs.closed_loop_hp_life)
+        silence_outcross_locus(organism, hp_life_config(arm.runner.configs.closed_loop_hp_life))
         organisms.append(organism)
         roles[host_id] = ROLE_PRIMARY
     arm.runner.population = replace(

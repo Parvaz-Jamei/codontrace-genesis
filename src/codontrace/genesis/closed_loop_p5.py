@@ -34,6 +34,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     coding_bits_for_execution,
     decode_kappa,
     decode_outcross,
+    hp_life_config,
     role_of,
     silence_outcross_locus,
     with_inherited_birth_roles,
@@ -236,15 +237,15 @@ class ClosedLoopP5Session:
                 new_births.append((rec.parent_id, org.id))
         if new_births:
             life = with_inherited_birth_roles(
-                self.runner.configs.closed_loop_hp_life, new_births
+                hp_life_config(self.runner.configs.closed_loop_hp_life), new_births
             )
             self.runner.configs = replace(self.runner.configs, closed_loop_hp_life=life)
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         self.roles = {
             org.id: (role_of(org.id, role_map) or self.roles.get(org.id, "unknown"))
             for org in self.runner.population.organisms
         }
-        life = self.runner.configs.closed_loop_hp_life
+        life = hp_life_config(self.runner.configs.closed_loop_hp_life)
         for org in self.runner.population.organisms:
             silence_outcross_locus(org, life)
 
@@ -262,7 +263,7 @@ class ClosedLoopP5Session:
 
     def snapshot_digest(self) -> str:
         orgs = sorted(self.runner.population.organisms, key=lambda o: o.id)
-        life = self.runner.configs.closed_loop_hp_life
+        life = hp_life_config(self.runner.configs.closed_loop_hp_life)
         payload = {
             "tick": self.tick_index,
             "generation": self.runner.population.generation,
@@ -320,7 +321,7 @@ class ClosedLoopP5Session:
             "clock_api": "PopulationRunner.step_generation",
             "hp_world_tick_calls": self.hp_world_tick_calls,
             "outcross_ablate": bool(
-                self.runner.configs.closed_loop_hp_life.outcross_ablate
+                hp_life_config(self.runner.configs.closed_loop_hp_life).outcross_ablate
             ),
         }
 
@@ -355,7 +356,7 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
         return "".join(token.bits for token in org.compiled_brain.tokens)
 
     def _every_brain_is_coding(session: ClosedLoopP5Session) -> bool:
-        life = session.runner.configs.closed_loop_hp_life
+        life = hp_life_config(session.runner.configs.closed_loop_hp_life)
         for org in session.runner.population.organisms:
             brain = "".join(token.bits for token in org.compiled_brain.tokens)
             if brain != coding_bits_for_execution(org.genome.to_compact(), life):

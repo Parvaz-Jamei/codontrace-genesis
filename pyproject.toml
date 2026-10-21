@@ -53,6 +53,10 @@ classifiers = [
 ]
 dependencies = []
 
+
+[project.entry-points."codontrace.life_plugins"]
+host_parasite = "codontrace.genesis.host_parasite_life_plugin:PLUGIN"
+
 [project.optional-dependencies]
 swarm = ["paho-mqtt>=2.1,<3"]
 dev = [

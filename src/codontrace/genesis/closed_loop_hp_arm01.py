@@ -68,6 +68,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     assert_single_atp_owner,
     decode_outcross,
     decode_recognition,
+    hp_life_config,
     role_of,
     silence_outcross_locus,
     with_inherited_birth_roles,
@@ -810,7 +811,7 @@ class LifeLoopEcologyArm:
             org
             for org in self.runner.population.organisms
             if self.roles.get(org.id) == ROLE_PRIMARY
-            or role_of(org.id, self.runner.configs.closed_loop_hp_life.role_map()) == ROLE_PRIMARY
+            or role_of(org.id, hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()) == ROLE_PRIMARY
         ]
 
     def _record_births(self, result: GenerationResult) -> None:
@@ -828,17 +829,17 @@ class LifeLoopEcologyArm:
                 self.roles[org.id] = ROLE_PRIMARY
         if new_births:
             life = with_inherited_birth_roles(
-                self.runner.configs.closed_loop_hp_life, new_births
+                hp_life_config(self.runner.configs.closed_loop_hp_life), new_births
             )
             self.runner.configs = replace(self.runner.configs, closed_loop_hp_life=life)
             for parent_id, child_id in new_births:
                 self.roles[child_id] = self.roles.get(parent_id, ROLE_PRIMARY)
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         for org in self.runner.population.organisms:
             mapped = role_of(org.id, role_map)
             if mapped is not None:
                 self.roles[org.id] = mapped
-        life = self.runner.configs.closed_loop_hp_life
+        life = hp_life_config(self.runner.configs.closed_loop_hp_life)
         for org in self.runner.population.organisms:
             silence_outcross_locus(org, life)
 

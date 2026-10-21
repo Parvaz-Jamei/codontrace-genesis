@@ -74,3 +74,27 @@ def test_lan_origin_is_not_allowed_by_address_class() -> None:
     )
     handler.server = type("S", (), {"server_address": ("127.0.0.1", 8765)})()  # type: ignore[assignment]
     assert handler._is_origin_allowed() is False
+
+
+def test_private_peer_is_remote_without_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", raising=False)
+    assert server._from_this_machine("10.225.130.20") is False
+
+
+def test_trusted_networks_opt_in_is_explicit_and_narrow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "10.225.130.0/24, not-a-net")
+    assert server._from_this_machine("10.225.130.20") is True
+    assert server._from_this_machine("10.225.131.20") is False
+    assert server._from_this_machine("192.168.1.100") is False
+    monkeypatch.delenv("CODONTRACE_UPDATE_TOKEN", raising=False)
+    ok, status, _ = _handler("10.225.130.20")._check_update_authorization({})
+    assert (ok, status) == (True, 200)
+    ok, status, _ = _handler(
+        "10.225.130.20", {"X-Forwarded-For": "1.2.3.4"}
+    )._check_update_authorization({})
+    assert (ok, status) == (False, 403)
+
+
+def test_invalid_trusted_networks_never_widen(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "garbage,,10.0.0.0/33")
+    assert server._from_this_machine("10.0.0.5") is False

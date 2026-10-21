@@ -355,9 +355,34 @@ def _from_this_machine(address: str) -> bool:
     if host == "localhost":
         return True
     try:
-        return ipaddress.ip_address(host).is_loopback
+        ip = ipaddress.ip_address(host)
     except ValueError:
         return False
+    if ip.is_loopback:
+        return True
+    return any(ip in net for net in _trusted_networks())
+
+
+def _trusted_networks() -> list[Any]:
+    """Explicit opt-in: CODONTRACE_CONSOLE_TRUSTED_NETWORKS="10.225.130.0/24,...".
+
+    744f6cf treated every private address as local so the console could be
+    driven from the lab board's LAN (CODONTRACE_BOARD_IP) without a token.
+    That intent is kept only for networks the operator names here. Unset
+    (the default) means loopback only. Invalid entries are ignored, so a
+    typo never widens access.
+    """
+    import ipaddress
+    nets: list[Any] = []
+    for item in os.environ.get("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            continue
+    return nets
 
 
 class ConsoleHandler(BaseHTTPRequestHandler):

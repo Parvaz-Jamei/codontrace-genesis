@@ -39,7 +39,21 @@ No call leaves the machine unless `allow_network=True` or
 `CODONTRACE_ALLOW_NETWORK=1`. Tests use responses recorded from Free TSA on
 2026-10-21 (`tests/preregistration/fixtures/`).
 
-OSF is not implemented; its registrations are an alternative to Zenodo.
+* **OSF** (`osf.OSFClient`): a draft registration from scratch
+  (`POST /v2/draft_registrations/`, with a registration schema id and the
+  `osf` provider). The manifest SHA-256 goes into the frozen title and
+  description. The draft is submitted with `POST /v2/registrations/` and
+  `draft_registration_id`, but only when `submit=True` is passed, because an
+  OSF registration cannot be deleted. The client pins API version 2.20 in the
+  `Accept` header and checks that the registered description carries the
+  digest. A draft is not evidence. A registration that is pending approval,
+  embargoed or private is not evidence either. Only a public registration
+  counts, with its `date_registered` (stored as UTC). No file is uploaded to an
+  OSF project, because OSF stops creating projects through the API on
+  2026-11-16 and makes them read-only on 2027-02-19, while registrations keep
+  working. `TEST_SERVER` (`api.test.osf.io`) is the default. The OSF tests
+  replay bodies that follow the documented responses. They are not
+  recordings, because a real registration is permanent.
 
 ## References
 
@@ -47,3 +61,6 @@ OSF is not implemented; its registrations are an alternative to Zenodo.
 * RFC 5652, Cryptographic Message Syntax (2009).
 * Nosek, B. A., et al. (2018). The preregistration revolution. PNAS 115(11):2600-2606.
 * Zenodo REST API documentation, https://developers.zenodo.org/.
+* OSF APIv2 documentation, https://developer.osf.io/ (`swagger.json`, fetched 2026-10-22).
+* osf.io source, `api/base/versioning.py` and `api/registrations/serializers.py` (develop branch, 2026-10-22).
+* OSF Projects API Impact, https://help.osf.io/article/744-osf-projects-api-impact.

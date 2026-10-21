@@ -11,6 +11,7 @@ from pathlib import Path
 from codontrace.errors import ConfigurationError
 
 from .manifest import PlanManifest, hash_plan
+from .osf import OSFRegistration
 from .rfc3161 import TimeStampToken
 from .zenodo import ZenodoDeposit
 
@@ -19,7 +20,7 @@ __all__ = ["PreregistrationRecord", "TimestampEvidence", "PreregCheck", "verify_
 
 @dataclass(frozen=True)
 class TimestampEvidence:
-    kind: str  # "rfc3161" or "zenodo"
+    kind: str  # "rfc3161", "zenodo" or "osf"
     authority: str
     time: datetime
     manifest_sha256: str
@@ -35,6 +36,17 @@ class TimestampEvidence:
         if not dep.submitted or dep.published_at is None or not dep.doi:
             raise ConfigurationError("an unpublished Zenodo draft is not external evidence")
         return cls("zenodo", dep.record_url or "zenodo", dep.published_at, manifest.digest, f"doi:{dep.doi}", True)
+
+    @classmethod
+    def from_osf(cls, reg: OSFRegistration, manifest: PlanManifest) -> TimestampEvidence:
+        if not reg.submitted or reg.registered_at is None or not reg.registration_id:
+            raise ConfigurationError("an unsubmitted OSF draft is not external evidence")
+        if reg.pending_approval or reg.embargoed or not reg.public:
+            raise ConfigurationError("an OSF registration that is pending, embargoed or private is not yet evidence")
+        if manifest.digest not in reg.description:
+            raise ConfigurationError("the OSF registration does not carry this manifest digest")
+        return cls("osf", reg.html_url or "osf", reg.registered_at, manifest.digest,
+                   f"osf:{reg.registration_id}", True)
 
     def to_dict(self) -> dict[str, object]:
         return {

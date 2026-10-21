@@ -4,7 +4,8 @@
 2. :mod:`.rfc3161`: RFC 3161 time-stamp request/response (pure-Python DER),
    with optional signature verification through ``openssl ts -verify``.
 3. :mod:`.zenodo`: deposit the manifest as a Zenodo draft (publish only on request).
-4. :mod:`.record`: a preregistration record and the ``hash before run`` check.
+4. :mod:`.osf`: OSF registration from scratch (submit only on request).
+5. :mod:`.record`: a preregistration record and the ``hash before run`` check.
 
 No network call happens unless the caller passes ``allow_network=True``
 (or sets ``CODONTRACE_ALLOW_NETWORK=1``); tests replay recorded responses.

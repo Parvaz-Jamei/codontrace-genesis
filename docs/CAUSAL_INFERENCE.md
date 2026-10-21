@@ -13,7 +13,7 @@ in `tests/characterization/test_import_direction.py` lists it under `MODULES`.
 | `separation.py` | d-separation ("Reachable"/Bayes-ball), m-separation via explicit latents | Koller & Friedman 2009, Alg. 3.1; Shachter 1998; Richardson 2003 |
 | `adjustment.py` | back-door and front-door criteria, exhaustive minimal-set search | Pearl 2009, Defs 3.3.1, 3.3.3, Thms 3.3.2, 3.3.4 |
 | `expressions.py` | `P(A|B)`, sums, products, fractions; exact evaluation on a discrete joint | |
-| `identification.py` | ID (sound and complete, returns a hedge on failure) and IDC | Shpitser & Pearl 2006a (AAAI) Fig. 3; 2006b (UAI) Fig. 4 |
+| `identification.py` | ID (sound and complete; on failure returns the line-5 pair, which contains a hedge, Shpitser & Pearl 2008 Thm 39) and IDC (sound and complete, Thm 22) | Shpitser & Pearl 2006a (AAAI) Fig. 3; 2006b (UAI) Fig. 4 |
 | `scm.py` | random discrete SCMs (parameters from `RNGManager`), exact observational and truncated-factorisation interventional joints | Pearl 2009, eq. 3.10 |
 
 Each section imports only the ones above it, so a failure can be debugged

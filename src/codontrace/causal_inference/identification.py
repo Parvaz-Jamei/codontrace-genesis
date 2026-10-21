@@ -2,13 +2,19 @@
 
 ``identify`` is the ID algorithm of Shpitser & Pearl (2006a, AAAI,
 "Identification of Joint Interventional Distributions in Recursive
-Semi-Markovian Causal Models", Fig. 3). It is sound and complete: it returns
-an expression for ``P(y | do(x))`` in terms of the observational P(V), or
-raises :class:`NotIdentifiable` carrying the hedge ``(F, F')`` that witnesses
-non-identifiability (their Theorem 4 / hedge criterion).
+Semi-Markovian Causal Models", Fig. 3; Shpitser & Pearl 2008, JMLR 9,
+Fig. 3). It is sound and complete (JMLR 2008, Thms 38 and 18): it returns an
+expression for ``P(y | do(x))`` in terms of the observational P(V), or raises
+:class:`NotIdentifiable` at line 5. The exception carries the pair of node
+sets ``(G, S)`` of that failing call: a single C-component and the
+C-component of ``G \ X`` inside it. That pair is *not* itself a hedge in
+general; by JMLR 2008, Thm 39, it contains, as edge subgraphs, C-forests
+``F, F'`` that form a hedge for ``P(y' | do(x'))`` for some ``x' <= x``,
+``y' <= y`` (Thm 19, hedge criterion).
 
 ``identify_conditional`` is IDC (Shpitser & Pearl 2006b, UAI,
-"Identification of Conditional Interventional Distributions", Fig. 4), using
+"Identification of Conditional Interventional Distributions", Fig. 4; JMLR
+2008, Fig. 7, sound and complete by Thm 22), using
 rule 2 of the do-calculus (Pearl 1995) to move conditioning variables into
 the intervention set.
 
@@ -31,12 +37,22 @@ __all__ = ["NotIdentifiable", "identify", "identify_conditional", "is_identifiab
 
 
 class NotIdentifiable(ConfigurationError):
-    """Raised by ID line 5. ``hedge`` is the pair of C-forests ``(F, F')``."""
+    """Raised by ID line 5.
+
+    ``hedge`` is the node-set pair ``(G, S)`` of the failing call: ``G`` is a
+    single C-component, ``S`` the C-component of ``G \ X`` inside it,
+    ``S < G``, ``G`` meets X and ``S`` does not. It is not always a pair of
+    C-forests (a node may have several children inside it, and the root sets
+    may differ); by Shpitser & Pearl (2008, JMLR 9, Thm 39) it *contains* as
+    edge subgraphs C-forests ``F, F'`` forming a hedge for some
+    ``P(y' | do(x'))`` with ``x' <= x`` and ``y' <= y``.
+    """
 
     def __init__(self, hedge: tuple[frozenset[str], frozenset[str]]) -> None:
         self.hedge = hedge
         super().__init__(
-            f"effect not identifiable; hedge F={sorted(hedge[0])}, F'={sorted(hedge[1])}"
+            f"effect not identifiable; line-5 failure on G={sorted(hedge[0])}, S={sorted(hedge[1])}"
+            " (contains a hedge, Shpitser & Pearl 2008 Thm 39)"
         )
 
 

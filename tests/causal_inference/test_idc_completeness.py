@@ -1,7 +1,7 @@
 """IDC verdicts: textbook cases, a y0 oracle, and the resolved y0 disagreements.
 
 IDC (Shpitser & Pearl 2006b, UAI, Fig. 4; Shpitser & Pearl 2008, JMLR 9,
-Thm 2 for its completeness) moves a conditioning variable ``Z_i`` into the
+Fig. 7 and Thm 22 for its soundness and completeness) moves a conditioning variable ``Z_i`` into the
 intervention set exactly when rule 2 of the do-calculus licenses it,
 ``(Y _||_ Z_i | X, Z - {Z_i})`` in ``G_{bar X, underline Z_i}``, and
 otherwise answers ``ID(Y u Z, X) / sum_Y ID(Y u Z, X)``.

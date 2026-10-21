@@ -1,7 +1,11 @@
-"""MQTT v5 client setup shared by ``swarm.mqtt`` and ``swarm.devices.esp32``.
+"""MQTT v5 client setup for ``swarm.mqtt`` (its only caller).
+
+``MqttEsp32Transport`` in ``swarm.devices.esp32`` does not use it: that transport
+fails closed and never opens a broker connection.
 
 paho-mqtt is imported only inside these functions, never at module import.
-Settings follow paho-mqtt 2.x (``CallbackAPIVersion.VERSION2``) and MQTT 5.0
+Settings follow paho-mqtt 2.x (checked against 2.1.0, the current PyPI release;
+``CallbackAPIVersion.VERSION2``, ``manual_ack``) and MQTT 5.0
 (OASIS standard, 2019): ``Session Expiry Interval`` on CONNECT with
 ``clean_start=False`` for a persistent session, TLS client context, and
 bounded reconnect backoff (1..60 s).

@@ -129,3 +129,20 @@ def test_adapters_package_loads_device_io_lazily():
             "exec('from codontrace.claimgate.adapters import *', ns)\n"
             "assert ns['TransportEsp32Bridge'] is esp32.TransportEsp32Bridge\n")
     subprocess.run([sys.executable, '-c', code], check=True)
+
+
+def test_mqtt_session_docstring_names_its_actual_callers():
+    import ast
+    from pathlib import Path
+
+    import codontrace
+    from codontrace.swarm.transport import mqtt_session
+    root = Path(codontrace.__file__).parent
+    callers = set()
+    for path in root.rglob('*.py'):
+        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
+            if isinstance(node, ast.ImportFrom) and node.module == 'codontrace.swarm.transport.mqtt_session':
+                callers.add('.'.join(path.relative_to(root.parent).with_suffix('').parts))
+    assert callers == {'codontrace.swarm.mqtt'}
+    first = mqtt_session.__doc__.split('\n\n')[0]
+    assert '``swarm.mqtt``' in first and 'devices' not in first

@@ -107,13 +107,35 @@ def test_idea2_engine_sham_not_nc() -> None:
         assert r.get("sham_targets_nc") is False
 
 
+VARIANCE_SEEDS = tuple(range(301, 317))
+
+
+def _survival(rows: list[dict]) -> dict[str, float]:
+    return {r["arm"]: r["survival_to_T"] for r in rows}
+
+
 def test_idea2_engine_seed_variance_survival() -> None:
-    a = run_idea2_engine_cell(seed=301, cell="baseline")
-    b = run_idea2_engine_cell(seed=305, cell="baseline")
-    assert a[0]["engine_result_digest"] != b[0]["engine_result_digest"]
-    surv_a = {r["arm"]: r["survival_to_T"] for r in a}
-    surv_b = {r["arm"]: r["survival_to_T"] for r in b}
-    assert surv_a != surv_b
+    """Seeds reach the engine and survival varies over a seed window.
+
+    survival_to_T is a census fraction (k/6 here), so two particular seeds can
+    tie by chance. The earlier 301-vs-305 pair differed only before the R09
+    capsule reconciliation (aadc970); afterwards both give 1/6 for "gene".
+    The claim under test is variance across seeds, so test it across a fixed
+    window of the default full seeds rather than on one hand-picked pair.
+    """
+    runs = {seed: run_idea2_engine_cell(seed=seed, cell="baseline") for seed in VARIANCE_SEEDS}
+    digests = {rows[0]["engine_result_digest"] for rows in runs.values()}
+    assert len(digests) == len(VARIANCE_SEEDS)
+    vectors = {tuple(sorted(_survival(rows).items())) for rows in runs.values()}
+    assert len(vectors) >= 2
+
+
+def test_idea2_seed_pair_tie_is_the_capsule_migration(legacy_capsule_dispatch: None) -> None:
+    """Counterfactual: under pre-aadc970 dispatch, seeds 301 and 305 differ."""
+    a = _survival(run_idea2_engine_cell(seed=301, cell="baseline"))
+    b = _survival(run_idea2_engine_cell(seed=305, cell="baseline"))
+    assert a != b
+    assert b["gene"] == 0.0
 
 
 def test_mini_engine_campaign_writes_jsonl_engine(tmp_path: Path) -> None:

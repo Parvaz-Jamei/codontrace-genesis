@@ -15,6 +15,10 @@ from .record import PreregistrationRecord, TimestampEvidence, verify_before_run
 from .rfc3161 import request_timestamp, verify_signature
 
 
+def _out(text: str) -> None:
+    sys.stdout.write(text + "\n")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m codontrace.preregistration")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -39,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "hash":
         rec = PreregistrationRecord(hash_plan(a.files, root=a.root, title=a.title))
         Path(a.record).write_text(rec.to_json())
-        print(rec.manifest.digest)
+        _out(rec.manifest.digest)
         return 0
     rec = PreregistrationRecord.from_json(Path(a.record).read_text())
     if a.cmd == "stamp":
@@ -51,13 +55,15 @@ def main(argv: list[str] | None = None) -> int:
         rec = rec.with_evidence(TimestampEvidence.from_rfc3161(tok, a.tsa, signature_verified=verified))
         Path(a.record).write_text(rec.to_json())
         Path(a.record).with_suffix(".tsr").write_bytes(tok.response_der)
-        print(tok.gen_time.isoformat(), "signature_verified" if verified else "signature_not_verified")
+        _out(tok.gen_time.isoformat() + " " + ("signature_verified" if verified else "signature_not_verified"))
         return 0
     res = verify_before_run(
-        rec, root=a.root, run_started_at=datetime.fromisoformat(a.run_started_at),
+        rec,
+        root=a.root,
+        run_started_at=datetime.fromisoformat(a.run_started_at),
         require_signature=a.require_signature,
     )
-    print("OK" if res.ok else "FAIL", *res.reasons, sep="\n")
+    _out("\n".join(["OK" if res.ok else "FAIL", *res.reasons]))
     return 0 if res.ok else 1
 
 

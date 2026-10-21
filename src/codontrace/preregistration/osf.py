@@ -12,6 +12,13 @@ Follows OSF API v2 (https://developer.osf.io/, spec ``swagger.json`` fetched
   (``api/base/versioning.py: CREATE_REGISTRATION_FIELD_CHANGE_VERSION``, and
   ``api/registrations/serializers.py: RegistrationCreateSerializer``). The
   client pins ``version=2.20`` in the ``Accept`` header.
+* The server answers that POST with a registration that still waits for the
+  admins' approval: ``RegistrationCreateSerializer.create`` calls
+  ``registration.require_approval(auth.user)`` (``api/registrations/serializers.py``),
+  so the reply carries ``pending_registration_approval=true`` and
+  ``public=false``. Such a reply is never evidence. Once the registration is
+  approved, :meth:`OSFClient.fetch` re-reads it with
+  ``GET /v2/registrations/{id}/`` and only that later state can be evidence.
 
 The draft-from-scratch route is used on purpose. OSF stops creating projects
 through ``POST /v2/nodes/`` on 2026-11-16 and makes projects read-only on
@@ -71,7 +78,7 @@ class OSFClient:
     allow_network: bool = False
     transport: Transport | None = None
 
-    def _call(self, method: str, url: str, payload: dict[str, object]) -> dict[str, object]:
+    def _call(self, method: str, url: str, payload: dict[str, object] | None) -> dict[str, object]:
         transport = self.transport
         if transport is None:
             require_network(self.allow_network, "OSF registration")
@@ -81,7 +88,8 @@ class OSFClient:
             "Content-Type": "application/vnd.api+json",
             "Accept": f"application/vnd.api+json; version={API_VERSION}",
         }
-        resp = transport(method, url, json.dumps(payload).encode("utf-8"), headers)
+        body = None if payload is None else json.dumps(payload).encode("utf-8")
+        resp = transport(method, url, body, headers)
         if resp.status not in (200, 201):
             raise ConfigurationError(f"OSF {method} {url.split('?')[0]} answered HTTP {resp.status}")
         doc = json.loads(resp.body.decode("utf-8"))
@@ -112,6 +120,23 @@ class OSFClient:
         reg = self._call("POST", f"{self.base_url}/registrations/", {
             "data": {"type": "registrations", "attributes": {"draft_registration_id": draft_id}}
         })
+        return self._registration(reg, draft_id, manifest)
+
+    def fetch(self, registration_id: str, manifest: PlanManifest, *, draft_id: str = "") -> OSFRegistration:
+        """Re-read a submitted registration (``GET /v2/registrations/{id}/``).
+
+        The submit reply is pending approval by design, so this is the call that
+        can return an approved, public registration once OSF has approved it.
+        """
+        if not registration_id or "/" in registration_id:
+            raise ConfigurationError("an OSF registration id is required")
+        reg = self._call("GET", f"{self.base_url}/registrations/{registration_id}/", None)
+        if str(reg.get("id") or "") != registration_id:
+            raise ConfigurationError("OSF answered with a different registration")
+        return self._registration(reg, draft_id, manifest)
+
+    @staticmethod
+    def _registration(reg: dict[str, object], draft_id: str, manifest: PlanManifest) -> OSFRegistration:
         attrs = reg["attributes"]
         assert isinstance(attrs, dict)
         stored = str(attrs.get("description") or "")

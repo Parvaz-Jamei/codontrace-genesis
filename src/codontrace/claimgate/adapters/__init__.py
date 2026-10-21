@@ -38,19 +38,6 @@ from codontrace.claimgate.adapters.codontrace_he03 import (
 from codontrace.claimgate.adapters.codontrace_he03 import (
     committed_results_v1_path as committed_he03_results_v1_path,
 )
-from codontrace.claimgate.adapters.esp32_bridge import (
-    LoopbackEsp32Transport,
-    MqttEsp32Transport,
-    SensorReading,
-    SerialEsp32Transport,
-    SimEsp32Bridge,
-    STRDisparityResult,
-    TransportEsp32Bridge,
-    compute_str_disparity,
-    execute_sense,
-    parse_sensor_payload,
-    str_stop_criterion_met,
-)
 from codontrace.claimgate.adapters.he01_arm_roles import ARM_ROLES as HE01_ARM_ROLES
 from codontrace.claimgate.adapters.he01_arm_roles import canonical_role as he01_canonical_role
 from codontrace.claimgate.adapters.host_parasite import (
@@ -86,6 +73,11 @@ from codontrace.claimgate.adapters.host_parasite_prereg import (
 from codontrace.claimgate.adapters.mabe2 import bundle_from_mabe2_csv, parse_mabe2_csv
 from codontrace.claimgate.adapters.roles import ROLE_ALIASES, canonical_role
 from codontrace.claimgate.schema import ARM_ROLES as SCHEMA_ROLES
+from codontrace.genesis.transferability import (
+    STRDisparityResult,
+    compute_str_disparity,
+    str_stop_criterion_met,
+)
 
 __all__ = [
     "attach_phase3_honesty",
@@ -154,3 +146,31 @@ __all__ = [
     "parse_sensor_payload",
     "str_stop_criterion_met",
 ]
+
+
+# ESP32 device I/O lives in codontrace.swarm.devices.esp32 (a module, not engine
+# code). Loading it on first use (PEP 562) keeps ``import
+# codontrace.claimgate.adapters`` from importing the swarm package.
+_LAZY_DEVICE_NAMES = frozenset({
+    'LoopbackEsp32Transport',
+    'MqttEsp32Transport',
+    'SensorReading',
+    'SerialEsp32Transport',
+    'SimEsp32Bridge',
+    'TransportEsp32Bridge',
+    'execute_sense',
+    'parse_sensor_payload',
+})
+
+
+def __getattr__(name: str) -> object:
+    if name in _LAZY_DEVICE_NAMES:
+        from codontrace.claimgate.adapters import esp32_bridge
+        value = getattr(esp32_bridge, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted({*globals(), *_LAZY_DEVICE_NAMES})

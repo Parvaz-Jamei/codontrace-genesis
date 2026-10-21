@@ -22,7 +22,7 @@ class TimestampEvidence:
     kind: str  # "rfc3161" or "zenodo"
     authority: str
     time: datetime
-    digest: str
+    manifest_sha256: str
     reference: str
     signature_verified: bool = False
 
@@ -39,7 +39,7 @@ class TimestampEvidence:
     def to_dict(self) -> dict[str, object]:
         return {
             "kind": self.kind, "authority": self.authority, "time": self.time.isoformat(),
-            "digest": self.digest, "reference": self.reference,
+            "manifest_sha256": self.manifest_sha256, "reference": self.reference,
             "signature_verified": self.signature_verified,
         }
 
@@ -48,7 +48,7 @@ class TimestampEvidence:
         t = datetime.fromisoformat(str(d["time"]))
         if t.tzinfo is None:
             raise ConfigurationError("evidence time must carry a time zone")
-        return cls(str(d["kind"]), str(d["authority"]), t, str(d["digest"]), str(d["reference"]),
+        return cls(str(d["kind"]), str(d["authority"]), t, str(d["manifest_sha256"]), str(d["reference"]),
                    bool(d.get("signature_verified", False)))
 
 
@@ -58,7 +58,7 @@ class PreregistrationRecord:
     evidence: tuple[TimestampEvidence, ...] = ()
 
     def with_evidence(self, ev: TimestampEvidence) -> PreregistrationRecord:
-        if ev.digest != self.manifest.digest:
+        if ev.manifest_sha256 != self.manifest.digest:
             raise ConfigurationError("evidence is for a different manifest")
         return PreregistrationRecord(self.manifest, (*self.evidence, ev))
 
@@ -108,7 +108,7 @@ def verify_before_run(
         reasons.append(f"plan changed after registration: {changed}")
     good = [
         e for e in record.evidence
-        if e.digest == record.manifest.digest and e.time < run_started_at
+        if e.manifest_sha256 == record.manifest.digest and e.time < run_started_at
         and (e.signature_verified or not require_signature)
     ]
     if not good:

@@ -20,8 +20,43 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-__all__ = ['IDENTIFIER_PATTERN', 'bounded_int', 'bounded_text', 'exact_keys', 'finite_number', 'identifier',
-           'wire_canonical']
+__all__ = ['IDENTIFIER_PATTERN', 'MAX_JSON_DEPTH', 'bounded_int', 'bounded_text', 'exact_keys',
+           'finite_number', 'identifier', 'json_depth_within', 'wire_canonical']
+
+# Untrusted JSON may nest at most this many arrays/objects. CPython's json
+# decoder recurses once per level, so a deep body (e.g. 5000 '[') raises
+# RecursionError, which is not a ValueError. Wire messages nest < 10 levels.
+MAX_JSON_DEPTH = 64
+
+
+def json_depth_within(text: str | bytes, limit: int = MAX_JSON_DEPTH) -> bool:
+    """True when the JSON text never nests more than ``limit`` arrays/objects.
+
+    A linear scan before ``json.loads``: brackets inside strings (including
+    escaped quotes) are ignored. It does not validate the JSON; the parser
+    still does that. ``limit`` must be >= 1.
+    """
+    data = text.encode('utf-8', 'surrogatepass') if isinstance(text, str) else bytes(text)
+    depth = 0
+    in_string = False
+    escaped = False
+    for byte in data:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif byte == 0x5C:  # backslash
+                escaped = True
+            elif byte == 0x22:  # quote
+                in_string = False
+        elif byte == 0x22:
+            in_string = True
+        elif byte in (0x5B, 0x7B):  # [ {
+            depth += 1
+            if depth > limit:
+                return False
+        elif byte in (0x5D, 0x7D):  # ] }
+            depth -= 1
+    return True
 
 IDENTIFIER_PATTERN = r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}'
 _IDENTIFIER = re.compile(IDENTIFIER_PATTERN)

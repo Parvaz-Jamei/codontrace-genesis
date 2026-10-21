@@ -53,6 +53,7 @@ from codontrace.console.scripts_service import (
     save_script,
     validate_script_name,
 )
+from codontrace.contracts.wire_validation import MAX_JSON_DEPTH, json_depth_within
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
 
@@ -61,10 +62,14 @@ def _parse_json_dict(raw: bytes) -> tuple[dict[str, Any] | None, str | None]:
     """Safely parse JSON request body ensuring it is a dictionary/object."""
     if not raw or not raw.strip():
         return {}, None
+    if not json_depth_within(raw):
+        return None, f"Invalid JSON: nesting deeper than {MAX_JSON_DEPTH} levels"
     try:
         obj = json.loads(raw.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
         return None, f"Invalid JSON syntax: {exc}"
+    except RecursionError:
+        return None, "Invalid JSON: nesting too deep"
     if not isinstance(obj, dict):
         return None, f"Expected JSON object, got {type(obj).__name__}"
     return obj, None
@@ -342,6 +347,8 @@ def _from_this_machine(address: str) -> bool:
     whereas ``is_loopback`` is the host itself.
     """
     import ipaddress
+    if not isinstance(address, str):
+        return False  # fail closed: no peer address is never this machine
     host = address.split("%", 1)[0].strip().lower()
     if host.startswith("::ffff:"):
         host = host.removeprefix("::ffff:")

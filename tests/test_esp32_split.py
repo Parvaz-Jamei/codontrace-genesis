@@ -37,7 +37,10 @@ def test_str_record_is_unchanged():
 def test_replay_registry_points_at_the_engine_module():
     from codontrace.genesis.replay_integrity import _DIGEST_FIELDS_BY_CLASS
     assert _DIGEST_FIELDS_BY_CLASS['codontrace.genesis.transferability.STRDisparityResult'] == ('record_digest',)
-    assert not [k for k in _DIGEST_FIELDS_BY_CLASS if 'esp32' in k]
+    # The old path stays registered as an alias with the same fields (it was a key on 74c7b3f).
+    assert [k for k in _DIGEST_FIELDS_BY_CLASS if 'esp32' in k] == [
+        'codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult']
+    assert _DIGEST_FIELDS_BY_CLASS['codontrace.claimgate.adapters.esp32_bridge.STRDisparityResult'] == ('record_digest',)
 
 
 def test_loopback_firmware_path_still_resolves():

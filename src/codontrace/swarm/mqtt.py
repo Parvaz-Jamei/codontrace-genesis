@@ -172,7 +172,11 @@ class MqttSwarmBridge:
                 self._published.clear()
             c.subscribe(f'genesis/swarm/{self.swarm.swarm_id}/+/up', qos=1)
 
-        client.on_message = lambda c, userdata, message: self.on_message(c, message)
+        def on_message(c: Any, userdata: Any, message: Any) -> None:
+            # paho (2.1.0, CallbackAPIVersion.VERSION2) ignores the return value.
+            self.on_message(c, message)
+
+        client.on_message = on_message
         client.on_connect = on_connect
         if properties is None:
             client.connect(host, port, keepalive=30)

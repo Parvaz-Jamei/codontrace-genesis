@@ -229,9 +229,9 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
         if challenge == "FUNCTIONAL_INFO":
             percolation = evidence["percolation"]
             bits = evidence["fi_bits"]
-            if _is_finite(percolation) and not 0.0 <= percolation <= 1.0:
+            if isinstance(percolation, (int, float)) and _is_finite(percolation) and not 0.0 <= float(percolation) <= 1.0:
                 invalid = True
-            if _is_finite(bits) and bits < 0:
+            if isinstance(bits, (int, float)) and _is_finite(bits) and float(bits) < 0:
                 invalid = True
             zero_success = bool(summary.get("zero_success") or ("viable_count" in summary and summary.get("viable_count") == 0))
             censored = bool(zero_success or summary.get("censored") or summary.get("bound_type") in ("censored", "upper_bound", "lower_bound"))
@@ -242,7 +242,7 @@ def evaluate_run_hypothesis(run_data: dict[str, Any] | None) -> dict[str, Any]:
                 "reported_bound_type": summary.get("bound_type")})
         if challenge == "OEE_NOVELTY":
             generations = evidence["generations"]
-            if _is_finite(generations) and (generations < 0 or int(generations) != generations):
+            if isinstance(generations, (int, float)) and _is_finite(generations) and (float(generations) < 0 or int(generations) != generations):
                 invalid = True
         return {
             "verdict": "invalid" if invalid else "inconclusive", "hypothesis_id": hypothesis_id,

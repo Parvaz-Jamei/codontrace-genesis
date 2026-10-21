@@ -220,9 +220,11 @@ def build_chart(
         keys = [k.strip() for k in args.get("metrics", metric).split(",") if k.strip()]
         if not 2 <= len(keys) <= 12 or len(set(keys)) != len(keys):
             raise ValueError("correlation requires 2–12 unique comma-separated metrics")
-        matrix, counts = [], []
+        matrix: list[list[float | None]] = []
+        matrix_counts: list[list[int]] = []
         for a in keys:
-            line, ns = [], []
+            line: list[float | None] = []
+            ns: list[int] = []
             for b in keys:
                 pairs = [
                     (metric_map(r).get(a), metric_map(r).get(b))
@@ -240,7 +242,7 @@ def build_chart(
                 denominator = math.sqrt(sum((x - ma) ** 2 for x in xa) * sum((x - mb) ** 2 for x in xb))
                 line.append(sum((x - ma) * (y - mb) for x, y in pairs) / denominator if denominator else None)
             matrix.append(line)
-            counts.append(ns)
+            matrix_counts.append(ns)
         if not any(v is not None for line in matrix for v in line):
             raise ValueError("no nonconstant metric pairs with at least three observations")
         spec.update(
@@ -254,7 +256,7 @@ def build_chart(
             color_max=1,
         )
         notes.update(
-            pair_counts=counts, correlation="pairwise complete Pearson r; descriptive, not causal; no p-values"
+            pair_counts=matrix_counts, correlation="pairwise complete Pearson r; descriptive, not causal; no p-values"
         )
     if spec["x_scale"] == "log" or spec["y_scale"] == "log":
         if kind in {"box", "violin", "correlation", "histogram", "area", "bar"}:

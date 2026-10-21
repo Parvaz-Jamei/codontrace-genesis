@@ -98,3 +98,32 @@ def test_trusted_networks_opt_in_is_explicit_and_narrow(monkeypatch: pytest.Monk
 def test_invalid_trusted_networks_never_widen(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "garbage,,10.0.0.0/33")
     assert server._from_this_machine("10.0.0.5") is False
+
+
+@pytest.mark.parametrize(
+    "networks", ["0.0.0.0/0", "::/0", "10.0.0.0/8", "172.16.0.0/12", "192.0.0.0/15", "fd00::/8", "2001:db8::/47"]
+)
+def test_over_broad_trusted_networks_are_ignored(
+    networks: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", networks)
+    assert server._trusted_networks() == []
+    for peer in ("10.1.2.3", "172.16.0.9", "192.0.1.1", "8.8.8.8", "fd00::1", "2001:db8::1"):
+        assert server._from_this_machine(peer) is False
+
+
+def test_prefix_threshold_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "192.168.0.0/16,2001:db8:1::/48")
+    assert server._from_this_machine("192.168.77.1") is True
+    assert server._from_this_machine("2001:db8:1::5") is True
+    assert server._from_this_machine("2001:db8:2::5") is False
+
+
+def test_trusted_network_is_never_an_allowed_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODONTRACE_CONSOLE_TRUSTED_NETWORKS", "10.225.130.0/24")
+    assert server._from_this_machine("10.225.130.20") is True
+    handler = _handler(
+        "10.225.130.20", {"Origin": "http://10.225.130.50:8765", "Host": "127.0.0.1:8765"}
+    )
+    handler.server = type("S", (), {"server_address": ("127.0.0.1", 8765)})()  # type: ignore[assignment]
+    assert handler._is_origin_allowed() is False

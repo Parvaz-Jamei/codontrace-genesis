@@ -338,8 +338,24 @@ def _is_run_mutating_path(path: str) -> bool:
     return path.startswith("/api/runs/") and (path.endswith("/pause") or path.endswith("/resume"))
 
 
+def _is_loopback(address: str) -> bool:
+    """True only for a loopback address (127.0.0.0/8, ::1, IPv4-mapped loopback)."""
+    import ipaddress
+    if not isinstance(address, str):
+        return False
+    host = address.split("%", 1)[0].strip().lower()
+    if host.startswith("::ffff:"):
+        host = host.removeprefix("::ffff:")
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def _from_this_machine(address: str) -> bool:
-    """True only for a loopback peer (127.0.0.0/8, ::1, IPv4-mapped loopback).
+    """True for a loopback peer, or a peer inside an opted-in trusted network.
 
     A private (RFC 1918 / RFC 4193) address is another machine on the network,
     not this one, so it must never count as local for authorization. In the
@@ -360,7 +376,15 @@ def _from_this_machine(address: str) -> bool:
         return False
     if ip.is_loopback:
         return True
-    return any(ip in net for net in _trusted_networks())
+    return any(ip.version == net.version and ip in net for net in _trusted_networks())
+
+
+# Broadest prefix accepted in CODONTRACE_CONSOLE_TRUSTED_NETWORKS. IPv4 /16
+# is the largest single RFC 1918 block a site normally uses (192.168.0.0/16,
+# 65,536 addresses); anything wider spans several sites or public space, and
+# 0.0.0.0/0 would disable the token check. IPv6 /48 is the standard end-site
+# assignment (RFC 6177); wider prefixes, up to ::/0, are rejected the same way.
+MIN_TRUSTED_PREFIX = {4: 16, 6: 48}
 
 
 def _trusted_networks() -> list[Any]:
@@ -369,8 +393,9 @@ def _trusted_networks() -> list[Any]:
     744f6cf treated every private address as local so the console could be
     driven from the lab board's LAN (CODONTRACE_BOARD_IP) without a token.
     That intent is kept only for networks the operator names here. Unset
-    (the default) means loopback only. Invalid entries are ignored, so a
-    typo never widens access.
+    (the default) means loopback only. Invalid entries, and entries broader
+    than MIN_TRUSTED_PREFIX, are ignored, so a typo never widens access.
+    Trusted networks authorize peers only; they never become allowed Origins.
     """
     import ipaddress
     nets: list[Any] = []
@@ -379,9 +404,12 @@ def _trusted_networks() -> list[Any]:
         if not item:
             continue
         try:
-            nets.append(ipaddress.ip_network(item, strict=False))
+            net = ipaddress.ip_network(item, strict=False)
         except ValueError:
             continue
+        if net.prefixlen < MIN_TRUSTED_PREFIX[net.version]:
+            continue  # over-broad (e.g. 0.0.0.0/0, ::/0, 10.0.0.0/8): ignored
+        nets.append(net)
     return nets
 
 
@@ -423,7 +451,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         from urllib.parse import urlparse
         parsed = urlparse(origin)
         origin_host = (parsed.hostname or "").lower()
-        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _from_this_machine(origin_host):
+        if origin_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or _is_loopback(origin_host):
             return True
 
         host_header = self.headers.get("Host", "")

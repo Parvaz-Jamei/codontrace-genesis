@@ -8,8 +8,9 @@ from dataclasses import dataclass
 
 from codontrace.rng import RNGManager
 
-# The counter-based PRNG lives in RNGManager (codontrace.rng), the single RNG
-# source. These names are kept for the T01-T05 experiments and for replay.
+# The hash-based counter PRNG (Salmon et al. 2011, doi:10.1145/2063384.2063405,
+# with SHA-256 as the keyed function) lives in RNGManager (codontrace.rng), the
+# single RNG source. These names are kept for the T01-T05 experiments and for replay.
 sha_prng_float = RNGManager.counter_float
 sha_prng_int = RNGManager.counter_int
 sha_prng_int_unbiased = RNGManager.counter_int_unbiased

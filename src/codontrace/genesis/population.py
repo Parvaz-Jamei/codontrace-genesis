@@ -4586,13 +4586,14 @@ def _he02_sync_food_patches(
         return ()
     needed = max(2, int(config.patch_count) * 2)
     draws: list[float] = []
-    # Local deterministic stream; does not touch global RNG.
+    # Local deterministic stream (RNGManager hash-based counter blocks); it does
+    # not touch the generation stream.
     material = f"{seed_key}|food_patch|{tick}|{width}x{height}".encode()
-    digest = hashlib.sha256(material).digest()
+    digest = RNGManager.counter_block(material)
     cursor = 0
     while len(draws) < needed:
         if cursor + 4 > len(digest):
-            digest = hashlib.sha256(digest + material).digest()
+            digest = RNGManager.counter_block(digest + material)
             cursor = 0
         chunk = int.from_bytes(digest[cursor : cursor + 4], "big")
         cursor += 4

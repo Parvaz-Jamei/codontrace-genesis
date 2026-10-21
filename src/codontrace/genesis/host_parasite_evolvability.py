@@ -10,13 +10,13 @@ transition. Does not modify ``engine.py``.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_env import HostParasiteEnv
+from codontrace.rng import RNGManager
 
 _TASK_CATALOG = (
     "nand",
@@ -37,7 +37,7 @@ def _digest_body(body: dict[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _expand(

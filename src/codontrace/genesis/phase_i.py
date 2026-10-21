@@ -16,7 +16,6 @@ not Avida C++ and not a 50-replicate PNAS experiment.
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -47,6 +46,7 @@ from codontrace.genesis.phase_h import (
     _mean,
     collective_intelligence_candidate_checklist,
 )
+from codontrace.rng import RNGManager
 
 RESEARCH_GENERATION_COUNT = 20
 SMOKE_GENERATION_COUNT = 6
@@ -209,7 +209,7 @@ class _DetRng:
 
     def uniform(self) -> float:
         self._n += 1
-        digest = hashlib.sha256(f"{self._seed}:{self._n}".encode()).digest()
+        digest = RNGManager.counter_digest(f"{self._seed}:{self._n}")
         return int.from_bytes(digest[:8], "big") / float(2**64)
 
     def gauss(self, mu: float, sigma: float) -> float:

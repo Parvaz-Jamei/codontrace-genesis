@@ -17,7 +17,6 @@ ClaimGate: red_queen_proved stays False even on SUCCESS.
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -30,6 +29,7 @@ from codontrace.genesis.host_parasite_type2_rq import (
     assert_no_super_host_or_parasite,
     build_diagonally_dominant_A,
 )
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_type3_rare_lock_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -43,7 +43,7 @@ SEEDS_DEFAULT: tuple[int, ...] = (101, 202, 303, 404, 505)
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _digest_body(body: Mapping[str, object]) -> str:

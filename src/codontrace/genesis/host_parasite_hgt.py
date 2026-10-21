@@ -13,7 +13,6 @@ conjugation, plasmid identity, or CRISPR spacer acquisition. Same
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -25,6 +24,7 @@ from codontrace.metrics.diversity import (
     mean_genome_distance,
     unique_genome_count,
 )
+from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
 
 SCHEMA = "host_parasite_hgt_compartment_campaign_v1"
@@ -45,7 +45,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _require_seeds(seeds: Sequence[int]) -> tuple[int, ...]:

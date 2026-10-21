@@ -16,7 +16,6 @@ Port-only; ClaimGate refuse list fail-closed.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -27,6 +26,7 @@ from codontrace.genesis.host_parasite_abstract_phenotype import (
     default_target_phenotype,
 )
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_measurement_resource_target_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -101,7 +101,7 @@ def target_under_resource(
     base = list(default_target_phenotype(n_bins=n_bins, seed=seed))
     mid = 0.5
     if null_kind == "content_null":
-        digest = hashlib.sha256(f"content_null_flat|{seed}|{n_bins}".encode()).digest()
+        digest = RNGManager.counter_digest(f"content_null_flat|{seed}|{n_bins}")
         # Flat-ish scrambled target: no productivity dependence.
         scaled = [
             round(0.45 + 0.10 * (digest[i % len(digest)] / 255.0), 10)

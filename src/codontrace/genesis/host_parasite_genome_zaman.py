@@ -8,7 +8,6 @@ complexity emergence and Red Queen stay unproved. No infection physics in
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -21,6 +20,7 @@ from codontrace.genesis.host_parasite_zaman import (
 )
 from codontrace.genesis.structural_mutation import GenomeProgram
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_genome_zaman_campaign_v1"
 _ALLOWED_CEILINGS = frozenset({"runtime_observation", "candidate_evidence"})
@@ -63,7 +63,7 @@ def _require_arms(arms: Sequence[str] | None) -> tuple[str, ...]:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _genome_for_seed(seed: int, role: str, length: int = _DEFAULT_LENGTH) -> SemanticGenome:

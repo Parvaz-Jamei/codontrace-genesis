@@ -9,7 +9,6 @@ surface only; Zaman complexity is not a law.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -17,6 +16,7 @@ from codontrace.dynvalues import same_float, same_int, same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genesis.host_parasite_env import DEFAULT_STEAL_FRACTION, HostParasiteEnv
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_multi_seed_contingency_v1"
 ARMS = ("parasite_present", "parasite_absent")
@@ -47,7 +47,7 @@ def _require_seeds(seeds: Sequence[int]) -> tuple[int, ...]:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _complexity_proxy(*, seed: int, parasites: bool, steps: int = 4) -> dict[str, object]:

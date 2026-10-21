@@ -15,6 +15,7 @@ from codontrace.dynvalues import same_float
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_abstract_phenotype_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -55,7 +56,7 @@ def default_target_phenotype(
 
     if n_bins < 4:
         raise ConfigurationError("n_bins must be >= 4")
-    digest = hashlib.sha256(f"target|{seed}|{n_bins}".encode()).digest()
+    digest = RNGManager.counter_digest(f"target|{seed}|{n_bins}")
     vals: list[float] = []
     for i in range(n_bins):
         # smooth-ish target: mid bump

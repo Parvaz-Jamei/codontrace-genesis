@@ -1,4 +1,4 @@
-"""Locked Slowinski invasion confirmatory campaign (HP-ARM01).
+"""Locked selfing-invasion confirmatory campaign (HP-ARM01).
 
 Constants match
 ``docs/handoff/CLOSED_LOOP_HP_ARM01_SLOWINSKI_INVASION_PREREG_20260926.md``.

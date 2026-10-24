@@ -58,7 +58,7 @@ def build_diagonally_dominant_A(
 ) -> list[list[float]]:
     """Build row-stochastic diagonally dominant specificity matrix.
 
-    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches Rabajante Methods
+    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches the published Methods
     (row/column sums ≈ 1; diagonal dominance; no super-* when α_off small).
     """
 

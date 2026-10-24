@@ -3,7 +3,7 @@
 This example runs the Phase A life-loop preset (optional flags for Phase B
 sexual recombination and Phase C dynamic environment) and prints first-class
 library metrics: per-generation fitness, instinct/behavior descriptors,
-persistence-filtered MODES-style axes, Bedau activity, and a digest-backed
+persistence-filtered MODES-style axes, evolutionary activity, and a digest-backed
 ``MultiGenerationEvidencePack``. It does not write files, start a UI, or claim
 OEE, intelligence, or instinct evolution proved.
 """

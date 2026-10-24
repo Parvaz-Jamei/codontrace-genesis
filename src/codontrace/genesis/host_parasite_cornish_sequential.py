@@ -317,7 +317,7 @@ def run_sequential_cornish_campaign(
     request_claim_ceiling: str = "runtime_observation",
     preregistration_digest: str = "",
 ) -> SequentialCornishResult:
-    """Run ordered observational→intervention schedule under Cornish refusal."""
+    """Run ordered observational→intervention schedule under intervention refusal."""
 
     seed_tuple = _require_seeds(seeds)
     steps = _parse_schedule(schedule if schedule is not None else default_sequential_schedule())
@@ -423,7 +423,7 @@ def run_sequential_cornish_campaign(
         later_intervention_failed = False
 
     interventions_executed = bool(intervention_steps)
-    # Hard Cornish rule.
+    # Hard intervention-refusal rule.
     intervention_supported = False
 
     digests = [o.step_digest for o in outcomes]

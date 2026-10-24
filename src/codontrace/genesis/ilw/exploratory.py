@@ -196,7 +196,7 @@ class LearnabilityProbe:
 
     Counts capsule→policy apply events and whether a subsequent action /
     energy delta was observed on the same actor. Correlation only — never a
-    Mesoudi & Thornton CCE claim.
+    cumulative-cultural-evolution claim.
     """
 
     capsule_to_policy_applied: int

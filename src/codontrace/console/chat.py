@@ -903,7 +903,7 @@ def _generate_analyst_reply(
             "The signs and magnitudes depend dynamically on the population structure."
         )
 
-    # Eigen quasispecies
+    # Quasispecies error threshold
     if any(k in q for k in ("eigen", "ایگن", "quasispecies", "شبه‌گونه", "catastrophe", "فاجعه", "آستانه")):
         mu = _metric("observed_mutation_rate")
         if lang == "fa":
@@ -920,7 +920,7 @@ def _generate_analyst_reply(
             "This expression assumes a particular quasispecies regime; it is not a universal threshold or a measured conclusion for this run."
         )
 
-    # Hazen functional info
+    # Functional information
     if any(k in q for k in ("hazen", "هازن", "functional", "اطلاعات عملکردی", "wagner", "واگنر", "percolation", "نفوذ")):
         fi = _metric("hazen_functional_info_bits")
         pr = _metric("neutral_percolation_rate")
@@ -938,7 +938,7 @@ def _generate_analyst_reply(
             f"• Neutral percolation rate: {pr}\n"
         )
 
-    # Bedau OEE activity
+    # OEE activity statistics
     if any(k in q for k in ("bedau", "بداو", "activity", "فعالیت", "shadow", "سایه", "oee")):
         act = _metric("cumulative_activity")
         shad = _metric("shadow_activity")

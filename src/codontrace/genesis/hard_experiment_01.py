@@ -655,7 +655,7 @@ def _manipulation_check_failures(
     *,
     seed_records: Sequence[HardExperiment01SeedRecord] = (),
 ) -> list[str]:
-    """Wave 1c manipulation check (Okasha & Otsuka do-operator sanity).
+    """Wave 1c manipulation check (do-operator sanity).
 
     Each arm must have done what its intervention says it does; otherwise a
     null is uninterpretable (``assay_invalid``), whatever the p-values say.

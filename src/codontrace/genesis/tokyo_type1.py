@@ -1,8 +1,8 @@
 """Tokyo Type 1 OEE *measurement* protocol.
 
-This module runs the published measurement-step vocabulary for testing Tokyo
-Type 1 open-ended evolution, using Phase D MODES / activity / OEE metric surfaces
-when present.
+This module runs the library's six measurement-step labels for a Tokyo Type 1
+test, adapted in part from a published five-step procedure, using Phase D
+MODES / activity / OEE metric surfaces when present.
 
 It does **not** pass Tokyo Type 1. The claim ceiling is
 ``tokyo_type1_measurement_only``. ``tokyo_type1_passed`` is blocked by

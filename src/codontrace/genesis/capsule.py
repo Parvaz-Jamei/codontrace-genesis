@@ -83,7 +83,7 @@ class CapsuleShuffleMode(str, Enum):
     TIMING = "timing"
     CONTENT_SOURCE_TIMING = "content_source_timing"
     RANDOM_METADATA = "random_metadata"
-    # Amendment 04 / Wave 1e: fixed-null payload (Goldsby-style knockout).
+    # Amendment 04 / Wave 1e: fixed-null payload (knockout control).
     # Replaces event_pattern/predicted_outcome with WAIT; not peer-rotation.
     CONTENT_NULL = "content_null"
 

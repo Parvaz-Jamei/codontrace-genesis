@@ -334,7 +334,7 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
     Three arms, one seed, one generation, two primaries so a pair exists.
     Outcross pays and may recombine. Selfing and ablation do not pay the
     sex line and birth asexually. The compiled program is the same in all
-    three, because the codon is not an instruction. This is not Morran and
+    three, because the codon is not an instruction. This is not the outcrossing test and
     does not set red_queen_proved.
     """
 

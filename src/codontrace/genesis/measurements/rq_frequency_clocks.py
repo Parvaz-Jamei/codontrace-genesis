@@ -29,7 +29,7 @@ Invariants
   (coevolve / fixed); avirulent / absent arms never grant RQ-earn credit.
 * ``regime_hostile_ne`` seeds are excluded from any lagged_nfds pass
   fraction by the runner, not by these helpers.
-* Estimand default is Fork A (asexual clone RQD). Fork B / Slowinski and
+* Estimand default is Fork A (asexual clone RQD). Fork B / selfing invasion and
   unpaid two-fold cost of sex remain deferred — helpers do not claim
   sex maintained by RQ.
 """
@@ -643,7 +643,7 @@ def lagged_nfds_score(
     min_points: int,
     threshold: float = DEFAULT_NFDS_THRESHOLD,
 ) -> dict[str, object]:
-    """Dybdahl–Lively style lagged association (paired class series + τ).
+    """Field-style lagged association (paired class series + τ).
 
     Convention (host-leads, parasite follows)
     ----------------------------------------
@@ -949,7 +949,7 @@ def within_class_lagged_association(
     * that correlation's sign equal to :func:`expected_lag_sign`;
     * a shared circular-shift p-value at or below 0.05;
     * the lagged detrended correlation strictly larger than the
-      contemporaneous one (Dybdahl & Lively: the peak is not at lag 0).
+      contemporaneous one (field data: the peak is not at lag 0).
 
     ``temporal_evidence`` is a property of this series. It is not a
     confirmatory claim, and ``hypothesis_supported`` stays false.

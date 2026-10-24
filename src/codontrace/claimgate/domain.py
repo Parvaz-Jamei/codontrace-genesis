@@ -126,7 +126,7 @@ HOST_PARASITE = DomainProfile(
             "tokyo_type1_passed",
             "avida_replacement",
             # Wave-5/6 matrix refuse-list must be fail-closed on claimed=, not
-            # documentation-only. OEE/MODES are comparators (Dolson/Channon);
+            # documentation-only. OEE/MODES are comparators;
             # complexity/gene identity stay campaign flags, never claim ceilings.
             "modes_passed_proved",
             "modes_passed",
@@ -134,7 +134,7 @@ HOST_PARASITE = DomainProfile(
             "oee_modes_passed",
             "complexity_emergence_proved",
             "gene_identity_proved",
-            # Cornish intervention_supported is a campaign honesty flag, never
+            # intervention_supported is a campaign honesty flag, never
             # a public claimed= ceiling string.
             "intervention_supported",
         }

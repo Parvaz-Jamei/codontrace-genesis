@@ -117,7 +117,7 @@ class T01OEERunner:
             if heldout > 0 and heldout not in self.heldout_innovations:
                 self.heldout_innovations.add(heldout)
 
-            # Bedau activity: record presence of components actively selected
+            # Evolutionary activity: record presence of components actively selected
             if phenotype > 0:
                 self.component_activity[phenotype] = self.component_activity.get(phenotype, 0) + 1
                 self.cumulative_activity += 1

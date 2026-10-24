@@ -1,7 +1,7 @@
 """Evolvability-constraint falsification assay (Phase 9 / Challenge S5).
 
 Tests the hypothesis ``parasites_always_raise_host_repertoire`` under abiotic
-stress. The assay is designed so it can *fail* (Scanlan/Buckling humility):
+stress. The assay is designed so it can *fail* (empirical humility):
 low resource productivity can keep host repertoire flat even when parasites
 are present. Digital scope only; never proves Red Queen, CRISPR identity,
 phage therapy, vaccine effect, epidemic forecast, BSL, intelligence, or major

@@ -2,7 +2,7 @@
 
 Constants match
 ``docs/handoff/CLOSED_LOOP_HP_ARM01_MATING_LEDGER_PREREG_20260926.md``.
-Sealed Slowinski prereg (214df20 / seeds 201–208), persistence ledger
+Sealed selfing-invasion prereg (214df20 / seeds 201–208), persistence ledger
 (91ab0c6 / seeds 301–308), and P7 seeds 101–108 are not reused or retuned.
 Typed outcomes separate persistence_fail, selfing_nonviable, invasion_fail,
 and invasion_pass. SPC never owns accept or Red Queen flags.

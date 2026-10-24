@@ -4,7 +4,7 @@ Seed-stratified digests report variance across seeds for parasite-present vs
 parasite-absent arms. Success criterion is digest distinctness / variance
 report — **not** “complexity rose.” Can falsify “parasites always raise
 complexity.” ``complexity_emergence_proved`` stays False. Digital ClaimGate
-surface only; Zaman complexity is not a law.
+surface only; coevolved complexity is not a law.
 """
 
 from __future__ import annotations

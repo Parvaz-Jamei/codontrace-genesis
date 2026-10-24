@@ -169,7 +169,7 @@ class DeclaredIntervention:
 
 @dataclass(frozen=True, slots=True)
 class DeclaredInterventionMenu:
-    """Schema stub for later intervention falsification (Cornish-style).
+    """Schema stub for later intervention falsification (observation vs intervention).
 
     Recording a menu does not run interventions, grant evidence, or raise the
     public ClaimGate ladder.
@@ -379,7 +379,7 @@ _FALSIFICATION_NOTE = "Digital intervention falsification does not grant interve
 
 @dataclass(frozen=True, slots=True)
 class MultilevelTransitionWorksheet:
-    """Gate for transition-language honesty (Michod / Okasha caution).
+    """Gate for transition-language honesty (multilevel-selection caution).
 
     A typed reorganization sketch cannot prove a major transition. Open gaps
     keep `major_transition_proved` and kin blocked. The worksheet never raises
@@ -979,7 +979,7 @@ def attach_coevolution_diagnostics(
 
 
 # ---------------------------------------------------------------------------
-# Phase 7 — Zaman freeze / replay / reciprocal attach (complexity unproved)
+# Phase 7 — freeze / replay / reciprocal attach (complexity unproved)
 # ---------------------------------------------------------------------------
 
 _ZAMAN_NOTE = (
@@ -992,7 +992,7 @@ def attach_zaman_campaign(
     bundle: ClaimgateBundle,
     campaign: ZamanCampaignResult,
 ) -> ClaimgateBundle:
-    """Attach Zaman three-arm digests without raising the public ladder."""
+    """Attach freeze/replay three-arm digests without raising the public ladder."""
 
     from codontrace.claimgate.adapters.host_parasite_prereg import (
         require_preregistration_before_campaign_attach,
@@ -1148,7 +1148,7 @@ def attach_vt_spatial_factorial(
 
 
 # ---------------------------------------------------------------------------
-# Phase 9 — evolvability falsification + Cornish refusal + HE_HP attach
+# Phase 9 — evolvability falsification + intervention refusal + HE_HP attach
 # ---------------------------------------------------------------------------
 
 _EVOLVABILITY_NOTE = (
@@ -1192,7 +1192,7 @@ def attach_cornish_campaign(
     bundle: ClaimgateBundle,
     campaign: CornishCampaignResult,
 ) -> ClaimgateBundle:
-    """Attach Cornish campaign; refuse intervention_supported from obs match."""
+    """Attach intervention campaign; refuse intervention_supported from obs match."""
 
     from codontrace.claimgate.adapters.host_parasite_prereg import (
         require_preregistration_before_campaign_attach,
@@ -1252,7 +1252,7 @@ def attach_cornish_campaign(
     return replace(bundle, extra=extra, limitations=limitations)
 
 # ---------------------------------------------------------------------------
-# Phase 10 — genome-aware dual digests on Zaman arms
+# Phase 10 — genome-aware dual digests on freeze/replay arms
 # ---------------------------------------------------------------------------
 
 _GENOME_ZAMAN_NOTE = (
@@ -1265,7 +1265,7 @@ def attach_genome_zaman_campaign(
     bundle: ClaimgateBundle,
     campaign: GenomeZamanCampaignResult,
 ) -> ClaimgateBundle:
-    """Attach genome Zaman digests without raising the public ladder."""
+    """Attach genome freeze/replay digests without raising the public ladder."""
 
     from codontrace.claimgate.adapters.host_parasite_prereg import (
         require_preregistration_before_campaign_attach,
@@ -2134,7 +2134,7 @@ def attach_multi_seed_contingency(
     return replace(bundle, extra=extra, limitations=limitations)
 
 # ---------------------------------------------------------------------------
-# Phase 22 — sequential Cornish multi-intervention deepening
+# Phase 22 — sequential multi-intervention deepening
 # ---------------------------------------------------------------------------
 
 _SEQUENTIAL_CORNISH_NOTE = (
@@ -2147,7 +2147,7 @@ def attach_sequential_cornish_campaign(
     bundle: ClaimgateBundle,
     campaign: SequentialCornishResult,
 ) -> ClaimgateBundle:
-    """Attach sequential Cornish digests; refuse intervention_supported from obs match."""
+    """Attach sequential intervention digests; refuse intervention_supported from obs match."""
 
     from codontrace.claimgate.adapters.host_parasite_prereg import (
         require_preregistration_before_campaign_attach,
@@ -2213,7 +2213,7 @@ def attach_sequential_cornish_campaign(
     return replace(bundle, extra=extra, limitations=limitations)
 
 # ---------------------------------------------------------------------------
-# Phase 23 — Scanlan mutator / abiotic-constraint dual-null (earn-in)
+# Phase 23 — mutator / abiotic-constraint dual-null (earn-in)
 # ---------------------------------------------------------------------------
 
 _MUTATOR_NOTE = (
@@ -2226,7 +2226,7 @@ def attach_scanlan_mutator_campaign(
     bundle: ClaimgateBundle,
     campaign: MutatorCampaignResult,
 ) -> ClaimgateBundle:
-    """Attach Scanlan mutator digests; refuse gene identity / CRISPR claims."""
+    """Attach mutator digests; refuse gene identity / CRISPR claims."""
 
     from codontrace.claimgate.adapters.host_parasite_prereg import (
         require_preregistration_before_campaign_attach,

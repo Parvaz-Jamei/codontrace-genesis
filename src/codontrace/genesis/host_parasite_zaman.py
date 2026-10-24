@@ -172,7 +172,7 @@ def _host_expand(
     """Digital repertoire update: add up to ``expansion_budget`` tasks under pressure.
 
     Freeze arms use budget 1 (hosts evolve against a fixed parasite). Reciprocal
-    arms use budget 2 when parasites co-adapt (digital Zaman analogue). Replay
+    arms use budget 2 when parasites co-adapt (digital freeze/replay analogue). Replay
     schedule uses pressure=False so cardinality stays flat. Never proves
     complexity emergence.
     """
@@ -298,7 +298,7 @@ class ZamanArmResult:
 
 @dataclass(frozen=True, slots=True)
 class ZamanCampaignResult:
-    """Three-arm Zaman contrast with per-arm digests; complexity unproved."""
+    """Three-arm freeze/replay contrast with per-arm digests; complexity unproved."""
 
     schema: str
     seeds: tuple[int, ...]

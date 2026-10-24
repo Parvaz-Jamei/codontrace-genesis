@@ -1,4 +1,4 @@
-"""Phase 23 — Scanlan mutator / abiotic-constraint dual-null (earn-in).
+"""Phase 23 — mutator / abiotic-constraint dual-null (earn-in).
 
 Genome-layer mutation-rate factor crossed with coevolution vs abiotic arms.
 Designed so ``elevated_mutation_under_coevolution_always_improves_abiotic`` can
@@ -267,7 +267,7 @@ def run_scanlan_mutator_campaign(
     host_count: int = 4,
     request_claim_ceiling: str = "runtime_observation",
 ) -> MutatorCampaignResult:
-    """Run Scanlan-style mutator × coevolution/abiotic dual-null campaign."""
+    """Run mutator × coevolution/abiotic dual-null campaign."""
 
     seed_tuple = _require_seeds(seeds)
     if steps < 1:

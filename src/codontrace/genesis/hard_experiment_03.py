@@ -64,7 +64,7 @@ INFERENTIAL_SEED = 20260924
 ALPHA = 0.05
 BOOTSTRAP_RESAMPLES = 2000
 # Dual-action genome: EAT_LUMEN (TASK_A) + EMIT_NEXUS (TASK_B) so individuals
-# can switch. Substrate enablement for Goldsby-style measurement — not planted
+# can switch. Substrate enablement for division-of-labour measurement — not planted
 # evolved specialists. HE03 overlay only; plain life_loop pins unchanged.
 HE03_DUAL_TASK_GENOME = "101111000110000000"
 
@@ -820,7 +820,7 @@ def _build_paired_contrast(
             seed=INFERENTIAL_SEED,
         )
         p_raw = float(exact_sign_flip_permutation_p(deltas, seed=INFERENTIAL_SEED))
-    # Directional H1 (Goldsby): treatment d_sym should exceed baseline.
+    # Directional H1: treatment d_sym should exceed baseline.
     # CI excluding 0 with non-positive mean is statistically non-null but
     # scientifically wrong-signed → stay claim_downgraded.
     claim_downgraded = True

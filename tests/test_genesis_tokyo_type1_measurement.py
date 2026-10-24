@@ -1,4 +1,7 @@
-"""Tokyo Type 1 measurement protocol tests (published steps, pass blocked).
+"""Tokyo Type 1 measurement protocol tests (pass blocked).
+
+Covers the library's six measurement-step labels for a Tokyo Type 1 test,
+adapted in part from a published five-step procedure.
 
 These tests document measurement software capability only. They do not claim
 Tokyo Type 1 OEE, open-endedness, intelligence, or Avida replacement.

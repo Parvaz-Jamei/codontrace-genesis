@@ -164,7 +164,7 @@ def compute_functional_information(
     total_samples: int,
     confidence_level: float = 0.95,
 ) -> tuple[float, float, float]:
-    """Computes Hazen functional information bits: I(E) = -log2(F(E)).
+    """Computes functional information bits: I(E) = -log2(F(E)).
     
     Returns:
       (point_estimate_bits, lower_bound_bits, upper_bound_bits)

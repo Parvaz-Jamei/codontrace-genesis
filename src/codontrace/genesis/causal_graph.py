@@ -6,7 +6,7 @@ one minor alpha cycle and serializes claim_level="temporal_association".
 Small local causal evidence graph scaffold for GENESIS experiments.
 
 This module stores deterministic event-based evidence from TraceEvent and
-EpisodicMemory objects. It is intentionally not Pearl-grade causality, not a
+EpisodicMemory objects. It is intentionally not structural-causal-model causality, not a
 statistical causal-discovery algorithm, and not a discovery detector.
 """
 

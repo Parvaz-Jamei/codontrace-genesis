@@ -3,8 +3,8 @@
 Constants match
 ``docs/handoff/CLOSED_LOOP_HP_ARM01_STRUCTURAL_RQ_REGIME_PREREG_20260926.md``.
 
-Sealed Slowinski (214df20 / 201–208), persistence (91ab0c6 / 301–308), and
-mating ledger (7171d19 / 401–408) are untouched. Mating / Slowinski stay
+Sealed selfing invasion (214df20 / 201–208), persistence (91ab0c6 / 301–308), and
+mating ledger (7171d19 / 401–408) are untouched. Mating / selfing invasion stay
 deferred. ``red_queen_proved`` stays false. HP physics stays out of
 ``engine.py``. Primary success this wave: ``polymorphism_hold`` only.
 ``cycle_candidate`` is observation-only / secondary.
@@ -1191,7 +1191,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
         parasite_n = 0
         if idx < len(self.parasite_frequencies):
             parasite_n = sum(c for _, c in self.parasite_frequencies[idx])
-        # Parasite class **frequency** hist + lag ring (Zaman memory analog;
+        # Parasite class **frequency** hist + lag ring (parasite-memory analog;
         # arm/plugin only). Counts of antagonist classes — not host pressure.
         parasite_class_hist: dict[str, float] = {}
         if idx < len(self.parasite_class_hist_series):
@@ -1532,7 +1532,7 @@ def run_structural_rq_pilot(
     seeds: Sequence[int] | None = None,
     generations: int | None = None,
 ) -> StructuralRQCampaignReport:
-    """Run the locked Stage A–D structural RQ pilot (Slowinski unscored)."""
+    """Run the locked Stage A–D structural RQ pilot (selfing invasion unscored)."""
 
     chosen = tuple(int(s) for s in (seeds if seeds is not None else PILOT_SEEDS))
     gens = int(STRUCT_GENERATIONS if generations is None else generations)
@@ -1575,7 +1575,7 @@ def run_structural_rq_pilot(
         typed = classify_structural_outcome(
             arm_snaps=snaps_by_arm, turnover_by_arm=turnover_by_arm
         )
-        # Mating/Slowinski deferred: never emit invasion labels; if somehow
+        # Mating/selfing invasion deferred: never emit invasion labels; if somehow
         # selfing path invoked, force Slowinski_unscored rather than PASS.
         if typed in {"invasion_pass", "invasion_fail"}:
             typed = OUTCOME_SLOWINSKI_UNSCORED

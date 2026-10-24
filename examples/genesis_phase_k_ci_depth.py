@@ -1,7 +1,7 @@
 """CodonTrace Genesis Phase K CI-depth smoke.
 
-Print-only. Runs evolved coordination-instruction, Goldsby CPU-delay,
-multi-generation Price (transmission term), and Michod/Conlin conflict
+Print-only. Runs evolved coordination-instruction, CPU-delay,
+multi-generation Price (transmission term), and within-group conflict
 hooks at smoke scale. Shows ClaimGate still blocks bare CI / intelligence.
 Does not write files, start a UI, set ClaimGate flags, or claim intelligence,
 collective intelligence, Tokyo Type 1 passed, or Avida replacement.

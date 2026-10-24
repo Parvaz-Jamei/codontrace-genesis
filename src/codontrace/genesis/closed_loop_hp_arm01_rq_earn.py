@@ -78,11 +78,11 @@ PREREG_VERSION = "hp_arm01_rq_earn_scaffold_20260926"
 HP_ARM01_RQ_EARN_REVISION = "hp-arm01-rq-earn-scaffold-20260926"
 SLICE_NAME = "HP-ARM01-RQ-EARN-SCAFFOLD"
 ESTIMAND = "fork_a_asexual_clone_rqd_scaffold"
-ESTIMAND_FORK = "A"  # Fork B / Slowinski DEFER
+ESTIMAND_FORK = "A"  # Fork B / selfing invasion DEFER
 FORK_B_SLOWINSKI_STATUS = "deferred"
 TWO_FOLD_COST_SEX_STATUS = "unpaid_deferred"
 
-# Pearl passage modes reused for contrast stubs (freeze ≠ absent).
+# Do-cut passage modes reused for contrast stubs (freeze ≠ absent).
 PEARL_PASSAGE_MODES: tuple[str, ...] = (
     PASSAGE_COEVOLVE,
     PASSAGE_FROZEN,
@@ -230,7 +230,7 @@ def pearl_contrast_stubs(
     coevolve_debit_backed_cycle: bool | None = None,
     frozen_debit_backed_cycle: bool | None = None,
 ) -> dict[str, object]:
-    """Pearl coevolve / frozen / absent contrast summary (scaffold stub).
+    """Do-cut coevolve / frozen / absent contrast summary (scaffold stub).
 
     Expected confirmatory pattern (future prereg): coevolve shows lag/cycle;
     frozen breaks debit-backed cycle / lag; absent does not recreate
@@ -322,7 +322,7 @@ def build_rq_earn_report_stub(
         if len(frozen_history) == len(frozen_debits):
             frozen_cycle = bool(debit_backed_cycle(tuple(frozen_history), tuple(frozen_debits)))
 
-    # Pearl stubs: without live arm runs, lag flags stay False on empty snaps.
+    # Do-cut stubs: without live arm runs, lag flags stay False on empty snaps.
     arm_scores = same_mapping(lagged.get("arm_scores") or {})
     coevo_pass = bool(
         same_mapping(arm_scores.get(ARM_COPASSAGED) or {}).get("pass_prelim")

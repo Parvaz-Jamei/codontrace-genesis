@@ -5,7 +5,7 @@ post-ATP plugin (skip mutate for locked roles). Birth/death stay ON. FAIL if
 birth-time genome rewrite / mutate_genome / chamber rewrite bypasses the lock.
 FAIL if bag ScheduleLock.freeze is the green path. Dual-arm, one master seed:
   Arm A: κ-on → elicit measured E with |net_transfer|_A > ε
-  Arm B default kill is κ-ablate (NOT mut-lock alone) → |net_transfer|_B ≤ ε. Mutation-stream lock is a separate witness (see mutation_stream_lock_freezes_role). Do not sell dual-arm as Morran static-genome / lock-kill.
+  Arm B default kill is κ-ablate (NOT mut-lock alone) → |net_transfer|_B ≤ ε. Mutation-stream lock is a separate witness (see mutation_stream_lock_freezes_role). Do not sell dual-arm as static-genome / lock-kill.
 Then bit-identical self-replay both arms; digests include genomes + ATP + κ.
 Digests alone ≠ effect dies — measured kill first, then digests.
 Not Gate7 / P2 same-seed theater.
@@ -174,7 +174,7 @@ def run_dual_arm(
     """Dual-arm elicit/ablate under one master seed, then bit-identical self-replay.
 
     Default Arm B kill is κ-ablate (+ optional locks). Measured E death must not be
-    marketed as mutation-lock / Morran static-genome unless kill_mechanism says so.
+    marketed as mutation-lock / static-genome unless kill_mechanism says so.
     """
 
     locks_b = tuple(lock_roles_b)

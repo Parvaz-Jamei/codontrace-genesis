@@ -191,7 +191,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
             scores = [seq.count("110") * 2 - seq.count("000") for seq in population]
             theta = min(scores)
 
-            # Hazen Functional Information: I(Ex) = -log2(M(Ex)/N) via reference space sampling
+            # Functional information: I(Ex) = -log2(M(Ex)/N) via reference space sampling
             sample_size = 500
             viable_count = 0
             for _s in range(sample_size):
@@ -335,7 +335,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
 
 
 # ==============================================================================
-# CHALLENGE 6: Eigen's Error Catastrophe & Quasispecies Critical Threshold
+# CHALLENGE 6: Error Catastrophe & Quasispecies Critical Threshold
 # ==============================================================================
 def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: int = 1) -> None:
     """Challenge 6: Locates the critical error threshold mu_c in finite quasispecies populations."""
@@ -364,7 +364,7 @@ def run_worker_6_quasispecies(output_dir: Path, duration_hours: float, core_id: 
     # Population starts cloned from master
     population = [master_seq for _ in range(pop_size)]
 
-    # Theoretical Eigen threshold: mu_c = ln(sigma) / L = ln(3.0) / 50 ~= 0.02197
+    # Theoretical error threshold: mu_c = ln(sigma) / L = ln(3.0) / 50 ~= 0.02197
     eigen_mu_c = math.log(superiority_sigma) / float(genome_len)
 
     # Initial status

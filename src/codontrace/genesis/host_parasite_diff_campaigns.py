@@ -3,7 +3,7 @@
 These campaigns showcase what CodonTrace Genesis is *not*: another Avida.
 Competitors can evolve hosts and parasites; Genesis additionally fail-closes
 claim promotion, Price≠causality, measurement-only OEE, content-null traps,
-replay-bound digests, domain-mismatched auditor posture, Cornish intervention
+replay-bound digests, domain-mismatched auditor posture, intervention
 honesty, and engine-boundary locks.
 
 Honest spectacle only: dramatic contrasts where the science allows; never fake
@@ -205,7 +205,7 @@ def panel_dx1_claimladder_theatrical() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# DX2 — Okasha Price ≠ causality
+# DX2 — Price ≠ causality
 # ---------------------------------------------------------------------------
 
 
@@ -285,7 +285,7 @@ def panel_dx2_price_not_causality() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# DX3 — Channon / MODES measurement-only honesty
+# DX3 — MODES measurement-only honesty
 # ---------------------------------------------------------------------------
 
 
@@ -382,7 +382,7 @@ def panel_dx4_replay_integrity_spectacle() -> dict[str, object]:
         assert_claim_allowed("red_queen_proved")
     except ConfigurationError:
         claim_refuse_ok = True
-    # Mutated attach: evil intervention_supported on Cornish.
+    # Mutated attach: evil intervention_supported on the intervention campaign.
     prereg = host_parasite_preregistration(
         question_of_interest="Replay spectacle Cornish",
         context_of_use="DX4; digital only.",
@@ -684,7 +684,7 @@ def panel_dx6_cross_domain_auditor() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# DX7 — Cornish headline (looks fixed, ClaimGate says no)
+# DX7 — intervention headline (looks fixed, ClaimGate says no)
 # ---------------------------------------------------------------------------
 
 

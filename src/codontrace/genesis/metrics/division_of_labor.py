@@ -3,8 +3,11 @@
 Confirmatory HARD_EXPERIMENT_03 metric. Non-NMI DoL proxies elsewhere remain
 **legacy** and are not confirmatory for HE03.
 
-The statistic is the mutual information of an individual×task count matrix,
-normalized by the task entropy.
+The statistic is the mutual information I of an individual×task count
+matrix, normalized three ways: by the task entropy (``d_task = I / H_task``),
+by the individual entropy (``d_indiv = I / H_individual``), and by their
+geometric mean (``d_sym = I / sqrt(H_individual * H_task)``). Each is capped
+at 1 and set to 0 when its denominator is 0.
 """
 
 from __future__ import annotations
@@ -31,7 +34,7 @@ def _entropy(counts: Mapping[str, int], n: float) -> float:
 
 @dataclass(frozen=True, slots=True)
 class GorelickNMIResult:
-    """Gorelick NMI/NME components on an individual×task matrix."""
+    """NMI/NME components on an individual×task matrix."""
 
     n_observations: int
     n_individuals: int
@@ -72,7 +75,7 @@ class GorelickNMIResult:
 def gorelick_nmi(
     individual_tasks: Sequence[tuple[str, str]],
 ) -> GorelickNMIResult:
-    """Compute Gorelick DoL metrics from (individual_id, task_id) samples.
+    """Compute DoL metrics from (individual_id, task_id) samples.
 
     Returns zeros with ``matrix_degenerate=True`` when the joint matrix cannot
     support a meaningful NMI (empty, single individual, or single task).

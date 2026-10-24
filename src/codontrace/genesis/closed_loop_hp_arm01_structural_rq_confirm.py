@@ -5,7 +5,7 @@ Constants match
 
 Confirms the pilot Stage A–D knobs under a NEW seed block, longer horizon,
 conjunctive hold, and digest-pinned bolus 24.0 × 20 patches. Sealed
-Slowinski (214df20 / 201–208), persistence (91ab0c6 / 301–308), mating
+Selfing invasion (214df20 / 201–208), persistence (91ab0c6 / 301–308), mating
 ledger (7171d19 / 401–408), and pilot seeds 601–603 stay untouched.
 ``red_queen_proved`` stays false. HP physics stays out of ``engine.py``.
 Primary success: ``polymorphism_hold``. ``cycle_candidate`` is
@@ -238,7 +238,7 @@ class StructuralRQConfirmArm(StructuralRQArm):
 
     @classmethod
     def boot_confirm(cls, *, arm: str, seed: int) -> StructuralRQConfirmArm:
-        # Confirmatory resource geometry (Elena–Lenski bolus×patches digest-pin).
+        # Confirmatory resource geometry (LTEE-style bolus×patches digest-pin).
         rebuilt = LifeLoopEcologyArm.boot(
             arm=arm,
             virulence=STRUCT_VIRULENCE,

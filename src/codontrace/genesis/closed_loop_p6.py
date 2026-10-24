@@ -999,7 +999,7 @@ def _mating_name(organism: GenesisOrganism) -> str:
 
 @dataclass(frozen=True, slots=True)
 class SharedModifierRecord:
-    """One antagonist, both mating codons. Not an Agrawal diploid modifier.
+    """One antagonist, both mating codons. Not a diploid mating modifier.
 
     The codon is inherited, not converted. Haploid exchange of the recognition
     window is not segregation. ``red_queen_proved`` stays false.

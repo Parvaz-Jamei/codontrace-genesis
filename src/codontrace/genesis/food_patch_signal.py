@@ -50,7 +50,7 @@ def decode_patch_payload(payload: str | None) -> tuple[int, int] | None:
 
 @dataclass(frozen=True, slots=True)
 class FoodPatchSignalConfig:
-    """Opt-in food-location signalling substrate (Floreano-style)."""
+    """Opt-in food-location signalling substrate."""
 
     enabled: bool = False
     patch_spawn_period_ticks: int = 8

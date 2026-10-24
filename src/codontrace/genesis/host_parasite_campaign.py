@@ -321,7 +321,7 @@ def _run_freeze_replay_arm(
 ) -> SeedArmOutcome:
     """Freeze parasite tasks/payload, then replay against updated host tasks.
 
-    Zaman-style analogy: parasite history is held fixed while hosts update.
+    Freeze/replay analogy: parasite history is held fixed while hosts update.
     Digital scope only; does not prove parasite-driven evolvability.
     """
 
@@ -365,7 +365,7 @@ def _run_freeze_replay_arm(
 def _content_null_distinct(
     intact: ArmCampaignResult, content: ArmCampaignResult
 ) -> bool:
-    """Floreano/Knoester honesty: content-null must not collapse into intact.
+    """Signalling honesty: content-null must not collapse into intact.
 
     Score-or-injection differences count. When steal_fraction=0 ties scores and
     injection fractions, empty content-null payloads must still differ from

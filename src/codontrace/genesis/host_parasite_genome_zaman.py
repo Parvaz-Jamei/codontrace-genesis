@@ -1,4 +1,4 @@
-"""Phase 10 — genome-aware dual digests on Zaman freeze/replay/reciprocal arms.
+"""Phase 10 — genome-aware dual digests on freeze/replay/reciprocal arms.
 
 Layers host + parasite ``SemanticGenome.digest()`` trajectories onto the same
 three-arm contrast as Phase 7. Repertoire richness fields remain for continuity;
@@ -195,7 +195,7 @@ class GenomeZamanArmResult:
 
 @dataclass(frozen=True, slots=True)
 class GenomeZamanCampaignResult:
-    """Three-arm genome-aware Zaman contrast; complexity / RQ unproved."""
+    """Three-arm genome-aware freeze/replay contrast; complexity / RQ unproved."""
 
     schema: str
     seeds: tuple[int, ...]
@@ -414,7 +414,7 @@ def run_genome_zaman_campaign(
             "request_claim_ceiling must be runtime_observation or candidate_evidence."
         )
 
-    # Layer repertoire continuity from Phase 7 Zaman campaign (same seeds/steps/arms).
+    # Layer repertoire continuity from Phase 7 freeze/replay campaign (same seeds/steps/arms).
     repertoire_campaign = run_zaman_three_arm_campaign(
         seeds=seed_tuple,
         steps=steps,

@@ -1,6 +1,6 @@
 """Optional host–parasite environment helpers outside the engine core.
 
-Fortuna / Zaman-inspired digital rules for *optional* campaign wiring:
+Literature-inspired digital rules for *optional* campaign wiring:
 
 - task-overlap infection eligibility
 - one parasite seat per host
@@ -503,7 +503,7 @@ class HostParasiteEnv:
         parasite_tasks: Sequence[str],
         payload: Sequence[int] = (),
     ) -> InfectionAttempt:
-        """Neighborhood-restricted inject (Symbulation / Brockhurst mixing knob).
+        """Neighborhood-restricted inject (Symbulation-style mixing knob).
 
         In ``local_neighborhood`` mode, target must be within Chebyshev distance
         1 of source. In ``well_mixed`` mode, any target is allowed (distance check

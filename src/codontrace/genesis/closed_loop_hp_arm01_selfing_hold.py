@@ -2,7 +2,7 @@
 
 Constants match
 ``docs/handoff/CLOSED_LOOP_HP_ARM01_SELFING_HOLD_PREREG_20260926.md``.
-Sealed Slowinski (214df20 / 201–208), persistence (91ab0c6 / 301–308), mating
+Sealed selfing invasion (214df20 / 201–208), persistence (91ab0c6 / 301–308), mating
 ledger (7171d19 / 401–408), and P7 seeds 101–108 are not reused or retuned.
 SPC never owns accept or Red Queen flags.
 """

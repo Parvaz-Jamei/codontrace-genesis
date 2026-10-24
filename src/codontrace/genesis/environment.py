@@ -10,7 +10,7 @@ Literature grounding (software capability only, not an Avida replacement):
 - Avida's environment model: environment = resources +
   reactions; a resource has initial quantity (optionally infinite), inflow
   per update, and outflow as the fraction of unused resource removed.
-- Cooper & Ofria limited-resource ecosystems; Avida chemostat experiments
+- Limited-resource ecosystems; Avida chemostat experiments
   commonly use ~1% unused-resource outflow.
 - Avida-ED resource modes: unlimited / limited / chemostat / periodic
   (period < 1 ⇒ non-periodic), including inflow/cell and outflow fraction.

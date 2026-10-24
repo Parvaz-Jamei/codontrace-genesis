@@ -2,7 +2,7 @@
 
 Emits a Price-style covariance summary as a *diagnostic* and a ClaimGate refusal
 assay: presence of the summary never unlocks major_transition_proved or causal
-transition language. Digital only; cites Okasha multilevel caution as literature
+transition language. Digital only; cites multilevel-selection caution as literature
 comparator already listed in CHALLENGES / REQUIREMENTS.
 """
 

@@ -6,8 +6,8 @@ Runs several non-trivial, falsifiable digital campaigns framed as:
   ONE host_parasite DomainProfile; no infection physics in engine.py
 
 Harder than Wave-6 journal smoke: multi-seed contingency heat, dual-genome
-Zaman digests, entropy/Hamming dual-null, ARD→FSD cost trajectories,
-sequential Cornish order effects, Scanlan mutator abiotic constraint, plus a
+Freeze/replay digests, entropy/Hamming dual-null, ARD→FSD cost trajectories,
+sequential intervention order effects, mutator abiotic constraint, plus a
 declared task–gene dual-null panel. Prefer surprising negatives / contingency
 over hyped positives. Claim ceilings stay fail-closed.
 """

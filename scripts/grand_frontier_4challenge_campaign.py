@@ -76,7 +76,7 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
 
 
 # ==============================================================================
-# WORKER 0: OPEN-ENDED EVOLUTION & PERSISTENCE NOVELTY (Stanley / Channon / Bedau)
+# WORKER 0: OPEN-ENDED EVOLUTION & PERSISTENCE NOVELTY
 # ==============================================================================
 
 def run_worker_0_oee(
@@ -616,7 +616,7 @@ def run_worker_1_mls(
 
 
 # ==============================================================================
-# WORKER 2: MAJOR EVOLUTIONARY TRANSITION & MUTUALISM BARRIER (Michod / Szathmáry)
+# WORKER 2: MAJOR EVOLUTIONARY TRANSITION & MUTUALISM BARRIER
 # ==============================================================================
 
 def run_worker_2_transition(
@@ -858,7 +858,7 @@ def run_worker_2_transition(
 
 
 # ==============================================================================
-# WORKER 3: HISTORICAL CONTINGENCY VS DETERMINISM REPLAY (Gould / Blount LTEE)
+# WORKER 3: HISTORICAL CONTINGENCY VS DETERMINISM REPLAY (LTEE-style replay)
 # ==============================================================================
 
 def run_worker_3_contingency(

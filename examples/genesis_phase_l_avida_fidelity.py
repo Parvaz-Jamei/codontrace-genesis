@@ -1,6 +1,6 @@
 """CodonTrace Genesis Phase L Avida-fidelity smoke.
 
-Print-only. Runs ORGANISM_MESSAGING / DEME_GROUP analog, Goldsby-aligned
+Print-only. Runs ORGANISM_MESSAGING / DEME_GROUP analog, literature-aligned
 specialist measurement, and the optional Phase K coordination-ablation
 evidence feed at smoke scale. Shows ClaimGate still blocks bare CI /
 intelligence. Does not write files, start a UI, set ClaimGate flags, or

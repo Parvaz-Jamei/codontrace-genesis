@@ -57,7 +57,7 @@ PASSAGE_MEANING = {
 
 
 def pearl_knockout_passages() -> tuple[str, str]:
-    """Pure Pearl pair for new confirmatory / WP-RQ-1 cells."""
+    """Pure knockout pair for new confirmatory / WP-RQ-1 cells."""
 
     return (PASSAGE_FROZEN, PASSAGE_COSTLESS)
 
@@ -90,7 +90,7 @@ def assert_passage_taxonomy(*, refuse_aliases: bool = True) -> dict[str, str]:
 
 
 def require_pearl_knockout(passage: str) -> str:
-    """Accept only ``frozen`` or ``costless`` as a Pearl knockout label."""
+    """Accept only ``frozen`` or ``costless`` as a knockout label."""
 
     if not isinstance(passage, str) or not passage.strip():
         raise ConfigurationError("passage must be a non-empty string")
@@ -305,7 +305,7 @@ def pearl_pair_survival_gap_absent(
     costless_outcross_extinct: bool,
     costless_selfing_extinct: bool,
 ) -> bool:
-    """True when the extinct/persist gap is absent under both Pearl knockouts.
+    """True when the extinct/persist gap is absent under both knockouts.
 
     Gap means outcross alive and selfing extinct. Both ``frozen`` and
     ``costless`` must lack that gap for the knockout clause to hold.
@@ -375,7 +375,7 @@ def evaluate_pearl_spc_clauses(
     predicted_debits: Sequence[object] | None = None,
     observer_band: float | None = None,
 ) -> XfWp1ClauseReport:
-    """Record Pearl + capability clauses without promoting RQ flags.
+    """Record knockout + capability clauses without promoting RQ flags.
 
     Optional SPC / residual inputs are evaluated when supplied; missing
     optional inputs leave the corresponding field ``None`` and do not

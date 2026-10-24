@@ -540,7 +540,7 @@ class ModesAssessment:
 
 @dataclass(frozen=True, slots=True)
 class BedauActivityPoint:
-    """Bedau-style novelty / diversity / activity at one time."""
+    """Evolutionary-activity novelty / diversity / activity at one time."""
 
     time: int
     novelty: int
@@ -565,7 +565,7 @@ class BedauActivityPoint:
 
 @dataclass(frozen=True, slots=True)
 class BedauActivitySurface:
-    """Time series of Bedau activity statistics from genotype/behavior presence."""
+    """Time series of evolutionary activity statistics from genotype/behavior presence."""
 
     points: tuple[BedauActivityPoint, ...]
     component_kind: str

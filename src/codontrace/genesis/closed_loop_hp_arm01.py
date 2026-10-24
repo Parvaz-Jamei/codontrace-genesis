@@ -25,9 +25,9 @@ Primary ecology estimand (HP-ARM01-SLOWINSKI-INVASION)
 Resident obligate-outcross deme + low-frequency selfing-capable introduction.
 Per-arm digest-backed clocks (genotype, mating-mode, match-class, and
 selfing-rate / allele-frequency series). Accept path: selfing invades under
-avirulent and fixed, stays rarer under copassaged. Morran outcrossing
+avirulent and fixed, stays rarer under copassaged. Outcrossing
 maintenance is secondary, not a substitute PASS. Shared-modifier terminal
-inequality is refused as a Slowinski PASS. Honest FAIL on short CI horizons
+inequality is refused as a selfing-invasion PASS. Honest FAIL on short CI horizons
 is recorded; confirmatory length is locked in closed_loop_hp_arm01_confirm.
 
 Claim ceiling stays ``runtime_observation`` until life-loop bind + per-arm
@@ -131,7 +131,7 @@ _DEFAULT_PARASITE_N = 8
 _DEFAULT_HANDLING_TIME = 0.0
 _DEFAULT_BASAL_ATP_COST = 0.05
 _DEFAULT_SOFT_CARRYING_CAPACITY = 64
-_DEFAULT_RESOURCE_BOLUS_AMOUNT = 0.0  # off: sealed Slowinski path unchanged
+_DEFAULT_RESOURCE_BOLUS_AMOUNT = 0.0  # off: sealed selfing-invasion path unchanged
 _DEFAULT_PASSAGE_REFILL_MODE = "off"
 _DEFAULT_FOOD_PATCHES: tuple[tuple[int, int], ...] = tuple(
     (x, y) for x in range(4) for y in range(2)
@@ -140,7 +140,7 @@ PASSAGE_REFILL_GENERATION_BOUNDARY = "generation_boundary_resource_bolus"
 PASSAGE_REFILL_OFF = "off"
 _ALLELE_TASK_PREFIX = "allele_"
 
-# Slowinski invasion founders: resident obligate outcross + rare selfing intro.
+# Selfing-invasion founders: resident obligate outcross + rare selfing intro.
 # Intro frequency = 2/10 = 0.2. Not a locked confirmatory prereg.
 _INVASION_FOUNDERS: tuple[tuple[str, str], ...] = (
     ("outcross", "000111"),
@@ -187,7 +187,7 @@ def _as_freq_table(
 
 
 def ecology_arm_to_passage(arm: str) -> str:
-    """Map a Morran–Slowinski ecology label to a tip passage name."""
+    """Map a mating-ecology label to a tip passage name."""
 
     if not isinstance(arm, str) or not arm.strip():
         raise ConfigurationError("ecology arm must be a non-empty string")
@@ -207,7 +207,7 @@ def ecology_arm_to_passage(arm: str) -> str:
 
 
 def passage_to_ecology_arm(passage: str) -> str:
-    """Inverse map. Refuses Pearl-only ``costless`` as an ecology arm."""
+    """Inverse map. Refuses knockout-only ``costless`` as an ecology arm."""
 
     if not isinstance(passage, str) or not passage.strip():
         raise ConfigurationError("passage must be a non-empty string")
@@ -445,7 +445,7 @@ def slowinski_selfing_invasion_contrast(
 ) -> bool:
     """Legacy three-frequency contrast. Not the invasion accept path.
 
-    Kept for measurement continuity. Must never be reported as Slowinski PASS
+    Kept for measurement continuity. Must never be reported as selfing-invasion PASS
     for the ecology accept path; use ``slowinski_invasion_contrast`` instead.
     """
 
@@ -479,7 +479,7 @@ def slowinski_invasion_contrast(
     final_selfing_fixed: float | None,
     final_selfing_copassaged: float | None,
 ) -> bool:
-    """Slowinski invasion estimand into an obligate-outcross resident deme.
+    """Selfing-invasion estimand into an obligate-outcross resident deme.
 
     Requires finite frequencies in ``[0, 1]``. Returns True only when selfing
     rises above introduction under both control arms and stays at or below
@@ -522,7 +522,7 @@ def slowinski_invasion_contrast(
 
 
 def refuse_shared_modifier_as_slowinski_pass(*, substrate: str, contrast_holds: bool) -> None:
-    """Hard refuse: shared-modifier inequality must never be Slowinski PASS."""
+    """Hard refuse: shared-modifier inequality must never be selfing-invasion PASS."""
 
     if substrate == SUBSTRATE_FORBIDDEN_PRIMARY and contrast_holds:
         raise ConfigurationError(
@@ -581,7 +581,7 @@ def _mutate_window(window: str, rng: RNGManager) -> str:
 
 @dataclass
 class LifeLoopEcologyArm:
-    """One Morran–Slowinski arm on life-loop + Phase B + HostParasiteEnv."""
+    """One mating-ecology arm on life-loop + Phase B + HostParasiteEnv."""
 
     arm: str
     passage: str
@@ -938,7 +938,7 @@ class LifeLoopEcologyArm:
         self.parasite_frequencies.append(_parasite_freq(self.parasite_windows))
 
     def _apply_passage_refill(self) -> None:
-        """Elena–Lenski generation-boundary resource bolus (plugin/env only)."""
+        """LTEE-style generation-boundary resource bolus (plugin/env only)."""
 
         if self.passage_refill_mode != PASSAGE_REFILL_GENERATION_BOUNDARY:
             return
@@ -1160,7 +1160,7 @@ def run_three_arm_frequency_campaign(
 
     Short generation counts are scaffolding; confirmatory horizon requires the
     locked prereg in ``closed_loop_hp_arm01_confirm``. Prefer honest FAIL on
-    the Slowinski invasion contrast over soft-pass theater.
+    the selfing-invasion contrast over soft-pass theater.
     """
 
     assert_ecology_arm_taxonomy()
@@ -1244,7 +1244,7 @@ def run_three_arm_frequency_campaign(
             raise ConfigurationError(
                 "Pearl / SPC measurement clauses require complete per-arm frequency clocks first"
             )
-        # Thin Pearl pair on short pure arms — measurement only, new costless cells.
+        # Thin knockout pair on short pure arms — measurement only, new costless cells.
         frozen_out = run_match_arm(
             mating="outcross",
             passage=PASSAGE_FROZEN,

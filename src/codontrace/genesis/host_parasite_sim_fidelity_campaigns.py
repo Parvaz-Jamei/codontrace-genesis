@@ -317,7 +317,7 @@ def _panel_sf1() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# SF2 — Biotic vs abiotic entropy contrast (deepen CM3 / Zaman framing)
+# SF2 — Biotic vs abiotic entropy contrast (deepen CM3 framing)
 # ---------------------------------------------------------------------------
 
 
@@ -343,7 +343,7 @@ def _panel_sf2() -> dict[str, object]:
     biotic = same_float(arm_stats["biotic_intact"]["mean_entropy_delta_vs_baseline"])
     abiotic = same_float(arm_stats["abiotic_stress"]["mean_entropy_delta_vs_baseline"])
     content = same_float(arm_stats["content_null"]["mean_entropy_delta_vs_baseline"])
-    # Literature: biotic coevolution raises complexity/diversity vs abiotic (Zaman).
+    # Literature: biotic coevolution raises complexity/diversity vs abiotic.
     # Pre-reg: biotic > abiotic AND biotic > 0 AND content_null == 0 AND hyp fails.
     success = (
         biotic > abiotic
@@ -663,7 +663,7 @@ def _panel_sf5() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# SF6 — Cornish intervention: obs match ≠ intervention_supported
+# SF6 — Intervention: obs match ≠ intervention_supported
 # ---------------------------------------------------------------------------
 
 
@@ -746,7 +746,7 @@ def _panel_sf7() -> dict[str, object]:
     # Cross-seed distinctness + within-seed stability.
     stable = digests_a == digests_b
     cross_distinct = len(set(digests_a)) == len(digests_a)
-    # Also Zaman freeze/replay reproducibility.
+    # Also freeze/replay reproducibility.
     z1 = run_genome_zaman_campaign(seeds=SEEDS_SF7, steps=4).to_dict()["campaign_digest"]
     z2 = run_genome_zaman_campaign(seeds=SEEDS_SF7, steps=4).to_dict()["campaign_digest"]
     zaman_stable = z1 == z2

@@ -8,12 +8,12 @@ Standing locks
 --------------
 * ``red_queen_proved`` / ``biological_red_queen_proved`` stay False.
 * ClaimGate allowlist / P4 not flipped here (Critic after SUCCESS).
-* Pearl passages are true ``PASSAGE_COEVOLVE`` / ``PASSAGE_FROZEN`` /
-  ``PASSAGE_ABSENT`` — ecology ``ARM_FIXED`` alone is not Pearl frozen.
+* Do-cut passages are true ``PASSAGE_COEVOLVE`` / ``PASSAGE_FROZEN`` /
+  ``PASSAGE_ABSENT`` — ecology ``ARM_FIXED`` alone is not a frozen do-cut.
 * Lag / RQ-earn credit: debit-active only; avirulent never grants credit.
 * ``regime_hostile_ne`` excluded from lag pass fraction.
 * Soft K fixed; floor 12 fixed; no infection in ``engine.py``.
-* Cuscore / SPC observation-only; Fork B / Slowinski DEFER.
+* Cuscore / SPC observation-only; Fork B / selfing invasion DEFER.
 """
 
 from __future__ import annotations
@@ -159,7 +159,7 @@ RQ_EARN_TYPED_OUTCOMES: frozenset[str] = frozenset(
     }
 )
 
-# Ecology arm → Pearl passage (true do-cuts; freeze ≠ absent).
+# Ecology arm → do-cut passage (true do-cuts; freeze ≠ absent).
 _ARM_TO_PEARL: dict[str, str] = {
     ARM_COPASSAGED: PASSAGE_COEVOLVE,
     ARM_FIXED: PASSAGE_FROZEN,
@@ -453,7 +453,7 @@ def score_pearl_passage_lag(
     min_points: int = RQ_EARN_CONFIRM_MIN_POINTS,
     threshold: float = RQ_EARN_CONFIRM_NFDS_THRESHOLD,
 ) -> dict[str, object]:
-    """Lag score for a single true Pearl passage run (not ecology-arm alias).
+    """Lag score for a single true do-cut passage run (not ecology-arm alias).
 
     Scaffold v1 convention: host class frequency at ``t`` vs **parasite class
     frequency** at ``t + lag`` (the histogram), evaluated against the locked
@@ -476,11 +476,11 @@ def score_pearl_passage_lag(
 def evaluate_pearl_contrasts(
     dense_snaps_by_arm: Mapping[str, Mapping[int, Mapping[str, object]]],
 ) -> dict[str, object]:
-    """True Pearl do-cuts: coevolve / frozen / absent as separate passage scores.
+    """True do-cuts: coevolve / frozen / absent as separate passage scores.
 
     Ecology ``ARM_FIXED`` supplies the ``PASSAGE_FROZEN`` run and
     ``ARM_AVIRULENT`` supplies ``PASSAGE_ABSENT``, but the contrast is scored
-    as named Pearl passages (freeze ≠ absent), not as a debit-arm aggregate
+    as named do-cut passages (freeze ≠ absent), not as a debit-arm aggregate
     alias of fixed-arm lag.
     """
 
@@ -640,7 +640,7 @@ def lag_observability(
     dense_snaps_by_arm: Mapping[str, Mapping[int, Mapping[str, object]]],
     coevolve_lag: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    """Emit corr/n/pass_prelim for Pearl passages + parasite_hist_empty (WAVE8 P2)."""
+    """Emit corr/n/pass_prelim for do-cut passages + parasite_hist_empty (WAVE8 P2)."""
 
     scores = pearl.get("passage_scores") if isinstance(pearl, Mapping) else None
     if not isinstance(scores, Mapping):
@@ -860,7 +860,7 @@ def run_rq_earn_confirm_seed(
     bolus: float | None = None,
     n_patches: int | None = None,
 ) -> RQEarnConfirmSeedResult:
-    """Run one RQ-earn confirm seed (ecology arms + Pearl contrasts)."""
+    """Run one RQ-earn confirm seed (ecology arms + do-cut contrasts)."""
 
     gens = int(RQ_EARN_CONFIRM_GENERATIONS if generations is None else generations)
     assert_rq_earn_confirm_seed_policy([seed])

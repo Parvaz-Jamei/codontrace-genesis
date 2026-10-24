@@ -7,6 +7,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -50,7 +51,7 @@ class ObservableRunner:
         )
 
 
-TERMINAL_STATUSES = ("COMPLETED", "FAILED", "STOPPED")
+TERMINAL_STATUSES = ("COMPLETED", "FAILED", "STOPPED", "STALE")
 LAUNCH_WAIT_SECONDS = 120.0
 
 
@@ -71,6 +72,35 @@ def _stop_launched_run(run_id: str) -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=10)
+
+
+def _reap_launched_runs(preexisting: set[str]) -> list[subprocess.Popen[Any]]:
+    """Stop every run registered since ``preexisting`` was taken and drop its entry."""
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        owned = {run_id: proc for run_id, proc in runs._RUN_PROCESSES.items() if run_id not in preexisting}
+    for run_id in owned:
+        _stop_launched_run(run_id)
+    with runs._RUN_LOCK:
+        for run_id in owned:
+            runs._RUN_PROCESSES.pop(run_id, None)
+    return list(owned.values())
+
+
+@pytest.fixture(autouse=True)
+def _launched_run_cleanup(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Make sure no run launched by a test outlives it, even if the test raises.
+
+    Depends on ``monkeypatch`` so teardown runs while ``CODONTRACE_RUNS_DIR`` is
+    still set and the stop action can find the run.
+    """
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        preexisting = set(runs._RUN_PROCESSES)
+    yield
+    _reap_launched_runs(preexisting)
 
 
 def _details(run_id: str) -> dict[str, Any]:
@@ -279,6 +309,24 @@ def test_t11_launch_uses_actual_calibration(env):
     assert not detail["capabilities"]["pause"]
     assert detail["snapshot"]["progress"]["done"] == 2
 
+
+
+def test_cleanup_stops_run_when_test_raises_after_launch(env):
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        preexisting = set(runs._RUN_PROCESSES)
+    response = launch_simulation_run(
+        {"scriptName": "board_long_campaign.py", "experiment": "T11", "ticks": 2, "population": 4, "workers": 1, "seeds": [7]}
+    )
+    assert response["ok"], response
+    with pytest.raises(RuntimeError):
+        raise RuntimeError("failure between launch and wait")
+    reaped = _reap_launched_runs(preexisting)
+    assert reaped, "launched run was not registered"
+    assert all(proc.poll() is not None for proc in reaped)
+    with runs._RUN_LOCK:
+        assert response["runId"] not in runs._RUN_PROCESSES
 
 def test_cli_rejects_unknown_and_stub():
     for experiment in ("INVALID", "T06"):

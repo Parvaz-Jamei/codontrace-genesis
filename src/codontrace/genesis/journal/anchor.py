@@ -17,9 +17,14 @@ history, or a pruned segment with no ledger entry). The ledger is plain and
 unkeyed: anyone who can write the journal directory can add a head to it, so
 ``pruned`` is as strong as the hash chain itself, no stronger.
 An anchor whose header fields (``swarm_id`` and the rest of
-``_record_header()``) differ from the journal's, or whose
-``journal_checkpoint_index`` is not ``None`` or a non-negative int, raises
-``ValueError``.
+``_record_header()``) differ from the journal's is ``forged``: it does not
+belong to this journal. ``verify_anchor`` raises ``ValueError`` only for a
+malformed anchor: wrong schema, a ``journal_head`` that is not 64 lowercase
+hex digits, a header field that is missing or of the wrong type, or a
+``journal_checkpoint_index`` that is missing or not ``None`` / a
+non-negative int. ``journal_checkpoint_index`` is ``None`` when the anchor
+was taken before the first checkpoint; the anchored segment is then
+segment 1.
 Segment numbers never repeat, so an anchor whose segment (one past its
 ``journal_checkpoint_index``) is older than the oldest kept segment, in a
 journal whose oldest kept record links to a non-zero ``previous``, claims
@@ -51,12 +56,16 @@ def verify_anchor(journal: HashChainedJournal, anchor: dict[str, Any]) -> dict[s
     or missing (truncation or another history)?"""
     if anchor.get('schema') != ANCHOR_SCHEMA:
         raise ValueError('not a journal anchor')
-    head = anchor['journal_head']
+    head = anchor.get('journal_head')
+    if type(head) is not str or len(head) != 64 or any(c not in '0123456789abcdef' for c in head):
+        raise ValueError(f'invalid journal_head {head!r}')
     segment = _anchored_segment(anchor)
     with journal._lock:
         for key, value in journal._record_header().items():
-            if key in anchor and anchor[key] != value:
-                raise ValueError(f'anchor {key} {anchor[key]!r} does not match the journal ({value!r})')
+            if key not in anchor or type(anchor[key]) is not type(value):
+                raise ValueError(f'invalid anchor {key} {anchor.get(key)!r}')
+        if any(anchor[key] != value for key, value in journal._record_header().items()):
+            return {'status': 'forged', 'journal_head': journal._chain}
         if head == journal._chain:
             return {'status': 'current_head', 'journal_head': journal._chain}
         if head == '0' * 64:
@@ -93,8 +102,14 @@ def _pruned_before(journal: HashChainedJournal, anchor: dict[str, Any]) -> bool:
 
 
 def _anchored_segment(anchor: dict[str, Any]) -> int:
-    """Segment that held the anchored head: one past the checkpoint index (``None``: none yet)."""
-    checkpoint = anchor.get('journal_checkpoint_index')
+    """Segment that held the anchored head: one past the checkpoint index.
+
+    ``None`` is the documented value for "no checkpoint written yet" (``journal_anchor``
+    copies ``journal_health()['journal_checkpoint_index']``, typed ``int | None``), so it
+    means segment 1. The key itself is required."""
+    if 'journal_checkpoint_index' not in anchor:
+        raise ValueError('anchor has no journal_checkpoint_index')
+    checkpoint = anchor['journal_checkpoint_index']
     if checkpoint is None:
         return 1
     if type(checkpoint) is not int or checkpoint < 0:

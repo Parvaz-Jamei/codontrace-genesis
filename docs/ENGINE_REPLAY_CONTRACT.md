@@ -95,8 +95,12 @@ boundary, not a new public API family.
    ledger is plain and unkeyed, so anyone with write access to the journal
    directory can add a head to it; `pruned` is no stronger than the hash
    chain. An anchor whose `swarm_id` (or other record header field) differs
-   from the journal's, or whose `journal_checkpoint_index` is not `None` or a
-   non-negative integer, raises `ValueError`. The anchor is kept outside the
+   from the journal's is `forged`. `ValueError` is raised only for a
+   malformed anchor: wrong schema, a `journal_head` that is not 64 hex
+   digits, a missing or wrongly typed header field, or a
+   `journal_checkpoint_index` that is missing or is neither `None` nor a
+   non-negative integer. `None` means the anchor was taken before the first
+   checkpoint, so the anchored segment is segment 1. The anchor is kept outside the
    journal, for example in a module run reference.
 11. **Module run references do not rewrite module files.** A board run writes
    `engine_run_ref.json` next to its legacy files (whose bytes and

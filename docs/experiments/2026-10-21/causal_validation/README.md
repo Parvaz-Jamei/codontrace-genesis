@@ -1,7 +1,7 @@
 # Identified effects vs. engine reruns, and replay decomposition
 
 Regenerate with `python docs/experiments/2026-10-21/causal_validation/run_validation.py`
-(about 55-70 s). `result.json` records the commit, version and Python it ran on.
+(about 40 s on an idle machine). `result.json` records the commit, version and Python it ran on.
 
 ## Design
 

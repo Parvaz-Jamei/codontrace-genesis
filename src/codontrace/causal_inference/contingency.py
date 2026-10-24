@@ -1,10 +1,8 @@
 """Section 8: separating selection, historical contingency and chance.
 
-The design follows Travisano, Mongold, Bennett & Lenski (1995, Science
-267:87-90, "Experimental tests of the roles of adaptation, chance, and
-history in evolution") and the replay logic of Blount, Borland & Lenski
-(2008, PNAS 105:7899-7906): the same intervention is replayed on several
-historical backgrounds, each with several independent chance replicates.
+The design is the usual replay experiment from experimental evolution: the
+same intervention is replayed on several historical backgrounds, each with
+several independent chance replicates.
 
 For a balanced table ``Y[h][t][r]`` (history h, treatment t, replicate r)
 the total sum of squares splits exactly (two-way ANOVA with replication)
@@ -15,24 +13,24 @@ into
 * ``history``: differences between backgrounds that do not depend on the
   intervention,
 * ``interaction``: how much the intervention's effect depends on history
-  (potentiation, Blount et al. 2008),
+  (potentiation),
 * ``chance``: replicate-to-replicate variation within a cell.
 
 ``history + interaction`` is reported as historical contingency. Permutation
-p-values (Manly 2007, *Randomization, Bootstrap and Monte Carlo Methods in
-Biology*) use ``RNGManager``. Every term is tested by permuting residuals
-of the reduced model that drops only that term (Freedman & Lane 1983,
-J. Bus. Econ. Stat. 1:292-298), as Anderson & ter Braak (2003, J. Stat.
-Comput. Simul. 73:85-113) recommend for crossed ANOVA designs:
+p-values use ``RNGManager``. Every term is tested by permuting residuals of
+the reduced model that drops only that term and adding them back to that
+model's fitted values, which keeps the test valid for one term while the
+other terms are non-zero in a crossed ANOVA design:
 
 * ``treatment``: residuals of history + interaction,
 * ``history``: residuals of treatment + interaction,
-* ``interaction``: residuals of the additive model (Anderson & Legendre 1999).
+* ``interaction``: residuals of the additive model.
 
 Shuffling raw observations across all cells would test the global null
 (no effect of anything), not a main effect. The three p-values are one
-family; :attr:`ContingencyDecomposition.verdict` uses Holm (1979,
-Scand. J. Stat. 6:65-70) adjusted p-values, reported as ``p_holm``.
+family; :attr:`ContingencyDecomposition.verdict` uses step-down
+adjusted p-values (the k-th smallest of m p-values is scaled by m - k + 1,
+then made monotone), reported as ``p_holm``.
 
 Scope limits. The permutation treats replicates within a cell as
 exchangeable and the cells as independent. :func:`engine_contingency_table`
@@ -74,7 +72,7 @@ class ContingencyDecomposition:
 
     @property
     def p_holm(self) -> dict[str, float]:
-        """Holm step-down adjusted p-values over the three tests."""
+        """Step-down adjusted p-values over the three tests."""
         raw = {"treatment": self.p_treatment, "history": self.p_history, "interaction": self.p_interaction}
         order = sorted(raw, key=lambda k: (raw[k], k))
         out: dict[str, float] = {}

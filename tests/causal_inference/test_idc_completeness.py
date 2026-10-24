@@ -1,7 +1,6 @@
 """IDC verdicts: textbook cases, a y0 oracle, and the resolved y0 disagreements.
 
-IDC (Shpitser & Pearl 2006b, UAI, Fig. 4; Shpitser & Pearl 2008, JMLR 9,
-Fig. 7 and Thm 22 for its soundness and completeness) moves a conditioning variable ``Z_i`` into the
+IDC (sound and complete) moves a conditioning variable ``Z_i`` into the
 intervention set exactly when rule 2 of the do-calculus licenses it,
 ``(Y _||_ Z_i | X, Z - {Z_i})`` in ``G_{bar X, underline Z_i}``, and
 otherwise answers ``ID(Y u Z, X) / sum_Y ID(Y u Z, X)``.
@@ -10,7 +9,7 @@ Every "identifiable" verdict here is checked numerically against the
 truncated factorisation of random discrete SCMs, so an incomplete IDC (one
 that refuses a query it could answer) fails these tests.
 
-y0 0.2.11 (Hoyt et al., BSD-3-Clause) is the external oracle. Its
+y0 0.2.11 (BSD-3-Clause) is the external oracle. Its
 ``are_d_separated`` moralises over directed parents only and so ignores
 bidirected edges (``y0/algorithm/conditional_independencies.py``,
 ``y0/graph.py: iter_moral_links``); on ADMGs its IDC rule-2 test is therefore
@@ -73,17 +72,17 @@ IDC_CASES = {
     # Needs the bar (kills an IDC that skips G_{bar X}).
     "upstream_outcome": (B([("A", "B"), ("B", "C")], [("B", "C")]), {"A"}, {"B"}, {"C"}, True),
     # Bidirected edges into X must be cut by do(X), as in G_{bar X}
-    # (Shpitser & Pearl 2006a, Sec. 2). Kills a do() that keeps them.
+    # (a do() removes every edge into X). Kills a do() that keeps them.
     "bidirected_into_treatment": (
         B([("B", "D"), ("B", "E"), ("C", "E")], [("A", "B"), ("B", "C"), ("B", "E")]),
         {"A"}, {"B"}, {"E"}, True,
     ),
-    # Pearl 2009, Fig. 3.9(a) bow arc with a covariate observed on X's side:
+    # Bow arc with a covariate observed on X's side:
     # the joint P(y, z | do(x)) has a hedge and Z cannot be moved.
     "bow_conditioned": (B([("Z", "X"), ("X", "Y")], [("X", "Y")]), {"Y"}, {"X"}, {"Z"}, False),
-    # Shpitser & Pearl 2006b, Sec. 4: front door, conditioning on the mediator.
+    # Front door, conditioning on the mediator.
     "front_door_given_mediator": (B([("X", "Z"), ("Z", "Y")], [("X", "Y")]), {"Y"}, {"X"}, {"Z"}, True),
-    # Back door, conditioning on the confounder (Pearl 2009, eq. 3.19).
+    # Back door, conditioning on the confounder (back-door adjustment).
     "back_door_given_confounder": (B([("Z", "X"), ("Z", "Y"), ("X", "Y")]), {"Y"}, {"X"}, {"Z"}, True),
 }
 

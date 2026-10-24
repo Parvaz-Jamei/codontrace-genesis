@@ -76,7 +76,7 @@ def test_engine_replay_separates_contingency_from_selection():
     study = EngineBitStudy(seeds=(0, 1, 2, 3))
     d = decompose(engine_contingency_table(study, env=0), n_permutations=199)
     # Focal bit has no effect on the bit:2=0 background and a positive one on
-    # bit:2=1: a potentiated, history-dependent effect (Blount et al. 2008).
+    # bit:2=1: a potentiated, history-dependent effect.
     assert d.treatment_effect_by_history["bit:2=0"] == 0.0
     assert d.treatment_effect_by_history["bit:2=1"] > 0.0
     assert d.verdict == "historically_contingent"

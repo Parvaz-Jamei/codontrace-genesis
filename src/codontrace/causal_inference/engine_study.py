@@ -94,8 +94,8 @@ class EngineUnit:
     outcome: int
 
 
-# Two-sided 95% Student-t quantiles t_{0.975, df}, df = 1..30 (Abramowitz &
-# Stegun 1964, Table 26.10); the normal 1.96 is used above 30.
+# Two-sided 95% t quantiles t_{0.975, df}, df = 1..30 (standard t-table
+# values); the normal 1.96 is used above 30.
 _T975 = (12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
          2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086,
          2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042)

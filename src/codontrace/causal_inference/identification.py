@@ -1,25 +1,21 @@
 r"""Section 5: identification of do-queries (ID and IDC).
 
-``identify`` is the ID algorithm of Shpitser & Pearl (2006a, AAAI,
-"Identification of Joint Interventional Distributions in Recursive
-Semi-Markovian Causal Models", Fig. 3; Shpitser & Pearl 2008, JMLR 9,
-Fig. 3). It is sound and complete (JMLR 2008, Thms 38 and 18): it returns an
-expression for ``P(y | do(x))`` in terms of the observational P(V), or raises
+``identify`` is the ID algorithm for semi-Markovian models: a recursion
+over C-components that is sound and complete. It returns an expression for
+``P(y | do(x))`` in terms of the observational P(V), or raises
 :class:`NotIdentifiable` at line 5. The exception carries the pair of node
 sets ``(G, S)`` of that failing call: a single C-component and the
 C-component of ``G \ X`` inside it. That pair is *not* itself a hedge in
-general; by JMLR 2008, Thm 39, it contains, as edge subgraphs, C-forests
-``F, F'`` that form a hedge for ``P(y' | do(x'))`` for some ``x' <= x``,
-``y' <= y`` (Thm 19, hedge criterion).
+general; it contains, as edge subgraphs, C-forests ``F, F'`` that form a
+hedge for ``P(y' | do(x'))`` for some ``x' <= x``, ``y' <= y``, and a hedge
+is exactly what makes an effect non-identifiable.
 
-``identify_conditional`` is IDC (Shpitser & Pearl 2006b, UAI,
-"Identification of Conditional Interventional Distributions", Fig. 4; JMLR
-2008, Fig. 7, sound and complete by Thm 22), using
-rule 2 of the do-calculus (Pearl 1995) to move conditioning variables into
-the intervention set.
+``identify_conditional`` is IDC, also sound and complete. It uses rule 2 of
+the do-calculus to move conditioning variables into the intervention set,
+then calls ID and normalises over the outcome.
 
-Positivity of P(V) is assumed, as in both papers. The comments ``line k``
-refer to the numbered lines of the published pseudocode.
+Positivity of P(V) is assumed. The comments ``line k`` refer to the
+numbered lines of the standard ID and IDC pseudocode.
 """
 
 from __future__ import annotations
@@ -43,8 +39,7 @@ class NotIdentifiable(ConfigurationError):
     single C-component, ``S`` the C-component of ``G \ X`` inside it,
     ``S < G``, ``G`` meets X and ``S`` does not. It is not always a pair of
     C-forests (a node may have several children inside it, and the root sets
-    may differ); by Shpitser & Pearl (2008, JMLR 9, Thm 39) it *contains* as
-    edge subgraphs C-forests ``F, F'`` forming a hedge for some
+    may differ); it *contains* as edge subgraphs C-forests ``F, F'`` forming a hedge for some
     ``P(y' | do(x'))`` with ``x' <= x`` and ``y' <= y``.
     """
 
@@ -52,7 +47,7 @@ class NotIdentifiable(ConfigurationError):
         self.hedge = hedge
         super().__init__(
             f"effect not identifiable; line-5 failure on G={sorted(hedge[0])}, S={sorted(hedge[1])}"
-            " (contains a hedge, Shpitser & Pearl 2008 Thm 39)"
+            " (this pair contains a hedge)"
         )
 
 

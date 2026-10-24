@@ -34,7 +34,7 @@ def admgs(draw, min_nodes=2, max_nodes=6, bidirected=True):
 
 
 def brute_force_d_separated(g, x, y, z):
-    """Enumerate every simple path of the skeleton (Pearl 2009, Def. 1.2.3)."""
+    """Enumerate every simple path of the skeleton (the path-blocking definition)."""
     dag, _ = g.canonical_dag()
     adj = {v: set() for v in dag.nodes}
     for a, b in dag.directed:
@@ -73,7 +73,7 @@ def assignments(variables):
 
 
 def backdoor_value(joint, x, y, z):
-    """sum_z P(y | x, z) P(z)  (Pearl 2009, eq. 3.19), computed directly."""
+    """sum_z P(y | x, z) P(z)  (back-door adjustment), computed directly."""
     total = 0.0
     for zv in assignments(z):
         pz = joint.marginal(zv)
@@ -84,7 +84,7 @@ def backdoor_value(joint, x, y, z):
 
 
 def frontdoor_value(joint, x, y, z):
-    """sum_z P(z|x) sum_x' P(y|x',z) P(x')  (Pearl 2009, eq. 3.29), directly."""
+    """sum_z P(z|x) sum_x' P(y|x',z) P(x')  (front-door adjustment), directly."""
     xs = sorted(x)
     total = 0.0
     for zv in assignments(z):

@@ -1,14 +1,12 @@
 """Section 2: d-separation (DAGs) and m-separation (ADMGs).
 
-``d_separated`` implements the linear-time "Reachable" procedure of Koller &
-Friedman (2009, *Probabilistic Graphical Models*, Algorithm 3.1), which is the
-Bayes-ball algorithm of Shachter (1998). It decides whether every path between
-X and Y is blocked by Z in the sense of Pearl (2009, *Causality*, 2nd ed.,
-Definition 1.2.3).
+``d_separated`` implements the linear-time reachability search over
+(node, direction) pairs. It decides whether every
+path between X and Y is blocked by Z: a path is blocked if it has a
+non-collider in Z, or a collider that is not in Z and has no descendant in Z.
 
 For an ADMG each bidirected edge is replaced by an explicit latent parent and
-the question is answered by d-separation in that DAG; this is m-separation
-(Richardson 2003, Scand. J. Statist. 30:145-157).
+the question is answered by d-separation in that DAG; this is m-separation.
 
 The property tests compare this against brute-force enumeration of all simple
 paths (tests/causal_inference/test_separation_properties.py).

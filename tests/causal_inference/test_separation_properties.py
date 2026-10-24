@@ -11,8 +11,8 @@ from codontrace.causal_inference import CausalDiagram, d_separated
 from ._helpers import admgs, brute_force_d_separated
 
 
-def test_pearl_fig_1_2_sprinkler():
-    # Pearl 2009, Fig. 1.2: X1 season, X2 sprinkler, X3 rain, X4 wet, X5 slippery.
+def test_sprinkler_graph():
+    # Sprinkler graph: X1 season, X2 sprinkler, X3 rain, X4 wet, X5 slippery.
     g = CausalDiagram.build([("X1", "X2"), ("X1", "X3"), ("X2", "X4"), ("X3", "X4"), ("X4", "X5")])
     assert d_separated(g, {"X2"}, {"X3"}, {"X1"})
     assert not d_separated(g, {"X2"}, {"X3"}, {"X1", "X4"})  # collider opened

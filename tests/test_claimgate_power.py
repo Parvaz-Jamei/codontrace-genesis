@@ -26,10 +26,10 @@ from codontrace.errors import ConfigurationError
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "claimgate"
 
 
-def test_cohen_1988_and_gpower_sample_sizes():
-    # Two-sample, two-sided, alpha .05, power .80. Cohen (1988) Table 2.4.1
-    # gives 26 and 64 per group; G*Power 3 (Faul et al. 2007) gives 394 for
-    # d = 0.2 (Cohen's table rounds to 393).
+def test_published_table_and_gpower_sample_sizes():
+    # Two-sample, two-sided, alpha .05, power .80. The standard power tables
+    # give 26 and 64 per group; G*Power 3 gives 394 for d = 0.2 (the printed
+    # table rounds to 393).
     assert sample_size_t_test(0.8, kind="two_sample") == 26
     assert sample_size_t_test(0.5, kind="two_sample") == 64
     assert sample_size_t_test(0.2, kind="two_sample") == 394
@@ -71,8 +71,8 @@ def test_power_is_alpha_at_zero_effect_and_monotone():
     assert power_t_test(mde, 16) == pytest.approx(0.8, abs=1e-6)
 
 
-def test_two_proportions_cohen_h():
-    # Cohen (1988) ch. 6: h = 0.5 needs n = 63 per group (normal approximation).
+def test_two_proportions_arcsine_h():
+    # Arcsine effect size h = 0.5 needs n = 63 per group (normal approximation).
     p1 = math.sin(math.asin(math.sqrt(0.5)) + 0.25) ** 2
     assert sample_size_two_proportions(p1, 0.5) == 63
     assert power_two_proportions(0.5, 0.5, 50) == pytest.approx(0.05)

@@ -1,9 +1,10 @@
 """Section 3: back-door and front-door criteria.
 
-* Back-door criterion: Pearl (2009, *Causality*, 2nd ed., Definition 3.3.1 and
-  Theorem 3.3.2), generalised to sets: Z contains no descendant of X and
-  Z d-separates X from Y in ``G_{\\underline X}``.
-* Front-door criterion: Pearl (2009, Definition 3.3.3 and Theorem 3.3.4).
+* Back-door criterion, generalised to sets: Z contains no descendant of X
+  and Z d-separates X from Y in ``G_{\\underline X}``.
+* Front-door criterion: Z intercepts every directed path from X to Y, there
+  is no unblocked back-door path from X to Z, and X blocks every back-door
+  path from Z to Y.
 
 Both work on ADMGs: bidirected edges are latent confounders and are treated
 through m-separation (see :mod:`.separation`).

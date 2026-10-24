@@ -4,19 +4,19 @@ Used by the ClaimGate auditor: a bundle that declares a target effect size in
 a top-level ``power_analysis`` object is checked for adequate power at its replicate count
 (see ``auditor._power_findings``). Power is a *design* property: it is
 computed for a declared, a-priori effect size, never from the observed effect
-("observed power" carries no information beyond the p-value; Hoenig & Heisey
-2001, Am. Stat. 55:19-24).
+("observed power" is a monotone function of the p-value and adds no
+information).
 
 * t-tests (one-sample/paired, two-sample, one- or two-sided): exact power from
-  the noncentral t distribution (Cohen 1988, ch. 2), computed by integrating
+  the noncentral t distribution, computed by integrating
   the normal tail over the chi distribution of the variance estimate.
-* Two proportions: normal approximation with Cohen's arcsine effect size h
-  (Cohen 1988, ch. 6).
+* Two proportions: normal approximation with the arcsine effect size
+  h = 2 asin(sqrt(p1)) - 2 asin(sqrt(p2)).
 * Anything else: Monte Carlo power from a user simulation, with draws from
-  ``RNGManager`` and a Wilson interval (Wilson 1927).
+  ``RNGManager`` and a score interval for the estimated proportion.
 
 The t-test numbers are checked against scipy.stats.nct (when installed) and
-against Cohen's (1988) tables in tests/test_claimgate_power.py.
+against published sample-size tables in tests/test_claimgate_power.py.
 """
 
 from __future__ import annotations
@@ -163,7 +163,7 @@ def power_t_test(
     alternative: str = "two-sided",
     n2: int | None = None,
 ) -> float:
-    """Power of a t-test for standardized effect ``effect_size`` (Cohen's d or d_z).
+    """Power of a t-test for standardized effect ``effect_size`` (standardized mean difference d, or d_z for paired data).
 
     ``n`` is the number of pairs/observations, or the size of group 1 for
     ``two_sample`` (``n2`` defaults to ``n``).

@@ -1,7 +1,7 @@
 """ID / IDC: textbook graphs, exact numerical soundness, and completeness.
 
 Ground truth is the truncated factorisation of a random discrete SCM
-(Pearl 2009, eq. 3.10), computed by exact enumeration. An identified
+(the post-intervention distribution), computed by exact enumeration. An identified
 expression evaluated on the observational joint must reproduce it.
 """
 
@@ -28,34 +28,31 @@ from ._helpers import admgs, assignments, backdoor_value, frontdoor_value, requi
 
 B = CausalDiagram.build
 
-# Textbook diagrams. Names follow the sources cited per entry.
+# Standard textbook diagrams.
 IDENTIFIABLE = {
-    # Pearl 2009, sec. 3.3.2, Fig. 3.5: front-door (smoking -> tar -> cancer).
+    # Front door (smoking -> tar -> cancer).
     "front_door": B([("X", "Z"), ("Z", "Y")], [("X", "Y")]),
-    # Single observed confounder Z of X and Y (back-door adjustment on {Z},
-    # Pearl 2009, sec. 3.3.1, Thm 3.3.2).
+    # Single observed confounder Z of X and Y (back-door adjustment on {Z}).
     "back_door": B([("Z", "X"), ("Z", "Y"), ("X", "Y")]),
-    # Reduced variant of Pearl 2009, sec. 3.3.1, Fig. 3.4: Z1..Z3 confounders and a
-    # mediator W (the figure's X1..X6 labels are not reproduced).
-    "pearl_fig_3_4": B([("Z1", "Z3"), ("Z2", "Z3"), ("Z1", "X"), ("Z3", "X"), ("Z3", "Y"),
+    # Z1..Z3 confounders, Z3 a collider of Z1 and Z2, and a mediator W.
+    "three_confounders_mediator": B([("Z1", "Z3"), ("Z2", "Z3"), ("Z1", "X"), ("Z3", "X"), ("Z3", "Y"),
                         ("Z2", "Y"), ("X", "W"), ("W", "Y")]),
-    # Napkin graph: identifiable but by neither criterion (Pearl & Mackenzie 2018;
-    # Shpitser & Pearl 2006a discussion).
+    # Napkin graph: identifiable but by neither criterion.
     "napkin": B([("W", "Z"), ("Z", "X"), ("X", "Y")], [("W", "X"), ("W", "Y")]),
     # Front door through one mediator Z, plus an observed covariate C of X and Y
-    # (Pearl 2009, sec. 3.4, rule-based derivation pattern).
+    # (derivable with the do-calculus rules).
     "front_door_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Z"), ("Z", "Y")], [("X", "Y")]),
 }
 
 NOT_IDENTIFIABLE = {
-    # Pearl 2009, Fig. 3.9(a): the bow arc.
+    # The bow arc.
     "bow": B([("X", "Y")], [("X", "Y")]),
-    # Pearl 2009, Fig. 3.9(b): confounded mediator.
+    # Confounded mediator.
     "confounded_mediator": B([("X", "Z"), ("Z", "Y")], [("X", "Z")]),
-    # Pearl 2009, Fig. 3.9(c): bow plus a mediator.
+    # Bow plus a mediator.
     "bow_with_mediator": B([("X", "Z"), ("Z", "Y"), ("X", "Y")], [("X", "Z")]),
     # Confounded treatment and outcome with no mediator to exploit
-    # (Shpitser & Pearl 2006a, Fig. 2: every graph there contains a hedge).
+    # (the graph contains a hedge).
     "bow_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Y")], [("X", "Y")]),
 }
 
@@ -113,7 +110,7 @@ def test_napkin_needs_id_not_criteria():
 
 
 def test_backdoor_rejects_descendants_of_treatment():
-    # Pearl 2009, Def. 3.3.1(i): a mediator is not an admissible adjustment.
+    # Back-door condition (i): a mediator is not an admissible adjustment.
     g = B([("X", "M"), ("M", "Y")])
     assert satisfies_backdoor(g, {"X"}, {"Y"}, set())
     assert not satisfies_backdoor(g, {"X"}, {"Y"}, {"M"})
@@ -121,11 +118,11 @@ def test_backdoor_rejects_descendants_of_treatment():
 
 def test_front_door_and_back_door_sets_on_textbook_graphs():
     assert frontdoor_sets(IDENTIFIABLE["front_door"], {"X"}, {"Y"}) == (frozenset({"Z"}),)
-    sets = backdoor_adjustment_sets(IDENTIFIABLE["pearl_fig_3_4"], {"X"}, {"Y"})
-    # Pearl 2009, p. 80: {Z1, Z3} and {Z2, Z3} are admissible, {Z3} alone is not.
+    sets = backdoor_adjustment_sets(IDENTIFIABLE["three_confounders_mediator"], {"X"}, {"Y"})
+    # {Z1, Z3} and {Z2, Z3} are admissible; {Z3} alone opens the collider at Z3.
     assert frozenset({"Z1", "Z3"}) in sets and frozenset({"Z2", "Z3"}) in sets
     assert frozenset({"Z3"}) not in sets
-    assert not satisfies_backdoor(IDENTIFIABLE["pearl_fig_3_4"], {"X"}, {"Y"}, {"W"})
+    assert not satisfies_backdoor(IDENTIFIABLE["three_confounders_mediator"], {"X"}, {"Y"}, {"W"})
 
 
 def _query(data, g, max_y=2):
@@ -178,7 +175,7 @@ def test_backdoor_and_frontdoor_formulas_match_truth(data):
         for xa in assignments({xv}):
             truth = scm.joint(xa).marginal({yv: 1})
             assert frontdoor_value(obs, xa, {yv: 1}, z) == pytest.approx(truth, abs=1e-9)
-    # Either criterion implies ID succeeds (Pearl 2009, Thms 3.3.2 and 3.3.4).
+    # Either criterion implies ID succeeds.
     if backdoor_adjustment_sets(g, {xv}, {yv}, max_size=2) or frontdoor_sets(g, {xv}, {yv}, max_size=2):
         assert is_identifiable(g, {yv}, {xv})
 
@@ -211,7 +208,7 @@ def test_idc_is_sound_on_random_admgs(data):
 @settings(max_examples=200, deadline=None)
 @given(data=st.data())
 def test_identifiability_agrees_with_y0(data):
-    """Completeness cross-check against y0 (BSD-3-Clause; Hoyt et al., y0 0.2.x)."""
+    """Completeness cross-check against y0 (y0 0.2.x, BSD-3-Clause)."""
     y0_identify = require_y0("y0.algorithm.identify")
     from y0.dsl import Variable
 

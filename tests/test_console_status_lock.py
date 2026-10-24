@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import multiprocessing as mp
+import sys
 import threading
 import time
 from pathlib import Path
@@ -21,6 +22,30 @@ from typing import Any
 import pytest
 
 from codontrace.console.runs import write_status_json
+
+_TESTS_DIR = Path(__file__).resolve().parent
+
+
+@pytest.fixture
+def spawn_safe_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Put the tests directory after the standard library for spawned children.
+
+    A spawned child receives a copy of the parent's sys.path. pytest puts
+    tests/ first, and tests/platform would then shadow the stdlib platform
+    module that uuid imports. Moving tests/ to the end keeps this module
+    importable by name while the stdlib wins.
+    """
+
+    def under_tests(entry: str) -> bool:
+        try:
+            return Path(entry or ".").resolve() == _TESTS_DIR
+        except OSError:
+            return False
+
+    head = [e for e in sys.path if not under_tests(e)]
+    tail = [e for e in sys.path if under_tests(e)]
+    monkeypatch.setattr(sys, "path", head + tail)
+
 
 HEARTBEATS = 400
 
@@ -109,7 +134,7 @@ def test_threads_never_move_status_backwards(tmp_path: Path) -> None:
     _run(tmp_path, start)
 
 
-def test_processes_never_move_status_backwards(tmp_path: Path) -> None:
+def test_processes_never_move_status_backwards(tmp_path: Path, spawn_safe_path: None) -> None:
     ctx = mp.get_context("spawn")
 
     def start(path: str) -> None:
@@ -132,7 +157,7 @@ def _lock_holder(lock: str, ready: str, release: str) -> None:
             time.sleep(0.01)
 
 
-def test_lock_times_out_instead_of_hanging(tmp_path: Path) -> None:
+def test_lock_times_out_instead_of_hanging(tmp_path: Path, spawn_safe_path: None) -> None:
     from codontrace.console.runs import StatusLockTimeout, _status_file_lock
 
     lock, ready, release = tmp_path / "s.lock", tmp_path / "ready", tmp_path / "release"
@@ -315,3 +340,22 @@ def test_status_lock_timeout_in_console_write_is_not_fatal(tmp_path: Path) -> No
         R.STATUS_LOCK_TIMEOUT_S = old
     assert done == [False]
     assert json.loads(f.read_text())["status"] == "RUNNING"
+
+
+def _report_platform(out: str) -> None:
+    import platform
+
+    Path(out).write_text(str(getattr(platform, "__file__", "")), encoding="utf-8")
+
+
+def test_spawned_child_uses_stdlib_platform(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "path", [str(_TESTS_DIR), *sys.path])
+    # Same fixture logic as spawn_safe_path, applied after tests/ was pushed first.
+    head = [e for e in sys.path if Path(e or ".").resolve() != _TESTS_DIR]
+    monkeypatch.setattr(sys, "path", head + [str(_TESTS_DIR)])
+    out = tmp_path / "platform.txt"
+    p = mp.get_context("spawn").Process(target=_report_platform, args=(str(out),))
+    p.start()
+    p.join(60)
+    assert p.exitcode == 0
+    assert _TESTS_DIR not in Path(out.read_text(encoding="utf-8")).resolve().parents

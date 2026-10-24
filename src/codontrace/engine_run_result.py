@@ -163,6 +163,18 @@ class GenesisRunResult:
         )
         return payload
 
+    def to_record(self) -> dict[str, JsonValue]:
+        """to_dict() plus the unhashed life-plugin provenance, for files on disk.
+
+        Same keys and values as to_dict(); only the manifest blocks gain
+        ``unhashed_provenance``. digest() is still taken over to_dict().
+        """
+        record = self.to_dict()
+        record["manifest"] = self.manifest.to_record()
+        record["evidence_pack"] = self.evidence_pack.to_record()
+        record["replay_bundle"] = self.replay_bundle.to_record()
+        return record
+
     def digest(self) -> str:
         return _digest(self.to_dict())
 

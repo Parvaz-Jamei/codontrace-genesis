@@ -361,6 +361,12 @@ class RunArtifactSchema:
             "contribution_ledgers": [dict(item) for item in self.contribution_ledgers],
         }
 
+    def to_record(self) -> dict[str, JsonValue]:
+        """to_dict() with the manifest's unhashed provenance, for files on disk."""
+        record = self.to_dict()
+        record["manifest"] = self.manifest.to_record()
+        return record
+
     def digest(self) -> str:
         return _digest(self.to_dict())
 
@@ -379,6 +385,12 @@ class ReplayBundle:
             "snapshots": [item.to_dict() for item in self.snapshots],
             "generation_digests": list(self.generation_digests),
         }
+
+    def to_record(self) -> dict[str, JsonValue]:
+        """to_dict() with the manifest's unhashed provenance, for files on disk."""
+        record = self.to_dict()
+        record["manifest"] = self.manifest.to_record()
+        return record
 
     @classmethod
     def from_dict(cls, data: Mapping[str, JsonValue]) -> ReplayBundle:
@@ -472,7 +484,8 @@ class JsonArtifactExporter:
     indent: int | None = 2
 
     def export(self, artifact: RunArtifactSchema | ReplayBundle) -> str:
-        return json.dumps(artifact.to_dict(), sort_keys=True, indent=self.indent)
+        # Files carry the plugin provenance; digest() still hashes to_dict().
+        return json.dumps(artifact.to_record(), sort_keys=True, indent=self.indent)
 
 
 def manifest_from_parts(

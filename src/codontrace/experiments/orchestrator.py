@@ -23,7 +23,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from codontrace.console.runs import get_allowed_cpu_ids, runs_directory, write_atomic_json
+from codontrace.console.runs import get_allowed_cpu_ids, runs_directory, write_atomic_json, write_status_json
 from codontrace.experiments.models import AssessmentStatus, CompletionSummary, ExecutionTrack
 
 
@@ -254,12 +254,9 @@ class CampaignOrchestrator:
         state_lock = threading.RLock()
 
         def _persist_locked() -> None:
-            # Read latest action revision so acknowledgements never travel backwards.
-            try:
-                previous = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
-                status["revision"] = max(status["revision"], int(previous.get("revision", 0)))
-            except (OSError, ValueError, TypeError):
-                pass
+            # write_status_json re-reads status.json under the status lock and
+            # bumps revision past whatever the console wrote, so
+            # acknowledgements and progress never travel backwards.
             status["revision"] += 1
             status["heartbeat_at"] = time.time()
             status["work_done"] = done
@@ -267,7 +264,7 @@ class CampaignOrchestrator:
             ongoing_pause = max(0.0, time.monotonic() - pause_started) if pause_started is not None else 0.0
             status["paused_seconds"] = completed_paused_seconds + ongoing_pause
             status["active_elapsed_seconds"] = max(0.0, time.monotonic() - started_monotonic - status["paused_seconds"])
-            write_atomic_json(run_dir / "status.json", status)
+            write_status_json(run_dir / "status.json", status)
 
         def persist() -> None:
             with state_lock:

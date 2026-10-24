@@ -19,6 +19,8 @@ import sys
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -317,6 +319,95 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
                 pass
 
 
+STATUS_LOCK_TIMEOUT_S = 60.0
+
+
+@contextmanager
+def _status_file_lock(lock_path: Path) -> Iterator[None]:
+    """Blocking exclusive lock on ``lock_path`` (POSIX flock / Windows msvcrt).
+
+    The wait blocks in the kernel instead of polling, so a busy writer cannot
+    starve the others. Each call opens its own file description, so threads in
+    one process exclude each other as well as separate processes.
+    """
+    with lock_path.open("a+b") as handle:
+        if os.name == "nt":
+            import msvcrt
+
+            if handle.seek(0, os.SEEK_END) == 0:
+                handle.write(b"0")
+                handle.flush()
+            deadline = time.monotonic() + STATUS_LOCK_TIMEOUT_S
+            while True:
+                handle.seek(0)
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined,unused-ignore]
+                    break
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined,unused-ignore]
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def status_lock_path(status_file: Path) -> Path:
+    return status_file.with_name(f"{status_file.name}.lock")
+
+
+def write_status_json(status_file: Path, data: dict[str, Any]) -> dict[str, Any]:
+    """Write status.json under a cross-process lock, keeping progress monotonic.
+
+    Every writer (the console's pause/resume/stop handlers and the run
+    process's heartbeat) goes through here. Under an exclusive lock on the
+    sidecar ``status.json.lock`` (POSIX ``flock``, Windows ``msvcrt.locking``)
+    the current file is re-read and:
+
+    * ``revision`` becomes ``max(new, current + 1)`` when the caller's value is
+      not ahead, so it strictly increases with every write;
+    * ``work_done`` never goes below the value already on disk, and ``pct`` is
+      recomputed from it when ``work_total`` is known.
+
+    A writer holding a stale copy therefore cannot move progress or revision
+    backwards. ``data`` is updated in place and returned.
+    """
+    status_file.parent.mkdir(parents=True, exist_ok=True)
+    with _status_file_lock(status_lock_path(status_file)):
+        current: dict[str, Any] = {}
+        try:
+            loaded = json.loads(status_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                current = loaded
+        except (OSError, ValueError):
+            current = {}
+        if current:
+            try:
+                cur_rev = int(current.get("revision", 0))
+                new_rev = int(data.get("revision", 0))
+                data["revision"] = new_rev if new_rev > cur_rev else cur_rev + 1
+            except (TypeError, ValueError):
+                pass
+            cur_done, new_done = current.get("work_done"), data.get("work_done")
+            if isinstance(cur_done, (int, float)) and not isinstance(cur_done, bool):
+                if not isinstance(new_done, (int, float)) or isinstance(new_done, bool) or new_done < cur_done:
+                    data["work_done"] = cur_done
+                    total = data.get("work_total")
+                    if isinstance(total, (int, float)) and not isinstance(total, bool) and "pct" in data:
+                        data["pct"] = min(100.0, 100.0 * float(cur_done) / max(1, total))
+        write_atomic_json(status_file, data)
+    return data
+
+
 
 def move_run_to_trash(run_id: str, entry: Path) -> Path:
     """Move a run folder to ``<runs root>/_trash/<run_id>-<UTC timestamp>`` instead of deleting it.
@@ -434,7 +525,7 @@ class RunnerAdapter:
                 merged = {**root_data, **nested_data}
                 merged["revision"] = max(nested_rev, root_rev)
                 try:
-                    write_atomic_json(root_status_file, merged)
+                    write_status_json(root_status_file, merged)
                 except Exception:
                     pass
                 return merged
@@ -801,7 +892,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     st = "STALE"
                 if st != orig_st:
                     status_info["status"] = st
-                    write_atomic_json(status_file, status_info)
+                    write_status_json(status_file, status_info)
         elif not st:
             has_complete_marker = False
             complete_file = entry / "COMPLETE"
@@ -927,7 +1018,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 elif st == "FAILED":
                     status_info.setdefault("exitCode", 1)
                     status_info.setdefault("endedAt", time.time())
-                write_atomic_json(status_file, status_info)
+                write_status_json(status_file, status_info)
         elif not st:
             live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
             exec_data_val = adapter.resolve_execution_data(entry)
@@ -1376,7 +1467,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         # Must have living process
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_atomic_json(status_file, status_info)
+            write_status_json(status_file, status_info)
             return {
                 "ok": False,
                 "error": "Cannot pause run: process is no longer active",
@@ -1411,7 +1502,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
             else:
                 status_info["status"] = "PAUSED" if ack_files else "PAUSING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            write_status_json(status_file, status_info)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "resume":
@@ -1453,7 +1544,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
 
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_atomic_json(status_file, status_info)
+            write_status_json(status_file, status_info)
             return {
                 "ok": False,
                 "error": "Cannot resume run: process is dead. Use restart.",
@@ -1470,7 +1561,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 ack_files.add(f.name)
             status_info["status"] = "RESUMING" if ack_files else "RUNNING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            write_status_json(status_file, status_info)
         return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "stop":
@@ -1508,7 +1599,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         if caps.get("cooperative_stop", False) and proc_alive:
             status_info["status"] = "STOPPING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            write_status_json(status_file, status_info)
             return {"ok": True, "action": "stop", "run_id": run_id, "status_code": 200, "pending": True}
 
         stopped = False
@@ -1538,7 +1629,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         status_info["status"] = "STOPPING" if still_alive else "STOPPED"
         status_info["stoppedAt"] = time.time()
         status_info["revision"] = int(status_info.get("revision", 1)) + 1
-        write_atomic_json(status_file, status_info)
+        write_status_json(status_file, status_info)
 
         return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200 if stopped else 500, "pending": still_alive}
     elif act == "restart":
@@ -1645,7 +1736,7 @@ def _record_watcher_failure(run_id: str, proc: subprocess.Popen[Any], run_dir: P
         status_info.setdefault("exitCode", None)
     status_info["endedAt"] = time.time()
     try:
-        write_atomic_json(status_file, status_info)
+        write_status_json(status_file, status_info)
     except Exception:
         pass
 
@@ -1734,7 +1825,7 @@ def _finalize_watched_run(run_id: str, proc: subprocess.Popen[Any], run_dir: Pat
     if error_reason:
         status_info["errorReason"] = error_reason
 
-    write_atomic_json(status_file, status_info)
+    write_status_json(status_file, status_info)
 
 
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
@@ -2075,7 +2166,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "engineBackend": engine_backend,
         "modelScope": model_scope,
     }
-    write_atomic_json(run_dir / "status.json", status_info)
+    write_status_json(run_dir / "status.json", status_info)
 
     log_path = run_dir / "console.log"
     child_env = dict(os.environ)
@@ -2085,7 +2176,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
             proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root), env=child_env)
     except OSError as exc:
         status_info.update({"status": "FAILED", "endedAt": time.time(), "errorReason": str(exc)})
-        write_atomic_json(run_dir / "status.json", status_info)
+        write_status_json(run_dir / "status.json", status_info)
         return {"ok": False, "error": f"Process launch failed: {exc}", "runId": run_id, "status_code": 500}
 
     if cores_val and sys.platform == "win32":
@@ -2110,7 +2201,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     if status_info.get("status") == "STARTING":
         status_info["status"] = "RUNNING"
     status_info["pid"] = proc.pid
-    write_atomic_json(run_dir / "status.json", status_info)
+    write_status_json(run_dir / "status.json", status_info)
 
     watcher_thread = threading.Thread(
         target=_watch_run_process,

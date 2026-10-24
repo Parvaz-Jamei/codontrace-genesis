@@ -84,9 +84,13 @@ boundary, not a new public API family.
 10. **Journal heads can be anchored.** A hash chain detects edited records but
    not a dropped tail, since a shorter chain is still valid.
    `codontrace.genesis.journal.journal_anchor` records the head digest;
-   `verify_anchor` later reports `current_head`, `earlier_record` or
-   `not_found` (tail removed or another history). The anchor is kept outside
-   the journal, for example in a module run reference.
+   `verify_anchor` later reports `current_head`, `earlier_record`, `pruned`
+   (retention deleted the anchored segment and the head digest is in the
+   `<journal>.pruned` ledger written before every delete), `forged` (the
+   anchor names a deleted segment, but its head is not in that ledger) or
+   `not_found` (tail removed, another history, or no ledger entry to check).
+   The anchor is kept outside the journal, for example in a module run
+   reference.
 11. **Module run references do not rewrite module files.** A board run writes
    `engine_run_ref.json` next to its legacy files (whose bytes and
    `artifacts_manifest.json` are unchanged); `SwarmCoordinator.run_reference()`

@@ -84,7 +84,7 @@ def test_a_different_plugin_with_the_same_name_is_refused(monkeypatch: pytest.Mo
     monkeypatch.setitem(life_plugins._REGISTRY, "host_parasite", plugin)
     impostor = copy.copy(plugin)
     assert impostor is not plugin
-    with pytest.raises(ConfigurationError, match="already registered"):
+    with pytest.raises(ConfigurationError, match="cannot be replaced"):
         register_life_plugin(impostor)
     assert get_life_plugin("host_parasite") is plugin
 
@@ -152,6 +152,11 @@ _BLOCKED_RUN = """
 import importlib.abc, json, os, sys, tempfile
 os.environ["CODONTRACE_SOURCE_ROOT"] = tempfile.mkdtemp()
 if sys.argv[1] == "block":
+    # Plugin not installed: no entry point is declared and the module is absent.
+    import importlib.metadata as md
+    _real_eps = md.entry_points
+    md.entry_points = lambda **kw: [] if kw.get("group") == "codontrace.life_plugins" else _real_eps(**kw)
+if sys.argv[1] == "block":
     class Block(importlib.abc.MetaPathFinder):
         def find_spec(self, name, path, target=None):
             if "host_parasite" in name.rsplit(".", 1)[-1]:
@@ -165,6 +170,8 @@ cfg = PopulationConfigs().closed_loop_hp_life
 spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=6, population=4)
 r = GenesisEngine.from_spec(spec).run_ticks()
 print(json.dumps({"config": type(cfg).__name__, "spec": spec.digest(), "run": r.digest(),
+                  "provenance": r.manifest.to_record()["unhashed_provenance"]["life_plugin"],
+                  "manifest": r.manifest.digest(),
                   "loaded": any("host_parasite_life_plugin" in m for m in sys.modules)}))
 """
 
@@ -180,4 +187,52 @@ def test_engine_runs_without_the_plugin_with_identical_digests() -> None:
     normal, blocked = run("normal"), run("block")
     assert normal["config"] == "ClosedLoopHPLifeConfig" and blocked["config"] == "DisabledLifeConfig"
     assert blocked["loaded"] is False
-    assert (blocked["spec"], blocked["run"]) == (normal["spec"], normal["run"])
+    assert (blocked["spec"], blocked["run"], blocked["manifest"]) == (normal["spec"], normal["run"], normal["manifest"])
+    # The identity of the plugin that ran is recorded, outside the digests.
+    assert normal["provenance"]["target"] == "codontrace.genesis.host_parasite_life_plugin:HostParasiteLifePlugin"
+    assert normal["provenance"]["name"] == "host_parasite"
+    assert blocked["provenance"]["target"] == "codontrace.genesis.life_plugins:_DisabledLifePlugin"
+
+
+def test_declared_plugin_that_fails_to_import_is_not_silently_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Broken(_EP):
+        def load(self) -> object:
+            raise ImportError("blocked codontrace.genesis.host_parasite_life_plugin")
+
+    target = "codontrace.genesis.host_parasite_life_plugin:PLUGIN"
+    _with_entry_points(monkeypatch, [Broken("host_parasite", target, "codontrace", None)])
+    with pytest.raises(ImportError, match="blocked"):
+        life_plugins.resolve_life_plugin("host_parasite")
+    # Only an undeclared plugin falls back.
+    _with_entry_points(monkeypatch, [])
+    assert life_plugins.resolve_life_plugin("host_parasite") is DISABLED_LIFE_PLUGIN
+
+
+def test_reserved_plugin_cannot_be_replaced(monkeypatch: pytest.MonkeyPatch) -> None:
+    import copy
+
+    plugin = get_life_plugin("host_parasite")
+    monkeypatch.setitem(life_plugins._REGISTRY, "host_parasite", plugin)
+    with pytest.raises(ConfigurationError, match="cannot be replaced"):
+        register_life_plugin(copy.copy(plugin), replace=True)
+
+    class Outside(type(plugin)):  # type: ignore[misc]
+        pass
+
+    Outside.__module__ = "evilplug"
+    with pytest.raises(ConfigurationError, match="reserved"):
+        register_life_plugin(Outside(), replace=True)
+    assert get_life_plugin("host_parasite") is plugin
+
+
+def test_manifest_provenance_round_trips_without_touching_the_digest() -> None:
+    from dataclasses import replace
+
+    from codontrace.genesis.artifacts import RunManifest
+
+    base = RunManifest("r", 0, "c", "t", "g", "rs", "adf", "pop", 1, "rep")
+    tagged = replace(base, life_plugin_provenance={"name": "x", "target": "m:Q", "distribution": None, "version": None})
+    assert tagged.to_dict() == base.to_dict() and tagged.digest() == base.digest()
+    assert "unhashed_provenance" not in base.to_record()
+    back = RunManifest.from_dict(tagged.to_record())
+    assert back.life_plugin_provenance == tagged.life_plugin_provenance and back.digest() == base.digest()

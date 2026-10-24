@@ -24,8 +24,10 @@ consumer. This consumer refuses them: two entry points with the same name,
 or an entry point for a name that codontrace itself ships
 (:data:`RESERVED_PLUGIN_NAMES`) from any other distribution, raise
 :class:`~codontrace.errors.ConfigurationError`, so a replay-critical hook can
-not be swapped by installing a package. A plugin that fails to load also
-raises ``ConfigurationError`` instead of a raw ``ImportError``.
+not be swapped by installing a package, and :func:`register_life_plugin` will
+not replace a reserved name even with ``replace=True``. A declared plugin whose
+module fails to import re-raises that ``ImportError`` (a broken install is not a
+missing plugin); any other load failure raises ``ConfigurationError``.
 
 When no host-parasite plugin is available the engine still runs with the
 plugin disabled: :data:`DISABLED_LIFE_PLUGIN` implements every hook with the
@@ -58,6 +60,7 @@ __all__ = [
     "LifePluginConfig",
     "LifePluginNotFound",
     "get_life_plugin",
+    "life_plugin_provenance",
     "resolve_life_plugin",
     "register_life_plugin",
 ]
@@ -125,7 +128,18 @@ class LifePlugin(Protocol):
 def register_life_plugin(plugin: LifePlugin, *, replace: bool = False) -> None:
     if not isinstance(plugin, LifePlugin):
         raise ConfigurationError(f"{plugin!r} does not implement the LifePlugin hooks")
-    if plugin.name in _REGISTRY and not replace and _REGISTRY[plugin.name] is not plugin:
+    current = _REGISTRY.get(plugin.name)
+    if plugin.name in RESERVED_PLUGIN_NAMES:
+        # Reserved names are replay-critical: only codontrace's own module may
+        # provide them, and once registered they cannot be swapped, not even
+        # with replace=True.
+        if not type(plugin).__module__.startswith(f"{CODONTRACE_DISTRIBUTION}."):
+            raise ConfigurationError(
+                f"life plugin {plugin.name!r} is reserved for the {CODONTRACE_DISTRIBUTION} distribution"
+            )
+        if current is not None and current is not plugin:
+            raise ConfigurationError(f"life plugin {plugin.name!r} is reserved and cannot be replaced")
+    elif current is not None and not replace and current is not plugin:
         raise ConfigurationError(f"life plugin {plugin.name!r} is already registered")
     _REGISTRY[plugin.name] = plugin
 
@@ -151,8 +165,10 @@ def _entry_point_candidate(name: str) -> object | None:
     try:
         loaded: object = ep.load()
         return loaded
-    except ImportError as exc:
-        raise LifePluginNotFound(f"life plugin {name!r} is declared ({ep.value}) but not importable: {exc!r}") from exc
+    except ImportError:
+        # A declared plugin that cannot be imported is a broken install, not a
+        # missing plugin: re-raise so resolve_life_plugin() does not fall back.
+        raise
     except Exception as exc:  # noqa: BLE001 - any load failure becomes a clear configuration error
         raise ConfigurationError(f"life plugin {name!r} could not be loaded from {ep.value}: {exc!r}") from exc
 
@@ -275,10 +291,40 @@ DISABLED_LIFE_PLUGIN: LifePlugin = _DisabledLifePlugin()
 def resolve_life_plugin(name: str) -> LifePlugin:
     """The named plugin, or :data:`DISABLED_LIFE_PLUGIN` when none is installed.
 
-    Only absence falls back. A refused duplicate, a reserved-name entry point
-    from another distribution, or a plugin that fails to load still raises.
+    Only absence (no registered plugin and no declared entry point) falls
+    back. A refused duplicate, a reserved-name entry point from another
+    distribution, or a declared plugin that fails to import still raises.
     """
     try:
         return get_life_plugin(name)
     except LifePluginNotFound:
         return DISABLED_LIFE_PLUGIN
+
+
+def life_plugin_provenance(plugin: LifePlugin) -> dict[str, str | None]:
+    """Where the active life plugin came from, for the run manifest.
+
+    ``target`` is ``module:qualname`` of the plugin object's class and
+    ``distribution``/``version`` name the installed distribution that ships
+    that module (``None`` when it is not part of any installed distribution,
+    for example a plugin defined in a test).  This is recorded next to the
+    manifest, outside every digest; see ``RunManifest.life_plugin_provenance``.
+    """
+    from importlib.metadata import PackageNotFoundError, packages_distributions, version
+
+    cls = type(plugin)
+    module = cls.__module__
+    dists = packages_distributions().get(module.split(".", 1)[0], [])
+    dist = sorted(dists)[0] if dists else None
+    dist_version: str | None = None
+    if dist is not None:
+        try:
+            dist_version = version(dist)
+        except PackageNotFoundError:
+            dist_version = None
+    return {
+        "name": str(getattr(plugin, "name", "")),
+        "target": f"{module}:{cls.__qualname__}",
+        "distribution": dist,
+        "version": dist_version,
+    }

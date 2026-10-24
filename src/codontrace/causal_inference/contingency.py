@@ -1,10 +1,8 @@
 """Section 8: separating selection, historical contingency and chance.
 
-The design follows Travisano, Mongold, Bennett & Lenski (1995, Science
-267:87-90, "Experimental tests of the roles of adaptation, chance, and
-history in evolution") and the replay logic of Blount, Borland & Lenski
-(2008, PNAS 105:7899-7906): the same intervention is replayed on several
-historical backgrounds, each with several independent chance replicates.
+The design is the usual replay experiment from experimental evolution: the
+same intervention is replayed on several historical backgrounds, each with
+several independent chance replicates.
 
 For a balanced table ``Y[h][t][r]`` (history h, treatment t, replicate r)
 the total sum of squares splits exactly (two-way ANOVA with replication)
@@ -15,13 +13,12 @@ into
 * ``history``: differences between backgrounds that do not depend on the
   intervention,
 * ``interaction``: how much the intervention's effect depends on history
-  (potentiation, Blount et al. 2008),
+  (potentiation),
 * ``chance``: replicate-to-replicate variation within a cell.
 
 ``history + interaction`` is reported as historical contingency. Permutation
-p-values (Manly 2007, *Randomization, Bootstrap and Monte Carlo Methods in
-Biology*) use ``RNGManager``; the interaction test permutes residuals of the
-additive model (ter Braak 1992; Anderson & Legendre 1999).
+p-values use ``RNGManager``; the interaction test fits the additive
+(no-interaction) model and permutes its residuals.
 
 :func:`engine_contingency_table` fills the table from real engine reruns
 using :class:`.engine_study.EngineBitStudy`: histories are founder

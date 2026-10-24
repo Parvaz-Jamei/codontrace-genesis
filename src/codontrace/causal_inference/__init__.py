@@ -1,4 +1,4 @@
-"""Pearl-style causal inference over Genesis variables.
+"""Graph-based causal inference (do-calculus) over Genesis variables.
 
 This package sits *on top of* the engine (``codontrace.genesis.causal_graph``
 and ``codontrace.genesis.intervention``); the engine never imports it.
@@ -9,7 +9,7 @@ Sections, each importable and testable on its own:
 2. :mod:`.separation`: d-/m-separation.
 3. :mod:`.adjustment`: back-door and front-door criteria.
 4. :mod:`.expressions`: probability expressions and exact evaluation.
-5. :mod:`.identification`: the ID / IDC algorithms (Shpitser & Pearl 2006).
+5. :mod:`.identification`: the ID / IDC identification algorithms.
 6. :mod:`.scm`: discrete structural causal models with exact do-semantics.
 """
 

@@ -36,7 +36,7 @@ contrast is outside every interval. With the environment unrecorded the
 diagram has `bit:1 <-> births` and ID reports the effect as not identifiable
 (a hedge); no number is produced.
 
-## Contingency vs. selection (Travisano et al. 1995; Blount et al. 2008)
+## Contingency vs. selection
 
 Histories are the two backgrounds (`bit:2 = 0/1`), the treatment is
 `do(bit:1)`, and the replicates are eight engine seeds. In both environments

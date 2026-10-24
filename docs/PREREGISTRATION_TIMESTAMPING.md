@@ -54,13 +54,3 @@ No call leaves the machine unless `allow_network=True` or
   working. `TEST_SERVER` (`api.test.osf.io`) is the default. The OSF tests
   replay bodies that follow the documented responses. They are not
   recordings, because a real registration is permanent.
-
-## References
-
-* RFC 3161, Internet X.509 PKI Time-Stamp Protocol (2001); RFC 5816 (ESSCertIDv2 update, 2010).
-* RFC 5652, Cryptographic Message Syntax (2009).
-* Nosek, B. A., et al. (2018). The preregistration revolution. PNAS 115(11):2600-2606.
-* Zenodo REST API documentation, https://developers.zenodo.org/.
-* OSF APIv2 documentation, https://developer.osf.io/ (`swagger.json`, fetched 2026-10-22).
-* osf.io source, `api/base/versioning.py` and `api/registrations/serializers.py` (develop branch, 2026-10-22).
-* OSF Projects API Impact, https://help.osf.io/article/744-osf-projects-api-impact.

@@ -371,8 +371,8 @@ def _power_findings(bundle: ClaimgateBundle) -> tuple[bool | None, list[str]]:
     Returns ``(adequate, warnings)``; ``adequate`` is None when nothing is
     declared, so undeclared bundles are graded exactly as before. The replicate
     count is the number of seeds (paired design across arms) or, for
-    ``two_sample``, the seed count per arm. Observed effects are never used
-    (Hoenig & Heisey 2001).
+    ``two_sample``, the seed count per arm. Observed effects are never used,
+    since post-hoc power only restates the p-value.
     """
     extra = bundle.extra or {}
     spec = extra.get("power_analysis")

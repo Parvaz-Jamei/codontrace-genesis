@@ -2,14 +2,12 @@
 
 Section 1 of the causal-inference layer. A graph holds directed edges
 ``a -> b`` and bidirected edges ``a <-> b``. A bidirected edge stands for an
-unobserved common cause (a semi-Markovian model, Pearl 2009, sec. 3.5;
-Tian 2002). A DAG is an ADMG with no bidirected edges.
+unobserved common cause (a semi-Markovian model). A DAG is an ADMG with no bidirected edges.
 
 Everything here is pure graph manipulation with deterministic (sorted)
 iteration order, so every downstream result is reproducible.
 
-Notation follows Shpitser & Pearl (2006, AAAI, "Identification of Joint
-Interventional Distributions in Recursive Semi-Markovian Causal Models"):
+Notation follows the usual ID-algorithm conventions:
 
 * ``An(Y)_G`` is :meth:`CausalDiagram.ancestors` (Y included),
 * ``G_{\\bar X}`` (incoming edges of X cut) is :meth:`do`,
@@ -109,7 +107,7 @@ class CausalDiagram:
         return {k: frozenset(v) for k, v in m.items()}
 
     def ancestors(self, vs: Iterable[str]) -> frozenset[str]:
-        """``An(vs)``, including ``vs`` themselves (Shpitser & Pearl 2006 convention)."""
+        """``An(vs)``, including ``vs`` themselves (the ID-algorithm convention)."""
         vs = self._check(vs)
         return self._closure(vs, self._parent_map())
 
@@ -164,7 +162,7 @@ class CausalDiagram:
         )
 
     def c_components(self) -> tuple[frozenset[str], ...]:
-        """Maximal sets connected by bidirected paths (Tian 2002), sorted."""
+        """Maximal sets connected by bidirected paths (C-components), sorted."""
         spouse: dict[str, set[str]] = {v: set() for v in self.nodes}
         for a, b in self.bidirected:
             spouse[a].add(b)
@@ -184,7 +182,7 @@ class CausalDiagram:
         """Replace each ``a <-> b`` by an explicit latent ``U[a,b]`` with ``a <- U -> b``.
 
         Returns the DAG and the set of latent node names. Used to reduce
-        m-separation in an ADMG to d-separation in a DAG (Richardson 2003).
+        m-separation in an ADMG to d-separation in a DAG.
         """
         latents = {f"U[{a},{b}]": (a, b) for a, b in self.bidirected}
         clash = set(latents) & self.nodes

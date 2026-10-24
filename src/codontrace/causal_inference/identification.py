@@ -1,19 +1,16 @@
 """Section 5: identification of do-queries (ID and IDC).
 
-``identify`` is the ID algorithm of Shpitser & Pearl (2006a, AAAI,
-"Identification of Joint Interventional Distributions in Recursive
-Semi-Markovian Causal Models", Fig. 3). It is sound and complete: it returns
-an expression for ``P(y | do(x))`` in terms of the observational P(V), or
-raises :class:`NotIdentifiable` carrying the hedge ``(F, F')`` that witnesses
-non-identifiability (their Theorem 4 / hedge criterion).
+``identify`` is the ID algorithm for semi-Markovian models: a recursion
+over C-components that is sound and complete. It returns an expression for
+``P(y | do(x))`` in terms of the observational P(V), or raises
+:class:`NotIdentifiable` carrying the hedge ``(F, F')`` that witnesses
+non-identifiability (an effect is identifiable exactly when no hedge exists).
 
-``identify_conditional`` is IDC (Shpitser & Pearl 2006b, UAI,
-"Identification of Conditional Interventional Distributions", Fig. 4), using
-rule 2 of the do-calculus (Pearl 1995) to move conditioning variables into
-the intervention set.
+``identify_conditional`` is IDC. It uses rule 2 of the do-calculus to move
+conditioning variables into the intervention set.
 
-Positivity of P(V) is assumed, as in both papers. The comments ``line k``
-refer to the numbered lines of the published pseudocode.
+Positivity of P(V) is assumed. The comments ``line k`` refer to the
+numbered lines of the standard ID and IDC pseudocode.
 """
 
 from __future__ import annotations

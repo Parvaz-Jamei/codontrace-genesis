@@ -5,7 +5,7 @@ A :class:`DiscreteSCM` realises a :class:`CausalDiagram`: one binary latent
 conditional table ``P(v | pa(v), latents(v))``. Observational and
 interventional distributions are computed by exact enumeration (no
 sampling), so an identified expression evaluated on the observational joint
-must equal the truncated-factorisation ground truth (Pearl 2009, eq. 3.10)
+must equal the truncated-factorisation ground truth
 to floating-point precision.
 
 Random parameters are drawn from :class:`codontrace.rng.RNGManager`, so a

@@ -7,14 +7,14 @@ in `tests/characterization/test_import_direction.py` lists it under `MODULES`.
 
 ## Sections
 
-| Module | What it does | Source |
-|---|---|---|
-| `graph.py` | ADMG (directed + bidirected edges), `An`, `De`, `G[S]`, `G_{\bar X}`, `G_{\underline X}`, C-components, latent projection | Shpitser & Pearl 2006a; Tian 2002 |
-| `separation.py` | d-separation ("Reachable"/Bayes-ball), m-separation via explicit latents | Koller & Friedman 2009, Alg. 3.1; Shachter 1998; Richardson 2003 |
-| `adjustment.py` | back-door and front-door criteria, exhaustive minimal-set search | Pearl 2009, Defs 3.3.1, 3.3.3, Thms 3.3.2, 3.3.4 |
-| `expressions.py` | `P(A|B)`, sums, products, fractions; exact evaluation on a discrete joint | |
-| `identification.py` | ID (sound and complete, returns a hedge on failure) and IDC | Shpitser & Pearl 2006a (AAAI) Fig. 3; 2006b (UAI) Fig. 4 |
-| `scm.py` | random discrete SCMs (parameters from `RNGManager`), exact observational and truncated-factorisation interventional joints | Pearl 2009, eq. 3.10 |
+| Module | What it does |
+|---|---|
+| `graph.py` | ADMG (directed + bidirected edges), `An`, `De`, `G[S]`, `G_{\bar X}`, `G_{\underline X}`, C-components, latent projection |
+| `separation.py` | d-separation (linear-time reachability search), m-separation via explicit latents |
+| `adjustment.py` | back-door and front-door criteria, exhaustive minimal-set search |
+| `expressions.py` | `P(A|B)`, sums, products, fractions; exact evaluation on a discrete joint |
+| `identification.py` | ID (sound and complete, returns a hedge on failure) and IDC |
+| `scm.py` | random discrete SCMs (parameters from `RNGManager`), exact observational and truncated-factorisation interventional joints |
 
 Each section imports only the ones above it, so a failure can be debugged
 one module at a time.
@@ -41,25 +41,13 @@ by `remove_in_edges` crash `ancestors`), see the test comment.
 ## How it is tested
 
 * d-separation is compared with brute-force enumeration of every simple path
-  (Pearl 2009, Def. 1.2.3) on 300 Hypothesis-generated ADMGs.
+  on 300 Hypothesis-generated ADMGs.
 * ID soundness: on random ADMGs and textbook graphs (front door, back door,
-  Pearl 2009 Fig. 3.4, the napkin graph), the identified expression is
+  three confounders with a mediator, the napkin graph), the identified expression is
   evaluated on the exact observational joint of a random SCM and must equal
   the exact interventional distribution to 1e-9.
 * ID completeness: non-identifiable textbook graphs (bow arc, confounded
-  mediator; Pearl 2009 Fig. 3.9) raise `NotIdentifiable` with a valid hedge,
+  mediator) raise `NotIdentifiable` with a valid hedge,
   every DAG query is identifiable, and verdicts agree with y0.
-* Back-door and front-door adjustment formulas (Pearl 2009 eqs 3.19, 3.29)
+* Back-door and front-door adjustment formulas
   are checked numerically whenever the criteria accept a set.
-
-## References
-
-* Pearl, J. (1995). Causal diagrams for empirical research. Biometrika 82(4):669-688.
-* Pearl, J. (2009). *Causality*, 2nd ed. Cambridge University Press.
-* Shpitser, I., Pearl, J. (2006a). Identification of joint interventional distributions in recursive semi-Markovian causal models. AAAI-06, 1219-1226.
-* Shpitser, I., Pearl, J. (2006b). Identification of conditional interventional distributions. UAI-06, 437-444.
-* Tian, J. (2002). Studies in causal reasoning and learning. PhD thesis, UCLA.
-* Koller, D., Friedman, N. (2009). *Probabilistic Graphical Models*. MIT Press.
-* Shachter, R. (1998). Bayes-ball. UAI-98.
-* Richardson, T. (2003). Markov properties for acyclic directed mixed graphs. Scand. J. Statist. 30:145-157.
-* Hoyt, C. T., et al. y0: a Python package for causal inference (https://github.com/y0-causal-inference/y0).

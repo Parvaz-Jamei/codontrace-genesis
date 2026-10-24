@@ -66,6 +66,11 @@ digests stay byte-identical.
   (`current_atp` and the entry list change only after the observer returns).
   The ledger books each entry all-or-nothing, so an observer error leaves both
   the account and the ledger untouched.
+  Booking is two-phase: an entry's postings stand only once the account has
+  committed the entry. If anything between the hook and the commit raises
+  (for example a wrapping observer that posts and then fails), the account is
+  unchanged and the ledger reverts those postings before any other ledger
+  operation, inside or outside a transfer scope.
 * `transfer_scope` is a transaction: if its body raises, every posting made in
   the scope is reversed exactly (integer units undo exactly) and every
   `ATPAccount` touched in it is restored, so the clearing residual is 0 and

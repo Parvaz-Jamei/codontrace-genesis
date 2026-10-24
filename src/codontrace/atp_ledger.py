@@ -213,6 +213,9 @@ class WorldATPLedger:
         self._scope_gross = 0
         self._scope_ulps = 0
         self._scope_expect: float | None = None
+        # (mark, account, entry_count before commit) of the last pushed entry;
+        # if the account never committed it, its postings are reverted.
+        self._inflight: tuple[tuple[int, int, int, int, int], ATPAccount, int] | None = None
         self._new_keys: list[str] = []
         self._touched: dict[int, tuple[ATPAccount, Any]] = {}
         # Attached ATPAccounts. Copying/pickling an account alone detaches it;
@@ -231,7 +234,21 @@ class WorldATPLedger:
 
         self._post_u(src, dst, _u(amount), tick, memo)
 
+    def _settle_inflight(self) -> None:
+        """Two-phase push: an entry's postings stand only once its account
+        has committed the entry. If anything between the hook and the
+        account's commit raised (e.g. a wrapping observer), the account is
+        unchanged, so the postings are reverted here, before any other
+        ledger operation can observe them."""
+
+        inflight, self._inflight = self._inflight, None
+        if inflight is not None:
+            mark, account, count = inflight
+            if account.entry_count() == count:
+                self._revert(mark)
+
     def _post_u(self, src: str, dst: str, amt: int, tick: int, memo: str) -> None:
+        self._settle_inflight()
         if amt < 0:
             raise ValueError("posting amount must be >= 0; swap src/dst")
         if amt == 0:
@@ -440,6 +457,8 @@ class WorldATPLedger:
     def _revert(self, mark: tuple[int, int, int, int, int]) -> None:
         """Undo every posting after ``mark`` exactly (integer units reverse exactly)."""
 
+        self._inflight = None
+
         n, seq, nk, gross, ulps = mark
         for p in reversed(self._pending[n:]):
             self._bal[p[2]] += p[4]
@@ -460,12 +479,15 @@ class WorldATPLedger:
             raise ATPConservationError(f"entry for agent {agent_id!r} with no open account")
         if self._scope is not None and account is not None and id(account) not in self._touched:
             self._touched[id(account)] = (account, account._state())
+        self._settle_inflight()
         mark = self._mark()
         try:
             self._book_entry(agent_id, entry)
         except BaseException:
             self._revert(mark)
             raise
+        if account is not None:
+            self._inflight = (mark, account, account.entry_count())
 
     def _book_entry(self, agent_id: str, entry: ATPLedgerEntry) -> None:
         # The nominal amount moves against the counterparty; ATPAccount's
@@ -531,6 +553,7 @@ class WorldATPLedger:
         finally:
             self._scope = None
             touched, self._touched = self._touched, {}
+        self._settle_inflight()
         residual = self._bal[CLEARING]
         expected_loss, self._scope_expect = self._scope_expect, None
         try:
@@ -569,9 +592,11 @@ class WorldATPLedger:
 
     # -------------------------------------------------------------- invariant
     def balance(self, account: str) -> Fraction:
+        self._settle_inflight()
         return Fraction(self._bal.get(account, 0), _ONE)
 
     def agent_balance(self, agent_id: str) -> Fraction:
+        self._settle_inflight()
         return Fraction(self._bal[agent_account(agent_id)], _ONE)
 
     @property
@@ -589,10 +614,13 @@ class WorldATPLedger:
                 "reservoir": self._bal[RESERVOIR], "clearing": self._bal[CLEARING]}
 
     def totals(self) -> dict[str, Fraction]:
+        self._settle_inflight()
         return {k: Fraction(v, _ONE) for k, v in self._totals_u().items()}
 
     def check(self, mirrors: Mapping[str, float] | None = None) -> None:
         """Raise ``ATPConservationError`` unless every invariant holds exactly."""
+
+        self._settle_inflight()
 
         bal = self._bal
         total = sum(bal.values())
@@ -623,6 +651,8 @@ class WorldATPLedger:
         """Cheap mid-tick bypass check: agent set and balances only (the
         global sum and sign checks run in ``check``/``close_tick``)."""
 
+        self._settle_inflight()
+
         bal = self._bal
         if len(mirrors) != len(self._agents) or not self._agents.issuperset(mirrors):
             self.check(mirrors)
@@ -634,6 +664,7 @@ class WorldATPLedger:
         return {k: _fu(v) for k, v in sorted(self._bal.items())}
 
     def state_digest(self) -> str:
+        self._settle_inflight()
         return _sha(_canon(self._balances_str()))
 
     def close_tick(self, tick: int, mirrors: Mapping[str, float] | None = None) -> str:

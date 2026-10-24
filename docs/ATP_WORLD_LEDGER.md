@@ -76,11 +76,34 @@ each step. That is a real inflow and outflow of the model, so it is a named
 boundary rather than a silent rewrite: every host the hold removes or
 rebuilds is closed to `sink:host_hold`, and every host it installs is opened
 from `source:host_hold` with the hold's birth reserve. The hold declares the
-exact balance of every account it installs (`host_hold_atp`), and the ledger
+balance of every account it may install (`host_hold_atp`), and the ledger
 raises unless each reissued account holds exactly that balance, the id is
-declared, and the reason is in `REISSUE_REASONS`. The net of the two
-accounts is the ATP the hold adds to keep the host mix fixed (positive in
-the phase-3 tests); it is reported, not hidden.
+declared, and the reason is in `REISSUE_REASONS`.
+
+The declaration does not look at the bodies the hold built. It comes from
+the profile: `birth_reserve_declaration` gives every held host the structural
+birth reserve `STRUCT_BIRTH_ATP` (48.0, runtime account only). Phase 3
+declares every seat; phase 5 declares only the seats that were missing before
+the hold, because a living host keeps its account. A hold that installs any
+other balance raises. Before each hold the arm books the population as it
+stands (`settle_atp(close=False)`), so the boundary covers only what the
+hold itself changes.
+
+Expected flows for one hold, worked out from the population before it:
+
+* `n` = hosts the hold reissues (a seat that was missing, or a body replaced
+  while its old account had any history);
+* inflow from `source:host_hold` = `n * 48.0`;
+* outflow to `sink:host_hold` = the booked balances of those `n` hosts plus
+  the booked balances of hosts that left the population;
+* net added by the hold = inflow - outflow.
+
+The tests check both legs of every hold exactly. Reference run (phase 3,
+seed 3, locked branch, hosts `000000`/`111111`, 10 generations, so 20
+holds): 1111 reissues, inflow 53,328.0, outflow 50,856.0, net +2,472.0
+(to 6 decimals). That net is the ATP the hold adds to keep the host mix
+fixed; it is reported, not hidden. Phase 5 reissues only lost hosts, so its
+inflow is 48.0 per lost seat.
 
 ## Atomicity and copies
 

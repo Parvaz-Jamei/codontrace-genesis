@@ -647,6 +647,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
             # before the life-loop step so a later death cannot change
             # which genotypes are offered. Existing arms leave this None.
             if self.host_composition_hold is not None:
+                # Book the population as it stands, so the hold's boundary
+                # covers only what the hold itself changes.
+                self.runner.settle_atp(close=False)
                 self.host_composition_hold(self)
                 # The hold rebuilds organisms under their old ids; book it
                 # as an explicit replacement, not a silent rewrite.
@@ -675,6 +678,7 @@ class StructuralRQArm(LifeLoopEcologyArm):
             if self.host_composition_hold is not None:
                 # Contact must see the locked mix, not whoever survived
                 # the life-loop step. Passage is not called from the hold.
+                self.runner.settle_atp(close=False)
                 self.host_composition_hold(self)
                 # The hold rebuilds organisms under their old ids; book it
                 # as an explicit replacement, not a silent rewrite.

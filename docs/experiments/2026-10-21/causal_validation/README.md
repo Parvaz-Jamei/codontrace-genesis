@@ -1,7 +1,7 @@
 # Identified effects vs. engine reruns, and replay decomposition
 
 Regenerate with `python docs/experiments/2026-10-21/causal_validation/run_validation.py`
-(about 55-70 s). `result.json` records the commit it ran from (the parent of the
+(about 40 s on an idle machine). `result.json` records the commit it ran from (the parent of the
 commit that adds it), the package version and the Python version. All draws
 use fixed seeds: two runs from clean checkouts with different
 `PYTHONHASHSEED` values gave byte-identical files (sha256 `180b1c83…`).

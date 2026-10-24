@@ -7,7 +7,9 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -49,11 +51,88 @@ class ObservableRunner:
         )
 
 
+TERMINAL_STATUSES = ("COMPLETED", "FAILED", "STOPPED", "STALE")
+LAUNCH_WAIT_SECONDS = 120.0
+
+
+def _stop_launched_run(run_id: str) -> None:
+    """Stop a launched run and make sure its process does not outlive the test."""
+    from codontrace.console import runs
+
+    try:
+        manage_run_action(run_id, "stop")
+    except Exception:
+        pass
+    with runs._RUN_LOCK:
+        proc = runs._RUN_PROCESSES.get(run_id)
+    if proc is not None and proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
+
+
+def _reap_launched_runs(preexisting: set[str]) -> list[subprocess.Popen[Any]]:
+    """Stop every run registered since ``preexisting`` was taken and drop its entry."""
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        owned = {run_id: proc for run_id, proc in runs._RUN_PROCESSES.items() if run_id not in preexisting}
+    for run_id in owned:
+        _stop_launched_run(run_id)
+    with runs._RUN_LOCK:
+        for run_id in owned:
+            runs._RUN_PROCESSES.pop(run_id, None)
+    return list(owned.values())
+
+
+def _details(run_id: str) -> dict[str, Any]:
+    detail = get_run_details(run_id)
+    assert detail is not None, f"run {run_id} disappeared"
+    return detail
+
+
+def _wait_for_status(run_id: str, status: str, timeout: float = 30.0) -> None:
+    """Poll until the run reports ``status``; the caller's assertions report a miss."""
+    deadline = time.monotonic() + timeout
+    while get_run_details(run_id)["status"] != status and time.monotonic() < deadline:
+        time.sleep(0.02)
+
+
+def _wait_for_launched_run(run_id: str, timeout: float = LAUNCH_WAIT_SECONDS) -> dict[str, Any]:
+    """Poll a launched run until it reaches a terminal status or the deadline passes."""
+    deadline = time.monotonic() + timeout
+    detail = _details(run_id)
+    while detail["status"] not in TERMINAL_STATUSES:
+        if time.monotonic() >= deadline:
+            _stop_launched_run(run_id)
+            progress = (detail.get("snapshot") or {}).get("progress")
+            pytest.fail(
+                f"run {run_id} did not finish within {timeout:.0f} s; "
+                f"last status={detail['status']!r}, pct={detail.get('pct')!r}, progress={progress!r}"
+            )
+        time.sleep(0.05)
+        detail = _details(run_id)
+    return detail
+
+
 @pytest.fixture
-def env(tmp_path, monkeypatch):
+def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """Point runs at a temp dir; after the test, stop every run it launched.
+
+    Teardown runs even if the test raised between launch and wait, and before
+    monkeypatch restores ``CODONTRACE_RUNS_DIR``, so the stop action can find the run.
+    """
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        preexisting = set(runs._RUN_PROCESSES)
     root = tmp_path / "simulation_runs"
     monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(root))
-    return root
+    yield root
+    _reap_launched_runs(preexisting)
 
 
 def test_publish_live_before_finish_and_consistent_work(env, tmp_path):
@@ -158,10 +237,7 @@ def test_pause_ack_resume_stop_preserve_partial(env, tmp_path):
     run_id = orchestrator.last_run_dir.name
     assert manage_run_action(run_id, "pause")["ok"]
     continued.set()
-    for _ in range(100):
-        if get_run_details(run_id)["status"] == "PAUSED":
-            break
-        time.sleep(0.02)
+    _wait_for_status(run_id, "PAUSED")
     assert get_run_details(run_id)["status"] == "PAUSED"
     assert manage_run_action(run_id, "stop")["ok"]
     thread.join(5)
@@ -204,11 +280,7 @@ def test_launcher_validation_and_real_reference_process(env):
         }
     )
     assert response["ok"], response
-    for _ in range(250):
-        detail = get_run_details(response["runId"])
-        if detail["status"] in ("COMPLETED", "FAILED", "STOPPED"):
-            break
-        time.sleep(0.02)
+    detail = _wait_for_launched_run(response["runId"])
     assert detail["status"] == "COMPLETED", detail
     assert detail["snapshot"]["progress"]["done"] == 3
     assert len(list_simulation_runs()) == 1
@@ -226,16 +298,30 @@ def test_t11_launch_uses_actual_calibration(env):
         }
     )
     assert response["ok"], response
-    for _ in range(250):
-        detail = get_run_details(response["runId"])
-        if detail["status"] in ("COMPLETED", "FAILED", "STOPPED"):
-            break
-        time.sleep(0.02)
+    detail = _wait_for_launched_run(response["runId"])
     assert detail["status"] == "COMPLETED", detail
     assert detail["executionBoundary"]["isGenesisEngine"] is True
     assert not detail["capabilities"]["pause"]
     assert detail["snapshot"]["progress"]["done"] == 2
 
+
+
+def test_cleanup_stops_run_when_test_raises_after_launch(env):
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        preexisting = set(runs._RUN_PROCESSES)
+    response = launch_simulation_run(
+        {"scriptName": "board_long_campaign.py", "experiment": "T11", "ticks": 2, "population": 4, "workers": 1, "seeds": [7]}
+    )
+    assert response["ok"], response
+    with pytest.raises(RuntimeError):
+        raise RuntimeError("failure between launch and wait")
+    reaped = _reap_launched_runs(preexisting)
+    assert reaped, "launched run was not registered"
+    assert all(proc.poll() is not None for proc in reaped)
+    with runs._RUN_LOCK:
+        assert response["runId"] not in runs._RUN_PROCESSES
 
 def test_cli_rejects_unknown_and_stub():
     for experiment in ("INVALID", "T06"):
@@ -315,10 +401,7 @@ def test_active_clock_freezes_during_acknowledged_pause_and_resumes(env, tmp_pat
         run_id = orchestrator.last_run_dir.name
         assert manage_run_action(run_id, "pause")["ok"]
         continued.set()
-        for _ in range(100):
-            if get_run_details(run_id)["status"] == "PAUSED":
-                break
-            time.sleep(0.01)
+        _wait_for_status(run_id, "PAUSED")
         first = get_run_details(run_id)["snapshot"]
         assert first["state"] == "PAUSED"
         # paused_seconds comes from the status file written by the heartbeat, so

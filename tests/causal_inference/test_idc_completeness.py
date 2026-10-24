@@ -28,6 +28,9 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
+# The y0 oracle and the rule-2 checks use networkx m-separation.
+pytest.importorskip("networkx")
+
 from codontrace.causal_inference import CausalDiagram, NotIdentifiable, d_separated, identify_conditional
 from codontrace.causal_inference.scm import DiscreteSCM
 

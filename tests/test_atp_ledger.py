@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import pickle
+from dataclasses import dataclass
 from fractions import Fraction
 
 import pytest
@@ -186,3 +187,72 @@ def test_scalar_book_keeps_ids_off_objects_and_across_copies() -> None:
     gc.collect()
     assert len(book._ids) == 1
     book.settle(pop, tick=1)
+
+
+@dataclass
+class _ScalarInd:
+    atp: float
+
+
+def _scalar_pop(n: int) -> list[object]:
+    return [_ScalarInd(float(i + 1)) for i in range(n)]
+
+
+def test_scalar_book_copied_without_population_raises_on_settle() -> None:
+    from codontrace.atp_ledger import ScalarATPBook
+
+    book = ScalarATPBook("w")
+    pop = _scalar_pop(3)
+    book.settle(pop, tick=0)
+    assert sorted(book.ledger.open_agents) == ["i0", "i1", "i2"]
+    lone = copy.deepcopy(book)
+    with pytest.raises(ATPConservationError, match="copied or loaded without its population"):
+        lone.settle(pop, tick=1)
+    assert sorted(lone.ledger.open_agents) == ["i0", "i1", "i2"]
+    lone2 = pickle.loads(pickle.dumps(book))
+    with pytest.raises(ATPConservationError, match="copy the book and the population together"):
+        lone2.settle(pop, tick=1)
+
+
+def test_scalar_book_copied_with_population_keeps_ids() -> None:
+    from codontrace.atp_ledger import ScalarATPBook
+
+    book = ScalarATPBook("w")
+    pop = _scalar_pop(3)
+    book.settle(pop, tick=0)
+    for book2, pop2 in (copy.deepcopy((book, pop)), pickle.loads(pickle.dumps((book, pop)))):
+        # the guard tells the two cases apart: alone raises, together does not
+        with pytest.raises(ATPConservationError, match="without its population"):
+            copy.deepcopy(book2).settle(pop2, tick=1)
+        book2.settle(pop2, tick=1)
+        assert [book2._id(x) for x in pop2] == ["i0", "i1", "i2"]
+        assert sorted(book2.ledger.open_agents) == ["i0", "i1", "i2"]
+        # later generations after the copy with full turnover are fine
+        book2.settle(_scalar_pop(2), tick=2)
+        assert sorted(book2.ledger.open_agents) == ["i3", "i4"]
+
+
+def test_scalar_book_generations_with_births_and_deaths_do_not_raise() -> None:
+    import gc
+
+    from codontrace.atp_ledger import ScalarATPBook
+
+    book = ScalarATPBook("w")
+    pop = _scalar_pop(4)
+    book.settle(pop, tick=0)
+    for t in range(1, 6):
+        pop = pop[1:] + _scalar_pop(2)  # one death, two births
+        gc.collect()
+        book.settle(pop, tick=t)
+    pop = _scalar_pop(3)  # whole generation replaced
+    gc.collect()
+    book.settle(pop, tick=6)
+    book2, pop2 = copy.deepcopy((book, pop))
+    book2.settle(pop2, tick=7)
+    pop2 = _scalar_pop(2)  # full turnover after the copy has been settled once
+    gc.collect()
+    book2.settle(pop2, tick=8)
+    assert len(book2.ledger.open_agents) == 2
+    # the same book copied alone is still caught after all this turnover
+    with pytest.raises(ATPConservationError, match="without its population"):
+        copy.deepcopy(book2).settle(pop2, tick=9)

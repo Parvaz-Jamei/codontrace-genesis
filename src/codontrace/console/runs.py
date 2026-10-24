@@ -7,6 +7,7 @@ Works on Windows, Linux, and macOS.
 from __future__ import annotations
 
 import datetime
+import errno
 import hashlib
 import json
 import math
@@ -298,6 +299,24 @@ def get_safe_run_dir(run_id: str, must_exist: bool = False) -> Path | None:
 
 ATOMIC_REPLACE_TIMEOUT_S = 10.0
 
+# Windows error codes that mean "another handle has the target open".
+_BUSY_WINERRORS = (5, 32)  # ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION
+
+
+def _is_busy_error(exc: OSError) -> bool:
+    """Whether a failed replace only hit a file that is busy right now.
+
+    ``os.replace`` failures on Windows carry the native code in ``winerror``;
+    5 and 32 are the busy cases. ``winerror`` is ``None`` when the error was
+    built without a native code (two-argument constructor) and missing off
+    Windows; then fall back to the POSIX translation and treat ``EACCES``,
+    which both busy codes map to, as busy. Anything else is a real failure.
+    """
+    winerror = getattr(exc, "winerror", None)
+    if winerror is None:
+        return exc.errno == errno.EACCES
+    return winerror in _BUSY_WINERRORS
+
 
 def _replace_with_retry(src: Path, dst: Path) -> None:
     """``os.replace`` that waits out a reader holding ``dst`` open on Windows.
@@ -315,8 +334,7 @@ def _replace_with_retry(src: Path, dst: Path) -> None:
             os.replace(src, dst)
             return
         except PermissionError as exc:
-            # winerror 5 = access denied, 32 = sharing violation.
-            if os.name != "nt" or getattr(exc, "winerror", 5) not in (5, 32) or time.monotonic() >= deadline:
+            if os.name != "nt" or not _is_busy_error(exc) or time.monotonic() >= deadline:
                 raise
         time.sleep(delay)
         delay = min(delay * 2, 0.1)

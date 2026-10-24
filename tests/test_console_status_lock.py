@@ -361,7 +361,21 @@ def test_spawned_child_uses_stdlib_platform(tmp_path: Path, monkeypatch: pytest.
     assert _TESTS_DIR not in Path(out.read_text(encoding="utf-8")).resolve().parents
 
 
-def test_replace_waits_out_a_busy_target_on_windows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def _win_error(winerror: int | None) -> PermissionError:
+    """A PermissionError shaped like the one os.replace raises on Windows.
+
+    Off Windows the ``winerror`` constructor argument is dropped, so set the
+    attribute by hand to get the same object on every platform.
+    """
+    exc = PermissionError(13, "Access is denied", None, winerror)
+    exc.winerror = winerror  # type: ignore[attr-defined]
+    return exc
+
+
+@pytest.mark.parametrize("winerror", [5, 32], ids=["access_denied", "sharing_violation"])
+def test_replace_waits_out_a_busy_target_on_windows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, winerror: int
+) -> None:
     from codontrace.console import runs as R
 
     src, dst = tmp_path / "a", tmp_path / "b"
@@ -370,7 +384,7 @@ def test_replace_waits_out_a_busy_target_on_windows(tmp_path: Path, monkeypatch:
     def busy_then_ok(a: Any, b: Any) -> None:
         attempts.append(1)
         if len(attempts) <= 8:  # longer than the old 5 x 50 ms budget allowed
-            raise PermissionError(13, "Access is denied")
+            raise _win_error(winerror)
         src.rename(dst)
 
     src.write_text("x")
@@ -380,9 +394,53 @@ def test_replace_waits_out_a_busy_target_on_windows(tmp_path: Path, monkeypatch:
     assert len(attempts) == 9 and dst.read_text() == "x"
 
     def denied(a: Any, b: Any) -> None:
-        raise PermissionError(13, "Access is denied")
+        raise _win_error(winerror)
 
     monkeypatch.setattr(R.os, "replace", denied)
     monkeypatch.setattr(R, "ATOMIC_REPLACE_TIMEOUT_S", 0.1)
     with pytest.raises(PermissionError):
         R._replace_with_retry(src, dst)
+
+
+def test_replace_retries_eacces_without_a_native_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """winerror is None on a two-argument PermissionError; EACCES still means busy."""
+    from codontrace.console import runs as R
+
+    src, dst = tmp_path / "a", tmp_path / "b"
+    attempts: list[int] = []
+
+    def busy_then_ok(a: Any, b: Any) -> None:
+        attempts.append(1)
+        if len(attempts) <= 2:
+            exc = PermissionError(13, "Access is denied")
+            exc.winerror = None  # type: ignore[attr-defined]  # as on Windows
+            raise exc
+        src.rename(dst)
+
+    src.write_text("x")
+    monkeypatch.setattr(R.os, "replace", busy_then_ok)
+    monkeypatch.setattr(R.os, "name", "nt")
+    R._replace_with_retry(src, dst)
+    assert len(attempts) == 3 and dst.read_text() == "x"
+
+
+@pytest.mark.parametrize("winerror", [2, 3], ids=["file_not_found", "path_not_found"])
+def test_replace_raises_other_windows_errors_at_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, winerror: int
+) -> None:
+    from codontrace.console import runs as R
+
+    attempts: list[int] = []
+    sleeps: list[float] = []
+
+    def broken(a: Any, b: Any) -> None:
+        attempts.append(1)
+        raise _win_error(winerror)
+
+    monkeypatch.setattr(R.os, "replace", broken)
+    monkeypatch.setattr(R.os, "name", "nt")
+    monkeypatch.setattr(R.time, "sleep", sleeps.append)
+    with pytest.raises(PermissionError) as info:
+        R._replace_with_retry(tmp_path / "a", tmp_path / "b")
+    assert info.value.winerror == winerror  # type: ignore[attr-defined]
+    assert attempts == [1] and sleeps == []

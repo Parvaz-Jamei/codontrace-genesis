@@ -322,7 +322,7 @@ class ATPAccount:
         del self._ledger[n:]
 
     def __reduce__(self) -> tuple[object, ...]:
-        # pickle / copy.copy: the world-ledger observer is NOT carried along,
+        # serialization / copy.copy: the world-ledger observer is NOT carried along,
         # so a copy can never book into (or drag a copy of) the live ledger.
         return (_rebuild_account, (self.initial_atp, self.current_atp, list(self._ledger), self._verified))
 

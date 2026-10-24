@@ -159,3 +159,30 @@ def test_observer_does_not_change_account_digest():
         acct.credit(0.5, tick=1, agent_id="x", codon="F", action="forage", reason="r")
     assert plain.ledger_digest() == hooked.ledger_digest()
     assert plain.to_dict() == hooked.to_dict() and plain == hooked
+
+
+def test_scalar_book_keeps_ids_off_objects_and_across_copies() -> None:
+    import copy as _copy
+    import gc
+    from dataclasses import dataclass as _dc
+
+    from codontrace.atp_ledger import ScalarATPBook
+
+    @_dc
+    class _Ind:
+        atp: float
+
+    book = ScalarATPBook("w")
+    pop = [_Ind(1.0), _Ind(2.0)]
+    before = [dict(vars(x)) for x in pop]
+    book.settle(pop, tick=0)
+    assert [vars(x) for x in pop] == before
+    ids = [book._id(x) for x in pop]
+    book2, pop2 = _copy.deepcopy((book, pop))
+    assert [book2._id(x) for x in pop2] == ids
+    book2.settle(pop2, tick=1)
+    dead = pop.pop()
+    del dead
+    gc.collect()
+    assert len(book._ids) == 1
+    book.settle(pop, tick=1)

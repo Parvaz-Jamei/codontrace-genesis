@@ -61,6 +61,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import weakref
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -154,7 +155,7 @@ def agent_account(agent_id: str) -> str:
 
 
 class _AgentHook:
-    """Observer binding one ATPAccount to the ledger (never pickled itself)."""
+    """Observer binding one ATPAccount to the ledger (never serialized itself)."""
 
     __slots__ = ("account", "agent_id", "ledger")
 
@@ -167,7 +168,7 @@ class _AgentHook:
         self.ledger._on_entry(self.agent_id, entry, self.account)
 
     def __reduce__(self) -> tuple[object, ...]:
-        raise TypeError("an attached ATP ledger hook cannot be pickled or copied; detach first")
+        raise TypeError("an attached ATP ledger hook cannot be serialized or copied; detach first")
 
 
 @dataclass(frozen=True, slots=True)
@@ -804,19 +805,24 @@ def verify_ledger_chain(records: list[dict[str, Any]] | tuple[dict[str, Any], ..
     return prev
 
 
-_BOOK_ID = "_atp_ledger_id"
-
-
 class ScalarATPBook:
     """World ledger for runners whose ATP is a plain float field on
     per-individual objects (T02/T03/T05).
 
-    Each object gets a stable ledger id on first sight (stored on the object
-    as ``_atp_ledger_id``; never read by the model). ``settle`` opens new
-    objects (births, founders), closes vanished ones (deaths) and checks
-    every field against the ledger exactly, so a write that skipped
-    ``assign`` is caught at the next settle. ``carry`` keeps an id when a
-    runner rebuilds an object that is the same individual (migration).
+    Each object gets a stable ledger id on first sight. The id is kept in
+    the book, not on the object, so model objects are never modified: a map
+    from ``id(obj)`` to ``(weakref, ledger id)``. The weakref callback drops
+    the entry when the object is collected, and lookups check the weakref
+    still points at the same object, so a reused ``id()`` never inherits an
+    old ledger id. ``settle`` opens new objects (births, founders), closes
+    vanished ones (deaths) and checks every field against the ledger
+    exactly, so a write that skipped ``assign`` is caught at the next
+    settle. ``carry`` keeps an id when a runner rebuilds an object that is
+    the same individual (migration).
+
+    Copying or serializing the book together with its population keeps each
+    id with the matching copied object: the state is written as
+    ``(object, id)`` pairs and the map is rebuilt on load.
     """
 
     def __init__(self, world_id: str, fields: tuple[str, ...] = ("atp",), *,
@@ -824,19 +830,50 @@ class ScalarATPBook:
         self.ledger = WorldATPLedger(world_id) if ledger is None else ledger
         self.fields = tuple(fields)
         self._next = 0
+        self._ids: dict[int, tuple[weakref.ref[Any], str]] = {}
+
+    def _bind(self, obj: object, lid: str) -> None:
+        key = id(obj)
+        ids = self._ids
+
+        def _drop(ref: weakref.ref[Any], key: int = key) -> None:
+            entry = ids.get(key)
+            if entry is not None and entry[0] is ref:
+                del ids[key]
+
+        ids[key] = (weakref.ref(obj, _drop), lid)
+
+    def _lookup(self, obj: object) -> str | None:
+        entry = self._ids.get(id(obj))
+        if entry is not None and entry[0]() is obj:
+            return entry[1]
+        return None
 
     def _id(self, obj: object) -> str:
-        lid = getattr(obj, _BOOK_ID, None)
+        lid = self._lookup(obj)
         if lid is None:
             lid = f"i{self._next}"
             self._next += 1
-            object.__setattr__(obj, _BOOK_ID, lid)
-        return str(lid)
+            self._bind(obj, lid)
+        return lid
 
     def carry(self, new: object, old: object) -> None:
         """``new`` is the same individual as ``old`` (same balances)."""
 
-        object.__setattr__(new, _BOOK_ID, self._id(old))
+        self._bind(new, self._id(old))
+
+    def __getstate__(self) -> dict[str, Any]:
+        state = {k: v for k, v in self.__dict__.items() if k != "_ids"}
+        live = [(ref(), lid) for ref, lid in self._ids.values()]
+        state["_id_pairs"] = [(o, lid) for o, lid in live if o is not None]
+        return state
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        pairs: list[tuple[object, str]] = state.pop("_id_pairs", [])
+        self.__dict__.update(state)
+        self._ids = {}
+        for obj, lid in pairs:
+            self._bind(obj, lid)
 
     def _key(self, obj: object, field: str) -> str:
         return f"{self._id(obj)}:{field}" if len(self.fields) > 1 else self._id(obj)

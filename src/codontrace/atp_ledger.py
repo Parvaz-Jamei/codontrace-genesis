@@ -833,7 +833,10 @@ class ScalarATPBook:
     copy or load raises ``ATPConservationError`` if the book has open
     accounts, the population is not empty and not one of its members has an
     id in the book. Note that copying the book alone also copies every live
-    individual it still tracks.
+    individual it still tracks. The check stays armed until a ``settle``
+    completes without error. A partial copy (some individuals copied with
+    the book, others separately) cannot be detected: the missing members
+    show up as deaths plus births.
     """
 
     def __init__(self, world_id: str, fields: tuple[str, ...] = ("atp",), *,
@@ -914,7 +917,6 @@ class ScalarATPBook:
                     f"the {len(population)} individuals has an id in this book, but "
                     f"{len(led.open_agents)} accounts are open; copy the book and the "
                     "population together in one call")
-            self._restored = False
         mirrors: dict[str, float] = {}
         for obj in population:
             for field in self.fields:
@@ -927,10 +929,13 @@ class ScalarATPBook:
                 mirrors[key] = value
         for key in sorted(led.open_agents - set(mirrors)):
             led.close_agent(key, tick=tick, to=close_to)
+        result = None
         if close:
-            return led.close_tick(tick, mirrors)
-        led.check(mirrors)
-        return None
+            result = led.close_tick(tick, mirrors)
+        else:
+            led.check(mirrors)
+        self._restored = False
+        return result
 
 
 def _ulp_units(x: float) -> int:

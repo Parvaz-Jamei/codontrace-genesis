@@ -36,7 +36,12 @@ def test_window_is_bounded_and_head_independent_of_checkpointing(ops, every) -> 
     ref = _run(ops, 10**9)
     led = _run(ops, every, full_sink)
     assert led.head == ref.head  # checkpointing never changes the replay digest
-    assert len(led.journal_records()) < every
+    # length: exactly the ticks since the last checkpoint, never more
+    assert len(led.journal_records()) == len(ops) % every < every
+    assert len(full_sink) == len(ops)  # every record streamed exactly once
+    # behaviour: the bounded ledger is the same ledger as the unbounded one
+    assert led.state_digest() == ref.state_digest()
+    assert led.totals() == ref.totals()
     # the retained window verifies on its own from its checkpoint ...
     assert verify_ledger_chain(led.journal_records(), led.journal_base()) == led.head
     # ... and the streamed records verify the whole history from genesis
@@ -50,3 +55,11 @@ def test_tampered_checkpoint_rejected() -> None:
     base["balances"] = dict(base["balances"], **{"agent:a0": "1/1"})
     with pytest.raises(ATPConservationError):
         verify_ledger_chain(led.journal_records(), base)
+
+
+def test_window_length_stays_bounded_over_a_long_run() -> None:
+    led = _run([(i % 3, i % 2 == 0, 0.5) for i in range(1000)], 16)
+    ref = _run([(i % 3, i % 2 == 0, 0.5) for i in range(1000)], 10**9)
+    assert len(led.journal_records()) == 1000 % 16
+    assert len(ref.journal_records()) == 1000
+    assert led.head == ref.head and led.state_digest() == ref.state_digest()

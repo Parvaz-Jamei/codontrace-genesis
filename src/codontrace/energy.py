@@ -129,7 +129,6 @@ class ATPAccount:
             return None
         before = self.current_atp
         after = round(before - cost, 10)
-        self.current_atp = after
         return self._append(
             kind="debit",
             amount=cost,
@@ -157,7 +156,6 @@ class ATPAccount:
         self._validate_non_negative(amount, "amount")
         before = self.current_atp
         after = round(before + amount, 10)
-        self.current_atp = after
         return self._append(
             kind="credit",
             amount=amount,
@@ -258,7 +256,7 @@ class ATPAccount:
         self._verified = (len(self._ledger), running)
 
     def set_observer(self, observer: Callable[[ATPLedgerEntry], None] | None) -> None:
-        """Attach (or clear) the world-ledger observer called after every entry."""
+        """Attach (or clear) the world-ledger observer, called before each entry is committed."""
 
         self._observer = observer
 
@@ -295,10 +293,33 @@ class ATPAccount:
             balance_after=balance_after,
             reason=reason,
         )
-        self._ledger.append(entry)
+        # Atomic: the observer (world ledger) runs before anything is
+        # mutated; if it raises, this account is left exactly as it was.
         if self._observer is not None:
             self._observer(entry)
+        self.current_atp = balance_after
+        self._ledger.append(entry)
         return entry.entry_id
+
+    def _state(self) -> tuple[float, int, tuple[int, float]]:
+        """Rollback token used by the world ledger's transfer scope."""
+
+        return (self.current_atp, len(self._ledger), self._verified)
+
+    def _restore(self, state: tuple[float, int, tuple[int, float]]) -> None:
+        self.current_atp, n, self._verified = state
+        del self._ledger[n:]
+
+    def __reduce__(self) -> tuple[object, ...]:
+        # pickle / copy.copy: the world-ledger observer is NOT carried along,
+        # so a copy can never book into (or drag a copy of) the live ledger.
+        return (_rebuild_account, (self.initial_atp, self.current_atp, list(self._ledger), self._verified))
+
+    def __deepcopy__(self, memo: dict[int, object]) -> ATPAccount:
+        # Entries are frozen; sharing them is safe. The observer is dropped.
+        copy = _rebuild_account(self.initial_atp, self.current_atp, list(self._ledger), self._verified)
+        memo[id(self)] = copy
+        return copy
 
     @staticmethod
     def _validate_ledger(
@@ -358,3 +379,13 @@ def _required_str(data: dict[str, JsonValue], key: str) -> str:
 
 
 ATPBudget = ATPAccount
+
+
+def _rebuild_account(
+    initial_atp: float, current_atp: float, ledger: list[ATPLedgerEntry], verified: tuple[int, float]
+) -> ATPAccount:
+    account = ATPAccount(initial_atp)
+    account.current_atp = current_atp
+    account._ledger = ledger
+    account._verified = verified
+    return account

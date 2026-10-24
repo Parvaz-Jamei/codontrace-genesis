@@ -117,14 +117,20 @@ def agent_account(agent_id: str) -> str:
 class _AgentHook:
     """Picklable, deepcopy-safe observer binding one ATPAccount to the ledger."""
 
-    __slots__ = ("agent_id", "ledger")
+    __slots__ = ("account", "agent_id", "ledger")
 
-    def __init__(self, ledger: WorldATPLedger, agent_id: str) -> None:
+    def __init__(self, ledger: WorldATPLedger, agent_id: str, account: ATPAccount | None = None) -> None:
         self.ledger = ledger
         self.agent_id = agent_id
+        self.account = account
 
     def __call__(self, entry: ATPLedgerEntry) -> None:
-        self.ledger._on_entry(self.agent_id, entry)
+        self.ledger._on_entry(self.agent_id, entry, self.account)
+
+    def __reduce__(self) -> tuple[object, ...]:
+        # Never serialise the live ledger through a hook (ATPAccount drops its
+        # hook on copy; this guards any other holder).
+        raise TypeError("an attached ATP ledger hook cannot be pickled or copied; detach first")
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +161,12 @@ class WorldATPLedger:
         self._scope: str | None = None
         self._scope_gross = Fraction(0)
         self._scope_ulps = Fraction(0)
+        self._new_keys: list[str] = []
+        self._touched: dict[int, tuple[ATPAccount, Any]] = {}
+        # Attached ATPAccounts. Copying/pickling an account alone detaches it
+        # (it must not drag or book into this ledger); copying/pickling the
+        # ledger carries its accounts and re-attaches them to the copy.
+        self._accounts: dict[str, ATPAccount] = {}
         self._records: list[dict[str, Any]] = []
         self._head = ZERO_DIGEST
         self.ticks_checked = 0
@@ -170,6 +182,8 @@ class WorldATPLedger:
             return
         for acct in (src, dst):
             self._check_name(acct)
+            if acct not in self._bal:
+                self._new_keys.append(acct)
         self._bal[src] = self._bal.get(src, Fraction(0)) - amt
         self._bal[dst] = self._bal.get(dst, Fraction(0)) + amt
         if CLEARING in (src, dst):
@@ -206,6 +220,8 @@ class WorldATPLedger:
                    funded_from: str = RESERVOIR, memo: str = "endowment") -> None:
         """Open an agent account and fund its starting balance."""
 
+        if self._scope is not None:
+            raise ATPConservationError("cannot open an agent account inside a transfer scope")
         if agent_id in self._agents:
             raise ATPConservationError(f"agent {agent_id!r} already has an account")
         self._agents.add(agent_id)
@@ -219,6 +235,8 @@ class WorldATPLedger:
         """Move an agent's whole remaining balance to ``to`` and close the account."""
 
         key = agent_account(agent_id)
+        if self._scope is not None:
+            raise ATPConservationError("cannot close an agent account inside a transfer scope")
         if agent_id not in self._agents:
             raise ATPConservationError(f"agent {agent_id!r} has no open account")
         rem = self._bal[key]
@@ -250,15 +268,63 @@ class WorldATPLedger:
         """Open ``agent_id`` with ``account``'s balance and observe its entries."""
 
         self.open_agent(agent_id, account.current_atp, tick=tick, funded_from=funded_from, memo=memo)
-        account.set_observer(_AgentHook(self, agent_id))
+        account.set_observer(_AgentHook(self, agent_id, account))
+        self._accounts[agent_id] = account
 
     def detach(self, agent_id: str, account: ATPAccount | None, *, tick: int,
                to: str = RESERVOIR, memo: str = "death_remainder") -> None:
-        if account is not None:
-            account.set_observer(None)
         self.close_agent(agent_id, tick=tick, to=to, memo=memo)
+        stored = self._accounts.pop(agent_id, None)
+        for acct in (account, stored):
+            if acct is not None:
+                acct.set_observer(None)
 
-    def _on_entry(self, agent_id: str, entry: ATPLedgerEntry) -> None:
+    def __getstate__(self) -> dict[str, Any]:
+        if self._scope is not None:
+            raise ATPConservationError("cannot copy a ledger inside a transfer scope")
+        state = dict(self.__dict__)
+        state["_touched"] = {}
+        return state
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        for aid, account in self._accounts.items():
+            account.set_observer(_AgentHook(self, aid, account))
+
+    # ------------------------------------------------------------ rollback
+    def _mark(self) -> tuple[int, int, int, Fraction, Fraction]:
+        return (len(self._pending), self._seq, len(self._new_keys), self._scope_gross, self._scope_ulps)
+
+    def _revert(self, mark: tuple[int, int, int, Fraction, Fraction]) -> None:
+        """Undo every posting after ``mark`` exactly (Fractions reverse exactly)."""
+
+        n, seq, nk, gross, ulps = mark
+        for p in reversed(self._pending[n:]):
+            self._bal[p.src] += p.amount
+            self._bal[p.dst] -= p.amount
+        for key in self._new_keys[nk:]:
+            if key in self._bal and self._bal[key] == 0:
+                del self._bal[key]
+        del self._pending[n:], self._new_keys[nk:]
+        self._seq, self._scope_gross, self._scope_ulps = seq, gross, ulps
+
+    def _on_entry(self, agent_id: str, entry: ATPLedgerEntry, account: ATPAccount | None = None) -> None:
+        """Book one ATPAccount entry. Called BEFORE the account commits it;
+        all-or-nothing: on any error no posting survives and the account is
+        untouched (it only commits after this returns)."""
+
+        if agent_id not in self._agents:
+            raise ATPConservationError(f"entry for agent {agent_id!r} with no open account")
+        if self._scope is not None and account is not None and id(account) not in self._touched:
+            self._touched[id(account)] = (account, account._state())
+        mark = self._mark()
+        try:
+            self._book_entry(agent_id, entry)
+        except BaseException:
+            self._revert(mark)
+            raise
+
+    def _book_entry(self, agent_id: str, entry: ATPLedgerEntry) -> None:
         # The nominal amount moves against the counterparty; ATPAccount's
         # 10-digit rounding of the balance is booked separately against
         # source:rounding / sink:rounding, so it is accounted for, not hidden.
@@ -307,16 +373,20 @@ class WorldATPLedger:
         self._scope_gross = Fraction(0)
         # ``magnitude``: largest float the caller's legs were computed from.
         self._scope_ulps = 3 * Fraction(math.ulp(abs(float(magnitude))))
-        mark = len(self._pending)
-        saved = dict(self._bal)
-        seq = self._seq
+        self._touched = {}
+        mark = self._mark()
         try:
             yield
         except BaseException:
-            self._bal, self._pending[mark:], self._seq = saved, [], seq
+            # Atomic scope: revert every posting and every touched account,
+            # so the clearing residual is 0 and ledger == accounts again.
+            self._revert(mark)
+            for account, state in self._touched.values():
+                account._restore(state)
             raise
         finally:
             self._scope = None
+            self._touched = {}
         residual = self._bal[CLEARING]
         if residual < 0:
             if -residual > ROUNDING_BOUND * self._scope_gross + self._scope_ulps:

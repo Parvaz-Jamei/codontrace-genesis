@@ -50,6 +50,22 @@ books that residue explicitly against `source:rounding`/`sink:rounding`
 instead of hiding it; the account arithmetic itself is unchanged, so legacy
 digests stay byte-identical.
 
+## Atomicity and copies
+
+* `ATPAccount` calls its world-ledger observer *before* it commits an entry
+  (`current_atp` and the entry list change only after the observer returns).
+  The ledger books each entry all-or-nothing, so an observer error leaves both
+  the account and the ledger untouched.
+* `transfer_scope` is a transaction: if its body raises, every posting made in
+  the scope is reversed exactly (Fractions undo exactly) and every
+  `ATPAccount` touched in it is restored, so the clearing residual is 0 and
+  ledger == accounts again.
+* Copying or pickling an attached `ATPAccount` on its own (`copy.copy`,
+  `copy.deepcopy`, `pickle`) gives a *detached* account: the copy never books
+  into, and never drags along, the live ledger. Copying or pickling the
+  *ledger* (alone or with its world) carries its attached accounts and
+  re-attaches them to the copy, so a cloned world is closed on its own.
+
 ## Digests
 
 The observer hook on `ATPAccount` is not serialized, compared or digested, and

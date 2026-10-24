@@ -91,6 +91,7 @@ jobs:
         run: python -m pytest tests --disable-plugin-autoload -p xdist -n auto
 
       - name: Run full test suite with branch coverage
+        id: tests_cov
         if: matrix.python-version == '3.14'
         env:
           COVERAGE_CORE: sysmon
@@ -114,7 +115,7 @@ jobs:
 
       - name: Upload coverage report
         if: always() && matrix.python-version == '3.14'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-xml
           path: coverage.xml
@@ -123,23 +124,25 @@ jobs:
       # Codecov needs a token for uploads to a branch of this repository
       # unless the owner disables token authentication for public repos in
       # Codecov settings (https://docs.codecov.com/docs/codecov-tokens).
-      # fail_ci_if_error stays false so a Codecov outage or a missing token
-      # never fails the tests; a missing token is reported as a warning
-      # annotation instead of being silent.
+      # Coverage is uploaded only when the coverage test step succeeded, so a
+      # partial report from a failed run never reaches Codecov.
+      # fail_ci_if_error is true only for pushes to this repository when
+      # CODECOV_TOKEN is set; forks, pull requests and token-less runs keep
+      # it false and get a warning annotation instead.
       - name: Warn when CODECOV_TOKEN is not set
-        if: always() && matrix.python-version == '3.14' && env.CODECOV_TOKEN == ''
+        if: always() && matrix.python-version == '3.14' && steps.tests_cov.outcome == 'success' && env.CODECOV_TOKEN == ''
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: echo "::warning title=Codecov::CODECOV_TOKEN secret is not set; the upload is tokenless and Codecov may reject it for this branch."
+        run: echo "::warning title=Codecov::CODECOV_TOKEN secret is not set; Codecov rejects the upload without a token, so no coverage is recorded for this run."
 
       - name: Upload coverage to Codecov
-        if: always() && matrix.python-version == '3.14'
+        if: always() && matrix.python-version == '3.14' && steps.tests_cov.outcome == 'success'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: coverage.xml
           flags: python3.14
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          fail_ci_if_error: ${{ github.event_name == 'push' && github.repository == 'Parvaz-Jamei/codontrace-genesis' && secrets.CODECOV_TOKEN != '' }}
           verbose: true
 
   core-smoke-cross-os:

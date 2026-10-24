@@ -190,3 +190,20 @@ each form. The gate is a guard rail, not the proof: `getattr`-computed names or
 equality, `verify_balance`) catches any balance changed outside the ledger.
 `host_parasite_world.py` must still create, insert and remove `ATPAccount`s
 only in `_open_account` / `_close_account`.
+
+## References (verified)
+
+* IEEE Std 754-2019, sec. 3.3 (binary64: every finite value is an integer
+  multiple of 2^-1074).
+* S. Boldo, C.-P. Jeannerod, G. Melquiond, J.-M. Muller, "Floating-point
+  arithmetic", Acta Numerica 32 (2023) 203-290, doi:10.1017/S0962492922000101
+  (exact representability of the rounding error of a sum; error-free
+  transformations), used by `float_error` / `book_rounding`.
+* D. J. Abadi, J. M. Faleiro, "An overview of deterministic database
+  systems", CACM 61(9) (2018) 78-88, doi:10.1145/3181853 (deterministic,
+  replayable transaction commit), basis of the two-phase entry booking.
+  Commit 3c10ae75's body misdates this article as 2024; it is 2018.
+* P. Zhang, Y. Wang, X. Liu, "Assessing effectiveness of test suites: what do
+  we know and what should we do?", ACM TOSEM 33(4) (2024) art. 86,
+  doi:10.1145/3635713 (mutation score as the strongest suite-effectiveness
+  metric), basis of the bypass-mutant gate tests (commit 5acc87b7).

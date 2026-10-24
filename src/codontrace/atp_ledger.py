@@ -390,6 +390,29 @@ class WorldATPLedger:
             account.set_observer(_AgentHook(self, aid, account))
 
     # ------------------------------------------------- pull-mode (functional)
+    def reissue_accounts(self, accounts: Mapping[str, ATPAccount], *, tick: int, reason: str) -> dict[str, float]:
+        """Explicitly replace accounts that an experiment rebuilt under the same id.
+
+        For deliberate interventions (e.g. a hold that restores a locked
+        population between steps). Every id whose ATP history no longer
+        extends what was booked is closed to ``sink:<reason>`` and reopened
+        from ``source:<reason>`` with its new history replayed; ids that
+        vanished are closed to ``sink:<reason>`` and new ids are opened from
+        ``source:<reason>``. Untouched accounts are booked as usual. The
+        whole replacement is visible as named flows, never silent. Plain
+        ``sync_accounts`` still raises on any rewrite.
+        """
+
+        for aid, (start, last) in sorted(self._cursors.items()):
+            account = accounts.get(aid)
+            if account is None:
+                continue
+            n_now = account.entry_count()
+            if n_now < start or (start > 0 and account.entry_at(start - 1) != last):
+                del self._cursors[aid]
+                self.close_agent(aid, tick=tick, to=f"sink:{reason}", memo=reason)
+        return self.sync_accounts(accounts, tick=tick, open_from=f"source:{reason}", close_to=f"sink:{reason}")
+
     def sync_accounts(self, accounts: Mapping[str, ATPAccount], *, tick: int,
                       open_from: str = "source:birth_endowment",
                       close_to: str = "sink:death_remainder") -> dict[str, float]:

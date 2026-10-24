@@ -47,6 +47,15 @@ class PopulationRunner:
         self.atp_ledger.check(mirrors)
         return None
 
+    def reissue_atp(self, reason: str) -> None:
+        """Book a deliberate rebuild of organisms (same ids, new ATP history)
+        as explicit ``sink:<reason>`` / ``source:<reason>`` flows."""
+
+        tick = int(self.population.generation)
+        mirrors = self.atp_ledger.reissue_accounts(
+            organism_atp_accounts(self.population.organisms), tick=tick, reason=reason)
+        self.atp_ledger.check(mirrors)
+
     def step_generation(
         self, *, seed: int | None = None, rng: RNGManager | None = None
     ) -> GenerationResult:

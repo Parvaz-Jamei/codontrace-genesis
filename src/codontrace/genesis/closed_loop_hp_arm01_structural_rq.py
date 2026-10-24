@@ -645,6 +645,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
             # which genotypes are offered. Existing arms leave this None.
             if self.host_composition_hold is not None:
                 self.host_composition_hold(self)
+                # The hold rebuilds organisms under their old ids; book it
+                # as an explicit replacement, not a silent rewrite.
+                self.runner.reissue_atp("host_hold")
             # Bolus/refill at generation boundary BEFORE census append (probe).
             self._apply_passage_refill()
             bolus_before = True  # refill precedes census on this path
@@ -670,6 +673,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
                 # Contact must see the locked mix, not whoever survived
                 # the life-loop step. Passage is not called from the hold.
                 self.host_composition_hold(self)
+                # The hold rebuilds organisms under their old ids; book it
+                # as an explicit replacement, not a silent rewrite.
+                self.runner.reissue_atp("host_hold")
                 self.last_contact_host_windows = tuple(
                     _window(org) for org in self._hosts()
                 )

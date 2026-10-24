@@ -39,13 +39,18 @@ real plugin and is refused with ``ConfigurationError``.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.metadata import entry_points
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+import codontrace
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+
+_PACKAGE_ROOT = Path(codontrace.__file__).resolve().parent
 
 if TYPE_CHECKING:
     from codontrace.genesis.organism import GenesisOrganism
@@ -125,6 +130,29 @@ class LifePlugin(Protocol):
     def outcross_fee_debit(self, genome_bits: str, config: Any) -> tuple[float, str, str] | None: ...
 
 
+def _defined_in_codontrace(cls: type) -> bool:
+    """True only if ``cls`` really lives in a loaded codontrace module.
+
+    ``__module__`` is a plain string any class can set, so the name alone
+    proves nothing. The module must already be imported, its file must sit
+    inside this package, and the class must be the object found at its own
+    qualified name there. A look-alike class (same module string, or a name
+    the real module does not have) fails, whether or not the registry is
+    still empty.
+    """
+
+    module = sys.modules.get(cls.__module__)
+    if module is None or not cls.__module__.startswith(f"{CODONTRACE_DISTRIBUTION}."):
+        return False
+    origin = getattr(module, "__file__", None)
+    if origin is None or _PACKAGE_ROOT not in Path(origin).resolve().parents:
+        return False
+    found: object = module
+    for part in cls.__qualname__.split("."):
+        found = getattr(found, part, None)
+    return found is cls
+
+
 def register_life_plugin(plugin: LifePlugin, *, replace: bool = False) -> None:
     if not isinstance(plugin, LifePlugin):
         raise ConfigurationError(f"{plugin!r} does not implement the LifePlugin hooks")
@@ -133,7 +161,7 @@ def register_life_plugin(plugin: LifePlugin, *, replace: bool = False) -> None:
         # Reserved names are replay-critical: only codontrace's own module may
         # provide them, and once registered they cannot be swapped, not even
         # with replace=True.
-        if not type(plugin).__module__.startswith(f"{CODONTRACE_DISTRIBUTION}."):
+        if not _defined_in_codontrace(type(plugin)):
             raise ConfigurationError(
                 f"life plugin {plugin.name!r} is reserved for the {CODONTRACE_DISTRIBUTION} distribution"
             )

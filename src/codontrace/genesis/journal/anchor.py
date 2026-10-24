@@ -6,12 +6,17 @@ transparency log; cf. RFC 9162 Certificate Transparency 2.0, signed tree
 heads) lets a later reader check that the anchored head is still in the
 journal. ``verify_anchor`` replays nothing; it walks record digests only.
 
-Statuses: ``current_head``, ``earlier_record``, ``pruned`` (the anchored head
-was in a segment that retention deleted from the archive: normal pruning, not
-evidence of truncation) and ``not_found`` (truncation or another history).
+Statuses: ``current_head``, ``earlier_record``, ``pruned`` (retention deleted
+the segment that held the anchored head, and the head digest is listed in the
+``<journal>.pruned`` ledger that retention writes before each delete: normal
+pruning, not evidence of truncation), ``forged`` (the anchor names a segment
+that retention deleted, but its head is not among that history's digests, so
+the anchor belongs to another history or was fabricated) and ``not_found``
+(truncation, another history, or a pruned segment with no ledger entry).
 Segment numbers never repeat, so an anchor whose segment (one past its
 ``journal_checkpoint_index``) is older than the oldest kept segment, in a
-journal whose oldest kept record links to a non-zero ``previous``, is pruned.
+journal whose oldest kept record links to a non-zero ``previous``, claims
+pruned history.
 """
 from __future__ import annotations
 
@@ -54,7 +59,11 @@ def verify_anchor(journal: HashChainedJournal, anchor: dict[str, Any]) -> dict[s
                 if digest == head:
                     return {'status': 'earlier_record', 'journal_head': journal._chain}
         if _pruned_before(journal, anchor):
-            return {'status': 'pruned', 'journal_head': journal._chain}
+            ledger = _pruned_ledger(journal)
+            if any(head in digests for digests in ledger.values()):
+                return {'status': 'pruned', 'journal_head': journal._chain}
+            if _anchored_segment(anchor) in ledger:
+                return {'status': 'forged', 'journal_head': journal._chain}
         return {'status': 'not_found', 'journal_head': journal._chain}
 
 
@@ -68,6 +77,23 @@ def _pruned_before(journal: HashChainedJournal, anchor: dict[str, Any]) -> bool:
     first = next(journal._records(oldest_path), None)
     if first is None or first[0].get('previous') == '0' * 64:
         return False  # the kept history starts at the beginning: nothing was pruned
+    return _anchored_segment(anchor) < oldest_index
+
+
+def _anchored_segment(anchor: dict[str, Any]) -> int:
     checkpoint = anchor.get('journal_checkpoint_index')
-    anchored_segment = (checkpoint if type(checkpoint) is int else 0) + 1
-    return anchored_segment < oldest_index
+    return (checkpoint if type(checkpoint) is int else 0) + 1
+
+
+def _pruned_ledger(journal: HashChainedJournal) -> dict[int, set[str]]:
+    """``segment index -> record digests`` of segments retention deleted."""
+    path = journal._pruned_ledger_path()
+    out: dict[int, set[str]] = {}
+    if not path.is_file():
+        return out
+    with path.open(encoding='utf-8') as handle:
+        for line in handle:
+            index, _, digest = line.rstrip('\n').partition(' ')
+            if len(index) == 8 and index.isdigit() and len(digest) == 64:
+                out.setdefault(int(index), set()).add(digest)
+    return out

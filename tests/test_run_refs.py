@@ -152,3 +152,35 @@ def test_verify_anchor_tells_pruning_apart_from_truncation(tmp_path):
             p.unlink()
     truncated = SwarmCoordinator('s1', **kw)
     assert verify_anchor(truncated, late)['status'] == 'not_found'
+
+
+def _pruned_coordinator(journal):
+    kw = dict(journal=journal, journal_segment_bytes=1024, journal_retention_bytes=1024, archive_max_bytes=1024)
+    s = SwarmCoordinator('s1', **kw)
+    s.ingest(_hello(1), now_ms=1)
+    s.ingest(_hello(2), now_ms=2)
+    early = journal_anchor(s)
+    for seq in range(3, 41):
+        s.ingest(_hello(seq), now_ms=seq)
+    return s, early, kw
+
+
+def test_verify_anchor_checks_the_head_of_a_pruned_anchor(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    s, early, kw = _pruned_coordinator(journal)
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    ledger = journal.with_name(journal.name + '.pruned')
+    assert early['journal_head'] in ledger.read_text(encoding='utf-8')
+    # Same segment, same swarm id, fabricated head: the head is checked, not just the index.
+    forged = {**early, 'journal_head': 'ab' * 32}
+    assert verify_anchor(s, forged)['status'] == 'forged'
+    assert verify_anchor(SwarmCoordinator('s1', **kw), forged)['status'] == 'forged'
+    # An anchor from another journal of the same swarm id is another history.
+    other, foreign, _ = _pruned_coordinator(tmp_path / 'other.jsonl')
+    other.ingest(_hello(41), now_ms=41)
+    foreign = {**foreign, 'journal_head': other._chain, 'journal_checkpoint_index': early['journal_checkpoint_index']}
+    assert foreign['journal_head'] != early['journal_head']
+    assert verify_anchor(s, foreign)['status'] == 'forged'
+    # Without a ledger entry for the anchored segment the head cannot be checked: not_found, never 'pruned'.
+    ledger.unlink()
+    assert verify_anchor(SwarmCoordinator('s1', **kw), early)['status'] == 'not_found'

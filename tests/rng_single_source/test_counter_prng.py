@@ -66,8 +66,9 @@ def _is_seed_name(name: str) -> bool:
     return "seed" in name.lower()
 
 
-_TRANSPARENT_FUNCS = {"int", "str", "repr", "bytes", "bytearray", "hex", "abs", "format", "float"}
-_TRANSPARENT_METHODS = {"encode", "to_bytes", "format", "join", "hex", "digest", "hexdigest"}
+# ``pack`` covers ``struct.pack(fmt, seed)`` and ``from struct import pack``.
+_TRANSPARENT_FUNCS = {"int", "str", "repr", "bytes", "bytearray", "hex", "abs", "format", "float", "pack"}
+_TRANSPARENT_METHODS = {"encode", "to_bytes", "format", "join", "hex", "digest", "hexdigest", "pack"}
 # Serialisers turn a whole structure, dict literals included, into hash input.
 _SERIALISERS = {"dumps"}
 
@@ -127,13 +128,13 @@ def _const_module(node: ast.AST) -> str | None:
 
 def _import_call_module(node: ast.AST) -> str | None:
     """``importlib.import_module("m")``, ``import_module("m")``, ``__import__("m")``,
-    ``sys.modules["m"]`` and ``sys.modules.get("m")``."""
+    ``builtins.__import__("m")``, ``sys.modules["m"]`` and ``sys.modules.get("m")``."""
     if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute) and node.value.attr == "modules":
         return _const_module(node.slice)
     if not isinstance(node, ast.Call) or not node.args:
         return None
     f = node.func
-    if (isinstance(f, ast.Attribute) and f.attr == "import_module") or (
+    if (isinstance(f, ast.Attribute) and f.attr in {"import_module", "__import__"}) or (
         isinstance(f, ast.Name) and f.id in {"import_module", "__import__"}
     ):
         return _const_module(node.args[0])
@@ -196,11 +197,30 @@ def _module_kinds(tree: ast.AST) -> tuple[dict[str, str], set[str]]:
     return kinds, funcs
 
 
+def _lambda_params(lam: ast.Lambda) -> set[str]:
+    return {a.arg for a in [*lam.args.posonlyargs, *lam.args.args, *lam.args.kwonlyargs]}
+
+
 def _analyse(
-    root: ast.AST, kinds: dict[str, str], funcs: set[str], helpers: set[str], tainted: set[str]
+    root: ast.AST,
+    kinds: dict[str, str],
+    funcs: set[str],
+    helpers: set[str],
+    tainted: set[str],
+    methods: frozenset[str] = frozenset(),
 ) -> list[tuple[int, str]]:
-    """Hash / RNG calls under ``root`` whose input derives from a seed or ``tainted``."""
+    """Hash / RNG calls under ``root`` whose input derives from a seed or ``tainted``.
+
+    ``methods`` are hashing helpers defined in a class body; a call to one of
+    them counts whatever the receiver is (``K().h(seed)``, ``obj.h(seed)``).
+    """
     kinds, funcs, tainted = dict(kinds), set(funcs), set(tainted)
+
+    def lambda_hashes(lam: ast.Lambda) -> bool:
+        params = _lambda_params(lam)
+        body = ast.Module(body=[ast.Expr(value=lam.body)], type_ignores=[])
+        hits = _analyse(body, kinds, funcs, helpers, params, methods)
+        return any(name in params for _, name in hits)
 
     def kind_of(v: ast.AST) -> str | None:
         if isinstance(v, ast.Name):
@@ -216,7 +236,12 @@ def _analyse(
             k = kind_of(f.value)
             if k in _KIND_FUNCS and f.attr in _KIND_FUNCS[k]:
                 return True
+            if f.attr in methods:
+                return True
             return f.attr in helpers and isinstance(f.value, ast.Name) and f.value.id in {"self", "cls"}
+        # (lambda v: hashlib.sha256(...))(seed)
+        if isinstance(f, ast.Lambda):
+            return lambda_hashes(f)
         # getattr(hashlib, anything): any attribute of a hashing module
         return (
             isinstance(f, ast.Call)
@@ -282,11 +307,13 @@ def seeded_hash_calls(tree: ast.AST) -> list[tuple[int, str]]:
     seeding ``random.Random`` or a NumPy generator. Data counts as seed-derived
     when it names a seed or a variable bound from one (assignment, loop
     target, ``with``), followed to a fixed point, including structures passed
-    through ``json.dumps``. A local function that hashes one of its own
-    parameters is a hashing helper, so passing a seed to it counts too.
+    through ``json.dumps`` or ``struct.pack``. A local function, method or
+    lambda that hashes one of its own parameters is a hashing helper, so
+    passing a seed to it counts too; a helper method counts on any receiver.
     """
     kinds, funcs = _module_kinds(tree)
     defs = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    in_class = {id(b) for c in ast.walk(tree) if isinstance(c, ast.ClassDef) for b in c.body}
     helpers: set[str] = set()
     changed = True
     while changed:
@@ -301,7 +328,8 @@ def seeded_hash_calls(tree: ast.AST) -> list[tuple[int, str]]:
             if any(name in params or name in helpers for _, name in _analyse(body, kinds, funcs, helpers, params)):
                 helpers.add(d.name)
                 changed = True
-    return _analyse(tree, kinds, funcs, helpers, set())
+    methods = frozenset(d.name for d in defs if d.name in helpers and id(d) in in_class)
+    return _analyse(tree, kinds, funcs, helpers, set(), methods)
 
 
 def test_no_module_outside_rng_hashes_its_own_random_stream() -> None:
@@ -406,6 +434,16 @@ _F11_MUTANTS = {
     "json-dumps": "import hashlib, json\nhashlib.sha256(json.dumps({'seed': seed}).encode())",
     "loop-variable": "import hashlib\nfor s in [seed]:\n    hashlib.sha256(str(s).encode())",
     "random-Random": "import random\nrandom.Random(seed)",
+    # Missed by the guard at ec14ae13.
+    "lambda": "import hashlib\nh = lambda v: hashlib.sha256(str(v).encode())\nh(seed)",
+    "lambda-inline": "import hashlib\n(lambda v: hashlib.sha256(str(v).encode()))(seed)",
+    "method": (
+        "import hashlib\n\n"
+        "class K:\n    def h(self, value):\n        return hashlib.sha256(str(value).encode())\n\n"
+        "K().h(seed)\n"
+    ),
+    "struct-pack": "import hashlib, struct\nhashlib.sha256(struct.pack('<q', seed))",
+    "builtins-import": "import builtins\nbuiltins.__import__('hashlib').sha256(str(seed).encode())",
 }
 
 

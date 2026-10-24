@@ -53,8 +53,7 @@ def test_hp_every_tick_checked_and_chained() -> None:
 
 
 def test_hp_bypass_write_fails_next_tick() -> None:
-    w = HostParasiteWorld(_busy_profile(death_probability_primary=0.0, death_probability_secondary=0.0,
-                                        basal_energy_cost=0.0))
+    w = HostParasiteWorld(_busy_profile())
     w.run(2)
     mid = sorted(w.accounts)[0]
     w.accounts[mid].current_atp += 1.0

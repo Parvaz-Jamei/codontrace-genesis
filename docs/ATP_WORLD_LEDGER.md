@@ -85,3 +85,19 @@ not mixed into any legacy digest.
   that partition.
 * Property-based testing: Hypothesis (MacIver, Hatfield-Dodds et al. 2019,
   JOSS 4(43) 1891), version pinned by `hypothesis>=6.0,<7` (6.170 in CI venv).
+
+## Where it is wired
+
+| Owner | How |
+|---|---|
+| `HostParasiteWorld` | `atp_ledger` field; accounts created only by `_open_account`, removed only by `_close_account`; coupling in one `transfer_scope("coupling")`; `check_atp_conservation()` at the start of `tick()`, `close_tick()` at the end |
+| `T01OEERunner`, `T04ContingencyRunner` | `atp_ledger`; survival reward via `atp_ledger.adjust(... source:task_reward / sink:metabolism)`; births from the reservoir; leavers' ATP returned; invariant checked before and after every generation; T04 replays start a fresh ledger from the snapshot (`source:genesis`) |
+| `assert_single_atp_owner(organisms, ledger=None)` | one account per organism, balance equals the replay of its entries, optional world-ledger check |
+
+## No bypasses (grep-enforced)
+
+`tests/test_atp_ledger_experiments_wiring.py::test_no_atp_bypass_in_source`
+fails if any module outside `energy.py` assigns `.current_atp`, if T01/T04
+update `.atp` other than through `atp_ledger.adjust`, or if
+`host_parasite_world.py` creates, inserts or removes an `ATPAccount` outside
+`_open_account` / `_close_account`. Runtime checks catch what grep cannot.

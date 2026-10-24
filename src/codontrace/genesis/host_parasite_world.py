@@ -1258,6 +1258,8 @@ class HostParasiteWorld:
     def tick(self) -> None:
         """Advance one tick: attach, couple, contact, mutate, birth, death."""
 
+        # A write made between ticks must fail before a death can discard it.
+        self.check_atp_conservation()
         self._apply_ablation_once()
         self._ensure_schedule_lock()
 

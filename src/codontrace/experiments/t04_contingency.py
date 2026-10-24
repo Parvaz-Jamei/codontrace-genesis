@@ -9,8 +9,9 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
+from codontrace.atp_ledger import RESERVOIR, WorldATPLedger
 from codontrace.experiments.math_utils import sha_prng_float
 from codontrace.experiments.math_utils import sha_prng_int_unbiased as sha_prng_int
 from codontrace.experiments.models import (
@@ -27,6 +28,8 @@ class OrganismState:
     genome: int
     atp: float
     age: int
+    # World-ledger account id (not part of equality, repr or any digest).
+    ledger_id: str = field(default="", compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -87,6 +90,53 @@ class T04ContingencyRunner:
         for i in range(self.population_size):
             g0 = sha_prng_int(branch_seed, i, "t04_founder", 0, 0xFFFFFFFF)
             self.population.append(OrganismState(genome=g0, atp=10.0, age=0))
+        self._new_atp_ledger(self.population)
+
+    atp_ledger_world_id = "t04"
+
+    # --- closed ATP accounting (docs/ATP_WORLD_LEDGER.md) -------------------
+    def _new_atp_ledger(self, population: list[OrganismState], tick: int = 0) -> None:
+        """Start a fresh world ledger that owns ``population``'s ATP."""
+
+        self.atp_ledger = WorldATPLedger(self.atp_ledger_world_id)
+        self._ledger_seq = 0
+        for org in population:
+            self._ledger_open(org, tick, funded_from="source:genesis")
+        self.atp_ledger.close_tick(tick, self._atp_mirrors())
+
+    def _ledger_open(self, org: OrganismState, tick: int, funded_from: str = RESERVOIR) -> OrganismState:
+        self._ledger_seq += 1
+        org.ledger_id = f"o{self._ledger_seq}"
+        self.atp_ledger.open_agent(org.ledger_id, org.atp, tick=tick, funded_from=funded_from,
+                                   memo="birth_endowment" if funded_from == RESERVOIR else "founder")
+        return org
+
+    def _ledger_admit(self, tick: int) -> list[OrganismState]:
+        """Organisms placed in ``population`` without the ledger (e.g. by a
+        caller) enter through an explicit ``source:external_insert`` posting."""
+
+        if not hasattr(self, "atp_ledger"):
+            self.atp_ledger = WorldATPLedger(self.atp_ledger_world_id)
+            self._ledger_seq = 0
+        for org in self.population:
+            if org.ledger_id not in self.atp_ledger.open_agents:
+                self._ledger_open(org, tick, funded_from="source:external_insert")
+        # Catch any write made between generations before it can be discarded.
+        self.atp_ledger.check(self._atp_mirrors())
+        return list(self.population)
+
+    def _atp_mirrors(self) -> dict[str, float]:
+        return {o.ledger_id: o.atp for o in self.population}
+
+    def _ledger_settle(self, previous: list[OrganismState], tick: int) -> None:
+        """Return the ATP of every organism that left the population, then check."""
+
+        live = {o.ledger_id for o in self.population}
+        for org in previous:
+            if org.ledger_id not in live and org.ledger_id in self.atp_ledger.open_agents:
+                self.atp_ledger.close_agent(org.ledger_id, tick=tick)
+                live.add(org.ledger_id)
+        self.atp_ledger.close_tick(tick, self._atp_mirrors())
 
     def evaluate_functional_phenotype(self, genome: int) -> int:
         phenotype = 0
@@ -98,6 +148,7 @@ class T04ContingencyRunner:
         return phenotype
 
     def step_generation(self, gen: int, branch_seed: int) -> MetricRecord:
+        previous = self._ledger_admit(gen)
         survivors: list[OrganismState] = []
 
         for idx, org in enumerate(self.population):
@@ -112,7 +163,10 @@ class T04ContingencyRunner:
             r_surv = sha_prng_float(branch_seed, gen * 1000 + idx, "survival")
             
             if r_surv < survival_prob:
-                org.atp += match_count * 1.5 - 0.5
+                org.atp = self.atp_ledger.adjust(
+                    org.ledger_id, org.atp, match_count * 1.5 - 0.5, tick=gen,
+                    source="source:task_reward", sink="sink:metabolism",
+                )
                 survivors.append(org)
 
         if not survivors:
@@ -133,9 +187,10 @@ class T04ContingencyRunner:
                 locus = sha_prng_int(branch_seed, gen * 4000 + i, "mut_locus", 0, 31)
                 child_genome ^= (1 << locus)
 
-            offspring.append(OrganismState(genome=child_genome, atp=10.0, age=0))
+            offspring.append(self._ledger_open(OrganismState(genome=child_genome, atp=10.0, age=0), gen))
 
         self.population = (survivors + offspring)[: self.population_size]
+        self._ledger_settle([*previous, *offspring], gen)
 
         record = MetricRecord(
             generation=gen,
@@ -164,6 +219,7 @@ class T04ContingencyRunner:
 
     def restore_snapshot(self, snapshot: HistorySnapshot) -> None:
         self.population = [OrganismState(*state) for state in snapshot.population]
+        self._new_atp_ledger(self.population, snapshot.generation)
         self.discovered_phenotypes = set(snapshot.discoveries)
         self.completed_generations = snapshot.generation
         self.metrics_history.clear()

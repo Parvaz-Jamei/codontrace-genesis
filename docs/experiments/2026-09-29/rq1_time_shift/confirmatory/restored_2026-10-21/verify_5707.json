@@ -1,0 +1,18 @@
+{
+  "ancestor_of_head": true,
+  "commit": "6187ff4ae86903c7cd02c13273dd74b84d017393",
+  "commit_present": true,
+  "meter_pins_match_at_commit": {
+    "src/codontrace/genesis/campaigns/discovery_program_20260929_stage0.py": true,
+    "src/codontrace/genesis/causal_validation.py": true,
+    "src/codontrace/genesis/measurements/rq_frequency_clocks.py": true
+  },
+  "ok": true,
+  "seeds": {
+    "5707": {
+      "events": "no_archived_counterpart",
+      "population": "no_archived_counterpart",
+      "summary": "no_archived_counterpart"
+    }
+  }
+}

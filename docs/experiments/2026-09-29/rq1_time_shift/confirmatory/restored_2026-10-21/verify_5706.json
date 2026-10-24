@@ -1,0 +1,30 @@
+{
+  "ancestor_of_head": true,
+  "commit": "6187ff4ae86903c7cd02c13273dd74b84d017393",
+  "commit_present": true,
+  "meter_pins_match_at_commit": {
+    "src/codontrace/genesis/campaigns/discovery_program_20260929_stage0.py": true,
+    "src/codontrace/genesis/causal_validation.py": true,
+    "src/codontrace/genesis/measurements/rq_frequency_clocks.py": true
+  },
+  "ok": true,
+  "seeds": {
+    "5706": {
+      "events": {
+        "archived_prefix_identical": true,
+        "archived_records": 325,
+        "reproduced_records": 400
+      },
+      "population": {
+        "archived_prefix_identical": true,
+        "archived_records": 325,
+        "reproduced_records": 400
+      },
+      "summary": {
+        "archived_prefix_identical": true,
+        "archived_records": 32,
+        "reproduced_records": 40
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "verdict": "INCONCLUSIVE",
+  "reason": "pattern not met at the locked threshold: completed 8/8 seeds, support labels 3/8, contemporary vs frozen interval [0.0007116288, 0.0122027363] excludes_zero=True, lagged vs frozen [-0.0072586535, -0.0019644048] excludes_zero=True",
+  "integrity": {
+    "raw_recompute_matches_all_seeds": true,
+    "all_seed_gates_ok": true,
+    "frozen_exactly_zero": true,
+    "n_seeds_completed": 8,
+    "n_seeds_locked": 8
+  }
+}
+{
+  "t_star_df7": {
+    "repo_table": 2.365,
+    "exact": 2.365
+  },
+  "t_star_df1": {
+    "df": 1,
+    "repo_table": 12.706,
+    "exact": 12.706,
+    "exact_minus_table": 0.0,
+    "source": "causal_validation._T975_BY_DF"
+  },
+  "endpoint_shift": {
+    "contemporary_vs_frozen": {
+      "exact_minus_repo_lo": -9.130000000000639e-07,
+      "exact_minus_repo_hi": 9.129000000003551e-07
+    },
+    "lagged_vs_frozen": {
+      "exact_minus_repo_lo": -4.206000000003124e-07,
+      "exact_minus_repo_hi": 4.206000000003124e-07
+    },
+    "contemporary_vs_lagged": {
+      "exact_minus_repo_lo": -1.2176000000001762e-06,
+      "exact_minus_repo_hi": 1.2176000000023446e-06
+    }
+  }
+}

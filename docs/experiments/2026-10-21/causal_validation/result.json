@@ -1,0 +1,327 @@
+{
+  "codontrace_version": "0.3.0b30",
+  "commit": "340aaef9ac500a3307261c6341f8b1fea2f1cda0",
+  "design": {
+    "assignment_p_focal_1": {
+      "env=0,bg=0": 0.2,
+      "env=0,bg=1": 0.3,
+      "env=1,bg=0": 0.6,
+      "env=1,bg=1": 0.85
+    },
+    "background_bit": 2,
+    "focal_bit": 1,
+    "populations": [
+      4,
+      8
+    ],
+    "preset": "GenesisRuntimeProfile.life_loop_world",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "ticks": 12,
+    "truth_seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007
+    ]
+  },
+  "hidden_environment_not_identifiable": true,
+  "python": "3.13.5",
+  "replay_decomposition": {
+    "env=0": {
+      "decomposition": {
+        "alpha": 0.05,
+        "contingency_share": 0.8779198514179585,
+        "p": {
+          "history": 0.0005,
+          "interaction": 0.0005,
+          "treatment": 0.0005
+        },
+        "p_holm": {
+          "history": 0.0015,
+          "interaction": 0.0015,
+          "treatment": 0.0015
+        },
+        "share": {
+          "chance": 0.0020001428673476675,
+          "history": 0.7578398457032646,
+          "interaction": 0.1200800057146939,
+          "treatment": 0.1200800057146939
+        },
+        "ss": {
+          "chance": 0.875,
+          "history": 331.53125,
+          "interaction": 52.53125,
+          "treatment": 52.53125
+        },
+        "treatment_effect_by_history": {
+          "bit:2=0": 0.0,
+          "bit:2=1": 5.125
+        },
+        "verdict": "historically_contingent"
+      },
+      "table": {
+        "bit:2=0": {
+          "0": [
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0
+          ],
+          "1": [
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0,
+            3.0
+          ]
+        },
+        "bit:2=1": {
+          "0": [
+            7.0,
+            7.0,
+            6.0,
+            7.0,
+            7.0,
+            7.0,
+            7.0,
+            7.0
+          ],
+          "1": [
+            12.0,
+            12.0,
+            12.0,
+            12.0,
+            12.0,
+            12.0,
+            12.0,
+            12.0
+          ]
+        }
+      }
+    },
+    "env=1": {
+      "decomposition": {
+        "alpha": 0.05,
+        "contingency_share": 0.7683784359684638,
+        "p": {
+          "history": 0.0005,
+          "interaction": 0.0005,
+          "treatment": 0.0005
+        },
+        "p_holm": {
+          "history": 0.0015,
+          "interaction": 0.0015,
+          "treatment": 0.0015
+        },
+        "share": {
+          "chance": 0.0008523332623055614,
+          "history": 0.5376092051992329,
+          "interaction": 0.23076923076923078,
+          "treatment": 0.23076923076923078
+        },
+        "ss": {
+          "chance": 1.5,
+          "history": 946.125,
+          "interaction": 406.125,
+          "treatment": 406.125
+        },
+        "treatment_effect_by_history": {
+          "bit:2=0": 0.0,
+          "bit:2=1": 14.25
+        },
+        "verdict": "historically_contingent"
+      },
+      "table": {
+        "bit:2=0": {
+          "0": [
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0
+          ],
+          "1": [
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0
+          ]
+        },
+        "bit:2=1": {
+          "0": [
+            9.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            9.0,
+            10.0
+          ],
+          "1": [
+            24.0,
+            24.0,
+            24.0,
+            24.0,
+            24.0,
+            24.0,
+            24.0,
+            24.0
+          ]
+        }
+      }
+    }
+  },
+  "validation": {
+    "0": {
+      "adjustment": [
+        "bit:2",
+        "env:population"
+      ],
+      "bootstrap_ci_identified_ate": [
+        4.756263809523811,
+        5.75210555896806
+      ],
+      "expression": "sum_{bit:2,env:population} [P(bit:2) * P(env:population) * P(event:births|bit:1,bit:2,env:population)]",
+      "identified": {
+        "0": 6.5682284850640125,
+        "1": 11.799937500000002
+      },
+      "identified_ate": 5.23170901493599,
+      "n_units": 400,
+      "naive": {
+        "0": 5.67005076142132,
+        "1": 14.423645320197044
+      },
+      "naive_ate": 8.753594558775724,
+      "true_ate": 4.84375,
+      "truth": {
+        "0": 6.40625,
+        "1": 11.25
+      },
+      "truth_ci_ate": [
+        4.652244577441213,
+        5.035255422558787
+      ],
+      "truth_seeds": [
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007
+      ]
+    },
+    "1": {
+      "adjustment": [
+        "bit:2",
+        "env:population"
+      ],
+      "bootstrap_ci_identified_ate": [
+        4.25437023967161,
+        5.3364518518518524
+      ],
+      "expression": "sum_{bit:2,env:population} [P(bit:2) * P(env:population) * P(event:births|bit:1,bit:2,env:population)]",
+      "identified": {
+        "0": 6.4402454861111105,
+        "1": 11.242649999999998
+      },
+      "identified_ate": 4.802404513888887,
+      "n_units": 400,
+      "naive": {
+        "0": 5.393203883495145,
+        "1": 14.458762886597938
+      },
+      "naive_ate": 9.065559003102793,
+      "true_ate": 4.84375,
+      "truth": {
+        "0": 6.40625,
+        "1": 11.25
+      },
+      "truth_ci_ate": [
+        4.652244577441213,
+        5.035255422558787
+      ],
+      "truth_seeds": [
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007
+      ]
+    },
+    "2": {
+      "adjustment": [
+        "bit:2",
+        "env:population"
+      ],
+      "bootstrap_ci_identified_ate": [
+        4.132350000000001,
+        5.273911442307692
+      ],
+      "expression": "sum_{bit:2,env:population} [P(bit:2) * P(env:population) * P(event:births|bit:1,bit:2,env:population)]",
+      "identified": {
+        "0": 6.4775446428571435,
+        "1": 11.206500000000002
+      },
+      "identified_ate": 4.728955357142858,
+      "n_units": 400,
+      "naive": {
+        "0": 5.219251336898396,
+        "1": 14.661971830985916
+      },
+      "naive_ate": 9.44272049408752,
+      "true_ate": 4.84375,
+      "truth": {
+        "0": 6.40625,
+        "1": 11.25
+      },
+      "truth_ci_ate": [
+        4.652244577441213,
+        5.035255422558787
+      ],
+      "truth_seeds": [
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007
+      ]
+    }
+  }
+}

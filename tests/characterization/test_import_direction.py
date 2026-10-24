@@ -20,7 +20,8 @@ ENGINE_CORE = ('codontrace.engine', 'codontrace.engine_spec', 'codontrace.engine
                'codontrace.engine_claims', 'codontrace.rng', 'codontrace.world', 'codontrace.replay',
                'codontrace.contracts', 'codontrace.life_loop', 'codontrace.genesis')
 # Modules, transports and UI. ``claimgate.adapters.esp32_bridge`` holds device transports.
-MODULES = ('codontrace.swarm', 'codontrace.console', 'codontrace.visualization', 'codontrace.campaigns', 'paho')
+MODULES = ('codontrace.swarm', 'codontrace.console', 'codontrace.visualization', 'codontrace.campaigns',
+           'codontrace.causal_inference', 'codontrace.preregistration', 'paho')
 ADAPTERS = ('codontrace.claimgate.adapters',)
 
 # Pre-existing exceptions (import-linter ``ignore_imports`` style), present at

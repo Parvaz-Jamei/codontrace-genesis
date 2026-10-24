@@ -72,7 +72,7 @@ def test_asexual_life_loop_digest_still_matches_phase_a_baseline() -> None:
 
 
 def test_chemostat_matches_avida_resource_line_unused_outflow_then_inflow() -> None:
-    # Ofria & Wilke 2004 / Cooper–Ofria: unused fraction flows out, then inflow.
+    # Avida chemostat: unused fraction flows out, then inflow.
     amount, removed, added = apply_chemostat_step(100.0, inflow=10.0, outflow=0.01, consumed=20.0)
     assert added == 10.0
     assert abs(removed - 0.8) < 1e-12

@@ -1,7 +1,7 @@
 """Phase H collective-intelligence *pathway* scaffolding for CodonTrace Genesis.
 
 Measurement-first engineering: communication ablation, group-vs-individual
-effect sizes, Goldsby 2012 task-switching cost hooks, and a checklist printer
+effect sizes, task-switching cost hooks, and a checklist printer
 for ``collective_intelligence_candidate``. None of this auto-sets ClaimGate
 flags. ``collective_intelligence`` / ``intelligence`` / AGI stay blocked.
 
@@ -210,14 +210,14 @@ def action_sequences_from_result(result: object) -> dict[str, tuple[str, ...]]:
 
 
 def count_task_switches(actions: Sequence[str]) -> int:
-    """Count consecutive action-type changes (Goldsby 2012 analog, not CPU cycles)."""
+    """Count consecutive action-type changes (analog, not CPU cycles)."""
 
     return sum(1 for left, right in zip(actions, actions[1:], strict=False) if left != right)
 
 
 @dataclass(frozen=True, slots=True)
 class TaskSwitchingCostConfig:
-    """Goldsby 2012 analog: penalize consecutive action-type switches in DoL shares.
+    """Task-switch cost analog: penalize consecutive action-type switches in DoL shares.
 
     Default cost is 0 (no reweight). This is a measurement hook, not a 50-replicate
     PNAS experiment and not evolved division of labor.

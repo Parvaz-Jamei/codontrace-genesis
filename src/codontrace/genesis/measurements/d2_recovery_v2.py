@@ -102,8 +102,7 @@ def capture_recovery_boundary(account: ATPAccount, *, run_id: str, recipient_id:
             "value": account.current_atp, "ledger_entry_count": len(account.ledger)}
 
 #: Locked before any live control in this module is scored.
-#: Ingrisch and Bahn 2018, Trends Ecol. Evol. 33:251–259,
-#: https://doi.org/10.1016/j.tree.2018.01.013 : recovery is a return toward
+#: Recovery is a return toward
 #: the pre-disturbance baseline after an impact. A transfer with no impact
 #: is not recovery. These fractions do not confirm the historical 1.25× rule.
 PREREG_V3_ID = "FI-RESOURCE-RECOVERY-V3"

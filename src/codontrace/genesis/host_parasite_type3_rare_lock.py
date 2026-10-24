@@ -1,7 +1,6 @@
 """De-toy D6: type-III FR phase-locked rare panel (SF9-candidate).
 
-Digital analogue of Rabajante et al. 2016 *Science Advances*
-doi:10.1126/sciadv.1501548 — type-III saturating infection produces binary
+Digital analogue of the type-III rare-lock model — type-III saturating infection produces binary
 dominant oscillations while subordinate genotypes remain rare / phase-locked.
 
 Mechanism (port-local discrete IBM, not a byte-identical SciAdv ODE dump):

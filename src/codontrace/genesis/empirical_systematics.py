@@ -1,9 +1,9 @@
 """Optional Empirical-style shadow / null phylogeny adapter.
 
-Dolson et al. 2019 (MODES) count change/novelty/complexity/ecology only after a
+The MODES toolbox metrics count change/novelty/complexity/ecology only after a
 persistence filter. Empirical systematics notes make the coalescence-window
 subtlety explicit: a full phylogenetic systematics plus shadow/null run is the
-careful publication path (Bedau activity; Channon 2024 Tokyo Type 1 step_4
+careful publication path (evolutionary activity; Tokyo Type 1 step_4
 shadow/normalization).
 
 This module is an **opt-in Python analog**. Default is off. It produces a real

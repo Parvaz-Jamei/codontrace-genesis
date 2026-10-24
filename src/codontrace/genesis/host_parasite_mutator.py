@@ -2,7 +2,7 @@
 
 Genome-layer mutation-rate factor crossed with coevolution vs abiotic arms.
 Designed so ``elevated_mutation_under_coevolution_always_improves_abiotic`` can
-fail (Scanlan et al. 2015 honesty map: coevolution can constrain
+fail (honesty map: coevolution can constrain
 abiotic-beneficial acquisition). ``gene_identity_proved`` stays False; no wet
 mutator-gene identity or CRISPR claim.
 """

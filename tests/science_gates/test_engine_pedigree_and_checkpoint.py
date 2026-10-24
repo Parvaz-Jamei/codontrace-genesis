@@ -4,14 +4,6 @@ Witnesses are hand censuses, not a fitted model. A birth whose parent is
 missing, is itself, or appears in the same census is not a recorded link.
 No birth is not a success. A frozen checkpoint matches its own digest after
 the parent continues, and that success does not lift a claim.
-
-Lenski, Ofria, Pennock and Adami 2003, Nature 423:139–144,
-doi:10.1038/nature01568.
-Ofria and Wilke 2004, Artificial Life 10:191–229,
-doi:10.1162/106454604773563612.
-Sandve, Nekrutenko, Taylor and Hovig 2013, PLoS Comput Biol 9:e1003285,
-doi:10.1371/journal.pcbi.1003285.
-Hurlbert 1984, Ecological Monographs 54:187–211, doi:10.2307/1942661.
 """
 
 from __future__ import annotations
@@ -34,11 +26,10 @@ from codontrace.life_loop.engine_ledger_coupler import _population_census
 SOURCE = Path(
     "src/codontrace/genesis/campaigns/discovery_q_20260928_idea4_engine.py"
 )
-DOIS = (
-    "doi:10.1038/nature01568",
-    "doi:10.1162/106454604773563612",
-    "doi:10.1371/journal.pcbi.1003285",
-    "doi:10.2307/1942661",
+RULES = (
+    "pedigree constraint on a digital birth",
+    "restore matches the digest taken at capture",
+    "Births inside one run are not extra replicates",
 )
 
 
@@ -46,10 +37,10 @@ def _row(organism_id: str, genome: str, parent_id: str = "") -> dict[str, str]:
     return {"id": organism_id, "genome": genome, "parent_id": parent_id}
 
 
-def test_citations_stay_on_the_implementation() -> None:
+def test_rules_stay_on_the_implementation() -> None:
     text = SOURCE.read_text(encoding="utf-8")
-    for doi in DOIS:
-        assert doi in text
+    for rule in RULES:
+        assert rule in text
     assert "hypothesis_supported=False" in text
     assert "red_queen_proved=False" in text
 

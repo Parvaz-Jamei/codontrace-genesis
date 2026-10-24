@@ -14,9 +14,9 @@ Parameters, horizon, lag and seeds are not changed after the confirmatory lock
 in order to obtain a positive result. A negative or inconclusive verdict is a
 valid stop. Extinction and fixation stay in the archive.
 
-Assay, in the sense of Gandon 2002 (performance at one time against a partner
-from another time, with no evolution during the score) and Dybdahl and Lively
-1998 (the whole population, not one modal genotype): I(H, P) is the mean ATP
+Assay: performance at one time against a partner from another time, with no
+evolution during the score, over the whole population rather than one modal
+genotype. I(H, P) is the mean ATP
 actually transferred over every host individual paired with every parasite
 individual, divided by virulence * steal_fraction. Duplicate windows are
 aggregated by their census frequency. That shortcut is checked against the

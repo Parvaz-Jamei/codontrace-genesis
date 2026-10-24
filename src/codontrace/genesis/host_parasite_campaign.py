@@ -4,7 +4,7 @@ Deterministic arms for digital coevolution audit:
 
 - intact, content-null, structure-null, dual-null
 - abiotic-only (hosts without parasites)
-- freeze/replay parasites (Zaman 2014 analogy: frozen parasite task/payload
+- freeze/replay parasites (frozen-history analogy: frozen parasite task/payload
   list reused while hosts update)
 
 Canonical digests are emitted per arm and for the whole campaign. This module
@@ -396,7 +396,7 @@ def _evaluate_falsification(
     When ``require_content_null`` is True (candidate_evidence path), a
     content-null arm must be present and payload/score/injection-distinct from
     intact so structure-null / abiotic-only alone cannot clear the ceiling
-    (Floreano 2007 / Knoester 2008 content-control honesty).
+    (content-control honesty).
     """
 
     by_arm = {item.arm: item for item in arm_results}

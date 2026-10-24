@@ -1,9 +1,7 @@
-"""Cue → action → ATP/task-reward protocol (Am Nat 2020 / odometry analog).
+"""Cue → action → ATP/task-reward protocol (associative learning / odometry analog).
 
-Clune 2007, Lalejini & Ofria 2016, and Frontiers 2021 Adaptive Phenotypic
-Plasticity treat subsequent action under a sensory cue, with ablation, as the
-experimental design. Am Nat 2020 associative learning and the PLOS One
-odometry case study map here to capsule/memory slots that change later action
+Phenotypic-plasticity studies in digital evolution treat subsequent action under a sensory cue, with ablation, as the
+experimental design. Associative learning and odometry case studies map here to capsule/memory slots that change later action
 and ATP/task eligibility.
 
 This protocol records that chain, requires an ablation contrast, and can

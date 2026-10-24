@@ -1,6 +1,6 @@
 """GermlineReplication-style deme payoff + contribution ledger.
 
-Avida ``DEMES_*`` / GermlineReplication (Goldsby messaging; GECCO 2008 digital
+Avida ``DEMES_*`` / GermlineReplication (deme messaging and digital
 germlines) replicate a deme when mean fitness clears a threshold, copying a
 germline/propagule. This CodonTrace Genesis module records that trigger,
 preserves the target deme, and attributes member fitness into a contribution

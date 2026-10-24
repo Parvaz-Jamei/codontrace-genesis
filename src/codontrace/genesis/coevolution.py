@@ -5,9 +5,7 @@ carriers, so every comparison in the round is paired); the incumbent
 challenger and new proposals compete for the highest score against the
 current defender; then the incumbent defender and new proposals compete for
 the lowest worst-case score over that round's challengers. This is the
-alternating best-response scheme of competitive coevolution (Hillis 1990,
-doi:10.1016/0167-2789(90)90076-2; Rosin & Belew 1997,
-doi:10.1162/evco.1997.5.1.1) restricted to small candidate sets. It is a
+alternating best-response scheme of competitive coevolution, restricted to small candidate sets. It is a
 training-time search procedure; it does not test a Red Queen hypothesis.
 
 Ties keep list order (the incumbent first), and all proposals come from the

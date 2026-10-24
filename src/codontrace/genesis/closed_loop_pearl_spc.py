@@ -1,23 +1,23 @@
-"""Pearl-pair and debit-stream gates: Pearl-pair knockouts and debit-stream capability gates.
+"""Intervention-pair knockouts and debit-stream capability gates.
 
 Sealed confirmatory seeds 101–108 used ``frozen`` and ``absent`` under the
 P7 prereg and returned an honest FAIL (0/8 separate, 0/8 mixed) at tip
 ``610f46f``. That prereg is not rewritten here.
 
-This module is additive for *new* campaign cells. It wires the pure Pearl
+This module is additive for *new* campaign cells. It wires the pure intervention
 pair ``frozen`` (update off, debit on) and ``costless`` (debit off, update
 on) as the intervention knockouts, and keeps ``absent`` as antagonist
-removal — not a pure zero-debit cut (Pearl, Biometrika 82:669–688, 1995,
-doi:10.1093/biomet/82.4.669).
+removal — not a pure zero-debit cut. Each knockout cuts exactly one causal
+path; removal cuts both.
 
 Optional Shewhart / CUSUM / observer-residual predicates gate whether a
 debit-backed cycle *clause* may hold. They are fail-closed, stay at
 ``runtime_observation``, and never set ``red_queen_proved`` or
 ``biological_red_queen_proved``. SPC cannot grant a Red Queen claim
-(Shewhart 1931; Western Electric rules; Kalman 1960 residual honesty as a
-ledger check, not a second world).
+(control-chart rules and observer residuals are a ledger check, not a
+second world).
 
-Frequency clocks, Slowinski invasion, MFA, CRN, R2R, ATP carryover, and
+Frequency clocks, selfing invasion, MFA, CRN, R2R, ATP carryover, and
 queue-timing stacks are out of scope. ``engine.py`` is untouched.
 """
 

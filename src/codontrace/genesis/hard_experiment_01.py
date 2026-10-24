@@ -1,8 +1,8 @@
 """Hard experiment 01: preregistered capsule source-bias causal design.
 
 Wave 1 confirmatory measurement, not a new Phase letter. Four paired arms
-plus a Goldsby-style dose ladder. Causal reading uses the explicit DAG in
-``docs/HARD_EXPERIMENT_01_PREREG.md`` (Okasha & Otsuka 2020). Claim ceiling
+plus a task-switch-cost dose ladder. Causal reading uses the explicit DAG in
+``docs/HARD_EXPERIMENT_01_PREREG.md``. Claim ceiling
 is ``runtime_observation`` unless the preregistered decision rule holds and
 ``ScientificClaimGate`` allows existing ``intervention_supported``.
 
@@ -251,7 +251,7 @@ _PRIMARY_METRIC = PreregisteredMetric(
 
 
 def hard_experiment_01_causal_dag() -> dict[str, JsonValue]:
-    """Okasha & Otsuka (2020) explicit DAG. Not a Price causal proof by itself."""
+    """Explicit multilevel-selection DAG. Not a Price causal proof by itself."""
 
     return {
         "citation": "Okasha & Otsuka 2020 Phil Trans B",
@@ -1741,7 +1741,7 @@ class HardExperiment01DoseTrend:
     because dose(4.0) is outside support (equals capsules_off / total gate
     closure). ``dose(1.5)`` is identical to the treatment arm; S is the
     algebraic sum of two primary contrasts and adds no independent information
-    (``independent: false``; Hothorn 2020; Simpson & Margolin 1986). Descriptive
+    (``independent: false``). Descriptive
     only — excluded from the confirmatory decision rule and from metric_count.
     """
 

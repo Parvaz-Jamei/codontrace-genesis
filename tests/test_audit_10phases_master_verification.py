@@ -76,7 +76,7 @@ def test_hazen_functional_information_mathematical_bounds() -> None:
 
 
 def test_price_equation_multilevel_selection_covariance_partition() -> None:
-    """[Unit / Synthetic Control] Equal-sized synthetic demes covariance partition (Price 1972)."""
+    """[Unit / Synthetic Control] Equal-sized synthetic demes covariance partition (Price equation)."""
     # 4 demes of size 10
     num_demes = 4
     deme_size = 10
@@ -494,7 +494,7 @@ def test_production_price_equation_multilevel_unequal_demes_and_transmission() -
     assert math.isfinite(campaign.mean_mls_transmission_term)
     assert math.isfinite(campaign.mean_mls_selection_term)
 
-    # 2. Rigorous Price 1972 multilevel covariance partition with unequal deme sizes
+    # 2. Rigorous Price-equation multilevel covariance partition with unequal deme sizes
     # Demes with unequal sizes: 5, 10, 25 organisms (total N = 40)
     deme_sizes = [5, 10, 25]
     total_pop = sum(deme_sizes)

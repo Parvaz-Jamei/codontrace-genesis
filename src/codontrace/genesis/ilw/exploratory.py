@@ -1,6 +1,6 @@
 """ILW-6 exploratory phylogeny hooks + novelty/learnability probes.
 
-MODES-inspired (Dolson et al. 2019) measurement *hooks* only. Organism
+MODES-inspired measurement *hooks* only. Organism
 phylogeny and capsule genealogy remain separate trees that are joinable on
 shared keys (``lineage_id``, ``organism_id`` / ``source_id``).
 

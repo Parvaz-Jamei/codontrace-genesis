@@ -20,10 +20,8 @@ evolution control, and not ``freeze_host_genotypic_inheritance``.
 ``shuffled_labels`` is not used and is not a frozen genotype.
 
 Source. The seat, debit, birth, and absent passage are the structural engine.
-``runs/rq-mechanism-v2/PHASE1.md`` records Zaman et al. 2014 (PMC4267771) as
-the reason a static antagonist is not reciprocal coevolution, and
-Decaestecker et al. 2007 as the reason the score itself does not evolve.
-Hall et al. 2011 full text was not read. No sentence here is a new quotation.
+``runs/rq-mechanism-v2/PHASE1.md`` records why a static antagonist is not
+reciprocal coevolution and why the score itself does not evolve.
 The replacement time 60/26 and the multiple 3 are the phase-3 record, not a
 new probe.
 
@@ -580,8 +578,8 @@ def enable_outcross_birth_chamber(arm: StructuralRQArm) -> None:
     still refuses. That is the test, not a second measurement.
 
     Source. The chamber is ``SexualRecombinationConfig.uses_birth_chamber``
-    and ``copy_self_chamber_refusal`` in the existing motor. No new paper
-    quotation. Hall et al. 2011 full text was not read.
+    and ``copy_self_chamber_refusal`` in the existing motor. Nothing new
+    is quoted.
 
     Limit. Virulence, steal fraction, maintenance, birth ATP, bolus,
     ``max_population``, mutation rate, and ``MEASUREMENT_FLOOR`` stay as

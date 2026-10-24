@@ -1,9 +1,9 @@
-"""Phase 22 — sequential Cornish multi-intervention deepening.
+"""Phase 22 — sequential multi-intervention deepening.
 
 Ordered intervention schedule with a required observational baseline. A twin
 that matches observational history can still fail a later intervention in the
-schedule. Observational match alone never grants ``intervention_supported``
-(Cornish et al. JMLR 27(152) 2026 / arXiv:2301.07210). Digital ClaimGate only;
+schedule. Observational match alone never grants ``intervention_supported``.
+Digital ClaimGate only;
 no clinical decision-support claim.
 """
 

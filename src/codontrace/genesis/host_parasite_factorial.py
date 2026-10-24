@@ -1,9 +1,9 @@
 """Abiotic × biotic factorial campaign template + interaction network digests.
 
-Fortuna 2021 opportunity / Scanlan–Buckling constraint humility: factorial
+Parasites can create opportunity or impose constraint, so factorial
 cells separate abiotic productivity from biotic infection so one-sided
 “parasites raise complexity” stories can be challenged. Adaptive-origin gate
-(Fortuna et al. 2017 Phil Trans B analogy) is a declared digital control only.
+is a declared digital control only.
 
 Does not modify engine.py. Does not prove Red Queen, major transition, CRISPR
 identity, phage therapy, vaccine effect, epidemic forecast, or BSL.
@@ -42,7 +42,7 @@ class AdaptiveOriginGate:
 
 
 def adaptive_origin_gate(*, allow_exaptation_like_gains: bool) -> AdaptiveOriginGate:
-    """Build the Fortuna-2017-inspired adaptive-origin gate (digital only)."""
+    """Build the adaptive-origin gate (digital only)."""
 
     if allow_exaptation_like_gains:
         note = (

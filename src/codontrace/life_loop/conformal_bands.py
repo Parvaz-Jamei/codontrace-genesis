@@ -198,9 +198,8 @@ def split_conformal_rank(n_calibration: int, alpha: float | str | Fraction) -> i
     ``alpha`` is read through ``Fraction(str(alpha))``, so 0.45 is exactly
     9/20: for n = 99 the rank is 55, where float arithmetic
     (``100 * (1 - 0.45) = 55.00000000000001``) gives 56. A rank above
-    ``n`` means no finite interval exists at this level (Vovk, Gammerman &
-    Shafer 2005; Lei et al. 2018, doi:10.1080/01621459.2017.1307116;
-    Angelopoulos & Bates 2023, doi:10.1561/2200000101).
+    ``n`` means no finite interval exists at this level (the split-conformal
+    rank rule).
     """
     n = _as_int(n_calibration, "n_calibration", minimum=0)
     a = alpha if isinstance(alpha, Fraction) else Fraction(str(alpha))

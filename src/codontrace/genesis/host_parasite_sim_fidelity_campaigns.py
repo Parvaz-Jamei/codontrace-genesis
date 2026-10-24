@@ -6,13 +6,10 @@ ClaimGate ceilings stay fail-closed; infection physics stay outside engine.py;
 ONE host_parasite DomainProfile; cell = SemanticGenome substrate; microbe =
 COU labels only.
 
-References (grounded; no invented DOIs):
-- Zaman et al. 2014 PLOS Biology doi:10.1371/journal.pbio.1002023
-- Gómez, Ashby & Buckling 2015 Proc R Soc B doi:10.1098/rspb.2014.2297
-- Quigley et al. arXiv:1210.2320 (mode of interaction / cost of generalism)
-- Rabajante et al. 2015 Sci Rep doi:10.1038/srep10004 PMC4405699 (multi-host RQ)
-- Rabajante et al. Sci Adv doi:10.1126/sciadv.1501548 (type-III rare-lock comparator)
-- Cornish et al. JMLR / arXiv:2301.07210 (observational ≠ interventional)
+Signatures covered: frozen-history versus reciprocal coevolution, population
+mixing, mode of interaction / cost of generalism, multi-host Red Queen
+(type-II, with type-III rare-lock as a comparator), and observational versus
+interventional evidence.
 """
 
 from __future__ import annotations
@@ -164,7 +161,7 @@ class SimFidelityPack:
 
 
 # ---------------------------------------------------------------------------
-# SF1 — Coexistence requires cost-of-generalism (Quigley / arXiv:1210.2320)
+# SF1 — Coexistence requires cost-of-generalism
 # ---------------------------------------------------------------------------
 
 
@@ -525,9 +522,8 @@ def _sf4_nfd_proxy(*, seed: int, generations: int = 40, n_types: int = 6) -> dic
 def _panel_sf4() -> dict[str, object]:
     """SF4′: type-II FR + diagonally dominant A on the HP port (De-toy D0+D1).
 
-    Primary DOI corrected to Sci Rep 10.1038/srep10004 (PMC4405699). SciAdv
-    10.1126/sciadv.1501548 is a related type-III comparator only — never used
-    to soft-pass multi-host RQ. red_queen_proved stays False even on SUCCESS.
+    The type-II multi-host model is the primary comparator. The type-III
+    rare-lock model is a related comparator only — never used to soft-pass multi-host RQ. red_queen_proved stays False even on SUCCESS.
     """
 
     camp = run_type2_campaign(seeds=SEEDS_SF4)

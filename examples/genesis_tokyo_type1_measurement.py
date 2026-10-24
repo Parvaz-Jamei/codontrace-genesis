@@ -1,6 +1,6 @@
-"""Tokyo Type 1 *measurement* protocol smoke (Channon 2024 steps).
+"""Tokyo Type 1 *measurement* protocol smoke (the published measurement steps).
 
-Prints Channon-2024 measurement-step labels from a Phase A life-loop run plus
+Prints Tokyo Type 1 measurement-step labels from a Phase A life-loop run plus
 a Phase D evidence pack. It does not write files, start a UI, or claim Tokyo
 Type 1 passed, OEE, intelligence, AGI, or Avida replacement.
 """

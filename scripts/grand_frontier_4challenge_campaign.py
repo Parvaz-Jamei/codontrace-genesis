@@ -4,10 +4,10 @@ grand_frontier_4challenge_campaign.py - 4-Worker Frontier Experimental Campaign.
 
 Deploys 4 distinct, mathematically rigorous experimental challenges across 4 dedicated CPU cores.
 Each challenge runs in its own directory as an independent console simulation job:
-- Challenge 1 (Core 0): [OEE_NOVELTY] Open-Ended Evolution & Persistence Novelty (Stanley 2017, Channon 2024, Bedau 1998)
-- Challenge 2 (Core 1): [MLS_PRICE] Multilevel Selection & Role Differentiation (Chaturvedi et al. 2026, Price 1972, Okasha 2006)
-- Challenge 3 (Core 2): [TRANSITION_MUTUALISM] Major Evolutionary Transition & Mutualism Barrier (Maynard Smith-Szathmary 1995, Michod 2007)
-- Challenge 4 (Core 3): [CONTINGENCY_REPLAY] Historical Contingency vs Determinism (Gould 1989, Blount et al. 2008 LTEE, Conway Morris)
+- Challenge 1 (Core 0): [OEE_NOVELTY] Open-Ended Evolution & Persistence Novelty
+- Challenge 2 (Core 1): [MLS_PRICE] Multilevel Selection & Role Differentiation
+- Challenge 3 (Core 2): [TRANSITION_MUTUALISM] Major Evolutionary Transition & Mutualism Barrier
+- Challenge 4 (Core 3): [CONTINGENCY_REPLAY] Historical Contingency vs Determinism
 
 Architected for 48 to 72 hours of continuous execution with:
 - Dedicated core affinity (os.sched_setaffinity for cores 0, 1, 2, 3 on Linux ARM64).
@@ -88,7 +88,7 @@ def run_worker_0_oee(
 ) -> dict[str, Any]:
     """
     Challenge 1: Evaluates whether antagonistic coevolution sustains unbounded
-    cumulative evolutionary activity A(t) (Bedau et al. 1998, Channon 2024).
+    cumulative evolutionary activity A(t).
     """
     set_core_affinity(0)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -341,7 +341,7 @@ def run_worker_0_oee(
 
 
 # ==============================================================================
-# WORKER 1: MULTILEVEL SELECTION & ROLE DIFFERENTIATION (Chaturvedi 2026 / Price 1972)
+# WORKER 1: MULTILEVEL SELECTION & ROLE DIFFERENTIATION (Price partition)
 # ==============================================================================
 
 def run_worker_1_mls(
@@ -353,7 +353,7 @@ def run_worker_1_mls(
 ) -> dict[str, Any]:
     """
     Challenge 2: Multilevel Selection and Emergent Role Differentiation under
-    coupled resource ecology (Chaturvedi et al. arXiv:2604.00810, Price 1972, Okasha 2006).
+    coupled resource ecology, scored with the multilevel Price partition.
     """
     set_core_affinity(1)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -628,7 +628,7 @@ def run_worker_2_transition(
 ) -> dict[str, Any]:
     """
     Challenge 3: Identifies critical vertical transmission threshold v*
-    triggering transition from parasitism to obligate mutualism (Michod 2007).
+    triggering transition from parasitism to obligate mutualism.
     """
     set_core_affinity(2)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -871,7 +871,7 @@ def run_worker_3_contingency(
 ) -> dict[str, Any]:
     """
     Challenge 4: "Replaying Life's Tape" - Multi-seed Long-Horizon Contingency Assay
-    (Gould 1989, Blount et al. 2008, 2012 LTEE, Conway Morris).
+    (replayed founders from saved checkpoints).
     """
     if seed is not None:
         founder_seed = seed

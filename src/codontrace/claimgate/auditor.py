@@ -1,7 +1,7 @@
 """Simulator-agnostic ClaimGate auditor.
 
 Rules are CLAIMS.md §5 + §8. Forbidden aliases are never loosened.
-Measurement neighbors (MODES, Channon 2024 Tokyo Type 1, ASME V&V 40)
+Measurement neighbors (MODES, Tokyo Type 1, ASME V&V 40)
 do not grant a claim pass. Bitwise-identical outcomes across arms are
 ``assay_invalid`` (manipulation not realized), not a scientific null.
 """
@@ -209,7 +209,7 @@ def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
 def _pseudoreplicated(bundle: ClaimgateBundle) -> bool:
     """More than one outcome row per seed on a contrasted arm.
 
-    Ecology calls this simple pseudoreplication (Hurlbert 1984): subsamples
+    Ecology calls this simple pseudoreplication: subsamples
     are not replicates. They do not add seeds and they do not carry an interval.
     """
 

@@ -53,7 +53,7 @@ MORRIS_ARM = "source_bias_on"
 DEFAULT_DESIGN_SEED = 20260912
 DEFAULT_TRAJECTORIES = 10
 GRID_LEVELS = 4
-# Morris 1991 / Saltelli Primer: Delta = p / [2(p-1)] on the unit cube.
+# Elementary-effects screening: Delta = p / [2(p-1)] on the unit cube.
 MORRIS_DELTA = GRID_LEVELS / (2 * (GRID_LEVELS - 1))
 LEVEL_STEP = 2
 UNIT_GRID: tuple[float, ...] = (0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0)
@@ -356,7 +356,7 @@ def compute_morris_screening(
     trajectories: Sequence[MorrisTrajectory],
     outcomes: Sequence[float | None],
 ) -> tuple[MorrisScreeningRow, ...]:
-    """Compute mu*, mu, sigma from elementary effects (Campolongo 2007)."""
+    """Compute mu*, mu, sigma from elementary effects (mu* is the mean absolute effect)."""
 
     points = flatten_morris_points(trajectories)
     if len(outcomes) != len(points):

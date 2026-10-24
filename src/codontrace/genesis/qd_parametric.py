@@ -2,11 +2,9 @@
 
 A ``ParameterSpace`` declares named bounded parameters and how each mutates.
 Emitters propose ``ParameterCandidate``s from a parent; ``tell`` records
-evaluated candidates as MAP-Elites elites (Mouret & Clune 2015,
-arXiv:1504.04909) in the engine's ``QDSearchArchive``, binned over chosen
+evaluated candidates as MAP-Elites elites in the engine's ``QDSearchArchive``, binned over chosen
 parameters (or caller-supplied measures). The ask/tell split mirrors pyribs
-(Tjanaka et al., GECCO 2023 companion, doi:10.1145/3583133.3590374; ribs 0.12,
-2026), whose ``GridArchive`` can be used as an optional backend
+(ribs 0.12), whose ``GridArchive`` can be used as an optional backend
 (``PyribsGridBackend``, extra ``[qd]``).
 
 Randomness only comes from the ``RNGManager`` passed in. ``HillClimbEmitter``

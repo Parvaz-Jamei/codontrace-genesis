@@ -51,9 +51,9 @@ from codontrace.genesis.rq_mechanism_v2_phase5 import (
 )
 
 # Raised from 16 to the horizon the max-of-three-times rule already returned.
-# This admits that horizon. It is not a parameter tune. Papkou et al. 2019
-# PNAS (DOI 10.1073/pnas.1810402116) ran 23 host transfers and controlled
-# generation time for the host, not the parasite.
+# This admits that horizon. It is not a parameter tune. The
+# reference passage design ran 23 host transfers and controlled generation
+# time for the host, not the parasite.
 PHASE6_BUDGET = 70
 PHASE6_PROBE_GENERATIONS = 12
 PHASE6_PROBE_PARASITE = 9807

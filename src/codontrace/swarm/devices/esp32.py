@@ -1,12 +1,11 @@
 """ESP32 Moj-ه thin execute+sense bridge: device I/O for swarm members.
 
-Literature (cite briefly; no overclaim):
-- Koos, Mouret & Doncieux, IEEE TEC 17(1):122–145, 2013 — transferability /
-  reality gap; few targeted real tests beat mass sim-only evals.
+Design notes (no overclaim):
+- Transferability / reality gap: few targeted real tests beat mass sim-only evals.
 - ESP32 as thin execute+sense bridge (MQTT/UART patterns); evolution stays on
   the host — never on the device.
-- OMNI-EPIC arXiv:2405.15568 — bounded interesting archive lesson.
-- ARE 2024 heterogeneous reality gap — document STR-disparity honestly.
+- OMNI-EPIC — bounded interesting archive lesson.
+- Heterogeneous reality gap — document STR-disparity honestly.
 
 This is the implementation; ``codontrace.claimgate.adapters.esp32_bridge`` is a
 re-export shim kept for existing imports. The STR disparity record and stop rule

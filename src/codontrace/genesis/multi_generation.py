@@ -7,15 +7,15 @@ physics, presets, or replay digests.
 
 Literature grounding (measurement design only — not proof of OEE or intelligence):
 
-- MODES toolbox: Dolson, Vostinar, Wiser, Ofria 2019 *Artificial Life* —
+- MODES toolbox —
   change, novelty, complexity, ecological potential, with a persistence filter
   so only lineages that still have descendants after ``persistence_window_t``
   generations count. The filter is an organism-id descendant graph over a
   coalescence window, not a full Empirical systematics / shadow phylogeny.
-- Bedau evolutionary activity statistics: novelty, diversity, and (cumulative)
+- Evolutionary activity statistics: novelty, diversity, and (cumulative)
   activity of components over time.
-- ALife OEE encyclopedia hallmarks and the ISAL 2024 MODES assessment
-  (Bohm / Zhang / Dolson) as the reporting checklist this pack cites.
+- ALife OEE hallmarks and a published MODES assessment as the reporting
+  checklist this pack follows.
 
 User philosophy encoded here: survivors reproduce; next-generation
 instincts/behavior may improve. This library **measures** fitness and
@@ -25,7 +25,7 @@ instinct evolution proved.
 Claim ceiling: ``runtime_observation`` by default. ``instinct_improved`` is a
 ClaimGate label for metric deltas only and is never publication-grade without
 multi-seed protocol objects. ``oee_measurement_only`` is the OEE ceiling;
-``tokyo_type1_measurement_only`` is a Channon 2024 vocabulary alias of that
+``tokyo_type1_measurement_only`` is a vocabulary alias of that
 ceiling (Type 1 is never passed). Open-ended intelligence remains blocked.
 CLIP / ASAL foundation-model OE is not implemented here.
 """
@@ -1481,11 +1481,11 @@ def evaluate_tokyo_type1_measurement_claim(
     pack: MultiGenerationEvidencePack,
     gate: ScientificClaimGate | None = None,
 ) -> ClaimDecision:
-    """Channon 2024 Tokyo Type 1 *vocabulary* only — never Type 1 passed.
+    """Tokyo Type 1 *vocabulary* only — never Type 1 passed.
 
     ``tokyo_type1_measurement_only`` aliases to ``oee_measurement_only``.
     This does not run a Type 1 protocol, does not implement CLIP/ASAL
-    foundation-model open-endedness (arXiv 2412.17799), and must never
+    foundation-model open-endedness, and must never
     return a Type-1-passed label.
     """
 

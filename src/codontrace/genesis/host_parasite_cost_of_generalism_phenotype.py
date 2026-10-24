@@ -5,10 +5,7 @@ the D4 phenotype channel; specialists pay less. A coexistence assay contrasts
 cost-on vs cost-off arms. Dual-null: content_null preserves breadth under opaque
 labels; structure_null disables the phenotype penalty path.
 
-Literature (digital honesty map, not wet identity):
-- Quigley et al. doi:10.1098/rspb.2012.0769
-- Gómez et al. doi:10.1098/rspb.2014.2297
-- rspb.2025.1157; ijpara.2024.11.009 (generalism costs)
+This is a digital honesty map of generalism costs, not wet identity.
 
 ClaimGate: red_queen_proved / wet_ard_fsd_identity / phage_therapy_cleared stay False.
 Port-only — never engine.py.

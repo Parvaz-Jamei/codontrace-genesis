@@ -1,11 +1,11 @@
-"""IsolationAssay for HARD_EXPERIMENT_03 (Goldsby-style secondary readout).
+"""IsolationAssay for HARD_EXPERIMENT_03 (secondary readout).
 
 Re-score evolved specialists alone vs group context. Isolation drop is a
 **secondary** confirmatory metric of lost lower-level autonomy — not a license
 for collective_intelligence* / AGI claims.
 
-Informed by reproductive-isolation / solo-competence literature (Montanier;
-Boumaza 2021) only as assay design context.
+Reproductive-isolation and solo-competence assays inform this only as
+design context.
 """
 
 from __future__ import annotations

@@ -1,11 +1,8 @@
 """Closed-loop P6: matching-allele contact on the existing ATP clock.
 
-The open problem is not "does a Red Queen story sound true". Otto and Nuismer
-(Science 2004, doi:10.1126/science.1094072) showed that species interactions
-usually select against sex. Morran et al. (Science 2011,
-doi:10.1126/science.1206360) found the opposite sign in one host-pathogen
-passage. Agrawal (PLoS Biol 2006, doi:10.1371/journal.pbio.0040265) showed the
-sign can flip when offspring meet the same antagonist their parent did.
+The open problem is not "does a Red Queen story sound true". In population-genetic models
+species interactions usually select against sex. Host-pathogen passage
+experiments have found the opposite sign, and the sign can flip when offspring meet the same antagonist their parent did.
 
 This module asks that question on GenesisOrganism, not on the type-II Euler
 stepper in ``host_parasite_type2_rq.py``. The default infection weight is
@@ -239,8 +236,8 @@ def classify_oscillation(
     change. ``forced_fixed_antagonist`` is a host return under a parasite
     that never moves. ``forced_unpaid`` is a return with no match debit while
     the parasite did move. ``extinct`` is a host count of zero at the end.
-    Buckingham and Ashby (J. Evol. Biol., 2022, doi:10.1111/jeb.13981) separate
-    sustained fluctuating selection from a transient that damps or ends.
+    The labels separate sustained fluctuating selection from a transient
+    that damps or ends.
     """
 
     if len(host_frequencies) != len(parasite_frequencies) or len(host_frequencies) != len(match_debits):
@@ -489,7 +486,7 @@ def mate_outcross(
 
     A leftover parent has no child and is not paired with itself. A mated
     pair still yields two offspring. ``random`` is a Fisher–Yates shuffle on
-    the seeded stream (Durstenfeld 1964; Knuth 1998): the last position of an
+    the seeded stream: the last position of an
     odd population is a uniform draw, not the highest identity. ``ordered``
     is the identity sort under its own name. ``disassortative`` prefers
     a different recognition window and does not use the mating stream.
@@ -711,9 +708,8 @@ def specificity_weight(host_window: str, parasite_window: str, mode: str = "stri
 
     ``graded_alpha_from_overlap`` returns a positive floor when nothing matches.
     A floor on the ATP clock would tax every host. Zero matched loci pay 0.
-    Kouyos, Salathé, and Bonhoeffer (Theor. Popul. Biol. 75:1–13, 2009,
-    doi:10.1016/j.tpb.2008.09.007) treat all-locus match as the strong
-    epistasis case and partial match as a different interaction.
+    All-locus match is the strong epistasis case; partial match is a
+    different interaction, not a weaker copy of it.
     """
 
     if mode == "strict":

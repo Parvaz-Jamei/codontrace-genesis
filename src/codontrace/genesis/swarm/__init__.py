@@ -4,8 +4,7 @@ active sampling and a pure coordinator core, plus a population adapter.
 Transport-free and storage-free; ``codontrace.swarm`` composes this core with
 ``codontrace.genesis.journal`` and its wire protocol. Not imported by
 ``codontrace.genesis`` itself. Layering follows Mesa 3 (core model separate from
-data collection and visualization; Masad et al. / ter Hoeven et al., JOSS 2025,
-doi:10.21105/joss.07668) and ros2_control (state-only sensor interfaces).
+data collection and visualization) and ros2_control (state-only sensor interfaces).
 """
 from __future__ import annotations
 

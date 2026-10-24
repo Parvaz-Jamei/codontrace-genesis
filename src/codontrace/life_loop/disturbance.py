@@ -4,9 +4,7 @@ uniform noise and random dropout.
 Per value, in order: one draw decides dropout (``random() < dropout``), one
 draw gives noise ``(2 * random() - 1) * amplitude``; a dropped value becomes
 ``None`` (a missing sample, never a fake zero). These are the bias, noise and
-missing-data fault classes of sensor fault taxonomies (Ni et al. 2009,
-"Sensor network data fault types", ACM TOSN 5(3), doi:10.1145/1525856.1525863;
-Sharma, Golubchik & Govindan 2010, ACM TOSN 6(3), doi:10.1145/1754414.1754419).
+missing-data fault classes of sensor-network fault taxonomies.
 All randomness comes from the ``RNGManager`` passed in.
 """
 

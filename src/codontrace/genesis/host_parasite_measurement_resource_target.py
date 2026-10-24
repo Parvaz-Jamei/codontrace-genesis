@@ -1,15 +1,10 @@
 """De-toy D7: measurement-honesty pack + resource→phenotype-target dual-null.
 
-(a) Channon / MODES comparator: measurement-only ALLOWED vocabulary;
+(a) Tokyo Type 1 / MODES comparator: measurement-only ALLOWED vocabulary;
     tokyo_type1_passed and modes_passed* stay False forever on this port.
 (b) resource_productivity modulates abstract phenotype target harshness
-    (Lopez Pascua honesty map); dual-null kills the slope.
+    (productivity-dependent coevolution, as an honesty map); dual-null kills the slope.
 
-Literature:
-- Channon doi:10.1162/artl_a_00430
-- Dolson MODES doi:10.1162/artl_a_00280
-- Lopez Pascua doi:10.1111/j.1420-9101.2008.01501.x
-- ELE doi:10.1111/ele.12337
 
 Port-only; ClaimGate refuse list fail-closed.
 """

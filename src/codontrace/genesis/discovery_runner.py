@@ -277,7 +277,7 @@ def run_discovery_pipeline(
     scale: DiscoveryPipelineScale = "S1",
     archive_summary: ArchiveSummary | None = None,
 ) -> DiscoveryAuditReport:
-    """Mandatory audit before archive admission (Flageat et al. 2026 trade-off).
+    """Mandatory audit before archive admission (quality-diversity trade-off).
 
     Ceiling rises above ``runtime_observation`` only when the candidate is
     meaningfully better than all three HE01-style discovery negatives.

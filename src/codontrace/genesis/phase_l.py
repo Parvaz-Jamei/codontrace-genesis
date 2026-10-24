@@ -1,7 +1,7 @@
 """Phase L Avida ORGANISM_MESSAGING / DEME_GROUP *fidelity* analogs.
 
 Measurement-first follow-on after Phase K: closer (still analog) messaging
-semantics, Goldsby 2012-aligned specialist measurement, and optional wiring
+semantics, task-switch-cost specialist measurement, and optional wiring
 so a Phase K coordination ablation can feed evidence objects.
 
 None of this is an Avida C++ port. None of it auto-sets ClaimGate flags.
@@ -836,7 +836,7 @@ def _colony_quota(group_size: int, *, fraction: float = DEFAULT_COLONY_QUOTA_FRA
 
 @dataclass(frozen=True, slots=True)
 class GoldsbyAlignedSpecialistRecord:
-    """Goldsby 2012-aligned specialist *measurement*. Not the PNAS experiment."""
+    """Task-switch-cost specialist *measurement*. Not the published experiment."""
 
     literature_delay_cycles: int
     analog_switch_cpu_cost: int
@@ -1032,7 +1032,7 @@ class GoldsbyDoseResponseObservation:
 
 @dataclass(frozen=True, slots=True)
 class GoldsbyAlignedSpecialistCampaign:
-    """Goldsby-aligned specialist harness. Research default 50; not PNAS 2012."""
+    """Task-switch-cost specialist harness. Research default 50; not the published study."""
 
     seeds: tuple[int, ...]
     generations: int

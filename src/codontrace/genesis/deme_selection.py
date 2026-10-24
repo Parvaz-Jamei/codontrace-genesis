@@ -1,4 +1,4 @@
-"""E2 deme / kin selection knob for HARD_EXPERIMENT_02 (Knoester 2008; Floreano 2007).
+"""E2 deme / kin selection knob for HARD_EXPERIMENT_02.
 
 2×2 design: selection level {INDIVIDUAL, GERMLINE_GROUP} × founder
 relatedness {CLONAL, MIXED}. Default-off. Builds on existing Phase E deme

@@ -1,4 +1,4 @@
-"""E1 food-patch signal knob for HARD_EXPERIMENT_02 (Floreano 2007).
+"""E1 food-patch signal knob for HARD_EXPERIMENT_02.
 
 Default-off. When enabled, hidden food patches give selective value to
 capsule payloads that encode patch coordinates, and receivers can execute

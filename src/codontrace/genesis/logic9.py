@@ -1,9 +1,9 @@
 """Opt-in Avida Logic-9 / NAND-style reaction → resource → merit/ATP coupling.
 
-Ofria & Wilke 2004 and live ``avida.cfg`` 2.14.0 treat logic tasks as
+Avida and live ``avida.cfg`` 2.14.0 treat logic tasks as
 *reactions* that consume named resources and award merit. The classic Logic-9
-tasks are NOT, NAND, AND, ORN, OR, ANDN, NOR, XOR, and EQU. BMC Evol Biol 2021
-metabolic-signaling work treats resource × population × mutation as interacting
+tasks are NOT, NAND, AND, ORN, OR, ANDN, NOR, XOR, and EQU. Metabolic-signaling
+work treats resource × population × mutation as interacting
 experimental axes.
 
 CodonTrace uses a different ISA than Avida's NAND CPU. This module is a

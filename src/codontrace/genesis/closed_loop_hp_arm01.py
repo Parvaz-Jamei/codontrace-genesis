@@ -1,11 +1,10 @@
 """Three-arm host–parasite ecology path bound to the Genesis life-loop.
 
-Morran et al. (Science 2011, doi:10.1126/science.1206360) and Slowinski et al.
-(Evolution 2016, doi:10.1111/evo.13048) used control / fixed / copassaged
+Host-pathogen passage experiments use control / fixed / copassaged
 antagonist regimes when asking whether sex is maintained under coevolution.
 This module maps those ecology labels onto tip passages without collapsing
-``absent`` into ``frozen`` or into pure zero-debit / ``costless`` (Pearl,
-Biometrika 82:669–688, 1995, doi:10.1093/biomet/82.4.669).
+``absent`` into ``frozen`` or into pure zero-debit / ``costless``: removing
+the antagonist is not the same intervention as cutting one causal path.
 
 ENGINE-BIND (HP-ARM01-ENGINE-BIND)
 ---------------------------------
@@ -16,7 +15,7 @@ Each ecology arm runs on the real CodonTrace life-loop:
 2. Phase B sexual chamber — ``ReproductionMode.SEXUAL_CROSSOVER`` with the
    existing outcross locus (mating-effort ATP). Maynard Smith's two-fold cost
    (``SexualRecombinationConfig.two_fold_cost_sex``) remains unpaid / default
-   off; this path does not silently claim Hamilton.
+   off; this path does not silently claim the parasite hypothesis for sex.
 3. ``HostParasiteEnv`` — contact / debit for that same arm. Holling
    ``handling_time`` ablation must use the campaign env, not a disconnected
    probe. HP physics stays in the env/plugin; ``engine.py`` stays domain-free.

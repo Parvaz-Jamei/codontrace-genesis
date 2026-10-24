@@ -131,7 +131,7 @@ HORIZON_DEFINITIONS: dict[str, str] = {
 
 # ---------------------------------------------------------------------------
 # Pattern-Oriented Modeling acceptance patterns (§گیت چندالگویی).
-# ATP mean alone is never sufficient (Grimm & Railsback 2012).
+# ATP mean alone is never sufficient.
 # ---------------------------------------------------------------------------
 
 POM_ACCEPTANCE_PATTERNS: tuple[dict[str, str], ...] = (
@@ -169,7 +169,7 @@ POM_ACCEPTANCE_PATTERNS: tuple[dict[str, str], ...] = (
     },
 )
 
-# Mesoudi & Thornton (2018) CCE core criteria — ALL four required before any CCE claim.
+# Cumulative cultural evolution (CCE) core criteria — ALL four required before any CCE claim.
 MESOUDI_CCE_CRITERIA: tuple[dict[str, str], ...] = (
     {"id": "cce_innovation", "statement": "Behavioural novelty or modification (innovation)."},
     {

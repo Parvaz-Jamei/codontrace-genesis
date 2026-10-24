@@ -4,10 +4,8 @@ Moved verbatim from the ClaimGate device adapter module; that module and
 ``claimgate.adapters`` re-export these names. Domain-free: the record compares
 two named metric maps, it does not talk to a device.
 
-Literature: Koos, Mouret & Doncieux, "The transferability approach: crossing
-the reality gap in evolutionary robotics", IEEE TEC 17(1):122-145, 2013;
-Mouret & Chatzilygeroudis, "20 years of reality gap", GECCO 2017 companion.
-Digests identify the comparison record; they do not grant a physical
+The record follows the transferability approach to the reality gap in
+evolutionary robotics. Digests identify the comparison record; they do not grant a physical
 campaign claim.
 """
 from __future__ import annotations
@@ -26,7 +24,7 @@ __all__ = ["STRDisparityResult", "compute_str_disparity", "str_stop_criterion_me
 
 @dataclass(frozen=True, slots=True)
 class STRDisparityResult:
-    """Honest sim-vs-physical disparity (Koos/Mouret/Doncieux; ARE 2024).
+    """Honest sim-vs-physical disparity (transferability approach).
 
     ``disparity`` is mean absolute relative error across paired metrics.
     Digests identify the comparison record; they do **not** grant a hardware

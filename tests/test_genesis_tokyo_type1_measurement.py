@@ -1,4 +1,4 @@
-"""Tokyo Type 1 measurement protocol tests (Channon 2024 steps, pass blocked).
+"""Tokyo Type 1 measurement protocol tests (published steps, pass blocked).
 
 These tests document measurement software capability only. They do not claim
 Tokyo Type 1 OEE, open-endedness, intelligence, or Avida replacement.

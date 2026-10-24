@@ -1,17 +1,17 @@
 """HP-ARM01 RQ-earn scaffold — Fork A (asexual clone RQD) measurement wiring.
 
 This module is a **scaffold only**. It wires dense snaps, lagged NFDS clocks,
-Pearl coevolve / frozen / absent contrasts, and optional ``debit_backed_cycle``
+coevolve / frozen / absent intervention contrasts, and optional ``debit_backed_cycle``
 reuse. It does **not** claim Red Queen Dynamics proved.
 
 Standing locks
 --------------
 * ``red_queen_proved`` and ``biological_red_queen_proved`` stay False.
 * ClaimGate allowlist is not loosened (P4 deferred).
-* Estimand default = **Fork A** (asexual clone RQD). Fork B / Slowinski
+* Estimand default = **Fork A** (asexual clone RQD). Fork B / selfing
   invasion and unpaid two-fold cost of sex remain **deferred** — prose must
-  not claim sex maintained by RQ while two-fold is unpaid (Hamilton et al.
-  1990; Ashby 2020).
+  not claim sex maintained by RQ while two-fold is unpaid, and a
+  polymorphism or a cycle alone is not Red Queen dynamics.
 * Lag / RQ-earn scoring is evaluated on **debit-active arms only**
   (coevolve / fixed). Avirulent / absent arms never grant RQ-earn credit.
 * Seeds typed ``regime_hostile_ne`` are excluded from any lagged_nfds pass
@@ -21,15 +21,15 @@ Standing locks
 * Hold clause stays conjunctive (no OR soft-path); census is not Ne.
 * HP physics stays out of ``engine.py``.
 * Cuscore / Shewhart / CUSUM / SPC predicates stay **observation-only** and
-  never own the accept path for RQ (Pearl SPC module; XFieldInnov).
+  never own the accept path for RQ (intervention-pair SPC module; XFieldInnov).
 * Dense ``snap_stride`` series feeds Floquet / phase / lagged NFDS clocks
   only — never the conjunctive hold gate and never an OR soft-path.
 * Parasite class memory ring lives on the structural HP arm / env plugin
   only (not ``engine.py``).
 
-Literature anchors: Dybdahl & Lively 1998; Ashby 2020; Buckingham & Ashby
-2022; Sasaki 2000; Zaman et al. 2014 (memory analog); Phil. Trans. B
-dense sampling / phase under fluctuating eco-evo.
+Method notes: lagged host-parasite class association, sustained versus
+damped fluctuating selection, parasite memory as a frozen-history analog,
+and dense sampling for phase under fluctuating eco-evo dynamics.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""E5 stepping-stone reward knob for HARD_EXPERIMENT_02 (Lenski 2003).
+"""E5 stepping-stone reward knob for HARD_EXPERIMENT_02.
 
 Default-off intermediate rewards for emit-correct → move-to-target →
 eat-at-target. Does not invent claims; records only.

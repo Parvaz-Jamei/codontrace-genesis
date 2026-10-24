@@ -365,9 +365,8 @@ class GenesisRuntimeProfile:
 
         Literature grounding (software-capability only, not an Avida
         replacement): limited, depletable resources with partial inflow
-        (Avida ecology / Cooper–Ofria; Frontiers digital-evolution review 2021)
-        plus a basal energy-budget drain (JaxLife 2024, EEDx-style ISAL).
-        Sexual opt-in follows Misevic, Ofria, Lenski 2006 Proc B and
+        (Avida ecology) plus a basal energy-budget drain (JaxLife-style).
+        Sexual opt-in follows
         ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP`` (birth chamber,
         ``RECOMBINATION_PROB``, ``SAME_LENGTH_SEX``, ``TWO_FOLD_COST_SEX``,
         ``MAX_BIRTH_WAIT_TIME``). Diploid meiosis is an opt-in
@@ -388,8 +387,8 @@ class GenesisRuntimeProfile:
         genome unless sexual crossover is explicitly enabled. Population
         capacity must exceed initial *N* so Darwinian births can occupy
         empty/replace cells (Avida ``BIRTH_METHOD`` / ``PREFER_EMPTY``;
-        do not set ``POPULATION_CAP`` equal to current population — Ofria
-        & Wilke 2004; ``avida.cfg`` 2.14.0). Historical pop<8 presets keep
+        do not set ``POPULATION_CAP`` equal to current population —
+        ``avida.cfg`` 2.14.0). Historical pop<8 presets keep
         ``capacity = max(pop, 8)`` on a 6×4 world (pinned Phase A–E
         spec/snapshot/tick digests). For ``population >= 8``, capacity is
         ``max(pop*2, 16)`` and the world is widened. This is not a proof

@@ -13,14 +13,13 @@ software knobs, not proved wet-lab equivalents.
 
 Literature grounding (software capability / runtime observation only):
 
-- Avida resource/reaction/merit metabolism (Ofria & Wilke 2004; Avida-ED;
-  BMC Evol Biol 2021 metabolic signaling; nutrient→intracellular profiles
-  ASMI 2022). Phase C already supplies chemostat inflow/outflow; this module
+- Avida resource/reaction/merit metabolism (Avida-ED; metabolic signaling;
+  nutrient→intracellular profiles). Phase C already supplies chemostat inflow/outflow; this module
   extends those pools to *named* materials with effect coefficients.
-- Chemostat: Novick & Szilard 1950; Avida ``RESOURCE`` unused-outflow then
+- Chemostat: Avida ``RESOURCE`` unused-outflow then
   inflow (reused via ``apply_chemostat_step``).
 - Artificial chemistry / autocatalytic ecosystems (Combinatory Chemistry;
-  npj Complexity 2025 spatial ACE; Evolvable Chemotons arXiv 2510.14282).
+  spatial autocatalytic ecosystems; evolvable chemotons).
   A 2–3 material autocatalytic cycle is an optional measurement demo, not a
   claim of evolved chemotons or spatial ACE.
 - Coevolution of cellularity and metabolism: membrane permeability gates
@@ -478,7 +477,7 @@ class MaterialsConfig:
 
         ``A + B → 2A`` (autocatalytic) and slow ``A → W`` waste. Spatial
         coexistence of A-rich vs B-rich cells can be measured; that is not a
-        spatial-ACE or chemoton claim (npj Complexity 2025 cited as design note).
+        spatial-ACE or chemoton claim (spatial ACE is a design note only).
         """
 
         seed = MaterialSpec(
@@ -973,7 +972,7 @@ class MaterialsReplayVerification:
 
 @dataclass(frozen=True, slots=True)
 class SpatialCoexistenceObservation:
-    """npj Complexity 2025 ACE *measurement* note: A-rich vs B-rich cells.
+    """Spatial ACE *measurement* note: A-rich vs B-rich cells.
 
     Recording coexistence is not a claim that a spatial autocatalytic
     ecosystem evolved.

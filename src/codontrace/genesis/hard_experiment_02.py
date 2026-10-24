@@ -1,7 +1,6 @@
 """HARD_EXPERIMENT_02: food-patch signalling under deme/kin selection (E1+E2+E5).
 
 Prereg: ``docs/HARD_EXPERIMENT_02_PREREG.md`` (draft-lock 2026-09-13).
-Literature: Floreano et al. 2007; Knoester et al. 2008; Lenski et al. 2003.
 
 ClaimGate ceiling starts at ``runtime_observation``. Forbidden aliases stay
 blocked. Phase A–E ``life_loop_world`` pins are unchanged when HE02 knobs are off.
@@ -807,7 +806,7 @@ def run_hard_experiment_02(
 
     from codontrace.genesis.he02_contrasts import contrasts_from_seed_dicts
 
-    # Cohen's dz is mean(Δ) / s_Δ on the paired differences (Lakens, 2013),
+    # Cohen's dz is mean(Δ) / s_Δ on the paired differences,
     # not a two-vector call. The old call raised and was swallowed as dz=None.
     rows = contrasts_from_seed_dicts(
         [rec.to_dict() for rec in seed_records],

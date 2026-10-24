@@ -532,7 +532,7 @@ def test_r10_production_monotonic_uniform_revision_across_actions(
 # ==============================================================================
 
 def test_r10_production_price_equation_unequal_demes_and_transmission() -> None:
-    """R10: Verify multilevel Price equation (Price 1972) partition with:
+    """R10: Verify multilevel Price equation partition with:
     1. Unequal deme population sizes (weighted between-group covariance).
     2. Non-zero within-deme variance and transmission bias (E[Cov(w, z)] + E[w * dz]).
     3. Rigorous finite check and evaluator verification.

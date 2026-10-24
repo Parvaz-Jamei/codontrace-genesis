@@ -1,7 +1,7 @@
 """Infectivity / resistance range diagnostics for host–parasite campaigns.
 
 Maps time-series range summaries onto ARD-like / FSD-like / mixed *labels*
-(Hall et al. 2011; Lopez Pascua et al. 2014 analogies). These are digital
+(analogies to arms-race and fluctuating-selection dynamics). These are digital
 diagnostic enums only: ``red_queen_proved`` is always False. No clinical,
 CRISPR-identity, phage-therapy, vaccine, epidemic, or BSL claim is granted.
 """

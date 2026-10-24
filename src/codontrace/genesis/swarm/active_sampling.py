@@ -7,9 +7,7 @@ fresh, online, sample-capable, unit-matched scalar channels with no pending
 request, for a separate scheduler. ``schedule_measurements`` is that
 scheduler: greedy expected-error reduction per byte with a per-group
 redundancy discount, the cost-benefit greedy rule of budgeted sensor
-selection (Krause & Guestrin 2005, "Near-optimal nonmyopic value of
-information in graphical models", UAI; Leskovec et al. 2007, KDD,
-doi:10.1145/1281192.1281239). No approximation guarantee is claimed here:
+selection. No approximation guarantee is claimed here:
 the gain proxy is not shown to be submodular for arbitrary inputs.
 """
 from __future__ import annotations

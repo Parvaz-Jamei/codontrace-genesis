@@ -1,9 +1,8 @@
 """Open problem 2026-09-25 — time-shift FRQ vs ERQ discrimination.
 
-Literature seeds (verified DOIs):
-- Decaestecker et al. 2007 Nature doi:10.1038/nature06291
-- Brockhurst et al. 2014 Proc B doi:10.1098/rspb.2014.1382
-- Buckingham & Ashby 2022 JEB doi:10.1111/jeb.13981
+A time-shift assay scores hosts against parasites from past, contemporary
+and future generations. Fluctuating (FRQ) and escalating (ERQ) dynamics
+leave different past/future profiles.
 
 Mechanism innovation lives in codontrace.life_loop.time_shift_assay
 (CohortArchive + cross-temporal match + match_linked_cycle /

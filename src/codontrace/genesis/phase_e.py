@@ -11,17 +11,16 @@ only — not an Avida replacement and not proof of learning, plasticity, or
 collective intelligence):
 
 - Avida demes / group selection: ``devosoft/avida`` wiki Deme-introduction;
-  ``DEMES_*`` config and GermlineReplication; Goldsby et al. coordination
+  ``DEMES_*`` config and GermlineReplication; Avida coordination
   instructions ``send_message``, ``retrieve_message``, ``broadcast_message``,
   ``block_propagation``.
-- Cooperative networks / digital germlines (GECCO 2008 GermlineReplication).
-- Phenotypic plasticity in fluctuating environments (Clune 2007; Lalejini &
-  Ofria 2016; Frontiers 2021 Adaptive Phenotypic Plasticity ``sense-react-*``
+- Cooperative networks / digital germlines (GermlineReplication).
+- Phenotypic plasticity in fluctuating environments (``sense-react-*``
   cues). Phase C already supplies the fluctuating-env substrate.
-- Associative learning / memory / odometry in Avida (Am Nat 2020 learning;
-  PLOS One odometry case study) mapped here to capsule/memory hooks with
+- Associative learning / memory / odometry in Avida (learning and
+  odometry case studies) mapped here to capsule/memory hooks with
   **real** subsequent action / ATP / task-eligibility effects.
-- OntoAvida / avidaR (Sci Data 2023; PeerJ CS) — exportable
+- OntoAvida / avidaR — exportable
   phenotype/transcriptome-ish evidence objects.
 
 Claim ceiling: ``runtime_observation`` / software capability /
@@ -267,7 +266,7 @@ def read_environment_cue(
 
 @dataclass(frozen=True, slots=True)
 class CapsuleSlot:
-    """One associative cue→action memory slot (Am Nat 2020 / odometry mapping)."""
+    """One associative cue→action memory slot (associative learning / odometry mapping)."""
 
     cue_regime: str = ""
     cue_has_local_food: bool = False

@@ -7,7 +7,7 @@ hooks. Disabled by default so asexual and sexual research digests stay stable.
 
 Literature grounding (software capability only, not an Avida replacement):
 
-- Ofria & Wilke 2004, *Artificial Life* 10(2): environment = resources +
+- Avida's environment model: environment = resources +
   reactions; a resource has initial quantity (optionally infinite), inflow
   per update, and outflow as the fraction of unused resource removed.
 - Cooper & Ofria limited-resource ecosystems; Avida chemostat experiments
@@ -15,8 +15,7 @@ Literature grounding (software capability only, not an Avida replacement):
 - Avida-ED resource modes: unlimited / limited / chemostat / periodic
   (period < 1 ⇒ non-periodic), including inflow/cell and outflow fraction.
 - Phenotypic-plasticity studies in Avida contrast static vs fluctuating
-  environments (e.g. Lalejini et al. 2021 Frontiers; Clune/Ofria/Adami
-  sensory-plasticity work). This module supplies the *environment
+  environments (sensory-plasticity work). This module supplies the *environment
   substrate* for those designs. It does not claim that plasticity evolved.
 
 Claim ceiling: runtime_observation only.
@@ -77,7 +76,7 @@ def apply_chemostat_step(
     """Apply one Avida ``RESOURCE`` update.
 
     After consumption, ``outflow`` is the fraction of *unused* resource
-    removed, then ``inflow`` is added (Ofria & Wilke 2004; Cooper/Ofria
+    removed, then ``inflow`` is added (Avida
     chemostat: typically outflow=0.01). Unlimited resources skip depletion
     and turnover and keep the current amount.
 

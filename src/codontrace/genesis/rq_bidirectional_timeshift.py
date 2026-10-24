@@ -8,37 +8,24 @@ archive is not written by the replay.
 
 This module does not score Red Queen and does not set ``red_queen_proved``.
 
-Literature actually opened while choosing the assay, not a parameter search
----------------------------------------------------------------------------
-Gandon, S. 2002. Local adaptation and the geometry of host-parasite
-coevolution. Ecology Letters 5:246-256.
-https://evolepid.cefe.cnrs.fr/pub/Gandon2002.pdf
-Opened in full. Matching-allele specificity; local adaptation is performance
-at home minus performance away. Frank's result, cited there, equates the
-pattern of genotype frequencies across populations at one time with the
-pattern across generations in one population. A time-shift is that temporal
-transplant: archived generation t scored against a partner from t+k, with
-no further evolution during the score.
+Why this assay
+--------------
+Local adaptation is performance at home minus performance away, under
+matching-allele specificity. The pattern of genotype frequencies across
+populations at one time mirrors the pattern across generations in one
+population, so a time-shift is a temporal transplant: archived generation t
+scored against a partner from t+k, with no further evolution during the score.
 
-Gandon, S. and Y. Michalakis. 2002. Local adaptation, evolutionary potential
-and host-parasite coevolution. Journal of Evolutionary Biology.
-Search extract of https://www.thereadgroup.net/wp-content/uploads/Gandon02_JEB.pdf
 Relative mutation, population size and generation time change which side is
 ahead. Phase 1 does not retune those quantities; they stay on the locked
 structural design.
 
-Dybdahl, M. F. and C. M. Lively. 1998. Host-parasite coevolution: evidence
-for rare advantage and time-lagged selection. Evolution 52:1057-1066.
-Search extract of the authors' summary page
-https://public.archive.wsu.edu/dybdahl/public_html/evol98.html
-Parasites tracked common host clones with a lag. The assay therefore keeps
-the whole archived population, not a single modal window.
+Parasites track common host clones with a lag, so the assay keeps the whole
+archived population, not a single modal window.
 
-Lively, C. M. and M. F. Dybdahl. 2000. Parasite adaptation to locally common
-host genotypes. Nature 405:679-681. Abstract opened via search. Sympatric
-parasites infected locally common hosts more than rare ones; allopatric
-parasites did not. Phase 1 only checks that the debit instrument and the
-replay can tell populations apart. It does not claim that result.
+Sympatric parasites can infect locally common hosts more than rare ones.
+Phase 1 only checks that the debit instrument and the replay can tell
+populations apart. It does not claim that result.
 
 The graded 6-bit window already in ``graded_affinity`` is the contact rule
 (three bit-disjoint sub-loci). It is not replaced here.

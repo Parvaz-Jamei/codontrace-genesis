@@ -226,7 +226,7 @@ def _clip01(value: float) -> float:
 def gorelick_normalized_mutual_information(
     organism_tasks: Sequence[tuple[str, str]],
 ) -> float:
-    """Gorelick et al. 2004 analog: NMI of (organism identity, task).
+    """Division-of-labor analog: NMI of (organism identity, task).
 
     ``I(id; task) / H(task)`` when H(task)>0, else 0. Not bit-identical to the
     paper; a measurement statistic, not a Goldsby 50-replicate result.
@@ -779,7 +779,7 @@ class EvolvedDivisionOfLaborSeedRecord:
 
 @dataclass(frozen=True, slots=True)
 class EvolvedDivisionOfLaborCampaign:
-    """Evolved preference DoL + ablation. Not Goldsby 50-replicate PNAS."""
+    """Evolved preference DoL + ablation. Not the published 50-replicate study."""
 
     seeds: tuple[int, ...]
     generations: int
@@ -1149,7 +1149,7 @@ class ExportOfFitnessObservation:
 
     Isolation collapse in this two-task payoff is partly *by construction*
     (a singleton cannot supply both complementary tasks). That is not evolved
-    loss of lower-level autonomy (Goldsby 2012 / Conlin 2023). Conflict
+    loss of lower-level autonomy. Conflict
     suppression and germline sequestration stay non-endogenous.
     """
 

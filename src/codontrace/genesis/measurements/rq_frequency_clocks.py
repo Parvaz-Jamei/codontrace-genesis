@@ -1,8 +1,8 @@
 """Lagged frequency clocks for Red Queen / NFDS measurement (Fork A scaffold).
 
-Dybdahl & Lively (1998) style lagged association between host class
+Lagged association between host class
 frequencies and parasite class pressure, plus dense-series extractors and a
-simple phase/lag summary. Ashby (2020): polymorphism / cycle ≠ RQD.
+simple phase/lag summary. A polymorphism or a cycle alone is not RQD.
 
 Measurement vocabulary (2026-09-28 split)
 ----------------------------------------
@@ -725,18 +725,16 @@ def lagged_nfds_score(
 # ``lagged_nfds_score`` stays the historical pooled Pearson. The function below
 # is a separately versioned estimand. It does not edit archived numbers.
 #
-# Dybdahl & Lively (1998), Evolution 52(4):1057–1066,
-# doi:10.1111/j.1558-5646.1998.tb01833.x, correlated *changes* in clone
-# frequency with a lagged change in infection, and the association peaked at a
-# lag rather than at the same generation. Pooling every class×time pair lets a
+# The field signature is correlated *changes* in clone frequency with a
+# lagged change in infection, with the association peaking at a lag rather
+# than at the same generation. Pooling every class×time pair lets a
 # constant between-class contrast impersonate that result.
 #
 # The within-class correlation removes each class mean first (the panel within
 # transformation), so a time-invariant difference between classes cannot pass.
 # A circular shift of the parasite series, applied once to every class, is the
 # predetermined null: it keeps each series' autocorrelation and the
-# cross-class composition (Theiler et al. 1992, Physica D 58:77–94, surrogate
-# principle). The observed alignment is included, so the test cannot reject at
+# cross-class composition (a surrogate-data test). The observed alignment is included, so the test cannot reject at
 # alpha 0.05 with fewer than 20 paired times. That floor is locked here; a
 # caller cannot lower it by adding classes or by passing a smaller minimum.
 #

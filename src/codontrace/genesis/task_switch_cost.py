@@ -1,4 +1,4 @@
-"""E3 task-switch cost knob for HARD_EXPERIMENT_03 (Goldsby et al. 2012 PNAS).
+"""E3 task-switch cost knob for HARD_EXPERIMENT_03.
 
 Default-off. When enabled, consecutive switches between dual-resource tasks A/B
 incur ``switch_cost_atp`` (Goldsby 0 / ~25 / ~50 cycle analogues mapped to ATP).
@@ -20,7 +20,7 @@ from codontrace.genesis.canonical import canonical_digest, require_finite_float
 TASK_A = "TASK_A"
 TASK_B = "TASK_B"
 
-# Goldsby 2012 CPU-cycle delay analogues → ATP (1 ATP ≈ 100 cycles).
+# CPU-cycle delay analogues → ATP (1 ATP ≈ 100 cycles).
 SWITCH_COST_ATP_COST_0 = 0.0
 SWITCH_COST_ATP_MODERATE = 0.25  # ≈ 25-cycle analogue
 SWITCH_COST_ATP_HIGH = 0.50  # ≈ 50-cycle analogue

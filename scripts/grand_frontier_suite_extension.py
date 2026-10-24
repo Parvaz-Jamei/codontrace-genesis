@@ -7,13 +7,9 @@ scientific frontier challenges targeting open, unsolved problems in evolutionary
 artificial life, and complex adaptive systems:
 
 - Challenge 5: [FUNCTIONAL_INFO] Functional Information Accretion & Neutral Network Percolation
-  (Hazen et al. 2007, Adami & Cerf 2000, Wagner 2008)
-- Challenge 6: [QUASISPECIES] Eigen's Error Catastrophe & Quasispecies Critical Threshold
-  (Eigen 1971, Nowak 2006, Wilke 2005)
+- Challenge 6: [QUASISPECIES] Error Catastrophe & Quasispecies Critical Threshold
 - Challenge 7: [OEE_SHADOW] Open-Ended Evolutionary Activity & Neutral Shadow Divergence
-  (Bedau et al. 1998, Taylor et al. 2016, Channon 2024)
 - Challenge 8: [FISHER_GEOMETRIC] Fisher's Geometric Model & Distribution of Fitness Effects (DFE)
-  (Fisher 1930, Orr 2005, Tenaillon 2014)
 
 Fully integrated with the CodonTrace Console (status.json, live.log, console.log, execution.json).
 Epistemic invariants locked: red_queen_proved=False, open_ended_intelligence=False.
@@ -22,8 +18,8 @@ EXECUTION BOUNDARY & ARCHITECTURAL CLASSIFICATION:
 Backend: FRONTIER_REFERENCE_MODEL (Independent Mathematical Benchmarks)
 Engine Substrate: Standalone computational biology reference models (Challenges 5-8).
 Boundary Separation: This extension executes isolated reference models for functional
-information (Hazen et al.), quasispecies error threshold (Eigen), neutral shadow activity
-(Bedau et al.), and Fisher's geometric model. It does NOT execute the codon-translating
+information, the quasispecies error threshold, neutral shadow activity,
+and Fisher's geometric model. It does NOT execute the codon-translating
 GenesisEngine virtual machine. For full digital organism codon execution, use GenesisEngine.
 """
 
@@ -179,7 +175,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
 
             epoch += 1
 
-            # Multi-locus Shannon Entropy & Sequence Information (Adami & Cerf 2000)
+            # Multi-locus Shannon Entropy & Sequence Information
             total_entropy = 0.0
             for pos in range(genome_len):
                 col = [seq[pos] for seq in population]
@@ -632,7 +628,7 @@ def run_worker_7_oee_shadow(output_dir: Path, duration_hours: float, core_id: in
             scores_real = [seq.count("101") * 3 + seq.count("010") * 2 for seq in pop_real]
             fit_real = [max(0.1, s + 1.0) for s in scores_real]
 
-            # Shadow population: Neutral random fitness (drift only, Bedau 1998)
+            # Shadow population: Neutral random fitness (drift only)
             freq_real = Counter(pop_real)
             freq_shadow = Counter(pop_shadow)
 
@@ -841,7 +837,7 @@ def run_worker_8_fisher_geometric(output_dir: Path, duration_hours: float, core_
 
             epoch += 1
 
-            # Environmental shift every 500 epochs (moving optimum, Orr 2005)
+            # Environmental shift every 500 epochs (moving optimum)
             if epoch % 500 == 0:
                 shift_dim = prng_int(seed, epoch, "c8_shift_dim", 0, dimensions - 1)
                 optimum[shift_dim] += 0.5

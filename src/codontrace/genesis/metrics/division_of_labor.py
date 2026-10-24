@@ -1,12 +1,10 @@
-"""Gorelick et al. 2004 normalized mutual information / entropy for DoL.
+"""Normalized mutual information / entropy for division of labor (DoL).
 
 Confirmatory HARD_EXPERIMENT_03 metric. Non-NMI DoL proxies elsewhere remain
 **legacy** and are not confirmatory for HE03.
 
-Literature:
-- Gorelick, Bertram, Killeen, Fewell (2004). Am Nat 164:677–682.
-- Gorelick & Bertram (2007). Insectes Sociaux (NMI/NME for DoL).
-- Goldsby et al. (2012). PNAS (uses Gorelick MI on individual×task matrices).
+The statistic is the mutual information of an individual×task count matrix,
+normalized by the task entropy.
 """
 
 from __future__ import annotations

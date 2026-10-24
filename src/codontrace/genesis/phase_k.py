@@ -9,8 +9,8 @@ None of this auto-sets ClaimGate flags. Smoke never earns flags.
 ``collective_intelligence`` / ``intelligence`` / AGI stay blocked.
 ``major_transition_in_individuality`` stays False.
 
-Claim ceiling: ``runtime_observation``. This is not Avida C++, not a PNAS
-50-replicate paper, and not a Price 1970/1972 empirical study.
+Claim ceiling: ``runtime_observation``. This is not Avida C++, not a published
+50-replicate study, and not an empirical Price-equation study.
 """
 
 from __future__ import annotations
@@ -1120,7 +1120,7 @@ class MultiGenerationPricePartition:
 
     ``transmission_term_estimated`` is True because parent–offspring Δz is
     recorded after mutation. ``price_equation_complete`` stays False: this is
-    analog bookkeeping, not a Price 1970/1972 empirical paper.
+    analog bookkeeping, not an empirical Price-equation study.
     """
 
     n_generations: int

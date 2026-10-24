@@ -2,8 +2,8 @@
 
 Time-sliced range trajectories produce pairwise-distinct slice digests and a
 transition protocol (not a Phase-5 enum alone). Cost-of-generalism proxies pair
-infectivity/resistance breadth with a specialization score (Koskella &
-Brockhurst 2014 / Hall 2011 digital honesty map). Dual-null arms can falsify
+infectivity/resistance breadth with a specialization score (a digital honesty
+map, not wet identity). Dual-null arms can falsify
 “dynamics always ARD under parasitism.” ``red_queen_proved`` is always False.
 No wet ARD/FSD identity, phage therapy, or clinical claim.
 """

@@ -1,16 +1,15 @@
-"""Channon 2024 Tokyo Type 1 OEE *measurement* protocol.
+"""Tokyo Type 1 OEE *measurement* protocol.
 
-This module runs the measurement-step vocabulary from Alastair Channon,
-"A Procedure for Testing for Tokyo Type 1 Open-Ended Evolution"
-(*Artificial Life*, 2024), using Phase D MODES / Bedau / OEE metric surfaces
+This module runs the published measurement-step vocabulary for testing Tokyo
+Type 1 open-ended evolution, using Phase D MODES / activity / OEE metric surfaces
 when present.
 
 It does **not** pass Tokyo Type 1. The claim ceiling is
 ``tokyo_type1_measurement_only``. ``tokyo_type1_passed`` is blocked by
 construction and by :class:`~codontrace.genesis.claim_gate.ScientificClaimGate`.
 
-Packard et al. 2019 (Tokyo types overview) is the taxonomy this procedure
-sits under. Borg et al. 2023 cultural OEE is cited only and is out of scope.
+The Tokyo types taxonomy is the frame this procedure sits under. Cultural
+OEE is out of scope.
 """
 
 from __future__ import annotations
@@ -110,7 +109,7 @@ def _optional_digest(value: object) -> str:
 
 @dataclass(frozen=True, slots=True)
 class TokyoType1StepResult:
-    """One Channon-2024 measurement step. Never a Type 1 pass bit."""
+    """One Tokyo Type 1 measurement step. Never a Type 1 pass bit."""
 
     step_id: str
     label: str
@@ -148,7 +147,7 @@ class TokyoType1StepResult:
 
 @dataclass(frozen=True, slots=True)
 class TokyoType1MeasurementProtocol:
-    """Channon-2024 measurement protocol object. Claim-gated; pass blocked.
+    """Tokyo Type 1 measurement protocol object. Claim-gated; pass blocked.
 
     Multi-seed is required for any status string above ``measurement_only``.
     Even then the ceiling stays ``tokyo_type1_measurement_only``.
@@ -285,7 +284,7 @@ def build_tokyo_type1_measurement_protocol(
     empirical_systematics_shadow_run: bool = False,
     persistence_window_t: int | None = None,
 ) -> TokyoType1MeasurementProtocol:
-    """Build a Channon-2024 measurement protocol from a Phase D pack when present.
+    """Build a Tokyo Type 1 measurement protocol from a Phase D pack when present.
 
     ``pack`` may be a ``MultiGenerationEvidencePack`` or ``None`` (empty measurement
     scaffold). Shadow/normalization is recorded as ``unavailable`` unless a real
@@ -468,7 +467,7 @@ class TokyoType1SeedRecord:
 
 @dataclass(frozen=True, slots=True)
 class TokyoType1MeasurementCampaign:
-    """≥2-seed Channon-2024 measurement campaign. Pass remains blocked."""
+    """≥2-seed Tokyo Type 1 measurement campaign. Pass remains blocked."""
 
     seeds: tuple[int, ...]
     seed_records: tuple[TokyoType1SeedRecord, ...]

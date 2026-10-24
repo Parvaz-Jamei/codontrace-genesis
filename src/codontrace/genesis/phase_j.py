@@ -96,7 +96,7 @@ def _campaign_digest(campaign: object) -> str:
 
 
 def population_covariance(xs: Sequence[float], ys: Sequence[float]) -> float:
-    """Population covariance (Price 1970 moment: divide by n, not n-1)."""
+    """Population covariance (Price-equation moment: divide by n, not n-1)."""
 
     if len(xs) != len(ys):
         raise ConfigurationError("covariance vectors must be the same length.")

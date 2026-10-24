@@ -65,14 +65,14 @@ class CausalValidationConfig:
 ASSOCIATION_ESTIMATOR = "fisher_exact_independent_v1"
 HISTORICAL_ASSOCIATION_ESTIMATOR = "circular_shift_empty_rate_v0"
 STRATA_AGGREGATION_RULE = "bonferroni_eligible_strata_v1"
-# Fisher (1922, JRSS 85:87–94) is an exact test of independence in a 2×2 table
+# Fisher's exact test is an exact test of independence in a 2×2 table
 # when the records are exchangeable and the margins are conditioned on. A
 # circular shift of the action labels is not that test: it only visits n
 # rotations, and the historical helper also treated a missing group as rate 0.
 # Ordered trials are not exchangeable records, so a temporal series does not
 # inherit this p-value. Eligible strata are those with both exposure groups
 # and at least ``min_samples`` rows; their family-wise threshold is
-# alpha / n_eligible (Bonferroni; Dunn 1961, JASA 56:52–64). The threshold is
+# alpha / n_eligible (Bonferroni). The threshold is
 # never lowered to fit a small stratum.
 RECORD_STRUCTURES = ("unspecified", "independent", "temporal")
 
@@ -887,7 +887,7 @@ def granger_lite_probe(
 
     For each lag that has at least one residual degree of freedom, compare a
     restricted regression of the target on its own lag with an unrestricted
-    regression that also includes the source lag (Granger 1969, the comparison
+    regression that also includes the source lag (the Granger comparison
     only; there is no F test and no causal claim). ``predictive_gain`` is the
     fractional drop in residual sum of squares. A non-zero slope of the source
     is not that drop. ``tested_lags`` lists only lags that were fit. Empty
@@ -1303,7 +1303,7 @@ class CausalEvidenceReport:
         """True only when this package would not be rejected by the ClaimGate rules it can check.
 
         Those rules are the ones in ``claimgate.auditor``: no pseudoreplication
-        (Hurlbert 1984), a defined interval that excludes zero, and at least
+        (subsamples are not replicates), a defined interval that excludes zero, and at least
         ``INDEPENDENT_RUN_FLOOR`` independent units (the same floor as
         ``LEVEL4_MIN_SEEDS``). A self-declared ``isolated_factor`` is not enough.
         ``failure_status == "passed"`` means the rows were usable. It is not itself

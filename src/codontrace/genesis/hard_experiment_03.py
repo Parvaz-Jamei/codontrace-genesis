@@ -1,8 +1,8 @@
 """HARD_EXPERIMENT_03: task-switch costs → division of labor (E3).
 
 Prereg: ``docs/HARD_EXPERIMENT_03_PREREG.md`` (draft-lock 2026-09-17).
-Literature: Goldsby et al. 2012 PNAS; Gorelick & Bertram 2007; Montanier /
-Boumaza 2021 inform IsolationAssay design only (not collective intelligence).
+Task-switch cost, normalized mutual information for division of labor, and
+isolation assays inform the IsolationAssay design only (not collective intelligence).
 
 ClaimGate ceiling starts at ``runtime_observation``. Forbidden aliases stay
 blocked. Phase A–E ``life_loop_world`` pins are unchanged when HE03 knobs are off.

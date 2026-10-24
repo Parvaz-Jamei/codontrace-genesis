@@ -264,7 +264,7 @@ class HostParasiteEnv:
     def infection_eligible(
         self, host_tasks: Sequence[str], parasite_tasks: Sequence[str]
     ) -> tuple[bool, tuple[str, ...]]:
-        """Task-overlap rule (Fortuna et al. 2021 analogy).
+        """Task-overlap rule (infection needs a shared task).
 
         Structure-null forces ineligibility regardless of overlap.
         """
@@ -350,7 +350,7 @@ class HostParasiteEnv:
             )
             self.attempts.append(attempt)
             return attempt
-        # Thin Holling handling-time gate (Holling 1959): while the digital
+        # Thin Holling handling-time gate: while the digital
         # antagonist is busy handling a prior capture, further inject attempts
         # are refused. handling_time=0 disables the gate (ablation off).
         if self.handling_time > 0.0 and self._handling_busy_remaining > 0.0:

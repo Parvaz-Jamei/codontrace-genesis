@@ -4,8 +4,7 @@ Frames are first restricted to fresh, online, positive-quality scalar frames
 of one quantity and unit, then to a window of ``max_span_ms`` before the
 newest sample. Frames with different measurement semantics (feature id,
 measurement model, model id) are not fused. Spread is reported as the median
-absolute deviation about the median (MAD; Leys et al. 2013,
-doi:10.1016/j.jesp.2013.03.013), unscaled. The estimate is descriptive: no
+absolute deviation about the median (MAD), unscaled. The estimate is descriptive: no
 confidence interval is claimed.
 """
 from __future__ import annotations

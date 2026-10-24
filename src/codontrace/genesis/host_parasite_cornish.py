@@ -1,8 +1,9 @@
-"""Cornish-style observational vs interventional multi-arm campaign (Phase 9).
+"""Observational vs interventional multi-arm campaign (Phase 9).
 
 Preregistered arms separate *observational match* from *declared interventions*.
 ClaimGate attach never grants ``intervention_supported`` from observational
-match alone (Cornish et al. JMLR 27(152) 2026 / arXiv:2301.07210 analogy).
+match alone: matching what was observed does not show what an intervention
+would do.
 
 Digital scope only. Does not modify ``engine.py``. Does not prove Red Queen,
 CRISPR identity, phage therapy, vaccine effect, epidemic forecast, BSL,

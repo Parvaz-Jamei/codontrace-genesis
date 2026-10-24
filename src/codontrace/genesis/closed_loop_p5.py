@@ -7,7 +7,7 @@ sex-specific debit.
 
 This is NOT Maynard Smith's two-fold cost. That switch stays
 ``SexualRecombinationConfig.two_fold_cost_sex`` and defaults off, so both
-recombinants are still placed. It is NOT the Morran 2011 result and does not
+recombinants are still placed. It is NOT the host-pathogen passage result and does not
 set ``red_queen_proved``.
 """
 

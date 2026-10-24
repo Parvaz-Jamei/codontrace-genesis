@@ -12,9 +12,8 @@ kept apart because their floating-point results differ:
 
 Qualification accepts a candidate whose gain exceeds ``minimum_gain``;
 monitoring advises falling back when the gain drops below
-``-maximum_regression``. This is an engineering comparison (cf. shadow and
-champion/challenger deployment in Kohavi, Tang & Xu 2020, "Trustworthy
-Online Controlled Experiments", doi:10.1017/9781108653985); it carries no
+``-maximum_regression``. This is an engineering comparison (like shadow and
+champion/challenger deployment in online experiments); it carries no
 statistical safety guarantee and performs no deployment.
 """
 from __future__ import annotations

@@ -207,7 +207,7 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "associative_learning_proved",
     "odometry_proved",
     "deme_intelligence_proved",
-    # Channon 2024 Tokyo Type 1 vocabulary is measurement-only. Never pass Type 1.
+    # Tokyo Type 1 vocabulary is measurement-only. Never pass Type 1.
     "tokyo_type1_passed",
     "tokyo_type_1_passed",
     "tokyo_type1_oee_proved",
@@ -229,8 +229,8 @@ _FORBIDDEN_ALIASES: tuple[str, ...] = (
     "chebi_binding_proved",
 )
 
-# Channon 2024 Artif Life: Bedau activity + shadow normalization as *measurement
-# hooks*. Pack-level requests alias to oee_measurement_only; recorded Channon
+# Evolutionary activity + shadow normalization as *measurement
+# hooks*. Pack-level requests alias to oee_measurement_only; recorded Type 1
 # steps may keep tokyo_type1_measurement_only. CLIP/ASAL OE is not implemented.
 TOKYO_TYPE1_MEASUREMENT_CLAIM = "tokyo_type1_measurement_only"
 
@@ -720,7 +720,7 @@ class ScientificClaimGate:
         normalized = normalize_claim_label(request.claim)
         canonical = self._aliases.get(normalized, normalized)
         # Pack-level cheap hook: tokyo_type1_measurement_only aliases to
-        # oee_measurement_only. Protocol objects that recorded Channon 2024
+        # oee_measurement_only. Protocol objects that recorded the Type 1
         # steps keep the first-class measurement ceiling. Pass claims stay
         # forbidden either way.
         if (

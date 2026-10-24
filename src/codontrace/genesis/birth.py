@@ -154,8 +154,7 @@ _BIRTH_CHAMBER_PAIRING_POLICIES = {"birth_chamber", "nearest_mate"}
 class SexualRecombinationConfig:
     """peer-compatible sexual recombination controls (opt-in).
 
-    Field names follow ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP``
-    (Misevic, Ofria, Lenski 2006 Proc B; Ofria & Wilke 2004):
+    Field names follow ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP``:
 
     - ``recombination_prob`` ← ``RECOMBINATION_PROB`` (default 1.0)
     - ``max_birth_wait_ticks`` ← ``MAX_BIRTH_WAIT_TIME`` (``None`` / -1 = unlimited)

@@ -236,3 +236,70 @@ def test_manifest_provenance_round_trips_without_touching_the_digest() -> None:
     assert "unhashed_provenance" not in base.to_record()
     back = RunManifest.from_dict(tagged.to_record())
     assert back.life_plugin_provenance == tagged.life_plugin_provenance and back.digest() == base.digest()
+
+
+def test_run_files_carry_the_plugin_identity_outside_the_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """F6b: the plugin's module:qualname and distribution version reach disk."""
+    import json
+    from importlib.metadata import version
+
+    from codontrace.engine import GenesisEngine
+    from codontrace.genesis.artifacts import JsonArtifactExporter, ReplayBundle, RunArtifactSchema
+    from codontrace.genesis.runtime_profiles import GenesisRuntimeProfile
+
+    monkeypatch.setenv("CODONTRACE_SOURCE_ROOT", str(tmp_path))
+    spec = GenesisRuntimeProfile.life_loop_world(seed=7, tick_count=6, population=4)
+    result = GenesisEngine.from_spec(spec).run_ticks()
+    expected = {
+        "name": "host_parasite",
+        "target": "codontrace.genesis.host_parasite_life_plugin:HostParasiteLifePlugin",
+        "distribution": "codontrace",
+        "version": version("codontrace"),
+    }
+
+    path = tmp_path / "run.json"
+    path.write_text(json.dumps(result.to_record(), sort_keys=True), encoding="utf-8")
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    for block in (on_disk["manifest"], on_disk["evidence_pack"]["manifest"], on_disk["replay_bundle"]["manifest"]):
+        assert block["unhashed_provenance"]["life_plugin"] == expected
+
+    # The digest is still the one over to_dict(), which has no provenance.
+    assert "unhashed_provenance" not in json.dumps(result.to_dict())
+    from dataclasses import replace
+
+    assert result.manifest.digest() == replace(result.manifest, life_plugin_provenance=None).digest()
+
+    exporter = JsonArtifactExporter(indent=None)
+    for artifact, cls in ((result.evidence_pack, RunArtifactSchema), (result.replay_bundle, ReplayBundle)):
+        text = exporter.export(artifact)
+        assert json.loads(text)["manifest"]["unhashed_provenance"]["life_plugin"] == expected
+        assert artifact.digest() == cls.digest(artifact)
+    back = ReplayBundle.from_dict(json.loads(exporter.export(result.replay_bundle)))
+    assert back.manifest.life_plugin_provenance == expected
+    assert back.manifest.digest() == result.replay_bundle.manifest.digest()
+
+
+def test_fake_codontrace_plugin_is_refused_by_an_empty_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """F6b: a reserved name cannot be taken by a class that only claims a codontrace module."""
+    real = get_life_plugin("host_parasite")
+    monkeypatch.setattr(life_plugins, "_REGISTRY", {})
+
+    class Fake(type(real)):  # type: ignore[misc]
+        pass
+
+    claims = [
+        # The real plugin module, but a class it does not define.
+        ("codontrace.genesis.host_parasite_life_plugin", "Fake"),
+        # The real module and the real class name: still not that class.
+        ("codontrace.genesis.host_parasite_life_plugin", "HostParasiteLifePlugin"),
+        # A codontrace module that does not exist.
+        ("codontrace.genesis.not_a_module", "Fake"),
+    ]
+    for module, qualname in claims:
+        Fake.__module__, Fake.__qualname__ = module, qualname
+        with pytest.raises(ConfigurationError, match="reserved"):
+            register_life_plugin(Fake())
+        assert life_plugins._REGISTRY == {}
+    # The genuine plugin is still accepted into the empty registry.
+    register_life_plugin(real)
+    assert get_life_plugin("host_parasite") is real

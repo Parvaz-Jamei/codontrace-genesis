@@ -270,6 +270,21 @@ class RunManifest:
     review_status: ReviewStatus = field(default_factory=ReviewStatus)
     started_at: str | None = None
     ended_at: str | None = None
+    # Provenance of the life plugin that ran (name, module:qualname,
+    # distribution, version). Deliberately kept out of to_dict(), and so out of
+    # digest() and every run/result digest built on it: the installed version
+    # changes with each release while the simulation does not, and folding it in
+    # would break every pinned digest. It is exported by to_record() under
+    # "unhashed_provenance". The plugin's behaviour is already covered by the
+    # config hashes; this field only answers "which code supplied it".
+    life_plugin_provenance: Mapping[str, str | None] | None = field(default=None, compare=False)
+
+    def to_record(self) -> dict[str, JsonValue]:
+        """to_dict() plus the unhashed provenance block, for files on disk."""
+        record = self.to_dict()
+        if self.life_plugin_provenance is not None:
+            record["unhashed_provenance"] = {"life_plugin": dict(sorted(self.life_plugin_provenance.items()))}
+        return record
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -555,6 +570,15 @@ def utc_timestamp() -> str:
 
 # Conservative from_dict helpers are attached after class creation to keep the
 # dataclasses compact and make replay tests explicit.
+def _life_plugin_provenance_from(raw: JsonValue | None) -> dict[str, str | None] | None:
+    if not isinstance(raw, Mapping):
+        return None
+    block = raw.get("life_plugin")
+    if not isinstance(block, Mapping):
+        return None
+    return {str(k): None if v is None else str(v) for k, v in block.items()}
+
+
 def _run_manifest_from_dict(cls: type[RunManifest], data: Mapping[str, JsonValue]) -> RunManifest:
     review_raw = data.get("review_status")
     review = (
@@ -573,6 +597,7 @@ def _run_manifest_from_dict(cls: type[RunManifest], data: Mapping[str, JsonValue
         tick_count=_int(data, "tick_count", 0),
         replay_digest=_str(data, "replay_digest"),
         runtime_hashes=_string_optional_mapping(data.get("runtime_hashes")),
+        life_plugin_provenance=_life_plugin_provenance_from(data.get("unhashed_provenance")),
         source_digest=_optional_str(data.get("source_digest")),
         rng_backend_kind=_optional_str(data.get("rng_backend_kind")),
         rng_namespace=_optional_str(data.get("rng_namespace")),

@@ -7,13 +7,13 @@ Never claims gene identity, CRISPR identity, or wet locus proof. Same
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_task_gene_map_v1"
 _ALLOWED_CEILINGS = frozenset({"runtime_observation", "candidate_evidence"})
@@ -25,7 +25,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,7 +1,6 @@
-"""Zaman-style freeze / replay / reciprocal coevolution contrast (Phase 7).
+"""Freeze / replay / reciprocal coevolution contrast (Phase 7).
 
-Three *distinct* digital campaign arms (Zaman et al. 2014
-doi:10.1371/journal.pbio.1002023 analogy):
+Three *distinct* digital campaign arms (frozen-history analogy):
 
 - ``freeze_parasites`` — parasite tasks/payload frozen at t0; hosts update;
   frozen parasites inject against updated hosts.
@@ -20,7 +19,6 @@ Does not modify ``engine.py``.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -30,6 +28,7 @@ from codontrace.genesis.host_parasite_env import (
     DEFAULT_STEAL_FRACTION,
     HostParasiteEnv,
 )
+from codontrace.rng import RNGManager
 
 ZAMAN_ARMS = frozenset(
     {
@@ -146,7 +145,7 @@ def _require_zaman_arms(arms: Sequence[str] | None) -> tuple[str, ...]:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _schedule_for_seed(seed: int, steps: int) -> tuple[tuple[tuple[str, ...], tuple[int, ...]], ...]:
@@ -173,7 +172,7 @@ def _host_expand(
     """Digital repertoire update: add up to ``expansion_budget`` tasks under pressure.
 
     Freeze arms use budget 1 (hosts evolve against a fixed parasite). Reciprocal
-    arms use budget 2 when parasites co-adapt (digital Zaman analogue). Replay
+    arms use budget 2 when parasites co-adapt (digital freeze/replay analogue). Replay
     schedule uses pressure=False so cardinality stays flat. Never proves
     complexity emergence.
     """
@@ -299,7 +298,7 @@ class ZamanArmResult:
 
 @dataclass(frozen=True, slots=True)
 class ZamanCampaignResult:
-    """Three-arm Zaman contrast with per-arm digests; complexity unproved."""
+    """Three-arm freeze/replay contrast with per-arm digests; complexity unproved."""
 
     schema: str
     seeds: tuple[int, ...]

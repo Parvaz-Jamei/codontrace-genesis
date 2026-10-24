@@ -178,6 +178,62 @@ class RNGManager:
         )
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    # Hash-based counter PRNG streams. Draw n is the SHA-256 digest of the
+    # UTF-8 string f"{seed}:{n}:{salt}" (seed and n as decimal integers); the
+    # version-2 integer stream hashes f"v2:{seed}:{n}:{salt}:{attempt}".
+    # There is no separate key: seed, counter and salt are all part of the one
+    # hashed string. It is not Philox or Threefry.
+    # These streams are stateless, so a draw can be replayed at any counter
+    # without a snapshot. Every module that needs a seeded hash stream calls
+    # one of these methods, so RNGManager is the single RNG source.
+    # The formulas are the ones the callers used before (bit-identical).
+
+    @staticmethod
+    def counter_block(data: bytes) -> bytes:
+        """One SHA-256 block of the stream for raw key bytes (also used for chaining)."""
+        return hashlib.sha256(data).digest()
+
+    @staticmethod
+    def counter_digest(key: str) -> bytes:
+        """The 32-byte SHA-256 block for an explicit stream key (the caller's key format)."""
+        return hashlib.sha256(key.encode()).digest()
+
+    @staticmethod
+    def counter_seed_bytes(seed: int, salt: str) -> bytes:
+        """``SHA-256(f"{int(seed)}|{salt}")``: the host-parasite modules' seed stream."""
+        return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+
+    @staticmethod
+    def counter_float(seed: int, step: int, salt: str) -> float:
+        """Deterministic float in [0.0, 1.0) from SHA-256 of ``seed:step:salt``."""
+        digest = hashlib.sha256(f"{int(seed)}:{int(step)}:{salt}".encode()).digest()
+        return int.from_bytes(digest[:4], "big") / 4294967296.0
+
+    @staticmethod
+    def counter_int(seed: int, step: int, salt: str, min_val: int, max_val: int) -> int:
+        """Legacy integer in [min_val, max_val]: modulo of ``counter_float`` (slightly biased)."""
+        if max_val < min_val:
+            raise ValueError(f"max_val ({max_val}) must be >= min_val ({min_val})")
+        span = max_val - min_val + 1
+        return min_val + int(RNGManager.counter_float(seed, step, salt) * span) % span
+
+    @staticmethod
+    def counter_int_unbiased(seed: int, step: int, salt: str, min_val: int, max_val: int) -> int:
+        """Version-2 integer in [min_val, max_val] by rejection sampling on 256-bit words."""
+        if max_val < min_val:
+            raise ValueError("max_val must be >= min_val")
+        span = max_val - min_val + 1
+        if span > 1 << 256:
+            raise ValueError("integer range exceeds the version2 stream width")
+        limit = (1 << 256) - ((1 << 256) % span)
+        attempt = 0
+        while True:
+            data = f"v2:{int(seed)}:{int(step)}:{salt}:{attempt}".encode()
+            value = int.from_bytes(hashlib.sha256(data).digest(), "big")
+            if value < limit:
+                return min_val + value % span
+            attempt += 1
+
     @staticmethod
     def _material(seed: int | None, namespace: str) -> int:
         digest = hashlib.sha256(f"{seed!r}:{namespace}".encode()).hexdigest()

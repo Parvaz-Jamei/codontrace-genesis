@@ -18,6 +18,7 @@ from dataclasses import dataclass, replace
 from codontrace._types import JsonValue
 from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.life_plugins import register_life_plugin
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.rng import RNGManager
 
@@ -71,7 +72,7 @@ class ClosedLoopHPLifeConfig:
     # unlocked roles mutate here at this rate (None → use mutation_config as-is).
     plugin_bit_flip_rate: float | None = None
     # P5: heritable outcross locus. Off leaves P1–P4 byte-identical.
-    # Cost is mating-effort ATP, NOT Maynard Smith's two-fold cost
+    # Cost is mating-effort ATP, NOT the classic two-fold cost
     # (that remains SexualRecombinationConfig.two_fold_cost_sex, default off).
     outcross_enabled: bool = False
     outcross_ablate: bool = False
@@ -658,3 +659,84 @@ __all__ = [
     "apply_closed_loop_hp_life",
     "mating_codon_of",
 ]
+
+
+class HostParasiteLifePlugin:
+    """The host-parasite closed loop as a ``codontrace.life_plugins`` entry.
+
+    Each hook delegates to the module function of the same behaviour, so the
+    engine calls exactly the code it called before the registry existed.
+    """
+
+    name = "host_parasite"
+
+    def default_config(self) -> ClosedLoopHPLifeConfig:
+        return ClosedLoopHPLifeConfig()
+
+    def config_from_dict(self, data: Mapping[str, object]) -> ClosedLoopHPLifeConfig:
+        return ClosedLoopHPLifeConfig.from_dict(data)
+
+    def apply_life(
+        self, organisms: Sequence[GenesisOrganism], *, config: ClosedLoopHPLifeConfig, stream: RNGManager,
+        mutation_config: object, tick: int,
+    ) -> list[GenesisOrganism]:
+        return apply_closed_loop_hp_life(
+            organisms, config=config, stream=stream, mutation_config=mutation_config, tick=tick
+        )
+
+    def silence_locus(self, organism: GenesisOrganism, config: ClosedLoopHPLifeConfig) -> None:
+        if config.outcross_enabled or config.match_locus_enabled:
+            silence_outcross_locus(organism, config)
+
+    def resolve_copy_self_mode(self, genome_bits: str, config: ClosedLoopHPLifeConfig) -> str:
+        return resolve_copy_self_mode(genome_bits, config)
+
+    def copy_self_chamber_refusal(
+        self, genome_bits: str, config: ClosedLoopHPLifeConfig, *, chamber_available: bool
+    ) -> str | None:
+        return copy_self_chamber_refusal(genome_bits, config, chamber_available=chamber_available)
+
+    def apply_mating_locus_lock(
+        self, child: GenesisOrganism, *, parent: GenesisOrganism, config: ClosedLoopHPLifeConfig
+    ) -> None:
+        apply_mating_locus_lock(child, parent=parent, config=config)
+
+    def apply_selfing_birth_endowment(
+        self, child: GenesisOrganism, *, config: ClosedLoopHPLifeConfig, tick: int
+    ) -> None:
+        apply_selfing_birth_endowment(child, config=config, tick=tick)
+
+    def mates_compatible(self, parent_a_id: str, parent_b_id: str, config: ClosedLoopHPLifeConfig) -> bool:
+        return outcross_mates_compatible(parent_a_id, parent_b_id, config)
+
+    def mates_within_search_radius(
+        self, position_a: tuple[int, int], position_b: tuple[int, int], *, radius: int | None
+    ) -> bool:
+        return mates_within_search_radius(position_a, position_b, radius=radius)
+
+    def outcross_entry_plan(
+        self, organism: GenesisOrganism, config: ClosedLoopHPLifeConfig, *,
+        remaining_after_parent_cost: float, projected_offspring_atp: float,
+    ) -> tuple[float, str | None]:
+        return outcross_entry_plan(
+            organism, config, remaining_after_parent_cost=remaining_after_parent_cost,
+            projected_offspring_atp=projected_offspring_atp,
+        )
+
+    def outcross_fee_debit(self, genome_bits: str, config: ClosedLoopHPLifeConfig) -> tuple[float, str, str] | None:
+        return outcross_fee_debit(genome_bits, config)
+
+
+
+def hp_life_config(value: object) -> ClosedLoopHPLifeConfig:
+    """Narrow an engine life-plugin config to this plugin's concrete type."""
+    if not isinstance(value, ClosedLoopHPLifeConfig):
+        raise ConfigurationError(f"expected ClosedLoopHPLifeConfig, got {type(value).__name__}")
+    return value
+
+
+PLUGIN = HostParasiteLifePlugin()
+# Explicit registration (review F5): importing this module makes the plugin
+# available without a string-based lazy import in the core. Installed
+# packages also declare it as an entry point (pyproject.toml).
+register_life_plugin(PLUGIN)

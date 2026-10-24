@@ -1,7 +1,6 @@
 """De-toy D6: type-III FR phase-locked rare panel (SF9-candidate).
 
-Digital analogue of Rabajante et al. 2016 *Science Advances*
-doi:10.1126/sciadv.1501548 — type-III saturating infection produces binary
+Digital analogue of the type-III rare-lock model — type-III saturating infection produces binary
 dominant oscillations while subordinate genotypes remain rare / phase-locked.
 
 Mechanism (port-local discrete IBM, not a byte-identical SciAdv ODE dump):
@@ -17,7 +16,6 @@ ClaimGate: red_queen_proved stays False even on SUCCESS.
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -30,6 +28,7 @@ from codontrace.genesis.host_parasite_type2_rq import (
     assert_no_super_host_or_parasite,
     build_diagonally_dominant_A,
 )
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_type3_rare_lock_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -43,7 +42,7 @@ SEEDS_DEFAULT: tuple[int, ...] = (101, 202, 303, 404, 505)
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _digest_body(body: Mapping[str, object]) -> str:

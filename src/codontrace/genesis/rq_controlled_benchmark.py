@@ -70,7 +70,7 @@ class Design:
 
 def stream(seed: int, generation: int, species: str) -> RNGManager:
     """Independent histories/species; common random numbers across paired arms."""
-    digest = hashlib.sha256(f"{SCHEMA}/{seed}/{generation}/{species}".encode()).digest()
+    digest = RNGManager.counter_digest(f"{SCHEMA}/{seed}/{generation}/{species}")
     return RNGManager(seed=int.from_bytes(digest, "big"), namespace=f"{species}_{generation}")
 
 

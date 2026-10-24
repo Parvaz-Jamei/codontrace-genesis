@@ -14,7 +14,7 @@ and writes installed host ids into the life role map. ``bit_flip_rate`` stays
 adaptation cut. ``parent_atp_cost`` stays the booted cost. Control: the
 adaptation cut keeps ``reproduction.enabled`` true and does not call
 ``freeze_host_genotypic_inheritance``. Source: the chamber phase 4b opened.
-Hall et al. 2011 full text was not read. Limit: virulence, steal fraction,
+Limit: virulence, steal fraction,
 maintenance, birth ATP, bolus, ``max_population``, and ``MEASUREMENT_FLOOR``
 are not retuned. Census stays 60 so a birth can fit under the cap of 64.
 Estimand: births can enter the lineage claim B reads. They are not ATP loss.
@@ -27,17 +27,16 @@ A/B genomes. ``constant_parasite`` uses ``PASSAGE_FROZEN`` so advance reseats
 founder parasite windows while the debit stays. ``adaptation_cut`` sets host
 bit-flip to 0, passage frozen, and a host-composition hold before contact.
 Control: ``PASSAGE_ABSENT`` is not used. The parasite population is not
-deleted. Source: Zaman et al. 2014 as read in PHASE1.md. Limit: the hold is
+deleted. Source: the frozen-history rule in PHASE1.md. Limit: the hold is
 only on the adaptation cut. Estimand: claim A uses the coevolve arm.
 
 Claims. Prediction: ``I(hosts_t, parasites_t) - I(hosts_t, parasites_{t-lag})``
 is positive. Claim B also needs genotype-frequency counts, real contact
 pressure, lineage relative fitness, and a sign reversal of ``I(A)-I(B)``.
 A census wave is not that conjunction. Engine path: ``infectivity`` calls
-``replay_archived_contact`` with evolution off. Source: Decaestecker et al.
-2007 as read in PHASE1.md (contemporary infectivity 0.65 versus previous
-0.55) and Papkou et al. 2019 as read there (time-shifts consistent with
-aFDS). Limit: importance is undeclared. The published 0.10 gap is not this
+``replay_archived_contact`` with evolution off. Source: the time-shift
+records in PHASE1.md (contemporary infectivity 0.65 versus previous 0.55,
+and time-shifts consistent with aFDS). Limit: importance is undeclared. The published 0.10 gap is not this
 engine's importance bound. The MDE is not importance. Estimand: null stays
 null. The public flag does not stand in for that in-model claim.
 
@@ -86,7 +85,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     StructuralRQArm,
 )
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE, PASSAGE_FROZEN
-from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY
+from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY, hp_life_config
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import LineageRecord
 from codontrace.genesis.rq_bidirectional_timeshift import (
@@ -604,8 +603,7 @@ def wilson_interval(successes: int, n: int, *, confidence: float = 0.95) -> dict
 
     The Wald standard error is recorded and is not the p-value. A zero Wald
     standard error does not delete the boundary or set p to 0.
-    Source: Brown, Cai, and DasGupta 2001, Statistical Science 16:101-133,
-    equation (4), the interval they recommend for small n.
+    The Wilson interval is the usual choice for small n.
     """
 
     count = int(n)
@@ -1086,7 +1084,7 @@ def enable_coevolution_birth_chamber(arm: StructuralRQArm) -> None:
     )
     if not chamber.uses_birth_chamber:
         raise ConfigurationError("outcross birth requires the birth chamber")
-    life = replace(configs.closed_loop_hp_life, role_by_id=tuple(sorted(arm.roles.items())))
+    life = replace(hp_life_config(configs.closed_loop_hp_life), role_by_id=tuple(sorted(arm.roles.items())))
     arm.runner.configs = replace(configs, sexual_recombination=chamber, closed_loop_hp_life=life)
     after = arm.runner.configs
     if not after.reproduction.enabled or float(after.reproduction.parent_atp_cost) != parent_cost:

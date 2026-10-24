@@ -1,22 +1,16 @@
 """De-toy D7: measurement-honesty pack + resource→phenotype-target dual-null.
 
-(a) Channon / MODES comparator: measurement-only ALLOWED vocabulary;
+(a) Tokyo Type 1 / MODES comparator: measurement-only ALLOWED vocabulary;
     tokyo_type1_passed and modes_passed* stay False forever on this port.
 (b) resource_productivity modulates abstract phenotype target harshness
-    (Lopez Pascua honesty map); dual-null kills the slope.
+    (productivity-dependent coevolution, as an honesty map); dual-null kills the slope.
 
-Literature:
-- Channon doi:10.1162/artl_a_00430
-- Dolson MODES doi:10.1162/artl_a_00280
-- Lopez Pascua doi:10.1111/j.1420-9101.2008.01501.x
-- ELE doi:10.1111/ele.12337
 
 Port-only; ClaimGate refuse list fail-closed.
 """
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -27,6 +21,7 @@ from codontrace.genesis.host_parasite_abstract_phenotype import (
     default_target_phenotype,
 )
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_measurement_resource_target_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -75,7 +70,7 @@ def _genome_for(seed: int) -> SemanticGenome:
 def harshness_from_resource(productivity: float) -> float:
     """Map resource productivity → target harshness in (0, 1].
 
-    Higher resources → softer target (lower harshness) — Lopez Pascua honesty
+    Higher resources → softer target (lower harshness) — resource-supply honesty
     map as a *digital* phenotype-target knob, not wet chemostat physics.
     """
 
@@ -101,7 +96,7 @@ def target_under_resource(
     base = list(default_target_phenotype(n_bins=n_bins, seed=seed))
     mid = 0.5
     if null_kind == "content_null":
-        digest = hashlib.sha256(f"content_null_flat|{seed}|{n_bins}".encode()).digest()
+        digest = RNGManager.counter_digest(f"content_null_flat|{seed}|{n_bins}")
         # Flat-ish scrambled target: no productivity dependence.
         scaled = [
             round(0.45 + 0.10 * (digest[i % len(digest)] / 255.0), 10)

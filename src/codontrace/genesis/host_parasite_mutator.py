@@ -1,15 +1,14 @@
-"""Phase 23 — Scanlan mutator / abiotic-constraint dual-null (earn-in).
+"""Phase 23 — mutator / abiotic-constraint dual-null (earn-in).
 
 Genome-layer mutation-rate factor crossed with coevolution vs abiotic arms.
 Designed so ``elevated_mutation_under_coevolution_always_improves_abiotic`` can
-fail (Scanlan et al. 2015 honesty map: coevolution can constrain
+fail (honesty map: coevolution can constrain
 abiotic-beneficial acquisition). ``gene_identity_proved`` stays False; no wet
 mutator-gene identity or CRISPR claim.
 """
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -21,6 +20,7 @@ from codontrace.metrics.diversity import (
     mean_genome_distance,
     unique_genome_count,
 )
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_scanlan_mutator_dual_null_v1"
 ARMS = (
@@ -38,7 +38,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _require_seeds(seeds: Sequence[int]) -> tuple[int, ...]:
@@ -267,7 +267,7 @@ def run_scanlan_mutator_campaign(
     host_count: int = 4,
     request_claim_ceiling: str = "runtime_observation",
 ) -> MutatorCampaignResult:
-    """Run Scanlan-style mutator × coevolution/abiotic dual-null campaign."""
+    """Run mutator × coevolution/abiotic dual-null campaign."""
 
     seed_tuple = _require_seeds(seeds)
     if steps < 1:

@@ -1,9 +1,9 @@
 """Optional Empirical-style shadow / null phylogeny adapter.
 
-Dolson et al. 2019 (MODES) count change/novelty/complexity/ecology only after a
+The MODES toolbox metrics count change/novelty/complexity/ecology only after a
 persistence filter. Empirical systematics notes make the coalescence-window
 subtlety explicit: a full phylogenetic systematics plus shadow/null run is the
-careful publication path (Bedau activity; Channon 2024 Tokyo Type 1 step_4
+careful publication path (evolutionary activity; Tokyo Type 1 step_4
 shadow/normalization).
 
 This module is an **opt-in Python analog**. Default is off. It produces a real
@@ -14,7 +14,6 @@ systematics port and **never** auto-passes Tokyo Type 1 / OEE / intelligence.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -29,6 +28,7 @@ from codontrace.genesis.multi_generation import (
     censuses_from_run,
     filter_persistent_lineages,
 )
+from codontrace.rng import RNGManager
 
 _PROTOCOL_SCHEMA = "empirical_systematics_shadow_v1"
 _CLAIM_CEILING = "oee_measurement_only"
@@ -199,8 +199,7 @@ def phylogeny_edges_from_censuses(
 
 def _stable_permutation(values: Sequence[str], *, seed: int, namespace: str) -> tuple[str, ...]:
     def _key(item: str) -> str:
-        payload = f"{namespace}:{seed}:{item}".encode()
-        return hashlib.sha256(payload).hexdigest()
+        return RNGManager.counter_digest(f"{namespace}:{seed}:{item}").hex()
 
     return tuple(sorted(values, key=_key))
 

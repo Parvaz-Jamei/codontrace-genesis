@@ -8,14 +8,10 @@ false.
 
 What was read before this file was added
 ----------------------------------------
-``runs/rq-mechanism-v2/PHASE1.md`` records the copies that were opened.
-Decaestecker et al. 2007 (KU Leuven Lirias letter) is the source for scoring
-infectivity with no evolution during the score. Papkou et al. 2019 (PMC6338873)
-is the source for not treating an antagonist pattern as proof by itself.
-Zaman et al. 2014 (PMC4267771) is the source for the sentence that a frozen
-genotype is not reciprocal coevolution. Hall et al. 2011 full text was not
-legally available; this panel does not quote it and does not fit a model to
-it. No sentence in this module is a new quotation from those papers.
+``runs/rq-mechanism-v2/PHASE1.md`` records what was read. Infectivity is
+scored with no evolution during the score. An antagonist pattern is not proof
+by itself. A frozen genotype is not reciprocal coevolution. This panel does
+not fit a model to any published data set.
 
 The seat rule, debit, credit, and frozen passage are the structural engine
 already in this tree. This module does not add a score for being common.
@@ -55,6 +51,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_PRIMARY,
     ROLE_SECONDARY,
     ClosedLoopHPLifeConfig,
+    hp_life_config,
     outcross_runtime_cost,
     silence_outcross_locus,
 )
@@ -499,7 +496,7 @@ def install_locked_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]
         )
         if _window(organism) != str(seat["window"]):
             raise ConfigurationError("installed genome does not decode to its window")
-        silence_outcross_locus(organism, arm.runner.configs.closed_loop_hp_life)
+        silence_outcross_locus(organism, hp_life_config(arm.runner.configs.closed_loop_hp_life))
         organisms.append(organism)
         roles[host_id] = ROLE_PRIMARY
     arm.runner.population = replace(

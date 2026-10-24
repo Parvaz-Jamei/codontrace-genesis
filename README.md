@@ -47,13 +47,13 @@ The record of the 29 September 2026 program is [`docs/experiments/2026-09-29/VER
 
 | Record | Standing verdict | What the scope actually is |
 |---|---|---|
-| RQ-1 time shift | `INCONCLUSIVE` | The locked pack still covers imported seeds 5701–5705. Seed 5706’s old log is partial. Seeds 5706–5708 were rerun on the current engine under `confirmatory/closure_2026-10-03/`; that rerun does not complete the locked commit `6187ff4`, which is not in this repository. Those closure files are aggregate summaries with `INCOMPLETE_PROVENANCE`. They are not a raw trajectory pack. |
+| RQ-1 time shift | `INCONCLUSIVE` | Seeds 5706–5708 were rerun at the locked commit `6187ff4`, which is in this repository (an earlier note said it was not; that was wrong). The runner was unchanged, and a control rerun of 5701 matches the archived raw exactly. The raw and an eight-seed rebuild are in `confirmatory/restored_2026-10-21/`. On all eight seeds, 3 of 8 receive the support label and the locked pattern is not met. The current-engine files under `closure_2026-10-03/` remain separate summaries with `INCOMPLETE_PROVENANCE`. |
 | RQ-3 adaptation route | `INCONCLUSIVE` | Seeds 21001 and 21011 remain energy-confounded pilots. Seeds 21061–21063 now have current-engine summaries under `closure_2026-10-03/`. On those three seeds the coevolving common-window share ends at 0 and does not beat the frozen arm. The files are `INCOMPLETE_PROVENANCE`: they do not replace the older quotation, and they do not support the hypothesis. |
 | D-2 recovery window | `BLOCKED_MEASUREMENT` | The locked 1.25× endpoint for three consecutive boundaries was not reached by the positive control. Zeros on the arms do not falsify an intervention. An earlier `FALSIFIED_IN_MODEL` is retained history, not the standing verdict. |
 | Sex-cost bracket | `INCONCLUSIVE` | The measured bracket c* in (1.1, 1.2] belongs only to `infection_cost=0.4`, 400 generations, host cap 400, parasite cap 16, turnovers {1, 6, 12}, seeds 8000–8099. It is not the classical two-fold cost of sex, and it is not a result for other regimes. |
 | Causal tape | `INCONCLUSIVE` | A 63–65% share is an estimator label on a synthetic fitness map. It is not an organism-level result. The tested difference is a noise-free mutation-draw intervention: an instrument check, not a do-calculus demonstration on a living population. |
 
-Van Valen’s Red Queen (1973) is the biological hypothesis these records are *about*. None of them establishes it, in the model or outside it. Open-ended intelligence and a Tokyo Type 1 *pass* (Channon 2024) stay blocked. Measurement of a trajectory is not a pass.
+The Red Queen is the biological hypothesis these records are *about*. None of them establishes it, in the model or outside it. Open-ended intelligence and a Tokyo Type 1 *pass* stay blocked. Measurement of a trajectory is not a pass.
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TB
   slopeBlocked["A non-zero slope, with no own-lag baseline"] -.-> blocked
 ```
 
-Hurlbert (1984) is the reason a checkpoint is not a second replicate. Granger (1969) is the reason a slope is not a predictive gain: the comparison is a restricted regression on the target’s own lag against an unrestricted regression that also includes the source. This library reports the fractional drop in residual sum of squares. It does not report an F test, and an empty control list leaves the result a `confounded_candidate`.
+A checkpoint is not a second replicate (that would be pseudoreplication). A slope is not a predictive gain in the Granger sense: the comparison is a restricted regression on the target’s own lag against an unrestricted regression that also includes the source. This library reports the fractional drop in residual sum of squares. It does not report an F test, and an empty control list leaves the result a `confounded_candidate`.
 
 ---
 
@@ -131,9 +131,9 @@ The historical estimators stay in the tree so an old number can be reproduced an
 CodonTrace Genesis is **not** currently presented as:
 
 - proof of artificial general intelligence, consciousness, or collective intelligence
-- proof of open-ended intelligence, or a Tokyo Type 1 *pass* (Channon 2024)
+- proof of open-ended intelligence, or a Tokyo Type 1 *pass*
 - a biological evolution simulator or a wet-lab chemistry engine
-- a replacement for Avida (Ofria and Wilke 2004), MABE, DEAP, QDax, or pyribs
+- a replacement for Avida, MABE, DEAP, QDax, or pyribs
 - a physical-robot platform (`SimEsp32Bridge` is an engineering stub)
 - a medical device, SaMD, IVD, FDA or CE clearance, or an ASME V&V 40 certification
 - an Avida or MABE campaign runner (those ClaimGate adapters stay skeletons until audited published tables exist)

@@ -20,10 +20,8 @@ evolution control, and not ``freeze_host_genotypic_inheritance``.
 ``shuffled_labels`` is not used and is not a frozen genotype.
 
 Source. The seat, debit, birth, and absent passage are the structural engine.
-``runs/rq-mechanism-v2/PHASE1.md`` records Zaman et al. 2014 (PMC4267771) as
-the reason a static antagonist is not reciprocal coevolution, and
-Decaestecker et al. 2007 as the reason the score itself does not evolve.
-Hall et al. 2011 full text was not read. No sentence here is a new quotation.
+``runs/rq-mechanism-v2/PHASE1.md`` records why a static antagonist is not
+reciprocal coevolution and why the score itself does not evolve.
 The replacement time 60/26 and the multiple 3 are the phase-3 record, not a
 new probe.
 
@@ -64,6 +62,7 @@ from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COE
 from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_PRIMARY,
     ROLE_SECONDARY,
+    hp_life_config,
     silence_outcross_locus,
 )
 from codontrace.genesis.measurements.antagonist_population import (
@@ -483,7 +482,7 @@ def install_equal_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]
         )
         if _window(organism) != str(seat["window"]):
             raise ConfigurationError("installed genome does not decode to its window")
-        silence_outcross_locus(organism, arm.runner.configs.closed_loop_hp_life)
+        silence_outcross_locus(organism, hp_life_config(arm.runner.configs.closed_loop_hp_life))
         organisms.append(organism)
         roles[host_id] = ROLE_PRIMARY
     arm.runner.population = replace(arm.runner.population, organisms=tuple(organisms))
@@ -580,8 +579,8 @@ def enable_outcross_birth_chamber(arm: StructuralRQArm) -> None:
     still refuses. That is the test, not a second measurement.
 
     Source. The chamber is ``SexualRecombinationConfig.uses_birth_chamber``
-    and ``copy_self_chamber_refusal`` in the existing motor. No new paper
-    quotation. Hall et al. 2011 full text was not read.
+    and ``copy_self_chamber_refusal`` in the existing motor. Nothing new
+    is quoted.
 
     Limit. Virulence, steal fraction, maintenance, birth ATP, bolus,
     ``max_population``, mutation rate, and ``MEASUREMENT_FLOOR`` stay as
@@ -609,7 +608,7 @@ def enable_outcross_birth_chamber(arm: StructuralRQArm) -> None:
     if not chamber.uses_birth_chamber:
         raise ConfigurationError("outcross birth requires the birth chamber")
     life = replace(
-        configs.closed_loop_hp_life,
+        hp_life_config(configs.closed_loop_hp_life),
         role_by_id=tuple(sorted(arm.roles.items())),
     )
     if "host-A-001" not in life.role_map():

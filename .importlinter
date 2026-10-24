@@ -1,0 +1,77 @@
+# Architecture contracts, checked by `lint-imports` in CI (import-linter 2.x,
+# https://import-linter.readthedocs.io/). They mirror
+# tests/characterization/test_import_direction.py: the engine core does not
+# depend on modules, transports, UI or domain plugins.
+[importlinter]
+root_package = codontrace
+include_external_packages = True
+
+[importlinter:contract:core-not-on-modules]
+name = Engine core does not import modules, transports or UI
+type = forbidden
+source_modules =
+    codontrace.engine
+    codontrace.engine_spec
+    codontrace.engine_runtime
+    codontrace.engine_results
+    codontrace.engine_digest
+    codontrace.engine_run_result
+    codontrace.engine_claims
+    codontrace.rng
+    codontrace.world
+    codontrace.replay
+    codontrace.contracts
+    codontrace.life_loop
+    codontrace.genesis
+forbidden_modules =
+    codontrace.swarm
+    codontrace.console
+    codontrace.visualization
+    codontrace.campaigns
+    codontrace.causal_inference
+    codontrace.preregistration
+    paho
+
+[importlinter:contract:population-not-on-domain-plugin]
+name = Population engine reaches domain plugins only through the life-plugin registry
+type = forbidden
+source_modules =
+    codontrace.genesis.population
+    codontrace.genesis.life_plugins
+forbidden_modules =
+    codontrace.genesis.host_parasite_life_plugin
+allow_indirect_imports = True
+
+[importlinter:contract:rng-is-a-leaf]
+name = RNGManager does not depend on experiments or the engine
+type = forbidden
+source_modules =
+    codontrace.rng
+forbidden_modules =
+    codontrace.experiments
+    codontrace.genesis
+    codontrace.engine
+
+[importlinter:contract:core-not-on-adapters]
+name = Engine core does not import ClaimGate adapters (known HP campaign edges only)
+type = forbidden
+source_modules =
+    codontrace.engine
+    codontrace.rng
+    codontrace.world
+    codontrace.replay
+    codontrace.contracts
+    codontrace.life_loop
+    codontrace.genesis
+forbidden_modules =
+    codontrace.claimgate.adapters
+ignore_imports =
+    codontrace.genesis.host_parasite_attach_registry -> codontrace.claimgate.adapters.host_parasite
+    codontrace.genesis.host_parasite_cell_microbe_hard_campaigns -> codontrace.claimgate.adapters.host_parasite
+    codontrace.genesis.host_parasite_cell_microbe_hard_campaigns -> codontrace.claimgate.adapters.host_parasite_prereg
+    codontrace.genesis.host_parasite_diff_campaigns -> codontrace.claimgate.adapters.host_parasite
+    codontrace.genesis.host_parasite_diff_campaigns -> codontrace.claimgate.adapters.host_parasite_prereg
+    codontrace.genesis.host_parasite_sim_fidelity_campaigns -> codontrace.claimgate.adapters.host_parasite
+    codontrace.genesis.host_parasite_sim_fidelity_campaigns -> codontrace.claimgate.adapters.host_parasite_prereg
+    codontrace.genesis.host_parasite_wave6_smoke -> codontrace.claimgate.adapters.host_parasite
+    codontrace.genesis.host_parasite_wave6_smoke -> codontrace.claimgate.adapters.host_parasite_prereg

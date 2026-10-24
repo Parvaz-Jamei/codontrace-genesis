@@ -1,7 +1,7 @@
 """Simulator-agnostic ClaimGate auditor.
 
 Rules are CLAIMS.md §5 + §8. Forbidden aliases are never loosened.
-Measurement neighbors (MODES, Channon 2024 Tokyo Type 1, ASME V&V 40)
+Measurement neighbors (MODES, the Tokyo Type 1 procedure, ASME V&V 40)
 do not grant a claim pass. Bitwise-identical outcomes across arms are
 ``assay_invalid`` (manipulation not realized), not a scientific null.
 """
@@ -19,6 +19,7 @@ from codontrace.claimgate.ladder import (
     public_level_name,
     require_public_level,
 )
+from codontrace.claimgate.power import minimum_detectable_effect, power_t_test
 from codontrace.claimgate.schema import (
     SOFTWARE_PACKAGE_DOI,
     ClaimgateBundle,
@@ -209,7 +210,7 @@ def _has_confidence_interval(bundle: ClaimgateBundle) -> bool:
 def _pseudoreplicated(bundle: ClaimgateBundle) -> bool:
     """More than one outcome row per seed on a contrasted arm.
 
-    Ecology calls this simple pseudoreplication (Hurlbert 1984): subsamples
+    Ecology calls this simple pseudoreplication: subsamples
     are not replicates. They do not add seeds and they do not carry an interval.
     """
 
@@ -361,6 +362,44 @@ def _satisfied_flags(bundle: ClaimgateBundle) -> dict[str, bool]:
     }
 
 
+TARGET_POWER = 0.8
+
+
+def _power_findings(bundle: ClaimgateBundle) -> tuple[bool | None, list[str]]:
+    """A-priori power for a declared effect size (top-level ``power_analysis``).
+
+    Returns ``(adequate, warnings)``; ``adequate`` is None when nothing is
+    declared, so undeclared bundles are graded exactly as before. The replicate
+    count is the number of seeds (paired design across arms) or, for
+    ``two_sample``, the seed count per arm. Observed effects are never used,
+    since post-hoc power only restates the p-value.
+    """
+    extra = bundle.extra or {}
+    spec = extra.get("power_analysis")
+    if spec is None:
+        return None, []
+    if not isinstance(spec, Mapping):
+        return False, ["power_analysis_malformed"]
+    try:
+        d = float(spec["effect_size"])  # type: ignore[arg-type]
+        alpha = float(spec.get("alpha", ALPHA))  # type: ignore[arg-type]
+        target = float(spec.get("target_power", TARGET_POWER))  # type: ignore[arg-type]
+        kind = str(spec.get("test", "paired"))
+        alternative = str(spec.get("alternative", "two-sided"))
+        n = len(bundle.seeds)
+        power = power_t_test(d, n, alpha=alpha, kind=kind, alternative=alternative)
+        mde = minimum_detectable_effect(n, power=target, alpha=alpha, kind=kind, alternative=alternative)
+    except (KeyError, TypeError, ValueError, ConfigurationError) as exc:
+        return False, [f"power_analysis_invalid:{type(exc).__name__}"]
+    note = (
+        f"power_analysis:test={kind},effect_size={d:g},n={n},alpha={alpha:g},"
+        f"power={power:.3f},target={target:g},min_detectable_effect={mde:.3f}"
+    )
+    if power + 1e-12 < target:
+        return False, [note, "underpowered_for_declared_effect"]
+    return True, [note]
+
+
 def _achieved_level(flags: Mapping[str, bool]) -> int:
     if not all(flags[name] for name in NEXT_REQUIREMENTS[0]):
         return 0
@@ -409,6 +448,16 @@ def audit_bundle(bundle: Mapping[str, Any] | ClaimgateBundle) -> ClaimAuditRepor
     level = _achieved_level(flags)
     missing = tuple(name for name in NEXT_REQUIREMENTS[level] if not flags.get(name, False))
     warnings = _neighbor_warnings(parsed)
+    adequate, power_notes = _power_findings(parsed)
+    warnings.extend(power_notes)
+    if adequate is False:
+        # A declared design that cannot detect its own target effect does not
+        # reach "replicated effect", whatever the seed count.
+        if level >= 4:
+            level = 3
+            missing = ("adequate_power",)
+        elif level == 3:
+            missing = (*missing, "adequate_power")
     if hits:
         warnings.append("forbidden_alias_present_no_promotion:" + ",".join(hits))
     if extra.get("oee_metrics") or extra.get("tokyo_type1_metrics"):

@@ -5,7 +5,7 @@ post-ATP plugin (skip mutate for locked roles). Birth/death stay ON. FAIL if
 birth-time genome rewrite / mutate_genome / chamber rewrite bypasses the lock.
 FAIL if bag ScheduleLock.freeze is the green path. Dual-arm, one master seed:
   Arm A: κ-on → elicit measured E with |net_transfer|_A > ε
-  Arm B default kill is κ-ablate (NOT mut-lock alone) → |net_transfer|_B ≤ ε. Mutation-stream lock is a separate witness (see mutation_stream_lock_freezes_role). Do not sell dual-arm as Morran static-genome / lock-kill.
+  Arm B default kill is κ-ablate (NOT mut-lock alone) → |net_transfer|_B ≤ ε. Mutation-stream lock is a separate witness (see mutation_stream_lock_freezes_role). Do not sell dual-arm as static-genome / lock-kill.
 Then bit-identical self-replay both arms; digests include genomes + ATP + κ.
 Digests alone ≠ effect dies — measured kill first, then digests.
 Not Gate7 / P2 same-seed theater.
@@ -26,6 +26,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     P4_SCOPE,
     ROLE_PRIMARY,
     ROLE_SECONDARY,
+    hp_life_config,
     role_of,
 )
 from codontrace.genesis.population import MutationConfig
@@ -118,7 +119,7 @@ def boot_locked_session(
         kappa_ablate=kappa_ablate,
         **kwargs,
     )
-    life = session.runner.configs.closed_loop_hp_life
+    life = hp_life_config(session.runner.configs.closed_loop_hp_life)
     session.runner.configs = replace(
         session.runner.configs,
         mutation=MutationConfig(bit_flip_rate=engine_rate),
@@ -134,7 +135,7 @@ def boot_locked_session(
 
 
 def genomes_by_role(session: ClosedLoopP3Session, role: str) -> dict[str, str]:
-    role_map = session.runner.configs.closed_loop_hp_life.role_map()
+    role_map = hp_life_config(session.runner.configs.closed_loop_hp_life).role_map()
     return {
         o.id: o.genome.to_compact()
         for o in session.runner.population.organisms
@@ -174,7 +175,7 @@ def run_dual_arm(
     """Dual-arm elicit/ablate under one master seed, then bit-identical self-replay.
 
     Default Arm B kill is κ-ablate (+ optional locks). Measured E death must not be
-    marketed as mutation-lock / Morran static-genome unless kill_mechanism says so.
+    marketed as mutation-lock / static-genome unless kill_mechanism says so.
     """
 
     locks_b = tuple(lock_roles_b)

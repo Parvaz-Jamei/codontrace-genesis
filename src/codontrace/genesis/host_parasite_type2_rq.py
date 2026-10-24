@@ -1,7 +1,7 @@
 """Port-local type-II / diagonally-dominant multi-host RQ stepper (De-toy D1).
 
-Implements a discrete Euler analogue of Rabajante et al. 2015 *Sci Rep*
-doi:10.1038/srep10004 (PMC4405699) structural conditions:
+Implements a discrete Euler analogue of the multi-host, multi-parasite
+Red Queen model's structural conditions:
 
 - type-II functional response α_ij H_i / (1 + H_i)
 - diagonally dominant specificity matrix A (partial matching-allele)
@@ -18,7 +18,6 @@ ClaimGate: even when cycling_detected is True, red_queen_proved stays False.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -26,6 +25,7 @@ from typing import Any
 from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest, canonical_payload
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_type2_rq_stepper_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -44,7 +44,7 @@ FLOOR = 1e-9
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _digest_body(body: Mapping[str, object]) -> str:
@@ -58,7 +58,7 @@ def build_diagonally_dominant_A(
 ) -> list[list[float]]:
     """Build row-stochastic diagonally dominant specificity matrix.
 
-    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches Rabajante Methods
+    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches the published Methods
     (row/column sums ≈ 1; diagonal dominance; no super-* when α_off small).
     """
 

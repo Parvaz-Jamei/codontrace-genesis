@@ -48,8 +48,8 @@ null finding.
 |---|---|
 | **ASME V&V 40** | Credibility is *context-of-use / risk-informed*. ClaimGate grades claims given evidence. Complementary, not a numeric score. |
 | **Biomedical COU wrapper** | Records QOI / COU / declared influence and consequence. Does not certify SaMD or compute clinical validity. |
-| **MODES (Dolson et al. 2019)** | Measurement procedure for novelty / change / complexity after a persistence filter. Measurement ≠ claim pass. |
-| **Channon 2024 Tokyo Type 1** | Measurement-step vocabulary. CodonTrace Genesis may record steps; ClaimGate must **not** auto-grant `tokyo_type1_passed`. |
+| **MODES** | Measurement procedure for novelty / change / complexity after a persistence filter. Measurement ≠ claim pass. |
+| **Tokyo Type 1 procedure** | Measurement-step vocabulary. CodonTrace Genesis may record steps; ClaimGate must **not** auto-grant `tokyo_type1_passed`. |
 | **Avida `.dat` / MABE2 DataFile** | Ingest skeletons so foreign run artifacts can be wrapped as bundles. Arm mapping is user-supplied. |
 
 Design notes: [`design/AVIDA_DAT.md`](design/AVIDA_DAT.md),
@@ -64,3 +64,25 @@ Forbidden aliases (`intelligence`, `collective_intelligence`, AGI,
 `asme_vv40_passed`, …) are unchanged. Example:
 [`examples/claimgate_audit_hard_experiment_01.py`](../examples/claimgate_audit_hard_experiment_01.py),
 [`examples/claimgate_audit_biomedical_toy.py`](../examples/claimgate_audit_biomedical_toy.py).
+
+## Power analysis (`codontrace.claimgate.power`)
+
+A bundle may declare its design effect size:
+
+```json
+"power_analysis": {"effect_size": 0.8, "test": "paired", "alpha": 0.05, "target_power": 0.8}
+```
+
+The auditor computes the exact a-priori power of that t-test at the bundle's
+seed count (noncentral t) and the minimum detectable effect, and
+records both in `warnings`. When the declared design cannot reach the target
+power the bundle stops at `mechanism_support` (level 3) with
+`missing_for_next == ("adequate_power",)`, whatever the seed count. A
+malformed declaration fails closed the same way. Bundles that declare
+nothing are graded exactly as before. Observed ("post hoc") power is never
+computed, because it only restates the p-value.
+
+The module also offers sample-size and minimum-detectable-effect searches,
+two-proportion power (arcsine effect size h) and Monte Carlo power for any design, with
+draws from `RNGManager`. The t-test results match `scipy.stats.nct` to 1e-7
+and reproduce the standard power-table and G*Power sample sizes.

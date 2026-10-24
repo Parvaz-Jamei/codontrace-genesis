@@ -5,8 +5,8 @@ the same two objects, the old report narrowed the interval and became
 claim-eligible. Repeating a unit, or adding a checkpoint of the same history,
 must not do either.
 
-The unit rule is Hurlbert's simple pseudoreplication (Ecological Monographs,
-1984): one experimental history is one replicate. The claim floor is
+The unit rule is the simple-pseudoreplication rule: one experimental
+history is one replicate. The claim floor is
 claimgate.auditor.LEVEL4_MIN_SEEDS.
 """
 

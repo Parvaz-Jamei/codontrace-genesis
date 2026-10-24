@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -80,6 +80,11 @@ class ATPAccount:
     initial_atp: float
     current_atp: float = field(default=0.0, init=False)
     _ledger: list[ATPLedgerEntry] = field(default_factory=list, init=False)
+    # World-ledger hook (codontrace.atp_ledger). Not serialized, not compared,
+    # not part of any digest, so legacy ledger digests are unchanged.
+    _observer: Callable[[ATPLedgerEntry], None] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         self.initial_atp = finite_float("ATPAccount.initial_atp", self.initial_atp, non_negative=True)  # type: ignore[assignment]
@@ -221,6 +226,11 @@ class ATPAccount:
 
         return cls(current_atp)
 
+    def set_observer(self, observer: Callable[[ATPLedgerEntry], None] | None) -> None:
+        """Attach (or clear) the world-ledger observer called after every entry."""
+
+        self._observer = observer
+
     def is_depleted(self) -> bool:
         """Return whether ATP is depleted."""
 
@@ -255,6 +265,8 @@ class ATPAccount:
             reason=reason,
         )
         self._ledger.append(entry)
+        if self._observer is not None:
+            self._observer(entry)
         return entry.entry_id
 
     @staticmethod

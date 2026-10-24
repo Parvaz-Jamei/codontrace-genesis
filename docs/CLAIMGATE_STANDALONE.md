@@ -48,8 +48,8 @@ null finding.
 |---|---|
 | **ASME V&V 40** | Credibility is *context-of-use / risk-informed*. ClaimGate grades claims given evidence. Complementary, not a numeric score. |
 | **Biomedical COU wrapper** | Records QOI / COU / declared influence and consequence. Does not certify SaMD or compute clinical validity. |
-| **MODES (Dolson et al. 2019)** | Measurement procedure for novelty / change / complexity after a persistence filter. Measurement ≠ claim pass. |
-| **Channon 2024 Tokyo Type 1** | Measurement-step vocabulary. CodonTrace Genesis may record steps; ClaimGate must **not** auto-grant `tokyo_type1_passed`. |
+| **MODES** | Measurement procedure for novelty / change / complexity after a persistence filter. Measurement ≠ claim pass. |
+| **Tokyo Type 1 procedure** | Measurement-step vocabulary. CodonTrace Genesis may record steps; ClaimGate must **not** auto-grant `tokyo_type1_passed`. |
 | **Avida `.dat` / MABE2 DataFile** | Ingest skeletons so foreign run artifacts can be wrapped as bundles. Arm mapping is user-supplied. |
 
 Design notes: [`design/AVIDA_DAT.md`](design/AVIDA_DAT.md),

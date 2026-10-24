@@ -53,7 +53,7 @@ The record of the 29 September 2026 program is [`docs/experiments/2026-09-29/VER
 | Sex-cost bracket | `INCONCLUSIVE` | The measured bracket c* in (1.1, 1.2] belongs only to `infection_cost=0.4`, 400 generations, host cap 400, parasite cap 16, turnovers {1, 6, 12}, seeds 8000–8099. It is not the classical two-fold cost of sex, and it is not a result for other regimes. |
 | Causal tape | `INCONCLUSIVE` | A 63–65% share is an estimator label on a synthetic fitness map. It is not an organism-level result. The tested difference is a noise-free mutation-draw intervention: an instrument check, not a do-calculus demonstration on a living population. |
 
-Van Valen’s Red Queen (1973) is the biological hypothesis these records are *about*. None of them establishes it, in the model or outside it. Open-ended intelligence and a Tokyo Type 1 *pass* (Channon 2024) stay blocked. Measurement of a trajectory is not a pass.
+The Red Queen is the biological hypothesis these records are *about*. None of them establishes it, in the model or outside it. Open-ended intelligence and a Tokyo Type 1 *pass* stay blocked. Measurement of a trajectory is not a pass.
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TB
   slopeBlocked["A non-zero slope, with no own-lag baseline"] -.-> blocked
 ```
 
-Hurlbert (1984) is the reason a checkpoint is not a second replicate. Granger (1969) is the reason a slope is not a predictive gain: the comparison is a restricted regression on the target’s own lag against an unrestricted regression that also includes the source. This library reports the fractional drop in residual sum of squares. It does not report an F test, and an empty control list leaves the result a `confounded_candidate`.
+A checkpoint is not a second replicate (that would be pseudoreplication). A slope is not a predictive gain in the Granger sense: the comparison is a restricted regression on the target’s own lag against an unrestricted regression that also includes the source. This library reports the fractional drop in residual sum of squares. It does not report an F test, and an empty control list leaves the result a `confounded_candidate`.
 
 ---
 
@@ -131,9 +131,9 @@ The historical estimators stay in the tree so an old number can be reproduced an
 CodonTrace Genesis is **not** currently presented as:
 
 - proof of artificial general intelligence, consciousness, or collective intelligence
-- proof of open-ended intelligence, or a Tokyo Type 1 *pass* (Channon 2024)
+- proof of open-ended intelligence, or a Tokyo Type 1 *pass*
 - a biological evolution simulator or a wet-lab chemistry engine
-- a replacement for Avida (Ofria and Wilke 2004), MABE, DEAP, QDax, or pyribs
+- a replacement for Avida, MABE, DEAP, QDax, or pyribs
 - a physical-robot platform (`SimEsp32Bridge` is an engineering stub)
 - a medical device, SaMD, IVD, FDA or CE clearance, or an ASME V&V 40 certification
 - an Avida or MABE campaign runner (those ClaimGate adapters stay skeletons until audited published tables exist)

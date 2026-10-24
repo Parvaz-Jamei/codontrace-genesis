@@ -180,8 +180,8 @@ class RNGManager:
 
     # Hash-based counter PRNG streams. A draw is a pure function of a key built
     # from (seed, counter, salt): x_n = H(k, n) with H = SHA-256. This is a
-    # counter-based generator: a keyed function applied to a running counter,
-    # with SHA-256 as the keyed function. It is not Philox or Threefry.
+    # counter-based generator: SHA-256 over the seed, counter and salt
+    # concatenated into one input string (no separate key). It is not Philox or Threefry.
     # These streams are stateless, so a draw can be replayed at any counter
     # without a snapshot. Every module that needs a seeded hash stream calls
     # one of these methods, so RNGManager is the single RNG source.

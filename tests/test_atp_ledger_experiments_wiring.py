@@ -263,3 +263,21 @@ _FORMS = ["{r}.{f} = 1.0", "{r}.{f} -= 1.0", "setattr({r}, '{f}', 1.0)",
        st.sampled_from(sorted(ALWAYS_PROTECTED | PRIVATE_PROTECTED)))
 def test_static_gate_property(form: str, receiver: str, field_name: str) -> None:
     assert atp_bypasses(form.format(r=receiver, f=field_name), "genesis/x.py")
+
+
+@pytest.mark.parametrize("build", [lambda: "".join(["current", "_atp"]), lambda: "_".join(("current", "atp"))])
+def test_runtime_built_name_is_caught_by_the_runtime_check(build) -> None:  # type: ignore[no-untyped-def]
+    """F14: a field name built at runtime is outside what a static gate can
+    see; the runtime check catches the write on the next check."""
+
+    from codontrace.atp_ledger import ATPConservationError, WorldATPLedger
+    from codontrace.energy import ATPAccount
+
+    led = WorldATPLedger("w")
+    acct = ATPAccount(5.0)
+    led.attach("a", acct, tick=0)
+    src = "setattr(acct, name, 9.0)"
+    assert not atp_bypasses(src, "genesis/some_module.py")  # static: not visible
+    setattr(acct, build(), 9.0)
+    with pytest.raises(ATPConservationError):
+        led.close_tick(1, {"a": acct.current_atp})

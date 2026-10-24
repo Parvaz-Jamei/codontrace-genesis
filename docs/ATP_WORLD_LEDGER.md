@@ -199,3 +199,9 @@ equality, `verify_balance`) catches any balance changed outside the ledger.
 `host_parasite_world.py` must still create, insert and remove `ATPAccount`s
 only in `_open_account` / `_close_account`.
 
+Limit of the static gate: it folds constant names (`'a' + 'tp'`, f-strings of
+constants) and rejects aliased setters, but a field name computed at run time
+(`''.join(parts)`, a name read from a variable) is not visible to any static
+check. Those writes are caught by the runtime check instead: the next
+`check` / `close_tick` compares every account with its booked balance and
+raises (`test_runtime_built_name_is_caught_by_the_runtime_check`).

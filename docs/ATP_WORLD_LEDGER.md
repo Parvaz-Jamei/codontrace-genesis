@@ -16,10 +16,14 @@ from `genesis/` or `experiments/`). Tests: `tests/test_atp_ledger.py`
 * **Exact**: amounts are the IEEE-754 values the engine actually stores, held
   as integers in units of 2^-1074 (every finite double is an exact multiple),
   so checks use `==` (IEEE 754-2019 sec. 3.3: every finite binary64 is an
-  integer multiple of 2^-1074). The one acceptance window is inside a
-  `transfer_scope`: a receiver may gain up to `ROUNDING_BOUND * gross + 3 ulp`
-  more than the payer lost (float subtraction of balances); that excess is
-  booked exactly from `source:rounding`, anything larger raises.
+  integer multiple of 2^-1074). There is no tolerance window anywhere. Inside a
+  `transfer_scope` the caller books the exact rounding error of each float
+  operation that produced the legs (`float_error`, `coupling_rounding_units`,
+  `book_rounding`, against `source:rounding` / `sink:rounding`) and the
+  clearing residual must then equal the engine's own computed loss exactly
+  (`expect_loss`); a residual below zero, or any mismatch, raises and rolls
+  the transfer back. An injected creation of 1e-15 per transfer fails
+  (`tests/test_atp_ledger_exact_rounding.py`).
 
 ## Invariants checked every tick (`close_tick`)
 
@@ -48,6 +52,7 @@ the postings and re-checks the chain and conservation from the records alone.
 | reward / foraging | `source:<action> -> agent` |
 | coupling (host -> parasite) | `holder -> world:clearing -> occupant`; residual `-> sink:coupling_loss` |
 | `ATPAccount` 10-digit rounding | `source:rounding` / `sink:rounding` |
+| float rounding of a transfer's legs (exact error of each `+`/`-`) | `world:clearing <-> source:rounding / sink:rounding`, then residual == engine loss exactly |
 
 Finding while building it: `ATPAccount.debit/credit` round balances to 10
 digits, so a single entry can create or destroy up to 5e-11 ATP. The ledger

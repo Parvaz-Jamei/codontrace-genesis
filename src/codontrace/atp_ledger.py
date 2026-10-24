@@ -65,7 +65,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -90,9 +89,6 @@ RESERVOIR = "world:reservoir"
 CLEARING = "world:clearing"
 GENESIS_SOURCE = "source:genesis"
 ZERO_DIGEST = "0" * 64
-# Relative bound on float-subtraction excess inside one transfer (a few ulps).
-ROUNDING_BOUND = Fraction(1, 2**48)
-_ROUNDING_SHIFT = 48
 _EXP = 1074  # every finite double is k * 2**-1074
 _ONE = 1 << _EXP
 _EXP_PLUS_1 = _EXP + 1
@@ -216,6 +212,7 @@ class WorldATPLedger:
         self._scope: str | None = None
         self._scope_gross = 0
         self._scope_ulps = 0
+        self._scope_expect: float | None = None
         self._new_keys: list[str] = []
         self._touched: dict[int, tuple[ATPAccount, Any]] = {}
         # Attached ATPAccounts. Copying/pickling an account alone detaches it;
@@ -343,8 +340,8 @@ class WorldATPLedger:
                  name: str) -> None:
         """Agent-to-agent transfer whose legs the engine computed as floats:
         ``paid`` leaves ``payer``, ``received`` reaches ``payee``, the exact
-        difference goes to ``sink:<name>_loss`` (or, if the payee got a few ulps
-        more, from ``source:rounding``)."""
+        difference goes to ``sink:<name>_loss``; a payee that got more than the
+        payer paid raises (no tolerance)."""
 
         with self.transfer_scope(name, tick=tick, magnitude=max(abs(paid), abs(received))):
             self._post_u(agent_account(payer), CLEARING, _u(paid), tick, name)
@@ -478,11 +475,6 @@ class WorldATPLedger:
         label = (entry.action or entry.reason).split(":", 1)[0]
         nominal = _u(entry.amount)
         realised = _u(entry.balance_after) - _u(entry.balance_before)
-        if self._scope is not None:
-            # Rounding allowance: the caller's legs are float differences of
-            # balances of this magnitude (one ulp each for before/after/amount).
-            mag = max(abs(entry.balance_before), abs(entry.balance_after), abs(entry.amount))
-            self._scope_ulps += 3 * _u(math.ulp(mag))
         if entry.kind == "credit":
             src = CLEARING if self._scope is not None else f"source:{label}"
             self._post_u(src, key, nominal, entry.tick, entry.reason)
@@ -497,29 +489,36 @@ class WorldATPLedger:
             self._post_u(key, "sink:rounding", -drift, entry.tick, "balance_rounding")
 
     @contextmanager
-    def transfer_scope(self, name: str, *, tick: int, magnitude: float = 0.0) -> Iterator[None]:
-        """Route agent debits/credits through the clearing account.
+    def transfer_scope(self, name: str, *, tick: int, magnitude: float = 0.0,
+                       expected_loss: float | None = None) -> Iterator[None]:
+        """Route agent debits/credits through the clearing account, exactly.
 
-        On exit a positive clearing residual is booked to ``sink:<name>_loss``.
-        A negative residual means the receiver got more than the payer paid.
-        Engine callers derive both legs from float differences of balances
-        (e.g. ``before - after``), and each such IEEE-754 subtraction can be
-        off by half an ulp, so a receiver can gain up to a few ulps more than
-        the payer lost (observed: 2^-49 after 30 HP ticks). That excess is
-        bounded by three ulps of each touched balance plus
-        ``ROUNDING_BOUND * gross`` (gross = sum of both legs) and is
-        booked exactly from ``source:rounding``; anything larger is creation
-        and raises. Either way every unit is still accounted for exactly.
+        On exit the clearing residual must be explained exactly, with no
+        tolerance window:
+
+        * with ``expected_loss`` (the loss the engine itself computed), the
+          residual must equal it exactly; it goes to ``sink:<name>_loss``;
+        * without it, a residual >= 0 goes to ``sink:<name>_loss`` and a
+          negative residual (receiver got more than the payer paid) raises.
+
+        Float rounding inside the caller's arithmetic is not forgiven but
+        booked: the caller reports each rounded operation's exact error with
+        ``book_rounding`` (see ``float_error``), which posts it between
+        ``world:clearing`` and ``source:rounding`` / ``sink:rounding``.
+        Exact because every finite binary64 is an integer multiple of 2^-1074
+        (IEEE 754-2019 sec. 3.3) and the error of a rounded sum is itself
+        representable. ``magnitude`` is accepted for API stability and unused.
         If the body raises, the scope's postings are reverted and every
         touched ATPAccount is restored (atomic transfer).
         """
 
+        del magnitude
         if self._scope is not None:
             raise ATPConservationError("nested transfer scopes are not allowed")
         self._scope = name
         self._scope_gross = 0
-        # ``magnitude``: largest float the caller's legs were computed from.
-        self._scope_ulps = 3 * _u(math.ulp(abs(float(magnitude))))
+        self._scope_ulps = 0
+        self._scope_expect = expected_loss
         self._touched = {}
         mark = self._mark()
         try:
@@ -531,14 +530,42 @@ class WorldATPLedger:
             raise
         finally:
             self._scope = None
-            self._touched = {}
+            touched, self._touched = self._touched, {}
         residual = self._bal[CLEARING]
-        if residual < 0:
-            if (-residual) << _ROUNDING_SHIFT > self._scope_gross + (self._scope_ulps << _ROUNDING_SHIFT):
+        expected_loss, self._scope_expect = self._scope_expect, None
+        try:
+            if expected_loss is not None and residual != _u(expected_loss):
+                raise ATPConservationError(
+                    f"transfer {name!r}: clearing residual {_fu(residual)} != engine loss "
+                    f"{_fu(_u(expected_loss))} (creation or destruction)")
+            if residual < 0:
                 raise ATPConservationError(f"transfer {name!r} created {_fu(-residual)} ATP")
-            self._post_u("source:rounding", CLEARING, -residual, tick, f"{name}_float_rounding")
-        elif residual > 0:
+        except ATPConservationError:
+            self._revert(mark)
+            for account, state in touched.values():
+                account._restore(state)
+            raise
+        if residual > 0:
             self._post_u(CLEARING, f"sink:{name}_loss", residual, tick, f"{name}_loss")
+
+    def expect_loss(self, loss: float) -> None:
+        """Inside a scope: the clearing residual must equal ``loss`` exactly."""
+
+        if self._scope is None:
+            raise ATPConservationError("expect_loss outside a transfer scope")
+        self._scope_expect = loss
+
+    def book_rounding(self, err_units: int, *, tick: int, memo: str = "float_rounding") -> None:
+        """Book one rounded float operation's exact error (units of 2^-1074)
+        inside a transfer scope: ``err > 0`` leaves clearing to
+        ``sink:rounding``, ``err < 0`` enters clearing from ``source:rounding``."""
+
+        if self._scope is None:
+            raise ATPConservationError("book_rounding outside a transfer scope")
+        if err_units > 0:
+            self._post_u(CLEARING, "sink:rounding", err_units, tick, memo)
+        elif err_units < 0:
+            self._post_u("source:rounding", CLEARING, -err_units, tick, memo)
 
     # -------------------------------------------------------------- invariant
     def balance(self, account: str) -> Fraction:
@@ -757,3 +784,37 @@ class ScalarATPBook:
             return led.close_tick(tick, mirrors)
         led.check(mirrors)
         return None
+
+
+def float_error(result: float, *terms: float) -> int:
+    """Exact rounding error, in units of 2^-1074, of ``result = fl(sum(terms))``
+    (pass ``-b`` for a subtraction): ``sum(terms) - result``, computed in
+    integers, so it is exact for every finite double."""
+
+    return sum(_u(t) for t in terms) - _u(result)
+
+
+def coupling_rounding_units(source_before: float, source_after: float, target_before: float,
+                            target_after: float, requested: float, accepted: float, loss: float,
+                            paid: float | None = None, gained: float | None = None) -> int:
+    """Signed sum of the exact rounding errors that separate a transfer's
+    clearing residual from the engine's own ``loss``.
+
+    Engine arithmetic: ``source_after = fl(source_before - requested)``,
+    ``target_after = fl(target_before + accepted)``,
+    ``accepted = fl(requested - loss)`` and, when the booked legs are float
+    differences, ``paid = fl(source_before - source_after)``,
+    ``gained = fl(target_after - target_before)``. Then exactly
+    ``paid_booked - gained_booked = loss + returned value``.
+    """
+
+    e_sa = float_error(source_after, source_before, -requested)
+    e_ta = float_error(target_after, target_before, accepted)
+    e_acc = float_error(accepted, requested, -loss)
+    total = e_sa + e_ta + e_acc
+    if paid is not None:
+        total -= float_error(paid, source_before, -source_after)
+    if gained is not None:
+        total += float_error(gained, target_after, -target_before)
+    return total
+

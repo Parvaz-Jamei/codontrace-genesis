@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
-from codontrace.atp_ledger import WorldATPLedger
+from codontrace.atp_ledger import WorldATPLedger, coupling_rounding_units
 from codontrace.contracts import world_digest
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.energy import ATPAccount
@@ -1007,17 +1007,13 @@ class HostParasiteWorld:
                 src_paid = float(before[holder]) - float(new_balances[holder])
                 tgt_gain = float(new_balances[occupant]) - float(before[occupant])
                 debit_failed = False
-                with self.atp_ledger.transfer_scope(
-                    "coupling",
-                    tick=self.tick_index,
-                    magnitude=max(
-                        abs(float(v))
-                        for v in (
-                            before[holder], before[occupant],
-                            new_balances[holder], new_balances[occupant],
-                        )
-                    ),
-                ):
+                # The engine's own arithmetic (EnergyCoupling.apply), redone
+                # here only to book its exact rounding errors; no tolerance.
+                cpl_req = float(self.profile.coupling_amount)
+                cpl_req = min(cpl_req, float(before[holder]))
+                cpl_loss = cpl_req * float(self.profile.coupling_loss_fraction)
+                cpl_acc = cpl_req - cpl_loss
+                with self.atp_ledger.transfer_scope("coupling", tick=self.tick_index):
                     if src_paid > 0.0:
                         paid = self.accounts[holder].debit(
                             src_paid,
@@ -1038,6 +1034,19 @@ class HostParasiteWorld:
                             action="energy_coupling",
                             reason=f"couple_from_{holder}",
                         )
+                    if not debit_failed:
+                        self.atp_ledger.book_rounding(
+                            coupling_rounding_units(
+                                float(before[holder]), float(new_balances[holder]),
+                                float(before[occupant]), float(new_balances[occupant]),
+                                cpl_req, cpl_acc, cpl_loss,
+                                paid=src_paid if src_paid > 0.0 else 0.0,
+                                gained=tgt_gain if tgt_gain > 0.0 else 0.0,
+                            ),
+                            tick=self.tick_index,
+                            memo="coupling_float_rounding",
+                        )
+                        self.atp_ledger.expect_loss(cpl_loss)
                 if debit_failed:
                     self._bump_census(self.coupling_fail_census, "ledger_debit_failed")
                     continue

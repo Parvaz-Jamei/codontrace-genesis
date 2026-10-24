@@ -175,10 +175,13 @@ def test_verify_anchor_checks_the_head_of_a_pruned_anchor(tmp_path):
     forged = {**early, 'journal_head': 'ab' * 32}
     assert verify_anchor(s, forged)['status'] == 'forged'
     assert verify_anchor(SwarmCoordinator('s1', **kw), forged)['status'] == 'forged'
-    # An anchor from another journal of the same swarm id is another history.
-    other, foreign, _ = _pruned_coordinator(tmp_path / 'other.jsonl')
-    other.ingest(_hello(41), now_ms=41)
-    foreign = {**foreign, 'journal_head': other._chain, 'journal_checkpoint_index': early['journal_checkpoint_index']}
+    # An anchor from a different run of the same swarm id (other nodes, other times) is another history.
+    other = SwarmCoordinator('s1', **{**kw, 'journal': tmp_path / 'other.jsonl'})
+    for seq in range(1, 41):
+        other.ingest({**_hello(seq), 'node_id': 'n2', 'boot_id': f'other{seq}'}, now_ms=1000 + seq)
+        if seq == 2:
+            foreign = journal_anchor(other)
+    assert foreign['journal_checkpoint_index'] == early['journal_checkpoint_index']
     assert foreign['journal_head'] != early['journal_head']
     assert verify_anchor(s, foreign)['status'] == 'forged'
     # Without a ledger entry for the anchored segment the head cannot be checked: not_found, never 'pruned'.
@@ -204,7 +207,39 @@ def test_pruned_needs_an_anchored_segment_strictly_older_than_the_oldest_kept(tm
     # A genuine pruned head paired with a kept segment is inconsistent: never 'pruned'.
     misplaced = {**early, 'journal_checkpoint_index': oldest - 1}
     assert verify_anchor(s, misplaced)['status'] == 'not_found'
-    assert verify_anchor(s, {**early, 'journal_checkpoint_index': oldest - 2})['status'] == 'pruned'
+    # Older than the oldest kept, but not the segment that held the head: forged.
+    assert verify_anchor(s, {**early, 'journal_checkpoint_index': oldest - 2})['status'] == 'forged'
+
+
+def test_pruned_head_must_belong_to_its_anchored_segment(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    s, early, _ = _pruned_coordinator(journal)
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    rows = [line.split() for line in journal.with_name(journal.name + '.pruned').read_text().splitlines()]
+    segments = sorted({int(index) for index, _ in rows})
+    anchored = (early['journal_checkpoint_index'] or 0) + 1
+    # A genuine head of another pruned segment, under the anchored segment: forged.
+    other_head = next(d for i, d in rows if int(i) != anchored)
+    assert verify_anchor(s, {**early, 'journal_head': other_head})['status'] == 'forged'
+    # The genuine head with the segment moved to another pruned one: forged.
+    wrong = next(i for i in segments if i != anchored)
+    assert verify_anchor(s, {**early, 'journal_checkpoint_index': wrong - 1})['status'] == 'forged'
+    shifted = {**early, 'journal_checkpoint_index': (early['journal_checkpoint_index'] or 0) + 4}
+    assert anchored + 4 in segments
+    assert verify_anchor(s, shifted)['status'] == 'forged'
+    # A checkpoint index that is not an int is rejected, not read as segment 1.
+    for bad in ('x', 1.0, True, -1):
+        with pytest.raises(ValueError, match='invalid journal_checkpoint_index'):
+            verify_anchor(s, {**early, 'journal_checkpoint_index': bad})
+
+
+def test_verify_anchor_rejects_an_anchor_of_another_swarm(tmp_path):
+    s, early, _ = _pruned_coordinator(tmp_path / 'j.jsonl')
+    with pytest.raises(ValueError, match='anchor swarm_id'):
+        verify_anchor(s, {**early, 'swarm_id': 's2'})
+    current = journal_anchor(s)
+    with pytest.raises(ValueError, match='anchor swarm_id'):
+        verify_anchor(s, {**current, 'swarm_id': 's2'})
 
 
 def test_history_that_starts_at_genesis_is_never_pruned(tmp_path):

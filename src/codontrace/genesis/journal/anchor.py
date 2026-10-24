@@ -8,11 +8,18 @@ journal. ``verify_anchor`` replays nothing; it walks record digests only.
 
 Statuses: ``current_head``, ``earlier_record``, ``pruned`` (retention deleted
 the segment that held the anchored head, and the head digest is listed in the
-``<journal>.pruned`` ledger that retention writes before each delete: normal
-pruning, not evidence of truncation), ``forged`` (the anchor names a segment
-that retention deleted, but its head is not among that history's digests, so
-the anchor belongs to another history or was fabricated) and ``not_found``
-(truncation, another history, or a pruned segment with no ledger entry).
+``<journal>.pruned`` ledger under that same segment, which retention writes
+before each delete: normal pruning, not evidence of truncation), ``forged``
+(the anchor names a segment that retention deleted, but its head is not among
+that segment's ledger digests, so the anchor belongs to another history, was
+fabricated, or names the wrong segment) and ``not_found`` (truncation, another
+history, or a pruned segment with no ledger entry). The ledger is plain and
+unkeyed: anyone who can write the journal directory can add a head to it, so
+``pruned`` is as strong as the hash chain itself, no stronger.
+An anchor whose header fields (``swarm_id`` and the rest of
+``_record_header()``) differ from the journal's, or whose
+``journal_checkpoint_index`` is not ``None`` or a non-negative int, raises
+``ValueError``.
 Segment numbers never repeat, so an anchor whose segment (one past its
 ``journal_checkpoint_index``) is older than the oldest kept segment, in a
 journal whose oldest kept record links to a non-zero ``previous``, claims
@@ -45,7 +52,11 @@ def verify_anchor(journal: HashChainedJournal, anchor: dict[str, Any]) -> dict[s
     if anchor.get('schema') != ANCHOR_SCHEMA:
         raise ValueError('not a journal anchor')
     head = anchor['journal_head']
+    segment = _anchored_segment(anchor)
     with journal._lock:
+        for key, value in journal._record_header().items():
+            if key in anchor and anchor[key] != value:
+                raise ValueError(f'anchor {key} {anchor[key]!r} does not match the journal ({value!r})')
         if head == journal._chain:
             return {'status': 'current_head', 'journal_head': journal._chain}
         if head == '0' * 64:
@@ -60,9 +71,9 @@ def verify_anchor(journal: HashChainedJournal, anchor: dict[str, Any]) -> dict[s
                     return {'status': 'earlier_record', 'journal_head': journal._chain}
         if _pruned_before(journal, anchor):
             ledger = _pruned_ledger(journal)
-            if any(head in digests for digests in ledger.values()):
+            if head in ledger.get(segment, set()):
                 return {'status': 'pruned', 'journal_head': journal._chain}
-            if _anchored_segment(anchor) in ledger:
+            if segment in ledger:
                 return {'status': 'forged', 'journal_head': journal._chain}
         return {'status': 'not_found', 'journal_head': journal._chain}
 
@@ -82,8 +93,13 @@ def _pruned_before(journal: HashChainedJournal, anchor: dict[str, Any]) -> bool:
 
 
 def _anchored_segment(anchor: dict[str, Any]) -> int:
+    """Segment that held the anchored head: one past the checkpoint index (``None``: none yet)."""
     checkpoint = anchor.get('journal_checkpoint_index')
-    return (checkpoint if type(checkpoint) is int else 0) + 1
+    if checkpoint is None:
+        return 1
+    if type(checkpoint) is not int or checkpoint < 0:
+        raise ValueError(f'invalid journal_checkpoint_index {checkpoint!r}')
+    return checkpoint + 1
 
 
 def _pruned_ledger(journal: HashChainedJournal) -> dict[int, set[str]]:

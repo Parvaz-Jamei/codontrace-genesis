@@ -10,7 +10,7 @@ from collections import deque
 from typing import Any
 
 from codontrace.swarm.protocol import canonical, decode, identifier
-from codontrace.swarm.runtime import SwarmCoordinator
+from codontrace.swarm.runtime import JournalBusyError, SwarmCoordinator
 from codontrace.swarm.transport.mqtt_session import mqtt_v5_client, session_expiry_properties
 
 _LOG = logging.getLogger(__name__)
@@ -34,29 +34,96 @@ class MqttSwarmBridge:
       payload values) and ``health()['state']`` becomes ``degraded``. While
       degraded, each message gets one attempt so the broker's in-flight window
       keeps draining; the first success clears the stall.
+    * busy journal file lock (another process's writer holds it) -> one
+      attempt that waits at most ``lock_timeout_s`` (default 0.25 s), no
+      retries, then recorded as lost (reason ``JournalBusyError``). Callbacks
+      run on paho's network thread, so a foreign lock holder must never block
+      it for the coordinator's full lock wait.
+    * busy coordinator in this process (another thread is writing, fsyncing,
+      checkpointing at segment rotation, or running ``recover()``) -> waits up
+      to ``coordinator_wait_s`` (default 5 s), separately from the file-lock
+      bound, so ordinary same-process contention loses nothing; past that the
+      message is recorded as lost (reason ``CoordinatorBusy``).
+    * unexpected error before the reading was journaled -> acknowledged,
+      recorded as LOST (reason ``unexpected:<ExceptionType>``, so
+      ``health()`` is degraded) and counted as ``unexpected_errors``. If the
+      failure happened inside the coordinator after its fsync the record can
+      still be in the journal; the journal is authoritative.
+    * after journaling, command dispatch (``drain``) failures of any kind are
+      contained: ``last_error='command_dispatch_failed'`` and
+      ``dispatch_failures``; the message stays counted as ``journaled`` only.
+      If the coordinator is busy at that moment the drain is skipped
+      (``drains_deferred``) and retried after the next journaled message.
+    * every outcome above is counted before the message is acknowledged; a
+      failing ``client.ack`` is logged and counted as ``ack_failures`` and
+      changes nothing else (no second loss, a journaled reading stays
+      ``journaled`` and the stall reset and drain still run).
+    * nothing raised by the bridge propagates into paho's loop thread
+      (``KeyboardInterrupt``/``SystemExit`` excepted).
+
+    ``health()['loss_reasons']`` counts losses per reason. Loss logging is rate
+    limited: the first loss of an outage is logged at ERROR, later losses at
+    most once per ``LOSS_LOG_INTERVAL_S`` as a summary with the count, and the
+    first success after an outage logs the total. Unexpected-error and
+    dispatch-failure logs use the same interval: the first is logged with its
+    traceback, later ones as a periodic count.
+
+    Threading: ``on_message`` and the counters are meant for paho's single
+    network thread (one loop per bridge); counters and stall state are not
+    locked. Command dispatch is serialized by an internal lock. Call
+    ``on_message`` from one thread at a time, also on free-threaded Python.
 
     ``connect(session_expiry_s=...)`` opts in to a persistent broker session
     (Clean Start 0 + Session Expiry) so messages published while the bridge is
     disconnected are queued by the broker; it does not change the rules above.
+    It only recovers outages shorter than the coordinator's sample TTL
+    (``SwarmCoordinator(ttl_ms=...)``, default 10 s): a queued reading whose
+    ``sample_ms`` is older than ``ttl_ms`` when it finally arrives is refused
+    as a stale sample and counted as ``rejected``, not journaled. Longer
+    outages need device-side buffering with fresh re-sampling, or a larger
+    ``ttl_ms``.
     Use ``service.coordinator()`` so the coordinator is pinned and shared with
     console requests.
     """
     LOSS_LOG_SIZE = 256
+    LOSS_LOG_INTERVAL_S = 30.0
 
     def __init__(self, swarm: SwarmCoordinator, *, client_id: str | None = None,
-                 retry_delays: tuple[float, ...] = (0.02, 0.1, 0.4)) -> None:
+                 retry_delays: tuple[float, ...] = (0.02, 0.1, 0.4), lock_timeout_s: float = 0.25,
+                 coordinator_wait_s: float = 5.0) -> None:
         self.swarm = swarm
-        self.client_id = identifier(client_id) if client_id is not None else "genesis-" + uuid.uuid4().hex
+        self._explicit_client_id = client_id is not None
+        self._client_id = identifier(client_id) if client_id is not None else "genesis-" + uuid.uuid4().hex
+        if type(lock_timeout_s) not in (int, float) or not 0 <= lock_timeout_s <= 5:
+            raise ValueError('lock_timeout_s must be between 0 and 5 s')
+        if type(coordinator_wait_s) not in (int, float) or not 0 <= coordinator_wait_s <= 60:
+            raise ValueError('coordinator_wait_s must be between 0 and 60 s')
+        self.lock_timeout_s = float(lock_timeout_s)
+        self.coordinator_wait_s = float(coordinator_wait_s)
         if (not isinstance(retry_delays, tuple) or len(retry_delays) > 8
                 or any(type(d) not in (int, float) or not 0 <= d <= 5 for d in retry_delays)):
             raise ValueError('retry_delays must be a tuple of at most 8 delays between 0 and 5 s')
         self.retry_delays = retry_delays
         self.last_error: str | None = None
-        self.counters = {'journaled': 0, 'duplicates': 0, 'rejected': 0, 'journal_failures': 0, 'lost': 0}
+        self.counters = {'journaled': 0, 'duplicates': 0, 'rejected': 0, 'journal_failures': 0, 'lost': 0,
+                         'unexpected_errors': 0, 'dispatch_failures': 0, 'drains_deferred': 0, 'ack_failures': 0}
+        self.loss_reasons: dict[str, int] = {}
+        self.last_rejection: str | None = None
         self.losses: deque[dict[str, Any]] = deque(maxlen=self.LOSS_LOG_SIZE)
         self._stalled = False
+        self._outage_losses = 0  # losses in the current outage
+        self._unlogged_losses = 0  # losses since the last loss log line
+        self._last_loss_log: float | None = None
+        self._last_error_log: float | None = None  # unexpected-error / dispatch-failure log limiter
+        self._unlogged_errors = 0
+        self._clock = time.monotonic  # injectable for tests
         self._published: set[str] = set()
         self._dispatch_lock = threading.RLock()
+
+    @property
+    def client_id(self) -> str:
+        """MQTT client id, fixed at construction (a persistent session is keyed on it)."""
+        return self._client_id
 
     def handle(self, topic: str, payload: bytes, *, now_ms: int, retained: bool = False) -> dict[str, Any]:
         if retained:
@@ -67,7 +134,8 @@ class MqttSwarmBridge:
         node = identifier(parts[3]); message = decode(payload)
         if message['node_id'] != node:
             raise ValueError('topic/payload identity mismatch')
-        return self.swarm.ingest(message, now_ms=now_ms)
+        return self.swarm.ingest(message, now_ms=now_ms, lock_timeout_s=self.lock_timeout_s,
+                                 in_process_timeout_s=self.coordinator_wait_s)
 
     def connect(self, host: str, *, port: int = 8883, username: str, password: str,
                 ca_file: str | None = None, session_expiry_s: int | None = None) -> Any:
@@ -76,7 +144,8 @@ class MqttSwarmBridge:
         ``session_expiry_s`` (opt-in) requests a persistent session; it needs a
         stable ``client_id`` so the broker can match the session on reconnect.
         """
-        properties = session_expiry_properties(session_expiry_s, self.client_id)
+        properties = session_expiry_properties(session_expiry_s, self.client_id,
+                                               explicit_client_id=self._explicit_client_id)
         client = mqtt_v5_client(self.client_id, username=username, password=password, ca_file=ca_file)
 
         def on_connect(c: Any, userdata: Any, flags: Any, reason: Any, properties: Any) -> None:
@@ -87,7 +156,11 @@ class MqttSwarmBridge:
                 self._published.clear()
             c.subscribe(f'genesis/swarm/{self.swarm.swarm_id}/+/up', qos=1)
 
-        client.on_message = lambda c, userdata, message: self.on_message(c, message)
+        def on_message(c: Any, userdata: Any, message: Any) -> None:
+            # paho (2.1.0, CallbackAPIVersion.VERSION2) ignores the return value.
+            self.on_message(c, message)
+
+        client.on_message = on_message
         client.on_connect = on_connect
         if properties is None:
             client.connect(host, port, keepalive=30)
@@ -96,7 +169,38 @@ class MqttSwarmBridge:
         return client
 
     def on_message(self, client: Any, message: Any) -> bool:
-        """Process one telemetry message and always acknowledge it (see class docstring)."""
+        """Process one telemetry message and always acknowledge it (see class docstring).
+
+        Every outcome is counted before the acknowledgement is sent, and a
+        failing ``client.ack`` is contained in ``ack`` (counted as
+        ``ack_failures`` and logged), so it neither changes the outcome nor
+        counts the message twice.
+        """
+        acked = False
+        progress = {'journaled': False, 'accounted': False}
+
+        def ack() -> None:
+            nonlocal acked
+            if acked:
+                return
+            acked = True
+            try:
+                client.ack(message.mid, message.qos)
+            except Exception as ack_error:  # noqa: BLE001 - the outcome is already counted
+                self.counters['ack_failures'] += 1
+                self._log_error('acknowledging a message failed', ack_error)
+        try:
+            return self._on_message(message, ack, client, progress)
+        except Exception as error:  # noqa: BLE001 - must not escape into paho's loop thread
+            self.counters['unexpected_errors'] += 1
+            if not progress['journaled'] and not progress['accounted']:
+                self._record_loss(message, 'unexpected:' + type(error).__name__)
+            self.last_error = f'unexpected_bridge_error: {type(error).__name__}'
+            self._log_error('unexpected error while handling a telemetry message', error)
+            ack()
+            return False
+
+    def _on_message(self, message: Any, ack: Any, client: Any, progress: dict[str, bool]) -> bool:
         delays = () if self._stalled else self.retry_delays
         try:
             for attempt in range(len(delays) + 1):
@@ -104,32 +208,73 @@ class MqttSwarmBridge:
                     result = self.handle(message.topic, message.payload, now_ms=int(time.time()*1000),
                                          retained=message.retain)
                     break
+                except JournalBusyError:
+                    # The bounded waits already elapsed; retrying would block
+                    # paho's network thread further.
+                    self.counters['journal_failures'] += 1
+                    raise
                 except OSError:
                     self.counters['journal_failures'] += 1
                     if attempt == len(delays):
                         raise
                     time.sleep(delays[attempt])
+        except JournalBusyError as error:
+            self._record_loss(message, 'CoordinatorBusy' if error.scope == 'in_process' else 'JournalBusyError')
+            progress['accounted'] = True
+            ack()
+            return False
         except OSError as error:
             self._record_loss(message, type(error).__name__)
-            client.ack(message.mid, message.qos)
+            progress['accounted'] = True
+            ack()
             return False
-        except (ValueError, TypeError, KeyError, UnicodeError, RecursionError, json.JSONDecodeError):
+        except (ValueError, TypeError, KeyError, UnicodeError, RecursionError, json.JSONDecodeError) as error:
             self.counters['rejected'] += 1
             self.last_error = 'invalid_swarm_message'  # no secrets/payload in logs
-            client.ack(message.mid, message.qos)
+            # Validation messages are short and payload-free by protocol design.
+            self.last_rejection = f'{type(error).__name__}: {str(error)[:120]}'
+            progress['accounted'] = True
+            ack()
             return False
-        client.ack(message.mid, message.qos)
+        progress['journaled'] = True
+        if self._stalled:
+            _LOG.warning('swarm %s: journal writes resumed after %d lost telemetry messages',
+                         self.swarm.swarm_id, self._outage_losses)
         self._stalled = False
+        self._outage_losses = self._unlogged_losses = 0
+        self._last_loss_log = None
         if result.get('accepted') is False:
             self.counters['duplicates'] += 1
+            ack()
             return False
         self.counters['journaled'] += 1
         self.last_error = None
+        ack()
         try:
-            self.drain(client, now_ms=int(time.time()*1000))
-        except (ValueError, OSError):
+            self.drain(client, now_ms=int(time.time()*1000), lock_timeout_s=self.lock_timeout_s)
+        except JournalBusyError:
+            self.counters['drains_deferred'] += 1  # retried after the next journaled message
+        except Exception as error:  # noqa: BLE001 - dispatch must not turn a journaled reading into an error
+            self.counters['dispatch_failures'] += 1
             self.last_error = 'command_dispatch_failed'
+            if not isinstance(error, (ValueError, OSError)):
+                self._log_error('command dispatch failed', error)
         return True
+
+    def _log_error(self, what: str, error: BaseException) -> None:
+        """Rate-limited ERROR log: first with traceback, then a count per LOSS_LOG_INTERVAL_S."""
+        now = self._clock()
+        self._unlogged_errors += 1
+        if self._last_error_log is None:
+            _LOG.error('swarm %s: %s (%s); further errors are summarized every %.0f s', self.swarm.swarm_id,
+                       what, type(error).__name__, self.LOSS_LOG_INTERVAL_S, exc_info=error)
+        elif now - self._last_error_log >= self.LOSS_LOG_INTERVAL_S:
+            _LOG.error('swarm %s: %d bridge errors since the last report (last: %s: %s)', self.swarm.swarm_id,
+                       self._unlogged_errors, what, type(error).__name__)
+        else:
+            return
+        self._last_error_log = now
+        self._unlogged_errors = 0
 
     def _record_loss(self, message: Any, reason: str) -> None:
         entry: dict[str, Any] = {'at_ms': int(time.time()*1000), 'reason': reason, 'topic_node': None,
@@ -143,15 +288,31 @@ class MqttSwarmBridge:
             pass
         self.losses.append(entry)
         self.counters['lost'] += 1
+        self.loss_reasons[reason] = self.loss_reasons.get(reason, 0) + 1
         self._stalled = True
         self.last_error = 'telemetry_lost_journal_unavailable'
-        _LOG.error('swarm %s: telemetry LOST after journal failure (%s) node=%s boot=%s seq=%s',
-                   self.swarm.swarm_id, reason, entry['node_id'], entry['boot_id'], entry['seq'])
+        self._outage_losses += 1
+        self._unlogged_losses += 1
+        now = self._clock()
+        if self._last_loss_log is None:
+            _LOG.error('swarm %s: telemetry LOST (%s) node=%s boot=%s seq=%s; '
+                       'further losses are summarized every %.0f s',
+                       self.swarm.swarm_id, reason, entry['node_id'], entry['boot_id'], entry['seq'],
+                       self.LOSS_LOG_INTERVAL_S)
+        elif now - self._last_loss_log >= self.LOSS_LOG_INTERVAL_S:
+            _LOG.error('swarm %s: %d more telemetry messages LOST (%d in this outage, last: %s node=%s seq=%s)',
+                       self.swarm.swarm_id, self._unlogged_losses, self._outage_losses, reason,
+                       entry['node_id'], entry['seq'])
+        else:
+            return
+        self._last_loss_log = now
+        self._unlogged_losses = 0
 
     def health(self) -> dict[str, Any]:
         journal_ok = not self.swarm._write_failed and not self._stalled
         return {'state': 'ok' if journal_ok else 'degraded', 'journal_ok': journal_ok,
-                'last_error': self.last_error, **self.counters, 'recent_losses': list(self.losses)}
+                'last_error': self.last_error, 'last_rejection': self.last_rejection, **self.counters,
+                'loss_reasons': dict(self.loss_reasons), 'recent_losses': list(self.losses)}
 
     def publish_command(self, client: Any, command: dict[str, Any]) -> Any:
         if command['swarm_id'] != self.swarm.swarm_id or command['status'] != 'pending':
@@ -161,12 +322,14 @@ class MqttSwarmBridge:
         topic = f"genesis/swarm/{self.swarm.swarm_id}/{identifier(command['node_id'])}/down"
         return client.publish(topic, canonical(command), qos=1, retain=False)
 
-    def drain(self, client: Any, *, now_ms: int) -> int:
+    def drain(self, client: Any, *, now_ms: int, lock_timeout_s: float | None = None) -> int:
+        """Publish pending commands. ``lock_timeout_s`` bounds the wait for the
+        coordinator (``JournalBusyError``); the bridge passes its own bound."""
         with self._dispatch_lock:
-            return self._drain(client, now_ms=now_ms)
+            return self._drain(client, now_ms=now_ms, lock_timeout_s=lock_timeout_s)
 
-    def _drain(self, client: Any, *, now_ms: int) -> int:
-        commands = self.swarm.snapshot(now_ms=now_ms)['state']['commands']
+    def _drain(self, client: Any, *, now_ms: int, lock_timeout_s: float | None = None) -> int:
+        commands = self.swarm.snapshot(now_ms=now_ms, lock_timeout_s=lock_timeout_s)['state']['commands']
         self._published.intersection_update(commands)
         count = 0
         for command_id, command in commands.items():

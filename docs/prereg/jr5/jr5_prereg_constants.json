@@ -1,0 +1,251 @@
+{
+  "schema": "codontrace_jr5_prereg_constants_v1",
+  "prereg_id": "jr5_cost_of_sex_rq_prereg_20261025",
+  "base_commit": "66f57a5769547a052a869df86273ebbe6d8b96ad",
+  "typed_outcomes": [
+    "rq_consistent",
+    "load_consistent",
+    "diversity_without_rqd",
+    "none",
+    "instrument_fail"
+  ],
+  "forbidden_claim_flags": [],
+  "claim_ceiling": "runtime_observation",
+  "host_n": {
+    "primary": 200,
+    "sensitivity": 50,
+    "lock_baseline_only": 10,
+    "lock_baseline_label": "drift_dominated"
+  },
+  "gate_e1": {
+    "test": "tost_equivalence",
+    "alpha": 0.05,
+    "ci_level": 0.9,
+    "relative_margin": 0.1,
+    "sex_ratios": [
+      0.5,
+      0.25
+    ],
+    "theoretical_cost": {
+      "0.5": 2.0,
+      "0.25": 1.3333333333333333
+    },
+    "equivalence_bounds": {
+      "0.5": [
+        1.8,
+        2.2
+      ],
+      "0.25": [
+        1.2,
+        1.4666666666666666
+      ]
+    },
+    "must_exclude": 1.0,
+    "estimator": "per_population_ols_slope_of_logit_uniparental_frequency_over_generations_0_to_10_exponentiated",
+    "ci_method": "one_sample_t_on_log_scale_over_populations_back_transformed",
+    "replicate_unit": "population_seed",
+    "founder_uniparental_frequency": 0.2,
+    "generations": 10,
+    "populations_per_cell": 40
+  },
+  "e2": {
+    "estimand": "paired_difference_copassaged_minus_fixed_terminal_uniparental_frequency",
+    "intro_frequency": 0.2,
+    "persistence_threshold": 0.05,
+    "seeds_per_cell": 60,
+    "test": "paired_t_two_sided_with_paired_bootstrap_10000_draws_seed_12345",
+    "effect_sizes": [
+      "risk_difference",
+      "hedges_g_av"
+    ],
+    "host_n": [
+      200,
+      50
+    ]
+  },
+  "multiplicity": {
+    "primary_family": [
+      "e2_N200_high",
+      "e2_N200_low",
+      "e2_N50_high",
+      "e2_N50_low"
+    ],
+    "method": "holm",
+    "family_alpha": 0.05,
+    "e1_is_gate_not_claim": true
+  },
+  "horizon": {
+    "rule": "max(100, ceil(max(host_replacement, parasite_replacement, fitness_delay))) measured in phase 4 pilot",
+    "floor": 100,
+    "cap": 200,
+    "on_exceed": "refuse_not_shorten"
+  },
+  "parasite_arms": [
+    "none",
+    "heat_killed",
+    "fixed_low",
+    "fixed_high",
+    "copassaged_low",
+    "copassaged_high",
+    "frozen_replay_low",
+    "frozen_replay_high"
+  ],
+  "host_mating_arms": [
+    "obligate_outcross",
+    "mixed_invasion",
+    "obligate_self",
+    "asexual"
+  ],
+  "alternative_arms": {
+    "mutation_load": {
+      "host_mutation_grid": [
+        0.0,
+        0.01,
+        0.05
+      ],
+      "parasite": "none",
+      "mating": [
+        "obligate_outcross",
+        "obligate_self"
+      ],
+      "host_n": [
+        200,
+        50
+      ],
+      "seeds_per_cell": 40
+    },
+    "uniform_tax": {
+      "virulence": [
+        "low",
+        "high"
+      ],
+      "mating": "mixed_invasion",
+      "seeds_per_cell": 60
+    },
+    "recombination_off": {
+      "virulence": [
+        "low",
+        "high"
+      ],
+      "mating": "mixed_invasion",
+      "seeds_per_cell": 60
+    },
+    "migration_on": {
+      "virulence": [
+        "low",
+        "high"
+      ],
+      "mating": "mixed_invasion",
+      "seeds_per_cell": 60
+    },
+    "sex_ratio_0.25": {
+      "parasite": [
+        "fixed_high",
+        "copassaged_high"
+      ],
+      "mating": "mixed_invasion",
+      "seeds_per_cell": 60
+    }
+  },
+  "seeds": {
+    "confirmatory_block": [
+      11001,
+      11060
+    ],
+    "e1_calibration_block": [
+      11101,
+      11180
+    ],
+    "pilot_block": [
+      11901,
+      11930
+    ],
+    "sealed_ranges": [
+      [
+        101,
+        108
+      ],
+      [
+        201,
+        208
+      ],
+      [
+        301,
+        308
+      ],
+      [
+        401,
+        408
+      ],
+      [
+        501,
+        508
+      ],
+      [
+        8000,
+        8199
+      ],
+      [
+        9300,
+        9899
+      ],
+      [
+        90001,
+        90003
+      ]
+    ]
+  },
+  "timing_basis": {
+    "harness": "LifeLoopEcologyArm.boot + run_generations at 66f57a5, selfing-hold constants, soft_carrying_capacity = N, two_fold_cost_sex=True",
+    "concurrency": "4 jobs on 8 cores",
+    "seconds_per_generation": {
+      "200": 0.45,
+      "50": 0.1,
+      "10": 0.03
+    },
+    "safety_factor": 1.5
+  },
+  "budget": {
+    "runs_total": 3520,
+    "cpu_hours_estimate": 35.1,
+    "cpu_hours_with_safety": 52.7,
+    "workers": 6,
+    "wall_hours_with_safety": 8.8
+  },
+  "power": {
+    "e1": {
+      "sd_log_cost_N200": 0.079,
+      "sd_log_cost_N50": 0.167,
+      "n_for_90pct_tost_N200": 9,
+      "n_for_90pct_tost_N50": 35,
+      "chosen": 40
+    },
+    "e2": {
+      "alpha_two_sided_first_holm_step": 0.0125,
+      "n_for_80pct_diff_0.25_sd_0.30": 20,
+      "n_for_80pct_diff_0.15_sd_0.30": 48,
+      "n_for_80pct_diff_0.10_sd_0.25": 73,
+      "chosen": 60
+    }
+  },
+  "validity": {
+    "atp_ledger_max_residual": 1e-09,
+    "replay_identity_required": true,
+    "killed_runs": "rerun_same_seed_never_substitute",
+    "verdict_literals_forbidden": true
+  },
+  "gated_claim_flags": {
+    "red_queen_proved": {
+      "doc": "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
+      "conditions": [
+        "a_cost_gate_tost",
+        "b_e2_holm_both_N",
+        "c_coevolving_vs_fixed_and_frozen",
+        "d_alternatives_fail_signatures",
+        "e_replay_digests_verify"
+      ],
+      "adapter_phase": "2c",
+      "default": false
+    }
+  }
+}

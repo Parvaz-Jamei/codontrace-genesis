@@ -120,7 +120,19 @@ def atp_bypasses(source: str, rel: str) -> list[str]:
         return name in PRIVATE_PROTECTED and receiver is not None and not is_self(receiver)
 
     def const(node: ast.AST) -> str | None:
-        return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+        """Constant-fold a name argument: 'a' + 'tp', f"{'a'}tp", 'at' 'p'."""
+        if isinstance(node, ast.Constant):
+            return node.value if isinstance(node.value, str) else None
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = const(node.left), const(node.right)
+            return None if left is None or right is None else left + right
+        if isinstance(node, ast.JoinedStr):
+            parts = [const(v.value if isinstance(v, ast.FormattedValue) else v) for v in node.values]
+            return None if any(p is None for p in parts) else "".join(p for p in parts if p)
+        return None
+
+    tree = ast.parse(source)
+    call_funcs = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
 
     def is_dict_view(node: ast.AST) -> bool:
         if isinstance(node, ast.Attribute) and node.attr == "__dict__":
@@ -139,7 +151,15 @@ def atp_bypasses(source: str, rel: str) -> list[str]:
             for e in t.elts:
                 check_target(e, line)
 
-    for node in ast.walk(ast.parse(source)):
+    for node in ast.walk(tree):
+        # Aliasing a setter (``_s = setattr``, ``f(setattr)``,
+        # ``getattr(x, "__setattr__")``) hides the call from this gate.
+        if (isinstance(node, ast.Name) and node.id == "setattr" and id(node) not in call_funcs) or (
+                isinstance(node, ast.Attribute) and node.attr == "__setattr__" and id(node) not in call_funcs):
+            out.append(f"{rel}:{node.lineno}: aliases a setter")
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "getattr"
+                and len(node.args) >= 2 and const(node.args[1]) == "__setattr__"):
+            out.append(f"{rel}:{node.lineno}: getattr(.., '__setattr__')")
         if isinstance(node, ast.Assign):
             if _is_ledger_adjust(node.value):
                 continue  # x.atp = self.atp_ledger.adjust(...) is the sanctioned path
@@ -184,6 +204,12 @@ BYPASS_MUTANTS = [
     "setattr(acct, '_observer', None)",
     "object.__setattr__(acct, '_ledger', [])",
     "a, acct.current_atp = 1, 2.0",
+    "_s = setattr\n_s(acct, 'current_atp', 9.0)",
+    "setattr(acct, 'current' + '_atp', 9.0)",
+    "setattr(acct, f\"{'current'}_atp\", 9.0)",
+    "_s = object.__setattr__\n_s(acct, 'current_atp', 9.0)",
+    "getattr(acct, '__setattr__')('current_atp', 9.0)",
+    "apply_all(setattr, acct)",
 ]
 
 

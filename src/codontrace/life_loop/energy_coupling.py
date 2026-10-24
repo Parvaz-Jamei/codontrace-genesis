@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.atp_ledger import CLEARING, WorldATPLedger, coupling_rounding_units
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.contracts.life_loop_events import EnergyCouplingEvent
 from codontrace.errors import ConfigurationError
@@ -329,6 +330,7 @@ class EnergyCoupling:
         attached: bool = False,
         content_empty: bool = False,
         allow_partial: bool = False,
+        atp_ledger: WorldATPLedger | None = None,
     ) -> tuple[
         dict[str, float],
         EnergyCouplingEvent,
@@ -339,6 +341,9 @@ class EnergyCoupling:
 
         Returns ``(new_balances, event, (source_entry, target_entry), conserved)``.
         ``conserved`` is True only when loss==0 and source+target deltas sum to 0.
+        With ``atp_ledger`` both realised legs are booked exactly through the
+        world ledger's clearing account; the loss goes to
+        ``sink:ENERGY_COUPLING_loss``. Return values are unchanged.
         """
 
         tick_i = _as_int(tick, "tick", minimum=0)
@@ -380,6 +385,18 @@ class EnergyCoupling:
             raise ConfigurationError("insufficient_energy")
         if source_after < 0.0:
             source_after = 0.0
+
+        if atp_ledger is not None:
+            with atp_ledger.transfer_scope("ENERGY_COUPLING", tick=tick_i):
+                atp_ledger.settle(self.source_id, source_before, source_after, tick=tick_i,
+                                  source=CLEARING, sink=CLEARING)
+                atp_ledger.settle(self.target_id, target_before, target_after, tick=tick_i,
+                                  source=CLEARING, sink=CLEARING)
+                atp_ledger.book_rounding(
+                    coupling_rounding_units(source_before, source_after, target_before,
+                                            target_after, requested, accepted, loss),
+                    tick=tick_i, memo="ENERGY_COUPLING_float_rounding")
+                atp_ledger.expect_loss(loss)
 
         new_balances = dict(balances)
         new_balances[self.source_id] = source_after

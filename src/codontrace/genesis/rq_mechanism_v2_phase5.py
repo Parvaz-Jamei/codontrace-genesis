@@ -102,7 +102,11 @@ from codontrace.genesis.rq_bidirectional_timeshift_confirm import (
     student_t_ppf,
     student_t_sf,
 )
-from codontrace.genesis.rq_mechanism_v2_phase3 import TURNOVER_MULTIPLE, pure_host_rows
+from codontrace.genesis.rq_mechanism_v2_phase3 import (
+    TURNOVER_MULTIPLE,
+    birth_reserve_declaration,
+    pure_host_rows,
+)
 from codontrace.genesis.rq_mechanism_v2_phase4 import (
     GENOME_A,
     GENOME_B,
@@ -1118,7 +1122,14 @@ def build_phase5_arm(arm_name: str, seed: int) -> StructuralRQArm:
         cast(Any, arm).intervention_ledger = []
 
         def _hold(target: StructuralRQArm) -> None:
+            alive = {str(org.id) for org in target.runner.population.organisms}
             hold_founder_genotypes(target, captured)
+            # Declare, before looking at what the hold built, that every seat
+            # missing beforehand comes back at the birth reserve; a living id
+            # keeps its account and is not declared.
+            target.host_hold_atp = birth_reserve_declaration(
+                str(seat["host_id"]) for seat in captured if str(seat["host_id"]) not in alive
+            )
 
         arm.host_composition_hold = _hold
     elif key == ARM_CONSTANT_PARASITE:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -80,6 +80,14 @@ class ATPAccount:
     initial_atp: float
     current_atp: float = field(default=0.0, init=False)
     _ledger: list[ATPLedgerEntry] = field(default_factory=list, init=False)
+    # World-ledger hook (codontrace.atp_ledger). Not serialized, not compared,
+    # not part of any digest, so legacy ledger digests are unchanged.
+    _observer: Callable[[ATPLedgerEntry], None] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _verified: tuple[int, float] = field(
+        default=(0, -1.0), init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         self.initial_atp = finite_float("ATPAccount.initial_atp", self.initial_atp, non_negative=True)  # type: ignore[assignment]
@@ -121,7 +129,6 @@ class ATPAccount:
             return None
         before = self.current_atp
         after = round(before - cost, 10)
-        self.current_atp = after
         return self._append(
             kind="debit",
             amount=cost,
@@ -149,7 +156,6 @@ class ATPAccount:
         self._validate_non_negative(amount, "amount")
         before = self.current_atp
         after = round(before + amount, 10)
-        self.current_atp = after
         return self._append(
             kind="credit",
             amount=amount,
@@ -161,6 +167,17 @@ class ATPAccount:
             balance_after=after,
             reason=reason,
         )
+
+    def entries_since(self, start: int) -> Sequence[ATPLedgerEntry]:
+        """Entries ``start..end`` (a slice; O(new entries), not O(history))."""
+
+        return tuple(self._ledger[start:])
+
+    def entry_count(self) -> int:
+        return len(self._ledger)
+
+    def entry_at(self, index: int) -> ATPLedgerEntry:
+        return self._ledger[index]
 
     def ledger_digest(self) -> str:
         """Return a stable digest of the full ATP ledger content."""
@@ -221,6 +238,39 @@ class ATPAccount:
 
         return cls(current_atp)
 
+    def verify_balance(self) -> None:
+        """Raise ValueError unless replaying the ledger yields ``current_atp``.
+
+        Incremental: entries already verified are not replayed again, so
+        calling this every tick stays linear in the number of entries.
+        """
+
+        start, running = self._verified
+        if start == 0:
+            running = round(self.initial_atp, 10)
+        tail = self._ledger[start:]
+        for entry in tail:
+            if round(entry.balance_before, 10) != running:
+                msg = "ATP ledger balance_before is not internally consistent."
+                raise ValueError(msg)
+            running = (
+                round(running - entry.amount, 10)
+                if entry.kind == "debit"
+                else round(running + entry.amount, 10)
+            )
+            if round(entry.balance_after, 10) != running:
+                msg = "ATP ledger balance_after is not internally consistent."
+                raise ValueError(msg)
+        if round(self.current_atp, 10) != running:
+            msg = "ATPAccount.current_atp does not match its ledger (bypass)."
+            raise ValueError(msg)
+        self._verified = (len(self._ledger), running)
+
+    def set_observer(self, observer: Callable[[ATPLedgerEntry], None] | None) -> None:
+        """Attach (or clear) the world-ledger observer, called before each entry is committed."""
+
+        self._observer = observer
+
     def is_depleted(self) -> bool:
         """Return whether ATP is depleted."""
 
@@ -254,8 +304,33 @@ class ATPAccount:
             balance_after=balance_after,
             reason=reason,
         )
+        # Atomic: the observer (world ledger) runs before anything is
+        # mutated; if it raises, this account is left exactly as it was.
+        if self._observer is not None:
+            self._observer(entry)
+        self.current_atp = balance_after
         self._ledger.append(entry)
         return entry.entry_id
+
+    def _state(self) -> tuple[float, int, tuple[int, float]]:
+        """Rollback token used by the world ledger's transfer scope."""
+
+        return (self.current_atp, len(self._ledger), self._verified)
+
+    def _restore(self, state: tuple[float, int, tuple[int, float]]) -> None:
+        self.current_atp, n, self._verified = state
+        del self._ledger[n:]
+
+    def __reduce__(self) -> tuple[object, ...]:
+        # serialization / copy.copy: the world-ledger observer is NOT carried along,
+        # so a copy can never book into (or drag a copy of) the live ledger.
+        return (_rebuild_account, (self.initial_atp, self.current_atp, list(self._ledger), self._verified))
+
+    def __deepcopy__(self, memo: dict[int, object]) -> ATPAccount:
+        # Entries are frozen; sharing them is safe. The observer is dropped.
+        copy = _rebuild_account(self.initial_atp, self.current_atp, list(self._ledger), self._verified)
+        memo[id(self)] = copy
+        return copy
 
     @staticmethod
     def _validate_ledger(
@@ -315,3 +390,13 @@ def _required_str(data: dict[str, JsonValue], key: str) -> str:
 
 
 ATPBudget = ATPAccount
+
+
+def _rebuild_account(
+    initial_atp: float, current_atp: float, ledger: list[ATPLedgerEntry], verified: tuple[int, float]
+) -> ATPAccount:
+    account = ATPAccount(initial_atp)
+    account.current_atp = current_atp
+    account._ledger = ledger
+    account._verified = verified
+    return account

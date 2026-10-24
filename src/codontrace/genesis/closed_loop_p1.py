@@ -142,7 +142,11 @@ class ClosedLoopP1Session:
                 org.id: (role_of(org.id, role_map) or self.roles.get(org.id, "unknown"))
                 for org in self.runner.population.organisms
             }
-            assert_single_atp_owner(self.runner.population.organisms)
+            assert_single_atp_owner(
+                self.runner.population.organisms,
+                ledger=self.runner.atp_ledger,
+                tick=int(self.runner.population.generation),
+            )
             self.history_digests.append(self.snapshot_digest())
         return self.summary()
 

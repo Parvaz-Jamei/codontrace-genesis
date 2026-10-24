@@ -8,6 +8,7 @@ from typing import ClassVar, Literal
 
 from codontrace._types import JsonValue, Position
 from codontrace.agent import WhiteBoxAgent
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.errors import ConfigurationError, ReplayError
 from codontrace.rng import RNGManager
 from codontrace.scheduling import SchedulerProtocol, scheduler_from_name
@@ -176,8 +177,14 @@ class Simulation:
         world: World2D,
         agents: tuple[WhiteBoxAgent, ...],
         config: SimulationConfig,
+        atp_ledger: WorldATPLedger | None = None,
     ) -> SimulationResult:
-        """Run ``agents`` in ``world`` according to ``config``."""
+        """Run ``agents`` in ``world`` according to ``config``.
+
+        Every agent's ATP is booked in a closed world ledger
+        (docs/ATP_WORLD_LEDGER.md) and checked every tick; pass ``atp_ledger``
+        to keep it. It never changes any result or digest.
+        """
 
         if not agents:
             msg = "Simulation.run() requires at least one agent."
@@ -186,6 +193,9 @@ class Simulation:
         runtime_world = world.clone()
         trace = Trace()
         rng = RNGManager(seed=config.seed).fork("simulation")
+        ledger = WorldATPLedger("simulation") if atp_ledger is None else atp_ledger
+        accounts = {agent.id: agent.atp_account for agent in agents}
+        ledger.close_tick(-1, ledger.sync_accounts(accounts, tick=0, open_from="source:genesis"))
         for tick in range(config.steps):
             order = _order_agents(
                 agents,
@@ -207,6 +217,7 @@ class Simulation:
                 )
                 occupied.discard(previous_position)
                 occupied.add(agent.position)
+            ledger.close_tick(tick, ledger.sync_accounts({a.id: a.atp_account for a in agents}, tick=tick))
         runtime_world.agent_position = None
         states = tuple(_agent_state(agent) for agent in sorted(agents, key=lambda item: item.id))
         return SimulationResult(

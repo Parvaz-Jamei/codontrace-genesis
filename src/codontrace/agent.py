@@ -17,6 +17,7 @@ from codontrace.actions import (
     ActionStatus,
     default_action_registry,
 )
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.codon import CodonTable
 from codontrace.energy import ATPAccount
 from codontrace.errors import ConfigurationError, InsufficientATPError, PlacementError, ReplayError
@@ -317,15 +318,23 @@ class WhiteBoxAgent:
         trace.append(event)
         return event
 
-    def run(self, world: World2D, steps: int) -> Trace:
-        """Run the agent for ``steps`` and return a new trace."""
+    def run(self, world: World2D, steps: int, *, atp_ledger: WorldATPLedger | None = None) -> Trace:
+        """Run the agent for ``steps`` and return a new trace.
+
+        The agent's ATP is booked in a closed world ledger and checked every
+        step (docs/ATP_WORLD_LEDGER.md); pass ``atp_ledger`` to keep it.
+        """
 
         if steps < 0:
             msg = "steps cannot be negative."
             raise ValueError(msg)
+        ledger = WorldATPLedger(f"agent:{self.id}") if atp_ledger is None else atp_ledger
+        accounts = {self.id: self.atp_account}
+        ledger.close_tick(-1, ledger.sync_accounts(accounts, tick=0, open_from="source:genesis"))
         trace = Trace()
-        for _ in range(steps):
+        for step in range(steps):
             self.step(world, trace)
+            ledger.close_tick(step, ledger.sync_accounts({self.id: self.atp_account}, tick=step))
         return trace
 
     def run_trial(self, world: World2D, *, steps: int, explain: bool = False) -> RunResult:

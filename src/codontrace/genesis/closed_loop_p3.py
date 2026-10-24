@@ -430,7 +430,11 @@ class ClosedLoopP3Session:
             skew_now = abs(self.atp_skew())
             if skew_now > self.peak_abs_atp_skew:
                 self.peak_abs_atp_skew = skew_now
-            assert_single_atp_owner(self.runner.population.organisms)
+            assert_single_atp_owner(
+                self.runner.population.organisms,
+                ledger=self.runner.atp_ledger,
+                tick=int(self.runner.population.generation),
+            )
             self.history_digests.append(self.snapshot_digest())
         return self.summary()
 

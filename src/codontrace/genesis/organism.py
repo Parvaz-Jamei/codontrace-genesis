@@ -15,9 +15,10 @@ from codontrace.actions import (
     ActionStatus,
     default_action_registry,
 )
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.errors import ConfigurationError, PlacementError
 from codontrace.genesis.adf_runtime import ADFExecutionPolicy, ADFMacroRegistry
-from codontrace.genesis.atp import GenesisATPState
+from codontrace.genesis.atp import GenesisATPState, organism_atp_accounts
 from codontrace.genesis.causal_graph import CausalGraph
 from codontrace.genesis.causal_runtime import (
     CausalPrediction,
@@ -234,16 +235,26 @@ class GenesisOrganism:
         ticks: int,
         alive_config: AliveGateConfig | None = None,
         blocked_positions: Iterable[Position] = (),
+        atp_ledger: WorldATPLedger | None = None,
     ) -> GenesisRunResult:
-        """Run compiled tokens for a fixed number of ticks and evaluate AliveGate."""
+        """Run compiled tokens for a fixed number of ticks and evaluate AliveGate.
+
+        Runtime and learning ATP are booked in a closed world ledger and
+        checked every tick (docs/ATP_WORLD_LEDGER.md); pass ``atp_ledger`` to
+        keep it.
+        """
 
         if ticks < 0:
             msg = "ticks cannot be negative."
             raise ConfigurationError(msg)
         self._ensure_position(world, self.position)
+        ledger = WorldATPLedger(f"organism:{self.id}") if atp_ledger is None else atp_ledger
+        accounts = organism_atp_accounts((self,))
+        ledger.close_tick(-1, ledger.sync_accounts(accounts, tick=0, open_from="source:genesis"))
         trace = Trace()
-        for _ in range(ticks):
+        for tick in range(ticks):
             self.step(world, trace, blocked_positions=blocked_positions)
+            ledger.close_tick(tick, ledger.sync_accounts(organism_atp_accounts((self,)), tick=tick))
         alive_result = evaluate_alive(
             trace,
             final_runtime_atp=self.atp_state.runtime_available,

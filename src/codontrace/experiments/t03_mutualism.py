@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from codontrace.atp_ledger import ScalarATPBook
 from codontrace.experiments.math_utils import sha_prng_float
 from codontrace.experiments.math_utils import sha_prng_int_unbiased as sha_prng_int
 from codontrace.experiments.models import (
@@ -80,6 +81,7 @@ class T03MutualismRunner:
         self.population: list[SymbioticPair] = []
         self.assay_history: list[AssayResult] = []
         self.metrics_history: list[MetricRecord] = []
+        self.atp_book = ScalarATPBook("t03_mutualism", ("host_atp", "symbiont_atp"))
 
     def initialize_population(self) -> None:
         self.population.clear()
@@ -153,10 +155,13 @@ class T03MutualismRunner:
     def step_generation(self, gen: int) -> MetricRecord:
         # 1. Evaluate fitness
         pair_fitnesses: list[float] = []
+        self.atp_book.settle(self.population, tick=gen, close=False)
         for pair in self.population:
             w_h, w_s = self.evaluate_pair_payoffs(pair.host_cooperation, pair.symbiont_cooperation)
-            pair.host_atp = w_h
-            pair.symbiont_atp = w_s
+            pair.host_atp = self.atp_book.assign(pair, "host_atp", w_h, tick=gen,
+                                                 source="source:payoff", sink="sink:payoff")
+            pair.symbiont_atp = self.atp_book.assign(pair, "symbiont_atp", w_s, tick=gen,
+                                                     source="source:payoff", sink="sink:payoff")
             # Group reproductive fitness
             pair_fitnesses.append((w_h + w_s) / 2.0)
 
@@ -204,6 +209,7 @@ class T03MutualismRunner:
             )
 
         self.population = next_population
+        self.atp_book.settle(self.population, tick=gen)
 
         # Snapshots at generation milestones
         if gen in (500, 1000, 1500, 2000):

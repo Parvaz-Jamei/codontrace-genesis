@@ -485,6 +485,9 @@ class StructuralRQArm(LifeLoopEcologyArm):
     # not a parasite reward and it is not read by passage.
     host_composition_hold: Callable[..., None] | None = None
     last_contact_host_windows: tuple[str, ...] = ()
+    # ATP the hold installed (account key -> balance); the ledger checks
+    # every rebuilt account against it. Set by the hold, not part of any digest.
+    host_hold_atp: dict[str, float] = field(default_factory=dict, compare=False, repr=False)
 
     @classmethod
     def boot_structural(
@@ -644,7 +647,13 @@ class StructuralRQArm(LifeLoopEcologyArm):
             # before the life-loop step so a later death cannot change
             # which genotypes are offered. Existing arms leave this None.
             if self.host_composition_hold is not None:
+                # Book the population as it stands, so the hold's boundary
+                # covers only what the hold itself changes.
+                self.runner.settle_atp(close=False)
                 self.host_composition_hold(self)
+                # The hold rebuilds organisms under their old ids; book it
+                # as an explicit replacement, not a silent rewrite.
+                self.runner._reissue_atp("host_hold", self.host_hold_atp)
             # Bolus/refill at generation boundary BEFORE census append (probe).
             self._apply_passage_refill()
             bolus_before = True  # refill precedes census on this path
@@ -669,7 +678,11 @@ class StructuralRQArm(LifeLoopEcologyArm):
             if self.host_composition_hold is not None:
                 # Contact must see the locked mix, not whoever survived
                 # the life-loop step. Passage is not called from the hold.
+                self.runner.settle_atp(close=False)
                 self.host_composition_hold(self)
+                # The hold rebuilds organisms under their old ids; book it
+                # as an explicit replacement, not a silent rewrite.
+                self.runner._reissue_atp("host_hold", self.host_hold_atp)
                 self.last_contact_host_windows = tuple(
                     _window(org) for org in self._hosts()
                 )

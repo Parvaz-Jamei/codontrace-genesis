@@ -24,7 +24,7 @@ import json
 import math
 import os
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from pathlib import Path
@@ -504,6 +504,17 @@ def install_locked_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]
         organisms=tuple(organisms),
     )
     arm.roles = roles
+    # Declare what the hold installs from the profile's birth reserve, not
+    # from the bodies just built, so the ledger checks the hold against an
+    # independent figure.
+    arm.host_hold_atp = birth_reserve_declaration(str(seat["host_id"]) for seat in seats)
+
+
+def birth_reserve_declaration(host_ids: Iterable[str]) -> dict[str, float]:
+    """What a host hold may install: each listed host at the structural birth
+    reserve (runtime account only; held hosts carry no learning account)."""
+
+    return {str(host_id): float(STRUCT_BIRTH_ATP) for host_id in host_ids}
 
 
 def build_phase3_arm(

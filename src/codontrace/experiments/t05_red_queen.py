@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from codontrace.atp_ledger import ScalarATPBook
 from codontrace.experiments.math_utils import sha_prng_float
 from codontrace.experiments.math_utils import sha_prng_int_unbiased as sha_prng_int
 from codontrace.experiments.models import (
@@ -43,6 +44,7 @@ class T05RedQueenRunner:
         self.archive: dict[int, tuple[tuple[int, ...], tuple[int, ...]]] = {}
         self.archive_stride = max(1, (generations + 30) // 31)
         self.completed_generations = 0
+        self.atp_book = ScalarATPBook("t05_red_queen")
 
     def initialize_populations(self) -> None:
         self.hosts = [OrganismState(sha_prng_int(self.seed, i, "t05_host", 0, 0xFFFFFFFF), 10.0, 0) for i in range(self.population_size)]
@@ -72,6 +74,7 @@ class T05RedQueenRunner:
         return survivors + offspring
 
     def step_generation(self, gen: int) -> MetricRecord:
+        self.atp_book.settle([*self.hosts, *self.parasites], tick=gen, close=False)
         host_survivors: list[OrganismState] = []
         parasite_survivors: list[OrganismState] = []
         for idx, (host, parasite) in enumerate(zip(self.hosts, self.parasites, strict=True)):
@@ -87,6 +90,7 @@ class T05RedQueenRunner:
         if self.arm != "FIXED_PARASITE":
             self.parasites = self._reproduce(parasite_survivors, gen, "parasite")
         self.completed_generations = gen
+        self.atp_book.settle([*self.hosts, *self.parasites], tick=gen)
         if gen % self.archive_stride == 0 or gen == self.generations or not self.hosts or not self.parasites:
             self._snapshot(gen)
         record = MetricRecord(gen, 0, min(len(self.hosts), len(self.parasites)), "host_survival_rate",

@@ -258,7 +258,11 @@ class ClosedLoopP2Session:
             result = self.runner.step_generation(seed=self.seed + self.tick_index + i)
             self.tick_index += 1
             self._record_births(result)
-            assert_single_atp_owner(self.runner.population.organisms)
+            assert_single_atp_owner(
+                self.runner.population.organisms,
+                ledger=self.runner.atp_ledger,
+                tick=int(self.runner.population.generation),
+            )
             self.history_digests.append(self.snapshot_digest())
         return self.summary()
 

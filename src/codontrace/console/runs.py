@@ -296,21 +296,39 @@ def get_safe_run_dir(run_id: str, must_exist: bool = False) -> Path | None:
     return target
 
 
+ATOMIC_REPLACE_TIMEOUT_S = 10.0
+
+
+def _replace_with_retry(src: Path, dst: Path) -> None:
+    """``os.replace`` that waits out a reader holding ``dst`` open on Windows.
+
+    Windows refuses to replace a file another handle has open (access denied
+    or sharing violation), where POSIX rename just succeeds. Those two errors
+    only mean "busy right now", so they are retried with capped backoff up to
+    ``ATOMIC_REPLACE_TIMEOUT_S``; any other error is raised at once. Every
+    attempt is still a single atomic replace.
+    """
+    deadline = time.monotonic() + ATOMIC_REPLACE_TIMEOUT_S
+    delay = 0.005
+    while True:
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError as exc:
+            # winerror 5 = access denied, 32 = sharing violation.
+            if os.name != "nt" or getattr(exc, "winerror", 5) not in (5, 32) or time.monotonic() >= deadline:
+                raise
+        time.sleep(delay)
+        delay = min(delay * 2, 0.1)
+
+
 def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
     """Safely write JSON using an atomic replace to avoid partial/corrupt files."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_file = path.with_name(f"{path.name}.tmp.{uuid.uuid4().hex[:6]}")
     try:
         temp_file.write_text(json.dumps(data, indent=2, allow_nan=False), encoding="utf-8")
-        # On Windows, os.replace can fail momentarily if another reader has the target file open.
-        for attempt in range(5):
-            try:
-                os.replace(temp_file, path)
-                break
-            except OSError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.05)
+        _replace_with_retry(temp_file, path)
     finally:
         if temp_file.is_file():
             try:

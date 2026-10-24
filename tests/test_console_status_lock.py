@@ -359,3 +359,30 @@ def test_spawned_child_uses_stdlib_platform(tmp_path: Path, monkeypatch: pytest.
     p.join(60)
     assert p.exitcode == 0
     assert _TESTS_DIR not in Path(out.read_text(encoding="utf-8")).resolve().parents
+
+
+def test_replace_waits_out_a_busy_target_on_windows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from codontrace.console import runs as R
+
+    src, dst = tmp_path / "a", tmp_path / "b"
+    attempts: list[int] = []
+
+    def busy_then_ok(a: Any, b: Any) -> None:
+        attempts.append(1)
+        if len(attempts) <= 8:  # longer than the old 5 x 50 ms budget allowed
+            raise PermissionError(13, "Access is denied")
+        src.rename(dst)
+
+    src.write_text("x")
+    monkeypatch.setattr(R.os, "replace", busy_then_ok)
+    monkeypatch.setattr(R.os, "name", "nt")
+    R._replace_with_retry(src, dst)
+    assert len(attempts) == 9 and dst.read_text() == "x"
+
+    def denied(a: Any, b: Any) -> None:
+        raise PermissionError(13, "Access is denied")
+
+    monkeypatch.setattr(R.os, "replace", denied)
+    monkeypatch.setattr(R, "ATOMIC_REPLACE_TIMEOUT_S", 0.1)
+    with pytest.raises(PermissionError):
+        R._replace_with_retry(src, dst)

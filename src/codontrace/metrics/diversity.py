@@ -271,7 +271,7 @@ def _entropy(counts: Counter[str]) -> float:
     total = sum(counts.values())
     if total == 0:
         return 0.0
-    # Quantize to 10 dp so Shannon digests stay stable across CPython minor versions
+    # Quantize to 10 dp so entropy digests stay stable across CPython minor versions
     # (math.log2 ULP drift otherwise breaks host–parasite pack digests on 3.11 vs 3.13).
     return round(
         -sum((count / total) * math.log2(count / total) for count in counts.values()),

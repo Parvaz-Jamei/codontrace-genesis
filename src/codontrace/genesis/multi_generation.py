@@ -1096,7 +1096,7 @@ def build_bedau_activity_surface(
     *,
     persistence_filtered: bool = True,
 ) -> BedauActivitySurface:
-    """Evolutionary-activity novelty / diversity / activity from component presence over time."""
+    """Novelty / diversity / evolutionary activity from component presence over time."""
 
     kind = config.component_kind
     window = config.persistence_window_generations

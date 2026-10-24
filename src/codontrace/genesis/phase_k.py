@@ -1,7 +1,7 @@
 """Phase K literature-grade CI *depth* measurements for CodonTrace Genesis.
 
 Measurement-first follow-on after Phase J: evolved coordination *instructions*
-(send/retrieve/broadcast that pay), a published-scale CPU-delay specialist
+(send/retrieve/broadcast that pay), a 50-replicate-scale CPU-delay specialist
 campaign harness, multi-generation Price analysis with a transmission term,
 and conflict-suppression *hooks*.
 
@@ -834,7 +834,7 @@ class GoldsbyTreatmentRecord:
 
 @dataclass(frozen=True, slots=True)
 class GoldsbyCpuDelayCampaign:
-    """Published-scale CPU-delay specialist harness. Research default 50 replicates."""
+    """50-replicate-scale CPU-delay specialist harness. Research default 50 replicates."""
 
     seeds: tuple[int, ...]
     generations: int

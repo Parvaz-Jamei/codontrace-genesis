@@ -1120,7 +1120,7 @@ def run_goldsby_aligned_specialist_campaign(
     delays: Sequence[int] | None = None,
     smoke: bool = False,
 ) -> GoldsbyAlignedSpecialistCampaign:
-    """0/25/50-cycle analog + published-aligned specialist metrics. Smoke: 4."""
+    """0/25/50-cycle analog + reference-aligned specialist metrics. Smoke: 4."""
 
     default_reps = GOLDSBY_SMOKE_REPLICATE_COUNT if smoke else GOLDSBY_RESEARCH_REPLICATE_COUNT
     seed_tuple = _resolve_seeds(seeds, replicate_count, default_count=default_reps)

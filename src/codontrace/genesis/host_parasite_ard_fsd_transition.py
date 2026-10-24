@@ -72,7 +72,7 @@ def _slice_trajectory(
     rows: list[dict[str, object]] = []
     for t in range(n_slices):
         if arm == "parasite_coevolution":
-            # Early ARD-like climb, later FSD-like wobble (Hall-style transition).
+            # Early ARD-like climb, later FSD-like wobble (cost-of-generalism transition).
             if t < n_slices // 2:
                 inf = 0.10 + 0.12 * t + 0.01 * (seed % 7)
                 res = 0.08 + 0.11 * t + 0.01 * ((seed // 3) % 5)

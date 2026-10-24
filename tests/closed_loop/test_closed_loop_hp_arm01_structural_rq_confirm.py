@@ -1,4 +1,4 @@
-"""Locks for HP-ARM01 structural RQ confirmatory (Nosek-first constants)."""
+"""Locks for HP-ARM01 structural RQ confirmatory (preregistration-first constants)."""
 
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ Each ecology arm runs on the real CodonTrace life-loop:
 1. ``PopulationRunner.step_generation`` — same inner clock as
    ``GenesisEngine.run_ticks`` (domain-free population step).
 2. Phase B sexual chamber — ``ReproductionMode.SEXUAL_CROSSOVER`` with the
-   existing outcross locus (mating-effort ATP). the classic two-fold cost
+   existing outcross locus (mating-effort ATP). The classic two-fold cost
    (``SexualRecombinationConfig.two_fold_cost_sex``) remains unpaid / default
    off; this path does not silently claim the parasite hypothesis for sex.
 3. ``HostParasiteEnv`` — contact / debit for that same arm. Holling

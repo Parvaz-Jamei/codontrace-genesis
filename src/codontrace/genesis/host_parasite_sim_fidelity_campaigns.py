@@ -388,7 +388,7 @@ def _panel_sf2() -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# SF3 — ARD→FSD under rising cost (Hall / Gómez mixing contrast honesty)
+# SF3 — ARD→FSD under rising cost (cost-of-generalism / population-mixing contrast honesty)
 # ---------------------------------------------------------------------------
 
 
@@ -414,8 +414,8 @@ def _panel_sf3() -> dict[str, object]:
         early["mean_cost_of_generalism"]
     )
     label_shift = early["label"] == "ard_like" and late["label"] == "fsd_like"
-    # Mixing literature (Gómez): more mixing → ARD. Our cost-rise assay shows
-    # ARD→FSD under rising generalism cost (Hall-style constraint) — complementary,
+    # Population-mixing contrast: more mixing → ARD. Our cost-rise assay shows
+    # ARD→FSD under rising generalism cost (cost-of-generalism constraint) — complementary,
     # not identical, signature. Document both.
     success = (
         d["transition_observed"] is True

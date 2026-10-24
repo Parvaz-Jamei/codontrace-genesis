@@ -42,8 +42,14 @@ Histories are the two backgrounds (`bit:2 = 0/1`), the treatment is
 `do(bit:1)`, and the replicates are eight engine seeds. In both environments
 the focal bit has no effect on the `bit:2 = 0` background and a large one on
 `bit:2 = 1` (potentiation). The interaction is significant (permutation
-p = 0.0005, 1999 permutations), so the verdict is `historically_contingent`;
-chance explains under 0.3% of the variance.
+p = 0.0005, 1999 permutations; Holm-adjusted over the three tests,
+p = 0.0015), so the verdict is `historically_contingent`; chance explains
+under 0.3% of the variance. Each term is tested by permuting residuals of
+the model without that term (Freedman & Lane 1983; Anderson & ter Braak
+2003). The decomposition blocks of `result.json` were recomputed from the
+recorded tables with that method: the raw p-values, sums of squares and
+verdicts are unchanged, and `p_holm` was added. The other blocks are as
+recorded.
 
 Scope: one preset, a 12-tick horizon, two bits. This is a validation of the
 identification machinery against the engine's own interventions, not a claim

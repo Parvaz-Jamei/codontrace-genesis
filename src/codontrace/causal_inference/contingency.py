@@ -20,8 +20,27 @@ into
 
 ``history + interaction`` is reported as historical contingency. Permutation
 p-values (Manly 2007, *Randomization, Bootstrap and Monte Carlo Methods in
-Biology*) use ``RNGManager``; the interaction test permutes residuals of the
-additive model (ter Braak 1992; Anderson & Legendre 1999).
+Biology*) use ``RNGManager``. Every term is tested by permuting residuals
+of the reduced model that drops only that term (Freedman & Lane 1983,
+J. Bus. Econ. Stat. 1:292-298), as Anderson & ter Braak (2003, J. Stat.
+Comput. Simul. 73:85-113) recommend for crossed ANOVA designs:
+
+* ``treatment``: residuals of history + interaction,
+* ``history``: residuals of treatment + interaction,
+* ``interaction``: residuals of the additive model (Anderson & Legendre 1999).
+
+Shuffling raw observations across all cells would test the global null
+(no effect of anything), not a main effect. The three p-values are one
+family; :attr:`ContingencyDecomposition.verdict` uses Holm (1979,
+Scand. J. Stat. 6:65-70) adjusted p-values, reported as ``p_holm``.
+
+Scope limits. The permutation treats replicates within a cell as
+exchangeable and the cells as independent. :func:`engine_contingency_table`
+uses the same engine seeds in both treatment arms (common random numbers),
+so its arms are paired; the test ignores that pairing, which wastes power
+but does not use it to manufacture significance. The outcome is a
+continuous or count response; no chi-square, G-test or small-cell
+statistic for categorical outcomes is provided.
 
 :func:`engine_contingency_table` fills the table from real engine reruns
 using :class:`.engine_study.EngineBitStudy`: histories are founder
@@ -54,6 +73,18 @@ class ContingencyDecomposition:
     alpha: float = 0.05
 
     @property
+    def p_holm(self) -> dict[str, float]:
+        """Holm step-down adjusted p-values over the three tests."""
+        raw = {"treatment": self.p_treatment, "history": self.p_history, "interaction": self.p_interaction}
+        order = sorted(raw, key=lambda k: (raw[k], k))
+        out: dict[str, float] = {}
+        running = 0.0
+        for rank, key in enumerate(order):
+            running = max(running, min(1.0, (len(order) - rank) * raw[key]))
+            out[key] = running
+        return out
+
+    @property
     def ss_total(self) -> float:
         return self.ss_treatment + self.ss_history + self.ss_interaction + self.ss_chance
 
@@ -69,9 +100,10 @@ class ContingencyDecomposition:
     def verdict(self) -> str:
         """``historically_contingent`` when the effect depends on history,
         ``selection`` when a uniform effect is detected, else ``not_detected``."""
-        if self.p_interaction < self.alpha:
+        adj = self.p_holm
+        if adj["interaction"] < self.alpha:
             return "historically_contingent"
-        if self.p_treatment < self.alpha:
+        if adj["treatment"] < self.alpha:
             return "selection"
         return "not_detected"
 
@@ -90,6 +122,7 @@ class ContingencyDecomposition:
                 "history": self.p_history,
                 "interaction": self.p_interaction,
             },
+            "p_holm": self.p_holm,
             "treatment_effect_by_history": self.treatment_effect_by_history,
             "verdict": self.verdict,
             "alpha": self.alpha,
@@ -147,34 +180,34 @@ def decompose(
     obs = (_f(ss_t, df_t, ss_e, df_e), _f(ss_h, df_h, ss_e, df_e), _f(ss_i, df_i, ss_e, df_e))
 
     rng = RNGManager(seed=seed, namespace="causal_inference/contingency")
-    flat = [y for row in cells for c in row for y in c]
-    # Additive-model residuals for the interaction test.
-    grand = sum(flat) / len(flat)
+    grand = sum(y for row in cells for c in row for y in c) / (nh * nt * r)
     cm = [[sum(c) / r for c in row] for row in cells]
     hm = [sum(row) / nt for row in cm]
     tm = [sum(cm[i][j] for i in range(nh)) / nh for j in range(nt)]
-    fitted = [[hm[i] + tm[j] - grand for j in range(nt)] for i in range(nh)]
-    resid = [cells[i][j][k] - fitted[i][j] for i in range(nh) for j in range(nt) for k in range(r)]
+    # Fitted values of each reduced model (the full model minus one term).
+    reduced = (
+        [[cm[i][j] - (tm[j] - grand) for j in range(nt)] for i in range(nh)],  # no treatment
+        [[cm[i][j] - (hm[i] - grand) for j in range(nt)] for i in range(nh)],  # no history
+        [[hm[i] + tm[j] - grand for j in range(nt)] for i in range(nh)],  # additive
+    )
+    resid = [
+        [cells[i][j][k] - fit[i][j] for i in range(nh) for j in range(nt) for k in range(r)]
+        for fit in reduced
+    ]
+    dfs = (df_t, df_h, df_i)
 
     hits = [1, 1, 1]
     for _ in range(n_permutations):
-        perm = list(flat)
-        rng.shuffle(perm)
-        pc = [[perm[(i * nt + j) * r : (i * nt + j + 1) * r] for j in range(nt)] for i in range(nh)]
-        pt, ph, _, pe = _ss(pc)
-        if _f(pt, df_t, pe, df_e) >= obs[0] - 1e-12:
-            hits[0] += 1
-        if _f(ph, df_h, pe, df_e) >= obs[1] - 1e-12:
-            hits[1] += 1
-        pr = list(resid)
-        rng.shuffle(pr)
-        rc = [
-            [[fitted[i][j] + pr[(i * nt + j) * r + k] for k in range(r)] for j in range(nt)]
-            for i in range(nh)
-        ]
-        _, _, ri, re = _ss(rc)
-        if _f(ri, df_i, re, df_e) >= obs[2] - 1e-12:
-            hits[2] += 1
+        for term in range(3):
+            fit, pr = reduced[term], list(resid[term])
+            rng.shuffle(pr)
+            pc = [
+                [[fit[i][j] + pr[(i * nt + j) * r + k] for k in range(r)] for j in range(nt)]
+                for i in range(nh)
+            ]
+            parts = _ss(pc)
+            if _f(parts[term], dfs[term], parts[3], df_e) >= obs[term] - 1e-12:
+                hits[term] += 1
     denom = n_permutations + 1
     effect = {
         str(h): (sum(cells[i][-1]) - sum(cells[i][0])) / r for i, h in enumerate(hs)

@@ -118,3 +118,26 @@ def test_empty_focal_arm_names_the_value():
                            runner=lambda seed, pop, bits, ticks: 0)
     with pytest.raises(ConfigurationError, match="no unit received focal value 1;"):
         study.validate(n_units=4, seed=0, n_bootstrap=2)
+
+
+def test_main_effect_test_is_not_the_global_null():
+    # A strong history effect and no treatment effect at all: the treatment
+    # test permutes residuals of the model without the treatment term, so the
+    # history effect stays in the fitted part and the test must not reject.
+    t = {
+        "h0": {0: [0.0, 0.1, -0.1, 0.05], 1: [0.05, -0.05, 0.1, -0.1]},
+        "h1": {0: [10.0, 10.1, 9.9, 10.05], 1: [10.05, 9.95, 10.1, 9.9]},
+    }
+    d = decompose(t, n_permutations=199)
+    assert d.p_history < 0.05
+    assert d.p_treatment > 0.2
+    assert d.verdict == "not_detected"
+
+
+def test_holm_adjustment_is_monotone_and_used_by_the_verdict():
+    from codontrace.causal_inference.contingency import ContingencyDecomposition
+
+    d = ContingencyDecomposition(1.0, 1.0, 1.0, 1.0, 0.03, 0.01, 0.04, {}, 0.05)
+    assert d.p_holm == {"history": 0.03, "treatment": 0.06, "interaction": 0.06}
+    assert d.verdict == "not_detected"  # raw p_interaction 0.04 < 0.05, adjusted 0.06
+    assert d.to_dict()["p_holm"] == d.p_holm

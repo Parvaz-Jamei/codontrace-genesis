@@ -39,6 +39,11 @@
           "interaction": 0.0005,
           "treatment": 0.0005
         },
+        "p_holm": {
+          "history": 0.0015,
+          "interaction": 0.0015,
+          "treatment": 0.0015
+        },
         "share": {
           "chance": 0.0020001428673476675,
           "history": 0.7578398457032646,
@@ -112,6 +117,11 @@
           "history": 0.0005,
           "interaction": 0.0005,
           "treatment": 0.0005
+        },
+        "p_holm": {
+          "history": 0.0015,
+          "interaction": 0.0015,
+          "treatment": 0.0015
         },
         "share": {
           "chance": 0.0008523332623055614,

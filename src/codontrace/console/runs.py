@@ -318,27 +318,6 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
 
 
 
-
-def _write_status_transition(status_file: Path, fallback: dict[str, Any], new_status: str) -> None:
-    """Record a console-requested status on top of the latest status.json.
-
-    The worker owns progress fields (work_done, pct, heartbeat_at). The
-    console's copy of status.json is read before the PAUSE/CONT signal is
-    sent, and a cooperative worker can persist one more generation before it
-    honours the signal. Writing that stale copy back regressed work_done (CI
-    run 39689564062: PAUSED at 256 while the worker had persisted 257). Re-read
-    the file after signalling and change only status and revision.
-    """
-    try:
-        fresh = json.loads(status_file.read_text(encoding="utf-8"))
-        if not isinstance(fresh, dict):
-            raise ValueError("status.json is not an object")
-    except (OSError, ValueError):
-        fresh = dict(fallback)
-    fresh["status"] = new_status
-    fresh["revision"] = max(int(fresh.get("revision", 1)), int(fallback.get("revision", 1))) + 1
-    write_atomic_json(status_file, fresh)
-
 def move_run_to_trash(run_id: str, entry: Path) -> Path:
     """Move a run folder to ``<runs root>/_trash/<run_id>-<UTC timestamp>`` instead of deleting it.
 
@@ -1428,10 +1407,11 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 remaining_seeds = max(0, total_seeds - completed_seeds)
                 active_expected = min(workers_expected, max(1, remaining_seeds)) if remaining_seeds > 0 else 0
 
-                new_status = "PAUSED" if len(ack_files) >= active_expected and active_expected > 0 else "PAUSING"
+                status_info["status"] = "PAUSED" if len(ack_files) >= active_expected and active_expected > 0 else "PAUSING"
             else:
-                new_status = "PAUSED" if ack_files else "PAUSING"
-            _write_status_transition(status_file, status_info, new_status)
+                status_info["status"] = "PAUSED" if ack_files else "PAUSING"
+            status_info["revision"] = int(status_info.get("revision", 1)) + 1
+            write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "resume":
@@ -1488,7 +1468,9 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 ack_files.add(f.name)
             for f in (entry / "output").glob("ack_paused_*"):
                 ack_files.add(f.name)
-            _write_status_transition(status_file, status_info, "RESUMING" if ack_files else "RUNNING")
+            status_info["status"] = "RESUMING" if ack_files else "RUNNING"
+            status_info["revision"] = int(status_info.get("revision", 1)) + 1
+            write_atomic_json(status_file, status_info)
         return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "stop":

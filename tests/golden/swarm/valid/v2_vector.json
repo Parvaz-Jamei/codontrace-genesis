@@ -1,0 +1,1 @@
+{"schema":"genesis_swarm_v2","swarm_id":"synthetic","node_id":"native","boot_id":"boot_a","seq":3,"kind":"reading","payload":{"channel":"v","sample_ms":1800000000000,"value":[-1,2.25],"processing_version":"cts-rebuild-01","valid":true,"status":"ok","config_id":"fixture_v1"}}

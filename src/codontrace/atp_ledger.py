@@ -48,7 +48,17 @@ mass-conservative so total matter is an invariant of the update (Plantec et al.
 Cell-biology ATP budgets partition all energy into construction (growth) and
 maintenance, counted in ATP hydrolyses (Lynch & Marinov 2015 PNAS; Lynch 2024,
 Evolutionary Cell Biology, OUP ch. "The Costs of Cellular Features"); the sink
-names below follow that partition.
+
+Representation (F6): every IEEE-754 double is an integer multiple of 2^-1074,
+so balances are stored as Python ints in units of 2^-1074. That is still exact
+(identical to the ``Fraction`` values; every record serialises the same reduced
+``"num/den"`` strings), but integer adds and compares are an order of magnitude
+cheaper than ``Fraction`` arithmetic. The journal is bounded: the hash chain
+head covers the whole history, while only the records since the last
+checkpoint (every ``checkpoint_every`` ticks) are retained in memory, together
+with that checkpoint (head + balances) so the retained window still replays
+and verifies on its own. A ``record_sink`` callable can stream every record to
+durable storage (e.g. a journal file) as it is closed.
 """
 
 from __future__ import annotations
@@ -56,7 +66,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction
@@ -81,21 +91,52 @@ GENESIS_SOURCE = "source:genesis"
 ZERO_DIGEST = "0" * 64
 # Relative bound on float-subtraction excess inside one transfer (a few ulps).
 ROUNDING_BOUND = Fraction(1, 2**48)
+_ROUNDING_SHIFT = 48
+_EXP = 1074  # every finite double is k * 2**-1074
+_ONE = 1 << _EXP
+_EXP_PLUS_1 = _EXP + 1
+DEFAULT_CHECKPOINT_EVERY = 256
 
 
 class ATPConservationError(AssertionError):
     """The closed ATP balance invariant failed."""
 
 
-def _q(value: float | int | Fraction) -> Fraction:
-    if isinstance(value, Fraction):
-        return value
+def _u(value: float | int | Fraction) -> int:
+    """Exact amount in units of 2**-1074."""
+
+    if type(value) is float:
+        try:
+            n, d = value.as_integer_ratio()
+        except (OverflowError, ValueError):
+            raise ValueError("ATP amount must be finite") from None
+        return n << (_EXP_PLUS_1 - d.bit_length())
     if isinstance(value, bool):
         raise TypeError("ATP amount must be numeric, not bool")
-    f = float(value)
-    if f != f or f in (float("inf"), float("-inf")):
-        raise ValueError("ATP amount must be finite")
-    return Fraction(f)
+    if isinstance(value, float):
+        return _u(float(value))
+    if isinstance(value, int):
+        return value << _EXP
+    if isinstance(value, Fraction):
+        d = value.denominator
+        if d & (d - 1) or d.bit_length() - 1 > _EXP:
+            raise ValueError("ATP amount must be a dyadic rational (a float value)")
+        return value.numerator << (_EXP - (d.bit_length() - 1))
+    return _u(float(value))
+
+
+def _q(value: float | int | Fraction) -> Fraction:
+    return Fraction(_u(value), _ONE)
+
+
+def _fu(units: int) -> str:
+    """Reduced ``num/den`` string of ``units * 2**-1074`` (same as Fraction)."""
+
+    if units == 0:
+        return "0/1"
+    mag = units if units > 0 else -units
+    shift = min((mag & -mag).bit_length() - 1, _EXP)
+    return f"{units >> shift}/{1 << (_EXP - shift)}"
 
 
 def _fs(value: Fraction) -> str:
@@ -110,12 +151,17 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _parse(text: str) -> int:
+    num, den = (int(x) for x in text.split("/"))
+    return _u(Fraction(num, den))
+
+
 def agent_account(agent_id: str) -> str:
     return f"agent:{agent_id}"
 
 
 class _AgentHook:
-    """Picklable, deepcopy-safe observer binding one ATPAccount to the ledger."""
+    """Observer binding one ATPAccount to the ledger (never pickled itself)."""
 
     __slots__ = ("account", "agent_id", "ledger")
 
@@ -128,8 +174,6 @@ class _AgentHook:
         self.ledger._on_entry(self.agent_id, entry, self.account)
 
     def __reduce__(self) -> tuple[object, ...]:
-        # Never serialise the live ledger through a hook (ATPAccount drops its
-        # hook on copy; this guards any other holder).
         raise TypeError("an attached ATP ledger hook cannot be pickled or copied; detach first")
 
 
@@ -149,25 +193,35 @@ class ATPPosting:
                 "amount": _fs(self.amount), "memo": self.memo}
 
 
+# Internal posting tuple: (seq, tick, src, dst, units, memo)
+_Post = tuple[int, int, str, str, int, str]
+
+
 class WorldATPLedger:
     """One world's closed ATP ledger. See the module docstring."""
 
-    def __init__(self, world_id: str = "world") -> None:
+    def __init__(self, world_id: str = "world", *, checkpoint_every: int = DEFAULT_CHECKPOINT_EVERY,
+                 record_sink: Callable[[dict[str, Any]], None] | None = None) -> None:
+        if checkpoint_every < 1:
+            raise ValueError("checkpoint_every must be >= 1")
         self.world_id = str(world_id)
-        self._bal: dict[str, Fraction] = {RESERVOIR: Fraction(0), CLEARING: Fraction(0)}
+        self.checkpoint_every = int(checkpoint_every)
+        self.record_sink = record_sink
+        self._bal: dict[str, int] = {RESERVOIR: 0, CLEARING: 0}
+        self._bounded: set[str] = set()  # source:* / sink:* keys (sign-checked)
         self._agents: set[str] = set()
-        self._pending: list[ATPPosting] = []
+        self._pending: list[_Post] = []
         self._seq = 0
         self._scope: str | None = None
-        self._scope_gross = Fraction(0)
-        self._scope_ulps = Fraction(0)
+        self._scope_gross = 0
+        self._scope_ulps = 0
         self._new_keys: list[str] = []
         self._touched: dict[int, tuple[ATPAccount, Any]] = {}
-        # Attached ATPAccounts. Copying/pickling an account alone detaches it
-        # (it must not drag or book into this ledger); copying/pickling the
-        # ledger carries its accounts and re-attaches them to the copy.
+        # Attached ATPAccounts. Copying/pickling an account alone detaches it;
+        # copying/pickling the ledger carries its accounts and re-attaches them.
         self._accounts: dict[str, ATPAccount] = {}
         self._records: list[dict[str, Any]] = []
+        self._base: dict[str, Any] | None = None  # checkpoint the window starts at
         self._head = ZERO_DIGEST
         self.ticks_checked = 0
 
@@ -175,20 +229,26 @@ class WorldATPLedger:
     def post(self, src: str, dst: str, amount: float | Fraction, *, tick: int, memo: str) -> None:
         """Move ``amount`` (>= 0) from ``src`` to ``dst``. Zero is a no-op."""
 
-        amt = _q(amount)
+        self._post_u(src, dst, _u(amount), tick, memo)
+
+    def _post_u(self, src: str, dst: str, amt: int, tick: int, memo: str) -> None:
         if amt < 0:
             raise ValueError("posting amount must be >= 0; swap src/dst")
         if amt == 0:
             return
+        bal = self._bal
         for acct in (src, dst):
-            self._check_name(acct)
-            if acct not in self._bal:
+            if acct not in bal:
+                self._check_name(acct)
                 self._new_keys.append(acct)
-        self._bal[src] = self._bal.get(src, Fraction(0)) - amt
-        self._bal[dst] = self._bal.get(dst, Fraction(0)) + amt
-        if CLEARING in (src, dst):
+                bal[acct] = 0
+                if acct.startswith(("source:", "sink:")):
+                    self._bounded.add(acct)
+        bal[src] -= amt
+        bal[dst] += amt
+        if src == CLEARING or dst == CLEARING:
             self._scope_gross += amt
-        self._pending.append(ATPPosting(self._seq, int(tick), src, dst, amt, str(memo)))
+        self._pending.append((self._seq, int(tick), src, dst, amt, str(memo)))
         self._seq += 1
 
     def _check_name(self, acct: str) -> None:
@@ -203,17 +263,19 @@ class WorldATPLedger:
 
         if not source.startswith("source:"):
             raise ValueError("reservoir inflow must come from a source:* account")
-        self.post(source, RESERVOIR, amount, tick=tick, memo="reservoir_inflow")
+        self._post_u(source, RESERVOIR, _u(amount), tick, "reservoir_inflow")
 
     def draw_from_reservoir(self, dst: str, amount: float | Fraction, *, tick: int, memo: str,
                             inflow_source: str = "source:inflow") -> None:
         """Pay ``amount`` from the reservoir; any shortfall first enters as explicit inflow."""
 
-        amt = _q(amount)
+        amt = _u(amount)
         short = amt - self._bal[RESERVOIR]
         if short > 0:
-            self.fund_reservoir(short, tick=tick, source=inflow_source)
-        self.post(RESERVOIR, dst, amt, tick=tick, memo=memo)
+            if not inflow_source.startswith("source:"):
+                raise ValueError("reservoir inflow must come from a source:* account")
+            self._post_u(inflow_source, RESERVOIR, short, tick, "reservoir_inflow")
+        self._post_u(RESERVOIR, dst, amt, tick, memo)
 
     # ----------------------------------------------------------------- agents
     def open_agent(self, agent_id: str, balance: float | Fraction, *, tick: int,
@@ -225,7 +287,7 @@ class WorldATPLedger:
         if agent_id in self._agents:
             raise ATPConservationError(f"agent {agent_id!r} already has an account")
         self._agents.add(agent_id)
-        self._bal[agent_account(agent_id)] = Fraction(0)
+        self._bal[agent_account(agent_id)] = 0
         if funded_from == RESERVOIR:
             self.draw_from_reservoir(agent_account(agent_id), balance, tick=tick, memo=memo)
         else:
@@ -241,11 +303,11 @@ class WorldATPLedger:
             raise ATPConservationError(f"agent {agent_id!r} has no open account")
         rem = self._bal[key]
         if rem > 0:
-            self.post(key, to, rem, tick=tick, memo=memo)
+            self._post_u(key, to, rem, tick, memo)
         elif rem < 0:
             # A negative scalar balance (legacy experiments allow ATP debt) is
             # written off from an explicit source, never from the reservoir.
-            self.post("source:debt_writeoff", key, -rem, tick=tick, memo=memo + "_debt")
+            self._post_u("source:debt_writeoff", key, -rem, tick, memo + "_debt")
         self._agents.discard(agent_id)
         del self._bal[key]
 
@@ -255,12 +317,35 @@ class WorldATPLedger:
         the exact realised change from ``source`` (gain) or to ``sink`` (loss)."""
 
         new = current + delta
-        realised = _q(new) - _q(current)
+        realised = _u(new) - _u(current)
         if realised > 0:
-            self.post(source, agent_account(agent_id), realised, tick=tick, memo=source)
+            self._post_u(source, agent_account(agent_id), realised, tick, source)
         elif realised < 0:
-            self.post(agent_account(agent_id), sink, -realised, tick=tick, memo=sink)
+            self._post_u(agent_account(agent_id), sink, -realised, tick, sink)
         return new
+
+    def settle(self, agent_id: str, current: float, new: float, *, tick: int,
+               source: str, sink: str) -> float:
+        """Book the exact change ``current -> new`` (a value the engine already
+        computed with its own arithmetic) and return ``new`` unchanged."""
+
+        realised = _u(new) - _u(current)
+        if realised > 0:
+            self._post_u(source, agent_account(agent_id), realised, tick, source)
+        elif realised < 0:
+            self._post_u(agent_account(agent_id), sink, -realised, tick, sink)
+        return new
+
+    def transfer(self, payer: str, payee: str, paid: float, received: float, *, tick: int,
+                 name: str) -> None:
+        """Agent-to-agent transfer whose legs the engine computed as floats:
+        ``paid`` leaves ``payer``, ``received`` reaches ``payee``, the exact
+        difference goes to ``sink:<name>_loss`` (or, if the payee got a few ulps
+        more, from ``source:rounding``)."""
+
+        with self.transfer_scope(name, tick=tick, magnitude=max(abs(paid), abs(received))):
+            self._post_u(agent_account(payer), CLEARING, _u(paid), tick, name)
+            self._post_u(CLEARING, agent_account(payee), _u(received), tick, name)
 
     # ---------------------------------------------------- ATPAccount observer
     def attach(self, agent_id: str, account: ATPAccount, *, tick: int,
@@ -284,6 +369,7 @@ class WorldATPLedger:
             raise ATPConservationError("cannot copy a ledger inside a transfer scope")
         state = dict(self.__dict__)
         state["_touched"] = {}
+        state["record_sink"] = None  # a sink is an external resource; not copied
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -292,19 +378,20 @@ class WorldATPLedger:
             account.set_observer(_AgentHook(self, aid, account))
 
     # ------------------------------------------------------------ rollback
-    def _mark(self) -> tuple[int, int, int, Fraction, Fraction]:
+    def _mark(self) -> tuple[int, int, int, int, int]:
         return (len(self._pending), self._seq, len(self._new_keys), self._scope_gross, self._scope_ulps)
 
-    def _revert(self, mark: tuple[int, int, int, Fraction, Fraction]) -> None:
-        """Undo every posting after ``mark`` exactly (Fractions reverse exactly)."""
+    def _revert(self, mark: tuple[int, int, int, int, int]) -> None:
+        """Undo every posting after ``mark`` exactly (integer units reverse exactly)."""
 
         n, seq, nk, gross, ulps = mark
         for p in reversed(self._pending[n:]):
-            self._bal[p.src] += p.amount
-            self._bal[p.dst] -= p.amount
+            self._bal[p[2]] += p[4]
+            self._bal[p[3]] -= p[4]
         for key in self._new_keys[nk:]:
-            if key in self._bal and self._bal[key] == 0:
+            if self._bal.get(key) == 0:
                 del self._bal[key]
+                self._bounded.discard(key)
         del self._pending[n:], self._new_keys[nk:]
         self._seq, self._scope_gross, self._scope_ulps = seq, gross, ulps
 
@@ -330,25 +417,25 @@ class WorldATPLedger:
         # source:rounding / sink:rounding, so it is accounted for, not hidden.
         key = agent_account(agent_id)
         label = entry.action or entry.reason
-        nominal = _q(entry.amount)
-        realised = _q(entry.balance_after) - _q(entry.balance_before)
+        nominal = _u(entry.amount)
+        realised = _u(entry.balance_after) - _u(entry.balance_before)
         if self._scope is not None:
             # Rounding allowance: the caller's legs are float differences of
             # balances of this magnitude (one ulp each for before/after/amount).
             mag = max(abs(entry.balance_before), abs(entry.balance_after), abs(entry.amount))
-            self._scope_ulps += 3 * Fraction(math.ulp(mag))
+            self._scope_ulps += 3 * _u(math.ulp(mag))
         if entry.kind == "credit":
             src = CLEARING if self._scope is not None else f"source:{label}"
-            self.post(src, key, nominal, tick=entry.tick, memo=entry.reason)
+            self._post_u(src, key, nominal, entry.tick, entry.reason)
             drift = realised - nominal
         else:
             dst = CLEARING if self._scope is not None else f"sink:{label}"
-            self.post(key, dst, nominal, tick=entry.tick, memo=entry.reason)
+            self._post_u(key, dst, nominal, entry.tick, entry.reason)
             drift = realised + nominal
         if drift > 0:
-            self.post("source:rounding", key, drift, tick=entry.tick, memo="balance_rounding")
+            self._post_u("source:rounding", key, drift, entry.tick, "balance_rounding")
         elif drift < 0:
-            self.post(key, "sink:rounding", -drift, tick=entry.tick, memo="balance_rounding")
+            self._post_u(key, "sink:rounding", -drift, entry.tick, "balance_rounding")
 
     @contextmanager
     def transfer_scope(self, name: str, *, tick: int, magnitude: float = 0.0) -> Iterator[None]:
@@ -364,22 +451,21 @@ class WorldATPLedger:
         ``ROUNDING_BOUND * gross`` (gross = sum of both legs) and is
         booked exactly from ``source:rounding``; anything larger is creation
         and raises. Either way every unit is still accounted for exactly.
-        If the body raises, the scope's postings are reverted.
+        If the body raises, the scope's postings are reverted and every
+        touched ATPAccount is restored (atomic transfer).
         """
 
         if self._scope is not None:
             raise ATPConservationError("nested transfer scopes are not allowed")
         self._scope = name
-        self._scope_gross = Fraction(0)
+        self._scope_gross = 0
         # ``magnitude``: largest float the caller's legs were computed from.
-        self._scope_ulps = 3 * Fraction(math.ulp(abs(float(magnitude))))
+        self._scope_ulps = 3 * _u(math.ulp(abs(float(magnitude))))
         self._touched = {}
         mark = self._mark()
         try:
             yield
         except BaseException:
-            # Atomic scope: revert every posting and every touched account,
-            # so the clearing residual is 0 and ledger == accounts again.
             self._revert(mark)
             for account, state in self._touched.values():
                 account._restore(state)
@@ -389,79 +475,113 @@ class WorldATPLedger:
             self._touched = {}
         residual = self._bal[CLEARING]
         if residual < 0:
-            if -residual > ROUNDING_BOUND * self._scope_gross + self._scope_ulps:
-                raise ATPConservationError(f"transfer {name!r} created {_fs(-residual)} ATP")
-            self.post("source:rounding", CLEARING, -residual, tick=tick, memo=f"{name}_float_rounding")
+            if (-residual) << _ROUNDING_SHIFT > self._scope_gross + (self._scope_ulps << _ROUNDING_SHIFT):
+                raise ATPConservationError(f"transfer {name!r} created {_fu(-residual)} ATP")
+            self._post_u("source:rounding", CLEARING, -residual, tick, f"{name}_float_rounding")
         elif residual > 0:
-            self.post(CLEARING, f"sink:{name}_loss", residual, tick=tick, memo=f"{name}_loss")
+            self._post_u(CLEARING, f"sink:{name}_loss", residual, tick, f"{name}_loss")
 
     # -------------------------------------------------------------- invariant
     def balance(self, account: str) -> Fraction:
-        return self._bal.get(account, Fraction(0))
+        return Fraction(self._bal.get(account, 0), _ONE)
 
     def agent_balance(self, agent_id: str) -> Fraction:
-        return self._bal[agent_account(agent_id)]
+        return Fraction(self._bal[agent_account(agent_id)], _ONE)
 
     @property
     def open_agents(self) -> frozenset[str]:
         return frozenset(self._agents)
 
-    def totals(self) -> dict[str, Fraction]:
-        src = sum((v for k, v in self._bal.items() if k.startswith("source:")), Fraction(0))
-        snk = sum((v for k, v in self._bal.items() if k.startswith("sink:")), Fraction(0))
-        agents = sum((self._bal[agent_account(a)] for a in self._agents), Fraction(0))
+    def has_agent(self, agent_id: str) -> bool:
+        return agent_id in self._agents
+
+    def _totals_u(self) -> dict[str, int]:
+        src = sum(v for k, v in self._bal.items() if k.startswith("source:"))
+        snk = sum(v for k, v in self._bal.items() if k.startswith("sink:"))
+        agents = sum(self._bal[agent_account(a)] for a in self._agents)
         return {"sources_in": -src, "sinks_out": snk, "agents": agents,
                 "reservoir": self._bal[RESERVOIR], "clearing": self._bal[CLEARING]}
+
+    def totals(self) -> dict[str, Fraction]:
+        return {k: Fraction(v, _ONE) for k, v in self._totals_u().items()}
 
     def check(self, mirrors: Mapping[str, float] | None = None) -> None:
         """Raise ``ATPConservationError`` unless every invariant holds exactly."""
 
-        total = sum(self._bal.values(), Fraction(0))
+        bal = self._bal
+        total = sum(bal.values())
         if total != 0:
-            raise ATPConservationError(f"ledger does not balance: sum={_fs(total)}")
-        if self._bal[CLEARING] != 0 and self._scope is None:
+            raise ATPConservationError(f"ledger does not balance: sum={_fu(total)}")
+        if bal[CLEARING] != 0 and self._scope is None:
             raise ATPConservationError("clearing account not empty outside a transfer")
-        if self._bal[RESERVOIR] < 0:
+        if bal[RESERVOIR] < 0:
             raise ATPConservationError("reservoir is negative")
-        for k, v in self._bal.items():
-            if k.startswith("source:") and v > 0:
+        for k in self._bounded:
+            v = bal.get(k, 0)
+            if v > 0 and k.startswith("source:"):
                 raise ATPConservationError(f"{k} has a positive balance")
-            if k.startswith("sink:") and v < 0:
+            if v < 0 and k.startswith("sink:"):
                 raise ATPConservationError(f"{k} has a negative balance")
         if mirrors is not None:
-            live = set(mirrors)
-            if live != self._agents:
+            if len(mirrors) != len(self._agents) or not self._agents.issuperset(mirrors):
+                live = set(mirrors)
                 ghost = sorted(self._agents - live)[:5]
                 orphan = sorted(live - self._agents)[:5]
                 raise ATPConservationError(f"agent set mismatch: ghost={ghost} unledgered={orphan}")
             for aid, value in mirrors.items():
-                if _q(value) != self._bal[agent_account(aid)]:
+                if _u(value) != bal["agent:" + aid]:
                     raise ATPConservationError(
-                        f"agent {aid!r} balance {value!r} != ledger {_fs(self._bal[agent_account(aid)])} (bypass)")
+                        f"agent {aid!r} balance {value!r} != ledger {_fu(bal['agent:' + aid])} (bypass)")
+
+    def check_agents(self, mirrors: Mapping[str, float]) -> None:
+        """Cheap mid-tick bypass check: agent set and balances only (the
+        global sum and sign checks run in ``check``/``close_tick``)."""
+
+        bal = self._bal
+        if len(mirrors) != len(self._agents) or not self._agents.issuperset(mirrors):
+            self.check(mirrors)
+        for aid, value in mirrors.items():
+            if _u(value) != bal["agent:" + aid]:
+                self.check(mirrors)
+
+    def _balances_str(self) -> dict[str, str]:
+        return {k: _fu(v) for k, v in sorted(self._bal.items())}
 
     def state_digest(self) -> str:
-        return _sha(_canon({k: _fs(v) for k, v in sorted(self._bal.items())}))
+        return _sha(_canon(self._balances_str()))
 
     def close_tick(self, tick: int, mirrors: Mapping[str, float] | None = None) -> str:
         """Check the invariant, chain this tick's postings, return the new head."""
 
         self.check(mirrors)
-        totals = self.totals()
+        totals = self._totals_u()
         args = {
             "world_id": self.world_id,
             "tick": int(tick),
-            "postings": [p.to_dict() for p in self._pending],
-            "totals": {k: _fs(v) for k, v in sorted(totals.items())},
+            "postings": [{"seq": p[0], "tick": p[1], "src": p[2], "dst": p[3], "amount": _fu(p[4]),
+                          "memo": p[5]} for p in self._pending],
+            "totals": {k: _fu(v) for k, v in sorted(totals.items())},
             "open_agents": len(self._agents),
         }
+        balances = self._balances_str()
         record: dict[str, Any] = {"previous": self._head, "action": "atp_tick",
-                                  "args": args, "state_digest": self.state_digest()}
+                                  "args": args, "state_digest": _sha(_canon(balances))}
         digest = _sha(_canon(record))
         record["digest"] = digest
-        self._records.append(record)
         self._head = digest
         self._pending = []
+        self._new_keys = []
         self.ticks_checked += 1
+        if self.record_sink is not None:
+            self.record_sink(record)
+        self._records.append(record)
+        if self.ticks_checked % self.checkpoint_every == 0:
+            # Bounded journal: drop the retained window and start a new one at
+            # this checkpoint (head + exact balances), so memory is O(window)
+            # and journal_records() still verifies from journal_base().
+            self._base = {"head": digest, "ticks_checked": self.ticks_checked,
+                          "balances": balances}
+            self._records = []
         return self._head
 
     @property
@@ -471,27 +591,41 @@ class WorldATPLedger:
         return self._head
 
     def journal_records(self) -> tuple[dict[str, Any], ...]:
+        """Records closed since ``journal_base()`` (the whole chain if None)."""
+
         return tuple(self._records)
 
+    def journal_base(self) -> dict[str, Any] | None:
+        """Checkpoint the retained window starts at (None = genesis)."""
 
-def verify_ledger_chain(records: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> str:
+        return None if self._base is None else dict(self._base)
+
+
+def verify_ledger_chain(records: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+                        base: Mapping[str, Any] | None = None) -> str:
     """Recompute the chain and every tick's conservation from the postings alone.
 
-    Returns the head digest; raises ``ATPConservationError`` on any break.
+    ``base`` is a checkpoint from ``WorldATPLedger.journal_base()`` when the
+    records are a bounded window. Returns the head digest; raises
+    ``ATPConservationError`` on any break.
     """
 
-    prev = ZERO_DIGEST
-    bal: dict[str, Fraction] = {}
+    if base is None:
+        prev, bal = ZERO_DIGEST, {}
+    else:
+        prev = str(base["head"])
+        bal = {k: _parse(v) for k, v in base["balances"].items()}
+        if sum(bal.values()) != 0:
+            raise ATPConservationError("checkpoint balances do not sum to zero")
     for i, rec in enumerate(records):
         body = {k: v for k, v in rec.items() if k != "digest"}
         if rec.get("previous") != prev or _sha(_canon(body)) != rec.get("digest"):
             raise ATPConservationError(f"hash chain broken at record {i}")
         for p in rec["args"]["postings"]:
-            num, den = (int(x) for x in p["amount"].split("/"))
-            amt = Fraction(num, den)
-            bal[p["src"]] = bal.get(p["src"], Fraction(0)) - amt
-            bal[p["dst"]] = bal.get(p["dst"], Fraction(0)) + amt
-        if sum(bal.values(), Fraction(0)) != 0:
+            amt = _parse(p["amount"])
+            bal[p["src"]] = bal.get(p["src"], 0) - amt
+            bal[p["dst"]] = bal.get(p["dst"], 0) + amt
+        if sum(bal.values()) != 0:
             raise ATPConservationError(f"replayed postings do not balance at record {i}")
         prev = rec["digest"]
     return prev

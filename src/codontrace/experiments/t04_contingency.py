@@ -119,10 +119,10 @@ class T04ContingencyRunner:
             self.atp_ledger = WorldATPLedger(self.atp_ledger_world_id)
             self._ledger_seq = 0
         for org in self.population:
-            if org.ledger_id not in self.atp_ledger.open_agents:
+            if not self.atp_ledger.has_agent(org.ledger_id):
                 self._ledger_open(org, tick, funded_from="source:external_insert")
         # Catch any write made between generations before it can be discarded.
-        self.atp_ledger.check(self._atp_mirrors())
+        self.atp_ledger.check_agents(self._atp_mirrors())
         return list(self.population)
 
     def _atp_mirrors(self) -> dict[str, float]:
@@ -133,7 +133,7 @@ class T04ContingencyRunner:
 
         live = {o.ledger_id for o in self.population}
         for org in previous:
-            if org.ledger_id not in live and org.ledger_id in self.atp_ledger.open_agents:
+            if org.ledger_id not in live and self.atp_ledger.has_agent(org.ledger_id):
                 self.atp_ledger.close_agent(org.ledger_id, tick=tick)
                 live.add(org.ledger_id)
         self.atp_ledger.close_tick(tick, self._atp_mirrors())

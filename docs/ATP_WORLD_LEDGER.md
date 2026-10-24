@@ -73,6 +73,24 @@ the scalar path (`adjust`) returns exactly `current + delta`, so every existing
 engine digest is unchanged. The ledger head is a new, additional digest; it is
 not mixed into any legacy digest.
 
+## Bounded journal and cost
+
+* Balances are exact integers in units of 2^-1074 (every finite double is a
+  multiple of it), so the arithmetic is still exact but runs on ints, not
+  `Fraction`s. Records serialise the same reduced `num/den` strings, so the
+  ledger head is byte-identical to the `Fraction` implementation.
+* The head chains the whole history, but only the records since the last
+  checkpoint are kept (`checkpoint_every`, default 256 ticks).
+  `journal_base()` returns that checkpoint (head + exact balances) and
+  `verify_ledger_chain(journal_records(), journal_base())` verifies the
+  window on its own. `record_sink=` streams every record out as it closes,
+  for persistence or a full replay from genesis. Checkpoint spacing never
+  changes the head (Hypothesis-tested).
+* T01 pop64 x 3000 generations: before this change 3.75 s / 156 MB; after,
+  about 1.7 s / 76 MB, against 0.6 s / 68 MB on main (box timings, which
+  vary under load). The remaining time is the cost of booking and
+  hash-chaining about 190k postings exactly.
+
 ## Research basis
 
 * Avida resources: initial quantity, inflow, outflow, depletable resources

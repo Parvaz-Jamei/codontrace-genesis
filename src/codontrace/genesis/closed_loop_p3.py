@@ -4,7 +4,7 @@ Hard scope (2026-09-25): κ ∈ [-1,+1] from a mutable genome locus with fixed
 bit-window decode (both roles). Magnitude f(κ_primary, κ_secondary)=product. Transfer only through life-loop EnergyCoupling
 mirrored onto organism.atp_state — never HostParasiteEnv.steal_fraction or
 profile coupling_amount. Clamp 0.8 is post-f(κ), never a gene default.
-Ablate κ→0 ⇒ |net_transfer|→0 and ATP skew dies. Not Morran. Not red-queen
+Ablate κ→0 ⇒ |net_transfer|→0 and ATP skew dies. Not the outcrossing test. Not red-queen
 proved. Not P4 dual-arm.
 
 Clock API: PopulationRunner.step_generation. No HostParasiteWorld.tick /

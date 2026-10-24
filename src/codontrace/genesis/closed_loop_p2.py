@@ -1,7 +1,7 @@
 """Closed-loop P2: Smith–Fretwell N=1 asexual birth ATP partition.
 
 Hard scope (2026-09-25): engine ``ReproductionConfig`` ON; child endowment Iy
-from parent residual after ``parent_atp_cost`` (cost dissipated). Not Morran.
+from parent residual after ``parent_atp_cost`` (cost dissipated). Not the outcrossing test.
 Not genetic-harm P3. Not P4 dual-arm. Not SF optimal Iy*. Not multi-child
 N=floor(Ip/Iy). Gate7 = same-seed bit-identical only.
 

@@ -1,7 +1,7 @@
 """Port-local type-II / diagonally-dominant multi-host RQ stepper (De-toy D1).
 
-Implements a discrete Euler analogue of Rabajante et al. 2015 *Sci Rep*
-doi:10.1038/srep10004 (PMC4405699) structural conditions:
+Implements a discrete Euler analogue of the multi-host, multi-parasite
+Red Queen model's structural conditions:
 
 - type-II functional response α_ij H_i / (1 + H_i)
 - diagonally dominant specificity matrix A (partial matching-allele)
@@ -58,7 +58,7 @@ def build_diagonally_dominant_A(
 ) -> list[list[float]]:
     """Build row-stochastic diagonally dominant specificity matrix.
 
-    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches Rabajante Methods
+    α_ii = 1 - (n-1)*α_off, α_ij = α_off (i≠j). Matches the published Methods
     (row/column sums ≈ 1; diagonal dominance; no super-* when α_off small).
     """
 

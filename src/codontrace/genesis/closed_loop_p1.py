@@ -1,7 +1,7 @@
 """Closed-loop P1: unify+mutate scaffold — both roles as GenesisOrganism.
 
 Hard scope (adversarial 2026-09-25): organisms + engine mutate under one
-``step_population`` clock. Not Morran-ready. Not P2 energy-partition. Not P4
+``step_population`` clock. Not outcrossing-test-ready. Not P2 energy-partition. Not P4
 dual-arm replay. Birth/death demography and interaction→fitness = P2+.
 
 Clock API: ``PopulationRunner.step_generation`` (same inner loop as

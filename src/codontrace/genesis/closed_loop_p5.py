@@ -5,9 +5,9 @@ outcrosses and pays ``outcross_runtime_atp`` from the existing runtime account
 when COPY_SELF enters the birth chamber. Ablation forces selfing and a zero
 sex-specific debit.
 
-This is NOT Maynard Smith's two-fold cost. That switch stays
+This is NOT the classic two-fold cost. That switch stays
 ``SexualRecombinationConfig.two_fold_cost_sex`` and defaults off, so both
-recombinants are still placed. It is NOT the Morran 2011 result and does not
+recombinants are still placed. It is NOT the host-pathogen passage result and does not
 set ``red_queen_proved``.
 """
 
@@ -335,7 +335,7 @@ def run_locus_story(*, seed: int = 11) -> dict[str, Any]:
     Three arms, one seed, one generation, two primaries so a pair exists.
     Outcross pays and may recombine. Selfing and ablation do not pay the
     sex line and birth asexually. The compiled program is the same in all
-    three, because the codon is not an instruction. This is not Morran and
+    three, because the codon is not an instruction. This is not the outcrossing test and
     does not set red_queen_proved.
     """
 

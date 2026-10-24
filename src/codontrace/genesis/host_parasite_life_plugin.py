@@ -72,7 +72,7 @@ class ClosedLoopHPLifeConfig:
     # unlocked roles mutate here at this rate (None → use mutation_config as-is).
     plugin_bit_flip_rate: float | None = None
     # P5: heritable outcross locus. Off leaves P1–P4 byte-identical.
-    # Cost is mating-effort ATP, NOT Maynard Smith's two-fold cost
+    # Cost is mating-effort ATP, NOT the classic two-fold cost
     # (that remains SexualRecombinationConfig.two_fold_cost_sex, default off).
     outcross_enabled: bool = False
     outcross_ablate: bool = False

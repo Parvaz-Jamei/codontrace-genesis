@@ -180,3 +180,18 @@ def test_genesis_swarm_imports_no_module_or_transport():
                 assert not name.startswith('codontrace') or name.startswith(allowed), (path.name, name)
                 assert not name.startswith(('codontrace.genesis.swarm_', 'paho')) or name == \
                     'codontrace.genesis.swarm_metrics', (path.name, name)
+
+
+def test_wire_id_collision_fails_loudly_and_safe_ids_are_unchanged():
+    from codontrace.genesis.swarm.population_adapter import PopulationMember, _wire_id
+    clash = [PopulationMember(member_id='org.1', kind='organism'), PopulationMember(member_id='org-1', kind='organism')]
+    with pytest.raises(ValueError, match="'org.1' and 'org-1' both map to node id 'org-1'"):
+        hello_messages(clash, 'pop')
+    with pytest.raises(ValueError, match='both map'):
+        reading_messages(clash, {'org.1': 1.0}, 'pop', sample_ms=1)
+    # Ids without a collision keep exactly the node ids they had before.
+    ok = [PopulationMember(member_id=i, kind='organism') for i in ('org-1', 'org.2', '_x', 'p0')]
+    assert [m['node_id'] for m in hello_messages(ok, 'pop')] == ['org-1', 'org-2', 'm_x', 'p0']
+    assert [_wire_id(m.member_id) for m in ok] == ['org-1', 'org-2', 'm_x', 'p0']
+    same = [PopulationMember(member_id='a.b', kind='organism'), PopulationMember(member_id='a.b', kind='population')]
+    assert [m['node_id'] for m in hello_messages(same, 'pop')] == ['a-b', 'a-b']

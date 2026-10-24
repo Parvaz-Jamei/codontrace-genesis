@@ -185,14 +185,133 @@ def test_heartbeat_cannot_unpause_while_pause_marker_exists(tmp_path: Path) -> N
 
 
 def test_reconcile_holds_root_lock(tmp_path: Path) -> None:
-    from codontrace.console.runs import CustomScriptRunnerAdapter, _status_file_lock, status_lock_path
+    """A reconcile must wait for (and not write past) another holder of the root lock."""
+    from codontrace.console import runs as R
 
     (tmp_path / "output").mkdir()
-    (tmp_path / "status.json").write_text(json.dumps({"status": "RUNNING", "revision": 1, "work_done": 1}))
+    root = tmp_path / "status.json"
+    root.write_text(json.dumps({"status": "RUNNING", "revision": 1, "work_done": 1}))
     (tmp_path / "output" / "status.json").write_text(json.dumps({"status": "PAUSED", "revision": 3, "work_done": 7}))
-    adapter = CustomScriptRunnerAdapter()
+    adapter = R.CustomScriptRunnerAdapter()
+    held, release = threading.Event(), threading.Event()
+
+    def holder() -> None:
+        with R._status_file_lock(R.status_lock_path(root)):
+            held.set()
+            release.wait(10)
+
+    t = threading.Thread(target=holder)
+    t.start()
+    held.wait(10)
+    old_timeout = R.STATUS_LOCK_TIMEOUT_S
+    R.STATUS_LOCK_TIMEOUT_S = 0.3
+    try:
+        t0 = time.monotonic()
+        adapter.reconcile_status(tmp_path)
+        waited = time.monotonic() - t0
+        before_release = json.loads(root.read_text())
+    finally:
+        R.STATUS_LOCK_TIMEOUT_S = old_timeout
+        release.set()
+        t.join(10)
+    assert waited >= 0.25, "reconcile did not wait for the root lock"
+    assert before_release["revision"] == 1 and before_release["work_done"] == 1, "reconcile wrote without the lock"
     merged = adapter.reconcile_status(tmp_path)
     assert merged["status"] == "PAUSED" and merged["work_done"] == 7
-    with _status_file_lock(status_lock_path(tmp_path / "status.json")):
-        # Same thread: the reconciler must not re-enter silently; it falls back to a read.
-        assert adapter.reconcile_status(tmp_path)["work_done"] == 7
+
+
+def test_stop_marker_keeps_stopping_and_stopped(tmp_path: Path) -> None:
+    f = tmp_path / "status.json"
+    for terminal in ("STOPPING", "STOPPED"):
+        write_status_json(f, {"status": terminal, "revision": 1, "work_done": 3})
+        (tmp_path / "STOP").touch()
+        for live in ("RUNNING", "RESUMING", "PAUSING", "PAUSED"):
+            write_status_json(f, {"status": live, "revision": 1, "work_done": 3})
+            assert json.loads(f.read_text())["status"] == terminal, (terminal, live)
+        write_status_json(f, {"status": "STOPPED", "revision": 1, "work_done": 3})
+        assert json.loads(f.read_text())["status"] == "STOPPED"
+        (tmp_path / "STOP").unlink()
+        write_status_json(f, {"status": "RUNNING", "revision": 1, "work_done": 3})
+        assert json.loads(f.read_text())["status"] == "RUNNING"
+        f.unlink()
+
+
+@pytest.mark.parametrize("act", ["pause", "resume"])
+def test_console_action_does_not_write_back_stale_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, act: str
+) -> None:
+    """Forced interleaving: a heartbeat lands between the handler's read and its write."""
+    from codontrace.console import runs as R
+
+    d = tmp_path / "run1"
+    d.mkdir()
+    sf = d / "status.json"
+    caps = {"pause": True, "resume": True, "stop": True}
+    start = "PAUSED" if act == "resume" else "RUNNING"
+    sf.write_text(
+        json.dumps(
+            {
+                "status": start,
+                "revision": 10,
+                "work_done": 100,
+                "work_total": 1000,
+                "pct": 10.0,
+                "pid": 1,
+                "capabilities": caps,
+            }
+        )
+    )
+    if act == "resume":
+        (d / "PAUSE").write_text("x")
+    heartbeat = {
+        "status": start,
+        "revision": 50,
+        "work_done": 200,
+        "work_total": 1000,
+        "pct": 20.0,
+        "heartbeat_at": 123.0,
+        "pid": 1,
+        "capabilities": caps,
+    }
+    monkeypatch.setattr(R, "get_safe_run_dir", lambda run_id, must_exist=False: d)
+    monkeypatch.setattr(R, "_run_pid_alive", lambda *a, **k: True)
+    fired: list[int] = []
+    orig_atomic, orig_ws = R.write_atomic_json, R.write_status_json
+
+    def inject() -> None:
+        if not fired:
+            fired.append(1)
+            orig_atomic(sf, heartbeat)
+
+    def wrapped_ws(path: Path, data: dict[str, Any], **kw: Any) -> dict[str, Any]:
+        if Path(path) == sf:
+            inject()
+        return orig_ws(path, data, **kw)
+
+    monkeypatch.setattr(R, "write_status_json", wrapped_ws)
+    R.manage_run_action("run1", act)
+    final = json.loads(sf.read_text())
+    assert fired
+    assert final["work_done"] == 200 and final["pct"] == 20.0 and final["revision"] > 50
+    assert final.get("heartbeat_at") == 123.0, "console wrote back fields it does not own"
+
+
+def test_status_lock_timeout_in_console_write_is_not_fatal(tmp_path: Path) -> None:
+    from codontrace.console import runs as R
+
+    f = tmp_path / "status.json"
+    write_status_json(f, {"status": "RUNNING", "revision": 1})
+    old = R.STATUS_LOCK_TIMEOUT_S
+    R.STATUS_LOCK_TIMEOUT_S = 0.2
+    try:
+        with R._status_file_lock(R.status_lock_path(f)):
+            done = []
+            t = threading.Thread(
+                target=lambda: done.append(R.console_write_status(f, {"status": "PAUSING"}, R.CONSOLE_STATUS_FIELDS))
+            )
+            t.start()
+            t.join(10)
+    finally:
+        R.STATUS_LOCK_TIMEOUT_S = old
+    assert done == [False]
+    assert json.loads(f.read_text())["status"] == "RUNNING"

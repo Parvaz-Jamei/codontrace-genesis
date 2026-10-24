@@ -23,7 +23,13 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from codontrace.console.runs import get_allowed_cpu_ids, runs_directory, write_atomic_json, write_status_json
+from codontrace.console.runs import (
+    StatusLockTimeout,
+    get_allowed_cpu_ids,
+    runs_directory,
+    write_atomic_json,
+    write_status_json,
+)
 from codontrace.experiments.models import AssessmentStatus, CompletionSummary, ExecutionTrack
 
 
@@ -282,9 +288,14 @@ class CampaignOrchestrator:
             if (run_dir / "PAUSE").exists():
                 pause_started = time.monotonic()
                 ack = run_dir / f"ack_paused_{os.getpid()}"
+                # Handshake order: the last tick is already in status.json
+                # (on_generation persists before cooperate), PAUSED is
+                # committed next, and only then is the ack published. No tick
+                # runs between the ack and the end of the pause loop.
+                with state_lock:
+                    status["status"] = "PAUSED"
+                    _persist_locked()
                 ack.write_text(session_id, encoding="utf-8")
-                status["status"] = "PAUSED"
-                persist()
                 try:
                     while (run_dir / "PAUSE").exists():
                         if (run_dir / "STOP").exists():
@@ -306,7 +317,11 @@ class CampaignOrchestrator:
 
         def heartbeat() -> None:
             while not heartbeat_stop.wait(self.heartbeat_seconds):
-                persist()
+                try:
+                    persist()
+                except StatusLockTimeout:
+                    logger.warning("heartbeat skipped: status lock timeout")
+                    continue
                 logger.info("heartbeat work=%s/%s state=%s", done, horizon, status["status"])
 
         heartbeat_thread = threading.Thread(target=heartbeat, daemon=True, name=f"heartbeat-{run_id}")

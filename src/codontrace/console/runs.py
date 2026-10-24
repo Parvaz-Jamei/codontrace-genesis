@@ -472,6 +472,34 @@ def write_status_json(
     return out
 
 
+_DEAD_PROCESS_FIELDS: tuple[str, ...] = ("status", "revision", "exitCode", "endedAt", "errorReason", "stoppedAt")
+
+
+def _dead_process_fields(info: dict[str, Any]) -> tuple[str, ...]:
+    """Fields a console path may write after the run process has exited.
+
+    Progress belongs to the run process; only a COMPLETED verdict also sets
+    ``pct`` (to 100).
+    """
+    return _DEAD_PROCESS_FIELDS + (("pct",) if info.get("status") == "COMPLETED" else ())
+
+
+def console_write_status(status_file: Path, info: dict[str, Any], fields: tuple[str, ...]) -> bool:
+    """Console-side status write: only ``fields``, and a lock timeout is not fatal.
+
+    The PAUSE/STOP markers stay authoritative when the write is skipped, so
+    the next snapshot still derives the right state.
+    """
+    try:
+        write_status_json(status_file, info, fields=fields)
+    except StatusLockTimeout:
+        import logging
+
+        logging.getLogger(__name__).warning("status lock timeout; skipped write to %s", status_file)
+        return False
+    return True
+
+
 def _merge_status_locked(
     current: dict[str, Any], data: dict[str, Any], run_dir: Path, fields: tuple[str, ...] | None
 ) -> dict[str, Any]:
@@ -819,6 +847,18 @@ def build_run_snapshot(
             if state in ("RUNNING", "STARTING", "PAUSING"):
                 if (active_workers_expected > 0 and workers_paused >= active_workers_expected) or (active_workers_expected == 0 and remaining_seeds == 0):
                     state = "PAUSED"
+                    if status_info.get("status") != "PAUSED" and ack_files:
+                        # status_info was read before the ack glob. Workers commit
+                        # PAUSED + final progress to status.json before writing the
+                        # ack, so re-read it: the PAUSED snapshot must carry the
+                        # progress the worker paused at, not an earlier tick.
+                        fresh = adapter.reconcile_status(entry)
+                        if fresh:
+                            status_info = dict(status_info)
+                            for key in ("work_done", "work_total", "pct", "revision", "heartbeat_at"):
+                                if key in fresh:
+                                    status_info[key] = fresh[key]
+                            revision = int(status_info.get("revision", revision))
                 else:
                     state = "PAUSING"
         elif state == "PAUSED":
@@ -988,7 +1028,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     st = "STALE"
                 if st != orig_st:
                     status_info["status"] = st
-                    write_status_json(status_file, status_info)
+                    console_write_status(status_file, status_info, _dead_process_fields(status_info))
         elif not st:
             has_complete_marker = False
             complete_file = entry / "COMPLETE"
@@ -1114,7 +1154,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 elif st == "FAILED":
                     status_info.setdefault("exitCode", 1)
                     status_info.setdefault("endedAt", time.time())
-                write_status_json(status_file, status_info)
+                console_write_status(status_file, status_info, _dead_process_fields(status_info))
         elif not st:
             live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
             exec_data_val = adapter.resolve_execution_data(entry)
@@ -1563,7 +1603,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         # Must have living process
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {
                 "ok": False,
                 "error": "Cannot pause run: process is no longer active",
@@ -1598,7 +1638,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
             else:
                 status_info["status"] = "PAUSED" if ack_files else "PAUSING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "resume":
@@ -1640,7 +1680,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
 
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {
                 "ok": False,
                 "error": "Cannot resume run: process is dead. Use restart.",
@@ -1657,7 +1697,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 ack_files.add(f.name)
             status_info["status"] = "RESUMING" if ack_files else "RUNNING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
         return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "stop":
@@ -1695,7 +1735,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         if caps.get("cooperative_stop", False) and proc_alive:
             status_info["status"] = "STOPPING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {"ok": True, "action": "stop", "run_id": run_id, "status_code": 200, "pending": True}
 
         stopped = False
@@ -1725,7 +1765,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         status_info["status"] = "STOPPING" if still_alive else "STOPPED"
         status_info["stoppedAt"] = time.time()
         status_info["revision"] = int(status_info.get("revision", 1)) + 1
-        write_status_json(status_file, status_info, fields=CONSOLE_STATUS_FIELDS)
+        console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
 
         return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200 if stopped else 500, "pending": still_alive}
     elif act == "restart":
@@ -1832,7 +1872,7 @@ def _record_watcher_failure(run_id: str, proc: subprocess.Popen[Any], run_dir: P
         status_info.setdefault("exitCode", None)
     status_info["endedAt"] = time.time()
     try:
-        write_status_json(status_file, status_info)
+        console_write_status(status_file, status_info, _dead_process_fields(status_info))
     except Exception:
         pass
 
@@ -1921,7 +1961,7 @@ def _finalize_watched_run(run_id: str, proc: subprocess.Popen[Any], run_dir: Pat
     if error_reason:
         status_info["errorReason"] = error_reason
 
-    write_status_json(status_file, status_info)
+    console_write_status(status_file, status_info, _dead_process_fields(status_info))
 
 
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:

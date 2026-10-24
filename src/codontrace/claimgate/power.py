@@ -121,7 +121,10 @@ def _nct_sf(c: float, df: float, ncp: float) -> float:
 
     def f(u: float) -> float:
         if u <= 0.0:
-            return 0.0
+            # The density at u = 0 is 0 for df > 1 but exp(log_norm) for
+            # df = 1 (U = |Z|, a half-normal). Returning 0 there under-weighted
+            # the Simpson endpoint and biased P(T' > c) by up to 7e-4 at df = 1.
+            return math.exp(log_norm) if df == 1.0 else 0.0
         return math.exp(log_norm + (df - 1.0) * math.log(u) - k * u * u)
 
     sd = 1.0 / math.sqrt(2.0 * df)

@@ -12,6 +12,13 @@ Follows OSF API v2 (https://developer.osf.io/, spec ``swagger.json`` fetched
   (``api/base/versioning.py: CREATE_REGISTRATION_FIELD_CHANGE_VERSION``, and
   ``api/registrations/serializers.py: RegistrationCreateSerializer``). The
   client pins ``version=2.20`` in the ``Accept`` header.
+* The server answers that POST with a registration that still waits for the
+  admins' approval: ``RegistrationCreateSerializer.create`` calls
+  ``registration.require_approval(auth.user)`` (``api/registrations/serializers.py``),
+  so the reply carries ``pending_registration_approval=true`` and
+  ``public=false``. Such a reply is never evidence. Once the registration is
+  approved, :meth:`OSFClient.fetch` re-reads it with
+  ``GET /v2/registrations/{id}/`` and only that later state can be evidence.
 
 The draft-from-scratch route is used on purpose. OSF stops creating projects
 through ``POST /v2/nodes/`` on 2026-11-16 and makes projects read-only on
@@ -24,8 +31,11 @@ therefore only submits with ``submit=True``. A draft is private and is not
 evidence. Neither is a registration that is still pending approval or
 embargoed, because nobody outside can see it yet.
 
-OSF reports ``date_registered`` without a zone. The server stores UTC, so the
-client attaches UTC. The token is passed in by the caller and is never stored.
+From API version 2.2 on, OSF writes ``date_registered`` in UTC with a ``Z``
+suffix, ``%Y-%m-%dT%H:%M:%S.%fZ`` (``api/base/serializers.py:
+VersionedDateTimeField``), so at the pinned 2.20 the zone is explicit. Only a
+pre-2.2 reply would be zone-less; the server stores UTC, so the client would
+attach UTC to it. Anything else is a :class:`ConfigurationError`. The token is passed in by the caller and is never stored.
 """
 
 from __future__ import annotations
@@ -57,11 +67,29 @@ class OSFRegistration:
     html_url: str | None
     registered_at: datetime | None
     description: str
+    withdrawn: bool = False
+    pending_withdrawal: bool = False
+    archiving: bool = False
 
 
 def _parse_time(value: object) -> datetime:
-    t = datetime.fromisoformat(str(value))
+    if not isinstance(value, str):
+        raise ConfigurationError(f"OSF date_registered is not a string: {value!r}")
+    try:
+        t = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ConfigurationError(f"OSF date_registered is not an ISO-8601 time: {value!r}") from exc
     return t if t.tzinfo is not None else t.replace(tzinfo=UTC)
+
+
+def _flag(attrs: dict[str, object], key: str) -> bool:
+    """A JSON boolean attribute. Absent (OSF hides some fields once withdrawn) is False."""
+    value = attrs.get(key)
+    if value is None:
+        return False
+    if not isinstance(value, bool):
+        raise ConfigurationError(f"OSF attribute {key} is not a JSON boolean: {value!r}")
+    return value
 
 
 @dataclass
@@ -71,7 +99,7 @@ class OSFClient:
     allow_network: bool = False
     transport: Transport | None = None
 
-    def _call(self, method: str, url: str, payload: dict[str, object]) -> dict[str, object]:
+    def _call(self, method: str, url: str, payload: dict[str, object] | None) -> dict[str, object]:
         transport = self.transport
         if transport is None:
             require_network(self.allow_network, "OSF registration")
@@ -81,7 +109,8 @@ class OSFClient:
             "Content-Type": "application/vnd.api+json",
             "Accept": f"application/vnd.api+json; version={API_VERSION}",
         }
-        resp = transport(method, url, json.dumps(payload).encode("utf-8"), headers)
+        body = None if payload is None else json.dumps(payload).encode("utf-8")
+        resp = transport(method, url, body, headers)
         if resp.status not in (200, 201):
             raise ConfigurationError(f"OSF {method} {url.split('?')[0]} answered HTTP {resp.status}")
         doc = json.loads(resp.body.decode("utf-8"))
@@ -112,6 +141,23 @@ class OSFClient:
         reg = self._call("POST", f"{self.base_url}/registrations/", {
             "data": {"type": "registrations", "attributes": {"draft_registration_id": draft_id}}
         })
+        return self._registration(reg, draft_id, manifest)
+
+    def fetch(self, registration_id: str, manifest: PlanManifest, *, draft_id: str = "") -> OSFRegistration:
+        """Re-read a submitted registration (``GET /v2/registrations/{id}/``).
+
+        The submit reply is pending approval by design, so this is the call that
+        can return an approved, public registration once OSF has approved it.
+        """
+        if not registration_id or "/" in registration_id:
+            raise ConfigurationError("an OSF registration id is required")
+        reg = self._call("GET", f"{self.base_url}/registrations/{registration_id}/", None)
+        if str(reg.get("id") or "") != registration_id:
+            raise ConfigurationError("OSF answered with a different registration")
+        return self._registration(reg, draft_id, manifest)
+
+    @staticmethod
+    def _registration(reg: dict[str, object], draft_id: str, manifest: PlanManifest) -> OSFRegistration:
         attrs = reg["attributes"]
         assert isinstance(attrs, dict)
         stored = str(attrs.get("description") or "")
@@ -124,10 +170,13 @@ class OSFClient:
             draft_id=draft_id,
             registration_id=str(reg.get("id")) if reg.get("id") else None,
             submitted=True,
-            public=bool(attrs.get("public")),
-            pending_approval=bool(attrs.get("pending_registration_approval")),
-            embargoed=bool(attrs.get("embargoed")) or bool(attrs.get("pending_embargo_approval")),
+            public=_flag(attrs, "public"),
+            pending_approval=_flag(attrs, "pending_registration_approval"),
+            embargoed=_flag(attrs, "embargoed") or _flag(attrs, "pending_embargo_approval"),
             html_url=str(html) if html else None,
             registered_at=_parse_time(stamp) if stamp else None,
             description=stored,
+            withdrawn=_flag(attrs, "withdrawn"),
+            pending_withdrawal=_flag(attrs, "pending_withdrawal"),
+            archiving=_flag(attrs, "archiving"),
         )

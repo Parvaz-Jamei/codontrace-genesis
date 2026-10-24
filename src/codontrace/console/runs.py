@@ -7,6 +7,7 @@ Works on Windows, Linux, and macOS.
 from __future__ import annotations
 
 import datetime
+import errno
 import hashlib
 import json
 import math
@@ -19,6 +20,8 @@ import sys
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -294,21 +297,56 @@ def get_safe_run_dir(run_id: str, must_exist: bool = False) -> Path | None:
     return target
 
 
+ATOMIC_REPLACE_TIMEOUT_S = 10.0
+
+# Windows error codes that mean "another handle has the target open".
+_BUSY_WINERRORS = (5, 32)  # ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION
+
+
+def _is_busy_error(exc: OSError) -> bool:
+    """Whether a failed replace only hit a file that is busy right now.
+
+    ``os.replace`` failures on Windows carry the native code in ``winerror``;
+    5 and 32 are the busy cases. ``winerror`` is ``None`` when the error was
+    built without a native code (two-argument constructor) and missing off
+    Windows; then fall back to the POSIX translation and treat ``EACCES``,
+    which both busy codes map to, as busy. Anything else is a real failure.
+    """
+    winerror = getattr(exc, "winerror", None)
+    if winerror is None:
+        return exc.errno == errno.EACCES
+    return winerror in _BUSY_WINERRORS
+
+
+def _replace_with_retry(src: Path, dst: Path) -> None:
+    """``os.replace`` that waits out a reader holding ``dst`` open on Windows.
+
+    Windows refuses to replace a file another handle has open (access denied
+    or sharing violation), where POSIX rename just succeeds. Those two errors
+    only mean "busy right now", so they are retried with capped backoff up to
+    ``ATOMIC_REPLACE_TIMEOUT_S``; any other error is raised at once. Every
+    attempt is still a single atomic replace.
+    """
+    deadline = time.monotonic() + ATOMIC_REPLACE_TIMEOUT_S
+    delay = 0.005
+    while True:
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError as exc:
+            if os.name != "nt" or not _is_busy_error(exc) or time.monotonic() >= deadline:
+                raise
+        time.sleep(delay)
+        delay = min(delay * 2, 0.1)
+
+
 def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
     """Safely write JSON using an atomic replace to avoid partial/corrupt files."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_file = path.with_name(f"{path.name}.tmp.{uuid.uuid4().hex[:6]}")
     try:
         temp_file.write_text(json.dumps(data, indent=2, allow_nan=False), encoding="utf-8")
-        # On Windows, os.replace can fail momentarily if another reader has the target file open.
-        for attempt in range(5):
-            try:
-                os.replace(temp_file, path)
-                break
-            except OSError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.05)
+        _replace_with_retry(temp_file, path)
     finally:
         if temp_file.is_file():
             try:
@@ -316,6 +354,219 @@ def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
             except OSError:
                 pass
 
+
+STATUS_LOCK_TIMEOUT_S = 60.0
+_STATUS_LOCK_POLL_S = (0.0005, 0.02)
+_HELD_STATUS_LOCKS = threading.local()
+
+
+class StatusLockTimeout(TimeoutError):
+    """The status lock could not be taken before ``STATUS_LOCK_TIMEOUT_S``."""
+
+
+@contextmanager
+def _status_file_lock(lock_path: Path, timeout: float | None = None) -> Iterator[None]:
+    """Exclusive lock on ``lock_path`` with a deadline on every platform.
+
+    POSIX uses ``fcntl.flock(LOCK_EX | LOCK_NB)`` and Windows
+    ``msvcrt.locking(LK_NBLCK)``; both are retried with a short capped
+    backoff until ``timeout`` (default ``STATUS_LOCK_TIMEOUT_S``) and then
+    raise :class:`StatusLockTimeout`. Each call opens its own file
+    description, so threads in one process exclude each other as well as
+    separate processes.
+
+    The lock is not re-entrant: flock locks belong to the open file
+    description, so a nested acquire on the same path from the same thread
+    would wait on itself until the deadline. That case raises
+    ``RuntimeError`` immediately instead.
+
+    The ``*.lock`` sidecar is deliberately left on disk. Unlinking it while
+    another writer waits on the old inode would let two writers hold "the"
+    lock at once. It is a zero/one-byte file that goes away with the run
+    folder (trash or delete) and is not read by anything else.
+    """
+    key = os.path.normcase(os.path.abspath(lock_path))
+    held: set[str] = getattr(_HELD_STATUS_LOCKS, "paths", None) or set()
+    _HELD_STATUS_LOCKS.paths = held
+    if key in held:
+        raise RuntimeError(f"re-entrant status lock on {lock_path}; call write_atomic_json inside the lock")
+    deadline = time.monotonic() + (STATUS_LOCK_TIMEOUT_S if timeout is None else timeout)
+    delay = _STATUS_LOCK_POLL_S[0]
+    with lock_path.open("a+b") as handle:
+        if os.name == "nt":
+            import msvcrt
+
+            if handle.seek(0, os.SEEK_END) == 0:
+                handle.write(b"0")
+                handle.flush()
+
+            def _try() -> bool:
+                handle.seek(0)
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined,unused-ignore]
+                except OSError:
+                    return False
+                return True
+
+            def _release() -> None:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined,unused-ignore]
+        else:
+            import errno
+            import fcntl
+
+            def _try() -> bool:
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except OSError as exc:
+                    if exc.errno in (errno.EAGAIN, errno.EACCES, errno.EWOULDBLOCK):
+                        return False
+                    raise
+                return True
+
+            def _release() -> None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+        while not _try():
+            if time.monotonic() >= deadline:
+                raise StatusLockTimeout(f"timed out waiting for {lock_path}")
+            time.sleep(delay)
+            delay = min(delay * 2, _STATUS_LOCK_POLL_S[1])
+        held.add(key)
+        try:
+            yield
+        finally:
+            held.discard(key)
+            _release()
+
+
+def status_lock_path(status_file: Path) -> Path:
+    return status_file.with_name(f"{status_file.name}.lock")
+
+
+CONSOLE_STATUS_FIELDS: tuple[str, ...] = ("status", "revision", "stoppedAt")
+
+
+def _allowed_status(current: str | None, new: str | None, run_dir: Path) -> str | None:
+    """Explicit transition rule applied to every status.json write.
+
+    * While a ``PAUSE`` marker exists, ``PAUSING``/``PAUSED`` cannot be
+      replaced by ``RUNNING``/``RESUMING`` (a heartbeat written from a copy
+      taken before the pause cannot un-pause the run).
+    * While a ``STOP`` marker exists, ``STOPPING``/``STOPPED`` cannot be
+      replaced by a live state (``RUNNING``, ``RESUMING``, ``PAUSING``,
+      ``PAUSED``).
+
+    Every other transition is allowed. Returns the status to write.
+    """
+    if not current or not new or current == new:
+        return new
+    if current in ("PAUSING", "PAUSED") and new in ("RUNNING", "RESUMING") and (run_dir / "PAUSE").is_file():
+        return current
+    if (
+        current in ("STOPPING", "STOPPED")
+        and new in ("RUNNING", "RESUMING", "PAUSING", "PAUSED")
+        and (run_dir / "STOP").is_file()
+    ):
+        return current
+    return new
+
+
+def write_status_json(
+    status_file: Path, data: dict[str, Any], *, fields: tuple[str, ...] | None = None
+) -> dict[str, Any]:
+    """Write status.json under a cross-process lock, keeping progress monotonic.
+
+    Every writer (the console's pause/resume/stop handlers, the snapshot
+    reconciler and the run process's heartbeat) goes through here. Under an
+    exclusive lock on the sidecar ``status.json.lock`` the current file is
+    re-read and:
+
+    * with ``fields`` set (console actions), only those keys are taken from
+      ``data``; every progress field comes from the file on disk, which the
+      run process owns, so a stale console copy never carries progress;
+    * ``status`` passes through :func:`_allowed_status`;
+    * ``revision`` becomes ``max(new, current + 1)`` when the caller's value is
+      not ahead, so it strictly increases with every write;
+    * ``work_done`` never goes below the value already on disk, and ``pct`` is
+      recomputed from it when ``work_total`` is known.
+
+    ``revision``/``work_done``/``pct`` are updated in ``data`` in place; the
+    written record is returned.
+    """
+    status_file.parent.mkdir(parents=True, exist_ok=True)
+    with _status_file_lock(status_lock_path(status_file)):
+        current: dict[str, Any] = {}
+        try:
+            loaded = json.loads(status_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                current = loaded
+        except (OSError, ValueError):
+            current = {}
+        out = _merge_status_locked(current, data, status_file.parent, fields)
+        write_atomic_json(status_file, out)
+    return out
+
+
+_DEAD_PROCESS_FIELDS: tuple[str, ...] = ("status", "revision", "exitCode", "endedAt", "errorReason", "stoppedAt")
+
+
+def _dead_process_fields(info: dict[str, Any]) -> tuple[str, ...]:
+    """Fields a console path may write after the run process has exited.
+
+    Progress belongs to the run process; only a COMPLETED verdict also sets
+    ``pct`` (to 100).
+    """
+    return _DEAD_PROCESS_FIELDS + (("pct",) if info.get("status") == "COMPLETED" else ())
+
+
+def console_write_status(status_file: Path, info: dict[str, Any], fields: tuple[str, ...]) -> bool:
+    """Console-side status write: only ``fields``, and a lock timeout is not fatal.
+
+    The PAUSE/STOP markers stay authoritative when the write is skipped, so
+    the next snapshot still derives the right state.
+    """
+    try:
+        write_status_json(status_file, info, fields=fields)
+    except StatusLockTimeout:
+        import logging
+
+        logging.getLogger(__name__).warning("status lock timeout; skipped write to %s", status_file)
+        return False
+    return True
+
+
+def _merge_status_locked(
+    current: dict[str, Any], data: dict[str, Any], run_dir: Path, fields: tuple[str, ...] | None
+) -> dict[str, Any]:
+    if fields is not None and current:
+        out = dict(current)
+        for key in fields:
+            if key in data:
+                out[key] = data[key]
+    else:
+        out = dict(data)
+    if current:
+        status = _allowed_status(current.get("status"), out.get("status"), run_dir)
+        if status is not None:
+            out["status"] = status
+        try:
+            cur_rev = int(current.get("revision", 0))
+            new_rev = int(out.get("revision", 0))
+            out["revision"] = new_rev if new_rev > cur_rev else cur_rev + 1
+        except (TypeError, ValueError):
+            pass
+        cur_done, new_done = current.get("work_done"), out.get("work_done")
+        if isinstance(cur_done, (int, float)) and not isinstance(cur_done, bool):
+            if not isinstance(new_done, (int, float)) or isinstance(new_done, bool) or new_done < cur_done:
+                out["work_done"] = cur_done
+                total = out.get("work_total")
+                if isinstance(total, (int, float)) and not isinstance(total, bool) and "pct" in out:
+                    out["pct"] = min(100.0, 100.0 * float(cur_done) / max(1, total))
+    for key in ("revision", "work_done", "pct"):
+        if key in out:
+            data[key] = out[key]
+    return out
 
 
 def move_run_to_trash(run_id: str, entry: Path) -> Path:
@@ -402,44 +653,44 @@ class RunnerAdapter:
         }
 
     def reconcile_status(self, run_dir: Path) -> dict[str, Any]:
-        """Reconcile nested output/status.json into root status.json atomically if newer."""
+        """Reconcile nested output/status.json into root status.json.
+
+        Both files are read and the merged result written while holding the
+        root ``status.json.lock``, so a console action or heartbeat cannot
+        land between the read and the write. When the nested file is newer
+        it is the single source for progress: its keys win in the merge.
+        """
         root_status_file = run_dir / "status.json"
         nested_status_file = run_dir / self.primary_output_dir / "status.json"
-        root_data: dict[str, Any] = {}
-        nested_data: dict[str, Any] = {}
 
-        if root_status_file.is_file():
+        def _load(path: Path) -> dict[str, Any]:
             try:
-                loaded = json.loads(root_status_file.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    root_data = loaded
+                loaded = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
-                pass
+                return {}
+            return loaded if isinstance(loaded, dict) else {}
 
-        if nested_status_file.is_file():
-            try:
-                loaded = json.loads(nested_status_file.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    nested_data = loaded
-            except (OSError, ValueError):
-                pass
-
-        if nested_data:
-            nested_rev = int(nested_data.get("revision", 0))
-            root_rev = int(root_data.get("revision", 0))
-            nested_mtime = nested_status_file.stat().st_mtime
-            root_mtime = root_status_file.stat().st_mtime if root_status_file.is_file() else 0.0
-
-            if nested_rev > root_rev or (nested_rev == root_rev and nested_mtime > root_mtime) or not root_data:
-                merged = {**root_data, **nested_data}
-                merged["revision"] = max(nested_rev, root_rev)
-                try:
+        if nested_status_file.resolve() == root_status_file.resolve() or not nested_status_file.is_file():
+            return _load(root_status_file)
+        try:
+            with _status_file_lock(status_lock_path(root_status_file)):
+                root_data = _load(root_status_file)
+                nested_data = _load(nested_status_file)
+                if not nested_data:
+                    return root_data
+                nested_rev = int(nested_data.get("revision", 0))
+                root_rev = int(root_data.get("revision", 0))
+                nested_mtime = nested_status_file.stat().st_mtime
+                root_mtime = root_status_file.stat().st_mtime if root_status_file.is_file() else 0.0
+                if nested_rev > root_rev or (nested_rev == root_rev and nested_mtime > root_mtime) or not root_data:
+                    merged = {**root_data, **nested_data}
+                    merged["revision"] = max(nested_rev, root_rev)
+                    merged = _merge_status_locked(root_data, merged, run_dir, None)
                     write_atomic_json(root_status_file, merged)
-                except Exception:
-                    pass
-                return merged
-
-        return root_data
+                    return merged
+                return root_data
+        except (OSError, ValueError, TypeError, RuntimeError):
+            return _load(root_status_file)
 
     def resolve_status_data(self, run_dir: Path) -> dict[str, Any]:
         """Resolve and reconcile authoritative status data for run_dir."""
@@ -632,6 +883,18 @@ def build_run_snapshot(
             if state in ("RUNNING", "STARTING", "PAUSING"):
                 if (active_workers_expected > 0 and workers_paused >= active_workers_expected) or (active_workers_expected == 0 and remaining_seeds == 0):
                     state = "PAUSED"
+                    if status_info.get("status") != "PAUSED" and ack_files:
+                        # status_info was read before the ack glob. Workers commit
+                        # PAUSED + final progress to status.json before writing the
+                        # ack, so re-read it: the PAUSED snapshot must carry the
+                        # progress the worker paused at, not an earlier tick.
+                        fresh = adapter.reconcile_status(entry)
+                        if fresh:
+                            status_info = dict(status_info)
+                            for key in ("work_done", "work_total", "pct", "revision", "heartbeat_at"):
+                                if key in fresh:
+                                    status_info[key] = fresh[key]
+                            revision = int(status_info.get("revision", revision))
                 else:
                     state = "PAUSING"
         elif state == "PAUSED":
@@ -801,7 +1064,7 @@ def list_simulation_runs() -> list[dict[str, Any]]:
                     st = "STALE"
                 if st != orig_st:
                     status_info["status"] = st
-                    write_atomic_json(status_file, status_info)
+                    console_write_status(status_file, status_info, _dead_process_fields(status_info))
         elif not st:
             has_complete_marker = False
             complete_file = entry / "COMPLETE"
@@ -927,7 +1190,7 @@ def get_run_details(run_id: str) -> dict[str, Any] | None:
                 elif st == "FAILED":
                     status_info.setdefault("exitCode", 1)
                     status_info.setdefault("endedAt", time.time())
-                write_atomic_json(status_file, status_info)
+                console_write_status(status_file, status_info, _dead_process_fields(status_info))
         elif not st:
             live_log = (engine_dir / "live.log") if (engine_dir / "live.log").is_file() else (entry / "live.log")
             exec_data_val = adapter.resolve_execution_data(entry)
@@ -1376,7 +1639,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         # Must have living process
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_atomic_json(status_file, status_info)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {
                 "ok": False,
                 "error": "Cannot pause run: process is no longer active",
@@ -1411,7 +1674,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
             else:
                 status_info["status"] = "PAUSED" if ack_files else "PAUSING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
         return {"ok": ok, "action": "pause", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "resume":
@@ -1453,7 +1716,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
 
         if (proc is not None or pid is not None) and not proc_alive:
             status_info["status"] = "FAILED"
-            write_atomic_json(status_file, status_info)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {
                 "ok": False,
                 "error": "Cannot resume run: process is dead. Use restart.",
@@ -1470,7 +1733,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
                 ack_files.add(f.name)
             status_info["status"] = "RESUMING" if ack_files else "RUNNING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
         return {"ok": ok, "action": "resume", "run_id": run_id, "status_code": 200 if ok else 500}
 
     elif act == "stop":
@@ -1508,7 +1771,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         if caps.get("cooperative_stop", False) and proc_alive:
             status_info["status"] = "STOPPING"
             status_info["revision"] = int(status_info.get("revision", 1)) + 1
-            write_atomic_json(status_file, status_info)
+            console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
             return {"ok": True, "action": "stop", "run_id": run_id, "status_code": 200, "pending": True}
 
         stopped = False
@@ -1538,7 +1801,7 @@ def _manage_run_action_unlocked(run_id: str, action: str) -> dict[str, Any]:
         status_info["status"] = "STOPPING" if still_alive else "STOPPED"
         status_info["stoppedAt"] = time.time()
         status_info["revision"] = int(status_info.get("revision", 1)) + 1
-        write_atomic_json(status_file, status_info)
+        console_write_status(status_file, status_info, CONSOLE_STATUS_FIELDS)
 
         return {"ok": stopped, "action": "stop", "run_id": run_id, "status_code": 200 if stopped else 500, "pending": still_alive}
     elif act == "restart":
@@ -1645,7 +1908,7 @@ def _record_watcher_failure(run_id: str, proc: subprocess.Popen[Any], run_dir: P
         status_info.setdefault("exitCode", None)
     status_info["endedAt"] = time.time()
     try:
-        write_atomic_json(status_file, status_info)
+        console_write_status(status_file, status_info, _dead_process_fields(status_info))
     except Exception:
         pass
 
@@ -1734,7 +1997,7 @@ def _finalize_watched_run(run_id: str, proc: subprocess.Popen[Any], run_dir: Pat
     if error_reason:
         status_info["errorReason"] = error_reason
 
-    write_atomic_json(status_file, status_info)
+    console_write_status(status_file, status_info, _dead_process_fields(status_info))
 
 
 def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
@@ -2075,7 +2338,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
         "engineBackend": engine_backend,
         "modelScope": model_scope,
     }
-    write_atomic_json(run_dir / "status.json", status_info)
+    write_status_json(run_dir / "status.json", status_info)
 
     log_path = run_dir / "console.log"
     child_env = dict(os.environ)
@@ -2085,7 +2348,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
             proc = subprocess.Popen(cmd, stdout=log_fp, stderr=subprocess.STDOUT, cwd=str(repo_root), env=child_env)
     except OSError as exc:
         status_info.update({"status": "FAILED", "endedAt": time.time(), "errorReason": str(exc)})
-        write_atomic_json(run_dir / "status.json", status_info)
+        write_status_json(run_dir / "status.json", status_info)
         return {"ok": False, "error": f"Process launch failed: {exc}", "runId": run_id, "status_code": 500}
 
     if cores_val and sys.platform == "win32":
@@ -2110,7 +2373,7 @@ def launch_simulation_run(params: dict[str, Any]) -> dict[str, Any]:
     if status_info.get("status") == "STARTING":
         status_info["status"] = "RUNNING"
     status_info["pid"] = proc.pid
-    write_atomic_json(run_dir / "status.json", status_info)
+    write_status_json(run_dir / "status.json", status_info)
 
     watcher_thread = threading.Thread(
         target=_watch_run_process,

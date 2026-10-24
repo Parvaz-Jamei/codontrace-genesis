@@ -178,10 +178,11 @@ class RNGManager:
         )
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    # Hash-based counter PRNG streams. A draw is a pure function of a key built
-    # from (seed, counter, salt): x_n = H(k, n) with H = SHA-256. This is a
-    # counter-based generator: a keyed function applied to a running counter,
-    # with SHA-256 as the keyed function. It is not Philox or Threefry.
+    # Hash-based counter PRNG streams. Draw n is the SHA-256 digest of the
+    # UTF-8 string f"{seed}:{n}:{salt}" (seed and n as decimal integers); the
+    # version-2 integer stream hashes f"v2:{seed}:{n}:{salt}:{attempt}".
+    # There is no separate key: seed, counter and salt are all part of the one
+    # hashed string. It is not Philox or Threefry.
     # These streams are stateless, so a draw can be replayed at any counter
     # without a snapshot. Every module that needs a seeded hash stream calls
     # one of these methods, so RNGManager is the single RNG source.

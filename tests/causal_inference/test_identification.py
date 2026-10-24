@@ -24,7 +24,7 @@ from codontrace.causal_inference import (
 )
 from codontrace.causal_inference.scm import DiscreteSCM
 
-from ._helpers import admgs, assignments, backdoor_value, frontdoor_value
+from ._helpers import admgs, assignments, backdoor_value, frontdoor_value, require_y0, to_y0
 
 B = CausalDiagram.build
 
@@ -32,18 +32,17 @@ B = CausalDiagram.build
 IDENTIFIABLE = {
     # Front door (smoking -> tar -> cancer).
     "front_door": B([("X", "Z"), ("Z", "Y")], [("X", "Y")]),
-    # Back door: Z confounds X and Y.
+    # Single observed confounder Z of X and Y (back-door adjustment on {Z}).
     "back_door": B([("Z", "X"), ("Z", "Y"), ("X", "Y")]),
-    # Three confounders Z1..Z3 and a mediator W (classic back-door example).
+    # Z1..Z3 confounders, Z3 a collider of Z1 and Z2, and a mediator W.
     "three_confounders_mediator": B([("Z1", "Z3"), ("Z2", "Z3"), ("Z1", "X"), ("Z3", "X"), ("Z3", "Y"),
                         ("Z2", "Y"), ("X", "W"), ("W", "Y")]),
     # Napkin graph: identifiable but by neither criterion.
     "napkin": B([("W", "Z"), ("Z", "X"), ("X", "Y")], [("W", "X"), ("W", "Y")]),
-    # Two-mediator front door with an observed confounder of the mediators' parent
+    # Front door through one mediator Z, plus an observed covariate C of X and Y
     # (derivable with the do-calculus rules).
     "front_door_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Z"), ("Z", "Y")], [("X", "Y")]),
 }
-IDENTIFIABLE_QUERY: dict = {}
 
 NOT_IDENTIFIABLE = {
     # The bow arc.
@@ -56,22 +55,6 @@ NOT_IDENTIFIABLE = {
     # (the graph contains a hedge).
     "bow_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Y")], [("X", "Y")]),
 }
-NOT_IDENTIFIABLE_QUERY: dict = {}
-
-
-def _to_y0(g):
-    from y0.dsl import Variable
-    from y0.graph import NxMixedGraph
-
-    ng = NxMixedGraph()
-    for v in sorted(g.nodes):  # y0 0.2.11 needs every node in both layers
-        ng.directed.add_node(Variable(v))
-        ng.undirected.add_node(Variable(v))
-    for a, b in sorted(g.directed):
-        ng.add_directed_edge(Variable(a), Variable(b))
-    for a, b in sorted(g.bidirected):
-        ng.add_undirected_edge(Variable(a), Variable(b))
-    return ng
 
 
 def _assert_matches_truth(g, y, x, expr, seeds=(1, 2)):
@@ -91,7 +74,7 @@ def _assert_matches_truth(g, y, x, expr, seeds=(1, 2)):
 @pytest.mark.parametrize("name", sorted(IDENTIFIABLE))
 def test_textbook_identifiable(name):
     g = IDENTIFIABLE[name]
-    y, x = IDENTIFIABLE_QUERY.get(name, ({"Y"}, {"X"}))
+    y, x = {"Y"}, {"X"}
     expr = identify(g, y, x)
     _assert_matches_truth(g, y, x, expr)
 
@@ -99,7 +82,7 @@ def test_textbook_identifiable(name):
 @pytest.mark.parametrize("name", sorted(NOT_IDENTIFIABLE))
 def test_textbook_not_identifiable(name):
     g = NOT_IDENTIFIABLE[name]
-    y, x = NOT_IDENTIFIABLE_QUERY.get(name, ({"Y"}, {"X"}))
+    y, x = {"Y"}, {"X"}
     with pytest.raises(NotIdentifiable) as info:
         identify(g, y, x)
     f, f_prime = info.value.hedge
@@ -110,12 +93,11 @@ def test_textbook_not_identifiable(name):
 
 @pytest.mark.parametrize("name", sorted(IDENTIFIABLE) + sorted(NOT_IDENTIFIABLE))
 def test_textbook_verdicts_agree_with_y0(name):
-    pytest.importorskip("y0.algorithm.identify")
-    from y0.algorithm.identify import identify_outcomes
+    identify_outcomes = require_y0("y0.algorithm.identify").identify_outcomes
     from y0.dsl import Variable
 
     g = IDENTIFIABLE.get(name) or NOT_IDENTIFIABLE[name]
-    ng = _to_y0(g)
+    ng = to_y0(g)
     theirs = identify_outcomes(ng, treatments={Variable("X")}, outcomes={Variable("Y")})
     assert (theirs is not None) == (name in IDENTIFIABLE)
 
@@ -227,15 +209,14 @@ def test_idc_is_sound_on_random_admgs(data):
 @given(data=st.data())
 def test_identifiability_agrees_with_y0(data):
     """Completeness cross-check against y0 (y0 0.2.x, BSD-3-Clause)."""
-    pytest.importorskip("y0.graph")
-    y0_identify = pytest.importorskip("y0.algorithm.identify")
+    y0_identify = require_y0("y0.algorithm.identify")
     from y0.dsl import Variable
 
     g = data.draw(admgs(max_nodes=5))
     x, y = _query(data, g)
     if not y:
         return
-    ng = _to_y0(g)
+    ng = to_y0(g)
     import networkx as nx
 
     try:

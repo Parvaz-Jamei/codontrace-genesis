@@ -71,7 +71,8 @@ dev = [
   "pip-audit>=2.10,<3",
   "hypothesis>=6.0,<7",
   "import-linter>=2.15,<3",
-  "pydantic>=2.0,<3"
+  "pydantic>=2.0,<3",
+  "y0>=0.2.11,<0.3"
 ]
 science = [
   "numpy>=2.0,<3",

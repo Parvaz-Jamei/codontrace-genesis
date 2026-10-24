@@ -84,9 +84,24 @@ boundary, not a new public API family.
 10. **Journal heads can be anchored.** A hash chain detects edited records but
    not a dropped tail, since a shorter chain is still valid.
    `codontrace.genesis.journal.journal_anchor` records the head digest;
-   `verify_anchor` later reports `current_head`, `earlier_record` or
-   `not_found` (tail removed or another history). The anchor is kept outside
-   the journal, for example in a module run reference.
+   `verify_anchor` later reports `current_head`, `earlier_record`, `pruned`,
+   `forged` or `not_found` (tail removed, another history, or no ledger entry
+   to check). `pruned` and `forged` apply only when the anchored segment (one
+   past `journal_checkpoint_index`) is older than the oldest kept segment and
+   the kept history does not start at genesis. The head is then matched
+   against the entries for that segment in the `<journal>.pruned` ledger,
+   which retention writes before every delete: found means `pruned`; entries
+   for the segment exist but the head is not among them means `forged`. The
+   ledger is plain and unkeyed, so anyone with write access to the journal
+   directory can add a head to it; `pruned` is no stronger than the hash
+   chain. An anchor whose `swarm_id` (or other record header field) differs
+   from the journal's is `forged`. `ValueError` is raised only for a
+   malformed anchor: wrong schema, a `journal_head` that is not 64 hex
+   digits, a missing or wrongly typed header field, or a
+   `journal_checkpoint_index` that is missing or is neither `None` nor a
+   non-negative integer. `None` means the anchor was taken before the first
+   checkpoint, so the anchored segment is segment 1. The anchor is kept outside the
+   journal, for example in a module run reference.
 11. **Module run references do not rewrite module files.** A board run writes
    `engine_run_ref.json` next to its legacy files (whose bytes and
    `artifacts_manifest.json` are unchanged); `SwarmCoordinator.run_reference()`

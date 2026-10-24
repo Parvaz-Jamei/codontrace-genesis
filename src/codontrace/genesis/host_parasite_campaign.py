@@ -4,7 +4,7 @@ Deterministic arms for digital coevolution audit:
 
 - intact, content-null, structure-null, dual-null
 - abiotic-only (hosts without parasites)
-- freeze/replay parasites (Zaman 2014 analogy: frozen parasite task/payload
+- freeze/replay parasites (frozen-history analogy: frozen parasite task/payload
   list reused while hosts update)
 
 Canonical digests are emitted per arm and for the whole campaign. This module
@@ -320,7 +320,7 @@ def _run_freeze_replay_arm(
 ) -> SeedArmOutcome:
     """Freeze parasite tasks/payload, then replay against updated host tasks.
 
-    Zaman-style analogy: parasite history is held fixed while hosts update.
+    Freeze/replay analogy: parasite history is held fixed while hosts update.
     Digital scope only; does not prove parasite-driven evolvability.
     """
 
@@ -364,7 +364,7 @@ def _run_freeze_replay_arm(
 def _content_null_distinct(
     intact: ArmCampaignResult, content: ArmCampaignResult
 ) -> bool:
-    """Floreano/Knoester honesty: content-null must not collapse into intact.
+    """Signalling honesty: content-null must not collapse into intact.
 
     Score-or-injection differences count. When steal_fraction=0 ties scores and
     injection fractions, empty content-null payloads must still differ from
@@ -395,7 +395,7 @@ def _evaluate_falsification(
     When ``require_content_null`` is True (candidate_evidence path), a
     content-null arm must be present and payload/score/injection-distinct from
     intact so structure-null / abiotic-only alone cannot clear the ceiling
-    (Floreano 2007 / Knoester 2008 content-control honesty).
+    (content-control honesty).
     """
 
     by_arm = {item.arm: item for item in arm_results}

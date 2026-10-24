@@ -41,7 +41,9 @@ class TimestampEvidence:
     def from_osf(cls, reg: OSFRegistration, manifest: PlanManifest) -> TimestampEvidence:
         if not reg.submitted or reg.registered_at is None or not reg.registration_id:
             raise ConfigurationError("an unsubmitted OSF draft is not external evidence")
-        if reg.pending_approval or reg.embargoed or not reg.public:
+        if reg.withdrawn or reg.pending_withdrawal or reg.archiving:
+            raise ConfigurationError("an OSF registration that is withdrawn, being withdrawn or still archiving is not evidence")
+        if reg.pending_approval or reg.embargoed or reg.public is not True:
             raise ConfigurationError("an OSF registration that is pending, embargoed or private is not yet evidence")
         if manifest.digest not in reg.description:
             raise ConfigurationError("the OSF registration does not carry this manifest digest")

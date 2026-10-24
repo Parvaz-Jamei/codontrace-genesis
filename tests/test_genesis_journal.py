@@ -23,8 +23,25 @@ from codontrace.genesis.journal import (
     segments_to_archive,
 )
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _journal_machine import Counter  # noqa: E402
+
+def _load_journal_machine() -> types.ModuleType:
+    # Load the helper by path so tests/ is never added to sys.path; otherwise
+    # tests/platform would shadow the stdlib platform module for later tests
+    # and for any child process that copies this sys.path.
+    import importlib.util
+
+    name = "_journal_machine"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name("_journal_machine.py"))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+Counter = _load_journal_machine().Counter
 
 PKG = Path(__file__).resolve().parents[1] / 'src' / 'codontrace' / 'genesis' / 'journal'
 

@@ -69,7 +69,8 @@ def verify_anchor(journal: HashChainedJournal, anchor: dict[str, Any]) -> dict[s
 
 def _pruned_before(journal: HashChainedJournal, anchor: dict[str, Any]) -> bool:
     """Did retention delete the segment that held the anchored head?"""
-    assert journal.journal is not None
+    if journal.journal is None:
+        raise ValueError('journal has no file: pruning cannot be checked')
     rows = journal._segment_rows(journal._archive_dir()) + journal._segment_rows()
     if not rows:
         return False

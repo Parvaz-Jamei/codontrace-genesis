@@ -222,3 +222,19 @@ def test_history_that_starts_at_genesis_is_never_pruned(tmp_path):
         path.rename(path.with_name(f'j.jsonl.part.{index + 10:08d}'))
     anchor = {**journal_anchor(s), 'journal_checkpoint_index': 0}
     assert _pruned_before(s, anchor) is False
+
+
+def test_pruned_check_raises_without_a_journal_file_even_under_optimize(tmp_path):
+    import subprocess
+    import sys
+
+    from codontrace.genesis.journal.anchor import _pruned_before
+    with pytest.raises(ValueError, match='journal has no file'):
+        _pruned_before(SwarmCoordinator('s1'), {'journal_checkpoint_index': 0})
+    # Under -O an assert would be compiled away; the check must still raise.
+    code = ("from codontrace.genesis.journal.anchor import _pruned_before\n"
+            "from codontrace.swarm.runtime import SwarmCoordinator\n"
+            "try:\n    _pruned_before(SwarmCoordinator('s1'), {'journal_checkpoint_index': 0})\n"
+            "except ValueError as error:\n    print('raised', error)\n")
+    out = subprocess.run([sys.executable, '-O', '-c', code], capture_output=True, text=True, check=True, timeout=120)
+    assert out.stdout.startswith('raised journal has no file')

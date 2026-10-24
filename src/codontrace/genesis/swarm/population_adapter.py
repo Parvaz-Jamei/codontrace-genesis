@@ -69,10 +69,26 @@ def _wire_id(member_id: str) -> str:
     return (safe if safe[:1].isalnum() else 'm' + safe)[:64]
 
 
+def _wire_ids(members: Sequence[PopulationMember]) -> dict[str, str]:
+    """``member_id -> node_id``; raises ``ValueError`` when two distinct member ids
+    map to one node id (for example ``'org.1'`` and ``'org-1'``), so readings are
+    never merged under one node."""
+    out: dict[str, str] = {}
+    owner: dict[str, str] = {}
+    for m in members:
+        wire = _wire_id(m.member_id)
+        other = owner.setdefault(wire, m.member_id)
+        if other != m.member_id:
+            raise ValueError(f'member ids {other!r} and {m.member_id!r} both map to node id {wire!r}')
+        out[m.member_id] = wire
+    return out
+
+
 def hello_messages(members: Sequence[PopulationMember], swarm_id: str, *, channel: str = 'energy',
                    quantity: str = 'energy', unit: str = 'atp') -> list[dict[str, Any]]:
     """Decoded hello messages advertising one scalar channel per member."""
-    return [{'schema': POPULATION_SCHEMA, 'swarm_id': swarm_id, 'node_id': _wire_id(m.member_id),
+    ids = _wire_ids(members)
+    return [{'schema': POPULATION_SCHEMA, 'swarm_id': swarm_id, 'node_id': ids[m.member_id],
              'boot_id': f'gen-{m.generation}', 'seq': 1, 'kind': 'hello',
              'payload': {'channels': {channel: {'quantity': quantity, 'unit': unit}}, 'operations': []}}
             for m in members]
@@ -82,7 +98,8 @@ def reading_messages(members: Sequence[PopulationMember], values: Mapping[str, f
                      sample_ms: int, channel: str = 'energy', quantity: str = 'energy',
                      unit: str = 'atp') -> list[dict[str, Any]]:
     """Decoded untyped readings, one per member that has a value."""
-    return [{'schema': POPULATION_SCHEMA, 'swarm_id': swarm_id, 'node_id': _wire_id(m.member_id),
+    ids = _wire_ids(members)
+    return [{'schema': POPULATION_SCHEMA, 'swarm_id': swarm_id, 'node_id': ids[m.member_id],
              'boot_id': f'gen-{m.generation}', 'seq': 2, 'kind': 'reading',
              'payload': {'channel': channel, 'value': float(values[m.member_id]), 'sample_ms': sample_ms,
                          'quantity': quantity, 'unit': unit, 'processing_version': 'population-v1'}}

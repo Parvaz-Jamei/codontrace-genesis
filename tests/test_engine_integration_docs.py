@@ -55,7 +55,41 @@ def test_named_modules_import(doc):
 
 def test_experimental_api_rows_import_and_are_not_claim_ready():
     rows = [r for r in build_public_api_manifest() if r.introduced_in == '0.3.0b30-engine-integration']
-    assert len(rows) == 20
+    assert len(rows) == 30
     for row in rows:
         assert row.stability_status == 'provisional' and row.claim_ready_allowed is False
         assert import_public_symbol(row) is not None
+
+
+_SECTION_PATH = re.compile(r'`((?:src/codontrace/|swarm/|claimgate/)[A-Za-z0-9_/]+\.py)`')
+_SECTION_SYMBOL = re.compile(r'`([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?:\(\))?`')
+
+
+def _section_module(path: str) -> str:
+    path = path.removeprefix('src/codontrace/').removesuffix('.py')
+    return 'codontrace.' + path.replace('/', '.')
+
+
+def test_engine_sections_table_names_real_modules_and_symbols():
+    """Every module path in the ENGINE_SECTIONS table imports, and every symbol
+    named in a cell (``SwarmCoordinator.run_reference()``, ``perturb``) exists on
+    one of the modules named in that same cell (or, for a cell without a path,
+in any module the table names)."""
+    text = (ROOT / 'docs/swarm/ENGINE_SECTIONS.md').read_text(encoding='utf-8')
+    rows = [line for line in text.splitlines() if line.startswith('| ') and '`' in line]
+    assert len(rows) >= 10
+    checked, problems = 0, []
+    every = sorted({_section_module(p) for p in _SECTION_PATH.findall(text)})
+    for row in rows:
+        for cell in row.strip('|').split('|')[1:3]:
+            modules = [_section_module(p) for p in _SECTION_PATH.findall(cell)]
+            for module in modules:
+                if not _importable(module):
+                    problems.append(module)
+            symbols = [s for s in _SECTION_SYMBOL.findall(cell) if '/' not in s and not s.endswith('.py')
+                       and not s.isupper() and not s.startswith('codontrace')]
+            for symbol in symbols:
+                checked += 1
+                if not any(_importable(f'{m}.{symbol}') for m in modules or every):
+                    problems.append(f'{modules}: {symbol}')
+    assert checked >= 5 and problems == []

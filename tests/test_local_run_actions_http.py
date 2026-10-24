@@ -188,8 +188,11 @@ def test_restart_preserves_model_configuration(tmp_path, monkeypatch, experiment
     )
     assert response["ok"], response
 
-    def wait_terminal(run_id):
-        deadline = time.monotonic() + 10
+    def wait_terminal(run_id, timeout_s=None):
+        # Default 10 s; CODONTRACE_TEST_WAIT_TERMINAL_S raises it on a loaded machine.
+        if timeout_s is None:
+            timeout_s = float(os.environ.get("CODONTRACE_TEST_WAIT_TERMINAL_S", "10"))
+        deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             detail = runs.get_run_details(run_id)
             with runs._RUN_LOCK:

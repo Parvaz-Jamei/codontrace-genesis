@@ -85,6 +85,9 @@ class ATPAccount:
     _observer: Callable[[ATPLedgerEntry], None] | None = field(
         default=None, init=False, repr=False, compare=False
     )
+    _verified: tuple[int, float] = field(
+        default=(0, -1.0), init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         self.initial_atp = finite_float("ATPAccount.initial_atp", self.initial_atp, non_negative=True)  # type: ignore[assignment]
@@ -225,6 +228,34 @@ class ATPAccount:
         """Create an account whose starting and current balance equal ``current_atp``."""
 
         return cls(current_atp)
+
+    def verify_balance(self) -> None:
+        """Raise ValueError unless replaying the ledger yields ``current_atp``.
+
+        Incremental: entries already verified are not replayed again, so
+        calling this every tick stays linear in the number of entries.
+        """
+
+        start, running = self._verified
+        if start == 0:
+            running = round(self.initial_atp, 10)
+        tail = self._ledger[start:]
+        for entry in tail:
+            if round(entry.balance_before, 10) != running:
+                msg = "ATP ledger balance_before is not internally consistent."
+                raise ValueError(msg)
+            running = (
+                round(running - entry.amount, 10)
+                if entry.kind == "debit"
+                else round(running + entry.amount, 10)
+            )
+            if round(entry.balance_after, 10) != running:
+                msg = "ATP ledger balance_after is not internally consistent."
+                raise ValueError(msg)
+        if round(self.current_atp, 10) != running:
+            msg = "ATPAccount.current_atp does not match its ledger (bypass)."
+            raise ValueError(msg)
+        self._verified = (len(self._ledger), running)
 
     def set_observer(self, observer: Callable[[ATPLedgerEntry], None] | None) -> None:
         """Attach (or clear) the world-ledger observer called after every entry."""

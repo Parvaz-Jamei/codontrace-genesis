@@ -218,7 +218,9 @@ class WorldATPLedger:
         if rem > 0:
             self.post(key, to, rem, tick=tick, memo=memo)
         elif rem < 0:
-            self.post(to, key, -rem, tick=tick, memo=memo + "_debt")
+            # A negative scalar balance (legacy experiments allow ATP debt) is
+            # written off from an explicit source, never from the reservoir.
+            self.post("source:debt_writeoff", key, -rem, tick=tick, memo=memo + "_debt")
         self._agents.discard(agent_id)
         del self._bal[key]
 
@@ -348,11 +350,12 @@ class WorldATPLedger:
             "totals": {k: _fs(v) for k, v in sorted(totals.items())},
             "open_agents": len(self._agents),
         }
-        record = {"previous": self._head, "action": "atp_tick", "args": args,
-                  "state_digest": self.state_digest()}
-        record["digest"] = _sha(_canon(record))
+        record: dict[str, Any] = {"previous": self._head, "action": "atp_tick",
+                                  "args": args, "state_digest": self.state_digest()}
+        digest = _sha(_canon(record))
+        record["digest"] = digest
         self._records.append(record)
-        self._head = record["digest"]
+        self._head = digest
         self._pending = []
         self.ticks_checked += 1
         return self._head

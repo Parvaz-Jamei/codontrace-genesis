@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.contracts import world_digest
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.energy import ATPAccount
@@ -577,6 +578,8 @@ class HostParasiteWorld:
     book: AttachmentBook = field(init=False)
     balances: dict[str, float] = field(init=False)
     accounts: dict[str, ATPAccount] = field(init=False)
+    # One closed world ledger over every account (docs/ATP_WORLD_LEDGER.md).
+    atp_ledger: WorldATPLedger = field(init=False, repr=False, compare=False)
     genomes: dict[str, SemanticGenome] = field(init=False)
     payloads: dict[str, dict[str, JsonValue]] = field(init=False)
     state_bags: dict[str, dict[str, JsonValue]] = field(init=False)
@@ -632,9 +635,13 @@ class HostParasiteWorld:
 
         members = list(self.profile.primary_members) + list(self.profile.secondary_members)
         founder = SemanticGenome.from_compact(self.profile.founder_genome_compact)
-        self.accounts = {
-            m: ATPAccount(float(self.profile.initial_energy)) for m in members
-        }
+        self.atp_ledger = WorldATPLedger(f"hp_{self.profile.profile_id}")
+        self.atp_ledger.fund_reservoir(
+            float(self.profile.initial_energy) * len(members), tick=0
+        )
+        self.accounts = {}
+        for m in members:
+            self._open_account(m)
         self.balances = {m: float(self.accounts[m].current_atp) for m in members}
         self.genomes = {m: founder for m in members}
         self.payloads = {
@@ -698,6 +705,28 @@ class HostParasiteWorld:
         self._inherit_census = InheritAttemptCensus()
         self._refresh_meter_densities()
         self._record_outcome()
+
+    def _open_account(self, member_id: str) -> ATPAccount:
+        """The only place an ATPAccount is created: funded from the reservoir."""
+
+        acct = ATPAccount(float(self.profile.initial_energy))
+        self.atp_ledger.attach(member_id, acct, tick=self.tick_index)
+        self.accounts[member_id] = acct
+        return acct
+
+    def _close_account(self, member_id: str) -> None:
+        """Return a dead member's remaining ATP to the reservoir."""
+
+        acct = self.accounts.pop(member_id, None)
+        if acct is not None:
+            self.atp_ledger.detach(member_id, acct, tick=self.tick_index)
+
+    def check_atp_conservation(self) -> None:
+        """Raise ATPConservationError unless the world ledger balances exactly."""
+
+        self.atp_ledger.check(
+            {mid: acct.current_atp for mid, acct in self.accounts.items()}
+        )
 
     def _sync_balances_from_accounts(self) -> None:
         self.balances = {
@@ -977,27 +1006,31 @@ class HostParasiteWorld:
                 # Mirror into core ATP ledger end-to-end.
                 src_paid = float(before[holder]) - float(new_balances[holder])
                 tgt_gain = float(new_balances[occupant]) - float(before[occupant])
-                if src_paid > 0.0:
-                    paid = self.accounts[holder].debit(
-                        src_paid,
-                        tick=self.tick_index,
-                        agent_id=holder,
-                        codon="CPL",
-                        action="energy_coupling",
-                        reason=f"couple_to_{occupant}",
-                    )
-                    if paid is None and src_paid > 0.0:
-                        self._bump_census(self.coupling_fail_census, "ledger_debit_failed")
-                        continue
-                if tgt_gain > 0.0:
-                    self.accounts[occupant].credit(
-                        tgt_gain,
-                        tick=self.tick_index,
-                        agent_id=occupant,
-                        codon="CPL",
-                        action="energy_coupling",
-                        reason=f"couple_from_{holder}",
-                    )
+                debit_failed = False
+                with self.atp_ledger.transfer_scope("coupling", tick=self.tick_index):
+                    if src_paid > 0.0:
+                        paid = self.accounts[holder].debit(
+                            src_paid,
+                            tick=self.tick_index,
+                            agent_id=holder,
+                            codon="CPL",
+                            action="energy_coupling",
+                            reason=f"couple_to_{occupant}",
+                        )
+                        if paid is None and src_paid > 0.0:
+                            debit_failed = True
+                    if tgt_gain > 0.0 and not debit_failed:
+                        self.accounts[occupant].credit(
+                            tgt_gain,
+                            tick=self.tick_index,
+                            agent_id=occupant,
+                            codon="CPL",
+                            action="energy_coupling",
+                            reason=f"couple_from_{holder}",
+                        )
+                if debit_failed:
+                    self._bump_census(self.coupling_fail_census, "ledger_debit_failed")
+                    continue
                 self._sync_balances_from_accounts()
                 self._bump_census(self.coupling_fail_census, "success")
                 transferred = float(self.profile.coupling_amount)
@@ -1124,7 +1157,7 @@ class HostParasiteWorld:
                 self.mutation_counts[role] = int(self.mutation_counts.get(role, 0)) + 1
             # Energy endowment for child from remaining parent split is not used;
             # child starts at initial_energy (parameterized trade via coupling).
-            self.accounts[child_id] = ATPAccount(float(self.profile.initial_energy))
+            self._open_account(child_id)
             self.payloads[child_id] = {"tag": child_id, "payload": f"p_{child_id}"}
             self.state_bags[child_id] = {
                 "payload": f"p_{child_id}",
@@ -1214,7 +1247,7 @@ class HostParasiteWorld:
                         except ConfigurationError:
                             pass
             self.registry, _ = self.registry.remove_member(pop_id, mid)
-            self.accounts.pop(mid, None)
+            self._close_account(mid)
             self.genomes.pop(mid, None)
             self.payloads.pop(mid, None)
             self.state_bags.pop(mid, None)
@@ -1296,6 +1329,7 @@ class HostParasiteWorld:
         self.book = self.book.advance_tick(self.tick_index + 1)
         self.tick_index += 1
         self._sync_balances_from_accounts()
+        self.atp_ledger.close_tick(self.tick_index, self.balances)
         self._refresh_meter_densities()
         self._record_outcome()
 

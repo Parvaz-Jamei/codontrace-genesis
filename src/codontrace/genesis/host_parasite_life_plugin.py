@@ -16,6 +16,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from codontrace._types import JsonValue
+from codontrace.atp_ledger import ATPConservationError, WorldATPLedger
 from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.organism import GenesisOrganism
@@ -234,14 +235,43 @@ def role_of(organism_id: str, role_by_id: Mapping[str, str] | None = None) -> st
     return None
 
 
-def assert_single_atp_owner(organisms: Sequence[GenesisOrganism]) -> None:
-    """Every organism must expose atp_state (no parallel HP accounts bag)."""
+def assert_single_atp_owner(
+    organisms: Sequence[GenesisOrganism],
+    ledger: WorldATPLedger | None = None,
+) -> None:
+    """Check that ATP has one owner and one real balance per organism.
 
+    * every organism exposes ``atp_state`` (no parallel HP accounts bag);
+    * no two organisms share a runtime ``ATPAccount`` object (two owners);
+    * each runtime balance equals the replay of its own entry ledger
+      (``ATPAccount.verify_balance``), so a write around the ledger fails;
+    * when a world ``ledger`` is given, the closed world invariant holds and
+      its agent balances equal these runtime balances exactly.
+    """
+
+    seen: dict[int, str] = {}
+    mirrors: dict[str, float] = {}
     for org in organisms:
         if not hasattr(org, "atp_state") or org.atp_state is None:
             raise ConfigurationError(
                 f"organism {org.id} missing atp_state (two energy clocks)"
             )
+        runtime = org.atp_state.runtime
+        owner = seen.setdefault(id(runtime), org.id)
+        if owner != org.id:
+            raise ConfigurationError(
+                f"organisms {owner} and {org.id} share one ATP account"
+            )
+        try:
+            runtime.verify_balance()
+        except ValueError as exc:
+            raise ConfigurationError(f"organism {org.id}: {exc}") from exc
+        mirrors[org.id] = runtime.current_atp
+    if ledger is not None:
+        try:
+            ledger.check(mirrors)
+        except ATPConservationError as exc:
+            raise ConfigurationError(f"world ATP ledger: {exc}") from exc
 
 
 def inherit_roles_for_births(

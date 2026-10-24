@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
+import keyword
 import re
 from pathlib import Path
 
@@ -75,13 +77,134 @@ def _strip_comments(text: str) -> str:
     return "\n".join(line.split("#", 1)[0] for line in text.splitlines())
 
 
+LEDGER_OWNERS = {"energy.py", "atp_ledger.py"}
+ALWAYS_PROTECTED = {"current_atp"}
+PRIVATE_PROTECTED = {"_observer", "_verified", "_ledger"}  # protected on non-self receivers
+SCALAR_ATP_FILES = {"experiments/t01_oee.py", "experiments/t04_contingency.py"}
+
+
+def _protected(rel: str) -> set[str]:
+    return ALWAYS_PROTECTED | ({"atp"} if rel in SCALAR_ATP_FILES else set())
+
+
+def _is_ledger_adjust(value: ast.AST) -> bool:
+    return (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+            and value.func.attr == "adjust" and isinstance(value.func.value, ast.Attribute)
+            and value.func.value.attr == "atp_ledger")
+
+
+def atp_bypasses(source: str, rel: str) -> list[str]:
+    """AST gate: every way to write an ATP balance field without the ledger.
+
+    Catches ``x.f = / += / : T =``, ``setattr(x, "f", v)``,
+    ``object.__setattr__(x, "f", v)`` / ``x.__setattr__("f", v)``,
+    ``x.__dict__["f"] = v`` / ``vars(x)["f"] = v`` / ``x.__dict__.update(f=..)``,
+    and ``dataclasses.replace(x, f=v)`` / ``replace(x, f=v)``.
+    """
+
+    if rel in LEDGER_OWNERS:
+        return []
+    prot = _protected(rel)
+    out: list[str] = []
+
+    def is_self(node: ast.AST) -> bool:
+        return isinstance(node, ast.Name) and node.id in {"self", "cls"}
+
+    def bad_attr(name: str, receiver: ast.AST | None) -> bool:
+        if name in prot:
+            return True
+        return name in PRIVATE_PROTECTED and receiver is not None and not is_self(receiver)
+
+    def const(node: ast.AST) -> str | None:
+        return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+    def is_dict_view(node: ast.AST) -> bool:
+        if isinstance(node, ast.Attribute) and node.attr == "__dict__":
+            return True
+        return (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "vars")
+
+    def check_target(t: ast.AST, line: int) -> None:
+        if isinstance(t, ast.Attribute) and bad_attr(t.attr, t.value):
+            out.append(f"{rel}:{line}: assigns .{t.attr}")
+        elif isinstance(t, ast.Subscript) and is_dict_view(t.value):
+            key = const(t.slice)
+            if key is not None and bad_attr(key, None if is_self(getattr(t.value, "value", t.value)) else t.value):
+                out.append(f"{rel}:{line}: writes __dict__[{key!r}]")
+        elif isinstance(t, (ast.Tuple, ast.List)):
+            for e in t.elts:
+                check_target(e, line)
+
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Assign):
+            if _is_ledger_adjust(node.value):
+                continue  # x.atp = self.atp_ledger.adjust(...) is the sanctioned path
+            for t in node.targets:
+                check_target(t, node.lineno)
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+            check_target(node.target, node.lineno)
+        elif isinstance(node, ast.Call):
+            f = node.func
+            fname = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else ""
+            args = node.args
+            if fname == "setattr" and len(args) >= 2 and (k := const(args[1])) and bad_attr(k, args[0]):
+                out.append(f"{rel}:{node.lineno}: setattr {k!r}")
+            elif fname == "__setattr__" and isinstance(f, ast.Attribute) and args:
+                recv, key_arg = (args[0], args[1]) if len(args) >= 3 else (f.value, args[0])
+                if (k := const(key_arg)) and bad_attr(k, recv):
+                    out.append(f"{rel}:{node.lineno}: __setattr__ {k!r}")
+            elif fname == "replace":
+                for kw in node.keywords:
+                    if kw.arg is not None and bad_attr(kw.arg, node.args[0] if node.args else None):
+                        out.append(f"{rel}:{node.lineno}: replace(..., {kw.arg}=)")
+            elif fname == "update" and isinstance(f, ast.Attribute) and is_dict_view(f.value):
+                for kw in node.keywords:
+                    if kw.arg is not None and bad_attr(kw.arg, f.value):
+                        out.append(f"{rel}:{node.lineno}: __dict__.update({kw.arg}=)")
+    return out
+
+
+BYPASS_MUTANTS = [
+    "acct.current_atp = 5.0",
+    "acct.current_atp += 1",
+    "acct.current_atp: float = 1.0",
+    "setattr(acct, 'current_atp', 9.0)",
+    "object.__setattr__(acct, 'current_atp', 9.0)",
+    "acct.__setattr__('current_atp', 9.0)",
+    "acct.__dict__['current_atp'] = 9.0",
+    "vars(acct)['current_atp'] = 9.0",
+    "acct.__dict__.update(current_atp=9.0)",
+    "acct = dataclasses.replace(acct, current_atp=9.0)",
+    "acct = replace(acct, current_atp=9.0)",
+    "acct._observer = None",
+    "setattr(acct, '_observer', None)",
+    "object.__setattr__(acct, '_ledger', [])",
+    "a, acct.current_atp = 1, 2.0",
+]
+
+
+@pytest.mark.parametrize("mutant", BYPASS_MUTANTS)
+def test_static_gate_catches_every_bypass_form(mutant: str) -> None:
+    assert atp_bypasses(mutant, "genesis/some_module.py"), mutant
+
+
+@pytest.mark.parametrize("mutant", ["org.atp = 3.0", "setattr(org, 'atp', 3.0)",
+                                    "org = dataclasses.replace(org, atp=3.0)",
+                                    "object.__setattr__(org, 'atp', 3.0)"])
+def test_static_gate_catches_scalar_atp_bypass(mutant: str) -> None:
+    assert atp_bypasses(mutant, "experiments/t01_oee.py"), mutant
+
+
+def test_static_gate_allows_reads_and_self_private_state() -> None:
+    ok = "x = acct.current_atp\nself._ledger = []\ny = getattr(acct, 'current_atp')\n"
+    assert atp_bypasses(ok, "genesis/some_module.py") == []
+
+
 def test_no_atp_bypass_in_source() -> None:
     offenders: list[str] = []
     for path in SRC.rglob("*.py"):
         rel = path.relative_to(SRC).as_posix()
-        text = _strip_comments(path.read_text(encoding="utf-8"))
-        if rel != "energy.py" and re.search(r"\.current_atp\s*(\+|-|\*|/)?=(?!=)", text):
-            offenders.append(f"{rel}: assigns ATPAccount.current_atp")
+        offenders.extend(atp_bypasses(path.read_text(encoding="utf-8"), rel))
     for rel in ("experiments/t01_oee.py", "experiments/t04_contingency.py"):
         text = _strip_comments((SRC / rel).read_text(encoding="utf-8"))
         if re.search(r"\.atp\s*(\+|-|\*|/)=", text):
@@ -96,3 +219,17 @@ def test_no_atp_bypass_in_source() -> None:
     if hp.count("self.accounts.pop(") != 1:
         offenders.append("host_parasite_world.py: account removed outside _close_account")
     assert not offenders, offenders
+
+
+_FORMS = ["{r}.{f} = 1.0", "{r}.{f} -= 1.0", "setattr({r}, '{f}', 1.0)",
+          "object.__setattr__({r}, '{f}', 1.0)", "{r}.__setattr__('{f}', 1.0)",
+          "{r}.__dict__['{f}'] = 1.0", "vars({r})['{f}'] = 1.0",
+          "{r} = dataclasses.replace({r}, {f}=1.0)"]
+
+
+@settings(max_examples=80, deadline=None)
+@given(st.sampled_from(_FORMS), st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True)
+       .filter(lambda r: r not in {"self", "cls"} and not keyword.iskeyword(r)),
+       st.sampled_from(sorted(ALWAYS_PROTECTED | PRIVATE_PROTECTED)))
+def test_static_gate_property(form: str, receiver: str, field_name: str) -> None:
+    assert atp_bypasses(form.format(r=receiver, f=field_name), "genesis/x.py")

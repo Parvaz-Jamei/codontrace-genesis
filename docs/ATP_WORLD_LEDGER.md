@@ -110,10 +110,21 @@ not mixed into any legacy digest.
 | `T01OEERunner`, `T04ContingencyRunner` | `atp_ledger`; survival reward via `atp_ledger.adjust(... source:task_reward / sink:metabolism)`; births from the reservoir; leavers' ATP returned; invariant checked before and after every generation; T04 replays start a fresh ledger from the snapshot (`source:genesis`) |
 | `assert_single_atp_owner(organisms, ledger=None)` | one account per organism, balance equals the replay of its entries, optional world-ledger check |
 
-## No bypasses (grep-enforced)
+## No bypasses (AST-enforced, plus runtime)
 
-`tests/test_atp_ledger_experiments_wiring.py::test_no_atp_bypass_in_source`
-fails if any module outside `energy.py` assigns `.current_atp`, if T01/T04
-update `.atp` other than through `atp_ledger.adjust`, or if
-`host_parasite_world.py` creates, inserts or removes an `ATPAccount` outside
-`_open_account` / `_close_account`. Runtime checks catch what grep cannot.
+`tests/test_atp_ledger_experiments_wiring.py::atp_bypasses` parses every module
+under `src/codontrace` and fails on any write of an ATP balance field outside
+`energy.py` / `atp_ledger.py`, in every form Python offers:
+`x.current_atp = / += / : T =`, tuple targets, `setattr(x, "current_atp", v)`,
+`object.__setattr__(x, ...)`, `x.__setattr__(...)`, `x.__dict__[...] =`,
+`vars(x)[...] =`, `x.__dict__.update(current_atp=...)` and
+`dataclasses.replace(x, current_atp=...)`. The private fields `_observer`,
+`_ledger` and `_verified` are protected the same way on any receiver other than
+`self`. In T01/T04 the scalar `.atp` is protected too; its only allowed write is
+`x.atp = self.atp_ledger.adjust(...)`. Mutant tests (15 fixed forms plus a
+Hypothesis property over forms x receivers x fields) prove the gate catches
+each form. The gate is a guard rail, not the proof: `getattr`-computed names or
+`exec` cannot be seen statically, and the runtime check (`close_tick` mirror
+equality, `verify_balance`) catches any balance changed outside the ledger.
+`host_parasite_world.py` must still create, insert and remove `ATPAccount`s
+only in `_open_account` / `_close_account`.

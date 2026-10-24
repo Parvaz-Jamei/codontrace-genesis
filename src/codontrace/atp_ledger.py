@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -515,6 +516,7 @@ class WorldATPLedger:
         label = (entry.action or entry.reason).split(":", 1)[0]
         nominal = _u(entry.amount)
         realised = _u(entry.balance_after) - _u(entry.balance_before)
+        self._check_balance_rounding(entry)
         if entry.kind == "credit":
             src = CLEARING if self._scope is not None else f"source:{label}"
             self._post_u(src, key, nominal, entry.tick, entry.reason)
@@ -527,6 +529,23 @@ class WorldATPLedger:
             self._post_u("source:rounding", key, drift, entry.tick, "balance_rounding")
         elif drift < 0:
             self._post_u(key, "sink:rounding", -drift, entry.tick, "balance_rounding")
+
+    @staticmethod
+    def _check_balance_rounding(entry: ATPLedgerEntry) -> None:
+        """The realised delta may differ from the nominal amount only by
+        ATPAccount's own arithmetic: ``after = round(fl(before +/- amount), 10)``.
+        So the float step is at most half an ulp (``float_error``) and the
+        decimal rounding at most 0.5e-10 plus half an ulp of ``after``;
+        checked exactly in integer units. Anything more raises."""
+
+        amount = entry.amount if entry.kind == "credit" else -entry.amount
+        x = entry.balance_before + amount
+        float_error(x, entry.balance_before, amount)
+        d = abs(_u(entry.balance_after) - _u(x))
+        if (2 * d - _ulp_units(entry.balance_after)) * 10**10 > _ONE:
+            raise ATPConservationError(
+                f"entry {entry.entry_id}: balance moved {_fu(_u(entry.balance_after) - _u(entry.balance_before))}"
+                f" for a {entry.kind} of {entry.amount!r} (more than its 10-digit rounding)")
 
     @contextmanager
     def transfer_scope(self, name: str, *, tick: int, magnitude: float = 0.0,
@@ -835,12 +854,27 @@ class ScalarATPBook:
         return None
 
 
+def _ulp_units(x: float) -> int:
+    """``ulp(x)`` in units of 2^-1074 (exact: an ulp is a power of two)."""
+
+    return _u(math.ulp(x))
+
+
 def float_error(result: float, *terms: float) -> int:
     """Exact rounding error, in units of 2^-1074, of ``result = fl(sum(terms))``
     (pass ``-b`` for a subtraction): ``sum(terms) - result``, computed in
-    integers, so it is exact for every finite double."""
+    integers, so it is exact for every finite double.
 
-    return sum(_u(t) for t in terms) - _u(result)
+    ``result`` must be ONE correctly rounded (round-to-nearest) operation on
+    the terms, so the error is at most half an ulp of ``result``. Anything
+    larger is not rounding but created or destroyed ATP, and raises; the
+    check is exact (``2*|err| <= ulp(result)`` in integer units)."""
+
+    err = sum(_u(t) for t in terms) - _u(result)
+    if 2 * abs(err) > _ulp_units(result):
+        raise ATPConservationError(
+            f"{_fu(err)} ATP is not a rounding error of {result!r} (more than half an ulp)")
+    return err
 
 
 def coupling_rounding_units(source_before: float, source_after: float, target_before: float,

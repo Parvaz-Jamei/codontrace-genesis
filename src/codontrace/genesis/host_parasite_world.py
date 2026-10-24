@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from codontrace._types import JsonValue
-from codontrace.atp_ledger import WorldATPLedger, coupling_rounding_units
+from codontrace.atp_ledger import ATPConservationError, WorldATPLedger, coupling_rounding_units
 from codontrace.contracts import world_digest
 from codontrace.contracts.banned import BANNED_DOMAIN_TOKENS
 from codontrace.energy import ATPAccount
@@ -1013,6 +1013,16 @@ class HostParasiteWorld:
                 cpl_req = min(cpl_req, float(before[holder]))
                 cpl_loss = cpl_req * float(self.profile.coupling_loss_fraction)
                 cpl_acc = cpl_req - cpl_loss
+                # The balances the engine must have produced from the accepted
+                # amount; its returned balances are checked against them, never
+                # trusted as the source of the booked rounding.
+                cpl_sa = max(float(before[holder]) - cpl_req, 0.0)
+                cpl_ta = float(before[occupant]) + cpl_acc
+                if (float(new_balances[holder]), float(new_balances[occupant])) != (cpl_sa, cpl_ta):
+                    raise ATPConservationError(
+                        f"coupling {holder}->{occupant}: engine balances "
+                        f"({new_balances[holder]!r}, {new_balances[occupant]!r}) != "
+                        f"({cpl_sa!r}, {cpl_ta!r}) from the accepted amount")
                 with self.atp_ledger.transfer_scope("coupling", tick=self.tick_index):
                     if src_paid > 0.0:
                         paid = self.accounts[holder].debit(
@@ -1037,8 +1047,8 @@ class HostParasiteWorld:
                     if not debit_failed:
                         self.atp_ledger.book_rounding(
                             coupling_rounding_units(
-                                float(before[holder]), float(new_balances[holder]),
-                                float(before[occupant]), float(new_balances[occupant]),
+                                float(before[holder]), cpl_sa,
+                                float(before[occupant]), cpl_ta,
                                 cpl_req, cpl_acc, cpl_loss,
                                 paid=src_paid if src_paid > 0.0 else 0.0,
                                 gained=tgt_gain if tgt_gain > 0.0 else 0.0,

@@ -433,8 +433,12 @@ def _os_error(cls: type[OSError], err: int, winerror: int) -> OSError:
 
 @pytest.mark.parametrize(
     ("cls", "err", "winerror"),
-    [(FileNotFoundError, errno.ENOENT, 2), (PermissionError, errno.EACCES, 3)],
-    ids=["file_not_found", "path_not_found"],
+    [
+        (FileNotFoundError, errno.ENOENT, 2),
+        (FileNotFoundError, errno.ENOENT, 3),
+        (PermissionError, errno.EACCES, 19),
+    ],
+    ids=["file_not_found", "path_not_found", "write_protect"],
 )
 def test_replace_raises_other_windows_errors_at_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cls: type[OSError], err: int, winerror: int

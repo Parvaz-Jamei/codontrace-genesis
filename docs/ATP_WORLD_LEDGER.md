@@ -100,8 +100,10 @@ Expected flows for one hold, worked out from the population before it:
 
 The tests check both legs of every hold exactly. Reference run (phase 3,
 seed 3, locked branch, hosts `000000`/`111111`, 10 generations, so 20
-holds): 1111 reissues, inflow 53,328.0, outflow 50,856.0, net +2,472.0
-(to 6 decimals). That net is the ATP the hold adds to keep the host mix
+holds): 1111 reissues, inflow exactly 53,328, outflow exactly
+7157345707798560885/2^47 (= 50,856 + 117/2^47), net exactly 2,472 - 117/2^47.
+The 117/2^47 residue comes from host balances being binary floats of decimal
+amounts; the ledger books them exactly. That net is the ATP the hold adds to keep the host mix
 fixed; it is reported, not hidden. Phase 5 reissues only lost hosts, so its
 inflow is 48.0 per lost seat.
 

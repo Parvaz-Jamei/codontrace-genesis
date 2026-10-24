@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
+
 import pytest
 
 from codontrace.atp_ledger import ATPConservationError, WorldATPLedger
@@ -162,9 +164,12 @@ def test_phase3_each_hold_nets_exactly_the_expected_amount(monkeypatch: pytest.M
     assert sum(r["n"] for r in rows) == 1111
     assert -led.balance("source:host_hold") == 1111 * 48 == 53328
     # Host balances are binary floats of decimal amounts, so the exact sink is
-    # 50856 plus about 8e-13; both legs above are compared exactly per hold.
-    assert round(float(led.balance("sink:host_hold")), 6) == 50856.0
-    assert round(float(-led.balance("source:host_hold") - led.balance("sink:host_hold")), 6) == 2472.0
+    # 50856 + 117/2**47 and the net is 2472 - 117/2**47; compared exactly.
+    sink = led.balance("sink:host_hold")
+    net = -led.balance("source:host_hold") - sink
+    assert isinstance(sink, Fraction) and isinstance(net, Fraction)
+    assert sink == Fraction(7157345707798560885, 2**47)
+    assert net == Fraction(2472) - Fraction(117, 2**47)
 
 
 def test_phase3_hold_installing_another_balance_raises(monkeypatch: pytest.MonkeyPatch) -> None:

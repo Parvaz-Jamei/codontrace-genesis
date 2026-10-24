@@ -1,9 +1,9 @@
 """Phase K literature-grade CI *depth* measurements for CodonTrace Genesis.
 
 Measurement-first follow-on after Phase J: evolved coordination *instructions*
-(send/retrieve/broadcast that pay), a Goldsby-scale CPU-delay specialist
+(send/retrieve/broadcast that pay), a published-scale CPU-delay specialist
 campaign harness, multi-generation Price analysis with a transmission term,
-and Michod/Conlin conflict-suppression *hooks*.
+and conflict-suppression *hooks*.
 
 None of this auto-sets ClaimGate flags. Smoke never earns flags.
 ``collective_intelligence`` / ``intelligence`` / AGI stay blocked.
@@ -119,7 +119,7 @@ LITERATURE_CHECKLIST: tuple[tuple[str, str], ...] = (
 
 
 def _analog_switch_cpu_cost(literature_cycles: int) -> int:
-    """Map Goldsby 0/25/50 CPU-cycle delays onto this analog's tiny budget."""
+    """Map published 0/25/50 CPU-cycle delays onto this analog's tiny budget."""
 
     cycles = int(literature_cycles)
     if cycles <= 0:
@@ -834,7 +834,7 @@ class GoldsbyTreatmentRecord:
 
 @dataclass(frozen=True, slots=True)
 class GoldsbyCpuDelayCampaign:
-    """Goldsby-scale CPU-delay specialist harness. Research default 50 replicates."""
+    """Published-scale CPU-delay specialist harness. Research default 50 replicates."""
 
     seeds: tuple[int, ...]
     generations: int
@@ -1579,7 +1579,7 @@ def run_cheater_invasion_assay(
 
 @dataclass(frozen=True, slots=True)
 class RevertantIsolationAssay:
-    """Conlin-style unicell revertant hook. Collapse may still be payoff construction."""
+    """Unicell revertant hook. Collapse may still be payoff construction."""
 
     group_competence: float
     revertant_mean_isolation_fitness: float
@@ -1649,7 +1649,7 @@ def run_revertant_isolation_assay(
 
 @dataclass(frozen=True, slots=True)
 class ConflictSuppressionObservation:
-    """Michod/Conlin measurement hooks. Endogenous flags stay False."""
+    """Conflict-suppression measurement hooks. Endogenous flags stay False."""
 
     mls_within_group_personal_variance: float
     organism_within_group_personal_variance: float
@@ -1722,7 +1722,7 @@ def build_conflict_suppression_observation(
     n_groups: int = SMOKE_N_GROUPS,
     group_size: int = DEFAULT_GROUP_SIZE,
 ) -> ConflictSuppressionObservation:
-    """Record Michod/Conlin *hooks*. Endogenous and transition flags stay false."""
+    """Record conflict-suppression *hooks*. Endogenous and transition flags stay false."""
 
     from codontrace.genesis.phase_i import evolve_two_task_population
 

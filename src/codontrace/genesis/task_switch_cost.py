@@ -1,7 +1,7 @@
 """E3 task-switch cost knob for HARD_EXPERIMENT_03.
 
 Default-off. When enabled, consecutive switches between dual-resource tasks A/B
-incur ``switch_cost_atp`` (Goldsby 0 / ~25 / ~50 cycle analogues mapped to ATP).
+incur ``switch_cost_atp`` (published 0 / ~25 / ~50 cycle analogues mapped to ATP).
 
 Pins A–E unchanged when disabled. Claim ceiling stays runtime_observation until
 ClaimGate grants more. Not a collective-intelligence claim.
@@ -46,7 +46,7 @@ DEFAULT_TASK_B_ACTIONS: tuple[str, ...] = (
 
 @dataclass(frozen=True, slots=True)
 class TaskSwitchCostConfig:
-    """Opt-in Goldsby-style task-switch ATP cost (HE03 E3)."""
+    """Opt-in task-switch ATP cost (HE03 E3)."""
 
     enabled: bool = False
     switch_cost_atp: float = SWITCH_COST_ATP_COST_0
@@ -206,7 +206,7 @@ def collect_individual_task_samples(
     *,
     activity: Sequence[tuple[str, str]] = (),
 ) -> tuple[tuple[str, str], ...]:
-    """Build (individual, task) samples for Gorelick NMI.
+    """Build (individual, task) samples for division-of-labour NMI.
 
     Prefers explicit activity samples; falls back to switch endpoints.
     """

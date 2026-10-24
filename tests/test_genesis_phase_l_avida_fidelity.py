@@ -1,4 +1,4 @@
-"""Phase L Avida messaging / DEME_GROUP / Goldsby-aligned measurements.
+"""Phase L Avida messaging / DEME_GROUP / published-aligned measurements.
 
 These tests document software capability. They do not claim intelligence,
 collective intelligence, Tokyo Type 1 passed, or Avida replacement.

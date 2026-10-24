@@ -1,4 +1,4 @@
-"""Phase 7: Zaman freeze / replay / reciprocal + repertoire richness."""
+"""Phase 7: freeze / replay / reciprocal + repertoire richness."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def test_repertoire_richness_analogue_present() -> None:
     result = run_zaman_three_arm_campaign(seeds=(3,), steps=4)
     by_arm = {arm.arm: arm for arm in result.arm_results}
     # Replay without parasite pressure keeps cardinality; freeze expands under
-    # fixed pressure; reciprocal expands faster (budget 2) — Zaman-style order.
+    # fixed pressure; reciprocal expands faster (budget 2) — expected order.
     assert (
         by_arm["replay_parasite_schedule"].mean_final_richness
         < by_arm["freeze_parasites"].mean_final_richness

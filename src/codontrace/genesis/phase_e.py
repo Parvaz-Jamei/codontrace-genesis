@@ -110,7 +110,7 @@ class RoleKind(StrEnum):
 
 
 class MessageKind(StrEnum):
-    """Goldsby-style coordination instruction kinds (peer-compatible subset)."""
+    """Avida-style coordination instruction kinds (peer-compatible subset)."""
 
     SEND = "send_message"
     RETRIEVE = "retrieve_message"
@@ -119,7 +119,7 @@ class MessageKind(StrEnum):
 
 
 class PlasticityCondition(StrEnum):
-    """Ghalambor/Clune-style experimental-design conditions (checklist, not proof)."""
+    """Plasticity experimental-design conditions (checklist, not proof)."""
 
     ANCESTRAL_STATIC = "ancestral_static"
     NOVEL_STATIC = "novel_static"
@@ -555,7 +555,7 @@ class RoleDifferentiationConfig:
 
 @dataclass(frozen=True, slots=True)
 class DemeMessage:
-    """One recorded deme messaging event (Goldsby-instruction analog)."""
+    """One recorded deme messaging event (Avida messaging-instruction analog)."""
 
     tick: int
     deme_id: str
@@ -818,7 +818,7 @@ class DemeConfig:
 
 @dataclass(frozen=True, slots=True)
 class PlasticityProtocolSpec:
-    """Experimental-design object for Ghalambor/Clune-style plasticity runs.
+    """Experimental-design object for plasticity runs.
 
     This is a checklist plus a sense-react hook over Phase C cues. It does
     **not** claim that phenotypic plasticity evolved.

@@ -4,8 +4,8 @@ Validates that:
 - Challenges 1-4 (Campaign Suite) and Challenges 5-8 (Extension Suite) execute cleanly.
 - Every worker produces deterministic status.json and execution.json telemetry.
 - Lifecycle stop semantics, completion flags, and stop_reason are correctly maintained.
-- Specialized mathematical metrics (Price equation, Hazen functional information,
-  quasispecies error threshold, Bedau activity, Fisher DFE) are computed accurately.
+- Specialized mathematical metrics (Price equation, functional information,
+  quasispecies error threshold, evolutionary activity, Fisher DFE) are computed accurately.
 - Epistemic invariant `red_queen_proved == False` is strictly enforced.
 """
 
@@ -117,7 +117,7 @@ def test_challenge_4_contingency_replay_micro_run(tmp_path: Path) -> None:
 
 
 def test_challenge_5_functional_info_micro_run(tmp_path: Path) -> None:
-    """Verify Challenge 5 (Hazen Functional Info & Neutral Percolation) execution."""
+    """Verify Challenge 5 (Functional Info & Neutral Percolation) execution."""
     out_dir = tmp_path / "c5_fi"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -132,7 +132,7 @@ def test_challenge_5_functional_info_micro_run(tmp_path: Path) -> None:
 
 
 def test_challenge_6_quasispecies_micro_run(tmp_path: Path) -> None:
-    """Verify Challenge 6 (Eigen Quasispecies & Error Catastrophe) execution."""
+    """Verify Challenge 6 (Quasispecies & Error Catastrophe) execution."""
     out_dir = tmp_path / "c6_quasi"
     out_dir.mkdir(parents=True, exist_ok=True)
 

@@ -1,4 +1,4 @@
-"""Phase 9: evolvability falsification, Cornish refusal, HE_HP digests."""
+"""Phase 9: evolvability falsification, intervention refusal, HE_HP digests."""
 
 from __future__ import annotations
 

@@ -1451,7 +1451,7 @@ def step_materials(
     """Advance named-material chemostat, CRN, diffusion, and decay one tick.
 
     Order: consumed (already applied during organism coupling) → reactions →
-    unused outflow then inflow (Avida RESOURCE / Novick–Szilard) → decay →
+    unused outflow then inflow (Avida RESOURCE / chemostat) → decay →
     diffusion. Does not mutate World2D resource cells (lumen food stays Phase A).
     """
 

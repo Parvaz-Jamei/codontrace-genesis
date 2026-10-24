@@ -2,7 +2,7 @@
 
 These cases target honesty / wiring holes that soft Wave-5/6 smoke does not
 stress: adversarial claimed= strings, content-null fail-closed ceilings,
-Cornish all-success schedules, HE_HP schema integrity, contingency support
+Intervention all-success schedules, HE_HP schema integrity, contingency support
 edges, and replay-digest registration drift (#50).
 """
 
@@ -118,7 +118,7 @@ def test_hc2_adversarial_aliases_cannot_bypass_intelligence_or_modes() -> None:
 
 
 def test_hc3_sequential_all_success_still_refuses_intervention_supported() -> None:
-    """HC3: Cornish — later_intervention_failed=False must not grant support."""
+    """HC3: intervention — later_intervention_failed=False must not grant support."""
 
     prereg = host_parasite_preregistration(
         question_of_interest="Does observational match grant intervention support?",
@@ -163,7 +163,7 @@ def test_hc3_sequential_all_success_still_refuses_intervention_supported() -> No
 
 
 def test_hc4_candidate_evidence_requires_content_null_arm() -> None:
-    """HC4: Floreano honesty — structure/abiotic alone cannot clear ceiling."""
+    """HC4: communication honesty — structure/abiotic alone cannot clear ceiling."""
 
     with pytest.raises(ConfigurationError, match="falsification"):
         run_host_parasite_campaign(

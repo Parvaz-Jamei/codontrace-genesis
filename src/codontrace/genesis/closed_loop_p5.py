@@ -5,7 +5,7 @@ outcrosses and pays ``outcross_runtime_atp`` from the existing runtime account
 when COPY_SELF enters the birth chamber. Ablation forces selfing and a zero
 sex-specific debit.
 
-This is NOT Maynard Smith's two-fold cost. That switch stays
+This is NOT the classic two-fold cost. That switch stays
 ``SexualRecombinationConfig.two_fold_cost_sex`` and defaults off, so both
 recombinants are still placed. It is NOT the host-pathogen passage result and does not
 set ``red_queen_proved``.

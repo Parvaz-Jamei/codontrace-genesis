@@ -238,7 +238,7 @@ def run_abiotic_biotic_factorial(
             else:
                 arms = ("intact", "content_null", "structure_null")
             # Higher abiotic productivity reduces relative steal when parasites
-            # are present (Lopez Pascua resource analogy). Absent cells keep
+            # are present (resource-supply analogy). Absent cells keep
             # default steal (unused because abiotic_only injects nothing).
             if biotic_level == "present":
                 steal = min(1.0, 0.8 / productivity)

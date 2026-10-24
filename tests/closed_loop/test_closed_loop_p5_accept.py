@@ -1,4 +1,4 @@
-"""P5 accept: heritable outcross locus + mating-effort ATP. Not Morran."""
+"""P5 accept: heritable outcross locus + mating-effort ATP. Not an outcrossing-rate replication."""
 
 from __future__ import annotations
 

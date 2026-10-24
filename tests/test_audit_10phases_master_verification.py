@@ -6,7 +6,7 @@ Validates the core scientific pillars across all 10 audit phases in two layers:
     1. Active Time Budget & Paused Seconds Subtraction (R02).
     2. Monotonic Revision Comparison & Stale Rejection (R05).
     3. Telemetry Fidelity & API Contract Compliance (Zero Fake Points).
-    4. Hazen Functional Information Uncertainty Bounds & Non-Binary Spaces (R10).
+    4. Functional Information Uncertainty Bounds & Non-Binary Spaces (R10).
     5. Price Equation Multilevel Partition with Unequal Demes & Transmission (R10).
     6. Two-Way Cooperative Chat Cancellation with Upstream Semantic Distinction (R11).
 """
@@ -436,7 +436,7 @@ def test_production_telemetry_fidelity_and_contract_compliance() -> None:
 
 
 def test_production_hazen_fi_zero_success_uncertainty_bounds() -> None:
-    """[Production Verification - Hazen FI] Zero-success scenario bounded by uncertainty rather than fixed 32."""
+    """[Production Verification - Functional Information] Zero-success scenario bounded by uncertainty rather than fixed 32."""
     # When zero viable mutants are sampled (k=0) out of N sampled mutants:
     # A fixed 32-bit ceiling is an unscientific artifact (conflating 32-bit integer / binary genome length).
     #

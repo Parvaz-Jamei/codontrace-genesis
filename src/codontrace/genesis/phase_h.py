@@ -190,7 +190,7 @@ def _run_phase_e(
 
 
 def action_sequences_from_result(result: object) -> dict[str, tuple[str, ...]]:
-    """Consecutive executed actions per organism across ticks (Goldsby switch unit)."""
+    """Consecutive executed actions per organism across ticks (task-switch unit)."""
 
     sequences: dict[str, list[str]] = {}
     for tick in getattr(result, "ticks", ()) or ():
@@ -322,7 +322,7 @@ def apply_task_switching_cost_to_dol(
     config: TaskSwitchingCostConfig | None = None,
     cost: float | None = None,
 ) -> tuple[TaskSwitchingDoLObservation, ...]:
-    """Reweight deme DoL fitness shares by Goldsby-style switch counts.
+    """Reweight deme DoL fitness shares by task-switch counts.
 
     ``adjusted_fitness = max(0, fitness - cost * switches)``. Specialists (few
     switches) keep more share as cost rises. Assigned roles stay assigned.

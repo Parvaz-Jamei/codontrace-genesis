@@ -164,7 +164,7 @@ class GenesisOrganism:
     capsule_last_executed_action: str | None = None
     # HE02 E1: coordinates from an adopted food-patch capsule payload.
     capsule_nav_target: tuple[int, int] | None = None
-    # HE03 E3: last Gorelick task class (TASK_A/TASK_B) for cross-tick
+    # HE03 E3: last division-of-labour task class (TASK_A/TASK_B) for cross-tick
     # switch-cost charging. None keeps life-loop digests unchanged.
     last_task_class: str | None = None
     _cursor: int = field(default=0, init=False, repr=False)

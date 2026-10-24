@@ -3,7 +3,7 @@
 Audit Documents: AUDIT_037648e_UPDATE_REVIEW_FA.md & test_audit_10phases_master_verification.py
 Scope:
 - R10: Remediated production-grade testing layer:
-       1. Hazen functional information bits zero-success validation (I(Ex) = -log2(M(Ex)/N)),
+       1. Functional information bits zero-success validation (I(Ex) = -log2(M(Ex)/N)),
           finite sampling bounds, non-binary alphabet configuration space, and explicit
           'censored' / 'upper_bound' labeling in evaluator.
        2. Production active time budget: monotonic active_elapsed_seconds <= wall_elapsed_seconds,
@@ -236,7 +236,7 @@ def test_r11_cancellation_semantics_are_mutually_exclusive() -> None:
 
 
 # ==============================================================================
-# R10: Hazen Functional Information Zero-Success & Censored Bound Invariant
+# R10: Functional Information Zero-Success & Censored Bound Invariant
 # ==============================================================================
 
 def test_r10_hazen_zero_success_sampling_bounds_mathematical_rigor() -> None:

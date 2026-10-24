@@ -2,7 +2,7 @@
 
 Measurement-first follow-on after Phase I: independent campaign digest
 re-execution so ``replay_verification`` can be earned honestly, plus an
-Okasha/Price covariance scaffold on the two-task analog.
+Multilevel-selection Price covariance scaffold on the two-task analog.
 
 None of this auto-sets ClaimGate flags. Smoke never earns flags.
 ``collective_intelligence`` / ``intelligence`` / AGI stay blocked.
@@ -112,7 +112,7 @@ def population_covariance(xs: Sequence[float], ys: Sequence[float]) -> float:
 
 @dataclass(frozen=True, slots=True)
 class PriceEquationPartition:
-    """Okasha-style MLS1 Price snapshot. Not a major transition."""
+    """MLS1 Price snapshot. Not a major transition."""
 
     n_groups: int
     n_organisms: int

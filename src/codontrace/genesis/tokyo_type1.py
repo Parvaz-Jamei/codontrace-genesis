@@ -405,7 +405,7 @@ def evaluate_tokyo_type1_measurement_claim(
 ) -> ClaimDecision:
     """Allow protocol ``tokyo_type1_measurement_only``; pack path aliases to OEE.
 
-    ``TokyoType1MeasurementProtocol`` keeps the Channon-step measurement ceiling.
+    ``TokyoType1MeasurementProtocol`` keeps the stepwise measurement ceiling.
     A Phase D evidence pack uses the cheap vocabulary hook and aliases to
     ``oee_measurement_only``. ``tokyo_type1_passed`` is rejected either way.
     """
@@ -444,7 +444,7 @@ def evaluate_tokyo_type1_pass_claim(
 
 @dataclass(frozen=True, slots=True)
 class TokyoType1SeedRecord:
-    """One seed's Bedau/MODES inputs into a multi-seed Tokyo measurement campaign."""
+    """One seed's evolutionary-activity/MODES inputs into a multi-seed Tokyo measurement campaign."""
 
     seed: int
     pack_digest: str
@@ -532,7 +532,7 @@ def run_multi_seed_tokyo_measurement_campaign(
     persistence_window_t: int | None = None,
     empirical_systematics_shadow: bool = False,
 ) -> TokyoType1MeasurementCampaign:
-    """Run ≥2 seeds, aggregate Bedau/MODES, build a multi-seed Tokyo protocol.
+    """Run ≥2 seeds, aggregate evolutionary-activity/MODES, build a multi-seed Tokyo protocol.
 
     Still forbids ``tokyo_type1_passed``. Shadow phylogeny is opt-in.
     """

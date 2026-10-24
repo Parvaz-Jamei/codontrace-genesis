@@ -1,4 +1,4 @@
-"""Pearl-pair and debit-stream gates: Pearl-pair taxonomy and fail-closed debit-stream gates.
+"""Paired-contrast and debit-stream gates: paired-contrast taxonomy and fail-closed debit-stream gates.
 
 Anchored to sealed confirmatory 101–108 honest FAIL at tip 610f46f.
 Does not promote red_queen_proved. Does not loosen ClaimGate.
@@ -183,7 +183,7 @@ def test_pearl_pair_gap_clause() -> None:
         )
         is True
     )
-    # Gap under frozen alone fails the Pearl-pair clause.
+    # Gap under frozen alone fails the paired-contrast clause.
     assert (
         pearl_pair_survival_gap_absent(
             frozen_outcross_extinct=False,

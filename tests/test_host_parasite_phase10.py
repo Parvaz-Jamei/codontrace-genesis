@@ -1,4 +1,4 @@
-"""Phase 10: genome-aware dual digests on Zaman freeze/replay/reciprocal."""
+"""Phase 10: genome-aware dual digests on freeze/replay/reciprocal."""
 
 from __future__ import annotations
 

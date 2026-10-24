@@ -1,4 +1,4 @@
-"""Phase 22: sequential Cornish multi-intervention deepening."""
+"""Phase 22: sequential multi-intervention deepening."""
 
 from __future__ import annotations
 

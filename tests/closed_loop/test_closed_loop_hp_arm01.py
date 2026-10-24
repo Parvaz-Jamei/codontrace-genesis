@@ -1,7 +1,7 @@
 """Three-arm life-loop bind: substrate, invasion estimand, ClaimGate refuse.
 
 Anchored to sealed confirmatory 101–108 honest FAIL at tip 610f46f and to
-Pearl-pair taxonomy on closed-loop/pearl-pair-spc. Does not promote
+Paired-contrast taxonomy on closed-loop/pearl-pair-spc. Does not promote
 red_queen_proved. Does not loosen ClaimGate. ENGINE-BIND requires
 PopulationRunner + Phase B + HostParasiteEnv; run_shared_modifier is refused
 as the primary campaign substrate.

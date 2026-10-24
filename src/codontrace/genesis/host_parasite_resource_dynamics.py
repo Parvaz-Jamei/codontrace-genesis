@@ -1,8 +1,8 @@
-"""Phase 20 — resource × coevolution-dynamics factorial (Lopez Pascua honesty).
+"""Phase 20 — resource × coevolution-dynamics factorial (resource-supply honesty).
 
 Crosses declared resource_productivity levels with parasite-present/absent and
 records ARD/FSD-like diagnostic labels per cell. Designed so the digital assay
-can match *or* fail Lopez Pascua-style “higher resources decrease FSD-like
+can match *or* fail the published “higher resources decrease FSD-like
 labels” without claiming wet replication. Knobs stay outside engine.py.
 """
 
@@ -61,7 +61,7 @@ def _trajectory_for_cell(
             inf = (0.02 + 0.02 * t) * (0.5 + 0.25 * prod) + 0.001 * (seed % 5)
             res = (0.01 + 0.01 * t) * (0.5 + 0.2 * prod)
         else:
-            # Lopez Pascua honesty map: high resources tend to *reduce* FSD wobble
+            # Resource-supply honesty map: high resources tend to *reduce* FSD wobble
             # (more ARD-like escalation), low resources keep more fluctuation.
             if resource == "low":
                 wobble = 0.09 * ((-1) ** t) * (1 + (seed % 3) * 0.05)

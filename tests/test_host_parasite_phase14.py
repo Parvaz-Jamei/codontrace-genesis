@@ -109,5 +109,5 @@ def test_brainstormed_keep_modes_registry_covers_wave_modes() -> None:
         "reciprocal_coevolution",
     }
     assert required <= set(BRAINSTORMED_KEEP_MODES)
-    # Zaman three arms still present as shipped surface.
+    # Freeze/replay/reciprocal three arms still present as shipped surface.
     assert len(ZAMAN_ARMS) >= 3

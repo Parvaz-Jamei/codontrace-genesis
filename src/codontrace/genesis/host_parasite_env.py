@@ -428,7 +428,7 @@ class HostParasiteEnv:
         """Host digital outcome after interaction-value–modulated steal/benefit.
 
         ``interaction_value`` in [-1, +1] spans antagonism → mutualism
-        (Symbulation / Gupta–Vostinar continuum analogy). Magnitude is
+        (Symbulation mutualism–parasitism continuum analogy). Magnitude is
         ``steal_fraction / resource_productivity``. Negative values subtract
         from the uninfected baseline 1.0; positive values add (mutualism
         benefit). Result is clipped to [0, 2]. Mutualism is not a success

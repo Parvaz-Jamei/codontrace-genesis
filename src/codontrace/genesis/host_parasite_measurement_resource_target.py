@@ -70,7 +70,7 @@ def _genome_for(seed: int) -> SemanticGenome:
 def harshness_from_resource(productivity: float) -> float:
     """Map resource productivity → target harshness in (0, 1].
 
-    Higher resources → softer target (lower harshness) — Lopez Pascua honesty
+    Higher resources → softer target (lower harshness) — resource-supply honesty
     map as a *digital* phenotype-target knob, not wet chemostat physics.
     """
 

@@ -1,4 +1,4 @@
-"""Locked Slowinski confirmatory prereg: constants, refuse soft-pass, ClaimGate."""
+"""Locked confirmatory prereg: constants, refuse soft-pass, ClaimGate."""
 
 from __future__ import annotations
 

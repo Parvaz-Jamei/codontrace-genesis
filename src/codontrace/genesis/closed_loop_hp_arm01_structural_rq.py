@@ -280,7 +280,7 @@ def graded_affinity(host_window: str, parasite_window: str) -> float:
     """Mean of independent bit-disjoint sub-locus agreement scores in [0, 1].
 
     Forbids AND-collapse of the full window to one exact-match bit
-    (Engelstädter 2015 multi-locus / feature-overlap spirit).
+    (multi-locus / feature-overlap spirit).
 
     On a 6-bit window split into three 2-bit sub-loci, this value equals the
     count of matching bits divided by 6. If the two windows were independent

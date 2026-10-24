@@ -1,4 +1,4 @@
-"""Phase 23: Scanlan mutator / abiotic-constraint dual-null (earn-in)."""
+"""Phase 23: mutator / abiotic-constraint dual-null (earn-in)."""
 
 from __future__ import annotations
 

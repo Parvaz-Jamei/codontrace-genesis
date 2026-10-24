@@ -197,7 +197,7 @@ def test_evaluator_accepts_valid_positive_controls() -> None:
     assert res_mls["confidence"] is None
     assert res_mls["controls_passed"] is False
 
-    # Hazen FI positive control
+    # Functional-information positive control
     res_fi = evaluate_run_hypothesis({
         "status": "COMPLETED",
         "execution": {

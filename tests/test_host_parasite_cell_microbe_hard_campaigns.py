@@ -1,7 +1,7 @@
 """Hard cell↔microbe campaigns — Genesis substrate × host_parasite ClaimGate.
 
-Exercises multi-seed contingency, dual-genome Zaman, entropy/Hamming dual-null,
-ARD→FSD cost-of-generalism, sequential Cornish, Scanlan mutator, and task–gene
+Exercises multi-seed contingency, dual-genome freeze/replay, entropy/Hamming dual-null,
+ARD→FSD cost-of-generalism, sequential intervention, mutator, and task–gene
 dual-null panels with fail-closed ClaimGate ceilings. Not Wave-6 soft smoke.
 """
 

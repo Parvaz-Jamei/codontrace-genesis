@@ -106,7 +106,7 @@ class DualLogger:
 # CHALLENGE 5: Functional Information & Neutral Network Percolation
 # ==============================================================================
 def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_id: int = 0) -> None:
-    """Challenge 5: Measures Functional Information accretion and Wagner neutral percolation."""
+    """Challenge 5: Measures Functional Information accretion and neutral-network percolation."""
     set_core_affinity(core_id)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -203,7 +203,7 @@ def run_worker_5_functional_info(output_dir: Path, duration_hours: float, core_i
             p_f = viable_count / sample_size
             hazen_functional_info_bits = -math.log2(p_f) if p_f > 0 else float(genome_len)
 
-            # Wagner Neutral Network Percolation: 1-mutant sampling on top quartile
+            # Neutral Network Percolation: 1-mutant sampling on top quartile
             sample_elites = population[:pop_size // 4]
             strict_neutral = 0
             viable_neighbors = 0

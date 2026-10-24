@@ -120,6 +120,7 @@ from codontrace.genesis.materials import (
     inherit_materials_organism_state,
     step_materials,
 )
+from codontrace.genesis.mating_types import MatingTypeMap
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.phase_e import (
@@ -5591,13 +5592,18 @@ def _drain_chamber_pairs(
         pending[0] if pending else None
     )
     mate_counts: dict[str, int] = {}
+    mating_types: MatingTypeMap | None = (
+        MatingTypeMap(stream.seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
+    )
     while True:
         life = configs.closed_loop_hp_life
         radius = life.mate_search_radius
         cap = life.outcross_mates_per_generation_cap
         plugin = _life_plugin()
 
-        def _mate_ok(first: IncipientOffspring, second: IncipientOffspring, _life: LifePluginConfig = life, _plugin: LifePlugin = plugin, _radius: int | None = radius, _cap: int | None = cap, _counts: dict[str, int] = mate_counts) -> bool:
+        def _mate_ok(first: IncipientOffspring, second: IncipientOffspring, _life: LifePluginConfig = life, _plugin: LifePlugin = plugin, _radius: int | None = radius, _cap: int | None = cap, _counts: dict[str, int] = mate_counts, _types: MatingTypeMap | None = mating_types) -> bool:
+            if _types is not None and not _types.compatible(first.parent_id, second.parent_id):
+                return False
             if _life.outcross_enabled and _life.outcross_same_role_only:
                 if not _plugin.mates_compatible(first.parent_id, second.parent_id, _life):
                     return False
@@ -5745,6 +5751,8 @@ def _drain_chamber_pairs(
                         waiting.insert(0, deferred_second[0])
                 break
             placed_ids.append(result.child.id)
+            if mating_types is not None:
+                mating_types.assign(result.child.id)
             last_result = result
             births += 1
             placed_this_pair += 1

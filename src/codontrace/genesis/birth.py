@@ -148,6 +148,17 @@ def coerce_reproduction_mode(value: ReproductionMode | str | None) -> Reproducti
 
 _BIRTH_CHAMBER_TIMEOUT_POLICIES = {"fail", "asexual_fallback"}
 _BIRTH_CHAMBER_PAIRING_POLICIES = {"birth_chamber", "nearest_mate"}
+MATING_TYPE_MALE = "male"
+MATING_TYPE_FEMALE = "female"
+MATING_TYPE_HERMAPHRODITE = "hermaphrodite"
+_MATING_TYPE_NAMES = {MATING_TYPE_MALE, MATING_TYPE_FEMALE, MATING_TYPE_HERMAPHRODITE}
+# Supported sets: separate sexes, males with hermaphrodites, or hermaphrodites only.
+_MATING_TYPE_SETS = {
+    frozenset({MATING_TYPE_FEMALE, MATING_TYPE_MALE}),
+    frozenset({MATING_TYPE_HERMAPHRODITE, MATING_TYPE_MALE}),
+    frozenset({MATING_TYPE_HERMAPHRODITE}),
+}
+_SEX_ASSIGNMENT_POLICIES = {"none", "random_at_birth", "inherited_locus"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,8 +177,15 @@ class SexualRecombinationConfig:
     - ``corresponding_positions`` ← ``CORESPOND_REC_REGS``
 
     Default ``enabled=False`` so asexual research serialization is unchanged.
-    Mating-type / lekking flags are stubs for later; they do not change
-    pairing. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
+    ``mating_types_enabled`` is the master switch for sexes. When it is True,
+    ``mating_type_set``, ``sex_ratio`` (probability that a newborn is male) and
+    ``sex_assignment`` decide each organism's mating type, and birth-chamber
+    pairing only joins compatible types (male x female, or hermaphrodite x
+    any type). The three fields are written by ``to_dict`` only when they differ
+    from their defaults, so payloads with the switch off are byte-identical to
+    earlier releases. Sexes and ``two_fold_cost_sex`` are mutually exclusive:
+    with sexes on, the cost of sex comes from producing sons, so placing a
+    single product as well would charge it twice. ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
     before positional crossover; default off so sexual digest pins stay
     stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
     places only one recombinant product when True.
@@ -187,6 +205,9 @@ class SexualRecombinationConfig:
     mating_types_enabled: bool = False
     lekking: bool = False
     diploid_meiosis: bool = False
+    mating_type_set: tuple[str, ...] = ()
+    sex_ratio: float = 0.5
+    sex_assignment: str = "none"
 
     def __post_init__(self) -> None:
         finite_float("recombination_prob", self.recombination_prob, probability=True)
@@ -203,6 +224,36 @@ class SexualRecombinationConfig:
                 f"pairing_policy must be one of {sorted(_BIRTH_CHAMBER_PAIRING_POLICIES)!r}."
             )
         _validate_non_negative(self.modular_region_count, "modular_region_count")
+        self._validate_mating_types()
+
+    def _validate_mating_types(self) -> None:
+        if not isinstance(self.mating_type_set, tuple):
+            raise ValueError("mating_type_set must be a tuple of mating type names.")
+        unknown = [name for name in self.mating_type_set if name not in _MATING_TYPE_NAMES]
+        if unknown:
+            raise ValueError(f"mating_type_set entries must be in {sorted(_MATING_TYPE_NAMES)!r}; got {unknown!r}.")
+        if len(set(self.mating_type_set)) != len(self.mating_type_set):
+            raise ValueError("mating_type_set must not repeat a mating type.")
+        finite_float("sex_ratio", self.sex_ratio, probability=True)
+        if self.sex_assignment not in _SEX_ASSIGNMENT_POLICIES:
+            raise ValueError(f"sex_assignment must be one of {sorted(_SEX_ASSIGNMENT_POLICIES)!r}.")
+        if not self.mating_types_enabled:
+            return
+        if not self.enabled:
+            raise ValueError("mating_types_enabled requires enabled=True.")
+        if not self.mating_type_set:
+            raise ValueError("mating_types_enabled requires a non-empty mating_type_set.")
+        if frozenset(self.mating_type_set) not in _MATING_TYPE_SETS:
+            raise ValueError("mating_type_set must be {female, male}, {hermaphrodite, male} or {hermaphrodite}.")
+        if self.sex_assignment == "none":
+            raise ValueError("mating_types_enabled requires sex_assignment other than 'none'.")
+        if self.sex_assignment == "inherited_locus":
+            raise ValueError("sex_assignment 'inherited_locus' is reserved and not available yet.")
+        if self.two_fold_cost_sex:
+            raise ValueError(
+                "two_fold_cost_sex must be False when mating_types_enabled is True; "
+                "with sexes on the cost of sex is paid through sons."
+            )
 
     @property
     def uses_birth_chamber(self) -> bool:
@@ -226,6 +277,12 @@ class SexualRecombinationConfig:
         }
         if self.diploid_meiosis:
             payload["diploid_meiosis"] = True
+        if self.mating_type_set:
+            payload["mating_type_set"] = list(self.mating_type_set)
+        if self.sex_ratio != 0.5:
+            payload["sex_ratio"] = self.sex_ratio
+        if self.sex_assignment != "none":
+            payload["sex_assignment"] = self.sex_assignment
         return payload
 
     @classmethod
@@ -252,7 +309,16 @@ class SexualRecombinationConfig:
             mating_types_enabled=bool(data.get("mating_types_enabled", False)),
             lekking=bool(data.get("lekking", False)),
             diploid_meiosis=bool(data.get("diploid_meiosis", False)),
+            mating_type_set=_mating_type_set_from(data.get("mating_type_set", [])),
+            sex_ratio=same_float(data.get("sex_ratio", 0.5)),
+            sex_assignment=str(data.get("sex_assignment", "none")),
         )
+
+
+def _mating_type_set_from(raw: JsonValue) -> tuple[str, ...]:
+    if not isinstance(raw, list | tuple):
+        raise ValueError("mating_type_set must be a list of mating type names.")
+    return tuple(str(item) for item in raw)
 
 
 class SkillInheritanceMode(str, Enum):

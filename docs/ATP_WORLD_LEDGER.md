@@ -13,10 +13,9 @@ from `genesis/` or `experiments/`). Tests: `tests/test_atp_ledger.py`
 * **Closed**: every change is a double-entry posting (one amount leaves one
   account and enters another), so the signed sum of all accounts is exactly 0.
   Equivalently `agents + reservoir = sum(sources in) - sum(sinks out)`.
-* **Exact**: amounts are the IEEE-754 values the engine actually stores, held
-  as integers in units of 2^-1074 (every finite double is an exact multiple),
-  so checks use `==` (IEEE 754-2019 sec. 3.3: every finite binary64 is an
-  integer multiple of 2^-1074). There is no tolerance window anywhere. Inside a
+* **Exact**: amounts are the double values the engine actually stores, held
+  as integers in units of 2^-1074 (every finite double is an exact integer
+  multiple of 2^-1074), so checks use `==`. There is no tolerance window anywhere. Inside a
   `transfer_scope` the caller books the exact rounding error of each float
   operation that produced the legs (`float_error`, `coupling_rounding_units`,
   `book_rounding`, against `source:rounding` / `sink:rounding`) and the
@@ -106,34 +105,20 @@ not mixed into any legacy digest.
   vary under load). The remaining time is the cost of booking and
   hash-chaining about 190k postings exactly.
 
-## Research basis
+## Design background
 
-* Avida resources: initial quantity, inflow, outflow, depletable resources
-  (Ofria & Wilke 2004, Artificial Life 10(2); Ofria, Bryson & Wilke 2009,
-  Avida introduction). Tierra treats CPU time as the energy analogue (Ray 1991).
-  Here the reservoir/inflow/sink split follows Avida's resource model.
-* Flow-Lenia: mass conservation as an invariant of the update rule
-  (Plantec et al. 2023, ALIFE 2023, "Flow-Lenia: Towards open-ended evolution
-  in cellular automata through mass conservation and parameter localization";
-  Plantec et al. 2025, Artificial Life 31(2), doi:10.1162/artl_a_00471,
-  arXiv:2506.08569).
-* Double-entry / stock-flow-consistent agent-based models: every flow has a
-  matching stock change and rows/columns of the transaction-flow matrix sum
-  to zero each period (Godley & Lavoie 2007; Caiani et al. 2016, J. Econ.
-  Dyn. Control 69; Baldauf 2023, sfctools, JOSS 8(87) 4980,
-  doi:10.21105/joss.04980; Reissl, Fierro, Lamperti & Roventini 2024,
-  DSK-SFC, LEM WP 2024/09, Ecological Economics 2025,
-  doi:10.1016/j.ecolecon.2025.108641, which checks the identities at agent,
-  sector and aggregate level every period).
-* ATP budgets: cell energy partitions into growth (construction) and
-  maintenance, counted in ATP hydrolyses (Lynch & Marinov 2015, PNAS 112:15690;
-  Lynch 2024, Evolutionary Cell Biology, OUP, ch. "The Costs of Cellular
-  Features", doi:10.1093/oso/9780192847287.003.0017; Ortega-Arzola, Higgins &
-  Cockell 2024, Sci. Rep. 14:5267, minimum energy to build a cell). The
-  `sink:basal` (maintenance) vs `sink:birth` (construction) names follow
-  that partition.
-* Property-based testing: Hypothesis (MacIver, Hatfield-Dodds et al. 2019,
-  JOSS 4(43) 1891), version pinned by `hypothesis>=6.0,<7` (6.170 in CI venv).
+* Resources follow the usual artificial-life model of an initial quantity,
+  inflow, outflow and depletable pools; here that is the reservoir / source /
+  sink split.
+* Conservation is a property of the update rule itself, as in mass-conserving
+  continuous cellular automata, not something checked loosely afterwards.
+* Double entry: every flow has a matching stock change and the rows and
+  columns of the transaction-flow matrix sum to zero every period, checked at
+  agent and aggregate level, as stock-flow-consistent agent-based models do.
+* Cell energy budgets split into construction (growth) and maintenance,
+  counted in ATP hydrolyses; `sink:basal` (maintenance) and `sink:birth`
+  (construction) follow that split.
+* Property-based tests use Hypothesis, pinned by `hypothesis>=6.0,<7`.
 
 ## Where it is wired
 
@@ -191,19 +176,3 @@ equality, `verify_balance`) catches any balance changed outside the ledger.
 `host_parasite_world.py` must still create, insert and remove `ATPAccount`s
 only in `_open_account` / `_close_account`.
 
-## References (verified)
-
-* IEEE Std 754-2019, sec. 3.3 (binary64: every finite value is an integer
-  multiple of 2^-1074).
-* S. Boldo, C.-P. Jeannerod, G. Melquiond, J.-M. Muller, "Floating-point
-  arithmetic", Acta Numerica 32 (2023) 203-290, doi:10.1017/S0962492922000101
-  (exact representability of the rounding error of a sum; error-free
-  transformations), used by `float_error` / `book_rounding`.
-* D. J. Abadi, J. M. Faleiro, "An overview of deterministic database
-  systems", CACM 61(9) (2018) 78-88, doi:10.1145/3181853 (deterministic,
-  replayable transaction commit), basis of the two-phase entry booking.
-  Commit 3c10ae75's body misdates this article as 2024; it is 2018.
-* P. Zhang, Y. Wang, X. Liu, "Assessing effectiveness of test suites: what do
-  we know and what should we do?", ACM TOSEM 33(4) (2024) art. 86,
-  doi:10.1145/3635713 (mutation score as the strongest suite-effectiveness
-  metric), basis of the bypass-mutant gate tests (commit 5acc87b7).

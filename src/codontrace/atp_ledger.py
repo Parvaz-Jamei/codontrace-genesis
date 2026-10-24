@@ -9,7 +9,7 @@ Every ATP unit in a world lives in exactly one named account at all times:
 * ``world:clearing``  a transient account used inside one transfer scope
                       (e.g. host->parasite coupling); its residual is booked to
                       an explicit loss sink when the scope closes;
-* ``source:<name>``   boundary inflows (Avida-style resource inflow, task
+* ``source:<name>``   boundary inflows (resource inflow, task
                       rewards, the genesis endowment); balances are <= 0;
 * ``sink:<name>``     boundary outflows (basal metabolism, birth cost,
                       dissipation); balances are >= 0;
@@ -18,13 +18,10 @@ Every ATP unit in a world lives in exactly one named account at all times:
                       would otherwise create or destroy ATP silently.
 
 Each posting moves one exact amount from one account to another, so the signed
-sum of all accounts is identically zero (double entry, Pacioli 1494; the same
-row/column-sum-zero identity the stock-flow-consistent agent-based models check
-every period: Godley & Lavoie 2007; Caiani et al. 2016, JEDC 69; Baldauf 2023
-sfctools, JOSS 8(87) 4980; Reissl, Fierro, Lamperti & Roventini 2024 DSK-SFC,
-LEM WP 2024/09, Ecological Economics 2025, doi:10.1016/j.ecolecon.2025.108641). Amounts are exact
-rationals (``fractions.Fraction`` of the IEEE-754 values the engine actually
-stores), so the invariant is checked with ``==``, never with a tolerance, and the
+sum of all accounts is identically zero (double entry; the same
+row/column-sum-zero identity stock-flow-consistent agent-based models check
+every period). Amounts are the exact double values the engine actually
+stores, held as integers in units of 2^-1074, so the invariant is checked with ``==``, never with a tolerance, and the
 realised delta (after ``ATPAccount``'s 10-digit rounding) is what is booked.
 
 ``close_tick`` checks, every tick:
@@ -41,15 +38,13 @@ state_digest, digest}`` (the same record shape as
 is ``ledger.head``. The engine layer does not import the journal module; a
 caller can persist ``journal_records()`` into any journal.
 
-Why: Avida models resources with explicit initial quantity, inflow and outflow
-(Ofria & Wilke 2004; Ofria, Bryson & Wilke 2009), and Flow-Lenia makes Lenia
-mass-conservative so total matter is an invariant of the update (Plantec et al.
-2023, ALIFE; Plantec et al. 2025, Artificial Life 31(2), doi:10.1162/artl_a_00471).
-Cell-biology ATP budgets partition all energy into construction (growth) and
-maintenance, counted in ATP hydrolyses (Lynch & Marinov 2015 PNAS; Lynch 2024,
-Evolutionary Cell Biology, OUP ch. "The Costs of Cellular Features"); the sink
+Why: artificial-life resource models use explicit initial quantity, inflow
+and outflow, and mass-conserving cellular automata make total matter an
+invariant of the update. Cell ATP budgets partition all energy into
+construction (growth) and maintenance, counted in ATP hydrolyses; the sink
+names ``sink:basal`` (maintenance) and ``sink:birth`` (construction) follow it.
 
-Representation (F6): every IEEE-754 double is an integer multiple of 2^-1074,
+Representation (F6): every finite double is an integer multiple of 2^-1074,
 so balances are stored as Python ints in units of 2^-1074. That is still exact
 (identical to the ``Fraction`` values; every record serialises the same reduced
 ``"num/den"`` strings), but integer adds and compares are an order of magnitude
@@ -528,7 +523,7 @@ class WorldATPLedger:
         ``book_rounding`` (see ``float_error``), which posts it between
         ``world:clearing`` and ``source:rounding`` / ``sink:rounding``.
         Exact because every finite binary64 is an integer multiple of 2^-1074
-        (IEEE 754-2019 sec. 3.3) and the error of a rounded sum is itself
+        and the error of a rounded sum is itself
         representable. ``magnitude`` is accepted for API stability and unused.
         If the body raises, the scope's postings are reverted and every
         touched ATPAccount is restored (atomic transfer).

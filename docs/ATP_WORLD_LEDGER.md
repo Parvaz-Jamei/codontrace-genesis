@@ -52,12 +52,35 @@ the postings and re-checks the chain and conservation from the records alone.
 | coupling (host -> parasite) | `holder -> world:clearing -> occupant`; residual `-> sink:coupling_loss` |
 | `ATPAccount` 10-digit rounding | `source:rounding` / `sink:rounding` |
 | float rounding of a transfer's legs (exact error of each `+`/`-`) | `world:clearing <-> source:rounding / sink:rounding`, then residual == engine loss exactly |
+| phase-3 / phase-5 host hold (declared boundary) | rebuilt or dropped host -> `sink:host_hold`; host it installs <- `source:host_hold` |
 
 Finding while building it: `ATPAccount.debit/credit` round balances to 10
 digits, so a single entry can create or destroy up to 5e-11 ATP. The ledger
 books that residue explicitly against `source:rounding`/`sink:rounding`
 instead of hiding it; the account arithmetic itself is unchanged, so legacy
 digests stay byte-identical.
+
+### Rounding is bounded, not forgiven
+
+A booked rounding error must be what one round-to-nearest operation can
+produce: at most half an ulp of its result for a float `+`/`-`, and at most
+one such step plus the 10-digit decimal rounding for an `ATPAccount` entry.
+Both are checked exactly in integer units. Anything larger raises as created
+or destroyed ATP. The host-parasite coupling recomputes both balances from
+the accepted amount and raises if the engine returned different ones.
+
+### Declared boundary: the host hold
+
+The phase-3 and phase-5 frequency panels put the locked hosts back before
+each step. That is a real inflow and outflow of the model, so it is a named
+boundary rather than a silent rewrite: every host the hold removes or
+rebuilds is closed to `sink:host_hold`, and every host it installs is opened
+from `source:host_hold` with the hold's birth reserve. The hold declares the
+exact balance of every account it installs (`host_hold_atp`), and the ledger
+raises unless each reissued account holds exactly that balance, the id is
+declared, and the reason is in `REISSUE_REASONS`. The net of the two
+accounts is the ATP the hold adds to keep the host mix fixed (positive in
+the phase-3 tests); it is reported, not hidden.
 
 ## Atomicity and copies
 

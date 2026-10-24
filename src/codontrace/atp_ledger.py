@@ -391,25 +391,44 @@ class WorldATPLedger:
             account.set_observer(_AgentHook(self, aid, account))
 
     # ------------------------------------------------- pull-mode (functional)
-    def reissue_accounts(self, accounts: Mapping[str, ATPAccount], *, tick: int, reason: str) -> dict[str, float]:
-        """Explicitly replace accounts that an experiment rebuilt under the same id.
+    def reissue_accounts(self, accounts: Mapping[str, ATPAccount], *, tick: int, reason: str,
+                         declared: Mapping[str, float]) -> dict[str, float]:
+        """Explicitly replace accounts that a declared boundary rebuilt under the same id.
 
-        For deliberate interventions (e.g. a hold that restores a locked
-        population between steps). Every id whose ATP history no longer
-        extends what was booked is closed to ``sink:<reason>`` and reopened
-        from ``source:<reason>`` with its new history replayed; ids that
-        vanished are closed to ``sink:<reason>`` and new ids are opened from
-        ``source:<reason>``. Untouched accounts are booked as usual. The
-        whole replacement is visible as named flows, never silent. Plain
+        Only for the boundaries in ``REISSUE_REASONS`` (the phase-3 host
+        hold, which puts the locked hosts back with their birth reserve).
+        ``declared`` is the boundary's own snapshot: id -> balance it
+        installed. Every id whose history no longer extends what was booked,
+        and every new id, must be declared and hold exactly its declared
+        balance; it is closed to ``sink:<reason>`` and reopened from
+        ``source:<reason>`` with its history replayed. Ids that vanished are
+        closed to ``sink:<reason>``. Anything else raises, so a reissue can
+        not create or remove more than the boundary declares. Plain
         ``sync_accounts`` still raises on any rewrite.
         """
 
-        for aid, (start, last) in sorted(self._cursors.items()):
-            account = accounts.get(aid)
-            if account is None:
-                continue
-            n_now = account.entry_count()
-            if n_now < start or (start > 0 and account.entry_at(start - 1) != last):
+        if reason not in REISSUE_REASONS:
+            raise ATPConservationError(f"undeclared reissue boundary {reason!r}")
+        if declared.keys() - accounts.keys():
+            raise ATPConservationError(f"{reason}: declared ids missing: {sorted(declared.keys() - accounts.keys())}")
+        rewritten: list[str] = []
+        for aid, account in sorted(accounts.items()):
+            cur = self._cursors.get(aid)
+            if cur is not None:
+                start, last = cur
+                n_now = account.entry_count()
+                if not (n_now < start or (start > 0 and account.entry_at(start - 1) != last)):
+                    continue
+            rewritten.append(aid)
+        for aid in rewritten:
+            account = accounts[aid]
+            if aid not in declared:
+                raise ATPConservationError(f"{reason}: {aid!r} rebuilt but not declared by the boundary")
+            if _u(account.current_atp) != _u(float(declared[aid])):
+                raise ATPConservationError(
+                    f"{reason}: {aid!r} reopened at {account.current_atp!r}, declared {declared[aid]!r}")
+        for aid in rewritten:
+            if aid in self._cursors:
                 del self._cursors[aid]
                 self.close_agent(aid, tick=tick, to=f"sink:{reason}", memo=reason)
         return self.sync_accounts(accounts, tick=tick, open_from=f"source:{reason}", close_to=f"sink:{reason}")
@@ -858,6 +877,10 @@ def _ulp_units(x: float) -> int:
     """``ulp(x)`` in units of 2^-1074 (exact: an ulp is a power of two)."""
 
     return _u(math.ulp(x))
+
+
+REISSUE_REASONS = frozenset({"host_hold"})
+"""Declared boundaries allowed to rebuild accounts under the same id."""
 
 
 def float_error(result: float, *terms: float) -> int:

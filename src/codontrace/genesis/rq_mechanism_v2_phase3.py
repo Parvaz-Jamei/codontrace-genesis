@@ -36,6 +36,7 @@ from typing import cast
 
 from codontrace.dynvalues import same_int, same_iter
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.atp import organism_atp_accounts
 from codontrace.genesis.closed_loop_hp_arm01 import (
     _tape,
     _window,
@@ -507,6 +508,8 @@ def install_locked_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]
         organisms=tuple(organisms),
     )
     arm.roles = roles
+    # Declare what the hold installs, so the ledger books exactly this.
+    arm.host_hold_atp = {k: a.current_atp for k, a in organism_atp_accounts(organisms).items()}
 
 
 def build_phase3_arm(

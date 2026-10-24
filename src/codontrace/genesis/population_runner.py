@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from codontrace.atp_ledger import WorldATPLedger
@@ -47,13 +48,14 @@ class PopulationRunner:
         self.atp_ledger.check(mirrors)
         return None
 
-    def reissue_atp(self, reason: str) -> None:
-        """Book a deliberate rebuild of organisms (same ids, new ATP history)
-        as explicit ``sink:<reason>`` / ``source:<reason>`` flows."""
+    def _reissue_atp(self, reason: str, declared: Mapping[str, float]) -> None:
+        """Book a declared rebuild of organisms (same ids, new ATP history)
+        as explicit ``sink:<reason>`` / ``source:<reason>`` flows; every
+        rebuilt balance must equal the boundary's declared snapshot."""
 
         tick = int(self.population.generation)
         mirrors = self.atp_ledger.reissue_accounts(
-            organism_atp_accounts(self.population.organisms), tick=tick, reason=reason)
+            organism_atp_accounts(self.population.organisms), tick=tick, reason=reason, declared=declared)
         self.atp_ledger.check(mirrors)
 
     def step_generation(

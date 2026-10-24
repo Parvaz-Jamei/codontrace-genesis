@@ -75,6 +75,7 @@ from typing import Any, cast
 
 from codontrace.dynvalues import same_float, same_int, same_iter, same_mapping
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.atp import organism_atp_accounts
 from codontrace.genesis.birth import SexualRecombinationConfig
 from codontrace.genesis.closed_loop_hp_arm01 import _window
 from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
@@ -1120,7 +1121,17 @@ def build_phase5_arm(arm_name: str, seed: int) -> StructuralRQArm:
         cast(Any, arm).intervention_ledger = []
 
         def _hold(target: StructuralRQArm) -> None:
+            seen = len(cast(Any, target).intervention_ledger)
             hold_founder_genotypes(target, captured)
+            # Declare the bodies this hold built (replacements only; a living
+            # id keeps its account), so the ledger books exactly these.
+            built = {str(row["host_id"]) for row in cast(Any, target).intervention_ledger[seen:]
+                     if row.get("kind") == "replacement"}
+            target.host_hold_atp = {
+                k: a.current_atp
+                for k, a in organism_atp_accounts(target.runner.population.organisms).items()
+                if k.split("/", 1)[0] in built
+            }
 
         arm.host_composition_hold = _hold
     elif key == ARM_CONSTANT_PARASITE:

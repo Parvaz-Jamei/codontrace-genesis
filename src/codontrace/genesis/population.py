@@ -99,7 +99,7 @@ from codontrace.genesis.food_patch_signal import (
     spawn_patches_for_tick,
 )
 from codontrace.genesis.learning import LearningATPConfig
-from codontrace.genesis.life_plugins import LifePlugin, LifePluginConfig, get_life_plugin
+from codontrace.genesis.life_plugins import LifePlugin, LifePluginConfig, resolve_life_plugin
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
 from codontrace.genesis.logic9 import (
     LOGIC9_TASKS,
@@ -185,7 +185,7 @@ LIFE_PLUGIN_NAME = "host_parasite"
 
 
 def _life_plugin() -> LifePlugin:
-    return get_life_plugin(LIFE_PLUGIN_NAME)
+    return resolve_life_plugin(LIFE_PLUGIN_NAME)
 
 @dataclass(frozen=True, slots=True)
 class ReproductionConfig:

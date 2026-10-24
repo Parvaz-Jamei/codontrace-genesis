@@ -18,6 +18,7 @@ from dataclasses import dataclass, replace
 from codontrace._types import JsonValue
 from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.life_plugins import register_life_plugin
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.rng import RNGManager
 
@@ -735,3 +736,7 @@ def hp_life_config(value: object) -> ClosedLoopHPLifeConfig:
 
 
 PLUGIN = HostParasiteLifePlugin()
+# Explicit registration (review F5): importing this module makes the plugin
+# available without a string-based lazy import in the core. Installed
+# packages also declare it as an entry point (pyproject.toml).
+register_life_plugin(PLUGIN)

@@ -823,6 +823,17 @@ class ScalarATPBook:
     Copying or serializing the book together with its population keeps each
     id with the matching copied object: the state is written as
     ``(object, id)`` pairs and the map is rebuilt on load.
+
+    The book and its population must be copied together, in one call
+    (``copy.deepcopy((book, population))``, or one serialization of both). A book
+    copied on its own binds its ids to private copies of the individuals,
+    not to the real ones, so a later ``settle`` would close every open
+    account as a death and reopen each individual as a birth: balances still
+    add up but lineage is lost. To catch this, the first ``settle`` after a
+    copy or load raises ``ATPConservationError`` if the book has open
+    accounts, the population is not empty and not one of its members has an
+    id in the book. Note that copying the book alone also copies every live
+    individual it still tracks.
     """
 
     def __init__(self, world_id: str, fields: tuple[str, ...] = ("atp",), *,
@@ -831,6 +842,7 @@ class ScalarATPBook:
         self.fields = tuple(fields)
         self._next = 0
         self._ids: dict[int, tuple[weakref.ref[Any], str]] = {}
+        self._restored = False
 
     def _bind(self, obj: object, lid: str) -> None:
         key = id(obj)
@@ -863,7 +875,7 @@ class ScalarATPBook:
         self._bind(new, self._id(old))
 
     def __getstate__(self) -> dict[str, Any]:
-        state = {k: v for k, v in self.__dict__.items() if k != "_ids"}
+        state = {k: v for k, v in self.__dict__.items() if k not in ("_ids", "_restored")}
         live = [(ref(), lid) for ref, lid in self._ids.values()]
         state["_id_pairs"] = [(o, lid) for o, lid in live if o is not None]
         return state
@@ -874,6 +886,7 @@ class ScalarATPBook:
         self._ids = {}
         for obj, lid in pairs:
             self._bind(obj, lid)
+        self._restored = True
 
     def _key(self, obj: object, field: str) -> str:
         return f"{self._id(obj)}:{field}" if len(self.fields) > 1 else self._id(obj)
@@ -892,6 +905,16 @@ class ScalarATPBook:
                open_from: str = "source:birth_endowment",
                close_to: str = "sink:death_remainder") -> str | None:
         led = self.ledger
+        population = list(population)
+        if self._restored:
+            if (led.open_agents and population
+                    and all(self._lookup(obj) is None for obj in population)):
+                raise ATPConservationError(
+                    "ScalarATPBook was copied or loaded without its population: none of "
+                    f"the {len(population)} individuals has an id in this book, but "
+                    f"{len(led.open_agents)} accounts are open; copy the book and the "
+                    "population together in one call")
+            self._restored = False
         mirrors: dict[str, float] = {}
         for obj in population:
             for field in self.fields:

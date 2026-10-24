@@ -11,6 +11,9 @@ from codontrace.genesis.journal import (  # noqa: F401  (public names)
     HashChainedJournal,
     NotRecorded,
 )
+from codontrace.genesis.journal import (
+    JournalBusyError as JournalBusyError,
+)
 from codontrace.genesis.swarm import (
     SwarmConfig,
     SwarmCoordinatorCore,
@@ -121,13 +124,27 @@ class SwarmCoordinator(HashChainedJournal):
             raise ValueError('unsupported command')
         return p
 
-    def _txn(self, action: str, args: dict[str, Any], now_ms: int) -> dict[str, Any]:
+    def _txn(self, action: str, args: dict[str, Any], now_ms: int, *, lock_timeout_s: float | None = None,
+             in_process_timeout_s: float | None = None) -> dict[str, Any]:
         """Typed view of the journal transaction; every swarm action returns a dict."""
-        result: dict[str, Any] = self._transaction(action, args, now_ms)
+        result: dict[str, Any] = self._transaction(action, args, now_ms, lock_timeout_s=lock_timeout_s,
+                                                   in_process_timeout_s=in_process_timeout_s)
         return result
 
-    def ingest(self, message: Any, *, now_ms: int) -> dict[str, Any]:
-        return self._txn('ingest', {'message': decode(message)}, now_ms)
+    def ingest(self, message: Any, *, now_ms: int, lock_timeout_s: float | None = None,
+               in_process_timeout_s: float | None = None) -> dict[str, Any]:
+        """Journal one device message.
+
+        ``lock_timeout_s`` optionally bounds only the wait for the cross-process
+        journal file lock; ``in_process_timeout_s`` bounds the wait for this
+        coordinator's own lock (held by other threads of this process while they
+        write, fsync, checkpoint or recover). Either raises ``JournalBusyError``
+        (scope ``'file'`` or ``'in_process'``) when exceeded. Note: in f4bf8c6
+        ``lock_timeout_s`` bounded both waits; since 55e5b8b it bounds only the
+        file lock, so a slow same-process writer does not make callers drop data.
+        """
+        return self._txn('ingest', {'message': decode(message)}, now_ms, lock_timeout_s=lock_timeout_s,
+                         in_process_timeout_s=in_process_timeout_s)
 
     def command(self, node_id: str, operation: str, params: dict[str, Any], *, now_ms: int,
                 timeout_ms: int = 5000) -> dict[str, Any]:
@@ -143,9 +160,11 @@ class SwarmCoordinator(HashChainedJournal):
         return self._txn('trust', {'key': key, 'reference': reference,
                                            'reference_id': reference_id, 'scale': scale}, now_ms)
 
-    def snapshot(self, *, now_ms: int) -> dict[str, Any]:
+    def snapshot(self, *, now_ms: int, lock_timeout_s: float | None = None) -> dict[str, Any]:
+        """Copy of the state. ``lock_timeout_s`` optionally bounds the wait for this
+        coordinator's lock (``JournalBusyError``, scope ``'in_process'``)."""
         integer(now_ms)
-        with self._lock:
+        with self._in_process_lock(lock_timeout_s):
             state = self._core.view(self._state, now_ms)
             return {'schema': 'genesis_swarm_snapshot_v1', 'swarm_id': self.swarm_id,
                     'coordination_mode': 'genesis_orchestrated_sensor_swarm', 'physical_validation': False,

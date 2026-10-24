@@ -153,7 +153,7 @@
   "decode": "(raw: 'bytes | str | Mapping[str, Any]') -> 'dict[str, Any]'",
   "identifier": "(value: 'Any') -> 'str'",
   "mqtt_v5_client": "(client_id: 'str', *, username: 'str', password: 'str', ca_file: 'str | None', manual_ack: 'bool' = True) -> 'Any'",
-  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str') -> 'Any'"
+  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str', *, explicit_client_id: 'bool | None' = None) -> 'Any'"
  },
  "codontrace.swarm.policies": {
   "canonical": "(value: 'Any') -> 'str'",
@@ -232,7 +232,7 @@
  "codontrace.swarm.transport.mqtt_session": {
   "mqtt_v5_client": "(client_id: 'str', *, username: 'str', password: 'str', ca_file: 'str | None', manual_ack: 'bool' = True) -> 'Any'",
   "paho_available": "() -> 'bool'",
-  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str') -> 'Any'"
+  "session_expiry_properties": "(session_expiry_s: 'int | None', client_id: 'str', *, explicit_client_id: 'bool | None' = None) -> 'Any'"
  },
  "codontrace.visualization": {},
  "codontrace.visualization.__main__": {

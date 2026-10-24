@@ -124,3 +124,31 @@ def test_visualization_reference_is_opt_in_and_beside_the_frames(tmp_path):
     assert sorted(str(p.relative_to(root)) for p in root.rglob('*')) == before
     ref = json.loads(path.read_text(encoding='utf-8'))
     assert ref['kind'] == 'visualization' and ref['extra']['world_digest'] == engine.world_digest()
+
+
+def test_verify_anchor_tells_pruning_apart_from_truncation(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    kw = dict(journal=journal, journal_segment_bytes=1024, journal_retention_bytes=1024, archive_max_bytes=1024)
+    s = SwarmCoordinator('s1', **kw)
+    s.ingest(_hello(1), now_ms=1)
+    s.ingest(_hello(2), now_ms=2)
+    early = journal_anchor(s)
+    for seq in range(3, 40):
+        s.ingest(_hello(seq), now_ms=seq)
+    late = journal_anchor(s)
+    s.ingest(_hello(40), now_ms=40)
+    archive = journal.with_name(journal.name + '.archive')
+    kept = sorted(p.name for p in [*archive.glob('j.jsonl.part.*'), *tmp_path.glob('j.jsonl.part.*')])
+    assert kept and not kept[0].endswith('.00000001')  # retention deleted the oldest segments
+    # Normal pruning: the anchored segment is gone, the kept history is intact.
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    assert verify_anchor(SwarmCoordinator('s1', **kw), early)['status'] == 'pruned'
+    assert verify_anchor(s, late)['status'] == 'earlier_record'
+    # Truncation: dropping the live tail is still reported as not_found, not as pruning.
+    journal.write_text('', encoding='utf-8')
+    journal.unlink()
+    for p in tmp_path.glob('j.jsonl.part.*'):
+        if p.name > kept[-1] or p.name == kept[-1]:
+            p.unlink()
+    truncated = SwarmCoordinator('s1', **kw)
+    assert verify_anchor(truncated, late)['status'] == 'not_found'

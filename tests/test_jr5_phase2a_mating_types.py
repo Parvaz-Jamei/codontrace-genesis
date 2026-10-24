@@ -78,7 +78,7 @@ _MAIN_ERA_LIFE_LOOP_TICKS = [
     "09fce6801980c4dd641622bea2ca5ab16419b35a37730679bc9f6634a4c9a23f",
 ]
 _MAIN_ERA_LIFE_LOOP_SNAPSHOT = "4b9fc37fc02661f396f04fb108178b6a73b383e8c27644c664afd2f5d0534c6f"
-_MAIN_ERA_RNG_DRAWS = [0.02433975224695084, 0.8777220527520939, 0.3371746977275931]
+_MAIN_ERA_RNG_DRAWS = [0.2861809988781432, 0.3428930518177439, 0.05947213471238899]
 
 _BITS = ("111000000", "111111000", "101101101", "110011001")
 _SEXES = {
@@ -161,15 +161,15 @@ def test_switch_off_sexual_life_loop_replay_matches_main_era() -> None:
 
 
 def test_sex_stream_does_not_shift_existing_streams() -> None:
-    root = RNGManager(seed=11001, namespace="genesis/population")
+    root = RNGManager(seed=4242, namespace="genesis/population")
     names = ("birth_chamber", "meiosis/x", "recombination/a/b")
     before = [root.fork(name).random() for name in names]
     assert before == _MAIN_ERA_RNG_DRAWS
     for index in range(50):
-        mating_type_stream(11001, f"org-{index}").random()
+        mating_type_stream(4242, f"org-{index}").random()
     assert [root.fork(name).random() for name in names] == before
     assert root.draw_count == 0
-    stream = mating_type_stream(11001, "org-1")
+    stream = mating_type_stream(4242, "org-1")
     assert stream.namespace == f"{MATING_TYPE_STREAM_NAMESPACE}/org-1"
     assert stream.namespace not in {root.fork(name).namespace for name in names}
 
@@ -192,10 +192,10 @@ def test_hermaphrodite_only_sexes_reproduce_the_switch_off_run(seed: int) -> Non
 def test_sex_assignment_is_reproducible_and_matches_ratio(ratio: float) -> None:
     cfg = SexualRecombinationConfig(enabled=True, sex_ratio=ratio, **_SEXES)  # type: ignore[arg-type]
     n = 4000
-    first = [draw_mating_type(11101, f"id-{i}", cfg) for i in range(n)]
-    again = [draw_mating_type(11101, f"id-{i}", cfg) for i in reversed(range(n))][::-1]
+    first = [draw_mating_type(4343, f"id-{i}", cfg) for i in range(n)]
+    again = [draw_mating_type(4343, f"id-{i}", cfg) for i in reversed(range(n))][::-1]
     assert first == again
-    other_seed = [draw_mating_type(11102, f"id-{i}", cfg) for i in range(n)]
+    other_seed = [draw_mating_type(4344, f"id-{i}", cfg) for i in range(n)]
     assert first != other_seed
     males = sum(1 for t in first if t == "male")
     assert set(first) == {"male", "female"}

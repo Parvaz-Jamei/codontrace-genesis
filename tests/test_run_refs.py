@@ -184,3 +184,41 @@ def test_verify_anchor_checks_the_head_of_a_pruned_anchor(tmp_path):
     # Without a ledger entry for the anchored segment the head cannot be checked: not_found, never 'pruned'.
     ledger.unlink()
     assert verify_anchor(SwarmCoordinator('s1', **kw), early)['status'] == 'not_found'
+
+
+def _oldest_kept(journal):
+    archive = journal.with_name(journal.name + '.archive')
+    names = [*archive.glob(journal.name + '.part.*'), *journal.parent.glob(journal.name + '.part.*')]
+    return min(int(p.name.rsplit('.', 1)[-1]) for p in names)
+
+
+def test_pruned_needs_an_anchored_segment_strictly_older_than_the_oldest_kept(tmp_path):
+    from codontrace.genesis.journal.anchor import _pruned_before
+    journal = tmp_path / 'j.jsonl'
+    s, early, _ = _pruned_coordinator(journal)
+    oldest = _oldest_kept(journal)
+    assert oldest > 2
+    # Segment one past journal_checkpoint_index: oldest - 1 is gone, oldest is kept.
+    assert _pruned_before(s, {**early, 'journal_checkpoint_index': oldest - 2}) is True
+    assert _pruned_before(s, {**early, 'journal_checkpoint_index': oldest - 1}) is False
+    # A genuine pruned head paired with a kept segment is inconsistent: never 'pruned'.
+    misplaced = {**early, 'journal_checkpoint_index': oldest - 1}
+    assert verify_anchor(s, misplaced)['status'] == 'not_found'
+    assert verify_anchor(s, {**early, 'journal_checkpoint_index': oldest - 2})['status'] == 'pruned'
+
+
+def test_history_that_starts_at_genesis_is_never_pruned(tmp_path):
+    from codontrace.genesis.journal.anchor import _pruned_before
+    journal = tmp_path / 'j.jsonl'
+    s = SwarmCoordinator('s1', journal=journal, journal_segment_bytes=1024)
+    for seq in range(1, 30):
+        s.ingest(_hello(seq), now_ms=seq)
+    parts = sorted(tmp_path.glob('j.jsonl.part.*'))
+    assert len(parts) >= 2
+    # Renumber the segments upwards: the oldest kept segment is no longer 1,
+    # but its first record still links to the zero digest, so nothing was pruned.
+    for path in reversed(parts):
+        index = int(path.name.rsplit('.', 1)[-1])
+        path.rename(path.with_name(f'j.jsonl.part.{index + 10:08d}'))
+    anchor = {**journal_anchor(s), 'journal_checkpoint_index': 0}
+    assert _pruned_before(s, anchor) is False

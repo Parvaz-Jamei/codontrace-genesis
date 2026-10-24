@@ -1007,7 +1007,17 @@ class HostParasiteWorld:
                 src_paid = float(before[holder]) - float(new_balances[holder])
                 tgt_gain = float(new_balances[occupant]) - float(before[occupant])
                 debit_failed = False
-                with self.atp_ledger.transfer_scope("coupling", tick=self.tick_index):
+                with self.atp_ledger.transfer_scope(
+                    "coupling",
+                    tick=self.tick_index,
+                    magnitude=max(
+                        abs(float(v))
+                        for v in (
+                            before[holder], before[occupant],
+                            new_balances[holder], new_balances[occupant],
+                        )
+                    ),
+                ):
                     if src_paid > 0.0:
                         paid = self.accounts[holder].debit(
                             src_paid,

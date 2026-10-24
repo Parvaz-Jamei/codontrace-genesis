@@ -37,6 +37,34 @@ def test_hp_outputs_byte_identical_to_pre_ledger_main() -> None:
     assert _h(w.life_loop_snapshot()) == "85b487a6175eeba09e792671c5994d6c8685238f326551b9706fb58c0743b9ba"
 
 
+# Default-profile digests at origin/main 89ecd78 (run() result + snapshot).
+LONG_PINS = {
+    "0_60": "7b4ac61cfcf115c188d69fc02748a4fda6ceb5575d0d018c7019a72f5b22e5b7",
+    "0_200": "81a2b9295829ae97416f5971de3dbe6689a92f86fcd883960bc7b5268229caca",
+    "1_60": "13beaa3b1a2b18038679b2ad9e131ac1203f58f983c627a12e4b39d071c77ce6",
+    "1_200": "fc4795406db4f5ee60bd716dfb6f080c542fdefcc71099e6736a5e84ad0a3667",
+    "2_60": "2c970bbd3d2e1535a2f5e869f19485ee6d20002f268794f9258cac1dc1bff82a",
+    "2_200": "db195ff467f7392c6a507dffe56af77598449100415edce2979e46cb4a4b34fe",
+    "3_60": "c7ead7ec6408865840844081a0d009073cab152fed7e5fd0ef90c6796208daef",
+    "3_200": "280bf8b0cdeae0df543af6d03f8de34db2f15d9fd8066fc7488075cb5891098f",
+    "7_60": "071fe73cf3392e068cf4631944b43b82a3d531518ae5c0b6e6fe1be122ec02c4",
+    "7_200": "431098a009d1f85b084c922bd1571cb03077c1241b7d9ab9dcc0664bead0d6a4",
+    "42_60": "bfd1799a9a64430f758f7e8a36b32a56c0f985e2ca063ca24ddcfade9b2621f8",
+    "42_200": "ab9ce45972d6b1ea866bbb63a6429ae752defbf3fb4a67f0ce1fda3ef71e784d",
+    "99_60": "1d8afa7b5e67fee1aa3f190d7182c8d41f5e5877ddc7ab3ea1a94bb834874275",
+    "99_200": "2e393f03464971522565b0e8d3b05ff534fd103f8845070667334f1aa4fb9174"
+}
+
+
+@pytest.mark.parametrize("key", sorted(LONG_PINS))
+def test_hp_long_horizon_byte_identical_to_main(key: str) -> None:
+    seed, ticks = (int(x) for x in key.split("_"))
+    w = HostParasiteWorld(HostParasiteProfile(profile_id="d", seed=seed))
+    result = w.run(ticks)
+    assert _h([result, w.life_loop_snapshot()]) == LONG_PINS[key]
+    assert w.atp_ledger.ticks_checked == ticks
+
+
 def test_hp_every_tick_checked_and_chained() -> None:
     w = HostParasiteWorld(_busy_profile())
     w.run(25)
@@ -61,7 +89,7 @@ def test_hp_bypass_write_fails_next_tick() -> None:
         w.tick()
 
 
-@settings(max_examples=25, deadline=None)
+@settings(max_examples=30, deadline=None)
 @given(
     seed=st.integers(0, 10_000),
     amt=st.floats(0.0, 2.0),
@@ -69,11 +97,12 @@ def test_hp_bypass_write_fails_next_tick() -> None:
     birth=st.floats(0.0, 1.0),
     death=st.floats(0.0, 0.5),
     basal=st.floats(0.0, 0.5),
-    ticks=st.integers(1, 15),
+    ticks=st.integers(1, 25),
+    energy=st.floats(0.0, 20.0),
 )
-def test_hp_conservation_property(seed, amt, loss, birth, death, basal, ticks) -> None:
+def test_hp_conservation_property(seed, amt, loss, birth, death, basal, ticks, energy) -> None:
     w = HostParasiteWorld(HostParasiteProfile(
-        profile_id="prop", seed=seed, coupling_amount=amt, coupling_loss_fraction=loss,
+        profile_id="prop", seed=seed, initial_energy=energy, coupling_amount=amt, coupling_loss_fraction=loss,
         birth_probability_primary=birth, birth_probability_secondary=birth,
         death_probability_primary=death, death_probability_secondary=death, basal_energy_cost=basal))
     w.run(ticks)

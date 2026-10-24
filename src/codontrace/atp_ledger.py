@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -78,6 +79,8 @@ RESERVOIR = "world:reservoir"
 CLEARING = "world:clearing"
 GENESIS_SOURCE = "source:genesis"
 ZERO_DIGEST = "0" * 64
+# Relative bound on float-subtraction excess inside one transfer (a few ulps).
+ROUNDING_BOUND = Fraction(1, 2**48)
 
 
 class ATPConservationError(AssertionError):
@@ -150,6 +153,8 @@ class WorldATPLedger:
         self._pending: list[ATPPosting] = []
         self._seq = 0
         self._scope: str | None = None
+        self._scope_gross = Fraction(0)
+        self._scope_ulps = Fraction(0)
         self._records: list[dict[str, Any]] = []
         self._head = ZERO_DIGEST
         self.ticks_checked = 0
@@ -167,6 +172,8 @@ class WorldATPLedger:
             self._check_name(acct)
         self._bal[src] = self._bal.get(src, Fraction(0)) - amt
         self._bal[dst] = self._bal.get(dst, Fraction(0)) + amt
+        if CLEARING in (src, dst):
+            self._scope_gross += amt
         self._pending.append(ATPPosting(self._seq, int(tick), src, dst, amt, str(memo)))
         self._seq += 1
 
@@ -259,6 +266,11 @@ class WorldATPLedger:
         label = entry.action or entry.reason
         nominal = _q(entry.amount)
         realised = _q(entry.balance_after) - _q(entry.balance_before)
+        if self._scope is not None:
+            # Rounding allowance: the caller's legs are float differences of
+            # balances of this magnitude (one ulp each for before/after/amount).
+            mag = max(abs(entry.balance_before), abs(entry.balance_after), abs(entry.amount))
+            self._scope_ulps += 3 * Fraction(math.ulp(mag))
         if entry.kind == "credit":
             src = CLEARING if self._scope is not None else f"source:{label}"
             self.post(src, key, nominal, tick=entry.tick, memo=entry.reason)
@@ -273,22 +285,44 @@ class WorldATPLedger:
             self.post(key, "sink:rounding", -drift, tick=entry.tick, memo="balance_rounding")
 
     @contextmanager
-    def transfer_scope(self, name: str, *, tick: int) -> Iterator[None]:
-        """Route agent debits/credits through the clearing account; on exit the
-        clearing residual is booked to ``sink:<name>_loss``. A negative residual
-        (receiver got more than the payer paid) is creation and raises."""
+    def transfer_scope(self, name: str, *, tick: int, magnitude: float = 0.0) -> Iterator[None]:
+        """Route agent debits/credits through the clearing account.
+
+        On exit a positive clearing residual is booked to ``sink:<name>_loss``.
+        A negative residual means the receiver got more than the payer paid.
+        Engine callers derive both legs from float differences of balances
+        (e.g. ``before - after``), and each such IEEE-754 subtraction can be
+        off by half an ulp, so a receiver can gain up to a few ulps more than
+        the payer lost (observed: 2^-49 after 30 HP ticks). That excess is
+        bounded by three ulps of each touched balance plus
+        ``ROUNDING_BOUND * gross`` (gross = sum of both legs) and is
+        booked exactly from ``source:rounding``; anything larger is creation
+        and raises. Either way every unit is still accounted for exactly.
+        If the body raises, the scope's postings are reverted.
+        """
 
         if self._scope is not None:
             raise ATPConservationError("nested transfer scopes are not allowed")
         self._scope = name
+        self._scope_gross = Fraction(0)
+        # ``magnitude``: largest float the caller's legs were computed from.
+        self._scope_ulps = 3 * Fraction(math.ulp(abs(float(magnitude))))
+        mark = len(self._pending)
+        saved = dict(self._bal)
+        seq = self._seq
         try:
             yield
+        except BaseException:
+            self._bal, self._pending[mark:], self._seq = saved, [], seq
+            raise
         finally:
             self._scope = None
         residual = self._bal[CLEARING]
         if residual < 0:
-            raise ATPConservationError(f"transfer {name!r} created {_fs(-residual)} ATP")
-        if residual > 0:
+            if -residual > ROUNDING_BOUND * self._scope_gross + self._scope_ulps:
+                raise ATPConservationError(f"transfer {name!r} created {_fs(-residual)} ATP")
+            self.post("source:rounding", CLEARING, -residual, tick=tick, memo=f"{name}_float_rounding")
+        elif residual > 0:
             self.post(CLEARING, f"sink:{name}_loss", residual, tick=tick, memo=f"{name}_loss")
 
     # -------------------------------------------------------------- invariant

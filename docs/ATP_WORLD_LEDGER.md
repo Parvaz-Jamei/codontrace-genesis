@@ -127,6 +127,15 @@ inflow is 48.0 per lost seat.
   into, and never drags along, the live ledger. Copying or pickling the
   *ledger* (alone or with its world) carries its attached accounts and
   re-attaches them to the copy, so a cloned world is closed on its own.
+* A `ScalarATPBook` and its population must be copied or pickled together, in
+  one call (`copy.deepcopy((book, population))`). The book keys ids by object
+  identity, so a book copied on its own binds its ids to private copies of the
+  individuals; settling it on the real population would close every account
+  as a death and reopen each individual as a birth (balances still add up,
+  lineage is lost). The first `settle` after a copy or load therefore raises
+  `ATPConservationError` when the book has open accounts, the population is not
+  empty and none of its members has an id in the book. Copying the book alone
+  also copies every live individual it still tracks, so it is not cheap.
 
 ## Digests
 

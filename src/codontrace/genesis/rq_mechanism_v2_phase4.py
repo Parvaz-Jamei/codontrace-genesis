@@ -62,6 +62,7 @@ from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COE
 from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_PRIMARY,
     ROLE_SECONDARY,
+    hp_life_config,
     silence_outcross_locus,
 )
 from codontrace.genesis.measurements.antagonist_population import (
@@ -481,7 +482,7 @@ def install_equal_hosts(arm: StructuralRQArm, seats: Sequence[Mapping[str, str]]
         )
         if _window(organism) != str(seat["window"]):
             raise ConfigurationError("installed genome does not decode to its window")
-        silence_outcross_locus(organism, arm.runner.configs.closed_loop_hp_life)
+        silence_outcross_locus(organism, hp_life_config(arm.runner.configs.closed_loop_hp_life))
         organisms.append(organism)
         roles[host_id] = ROLE_PRIMARY
     arm.runner.population = replace(arm.runner.population, organisms=tuple(organisms))
@@ -607,7 +608,7 @@ def enable_outcross_birth_chamber(arm: StructuralRQArm) -> None:
     if not chamber.uses_birth_chamber:
         raise ConfigurationError("outcross birth requires the birth chamber")
     life = replace(
-        configs.closed_loop_hp_life,
+        hp_life_config(configs.closed_loop_hp_life),
         role_by_id=tuple(sorted(arm.roles.items())),
     )
     if "host-A-001" not in life.role_map():

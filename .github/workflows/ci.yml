@@ -151,7 +151,7 @@ jobs:
         run: python tools/check_core_boundary.py
 
       - name: Run release-critical tests
-        run: python -m pytest tests/test_export_import.py tests/test_api_signature.py tests/test_genesis_causal_mechanism_hardening.py tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py tests/test_genesis_integration_public_api_unification.py tests/test_genesis_integration_runtime_wiring.py tests/test_genesis_eval_bugfixes.py tests/release tests/genesis_gates --disable-plugin-autoload
+        run: python -m pytest tests/test_export_import.py tests/test_console_status_lock.py tests/test_pause_handshake.py tests/test_api_signature.py tests/test_genesis_causal_mechanism_hardening.py tests/test_genesis_causal_mechanism_runtime_wiring_integrity.py tests/test_genesis_integration_public_api_unification.py tests/test_genesis_integration_runtime_wiring.py tests/test_genesis_eval_bugfixes.py tests/release tests/genesis_gates --disable-plugin-autoload
 
   lint-type:
     name: Lint and typecheck (Ubuntu, Python 3.12)
@@ -178,6 +178,9 @@ jobs:
       - name: Mypy
         run: python -m mypy --strict --platform linux src
 
+      - name: Import contracts (import-linter)
+        run: lint-imports --no-cache
+
   verdict-ledger:
     name: Standing verdict ledger (required; not optional)
     runs-on: ubuntu-latest
@@ -196,6 +199,30 @@ jobs:
 
       - name: Ledger matches the index
         run: python -m pytest tests/test_verdict_ledger.py --disable-plugin-autoload
+
+  causal-oracle:
+    name: Causal identification oracle (y0, required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[dev]"
+
+      - name: ID and IDC verdicts agree with y0 (no skips)
+        env:
+          CODONTRACE_REQUIRE_Y0: "1"
+        run: python -m pytest tests/causal_inference --disable-plugin-autoload -p xdist -n auto
 
   published-manifests:
     name: Published manifests and energy property (required)

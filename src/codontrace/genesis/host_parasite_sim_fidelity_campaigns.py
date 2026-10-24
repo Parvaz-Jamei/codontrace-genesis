@@ -15,7 +15,6 @@ interventional evidence.
 from __future__ import annotations
 
 import ast
-import hashlib
 import json
 import sys
 from collections import defaultdict
@@ -63,6 +62,7 @@ from codontrace.genesis.host_parasite_type2_rq import (
     DEFAULT_STEPS,
     run_type2_campaign,
 )
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_sim_fidelity_diff_campaigns_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -102,7 +102,7 @@ def _mean(xs: Sequence[float]) -> float:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 @dataclass(frozen=True, slots=True)

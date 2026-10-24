@@ -98,20 +98,8 @@ from codontrace.genesis.food_patch_signal import (
     encode_patch_payload,
     spawn_patches_for_tick,
 )
-from codontrace.genesis.host_parasite_life_plugin import (
-    ClosedLoopHPLifeConfig,
-    apply_closed_loop_hp_life,
-    apply_mating_locus_lock,
-    apply_selfing_birth_endowment,
-    copy_self_chamber_refusal,
-    mates_within_search_radius,
-    outcross_entry_plan,
-    outcross_fee_debit,
-    outcross_mates_compatible,
-    resolve_copy_self_mode,
-    silence_outcross_locus,
-)
 from codontrace.genesis.learning import LearningATPConfig
+from codontrace.genesis.life_plugins import LifePlugin, LifePluginConfig, resolve_life_plugin
 from codontrace.genesis.liveness import AliveGateConfig, AliveGateResult, evaluate_alive
 from codontrace.genesis.logic9 import (
     LOGIC9_TASKS,
@@ -189,6 +177,15 @@ class OffspringPlacementPolicy(str, Enum):
     BLOCKED_IF_NO_SPACE = "blocked_if_no_space"
     REPLACE_OCCUPIED = "replace_occupied"
 
+
+
+# The population engine names the domain plugin it drives and gets it from the
+# registry (codontrace.genesis.life_plugins). It never imports the plugin module.
+LIFE_PLUGIN_NAME = "host_parasite"
+
+
+def _life_plugin() -> LifePlugin:
+    return resolve_life_plugin(LIFE_PLUGIN_NAME)
 
 @dataclass(frozen=True, slots=True)
 class ReproductionConfig:
@@ -1657,8 +1654,8 @@ class PopulationConfigs:
     phase_e: PhaseESubstrateConfig = field(default_factory=PhaseESubstrateConfig)
     logic9: Logic9ReactionConfig = field(default_factory=Logic9ReactionConfig)
     materials: MaterialsConfig = field(default_factory=MaterialsConfig)
-    closed_loop_hp_life: ClosedLoopHPLifeConfig = field(
-        default_factory=ClosedLoopHPLifeConfig
+    closed_loop_hp_life: LifePluginConfig = field(
+        default_factory=lambda: _life_plugin().default_config()
     )
     food_patch_signal: FoodPatchSignalConfig = field(default_factory=FoodPatchSignalConfig)
     deme_selection: DemeSelectionConfig = field(default_factory=DemeSelectionConfig)
@@ -1833,9 +1830,9 @@ class PopulationConfigs:
             materials=MaterialsConfig.from_dict(materials_raw)
             if isinstance(materials_raw, Mapping)
             else MaterialsConfig(),
-            closed_loop_hp_life=ClosedLoopHPLifeConfig.from_dict(closed_loop_hp_life_raw)
+            closed_loop_hp_life=_life_plugin().config_from_dict(closed_loop_hp_life_raw)
             if isinstance(closed_loop_hp_life_raw, Mapping)
-            else ClosedLoopHPLifeConfig(),
+            else _life_plugin().default_config(),
             food_patch_signal=FoodPatchSignalConfig.from_dict(food_patch_signal_raw)
             if isinstance(food_patch_signal_raw, Mapping)
             else FoodPatchSignalConfig(),
@@ -3169,7 +3166,7 @@ def step_population(
             # Closed-loop P1: post-ATP settle / pre-birth (before nexus + reproduce).
             # Forks the live generation stream; never a parallel RNG tree.
             if configs.closed_loop_hp_life.enabled:
-                mutated = apply_closed_loop_hp_life(
+                mutated = _life_plugin().apply_life(
                     [organism],
                     config=configs.closed_loop_hp_life,
                     stream=stream,
@@ -3177,9 +3174,7 @@ def step_population(
                     tick=current_tick,
                 )
                 organism = mutated[0]
-                life = configs.closed_loop_hp_life
-                if life.outcross_enabled or life.match_locus_enabled:
-                    silence_outcross_locus(organism, life)
+                _life_plugin().silence_locus(organism, configs.closed_loop_hp_life)
             if working_nexus_layer is not None and stigmergy_enabled:
                 working_nexus_layer.expire(current_tick)
                 if configs.capsule_transfer is not None and configs.capsule_transfer.enabled:
@@ -3544,7 +3539,7 @@ def step_population(
                 )
             if event.action == "COPY_SELF":
                 life = configs.closed_loop_hp_life
-                copy_mode = resolve_copy_self_mode(organism.genome.to_compact(), life)
+                copy_mode = _life_plugin().resolve_copy_self_mode(organism.genome.to_compact(), life)
                 codon_ran = (
                     event.world_delta.get("reproduction") == "population_lifecycle_required"
                 )
@@ -3554,7 +3549,7 @@ def step_population(
                 if enters_chamber and not codon_ran:
                     continue
                 attempts += 1
-                refusal = copy_self_chamber_refusal(
+                refusal = _life_plugin().copy_self_chamber_refusal(
                     organism.genome.to_compact(),
                     life,
                     chamber_available=sexual_cfg.uses_birth_chamber,
@@ -3764,11 +3759,11 @@ def step_population(
                     child = placed_child
                     children.append(child)
                     life = configs.closed_loop_hp_life
-                    if life.outcross_enabled or life.match_locus_enabled:
-                        silence_outcross_locus(child, life)
-                    apply_mating_locus_lock(child, parent=organism, config=life)
+                    plugin = _life_plugin()
+                    plugin.silence_locus(child, life)
+                    plugin.apply_mating_locus_lock(child, parent=organism, config=life)
                     if copy_mode == "asexual":
-                        apply_selfing_birth_endowment(
+                        plugin.apply_selfing_birth_endowment(
                             child, config=life, tick=current_tick
                         )
                     live_positions[child.id] = child.position
@@ -4591,13 +4586,14 @@ def _he02_sync_food_patches(
         return ()
     needed = max(2, int(config.patch_count) * 2)
     draws: list[float] = []
-    # Local deterministic stream; does not touch global RNG.
+    # Local deterministic stream (RNGManager hash-based counter blocks); it does
+    # not touch the generation stream.
     material = f"{seed_key}|food_patch|{tick}|{width}x{height}".encode()
-    digest = hashlib.sha256(material).digest()
+    digest = RNGManager.counter_block(material)
     cursor = 0
     while len(draws) < needed:
         if cursor + 4 > len(digest):
-            digest = hashlib.sha256(digest + material).digest()
+            digest = RNGManager.counter_block(digest + material)
             cursor = 0
         chunk = int.from_bytes(digest[cursor : cursor + 4], "big")
         cursor += 4
@@ -5558,10 +5554,10 @@ def _commit_newborn(
     child = placed_child
     children.append(child)
     life = configs.closed_loop_hp_life
-    if life.outcross_enabled or life.match_locus_enabled:
-        silence_outcross_locus(child, life)
-    apply_mating_locus_lock(child, parent=parent, config=life)
-    apply_selfing_birth_endowment(child, config=life, tick=current_tick)
+    plugin = _life_plugin()
+    plugin.silence_locus(child, life)
+    plugin.apply_mating_locus_lock(child, parent=parent, config=life)
+    plugin.apply_selfing_birth_endowment(child, config=life, tick=current_tick)
     live_positions[child.id] = child.position
     placements.append(_birth_placement_record(parent, child))
     if reproduction_result.lineage is not None:
@@ -5599,12 +5595,13 @@ def _drain_chamber_pairs(
         life = configs.closed_loop_hp_life
         radius = life.mate_search_radius
         cap = life.outcross_mates_per_generation_cap
+        plugin = _life_plugin()
 
-        def _mate_ok(first: IncipientOffspring, second: IncipientOffspring, _life: ClosedLoopHPLifeConfig = life, _radius: int | None = radius, _cap: int | None = cap, _counts: dict[str, int] = mate_counts) -> bool:
+        def _mate_ok(first: IncipientOffspring, second: IncipientOffspring, _life: LifePluginConfig = life, _plugin: LifePlugin = plugin, _radius: int | None = radius, _cap: int | None = cap, _counts: dict[str, int] = mate_counts) -> bool:
             if _life.outcross_enabled and _life.outcross_same_role_only:
-                if not outcross_mates_compatible(first.parent_id, second.parent_id, _life):
+                if not _plugin.mates_compatible(first.parent_id, second.parent_id, _life):
                     return False
-            if not mates_within_search_radius(
+            if not _plugin.mates_within_search_radius(
                 first.parent_position, second.parent_position, radius=_radius
             ):
                 return False
@@ -5981,7 +5978,7 @@ def _handle_chamber_copy_self(
     parent_cost = float(configs.reproduction.parent_atp_cost)
     remaining = available - parent_cost
     projected = round(remaining * float(configs.reproduction.offspring_atp_fraction), 10)
-    fee, refusal = outcross_entry_plan(
+    fee, refusal = _life_plugin().outcross_entry_plan(
         organism,
         life,
         remaining_after_parent_cost=remaining,
@@ -6017,7 +6014,7 @@ def _handle_chamber_copy_self(
                     event_id=reproduction_result.event_id,
                 ),
             )
-    fee_debit = outcross_fee_debit(organism.genome.to_compact(), life) if fee > 0.0 else None
+    fee_debit = _life_plugin().outcross_fee_debit(organism.genome.to_compact(), life) if fee > 0.0 else None
     ledger_ids, offspring_atp, cost_reason = _apply_parent_reproduction_costs(
         organism,
         configs.reproduction,

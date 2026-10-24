@@ -1,0 +1,22 @@
+{
+  "evidence": [
+    {
+      "authority": "https://freetsa.org/tsr",
+      "manifest_sha256": "362cbf9adfeb610560ab7cbec17505d899c0448dd94355aed9a2dcc5a9fc7e3a",
+      "kind": "rfc3161",
+      "reference": "serial:156713000",
+      "signature_verified": true,
+      "time": "2026-10-21T20:43:58+00:00"
+    }
+  ],
+  "manifest": {
+    "digest": "362cbf9adfeb610560ab7cbec17505d899c0448dd94355aed9a2dcc5a9fc7e3a",
+    "files": [
+      [
+        "plan_fixture.md",
+        "d31f9f95ca43710e8074c8067269626300262e6ff2296c03bf8e8bfc17c3ac50"
+      ]
+    ],
+    "title": "codontrace prereg fixture"
+  }
+}

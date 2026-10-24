@@ -1710,6 +1710,7 @@ class GenesisEngine:
             ),
             claim_gate_decision_digest=claim_gate_decision_digest,
         )
+        manifest = replace(manifest, life_plugin_provenance=_active_life_plugin_provenance())
         summary = _summarize_run(
             self.run.run_id, self._tick_results, self.runner.population, self.qd_archive
         )
@@ -1755,3 +1756,10 @@ __all__ = [
     "_effective_evolution_config",
     "_default_qd_archive",
 ]
+
+
+def _active_life_plugin_provenance() -> dict[str, str | None]:
+    from codontrace.genesis.life_plugins import life_plugin_provenance, resolve_life_plugin
+    from codontrace.genesis.population import LIFE_PLUGIN_NAME
+
+    return life_plugin_provenance(resolve_life_plugin(LIFE_PLUGIN_NAME))

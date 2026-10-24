@@ -26,6 +26,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     P4_SCOPE,
     ROLE_PRIMARY,
     ROLE_SECONDARY,
+    hp_life_config,
     role_of,
 )
 from codontrace.genesis.population import MutationConfig
@@ -118,7 +119,7 @@ def boot_locked_session(
         kappa_ablate=kappa_ablate,
         **kwargs,
     )
-    life = session.runner.configs.closed_loop_hp_life
+    life = hp_life_config(session.runner.configs.closed_loop_hp_life)
     session.runner.configs = replace(
         session.runner.configs,
         mutation=MutationConfig(bit_flip_rate=engine_rate),
@@ -134,7 +135,7 @@ def boot_locked_session(
 
 
 def genomes_by_role(session: ClosedLoopP3Session, role: str) -> dict[str, str]:
-    role_map = session.runner.configs.closed_loop_hp_life.role_map()
+    role_map = hp_life_config(session.runner.configs.closed_loop_hp_life).role_map()
     return {
         o.id: o.genome.to_compact()
         for o in session.runner.population.organisms

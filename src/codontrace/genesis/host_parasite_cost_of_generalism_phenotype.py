@@ -13,7 +13,6 @@ Port-only — never engine.py.
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -26,6 +25,7 @@ from codontrace.genesis.host_parasite_abstract_phenotype import (
 )
 from codontrace.genesis.host_parasite_env import HostParasiteEnv
 from codontrace.genome import SemanticGenome
+from codontrace.rng import RNGManager
 
 SCHEMA = "host_parasite_cost_of_generalism_phenotype_v1"
 DOMAIN_PROFILE = "host_parasite"
@@ -45,7 +45,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def repertoire_shannon_entropy(tasks: Sequence[str]) -> float:

@@ -22,6 +22,7 @@ from codontrace.genesis.host_parasite_life_plugin import (
     ROLE_SECONDARY,
     ClosedLoopHPLifeConfig,
     assert_single_atp_owner,
+    hp_life_config,
     role_of,
     with_inherited_birth_roles,
 )
@@ -181,7 +182,7 @@ class ClosedLoopP2Session:
     def _record_births(self, result: GenerationResult) -> None:
         """Measure partition witnesses from organism_records; grow role map."""
 
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         new_births: list[tuple[str, str]] = []
         for record in result.organism_records:
             rr = record.reproduction_result
@@ -232,7 +233,7 @@ class ClosedLoopP2Session:
 
         if new_births:
             life = with_inherited_birth_roles(
-                self.runner.configs.closed_loop_hp_life, new_births
+                hp_life_config(self.runner.configs.closed_loop_hp_life), new_births
             )
             self.runner.configs = replace(
                 self.runner.configs, closed_loop_hp_life=life
@@ -275,7 +276,7 @@ class ClosedLoopP2Session:
         return canonical_digest(payload, prefix="clp2snap")
 
     def summary(self) -> dict[str, Any]:
-        role_map = self.runner.configs.closed_loop_hp_life.role_map()
+        role_map = hp_life_config(self.runner.configs.closed_loop_hp_life).role_map()
         primary = [
             o
             for o in self.runner.population.organisms

@@ -10,7 +10,6 @@ phage therapy, vaccine effect, epidemic forecast, or BSL.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -20,6 +19,7 @@ from codontrace.genesis.host_parasite_env import (
     DEFAULT_STEAL_FRACTION,
     HostParasiteEnv,
 )
+from codontrace.rng import RNGManager
 
 _SPATIAL_MODES = frozenset({"well_mixed", "local_neighborhood"})
 
@@ -29,7 +29,7 @@ def _digest_body(body: dict[str, object]) -> str:
 
 
 def _seed_unit(seed: int, salt: str) -> float:
-    digest = hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    digest = RNGManager.counter_seed_bytes(seed, salt)
     return digest[0] / 255.0
 
 

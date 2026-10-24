@@ -15,7 +15,6 @@ claims. Scores are digital scope only for ClaimGate labeling.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -26,6 +25,7 @@ from codontrace.genesis.host_parasite_env import (
     HostParasiteEnv,
     dual_null_template,
 )
+from codontrace.rng import RNGManager
 
 CAMPAIGN_ARMS = frozenset(
     {
@@ -62,8 +62,7 @@ def _digest_body(body: Mapping[str, object]) -> str:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    raw = f"{int(seed)}|{salt}".encode()
-    return hashlib.sha256(raw).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _tasks_for_seed(seed: int, role: str, count: int) -> tuple[str, ...]:

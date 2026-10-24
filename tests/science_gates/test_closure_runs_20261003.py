@@ -1,7 +1,9 @@
 """The closure files are measurements, not a repaired old pack.
 
-The locked RQ-1 commit 6187ff4 is not in this repository. Seeds 5706–5708
-were therefore run again on the current engine and labelled as such.
+When these files were written, the locked RQ-1 commit 6187ff4 was believed
+to be absent, so seeds 5706–5708 were run again on the current engine and
+labelled as such. That belief was wrong (see
+confirmatory/restored_2026-10-21/README.md). The JSON is kept as written.
 Seeds 21061–21063 now have raw. Neither set is allowed to flip a claim.
 """
 

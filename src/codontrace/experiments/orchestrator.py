@@ -23,7 +23,13 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from codontrace.console.runs import get_allowed_cpu_ids, runs_directory, write_atomic_json
+from codontrace.console.runs import (
+    StatusLockTimeout,
+    get_allowed_cpu_ids,
+    runs_directory,
+    write_atomic_json,
+    write_status_json,
+)
 from codontrace.experiments.models import AssessmentStatus, CompletionSummary, ExecutionTrack
 
 
@@ -254,12 +260,9 @@ class CampaignOrchestrator:
         state_lock = threading.RLock()
 
         def _persist_locked() -> None:
-            # Read latest action revision so acknowledgements never travel backwards.
-            try:
-                previous = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
-                status["revision"] = max(status["revision"], int(previous.get("revision", 0)))
-            except (OSError, ValueError, TypeError):
-                pass
+            # write_status_json re-reads status.json under the status lock and
+            # bumps revision past whatever the console wrote, so
+            # acknowledgements and progress never travel backwards.
             status["revision"] += 1
             status["heartbeat_at"] = time.time()
             status["work_done"] = done
@@ -267,7 +270,7 @@ class CampaignOrchestrator:
             ongoing_pause = max(0.0, time.monotonic() - pause_started) if pause_started is not None else 0.0
             status["paused_seconds"] = completed_paused_seconds + ongoing_pause
             status["active_elapsed_seconds"] = max(0.0, time.monotonic() - started_monotonic - status["paused_seconds"])
-            write_atomic_json(run_dir / "status.json", status)
+            write_status_json(run_dir / "status.json", status)
 
         def persist() -> None:
             with state_lock:
@@ -285,9 +288,14 @@ class CampaignOrchestrator:
             if (run_dir / "PAUSE").exists():
                 pause_started = time.monotonic()
                 ack = run_dir / f"ack_paused_{os.getpid()}"
+                # Handshake order: the last tick is already in status.json
+                # (on_generation persists before cooperate), PAUSED is
+                # committed next, and only then is the ack published. No tick
+                # runs between the ack and the end of the pause loop.
+                with state_lock:
+                    status["status"] = "PAUSED"
+                    _persist_locked()
                 ack.write_text(session_id, encoding="utf-8")
-                status["status"] = "PAUSED"
-                persist()
                 try:
                     while (run_dir / "PAUSE").exists():
                         if (run_dir / "STOP").exists():
@@ -309,7 +317,11 @@ class CampaignOrchestrator:
 
         def heartbeat() -> None:
             while not heartbeat_stop.wait(self.heartbeat_seconds):
-                persist()
+                try:
+                    persist()
+                except StatusLockTimeout:
+                    logger.warning("heartbeat skipped: status lock timeout")
+                    continue
                 logger.info("heartbeat work=%s/%s state=%s", done, horizon, status["status"])
 
         heartbeat_thread = threading.Thread(target=heartbeat, daemon=True, name=f"heartbeat-{run_id}")

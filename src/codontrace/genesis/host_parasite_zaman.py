@@ -19,7 +19,6 @@ Does not modify ``engine.py``.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -29,6 +28,7 @@ from codontrace.genesis.host_parasite_env import (
     DEFAULT_STEAL_FRACTION,
     HostParasiteEnv,
 )
+from codontrace.rng import RNGManager
 
 ZAMAN_ARMS = frozenset(
     {
@@ -145,7 +145,7 @@ def _require_zaman_arms(arms: Sequence[str] | None) -> tuple[str, ...]:
 
 
 def _seed_bytes(seed: int, salt: str) -> bytes:
-    return hashlib.sha256(f"{int(seed)}|{salt}".encode()).digest()
+    return RNGManager.counter_seed_bytes(seed, salt)
 
 
 def _schedule_for_seed(seed: int, steps: int) -> tuple[tuple[tuple[str, ...], tuple[int, ...]], ...]:

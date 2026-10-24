@@ -85,7 +85,7 @@ from codontrace.genesis.closed_loop_hp_arm01_structural_rq import (
     StructuralRQArm,
 )
 from codontrace.genesis.closed_loop_pearl_spc import PASSAGE_ABSENT, PASSAGE_COEVOLVE, PASSAGE_FROZEN
-from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY
+from codontrace.genesis.host_parasite_life_plugin import ROLE_SECONDARY, hp_life_config
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import LineageRecord
 from codontrace.genesis.rq_bidirectional_timeshift import (
@@ -1084,7 +1084,7 @@ def enable_coevolution_birth_chamber(arm: StructuralRQArm) -> None:
     )
     if not chamber.uses_birth_chamber:
         raise ConfigurationError("outcross birth requires the birth chamber")
-    life = replace(configs.closed_loop_hp_life, role_by_id=tuple(sorted(arm.roles.items())))
+    life = replace(hp_life_config(configs.closed_loop_hp_life), role_by_id=tuple(sorted(arm.roles.items())))
     arm.runner.configs = replace(configs, sexual_recombination=chamber, closed_loop_hp_life=life)
     after = arm.runner.configs
     if not after.reproduction.enabled or float(after.reproduction.parent_atp_cost) != parent_cost:

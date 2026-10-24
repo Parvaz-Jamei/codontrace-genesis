@@ -88,21 +88,6 @@ def _reap_launched_runs(preexisting: set[str]) -> list[subprocess.Popen[Any]]:
     return list(owned.values())
 
 
-@pytest.fixture(autouse=True)
-def _launched_run_cleanup(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Make sure no run launched by a test outlives it, even if the test raises.
-
-    Depends on ``monkeypatch`` so teardown runs while ``CODONTRACE_RUNS_DIR`` is
-    still set and the stop action can find the run.
-    """
-    from codontrace.console import runs
-
-    with runs._RUN_LOCK:
-        preexisting = set(runs._RUN_PROCESSES)
-    yield
-    _reap_launched_runs(preexisting)
-
-
 def _details(run_id: str) -> dict[str, Any]:
     detail = get_run_details(run_id)
     assert detail is not None, f"run {run_id} disappeared"
@@ -134,10 +119,20 @@ def _wait_for_launched_run(run_id: str, timeout: float = LAUNCH_WAIT_SECONDS) ->
 
 
 @pytest.fixture
-def env(tmp_path, monkeypatch):
+def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """Point runs at a temp dir; after the test, stop every run it launched.
+
+    Teardown runs even if the test raised between launch and wait, and before
+    monkeypatch restores ``CODONTRACE_RUNS_DIR``, so the stop action can find the run.
+    """
+    from codontrace.console import runs
+
+    with runs._RUN_LOCK:
+        preexisting = set(runs._RUN_PROCESSES)
     root = tmp_path / "simulation_runs"
     monkeypatch.setenv("CODONTRACE_RUNS_DIR", str(root))
-    return root
+    yield root
+    _reap_launched_runs(preexisting)
 
 
 def test_publish_live_before_finish_and_consistent_work(env, tmp_path):

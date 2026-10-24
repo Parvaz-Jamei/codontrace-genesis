@@ -32,19 +32,20 @@ B = CausalDiagram.build
 IDENTIFIABLE = {
     # Pearl 2009, sec. 3.3.2, Fig. 3.5: front-door (smoking -> tar -> cancer).
     "front_door": B([("X", "Z"), ("Z", "Y")], [("X", "Y")]),
-    # Pearl 2009, Fig. 3.4 style back-door: Z confounds X and Y.
+    # Single observed confounder Z of X and Y (back-door adjustment on {Z},
+    # Pearl 2009, sec. 3.3.1, Thm 3.3.2).
     "back_door": B([("Z", "X"), ("Z", "Y"), ("X", "Y")]),
-    # Pearl 2009, sec. 3.3.1, Fig. 3.4: Z1..Z3 and X6 (classic back-door example).
+    # Reduced variant of Pearl 2009, sec. 3.3.1, Fig. 3.4: Z1..Z3 confounders and a
+    # mediator W (the figure's X1..X6 labels are not reproduced).
     "pearl_fig_3_4": B([("Z1", "Z3"), ("Z2", "Z3"), ("Z1", "X"), ("Z3", "X"), ("Z3", "Y"),
                         ("Z2", "Y"), ("X", "W"), ("W", "Y")]),
     # Napkin graph: identifiable but by neither criterion (Pearl & Mackenzie 2018;
     # Shpitser & Pearl 2006a discussion).
     "napkin": B([("W", "Z"), ("Z", "X"), ("X", "Y")], [("W", "X"), ("W", "Y")]),
-    # Two-mediator front door with an observed confounder of the mediators' parent
+    # Front door through one mediator Z, plus an observed covariate C of X and Y
     # (Pearl 2009, sec. 3.4, rule-based derivation pattern).
     "front_door_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Z"), ("Z", "Y")], [("X", "Y")]),
 }
-IDENTIFIABLE_QUERY: dict = {}
 
 NOT_IDENTIFIABLE = {
     # Pearl 2009, Fig. 3.9(a): the bow arc.
@@ -57,7 +58,6 @@ NOT_IDENTIFIABLE = {
     # (Shpitser & Pearl 2006a, Fig. 2: every graph there contains a hedge).
     "bow_with_covariate": B([("C", "X"), ("C", "Y"), ("X", "Y")], [("X", "Y")]),
 }
-NOT_IDENTIFIABLE_QUERY: dict = {}
 
 
 def _assert_matches_truth(g, y, x, expr, seeds=(1, 2)):
@@ -77,7 +77,7 @@ def _assert_matches_truth(g, y, x, expr, seeds=(1, 2)):
 @pytest.mark.parametrize("name", sorted(IDENTIFIABLE))
 def test_textbook_identifiable(name):
     g = IDENTIFIABLE[name]
-    y, x = IDENTIFIABLE_QUERY.get(name, ({"Y"}, {"X"}))
+    y, x = {"Y"}, {"X"}
     expr = identify(g, y, x)
     _assert_matches_truth(g, y, x, expr)
 
@@ -85,7 +85,7 @@ def test_textbook_identifiable(name):
 @pytest.mark.parametrize("name", sorted(NOT_IDENTIFIABLE))
 def test_textbook_not_identifiable(name):
     g = NOT_IDENTIFIABLE[name]
-    y, x = NOT_IDENTIFIABLE_QUERY.get(name, ({"Y"}, {"X"}))
+    y, x = {"Y"}, {"X"}
     with pytest.raises(NotIdentifiable) as info:
         identify(g, y, x)
     f, f_prime = info.value.hedge

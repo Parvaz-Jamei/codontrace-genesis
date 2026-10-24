@@ -5,7 +5,6 @@ Variables are named by layer:
 * ``env:<name>``: an exogenous setting of the run (here the founding
   population size of :meth:`GenesisRuntimeProfile.life_loop_world`),
 * ``bit:<i>``: bit ``i`` of the founder genome (bit level),
-* ``genome:<name>``: a genome-level summary,
 * ``event:<name>``: a count of engine events (here ``birth_event_records``).
 
 ``do(bit:i = b)`` is a real engine intervention: the founders that carry the

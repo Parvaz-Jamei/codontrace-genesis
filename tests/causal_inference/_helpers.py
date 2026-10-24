@@ -131,7 +131,7 @@ def to_y0(g):
 
 def networkx_m_separated(g, xs, ys, zs):
     """m-separation via networkx on an independent latent expansion (no project code)."""
-    import networkx as nx
+    nx = pytest.importorskip("networkx")
 
     dag = nx.DiGraph()
     dag.add_nodes_from(g.nodes)

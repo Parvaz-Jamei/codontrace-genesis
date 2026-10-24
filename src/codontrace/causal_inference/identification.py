@@ -1,4 +1,4 @@
-"""Section 5: identification of do-queries (ID and IDC).
+r"""Section 5: identification of do-queries (ID and IDC).
 
 ``identify`` is the ID algorithm of Shpitser & Pearl (2006a, AAAI,
 "Identification of Joint Interventional Distributions in Recursive
@@ -37,7 +37,7 @@ __all__ = ["NotIdentifiable", "identify", "identify_conditional", "is_identifiab
 
 
 class NotIdentifiable(ConfigurationError):
-    """Raised by ID line 5.
+    r"""Raised by ID line 5.
 
     ``hedge`` is the node-set pair ``(G, S)`` of the failing call: ``G`` is a
     single C-component, ``S`` the C-component of ``G \ X`` inside it,

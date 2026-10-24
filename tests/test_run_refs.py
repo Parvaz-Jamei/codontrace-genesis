@@ -152,3 +152,152 @@ def test_verify_anchor_tells_pruning_apart_from_truncation(tmp_path):
             p.unlink()
     truncated = SwarmCoordinator('s1', **kw)
     assert verify_anchor(truncated, late)['status'] == 'not_found'
+
+
+def _pruned_coordinator(journal):
+    kw = dict(journal=journal, journal_segment_bytes=1024, journal_retention_bytes=1024, archive_max_bytes=1024)
+    s = SwarmCoordinator('s1', **kw)
+    s.ingest(_hello(1), now_ms=1)
+    s.ingest(_hello(2), now_ms=2)
+    early = journal_anchor(s)
+    for seq in range(3, 41):
+        s.ingest(_hello(seq), now_ms=seq)
+    return s, early, kw
+
+
+def test_verify_anchor_checks_the_head_of_a_pruned_anchor(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    s, early, kw = _pruned_coordinator(journal)
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    ledger = journal.with_name(journal.name + '.pruned')
+    assert early['journal_head'] in ledger.read_text(encoding='utf-8')
+    # Same segment, same swarm id, fabricated head: the head is checked, not just the index.
+    forged = {**early, 'journal_head': 'ab' * 32}
+    assert verify_anchor(s, forged)['status'] == 'forged'
+    assert verify_anchor(SwarmCoordinator('s1', **kw), forged)['status'] == 'forged'
+    # An anchor from a different run of the same swarm id (other nodes, other times) is another history.
+    other = SwarmCoordinator('s1', **{**kw, 'journal': tmp_path / 'other.jsonl'})
+    for seq in range(1, 41):
+        other.ingest({**_hello(seq), 'node_id': 'n2', 'boot_id': f'other{seq}'}, now_ms=1000 + seq)
+        if seq == 2:
+            foreign = journal_anchor(other)
+    assert foreign['journal_checkpoint_index'] == early['journal_checkpoint_index']
+    assert foreign['journal_head'] != early['journal_head']
+    assert verify_anchor(s, foreign)['status'] == 'forged'
+    # Without a ledger entry for the anchored segment the head cannot be checked: not_found, never 'pruned'.
+    ledger.unlink()
+    assert verify_anchor(SwarmCoordinator('s1', **kw), early)['status'] == 'not_found'
+
+
+def _oldest_kept(journal):
+    archive = journal.with_name(journal.name + '.archive')
+    names = [*archive.glob(journal.name + '.part.*'), *journal.parent.glob(journal.name + '.part.*')]
+    return min(int(p.name.rsplit('.', 1)[-1]) for p in names)
+
+
+def test_pruned_needs_an_anchored_segment_strictly_older_than_the_oldest_kept(tmp_path):
+    from codontrace.genesis.journal.anchor import _pruned_before
+    journal = tmp_path / 'j.jsonl'
+    s, early, _ = _pruned_coordinator(journal)
+    oldest = _oldest_kept(journal)
+    assert oldest > 2
+    # Segment one past journal_checkpoint_index: oldest - 1 is gone, oldest is kept.
+    assert _pruned_before(s, {**early, 'journal_checkpoint_index': oldest - 2}) is True
+    assert _pruned_before(s, {**early, 'journal_checkpoint_index': oldest - 1}) is False
+    # A genuine pruned head paired with a kept segment is inconsistent: never 'pruned'.
+    misplaced = {**early, 'journal_checkpoint_index': oldest - 1}
+    assert verify_anchor(s, misplaced)['status'] == 'not_found'
+    # Older than the oldest kept, but not the segment that held the head: forged.
+    assert verify_anchor(s, {**early, 'journal_checkpoint_index': oldest - 2})['status'] == 'forged'
+
+
+def test_pruned_head_must_belong_to_its_anchored_segment(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    s, early, _ = _pruned_coordinator(journal)
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    rows = [line.split() for line in journal.with_name(journal.name + '.pruned').read_text().splitlines()]
+    segments = sorted({int(index) for index, _ in rows})
+    anchored = (early['journal_checkpoint_index'] or 0) + 1
+    # A genuine head of another pruned segment, under the anchored segment: forged.
+    other_head = next(d for i, d in rows if int(i) != anchored)
+    assert verify_anchor(s, {**early, 'journal_head': other_head})['status'] == 'forged'
+    # The genuine head with the segment moved to another pruned one: forged.
+    wrong = next(i for i in segments if i != anchored)
+    assert verify_anchor(s, {**early, 'journal_checkpoint_index': wrong - 1})['status'] == 'forged'
+    shifted = {**early, 'journal_checkpoint_index': (early['journal_checkpoint_index'] or 0) + 4}
+    assert anchored + 4 in segments
+    assert verify_anchor(s, shifted)['status'] == 'forged'
+    # A checkpoint index that is not an int is rejected, not read as segment 1.
+    for bad in ('x', 1.0, True, -1):
+        with pytest.raises(ValueError, match='invalid journal_checkpoint_index'):
+            verify_anchor(s, {**early, 'journal_checkpoint_index': bad})
+
+
+def test_verify_anchor_reports_an_anchor_of_another_swarm_as_forged(tmp_path):
+    s, early, _ = _pruned_coordinator(tmp_path / 'j.jsonl')
+    current = journal_anchor(s)
+    # Well formed, other swarm or other header: a verdict, not an exception.
+    assert verify_anchor(s, {**early, 'swarm_id': 's2'})['status'] == 'forged'
+    assert verify_anchor(s, {**current, 'swarm_id': 's2'})['status'] == 'forged'
+    assert verify_anchor(s, {**current, 'ttl_ms': current['ttl_ms'] + 1})['status'] == 'forged'
+    assert verify_anchor(s, current)['status'] == 'current_head'
+
+
+def test_verify_anchor_raises_only_for_malformed_anchors(tmp_path):
+    s, early, _ = _pruned_coordinator(tmp_path / 'j.jsonl')
+    without_swarm = {k: v for k, v in early.items() if k != 'swarm_id'}
+    without_index = {k: v for k, v in early.items() if k != 'journal_checkpoint_index'}
+    cases = [({**early, 'swarm_id': 7}, 'invalid anchor swarm_id'),
+             (without_swarm, 'invalid anchor swarm_id'),
+             ({**early, 'journal_head': 'xyz'}, 'invalid journal_head'),
+             ({**early, 'journal_head': 'AB' * 32}, 'invalid journal_head'),
+             (without_index, 'no journal_checkpoint_index')]
+    for anchor, message in cases:
+        with pytest.raises(ValueError, match=message):
+            verify_anchor(s, anchor)
+
+
+def test_none_checkpoint_index_is_the_documented_before_first_checkpoint_case(tmp_path):
+    journal = tmp_path / 'j.jsonl'
+    s, early, _ = _pruned_coordinator(journal)
+    # journal_anchor taken before any checkpoint carries None, and its head was in segment 1.
+    assert early['journal_checkpoint_index'] is None
+    rows = [line.split() for line in journal.with_name(journal.name + '.pruned').read_text().splitlines()]
+    assert ['00000001', early['journal_head']] in rows
+    assert verify_anchor(s, early)['status'] == 'pruned'
+    # None maps to segment 1 only: a head from another pruned segment is not accepted under it.
+    other_head = next(d for i, d in rows if i != '00000001')
+    assert verify_anchor(s, {**early, 'journal_head': other_head})['status'] == 'forged'
+
+
+def test_history_that_starts_at_genesis_is_never_pruned(tmp_path):
+    from codontrace.genesis.journal.anchor import _pruned_before
+    journal = tmp_path / 'j.jsonl'
+    s = SwarmCoordinator('s1', journal=journal, journal_segment_bytes=1024)
+    for seq in range(1, 30):
+        s.ingest(_hello(seq), now_ms=seq)
+    parts = sorted(tmp_path.glob('j.jsonl.part.*'))
+    assert len(parts) >= 2
+    # Renumber the segments upwards: the oldest kept segment is no longer 1,
+    # but its first record still links to the zero digest, so nothing was pruned.
+    for path in reversed(parts):
+        index = int(path.name.rsplit('.', 1)[-1])
+        path.rename(path.with_name(f'j.jsonl.part.{index + 10:08d}'))
+    anchor = {**journal_anchor(s), 'journal_checkpoint_index': 0}
+    assert _pruned_before(s, anchor) is False
+
+
+def test_pruned_check_raises_without_a_journal_file_even_under_optimize(tmp_path):
+    import subprocess
+    import sys
+
+    from codontrace.genesis.journal.anchor import _pruned_before
+    with pytest.raises(ValueError, match='journal has no file'):
+        _pruned_before(SwarmCoordinator('s1'), {'journal_checkpoint_index': 0})
+    # Under -O an assert would be compiled away; the check must still raise.
+    code = ("from codontrace.genesis.journal.anchor import _pruned_before\n"
+            "from codontrace.swarm.runtime import SwarmCoordinator\n"
+            "try:\n    _pruned_before(SwarmCoordinator('s1'), {'journal_checkpoint_index': 0})\n"
+            "except ValueError as error:\n    print('raised', error)\n")
+    out = subprocess.run([sys.executable, '-O', '-c', code], capture_output=True, text=True, check=True, timeout=120)
+    assert out.stdout.startswith('raised journal has no file')

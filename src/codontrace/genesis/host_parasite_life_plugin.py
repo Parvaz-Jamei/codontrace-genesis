@@ -19,6 +19,7 @@ from codontrace._types import JsonValue
 from codontrace.atp_ledger import ATPConservationError, WorldATPLedger
 from codontrace.dynvalues import same_int
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.atp import organism_atp_accounts
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.rng import RNGManager
 
@@ -238,6 +239,8 @@ def role_of(organism_id: str, role_by_id: Mapping[str, str] | None = None) -> st
 def assert_single_atp_owner(
     organisms: Sequence[GenesisOrganism],
     ledger: WorldATPLedger | None = None,
+    *,
+    tick: int | None = None,
 ) -> None:
     """Check that ATP has one owner and one real balance per organism.
 
@@ -246,7 +249,10 @@ def assert_single_atp_owner(
     * each runtime balance equals the replay of its own entry ledger
       (``ATPAccount.verify_balance``), so a write around the ledger fails;
     * when a world ``ledger`` is given, the closed world invariant holds and
-      its agent balances equal these runtime balances exactly.
+      its agent balances equal these runtime balances exactly;
+    * with ``tick`` as well, the ledger is driven in pull mode: every runtime
+      and learning entry not yet booked is posted (``sync_accounts``), births
+      and deaths are opened and closed, and the tick is chained.
     """
 
     seen: dict[int, str] = {}
@@ -269,6 +275,9 @@ def assert_single_atp_owner(
         mirrors[org.id] = runtime.current_atp
     if ledger is not None:
         try:
+            if tick is not None:
+                ledger.close_tick(tick, ledger.sync_accounts(organism_atp_accounts(organisms), tick=tick))
+                return
             ledger.check(mirrors)
         except ATPConservationError as exc:
             raise ConfigurationError(f"world ATP ledger: {exc}") from exc

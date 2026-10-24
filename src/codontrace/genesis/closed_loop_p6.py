@@ -52,6 +52,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.dynvalues import same_iter
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import apply_positional_segment_exchange
@@ -867,6 +868,7 @@ def run_match_arm(
     ancestral = _modal(hosts)
     parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-passage")
+    atp_ledger = WorldATPLedger("p6-passage")
     mating_rng = rng.fork("mating")
     history: list[tuple[str, ...]] = []
     host_frequencies: list[tuple[tuple[str, int], ...]] = []
@@ -875,7 +877,7 @@ def run_match_arm(
     unmated_counts: list[int] = []
     fee_debits = 0
     for generation in range(generations):
-        assert_single_atp_owner([*hosts, *parasites])
+        assert_single_atp_owner([*hosts, *parasites], ledger=atp_ledger, tick=generation)
         if not hosts:
             history.append(())
             host_frequencies.append(())
@@ -928,6 +930,7 @@ def run_match_arm(
         host_frequencies.append(_frequency_state(hosts))
         parasite_frequencies.append(_frequency_state(parasites))
         unmated_counts.append(unmated)
+    assert_single_atp_owner([*hosts, *parasites], ledger=atp_ledger, tick=generations)
     oscillation = classify_oscillation(host_frequencies, parasite_frequencies, match_debits)
     record = MatchArmRecord(
         mating=mating,
@@ -1134,6 +1137,7 @@ def run_shared_modifier(
     ancestral = _modal(hosts)
     parasites = _parasites_on(ancestral, birth_atp, "p0-", parasite_n)
     rng = RNGManager(seed=seed, namespace="p6-shared")
+    atp_ledger = WorldATPLedger("p6-shared")
     mating_rng = rng.fork("mating")
     out_counts: list[int] = []
     self_counts: list[int] = []
@@ -1143,7 +1147,7 @@ def run_shared_modifier(
     host_frequencies: list[tuple[tuple[str, int], ...]] = []
     parasite_frequencies: list[tuple[tuple[str, int], ...]] = []
     for generation in range(generations):
-        assert_single_atp_owner([*hosts, *parasites])
+        assert_single_atp_owner([*hosts, *parasites], ledger=atp_ledger, tick=generation)
         if not hosts:
             out_counts.append(0)
             self_counts.append(0)
@@ -1196,6 +1200,7 @@ def run_shared_modifier(
         history.append(_type_state(hosts))
         host_frequencies.append(_frequency_state(hosts))
         parasite_frequencies.append(_frequency_state(parasites))
+    assert_single_atp_owner([*hosts, *parasites], ledger=atp_ledger, tick=generations)
     oscillation = classify_oscillation(host_frequencies, parasite_frequencies, match_debits)
     founder_rows = tuple((mating, window) for mating, window in founders)
     record = SharedModifierRecord(
@@ -1467,7 +1472,11 @@ class ClosedLoopP6Clock:
             if self.passage == "coevolve" and infected:
                 _set_window(antagonist, _modal(infected))
             self.tick_index += 1
-            assert_single_atp_owner(self.runner.population.organisms)
+            assert_single_atp_owner(
+                self.runner.population.organisms,
+                ledger=self.runner.atp_ledger,
+                tick=int(self.runner.population.generation),
+            )
         hosts, antagonist = self._split()
         return {
             "generation": self.runner.population.generation,

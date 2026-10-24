@@ -80,17 +80,21 @@ def _strip_comments(text: str) -> str:
 LEDGER_OWNERS = {"energy.py", "atp_ledger.py"}
 ALWAYS_PROTECTED = {"current_atp"}
 PRIVATE_PROTECTED = {"_observer", "_verified", "_ledger"}  # protected on non-self receivers
-SCALAR_ATP_FILES = {"experiments/t01_oee.py", "experiments/t04_contingency.py"}
+SCALAR_ATP_FILES = {f"experiments/{n}.py" for n in (
+    "t01_oee", "t02_mls_price", "t03_mutualism", "t04_contingency", "t05_red_queen")}
+SCALAR_ATP_FIELDS = {"atp", "host_atp", "symbiont_atp"}
+# Sanctioned writes: ``x.f = self.atp_ledger.adjust(...)`` / ``self.atp_book.assign(...)``.
+_SANCTIONED = {("atp_ledger", "adjust"), ("atp_book", "assign")}
 
 
 def _protected(rel: str) -> set[str]:
-    return ALWAYS_PROTECTED | ({"atp"} if rel in SCALAR_ATP_FILES else set())
+    return ALWAYS_PROTECTED | (SCALAR_ATP_FIELDS if rel in SCALAR_ATP_FILES else set())
 
 
 def _is_ledger_adjust(value: ast.AST) -> bool:
     return (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
-            and value.func.attr == "adjust" and isinstance(value.func.value, ast.Attribute)
-            and value.func.value.attr == "atp_ledger")
+            and isinstance(value.func.value, ast.Attribute)
+            and (value.func.value.attr, value.func.attr) in _SANCTIONED)
 
 
 def atp_bypasses(source: str, rel: str) -> list[str]:

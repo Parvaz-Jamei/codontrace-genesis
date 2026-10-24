@@ -66,7 +66,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction
@@ -81,6 +81,7 @@ __all__ = [
     "RESERVOIR",
     "ATPConservationError",
     "ATPPosting",
+    "ScalarATPBook",
     "WorldATPLedger",
     "verify_ledger_chain",
 ]
@@ -220,6 +221,8 @@ class WorldATPLedger:
         # Attached ATPAccounts. Copying/pickling an account alone detaches it;
         # copying/pickling the ledger carries its accounts and re-attaches them.
         self._accounts: dict[str, ATPAccount] = {}
+        # Pull-mode cursors (sync_accounts): agent -> (entries booked, last entry).
+        self._cursors: dict[str, tuple[int, Any]] = {}
         self._records: list[dict[str, Any]] = []
         self._base: dict[str, Any] | None = None  # checkpoint the window starts at
         self._head = ZERO_DIGEST
@@ -377,6 +380,62 @@ class WorldATPLedger:
         for aid, account in self._accounts.items():
             account.set_observer(_AgentHook(self, aid, account))
 
+    # ------------------------------------------------- pull-mode (functional)
+    def sync_accounts(self, accounts: Mapping[str, ATPAccount], *, tick: int,
+                      open_from: str = "source:birth_endowment",
+                      close_to: str = "sink:death_remainder") -> dict[str, float]:
+        """Book every ``ATPAccount`` entry not yet booked, by agent id.
+
+        For engines that rebuild organisms each step (``to_dict``/``from_dict``
+        clones carry the full append-only entry history), so a push observer
+        would be lost on every clone. Each entry is booked exactly like the
+        push observer does (debit -> ``sink:<action>``, credit ->
+        ``source:<action>``, 10-digit rounding -> ``*:rounding``).
+
+        * an id seen for the first time is opened with its ``initial_atp``
+          from ``open_from`` and its whole history is replayed;
+        * an id that disappeared is closed (remainder to ``close_to``);
+        * an account whose history no longer extends what was booked (fewer
+          entries, or a different entry at the cursor) is a rewrite and
+          raises; so does a balance that differs from its booked history.
+
+        Returns the mirrors (agent id -> current balance) for ``close_tick``.
+        """
+
+        if self._scope is not None:
+            raise ATPConservationError("sync_accounts inside a transfer scope")
+        for aid in sorted(self._cursors.keys() - accounts.keys()):
+            del self._cursors[aid]
+            if aid in self._agents:
+                self.close_agent(aid, tick=tick, to=close_to)
+        mirrors: dict[str, float] = {}
+        for aid, account in accounts.items():
+            n_now = account.entry_count()
+            cur = self._cursors.get(aid)
+            if cur is None:
+                if aid in self._agents:
+                    raise ATPConservationError(f"agent {aid!r} is already owned by another booking path")
+                self.open_agent(aid, account.initial_atp, tick=tick, funded_from=open_from,
+                                memo="birth_endowment" if open_from == "source:birth_endowment" else "opened")
+                start = 0
+            else:
+                start, last = cur
+                if n_now < start or (start > 0 and account.entry_at(start - 1) != last):
+                    raise ATPConservationError(f"agent {aid!r}: ATP history was rewritten (bypass)")
+            if n_now > start:
+                mark = self._mark()
+                try:
+                    for entry in account.entries_since(start):
+                        self._book_entry(aid, entry)
+                except BaseException:
+                    self._revert(mark)
+                    raise
+                self._cursors[aid] = (n_now, account.entry_at(n_now - 1))
+            elif cur is None:
+                self._cursors[aid] = (0, None)
+            mirrors[aid] = account.current_atp
+        return mirrors
+
     # ------------------------------------------------------------ rollback
     def _mark(self) -> tuple[int, int, int, int, int]:
         return (len(self._pending), self._seq, len(self._new_keys), self._scope_gross, self._scope_ulps)
@@ -416,7 +475,7 @@ class WorldATPLedger:
         # 10-digit rounding of the balance is booked separately against
         # source:rounding / sink:rounding, so it is accounted for, not hidden.
         key = agent_account(agent_id)
-        label = entry.action or entry.reason
+        label = (entry.action or entry.reason).split(":", 1)[0]
         nominal = _u(entry.amount)
         realised = _u(entry.balance_after) - _u(entry.balance_before)
         if self._scope is not None:
@@ -629,3 +688,72 @@ def verify_ledger_chain(records: list[dict[str, Any]] | tuple[dict[str, Any], ..
             raise ATPConservationError(f"replayed postings do not balance at record {i}")
         prev = rec["digest"]
     return prev
+
+
+_BOOK_ID = "_atp_ledger_id"
+
+
+class ScalarATPBook:
+    """World ledger for runners whose ATP is a plain float field on
+    per-individual objects (T02/T03/T05).
+
+    Each object gets a stable ledger id on first sight (stored on the object
+    as ``_atp_ledger_id``; never read by the model). ``settle`` opens new
+    objects (births, founders), closes vanished ones (deaths) and checks
+    every field against the ledger exactly, so a write that skipped
+    ``assign`` is caught at the next settle. ``carry`` keeps an id when a
+    runner rebuilds an object that is the same individual (migration).
+    """
+
+    def __init__(self, world_id: str, fields: tuple[str, ...] = ("atp",), *,
+                 ledger: WorldATPLedger | None = None) -> None:
+        self.ledger = WorldATPLedger(world_id) if ledger is None else ledger
+        self.fields = tuple(fields)
+        self._next = 0
+
+    def _id(self, obj: object) -> str:
+        lid = getattr(obj, _BOOK_ID, None)
+        if lid is None:
+            lid = f"i{self._next}"
+            self._next += 1
+            object.__setattr__(obj, _BOOK_ID, lid)
+        return str(lid)
+
+    def carry(self, new: object, old: object) -> None:
+        """``new`` is the same individual as ``old`` (same balances)."""
+
+        object.__setattr__(new, _BOOK_ID, self._id(old))
+
+    def _key(self, obj: object, field: str) -> str:
+        return f"{self._id(obj)}:{field}" if len(self.fields) > 1 else self._id(obj)
+
+    def assign(self, obj: object, field: str, new: float, *, tick: int,
+               source: str, sink: str) -> float:
+        """Book ``obj.field -> new`` exactly; the caller stores the return."""
+
+        key = self._key(obj, field)
+        if not self.ledger.has_agent(key):
+            raise ATPConservationError(f"assign to unledgered individual {key!r}")
+        return self.ledger.settle(key, float(getattr(obj, field)), new, tick=tick,
+                                  source=source, sink=sink)
+
+    def settle(self, population: Iterable[object], *, tick: int, close: bool = True,
+               open_from: str = "source:birth_endowment",
+               close_to: str = "sink:death_remainder") -> str | None:
+        led = self.ledger
+        mirrors: dict[str, float] = {}
+        for obj in population:
+            for field in self.fields:
+                key = self._key(obj, field)
+                value = float(getattr(obj, field))
+                if key in mirrors:
+                    raise ATPConservationError(f"one individual listed twice: {key!r}")
+                if not led.has_agent(key):
+                    led.open_agent(key, value, tick=tick, funded_from=open_from, memo="birth")
+                mirrors[key] = value
+        for key in sorted(led.open_agents - set(mirrors)):
+            led.close_agent(key, tick=tick, to=close_to)
+        if close:
+            return led.close_tick(tick, mirrors)
+        led.check(mirrors)
+        return None

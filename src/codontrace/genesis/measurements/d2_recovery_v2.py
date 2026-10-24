@@ -22,9 +22,11 @@ import math
 from collections.abc import Collection, Mapping, Sequence
 from typing import Literal, cast
 
+from codontrace.atp_ledger import WorldATPLedger
 from codontrace.dynvalues import same_float, same_int
 from codontrace.energy import ATPAccount, ATPLedgerEntry
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.atp import organism_atp_accounts
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.genesis.organism import GenesisOrganism
 
@@ -630,8 +632,12 @@ def apply_locked_recovery_arm(
     *,
     tick: int,
     arm: Literal["positive", "negative"],
+    atp_ledger: WorldATPLedger | None = None,
 ) -> dict[str, object]:
     """Place the locked drop, then either restore it or pay the same cost aside.
+
+    Both organisms' ATP is booked in a closed world ledger (pull mode; a fresh
+    one unless ``atp_ledger`` is given) and the control's ticks are closed.
 
     Samples are recipient runtime ATP: baseline, after the drop, after the
     arm, and one persistence sample with no further credit. The positive arm
@@ -644,6 +650,10 @@ def apply_locked_recovery_arm(
     if source.id == recipient.id:
         raise ConfigurationError("the recovery control needs two organisms")
     run_id = f"d2-control:{source.id}:{recipient.id}:{tick}:{arm}"
+    world_ledger = WorldATPLedger(run_id) if atp_ledger is None else atp_ledger
+    pair = (source, recipient)
+    world_ledger.close_tick(tick, world_ledger.sync_accounts(organism_atp_accounts(pair), tick=tick,
+                                                             open_from="source:genesis"))
     samples = [capture_recovery_boundary(recipient.atp_state.runtime, run_id=run_id,
                recipient_id=recipient.id, tick=tick)]
     baseline = float(recipient.atp_state.runtime_available)
@@ -687,6 +697,7 @@ def apply_locked_recovery_arm(
     samples.extend(capture_recovery_boundary(recipient.atp_state.runtime, run_id=run_id,
                    recipient_id=recipient.id, tick=stage) for stage in (tick + 2, tick + 3))
     boundaries = [baseline, dropped, after, persisted]
+    world_ledger.close_tick(tick + 3, world_ledger.sync_accounts(organism_atp_accounts(pair), tick=tick + 3))
     ledger = list(source.atp_state.runtime.ledger) + list(recipient.atp_state.runtime.ledger)
     scored = assess_recovery(samples, events, ledger, recipient_id=recipient.id)
     return {

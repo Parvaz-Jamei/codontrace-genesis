@@ -970,7 +970,11 @@ class LifeLoopEcologyArm:
             self._passage_update(matched, rng.fork(f"passage/{self.tick_index}"))
             self._census()
             self.tick_index += 1
-            assert_single_atp_owner(self.runner.population.organisms)
+            assert_single_atp_owner(
+                self.runner.population.organisms,
+                ledger=self.runner.atp_ledger,
+                tick=int(self.runner.population.generation),
+            )
         return self.summary()
 
     def terminal_selfing_freq(self) -> float | None:

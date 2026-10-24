@@ -168,6 +168,17 @@ class ATPAccount:
             reason=reason,
         )
 
+    def entries_since(self, start: int) -> Sequence[ATPLedgerEntry]:
+        """Entries ``start..end`` (a slice; O(new entries), not O(history))."""
+
+        return tuple(self._ledger[start:])
+
+    def entry_count(self) -> int:
+        return len(self._ledger)
+
+    def entry_at(self, index: int) -> ATPLedgerEntry:
+        return self._ledger[index]
+
     def ledger_digest(self) -> str:
         """Return a stable digest of the full ATP ledger content."""
 

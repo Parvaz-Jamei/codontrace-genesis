@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import cast
 
@@ -289,3 +290,21 @@ class DualATPBudget:
             ),
             learning_enabled=enabled,
         )
+
+
+def organism_atp_accounts(organisms: Iterable[object]) -> dict[str, ATPAccount]:
+    """Every ATPAccount owned by ``organisms``, keyed for the world ledger:
+    ``<id>`` for ATP_runtime and ``<id>/learning`` for ATP_learning."""
+
+    accounts: dict[str, ATPAccount] = {}
+    for org in organisms:
+        state = getattr(org, "atp_state", None)
+        if state is None:
+            continue
+        oid = str(getattr(org, "id", ""))
+        if oid in accounts:
+            raise ValueError(f"duplicate organism id {oid!r} in one population")
+        accounts[oid] = state.runtime
+        if state.learning is not None:
+            accounts[f"{oid}/learning"] = state.learning
+    return accounts

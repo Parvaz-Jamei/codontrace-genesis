@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from codontrace.atp_ledger import ScalarATPBook
 from codontrace.experiments.math_utils import (
     PriceEquationAccounting,
     compute_exact_price_equation,
@@ -72,6 +73,7 @@ class T02MLSPriceRunner:
         self.population: list[Individual] = []
         self.price_history: list[PriceEquationAccounting] = []
         self.metrics_history: list[MetricRecord] = []
+        self.atp_book = ScalarATPBook("t02_mls_price")
         self.max_price_residual = 0.0
 
     def initialize_population(self) -> None:
@@ -94,6 +96,7 @@ class T02MLSPriceRunner:
     def step_generation(self, gen: int) -> MetricRecord:
         # 1. Intra-group interaction & Common Good Contribution
         # Individual cost: -c * z_i; Group return: b * sum(z_i) distributed equally
+        self.atp_book.settle(self.population, tick=gen, close=False)
         c = 0.25  # Individual altruism cost
         b = 0.60  # Group benefit multiplier
 
@@ -217,8 +220,10 @@ class T02MLSPriceRunner:
                     altruism_trait=ind.altruism_trait,
                     atp=ind.atp,
                 )
+                self.atp_book.carry(next_generation[ind_idx], ind)
 
         self.population = next_generation
+        self.atp_book.settle(self.population, tick=gen)
 
         mean_pop_z = sum(ind.altruism_trait for ind in self.population) / len(self.population)
         actual_delta = mean_pop_z - sum(parents_z) / len(parents_z)

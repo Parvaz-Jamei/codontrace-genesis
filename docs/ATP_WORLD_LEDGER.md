@@ -13,8 +13,13 @@ from `genesis/` or `experiments/`). Tests: `tests/test_atp_ledger.py`
 * **Closed**: every change is a double-entry posting (one amount leaves one
   account and enters another), so the signed sum of all accounts is exactly 0.
   Equivalently `agents + reservoir = sum(sources in) - sum(sinks out)`.
-* **Exact**: amounts are `fractions.Fraction` of the IEEE-754 values the
-  engine actually stores, so checks use `==`, never a tolerance.
+* **Exact**: amounts are the IEEE-754 values the engine actually stores, held
+  as integers in units of 2^-1074 (every finite double is an exact multiple),
+  so checks use `==` (IEEE 754-2019 sec. 3.3: every finite binary64 is an
+  integer multiple of 2^-1074). The one acceptance window is inside a
+  `transfer_scope`: a receiver may gain up to `ROUNDING_BOUND * gross + 3 ulp`
+  more than the payer lost (float subtraction of balances); that excess is
+  booked exactly from `source:rounding`, anything larger raises.
 
 ## Invariants checked every tick (`close_tick`)
 
@@ -57,7 +62,7 @@ digests stay byte-identical.
   The ledger books each entry all-or-nothing, so an observer error leaves both
   the account and the ledger untouched.
 * `transfer_scope` is a transaction: if its body raises, every posting made in
-  the scope is reversed exactly (Fractions undo exactly) and every
+  the scope is reversed exactly (integer units undo exactly) and every
   `ATPAccount` touched in it is restored, so the clearing residual is 0 and
   ledger == accounts again.
 * Copying or pickling an attached `ATPAccount` on its own (`copy.copy`,
@@ -122,11 +127,39 @@ not mixed into any legacy digest.
 
 ## Where it is wired
 
-| Owner | How |
-|---|---|
-| `HostParasiteWorld` | `atp_ledger` field; accounts created only by `_open_account`, removed only by `_close_account`; coupling in one `transfer_scope("coupling")`; `check_atp_conservation()` at the start of `tick()`, `close_tick()` at the end |
-| `T01OEERunner`, `T04ContingencyRunner` | `atp_ledger`; survival reward via `atp_ledger.adjust(... source:task_reward / sink:metabolism)`; births from the reservoir; leavers' ATP returned; invariant checked before and after every generation; T04 replays start a fresh ledger from the snapshot (`source:genesis`) |
-| `assert_single_atp_owner(organisms, ledger=None)` | one account per organism, balance equals the replay of its entries, optional world-ledger check |
+Every ATP owner in the code base books into a closed world ledger. Two modes:
+
+* **push**: the ledger observes an `ATPAccount` (`attach` / `open_agent`), so
+  each `debit` / `credit` is booked before it is committed;
+* **pull**: `sync_accounts(accounts, tick=)` books every account entry not yet
+  booked, by agent id, from the account's append-only entry log. It opens ids
+  it has not seen (births, from `source:birth_endowment`, or founders from
+  `source:genesis`, at the entry log's `initial_atp`, then replays the log),
+  closes ids that disappeared (deaths, `sink:death_remainder`), and raises if
+  a known id's log was rewritten rather than extended. Engines that rebuild
+  organisms every step (`to_dict` / `from_dict` clones carry the full log) use
+  this mode, so cloning never loses a hook. Entry labels are the action /
+  reason name up to the first `:` (per-instance suffixes are not accounts).
+
+| Owner | Mode | How |
+|---|---|---|
+| `HostParasiteWorld` | push | `atp_ledger` field; accounts created only by `_open_account`, removed only by `_close_account`; coupling in one `transfer_scope("coupling")`; `check_atp_conservation()` at the start of `tick()`, `close_tick()` at the end |
+| `PopulationRunner` (so `GenesisEngine`, `engine_runtime`, every `closed_loop_*` arm, `rq_mechanism_v2_phase2..5`, `hard_experiment_*`, `phase_e`, `materials` and the `life_loop` coupler, all of which move ATP only through `GenesisOrganism.atp_state` inside a runner) | pull | `atp_ledger` field; `settle_atp()` books runtime and learning accounts (`organism_atp_accounts`) before each `step_population` (changes made between generations by observers or experiment code) and closes the tick after it |
+| `closed_loop_p6.run_match_arm`, shared-census arm (custom loops outside a runner) | pull | a per-run ledger; `assert_single_atp_owner(..., ledger=, tick=generation)` every generation and once after the loop |
+| `assert_single_atp_owner(organisms, ledger=None, *, tick=None)` | either | one account per organism, balance equals the replay of its entries; with `ledger` a world check; with `ledger` and `tick` the pull sync and a closed tick. Every post-step call in `closed_loop_hp_arm01`, `closed_loop_p1/p2/p3/p5/p6` passes `runner.atp_ledger` and the generation |
+| `Simulation.run` (classic `WhiteBoxAgent`) | pull | `atp_ledger=` kwarg (fresh ledger if omitted); founders opened from `source:genesis`, every tick closed |
+| `WhiteBoxAgent.run`, `GenesisOrganism.run` (single-agent loops) | pull | `atp_ledger=` kwarg; every step / tick closed |
+| `EnergyCoupling.apply` (pure function over a balances map) | push | optional `atp_ledger=`: both realised legs settled through `world:clearing` in one `transfer_scope("ENERGY_COUPLING")`, the loss to `sink:ENERGY_COUPLING_loss`. Its two engine callers (`HostParasiteWorld`, `closed_loop_p3`) realise the result through ledgered `ATPAccount`s, so they do not pass it (that would book twice) |
+| `d2_recovery_v2.apply_locked_recovery_arm` (standalone control on two organisms) | pull | `atp_ledger=` kwarg (fresh ledger per control if omitted); both organisms synced and the control's ticks closed |
+| Per-organism helpers `apply_logic9_runtime_bonus`, `apply_task_switch_cost`, `apply_phase_e_action_choice`, `apply_organism_material_coupling`, `emit_causal_capsule` / `read_nexus_capsules` | pull | they debit/credit `atp_state` of organisms owned by a `PopulationRunner` (called from `step_population`), so the runner's `settle_atp` books every entry they make |
+| `T01OEERunner`, `T04ContingencyRunner` | push | `atp_ledger`; survival reward via `atp_ledger.adjust(... source:task_reward / sink:metabolism)`; births from the reservoir; leavers' ATP returned; invariant checked before and after every generation; T04 replays start a fresh ledger from the snapshot (`source:genesis`) |
+| `T02MLSPriceRunner`, `T03MutualismRunner`, `T05RedQueenRunner` (scalar `atp` / `host_atp` / `symbiont_atp` fields) | pull | `atp_book = ScalarATPBook(...)`: each individual gets a ledger id on first sight; `settle` before and after every generation opens births, closes deaths and checks every field exactly; T02 migration keeps the id (`carry`); T03 payoffs are written only as `x = self.atp_book.assign(...)` (`source:payoff` / `sink:payoff`) |
+
+Outputs are byte-identical: the ledger only reads balances and entry logs.
+Checked against `main` with `/workspace`-local pin scripts (T01/T04/HP pins,
+T02/T03/T05 run reprs, `GenesisEngine` run digests with the source-tree
+provenance hash held fixed, since that hash covers the source files
+themselves) and the repository's pinned-digest tests.
 
 ## No bypasses (AST-enforced, plus runtime)
 
@@ -138,8 +171,9 @@ under `src/codontrace` and fails on any write of an ATP balance field outside
 `vars(x)[...] =`, `x.__dict__.update(current_atp=...)` and
 `dataclasses.replace(x, current_atp=...)`. The private fields `_observer`,
 `_ledger` and `_verified` are protected the same way on any receiver other than
-`self`. In T01/T04 the scalar `.atp` is protected too; its only allowed write is
-`x.atp = self.atp_ledger.adjust(...)`. Mutant tests (15 fixed forms plus a
+`self`. In T01-T05 the scalar fields `atp`, `host_atp` and `symbiont_atp` are
+protected too; their only allowed writes are `x.f = self.atp_ledger.adjust(...)`
+and `x.f = self.atp_book.assign(...)`. Mutant tests (15 fixed forms plus a
 Hypothesis property over forms x receivers x fields) prove the gate catches
 each form. The gate is a guard rail, not the proof: `getattr`-computed names or
 `exec` cannot be seen statically, and the runtime check (`close_tick` mirror

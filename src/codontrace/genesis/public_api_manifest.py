@@ -101,6 +101,17 @@ _PROVISIONAL_SYMBOLS: tuple[tuple[str, str, str], ...] = (
     ("module_run_reference", "codontrace.genesis.run_refs", _ENGINE_INTEGRATION),
     ("split_residual_interval", "codontrace.life_loop.conformal_bands", _ENGINE_INTEGRATION),
     ("apply_disturbance", "codontrace.life_loop.disturbance", _ENGINE_INTEGRATION),
+    # Types and helpers the rows above return or need.
+    ("CoevolutionResult", "codontrace.genesis.coevolution", _ENGINE_INTEGRATION),
+    ("ShadowEvaluation", "codontrace.genesis.shadow_evaluation", _ENGINE_INTEGRATION),
+    ("SplitResidualInterval", "codontrace.life_loop.conformal_bands", _ENGINE_INTEGRATION),
+    ("DisturbanceFamily", "codontrace.life_loop.disturbance", _ENGINE_INTEGRATION),
+    ("MutationRule", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("ParameterBound", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("ask_parameter_candidates", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("tell_parameter_results", "codontrace.genesis.qd_parametric", _ENGINE_INTEGRATION),
+    ("write_run_reference", "codontrace.genesis.run_refs", _ENGINE_INTEGRATION),
+    ("STRDisparityResult", "codontrace.genesis.transferability", _ENGINE_INTEGRATION),
 )
 
 _DEPRECATED_SYMBOLS: tuple[tuple[str, str, str, str], ...] = ()

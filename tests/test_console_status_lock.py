@@ -18,6 +18,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from codontrace.console.runs import write_status_json
 
 HEARTBEATS = 400
@@ -118,3 +120,79 @@ def test_processes_never_move_status_backwards(tmp_path: Path) -> None:
         assert all(p.exitcode == 0 for p in consoles)
 
     _run(tmp_path, start)
+
+
+def _lock_holder(lock: str, ready: str, release: str) -> None:
+    from codontrace.console.runs import _status_file_lock
+
+    with _status_file_lock(Path(lock)):
+        Path(ready).touch()
+        deadline = time.monotonic() + 30
+        while not Path(release).exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+
+def test_lock_times_out_instead_of_hanging(tmp_path: Path) -> None:
+    from codontrace.console.runs import StatusLockTimeout, _status_file_lock
+
+    lock, ready, release = tmp_path / "s.lock", tmp_path / "ready", tmp_path / "release"
+    p = mp.get_context("spawn").Process(target=_lock_holder, args=(str(lock), str(ready), str(release)))
+    p.start()
+    try:
+        deadline = time.monotonic() + 60
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert ready.exists()
+        t0 = time.monotonic()
+        with pytest.raises(StatusLockTimeout):
+            with _status_file_lock(lock, timeout=0.3):
+                pass
+        assert time.monotonic() - t0 < 10
+    finally:
+        release.touch()
+        p.join(timeout=30)
+    with _status_file_lock(lock, timeout=5):
+        pass
+
+
+def test_reentrant_lock_raises(tmp_path: Path) -> None:
+    from codontrace.console.runs import _status_file_lock
+
+    lock = tmp_path / "s.lock"
+    with _status_file_lock(lock):
+        with pytest.raises(RuntimeError, match="re-entrant"):
+            with _status_file_lock(lock, timeout=0.2):
+                pass
+    with _status_file_lock(lock, timeout=1):
+        pass
+
+
+def test_heartbeat_cannot_unpause_while_pause_marker_exists(tmp_path: Path) -> None:
+    from codontrace.console.runs import CONSOLE_STATUS_FIELDS, write_status_json
+
+    f = tmp_path / "status.json"
+    write_status_json(f, {"status": "RUNNING", "revision": 1, "work_done": 5, "work_total": 10, "pct": 50.0})
+    (tmp_path / "PAUSE").touch()
+    stale = {"status": "PAUSED", "revision": 1, "work_done": 4, "work_total": 10, "pct": 40.0}
+    write_status_json(f, stale, fields=CONSOLE_STATUS_FIELDS)
+    on_disk = json.loads(f.read_text(encoding="utf-8"))
+    assert on_disk["status"] == "PAUSED" and on_disk["work_done"] == 5 and on_disk["pct"] == 50.0
+    write_status_json(f, {"status": "RUNNING", "revision": 2, "work_done": 5, "work_total": 10})
+    assert json.loads(f.read_text(encoding="utf-8"))["status"] == "PAUSED"
+    (tmp_path / "PAUSE").unlink()
+    write_status_json(f, {"status": "RUNNING", "revision": 9, "work_done": 6, "work_total": 10})
+    assert json.loads(f.read_text(encoding="utf-8"))["status"] == "RUNNING"
+
+
+def test_reconcile_holds_root_lock(tmp_path: Path) -> None:
+    from codontrace.console.runs import CustomScriptRunnerAdapter, _status_file_lock, status_lock_path
+
+    (tmp_path / "output").mkdir()
+    (tmp_path / "status.json").write_text(json.dumps({"status": "RUNNING", "revision": 1, "work_done": 1}))
+    (tmp_path / "output" / "status.json").write_text(json.dumps({"status": "PAUSED", "revision": 3, "work_done": 7}))
+    adapter = CustomScriptRunnerAdapter()
+    merged = adapter.reconcile_status(tmp_path)
+    assert merged["status"] == "PAUSED" and merged["work_done"] == 7
+    with _status_file_lock(status_lock_path(tmp_path / "status.json")):
+        # Same thread: the reconciler must not re-enter silently; it falls back to a read.
+        assert adapter.reconcile_status(tmp_path)["work_done"] == 7

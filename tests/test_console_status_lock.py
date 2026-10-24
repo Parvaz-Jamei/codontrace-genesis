@@ -11,6 +11,7 @@ monitor checks that neither value ever decreases.
 
 from __future__ import annotations
 
+import errno
 import json
 import multiprocessing as mp
 import sys
@@ -424,9 +425,19 @@ def test_replace_retries_eacces_without_a_native_code(tmp_path: Path, monkeypatc
     assert len(attempts) == 3 and dst.read_text() == "x"
 
 
-@pytest.mark.parametrize("winerror", [2, 3], ids=["file_not_found", "path_not_found"])
+def _os_error(cls: type[OSError], err: int, winerror: int) -> OSError:
+    exc = cls(err, "Windows error", None, winerror)
+    exc.winerror = winerror  # type: ignore[attr-defined]
+    return exc
+
+
+@pytest.mark.parametrize(
+    ("cls", "err", "winerror"),
+    [(FileNotFoundError, errno.ENOENT, 2), (PermissionError, errno.EACCES, 3)],
+    ids=["file_not_found", "path_not_found"],
+)
 def test_replace_raises_other_windows_errors_at_once(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, winerror: int
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cls: type[OSError], err: int, winerror: int
 ) -> None:
     from codontrace.console import runs as R
 
@@ -435,12 +446,33 @@ def test_replace_raises_other_windows_errors_at_once(
 
     def broken(a: Any, b: Any) -> None:
         attempts.append(1)
-        raise _win_error(winerror)
+        raise _os_error(cls, err, winerror)
 
     monkeypatch.setattr(R.os, "replace", broken)
     monkeypatch.setattr(R.os, "name", "nt")
     monkeypatch.setattr(R.time, "sleep", sleeps.append)
-    with pytest.raises(PermissionError) as info:
+    with pytest.raises(cls) as info:
         R._replace_with_retry(tmp_path / "a", tmp_path / "b")
     assert info.value.winerror == winerror  # type: ignore[attr-defined]
+    assert attempts == [1] and sleeps == []
+
+
+def test_replace_raises_eperm_without_a_native_code_at_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """winerror None falls back to errno; only EACCES is busy, so EPERM is raised at once."""
+    from codontrace.console import runs as R
+
+    attempts: list[int] = []
+    sleeps: list[float] = []
+
+    def denied(a: Any, b: Any) -> None:
+        attempts.append(1)
+        exc = PermissionError(errno.EPERM, "Operation not permitted")
+        exc.winerror = None  # type: ignore[attr-defined]
+        raise exc
+
+    monkeypatch.setattr(R.os, "replace", denied)
+    monkeypatch.setattr(R.os, "name", "nt")
+    monkeypatch.setattr(R.time, "sleep", sleeps.append)
+    with pytest.raises(PermissionError):
+        R._replace_with_retry(tmp_path / "a", tmp_path / "b")
     assert attempts == [1] and sleeps == []

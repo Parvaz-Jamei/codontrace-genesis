@@ -256,6 +256,22 @@ class HashChainedJournal:
         assert self.journal is not None
         return self.journal.with_name(self.journal.name + '.archive')
 
+    def _pruned_ledger_path(self) -> Path:
+        assert self.journal is not None
+        return self.journal.with_name(self.journal.name + '.pruned')
+
+    def _append_pruned_ledger(self, rows: list[tuple[int, Path]]) -> None:
+        """Record ``<segment index> <record digest>`` for every record of segments
+        about to be deleted, durably and before the delete, so ``verify_anchor``
+        can still check an anchored head after retention removed its segment."""
+        lines = [f'{index:08d} {digest}\n' for index, path in rows for _, digest in self._records(path)]
+        ledger = self._pruned_ledger_path()
+        with ledger.open('a', encoding='utf-8') as handle:
+            handle.write(''.join(lines))
+            handle.flush()
+            os.fsync(handle.fileno())
+        self._fsync_dir(ledger.parent)
+
     def _checkpoint_path(self, index: int) -> Path:
         assert self.journal is not None
         return self.journal.with_name(self.journal.name + f'.checkpoint.{index:08d}.json')
@@ -486,6 +502,8 @@ class HashChainedJournal:
                 archived = dict(self._segment_rows(archive))
                 doomed = archived_to_delete([(i, p.stat().st_size) for i, p in sorted(archived.items())],
                                             self.archive_max_bytes)
+                if doomed:
+                    self._append_pruned_ledger([(index, archived[index]) for index in doomed])
                 for index in doomed:
                     archived[index].unlink()
                 deleted = bool(doomed)

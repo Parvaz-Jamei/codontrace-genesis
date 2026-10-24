@@ -11,6 +11,7 @@ from codontrace.causal_inference.engine_study import (
     diagram_from_evidence_graph,
     set_founder_bits,
 )
+from codontrace.errors import ConfigurationError
 
 
 @pytest.fixture(scope="module")
@@ -23,11 +24,39 @@ def test_do_bit_only_edits_primary_founders():
     assert set_founder_bits(bits, {1: 1, 2: 0}) == ("110111000", "110111000", "000000000")
 
 
-def test_identified_effect_matches_engine_reruns(report):
+def test_identified_effect_matches_fresh_seed_truth(report):
     assert report.adjustment == ("bit:2", "env:population")
+    assert report.truth_seeds == (1000, 1001, 1002)
     lo, hi = report.bootstrap_ci
-    assert lo <= report.true_ate <= hi
+    tlo, thi = report.truth_ci
+    assert tlo <= report.true_ate <= thi
+    # The truth comes from independent runs, so compare the two intervals.
+    assert lo <= thi and tlo <= hi
     assert abs(report.identified_ate - report.true_ate) < 0.1 * abs(report.true_ate) + 0.5
+
+
+def test_truth_runs_use_only_fresh_seeds_and_never_observational_runs():
+    calls = []
+
+    def runner(seed, pop, bits, ticks):
+        calls.append(seed)
+        return seed % 3 + bits[1] * (1 + bits[2])
+
+    study = EngineBitStudy(seeds=(0, 1, 2), truth_seeds=(7, 8, 9), runner=runner)
+    units = study.observational_sample(40, seed=0)
+    assert {u.seed for u in units} <= {0, 1, 2} and set(calls) <= {0, 1, 2}
+    calls.clear()
+    truth = study.ground_truth()
+    assert set(calls) == {7, 8, 9} and len(calls) == 3 * 2 * 2 * 2
+    assert truth.means[1] - truth.means[0] == pytest.approx(1.5)
+    assert truth.ate_ci == pytest.approx((1.5, 1.5))
+
+
+def test_truth_seeds_must_be_fresh():
+    with pytest.raises(ConfigurationError, match="disjoint"):
+        EngineBitStudy(seeds=(0, 1, 2), truth_seeds=(2, 3))
+    with pytest.raises(ConfigurationError, match="two distinct"):
+        EngineBitStudy(truth_seeds=(5, 5))
 
 
 def test_naive_contrast_is_confounded_and_excluded(report):
@@ -82,3 +111,33 @@ def test_evidence_graph_bridge():
     d = diagram_from_evidence_graph(g, confounded=[("action:move", "resource:lumen")])
     assert d.directed == frozenset({("event:action:eat", "event:resource:lumen")})
     assert ("event:action:move", "event:resource:lumen") in d.bidirected
+
+
+def test_empty_focal_arm_names_the_value():
+    study = EngineBitStudy(assignment={(0, 0): 0.0, (0, 1): 0.0, (1, 0): 0.0, (1, 1): 0.0},
+                           runner=lambda seed, pop, bits, ticks: 0)
+    with pytest.raises(ConfigurationError, match="no unit received focal value 1;"):
+        study.validate(n_units=4, seed=0, n_bootstrap=2)
+
+
+def test_main_effect_test_is_not_the_global_null():
+    # A strong history effect and no treatment effect at all: the treatment
+    # test permutes residuals of the model without the treatment term, so the
+    # history effect stays in the fitted part and the test must not reject.
+    t = {
+        "h0": {0: [0.0, 0.1, -0.1, 0.05], 1: [0.05, -0.05, 0.1, -0.1]},
+        "h1": {0: [10.0, 10.1, 9.9, 10.05], 1: [10.05, 9.95, 10.1, 9.9]},
+    }
+    d = decompose(t, n_permutations=199)
+    assert d.p_history < 0.05
+    assert d.p_treatment > 0.2
+    assert d.verdict == "not_detected"
+
+
+def test_holm_adjustment_is_monotone_and_used_by_the_verdict():
+    from codontrace.causal_inference.contingency import ContingencyDecomposition
+
+    d = ContingencyDecomposition(1.0, 1.0, 1.0, 1.0, 0.03, 0.01, 0.04, {}, 0.05)
+    assert d.p_holm == {"history": 0.03, "treatment": 0.06, "interaction": 0.06}
+    assert d.verdict == "not_detected"  # raw p_interaction 0.04 < 0.05, adjusted 0.06
+    assert d.to_dict()["p_holm"] == d.p_holm

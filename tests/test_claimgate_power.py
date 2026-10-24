@@ -46,7 +46,7 @@ def test_t_distribution_matches_known_quantiles():
 @settings(max_examples=60, deadline=None)
 @given(
     d=st.floats(0.0, 2.5),
-    n=st.integers(3, 120),
+    n=st.integers(2, 120),
     kind=st.sampled_from(["paired", "two_sample"]),
     alt=st.sampled_from(["two-sided", "greater"]),
 )
@@ -143,3 +143,12 @@ def test_claimgate_malformed_power_declaration_fails_closed():
     report = audit_bundle(payload)
     assert report.achieved_level == 3
     assert "power_analysis_invalid:KeyError" in report.warnings
+
+
+def test_noncentral_t_tail_at_one_degree_of_freedom():
+    # df = 1 (paired n = 2): U = |Z| has density 2*phi(0) at u = 0, so the
+    # integration endpoint is not zero. Reference: scipy.stats.nct.sf.
+    from codontrace.claimgate.power import _nct_sf
+
+    assert _nct_sf(6.313751515, 1.0, 0.0) == pytest.approx(0.05, abs=1e-7)
+    assert _nct_sf(2.0, 1.0, 0.0) == pytest.approx(0.5 - math.atan(2.0) / math.pi, abs=1e-7)

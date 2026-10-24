@@ -39,7 +39,7 @@ class DiscreteSCM:
     @classmethod
     def random(cls, diagram: CausalDiagram, seed: int) -> DiscreteSCM:
         rng = RNGManager(seed=seed, namespace="causal_inference/scm")
-        dag, latents = diagram.latent_projection_dag()
+        dag, latents = diagram.canonical_dag()
         prior = {u: _EPS + (1 - 2 * _EPS) * rng.random() for u in sorted(latents)}
         cpt: dict[str, dict[tuple[int, ...], float]] = {}
         for v in diagram.topological_order():
@@ -60,7 +60,7 @@ class DiscreteSCM:
         unknown = set(do) - self.diagram.nodes
         if unknown:
             raise ConfigurationError(f"unknown intervention targets: {sorted(unknown)}")
-        dag, latents = self.diagram.latent_projection_dag()
+        dag, latents = self.diagram.canonical_dag()
         order = self.diagram.topological_order()
         lat = sorted(latents)
         table: dict[tuple[Value, ...], float] = {}

@@ -1,13 +1,18 @@
-"""Section 5: identification of do-queries (ID and IDC).
+r"""Section 5: identification of do-queries (ID and IDC).
 
 ``identify`` is the ID algorithm for semi-Markovian models: a recursion
 over C-components that is sound and complete. It returns an expression for
 ``P(y | do(x))`` in terms of the observational P(V), or raises
-:class:`NotIdentifiable` carrying the hedge ``(F, F')`` that witnesses
-non-identifiability (an effect is identifiable exactly when no hedge exists).
+:class:`NotIdentifiable` at line 5. The exception carries the pair of node
+sets ``(G, S)`` of that failing call: a single C-component and the
+C-component of ``G \ X`` inside it. That pair is *not* itself a hedge in
+general; it contains, as edge subgraphs, C-forests ``F, F'`` that form a
+hedge for ``P(y' | do(x'))`` for some ``x' <= x``, ``y' <= y``, and a hedge
+is exactly what makes an effect non-identifiable.
 
-``identify_conditional`` is IDC. It uses rule 2 of the do-calculus to move
-conditioning variables into the intervention set.
+``identify_conditional`` is IDC, also sound and complete. It uses rule 2 of
+the do-calculus to move conditioning variables into the intervention set,
+then calls ID and normalises over the outcome.
 
 Positivity of P(V) is assumed. The comments ``line k`` refer to the
 numbered lines of the standard ID and IDC pseudocode.
@@ -28,12 +33,21 @@ __all__ = ["NotIdentifiable", "identify", "identify_conditional", "is_identifiab
 
 
 class NotIdentifiable(ConfigurationError):
-    """Raised by ID line 5. ``hedge`` is the pair of C-forests ``(F, F')``."""
+    r"""Raised by ID line 5.
+
+    ``hedge`` is the node-set pair ``(G, S)`` of the failing call: ``G`` is a
+    single C-component, ``S`` the C-component of ``G \ X`` inside it,
+    ``S < G``, ``G`` meets X and ``S`` does not. It is not always a pair of
+    C-forests (a node may have several children inside it, and the root sets
+    may differ); it *contains* as edge subgraphs C-forests ``F, F'`` forming a hedge for some
+    ``P(y' | do(x'))`` with ``x' <= x`` and ``y' <= y``.
+    """
 
     def __init__(self, hedge: tuple[frozenset[str], frozenset[str]]) -> None:
         self.hedge = hedge
         super().__init__(
-            f"effect not identifiable; hedge F={sorted(hedge[0])}, F'={sorted(hedge[1])}"
+            f"effect not identifiable; line-5 failure on G={sorted(hedge[0])}, S={sorted(hedge[1])}"
+            " (this pair contains a hedge)"
         )
 
 

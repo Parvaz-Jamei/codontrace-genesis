@@ -126,14 +126,14 @@ jobs:
       # Codecov settings (https://docs.codecov.com/docs/codecov-tokens).
       # Coverage is uploaded only when the coverage test step succeeded, so a
       # partial report from a failed run never reaches Codecov.
-      # fail_ci_if_error is true only for pushes to this repository when
-      # CODECOV_TOKEN is set; forks, pull requests and token-less runs keep
-      # it false and get a warning annotation instead.
+      # fail_ci_if_error is true for every push to this repository, so a
+      # missing CODECOV_TOKEN fails CI there; forks and pull requests keep it
+      # false and only get the warning annotation.
       - name: Warn when CODECOV_TOKEN is not set
         if: always() && matrix.python-version == '3.14' && steps.tests_cov.outcome == 'success' && env.CODECOV_TOKEN == ''
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: echo "::warning title=Codecov::CODECOV_TOKEN secret is not set; Codecov rejects the upload without a token, so no coverage is recorded for this run."
+        run: echo "::warning title=Codecov::CODECOV_TOKEN secret is not set; Codecov rejects the upload without a token; on pushes to this repository the upload step fails CI, elsewhere no coverage is recorded."
 
       - name: Upload coverage to Codecov
         if: always() && matrix.python-version == '3.14' && steps.tests_cov.outcome == 'success'
@@ -142,7 +142,7 @@ jobs:
           files: coverage.xml
           flags: python3.14
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: ${{ github.event_name == 'push' && github.repository == 'Parvaz-Jamei/codontrace-genesis' && secrets.CODECOV_TOKEN != '' }}
+          fail_ci_if_error: ${{ github.event_name == 'push' && github.repository == 'Parvaz-Jamei/codontrace-genesis' }}
           verbose: true
 
   core-smoke-cross-os:

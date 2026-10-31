@@ -775,7 +775,8 @@ def test_prereg_m_counts_sons_of_outcrossed_births_only() -> None:
     ]
     modes, m = birth_modes_and_m(births)
     assert modes == {"selfed": 4, "outcrossed": 4, "uniparental": 2}
-    assert m == 0.25
+    outcross_sons = sum(1 for kind, p, q in births if q is not None and q != p and kind == "male")
+    assert m == outcross_sons / modes["outcrossed"] == 0.25
     assert birth_modes_and_m([("hermaphrodite", "s", "s")])[1] is None
 
 

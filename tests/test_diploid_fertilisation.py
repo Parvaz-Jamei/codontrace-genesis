@@ -295,13 +295,10 @@ def test_marked_homologs_at_full_recombination_prob() -> None:
 
 # sha256[:16] of the default-path digest table printed by
 # tests/_scripts/default_path_digests.py (newline included), with
-# diploid_meiosis off; matches the value recorded on main before the fix.
-DEFAULT_PATH_TABLE_DIGEST = "224e72bce17aa5a4"
-# Python 3.11 value, also given by main 7db2227 and 73c3bff on 3.11. Only the
-# T02 and T03 rows differ, in the last bits of float metrics: the built-in
-# sum() of floats uses compensated summation from 3.12 on, so 3.11 rounds
-# differently (3.11: sum([0.1] * 10) == 0.9999999999999999; 3.12+: 1.0).
-DEFAULT_PATH_TABLE_DIGEST_PY311 = "82dd7aa7e9bd2ba4"
+# diploid_meiosis off. Run summaries are hashed as canonical JSON with floats
+# fixed to 12 places, so the value is the same on Python 3.11 to 3.14; it
+# matches main 73c3bff on each of those versions.
+DEFAULT_PATH_TABLE_DIGEST = "d34592e007faf959"
 
 
 def test_default_path_digest_table_is_unchanged() -> None:
@@ -312,9 +309,8 @@ def test_default_path_digest_table_is_unchanged() -> None:
     meiosis or fusion, and their digests must equal the pre-fix values. The
     script runs in a fresh process because it sets CODONTRACE_SOURCE_ROOT
     before importing the engine. Expected: the table hash equals
-    DEFAULT_PATH_TABLE_DIGEST exactly; tolerance zero. On Python 3.11 the
-    expected value is DEFAULT_PATH_TABLE_DIGEST_PY311, because float sum()
-    changed in 3.12 (see the constant); that difference predates the fix.
+    DEFAULT_PATH_TABLE_DIGEST exactly on every supported Python; tolerance
+    zero.
     """
 
     import hashlib
@@ -332,9 +328,7 @@ def test_default_path_digest_table_is_unchanged() -> None:
         env=env,
         timeout=900,
     ).stdout
-    expected = DEFAULT_PATH_TABLE_DIGEST_PY311 if sys.version_info[:2] == (3, 11) else DEFAULT_PATH_TABLE_DIGEST
-    assert sum([0.1] * 10) == (0.9999999999999999 if sys.version_info[:2] == (3, 11) else 1.0)
-    assert hashlib.sha256(out).hexdigest()[:16] == expected
+    assert hashlib.sha256(out).hexdigest()[:16] == DEFAULT_PATH_TABLE_DIGEST
 
 
 # Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog

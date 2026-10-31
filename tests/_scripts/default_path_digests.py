@@ -1,5 +1,7 @@
 """Print the default-path digest table (life-loop world plus T01-T05 runners) as JSON."""
 
+import dataclasses
+import enum
 import hashlib
 import json
 import os
@@ -28,8 +30,33 @@ for seed in (0, 7):
 from codontrace.experiments import t01_oee, t02_mls_price, t03_mutualism, t04_contingency, t05_red_queen
 
 
+def _canonical(o):
+    """JSON-ready form with floats fixed to 12 decimal places.
+
+    Run summaries come from float sums whose last bits depend on the
+    interpreter (built-in sum() of floats is compensated from 3.12 on), so
+    floats are rounded before hashing; 12 places keeps every metric but drops
+    the sub-1e-12 rounding noise.
+    """
+
+    if isinstance(o, enum.Enum):
+        return _canonical(o.value)
+    if dataclasses.is_dataclass(o) and not isinstance(o, type):
+        return {f.name: _canonical(getattr(o, f.name)) for f in dataclasses.fields(o)}
+    if isinstance(o, bool) or o is None or isinstance(o, (int, str)):
+        return o
+    if isinstance(o, float):
+        return format(round(o, 12) + 0.0, ".12f")
+    if isinstance(o, dict):
+        return {str(k): _canonical(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_canonical(v) for v in o]
+    raise TypeError(type(o).__name__)
+
+
 def h(o):
-    return hashlib.sha256(repr(o).encode()).hexdigest()
+    text = json.dumps(_canonical(o), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 for name, mk in [

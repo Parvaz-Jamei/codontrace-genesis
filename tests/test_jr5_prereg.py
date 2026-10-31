@@ -601,7 +601,7 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     assert set(c["alternative_arms"]["mutation_load"]["mating"]) <= set(tables[1])
     for table in tables:
         for arm, mode in table.items():
-            if not isinstance(mode, dict) or arm in ("like_for_like", "engine_config"):
+            if not isinstance(mode, dict) or arm in ("like_for_like", "engine_config", "founders"):
                 continue
             assert mode["sexes"] == "on"
             assert mode["ledger"] == "WorldATPLedger"
@@ -670,7 +670,12 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
     assert cfg["single_manipulated_factor"] == "mating_system"
     assert cfg["delayed_selfing"] is False
     assert cfg["unmated_outcrosser"] == "refused_no_selfing_at_timeout"
-    assert cfg["sex_fixed_for_life"] == "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id"
+    assert cfg["sex_fixed_for_life"] == {
+        "rule": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
+        "depends_on": "phase_2b_fix",
+        "engine_test": "TBD_phase2b_zero_mating_type_changes",
+        "engine_test_asserts": "zero_mating_type_changes_over_multi_tick_run",
+    }
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
     for text in (_prereg_text(), note):
         assert "No delayed selfing" in text
@@ -707,3 +712,28 @@ def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
         assert "single manipulated factor" in text
         assert "only in son cost" not in text
         assert "males the only difference" not in text
+
+
+def test_self_arm_founders_are_all_hermaphrodites() -> None:
+    """Obligate selfers are male-free: in the outcross-versus-self
+    mutation-load design the selfing lines carry no males, so the outcross
+    lines alone pay the cost of males. Here the shared config keeps
+    mating_type_set = [hermaphrodite, male], which would draw males at the sex
+    ratio, so self-arm founders are pinned to hermaphrodite at founding instead
+    of drawn, and selfed offspring are always hermaphrodites. The self arm thus
+    holds zero males. This founder rule is the only founder difference between
+    the arms; expected values come from PREREG.md section 4 and the design
+    note."""
+    modes = _constants()["host_mating_arm_modes"]
+    f = modes["founders"]
+    assert f["obligate_self"] == "all_hermaphrodite_pinned_at_founding"
+    assert f["obligate_outcross"] == "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio"
+    assert f["self_arm_males"] == 0
+    assert f["mating_type_set_unchanged"] is True
+    assert f["only_founder_difference_between_arms"] is True
+    assert modes["engine_config"]["sexual_recombination"]["mating_type_set"] == ["hermaphrodite", "male"]
+    note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
+    for text in (_prereg_text(), note):
+        assert "Self-arm founders are all hermaphrodites" in text
+        assert "only founder difference between the arms" in text
+        assert "pinned to hermaphrodite" in text

@@ -192,10 +192,23 @@
       },
       "delayed_selfing": false,
       "unmated_outcrosser": "refused_no_selfing_at_timeout",
-      "sex_fixed_for_life": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
+      "sex_fixed_for_life": {
+        "rule": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
+        "depends_on": "phase_2b_fix",
+        "engine_test": "TBD_phase2b_zero_mating_type_changes",
+        "engine_test_asserts": "zero_mating_type_changes_over_multi_tick_run"
+      },
       "identical_config_self_and_outcross": true,
       "only_difference": "outcross_locus",
       "single_manipulated_factor": "mating_system"
+    },
+    "founders": {
+      "obligate_self": "all_hermaphrodite_pinned_at_founding",
+      "obligate_outcross": "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio",
+      "self_arm_males": 0,
+      "how_male_free": "founder_type_pinned_not_drawn_selfed_offspring_always_hermaphrodite",
+      "mating_type_set_unchanged": true,
+      "only_founder_difference_between_arms": true
     },
     "obligate_outcross": {
       "sexes": "on",

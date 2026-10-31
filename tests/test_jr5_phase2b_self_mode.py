@@ -719,17 +719,27 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
     assert census == [row["census"] for row in session.census()]
 
 
-# Pinned values of the prereg E1 fit on this census. The fit is the
-# bias-reduced binomial logit in tests/_jr5_e1_fit.py (same as the prereg).
-# Setup: prereg E1 (outcross fee 0.0, diploid_meiosis on with gamete fusion).
-# Bug-fix re-pin: before the fix a selfed child was the parent's even homolog
-# alone, so the genome halved each selfed generation and the E1 fit was taken
-# on shrinking genomes. Selfing is now two meioses of one parent plus fusion
-# (length kept, H halves per generation), so both arms were refit on the
-# prereg E1 setup. The self arm has zero males, so its intercept sits at the
-# bias-reduced lower bound.
+# Regression pins, not the prereg E1 estimand: the bias-reduced binomial
+# logit of tests/_jr5_e1_fit.py fitted to the male count of a 4-founder run
+# with no asexual lineage. The prereg E1 fit (asexual count, 0.2 asexual
+# founders) is pinned separately as _E1_PREREG_ASEXUAL below.
+# Re-pin history, each step checked by rerunning the fit at the commits named:
+# - Outcross arm: (0.79900229, -0.09470521) on the 2b tip 8be79b12 with the
+#   old setup (outcross fee 1.0). Merging the gamete-fusion fix moved it to
+#   (0.38787177, -0.00003415) on that setup; the setup change to outcross fee
+#   0.0 then gave (0.80725957, -0.32454182). The selfing fix did not move it.
+# - Self arm: only this pin moved with the selfing fix, from (-3.8506,-0.1356)
+#   to (-3.9159,-0.1605), because genome length went from 9 to 18 bits (before
+#   the fix a selfed child was the parent's even homolog alone, so the genome
+#   halved). The self arm has zero males, so its intercept sits at the
+#   bias-reduced lower bound.
 _E1_MALE_OUTCROSS_DIPLOID = (0.80725957, -0.32454182)
 _E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
+# The prereg E1 estimand: asexual count out of census against generation,
+# obligate-outcross host arm with an asexual founder fraction of 0.2 and no
+# parasite (this session has no host-parasite world clock). Computed with the
+# same estimator on this branch.
+_E1_PREREG_ASEXUAL = (-1.23889801, 0.05642555)
 
 
 def _prereg_e1_arm(bits: str, types: tuple[str, ...]) -> ClosedLoopP5Session:
@@ -745,11 +755,12 @@ def _prereg_e1_arm(bits: str, types: tuple[str, ...]) -> ClosedLoopP5Session:
 def test_e1_fit_on_the_census_is_pinned() -> None:
     """The census feeds the E1 fit: count out of census against generation,
     bias-reduced logit (likelihood plus half the log determinant of the
-    Fisher information). Input: the prereg E1 setup, outcross fee 0.0,
+    Fisher information). Regression pin, not the prereg estimand (see the
+    comment above the pins). Input: outcross fee 0.0,
     diploid_meiosis on, seed 20011, 6 generations; male counts of the outcross
     arm, set (hermaphrodite, male), and of the self arm, set (hermaphrodite,).
     Expected: the pinned intercept and slope (computed with this estimator on
-    this branch after gamete fusion); genome length stays 18 bits; the plain
+    this branch after gamete fusion and the selfing fix); genome length stays 18 bits; the plain
     fit differs on the outcross arm, and on the self arm's all-zero male count,
     where the plain estimate does not exist, the bias-reduced one is finite
     (the reason the prereg uses it)."""
@@ -778,12 +789,57 @@ def test_e1_fit_on_the_census_is_pinned() -> None:
             assert not np.allclose(fit_logit(k, n, x, bias_reduced=False), beta, atol=1e-6)
 
 
-def _selfed_child_bits(bits: str, seed: int) -> str:
+def test_prereg_e1_fit_on_the_asexual_count_is_pinned() -> None:
+    """The prereg E1 fit itself: the asexual count out of the census against
+    generation, bias-reduced logit, generations 0 to 6. Setup as in the
+    prereg: no parasite, obligate outcross (outcross locus, set
+    (hermaphrodite, male), outcross fee 0.0, diploid_meiosis on) plus an
+    asexual founder fraction of 0.2: 10 founders, 2 marked asexual lineage,
+    seed 20011. Expected: generation 0 has 2 asexual out of 10 (0.2); the
+    asexual line persists; the fit equals the pin computed with this
+    estimator on this branch; and it differs from the male-count regression
+    pin, a different estimand."""
+
+    np = pytest.importorskip("numpy")
+    from tests._jr5_e1_fit import fit_logit
+
+    session = ClosedLoopP5Session.boot(
+        seed=20011,
+        outcross_bits=OUTCROSS_OUT_BITS,
+        outcross_runtime_atp=0.0,
+        n_primary=5,
+        n_secondary=5,
+    )
+    cfg = _sexes_for(
+        session,
+        **{**_ANDRO, "hermaphrodite_selfing": True, "diploid_meiosis": True},
+    )
+    session.runner.configs = replace(session.runner.configs, sexual_recombination=cfg)
+    founders = session.runner.population.organisms
+    for organism in founders[: round(0.2 * len(founders))]:
+        organism.asexual_lineage = True
+    session.run_ticks(6)
+    generations, asexual, census = session.e1_counts("asexual")
+    assert generations == [0, 1, 2, 3, 4, 5, 6]
+    assert asexual[0] / census[0] == 0.2 and min(asexual) >= 1
+    beta = fit_logit(
+        np.array(asexual, dtype=float),
+        np.array(census, dtype=float),
+        np.array(generations, dtype=float),
+        bias_reduced=True,
+    )
+    assert beta == pytest.approx(_E1_PREREG_ASEXUAL, abs=1e-7)
+    assert not np.allclose(beta, _E1_MALE_OUTCROSS_DIPLOID, atol=1e-3)
+
+
+def _selfed_child_bits(bits: str, seed: int, recombination_prob: float = 1.0) -> str:
     from codontrace.genesis.population import _self_fertilisation_record
     from codontrace.rng import RNGManager
 
     parent = GenesisOrganism.from_bits("p", bits, initial_runtime_atp=10.0, position=(0, 0))
-    config = SexualRecombinationConfig(enabled=True, diploid_meiosis=True)
+    config = SexualRecombinationConfig(
+        enabled=True, diploid_meiosis=True, recombination_prob=recombination_prob
+    )
     record = _self_fertilisation_record(parent, config, RNGManager(seed).fork("self"))
     assert record is not None
     return record.child_genome_bits
@@ -794,13 +850,142 @@ def test_selfed_child_keeps_parent_length_over_generations() -> None:
     of the two gametes as the child's homologs, so each gamete carries one copy
     of every locus and the child has the parent's length. Expected: the founder
     length, exactly, in each of 5 selfed generations, for an even and an odd
-    codon count."""
+    codon count.
+
+    Length alone is also kept by a clone, so the second part checks that the
+    child is a fusion of two gametes. With recombination_prob 0 there is no
+    crossover and each gamete is exactly one parental homolog, picked with
+    probability 1/2 by segregation. Parent: even homolog all 000, odd all 111
+    (4 loci). Expected: every child homolog equals one parental homolog, and
+    over 200 seeds all four (egg, pollen) homolog pairs occur, including the
+    two homozygous ones a clone or a single gamete cannot give. Chance that
+    one pair is missing by luck is at most 4 * (3/4)**200, below 1e-24."""
+
+    from codontrace.genesis.birth import split_diploid_homologs
 
     for founder in (LIFE_LOOP_EATER_GENOME + "101000111", "010110001111000101011"):
         bits = founder
         for generation in range(5):
             bits = _selfed_child_bits(bits, 1000 + generation)
             assert len(bits) == len(founder)
+
+    parent = "".join("000" if i % 2 == 0 else "111" for i in range(8))
+    homologs = split_diploid_homologs(parent, 3)
+    pairs = set()
+    for seed in range(200):
+        child = _selfed_child_bits(parent, seed, recombination_prob=0.0)
+        assert len(child) == len(parent)
+        egg, pollen = split_diploid_homologs(child, 3)
+        assert egg in homologs and pollen in homologs
+        pairs.add((egg, pollen))
+    assert pairs == {(x, y) for x in homologs for y in homologs}
+
+
+def test_selfing_meioses_draw_independent_crossover_gates() -> None:
+    """The two meioses of a selfing parent are separate events, so each draws
+    its own crossover gate from its own RNGManager stream. With
+    recombination_prob p = 0.5 the pair of gates is (True, True), (True,
+    False), (False, True) or (False, False) with probability 1/4 each if the
+    draws are independent; one shared draw gives only the two equal pairs.
+    Over N = 4000 seeds the count of unequal pairs is Binomial(N, 1/2): mean
+    2000, SD sqrt(N / 4) = 31.6, tolerance 4 SD = 126.5. The same seed gives
+    the same pair (deterministic), and p = 1.0 or 0.0 makes no draw."""
+
+    from codontrace.genesis.population import _selfing_crossover_gates
+    from codontrace.rng import RNGManager
+
+    half = SexualRecombinationConfig(enabled=True, diploid_meiosis=True, recombination_prob=0.5)
+    n = 4000
+    unequal = 0
+    for seed in range(n):
+        gates = _selfing_crossover_gates(half, RNGManager(seed).fork("self"))
+        assert gates == _selfing_crossover_gates(half, RNGManager(seed).fork("self"))
+        unequal += gates[0] != gates[1]
+    assert abs(unequal - n / 2) < 4 * (n / 4) ** 0.5
+    for prob, expected in ((1.0, (True, True)), (0.0, (False, False))):
+        cfg = replace(half, recombination_prob=prob)
+        assert _selfing_crossover_gates(cfg, RNGManager(1).fork("self")) == expected
+
+
+def _heterozygous_loci(bits: str) -> int:
+    from codontrace.genesis.birth import split_diploid_homologs
+
+    even, odd = split_diploid_homologs(bits, 3)
+    loci = min(len(even), len(odd)) // 3
+    return sum(even[3 * i : 3 * i + 3] != odd[3 * i : 3 * i + 3] for i in range(loci))
+
+
+def test_heterozygosity_halves_per_selfed_generation_through_step_population() -> None:
+    """Complete selfing over several generations, run with
+    PopulationRunner.step_generation (which calls step_population). Male-free
+    self arm, set (hermaphrodite,), selfing locus, diploid_meiosis on, no
+    mutation, 10 founders, seeds 0-19, 16 steps each.
+
+    Derivation: at a locus heterozygous in the parent each gamete carries
+    either homolog with probability 1/2, independently of the other gamete,
+    so the child is heterozygous there with probability 1/2; a homozygous
+    locus stays homozygous. So E[H_child | parent] = H_parent / 2 and, by
+    iterating, H_t = H_0 * 0.5**t after t selfed generations.
+
+    The engine selects on genotype (a homozygous child runs a different
+    program and may breed less), so the H of all depth-t organisms is not an
+    unselected sample. The test therefore checks the transmission step at each
+    selfing depth t (generations from a founder, read from the lineage): the
+    ratio R_t of heterozygous loci in depth-t children over those in their
+    parents is 1/2, and the chain H_t / H_0 = R_1 * ... * R_t equals 0.5**t.
+    Tolerance: per locus the child is Bernoulli(1/2), variance 1/4. Loci in
+    one genome are linked (a gamete's leading homolog is one draw), so the
+    worst case treats a parent's m heterozygous loci as one draw, variance
+    m**2 / 4. With M = sum of m, the SD of R_t is at most
+    sqrt(sum m**2) / (2 * M); the bound is 4 SD. Depths 1 and 2 have enough
+    births to test; the chain's bound adds the two 4-SD bounds."""
+
+    births: dict[int, list[tuple[int, int]]] = {}
+    for seed in range(20):
+        session = ClosedLoopP5Session.boot(
+            seed=seed,
+            outcross_bits=OUTCROSS_SELFING_BITS,
+            outcross_runtime_atp=0.0,
+            n_primary=5,
+            n_secondary=5,
+            max_population=200,
+            world_size=16,
+        )
+        cfg = _sexes_for(
+            session,
+            mating_type_set=("hermaphrodite",),
+            hermaphrodite_selfing=True,
+            diploid_meiosis=True,
+        )
+        runner = session.runner
+        runner.configs = replace(runner.configs, sexual_recombination=cfg)
+        genome = {o.id: o.genome.to_compact() for o in runner.population.organisms}
+        depth = dict.fromkeys(genome, 0)
+        for step in range(16):
+            runner.step_generation(seed=seed * 1000 + step)
+            live = {o.id: o.genome.to_compact() for o in runner.population.organisms}
+            for rec in runner.population.lineage:
+                child, parent = rec.organism_id, rec.parent_id
+                if child in genome or child not in live or parent not in genome:
+                    continue
+                assert rec.second_parent_id in (None, parent)
+                genome[child] = live[child]
+                depth[child] = depth[parent] + 1
+                births.setdefault(depth[child], []).append(
+                    (_heterozygous_loci(genome[child]), _heterozygous_loci(genome[parent]))
+                )
+
+    chain, bound = 1.0, 0.0
+    for t in (1, 2):
+        rows = births[t]
+        total = sum(m for _, m in rows)
+        assert total >= 100
+        ratio = sum(k for k, _ in rows) / total
+        sd = sum(m * m for _, m in rows) ** 0.5 / (2 * total)
+        assert abs(ratio - 0.5) < 4 * sd
+        chain *= ratio
+        bound += 4 * sd
+        assert abs(chain - 0.5**t) < bound
 
 
 def test_one_selfed_generation_halves_heterozygosity() -> None:

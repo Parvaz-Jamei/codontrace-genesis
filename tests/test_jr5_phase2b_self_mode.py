@@ -722,6 +722,12 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 # Pinned values of the prereg E1 fit on this census. The fit is the
 # bias-reduced binomial logit in tests/_jr5_e1_fit.py (same as the prereg).
 # Setup: prereg E1 (outcross fee 0.0, diploid_meiosis on with gamete fusion).
+# Bug-fix re-pin: before the fix a selfed child was the parent's even homolog
+# alone, so the genome halved each selfed generation and the E1 fit was taken
+# on shrinking genomes. Selfing is now two meioses of one parent plus fusion
+# (length kept, H halves per generation), so both arms were refit on the
+# prereg E1 setup. The self arm has zero males, so its intercept sits at the
+# bias-reduced lower bound.
 _E1_MALE_OUTCROSS_DIPLOID = (0.80725957, -0.32454182)
 _E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
 

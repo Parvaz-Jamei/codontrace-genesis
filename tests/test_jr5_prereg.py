@@ -147,7 +147,7 @@ def test_seed_counts_cover_design() -> None:
     assert len(calib) >= c["gate_e1"]["populations_per_cell"] * len(c["gate_e1"]["sex_ratios"])
 
 
-CLAIM_PATH_SHA256 = "9e653f03db8b95c8a2ac85fdba1a735aa9667ca4875bd3cb24f675299e87ae15"
+CLAIM_PATH_SHA256 = "f90b8b1c8bf102814546930a06f295178939ef6c1b14b2042dc51cf2be8a49dc"
 RANGE_RE = re.compile(r"`(\d+)\s*(?:\u2013|-|\u2026|\.\.\.)\s*(\d+)`")
 
 
@@ -185,6 +185,8 @@ def test_prereg_seed_tables_do_not_overlap_across_preregs() -> None:
     seeds = _constants()["seeds"]
     jr5 = {tuple(seeds[k]) for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")}
     assert set(blocks["docs/prereg/jr5/PREREG.md"]) == jr5
+    assert any(n.startswith("docs/handoff/") and "_PREREG_" in n for n in blocks)
+    assert any(n.startswith("docs/HARD_EXPERIMENT_0") and "_PREREG" in n for n in blocks)
     names = sorted(blocks)
     for i, a in enumerate(names):
         for b in names[i + 1 :]:
@@ -284,13 +286,17 @@ def test_bca_level_follows_holm_step_in_text_and_json() -> None:
     family = c["multiplicity"]["primary_family"]
     alpha = c["multiplicity"]["family_alpha"]
     levels = [1 - alpha / (len(family) - i) for i in range(len(family))]
-    assert boot["ci_level_rule"] == "one_minus_holm_adjusted_alpha_of_step"
+    assert boot["ci_level_rule"] == "bca_at_one_minus_holm_adjusted_alpha_of_step"
     assert all(math.isclose(a, b) for a, b in zip(boot["ci_level_by_holm_step"], levels, strict=True))
     first = f"{levels[0]:.2%}"
     claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
     for text in (_prereg_text(), claim):
         assert f"{first} at step 1" in text
     assert "bootstrap 95% interval (" not in claim
+    assert boot["condition_c_ci_level"] == 0.95
+    assert (
+        "two-sided 95% intervals (10,000 resamples, seed 12345), the level that matches one-sided alpha 0.025" in claim
+    )
 
 
 def test_e1_estimator_is_bias_reduced() -> None:

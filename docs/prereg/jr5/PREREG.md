@@ -56,7 +56,7 @@ Horizon calculation. Under a constant odds ratio w, logit p(t) = logit(0.2) + t�
 - Value per seed: terminal uniparental frequency at the horizon.
 - Contrast: copassaged minus fixed, paired by seed, one test per virulence level.
 - Tests: paired two-sided t test, and a paired BCa bootstrap interval (10,000 resamples of seeds, bootstrap seed 12345) at the matching level.
-- Matching level: the BCa interval for a test is taken at 1 minus the Holm-adjusted alpha of that test's step, that is 0.05/(5 − k) at step k = 1 to 4. So 98.75% at step 1, 98.333% at step 2, 97.5% at step 3 and 95% at step 4.
+- Matching level: the BCa interval for a test is taken at 1 minus the Holm-adjusted alpha of that test's step, that is 0.05/(5 − k) at step k = 1 to 4. So 98.75% at step 1, 98.333% at step 2, 97.5% at step 3 and 95% at step 4. The interval is used as a test at the same level as the Holm step: it excludes 0 exactly when the bootstrap test rejects at that step. It is not a simultaneous confidence interval and is not reported as one.
 - Agreement rule: a test counts as significant only when the t test and the BCa interval are both significant in the same direction. If one is significant and the other is not, or they point in opposite directions, that test is inconclusive and the outcome is `inconclusive`.
 - Effect sizes: risk difference of persistence (frequency at least 0.05) and Hedges g_av.
 - Multiplicity: Holm across four E2 tests (N = 200 and N = 50, each at high and low virulence) at family alpha 0.05. E1 is a gate, not a claim, so it is not in the Holm family.

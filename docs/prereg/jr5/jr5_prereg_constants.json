@@ -98,13 +98,14 @@
       "method": "bca",
       "resamples": 10000,
       "seed": 12345,
-      "ci_level_rule": "one_minus_holm_adjusted_alpha_of_step",
+      "ci_level_rule": "bca_at_one_minus_holm_adjusted_alpha_of_step",
       "ci_level_by_holm_step": [
         0.9875,
         0.9833333333333333,
         0.975,
         0.95
-      ]
+      ],
+      "condition_c_ci_level": 0.95
     },
     "agreement_rule": "significant_only_if_t_and_bca_both_significant_same_direction_else_inconclusive"
   },

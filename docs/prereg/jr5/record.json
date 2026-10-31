@@ -1,15 +1,15 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "f7c82bf14d616b316251e15bd86a93f77a79aac42af1bbbf1309fa24dafc42c9",
+    "digest": "cabd623db97756a55d7c4c86c94eda0ef7b3c3bd85af2f85ef207543e7f6d568",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
-        "826b412233004ba2dad3c2118c7ecd7be918e54e2183c3c9ef3ea5dc2d7615b4"
+        "1aa3965ff588a6ca5f94f06322c67a0ea093af82fdad56a643243c7343d790be"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "f0237318a2be710f2f07c827dfa1b9f90b7e28befeeb594455b2abd2f8ffa7cd"
+        "f19fb736f6472338510e0e02d044ce9c0c265f2fd2555afbff28aff4508bc1d0"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
@@ -17,7 +17,7 @@
       ],
       [
         "docs/prereg/jr5/REFERENCES.md",
-        "71ac161310d9d4363fc3150c3b90f102094cea584cf4a515e7ba72893355f694"
+        "9d96066f852d432996d56509f854c098a6a49cc53f1f53c25fd92776f5bc01d8"
       ],
       [
         "docs/prereg/jr5/SUMMARY_SHA256_NOTE.md",
@@ -25,7 +25,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "a814fd5a6c9df98df022c2e96fbdf3afd2089929b575567481b9a8cded4d838d"
+        "68ee615fe07448c291a7ec9e69175c17dba573b911dc4e0e0f76ea2a966e86f9"
       ],
       [
         "docs/prereg/jr5/scripts/e1_power_sim.py",

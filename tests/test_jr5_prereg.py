@@ -628,6 +628,10 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
             "kept_as_real_cost_of_outcrossing": True,
             "ledger_term": "separate_from_son_cost",
             "paid_by_selfers": False,
+            "ledger_action": "mate_fee",
+            "ledger_reason": "outcross_runtime_cost",
+            "charged": "once_per_outcross_reproduction",
+            "capped_at": "available_runtime_atp",
         },
         "ledgered_arm_differences": ["son_cost", "outcross_mating_fee"],
         "cost_of_males_estimate_uses": "son_cost_only",
@@ -663,7 +667,11 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
         "two_fold_cost_sex": False,
         "hermaphrodite_selfing": True,
     }
-    assert cfg["closed_loop_hp_life"] == {"outcross_enabled": True, "selfing_birth_atp_endowment": 0.0}
+    assert cfg["closed_loop_hp_life"] == {
+        "outcross_enabled": True,
+        "selfing_birth_atp_endowment": 0.0,
+        "outcross_runtime_atp": 1.0,
+    }
     assert cfg["outcross_locus"] == {"obligate_self": "000", "obligate_outcross": "001"}
     assert cfg["identical_config_self_and_outcross"] is True
     assert cfg["only_difference"] == "outcross_locus"
@@ -701,6 +709,10 @@ def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
     assert fee["atp_per_outcross_reproduction"] == 1.0
     assert fee["ledger_term"] == "separate_from_son_cost"
     assert fee["paid_by_selfers"] is False
+    assert fee["ledger_action"] == "mate_fee"
+    assert fee["ledger_reason"] == "outcross_runtime_cost"
+    cfg = _constants()["host_mating_arm_modes"]["engine_config"]
+    assert cfg["closed_loop_hp_life"]["outcross_runtime_atp"] == fee["atp_per_outcross_reproduction"]
     assert lfl["ledgered_arm_differences"] == ["son_cost", "outcross_mating_fee"]
     assert lfl["cost_of_males_estimate_uses"] == "son_cost_only"
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")

@@ -21,6 +21,9 @@ from codontrace.genesis.closed_loop_p5 import ClosedLoopP5Session
 from codontrace.rng import RNGManager
 
 WIDTH = 3
+# P5 snapshot digest, diploid_meiosis off, seed 11, 30 ticks, initial_atp 200,
+# basal cost 0, max_population 24; computed on main 7db2227 before the fix.
+DIPLOID_OFF_P5_DIGEST = "clp5snap:c9f2709fa7315c7a1430fcbfa9867df993b838f83abf3017bc52de95542a9b95"
 
 
 def _heterozygote(codons: int) -> str:
@@ -124,8 +127,9 @@ def test_p5_run_with_diploid_meiosis_keeps_both_arms_and_genome_length() -> None
     outcross locus and the program stay decodable and neither arm is lost to
     shrinking genomes. Uses the outcross P5 session on main (the selfing arm is
     on a separate branch). Expected: founder length 18 bits for every organism
-    and at least one organism of each role after 30 ticks, seed 11, as in the
-    diploid-off run with the same settings; the diploid-off digest is unchanged.
+    and at least one organism of each role after 30 ticks, seed 11. The
+    diploid-off run with the same settings must give the snapshot digest
+    computed on main 7db2227 before this change (pinned below).
     """
 
     kwargs = {"initial_atp": 200.0, "basal_atp_cost": 0.0, "max_population": 24}
@@ -137,3 +141,93 @@ def test_p5_run_with_diploid_meiosis_keeps_both_arms_and_genome_length() -> None
     assert roles["secondary"] > 0
     assert {len(o.genome.to_compact()) for o in organisms} == {18}
     assert session.recombination_births > 0
+    off = ClosedLoopP5Session.boot(seed=11, **kwargs)
+    off.run_ticks(30)
+    assert off.snapshot_digest() == DIPLOID_OFF_P5_DIGEST
+
+
+def _expected_end_to_end_recombinant_fraction(m: int) -> float:
+    """Exact P(first and last codon of a gamete come from different homologs).
+
+    The crossover window over ``m`` paired codons: start uniform on 0..m-1;
+    length uniform on 1..(m - start), one less when start is 0; a start-0
+    length-1 window becomes length 2 when m >= 3. The two end codons differ in
+    source exactly when one of them lies inside the window.
+    """
+
+    total = 0.0
+    for start in range(m):
+        max_len = m - start - (1 if start == 0 else 0)
+        for length in range(1, max_len + 1):
+            eff = 2 if (m >= 3 and start == 0 and length == 1) else length
+            inside = {i for i in range(start, start + eff)}
+            total += (1 / m) * (1 / max_len) * ((0 in inside) != (m - 1 in inside))
+    return total
+
+
+def test_crossover_gives_the_derived_recombinant_fraction() -> None:
+    """Meiotic crossover recombines the two end loci at the derived rate.
+
+    Basis: a gamete is recombinant for two loci when they come from different
+    homologs, which happens only through a crossover between them. For the
+    one-window exchange used here, with m = 4 paired codons, enumerating the
+    window distribution gives, by start codon 0..3, recombinant shares 1
+    (windows 0-1, 0-1, 0-2), 1/3, 1/2 and 1, so P = (1 + 1/3 + 1/2 + 1) / 4 =
+    17/24 (see the helper). Tolerance: 4 binomial standard errors
+    over 4000 gametes, seed 13. Without crossover the fraction is 0, so a
+    dropped crossover fails.
+    """
+
+    expected = _expected_end_to_end_recombinant_fraction(4)
+    assert abs(expected - 17 / 24) < 1e-12
+    parent = _heterozygote(8)
+    rng = RNGManager(13)
+    n = 4000
+    hits = 0
+    for i in range(n):
+        gamete = meiotic_gamete(parent, WIDTH, rng.fork(f"x/{i}"))
+        hits += gamete[:WIDTH] != gamete[3 * WIDTH : 4 * WIDTH]
+    se = (expected * (1 - expected) / n) ** 0.5
+    assert abs(hits / n - expected) < 4 * se
+    no_x = sum(
+        (g := meiotic_gamete(parent, WIDTH, rng.fork(f"n/{i}"), crossover=False))[:WIDTH] != g[3 * WIDTH : 4 * WIDTH]
+        for i in range(200)
+    )
+    assert no_x == 0
+
+
+def test_chamber_pair_from_one_parent_is_meiosis_and_fusion() -> None:
+    """Two chamber slots of one parent give a selfed zygote, not a clone.
+
+    Basis: selfing is two independent meioses of one parent and a fusion, so a
+    locus heterozygous in the parent is heterozygous in the child with
+    probability 1/2 (expected H = 0.5). Tolerance: H per child lies in [0, 1],
+    variance at most 1/4, so 4 standard errors over N = 2000 children are at
+    most 4 * 0.5 / sqrt(2000). The child keeps the parent's length.
+    """
+
+    from codontrace.genesis.birth import IncipientOffspring
+    from codontrace.genesis.population import _fertilise
+
+    parent = _heterozygote(8)
+    slot = IncipientOffspring(
+        slot_id="s1",
+        parent_id="p",
+        genome_bits=parent,
+        genome_digest="d",
+        entered_tick=0,
+        parent_position=(0, 0),
+        offspring_runtime_atp=1.0,
+        parent_generation=0,
+        codon_width=WIDTH,
+    )
+    other = IncipientOffspring(**{**{f: getattr(slot, f) for f in slot.__slots__}, "slot_id": "s2"})
+    n = 2000
+    total = 0.0
+    for i in range(n):
+        record = _fertilise(slot, other, RNGManager(i), crossover=True)
+        assert record is not None
+        assert len(record.child_genome_bits) == len(parent)
+        assert record.parent_b_id == "p:self_gamete"
+        total += _heterozygosity(record.child_genome_bits)
+    assert abs(total / n - 0.5) < 4 * 0.5 / n**0.5

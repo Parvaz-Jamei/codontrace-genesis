@@ -667,10 +667,11 @@ def test_census_reports_sexes_modes_and_sons_in_both_arms(diploid: bool) -> None
 
 def test_census_male_share_and_m_are_defined_per_generation() -> None:
     """Two sex-ratio quantities: male_share_population is males over the census
-    (standing ratio); m is sons over births in that generation, the prereg m
-    (sex allocation of offspring). Expected: both recomputed from the row's own
-    counts, m is None in rows with no births, and in the male-free self arm
-    (hermaphrodite,) every defined m is 0."""
+    (standing ratio); m is sons over births of outcrossing parents, the prereg
+    m (sex allocation of outcrossed offspring; selfed progeny are never sons).
+    Expected: both recomputed from the row's own counts, m is None in rows with
+    no outcrossed births, and in the outcross arm, where every birth is
+    outcrossed, m equals sons_born over births."""
 
     for bits, types in (
         (OUTCROSS_OUT_BITS, ("hermaphrodite", "male")),
@@ -681,12 +682,10 @@ def test_census_male_share_and_m_are_defined_per_generation() -> None:
         for row in session.census():
             assert "sex_ratio_male" not in row
             assert row["male_share_population"] == row["counts"].get("male", 0) / row["census"]
-            if row["births"]:
-                assert row["m"] == row["sons_born"] / row["births"]
-            else:
+            if not row["outcrossed"]:
                 assert row["m"] is None
-            if types == ("hermaphrodite",) and row["m"] is not None:
-                assert row["m"] == 0
+            elif row["outcrossed"] == row["births"]:
+                assert row["m"] == row["sons_born"] / row["births"]
 
 
 def test_enabling_sexes_mid_run_is_refused() -> None:

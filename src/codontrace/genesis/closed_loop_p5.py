@@ -352,7 +352,8 @@ class ClosedLoopP5Session:
         lineage_by_id = {rec.organism_id: rec for rec in population.lineage}
         new = list(self._offspring_endowments.items())[births_before:]
         modes = {"selfed": 0, "outcrossed": 0, "uniparental": 0}
-        for child_id, _ in new:
+        outcross_sons = 0
+        for child_id, (child_kind, _atp) in new:
             rec = lineage_by_id.get(child_id)
             if rec is None or rec.second_parent_id is None:
                 modes["uniparental"] += 1
@@ -360,6 +361,7 @@ class ClosedLoopP5Session:
                 modes["selfed"] += 1
             else:
                 modes["outcrossed"] += 1
+                outcross_sons += child_kind == "male"
         sons = sum(1 for _, (kind, _atp) in new if kind == "male")
         breeders = sum(n for kind, n in counts.items() if kind != "male")
         self._census_rows.append(
@@ -373,8 +375,8 @@ class ClosedLoopP5Session:
                 "breeders": breeders,
                 "births": len(new),
                 "sons_born": sons,
-                # Prereg m: share of this generation's births that are sons.
-                "m": sons / len(new) if new else None,
+                # Prereg m: sons over births of outcrossing parents.
+                "m": outcross_sons / modes["outcrossed"] if modes["outcrossed"] else None,
                 "son_atp": round(float(sum(atp for _, (kind, atp) in new if kind == "male")), 10),
                 **modes,
             }
@@ -386,8 +388,8 @@ class ClosedLoopP5Session:
         (``asexual`` for the asexual founder lineage), ``male_share_population``
         (males over census), breeders
         (non-males), births split into selfed, outcrossed and uniparental, and
-        sons born with their ATP, and ``m`` (sons over births, None with no
-        births). Not part of the snapshot digest."""
+        sons born with their ATP, and ``m`` (sons over outcrossed births, the
+        prereg m; None with no outcrossed births). Not part of the snapshot digest."""
 
         return [dict(row) for row in self._census_rows]
 

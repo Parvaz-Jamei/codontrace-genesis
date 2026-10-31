@@ -828,11 +828,11 @@ class PopulationState:
     environment: EnvironmentState | None = None
     deme: DemeState | None = None
     materials: MaterialsState | None = None
-    # Run seed for mating-type draws, captured at the first sexes-on step so
-    # each sex is keyed to the run seed and organism id, never to a per-step
-    # seed. Sexes must be on from generation 0 (step_population refuses to
-    # enable them later), so that first step is the run's first step.
-    # Written only when set.
+    # Seed for mating-type draws: the seed of the first sexes-on step, captured
+    # then and reused, so each sex is keyed to that seed and the organism id
+    # and later step seeds never change it. Sexes must be on from generation 0
+    # (step_population refuses to enable them later), so this is the seed of
+    # the run's generation-0 step. Written only when set.
     mating_seed: int | None = None
 
     def __post_init__(self) -> None:

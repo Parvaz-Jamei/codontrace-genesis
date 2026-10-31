@@ -5722,6 +5722,11 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
     and lineage). With a mating seed every sexual organism must already carry
     its stored type, since each sexes-on step stamps them; a seed injected
     into a sexes-off snapshot fails this.
+
+    Out of scope: a coordinated hand edit that resets generation, tick and
+    lineage together, or stamps plausible mating types alongside an injected
+    seed, is not detected. The check guards against accidental mid-run
+    starts, not deliberate forgery; snapshots carry no signature.
     """
 
     if not sexual.mating_types_enabled:

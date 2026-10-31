@@ -634,3 +634,80 @@ def test_son_cost_is_its_own_term_in_both_arms(diploid: bool) -> None:
     assert out_cost["atp"] == pytest.approx(sum(son_atp))
     assert 0.0 < out_cost["son_fraction"] < 1.0
     assert out_session.mating_fee_ledger()["term"] != out_cost["term"]
+
+
+# Census, and the E1 fit input it provides.
+
+
+@pytest.mark.parametrize("diploid", [False, True])
+def test_census_reports_sexes_modes_and_sons_in_both_arms(diploid: bool) -> None:
+    """Selfed progeny are all hermaphrodite and outcrossed progeny include sons
+    at sex_ratio, so the census of the self arm, set (hermaphrodite,), has no
+    males and only selfed births, while the outcross arm, set
+    (hermaphrodite, male), has males and outcrossed births. Expected: one row
+    per generation from 0 to 4, counts sum to the census, and the summed sons
+    and son ATP equal the son_allocation term."""
+
+    for bits, types, mode in (
+        (OUTCROSS_SELFING_BITS, ("hermaphrodite",), "selfed"),
+        (OUTCROSS_OUT_BITS, ("hermaphrodite", "male"), "outcrossed"),
+    ):
+        session, _ = _self_arm(bits, mating_type_set=types, diploid_meiosis=diploid)
+        session.run_ticks(4)
+        rows = session.census()
+        assert [row["generation"] for row in rows] == [0, 1, 2, 3, 4]
+        assert all(sum(row["counts"].values()) == row["census"] for row in rows)
+        assert set().union(*(row["counts"] for row in rows)) <= set(types)
+        assert sum(row[mode] for row in rows) == sum(row["births"] for row in rows) >= 1
+        cost = session.son_cost_ledger()
+        assert sum(row["sons_born"] for row in rows) == cost["sons"]
+        assert sum(row["son_atp"] for row in rows) == pytest.approx(cost["atp"])
+        assert (cost["sons"] == 0) == (types == ("hermaphrodite",))
+
+
+def test_census_counts_the_asexual_founder_lineage() -> None:
+    """E1 tracks the asexual share; the census counts asexual-lineage
+    organisms under "asexual". Expected: one founder marked asexual is counted
+    at generation 0, and e1_counts returns generation, asexual count and
+    census per row."""
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    session.runner.population.organisms[0].asexual_lineage = True
+    session.run_ticks(2)
+    generations, asexual, census = session.e1_counts("asexual")
+    assert generations == [0, 1, 2]
+    assert asexual[0] == 1 and all(a >= 1 for a in asexual)
+    assert census == [row["census"] for row in session.census()]
+
+
+# Pinned values of the prereg E1 fit on this census. The fit is the
+# bias-reduced binomial logit in tests/_jr5_e1_fit.py (same as the prereg).
+_E1_MALE_OUTCROSS_DIPLOID = (0.79900229, -0.09470521)
+
+
+def test_e1_fit_on_the_census_is_pinned() -> None:
+    """The census feeds the E1 fit: count out of census against generation,
+    bias-reduced logit (likelihood plus half the log determinant of the
+    Fisher information). Input: male counts of the outcross arm, set
+    (hermaphrodite, male), diploid_meiosis on, 6 generations, seed 20011.
+    Expected: the pinned intercept and slope (computed with this estimator on
+    this branch); the plain fit differs, and on an all-zero count (no
+    asexual lineage here), where the plain estimate does not exist, the
+    bias-reduced one is finite (the reason the prereg uses it)."""
+
+    np = pytest.importorskip("numpy")
+    from tests._jr5_e1_fit import fit_logit
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS, mating_type_set=("hermaphrodite", "male"), diploid_meiosis=True)
+    session.run_ticks(6)
+    generations, males, census = session.e1_counts("male")
+    assert generations == [0, 1, 2, 3, 4, 5, 6]
+    x = np.array(generations, dtype=float)
+    k = np.array(males, dtype=float)
+    n = np.array(census, dtype=float)
+    beta = fit_logit(k, n, x, bias_reduced=True)
+    assert beta == pytest.approx(_E1_MALE_OUTCROSS_DIPLOID, abs=1e-7)
+    assert not np.allclose(fit_logit(k, n, x, bias_reduced=False), beta, atol=1e-6)
+    _, asexual, _ = session.e1_counts("asexual")
+    zero = fit_logit(np.array(asexual, dtype=float), n, x, bias_reduced=True)
+    assert np.all(np.isfinite(zero))

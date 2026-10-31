@@ -6,9 +6,10 @@ This replaces the permanent ban. Phase 1 documents it only. The adapter is built
 
 A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = True` only if every one of (a) to (e) holds. Otherwise it returns the matching typed outcome from PREREG.md section 2, and the flag stays `False`.
 
-**(a) Cost gate.** E1 TOST passes at sex ratio 0.5 and at 0.25:
+**(a) Cost gate.** E1 TOST at N = 200 passes at sex ratio 0.5 and at 0.25:
 - the 90% interval lies inside [1.8, 2.2] and inside [1.2, 1.4667];
 - each 95% interval excludes 1.
+- E1 at N = 50 is reported, not gated, and is not part of this condition. Its measured lower-bound size is 0.073 (bias-reduced fit).
 
 **(b) Invasion, both population sizes.** At N = 200 and separately at N = 50, the E2 high-virulence test (copassaged minus fixed, paired t, two-sided) is significant after Holm correction at family alpha 0.05, with copassaged lower than fixed.
 - The family is the four tests {N200 high, N200 low, N50 high, N50 low}.
@@ -24,6 +25,7 @@ A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = Tru
 - *Diversity without cycles:* the frozen-minus-fixed paired difference of terminal uniparental frequency has a 90% interval inside ±0.10, or a 95% interval entirely on the opposite side of 0 from the copassaged effect. In addition, at least one registered E4 time-shift window has a host or parasite effect whose 95% interval excludes 0, with the sign expected under cycling.
 - *Fitness tax:* the uniform-tax-minus-fixed paired difference has a 90% interval inside ±0.10, or a 95% interval entirely on the opposite side of 0 from the copassaged effect.
 - Sensitivity at 60 seeds (PREREG.md section 7): MDE 0.368 SD of the paired difference; equivalence power at ±0.10 is 0.84 at SD 0.25. If an alternative is neither ruled out nor detected, (d) fails.
+- If the phase 2b self mode (`hermaphrodite_selfing_sexes_on`) is not delivered, the mutation-load self arm and the E5 self arms are not run. The mutation-load alternative then cannot be ruled out, so (d) fails and `red_queen_proved` stays `False`. No substitute run with sexes off, or with any other flag setting, may stand in for those arms.
 
 **(e) Replay.** Every run in (a) to (d):
 - verifies its replay digest;

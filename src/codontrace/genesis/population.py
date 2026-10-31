@@ -5725,7 +5725,7 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
 
     Out of scope: a coordinated hand edit that resets generation, tick and
     lineage together, or stamps plausible mating types alongside an injected
-    seed, is not detected. The check guards against accidental mid-run
+    seed, or replaces the seed of a sexes-on snapshot, is not detected. The check guards against accidental mid-run
     starts, not deliberate forgery; snapshots carry no signature.
     """
 

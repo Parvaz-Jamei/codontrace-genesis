@@ -13,6 +13,7 @@ set ``red_queen_proved``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -81,6 +82,33 @@ def _ledger_reasons(organism: GenesisOrganism) -> list[str]:
             if isinstance(entry, dict) and "reason" in entry:
                 reasons.append(str(entry["reason"]))
     return reasons
+
+
+def birth_modes_and_m(
+    births: Sequence[tuple[str, str | None, str | None]],
+) -> tuple[dict[str, int], float | None]:
+    """Split births into selfed, outcrossed and uniparental; return the prereg m.
+
+    Each birth is (child mating type, parent id, second parent id). A selfed
+    birth names the parent twice; uniparental has no second parent. m is sons
+    over births of outcrossing parents (None with none); selfed and
+    uniparental births are left out. Used as 1/(1-m) for the cost of males,
+    this assumes all sexual output is outcrossed; the selfed share is reported
+    separately.
+    """
+
+    modes = {"selfed": 0, "outcrossed": 0, "uniparental": 0}
+    outcross_sons = 0
+    for kind, parent_id, second_parent_id in births:
+        if second_parent_id is None:
+            modes["uniparental"] += 1
+        elif second_parent_id == parent_id:
+            modes["selfed"] += 1
+        else:
+            modes["outcrossed"] += 1
+            outcross_sons += kind == "male"
+    m = outcross_sons / modes["outcrossed"] if modes["outcrossed"] else None
+    return modes, m
 
 
 @dataclass
@@ -351,17 +379,17 @@ class ClosedLoopP5Session:
             counts[kind] = counts.get(kind, 0) + 1
         lineage_by_id = {rec.organism_id: rec for rec in population.lineage}
         new = list(self._offspring_endowments.items())[births_before:]
-        modes = {"selfed": 0, "outcrossed": 0, "uniparental": 0}
-        outcross_sons = 0
+        births_seen: list[tuple[str, str | None, str | None]] = []
         for child_id, (child_kind, _atp) in new:
             rec = lineage_by_id.get(child_id)
-            if rec is None or rec.second_parent_id is None:
-                modes["uniparental"] += 1
-            elif rec.second_parent_id == rec.parent_id:
-                modes["selfed"] += 1
-            else:
-                modes["outcrossed"] += 1
-                outcross_sons += child_kind == "male"
+            births_seen.append(
+                (
+                    child_kind,
+                    rec.parent_id if rec is not None else None,
+                    rec.second_parent_id if rec is not None else None,
+                )
+            )
+        modes, m_value = birth_modes_and_m(births_seen)
         sons = sum(1 for _, (kind, _atp) in new if kind == "male")
         breeders = sum(n for kind, n in counts.items() if kind != "male")
         self._census_rows.append(
@@ -375,8 +403,7 @@ class ClosedLoopP5Session:
                 "breeders": breeders,
                 "births": len(new),
                 "sons_born": sons,
-                # Prereg m: sons over births of outcrossing parents.
-                "m": outcross_sons / modes["outcrossed"] if modes["outcrossed"] else None,
+                "m": m_value,
                 "son_atp": round(float(sum(atp for _, (kind, atp) in new if kind == "male")), 10),
                 **modes,
             }

@@ -750,3 +750,30 @@ def test_e1_fit_on_the_census_is_pinned() -> None:
     _, asexual, _ = session.e1_counts("asexual")
     zero = fit_logit(np.array(asexual, dtype=float), n, x, bias_reduced=True)
     assert np.all(np.isfinite(zero))
+
+
+def test_prereg_m_counts_sons_of_outcrossed_births_only() -> None:
+    """The prereg m is sons over births of outcrossing parents. Row: 4
+    outcrossed births (1 son), 4 selfed births and 2 uniparental births.
+    Expected by hand: m = 1/4; sons over all births would give 1/10 and sons
+    over sexual births 1/8, so either mutant fails. A row with no outcrossed
+    births has m None."""
+
+    from codontrace.genesis.closed_loop_p5 import birth_modes_and_m
+
+    births = [
+        ("male", "a", "b"),
+        ("hermaphrodite", "a", "c"),
+        ("hermaphrodite", "b", "c"),
+        ("hermaphrodite", "c", "a"),
+        ("hermaphrodite", "s", "s"),
+        ("hermaphrodite", "s", "s"),
+        ("hermaphrodite", "t", "t"),
+        ("hermaphrodite", "t", "t"),
+        ("hermaphrodite", "u", None),
+        ("male", "u", None),
+    ]
+    modes, m = birth_modes_and_m(births)
+    assert modes == {"selfed": 4, "outcrossed": 4, "uniparental": 2}
+    assert m == 0.25
+    assert birth_modes_and_m([("hermaphrodite", "s", "s")])[1] is None

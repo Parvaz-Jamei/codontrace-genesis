@@ -1,7 +1,7 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "ab289466b1dc1a7f8fa60de654f936b159a37419b8929d283490ffbff1262fe8",
+    "digest": "9159cbb0a1882c48bfcba68bd90a310300ae03888c3f4cc893283340ab55b1c7",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
@@ -9,7 +9,7 @@
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "fccf7dbe0526cdb5c53a4877918f65f5b49956e5e138e9483980bbbd8927cba5"
+        "d7e94062775b81fe95e79bb21f5f5a790d42591d9e75fdef44b482c0fd980720"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
@@ -17,7 +17,7 @@
       ],
       [
         "docs/prereg/jr5/REFERENCES.md",
-        "9d96066f852d432996d56509f854c098a6a49cc53f1f53c25fd92776f5bc01d8"
+        "c1705f2f8b362ebda70ac406bbf8a57c38af24bfdc7b5eadc18b422f89c8969e"
       ],
       [
         "docs/prereg/jr5/SUMMARY_SHA256_NOTE.md",
@@ -25,7 +25,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "2ccf928bfcfa4e5ecb03e83664febfcb5d6443f110db065b77b875581ee2b4e3"
+        "f4d63e38cbe65f8c4880e82f52fb1979004eb003ba237c5e93dab81655727079"
       ],
       [
         "docs/prereg/jr5/scripts/e1_power_sim.py",

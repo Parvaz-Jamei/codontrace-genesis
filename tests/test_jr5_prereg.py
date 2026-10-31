@@ -98,7 +98,10 @@ def test_seed_blocks_do_not_touch_sealed() -> None:
     sealed: set[int] = set()
     for pair in seeds["sealed_ranges"]:
         sealed |= _block(pair)
-    blocks = [_block(seeds[k]) for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")]
+    blocks = [
+        _block(seeds[k])
+        for k in ("confirmatory_block", "e1_calibration_block", "pilot_block", "realised_w_pilot_block")
+    ]
     for block in blocks:
         assert not block & sealed
         assert min(block) >= 13001
@@ -184,7 +187,9 @@ def test_prereg_seed_tables_do_not_overlap_across_preregs() -> None:
         (12001, 12240),
     }
     seeds = _constants()["seeds"]
-    jr5 = {tuple(seeds[k]) for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")}
+    jr5 = {
+        tuple(seeds[k]) for k in ("confirmatory_block", "e1_calibration_block", "pilot_block", "realised_w_pilot_block")
+    }
     assert set(blocks["docs/prereg/jr5/PREREG.md"]) == jr5
     assert any(n.startswith("docs/handoff/") and "_PREREG_" in n for n in blocks)
     assert any(n.startswith("docs/HARD_EXPERIMENT_0") and "_PREREG" in n for n in blocks)
@@ -249,7 +254,7 @@ def test_prereg_text_matches_json() -> None:
     assert f"{gate['log_margin']['low']:.4f} / +{gate['log_margin']['high']:.4f}" in text.replace("\u2212", "-")
     assert f"at most {gate['exclusion_cap_fraction']:.0%}" in text
     seeds = c["seeds"]
-    for k in ("confirmatory_block", "e1_calibration_block", "pilot_block"):
+    for k in ("confirmatory_block", "e1_calibration_block", "pilot_block", "realised_w_pilot_block"):
         lo, hi = seeds[k]
         assert f"`{lo}\u2013{hi}`" in text
     for lo, hi in seeds["sealed_ranges"]:
@@ -357,7 +362,7 @@ def test_legacy_overlap_allow_list_is_real() -> None:
 def test_jr5_blocks_clear_every_plain_range_in_prereg_docs() -> None:
     """Any number range or single seed on any line of another prereg, backticked or not."""
     seeds = _constants()["seeds"]
-    jr5 = [seeds[k] for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")]
+    jr5 = [seeds[k] for k in ("confirmatory_block", "e1_calibration_block", "pilot_block", "realised_w_pilot_block")]
     for doc in sorted((ROOT / "docs").rglob("*PREREG*.md")):
         if doc.parent == PREREG_DIR:
             continue
@@ -774,3 +779,40 @@ def test_diploid_meiosis_on_in_every_host_arm() -> None:
     assert c["engine_config"]["diploid_meiosis_all_host_arms"] is True
     assert c["like_for_like"]["selfing_genetics"]["diploid_meiosis"] is True
     assert "`diploid_meiosis` is on in every JR5 host arm" in _prereg_text()
+
+
+def test_realised_w_pilot_pinned() -> None:
+    """The E1 power figures assume a fixed true w of 2.0 at m = 0.5, but the
+    engine's outcrossers also pay the mating fee and carry segregation load
+    from diploid meiosis, so realised w is measured first. The pilot is sized
+    for precision: the bias-reduced SD of log w at N = 200, m = 0.5 is 0.076
+    (PREREG.md section 7 table), so 40 populations give SE 0.076 / sqrt(40) =
+    0.012 and a 90% half-width of about 0.020, far inside the log margins
+    -0.1054 / +0.0953. It uses the E1 estimator, interval and bounds unchanged,
+    its own seed block, and failure stops the confirmatory runs rather than
+    moving the bounds."""
+    c = _constants()
+    p = c["realised_w_pilot"]
+    g = c["gate_e1"]
+    assert p["confirmatory"] is False
+    assert p["enters_claims"] is False
+    assert p["seed_block"] == c["seeds"]["realised_w_pilot_block"] == [13201, 13240]
+    assert len(_block(p["seed_block"])) == p["populations"] == g["populations_per_cell"]
+    assert p["fit"] == "bias_reduced"
+    assert p["ci_level"] == g["ci_level"]
+    assert p["bounds"] == g["equivalence_bounds"]["0.5"]
+    assert p["diploid_meiosis"] is True
+    eng = c["host_mating_arm_modes"]["engine_config"]
+    assert eng["sexual_recombination"]["diploid_meiosis"] is True
+    assert p["outcross_mating_fee_atp"] == eng["closed_loop_hp_life"]["outcross_runtime_atp"]
+    b = p["size_basis"]
+    se = b["sd_log_w_bias_reduced_n200_m05"] / math.sqrt(p["populations"])
+    assert math.isclose(se, b["se_log_w"], abs_tol=5e-4)
+    assert 1.69 * se <= b["half_width_90_log"] + 5e-4
+    assert 2 * 1.69 * se < min(-b["log_margins"][0], b["log_margins"][1])
+    assert p["bounds_never_widened"] is True and p["estimator_never_changed"] is True
+    assert p["on_fail"].startswith("instrument_failure")
+    text = _prereg_text()
+    assert "**Realised-w pilot (non-confirmatory, runs before E1).**" in text
+    assert "No confirmatory seed runs until the pilot passes." in text
+    assert "The bounds are never widened and the estimator is never changed." in text

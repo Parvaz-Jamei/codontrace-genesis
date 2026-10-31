@@ -98,6 +98,7 @@ Grid (cells × seeds), also in the JSON under `grid`:
 | Confirmatory | `13001–13060` | the same 60-seed vector in every E2, E5 and alternative cell |
 | E1 calibration | `13101–13180` | m = 0.5 uses 13101-13140, m = 0.25 uses 13141-13180, at both host N |
 | Pilot | `13901–13930` | horizon and timing only; never confirmatory |
+| Realised-w pilot | `13201–13240` | E1 instrument check before any confirmatory seed; never confirmatory |
 
 - No confirmatory arm uses a subset of the vector. E1 is the only 40-seed design.
 - Sealed and never used: 101-108, 201-208, 301-308, 401-408, 501-508, 601-603, 701-708, 751-758, 801-816, 1000-1009, 1000-1299, 2000-2009, 3100-3107, 4100-4107, 8000-8199, 9201-9224, 9300-9899, 9901-9922, 0-149, the timing seeds 90001-90003, and the blocks reserved by `docs/campaigns/rq_redesign_20260928/PREREG_V2.md`: 9001-9120, 10001-10576, 11001-11384 and 12001-12240.
@@ -122,6 +123,13 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
 - These figures come from a frequency model with a fixed true w and do not depend on the genome settings, so turning `diploid_meiosis` on in the host arms leaves them unchanged and the script was not re-run for it. Whether the engine's realised w stays inside the bounds (it also carries the outcross mating fee and any segregation load) is what the E1 gate itself tests.
 - E1 at N = 50 is reported, not gated. Its measured lower-bound size is 0.073 (bias-reduced fit; see the table below).
+
+**Realised-w pilot (non-confirmatory, runs before E1).** The power figures above assume a fixed true w. The engine's realised w for outcrossers also carries the outcross mating fee and any segregation load from `diploid_meiosis`, so it is measured before any confirmatory seed runs.
+- Setup: the E1 setup at m = 0.5 and N = 200, T = 5, with the full JR5 engine config of section 4 (outcross mating fee 1.0 ATP, `diploid_meiosis=True`). Seeds `13201–13240`, a block of its own that lies outside every sealed range and every other preregistered block.
+- Size: 40 populations, one seed each. Basis: the pilot is sized for the precision of its estimate, not for power, by fixing the expected value, the half-width needed and the confidence level (REFERENCES.md, BMJ, 2025). With the bias-reduced fit, the SD of log w at N = 200, m = 0.5 is 0.076, so 40 populations give a standard error of 0.012 and a 90% half-width of about 0.020 on the log scale, against margins of −0.1054 / +0.0953. The pilot can therefore place w clearly inside or outside [1.8, 2.2] even if the engine SD is twice the simulated one. 40 is also the E1 cell size, so the pilot applies the E1 decision rule unchanged.
+- Estimator and test: exactly as E1, the bias-reduced fit per population and the 90% TOST interval across populations, with the same exclusion rule and cap.
+- Rule, fixed now: the pilot passes when its 90% interval lies inside [1.8, 2.2]. Otherwise, including a point estimate outside the bounds, it is an instrument failure. The engine mechanism that moves w is then fixed, with the reason written down, and the pilot is re-run on the same seeds. The bounds are never widened and the estimator is never changed. No confirmatory seed runs until the pilot passes. Pilot results never enter E1, E2 or any claim.
+- Pinned in the JSON under `realised_w_pilot`.
 
 **Slope bias.** Simulated with fresh populations by `docs/prereg/jr5/scripts/e1_power_sim.py` (numpy only, seeded): 40,000 per setting and true w, seed 20261031 + setting index (0 at the theory value, 1 at the lower bound, 2 at the upper bound), same founder rule as above, both fits on the same populations. Run as `python docs/prereg/jr5/scripts/e1_power_sim.py M N`. TOST pass rates use 1,000 disjoint groups of 40, with no resampling; the Monte Carlo SE is at most 0.010. An earlier pass resampled groups from a pool of 4,000 and gave 0.095 at the lower bound for m = 0.5, N = 200. It is replaced by the figures below.
 

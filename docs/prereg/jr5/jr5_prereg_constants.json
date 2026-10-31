@@ -367,6 +367,10 @@
       13901,
       13930
     ],
+    "realised_w_pilot_block": [
+      13201,
+      13240
+    ],
     "sealed_ranges": [
       [
         0,
@@ -704,5 +708,41 @@
       "host_n": 2,
       "seeds": 60
     }
+  },
+  "realised_w_pilot": {
+    "confirmatory": false,
+    "runs_before": "any_confirmatory_seed",
+    "seed_block": [
+      13201,
+      13240
+    ],
+    "populations": 40,
+    "sex_ratio": 0.5,
+    "host_n": 200,
+    "horizon": 5,
+    "engine_config": "host_mating_arm_modes.engine_config",
+    "outcross_mating_fee_atp": 1.0,
+    "diploid_meiosis": true,
+    "estimator": "same_as_gate_e1",
+    "fit": "bias_reduced",
+    "ci_level": 0.9,
+    "bounds": [
+      1.8,
+      2.2
+    ],
+    "size_basis": {
+      "method": "precision_of_estimate",
+      "sd_log_w_bias_reduced_n200_m05": 0.076,
+      "se_log_w": 0.012,
+      "half_width_90_log": 0.02,
+      "log_margins": [
+        -0.1054,
+        0.0953
+      ]
+    },
+    "on_fail": "instrument_failure_fix_engine_mechanism_with_documented_reason_rerun_same_seeds",
+    "bounds_never_widened": true,
+    "estimator_never_changed": true,
+    "enters_claims": false
   }
 }

@@ -13,7 +13,7 @@ A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = Tru
 **(b) Invasion, both population sizes.** At N = 200 and separately at N = 50, the E2 high-virulence test (copassaged minus fixed, paired t, two-sided) is significant after Holm correction at family alpha 0.05, with copassaged lower than fixed.
 - The family is the four tests {N200 high, N200 low, N50 high, N50 low}.
 - Both high-virulence tests must pass.
-- For each of the two, the paired t test and the paired BCa bootstrap 95% interval (10,000 resamples, seed 12345) must both be significant, in the same direction. Any disagreement makes the result `inconclusive` and the flag stays `False`.
+- For each of the two, the paired t test and the paired BCa bootstrap interval (10,000 resamples, seed 12345) at the Holm-adjusted level of that test's step (98.75% at step 1, down to 95% at step 4; PREREG.md section 3) must both be significant, in the same direction. Any disagreement makes the result `inconclusive` and the flag stays `False`.
 
 **(c) Coevolution is required.** At N = 200 and high virulence, the copassaged arm is lower than the fixed arm and lower than the frozen-replay arm:
 - paired t, one-sided alpha 0.025 each;

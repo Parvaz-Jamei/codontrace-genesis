@@ -15,5 +15,7 @@ Each DOI below was resolved through api.crossref.org on 2026-10-25. Title, venue
 | https://doi.org/10.1111/jeb.13718 | When does parasitism maintain sex in the absence of Red Queen Dynamics? | J. Evol. Biol., 2020 |
 | https://doi.org/10.1093/evlett/qrad036 | High parasite virulence necessary for the maintenance of host outcrossing via parasite-mediated selection | Evolution Letters, 2023 |
 | https://doi.org/10.1073/pnas.1810402116 | The genomic basis of Red Queen dynamics during rapid reciprocal host-pathogen coevolution | PNAS, 2018 online (2019 issue) |
+| https://doi.org/10.1093/biomet/80.1.27 | Bias reduction of maximum likelihood estimates | Biometrika, 1993 |
+| https://doi.org/10.1214/24-ss148 | A comprehensive review of bias reduction methods for logistic regression | Statistics Surveys, 2024 |
 
 The original cost-of-males argument comes from a 1978 book and has no DOI.

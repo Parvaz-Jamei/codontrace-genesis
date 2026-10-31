@@ -42,7 +42,7 @@
       ]
     },
     "must_exclude": 1.0,
-    "estimator": "per_population_binomial_glm_logit_link_counts_per_generation_generation_as_predictor_all_generations_0_to_T_exp_slope",
+    "estimator": "per_population_bias_reduced_penalised_binomial_glm_logit_link_counts_per_generation_generation_as_predictor_all_generations_0_to_T_exp_slope",
     "ci_method": "one_sample_t_on_log_scale_over_populations_back_transformed",
     "replicate_unit": "population_seed",
     "founder_uniparental_frequency": 0.2,
@@ -97,7 +97,14 @@
     "bootstrap": {
       "method": "bca",
       "resamples": 10000,
-      "seed": 12345
+      "seed": 12345,
+      "ci_level_rule": "one_minus_holm_adjusted_alpha_of_step",
+      "ci_level_by_holm_step": [
+        0.9875,
+        0.9833333333333333,
+        0.975,
+        0.95
+      ]
     },
     "agreement_rule": "significant_only_if_t_and_bca_both_significant_same_direction_else_inconclusive"
   },
@@ -216,6 +223,10 @@
     ],
     "sealed_ranges": [
       [
+        0,
+        149
+      ],
+      [
         101,
         108
       ],
@@ -236,6 +247,42 @@
         508
       ],
       [
+        601,
+        603
+      ],
+      [
+        701,
+        708
+      ],
+      [
+        751,
+        758
+      ],
+      [
+        801,
+        816
+      ],
+      [
+        1000,
+        1009
+      ],
+      [
+        1000,
+        1299
+      ],
+      [
+        2000,
+        2009
+      ],
+      [
+        3100,
+        3107
+      ],
+      [
+        4100,
+        4107
+      ],
+      [
         8000,
         8199
       ],
@@ -244,8 +291,16 @@
         9120
       ],
       [
+        9201,
+        9224
+      ],
+      [
         9300,
         9899
+      ],
+      [
+        9901,
+        9922
       ],
       [
         10001,
@@ -287,7 +342,7 @@
   },
   "power": {
     "e1": {
-      "estimator": "binomial_glm",
+      "estimator": "binomial_glm_first_pass",
       "replicates": 4000,
       "sd_log_cost_N200": {
         "0.5": 0.077,
@@ -306,7 +361,106 @@
         "0.25": 20
       },
       "planning_n_N50": 35,
-      "chosen": 40
+      "chosen": 40,
+      "recheck_sd_N50_0.25": 0.127,
+      "bias_plain": {
+        "N200": {
+          "0.5": 0.002,
+          "0.25": 0.002
+        },
+        "N50": {
+          "0.5": 0.0158,
+          "0.25": 0.0027
+        }
+      },
+      "bias_reduced": {
+        "replicates": 2000,
+        "bias": {
+          "N200": {
+            "0.5": 0.0022,
+            "0.25": 0.0012
+          },
+          "N50": {
+            "0.5": 0.0047,
+            "0.25": 0.0044
+          }
+        },
+        "sd": {
+          "N200": {
+            "0.5": 0.075,
+            "0.25": 0.051
+          },
+          "N50": {
+            "0.5": 0.153,
+            "0.25": 0.126
+          }
+        },
+        "n_for_90pct_tost_normal_approx": {
+          "N200": {
+            "0.5": 8,
+            "0.25": 5
+          },
+          "N50": {
+            "0.5": 27,
+            "0.25": 19
+          }
+        }
+      },
+      "tost_pass_rate_n40": {
+        "plain": {
+          "0.5": {
+            "N200": [
+              1.0,
+              0.095,
+              0.016
+            ],
+            "N50": [
+              0.909,
+              0.088,
+              0.012
+            ]
+          },
+          "0.25": {
+            "N200": [
+              1.0,
+              0.024,
+              0.016
+            ],
+            "N50": [
+              0.997,
+              0.009,
+              0.012
+            ]
+          }
+        },
+        "bias_reduced": {
+          "0.5": {
+            "N200": [
+              1.0,
+              0.056,
+              0.028
+            ],
+            "N50": [
+              0.965,
+              0.047,
+              0.021
+            ]
+          },
+          "0.25": {
+            "N200": [
+              1.0,
+              0.037,
+              0.016
+            ],
+            "N50": [
+              0.988,
+              0.012,
+              0.008
+            ]
+          }
+        },
+        "order": "theory_lower_upper"
+      }
     },
     "e2": {
       "alpha_two_sided_first_holm_step": 0.0125,

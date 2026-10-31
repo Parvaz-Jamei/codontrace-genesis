@@ -367,12 +367,14 @@ class ClosedLoopP5Session:
                 "generation": self.tick_index,
                 "census": len(population.organisms),
                 "counts": dict(sorted(counts.items())),
-                "sex_ratio_male": counts.get("male", 0) / len(population.organisms)
+                "male_share_population": counts.get("male", 0) / len(population.organisms)
                 if population.organisms
                 else 0.0,
                 "breeders": breeders,
                 "births": len(new),
                 "sons_born": sons,
+                # Prereg m: share of this generation's births that are sons.
+                "m": sons / len(new) if new else None,
                 "son_atp": round(float(sum(atp for _, (kind, atp) in new if kind == "male")), 10),
                 **modes,
             }
@@ -381,9 +383,11 @@ class ClosedLoopP5Session:
     def census(self) -> list[dict[str, Any]]:
         """Per-generation census, the founders as generation 0, then one row
         after each step: counts by mating type
-        (``asexual`` for the asexual founder lineage), male share, breeders
+        (``asexual`` for the asexual founder lineage), ``male_share_population``
+        (males over census), breeders
         (non-males), births split into selfed, outcrossed and uniparental, and
-        sons born with their ATP. Not part of the snapshot digest."""
+        sons born with their ATP, and ``m`` (sons over births, None with no
+        births). Not part of the snapshot digest."""
 
         return [dict(row) for row in self._census_rows]
 

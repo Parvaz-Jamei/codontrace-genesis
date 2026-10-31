@@ -130,3 +130,16 @@ def test_tost_matches_scipy_when_installed() -> None:
     hi = stats.ttest_1samp(values, math.log(2.2), alternative="less").pvalue
     assert r.p_lower == pytest.approx(lo, rel=1e-8)
     assert r.p_upper == pytest.approx(hi, rel=1e-8)
+
+
+def test_p_equal_to_alpha_does_not_reject() -> None:
+    # A one-sided test rejects only when p < alpha. At p == alpha the
+    # (1 - 2 alpha) limit sits exactly on the bound, which is not "inside".
+    # [0, 2], df = 1: t_lower = 1, p_lower = 1/2 - atan(1)/pi = 1/4 (up to
+    # rounding). Using that computed p as alpha puts the test on its edge,
+    # while p_upper (t = -9, about 0.035) is well below it.
+    first = one_sample_tost([0.0, 2.0], 0.0, 10.0, alpha=0.25)
+    edge = one_sample_tost([0.0, 2.0], 0.0, 10.0, alpha=first.p_lower)
+    assert edge.p_lower == edge.alpha
+    assert edge.p_upper < edge.alpha
+    assert not edge.equivalent

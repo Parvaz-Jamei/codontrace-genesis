@@ -205,3 +205,36 @@ def test_gate_module_holds_no_outcome_literals_and_no_randomness() -> None:
     for name in [*names, "red_queen_proved"]:
         assert f'"{name}"' not in source and f"'{name}'" not in source
     assert "import random" not in source and "RNGManager" not in source
+
+
+def test_required_pair_prereg_pass_and_prereg_fail() -> None:
+    # Pass dataset, derived from the prereg margins and alpha = 0.05:
+    # 40 populations per ratio at N = 200, log w = log(1/(1-m)) -/+ d.
+    # m = 0.5, d = 0.076: SE = 0.076/sqrt(39) = 0.012170, 90% half-width
+    #   1.684875 * 0.012170 = 0.020505, interval [log 2 - 0.0205, log 2 + 0.0205]
+    #   = [1.9594, 2.0414], inside [1.8, 2.2]; 95% interval excludes 1.
+    # m = 0.25, d = 0.051: SE = 0.008167, half-width 0.013760, interval
+    #   [1.3151, 1.3518], inside [1.2, 1.4667].
+    # This is condition (a) of RED_QUEEN_CLAIM_PATH.md, the gate input the
+    # verdict adapter reads as record["passed"]. The flag itself is set only
+    # by that adapter, from (a) to (e) together.
+    passing = evaluate_e1_gate(_spec(), _passing_cells())
+    ratio_ci = {c.sex_ratio: c.to_record()["ratio_ci"] for c in passing.cells}
+    assert ratio_ci[0.5] == pytest.approx([1.95940, 2.04141], abs=1e-4)
+    assert ratio_ci[0.25] == pytest.approx([1.31511, 1.35180], abs=1e-4)
+    assert passing.to_record()["passed"] is True
+
+    # Fail dataset: the same spread at m = 0.5 but centred on the realised
+    # w = 1.75, 2.8% below the lower bound 1.8. The 90% interval
+    # [1.7145, 1.7862] lies wholly below 1.8, so t_lower = log(1.75/1.8)/SE
+    # = -2.315 and p_lower = P(T39 > -2.315) is about 0.987. m = 0.25 is
+    # left passing to show that one failing ratio is enough.
+    cells = _passing_cells()
+    cells[(0.5, 200)] = _cell(math.log(1.75), 0.076)
+    failing = evaluate_e1_gate(_spec(), cells)
+    low = failing.cells[0]
+    assert low.tost is not None
+    assert low.tost.t_lower == pytest.approx(math.log(1.75 / 1.8) / (0.076 / math.sqrt(39.0)), rel=1e-9)
+    assert low.tost.p_lower > 0.98
+    assert failing.cells[1].passed
+    assert failing.to_record()["passed"] is False

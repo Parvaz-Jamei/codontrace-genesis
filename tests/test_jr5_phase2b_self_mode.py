@@ -750,3 +750,48 @@ def test_e1_fit_on_the_census_is_pinned() -> None:
     _, asexual, _ = session.e1_counts("asexual")
     zero = fit_logit(np.array(asexual, dtype=float), n, x, bias_reduced=True)
     assert np.all(np.isfinite(zero))
+
+
+def _selfed_child_bits(bits: str, seed: int) -> str:
+    from codontrace.genesis.population import _self_fertilisation_record
+    from codontrace.rng import RNGManager
+
+    parent = GenesisOrganism.from_bits("p", bits, initial_runtime_atp=10.0, position=(0, 0))
+    config = SexualRecombinationConfig(enabled=True, diploid_meiosis=True)
+    record = _self_fertilisation_record(parent, config, RNGManager(seed).fork("self"))
+    assert record is not None
+    return record.child_genome_bits
+
+
+def test_selfed_child_keeps_parent_length_over_generations() -> None:
+    """Selfing with diploid meiosis is two meioses in one parent and a fusion
+    of the two gametes as the child's homologs, so each gamete carries one copy
+    of every locus and the child has the parent's length. Expected: the founder
+    length, exactly, in each of 5 selfed generations, for an even and an odd
+    codon count."""
+
+    for founder in (LIFE_LOOP_EATER_GENOME + "101000111", "010110001111000101011"):
+        bits = founder
+        for generation in range(5):
+            bits = _selfed_child_bits(bits, 1000 + generation)
+            assert len(bits) == len(founder)
+
+
+def test_one_selfed_generation_halves_heterozygosity() -> None:
+    """A parent heterozygous at every locus (even homolog all 000, odd all 111,
+    8 codons so 4 loci) is selfed once. Each locus of the child is
+    heterozygous when the two gametes carry different homologs there; each
+    gamete carries either homolog with probability 1/2 independently, so
+    P(het) = 1/2 and expected H = 0.5. H per child is a mean of values in
+    [0, 1], so its variance is at most 1/4 and 4 standard errors of the mean
+    over N = 3000 children are at most 4 * 0.5 / sqrt(3000) = 0.0365."""
+
+    parent = "".join("000" if i % 2 == 0 else "111" for i in range(8))
+    n = 3000
+    total = 0.0
+    for i in range(n):
+        child = _selfed_child_bits(parent, i)
+        codons = [child[k : k + 3] for k in range(0, len(child), 3)]
+        loci = [(codons[k], codons[k + 1]) for k in range(0, 8, 2)]
+        total += sum(a != b for a, b in loci) / len(loci)
+    assert abs(total / n - 0.5) < 4 * 0.5 / n**0.5

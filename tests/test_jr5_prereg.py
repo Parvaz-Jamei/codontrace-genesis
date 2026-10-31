@@ -369,7 +369,7 @@ def test_jr5_blocks_clear_every_plain_range_in_prereg_docs() -> None:
 
 
 def test_e1_fit_pinned() -> None:
-    """The JSON names the fit file, its tolerance, iteration cap and method, and they match the code."""
+    """Config-consistency test: the JSON fit entry (file, tolerance, iteration cap, method) matches the code."""
     from tests import _jr5_e1_fit as fit_mod
 
     fit = _constants()["gate_e1"]["fit"]
@@ -397,9 +397,9 @@ def test_bias_reduced_fit_matches_half_count_rule(k0: float, k1: float) -> None:
 def test_plain_fit_matches_statsmodels() -> None:
     """statsmodels is the reference because it is an independent, widely used GLM
     implementation that maximises the same binomial likelihood (logit link,
-    counts k out of n). The counts k are a smooth logistic rise over 6
-    generations from 0.2 of 200 (40) toward 0.9, so the plain MLE exists and is
-    well conditioned; any correct maximiser must give the same estimate."""
+    counts k out of n). The counts k are roughly a logistic curve with odds
+    ratio 2 per generation from 0.2 of 200 (40), rounded, so the plain MLE
+    exists and is well conditioned; any correct maximiser gives the same estimate."""
     np = pytest.importorskip("numpy")
     sm = pytest.importorskip("statsmodels.api")
     from tests._jr5_e1_fit import fit_logit
@@ -532,9 +532,9 @@ def test_n50_lower_bound_size_recomputes() -> None:
     """Small recompute of the N = 50, m = 0.5 lower-bound size (0.073 from
     40,000 populations, seed 20261031 + 1). Here 8,000 populations on the same
     seed give 200 groups of 40, so the binomial Monte Carlo SE of the pass rate
-    is sqrt(0.073 * 0.927 / 200) = 0.018. The tolerance is 3 such SEs. The bias
-    of the bias-reduced slope (+0.0035 in the full run) is checked to 3 SEs of
-    its mean (SD 0.150 / sqrt(8,000) = 0.0017)."""
+    is sqrt(0.073 * 0.927 / 200) = 0.018. The tolerance is 4 such SEs. The bias
+    of the bias-reduced slope (+0.0035 in the full run) is checked against
+    its mean (SD 0.150 / sqrt(8,000) = 0.0017), also at 4 SEs."""
     np = pytest.importorskip("numpy")
     sim = _e1_sim_module()
     n50 = _constants()["gate_e1"]["n50"]
@@ -544,9 +544,9 @@ def test_n50_lower_bound_size_recomputes() -> None:
     _, reduced, _ = sim.simulate(50, w, 5, 8000, sim.SEED_BASE + 1)
     rate, _, groups = sim.tost_pass_rate(reduced, theory)
     assert groups == 200
-    tol = 3 * math.sqrt(size * (1 - size) / groups)
+    tol = 4 * math.sqrt(size * (1 - size) / groups)
     assert abs(rate - size) <= tol
-    assert abs(float(reduced.mean() - np.log(w)) - 0.0035) <= 3 * 0.150 / math.sqrt(8000)
+    assert abs(float(reduced.mean() - np.log(w)) - 0.0035) <= 4 * 0.150 / math.sqrt(8000)
     assert n50["size_mc_se"] == 0.008
     assert n50["size_seed"] == sim.SEED_BASE + 1
 

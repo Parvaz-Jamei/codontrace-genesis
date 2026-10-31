@@ -721,35 +721,55 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 
 # Pinned values of the prereg E1 fit on this census. The fit is the
 # bias-reduced binomial logit in tests/_jr5_e1_fit.py (same as the prereg).
-_E1_MALE_OUTCROSS_DIPLOID = (0.79900229, -0.09470521)
+# Setup: prereg E1 (outcross fee 0.0, diploid_meiosis on with gamete fusion).
+_E1_MALE_OUTCROSS_DIPLOID = (0.80725957, -0.32454182)
+_E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
+
+
+def _prereg_e1_arm(bits: str, types: tuple[str, ...]) -> ClosedLoopP5Session:
+    session = ClosedLoopP5Session.boot(seed=20011, outcross_bits=bits, outcross_runtime_atp=0.0)
+    cfg = _sexes_for(
+        session,
+        **{**_ANDRO, "hermaphrodite_selfing": True, "mating_type_set": types, "diploid_meiosis": True},
+    )
+    session.runner.configs = replace(session.runner.configs, sexual_recombination=cfg)
+    return session
 
 
 def test_e1_fit_on_the_census_is_pinned() -> None:
     """The census feeds the E1 fit: count out of census against generation,
     bias-reduced logit (likelihood plus half the log determinant of the
-    Fisher information). Input: male counts of the outcross arm, set
-    (hermaphrodite, male), diploid_meiosis on, 6 generations, seed 20011.
+    Fisher information). Input: the prereg E1 setup, outcross fee 0.0,
+    diploid_meiosis on, seed 20011, 6 generations; male counts of the outcross
+    arm, set (hermaphrodite, male), and of the self arm, set (hermaphrodite,).
     Expected: the pinned intercept and slope (computed with this estimator on
-    this branch); the plain fit differs, and on an all-zero count (no
-    asexual lineage here), where the plain estimate does not exist, the
-    bias-reduced one is finite (the reason the prereg uses it)."""
+    this branch after gamete fusion); genome length stays 18 bits; the plain
+    fit differs on the outcross arm, and on the self arm's all-zero male count,
+    where the plain estimate does not exist, the bias-reduced one is finite
+    (the reason the prereg uses it)."""
 
     np = pytest.importorskip("numpy")
     from tests._jr5_e1_fit import fit_logit
 
-    session, _ = _self_arm(OUTCROSS_OUT_BITS, mating_type_set=("hermaphrodite", "male"), diploid_meiosis=True)
-    session.run_ticks(6)
-    generations, males, census = session.e1_counts("male")
-    assert generations == [0, 1, 2, 3, 4, 5, 6]
-    x = np.array(generations, dtype=float)
-    k = np.array(males, dtype=float)
-    n = np.array(census, dtype=float)
-    beta = fit_logit(k, n, x, bias_reduced=True)
-    assert beta == pytest.approx(_E1_MALE_OUTCROSS_DIPLOID, abs=1e-7)
-    assert not np.allclose(fit_logit(k, n, x, bias_reduced=False), beta, atol=1e-6)
-    _, asexual, _ = session.e1_counts("asexual")
-    zero = fit_logit(np.array(asexual, dtype=float), n, x, bias_reduced=True)
-    assert np.all(np.isfinite(zero))
+    for bits, types, pin in (
+        (OUTCROSS_OUT_BITS, ("hermaphrodite", "male"), _E1_MALE_OUTCROSS_DIPLOID),
+        (OUTCROSS_SELFING_BITS, ("hermaphrodite",), _E1_MALE_SELF_DIPLOID),
+    ):
+        session = _prereg_e1_arm(bits, types)
+        assert session.runner.configs.closed_loop_hp_life.outcross_runtime_atp == 0.0
+        session.run_ticks(6)
+        assert {len(o.genome.to_compact()) for o in session.runner.population.organisms} == {18}
+        generations, males, census = session.e1_counts("male")
+        assert generations == [0, 1, 2, 3, 4, 5, 6]
+        x = np.array(generations, dtype=float)
+        k = np.array(males, dtype=float)
+        n = np.array(census, dtype=float)
+        beta = fit_logit(k, n, x, bias_reduced=True)
+        assert beta == pytest.approx(pin, abs=1e-7)
+        if types == ("hermaphrodite",):
+            assert k.sum() == 0 and np.all(np.isfinite(beta))
+        else:
+            assert not np.allclose(fit_logit(k, n, x, bias_reduced=False), beta, atol=1e-6)
 
 
 def _selfed_child_bits(bits: str, seed: int) -> str:

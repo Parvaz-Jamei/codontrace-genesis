@@ -18,9 +18,15 @@ uniparental copy, including the chamber timeout fallback.
 This differs from item 3 of docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md,
 which says hermaphrodites with the outcross locus off may self. That note is
 covered by the sealed prereg record, so the difference is recorded here
-instead. In 2a no mating type selfs, hermaphrodites included. Selfing by
-hermaphrodites, together with inbreeding depression, can favor separate
-sexes, so it is a possible later extension.
+instead. By default no mating type selfs, hermaphrodites included.
+
+``SexualRecombinationConfig.hermaphrodite_selfing`` is the opt-in selfing
+mode. With it on, a hermaphrodite whose outcross locus reads selfing makes a
+uniparental selfed child; males and females still never self. A selfed child
+is a hermaphrodite by construction (its type is pinned, not drawn), so
+selfing makes no sons and pays no cost of males, while outcrossing with a
+male still draws sons at ``sex_ratio``. Self and outcross arms therefore run
+under the same sexes-on engine mode and ledger.
 """
 
 from __future__ import annotations
@@ -66,6 +72,12 @@ def draw_mating_type(seed: int | None, organism_id: str, config: SexualRecombina
     return MATING_TYPE_MALE if draw < config.sex_ratio else other
 
 
+def can_self(mating_type: str, config: SexualRecombinationConfig) -> bool:
+    """Only hermaphrodites self, and only in the opt-in selfing mode."""
+
+    return config.hermaphrodite_selfing and mating_type == MATING_TYPE_HERMAPHRODITE
+
+
 def mating_types_compatible(type_a: str, type_b: str) -> bool:
     """Male x female, or a hermaphrodite with any type."""
 
@@ -85,6 +97,11 @@ class MatingTypeMap:
         self._seed = seed
         self._config = config
         self._types: dict[str, str] = {}
+
+    def pin(self, organism_id: str, mating_type: str) -> None:
+        """Record a type that is fixed by birth mode rather than drawn."""
+
+        self._types[organism_id] = mating_type
 
     def assign(self, organism_id: str) -> str:
         """Return the type of ``organism_id``, drawing it on first use."""
@@ -106,6 +123,7 @@ __all__ = [
     "ASEXUAL_LINEAGE_TYPE",
     "MATING_TYPE_STREAM_NAMESPACE",
     "MatingTypeMap",
+    "can_self",
     "draw_mating_type",
     "mating_type_stream",
     "mating_types_compatible",

@@ -22,6 +22,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
 from codontrace.genesis.birth import (
+    MATING_TYPE_HERMAPHRODITE,
     ADFInheritanceMode,
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
@@ -120,7 +121,12 @@ from codontrace.genesis.materials import (
     inherit_materials_organism_state,
     step_materials,
 )
-from codontrace.genesis.mating_types import ASEXUAL_LINEAGE_TYPE, MatingTypeMap, draw_mating_type
+from codontrace.genesis.mating_types import (
+    ASEXUAL_LINEAGE_TYPE,
+    MatingTypeMap,
+    can_self,
+    draw_mating_type,
+)
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.phase_e import (
@@ -3558,11 +3564,18 @@ def step_population(
                     life,
                     chamber_available=sexual_cfg.uses_birth_chamber,
                 )
+                hermaphrodite_selfs = (
+                    sexual_cfg.mating_types_enabled
+                    and copy_mode == "asexual"
+                    and not organism.asexual_lineage
+                    and can_self(_organism_mating_type(organism, stream.seed, sexual_cfg), sexual_cfg)
+                )
                 if (
                     refusal is None
                     and sexual_cfg.mating_types_enabled
                     and copy_mode == "asexual"
                     and not organism.asexual_lineage
+                    and not hermaphrodite_selfs
                 ):
                     refusal = SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL
                 if refusal is not None:
@@ -3768,6 +3781,8 @@ def step_population(
                     if placed_child is None:
                         raise RuntimeError("finalized reproduction unexpectedly lost child")
                     child = placed_child
+                    if hermaphrodite_selfs:
+                        child.selfed = True
                     children.append(child)
                     life = configs.closed_loop_hp_life
                     plugin = _life_plugin()
@@ -4843,6 +4858,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         capsule_nav_target=organism.capsule_nav_target,
         last_task_class=getattr(organism, "last_task_class", None),
         asexual_lineage=organism.asexual_lineage,
+        selfed=organism.selfed,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
@@ -5019,6 +5035,8 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         payload["genome_spans"] = [span.to_dict() for span in organism.genome.spans]
     if organism.asexual_lineage:
         payload["asexual_lineage"] = True
+    if organism.selfed:
+        payload["selfed"] = True
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
@@ -5070,6 +5088,7 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     organism._cursor = _int(data, "cursor", 0)
     organism._step_index = _int(data, "step_index", 0)
     organism.asexual_lineage = data.get("asexual_lineage") is True
+    organism.selfed = data.get("selfed") is True
     phase_e_raw = data.get("phase_e_state")
     if isinstance(phase_e_raw, Mapping):
         from codontrace.genesis.phase_e import PhaseEOrganismState
@@ -5583,6 +5602,16 @@ def _commit_newborn(
 SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
 
 
+def _organism_mating_type(
+    organism: GenesisOrganism, seed: int | None, sexual: SexualRecombinationConfig
+) -> str:
+    """A selfed organism is a hermaphrodite; any other type is drawn from its stream."""
+
+    if organism.selfed:
+        return MATING_TYPE_HERMAPHRODITE
+    return draw_mating_type(seed, organism.id, sexual)
+
+
 def mating_type_of(
     population: PopulationState,
     organism_id: str,
@@ -5602,7 +5631,7 @@ def mating_type_of(
         if organism.id == organism_id:
             if organism.asexual_lineage:
                 return ASEXUAL_LINEAGE_TYPE
-            return draw_mating_type(seed, organism_id, sexual)
+            return _organism_mating_type(organism, seed, sexual)
     raise ConfigurationError(f"organism {organism_id!r} is not in the population.")
 
 
@@ -5650,6 +5679,10 @@ def _drain_chamber_pairs(
     mating_types: MatingTypeMap | None = (
         MatingTypeMap(stream.seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
     )
+    if mating_types is not None:
+        for known in (*survivors, *pending, *children):
+            if known.selfed:
+                mating_types.pin(known.id, MATING_TYPE_HERMAPHRODITE)
     while True:
         life = configs.closed_loop_hp_life
         radius = life.mate_search_radius

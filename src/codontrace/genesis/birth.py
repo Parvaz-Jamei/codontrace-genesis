@@ -187,6 +187,10 @@ class SexualRecombinationConfig:
     phase 2a carries no cost of sex (a chamber pair still places both
     products and males still bear offspring); phase 2b will charge it, and
     combining it with ``two_fold_cost_sex`` would then charge it twice.
+    ``hermaphrodite_selfing`` (opt-in, sexes on, set must hold
+    ``hermaphrodite``) lets a hermaphrodite whose outcross locus reads selfing
+    make a uniparental selfed child; males and females never self. A selfed
+    child is a hermaphrodite, so selfers make no sons. Written only when True.
     ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
     before positional crossover; default off so sexual digest pins stay
     stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
@@ -210,6 +214,7 @@ class SexualRecombinationConfig:
     mating_type_set: tuple[str, ...] = ()
     sex_ratio: float = 0.5
     sex_assignment: str = "none"
+    hermaphrodite_selfing: bool = False
 
     def __post_init__(self) -> None:
         finite_float("recombination_prob", self.recombination_prob, probability=True)
@@ -239,6 +244,13 @@ class SexualRecombinationConfig:
         finite_float("sex_ratio", self.sex_ratio, probability=True)
         if self.sex_assignment not in _SEX_ASSIGNMENT_POLICIES:
             raise ValueError(f"sex_assignment must be one of {sorted(_SEX_ASSIGNMENT_POLICIES)!r}.")
+        if self.hermaphrodite_selfing and not (
+            self.mating_types_enabled and MATING_TYPE_HERMAPHRODITE in self.mating_type_set
+        ):
+            raise ValueError(
+                "hermaphrodite_selfing requires mating_types_enabled=True and a mating_type_set "
+                "containing 'hermaphrodite'."
+            )
         if not self.mating_types_enabled:
             return
         if not self.enabled:
@@ -287,6 +299,8 @@ class SexualRecombinationConfig:
             payload["sex_ratio"] = self.sex_ratio
         if self.sex_assignment != "none":
             payload["sex_assignment"] = self.sex_assignment
+        if self.hermaphrodite_selfing:
+            payload["hermaphrodite_selfing"] = True
         return payload
 
     @classmethod
@@ -316,6 +330,7 @@ class SexualRecombinationConfig:
             mating_type_set=_mating_type_set_from(data.get("mating_type_set", [])),
             sex_ratio=same_float(data.get("sex_ratio", 0.5)),
             sex_assignment=str(data.get("sex_assignment", "none")),
+            hermaphrodite_selfing=bool(data.get("hermaphrodite_selfing", False)),
         )
 
 

@@ -172,6 +172,9 @@ class GenesisOrganism:
     # descendant. Only matters when sexes are on: then only this lineage may
     # reproduce uniparentally. Written to state only when True.
     asexual_lineage: bool = False
+    # Born by hermaphrodite selfing: the mating type is hermaphrodite, not
+    # drawn. Written to state only when True.
+    selfed: bool = False
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)

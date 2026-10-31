@@ -14,6 +14,15 @@ module only adds the sex check on top of that policy. With sexes on, only a
 designated asexual founder lineage (``GenesisOrganism.asexual_lineage``) may
 reproduce uniparentally; the population engine refuses every other
 uniparental copy, including the chamber timeout fallback.
+
+This differs from item 3 of docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md,
+which says hermaphrodites with the outcross locus off may self. That note is
+covered by the sealed prereg record, so the difference is recorded here
+instead. In 2a no mating type selfs, hermaphrodites included. Classic models
+of the evolution of separate sexes do let hermaphrodites self and use selfing
+with inbreeding depression as one route to dioecy (Charlesworth and
+Charlesworth 1978, Am. Nat. 112:975-997; Lloyd 1975), so hermaphrodite
+selfing is a possible later extension.
 """
 
 from __future__ import annotations

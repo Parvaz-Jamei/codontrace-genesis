@@ -2,10 +2,13 @@
 
 Pinned values in ``_MAIN_ERA`` were produced at 21afb891 (before this change)
 with the same inputs as below. With the switch off, every one must match.
+All seeds here are in the unsealed block 20000+, outside the JR5 prereg
+sealed ranges.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import replace
 
@@ -62,27 +65,29 @@ _MAIN_ERA_CONFIG_JSON = {
     '"two_fold_cost_sex":false}',
 }
 _MAIN_ERA_STEP_DIGESTS = {
-    (5, False): "dff3aca53f1e46b81cb724642195e13f9aef98afa2263c836ae8b1fe2be14b48",
-    (5, True): "2e2ffef616ce650aec78d4439ea0754ee362dac6d483decdbc0b93d6399689a8",
-    (8, False): "c44189b66ee5907451db326cb1e35ad700b89a2b70ade722ac0a1573f80c5fae",
-    (8, True): "c19d118d9c18a88f2cafeb807ce80b8c4a21898f75eb3d819cce340a5a2154b0",
-    (13, False): "9f49f3f9bbc1102f13b87a33b7d041b7bca60cf8224f35455635622e2be12e1c",
-    (13, True): "3e2bf5936c4bac527bd0877c63f2b16863336e36c53a85ddc7e68557afe5e7f5",
+    (20005, False): "ec1bade66aadfcbce2359251c50736ac292bfb9bf057c97a6fad6c7db821af2e",
+    (20005, True): "07425860239a1e7081c58216f85416663db2e31e7f7a4ecf9dea7e861ce70464",
+    (20008, False): "7fd06fbc83d5f10178ed9702e0a09569644824de2674133ea341da30b8b56a3c",
+    (20008, True): "7533038265b818d43d0aa53792fb07e8601f8cc2b5049963ee6521b88f38431e",
+    (20013, False): "9b3acd0530a3f2d0a16ebc3920b251632f2d58f3d29cddd0b62e37cc671c6bc6",
+    (20013, True): "dd39537e48fc11bbc0346e31e482989fdb93add0e65b244532f5cf265578fda0",
 }
-_MAIN_ERA_LIFE_LOOP_SPEC = "f0ee5d80c1638bc6fef5f64ea6eac1848224a5ca4315900c21c204cc9bebc130"
+_MAIN_ERA_LIFE_LOOP_SPEC = "15ef97673d0415149a5d8d41f4bb1685a8e78edf9a10e6ff8959e7a24b7080c4"
 _MAIN_ERA_LIFE_LOOP_TICKS = [
     "30e4f3f738f29a7f8df6c35101de9dbfece26728a2f6207cb1e688a9ce14ba7a",
-    "478fc3dd89ea84eb0a03cbe12bd265b46d84edd25285ad660354eeda770ccd3b",
-    "2befddbf62afd440123d51c049c7a64ce571bb8477aabef99c4907467d92350b",
-    "e9d3832bb193e048f83377a902a5fe474a86f3d8e6a5515f4a75e7e1f96be1c7",
-    "aac1e1193013fef8955e7e352162e0b69087b1442a2d992740f69827cfae1f58",
-    "862b19904c9a598ed816b2b1a838c857b4f1aa66d53652d700916d6f16660f90",
-    "bc6da5e19eee5528efd325e33ea61197ec0bdd9e64bbff8800d68cec70261932",
-    "09fce6801980c4dd641622bea2ca5ab16419b35a37730679bc9f6634a4c9a23f",
+    "093b134b84580ccef6b7a3a923b38745fa13a95796647c9c874f3beb0b9bd4d9",
+    "eff697b657a87e0dbe1ae8193470661fee30ba4c46926d3e1c572ab069fc3128",
+    "fc4894b3b74e6def22d487b9257b0ca822aa477edc4cc497d6e8174458837b43",
+    "c4cea36e71c984f6e93f55c431b1fcff33b654059f900353f5da88b527895209",
+    "1a0e62678857c825a9120b04478cb5d2eac3af5354016858eafdfa9137251c69",
+    "61718b3f5026df4c4cb8ff3ce4e0546bc826a6498a74300291b2f6fd364f889d",
+    "8603d1edd6ba71f6f81f43d38f3755e91a25a0d0888ea51e4ec6f6c706c159c1",
 ]
-_MAIN_ERA_LIFE_LOOP_SNAPSHOT = "4b9fc37fc02661f396f04fb108178b6a73b383e8c27644c664afd2f5d0534c6f"
-_MAIN_ERA_RNG_DRAWS = [0.2861809988781432, 0.3428930518177439, 0.05947213471238899]
+_MAIN_ERA_LIFE_LOOP_SNAPSHOT = "ddb1be11949dc8585c95aeea1a4d7cce1055ef46590e40747b15387cd19f2439"
+_MAIN_ERA_RNG_DRAWS = [0.07288018841626231, 0.020732041539421653, 0.32331505896767]
 
+# sha256 of the sorted-key JSON of the census test population plus one asexual founder.
+_MIXED_DIGEST = "d60e113323d9a2d75156d362da5428630c4bf23d97b9abed9879c7677ceeecab"
 _BITS = ("111000000", "111111000", "101101101", "110011001")
 _SEXES = {
     "mating_types_enabled": True,
@@ -152,7 +157,7 @@ def test_switch_off_chamber_step_digest_matches_main_era(seed: int, two_fold: bo
 
 def test_switch_off_sexual_life_loop_replay_matches_main_era() -> None:
     spec = GenesisRuntimeProfile.life_loop_world(
-        seed=7, tick_count=8, population=6, reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER
+        seed=20007, tick_count=8, population=6, reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER
     )
     assert spec.digest() == _MAIN_ERA_LIFE_LOOP_SPEC
     result = GenesisEngine.from_spec(spec).run_ticks()
@@ -164,20 +169,20 @@ def test_switch_off_sexual_life_loop_replay_matches_main_era() -> None:
 
 
 def test_sex_stream_does_not_shift_existing_streams() -> None:
-    root = RNGManager(seed=4242, namespace="genesis/population")
+    root = RNGManager(seed=24242, namespace="genesis/population")
     names = ("birth_chamber", "meiosis/x", "recombination/a/b")
     before = [root.fork(name).random() for name in names]
     assert before == _MAIN_ERA_RNG_DRAWS
     for index in range(50):
-        mating_type_stream(4242, f"org-{index}").random()
+        mating_type_stream(24242, f"org-{index}").random()
     assert [root.fork(name).random() for name in names] == before
     assert root.draw_count == 0
-    stream = mating_type_stream(4242, "org-1")
+    stream = mating_type_stream(24242, "org-1")
     assert stream.namespace == f"{MATING_TYPE_STREAM_NAMESPACE}/org-1"
     assert stream.namespace not in {root.fork(name).namespace for name in names}
 
 
-@pytest.mark.parametrize("seed", [5, 8, 13])
+@pytest.mark.parametrize("seed", [20005, 20008, 20013])
 def test_hermaphrodite_only_sexes_reproduce_the_switch_off_run(seed: int) -> None:
     """All-compatible types: pairing and every draw match the switch-off run."""
 
@@ -197,10 +202,10 @@ def test_hermaphrodite_only_sexes_reproduce_the_switch_off_run(seed: int) -> Non
 def test_sex_assignment_is_reproducible_and_matches_ratio(ratio: float) -> None:
     cfg = SexualRecombinationConfig(enabled=True, sex_ratio=ratio, **_SEXES)  # type: ignore[arg-type]
     n = 4000
-    first = [draw_mating_type(4343, f"id-{i}", cfg) for i in range(n)]
-    again = [draw_mating_type(4343, f"id-{i}", cfg) for i in reversed(range(n))][::-1]
+    first = [draw_mating_type(24343, f"id-{i}", cfg) for i in range(n)]
+    again = [draw_mating_type(24343, f"id-{i}", cfg) for i in reversed(range(n))][::-1]
     assert first == again
-    other_seed = [draw_mating_type(4344, f"id-{i}", cfg) for i in range(n)]
+    other_seed = [draw_mating_type(24344, f"id-{i}", cfg) for i in range(n)]
     assert first != other_seed
     males = sum(1 for t in first if t == "male")
     assert set(first) == {"male", "female"}
@@ -215,9 +220,9 @@ def test_hermaphrodite_sets() -> None:
         mating_type_set=("hermaphrodite",),
         sex_assignment="random_at_birth",
     )
-    assert {draw_mating_type(3, f"x{i}", herm) for i in range(20)} == {"hermaphrodite"}
+    assert {draw_mating_type(20003, f"x{i}", herm) for i in range(20)} == {"hermaphrodite"}
     andro = replace(herm, mating_type_set=("hermaphrodite", "male"), sex_ratio=0.3)
-    assert {draw_mating_type(3, f"x{i}", andro) for i in range(200)} == {"hermaphrodite", "male"}
+    assert {draw_mating_type(20003, f"x{i}", andro) for i in range(200)} == {"hermaphrodite", "male"}
 
 
 # (4) only opposite-sex pairs mate.
@@ -233,7 +238,7 @@ def test_compatibility_table() -> None:
     assert mating_types_compatible("hermaphrodite", "hermaphrodite")
 
 
-@pytest.mark.parametrize("seed", [5, 8, 13, 21, 34])
+@pytest.mark.parametrize("seed", [20005, 20008, 20013, 20021, 20034])
 def test_sexes_on_only_opposite_sex_pairs_mate(seed: int) -> None:
     configs = _configs(**_SEXES)
     result = _step(seed, configs)
@@ -246,14 +251,14 @@ def test_sexes_on_only_opposite_sex_pairs_mate(seed: int) -> None:
 
 def test_single_sex_population_never_pairs() -> None:
     for ratio in (0.0, 1.0):
-        result = _step(5, _configs(sex_ratio=ratio, **_SEXES))
+        result = _step(20005, _configs(sex_ratio=ratio, **_SEXES))
         assert not [rec for rec in result.population.lineage if rec.second_parent_id]
         assert not result.population.birth_chamber.is_empty
 
 
 def test_some_seed_pairs_under_separate_sexes() -> None:
     mated = 0
-    for seed in range(1, 30):
+    for seed in range(20001, 20030):
         result = _step(seed, _configs(**_SEXES))
         mated += sum(1 for rec in result.population.lineage if rec.second_parent_id)
     assert mated > 0
@@ -315,7 +320,7 @@ def test_round_trip_with_sexes_on() -> None:
 
 
 def _p5(outcross_bits: str, sexual: SexualRecombinationConfig | None) -> ClosedLoopP5Session:
-    session = ClosedLoopP5Session.boot(seed=11, outcross_bits=outcross_bits)
+    session = ClosedLoopP5Session.boot(seed=20011, outcross_bits=outcross_bits)
     if sexual is not None:
         session.runner.configs = replace(session.runner.configs, sexual_recombination=sexual)
     return session
@@ -333,7 +338,7 @@ def test_outcross_locus_policy_is_reused_unchanged() -> None:
 
 
 def test_outcross_with_hermaphrodites_still_recombines() -> None:
-    probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_OUT_BITS)
+    probe = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_OUT_BITS)
     herm = _sexes_for(probe, mating_type_set=("hermaphrodite",))
     summary = _p5(OUTCROSS_OUT_BITS, herm).run_ticks(1)
     baseline = _p5(OUTCROSS_OUT_BITS, None).run_ticks(1)
@@ -343,7 +348,7 @@ def test_outcross_with_hermaphrodites_still_recombines() -> None:
 
 
 def test_outcross_single_sex_pays_fee_but_cannot_pair() -> None:
-    probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_OUT_BITS)
+    probe = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_OUT_BITS)
     males = _sexes_for(probe, sex_ratio=1.0)
     summary = _p5(OUTCROSS_OUT_BITS, males).run_ticks(1)
     assert summary["outcross_debit_events"] >= 1
@@ -351,7 +356,7 @@ def test_outcross_single_sex_pays_fee_but_cannot_pair() -> None:
 
 
 def test_selfing_locus_in_sexual_lineage_cannot_reproduce() -> None:
-    probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_SELFING_BITS)
+    probe = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_SELFING_BITS)
     summary = _p5(OUTCROSS_SELFING_BITS, _sexes_for(probe)).run_ticks(1)
     baseline = _p5(OUTCROSS_SELFING_BITS, None).run_ticks(1)
     assert baseline["births"] >= 1
@@ -360,7 +365,7 @@ def test_selfing_locus_in_sexual_lineage_cannot_reproduce() -> None:
 
 
 def test_selfing_locus_in_asexual_founder_lineage_still_reproduces() -> None:
-    probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_SELFING_BITS)
+    probe = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_SELFING_BITS)
     session = _p5(OUTCROSS_SELFING_BITS, _sexes_for(probe))
     population = session.runner.population
     session.runner.population = replace(
@@ -399,13 +404,39 @@ def _run(
 
 def test_unmated_female_in_sexual_lineage_produces_no_child() -> None:
     configs = _configs(max_birth_wait_ticks=0, **_SEXES)
-    female = _first_id_of("female", 5, configs.effective_sexual_config)
+    female = _first_id_of("female", 20005, configs.effective_sexual_config)
     org = GenesisOrganism.from_bits(female, _BITS[0], initial_runtime_atp=40.0, position=(1, 1))
-    state, births = _run(5, configs, (org,), 4)
+    state, births = _run(20005, configs, (org,), 4)
     assert births == 0
     assert [o.id for o in state.organisms] == [female]
     # Switch off with the same timeout: the copy falls back and is placed.
-    _, births_off = _run(5, _configs(max_birth_wait_ticks=0), (org,), 4)
+    _, births_off = _run(20005, _configs(max_birth_wait_ticks=0), (org,), 4)
+    assert births_off >= 1
+
+
+def test_same_sex_waiters_do_not_fall_back_to_a_copy_on_timeout() -> None:
+    """Two males wait in the chamber; when the wait expires neither may copy itself."""
+
+    configs = _configs(max_birth_wait_ticks=0, **_SEXES)
+    sexual = configs.effective_sexual_config
+    first = _first_id_of("male", 20005, sexual)
+    second = next(f"m{i}" for i in range(200) if draw_mating_type(20005, f"m{i}", sexual) == "male")
+    orgs = tuple(
+        GenesisOrganism.from_bits(oid, _BITS[0], initial_runtime_atp=40.0, position=(1, i))
+        for i, oid in enumerate((first, second))
+    )
+    state = PopulationState(0, 0, orgs, (), ())
+    world = World2D(4, 4)
+    blocked = births = 0
+    for _ in range(4):
+        result = step_population(state, world, configs, seed=20005)
+        blocked += result.blocked_reproduction
+        births += result.births
+        state, world = result.population, result.world_after
+    assert births == 0
+    assert blocked > 0
+    # Same organisms with the switch off fall back to a copy after the wait.
+    _, births_off = _run(20005, _configs(max_birth_wait_ticks=0), orgs, 4)
     assert births_off >= 1
 
 
@@ -415,7 +446,7 @@ def test_asexual_founder_lineage_reproduces_and_passes_the_flag_on() -> None:
         GenesisOrganism.from_bits("a0", _BITS[0], initial_runtime_atp=40.0, position=(1, 1)),
         asexual_lineage=True,
     )
-    state, births = _run(5, configs, (founder,), 3)
+    state, births = _run(20005, configs, (founder,), 3)
     assert births >= 1
     assert len(state.organisms) > 1
     assert all(o.asexual_lineage for o in state.organisms)
@@ -423,7 +454,7 @@ def test_asexual_founder_lineage_reproduces_and_passes_the_flag_on() -> None:
 
 
 def test_asexual_lineage_flag_is_serialized_only_when_set() -> None:
-    plain = _step(5, _configs()).population
+    plain = _step(20005, _configs()).population
     assert "asexual_lineage" not in json.dumps(plain.to_dict())
     founder = replace(GenesisOrganism.from_bits("a0", _BITS[0], position=(1, 1)), asexual_lineage=True)
     flagged = PopulationState(0, 0, (founder,), (), ())
@@ -441,21 +472,21 @@ def test_sexes_require_birth_chamber_pairing() -> None:
 def test_mating_type_of_and_census() -> None:
     configs = _configs(**_SEXES)
     sexual = configs.effective_sexual_config
-    result = _step(13, configs)
+    result = _step(20013, configs)
     population = result.population
-    types = MatingTypeMap(13, sexual)
+    types = MatingTypeMap(20013, sexual)
     for organism in population.organisms:
-        assert mating_type_of(population, organism.id, seed=13, sexual=sexual) == types.assign(organism.id)
-    census = mating_type_census(population, seed=13, sexual=sexual)
+        assert mating_type_of(population, organism.id, seed=20013, sexual=sexual) == types.assign(organism.id)
+    census = mating_type_census(population, seed=20013, sexual=sexual)
     assert sum(census.values()) == len(population.organisms)
     assert set(census) <= {"male", "female"}
     founder = replace(GenesisOrganism.from_bits("a0", _BITS[0], position=(0, 0)), asexual_lineage=True)
     mixed = replace(population, organisms=(*population.organisms, founder))
-    assert mating_type_of(mixed, "a0", seed=13, sexual=sexual) == "asexual"
-    assert mating_type_census(mixed, seed=13, sexual=sexual)["asexual"] == 1
-    assert mixed.to_dict() == mixed.to_dict()
+    assert mating_type_of(mixed, "a0", seed=20013, sexual=sexual) == "asexual"
+    assert mating_type_census(mixed, seed=20013, sexual=sexual)["asexual"] == 1
+    assert hashlib.sha256(json.dumps(mixed.to_dict(), sort_keys=True).encode()).hexdigest() == _MIXED_DIGEST
     assert "mating_type" not in json.dumps(population.to_dict())
     with pytest.raises(ConfigurationError):
-        mating_type_of(population, "missing", seed=13, sexual=sexual)
+        mating_type_of(population, "missing", seed=20013, sexual=sexual)
     with pytest.raises(ConfigurationError):
-        mating_type_census(population, seed=13, sexual=SexualRecombinationConfig(enabled=True))
+        mating_type_census(population, seed=20013, sexual=SexualRecombinationConfig(enabled=True))

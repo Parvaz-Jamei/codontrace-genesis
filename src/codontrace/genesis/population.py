@@ -870,6 +870,10 @@ class PopulationState:
         lineage_raw = _list(data, "lineage")
         fitness_raw = _list(data, "fitness")
         chamber_raw = data.get("birth_chamber")
+        if "generation" not in data:
+            # A missing generation would default to 0 and pass the
+            # generation-0 guard on mating types.
+            raise ConfigurationError("population snapshot has no generation.")
         return cls(
             generation=_int(data, "generation", 0),
             tick=_int(data, "tick", 0),
@@ -3049,16 +3053,7 @@ def step_population(
         msg = "step_population currently expects a World2D instance."
         raise ConfigurationError(msg)
     stream = _resolve_rng(seed=seed, rng=rng, namespace="genesis/population")
-    if (
-        configs.effective_sexual_config.mating_types_enabled
-        and population.mating_seed is None
-        and population.generation > 0
-    ):
-        msg = (
-            "mating types must be enabled from generation 0; enabling sexes "
-            "mid-run is not supported."
-        )
-        raise ConfigurationError(msg)
+    _check_mating_seed_start(population, configs.effective_sexual_config)
     mating_seed = population.mating_seed if population.mating_seed is not None else stream.seed
     working_world = world.clone()
     world_before_digest = world.digest()
@@ -5717,6 +5712,37 @@ def _commit_newborn(
 
 
 SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
+
+
+def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombinationConfig) -> None:
+    """Refuse a mating-type start that is not the run's first step.
+
+    Without a mating seed the population must be fresh: generation 0, tick 0
+    and no lineage (a snapshot edited back to generation 0 still has its tick
+    and lineage). With a mating seed every sexual organism must already carry
+    its stored type, since each sexes-on step stamps them; a seed injected
+    into a sexes-off snapshot fails this.
+    """
+
+    if not sexual.mating_types_enabled:
+        return
+    if population.mating_seed is None:
+        if population.generation > 0 or population.tick > 0 or population.lineage:
+            msg = (
+                "mating types must be enabled from generation 0; enabling sexes "
+                "mid-run is not supported."
+            )
+            raise ConfigurationError(msg)
+        return
+    unstamped = [
+        o.id for o in population.organisms if o.mating_type is None and not o.asexual_lineage
+    ]
+    if unstamped:
+        msg = (
+            "population has a mating_seed but organisms without a stored mating "
+            f"type ({unstamped[0]!r}); the seed was not set by a sexes-on step."
+        )
+        raise ConfigurationError(msg)
 
 
 def _stamp_mating_types(

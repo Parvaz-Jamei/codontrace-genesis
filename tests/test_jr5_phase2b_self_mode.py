@@ -777,3 +777,37 @@ def test_prereg_m_counts_sons_of_outcrossed_births_only() -> None:
     assert modes == {"selfed": 4, "outcrossed": 4, "uniparental": 2}
     assert m == 0.25
     assert birth_modes_and_m([("hermaphrodite", "s", "s")])[1] is None
+
+
+def test_generation_zero_guard_rejects_edited_snapshots() -> None:
+    """The mating seed must come from the run's first sexes-on step. A
+    snapshot cannot dodge this: with no generation key it is rejected at
+    from_dict; edited back to generation 0 it still has its tick and lineage;
+    with a mating_seed injected into a sexes-off snapshot its organisms have
+    no stored type. Expected: ConfigurationError in all three cases, and a
+    real sexes-on snapshot round-trips and steps."""
+
+    from codontrace.genesis.population import step_population
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    on_runner = session.runner
+    off = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_OUT_BITS)
+    off.run_ticks(2)
+    off_data = dict(off.runner.population.to_dict())
+    assert "mating_seed" not in off_data
+
+    missing = {k: v for k, v in off_data.items() if k != "generation"}
+    with pytest.raises(ConfigurationError, match="no generation"):
+        PopulationState.from_dict(missing)
+
+    edited = PopulationState.from_dict({**off_data, "generation": 0})
+    with pytest.raises(ConfigurationError, match="generation 0"):
+        step_population(edited, on_runner.world, on_runner.configs, seed=5)
+
+    injected = PopulationState.from_dict({**off_data, "mating_seed": 20011})
+    with pytest.raises(ConfigurationError, match="stored mating"):
+        step_population(injected, on_runner.world, on_runner.configs, seed=5)
+
+    session.run_ticks(1)
+    real = PopulationState.from_dict(session.runner.population.to_dict())
+    step_population(real, on_runner.world, on_runner.configs, seed=5)

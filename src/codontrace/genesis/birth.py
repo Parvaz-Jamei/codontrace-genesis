@@ -187,9 +187,13 @@ class SexualRecombinationConfig:
     phase 2a carries no cost of sex (a chamber pair still places both
     products and males still bear offspring); phase 2b will charge it, and
     combining it with ``two_fold_cost_sex`` would then charge it twice.
-    ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
-    before positional crossover; default off so sexual digest pins stay
-    stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
+    ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in two-homolog model: meiosis makes
+    one gamete per parent (segregation plus a crossover) and fertilisation
+    fuses two gametes into the child's two homologs, so genome length is
+    conserved; default off so sexual digest pins stay stable. With it on,
+    ``recombination_prob`` gates the meiotic crossover; a value below 1
+    departs from obligate crossover (every meiosis with at least one
+    exchange). ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
     places only one recombinant product when True.
     """
 
@@ -1589,7 +1593,11 @@ class IncipientOffspring:
 
 
 def split_diploid_homologs(bits: str, codon_width: int = 3) -> tuple[str, str]:
-    """Split a genome into even/odd codon homologs (Aevol-style diploid analog)."""
+    """Split a genome into its two homologs: even and odd codon positions.
+
+    :func:`fuse_gametes` is the inverse, so meiosis plus fertilisation keeps
+    the genome length.
+    """
 
     width = max(1, codon_width)
     codon_count = len(bits) // width
@@ -1630,7 +1638,9 @@ def meiotic_gamete(
     Segregation picks the leading homolog with probability one half, so every
     codon position is transmitted from either homolog with probability one
     half. With ``crossover`` a codon-aligned window from the other homolog is
-    then exchanged into the gamete. The gamete keeps the length of the even
+    then exchanged into the gamete. Callers pass ``crossover`` from
+    ``recombination_prob``; a probability below 1 departs from obligate
+    crossover. The gamete keeps the length of the even
     homolog (including any trailing bits) so fusion can rebuild the genome.
     """
 

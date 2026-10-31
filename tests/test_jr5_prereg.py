@@ -107,7 +107,32 @@ def test_seed_blocks_do_not_touch_sealed() -> None:
 
 
 @pytest.mark.parametrize(
-    "sealed", [101, 508, 8000, 9001, 9120, 9601, 9712, 9807, 10001, 10576, 11001, 11384, 12001, 12240]
+    "sealed",
+    [
+        0,
+        101,
+        508,
+        701,
+        708,
+        1000,
+        1009,
+        8000,
+        9001,
+        9201,
+        9224,
+        9901,
+        9922,
+        9120,
+        9601,
+        9712,
+        9807,
+        10001,
+        10576,
+        11001,
+        11384,
+        12001,
+        12240,
+    ],
 )
 def test_known_sealed_seeds_listed(sealed: int) -> None:
     ranges = _constants()["seeds"]["sealed_ranges"]
@@ -122,7 +147,7 @@ def test_seed_counts_cover_design() -> None:
     assert len(calib) >= c["gate_e1"]["populations_per_cell"] * len(c["gate_e1"]["sex_ratios"])
 
 
-CLAIM_PATH_SHA256 = "f20a4bd9f6b3727439b629c394b64fe1ee195df80c16930f0eddac7feb829a82"
+CLAIM_PATH_SHA256 = "f90b8b1c8bf102814546930a06f295178939ef6c1b14b2042dc51cf2be8a49dc"
 RANGE_RE = re.compile(r"`(\d+)\s*(?:\u2013|-|\u2026|\.\.\.)\s*(\d+)`")
 
 
@@ -148,7 +173,7 @@ def test_gate_still_blocks_red_queen_proved_today() -> None:
 
 
 def test_prereg_seed_tables_do_not_overlap_across_preregs() -> None:
-    docs = sorted((ROOT / "docs").rglob("PREREG*.md"))
+    docs = sorted((ROOT / "docs").rglob("*PREREG*.md"))
     blocks = {d.relative_to(ROOT).as_posix(): _doc_seed_blocks(d) for d in docs}
     assert set(blocks["docs/campaigns/rq_redesign_20260928/PREREG_V2.md"]) >= {
         (9001, 9096),
@@ -160,6 +185,8 @@ def test_prereg_seed_tables_do_not_overlap_across_preregs() -> None:
     seeds = _constants()["seeds"]
     jr5 = {tuple(seeds[k]) for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")}
     assert set(blocks["docs/prereg/jr5/PREREG.md"]) == jr5
+    assert any(n.startswith("docs/handoff/") and "_PREREG_" in n for n in blocks)
+    assert any(n.startswith("docs/HARD_EXPERIMENT_0") and "_PREREG" in n for n in blocks)
     names = sorted(blocks)
     for i, a in enumerate(names):
         for b in names[i + 1 :]:
@@ -251,3 +278,29 @@ def test_holm_family_pinned() -> None:
 def test_claim_path_doc_pinned() -> None:
     data = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_bytes()
     assert hashlib.sha256(data).hexdigest() == CLAIM_PATH_SHA256
+
+
+def test_bca_level_follows_holm_step_in_text_and_json() -> None:
+    c = _constants()
+    boot = c["e2"]["bootstrap"]
+    family = c["multiplicity"]["primary_family"]
+    alpha = c["multiplicity"]["family_alpha"]
+    levels = [1 - alpha / (len(family) - i) for i in range(len(family))]
+    assert boot["ci_level_rule"] == "bca_at_one_minus_holm_adjusted_alpha_of_step"
+    assert all(math.isclose(a, b) for a, b in zip(boot["ci_level_by_holm_step"], levels, strict=True))
+    first = f"{levels[0]:.2%}"
+    claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
+    for text in (_prereg_text(), claim):
+        assert f"{first} at step 1" in text
+    assert "bootstrap 95% interval (" not in claim
+    assert boot["condition_c_ci_level"] == 0.95
+    assert (
+        "two-sided 95% intervals (10,000 resamples, seed 12345), the level that matches one-sided alpha 0.025" in claim
+    )
+
+
+def test_e1_estimator_is_bias_reduced() -> None:
+    c = _constants()
+    assert "bias_reduced" in c["gate_e1"]["estimator"]
+    assert "a bias-reduced binomial GLM" in _prereg_text()
+    assert c["power"]["e1"]["recheck_sd_N50_0.25"] == 0.127

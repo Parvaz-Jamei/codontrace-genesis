@@ -13,11 +13,11 @@ A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = Tru
 **(b) Invasion, both population sizes.** At N = 200 and separately at N = 50, the E2 high-virulence test (copassaged minus fixed, paired t, two-sided) is significant after Holm correction at family alpha 0.05, with copassaged lower than fixed.
 - The family is the four tests {N200 high, N200 low, N50 high, N50 low}.
 - Both high-virulence tests must pass.
-- For each of the two, the paired t test and the paired BCa bootstrap 95% interval (10,000 resamples, seed 12345) must both be significant, in the same direction. Any disagreement makes the result `inconclusive` and the flag stays `False`.
+- For each of the two, the paired t test and the paired BCa bootstrap interval (10,000 resamples, seed 12345) at the Holm-adjusted level of that test's step (98.75% at step 1, down to 95% at step 4; PREREG.md section 3) must both be significant, in the same direction. Any disagreement makes the result `inconclusive` and the flag stays `False`.
 
 **(c) Coevolution is required.** At N = 200 and high virulence, the copassaged arm is lower than the fixed arm and lower than the frozen-replay arm:
 - paired t, one-sided alpha 0.025 each;
-- both paired BCa bootstrap 95% intervals (10,000 resamples, seed 12345) exclude 0 on the same side as the t test. Any disagreement makes the result `inconclusive`.
+- both paired BCa bootstrap two-sided 95% intervals (10,000 resamples, seed 12345), the level that matches one-sided alpha 0.025 (these two tests are not in the Holm family), exclude 0 on the same side as the t test. Any disagreement makes the result `inconclusive`.
 
 **(d) Alternatives are ruled out.** All three are needed. A non-significant result does not rule an alternative out. Each one is ruled out only by an equivalence result or by an effect in the opposite direction, both with 60 paired seeds at N = 200:
 - *Mutation load:* in the no-parasite arms at host mutation 0.05, the paired outcross-minus-self log terminal-fitness ratio has a 90% interval inside ±log 1.1 (±0.0953), or a 95% interval entirely below 0.

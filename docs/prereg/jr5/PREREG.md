@@ -29,8 +29,8 @@ The default ceiling is `runtime_observation`. `red_queen_proved` is no longer ba
 **E1, realised cost of sex (gate).**
 - Sex ratio means the male fraction m of offspring born to outcrossing parents. The all-female asexual line then has a per-generation advantage of 1/(1 − m): 2.0 at m = 0.5 and 1.3333 at m = 0.25.
 - Setup: no parasite, obligate outcross plus an all-female asexual founder fraction of 0.2. Selfers are not used in E1; their expected advantage is not 1/(1 − m), so they have no bound here.
-- Estimator, per population: a binomial GLM with logit link, the asexual count out of the census at each generation as the response and generation as the only predictor, fitted over all generations 0 to T. exp(slope) is the per-generation odds ratio.
-- Overdispersion: drift makes counts in successive generations correlated and more variable than binomial. A quasi-binomial fit gives the same slope and only rescales its standard error. The per-population standard error is not used, because the interval is taken across populations, so the plain binomial fit is kept.
+- Estimator, per population: a bias-reduced binomial GLM (the likelihood penalised by half the log determinant of the Fisher information, which removes the first-order bias of the slope) with logit link, the asexual count out of the census at each generation as the response and generation as the only predictor, fitted over all generations 0 to T. exp(slope) is the per-generation odds ratio.
+- Overdispersion: drift makes counts in successive generations correlated and more variable than binomial. A quasi-binomial fit gives the same slope and only rescales its standard error. The per-population standard error is not used, because the interval is taken across populations, so no dispersion term is added.
 - Horizon T: 5 generations at m = 0.5 and 11 at m = 0.25. These keep the expected asexual frequency below 0.95 even at the upper margin bound (calculation below).
 - Fixation and loss:
   - generations after fixation or loss stay in the fit, since the GLM handles counts of 0 and N;
@@ -56,6 +56,7 @@ Horizon calculation. Under a constant odds ratio w, logit p(t) = logit(0.2) + t�
 - Value per seed: terminal uniparental frequency at the horizon.
 - Contrast: copassaged minus fixed, paired by seed, one test per virulence level.
 - Tests: paired two-sided t test, and a paired BCa bootstrap interval (10,000 resamples of seeds, bootstrap seed 12345) at the matching level.
+- Matching level: the BCa interval for a test is taken at 1 minus the Holm-adjusted alpha of that test's step, that is 0.05/(5 − k) at step k = 1 to 4. So 98.75% at step 1, 98.333% at step 2, 97.5% at step 3 and 95% at step 4. The interval is used as a test at the same level as the Holm step: it excludes 0 exactly when the bootstrap test rejects at that step. It is not a simultaneous confidence interval and is not reported as one.
 - Agreement rule: a test counts as significant only when the t test and the BCa interval are both significant in the same direction. If one is significant and the other is not, or they point in opposite directions, that test is inconclusive and the outcome is `inconclusive`.
 - Effect sizes: risk difference of persistence (frequency at least 0.05) and Hedges g_av.
 - Multiplicity: Holm across four E2 tests (N = 200 and N = 50, each at high and low virulence) at family alpha 0.05. E1 is a gate, not a claim, so it is not in the Holm family.
@@ -96,8 +97,8 @@ Grid (cells × seeds), also in the JSON under `grid`:
 | Pilot | `13901–13930` | horizon and timing only; never confirmatory |
 
 - No confirmatory arm uses a subset of the vector. E1 is the only 40-seed design.
-- Sealed and never used: 101-108, 201-208, 301-308, 401-408, 501-508, 8000-8199, 9300-9899, the timing seeds 90001-90003, and the blocks reserved by `docs/campaigns/rq_redesign_20260928/PREREG_V2.md`: 9001-9120, 10001-10576, 11001-11384 and 12001-12240.
-- A test parses the seed lines of every `docs/**/PREREG*.md` and fails on any overlap between preregistrations.
+- Sealed and never used: 101-108, 201-208, 301-308, 401-408, 501-508, 601-603, 701-708, 751-758, 801-816, 1000-1009, 1000-1299, 2000-2009, 3100-3107, 4100-4107, 8000-8199, 9201-9224, 9300-9899, 9901-9922, 0-149, the timing seeds 90001-90003, and the blocks reserved by `docs/campaigns/rq_redesign_20260928/PREREG_V2.md`: 9001-9120, 10001-10576, 11001-11384 and 12001-12240.
+- A test parses the seed lines of every `docs/**/*PREREG*.md` and fails on any overlap between preregistrations.
 - A killed run is re-run on the same seed. It is never replaced.
 
 ## 6. Horizon
@@ -112,11 +113,27 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - N = 10: 0.03 s per generation.
 - When soft K was left at 3.2N (census about 600), N = 200 took 2.7-3.0 s per generation under 12-job contention. That setting is not used.
 
-**Power for E1.** Simulated with the binomial GLM estimator above. Assumptions: Wright-Fisher sampling of N each generation, a constant odds ratio equal to the theory value, founder frequency 0.2, horizons T = 5 and 11, 4,000 populations per setting, the early-fixation exclusion applied, and TOST on log bounds with n − 1 degrees of freedom and the true value at the centre.
-- SD of the log estimator: 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50.
+**Power for E1.** Simulated with the estimator above. Assumptions: Wright-Fisher sampling of N each generation, a constant odds ratio, founder frequency 0.2, horizons T = 5 and 11, the early-fixation exclusion applied, and TOST on log bounds with n − 1 degrees of freedom.
+- First pass (plain binomial fit, 4,000 populations per setting, true value at the theory value): SD of the log estimator 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50. An independent re-run at N = 50, m = 0.25 gave 0.127. 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
 - No population fixed before generation 3 in any setting. At N = 50, 3.4% (m = 0.5) and 7.6% (m = 0.25) fixed later and stay in the fit; 0.3% were lost at N = 50, m = 0.25.
-- 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
 - The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
+
+**Slope bias.** The plain binomial slope is biased upward. Mean bias of the log estimator at the theory value (4,000 populations):
+- m = 0.5: +0.0020 at N = 200, +0.0158 at N = 50 (17% of the +0.0953 margin);
+- m = 0.25: +0.0020 at N = 200, +0.0027 at N = 50.
+
+The bias-reduced fit removes the first-order bias of the maximum likelihood slope, so it is used instead of subtracting a simulated bias. Its mean bias (2,000 populations) is +0.0022 and +0.0047 at m = 0.5 (N = 200, 50), and +0.0012 and +0.0044 at m = 0.25. Its SDs are 0.075 and 0.153 at m = 0.5, and 0.051 and 0.126 at m = 0.25. Normal-approximation n for 90% power is 8, 27, 5 and 19, all at or below the first-pass figures.
+
+TOST pass rate with 40 populations (pass at a bound is the type I error, nominal 0.05):
+
+| m | N | true w | plain fit | bias-reduced fit |
+|---|---|---|---|---|
+| 0.5 | 200 | 2.0 / 1.8 / 2.2 | 1.000 / 0.095 / 0.016 | 1.000 / 0.056 / 0.028 |
+| 0.5 | 50 | 2.0 / 1.8 / 2.2 | 0.909 / 0.088 / 0.012 | 0.965 / 0.047 / 0.021 |
+| 0.25 | 200 | 1.3333 / 1.2 / 1.4667 | 1.000 / 0.024 / 0.016 | 1.000 / 0.037 / 0.016 |
+| 0.25 | 50 | 1.3333 / 1.2 / 1.4667 | 0.997 / 0.009 / 0.012 | 0.988 / 0.012 / 0.008 |
+
+The plain fit passes too often at the lower bound for m = 0.5 (0.095 at N = 200), so the bias-reduced fit is the preregistered estimator. The 0.056 at N = 200 is within Monte Carlo error of 0.05 (about ±0.007 at 4,000 draws).
 
 **Power for E2.** Paired two-sided t at alpha 0.0125 (the first Holm step of four), 80% power:
 - difference 0.25, SD 0.30: 20 seeds;

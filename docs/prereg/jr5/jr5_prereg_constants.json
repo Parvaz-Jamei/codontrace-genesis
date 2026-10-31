@@ -103,7 +103,8 @@
       "implementation": "tests/_jr5_e1_fit.py",
       "dependencies": "numpy",
       "reference_check": "saturated_two_group_model_equals_half_count_correction_exactly"
-    }
+    },
+    "segregation_load": "enters_realised_w_not_corrected_pilot_measures_genuine_load_failure_is_instrument_failure"
   },
   "e2": {
     "estimand": "paired_difference_copassaged_minus_fixed_terminal_uniparental_frequency",
@@ -182,7 +183,7 @@
       "closed_loop_hp_life": {
         "outcross_enabled": true,
         "selfing_birth_atp_endowment": 0.0,
-        "outcross_runtime_atp": 1.0
+        "outcross_runtime_atp": 0.0
       },
       "outcross_locus": {
         "obligate_self": "000",
@@ -211,7 +212,19 @@
         "mating_type_set"
       ],
       "other_settings_shared": true,
-      "diploid_meiosis_all_host_arms": true
+      "diploid_meiosis_all_host_arms": true,
+      "engine_dependencies": {
+        "sex_fixed_for_life": {
+          "branch": "jr5/phase2b-self-mode",
+          "engine_test": "tests/test_jr5_phase2b_self_mode.py::test_no_organism_ever_changes_sex_over_many_ticks"
+        },
+        "diploid_fertilisation": {
+          "branch": "fix/diploid-fertilisation",
+          "bug": "diploid_meiosis_halves_genome_length_each_generation",
+          "required_engine_test": "genome_length_conserved_over_at_least_3_generations",
+          "must_be_merged_before": "any_jr5_arm_including_pilot"
+        }
+      }
     },
     "founders": {
       "obligate_self": "all_hermaphrodite_no_draw_hermaphrodite_only_set",
@@ -252,23 +265,39 @@
       "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
       "outcross_mating_fee": {
         "field": "closed_loop_hp_life.outcross_runtime_atp",
-        "atp_per_outcross_reproduction": 1.0,
-        "kept_as_real_cost_of_outcrossing": true,
+        "atp_per_outcross_reproduction": 0.0,
         "ledger_term": "outcross_mating_fee",
         "paid_by_selfers": false,
         "charged": "once_per_outcross_reproduction",
         "ledger_row_reason": "outcross_runtime_cost",
-        "separate_from": "son_cost"
+        "separate_from": "son_cost",
+        "confirmatory_arms_atp": 0.0,
+        "ledger_term_reads": 0.0,
+        "bias_if_on": {
+          "e1_w": "raised_above_theory",
+          "condition_d_outcross_minus_self": "lowered_toward_ruling_out_mutation_load",
+          "direction_for_red_queen_proved": "anti_conservative"
+        },
+        "sensitivity_run": {
+          "atp": 1.0,
+          "report_only": true,
+          "enters_gates": false,
+          "cells": [
+            "e1_m0.5_N200",
+            "mutation_load"
+          ],
+          "seeds": "same_as_confirmatory_cells"
+        }
       },
       "ledgered_arm_differences": [
-        "son_cost",
-        "outcross_mating_fee"
+        "son_cost"
       ],
-      "cost_of_males_estimate_uses": "son_cost_only",
+      "cost_of_males_estimate_uses": "son_cost_only_fee_zero",
       "selfing_genetics": {
         "haploid": "selfed_child_is_clone",
         "segregation_requires": "diploid_meiosis_on",
-        "diploid_meiosis": true
+        "diploid_meiosis": true,
+        "depends_on": "fix/diploid-fertilisation"
       }
     },
     "fairness": "same_engine_config_same_ledger_son_cost_and_outcross_mating_fee_ledgered_separately_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
@@ -721,7 +750,7 @@
     "host_n": 200,
     "horizon": 5,
     "engine_config": "host_mating_arm_modes.engine_config",
-    "outcross_mating_fee_atp": 1.0,
+    "outcross_mating_fee_atp": 0.0,
     "diploid_meiosis": true,
     "estimator": "same_as_gate_e1",
     "fit": "bias_reduced",
@@ -743,6 +772,7 @@
     "on_fail": "instrument_failure_fix_engine_mechanism_with_documented_reason_rerun_same_seeds",
     "bounds_never_widened": true,
     "estimator_never_changed": true,
-    "enters_claims": false
+    "enters_claims": false,
+    "requires": "fix/diploid-fertilisation_merged"
   }
 }

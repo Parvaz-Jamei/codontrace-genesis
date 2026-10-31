@@ -627,22 +627,14 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
         "inbreeding_cost_source": "existing_genome_model_only",
         "fixed_at": "prereg_not_phase_2b",
         "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
-        "outcross_mating_fee": {
-            "field": "closed_loop_hp_life.outcross_runtime_atp",
-            "atp_per_outcross_reproduction": 1.0,
-            "kept_as_real_cost_of_outcrossing": True,
-            "ledger_term": "outcross_mating_fee",
-            "paid_by_selfers": False,
-            "charged": "once_per_outcross_reproduction",
-            "ledger_row_reason": "outcross_runtime_cost",
-            "separate_from": "son_cost",
-        },
-        "ledgered_arm_differences": ["son_cost", "outcross_mating_fee"],
-        "cost_of_males_estimate_uses": "son_cost_only",
+        "outcross_mating_fee": lfl["outcross_mating_fee"],
+        "ledgered_arm_differences": ["son_cost"],
+        "cost_of_males_estimate_uses": "son_cost_only_fee_zero",
         "selfing_genetics": {
             "haploid": "selfed_child_is_clone",
             "segregation_requires": "diploid_meiosis_on",
             "diploid_meiosis": True,
+            "depends_on": "fix/diploid-fertilisation",
         },
     }
     claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
@@ -680,7 +672,7 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
     assert cfg["closed_loop_hp_life"] == {
         "outcross_enabled": True,
         "selfing_birth_atp_endowment": 0.0,
-        "outcross_runtime_atp": 1.0,
+        "outcross_runtime_atp": 0.0,
     }
     assert cfg["outcross_locus"] == {"obligate_self": "000", "obligate_outcross": "001"}
     assert cfg["mating_type_set"] == {
@@ -708,36 +700,78 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
     assert "from the run seed and the organism id" in note
 
 
-def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
-    """Outcrossing costs a mate search as well as sons. The existing engine
-    charges 1.0 ATP per outcross reproduction (outcross_runtime_atp, default in
-    the host-parasite life plugin), and that fee is kept as a real cost of
-    outcrossing. Because the two-fold cost of males is defined by the sons an
-    outcrossing mother makes, the fee must be a separate ledger term and must
-    stay out of the cost-of-males estimate, or E1 would be measuring the fee as
-    well. The prereg text must not describe the arms as differing in son cost
-    alone. Expected values are those written in PREREG.md section 4 and the
-    design note."""
-    lfl = _constants()["host_mating_arm_modes"]["like_for_like"]
+def test_outcross_mating_fee_is_off_in_confirmatory_arms() -> None:
+    """The two-fold cost of males is defined by the sons an outcrossing mother
+    makes, all else equal. E1 estimates w from outcrosser and asexual
+    frequencies, so any mating fee would enter w and the gate would no longer
+    test the cost of males. A fee also lowers outcrosser fitness in the
+    outcross-minus-self ratio of condition (d), which pushes toward ruling out
+    mutation load and so toward the Red Queen claim. The engine's existing
+    fee (outcross_runtime_atp, 1.0 ATP by default) is therefore 0.0 in every
+    confirmatory arm; its ledger term stays and reads 0, and a fee-1.0 rerun on
+    the same seeds is report-only and enters no gate. Expected values are
+    those written in PREREG.md section 4 and the design note."""
+    modes = _constants()["host_mating_arm_modes"]
+    lfl = modes["like_for_like"]
     fee = lfl["outcross_mating_fee"]
-    assert fee["atp_per_outcross_reproduction"] == 1.0
+    assert fee["field"] == "closed_loop_hp_life.outcross_runtime_atp"
+    assert fee["atp_per_outcross_reproduction"] == 0.0
+    assert fee["confirmatory_arms_atp"] == 0.0
     assert fee["ledger_term"] == "outcross_mating_fee"
-    assert fee["separate_from"] == "son_cost"
-    assert fee["paid_by_selfers"] is False
+    assert fee["ledger_term_reads"] == 0.0
     assert fee["ledger_row_reason"] == "outcross_runtime_cost"
-    cfg = _constants()["host_mating_arm_modes"]["engine_config"]
-    assert cfg["closed_loop_hp_life"]["outcross_runtime_atp"] == fee["atp_per_outcross_reproduction"]
-    assert lfl["ledgered_arm_differences"] == ["son_cost", "outcross_mating_fee"]
-    assert lfl["cost_of_males_estimate_uses"] == "son_cost_only"
+    assert fee["paid_by_selfers"] is False
+    assert fee["bias_if_on"] == {
+        "e1_w": "raised_above_theory",
+        "condition_d_outcross_minus_self": "lowered_toward_ruling_out_mutation_load",
+        "direction_for_red_queen_proved": "anti_conservative",
+    }
+    assert fee["sensitivity_run"] == {
+        "atp": 1.0,
+        "report_only": True,
+        "enters_gates": False,
+        "cells": ["e1_m0.5_N200", "mutation_load"],
+        "seeds": "same_as_confirmatory_cells",
+    }
+    assert modes["engine_config"]["closed_loop_hp_life"]["outcross_runtime_atp"] == 0.0
+    assert _constants()["realised_w_pilot"]["outcross_mating_fee_atp"] == 0.0
+    assert lfl["ledgered_arm_differences"] == ["son_cost"]
+    text = _prereg_text()
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
-    for text in (_prereg_text(), note):
-        assert "`outcross_runtime_atp = 1.0`" in text
-        assert "the cost-of-males estimate uses only the son term" in text.replace(
-            "The cost-of-males", "the cost-of-males"
-        )
-        assert "single manipulated factor" in text
-        assert "only in son cost" not in text
-        assert "males the only difference" not in text
+    for t in (text, note):
+        assert "`outcross_runtime_atp=0.0`" in t
+        assert "single manipulated factor" in t
+        assert "`outcross_runtime_atp = 1.0`" not in t
+        assert "uses only the son term" not in t
+    assert "would therefore be anti-conservative" in text
+    assert "the fee enters no gate, no condition and no claim" in text
+    assert text.count("Pinned in the JSON under `host_mating_arm_modes.engine_config`") == 1
+
+
+def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
+    """Diploid meiosis must halve the genome into a gamete and fertilisation
+    must fuse two gametes, so genome length is conserved across generations.
+    On the phase 2b branch the two gametes are crossed over instead of fused,
+    so length halves every generation (240, 120, 60, 30 bits), and every host
+    arm would measure that artefact. The fix on fix/diploid-fertilisation is
+    therefore a hard dependency, with an engine test that length is conserved
+    over at least 3 generations; no JR5 arm, the pilot included, runs before
+    it is merged. Sex fixed for life is pinned the same way to its phase 2b
+    test."""
+    c = _constants()
+    deps = c["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]
+    d = deps["diploid_fertilisation"]
+    assert d["branch"] == "fix/diploid-fertilisation"
+    assert d["required_engine_test"] == "genome_length_conserved_over_at_least_3_generations"
+    assert d["must_be_merged_before"] == "any_jr5_arm_including_pilot"
+    assert deps["sex_fixed_for_life"]["engine_test"].endswith("test_no_organism_ever_changes_sex_over_many_ticks")
+    assert c["realised_w_pilot"]["requires"] == "fix/diploid-fertilisation_merged"
+    text = _prereg_text()
+    assert "Hard engine dependency" in text
+    assert "`fix/diploid-fertilisation`" in text
+    assert "conserved over at least 3 generations" in text
+    assert "Segregation load and E1" in text
+    assert c["gate_e1"]["segregation_load"].startswith("enters_realised_w_not_corrected")
 
 
 def test_self_arm_founders_are_all_hermaphrodites() -> None:
@@ -802,6 +836,7 @@ def test_realised_w_pilot_pinned() -> None:
     assert p["ci_level"] == g["ci_level"]
     assert p["bounds"] == g["equivalence_bounds"]["0.5"]
     assert p["diploid_meiosis"] is True
+    assert p["outcross_mating_fee_atp"] == 0.0
     eng = c["host_mating_arm_modes"]["engine_config"]
     assert eng["sexual_recombination"]["diploid_meiosis"] is True
     assert p["outcross_mating_fee_atp"] == eng["closed_loop_hp_life"]["outcross_runtime_atp"]

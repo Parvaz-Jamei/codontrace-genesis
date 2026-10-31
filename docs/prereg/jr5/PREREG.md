@@ -12,7 +12,7 @@ When the cost of sex is paid through the production of sons, what does it cost i
 
 The analysis returns exactly one of these. Each has a decision rule, and all are fixed now.
 
-- `instrument_fail`: the E1 gate fails at either sex ratio, more than the exclusion cap of E1 populations is excluded (section 3), or a validity check in section 8 fails. Nothing else is scored.
+- `instrument_fail`: the E1 gate (N = 200 only) fails at either sex ratio, more than the exclusion cap of E1 populations is excluded (section 3), or a validity check in section 8 fails. Nothing else is scored.
 - `inconclusive`: for any test that the outcome below depends on, the paired t test and the BCa bootstrap interval (section 3) disagree, that is one is significant and the other is not, or they point in opposite directions.
 - `rq_consistent`: E2 is significant at the high-virulence level after Holm correction at N = 200 and also at N = 50 (both tests, as in condition (b) of `RED_QUEEN_CLAIM_PATH.md`), with copassaged lower than fixed. It must also show all of the following:
   - the uniform-tax arm is shown not to reproduce the effect by the equivalence rule of condition (d);
@@ -37,7 +37,7 @@ The default ceiling is `runtime_observation`. `red_queen_proved` is no longer ba
   - a population that fixes (asexual count = census) before generation 3 is excluded and counted;
   - exclusion cap: at most 20% of the populations in a cell (8 of 40). Above the cap, E1 is an instrument failure;
   - fixed and lost populations are reported separately, with their counts, next to the estimate.
-- Replicate unit: the population (one seed). 40 populations per sex ratio at N = 200. The same seeds are also run at N = 50, which is reported but is not part of the gate.
+- Replicate unit: the population (one seed). 40 populations per sex ratio at N = 200. The same seeds are also run at N = 50, which is reported but is not part of the gate. Its measured lower-bound size is 0.073 (bias-reduced fit), and it has no calibrated margin.
 - Interval: a one-sample t interval on the log scale over populations, back-transformed.
 - Test: TOST at alpha 0.05, that is a 90% interval.
   - Sex ratio 0.5: the interval must lie inside [1.8, 2.2].
@@ -117,6 +117,7 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - First pass (plain binomial fit, 4,000 populations per setting, true value at the theory value): SD of the log estimator 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50. An independent re-run at N = 50, m = 0.25 gave 0.127. 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
 - No population fixed before generation 3 in any setting. At N = 50, 3.4% (m = 0.5) and 7.6% (m = 0.25) fixed later and stay in the fit; 0.3% were lost at N = 50, m = 0.25.
 - The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
+- E1 at N = 50 is reported, not gated. Its measured lower-bound size is 0.073 (bias-reduced fit; see the table below).
 
 **Slope bias.** Simulated with fresh populations: 40,000 per setting and true w, seed 20261031 + setting index, both fits on the same populations. TOST pass rates use 1,000 disjoint groups of 40, with no resampling; the Monte Carlo SE is at most 0.010. An earlier pass resampled groups from a pool of 4,000 and gave 0.095 at the lower bound for m = 0.5, N = 200. It is replaced by the figures below.
 

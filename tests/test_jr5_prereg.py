@@ -147,7 +147,7 @@ def test_seed_counts_cover_design() -> None:
     assert len(calib) >= c["gate_e1"]["populations_per_cell"] * len(c["gate_e1"]["sex_ratios"])
 
 
-CLAIM_PATH_SHA256 = "f90b8b1c8bf102814546930a06f295178939ef6c1b14b2042dc51cf2be8a49dc"
+CLAIM_PATH_SHA256 = "994a74ce153e767ec63ff007c936077c698c9ea2c901265aed6f59b1261a492d"
 RANGE_RE = re.compile(r"`(\d+)\s*(?:\u2013|-|\u2026|\.\.\.)\s*(\d+)`")
 
 
@@ -378,3 +378,17 @@ def test_plain_fit_matches_statsmodels() -> None:
     ours = fit_logit(k, n, x, bias_reduced=False)
     ref = sm.GLM(np.column_stack([k, n - k]), sm.add_constant(x), family=sm.families.Binomial()).fit()
     assert np.allclose(ours, ref.params, atol=1e-8)
+
+
+def test_e1_gate_is_n200_only_and_n50_is_report_only() -> None:
+    g = _constants()["gate_e1"]
+    assert g["host_n_gate"] == 200
+    assert g["host_n_reported"] == [200, 50]
+    n50 = g["n50"]
+    assert n50["status"] == "report_only"
+    assert n50["gated"] is False
+    assert n50["calibrated_margin"] is None
+    assert n50["lower_bound_size_bias_reduced"] == 0.073
+    table = _constants()["power"]["e1"]["tost_pass_rate_n40"]["bias_reduced"]["0.5"]["N50"]
+    assert table[1] == n50["lower_bound_size_bias_reduced"]
+    assert "b_e2_holm_both_N" in _constants()["gated_claim_flags"]["red_queen_proved"]["conditions"]

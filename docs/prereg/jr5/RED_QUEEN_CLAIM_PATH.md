@@ -6,9 +6,10 @@ This replaces the permanent ban. Phase 1 documents it only. The adapter is built
 
 A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = True` only if every one of (a) to (e) holds. Otherwise it returns the matching typed outcome from PREREG.md section 2, and the flag stays `False`.
 
-**(a) Cost gate.** E1 TOST passes at sex ratio 0.5 and at 0.25:
+**(a) Cost gate.** E1 TOST at N = 200 passes at sex ratio 0.5 and at 0.25:
 - the 90% interval lies inside [1.8, 2.2] and inside [1.2, 1.4667];
 - each 95% interval excludes 1.
+- E1 at N = 50 is reported, not gated, and is not part of this condition. Its measured lower-bound size is 0.073 (bias-reduced fit).
 
 **(b) Invasion, both population sizes.** At N = 200 and separately at N = 50, the E2 high-virulence test (copassaged minus fixed, paired t, two-sided) is significant after Holm correction at family alpha 0.05, with copassaged lower than fixed.
 - The family is the four tests {N200 high, N200 low, N50 high, N50 low}.

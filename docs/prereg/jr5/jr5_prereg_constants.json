@@ -65,6 +65,12 @@
     "on_exceed_exclusion_cap": "instrument_fail",
     "report_fixed_and_lost_counts": true,
     "host_n_gate": 200,
+    "n50": {
+      "status": "report_only",
+      "gated": false,
+      "calibrated_margin": null,
+      "lower_bound_size_bias_reduced": 0.073
+    },
     "host_n_reported": [
       200,
       50

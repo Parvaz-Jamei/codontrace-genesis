@@ -1,7 +1,7 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "1d78e1d8647b1e545d171a1fd0c6eac26f2c63e0498448791afd97a9e6efc4d8",
+    "digest": "5878a7af847fa027e26fead6713289012f8fefdd358163a8f0d36d461aff4bc7",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
@@ -9,11 +9,11 @@
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "64044ae04e0bcf032b3b6d36947fd767cf2117fdfb8f1d55523a6a8ac3c801db"
+        "47935088cee3fb668f9d763d899d05f2af4bb32d2b7ee6ac3c299bf863da69a8"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
-        "f90b8b1c8bf102814546930a06f295178939ef6c1b14b2042dc51cf2be8a49dc"
+        "994a74ce153e767ec63ff007c936077c698c9ea2c901265aed6f59b1261a492d"
       ],
       [
         "docs/prereg/jr5/REFERENCES.md",
@@ -25,7 +25,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "abeba0a1b0eade3dd3109a7464df517dfc32d630ab73f114f368640022ceeadd"
+        "58e1a5af02591847e0f2e486c8785fa6b8c4fd7008e947f65a5bc1a10bbc7c13"
       ]
     ],
     "title": "JR5 cost of sex prereg"

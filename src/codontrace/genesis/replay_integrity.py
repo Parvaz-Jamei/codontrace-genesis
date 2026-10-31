@@ -1928,3 +1928,20 @@ for _path in (*STRICT_REPLAY_CRITICAL_DIGEST_CLASSES, *NON_REPLAY_CRITICAL_DIGES
     except Exception:
         pass
 
+# JR5 verdict adapter records. Their digests point at the prereg record and the
+# evidence; the adapter re-derives the verdict from both, so a digest here is
+# never enough on its own to grant red_queen_proved. Registered after the R08
+# alignment so engine import does not load the adapter; the fields above are
+# the classes' digest fields, which the policy sweep checks.
+_JR5_VERDICT_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
+    "codontrace.claimgate.adapters.jr5_verdict.ReplayCheck": ("expected_digest", "replayed_digest"),
+    "codontrace.claimgate.adapters.jr5_verdict.Jr5Evidence": ("prereg_record_digest",),
+    "codontrace.claimgate.adapters.jr5_verdict._Prereg": ("digest",),
+    "codontrace.claimgate.adapters.jr5_verdict.Jr5Verdict": ("evidence_digest", "prereg_record_digest"),
+}
+for _path, _fields in _JR5_VERDICT_PUBLIC_DIGEST_FIELDS.items():
+    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
+NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
+    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_JR5_VERDICT_PUBLIC_DIGEST_FIELDS))
+)
+

@@ -48,6 +48,7 @@ __all__ = [
     "ReplayCheck",
     "TimeShiftWindow",
     "assert_jr5_red_queen_claim_allowed",
+    "audit_bundle_with_jr5_verdict",
     "default_prereg_dir",
     "evaluate_jr5_verdict",
     "verify_jr5_verdict",
@@ -668,3 +669,28 @@ def assert_jr5_red_queen_claim_allowed(
         failed = [k for k in _CONDITION_KEYS if not verdict.conditions[k]]
         raise ConfigurationError(f"{CLAIM!r} is not supported by the JR5 verdict ({verdict.outcome}; failed {failed}).")
     return CLAIM
+
+
+def audit_bundle_with_jr5_verdict(bundle: Mapping[str, Any], *, prereg_dir: Path | None = None) -> Any:
+    """Run the claimgate auditor with the JR5 exemption from the Red Queen ban.
+
+    The bundle carries ``jr5_verdict`` (the record) and ``jr5_evidence`` in its
+    extra fields. The ban on ``red_queen_proved`` is lifted only when
+    :func:`assert_jr5_red_queen_claim_allowed` passes on those two; any other
+    bundle is graded exactly as ``audit_bundle`` grades it.
+    """
+
+    from codontrace.claimgate.auditor import audit_bundle
+
+    def exemption(extra: Mapping[str, Any]) -> bool:
+        record = extra.get("jr5_verdict")
+        evidence = extra.get("jr5_evidence")
+        if not isinstance(record, Mapping) or not isinstance(evidence, Mapping):
+            return False
+        try:
+            assert_jr5_red_queen_claim_allowed(record, evidence, prereg_dir=prereg_dir)
+        except (ConfigurationError, KeyError, TypeError, ValueError):
+            return False
+        return True
+
+    return audit_bundle(bundle, red_queen_exemption=exemption)

@@ -35,6 +35,7 @@ from codontrace.claimgate.adapters.host_parasite import assert_claim_allowed
 from codontrace.claimgate.adapters.jr5_verdict import (
     Jr5Evidence,
     assert_jr5_red_queen_claim_allowed,
+    audit_bundle_with_jr5_verdict,
     evaluate_jr5_verdict,
     verify_jr5_verdict,
 )
@@ -325,6 +326,9 @@ def test_profile_gate_still_refuses_every_other_caller() -> None:
 
 
 def test_auditor_ban_lifts_only_for_a_verified_jr5_verdict() -> None:
+    # The auditor ban holds for a plain audit_bundle call even with a passing
+    # record; only the JR5 adapter's audit path lifts it, and only for a
+    # record that recomputes from its evidence with (a) to (e) true.
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
     baseline = audit_bundle(payload).achieved_level
     ev = planted_rq()
@@ -333,14 +337,19 @@ def test_auditor_ban_lifts_only_for_a_verified_jr5_verdict() -> None:
     assert audit_bundle(marked).achieved_level < baseline
     marked["jr5_evidence"] = ev
     marked["jr5_verdict"] = _verdict(ev).to_dict()
-    assert audit_bundle(marked).achieved_level == baseline
+    assert audit_bundle(marked).achieved_level < baseline
+    assert audit_bundle_with_jr5_verdict(marked, prereg_dir=PREREG_DIR).achieved_level == baseline
     # A failing verdict, or a passing record over failing evidence, keeps the ban.
     bad_ev = _set(ev, ("runs", 0, "atp_ledger_residual"), 1e-6)
     for record, evidence in ((_verdict(bad_ev).to_dict(), bad_ev), (marked["jr5_verdict"], bad_ev)):
         again = deepcopy(marked)
         again["jr5_evidence"] = evidence
         again["jr5_verdict"] = record
-        assert audit_bundle(again).achieved_level < baseline
+        assert audit_bundle_with_jr5_verdict(again, prereg_dir=PREREG_DIR).achieved_level < baseline
+    # Without the JR5 fields the adapter path grades like the plain auditor.
+    plain = deepcopy(payload)
+    plain["red_queen_proved"] = True
+    assert audit_bundle_with_jr5_verdict(plain, prereg_dir=PREREG_DIR).achieved_level < baseline
 
 
 def test_planted_margins_match_the_prereg_constants() -> None:

@@ -42,8 +42,10 @@ the flag is `True` only when (a) to (e) all hold.
   refuses `red_queen_proved` for every caller.
 - `assert_jr5_red_queen_claim_allowed(record, evidence)` recomputes the
   verdict, requires the record to equal it, and requires the flag.
-- The auditor ban on `red_queen_proved` is lifted for a bundle only when it
-  carries `jr5_verdict` and `jr5_evidence` that pass that same check.
+- The auditor ban on `red_queen_proved` stays in `audit_bundle`. It is lifted
+  only through `audit_bundle_with_jr5_verdict`, for a bundle whose
+  `jr5_verdict` and `jr5_evidence` pass that same check. The auditor itself
+  does not import the adapter, so the import contracts are unchanged.
 
 The prereg folder is looked up next to the source tree by default
 (`default_prereg_dir()`); pass `prereg_dir` when running elsewhere.

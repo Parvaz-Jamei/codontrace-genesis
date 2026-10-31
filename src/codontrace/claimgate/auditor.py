@@ -9,7 +9,7 @@ do not grant a claim pass. Bitwise-identical outcomes across arms are
 from __future__ import annotations
 
 import struct
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -284,7 +284,10 @@ def _bundle_flags(bundle: ClaimgateBundle) -> dict[str, bool]:
     return flags
 
 
-def _forbidden_hits(bundle: ClaimgateBundle) -> tuple[str, ...]:
+def _forbidden_hits(
+    bundle: ClaimgateBundle,
+    red_queen_exemption: Callable[[Mapping[str, Any]], bool] | None = None,
+) -> tuple[str, ...]:
     policy = default_claim_gate_policy()
     forbidden = set(policy.forbidden_aliases)
     # Bare intelligence is rejected as unknown by the gate, and Red Queen is
@@ -302,30 +305,12 @@ def _forbidden_hits(bundle: ClaimgateBundle) -> tuple[str, ...]:
     requested = extra.get("requested_claim")
     if isinstance(requested, str) and normalize_claim_label(requested) in forbidden:
         hits.add(normalize_claim_label(requested))
-    if "red_queen_proved" in hits and _jr5_verdict_verifies(extra):
+    # The one exemption from the Red Queen ban: a checker supplied by the JR5
+    # verdict adapter, which recomputes the verdict from the bundle. Plain
+    # audit_bundle calls pass none, so the ban holds for every other source.
+    if "red_queen_proved" in hits and red_queen_exemption is not None and red_queen_exemption(extra) is True:
         hits.discard("red_queen_proved")
     return tuple(sorted(hits))
-
-
-def _jr5_verdict_verifies(extra: Mapping[str, Any]) -> bool:
-    """JR5-only exemption from the Red Queen ban (docs/prereg/jr5).
-
-    The bundle must carry the JR5 verdict record and its evidence. The verdict
-    is recomputed from the evidence and must match the record with every
-    condition (a) to (e) true. Anything else keeps the ban.
-    """
-
-    record = extra.get("jr5_verdict")
-    evidence = extra.get("jr5_evidence")
-    if not isinstance(record, Mapping) or not isinstance(evidence, Mapping):
-        return False
-    from codontrace.claimgate.adapters.jr5_verdict import assert_jr5_red_queen_claim_allowed
-
-    try:
-        assert_jr5_red_queen_claim_allowed(record, evidence)
-    except (ConfigurationError, KeyError, TypeError, ValueError):
-        return False
-    return True
 
 
 def _neighbor_warnings(bundle: ClaimgateBundle) -> list[str]:
@@ -451,8 +436,17 @@ def _assert_forbidden_still_blocked() -> None:
             raise ConfigurationError(f"{label} must remain blocked.")
 
 
-def audit_bundle(bundle: Mapping[str, Any] | ClaimgateBundle) -> ClaimAuditReport:
-    """Grade a claimgate_bundle_v1. Deterministic. Rules = CLAIMS.md §5 + §8."""
+def audit_bundle(
+    bundle: Mapping[str, Any] | ClaimgateBundle,
+    *,
+    red_queen_exemption: Callable[[Mapping[str, Any]], bool] | None = None,
+) -> ClaimAuditReport:
+    """Grade a claimgate_bundle_v1. Deterministic. Rules = CLAIMS.md §5 + §8.
+
+    ``red_queen_exemption`` is for the JR5 verdict adapter only (see
+    ``audit_bundle_with_jr5_verdict``); with the default ``None`` a
+    ``red_queen_proved`` flag always counts as forbidden.
+    """
 
     parsed = parse_claimgate_bundle(bundle)
     _assert_forbidden_still_blocked()
@@ -462,7 +456,7 @@ def audit_bundle(bundle: Mapping[str, Any] | ClaimgateBundle) -> ClaimAuditRepor
         flags["consistent_measured_difference"] = False
         flags["effect_direction"] = False
         flags["statistical_and_ablation_evidence"] = False
-    hits = _forbidden_hits(parsed)
+    hits = _forbidden_hits(parsed, red_queen_exemption)
     if hits:
         flags["consistent_measured_difference"] = False
         flags["effect_direction"] = False

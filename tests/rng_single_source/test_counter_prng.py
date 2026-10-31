@@ -59,6 +59,10 @@ ALLOWED = {
     ("experiments/orchestrator.py", "seed"),
     # File-integrity hashes of a snapshot file whose name contains a seed.
     ("genesis/rq_bidirectional_timeshift.py", "sample_path"),
+    # PopulationState.to_dict stores the run seed used for mating types as a
+    # record field (mating_seed), so every population digest hashes a payload
+    # that carries it. These are state digests, never used as random values.
+    ("genesis/population.py", "payload"),
 }
 
 

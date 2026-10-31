@@ -859,8 +859,7 @@ class PopulationState:
         if self.materials is not None:
             payload["materials"] = self.materials.to_dict()
         if self.mating_seed is not None:
-            # A record field, not a stream: the stored run seed for mating types.
-            payload.update({"mating_seed": self.mating_seed})
+            payload["mating_seed"] = self.mating_seed
         return payload
 
     @classmethod

@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections import Counter
 
 from codontrace.genesis.birth import (
+    DIPLOID_FERTILISATION_MECHANISM,
     fuse_gametes,
     meiotic_gamete,
     split_diploid_homologs,
@@ -323,3 +324,150 @@ def test_default_path_digest_table_is_unchanged() -> None:
         timeout=900,
     ).stdout
     assert hashlib.sha256(out).hexdigest()[:16] == DEFAULT_PATH_TABLE_DIGEST
+
+
+# Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog
+# ``000 000``, so it is heterozygous at both paired loci; the program
+# reproduces under the chamber config below.
+_CHAMBER_PARENT = "111000111000"
+
+
+def _chamber_children(recombination_prob: float, seeds: range) -> list[tuple[str, str | None]]:
+    """Children of two copies of one heterozygous genome, with record mechanism."""
+
+    from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
+    from codontrace.genesis.liveness import AliveGateConfig
+    from codontrace.genesis.organism import GenesisOrganism
+    from codontrace.genesis.population import (
+        MutationConfig,
+        OffspringPlacementPolicy,
+        PopulationConfigs,
+        PopulationState,
+        ReproductionConfig,
+        step_population,
+    )
+    from codontrace.world import World2D
+
+    configs = PopulationConfigs(
+        reproduction=ReproductionConfig(
+            min_runtime_atp=1.0,
+            parent_atp_cost=1.0,
+            max_population=8,
+            offspring_placement=OffspringPlacementPolicy.SAME_CELL,
+            reproduction_mode=ReproductionMode.SEXUAL_CROSSOVER,
+        ),
+        mutation=MutationConfig(bit_flip_rate=0.0),
+        alive_gate=AliveGateConfig(
+            min_ticks=1,
+            min_executed_actions=0,
+            max_blocked_ratio=1.0,
+            require_positive_runtime_atp=True,
+        ),
+        sexual_recombination=SexualRecombinationConfig(
+            enabled=True,
+            diploid_meiosis=True,
+            chamber_capacity=8,
+            recombination_prob=recombination_prob,
+        ),
+    )
+    out: list[tuple[str, str | None]] = []
+    for seed in seeds:
+        parents = tuple(
+            GenesisOrganism.from_bits(name, _CHAMBER_PARENT, initial_runtime_atp=20.0, position=(0, i))
+            for i, name in enumerate(("a", "a2"))
+        )
+        result = step_population(PopulationState(0, 0, parents, (), ()), World2D(4, 4), configs, seed=seed)
+        mechanisms = [
+            rec.reproduction_result.recombination_record.mechanism
+            for rec in result.organism_records
+            if rec.reproduction_result is not None and rec.reproduction_result.recombination_record is not None
+        ]
+        children = [o.genome.to_compact() for o in result.population.organisms[2:]]
+        assert children and mechanisms
+        out.extend((child, mechanisms[0]) for child in children)
+    return out
+
+
+def _paired_loci(child: str) -> list[tuple[str, str]]:
+    codons = [child[i : i + WIDTH] for i in range(0, len(child), WIDTH)]
+    return list(zip(codons[0::2], codons[1::2], strict=True))
+
+
+def test_chamber_step_selfs_by_meiosis_and_fusion() -> None:
+    """step_population with diploid on fuses gametes; selfed H is about 1/2.
+
+    Basis: both parents carry one fully heterozygous genome, so a child is
+    genetically selfed. Each gamete carries either allele at a locus with
+    probability 1/2 (the lead homolog is chosen with p = 1/2 and the crossover
+    window is symmetric in the two homologs), and the two gametes are
+    independent meioses, so a child locus is heterozygous with probability
+    1/2: expected H = 0.5. Every record must name diploid_gamete_fusion and
+    the child keeps the 12-bit parent length; routing the chamber to the
+    haploid segment swap changes the mechanism and fails. Tolerance: per-child
+    H lies in [0, 1] with variance at most 1/4, so 4 SE over n children is at
+    most 4 * 0.5 / sqrt(n); seeds 0..399.
+    """
+
+    children = _chamber_children(1.0, range(400))
+    assert {mechanism for _, mechanism in children} == {DIPLOID_FERTILISATION_MECHANISM}
+    assert all(len(child) == len(_CHAMBER_PARENT) for child, _ in children)
+    h = [sum(even != odd for even, odd in _paired_loci(child)) / 2 for child, _ in children]
+    n = len(h)
+    assert abs(sum(h) / n - 0.5) < 4 * 0.5 / n**0.5
+
+
+def test_chamber_with_zero_recombination_prob_has_no_recombinant_gametes() -> None:
+    """recombination_prob = 0 with diploid on: gametes keep whole homologs.
+
+    Basis: with m = 2 paired loci the homologs are ``111 111`` and
+    ``000 000``. Without crossover a gamete is one whole homolog, so its two
+    loci always match (recombinant fraction 0). With obligate crossover the
+    window for m = 2 always swaps exactly one locus (start 0 is cut to length
+    1, start 1 has length 1), so every gamete is recombinant (fraction 1).
+    The own gamete is the child's even codons and the mate gamete its odd
+    codons. Expected: exactly 0 and exactly 1; tolerance zero; seeds 0..59.
+    """
+
+    def recombinant(children: list[tuple[str, str | None]]) -> float:
+        gametes = [side for child, _ in children for side in zip(*_paired_loci(child), strict=True)]
+        return sum(g[0] != g[1] for g in gametes) / len(gametes)
+
+    off = _chamber_children(0.0, range(60))
+    assert {mechanism for _, mechanism in off} == {DIPLOID_FERTILISATION_MECHANISM}
+    assert recombinant(off) == 0.0
+    assert recombinant(_chamber_children(1.0, range(60))) == 1.0
+
+
+def test_forged_fusion_record_is_rejected() -> None:
+    """A fusion record whose child is not the two gametes interleaved fails.
+
+    Basis: a fused child must hold the own gamete on even codons and the mate
+    gamete on odd codons. Replacing the child with the parent clone, or
+    swapping the two gametes, breaks that layout, so is_gamete_fusion is False
+    and the record refuses to build. Expected: True for the genuine record,
+    False and ValueError for each forgery.
+    """
+
+    import dataclasses
+
+    import pytest
+
+    from codontrace.genesis.birth import fertilisation_record, is_gamete_fusion
+
+    own, mate = "111000", "000111"
+    record = fertilisation_record(
+        own_id="a",
+        mate_id="b",
+        own_gamete=own,
+        mate_gamete=mate,
+        own_digest="da",
+        mate_digest="db",
+        codon_width=WIDTH,
+        parent_codon_count=4,
+        rng=RNGManager(5),
+    )
+    assert is_gamete_fusion(record.child_genome_bits, own, mate, WIDTH)
+    for forged_child in (_CHAMBER_PARENT[:12], fuse_gametes(mate, own, WIDTH, parent_codon_count=4)):
+        assert not is_gamete_fusion(forged_child, own, mate, WIDTH)
+        with pytest.raises(ValueError, match="interleave"):
+            dataclasses.replace(record, child_genome_bits=forged_child)

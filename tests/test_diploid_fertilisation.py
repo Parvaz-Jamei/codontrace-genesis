@@ -19,6 +19,7 @@ from codontrace.genesis.birth import (
     split_diploid_homologs,
 )
 from codontrace.genesis.closed_loop_p5 import ClosedLoopP5Session
+from codontrace.genesis.population import PopulationConfigs
 from codontrace.rng import RNGManager
 
 WIDTH = 3
@@ -235,12 +236,13 @@ def test_chamber_pair_from_one_parent_is_meiosis_and_fusion() -> None:
 
 
 def test_marked_homologs_at_full_recombination_prob() -> None:
-    """At recombination_prob = 1 a gamete joins the a and b end markers at 17/48.
+    """With crossover on, a gamete joins the a and b end markers at 17/48.
 
     Basis: homolog a carries marker ``101`` at paired locus 0 and homolog b
     carries marker ``010`` at paired locus 3 (m = 4, other codons ``000`` and
-    ``111``). recombination_prob = 1 makes the chamber cross over in every
-    meiosis. A gamete holds both markers only when loci 0 and 3 come from
+    ``111``). The test calls ``_fertilise`` with ``crossover=True``, which is
+    what the chamber passes at recombination_prob = 1 (the chamber path itself
+    is covered by the step_population tests below). A gamete holds both markers only when loci 0 and 3 come from
     different homologs (probability 17/24, derived in the helper) and locus 0
     comes from homolog a (one half by symmetry of the lead choice), so the
     expected rate is 17/48. The own gamete is the even codons of the fused
@@ -295,6 +297,11 @@ def test_marked_homologs_at_full_recombination_prob() -> None:
 # tests/_scripts/default_path_digests.py (newline included), with
 # diploid_meiosis off; matches the value recorded on main before the fix.
 DEFAULT_PATH_TABLE_DIGEST = "224e72bce17aa5a4"
+# Python 3.11 value, also given by main 7db2227 and 73c3bff on 3.11. Only the
+# T02 and T03 rows differ, in the last bits of float metrics: the built-in
+# sum() of floats uses compensated summation from 3.12 on, so 3.11 rounds
+# differently (3.11: sum([0.1] * 10) == 0.9999999999999999; 3.12+: 1.0).
+DEFAULT_PATH_TABLE_DIGEST_PY311 = "82dd7aa7e9bd2ba4"
 
 
 def test_default_path_digest_table_is_unchanged() -> None:
@@ -305,7 +312,9 @@ def test_default_path_digest_table_is_unchanged() -> None:
     meiosis or fusion, and their digests must equal the pre-fix values. The
     script runs in a fresh process because it sets CODONTRACE_SOURCE_ROOT
     before importing the engine. Expected: the table hash equals
-    DEFAULT_PATH_TABLE_DIGEST exactly; tolerance zero.
+    DEFAULT_PATH_TABLE_DIGEST exactly; tolerance zero. On Python 3.11 the
+    expected value is DEFAULT_PATH_TABLE_DIGEST_PY311, because float sum()
+    changed in 3.12 (see the constant); that difference predates the fix.
     """
 
     import hashlib
@@ -323,7 +332,9 @@ def test_default_path_digest_table_is_unchanged() -> None:
         env=env,
         timeout=900,
     ).stdout
-    assert hashlib.sha256(out).hexdigest()[:16] == DEFAULT_PATH_TABLE_DIGEST
+    expected = DEFAULT_PATH_TABLE_DIGEST_PY311 if sys.version_info[:2] == (3, 11) else DEFAULT_PATH_TABLE_DIGEST
+    assert sum([0.1] * 10) == (0.9999999999999999 if sys.version_info[:2] == (3, 11) else 1.0)
+    assert hashlib.sha256(out).hexdigest()[:16] == expected
 
 
 # Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog
@@ -332,23 +343,19 @@ def test_default_path_digest_table_is_unchanged() -> None:
 _CHAMBER_PARENT = "111000111000"
 
 
-def _chamber_children(recombination_prob: float, seeds: range) -> list[tuple[str, str | None]]:
-    """Children of two copies of one heterozygous genome, with record mechanism."""
+def _chamber_configs(recombination_prob: float) -> PopulationConfigs:
+    """Chamber config with diploid on: clean reproduction, no mutation."""
 
     from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
     from codontrace.genesis.liveness import AliveGateConfig
-    from codontrace.genesis.organism import GenesisOrganism
     from codontrace.genesis.population import (
         MutationConfig,
         OffspringPlacementPolicy,
         PopulationConfigs,
-        PopulationState,
         ReproductionConfig,
-        step_population,
     )
-    from codontrace.world import World2D
 
-    configs = PopulationConfigs(
+    return PopulationConfigs(
         reproduction=ReproductionConfig(
             min_runtime_atp=1.0,
             parent_atp_cost=1.0,
@@ -370,6 +377,16 @@ def _chamber_children(recombination_prob: float, seeds: range) -> list[tuple[str
             recombination_prob=recombination_prob,
         ),
     )
+
+
+def _chamber_children(recombination_prob: float, seeds: range) -> list[tuple[str, str | None]]:
+    """Children of two copies of one heterozygous genome, with record mechanism."""
+
+    from codontrace.genesis.organism import GenesisOrganism
+    from codontrace.genesis.population import PopulationState, step_population
+    from codontrace.world import World2D
+
+    configs = _chamber_configs(recombination_prob)
     out: list[tuple[str, str | None]] = []
     for seed in seeds:
         parents = tuple(
@@ -471,3 +488,44 @@ def test_forged_fusion_record_is_rejected() -> None:
         assert not is_gamete_fusion(forged_child, own, mate, WIDTH)
         with pytest.raises(ValueError, match="interleave"):
             dataclasses.replace(record, child_genome_bits=forged_child)
+
+
+def test_fused_child_drops_parent_spans() -> None:
+    """A fused diploid child carries no parent spans; the haploid swap keeps them.
+
+    Basis: spans are bit intervals on the parent's layout. Fusion interleaves
+    two gametes, so a parent interval no longer marks the same codons in the
+    child, and the fusion path returns the child without spans. Both parents
+    carry a silent span on bits 9-12 of ``111 000 111 000``. Expected: with
+    diploid on, every child has spans == () and keeps the 12-bit length; with
+    diploid off, the segment swap of two identical parents keeps the span, so
+    removing the fusion branch fails the first check. Seed 3, exact.
+    """
+
+    import dataclasses
+
+    from codontrace.genome import BitSpan
+
+    span = BitSpan(9, 12, "silent", "tag")
+    base = _chamber_configs(1.0)
+
+    def children(diploid: bool) -> list[tuple[str, tuple[BitSpan, ...]]]:
+        from codontrace.genesis.organism import GenesisOrganism
+        from codontrace.genesis.population import PopulationState, step_population
+        from codontrace.world import World2D
+
+        configs = dataclasses.replace(
+            base,
+            sexual_recombination=dataclasses.replace(base.sexual_recombination, diploid_meiosis=diploid),
+        )
+        parents = []
+        for i, name in enumerate(("a", "a2")):
+            org = GenesisOrganism.from_bits(name, _CHAMBER_PARENT, initial_runtime_atp=20.0, position=(0, i))
+            parents.append(dataclasses.replace(org, genome=org.genome.with_spans((span,))))
+        result = step_population(PopulationState(0, 0, tuple(parents), (), ()), World2D(4, 4), configs, seed=3)
+        return [(o.genome.to_compact(), o.genome.spans) for o in result.population.organisms[2:]]
+
+    fused = children(True)
+    assert fused and all(spans == () and len(bits) == 12 for bits, spans in fused)
+    swapped = children(False)
+    assert swapped and all(spans == (span,) for _, spans in swapped)

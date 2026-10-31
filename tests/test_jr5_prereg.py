@@ -581,8 +581,7 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     """Self and outcross arms run in one engine mode (sexes on, same ATP ledger),
     so the only difference is biological: outcrossers make sons, selfers make
     none by construction. Every arm that lists obligate selfing must therefore
-    name the opt-in hermaphrodite self mode (field name defined in phase 2b),
-    and no outcross arm may use it.
+    name the opt-in hermaphrodite self mode, and no outcross arm may use it.
 
     The self mode is also bound to a like-for-like rule: per reproduction a
     selfing hermaphrodite gets the same offspring count and the same ATP budget
@@ -596,13 +595,13 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     (d) fails."""
     c = _constants()
     modes = c["host_mating_arm_modes"]
-    assert modes["config_field"] == "defined_in_phase_2b"
+    assert modes["config_field"] == "engine_config"
     assert set(c["host_mating_arms"]) <= set(modes)
     tables = [modes, c["alternative_arms"]["mutation_load"]["engine_mode"]]
     assert set(c["alternative_arms"]["mutation_load"]["mating"]) <= set(tables[1])
     for table in tables:
         for arm, mode in table.items():
-            if not isinstance(mode, dict) or arm == "like_for_like":
+            if not isinstance(mode, dict) or arm in ("like_for_like", "engine_config"):
                 continue
             assert mode["sexes"] == "on"
             assert mode["ledger"] == "WorldATPLedger"
@@ -633,3 +632,39 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
         assert "mutation-load self arm and the E5 self arms are not run" in text
         assert "`red_queen_proved` stays `False`" in text
         assert "No substitute run with sexes off" in text
+
+
+def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
+    """The self and outcross arms share one engine config and differ only in
+    the outcross locus (000 selfs, 001 outcrosses), so any difference between
+    them comes from the mating system and not from a setting. Delayed selfing
+    is off: an outcrossing hermaphrodite with no mate is refused rather than
+    selfing at a timeout. Late selfing would give outcrossers reproductive
+    assurance and turn the obligate-outcross arm into a mixed one. Selfed
+    births get no extra ATP endowment (0.0), matching the like-for-like rule,
+    and sex is fixed once from the run seed and organism id. Expected values
+    are the ones written in PREREG.md section 4 and the design note."""
+    cfg = _constants()["host_mating_arm_modes"]["engine_config"]
+    assert cfg["sexual_recombination"] == {
+        "enabled": True,
+        "mating_types_enabled": True,
+        "mating_type_set": ["hermaphrodite", "male"],
+        "sex_assignment": "random_at_birth",
+        "pairing_policy": "birth_chamber",
+        "two_fold_cost_sex": False,
+        "hermaphrodite_selfing": True,
+    }
+    assert cfg["closed_loop_hp_life"] == {"outcross_enabled": True, "selfing_birth_atp_endowment": 0.0}
+    assert cfg["outcross_locus"] == {"obligate_self": "000", "obligate_outcross": "001"}
+    assert cfg["same_config_for_outcross_arms"] is True
+    assert cfg["delayed_selfing"] is False
+    assert cfg["unmated_outcrosser"] == "refused_no_selfing_at_timeout"
+    assert cfg["sex_fixed_for_life"] == "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id"
+    note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
+    for text in (_prereg_text(), note):
+        assert "No delayed selfing" in text
+        assert "no selfing at a timeout" in text or "does not self at a timeout" in text
+        assert "`selfing_birth_atp_endowment=0.0`" in text
+        assert "`000`" in text and "`001`" in text
+    assert "Sex is fixed for life" in note
+    assert "from the run seed and the organism id" in note

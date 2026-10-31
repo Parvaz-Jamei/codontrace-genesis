@@ -168,7 +168,33 @@
     "asexual"
   ],
   "host_mating_arm_modes": {
-    "config_field": "defined_in_phase_2b",
+    "config_field": "engine_config",
+    "engine_config": {
+      "sexual_recombination": {
+        "enabled": true,
+        "mating_types_enabled": true,
+        "mating_type_set": [
+          "hermaphrodite",
+          "male"
+        ],
+        "sex_assignment": "random_at_birth",
+        "pairing_policy": "birth_chamber",
+        "two_fold_cost_sex": false,
+        "hermaphrodite_selfing": true
+      },
+      "closed_loop_hp_life": {
+        "outcross_enabled": true,
+        "selfing_birth_atp_endowment": 0.0
+      },
+      "outcross_locus": {
+        "obligate_self": "000",
+        "obligate_outcross": "001"
+      },
+      "same_config_for_outcross_arms": true,
+      "delayed_selfing": false,
+      "unmated_outcrosser": "refused_no_selfing_at_timeout",
+      "sex_fixed_for_life": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id"
+    },
     "obligate_outcross": {
       "sexes": "on",
       "ledger": "WorldATPLedger",

@@ -184,8 +184,10 @@ class SexualRecombinationConfig:
     any type). The three fields are written by ``to_dict`` only when they differ
     from their defaults, so payloads with the switch off are byte-identical to
     earlier releases. Sexes and ``two_fold_cost_sex`` are mutually exclusive:
-    with sexes on, the cost of sex comes from producing sons, so placing a
-    single product as well would charge it twice. ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
+    phase 2a carries no cost of sex (a chamber pair still places both
+    products and males still bear offspring); phase 2b will charge it, and
+    combining it with ``two_fold_cost_sex`` would then charge it twice.
+    ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
     before positional crossover; default off so sexual digest pins stay
     stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
     places only one recombinant product when True.
@@ -254,7 +256,7 @@ class SexualRecombinationConfig:
         if self.two_fold_cost_sex:
             raise ValueError(
                 "two_fold_cost_sex must be False when mating_types_enabled is True; "
-                "with sexes on the cost of sex is paid through sons."
+                "the cost of sex under separate sexes is left to phase 2b."
             )
 
     @property

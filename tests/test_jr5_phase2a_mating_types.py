@@ -191,6 +191,8 @@ def test_hermaphrodite_only_sexes_reproduce_the_switch_off_run(seed: int) -> Non
 # (3) reproducible per seed; matches the configured ratio.
 
 
+# Only the 0.25 case catches a mutant that inverts the ratio (male vs female);
+# 0.5 is symmetric and kept as a plain sanity check.
 @pytest.mark.parametrize("ratio", [0.5, 0.25])
 def test_sex_assignment_is_reproducible_and_matches_ratio(ratio: float) -> None:
     cfg = SexualRecombinationConfig(enabled=True, sex_ratio=ratio, **_SEXES)  # type: ignore[arg-type]

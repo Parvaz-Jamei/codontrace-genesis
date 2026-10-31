@@ -100,6 +100,7 @@ class ClosedLoopP5Session:
     outcross_bits: str = OUTCROSS_OUT_BITS
     _seen_outcross_debits: set[tuple[str, int]] = field(default_factory=set)
     _outcross_fee_amounts: dict[tuple[str, int], float] = field(default_factory=dict)
+    _offspring_endowments: dict[str, tuple[str, float]] = field(default_factory=dict)
 
     @classmethod
     def boot(
@@ -232,6 +233,10 @@ class ClosedLoopP5Session:
                 continue
             rec = lineage_by_id.get(org.id)
             self.total_births += 1
+            self._offspring_endowments[org.id] = (
+                org.mating_type or "none",
+                same_float(org.atp_state.runtime.to_dict()["initial_atp"]),
+            )
             if rec is not None and rec.second_parent_id and rec.recombination_window_differed:
                 self.recombination_births += 1
             else:
@@ -322,6 +327,30 @@ class ClosedLoopP5Session:
             "ledger_reason": "outcross_runtime_cost",
             "events": len(self._seen_outcross_debits),
             "atp": round(sum(self._outcross_fee_amounts.values()), 10),
+        }
+
+    def son_cost_ledger(self) -> dict[str, Any]:
+        """The cost of sons as its own ledger term, apart from the mating fee.
+
+        A son cannot bear offspring, so the runtime ATP a parent gives a male
+        newborn is the allocation the cost of males refers to. Each newborn's
+        endowment is its initial runtime ATP; the term sums it over sons and
+        reports the son share of offspring and of offspring ATP. A selfing or
+        hermaphrodite-only arm makes no sons, so its term is zero. Not part
+        of the snapshot digest.
+        """
+
+        sons = [atp for kind, atp in self._offspring_endowments.values() if kind == "male"]
+        offspring_atp = sum(atp for _, atp in self._offspring_endowments.values())
+        count = len(self._offspring_endowments)
+        return {
+            "term": "son_allocation",
+            "sons": len(sons),
+            "offspring": count,
+            "atp": round(sum(sons), 10),
+            "offspring_atp": round(offspring_atp, 10),
+            "son_fraction": len(sons) / count if count else 0.0,
+            "son_atp_fraction": round(sum(sons) / offspring_atp, 10) if offspring_atp else 0.0,
         }
 
     def summary(self) -> dict[str, Any]:

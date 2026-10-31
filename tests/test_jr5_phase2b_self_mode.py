@@ -599,3 +599,38 @@ def test_diploid_selfing_makes_two_independent_meiotic_gametes() -> None:
         assert {record.parent_a_id, record.parent_b_id} == {"o0:gamete_a", "o0:gamete_b"}
         children.add(record.child_genome_bits)
     assert len(children) > 1
+
+
+# Cost of sons as its own ledger term.
+
+
+@pytest.mark.parametrize("diploid", [False, True])
+def test_son_cost_is_its_own_term_in_both_arms(diploid: bool) -> None:
+    """A son cannot bear offspring, so the ATP given to sons is the cost of
+    males. Selfed progeny are all hermaphrodite and male-sired progeny are
+    sons at sex_ratio, so the JR5 self arm, set (hermaphrodite,), makes no
+    sons and the outcross arm, set (hermaphrodite, male), does. Expected: self
+    arm term 0; outcross arm term equals the summed initial ATP of its male
+    newborns; both terms are separate from the mating fee term. Both arms
+    run with and without diploid_meiosis (JR5 runs it on)."""
+
+    self_session, _ = _self_arm(OUTCROSS_SELFING_BITS, mating_type_set=("hermaphrodite",), diploid_meiosis=diploid)
+    out_session, _ = _self_arm(OUTCROSS_OUT_BITS, mating_type_set=("hermaphrodite", "male"), diploid_meiosis=diploid)
+    seen = {o.id for o in out_session.runner.population.organisms}
+    son_atp: list[float] = []
+    self_session.run_ticks(3)
+    for _ in range(3):
+        out_session.run_ticks(1)
+        for o in out_session.runner.population.organisms:
+            if o.id not in seen:
+                seen.add(o.id)
+                if o.mating_type == "male":
+                    son_atp.append(o.atp_state.runtime.to_dict()["initial_atp"])  # type: ignore[arg-type]
+    self_cost = self_session.son_cost_ledger()
+    assert self_cost["term"] == "son_allocation"
+    assert self_cost["offspring"] >= 1 and self_cost["sons"] == 0 and self_cost["atp"] == 0.0
+    out_cost = out_session.son_cost_ledger()
+    assert out_cost["sons"] == len(son_atp) >= 1
+    assert out_cost["atp"] == pytest.approx(sum(son_atp))
+    assert 0.0 < out_cost["son_fraction"] < 1.0
+    assert out_session.mating_fee_ledger()["term"] != out_cost["term"]

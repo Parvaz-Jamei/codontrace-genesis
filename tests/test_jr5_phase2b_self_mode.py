@@ -665,6 +665,46 @@ def test_census_reports_sexes_modes_and_sons_in_both_arms(diploid: bool) -> None
         assert (cost["sons"] == 0) == (types == ("hermaphrodite",))
 
 
+def test_census_male_share_and_m_are_defined_per_generation() -> None:
+    """Two sex-ratio quantities: male_share_population is males over the census
+    (standing ratio); m is sons over births in that generation, the prereg m
+    (sex allocation of offspring). Expected: both recomputed from the row's own
+    counts, m is None in rows with no births, and in the male-free self arm
+    (hermaphrodite,) every defined m is 0."""
+
+    for bits, types in (
+        (OUTCROSS_OUT_BITS, ("hermaphrodite", "male")),
+        (OUTCROSS_SELFING_BITS, ("hermaphrodite",)),
+    ):
+        session, _ = _self_arm(bits, mating_type_set=types)
+        session.run_ticks(4)
+        for row in session.census():
+            assert "sex_ratio_male" not in row
+            assert row["male_share_population"] == row["counts"].get("male", 0) / row["census"]
+            if row["births"]:
+                assert row["m"] == row["sons_born"] / row["births"]
+            else:
+                assert row["m"] is None
+            if types == ("hermaphrodite",) and row["m"] is not None:
+                assert row["m"] == 0
+
+
+def test_enabling_sexes_mid_run_is_refused() -> None:
+    """The mating seed is captured at the first sexes-on step; enabling sexes
+    after generation 0 would key sexes to a later step, so it is refused.
+    Expected: ConfigurationError when a population past generation 0 with no
+    mating seed is stepped with mating types on; generation 0 is accepted."""
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    runner = session.runner
+    late = replace(runner.population, generation=3, mating_seed=None)
+    from codontrace.genesis.population import step_population
+
+    with pytest.raises(ConfigurationError, match="generation 0"):
+        step_population(late, runner.world, runner.configs, seed=5)
+    step_population(replace(late, generation=0), runner.world, runner.configs, seed=5)
+
+
 def test_census_counts_the_asexual_founder_lineage() -> None:
     """E1 tracks the asexual share; the census counts asexual-lineage
     organisms under "asexual". Expected: one founder marked asexual is counted

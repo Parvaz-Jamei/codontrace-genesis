@@ -830,7 +830,9 @@ class PopulationState:
     materials: MaterialsState | None = None
     # Run seed for mating-type draws, captured at the first sexes-on step so
     # each sex is keyed to the run seed and organism id, never to a per-step
-    # seed. Written only when set.
+    # seed. Sexes must be on from generation 0 (step_population refuses to
+    # enable them later), so that first step is the run's first step.
+    # Written only when set.
     mating_seed: int | None = None
 
     def __post_init__(self) -> None:
@@ -3047,6 +3049,16 @@ def step_population(
         msg = "step_population currently expects a World2D instance."
         raise ConfigurationError(msg)
     stream = _resolve_rng(seed=seed, rng=rng, namespace="genesis/population")
+    if (
+        configs.effective_sexual_config.mating_types_enabled
+        and population.mating_seed is None
+        and population.generation > 0
+    ):
+        msg = (
+            "mating types must be enabled from generation 0; enabling sexes "
+            "mid-run is not supported."
+        )
+        raise ConfigurationError(msg)
     mating_seed = population.mating_seed if population.mating_seed is not None else stream.seed
     working_world = world.clone()
     world_before_digest = world.digest()

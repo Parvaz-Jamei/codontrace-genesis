@@ -1,7 +1,7 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "36ecfa4e0d0dfad965621f19ed75c8e955e90fd0a752a9f9c56cb158075e42a2",
+    "digest": "4c819977cf52ce5a4a79d9bf0a3596ef4b1dbb1efa720a8449285ec3da4306ab",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
@@ -9,7 +9,7 @@
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "41b785ee29aff73816a99ebdc31c4b12f01a4e5c3c6cd4af37a0bf26e36da76b"
+        "0055ee5dc9dc2294843e457d6ec472f813a0b5c379e262f125218145fa77f71b"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",

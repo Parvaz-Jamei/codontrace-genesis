@@ -30,6 +30,7 @@ The default ceiling is `runtime_observation`. `red_queen_proved` is no longer ba
 - Sex ratio means the male fraction m of offspring born to outcrossing parents. The all-female asexual line then has a per-generation advantage of 1/(1 − m): 2.0 at m = 0.5 and 1.3333 at m = 0.25.
 - Setup: no parasite, obligate outcross plus an all-female asexual founder fraction of 0.2. Selfers are not used in E1; their expected advantage is not 1/(1 − m), so they have no bound here.
 - Estimator, per population: a binomial GLM with logit link, the asexual count out of the census at each generation as the response and generation as the only predictor, fitted over all generations 0 to T. exp(slope) is the per-generation odds ratio.
+- Overdispersion: drift makes counts in successive generations correlated and more variable than binomial. A quasi-binomial fit gives the same slope and only rescales its standard error. The per-population standard error is not used, because the interval is taken across populations, so the plain binomial fit is kept.
 - Horizon T: 5 generations at m = 0.5 and 11 at m = 0.25. These keep the expected asexual frequency below 0.95 even at the upper margin bound (calculation below).
 - Fixation and loss:
   - generations after fixation or loss stay in the fit, since the GLM handles counts of 0 and N;

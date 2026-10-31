@@ -302,7 +302,30 @@ def _forbidden_hits(bundle: ClaimgateBundle) -> tuple[str, ...]:
     requested = extra.get("requested_claim")
     if isinstance(requested, str) and normalize_claim_label(requested) in forbidden:
         hits.add(normalize_claim_label(requested))
+    if "red_queen_proved" in hits and _jr5_verdict_verifies(extra):
+        hits.discard("red_queen_proved")
     return tuple(sorted(hits))
+
+
+def _jr5_verdict_verifies(extra: Mapping[str, Any]) -> bool:
+    """JR5-only exemption from the Red Queen ban (docs/prereg/jr5).
+
+    The bundle must carry the JR5 verdict record and its evidence. The verdict
+    is recomputed from the evidence and must match the record with every
+    condition (a) to (e) true. Anything else keeps the ban.
+    """
+
+    record = extra.get("jr5_verdict")
+    evidence = extra.get("jr5_evidence")
+    if not isinstance(record, Mapping) or not isinstance(evidence, Mapping):
+        return False
+    from codontrace.claimgate.adapters.jr5_verdict import assert_jr5_red_queen_claim_allowed
+
+    try:
+        assert_jr5_red_queen_claim_allowed(record, evidence)
+    except (ConfigurationError, KeyError, TypeError, ValueError):
+        return False
+    return True
 
 
 def _neighbor_warnings(bundle: ClaimgateBundle) -> list[str]:

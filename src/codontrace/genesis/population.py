@@ -1684,6 +1684,15 @@ class PopulationConfigs:
         if self.newborn_protection_policy not in {"none", "protect_until_first_evaluation"}:
             msg = "newborn_protection_policy must be none or protect_until_first_evaluation."
             raise ConfigurationError(msg)
+        if (
+            self.sexual_recombination.hermaphrodite_selfing
+            and float(getattr(self.closed_loop_hp_life, "selfing_birth_atp_endowment", 0.0)) != 0.0
+        ):
+            # Like-for-like arms: a selfed child gets the same endowment rule as
+            # an outcrossed one (parent residual x offspring_atp_fraction), with
+            # no extra ATP term for selfing.
+            msg = "hermaphrodite_selfing requires closed_loop_hp_life.selfing_birth_atp_endowment == 0."
+            raise ConfigurationError(msg)
         legacy_overrides: dict[str, object] = {}
         if self.fatal_alive_reasons != ("negative_runtime_atp",):
             legacy_overrides["fatal_alive_reasons"] = self.fatal_alive_reasons

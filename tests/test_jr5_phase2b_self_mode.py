@@ -15,9 +15,14 @@ from dataclasses import replace
 
 import pytest
 
+from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import SexualRecombinationConfig
 from codontrace.genesis.closed_loop_p5 import ClosedLoopP5Session
-from codontrace.genesis.host_parasite_life_plugin import OUTCROSS_OUT_BITS, OUTCROSS_SELFING_BITS
+from codontrace.genesis.host_parasite_life_plugin import (
+    OUTCROSS_OUT_BITS,
+    OUTCROSS_SELFING_BITS,
+    ClosedLoopHPLifeConfig,
+)
 from codontrace.genesis.mating_types import MatingTypeMap, can_self
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import PopulationState, mating_type_census, mating_type_of
@@ -269,3 +274,51 @@ def test_self_mode_requires_a_set_with_hermaphrodite(overrides: dict[str, object
         payload.update({**_SEXES, **overrides})
     with pytest.raises(ValueError, match="hermaphrodite_selfing"):
         SexualRecombinationConfig(**payload)  # type: ignore[arg-type]
+
+
+# (7) like-for-like: same offspring count and ATP rule per reproduction.
+
+
+def test_selfing_and_outcrossing_mothers_get_the_same_budget() -> None:
+    """A fair self vs outcross contrast differs only in who supplies the second
+    genome, not in fecundity or provisioning. In both arms one reproduction
+    gives the mother exactly one child, and the child gets
+    offspring_atp_fraction x the mother's residual after parent_atp_cost.
+    The same hermaphrodite (org_b1, seed 20011) starts both arms with the same
+    ATP and runs the same program, so its child ATP must be equal. The
+    outcrossing mother is then lower by exactly outcross_runtime_atp, the
+    mating effort paid only to outcross; selfing gets no matching bonus."""
+
+    self_session, _ = _self_arm(OUTCROSS_SELFING_BITS)
+    out_session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    fraction = self_session.runner.configs.reproduction.offspring_atp_fraction
+    fee = out_session.runner.configs.closed_loop_hp_life.outcross_runtime_atp
+    results = {}
+    for name, session in (("self", self_session), ("out", out_session)):
+        population = session.runner.step_generation(seed=session.seed).population
+        by_id = {o.id: o for o in population.organisms}
+        kids = [rec for rec in population.lineage if rec.parent_id == "org_b1"]
+        assert len(kids) == 1, name
+        child = by_id[kids[0].organism_id].atp_state.runtime_available
+        mother = by_id["org_b1"].atp_state.runtime_available
+        results[name] = (child, mother)
+    self_child, self_mother = results["self"]
+    out_child, out_mother = results["out"]
+    assert self_child == pytest.approx(out_child, abs=1e-9)
+    # Selfer keeps (1 - fraction) of the residual, the child gets fraction of it.
+    assert self_child == pytest.approx(self_mother * fraction / (1.0 - fraction), abs=1e-9)
+    assert self_mother - out_mother == pytest.approx(fee, abs=1e-9)
+
+
+def test_self_mode_refuses_a_selfing_atp_bonus() -> None:
+    """A selfing birth endowment would add ATP only to selfed children, an extra
+    fitness term the outcross arm lacks, so the two cannot be combined."""
+
+    session, cfg = _self_arm(OUTCROSS_SELFING_BITS)
+    configs = session.runner.configs
+    assert isinstance(configs.closed_loop_hp_life, ClosedLoopHPLifeConfig)
+    life = replace(configs.closed_loop_hp_life, selfing_birth_atp_endowment=5.0)
+    with pytest.raises(ConfigurationError, match="selfing_birth_atp_endowment"):
+        replace(configs, closed_loop_hp_life=life, sexual_recombination=cfg)
+    # Without self mode the endowment is still allowed (existing behaviour).
+    replace(configs, closed_loop_hp_life=life, sexual_recombination=replace(cfg, hermaphrodite_selfing=False))

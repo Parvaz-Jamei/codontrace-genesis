@@ -2247,6 +2247,29 @@ def _blocked_reproduction_result(
     )
 
 
+def _selfing_crossover_gates(
+    sexual_cfg: SexualRecombinationConfig, rng: RNGManager
+) -> tuple[bool, bool]:
+    """Crossover gate of each of the two meioses in a selfing parent.
+
+    The two meioses are separate events, so each draws its own gate from its
+    own named stream of ``rng`` (``meiosis/a/gate`` and ``meiosis/b/gate``):
+    the draws are independent and fixed by the seed. No draw is made when
+    ``recombination_prob`` is 0 or at least 1, so the default path (1.0)
+    consumes no extra randomness.
+    """
+
+    prob = sexual_cfg.recombination_prob
+    if prob <= 0.0:
+        return False, False
+    if prob >= 1.0:
+        return True, True
+    return (
+        rng.fork("meiosis/a/gate").random() < prob,
+        rng.fork("meiosis/b/gate").random() < prob,
+    )
+
+
 def _self_fertilisation_record(
     organism: GenesisOrganism,
     sexual_cfg: SexualRecombinationConfig,
@@ -2255,8 +2278,8 @@ def _self_fertilisation_record(
     """Fuse two gametes of one hermaphrodite.
 
     With ``diploid_meiosis`` this is meiosis twice in the same parent, then
-    fertilisation: two independent gametes (segregation plus a crossover gated
-    by ``recombination_prob``) become the child's two homologs, so the child
+    fertilisation: two independent gametes (segregation plus a crossover, each
+    meiosis with its own ``recombination_prob`` gate) become the child's two homologs, so the child
     has the parent's length and is homozygous at a parental heterozygous locus
     with probability one half. Without it the genome is haploid, both gametes
     equal the parent genome and the positional fusion leaves the bits
@@ -2268,13 +2291,10 @@ def _self_fertilisation_record(
     bits = organism.genome.to_compact()
     width = organism.genome.spec.codon_width
     digest = organism.genome.digest()
-    crossover = sexual_cfg.recombination_prob > 0.0 and (
-        sexual_cfg.recombination_prob >= 1.0
-        or rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
-    )
     if sexual_cfg.diploid_meiosis:
-        egg = meiotic_gamete(bits, width, rng.fork("meiosis/a"), crossover=crossover)
-        pollen = meiotic_gamete(bits, width, rng.fork("meiosis/b"), crossover=crossover)
+        gate_a, gate_b = _selfing_crossover_gates(sexual_cfg, rng)
+        egg = meiotic_gamete(bits, width, rng.fork("meiosis/a"), crossover=gate_a)
+        pollen = meiotic_gamete(bits, width, rng.fork("meiosis/b"), crossover=gate_b)
         return fertilisation_record(
             own_id=f"{organism.id}:gamete_a",
             mate_id=f"{organism.id}:gamete_b",
@@ -2286,6 +2306,10 @@ def _self_fertilisation_record(
             parent_codon_count=len(bits) // max(1, width),
             rng=rng.fork("fertilisation"),
         )
+    crossover = sexual_cfg.recombination_prob > 0.0 and (
+        sexual_cfg.recombination_prob >= 1.0
+        or rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
+    )
     if not crossover:
         return None
     try:

@@ -446,3 +446,38 @@ def test_outcross_locus_hermaphrodite_never_selfs_in_self_mode(mating_set: tuple
     assert not any(o.selfed for o in population.organisms)
     born = [rec for rec in population.lineage if rec.organism_id not in founders]
     assert born and all(rec.second_parent_id is not None for rec in born)
+
+
+# Mutation-killing tests for the selfed pin and the selfed restore.
+
+
+def test_selfed_hermaphrodite_pairs_with_a_male_before_its_type_is_stored() -> None:
+    """A selfed organism is a hermaphrodite by construction, so the chamber must
+    read it as one even before its type is stored at the end of the step. With
+    sex_ratio 1.0 every drawn type is male, so if the chamber drew the selfed
+    organism's type (the pin removed) it would read male and male x male is
+    refused. Expected: the first step pairs the two and places both products
+    (2 births); later steps add none in this small setup (the males are
+    short of ATP and their copies pair with nobody in time). Value measured on this branch; the review saw 4 births
+    before sex was fixed (sexes were redrawn each step) and the mutant
+    without the pin gives 0."""
+
+    configs = _configs(**{**_SEXES, "mating_type_set": ("hermaphrodite", "male"), "sex_ratio": 1.0})
+    selfed = GenesisOrganism.from_bits("o0", _BITS[0], initial_runtime_atp=20.0, position=(1, 0))
+    selfed.selfed = True
+    male = GenesisOrganism.from_bits("o1", _BITS[1], initial_runtime_atp=20.0, position=(1, 1))
+    _, births = _run(20005, configs, (selfed, male), 4)
+    assert births == 2
+
+
+def test_selfed_flag_survives_a_full_population_round_trip() -> None:
+    """Being selfed is state (it fixes the type as hermaphrodite), so save and
+    load must keep it. Expected: the restored organism is selfed and the
+    restored population serializes to the same payload."""
+
+    organism = GenesisOrganism.from_bits("o0", _BITS[0], initial_runtime_atp=20.0, position=(1, 0))
+    organism.selfed = True
+    population = PopulationState(0, 0, (organism,), (), ())
+    restored = PopulationState.from_dict(json.loads(json.dumps(population.to_dict())))
+    assert restored.organisms[0].selfed is True
+    assert restored.to_dict() == population.to_dict()

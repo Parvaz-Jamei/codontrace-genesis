@@ -153,6 +153,7 @@ class ClosedLoopP5Session:
         outcross_runtime_atp: float = 1.0,
         outcross_bits: str = OUTCROSS_OUT_BITS,
         outcross_same_role_only: bool = True,
+        diploid_meiosis: bool = False,
     ) -> ClosedLoopP5Session:
         if len(outcross_bits) != OUTCROSS_BIT_WIDTH or any(ch not in "01" for ch in outcross_bits):
             raise ConfigurationError("outcross_bits must be one codon")
@@ -213,7 +214,7 @@ class ClosedLoopP5Session:
                 same_length_only=True,
                 recombination_prob=1.0,
                 two_fold_cost_sex=False,
-                diploid_meiosis=False,
+                diploid_meiosis=diploid_meiosis,
             ),
             closed_loop_hp_life=life,
         )

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Bug fix, `diploid_meiosis`: the chamber crossed two haploid gametes instead
+  of fusing them, so a child had half its parent's length (18 to 9 bits) and
+  P5 arms died out; meiosis also always led with the even homolog, so a
+  heterozygote did not segregate 1:1. Meiosis now picks the leading homolog
+  with probability 1/2 and applies a crossover; fertilisation fuses the two
+  gametes as the child's homologs, so length is conserved. A pair from one
+  parent (selfing) also goes through meiosis and fusion. With the flag off
+  every digest is unchanged; no earlier results used it.
+
 ## [0.3.0b30] — 2026-10-11
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b29`.
@@ -763,8 +774,9 @@ ClaimGate is unchanged in the strict direction.
   blocked.
 - `run_channon_avida_modes_shadow_suite` pins `persistence_window_t` sweeps +
   MODES digest + Tokyo JSON. Type 1 remains unpassed.
-- Opt-in `SexualRecombinationConfig.diploid_meiosis` homolog-reduction analog
-  (Avida `TWO_FOLD_COST_SEX` already placed one recombinant product).
+- Opt-in `SexualRecombinationConfig.diploid_meiosis` (Avida `TWO_FOLD_COST_SEX`
+  already placed one recombinant product). The first version halved genome
+  length each generation; see the Unreleased bug fix.
 - `docs/WHY_NOT_INTELLIGENCE_YET.md`: literature-vs-reality barrier map
   (Nature MI 2021 Miikkulainen & Forrest / Banzhaf computational-evolution
   agenda; Soros & Stanley Chromaria; Stanley open-endedness as a creative-

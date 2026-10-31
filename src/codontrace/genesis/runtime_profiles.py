@@ -371,8 +371,9 @@ class GenesisRuntimeProfile:
         ``devosoft/avida`` ``avida.cfg`` ``RECOMBINATION_GROUP`` (birth chamber,
         ``RECOMBINATION_PROB``, ``SAME_LENGTH_SEX``, ``TWO_FOLD_COST_SEX``,
         ``MAX_BIRTH_WAIT_TIME``). Diploid meiosis is an opt-in
-        ``SexualRecombinationConfig.diploid_meiosis`` homolog-reduction flag
-        (Aevol-style analog); default remains off so sexual digest pins stay
+        ``SexualRecombinationConfig.diploid_meiosis`` flag (meiosis to one
+        gamete per parent, then fusion of two gametes into the child's two
+        homologs, length conserved); default remains off so sexual digest pins stay
         stable. ``two_fold_cost_sex`` is Avida ``TWO_FOLD_COST_SEX`` (place
         only one recombinant product) and is also default off.
 

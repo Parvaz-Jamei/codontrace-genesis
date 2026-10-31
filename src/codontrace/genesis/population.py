@@ -52,7 +52,6 @@ from codontrace.genesis.birth import (
     meiotic_gamete,
     recombine_positional_segment,
     recombine_positional_segment_pair,
-    reduce_incipient_to_haploid_gamete,
     select_chamber_pair,
     timed_out_chamber_slots,
 )
@@ -2249,56 +2248,50 @@ def _self_fertilisation_record(
     sexual_cfg: SexualRecombinationConfig,
     rng: RNGManager,
 ) -> RecombinationRecord | None:
-    """Fuse two gametes of one hermaphrodite through the outcross gamete path.
+    """Fuse two gametes of one hermaphrodite.
 
-    Each gamete is made as an outcrosser's would be: with ``diploid_meiosis``
-    each is an independent homolog-crossover product, so a selfed child can be
-    homozygous where its parent was not. Without it the genome is haploid,
-    both gametes equal the parent genome and the fusion leaves the bits
-    unchanged. The fusion uses the same positional crossover and
-    ``recombination_prob`` as a chamber pair. Returns ``None`` when no fusion
-    record is made (crossover skipped or no overlapping codon); the child is
-    then the unrecombined parent genome, as for a skipped chamber crossover.
-    The record names the two gametes; the lineage of the selfed child names
-    the parent as both parents.
+    With ``diploid_meiosis`` this is meiosis twice in the same parent, then
+    fertilisation: two independent gametes (segregation plus a crossover gated
+    by ``recombination_prob``) become the child's two homologs, so the child
+    has the parent's length and is homozygous at a parental heterozygous locus
+    with probability one half. Without it the genome is haploid, both gametes
+    equal the parent genome and the positional fusion leaves the bits
+    unchanged; ``None`` is returned when that crossover is skipped or has no
+    overlapping codon. The record names the two gametes; the lineage of the
+    selfed child names the parent as both parents.
     """
 
     bits = organism.genome.to_compact()
     width = organism.genome.spec.codon_width
     digest = organism.genome.digest()
-    gametes: list[str] = []
-    for label in ("a", "b"):
-        if sexual_cfg.diploid_meiosis:
-            slot = IncipientOffspring(
-                slot_id=f"{organism.id}:self_{label}",
-                parent_id=organism.id,
-                genome_bits=bits,
-                genome_digest=digest,
-                entered_tick=0,
-                parent_position=organism.position,
-                offspring_runtime_atp=0.0,
-                parent_generation=0,
-                codon_width=width,
-            )
-            gametes.append(
-                reduce_incipient_to_haploid_gamete(slot, rng.fork(f"meiosis/{label}")).genome_bits
-            )
-        else:
-            gametes.append(bits)
-    if sexual_cfg.recombination_prob <= 0.0:
-        return None
-    if sexual_cfg.recombination_prob < 1.0 and not (
-        rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
-    ):
+    crossover = sexual_cfg.recombination_prob > 0.0 and (
+        sexual_cfg.recombination_prob >= 1.0
+        or rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
+    )
+    if sexual_cfg.diploid_meiosis:
+        egg = meiotic_gamete(bits, width, rng.fork("meiosis/a"), crossover=crossover)
+        pollen = meiotic_gamete(bits, width, rng.fork("meiosis/b"), crossover=crossover)
+        return fertilisation_record(
+            own_id=f"{organism.id}:gamete_a",
+            mate_id=f"{organism.id}:gamete_b",
+            own_gamete=egg,
+            mate_gamete=pollen,
+            own_digest=digest,
+            mate_digest=digest,
+            codon_width=width,
+            parent_codon_count=len(bits) // max(1, width),
+            rng=rng.fork("fertilisation"),
+        )
+    if not crossover:
         return None
     try:
         record_a, _ = recombine_positional_segment_pair(
             parent_a_id=f"{organism.id}:gamete_a",
             parent_b_id=f"{organism.id}:gamete_b",
-            parent_a_bits=gametes[0],
-            parent_b_bits=gametes[1],
-            parent_a_genome_digest=SemanticGenome.from_compact(gametes[0]).digest(),
-            parent_b_genome_digest=SemanticGenome.from_compact(gametes[1]).digest(),
+            parent_a_bits=bits,
+            parent_b_bits=bits,
+            parent_a_genome_digest=SemanticGenome.from_compact(bits).digest(),
+            parent_b_genome_digest=SemanticGenome.from_compact(bits).digest(),
             rng=rng.fork("recombination"),
             codon_width=width,
         )

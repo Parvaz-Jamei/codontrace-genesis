@@ -5740,8 +5740,11 @@ def mating_type_of(
 ) -> str:
     """Read-only mating type of a live organism for the run ``seed``.
 
-    Returns ``"asexual"`` for the designated asexual founder lineage. The value
-    is recomputed from the seed and id; nothing is stored in the population.
+    Returns ``"asexual"`` for the designated asexual founder lineage. Otherwise
+    the type stored on the organism at birth is returned, so sex is fixed for
+    life; a selfed organism is a hermaphrodite; only an organism with no stored
+    type falls back to a draw from the run-seed stream for its id. This call
+    never writes to the population.
     """
 
     if not sexual.mating_types_enabled:

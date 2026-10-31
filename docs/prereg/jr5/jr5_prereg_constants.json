@@ -173,14 +173,11 @@
       "sexual_recombination": {
         "enabled": true,
         "mating_types_enabled": true,
-        "mating_type_set": [
-          "hermaphrodite",
-          "male"
-        ],
         "sex_assignment": "random_at_birth",
         "pairing_policy": "birth_chamber",
         "two_fold_cost_sex": false,
-        "hermaphrodite_selfing": true
+        "hermaphrodite_selfing": true,
+        "diploid_meiosis": true
       },
       "closed_loop_hp_life": {
         "outcross_enabled": true,
@@ -196,20 +193,30 @@
       "sex_fixed_for_life": {
         "rule": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
         "depends_on": "phase_2b_fix",
-        "engine_test": "TBD_phase2b_zero_mating_type_changes",
+        "engine_test": "tests/test_jr5_phase2b_self_mode.py::test_no_organism_ever_changes_sex_over_many_ticks",
         "engine_test_asserts": "zero_mating_type_changes_over_multi_tick_run"
       },
-      "identical_config_self_and_outcross": true,
-      "only_difference": "outcross_locus",
-      "single_manipulated_factor": "mating_system"
+      "single_manipulated_factor": "mating_system",
+      "mating_type_set": {
+        "obligate_self": [
+          "hermaphrodite"
+        ],
+        "obligate_outcross": [
+          "hermaphrodite",
+          "male"
+        ]
+      },
+      "arm_differences": [
+        "outcross_locus",
+        "mating_type_set"
+      ],
+      "other_settings_shared": true,
+      "diploid_meiosis_all_host_arms": true
     },
     "founders": {
-      "obligate_self": "all_hermaphrodite_pinned_at_founding",
+      "obligate_self": "all_hermaphrodite_no_draw_hermaphrodite_only_set",
       "obligate_outcross": "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio",
-      "self_arm_males": 0,
-      "how_male_free": "founder_type_pinned_not_drawn_selfed_offspring_always_hermaphrodite",
-      "mating_type_set_unchanged": true,
-      "only_founder_difference_between_arms": true
+      "self_arm_males": 0
     },
     "obligate_outcross": {
       "sexes": "on",
@@ -247,18 +254,22 @@
         "field": "closed_loop_hp_life.outcross_runtime_atp",
         "atp_per_outcross_reproduction": 1.0,
         "kept_as_real_cost_of_outcrossing": true,
-        "ledger_term": "separate_from_son_cost",
+        "ledger_term": "outcross_mating_fee",
         "paid_by_selfers": false,
-        "ledger_action": "mate_fee",
-        "ledger_reason": "outcross_runtime_cost",
         "charged": "once_per_outcross_reproduction",
-        "capped_at": "available_runtime_atp"
+        "ledger_row_reason": "outcross_runtime_cost",
+        "separate_from": "son_cost"
       },
       "ledgered_arm_differences": [
         "son_cost",
         "outcross_mating_fee"
       ],
-      "cost_of_males_estimate_uses": "son_cost_only"
+      "cost_of_males_estimate_uses": "son_cost_only",
+      "selfing_genetics": {
+        "haploid": "selfed_child_is_clone",
+        "segregation_requires": "diploid_meiosis_on",
+        "diploid_meiosis": true
+      }
     },
     "fairness": "same_engine_config_same_ledger_son_cost_and_outcross_mating_fee_ledgered_separately_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
   },

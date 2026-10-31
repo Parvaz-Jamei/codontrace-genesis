@@ -626,15 +626,19 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
             "field": "closed_loop_hp_life.outcross_runtime_atp",
             "atp_per_outcross_reproduction": 1.0,
             "kept_as_real_cost_of_outcrossing": True,
-            "ledger_term": "separate_from_son_cost",
+            "ledger_term": "outcross_mating_fee",
             "paid_by_selfers": False,
-            "ledger_action": "mate_fee",
-            "ledger_reason": "outcross_runtime_cost",
             "charged": "once_per_outcross_reproduction",
-            "capped_at": "available_runtime_atp",
+            "ledger_row_reason": "outcross_runtime_cost",
+            "separate_from": "son_cost",
         },
         "ledgered_arm_differences": ["son_cost", "outcross_mating_fee"],
         "cost_of_males_estimate_uses": "son_cost_only",
+        "selfing_genetics": {
+            "haploid": "selfed_child_is_clone",
+            "segregation_requires": "diploid_meiosis_on",
+            "diploid_meiosis": True,
+        },
     }
     claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
     for text in (_prereg_text(), note):
@@ -648,9 +652,10 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
 
 
 def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
-    """The self and outcross arms share one engine config and differ only in
-    the outcross locus (000 selfs, 001 outcrosses), so any difference between
-    them comes from the mating system and not from a setting. Delayed selfing
+    """The self and outcross arms differ only in the mating system: the outcross
+    locus (000 selfs, 001 outcrosses) and whether males are present (the
+    mating type set). Every other engine setting is shared, so a difference
+    between the arms cannot come from an unrelated setting. Delayed selfing
     is off: an outcrossing hermaphrodite with no mate is refused rather than
     selfing at a timeout. Late selfing would give outcrossers reproductive
     assurance and turn the obligate-outcross arm into a mixed one. Selfed
@@ -661,11 +666,11 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
     assert cfg["sexual_recombination"] == {
         "enabled": True,
         "mating_types_enabled": True,
-        "mating_type_set": ["hermaphrodite", "male"],
         "sex_assignment": "random_at_birth",
         "pairing_policy": "birth_chamber",
         "two_fold_cost_sex": False,
         "hermaphrodite_selfing": True,
+        "diploid_meiosis": True,
     }
     assert cfg["closed_loop_hp_life"] == {
         "outcross_enabled": True,
@@ -673,15 +678,19 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
         "outcross_runtime_atp": 1.0,
     }
     assert cfg["outcross_locus"] == {"obligate_self": "000", "obligate_outcross": "001"}
-    assert cfg["identical_config_self_and_outcross"] is True
-    assert cfg["only_difference"] == "outcross_locus"
+    assert cfg["mating_type_set"] == {
+        "obligate_self": ["hermaphrodite"],
+        "obligate_outcross": ["hermaphrodite", "male"],
+    }
+    assert cfg["arm_differences"] == ["outcross_locus", "mating_type_set"]
+    assert cfg["other_settings_shared"] is True
     assert cfg["single_manipulated_factor"] == "mating_system"
     assert cfg["delayed_selfing"] is False
     assert cfg["unmated_outcrosser"] == "refused_no_selfing_at_timeout"
     assert cfg["sex_fixed_for_life"] == {
         "rule": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
         "depends_on": "phase_2b_fix",
-        "engine_test": "TBD_phase2b_zero_mating_type_changes",
+        "engine_test": "tests/test_jr5_phase2b_self_mode.py::test_no_organism_ever_changes_sex_over_many_ticks",
         "engine_test_asserts": "zero_mating_type_changes_over_multi_tick_run",
     }
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
@@ -707,10 +716,10 @@ def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
     lfl = _constants()["host_mating_arm_modes"]["like_for_like"]
     fee = lfl["outcross_mating_fee"]
     assert fee["atp_per_outcross_reproduction"] == 1.0
-    assert fee["ledger_term"] == "separate_from_son_cost"
+    assert fee["ledger_term"] == "outcross_mating_fee"
+    assert fee["separate_from"] == "son_cost"
     assert fee["paid_by_selfers"] is False
-    assert fee["ledger_action"] == "mate_fee"
-    assert fee["ledger_reason"] == "outcross_runtime_cost"
+    assert fee["ledger_row_reason"] == "outcross_runtime_cost"
     cfg = _constants()["host_mating_arm_modes"]["engine_config"]
     assert cfg["closed_loop_hp_life"]["outcross_runtime_atp"] == fee["atp_per_outcross_reproduction"]
     assert lfl["ledgered_arm_differences"] == ["son_cost", "outcross_mating_fee"]
@@ -728,24 +737,40 @@ def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
 
 def test_self_arm_founders_are_all_hermaphrodites() -> None:
     """Obligate selfers are male-free: in the outcross-versus-self
-    mutation-load design the selfing lines carry no males, so the outcross
-    lines alone pay the cost of males. Here the shared config keeps
-    mating_type_set = [hermaphrodite, male], which would draw males at the sex
-    ratio, so self-arm founders are pinned to hermaphrodite at founding instead
-    of drawn, and selfed offspring are always hermaphrodites. The self arm thus
-    holds zero males. This founder rule is the only founder difference between
-    the arms; expected values come from PREREG.md section 4 and the design
-    note."""
+    mutation-load design the selfing lines carry no males and the outcrossing
+    lines do, so only the outcrossers pay the cost of males. The self arm uses
+    the hermaphrodite-only mating type set, for which no type is drawn, so its
+    founders and all their selfed offspring are hermaphrodites and the arm
+    holds zero males. The outcross arm keeps [hermaphrodite, male] and draws
+    each type from the run seed and organism id at the arm's sex ratio.
+    Expected values come from PREREG.md section 4 and the design note."""
     modes = _constants()["host_mating_arm_modes"]
     f = modes["founders"]
-    assert f["obligate_self"] == "all_hermaphrodite_pinned_at_founding"
-    assert f["obligate_outcross"] == "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio"
-    assert f["self_arm_males"] == 0
-    assert f["mating_type_set_unchanged"] is True
-    assert f["only_founder_difference_between_arms"] is True
-    assert modes["engine_config"]["sexual_recombination"]["mating_type_set"] == ["hermaphrodite", "male"]
+    assert f == {
+        "obligate_self": "all_hermaphrodite_no_draw_hermaphrodite_only_set",
+        "obligate_outcross": "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio",
+        "self_arm_males": 0,
+    }
+    sets = modes["engine_config"]["mating_type_set"]
+    assert "male" not in sets["obligate_self"]
+    assert "male" in sets["obligate_outcross"]
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
     for text in (_prereg_text(), note):
-        assert "Self-arm founders are all hermaphrodites" in text
-        assert "only founder difference between the arms" in text
-        assert "pinned to hermaphrodite" in text
+        assert "male-free obligate selfers" in text
+        assert "`mating_type_set=[hermaphrodite]`" in text
+        assert "identical engine config" not in text
+        assert "differ only in the outcross locus" not in text
+
+
+def test_diploid_meiosis_on_in_every_host_arm() -> None:
+    """With a haploid genome a selfed child is a clone of its parent, so
+    selfing would carry no segregation, no inbreeding depression and no
+    purging, and the mutation-load alternative in condition (d) could not
+    arise. Turning diploid meiosis on in every JR5 host arm, self and outcross
+    alike, makes these act through the genome model and keeps the setting
+    shared between arms. Expected values come from PREREG.md section 4."""
+    c = _constants()["host_mating_arm_modes"]
+    assert c["engine_config"]["sexual_recombination"]["diploid_meiosis"] is True
+    assert c["engine_config"]["diploid_meiosis_all_host_arms"] is True
+    assert c["like_for_like"]["selfing_genetics"]["diploid_meiosis"] is True
+    assert "`diploid_meiosis` is on in every JR5 host arm" in _prereg_text()

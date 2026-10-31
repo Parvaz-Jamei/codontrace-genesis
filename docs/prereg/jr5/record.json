@@ -1,23 +1,23 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "71254c658bc4858da1b39858b4051a249e7d8cd982781df3e43aaed7e6441c5c",
+    "digest": "8da1ae026cca19c056a0cac1b57b679be9f56c2bacde8ecc27ac899862107fcb",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
-        "b0647eb771afb30abb62069cdbd6a6dab676e01dadf510a12f8a8a71c772e729"
+        "0ac1aab8ebb95ceccb6f54b799cca82a7903c4efd0a8851f96a3292c558c1bb5"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "3e49219b6a77759f992a2b590ffea254a0ac882fbb741d8c9cd35ee919a6bfe8"
+        "cd4ae6340b0096878d5c2a02efd5c8e304a235929471d6453548e365a9f4b80e"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
-        "994a74ce153e767ec63ff007c936077c698c9ea2c901265aed6f59b1261a492d"
+        "1886fca4d04bc1c7f67118999a8c100532e3f0393b47fc9fdea29c11c7a960e8"
       ],
       [
         "docs/prereg/jr5/REFERENCES.md",
-        "072513e501cfd96865da6eda497b1098b57d90c8cc329671e2031dccd045424b"
+        "71ac161310d9d4363fc3150c3b90f102094cea584cf4a515e7ba72893355f694"
       ],
       [
         "docs/prereg/jr5/SUMMARY_SHA256_NOTE.md",
@@ -25,7 +25,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "d7d2b65a1d6879483891ae6fc1c3ef8f818c161298e3a3693c597a8cec93a86b"
+        "3c4406eb733d0dc6624bb48876de76ffa40b8bdbf788fc233fff659b4b10ab91"
       ],
       [
         "docs/prereg/jr5/scripts/e1_power_sim.py",

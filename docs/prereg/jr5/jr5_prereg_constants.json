@@ -193,6 +193,15 @@
       "self_mode": null,
       "makes_sons": false
     },
+    "like_for_like": {
+      "applies_to": "hermaphrodite_selfing_sexes_on",
+      "offspring_per_reproduction": "equal_to_outcrossing_mother",
+      "atp_budget_per_reproduction": "equal_to_outcrossing_mother",
+      "extra_fitness_term": null,
+      "inbreeding_cost_source": "existing_genome_model_only",
+      "fixed_at": "prereg_not_phase_2b",
+      "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute"
+    },
     "fairness": "same_engine_mode_same_ledger_cost_of_sons_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
   },
   "alternative_arms": {

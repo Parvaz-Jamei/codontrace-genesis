@@ -148,7 +148,7 @@ def test_seed_counts_cover_design() -> None:
     assert len(calib) >= c["gate_e1"]["populations_per_cell"] * len(c["gate_e1"]["sex_ratios"])
 
 
-CLAIM_PATH_SHA256 = "994a74ce153e767ec63ff007c936077c698c9ea2c901265aed6f59b1261a492d"
+CLAIM_PATH_SHA256 = "1886fca4d04bc1c7f67118999a8c100532e3f0393b47fc9fdea29c11c7a960e8"
 RANGE_RE = re.compile(r"`(\d+)\s*(?:\u2013|-|\u2026|\.\.\.)\s*(\d+)`")
 
 
@@ -534,7 +534,12 @@ def test_n50_lower_bound_size_recomputes() -> None:
     seed give 200 groups of 40, so the binomial Monte Carlo SE of the pass rate
     is sqrt(0.073 * 0.927 / 200) = 0.018. The tolerance is 4 such SEs. The bias
     of the bias-reduced slope (+0.0035 in the full run) is checked against
-    its mean (SD 0.150 / sqrt(8,000) = 0.0017), also at 4 SEs."""
+    its mean (SD 0.150 / sqrt(8,000) = 0.0017), also at 4 SEs.
+
+    This is a consistency guard only, not a confirmation of the size: a
+    tolerance of 4 SE (0.073) cannot tell 0.073 from 0.05 or 0.11, and the
+    8,000 populations are the first part of the same seeded stream as the full
+    run. The size itself is confirmed by test_n50_lower_bound_size_full_run."""
     np = pytest.importorskip("numpy")
     sim = _e1_sim_module()
     n50 = _constants()["gate_e1"]["n50"]
@@ -551,12 +556,44 @@ def test_n50_lower_bound_size_recomputes() -> None:
     assert n50["size_seed"] == sim.SEED_BASE + 1
 
 
+@pytest.mark.slow
+def test_n50_lower_bound_size_full_run() -> None:
+    """Exact recompute of the pinned N = 50, m = 0.5 lower-bound size through
+    the committed script. At the lower equivalence bound (true w = 0.9 x 2.0)
+    the TOST pass rate is the type I error of the gate. The script's full run,
+    40,000 populations on seed 20261031 + 1 split into 1,000 disjoint groups of
+    40, gives 0.073 with Monte Carlo SE sqrt(0.073 * 0.927 / 1000) = 0.008; both
+    values are pinned in the JSON under gate_e1.n50. The simulation is seeded
+    numpy only, so the rate must match to three decimals, which separates 0.073
+    from the nominal 0.05 and from 0.11. Takes about 9 s."""
+    pytest.importorskip("numpy")
+    sim = _e1_sim_module()
+    n50 = _constants()["gate_e1"]["n50"]
+    assert n50["size_populations"] == 40000
+    _, reduced, _ = sim.simulate(50, 2.0 * 0.9, sim.horizon(0.5), n50["size_populations"], n50["size_seed"])
+    rate, se, groups = sim.tost_pass_rate(reduced, 2.0)
+    assert groups == 1000
+    assert round(rate, 3) == n50["lower_bound_size_bias_reduced"]
+    assert round(se, 3) == n50["size_mc_se"]
+
+
 def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     """Self and outcross arms run in one engine mode (sexes on, same ATP ledger),
     so the only difference is biological: outcrossers make sons, selfers make
     none by construction. Every arm that lists obligate selfing must therefore
     name the opt-in hermaphrodite self mode (field name defined in phase 2b),
-    and no outcross arm may use it."""
+    and no outcross arm may use it.
+
+    The self mode is also bound to a like-for-like rule: per reproduction a
+    selfing hermaphrodite gets the same offspring count and the same ATP budget
+    as an outcrossing mother, with no extra fitness term, and any inbreeding
+    cost comes only from the existing genome model. Equal per-parent fecundity
+    with males as the only difference is what lets the outcross-minus-self
+    contrast measure the cost of males; unequal egg counts by mating mode would
+    fold a tuning choice into that contrast. The values are fixed in PREREG.md
+    section 4 and the design note, so phase 2b cannot set them after seeing
+    data. If the mode is not delivered, the self arms do not run and condition
+    (d) fails."""
     c = _constants()
     modes = c["host_mating_arm_modes"]
     assert modes["config_field"] == "defined_in_phase_2b"
@@ -565,7 +602,7 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     assert set(c["alternative_arms"]["mutation_load"]["mating"]) <= set(tables[1])
     for table in tables:
         for arm, mode in table.items():
-            if not isinstance(mode, dict):
+            if not isinstance(mode, dict) or arm == "like_for_like":
                 continue
             assert mode["sexes"] == "on"
             assert mode["ledger"] == "WorldATPLedger"
@@ -577,3 +614,22 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     assert "hermaphrodite_selfing_sexes_on" in _prereg_text()
     note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
     assert "hermaphrodite_selfing_sexes_on" in note
+    lfl = modes["like_for_like"]
+    assert lfl == {
+        "applies_to": "hermaphrodite_selfing_sexes_on",
+        "offspring_per_reproduction": "equal_to_outcrossing_mother",
+        "atp_budget_per_reproduction": "equal_to_outcrossing_mother",
+        "extra_fitness_term": None,
+        "inbreeding_cost_source": "existing_genome_model_only",
+        "fixed_at": "prereg_not_phase_2b",
+        "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
+    }
+    claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
+    for text in (_prereg_text(), note):
+        assert "same number of offspring and draws the same ATP budget" in text
+        assert "no extra fitness term" in text
+        assert "existing genome model" in text
+    for text in (_prereg_text(), claim):
+        assert "mutation-load self arm and the E5 self arms are not run" in text
+        assert "`red_queen_proved` stays `False`" in text
+        assert "No substitute run with sexes off" in text

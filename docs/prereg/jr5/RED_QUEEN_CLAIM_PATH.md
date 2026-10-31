@@ -25,6 +25,7 @@ A new JR5 verdict adapter in `codontrace.claimgate` sets `red_queen_proved = Tru
 - *Diversity without cycles:* the frozen-minus-fixed paired difference of terminal uniparental frequency has a 90% interval inside ±0.10, or a 95% interval entirely on the opposite side of 0 from the copassaged effect. In addition, at least one registered E4 time-shift window has a host or parasite effect whose 95% interval excludes 0, with the sign expected under cycling.
 - *Fitness tax:* the uniform-tax-minus-fixed paired difference has a 90% interval inside ±0.10, or a 95% interval entirely on the opposite side of 0 from the copassaged effect.
 - Sensitivity at 60 seeds (PREREG.md section 7): MDE 0.368 SD of the paired difference; equivalence power at ±0.10 is 0.84 at SD 0.25. If an alternative is neither ruled out nor detected, (d) fails.
+- If the phase 2b self mode (`hermaphrodite_selfing_sexes_on`) is not delivered, the mutation-load self arm and the E5 self arms are not run. The mutation-load alternative then cannot be ruled out, so (d) fails and `red_queen_proved` stays `False`. No substitute run with sexes off, or with any other flag setting, may stand in for those arms.
 
 **(e) Replay.** Every run in (a) to (d):
 - verifies its replay digest;

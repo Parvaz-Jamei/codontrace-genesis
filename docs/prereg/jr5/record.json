@@ -1,15 +1,15 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "5878a7af847fa027e26fead6713289012f8fefdd358163a8f0d36d461aff4bc7",
+    "digest": "c30ccbc715a9f369a749161ecb231c3dac8babc8bacef6f78ca4a7700db591ee",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
-        "567f467b83f8dfa82b2f1a6eaae947563810cc2fdb5d271e57dc10cc4fb3bcc2"
+        "b0647eb771afb30abb62069cdbd6a6dab676e01dadf510a12f8a8a71c772e729"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "47935088cee3fb668f9d763d899d05f2af4bb32d2b7ee6ac3c299bf863da69a8"
+        "febf58ecb32898203d2c1b924c9fb116768ef277109c78bd9e8136519ef04e52"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
@@ -25,7 +25,11 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "58e1a5af02591847e0f2e486c8785fa6b8c4fd7008e947f65a5bc1a10bbc7c13"
+        "d7d2b65a1d6879483891ae6fc1c3ef8f818c161298e3a3693c597a8cec93a86b"
+      ],
+      [
+        "docs/prereg/jr5/scripts/e1_power_sim.py",
+        "e9b94a834b85d581f6cb22c23ea08c2e86ce4991ba18bb7f6c0c0e4a21a6b23c"
       ]
     ],
     "title": "JR5 cost of sex prereg"

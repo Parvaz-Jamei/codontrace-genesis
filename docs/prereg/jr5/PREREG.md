@@ -72,6 +72,8 @@ Horizon calculation. Under a constant odds ratio w, logit p(t) = logit(0.2) + t�
 - Host N: 200 primary, 50 sensitivity. Every arm below runs at both. N = 10 appears only in reused lock baselines and is labelled drift-dominated.
 - Parasite: none, heat-killed, fixed (low, high), copassaged (low, high), frozen replay of a coevolved archive (low, high).
 - Host mating: obligate outcross, mixed (invasion), obligate self, asexual.
+- Engine mode for mating arms: every arm runs with sexes on and posts to the same `WorldATPLedger`. Outcross arms (obligate outcross, the mixed-invasion residents, the mutation-load outcross arm) pair male × female or with hermaphrodites, and make sons at the arm's sex ratio. Self arms (the E5 self half, the mutation-load self arm that feeds condition (d)) use the opt-in hermaphrodite self mode, JSON key `self_mode: "hermaphrodite_selfing_sexes_on"`. Its config field name is defined in phase 2b. Selfers make no sons by construction. Phase 2a refuses selfing with sexes on; this mode arrives in phase 2b, and no self arm runs before it does.
+- Why this is a fair comparison: both arms use the same engine mode and the same ledger. The cost of sons is present for outcrossers and absent for selfers because of how each reproduces, not because the cost is switched off for one arm.
 - Alternatives:
   - Mutation load: no parasite, host mutation in {0, 0.01, 0.05}, obligate outcross versus obligate self, at N = 200 and N = 50, 60 seeds per cell.
   - Uniform genotype-blind tax matched to infection cost.
@@ -113,13 +115,13 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - N = 10: 0.03 s per generation.
 - When soft K was left at 3.2N (census about 600), N = 200 took 2.7-3.0 s per generation under 12-job contention. That setting is not used.
 
-**Power for E1.** Simulated with the estimator above. Assumptions: Wright-Fisher sampling of N each generation, a constant odds ratio, founder frequency 0.2, horizons T = 5 and 11, the early-fixation exclusion applied, and TOST on log bounds with n − 1 degrees of freedom.
-- First pass (plain binomial fit, 4,000 populations per setting, true value at the theory value): SD of the log estimator 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50. An independent re-run at N = 50, m = 0.25 gave 0.127. 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
+**Power for E1.** Simulated with the estimator above. Assumptions: the founder asexual count is fixed at 0.2N at generation 0 (40 at N = 200, 10 at N = 50), not drawn; then each generation the count is Binomial(N, q), q = wp/(wp + 1 − p) (Wright-Fisher sampling of N), a constant odds ratio, founder frequency 0.2, horizons T = 5 and 11, the early-fixation exclusion applied, and TOST on log bounds with n − 1 degrees of freedom.
+- First pass, an earlier planning run that the committed script does not reproduce and that the slope-bias figures below replace (plain binomial fit, 4,000 populations per setting, true value at the theory value): SD of the log estimator 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50. An independent re-run at N = 50, m = 0.25 gave 0.127. 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
 - No population fixed before generation 3 in any setting. At N = 50, 3.4% (m = 0.5) and 7.6% (m = 0.25) fixed later and stay in the fit; 0.3% were lost at N = 50, m = 0.25.
 - The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
 - E1 at N = 50 is reported, not gated. Its measured lower-bound size is 0.073 (bias-reduced fit; see the table below).
 
-**Slope bias.** Simulated with fresh populations: 40,000 per setting and true w, seed 20261031 + setting index, both fits on the same populations. TOST pass rates use 1,000 disjoint groups of 40, with no resampling; the Monte Carlo SE is at most 0.010. An earlier pass resampled groups from a pool of 4,000 and gave 0.095 at the lower bound for m = 0.5, N = 200. It is replaced by the figures below.
+**Slope bias.** Simulated with fresh populations by `docs/prereg/jr5/scripts/e1_power_sim.py` (numpy only, seeded): 40,000 per setting and true w, seed 20261031 + setting index (0 at the theory value, 1 at the lower bound, 2 at the upper bound), same founder rule as above, both fits on the same populations. Run as `python docs/prereg/jr5/scripts/e1_power_sim.py M N`. TOST pass rates use 1,000 disjoint groups of 40, with no resampling; the Monte Carlo SE is at most 0.010. An earlier pass resampled groups from a pool of 4,000 and gave 0.095 at the lower bound for m = 0.5, N = 200. It is replaced by the figures below.
 
 Mean bias of the log estimator at the theory value (Monte Carlo SE at most 0.0008):
 - plain fit: m = 0.5: +0.0045 at N = 200 and +0.0150 at N = 50 (16% of the +0.0953 margin); m = 0.25: +0.0018 and +0.0052;
@@ -136,7 +138,7 @@ TOST pass rate with 40 populations (pass at a bound is the type I error, nominal
 | 0.25 | 200 | 1.3333 / 1.2 / 1.4667 | 1.000 / 0.025 / 0.026 | 1.000 / 0.025 / 0.029 |
 | 0.25 | 50 | 1.3333 / 1.2 / 1.4667 | 0.991 / 0.015 / 0.003 | 0.993 / 0.014 / 0.008 |
 
-At m = 0.5 the plain fit passes too often at the lower bound (0.080 at N = 200, 0.116 at N = 50). The bias-reduced fit is the preregistered estimator. At N = 200 it gives 0.058, within Monte Carlo error of 0.05. At N = 50, which is reported and not gated, it gives 0.073, still above 0.05, and that is stated with the N = 50 result.
+At m = 0.5 the plain fit passes too often at the lower bound (0.080 at N = 200, 0.116 at N = 50). The bias-reduced fit is the preregistered estimator. At N = 200 it gives 0.058, within Monte Carlo error of 0.05. At N = 50, which is reported and not gated, it gives 0.073 (Monte Carlo SE 0.008, seed 20261032, 40,000 populations, from the script above), still above 0.05, and that is stated with the N = 50 result.
 
 **Power for E2.** Paired two-sided t at alpha 0.0125 (the first Holm step of four), 80% power:
 - difference 0.25, SD 0.30: 20 seeds;

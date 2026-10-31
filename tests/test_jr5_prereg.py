@@ -53,6 +53,7 @@ def test_record_covers_constants_and_docs() -> None:
         "REFERENCES.md",
         "RED_QUEEN_CLAIM_PATH.md",
         "jr5_prereg_constants.json",
+        "scripts/e1_power_sim.py",
     ):
         assert f"docs/prereg/jr5/{name}" in paths
 
@@ -314,7 +315,33 @@ LEGACY_OVERLAPS = {
         (1000, 1299),
     ),
 }
-ANY_RANGE_RE = re.compile(r"(?<![\d.])(\d{1,6})\s*(?:-|\u2013|\u2026|\.\.\.?)\s*(\d{1,6})(?![\d.])")
+# A range written as "a-b", "a\u2013b", "a...b" or "a to b". Decimals are not ranges.
+ANY_RANGE_RE = re.compile(r"(?<![\d.])(\d{1,6})\s*(?:-|\u2013|\u2026|\.\.\.?|\bto\b)\s*(\d{1,6})(?![\d.])")
+# A single seed written as "seed 123" or "seeds 123", when not the start of a range.
+SINGLE_SEED_RE = re.compile(r"\bseeds?\s+(\d{1,6})(?![\d.])(?!\s*(?:-|\u2013|\u2026|\.\.|to\b)\s*\d)", re.IGNORECASE)
+
+
+def _plain_ranges(text: str) -> list[tuple[int, int]]:
+    pairs = [(int(a), int(b)) for a, b in ANY_RANGE_RE.findall(text)]
+    return pairs + [(int(a), int(a)) for a in SINGLE_SEED_RE.findall(text)]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("seeds 13001-13060", [(13001, 13060)]),
+        ("block 13101\u201313180", [(13101, 13180)]),
+        ("seeds 13901 to 13930", [(13901, 13930)]),
+        ("bootstrap seed 12345", [(12345, 12345)]),
+        ("sex ratio 0.5 to 0.25", []),
+        ("from 0.01 to 0.05", []),
+        ("generation 3", []),
+    ],
+)
+def test_range_patterns_match_seed_forms_only(text: str, expected: list[tuple[int, int]]) -> None:
+    """The patterns must catch every way a prereg writes a seed or a seed range,
+    and must not read decimals (rates, sex ratios) as ranges."""
+    assert sorted(_plain_ranges(text)) == sorted(expected)
 
 
 def test_legacy_overlap_allow_list_is_real() -> None:
@@ -328,21 +355,21 @@ def test_legacy_overlap_allow_list_is_real() -> None:
 
 
 def test_jr5_blocks_clear_every_plain_range_in_prereg_docs() -> None:
-    """Any number range on any line of another prereg, backticked or not."""
+    """Any number range or single seed on any line of another prereg, backticked or not."""
     seeds = _constants()["seeds"]
     jr5 = [seeds[k] for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")]
     for doc in sorted((ROOT / "docs").rglob("*PREREG*.md")):
         if doc.parent == PREREG_DIR:
             continue
-        for lo_s, hi_s in ANY_RANGE_RE.findall(doc.read_text(encoding="utf-8")):
-            lo, hi = int(lo_s), int(hi_s)
-            if lo >= hi:
+        for lo, hi in _plain_ranges(doc.read_text(encoding="utf-8")):
+            if lo > hi:
                 continue
             for a, b in jr5:
                 assert hi < a or b < lo, (doc, lo, hi)
 
 
 def test_e1_fit_pinned() -> None:
+    """The JSON names the fit file, its tolerance, iteration cap and method, and they match the code."""
     from tests import _jr5_e1_fit as fit_mod
 
     fit = _constants()["gate_e1"]["fit"]
@@ -368,6 +395,11 @@ def test_bias_reduced_fit_matches_half_count_rule(k0: float, k1: float) -> None:
 
 
 def test_plain_fit_matches_statsmodels() -> None:
+    """statsmodels is the reference because it is an independent, widely used GLM
+    implementation that maximises the same binomial likelihood (logit link,
+    counts k out of n). The counts k are a smooth logistic rise over 6
+    generations from 0.2 of 200 (40) toward 0.9, so the plain MLE exists and is
+    well conditioned; any correct maximiser must give the same estimate."""
     np = pytest.importorskip("numpy")
     sm = pytest.importorskip("statsmodels.api")
     from tests._jr5_e1_fit import fit_logit
@@ -392,3 +424,156 @@ def test_e1_gate_is_n200_only_and_n50_is_report_only() -> None:
     table = _constants()["power"]["e1"]["tost_pass_rate_n40"]["bias_reduced"]["0.5"]["N50"]
     assert table[1] == n50["lower_bound_size_bias_reduced"]
     assert "b_e2_holm_both_N" in _constants()["gated_claim_flags"]["red_queen_proved"]["conditions"]
+
+
+def _penalised_negative(beta: Any, k: Any, n: Any, x: Any) -> float:
+    """Minus (log L + 1/2 log det I(beta)) for the binomial logit model."""
+    np = pytest.importorskip("numpy")
+    design = np.column_stack([np.ones_like(x), x])
+    eta = design @ beta
+    p = 1.0 / (1.0 + np.exp(-eta))
+    w = n * p * (1.0 - p)
+    loglik = float(np.sum(k * eta - n * np.logaddexp(0.0, eta)))
+    _, logdet = np.linalg.slogdet(design.T @ (design * w[:, None]))
+    return -(loglik + 0.5 * float(logdet))
+
+
+@pytest.mark.parametrize(
+    "k",
+    [
+        [2.0, 5.0, 9.0, 13.0, 15.0, 18.0],
+        [0.0, 0.0, 0.0, 20.0, 20.0, 20.0],
+    ],
+    ids=["six_points", "complete_separation"],
+)
+def test_bias_reduced_fit_is_the_penalised_maximum(k: list[float]) -> None:
+    """The bias-reduced fit is defined as the maximiser of log L + 1/2 log det I.
+    The code solves the modified score instead, so a direct numerical maximiser
+    of the same objective (scipy Nelder-Mead, started at 0) must land on the same
+    point. The expected value comes from that maximiser, not from the fit."""
+    np = pytest.importorskip("numpy")
+    optimize = pytest.importorskip("scipy.optimize")
+    from tests._jr5_e1_fit import fit_logit
+
+    x = np.arange(6.0)
+    n = np.full(6, 20.0)
+    counts = np.array(k)
+    ours = fit_logit(counts, n, x, bias_reduced=True)
+    ref = optimize.minimize(
+        _penalised_negative,
+        np.zeros(2),
+        args=(counts, n, x),
+        method="Nelder-Mead",
+        options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 20000},
+    )
+    assert ref.success
+    assert np.allclose(ours, ref.x, atol=1e-5)
+    assert _penalised_negative(ours, counts, n, x) <= ref.fun + 1e-9
+
+
+def test_separation_plain_fit_diverges_penalised_fit_finite() -> None:
+    """Under complete separation (all 0 before a point, all n after) the plain
+    likelihood keeps rising as the slope grows, so no finite MLE exists and
+    Newton steps fail. The half log det penalty goes to minus infinity as the
+    fitted probabilities reach 0 and 1, which keeps the penalised maximum finite
+    (a proven property for full-rank binomial logit designs; see the bias
+    reduction review in REFERENCES.md)."""
+    np = pytest.importorskip("numpy")
+    from tests._jr5_e1_fit import fit_logit
+
+    x = np.arange(6.0)
+    n = np.full(6, 20.0)
+    k = np.array([0.0, 0.0, 0.0, 20.0, 20.0, 20.0])
+    with np.errstate(all="ignore"), pytest.raises((RuntimeError, np.linalg.LinAlgError)):
+        fit_logit(k, n, x, bias_reduced=False)
+    beta = fit_logit(k, n, x, bias_reduced=True)
+    assert np.all(np.isfinite(beta))
+    assert beta[1] > 0
+    design = np.column_stack([np.ones_like(x), x])
+
+    def loglik(b: Any) -> float:
+        eta = design @ b
+        return float(np.sum(k * eta - n * np.logaddexp(0.0, eta)))
+
+    ll = [loglik(np.array([-2.5 * s, s])) for s in (1.0, 4.0, 16.0)]
+    assert ll[0] < ll[1] < ll[2] < 0.0
+
+
+def _e1_sim_module() -> Any:
+    import importlib.util
+
+    path = PREREG_DIR / "scripts" / "e1_power_sim.py"
+    spec = importlib.util.spec_from_file_location("jr5_e1_power_sim", path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_e1_sim_script_constants_match_prereg() -> None:
+    """The committed simulation uses the preregistered seed base, founder
+    frequency, exclusion rule, group size and horizons. The t constant is the
+    0.95 quantile of t with 39 df, checked against scipy when present."""
+    sim = _e1_sim_module()
+    c = _constants()
+    g = c["gate_e1"]
+    assert sim.SEED_BASE == c["power"]["e1"]["bias_reduced"]["seed_base"]
+    assert sim.FOUNDER_FREQUENCY == g["founder_uniparental_frequency"]
+    assert sim.EARLY_FIXATION_GENERATION == g["early_fixation_generation"]
+    assert sim.GROUP == g["populations_per_cell"]
+    assert sim.horizon(0.5) == g["generations"]["0.5"]
+    assert sim.horizon(0.25) == g["generations"]["0.25"]
+    assert c["power"]["e1"]["script"] == "docs/prereg/jr5/scripts/e1_power_sim.py"
+    stats = pytest.importorskip("scipy.stats")
+    assert math.isclose(sim.T_95_DF39, float(stats.t.ppf(0.95, 39)), rel_tol=1e-12)
+
+
+def test_n50_lower_bound_size_recomputes() -> None:
+    """Small recompute of the N = 50, m = 0.5 lower-bound size (0.073 from
+    40,000 populations, seed 20261031 + 1). Here 8,000 populations on the same
+    seed give 200 groups of 40, so the binomial Monte Carlo SE of the pass rate
+    is sqrt(0.073 * 0.927 / 200) = 0.018. The tolerance is 3 such SEs. The bias
+    of the bias-reduced slope (+0.0035 in the full run) is checked to 3 SEs of
+    its mean (SD 0.150 / sqrt(8,000) = 0.0017)."""
+    np = pytest.importorskip("numpy")
+    sim = _e1_sim_module()
+    n50 = _constants()["gate_e1"]["n50"]
+    size = n50["lower_bound_size_bias_reduced"]
+    theory = 2.0
+    w = theory * 0.9
+    _, reduced, _ = sim.simulate(50, w, 5, 8000, sim.SEED_BASE + 1)
+    rate, _, groups = sim.tost_pass_rate(reduced, theory)
+    assert groups == 200
+    tol = 3 * math.sqrt(size * (1 - size) / groups)
+    assert abs(rate - size) <= tol
+    assert abs(float(reduced.mean() - np.log(w)) - 0.0035) <= 3 * 0.150 / math.sqrt(8000)
+    assert n50["size_mc_se"] == 0.008
+    assert n50["size_seed"] == sim.SEED_BASE + 1
+
+
+def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
+    """Self and outcross arms run in one engine mode (sexes on, same ATP ledger),
+    so the only difference is biological: outcrossers make sons, selfers make
+    none by construction. Every arm that lists obligate selfing must therefore
+    name the opt-in hermaphrodite self mode (field name defined in phase 2b),
+    and no outcross arm may use it."""
+    c = _constants()
+    modes = c["host_mating_arm_modes"]
+    assert modes["config_field"] == "defined_in_phase_2b"
+    assert set(c["host_mating_arms"]) <= set(modes)
+    tables = [modes, c["alternative_arms"]["mutation_load"]["engine_mode"]]
+    assert set(c["alternative_arms"]["mutation_load"]["mating"]) <= set(tables[1])
+    for table in tables:
+        for arm, mode in table.items():
+            if not isinstance(mode, dict):
+                continue
+            assert mode["sexes"] == "on"
+            assert mode["ledger"] == "WorldATPLedger"
+            if "self" in arm:
+                assert mode["self_mode"] == "hermaphrodite_selfing_sexes_on"
+                assert mode["makes_sons"] is False
+            else:
+                assert mode["self_mode"] is None
+    assert "hermaphrodite_selfing_sexes_on" in _prereg_text()
+    note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
+    assert "hermaphrodite_selfing_sexes_on" in note

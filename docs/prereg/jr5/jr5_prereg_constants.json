@@ -69,7 +69,11 @@
       "status": "report_only",
       "gated": false,
       "calibrated_margin": null,
-      "lower_bound_size_bias_reduced": 0.073
+      "lower_bound_size_bias_reduced": 0.073,
+      "size_mc_se": 0.008,
+      "size_seed": 20261032,
+      "size_populations": 40000,
+      "size_script": "docs/prereg/jr5/scripts/e1_power_sim.py"
     },
     "host_n_reported": [
       200,
@@ -163,6 +167,34 @@
     "obligate_self",
     "asexual"
   ],
+  "host_mating_arm_modes": {
+    "config_field": "defined_in_phase_2b",
+    "obligate_outcross": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": true
+    },
+    "mixed_invasion": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": true
+    },
+    "obligate_self": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": "hermaphrodite_selfing_sexes_on",
+      "makes_sons": false
+    },
+    "asexual": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": false
+    },
+    "fairness": "same_engine_mode_same_ledger_cost_of_sons_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
+  },
   "alternative_arms": {
     "mutation_load": {
       "host_mutation_grid": [
@@ -179,7 +211,21 @@
         200,
         50
       ],
-      "seeds_per_cell": 60
+      "seeds_per_cell": 60,
+      "engine_mode": {
+        "obligate_outcross": {
+          "sexes": "on",
+          "ledger": "WorldATPLedger",
+          "self_mode": null,
+          "makes_sons": true
+        },
+        "obligate_self": {
+          "sexes": "on",
+          "ledger": "WorldATPLedger",
+          "self_mode": "hermaphrodite_selfing_sexes_on",
+          "makes_sons": false
+        }
+      }
     },
     "uniform_tax": {
       "virulence": [
@@ -487,7 +533,9 @@
             ]
           }
         }
-      }
+      },
+      "script": "docs/prereg/jr5/scripts/e1_power_sim.py",
+      "founder_count_rule": "fixed_round_0.2N_at_generation_0_then_binomial_N_q_each_generation"
     },
     "e2": {
       "alpha_two_sided_first_holm_step": 0.0125,

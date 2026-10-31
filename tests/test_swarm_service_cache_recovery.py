@@ -129,8 +129,10 @@ def _wait_until(predicate, what):
 def _pause_inside(monkeypatch, obj, name):
     """Make ``obj.<name>`` block once (inside the journal lock) until released.
 
-    Returns ``(entered, release, restore)``; ``restore`` removes the patch and
-    the test's monkeypatch also undoes it on failure.
+    Returns ``(entered, release, restore)``. ``restore`` puts the real
+    method back through ``monkeypatch`` itself, so monkeypatch's own undo at
+    teardown stays consistent with the object (deleting the attribute behind
+    monkeypatch's back makes its undo fail on pytest 9.2).
     """
     entered, release = threading.Event(), threading.Event()
     real = getattr(obj, name)
@@ -143,8 +145,7 @@ def _pause_inside(monkeypatch, obj, name):
     monkeypatch.setattr(obj, name, paused, raising=False)
 
     def restore():
-        if name in vars(obj):
-            delattr(obj, name)
+        monkeypatch.setattr(obj, name, real)
     return entered, release, restore
 
 

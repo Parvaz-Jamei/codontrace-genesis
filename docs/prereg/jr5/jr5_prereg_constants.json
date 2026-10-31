@@ -104,7 +104,7 @@
       "dependencies": "numpy",
       "reference_check": "saturated_two_group_model_equals_half_count_correction_exactly"
     },
-    "segregation_load": "enters_realised_w_not_corrected_pilot_measures_genuine_load_failure_is_instrument_failure"
+    "segregation_load": "enters_realised_w_either_direction_no_direction_assumed_not_corrected_pilot_measures_genuine_load_failure_is_instrument_failure"
   },
   "e2": {
     "estimand": "paired_difference_copassaged_minus_fixed_terminal_uniparental_frequency",
@@ -300,7 +300,7 @@
         "depends_on": "fix/diploid-fertilisation"
       }
     },
-    "fairness": "same_engine_config_same_ledger_son_cost_and_outcross_mating_fee_ledgered_separately_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
+    "fairness": "same_engine_config_same_ledger_arms_differ_only_in_son_cost_outcross_mating_fee_set_to_zero_in_confirmatory_arms_ledger_term_reads_zero"
   },
   "alternative_arms": {
     "mutation_load": {
@@ -769,7 +769,13 @@
         0.0953
       ]
     },
-    "on_fail": "instrument_failure_fix_engine_mechanism_with_documented_reason_rerun_same_seeds",
+    "on_fail": "instrument_failure_unless_engine_defect_shown_by_failing_engine_test",
+    "fix_allowed_only_for": "engine_defect_shown_by_engine_test_failing_before_fix_passing_after",
+    "max_reruns_after_fix": 1,
+    "rerun_seeds": "same",
+    "rerun_logged": true,
+    "genuine_load_effect": "instrument_failure",
+    "second_failure": "instrument_failure",
     "bounds_never_widened": true,
     "estimator_never_changed": true,
     "enters_claims": false,

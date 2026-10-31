@@ -743,8 +743,13 @@ def test_outcross_mating_fee_is_off_in_confirmatory_arms() -> None:
         assert "single manipulated factor" in t
         assert "`outcross_runtime_atp = 1.0`" not in t
         assert "uses only the son term" not in t
-    assert "would therefore be anti-conservative" in text
+    assert "in (d) a fee would be anti-conservative for `red_queen_proved`; in E1 it would bias w upward." in text
+    assert "would therefore be anti-conservative" not in text
     assert "the fee enters no gate, no condition and no claim" in text
+    fairness = _constants()["host_mating_arm_modes"]["fairness"]
+    assert "arms_differ_only_in_son_cost" in fairness
+    assert "outcross_mating_fee_set_to_zero_in_confirmatory_arms" in fairness
+    assert "ledgered_separately" not in fairness
     assert text.count("Pinned in the JSON under `host_mating_arm_modes.engine_config`") == 1
 
 
@@ -771,7 +776,8 @@ def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
     assert "`fix/diploid-fertilisation`" in text
     assert "conserved over at least 3 generations" in text
     assert "Segregation load and E1" in text
-    assert c["gate_e1"]["segregation_load"].startswith("enters_realised_w_not_corrected")
+    assert c["gate_e1"]["segregation_load"].startswith("enters_realised_w_either_direction")
+    assert "pinned by branch name for now" in text
 
 
 def test_self_arm_founders_are_all_hermaphrodites() -> None:
@@ -817,14 +823,21 @@ def test_diploid_meiosis_on_in_every_host_arm() -> None:
 
 def test_realised_w_pilot_pinned() -> None:
     """The E1 power figures assume a fixed true w of 2.0 at m = 0.5, but the
-    engine's outcrossers also pay the mating fee and carry segregation load
-    from diploid meiosis, so realised w is measured first. The pilot is sized
-    for precision: the bias-reduced SD of log w at N = 200, m = 0.5 is 0.076
-    (PREREG.md section 7 table), so 40 populations give SE 0.076 / sqrt(40) =
-    0.012 and a 90% half-width of about 0.020, far inside the log margins
-    -0.1054 / +0.0953. It uses the E1 estimator, interval and bounds unchanged,
-    its own seed block, and failure stops the confirmatory runs rather than
-    moving the bounds."""
+    engine's outcrossers carry whatever segregation and recombination load the
+    diploid genome model produces (the mating fee is 0 in these arms), so
+    realised w is measured first. The pilot is sized for precision of its
+    estimate rather than power: the bias-reduced SD of log w at N = 200,
+    m = 0.5 is 0.076 (PREREG.md section 7 table), so 40 populations give
+    SE 0.076 / sqrt(40) = 0.012. The one-sided 95% t quantile with 39 degrees
+    of freedom, which sets the 90% two-sided TOST interval, is 1.685 (Student
+    t distribution, computed here with scipy), giving a half-width of about
+    0.020. The log margins are ln(1.8 / 2) = -0.1054 and ln(2.2 / 2) = +0.0953
+    for the bounds [1.8, 2.2] around the theory value 1 / (1 - m) = 2; both
+    are computed here, and twice the half-width still fits inside them. It
+    uses the E1 estimator, interval and bounds unchanged and its own seed
+    block. A fix after failure is allowed only for an engine defect shown by
+    a failing engine test, with exactly one logged rerun on the same seeds; a
+    genuine load effect or a second failure is an E1 instrument failure."""
     c = _constants()
     p = c["realised_w_pilot"]
     g = c["gate_e1"]
@@ -841,13 +854,30 @@ def test_realised_w_pilot_pinned() -> None:
     assert eng["sexual_recombination"]["diploid_meiosis"] is True
     assert p["outcross_mating_fee_atp"] == eng["closed_loop_hp_life"]["outcross_runtime_atp"]
     b = p["size_basis"]
+    from scipy.stats import t as student_t
+
+    t95 = float(student_t.ppf(0.95, p["populations"] - 1))
+    assert math.isclose(t95, 1.685, abs_tol=5e-4)
+    lo, hi = math.log(1.8 / 2.0), math.log(2.2 / 2.0)
+    assert math.isclose(lo, b["log_margins"][0], abs_tol=5e-5)
+    assert math.isclose(hi, b["log_margins"][1], abs_tol=5e-5)
     se = b["sd_log_w_bias_reduced_n200_m05"] / math.sqrt(p["populations"])
     assert math.isclose(se, b["se_log_w"], abs_tol=5e-4)
-    assert 1.69 * se <= b["half_width_90_log"] + 5e-4
-    assert 2 * 1.69 * se < min(-b["log_margins"][0], b["log_margins"][1])
+    assert math.isclose(t95 * se, b["half_width_90_log"], abs_tol=5e-4)
+    assert 2 * t95 * se < min(-lo, hi)
     assert p["bounds_never_widened"] is True and p["estimator_never_changed"] is True
-    assert p["on_fail"].startswith("instrument_failure")
+    assert p["on_fail"] == "instrument_failure_unless_engine_defect_shown_by_failing_engine_test"
+    assert p["fix_allowed_only_for"] == ("engine_defect_shown_by_engine_test_failing_before_fix_passing_after")
+    assert p["max_reruns_after_fix"] == 1
+    assert p["rerun_seeds"] == "same" and p["rerun_logged"] is True
+    assert p["genuine_load_effect"] == "instrument_failure"
+    assert p["second_failure"] == "instrument_failure"
+    assert "either_direction" in c["gate_e1"]["segregation_load"]
     text = _prereg_text()
     assert "**Realised-w pilot (non-confirmatory, runs before E1).**" in text
     assert "No confirmatory seed runs until the pilot passes." in text
     assert "The bounds are never widened and the estimator is never changed." in text
+    assert "re-run exactly once on the same seeds" in text
+    assert "there is no further fix-and-rerun" in text
+    assert "No direction is assumed." in text
+    assert "raising it above 1/(1 − m)" not in text

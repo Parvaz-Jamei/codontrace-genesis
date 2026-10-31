@@ -59,11 +59,38 @@ ALLOWED = {
     ("experiments/orchestrator.py", "seed"),
     # File-integrity hashes of a snapshot file whose name contains a seed.
     ("genesis/rq_bidirectional_timeshift.py", "sample_path"),
-    # PopulationState.to_dict stores the run seed used for mating types as a
-    # record field (mating_seed), so every population digest hashes a payload
-    # that carries it. These are state digests, never used as random values.
-    ("genesis/population.py", "payload"),
 }
+# Allowed only inside the named functions of a module. PopulationState.to_dict
+# stores the run seed used for mating types as a record field (mating_seed), so
+# the record digests in population.py hash a payload that carries it. These
+# are state digests and event ids, never random values; a seeded ``payload``
+# hash anywhere else in the module is still an offender.
+ALLOWED_IN_FUNCTIONS = {
+    ("genesis/population.py", "payload"): frozenset({"digest", "_reproduction_event_id"}),
+}
+
+
+def _enclosing_function(tree: ast.AST, line: int) -> str | None:
+    best: tuple[int, str] | None = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            end = node.end_lineno or node.lineno
+            if node.lineno <= line <= end and (best is None or node.lineno > best[0]):
+                best = (node.lineno, node.name)
+    return best[1] if best else None
+
+
+def offenders_in(rel: str, tree: ast.AST) -> list[str]:
+    """Seeded hash calls in module ``rel`` that no allow-list entry covers."""
+
+    found = []
+    for line, name in seeded_hash_calls(tree):
+        if (rel, name) in ALLOWED:
+            continue
+        if _enclosing_function(tree, line) in ALLOWED_IN_FUNCTIONS.get((rel, name), frozenset()):
+            continue
+        found.append(f"{rel}:{line} ({name})")
+    return found
 
 
 def _is_seed_name(name: str) -> bool:
@@ -342,10 +369,26 @@ def test_no_module_outside_rng_hashes_its_own_random_stream() -> None:
         rel = path.relative_to(SRC).as_posix()
         if rel == "rng.py":
             continue
-        for line, name in seeded_hash_calls(ast.parse(path.read_text(encoding="utf-8"))):
-            if (rel, name) not in ALLOWED:
-                offenders.append(f"{rel}:{line} ({name})")
+        offenders.extend(offenders_in(rel, ast.parse(path.read_text(encoding="utf-8"))))
     assert offenders == [], offenders
+
+
+def test_seeded_payload_hash_elsewhere_in_population_is_caught() -> None:
+    """The population.py allow-list covers only its digest functions.
+
+    A random draw made by hashing a seeded ``payload`` in any other function of
+    the same module must still be reported.
+    """
+    rel = "genesis/population.py"
+    text = (SRC / rel).read_text(encoding="utf-8")
+    assert offenders_in(rel, ast.parse(text)) == []
+    mutant = text + (
+        "\n\ndef _planted_draw(seed):\n"
+        "    payload = f'{seed}|mate'\n"
+        "    return hashlib.sha256(payload.encode('utf-8')).digest()[0]\n"
+    )
+    hits = offenders_in(rel, ast.parse(mutant))
+    assert len(hits) == 1 and hits[0].endswith("(payload)"), hits
 
 
 @pytest.mark.parametrize(

@@ -168,6 +168,10 @@ class GenesisOrganism:
     # HE03 E3: last Gorelick task class (TASK_A/TASK_B) for cross-tick
     # switch-cost charging. None keeps life-loop digests unchanged.
     last_task_class: str | None = None
+    # Designated asexual founder lineage. Set at founding, copied to every
+    # descendant. Only matters when sexes are on: then only this lineage may
+    # reproduce uniparentally. Written to state only when True.
+    asexual_lineage: bool = False
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)

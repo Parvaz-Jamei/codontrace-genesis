@@ -534,6 +534,29 @@ def test_non_boolean_selfing_values_are_refused_on_restore(value: object) -> Non
         PopulationState.from_dict(state)
 
 
+# Outcross mating fee as its own ledger term.
+
+
+def test_outcross_mating_fee_is_its_own_ledger_term() -> None:
+    """The outcross arm pays a fixed mating fee per outcross copy
+    (outcross_runtime_atp, default 1.0 ATP, a config value) on top of any cost
+    of sons. Booked as its own term, the fee equals 1.0 times the number of
+    fee rows; the self arm pays none. Expected values follow from the default
+    fee of 1.0."""
+
+    out_session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    self_session, _ = _self_arm(OUTCROSS_SELFING_BITS)
+    out_session.run_ticks(3)
+    self_session.run_ticks(3)
+    out_fee = out_session.mating_fee_ledger()
+    assert out_fee["term"] == "outcross_mating_fee"
+    assert out_fee["ledger_reason"] == "outcross_runtime_cost"
+    assert out_fee["events"] == out_session.summary()["outcross_debit_events"] >= 1
+    assert out_fee["atp"] == pytest.approx(1.0 * out_fee["events"])
+    assert self_session.mating_fee_ledger()["events"] == 0
+    assert self_session.mating_fee_ledger()["atp"] == 0.0
+
+
 # Selfing is self-fertilisation through the gamete path.
 
 

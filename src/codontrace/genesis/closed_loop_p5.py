@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from codontrace.dynvalues import same_int
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -99,6 +99,7 @@ class ClosedLoopP5Session:
     outcross_ablate: bool = False
     outcross_bits: str = OUTCROSS_OUT_BITS
     _seen_outcross_debits: set[tuple[str, int]] = field(default_factory=set)
+    _outcross_fee_amounts: dict[tuple[str, int], float] = field(default_factory=dict)
 
     @classmethod
     def boot(
@@ -217,7 +218,9 @@ class ClosedLoopP5Session:
             for entry in ledger:
                 if not isinstance(entry, dict) or entry.get("reason") != "outcross_runtime_cost":
                     continue
-                self._seen_outcross_debits.add((org.id, same_int(entry["entry_id"])))
+                key = (org.id, same_int(entry["entry_id"]))
+                self._seen_outcross_debits.add(key)
+                self._outcross_fee_amounts[key] = same_float(entry["amount"])
         self.outcross_debit_events = len(self._seen_outcross_debits)
 
     def _record_births(self, result: GenerationResult) -> None:
@@ -304,6 +307,22 @@ class ClosedLoopP5Session:
             ],
         }
         return canonical_digest(payload, prefix="clp5snap")
+
+    def mating_fee_ledger(self) -> dict[str, Any]:
+        """The outcross mating fee as its own ledger term.
+
+        Each outcross copy pays ``outcross_runtime_atp`` (1.0 by default) from
+        the runtime account, written as an ``outcross_runtime_cost`` row. This
+        term is booked apart from any cost of sons, so the two costs of the
+        outcross arm can be read separately. Not part of the snapshot digest.
+        """
+
+        return {
+            "term": "outcross_mating_fee",
+            "ledger_reason": "outcross_runtime_cost",
+            "events": len(self._seen_outcross_debits),
+            "atp": round(sum(self._outcross_fee_amounts.values()), 10),
+        }
 
     def summary(self) -> dict[str, Any]:
         return {

@@ -24,7 +24,8 @@ for hermaphrodites with the outcross locus off) is the opt-in mode below.
 
 ``SexualRecombinationConfig.hermaphrodite_selfing`` is the opt-in selfing
 mode. With it on, a hermaphrodite whose outcross locus reads selfing makes a
-uniparental selfed child; males and females still never self. A selfed child
+selfed child, fusing two of its own gametes through the outcross gamete
+path; males and females still never self. A selfed child
 is a hermaphrodite by construction (its type is pinned, not drawn), so
 selfing makes no sons and pays no cost of males, while outcrossing with a
 male still draws sons at ``sex_ratio``. Self and outcross arms therefore run

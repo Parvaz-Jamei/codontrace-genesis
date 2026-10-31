@@ -182,9 +182,10 @@ def test_males_on_selfing_locus_never_self_in_self_mode() -> None:
 
 
 def test_selfed_births_all_have_hermaphrodite_parents() -> None:
-    """Every uniparental birth must come from a parent that was a hermaphrodite
-    in the step that made it. The session steps with seed + tick index, so the
-    type is read with that step's seed (selfed organisms are pinned anyway)."""
+    """Every selfed birth must come from a parent that is a hermaphrodite, read
+    in the step before the birth. Self-fertilisation fuses two gametes of one
+    parent, so a selfed birth is a lineage record whose second parent is the
+    parent itself."""
 
     session, cfg = _self_arm(OUTCROSS_SELFING_BITS)
     selfed_parents: list[str] = []
@@ -195,7 +196,7 @@ def test_selfed_births_all_have_hermaphrodite_parents() -> None:
         known = {rec.organism_id for rec in before.lineage}
         session.run_ticks(1)
         for rec in session.runner.population.lineage:
-            if rec.organism_id not in known and rec.second_parent_id is None and rec.parent_id:
+            if rec.organism_id not in known and rec.parent_id and rec.second_parent_id == rec.parent_id:
                 selfed_parents.append(types[rec.parent_id])
     assert selfed_parents
     assert set(selfed_parents) == {"hermaphrodite"}
@@ -453,6 +454,32 @@ def test_outcross_locus_hermaphrodite_never_selfs_in_self_mode(mating_set: tuple
     assert born and all(rec.second_parent_id is not None for rec in born)
 
 
+# Sex fixed for life: a parent ever seen as male never selfs.
+
+
+def test_parent_ever_seen_as_male_is_never_a_selfer() -> None:
+    """Self-fertilisation needs both gamete roles in one body, which a male
+    lacks, and a sex is fixed for life. Over 12 ticks of the self arm we record
+    every id ever read as male. Expected: none of them is ever selfed, read as
+    another type later, or the parent of a selfed birth (second parent equal
+    to parent)."""
+
+    session, _ = _self_arm(OUTCROSS_SELFING_BITS)
+    ever_male: set[str] = set()
+    for _ in range(12):
+        session.run_ticks(1)
+        for organism in session.runner.population.organisms:
+            if organism.mating_type == "male":
+                ever_male.add(organism.id)
+            elif organism.id in ever_male:
+                raise AssertionError(f"{organism.id} changed sex from male")
+    population = session.runner.population
+    assert ever_male
+    assert not any(o.selfed for o in population.organisms if o.id in ever_male)
+    selfers = {rec.parent_id for rec in population.lineage if rec.parent_id and rec.second_parent_id == rec.parent_id}
+    assert selfers and not selfers & ever_male
+
+
 # Mutation-killing tests for the selfed pin and the selfed restore.
 
 
@@ -505,3 +532,47 @@ def test_non_boolean_selfing_values_are_refused_on_restore(value: object) -> Non
     state["organisms"][0]["selfed"] = value  # type: ignore[index,assignment]
     with pytest.raises(ConfigurationError):
         PopulationState.from_dict(state)
+
+
+# Selfing is self-fertilisation through the gamete path.
+
+
+def test_haploid_selfed_child_fuses_two_identical_gametes() -> None:
+    """Without diploid_meiosis the genome is haploid, so both gametes of a
+    selfer equal its genome and their crossover returns the same bits:
+    selfing transmits the genome unchanged (no segregation to expose).
+    Expected: each selfed lineage record names the parent as both parents,
+    carries a crossover digest, and (mutation rate 0) the parent genome."""
+
+    session, _ = _self_arm(OUTCROSS_SELFING_BITS)
+    founders = {o.id: o.genome.digest() for o in session.runner.population.organisms}
+    session.run_ticks(6)
+    population = session.runner.population
+    digests = {**founders, **{rec.organism_id: rec.genome_digest for rec in population.lineage}}
+    selfed = [rec for rec in population.lineage if rec.parent_id and rec.second_parent_id == rec.parent_id]
+    assert selfed
+    for rec in selfed:
+        assert rec.recombination_digest is not None
+        if rec.mutation_count == 0:
+            assert rec.genome_digest == digests[rec.parent_id]
+
+
+def test_diploid_selfing_makes_two_independent_meiotic_gametes() -> None:
+    """With diploid_meiosis each gamete is a homolog-crossover product, as in
+    outcrossing, so two gametes from one heterozygous parent can differ and a
+    selfed child need not equal either homolog (segregation). The genome
+    below has different even and odd codons, so its homologs differ. Expected:
+    across 20 draws the fused child takes more than one value, and every
+    record names two distinct gametes of the same parent."""
+
+    from codontrace.genesis.population import RNGManager, _self_fertilisation_record
+
+    cfg = SexualRecombinationConfig(enabled=True, recombination_prob=1.0, diploid_meiosis=True)
+    parent = GenesisOrganism.from_bits("o0", "000111000111000111000111", initial_runtime_atp=1.0, position=(0, 0))
+    children = set()
+    for seed in range(20):
+        record = _self_fertilisation_record(parent, cfg, RNGManager(seed))
+        assert record is not None
+        assert {record.parent_a_id, record.parent_b_id} == {"o0:gamete_a", "o0:gamete_b"}
+        children.add(record.child_genome_bits)
+    assert len(children) > 1

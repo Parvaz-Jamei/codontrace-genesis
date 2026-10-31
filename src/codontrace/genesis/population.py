@@ -2240,6 +2240,69 @@ def _blocked_reproduction_result(
     )
 
 
+def _self_fertilisation_record(
+    organism: GenesisOrganism,
+    sexual_cfg: SexualRecombinationConfig,
+    rng: RNGManager,
+) -> RecombinationRecord | None:
+    """Fuse two gametes of one hermaphrodite through the outcross gamete path.
+
+    Each gamete is made as an outcrosser's would be: with ``diploid_meiosis``
+    each is an independent homolog-crossover product, so a selfed child can be
+    homozygous where its parent was not. Without it the genome is haploid,
+    both gametes equal the parent genome and the fusion leaves the bits
+    unchanged. The fusion uses the same positional crossover and
+    ``recombination_prob`` as a chamber pair. Returns ``None`` when no fusion
+    record is made (crossover skipped or no overlapping codon); the child is
+    then the unrecombined parent genome, as for a skipped chamber crossover.
+    The record names the two gametes; the lineage of the selfed child names
+    the parent as both parents.
+    """
+
+    bits = organism.genome.to_compact()
+    width = organism.genome.spec.codon_width
+    digest = organism.genome.digest()
+    gametes: list[str] = []
+    for label in ("a", "b"):
+        if sexual_cfg.diploid_meiosis:
+            slot = IncipientOffspring(
+                slot_id=f"{organism.id}:self_{label}",
+                parent_id=organism.id,
+                genome_bits=bits,
+                genome_digest=digest,
+                entered_tick=0,
+                parent_position=organism.position,
+                offspring_runtime_atp=0.0,
+                parent_generation=0,
+                codon_width=width,
+            )
+            gametes.append(
+                reduce_incipient_to_haploid_gamete(slot, rng.fork(f"meiosis/{label}")).genome_bits
+            )
+        else:
+            gametes.append(bits)
+    if sexual_cfg.recombination_prob <= 0.0:
+        return None
+    if sexual_cfg.recombination_prob < 1.0 and not (
+        rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
+    ):
+        return None
+    try:
+        record_a, _ = recombine_positional_segment_pair(
+            parent_a_id=f"{organism.id}:gamete_a",
+            parent_b_id=f"{organism.id}:gamete_b",
+            parent_a_bits=gametes[0],
+            parent_b_bits=gametes[1],
+            parent_a_genome_digest=SemanticGenome.from_compact(gametes[0]).digest(),
+            parent_b_genome_digest=SemanticGenome.from_compact(gametes[1]).digest(),
+            rng=rng.fork("recombination"),
+            codon_width=width,
+        )
+    except ValueError:
+        return None
+    return record_a
+
+
 def _genome_after_swap(parent: GenesisOrganism, mate: GenesisOrganism | None, recombination: RecombinationRecord) -> SemanticGenome:
     """Bits from the swap. Spans are spliced only when a parent actually has them."""
 
@@ -3738,7 +3801,16 @@ def step_population(
                     structural_mutation_config=configs.structural_mutation,
                     world=working_world,
                     live_positions=live_positions,
-                    mate=mate,
+                    mate=organism if hermaphrodite_selfs else mate,
+                    recombination_record=(
+                        _self_fertilisation_record(
+                            organism,
+                            sexual_cfg,
+                            stream.fork(f"selfing/{organism.id}/{current_tick}"),
+                        )
+                        if hermaphrodite_selfs
+                        else None
+                    ),
                 )
                 if reproduction_result.succeeded and reproduction_result.child is not None:
                     births += 1
@@ -3814,7 +3886,10 @@ def step_population(
                         )
                     live_positions[child.id] = child.position
                     if reproduction_result.lineage is not None:
-                        lineage += (reproduction_result.lineage,)
+                        record = reproduction_result.lineage
+                        if hermaphrodite_selfs and record.second_parent_id is not None:
+                            record = replace(record, second_parent_id=organism.id)
+                        lineage += (record,)
                     _replace_last_event(
                         trace,
                         _with_reproduction_delta(

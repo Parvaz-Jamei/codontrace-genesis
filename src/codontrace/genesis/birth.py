@@ -1391,6 +1391,17 @@ class RecombinationRecord:
         _require(self.codon_width > 0, "codon_width must be > 0.")
         _validate_non_negative(self.start_index, "start_index")
         _require(self.end_index > self.start_index, "end_index must be greater than start_index.")
+        if self.mechanism == DIPLOID_FERTILISATION_MECHANISM:
+            _require(
+                is_gamete_fusion(
+                    self.child_genome_bits,
+                    self.parent_a_bits,
+                    self.parent_b_bits,
+                    self.codon_width,
+                ),
+                "child_genome_bits must interleave the two named gametes as homologs.",
+            )
+            return
         expected = apply_positional_segment_swap(
             self.parent_a_bits,
             self.parent_b_bits,
@@ -1623,32 +1634,136 @@ def split_diploid_homologs(bits: str, codon_width: int = 3) -> tuple[str, str]:
     return homolog_a, homolog_b
 
 
+DIPLOID_FERTILISATION_MECHANISM = "diploid_gamete_fusion"
+
+
+def _codons(bits: str, width: int) -> tuple[list[str], str]:
+    count = len(bits) // width
+    return [bits[i * width : (i + 1) * width] for i in range(count)], bits[count * width :]
+
+
+def meiotic_gamete(
+    bits: str,
+    codon_width: int,
+    rng: RNGManager,
+    *,
+    crossover: bool = True,
+) -> str:
+    """Meiosis: one haploid gamete from the two homologs of a diploid genome.
+
+    Segregation picks the leading homolog with probability one half, so every
+    codon position is transmitted from either homolog with probability one
+    half. With ``crossover`` a codon-aligned window from the other homolog is
+    then exchanged into the gamete. The gamete keeps the length of the even
+    homolog (including any trailing bits) so fusion can rebuild the genome.
+    """
+
+    width = max(1, codon_width)
+    homolog_a, homolog_b = split_diploid_homologs(bits, width)
+    if len(bits) // width < 2:
+        return bits
+    a_codons, tail = _codons(homolog_a, width)
+    b_codons, _ = _codons(homolog_b, width)
+    lead, other = (a_codons, b_codons) if rng.random() < 0.5 else (b_codons, a_codons)
+    overlap = min(len(lead), len(other))
+    gamete = list(lead[:overlap])
+    if crossover and overlap >= 2:
+        start, end = choose_positional_crossover_window(
+            overlap_bits=overlap * width, codon_width=width, rng=rng
+        )
+        for index in range(start // width, end // width):
+            gamete[index] = other[index]
+    # The even homolog may hold one extra codon; it has no partner, so it is
+    # transmitted as is.
+    extra = a_codons[overlap:]
+    return "".join(gamete + extra) + tail
+
+
+def fuse_gametes(
+    own_gamete: str,
+    mate_gamete: str,
+    codon_width: int,
+    *,
+    parent_codon_count: int,
+) -> str:
+    """Fertilisation: two haploid gametes become the two homologs of a zygote.
+
+    The own gamete becomes the even homolog and the mate gamete the odd one;
+    this is the inverse of :func:`split_diploid_homologs`, so the zygote has
+    the length of the parent whose gamete leads.
+    """
+
+    width = max(1, codon_width)
+    if parent_codon_count < 2:
+        return own_gamete
+    even, tail = _codons(own_gamete, width)
+    odd_all, _ = _codons(mate_gamete, width)
+    odd = odd_all[: parent_codon_count // 2]
+    merged: list[str] = []
+    for index, codon in enumerate(even):
+        merged.append(codon)
+        if index < len(odd):
+            merged.append(odd[index])
+    return "".join(merged) + tail
+
+
+def is_gamete_fusion(child: str, own_gamete: str, mate_gamete: str, codon_width: int) -> bool:
+    """True when ``child`` holds the own gamete on even and a mate prefix on odd codons."""
+
+    width = max(1, codon_width)
+    even, odd = split_diploid_homologs(child, width)
+    if len(child) // width < 2:
+        return child == own_gamete
+    odd_codons, _ = _codons(odd, width)
+    mate_codons, _ = _codons(mate_gamete, width)
+    return even == own_gamete and odd_codons == mate_codons[: len(odd_codons)]
+
+
+def fertilisation_record(
+    *,
+    own_id: str,
+    mate_id: str,
+    own_gamete: str,
+    mate_gamete: str,
+    own_digest: str,
+    mate_digest: str,
+    codon_width: int,
+    parent_codon_count: int,
+    rng: RNGManager,
+) -> RecombinationRecord:
+    """Audit record for one zygote built by fusing two gametes."""
+
+    child = fuse_gametes(
+        own_gamete, mate_gamete, codon_width, parent_codon_count=parent_codon_count
+    )
+    return RecombinationRecord(
+        parent_a_id=own_id,
+        parent_b_id=mate_id,
+        parent_a_genome_digest=own_digest,
+        parent_b_genome_digest=mate_digest,
+        parent_a_bits=own_gamete,
+        parent_b_bits=mate_gamete,
+        child_genome_bits=child,
+        child_genome_digest=SemanticGenome.from_compact(child).digest(),
+        start_index=0,
+        end_index=len(child),
+        codon_width=codon_width,
+        rng_digest=rng.state_digest(),
+        mechanism=DIPLOID_FERTILISATION_MECHANISM,
+    )
+
+
 def reduce_incipient_to_haploid_gamete(
     slot: IncipientOffspring,
     rng: RNGManager,
 ) -> IncipientOffspring:
-    """Meiotic reduction: homolog crossover, then one haploid product as a gamete.
+    """Meiotic reduction of one incipient genome to a haploid gamete.
 
-    The subsequent chamber step still uses positional corresponding crossover
-    (syngamy analog). ``TWO_FOLD_COST_SEX`` continues to place only one child.
+    The gamete must be fused with a mate gamete (:func:`fuse_gametes`) to
+    restore a diploid genome of the original length.
     """
 
-    homolog_a, homolog_b = split_diploid_homologs(slot.genome_bits, slot.codon_width)
-    overlap = min(len(homolog_a), len(homolog_b))
-    if overlap < max(2, slot.codon_width):
-        gamete = homolog_a
-    else:
-        record = recombine_positional_segment(
-            parent_a_id=f"{slot.parent_id}:homolog_a",
-            parent_b_id=f"{slot.parent_id}:homolog_b",
-            parent_a_bits=homolog_a,
-            parent_b_bits=homolog_b,
-            parent_a_genome_digest=SemanticGenome.from_compact(homolog_a).digest(),
-            parent_b_genome_digest=SemanticGenome.from_compact(homolog_b).digest(),
-            rng=rng,
-            codon_width=slot.codon_width,
-        )
-        gamete = record.child_genome_bits
+    gamete = meiotic_gamete(slot.genome_bits, slot.codon_width, rng)
     return replace(
         slot,
         genome_bits=gamete,

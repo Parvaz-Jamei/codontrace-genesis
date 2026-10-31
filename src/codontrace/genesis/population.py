@@ -22,6 +22,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
 from codontrace.genesis.birth import (
+    DIPLOID_FERTILISATION_MECHANISM,
     MATING_TYPE_HERMAPHRODITE,
     ADFInheritanceMode,
     ADFInheritanceRecord,
@@ -46,7 +47,9 @@ from codontrace.genesis.birth import (
     SkillInheritanceMode,
     build_mutation_plan,
     coerce_reproduction_mode,
+    fertilisation_record,
     make_policy_digest,
+    meiotic_gamete,
     recombine_positional_segment,
     recombine_positional_segment_pair,
     reduce_incipient_to_haploid_gamete,
@@ -2304,12 +2307,51 @@ def _self_fertilisation_record(
     return record_a
 
 
+def _fertilise(
+    own: IncipientOffspring,
+    mate: IncipientOffspring,
+    stream: RNGManager,
+    *,
+    crossover: bool,
+) -> RecombinationRecord | None:
+    """One zygote: a gamete from ``own`` (even homolog) fused with one from ``mate``."""
+
+    if own.parent_id == mate.parent_id:
+        return None
+    width = own.codon_width
+    own_gamete = meiotic_gamete(
+        own.genome_bits,
+        width,
+        stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/own"),
+        crossover=crossover,
+    )
+    mate_gamete = meiotic_gamete(
+        mate.genome_bits,
+        width,
+        stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/mate"),
+        crossover=crossover,
+    )
+    return fertilisation_record(
+        own_id=own.parent_id,
+        mate_id=mate.parent_id,
+        own_gamete=own_gamete,
+        mate_gamete=mate_gamete,
+        own_digest=own.genome_digest,
+        mate_digest=mate.genome_digest,
+        codon_width=width,
+        parent_codon_count=len(own.genome_bits) // max(1, width),
+        rng=stream.fork(f"fertilisation/{own.slot_id}/{mate.slot_id}"),
+    )
+
+
 def _genome_after_swap(parent: GenesisOrganism, mate: GenesisOrganism | None, recombination: RecombinationRecord) -> SemanticGenome:
     """Bits from the swap. Spans are spliced only when a parent actually has them."""
 
     genome = SemanticGenome.from_compact(
         recombination.child_genome_bits, spec=parent.genome.spec
     )
+    if recombination.mechanism == DIPLOID_FERTILISATION_MECHANISM:
+        return genome
     outer = parent.genome.spans
     inner = mate.genome.spans if mate is not None else ()
     if not outer and not inner:
@@ -5860,13 +5902,6 @@ def _drain_chamber_pairs(
         if cap is not None:
             mate_counts[first.parent_id] = int(mate_counts.get(first.parent_id, 0)) + 1
             mate_counts[second.parent_id] = int(mate_counts.get(second.parent_id, 0)) + 1
-        if sexual_cfg.diploid_meiosis:
-            first = reduce_incipient_to_haploid_gamete(
-                first, stream.fork(f"meiosis/{first.slot_id}")
-            )
-            second = reduce_incipient_to_haploid_gamete(
-                second, stream.fork(f"meiosis/{second.slot_id}")
-            )
         do_recombine = True
         if sexual_cfg.recombination_prob <= 0.0:
             do_recombine = False
@@ -5874,7 +5909,13 @@ def _drain_chamber_pairs(
             do_recombine = chamber_rng.random() < sexual_cfg.recombination_prob
         record_a: RecombinationRecord | None = None
         record_b: RecombinationRecord | None = None
-        if do_recombine:
+        if sexual_cfg.diploid_meiosis:
+            # Meiosis then fertilisation: each zygote fuses one fresh gamete
+            # from each parent, so the diploid genome length is conserved.
+            # recombination_prob gates meiotic crossover; syngamy always occurs.
+            record_a = _fertilise(first, second, stream, crossover=do_recombine)
+            record_b = _fertilise(second, first, stream, crossover=do_recombine)
+        elif do_recombine:
             try:
                 record_a, record_b = recombine_positional_segment_pair(
                     parent_a_id=first.parent_id,

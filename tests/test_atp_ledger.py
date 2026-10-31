@@ -232,6 +232,22 @@ def test_scalar_book_copied_with_population_keeps_ids() -> None:
         assert sorted(book2.ledger.open_agents) == ["i3", "i4"]
 
 
+def test_scalar_book_guard_survives_failed_settle() -> None:
+    from codontrace.atp_ledger import ScalarATPBook
+
+    book = ScalarATPBook("w")
+    pop = _scalar_pop(3)
+    book.settle(pop, tick=0)
+    book2, pop2 = copy.deepcopy((book, pop))
+    with pytest.raises(ATPConservationError, match="one individual listed twice"):
+        book2.settle([*pop2, pop2[0]], tick=1)
+    # the failed settle must not disarm the copy check
+    with pytest.raises(ATPConservationError, match="without its population"):
+        book2.settle(copy.deepcopy(pop), tick=1)
+    book2.settle(pop2, tick=1)
+    assert sorted(book2.ledger.open_agents) == ["i0", "i1", "i2"]
+
+
 def test_scalar_book_generations_with_births_and_deaths_do_not_raise() -> None:
     import gc
 

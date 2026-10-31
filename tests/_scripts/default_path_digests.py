@@ -1,11 +1,21 @@
-"""Print the default-path digest table (life-loop world plus T01-T05 runners) as JSON."""
+"""Print the default-path digest table (life-loop world plus T01-T05 runners) as JSON.
+
+Run summaries are hashed as canonical JSON by default. ``--repr`` hashes
+repr() of the summaries instead (exact float bits, interpreter dependent).
+``--perturb-t02-altruism`` scales the T02 final altruism by (1 + 1e-13)
+before hashing, to check which form detects a change of that size.
+"""
 
 import dataclasses
 import enum
 import hashlib
 import json
 import os
+import sys
 import tempfile
+
+REPR = "--repr" in sys.argv[1:]
+PERTURB = "--perturb-t02-altruism" in sys.argv[1:]
 
 os.environ["CODONTRACE_SOURCE_ROOT"] = tempfile.mkdtemp()
 from codontrace.engine import GenesisEngine
@@ -55,6 +65,8 @@ def _canonical(o):
 
 
 def h(o):
+    if REPR:
+        return hashlib.sha256(repr(o).encode()).hexdigest()
     text = json.dumps(_canonical(o), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(text.encode()).hexdigest()
 
@@ -97,6 +109,10 @@ for name, mk in [
             r = mk(s)
             recs = []
             summ = r.run(on_generation=lambda m: recs.append(m))
+            if PERTURB and name == "t02":
+                v = summ.primary_endpoint_value * (1 + 1e-13)
+                metrics = dict(summ.summary_metrics, final_mean_altruism=v)
+                summ = dataclasses.replace(summ, primary_endpoint_value=v, summary_metrics=metrics)
             out[f"{name}.{s}"] = h((summ, recs))
         except Exception as ex:
             out[f"{name}.{s}"] = "ERR " + type(ex).__name__ + ": " + str(ex)[:80]

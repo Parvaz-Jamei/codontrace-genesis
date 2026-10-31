@@ -299,20 +299,18 @@ def test_marked_homologs_at_full_recombination_prob() -> None:
 # fixed to 12 places, so the value is the same on Python 3.11 to 3.14; it
 # matches main 73c3bff on each of those versions.
 DEFAULT_PATH_TABLE_DIGEST = "d34592e007faf959"
+# The same table with summaries hashed by repr(), which keeps every float bit.
+# Python 3.12 changed sum() of floats to compensated (Neumaier) summation
+# (CPython issue gh-100425), so the T02 and T03 float metrics differ in the
+# last bits between 3.11 and 3.12+. Both values are given by main 73c3bff.
+DEFAULT_PATH_TABLE_REPR_DIGEST = {(3, 11): "82dd7aa7e9bd2ba4"}
+DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON = "224e72bce17aa5a4"
+# repr table with the T02 final altruism scaled by (1 + 1e-13).
+PERTURBED_REPR_DIGEST = {(3, 11): "efc219907731b94c"}
+PERTURBED_REPR_DIGEST_PY312_ON = "897139aaeb1760ca"
 
 
-def test_default_path_digest_table_is_unchanged() -> None:
-    """The fix leaves every default-path digest unchanged.
-
-    Basis: diploid_meiosis is off by default, so the life-loop world (seeds 0
-    and 7, default and history configs) and the T01-T05 runners never reach
-    meiosis or fusion, and their digests must equal the pre-fix values. The
-    script runs in a fresh process because it sets CODONTRACE_SOURCE_ROOT
-    before importing the engine. Expected: the table hash equals
-    DEFAULT_PATH_TABLE_DIGEST exactly on every supported Python; tolerance
-    zero.
-    """
-
+def _default_path_table_digest(*args: str) -> str:
     import hashlib
     import os
     import subprocess
@@ -322,13 +320,57 @@ def test_default_path_digest_table_is_unchanged() -> None:
     root = Path(__file__).resolve().parents[1]
     env = dict(os.environ, PYTHONPATH=str(root / "src"))
     out = subprocess.run(
-        [sys.executable, str(root / "tests" / "_scripts" / "default_path_digests.py")],
+        [sys.executable, str(root / "tests" / "_scripts" / "default_path_digests.py"), *args],
         check=True,
         capture_output=True,
         env=env,
         timeout=900,
     ).stdout
-    assert hashlib.sha256(out).hexdigest()[:16] == DEFAULT_PATH_TABLE_DIGEST
+    return hashlib.sha256(out).hexdigest()[:16]
+
+
+def _expected_repr_digest(perturbed: bool = False) -> str:
+    import sys
+
+    if perturbed:
+        return PERTURBED_REPR_DIGEST.get(sys.version_info[:2], PERTURBED_REPR_DIGEST_PY312_ON)
+    return DEFAULT_PATH_TABLE_REPR_DIGEST.get(sys.version_info[:2], DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON)
+
+
+def test_default_path_digest_table_is_unchanged() -> None:
+    """The fix leaves every default-path digest unchanged.
+
+    Basis: diploid_meiosis is off by default, so the life-loop world (seeds 0
+    and 7, default and history configs) and the T01-T05 runners never reach
+    meiosis or fusion, and their digests must equal the pre-fix values. The
+    script runs in a fresh process because it sets CODONTRACE_SOURCE_ROOT
+    before importing the engine. Two hashes are checked. The canonical JSON
+    table is the same on every supported Python. The repr table keeps every
+    float bit, so it is pinned per version: Python 3.12 changed sum() of
+    floats to compensated (Neumaier) summation (CPython issue gh-100425),
+    which moves the last bits of the T02 and T03 metrics between 3.11 and
+    3.12+. Expected: both hashes equal their pins exactly; tolerance zero.
+    """
+
+    assert _default_path_table_digest() == DEFAULT_PATH_TABLE_DIGEST
+    assert _default_path_table_digest("--repr") == _expected_repr_digest()
+
+
+def test_default_path_repr_digest_catches_small_float_change() -> None:
+    """A 1e-13 relative change in one T02 metric is caught by the repr hash.
+
+    Basis: the canonical table rounds floats to 12 places, so scaling the T02
+    final altruism (about 0.5) by (1 + 1e-13) moves it by about 5e-14 and the
+    canonical hash stays at DEFAULT_PATH_TABLE_DIGEST. repr() keeps every bit,
+    so the same change must alter the repr hash. Expected: canonical hash
+    unchanged; repr hash equals the perturbed pin for this Python exactly,
+    which differs from the unperturbed pin.
+    """
+
+    assert _default_path_table_digest("--perturb-t02-altruism") == DEFAULT_PATH_TABLE_DIGEST
+    perturbed = _default_path_table_digest("--repr", "--perturb-t02-altruism")
+    assert perturbed == _expected_repr_digest(perturbed=True)
+    assert perturbed != _expected_repr_digest()
 
 
 # Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog

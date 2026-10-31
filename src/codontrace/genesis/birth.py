@@ -1743,9 +1743,12 @@ def reduce_incipient_to_haploid_gamete(
     slot: IncipientOffspring,
     rng: RNGManager,
 ) -> IncipientOffspring:
-    """Meiotic reduction of one incipient genome to a haploid gamete.
+    """Compatibility shim: :func:`meiotic_gamete` applied to an incipient slot.
 
-    The gamete must be fused with a mate gamete (:func:`fuse_gametes`) to
+    Kept public for existing callers; the population path calls
+    :func:`meiotic_gamete` and :func:`fuse_gametes` directly. The returned
+    slot holds a haploid gamete about half the parent length, never a child
+    genome. The gamete must be fused with a mate gamete (:func:`fuse_gametes`) to
     restore a diploid genome of the original length.
     """
 

@@ -300,6 +300,9 @@ def test_life_loop_sexual_opt_in_records_two_parents_and_replays() -> None:
     assert spec.population_configs.sexual_recombination.uses_birth_chamber is True
     assert spec.population_configs.sexual_recombination.recombination_prob == 1.0
     assert spec.metadata["sexual_pairing"] == "birth_chamber"
+    # "deferred" here means diploid meiosis is off in this profile; it is
+    # implemented (meiosis plus gamete fusion) and enabled by diploid_meiosis.
+    assert spec.population_configs.sexual_recombination.diploid_meiosis is False
     assert spec.metadata["phase_b1_diploid_meiosis"] == "deferred"
     assert LIFE_LOOP_EATER_GENOME in spec.genome_bits
     assert LIFE_LOOP_EATER_B_GENOME in spec.genome_bits

@@ -12,13 +12,14 @@ When the cost of sex is paid through the production of sons, what does it cost i
 
 The analysis returns exactly one of these. Each has a decision rule, and all are fixed now.
 
-- `instrument_fail`: the E1 gate fails at either sex ratio, or a validity check in section 8 fails. Nothing else is scored.
-- `rq_consistent`: E2 is significant at the high-virulence level after Holm correction, with copassaged lower than fixed. It must also show all of the following:
-  - the uniform-tax arm does not reproduce the effect (its paired difference CI includes 0 or has the opposite sign);
+- `instrument_fail`: the E1 gate fails at either sex ratio, more than the exclusion cap of E1 populations is excluded (section 3), or a validity check in section 8 fails. Nothing else is scored.
+- `inconclusive`: for any test that the outcome below depends on, the paired t test and the BCa bootstrap interval (section 3) disagree, that is one is significant and the other is not, or they point in opposite directions.
+- `rq_consistent`: E2 is significant at the high-virulence level after Holm correction at N = 200 and also at N = 50 (both tests, as in condition (b) of `RED_QUEEN_CLAIM_PATH.md`), with copassaged lower than fixed. It must also show all of the following:
+  - the uniform-tax arm is shown not to reproduce the effect by the equivalence rule of condition (d);
   - the frozen-replay arm differs from copassaged in the same direction;
   - at least one registered time-shift window shows a host or parasite effect whose CI excludes 0.
-- `diversity_without_rqd`: E2 is significant in the same direction, and the frozen-replay arm matches copassaged (paired CI includes 0), or the time-shift effects are all null.
-- `load_consistent`: E2 is not significant, but in the no-parasite mutation-load arms obligate outcrossers beat obligate selfers. Specifically, the extinction or terminal-fitness contrast at the highest mutation rate has a CI excluding 0 and grows across the mutation grid (Spearman rho > 0, one-sided p < 0.05).
+- `diversity_without_rqd`: E2 is significant in the same direction, and either the frozen-replay arm matches copassaged (copassaged-minus-frozen 90% interval inside ±0.10), or no registered time-shift window has a 95% interval excluding 0.
+- `load_consistent`: E2 is not significant, but in the no-parasite mutation-load arms obligate outcrossers beat obligate selfers. Specifically, at N = 200 the log terminal-fitness ratio (outcross over self) at host mutation 0.05 has a 95% interval above 0 and grows across the mutation grid (Spearman rho > 0, one-sided p < 0.05, over the 3 × 60 seed values).
 - `none`: none of the above.
 
 The default ceiling is `runtime_observation`. `red_queen_proved` is no longer banned for good. There is one evidence-gated path, set out in `RED_QUEEN_CLAIM_PATH.md`: the flag is `True` only when conditions (a) to (e) there all hold, and otherwise the typed outcome above applies. Every existing diagnostics adapter keeps its refusal. The analysis code must have a test that plants each outcome in synthetic data and recovers it.
@@ -26,21 +27,35 @@ The default ceiling is `runtime_observation`. `red_queen_proved` is no longer ba
 ## 3. Endpoints
 
 **E1, realised cost of sex (gate).**
-- Setup: no parasite, obligate outcross plus an asexual (or obligately selfing) founder fraction of 0.2.
-- Estimator, per population: the OLS slope of logit(uniparental frequency) on generation over generations 0-10, exponentiated. This is the per-generation odds ratio.
-- Replicate unit: the population (one seed). 40 populations per sex ratio at N = 200.
-- Interval: a one-sample t interval on the log scale, back-transformed.
+- Sex ratio means the male fraction m of offspring born to outcrossing parents. The all-female asexual line then has a per-generation advantage of 1/(1 − m): 2.0 at m = 0.5 and 1.3333 at m = 0.25.
+- Setup: no parasite, obligate outcross plus an all-female asexual founder fraction of 0.2. Selfers are not used in E1; their expected advantage is not 1/(1 − m), so they have no bound here.
+- Estimator, per population: a binomial GLM with logit link, the asexual count out of the census at each generation as the response and generation as the only predictor, fitted over all generations 0 to T. exp(slope) is the per-generation odds ratio.
+- Horizon T: 5 generations at m = 0.5 and 11 at m = 0.25. These keep the expected asexual frequency below 0.95 even at the upper margin bound (calculation below).
+- Fixation and loss:
+  - generations after fixation or loss stay in the fit, since the GLM handles counts of 0 and N;
+  - a population that fixes (asexual count = census) before generation 3 is excluded and counted;
+  - exclusion cap: at most 20% of the populations in a cell (8 of 40). Above the cap, E1 is an instrument failure;
+  - fixed and lost populations are reported separately, with their counts, next to the estimate.
+- Replicate unit: the population (one seed). 40 populations per sex ratio at N = 200. The same seeds are also run at N = 50, which is reported but is not part of the gate.
+- Interval: a one-sample t interval on the log scale over populations, back-transformed.
 - Test: TOST at alpha 0.05, that is a 90% interval.
   - Sex ratio 0.5: the interval must lie inside [1.8, 2.2].
   - Sex ratio 0.25: the interval must lie inside [1.2, 1.4667], which is ±10% of 1/(1−0.25) = 1.3333.
-  - In both cases the 95% interval must also exclude 1.
+  - The margin is ±10% on the linear scale. On the log scale, where the interval is built, it is −0.1054 / +0.0953 at both ratios, so slightly wider on the low side.
+  - In both cases the two-sided 95% interval (same t method) must also exclude 1.
 - Failure at either sex ratio stops JR5 at phase 3.
+
+Horizon calculation. Under a constant odds ratio w, logit p(t) = logit(0.2) + t·log w, with logit(0.2) = −1.3863 and logit(0.95) = 2.9444. So p(t) < 0.95 needs t < 4.3307 / log w.
+- m = 0.5, upper bound w = 2.2: log w = 0.7885, t < 5.49, so T = 5 (p(5) = 0.928; p(6) would be 0.966).
+- m = 0.25, upper bound w = 1.4667: log w = 0.3830, t < 11.31, so T = 11 (p(11) = 0.944; p(12) would be 0.961).
+- At the theory values, p(5) = 0.889 at m = 0.5 and p(11) = 0.855 at m = 0.25.
 
 **E2, invasion (primary).**
 - Setup: obligate outcross residents, uniparental mutant introduced at 0.2.
 - Value per seed: terminal uniparental frequency at the horizon.
 - Contrast: copassaged minus fixed, paired by seed, one test per virulence level.
-- Tests: paired two-sided t test, with a paired bootstrap check (10,000 draws, bootstrap seed 12345).
+- Tests: paired two-sided t test, and a paired BCa bootstrap interval (10,000 resamples of seeds, bootstrap seed 12345) at the matching level.
+- Agreement rule: a test counts as significant only when the t test and the BCa interval are both significant in the same direction. If one is significant and the other is not, or they point in opposite directions, that test is inconclusive and the outcome is `inconclusive`.
 - Effect sizes: risk difference of persistence (frequency at least 0.05) and Hedges g_av.
 - Multiplicity: Holm across four E2 tests (N = 200 and N = 50, each at high and low virulence) at family alpha 0.05. E1 is a gate, not a claim, so it is not in the Holm family.
 
@@ -52,24 +67,36 @@ The default ceiling is `runtime_observation`. `red_queen_proved` is no longer ba
 
 ## 4. Arms
 
-- Host N: 200 primary, 50 sensitivity. N = 10 appears only in reused lock baselines and is labelled drift-dominated.
+- Host N: 200 primary, 50 sensitivity. Every arm below runs at both. N = 10 appears only in reused lock baselines and is labelled drift-dominated.
 - Parasite: none, heat-killed, fixed (low, high), copassaged (low, high), frozen replay of a coevolved archive (low, high).
 - Host mating: obligate outcross, mixed (invasion), obligate self, asexual.
 - Alternatives:
-  - Mutation load: no parasite, host mutation in {0, 0.01, 0.05}, obligate outcross versus obligate self, at N = 200 and N = 50.
+  - Mutation load: no parasite, host mutation in {0, 0.01, 0.05}, obligate outcross versus obligate self, at N = 200 and N = 50, 60 seeds per cell.
   - Uniform genotype-blind tax matched to infection cost.
   - Recombination off.
   - Migration on.
   - Sex ratio 0.25 on the fixed-high and copassaged-high contrast.
 
-Full grid sizes are in the JSON.
+Grid (cells × seeds), also in the JSON under `grid`:
+- E1: 2 sex ratios × 2 host N × 40 = 160.
+- E2: mixed invasion × 8 parasite arms × 2 host N × 60 = 960.
+- E5: obligate outcross and obligate self × {fixed, copassaged} × {low, high} × 2 host N × 60 = 960.
+- Mutation load: 3 mutation rates × 2 matings × 2 host N × 60 = 720.
+- Uniform tax, recombination off, migration on: 3 × 2 virulence levels × 2 host N × 60 = 720.
+- Sex ratio 0.25: 2 parasite arms × 2 host N × 60 = 240.
+- Total 3,760 runs. The earlier 3,520 used 40 mutation-load seeds; raising them to 60 adds 240.
 
 ## 5. Seeds
 
-- Confirmatory: 11001-11060, the same vector in every cell.
-- E1 calibration: 11101-11180.
-- Pilot: 11901-11930. Pilot numbers are never confirmatory.
-- Sealed and never used: 101-108, 201-208, 301-308, 401-408, 501-508, 8000-8199, 9300-9899, and the timing seeds 90001-90003.
+| Block | Range | Use |
+|---|---|---|
+| Confirmatory | `13001–13060` | the same 60-seed vector in every E2, E5 and alternative cell |
+| E1 calibration | `13101–13180` | m = 0.5 uses 13101-13140, m = 0.25 uses 13141-13180, at both host N |
+| Pilot | `13901–13930` | horizon and timing only; never confirmatory |
+
+- No confirmatory arm uses a subset of the vector. E1 is the only 40-seed design.
+- Sealed and never used: 101-108, 201-208, 301-308, 401-408, 501-508, 8000-8199, 9300-9899, the timing seeds 90001-90003, and the blocks reserved by `docs/campaigns/rq_redesign_20260928/PREREG_V2.md`: 9001-9120, 10001-10576, 11001-11384 and 12001-12240.
+- A test parses the seed lines of every `docs/**/PREREG*.md` and fails on any overlap between preregistrations.
 - A killed run is re-run on the same seed. It is never replaced.
 
 ## 6. Horizon
@@ -84,10 +111,11 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - N = 10: 0.03 s per generation.
 - When soft K was left at 3.2N (census about 600), N = 200 took 2.7-3.0 s per generation under 12-job contention. That setting is not used.
 
-**Power for E1.** Simulated: Wright-Fisher, cost from son allocation, 10 generations, 4,000 replicates.
-- The SD of the log estimator is 0.079 at N = 200 and 0.167 at N = 50.
-- 90% TOST power needs 9 populations at N = 200 and 35 at N = 50.
-- 40 per sex ratio covers engine noise up to the N = 50 level.
+**Power for E1.** Simulated with the binomial GLM estimator above. Assumptions: Wright-Fisher sampling of N each generation, a constant odds ratio equal to the theory value, founder frequency 0.2, horizons T = 5 and 11, 4,000 populations per setting, the early-fixation exclusion applied, and TOST on log bounds with n − 1 degrees of freedom and the true value at the centre.
+- SD of the log estimator: 0.077 (m = 0.5) and 0.050 (m = 0.25) at N = 200; 0.165 and 0.128 at N = 50.
+- No population fixed before generation 3 in any setting. At N = 50, 3.4% (m = 0.5) and 7.6% (m = 0.25) fixed later and stay in the fit; 0.3% were lost at N = 50, m = 0.25.
+- 90% TOST power needs 9 and 5 populations at N = 200, and 32 and 20 at N = 50.
+- The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
 
 **Power for E2.** Paired two-sided t at alpha 0.0125 (the first Holm step of four), 80% power:
 - difference 0.25, SD 0.30: 20 seeds;
@@ -95,10 +123,13 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - difference 0.10, SD 0.25: 73 seeds.
 - 60 seeds per cell are used, so a difference of 0.10 is below the detectable size at this level. A null result is reported with its interval, not as evidence of absence.
 
+**Minimum detectable effect and equivalence for the alternatives.** At 60 paired seeds, two-sided alpha 0.05 and 80% power, the MDE is 0.368 SD of the paired difference: 0.092 at SD 0.25 and 0.110 at SD 0.30. Equivalence (TOST, 90% interval inside ±0.10) has power 0.97 at SD 0.20, 0.84 at SD 0.25 and 0.64 at SD 0.30 when the true difference is 0. Mutation load was raised from 40 to 60 seeds for this; at 40 the power at SD 0.25 was 0.60.
+
 **Budget.**
-- 3,520 runs at H = 100.
-- About 35 CPU-hours at the measured rates, 53 with a 1.5× allowance for the new sex code.
-- About 9 hours wall time on 6 workers.
+- 3,760 runs, all but E1 at H = 100: 1,800 at N = 200 and 1,800 at N = 50, plus 160 short E1 runs.
+- At 0.45 s and 0.10 s per generation: 22.5 + 5.0 + 0.1 = 27.6 CPU-hours, 41.4 with a 1.5× allowance for the new sex code.
+- About 6.9 hours wall time on 6 workers.
+- The earlier figure of 35 CPU-hours could not be rebuilt from a stated grid. It is replaced by this one, which is rebuilt by a test.
 - If the pilot rate exceeds the allowance, the seed count is not cut. The run is scheduled longer.
 
 ## 8. Validity checks

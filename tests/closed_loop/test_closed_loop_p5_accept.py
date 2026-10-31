@@ -300,6 +300,8 @@ def test_replay_and_defaults_and_engine_boundary() -> None:
     sexual = SexualRecombinationConfig()
     assert sexual.enabled is False
     assert sexual.two_fold_cost_sex is False
+    # Default off; when on, each parent gives one meiotic gamete and the two
+    # gametes fuse, so the child keeps the parent's length.
     assert sexual.diploid_meiosis is False
     engine = (_REPO / "src" / "codontrace" / "engine.py").read_text(encoding="utf-8").lower()
     for token in ("outcross", "infection", "parasite", "red_queen", "hostparasiteworld"):

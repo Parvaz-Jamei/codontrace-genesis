@@ -258,7 +258,7 @@ stable. ClaimGate is not weakened.
 | `build_replay_verified_ci_candidate_pack` | ClaimGate `replay_verification`; independent digest re-execution | **landed** Phase J; smoke never earns; same-object replay rejected | `runtime_observation`; `collective_intelligence_candidate` only with full earned flags | `collective_intelligence` |
 | `run_price_equation_covariance_scaffold` | Price 1970; Okasha 2006 MLS1 | **landed** last-generation between/within snapshot; no transmission term | `runtime_observation` | full Price paper; major transition; `collective_intelligence` |
 | `run_channon_avida_modes_shadow_suite` | Channon 2024; MODES `persistence_window_t`; Empirical shadow | **landed** window sweep + MODES digest + Tokyo JSON | `tokyo_type1_measurement_only` | Type 1 passed |
-| `SexualRecombinationConfig.diploid_meiosis` | avida.cfg `RECOMBINATION_GROUP` / `TWO_FOLD_COST_SEX`; Aevol-style homolog reduction | **landed** opt-in; default off | `runtime_observation` | Aevol-grade meiosis; biological diploidy |
+| `SexualRecombinationConfig.diploid_meiosis` | avida.cfg `RECOMBINATION_GROUP` / `TWO_FOLD_COST_SEX`; two-homolog meiosis and gamete fusion (length conserved; fixed after a length-halving bug) | **landed** opt-in; default off | `runtime_observation` | Aevol-grade meiosis; biological diploidy |
 | `build_multi_generation_evidence_pack` hygiene | measurement integrity | **landed** `TypeError` on `None`/garbage; `reproduction_mode=None` coerces to asexual | error / software capability | silent zero metrics |
 
 JaxLife NN agents and ASAL CLIP remain **docs-only comparators** and are not
@@ -302,7 +302,7 @@ Use this on the completeness PR. All items must stay **honest**.
 - Capsule/memory effects and the learning-payoff protocol are not proved associative learning.
 - Deme messaging and the collective deme payoff ledger are not collective intelligence.
 - Logic-9 reaction coupling is not an Avida NAND-CPU port and not metabolic intelligence.
-- Opt-in `diploid_meiosis` is not Aevol-grade meiosis or biological diploidy.
+- Opt-in `diploid_meiosis` is a two-homolog model with one crossover window per meiosis on a codon string; it is not biological diploidy (no chromosomes, ploidy checks or dominance).
 - Plasticity checklists are not evolved phenotypic plasticity.
 - Phenotype/transcriptome JSON is not a biological transcriptome.
 - Named materials / ontology ids are not realistic chemistry, wet-lab

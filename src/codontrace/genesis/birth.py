@@ -200,9 +200,13 @@ class SexualRecombinationConfig:
     ``hermaphrodite``) lets a hermaphrodite whose outcross locus reads selfing
     make a uniparental selfed child; males and females never self. A selfed
     child is a hermaphrodite, so selfers make no sons. Written only when True.
-    ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in Aevol-style homolog reduction
-    before positional crossover; default off so sexual digest pins stay
-    stable. ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
+    ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in two-homolog model: meiosis makes
+    one gamete per parent (segregation plus a crossover) and fertilisation
+    fuses two gametes into the child's two homologs, so genome length is
+    conserved; default off so sexual digest pins stay stable. With it on,
+    ``recombination_prob`` gates the meiotic crossover; a value below 1
+    departs from obligate crossover (every meiosis with at least one
+    exchange). ``two_fold_cost_sex`` (Avida ``TWO_FOLD_COST_SEX``) already
     places only one recombinant product when True.
     """
 
@@ -1613,7 +1617,11 @@ class IncipientOffspring:
 
 
 def split_diploid_homologs(bits: str, codon_width: int = 3) -> tuple[str, str]:
-    """Split a genome into even/odd codon homologs (Aevol-style diploid analog)."""
+    """Split a genome into its two homologs: even and odd codon positions.
+
+    :func:`fuse_gametes` is the inverse, so meiosis plus fertilisation keeps
+    the genome length.
+    """
 
     width = max(1, codon_width)
     codon_count = len(bits) // width
@@ -1654,7 +1662,9 @@ def meiotic_gamete(
     Segregation picks the leading homolog with probability one half, so every
     codon position is transmitted from either homolog with probability one
     half. With ``crossover`` a codon-aligned window from the other homolog is
-    then exchanged into the gamete. The gamete keeps the length of the even
+    then exchanged into the gamete. Callers pass ``crossover`` from
+    ``recombination_prob``; a probability below 1 departs from obligate
+    crossover. The gamete keeps the length of the even
     homolog (including any trailing bits) so fusion can rebuild the genome.
     """
 
@@ -1757,9 +1767,12 @@ def reduce_incipient_to_haploid_gamete(
     slot: IncipientOffspring,
     rng: RNGManager,
 ) -> IncipientOffspring:
-    """Meiotic reduction of one incipient genome to a haploid gamete.
+    """Compatibility shim: :func:`meiotic_gamete` applied to an incipient slot.
 
-    The gamete must be fused with a mate gamete (:func:`fuse_gametes`) to
+    Kept public for existing callers; the population path calls
+    :func:`meiotic_gamete` and :func:`fuse_gametes` directly. The returned
+    slot holds a haploid gamete about half the parent length, never a child
+    genome. The gamete must be fused with a mate gamete (:func:`fuse_gametes`) to
     restore a diploid genome of the original length.
     """
 

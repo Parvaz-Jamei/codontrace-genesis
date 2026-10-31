@@ -481,3 +481,22 @@ def test_selfed_flag_survives_a_full_population_round_trip() -> None:
     restored = PopulationState.from_dict(json.loads(json.dumps(population.to_dict())))
     assert restored.organisms[0].selfed is True
     assert restored.to_dict() == population.to_dict()
+
+
+# Strict booleans on restore.
+
+
+@pytest.mark.parametrize("value", ["false", "true", 1, 0, None])
+def test_non_boolean_selfing_values_are_refused_on_restore(value: object) -> None:
+    """JSON booleans only: bool("false") is True, so a lax parse would turn the
+    string "false" into an active selfing mode or a selfed organism."""
+
+    payload = SexualRecombinationConfig(enabled=True).to_dict()
+    payload["hermaphrodite_selfing"] = value  # type: ignore[assignment]
+    with pytest.raises(ConfigurationError):
+        SexualRecombinationConfig.from_dict(payload)
+    organism = GenesisOrganism.from_bits("o0", _BITS[0], initial_runtime_atp=20.0, position=(1, 0))
+    state = PopulationState(0, 0, (organism,), (), ()).to_dict()
+    state["organisms"][0]["selfed"] = value  # type: ignore[index,assignment]
+    with pytest.raises(ConfigurationError):
+        PopulationState.from_dict(state)

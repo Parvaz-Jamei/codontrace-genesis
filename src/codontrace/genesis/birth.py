@@ -17,6 +17,7 @@ from typing import cast
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue, Position
 from codontrace.dynvalues import same_float, same_int
+from codontrace.errors import ConfigurationError
 from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
@@ -160,6 +161,14 @@ _MATING_TYPE_SETS = {
 }
 _SEX_ASSIGNMENT_POLICIES = {"none", "random_at_birth", "inherited_locus"}
 
+
+
+def _strict_bool(value: object, name: str) -> bool:
+    """Return a JSON boolean; refuse strings, numbers and other values."""
+
+    if not isinstance(value, bool):
+        raise ConfigurationError(f"{name} must be a JSON boolean, got {value!r}.")
+    return value
 
 @dataclass(frozen=True, slots=True)
 class SexualRecombinationConfig:
@@ -330,7 +339,7 @@ class SexualRecombinationConfig:
             mating_type_set=_mating_type_set_from(data.get("mating_type_set", [])),
             sex_ratio=same_float(data.get("sex_ratio", 0.5)),
             sex_assignment=str(data.get("sex_assignment", "none")),
-            hermaphrodite_selfing=bool(data.get("hermaphrodite_selfing", False)),
+            hermaphrodite_selfing=_strict_bool(data.get("hermaphrodite_selfing", False), "hermaphrodite_selfing"),
         )
 
 

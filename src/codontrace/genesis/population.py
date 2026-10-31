@@ -5114,7 +5114,10 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     organism._cursor = _int(data, "cursor", 0)
     organism._step_index = _int(data, "step_index", 0)
     organism.asexual_lineage = data.get("asexual_lineage") is True
-    organism.selfed = data.get("selfed") is True
+    selfed = data.get("selfed", False)
+    if not isinstance(selfed, bool):
+        raise ConfigurationError(f"selfed must be a JSON boolean, got {selfed!r}.")
+    organism.selfed = selfed
     stored_type = data.get("mating_type")
     organism.mating_type = stored_type if isinstance(stored_type, str) else None
     phase_e_raw = data.get("phase_e_state")

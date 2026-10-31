@@ -2226,10 +2226,18 @@ def _fertilise(
     *,
     crossover: bool,
 ) -> RecombinationRecord | None:
-    """One zygote: a gamete from ``own`` (even homolog) fused with one from ``mate``."""
+    """One zygote: a gamete from ``own`` (even homolog) fused with one from ``mate``.
 
-    if own.parent_id == mate.parent_id:
-        return None
+    When both slots come from one parent the two gametes are still two
+    independent meioses of that parent (selfing), so the child segregates;
+    the record then names the mate gamete ``<parent>:self_gamete``.
+    ``crossover`` comes from ``recombination_prob``; below 1 it departs from
+    obligate crossover.
+    """
+
+    mate_id = mate.parent_id
+    if own.parent_id == mate_id:
+        mate_id = f"{mate_id}:self_gamete"
     width = own.codon_width
     own_gamete = meiotic_gamete(
         own.genome_bits,
@@ -2245,7 +2253,7 @@ def _fertilise(
     )
     return fertilisation_record(
         own_id=own.parent_id,
-        mate_id=mate.parent_id,
+        mate_id=mate_id,
         own_gamete=own_gamete,
         mate_gamete=mate_gamete,
         own_digest=own.genome_digest,

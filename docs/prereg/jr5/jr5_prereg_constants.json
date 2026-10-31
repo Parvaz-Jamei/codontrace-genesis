@@ -65,6 +65,16 @@
     "on_exceed_exclusion_cap": "instrument_fail",
     "report_fixed_and_lost_counts": true,
     "host_n_gate": 200,
+    "n50": {
+      "status": "report_only",
+      "gated": false,
+      "calibrated_margin": null,
+      "lower_bound_size_bias_reduced": 0.073,
+      "size_mc_se": 0.008,
+      "size_seed": 20261032,
+      "size_populations": 40000,
+      "size_script": "docs/prereg/jr5/scripts/e1_power_sim.py"
+    },
     "host_n_reported": [
       200,
       50
@@ -78,7 +88,23 @@
         13141,
         13180
       ]
-    }
+    },
+    "fit": {
+      "method": "penalised_likelihood_plus_half_log_det_fisher_information",
+      "solver": "newton_on_modified_score_fisher_information_step",
+      "convergence": "max_abs_step_below_tol",
+      "tol": 1e-10,
+      "max_iter": 100,
+      "on_no_convergence": "raise",
+      "start": [
+        0.0,
+        0.0
+      ],
+      "implementation": "tests/_jr5_e1_fit.py",
+      "dependencies": "numpy",
+      "reference_check": "saturated_two_group_model_equals_half_count_correction_exactly"
+    },
+    "segregation_load": "enters_realised_w_either_direction_no_direction_assumed_not_corrected_pilot_measures_genuine_load_failure_is_instrument_failure"
   },
   "e2": {
     "estimand": "paired_difference_copassaged_minus_fixed_terminal_uniparental_frequency",
@@ -142,6 +168,140 @@
     "obligate_self",
     "asexual"
   ],
+  "host_mating_arm_modes": {
+    "config_field": "engine_config",
+    "engine_config": {
+      "sexual_recombination": {
+        "enabled": true,
+        "mating_types_enabled": true,
+        "sex_assignment": "random_at_birth",
+        "pairing_policy": "birth_chamber",
+        "two_fold_cost_sex": false,
+        "hermaphrodite_selfing": true,
+        "diploid_meiosis": true
+      },
+      "closed_loop_hp_life": {
+        "outcross_enabled": true,
+        "selfing_birth_atp_endowment": 0.0,
+        "outcross_runtime_atp": 0.0
+      },
+      "outcross_locus": {
+        "obligate_self": "000",
+        "obligate_outcross": "001"
+      },
+      "delayed_selfing": false,
+      "unmated_outcrosser": "refused_no_selfing_at_timeout",
+      "sex_fixed_for_life": {
+        "rule": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
+        "depends_on": "phase_2b_fix",
+        "engine_test": "tests/test_jr5_phase2b_self_mode.py::test_no_organism_ever_changes_sex_over_many_ticks",
+        "engine_test_asserts": "zero_mating_type_changes_over_multi_tick_run"
+      },
+      "single_manipulated_factor": "mating_system",
+      "mating_type_set": {
+        "obligate_self": [
+          "hermaphrodite"
+        ],
+        "obligate_outcross": [
+          "hermaphrodite",
+          "male"
+        ]
+      },
+      "arm_differences": [
+        "outcross_locus",
+        "mating_type_set"
+      ],
+      "other_settings_shared": true,
+      "diploid_meiosis_all_host_arms": true,
+      "engine_dependencies": {
+        "sex_fixed_for_life": {
+          "branch": "jr5/phase2b-self-mode",
+          "engine_test": "tests/test_jr5_phase2b_self_mode.py::test_no_organism_ever_changes_sex_over_many_ticks"
+        },
+        "diploid_fertilisation": {
+          "branch": "fix/diploid-fertilisation",
+          "bug": "diploid_meiosis_halves_genome_length_each_generation",
+          "required_engine_test": "genome_length_conserved_over_at_least_3_generations",
+          "must_be_merged_before": "any_jr5_arm_including_pilot"
+        }
+      }
+    },
+    "founders": {
+      "obligate_self": "all_hermaphrodite_no_draw_hermaphrodite_only_set",
+      "obligate_outcross": "drawn_from_run_seed_and_organism_id_at_arm_sex_ratio",
+      "self_arm_males": 0
+    },
+    "obligate_outcross": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": true
+    },
+    "mixed_invasion": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": true
+    },
+    "obligate_self": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": "hermaphrodite_selfing_sexes_on",
+      "makes_sons": false
+    },
+    "asexual": {
+      "sexes": "on",
+      "ledger": "WorldATPLedger",
+      "self_mode": null,
+      "makes_sons": false
+    },
+    "like_for_like": {
+      "applies_to": "hermaphrodite_selfing_sexes_on",
+      "offspring_per_reproduction": "equal_to_outcrossing_mother",
+      "atp_budget_per_reproduction": "equal_to_outcrossing_mother",
+      "extra_fitness_term": null,
+      "inbreeding_cost_source": "existing_genome_model_only",
+      "fixed_at": "prereg_not_phase_2b",
+      "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
+      "outcross_mating_fee": {
+        "field": "closed_loop_hp_life.outcross_runtime_atp",
+        "atp_per_outcross_reproduction": 0.0,
+        "ledger_term": "outcross_mating_fee",
+        "paid_by_selfers": false,
+        "charged": "once_per_outcross_reproduction",
+        "ledger_row_reason": "outcross_runtime_cost",
+        "separate_from": "son_cost",
+        "confirmatory_arms_atp": 0.0,
+        "ledger_term_reads": 0.0,
+        "bias_if_on": {
+          "e1_w": "raised_above_theory",
+          "condition_d_outcross_minus_self": "lowered_toward_ruling_out_mutation_load",
+          "direction_for_red_queen_proved": "anti_conservative"
+        },
+        "sensitivity_run": {
+          "atp": 1.0,
+          "report_only": true,
+          "enters_gates": false,
+          "cells": [
+            "e1_m0.5_N200",
+            "mutation_load"
+          ],
+          "seeds": "same_as_confirmatory_cells"
+        }
+      },
+      "ledgered_arm_differences": [
+        "son_cost"
+      ],
+      "cost_of_males_estimate_uses": "son_cost_only_fee_zero",
+      "selfing_genetics": {
+        "haploid": "selfed_child_is_clone",
+        "segregation_requires": "diploid_meiosis_on",
+        "diploid_meiosis": true,
+        "depends_on": "fix/diploid-fertilisation"
+      }
+    },
+    "fairness": "same_engine_config_same_ledger_arms_differ_only_in_son_cost_outcross_mating_fee_set_to_zero_in_confirmatory_arms_ledger_term_reads_zero"
+  },
   "alternative_arms": {
     "mutation_load": {
       "host_mutation_grid": [
@@ -158,7 +318,21 @@
         200,
         50
       ],
-      "seeds_per_cell": 60
+      "seeds_per_cell": 60,
+      "engine_mode": {
+        "obligate_outcross": {
+          "sexes": "on",
+          "ledger": "WorldATPLedger",
+          "self_mode": null,
+          "makes_sons": true
+        },
+        "obligate_self": {
+          "sexes": "on",
+          "ledger": "WorldATPLedger",
+          "self_mode": "hermaphrodite_selfing_sexes_on",
+          "makes_sons": false
+        }
+      }
     },
     "uniform_tax": {
       "virulence": [
@@ -221,6 +395,10 @@
     "pilot_block": [
       13901,
       13930
+    ],
+    "realised_w_pilot_block": [
+      13201,
+      13240
     ],
     "sealed_ranges": [
       [
@@ -366,34 +544,35 @@
       "recheck_sd_N50_0.25": 0.127,
       "bias_plain": {
         "N200": {
-          "0.5": 0.002,
-          "0.25": 0.002
+          "0.5": 0.0045,
+          "0.25": 0.0018
         },
         "N50": {
-          "0.5": 0.0158,
-          "0.25": 0.0027
+          "0.5": 0.015,
+          "0.25": 0.0052
         }
       },
       "bias_reduced": {
-        "replicates": 2000,
+        "replicates": 40000,
+        "seed_base": 20261031,
         "bias": {
           "N200": {
-            "0.5": 0.0022,
-            "0.25": 0.0012
+            "0.5": 0.0024,
+            "0.25": 0.0014
           },
           "N50": {
-            "0.5": 0.0047,
-            "0.25": 0.0044
+            "0.5": 0.0065,
+            "0.25": 0.0035
           }
         },
         "sd": {
           "N200": {
-            "0.5": 0.075,
+            "0.5": 0.076,
             "0.25": 0.051
           },
           "N50": {
-            "0.5": 0.153,
-            "0.25": 0.126
+            "0.5": 0.158,
+            "0.25": 0.123
           }
         },
         "n_for_90pct_tost_normal_approx": {
@@ -402,35 +581,40 @@
             "0.25": 5
           },
           "N50": {
-            "0.5": 27,
-            "0.25": 19
+            "0.5": 29,
+            "0.25": 18
           }
         }
       },
       "tost_pass_rate_n40": {
+        "populations_per_setting": 40000,
+        "groups": 1000,
+        "resampled": false,
+        "mc_se_max": 0.01,
+        "order": "theory_lower_upper",
         "plain": {
           "0.5": {
             "N200": [
               1.0,
-              0.095,
-              0.016
+              0.08,
+              0.027
             ],
             "N50": [
-              0.909,
-              0.088,
-              0.012
+              0.9,
+              0.116,
+              0.009
             ]
           },
           "0.25": {
             "N200": [
               1.0,
-              0.024,
-              0.016
+              0.025,
+              0.026
             ],
             "N50": [
-              0.997,
-              0.009,
-              0.012
+              0.991,
+              0.015,
+              0.003
             ]
           }
         },
@@ -438,30 +622,31 @@
           "0.5": {
             "N200": [
               1.0,
-              0.056,
-              0.028
+              0.058,
+              0.036
             ],
             "N50": [
-              0.965,
-              0.047,
-              0.021
+              0.951,
+              0.073,
+              0.029
             ]
           },
           "0.25": {
             "N200": [
               1.0,
-              0.037,
-              0.016
+              0.025,
+              0.029
             ],
             "N50": [
-              0.988,
-              0.012,
+              0.993,
+              0.014,
               0.008
             ]
           }
-        },
-        "order": "theory_lower_upper"
-      }
+        }
+      },
+      "script": "docs/prereg/jr5/scripts/e1_power_sim.py",
+      "founder_count_rule": "fixed_round_0.2N_at_generation_0_then_binomial_N_q_each_generation"
     },
     "e2": {
       "alpha_two_sided_first_holm_step": 0.0125,
@@ -552,5 +737,48 @@
       "host_n": 2,
       "seeds": 60
     }
+  },
+  "realised_w_pilot": {
+    "confirmatory": false,
+    "runs_before": "any_confirmatory_seed",
+    "seed_block": [
+      13201,
+      13240
+    ],
+    "populations": 40,
+    "sex_ratio": 0.5,
+    "host_n": 200,
+    "horizon": 5,
+    "engine_config": "host_mating_arm_modes.engine_config",
+    "outcross_mating_fee_atp": 0.0,
+    "diploid_meiosis": true,
+    "estimator": "same_as_gate_e1",
+    "fit": "bias_reduced",
+    "ci_level": 0.9,
+    "bounds": [
+      1.8,
+      2.2
+    ],
+    "size_basis": {
+      "method": "precision_of_estimate",
+      "sd_log_w_bias_reduced_n200_m05": 0.076,
+      "se_log_w": 0.012,
+      "half_width_90_log": 0.02,
+      "log_margins": [
+        -0.1054,
+        0.0953
+      ]
+    },
+    "on_fail": "instrument_failure_unless_engine_defect_shown_by_failing_engine_test",
+    "fix_allowed_only_for": "engine_defect_shown_by_engine_test_failing_before_fix_passing_after",
+    "max_reruns_after_fix": 1,
+    "rerun_seeds": "same",
+    "rerun_logged": true,
+    "genuine_load_effect": "instrument_failure",
+    "second_failure": "instrument_failure",
+    "bounds_never_widened": true,
+    "estimator_never_changed": true,
+    "enters_claims": false,
+    "requires": "fix/diploid-fertilisation_merged"
   }
 }

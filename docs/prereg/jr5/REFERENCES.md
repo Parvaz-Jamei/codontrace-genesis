@@ -1,6 +1,6 @@
 # JR5 reference list
 
-Each DOI below was resolved through api.crossref.org on 2026-10-25. Title, venue and year matched.
+Each DOI below was resolved through api.crossref.org on 2026-10-25 (the Proc. R. Soc. B 2025, Trends Ecol. Evol. 2012, BMJ 2025, Genetics 2003 and Nat. Rev. Genet. 2009 rows on 2026-10-31). Title, venue and year matched.
 
 | DOI | Title (Crossref) | Venue, year |
 |---|---|---|
@@ -17,5 +17,10 @@ Each DOI below was resolved through api.crossref.org on 2026-10-25. Title, venue
 | https://doi.org/10.1073/pnas.1810402116 | The genomic basis of Red Queen dynamics during rapid reciprocal host-pathogen coevolution | PNAS, 2018 online (2019 issue) |
 | https://doi.org/10.1093/biomet/80.1.27 | Bias reduction of maximum likelihood estimates | Biometrika, 1993 |
 | https://doi.org/10.1214/24-ss148 | A comprehensive review of bias reduction methods for logistic regression | Statistics Surveys, 2024 |
+| https://doi.org/10.1136/bmj-2024-083405 | Determining sample size for pilot trials: a tutorial | BMJ, 2025 |
+| https://doi.org/10.1016/j.tree.2011.09.016 | The many costs of sex | Trends Ecol. Evol., 2012 |
+| https://doi.org/10.1098/rspb.2025.1181 | Investigating the consequences of the mating system for drug resistance evolution in Caenorhabditis elegans | Proc. R. Soc. B, 2025 |
+| https://doi.org/10.1093/genetics/164.3.1099 | The Advantages of Segregation and the Evolution of Sex | Genetics, 2003 |
+| https://doi.org/10.1038/nrg2664 | The genetics of inbreeding depression | Nat. Rev. Genet., 2009 |
 
 The original cost-of-males argument comes from a 1978 book and has no DOI.

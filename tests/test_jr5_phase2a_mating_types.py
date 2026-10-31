@@ -11,6 +11,7 @@ from dataclasses import replace
 
 import pytest
 
+from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.closed_loop_p5 import ClosedLoopP5Session
 from codontrace.genesis.engine import GenesisEngine
@@ -36,6 +37,8 @@ from codontrace.genesis.population import (
     PopulationConfigs,
     PopulationState,
     ReproductionConfig,
+    mating_type_census,
+    mating_type_of,
     step_population,
 )
 from codontrace.genesis.runtime_profiles import LIFE_LOOP_EATER_GENOME, GenesisRuntimeProfile
@@ -345,11 +348,112 @@ def test_outcross_single_sex_pays_fee_but_cannot_pair() -> None:
     assert summary["recombination_births"] == 0
 
 
-def test_selfing_locus_bypasses_chamber_with_sexes_on() -> None:
+def test_selfing_locus_in_sexual_lineage_cannot_reproduce() -> None:
     probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_SELFING_BITS)
-    sexes = _sexes_for(probe)
-    summary = _p5(OUTCROSS_SELFING_BITS, sexes).run_ticks(1)
+    summary = _p5(OUTCROSS_SELFING_BITS, _sexes_for(probe)).run_ticks(1)
     baseline = _p5(OUTCROSS_SELFING_BITS, None).run_ticks(1)
+    assert baseline["births"] >= 1
     assert summary["outcross_debit_events"] == 0
-    assert summary["recombination_births"] == 0
+    assert summary["births"] == 0
+
+
+def test_selfing_locus_in_asexual_founder_lineage_still_reproduces() -> None:
+    probe = ClosedLoopP5Session.boot(seed=11, outcross_bits=OUTCROSS_SELFING_BITS)
+    session = _p5(OUTCROSS_SELFING_BITS, _sexes_for(probe))
+    population = session.runner.population
+    session.runner.population = replace(
+        population,
+        organisms=tuple(replace(o, asexual_lineage=True) for o in population.organisms),
+    )
+    summary = session.run_ticks(1)
+    baseline = _p5(OUTCROSS_SELFING_BITS, None).run_ticks(1)
     assert summary["births"] == baseline["births"]
+    assert all(o.asexual_lineage for o in session.runner.population.organisms)
+
+
+# Uniparental reproduction is barred in sexual lineages.
+
+
+def _first_id_of(kind: str, seed: int, cfg: SexualRecombinationConfig) -> str:
+    for index in range(200):
+        candidate = f"s{index}"
+        if draw_mating_type(seed, candidate, cfg) == kind:
+            return candidate
+    raise AssertionError(kind)
+
+
+def _run(
+    seed: int, configs: PopulationConfigs, organisms: tuple[GenesisOrganism, ...], steps: int
+) -> tuple[PopulationState, int]:
+    state = PopulationState(0, 0, organisms, (), ())
+    world = World2D(4, 4)
+    births = 0
+    for _ in range(steps):
+        result = step_population(state, world, configs, seed=seed)
+        births += result.births
+        state, world = result.population, result.world_after
+    return state, births
+
+
+def test_unmated_female_in_sexual_lineage_produces_no_child() -> None:
+    configs = _configs(max_birth_wait_ticks=0, **_SEXES)
+    female = _first_id_of("female", 5, configs.effective_sexual_config)
+    org = GenesisOrganism.from_bits(female, _BITS[0], initial_runtime_atp=40.0, position=(1, 1))
+    state, births = _run(5, configs, (org,), 4)
+    assert births == 0
+    assert [o.id for o in state.organisms] == [female]
+    # Switch off with the same timeout: the copy falls back and is placed.
+    _, births_off = _run(5, _configs(max_birth_wait_ticks=0), (org,), 4)
+    assert births_off >= 1
+
+
+def test_asexual_founder_lineage_reproduces_and_passes_the_flag_on() -> None:
+    configs = _configs(**_SEXES)
+    founder = replace(
+        GenesisOrganism.from_bits("a0", _BITS[0], initial_runtime_atp=40.0, position=(1, 1)),
+        asexual_lineage=True,
+    )
+    state, births = _run(5, configs, (founder,), 3)
+    assert births >= 1
+    assert len(state.organisms) > 1
+    assert all(o.asexual_lineage for o in state.organisms)
+    assert not [rec for rec in state.lineage if rec.second_parent_id]
+
+
+def test_asexual_lineage_flag_is_serialized_only_when_set() -> None:
+    plain = _step(5, _configs()).population
+    assert "asexual_lineage" not in json.dumps(plain.to_dict())
+    founder = replace(GenesisOrganism.from_bits("a0", _BITS[0], position=(1, 1)), asexual_lineage=True)
+    flagged = PopulationState(0, 0, (founder,), (), ())
+    assert flagged.to_dict()["organisms"][0]["asexual_lineage"] is True  # type: ignore[index,call-overload]
+
+
+def test_sexes_require_birth_chamber_pairing() -> None:
+    with pytest.raises(ValueError, match="birth_chamber"):
+        SexualRecombinationConfig(enabled=True, pairing_policy="nearest_mate", **_SEXES)  # type: ignore[arg-type]
+
+
+# Read-only accessors for the census.
+
+
+def test_mating_type_of_and_census() -> None:
+    configs = _configs(**_SEXES)
+    sexual = configs.effective_sexual_config
+    result = _step(13, configs)
+    population = result.population
+    types = MatingTypeMap(13, sexual)
+    for organism in population.organisms:
+        assert mating_type_of(population, organism.id, seed=13, sexual=sexual) == types.assign(organism.id)
+    census = mating_type_census(population, seed=13, sexual=sexual)
+    assert sum(census.values()) == len(population.organisms)
+    assert set(census) <= {"male", "female"}
+    founder = replace(GenesisOrganism.from_bits("a0", _BITS[0], position=(0, 0)), asexual_lineage=True)
+    mixed = replace(population, organisms=(*population.organisms, founder))
+    assert mating_type_of(mixed, "a0", seed=13, sexual=sexual) == "asexual"
+    assert mating_type_census(mixed, seed=13, sexual=sexual)["asexual"] == 1
+    assert mixed.to_dict() == mixed.to_dict()
+    assert "mating_type" not in json.dumps(population.to_dict())
+    with pytest.raises(ConfigurationError):
+        mating_type_of(population, "missing", seed=13, sexual=sexual)
+    with pytest.raises(ConfigurationError):
+        mating_type_census(population, seed=13, sexual=SexualRecombinationConfig(enabled=True))

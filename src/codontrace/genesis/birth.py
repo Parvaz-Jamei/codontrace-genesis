@@ -249,6 +249,8 @@ class SexualRecombinationConfig:
             raise ValueError("mating_types_enabled requires sex_assignment other than 'none'.")
         if self.sex_assignment == "inherited_locus":
             raise ValueError("sex_assignment 'inherited_locus' is reserved and not available yet.")
+        if self.pairing_policy != "birth_chamber":
+            raise ValueError("mating_types_enabled requires pairing_policy='birth_chamber'.")
         if self.two_fold_cost_sex:
             raise ValueError(
                 "two_fold_cost_sex must be False when mating_types_enabled is True; "

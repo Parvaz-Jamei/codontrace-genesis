@@ -10,7 +10,10 @@ from the seed and ids alone, so replay needs no extra persisted state.
 
 Whether an organism enters the chamber at all (outcross vs selfing) is still
 decided by the existing heritable outcross locus in the life plugin. This
-module only adds the sex check on top of that policy.
+module only adds the sex check on top of that policy. With sexes on, only a
+designated asexual founder lineage (``GenesisOrganism.asexual_lineage``) may
+reproduce uniparentally; the population engine refuses every other
+uniparental copy, including the chamber timeout fallback.
 """
 
 from __future__ import annotations
@@ -26,6 +29,8 @@ from codontrace.genesis.birth import (
 from codontrace.rng import RNGManager
 
 MATING_TYPE_STREAM_NAMESPACE = "genesis/mating_type"
+# Census label for the designated asexual founder lineage; not a mating type.
+ASEXUAL_LINEAGE_TYPE = "asexual"
 
 
 def mating_type_stream(seed: int | None, organism_id: str) -> RNGManager:
@@ -91,6 +96,7 @@ class MatingTypeMap:
 
 
 __all__ = [
+    "ASEXUAL_LINEAGE_TYPE",
     "MATING_TYPE_STREAM_NAMESPACE",
     "MatingTypeMap",
     "draw_mating_type",

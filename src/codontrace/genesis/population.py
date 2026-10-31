@@ -120,7 +120,7 @@ from codontrace.genesis.materials import (
     inherit_materials_organism_state,
     step_materials,
 )
-from codontrace.genesis.mating_types import MatingTypeMap
+from codontrace.genesis.mating_types import ASEXUAL_LINEAGE_TYPE, MatingTypeMap, draw_mating_type
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.phase_e import (
@@ -2735,6 +2735,7 @@ def reproduce(
             parent.translation_profile, child_profile_id=f"{resolved_child_id}:translation_profile"
         ),
         translation_policy=parent.translation_policy,
+        asexual_lineage=parent.asexual_lineage,
         phase_e_state=inherit_phase_e_state(
             getattr(parent, "phase_e_state", None), child_id=resolved_child_id
         ),
@@ -3541,6 +3542,8 @@ def step_population(
             if event.action == "COPY_SELF":
                 life = configs.closed_loop_hp_life
                 copy_mode = _life_plugin().resolve_copy_self_mode(organism.genome.to_compact(), life)
+                if sexual_cfg.mating_types_enabled and organism.asexual_lineage:
+                    copy_mode = "asexual"
                 codon_ran = (
                     event.world_delta.get("reproduction") == "population_lifecycle_required"
                 )
@@ -3555,6 +3558,13 @@ def step_population(
                     life,
                     chamber_available=sexual_cfg.uses_birth_chamber,
                 )
+                if (
+                    refusal is None
+                    and sexual_cfg.mating_types_enabled
+                    and copy_mode == "asexual"
+                    and not organism.asexual_lineage
+                ):
+                    refusal = SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL
                 if refusal is not None:
                     blocked_reproduction += 1
                     reproduction_result = _blocked_reproduction_result(
@@ -4832,6 +4842,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         capsule_last_executed_action=organism.capsule_last_executed_action,
         capsule_nav_target=organism.capsule_nav_target,
         last_task_class=getattr(organism, "last_task_class", None),
+        asexual_lineage=organism.asexual_lineage,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
@@ -5006,6 +5017,8 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
     }
     if organism.genome.spans:
         payload["genome_spans"] = [span.to_dict() for span in organism.genome.spans]
+    if organism.asexual_lineage:
+        payload["asexual_lineage"] = True
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
@@ -5056,6 +5069,7 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     )
     organism._cursor = _int(data, "cursor", 0)
     organism._step_index = _int(data, "step_index", 0)
+    organism.asexual_lineage = data.get("asexual_lineage") is True
     phase_e_raw = data.get("phase_e_state")
     if isinstance(phase_e_raw, Mapping):
         from codontrace.genesis.phase_e import PhaseEOrganismState
@@ -5566,6 +5580,47 @@ def _commit_newborn(
     return True, reproduction_result, lineage, deaths
 
 
+SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
+
+
+def mating_type_of(
+    population: PopulationState,
+    organism_id: str,
+    *,
+    seed: int | None,
+    sexual: SexualRecombinationConfig,
+) -> str:
+    """Read-only mating type of a live organism for the run ``seed``.
+
+    Returns ``"asexual"`` for the designated asexual founder lineage. The value
+    is recomputed from the seed and id; nothing is stored in the population.
+    """
+
+    if not sexual.mating_types_enabled:
+        raise ConfigurationError("mating_type_of requires mating_types_enabled=True.")
+    for organism in population.organisms:
+        if organism.id == organism_id:
+            if organism.asexual_lineage:
+                return ASEXUAL_LINEAGE_TYPE
+            return draw_mating_type(seed, organism_id, sexual)
+    raise ConfigurationError(f"organism {organism_id!r} is not in the population.")
+
+
+def mating_type_census(
+    population: PopulationState,
+    *,
+    seed: int | None,
+    sexual: SexualRecombinationConfig,
+) -> dict[str, int]:
+    """Counts of live organisms by mating type (``"asexual"`` included), sorted by name."""
+
+    counts: dict[str, int] = {}
+    for organism in population.organisms:
+        kind = mating_type_of(population, organism.id, seed=seed, sexual=sexual)
+        counts[kind] = counts.get(kind, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def _drain_chamber_pairs(
     *,
     waiting: list[IncipientOffspring],
@@ -5793,7 +5848,9 @@ def _expire_chamber_waiters(
     template = (survivors[0] if survivors else None) or (pending[0] if pending else None)
     asexual_config = replace(configs.reproduction, reproduction_mode=ReproductionMode.ASEXUAL)
     for slot in expired:
-        if sexual_cfg.timeout_policy == "fail":
+        # With sexes on an unmated parent is from a sexual lineage (asexual
+        # founders never enter the chamber), so it may not fall back to a copy.
+        if sexual_cfg.timeout_policy == "fail" or sexual_cfg.mating_types_enabled:
             blocked_reproduction += 1
             continue
         if len(live_positions) >= configs.reproduction.max_population:

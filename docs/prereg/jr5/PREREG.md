@@ -118,22 +118,24 @@ H = max(100, ceil(max(host replacement, parasite replacement, fitness delay))), 
 - No population fixed before generation 3 in any setting. At N = 50, 3.4% (m = 0.5) and 7.6% (m = 0.25) fixed later and stay in the fit; 0.3% were lost at N = 50, m = 0.25.
 - The planning figure stays at 35 for N = 50, which is conservative against 32. 40 per sex ratio covers engine noise up to the N = 50 level.
 
-**Slope bias.** The plain binomial slope is biased upward. Mean bias of the log estimator at the theory value (4,000 populations):
-- m = 0.5: +0.0020 at N = 200, +0.0158 at N = 50 (17% of the +0.0953 margin);
-- m = 0.25: +0.0020 at N = 200, +0.0027 at N = 50.
+**Slope bias.** Simulated with fresh populations: 40,000 per setting and true w, seed 20261031 + setting index, both fits on the same populations. TOST pass rates use 1,000 disjoint groups of 40, with no resampling; the Monte Carlo SE is at most 0.010. An earlier pass resampled groups from a pool of 4,000 and gave 0.095 at the lower bound for m = 0.5, N = 200. It is replaced by the figures below.
 
-The bias-reduced fit removes the first-order bias of the maximum likelihood slope, so it is used instead of subtracting a simulated bias. Its mean bias (2,000 populations) is +0.0022 and +0.0047 at m = 0.5 (N = 200, 50), and +0.0012 and +0.0044 at m = 0.25. Its SDs are 0.075 and 0.153 at m = 0.5, and 0.051 and 0.126 at m = 0.25. Normal-approximation n for 90% power is 8, 27, 5 and 19, all at or below the first-pass figures.
+Mean bias of the log estimator at the theory value (Monte Carlo SE at most 0.0008):
+- plain fit: m = 0.5: +0.0045 at N = 200 and +0.0150 at N = 50 (16% of the +0.0953 margin); m = 0.25: +0.0018 and +0.0052;
+- bias-reduced fit: m = 0.5: +0.0024 and +0.0065; m = 0.25: +0.0014 and +0.0035.
+
+The bias-reduced fit removes the first-order bias of the maximum likelihood slope and reduces the bias here, by about half at m = 0.5. What remains comes from drift, not from the fit. Its SDs are 0.076 and 0.158 at m = 0.5 (N = 200, 50), and 0.051 and 0.123 at m = 0.25. Normal-approximation n for 90% power is 8, 29, 5 and 18, all at or below the first-pass figures. The fit is pinned in the JSON under `gate_e1.fit` and checked by a test.
 
 TOST pass rate with 40 populations (pass at a bound is the type I error, nominal 0.05):
 
 | m | N | true w | plain fit | bias-reduced fit |
 |---|---|---|---|---|
-| 0.5 | 200 | 2.0 / 1.8 / 2.2 | 1.000 / 0.095 / 0.016 | 1.000 / 0.056 / 0.028 |
-| 0.5 | 50 | 2.0 / 1.8 / 2.2 | 0.909 / 0.088 / 0.012 | 0.965 / 0.047 / 0.021 |
-| 0.25 | 200 | 1.3333 / 1.2 / 1.4667 | 1.000 / 0.024 / 0.016 | 1.000 / 0.037 / 0.016 |
-| 0.25 | 50 | 1.3333 / 1.2 / 1.4667 | 0.997 / 0.009 / 0.012 | 0.988 / 0.012 / 0.008 |
+| 0.5 | 200 | 2.0 / 1.8 / 2.2 | 1.000 / 0.080 / 0.027 | 1.000 / 0.058 / 0.036 |
+| 0.5 | 50 | 2.0 / 1.8 / 2.2 | 0.900 / 0.116 / 0.009 | 0.951 / 0.073 / 0.029 |
+| 0.25 | 200 | 1.3333 / 1.2 / 1.4667 | 1.000 / 0.025 / 0.026 | 1.000 / 0.025 / 0.029 |
+| 0.25 | 50 | 1.3333 / 1.2 / 1.4667 | 0.991 / 0.015 / 0.003 | 0.993 / 0.014 / 0.008 |
 
-The plain fit passes too often at the lower bound for m = 0.5 (0.095 at N = 200), so the bias-reduced fit is the preregistered estimator. The 0.056 at N = 200 is within Monte Carlo error of 0.05 (about ±0.007 at 4,000 draws).
+At m = 0.5 the plain fit passes too often at the lower bound (0.080 at N = 200, 0.116 at N = 50). The bias-reduced fit is the preregistered estimator. At N = 200 it gives 0.058, within Monte Carlo error of 0.05. At N = 50, which is reported and not gated, it gives 0.073, still above 0.05, and that is stated with the N = 50 result.
 
 **Power for E2.** Paired two-sided t at alpha 0.0125 (the first Holm step of four), 80% power:
 - difference 0.25, SD 0.30: 20 seeds;

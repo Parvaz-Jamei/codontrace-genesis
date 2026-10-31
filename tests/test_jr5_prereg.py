@@ -304,3 +304,77 @@ def test_e1_estimator_is_bias_reduced() -> None:
     assert "bias_reduced" in c["gate_e1"]["estimator"]
     assert "a bias-reduced binomial GLM" in _prereg_text()
     assert c["power"]["e1"]["recheck_sd_N50_0.25"] == 0.127
+
+
+# Reserved blocks listed by an earlier prereg that overlap another prereg's own
+# block. Both are legacy and outside every JR5 block; they are kept, not reused.
+LEGACY_OVERLAPS = {
+    ("docs/campaigns/rq_redesign_20260928/PREREG_V2.md", (1000, 1009)): (
+        "docs/experiments/2026-09-29/causal_tape/PREREG.md",
+        (1000, 1299),
+    ),
+}
+ANY_RANGE_RE = re.compile(r"(?<![\d.])(\d{1,6})\s*(?:-|\u2013|\u2026|\.\.\.?)\s*(\d{1,6})(?![\d.])")
+
+
+def test_legacy_overlap_allow_list_is_real() -> None:
+    for (doc_a, block_a), (doc_b, block_b) in LEGACY_OVERLAPS.items():
+        text_a = (ROOT / doc_a).read_text(encoding="utf-8")
+        assert f"`{block_a[0]}\u2013{block_a[1]}`" in text_a
+        assert block_b in _doc_seed_blocks(ROOT / doc_b)
+        assert block_b[0] <= block_a[0] <= block_a[1] <= block_b[1]
+        sealed = _constants()["seeds"]["sealed_ranges"]
+        assert list(block_a) in sealed and list(block_b) in sealed
+
+
+def test_jr5_blocks_clear_every_plain_range_in_prereg_docs() -> None:
+    """Any number range on any line of another prereg, backticked or not."""
+    seeds = _constants()["seeds"]
+    jr5 = [seeds[k] for k in ("confirmatory_block", "e1_calibration_block", "pilot_block")]
+    for doc in sorted((ROOT / "docs").rglob("*PREREG*.md")):
+        if doc.parent == PREREG_DIR:
+            continue
+        for lo_s, hi_s in ANY_RANGE_RE.findall(doc.read_text(encoding="utf-8")):
+            lo, hi = int(lo_s), int(hi_s)
+            if lo >= hi:
+                continue
+            for a, b in jr5:
+                assert hi < a or b < lo, (doc, lo, hi)
+
+
+def test_e1_fit_pinned() -> None:
+    from tests import _jr5_e1_fit as fit_mod
+
+    fit = _constants()["gate_e1"]["fit"]
+    assert fit["implementation"] == "tests/_jr5_e1_fit.py"
+    assert fit["tol"] == fit_mod.TOL
+    assert fit["max_iter"] == fit_mod.MAX_ITER
+    assert fit["method"] == "penalised_likelihood_plus_half_log_det_fisher_information"
+
+
+@pytest.mark.parametrize(("k0", "k1"), [(3.0, 11.0), (0.0, 7.0), (12.0, 20.0)])
+def test_bias_reduced_fit_matches_half_count_rule(k0: float, k1: float) -> None:
+    """With two groups the model is saturated; the penalised fit then equals
+    the empirical logits after adding 1/2 to every count (exact, known result)."""
+    np = pytest.importorskip("numpy")
+    from tests._jr5_e1_fit import fit_logit
+
+    n = np.array([20.0, 20.0])
+    k = np.array([k0, k1])
+    beta = fit_logit(k, n, np.array([0.0, 1.0]), bias_reduced=True)
+    logit = np.log((k + 0.5) / (n - k + 0.5))
+    assert math.isclose(beta[0], logit[0], abs_tol=1e-8)
+    assert math.isclose(beta[1], logit[1] - logit[0], abs_tol=1e-8)
+
+
+def test_plain_fit_matches_statsmodels() -> None:
+    np = pytest.importorskip("numpy")
+    sm = pytest.importorskip("statsmodels.api")
+    from tests._jr5_e1_fit import fit_logit
+
+    x = np.arange(6.0)
+    n = np.full(6, 200.0)
+    k = np.array([40.0, 66.0, 100.0, 133.0, 160.0, 181.0])
+    ours = fit_logit(k, n, x, bias_reduced=False)
+    ref = sm.GLM(np.column_stack([k, n - k]), sm.add_constant(x), family=sm.families.Binomial()).fit()
+    assert np.allclose(ours, ref.params, atol=1e-8)

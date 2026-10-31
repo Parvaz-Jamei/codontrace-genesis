@@ -1051,3 +1051,173 @@ def holm_correction(p_values: Sequence[float]) -> tuple[float, ...]:
         adjusted[index] = running
     return tuple(adjusted)
 
+
+
+# --- Equivalence testing: two one-sided t tests (TOST) ---
+# Equivalence is the alternative hypothesis here. The null is that the mean
+# lies at or beyond a preregistered bound; it is rejected only when both
+# one-sided tests reject at alpha. The p-value of the procedure is the larger
+# of the two one-sided p-values, and the decision is identical to the
+# (1 - 2 alpha) t interval lying strictly inside the bounds. Bounds may be
+# asymmetric, which is the case for ratio margins taken to the log scale.
+# Each one-sided test runs at alpha, not alpha / 2: the two nulls are
+# disjoint, so at most one of them can be true.
+from codontrace.genesis.causal_validation import (  # noqa: E402
+    _regularized_incomplete_beta,
+    student_t_quantile,
+)
+
+
+def student_t_sf(t: float, df: int) -> float:
+    """Upper tail P(T > t) of Student's t with ``df`` degrees of freedom.
+
+    Uses P(|T| > |t|) = I_x(df/2, 1/2) with x = df / (df + t^2), the same
+    incomplete-beta identity behind ``student_t_quantile``.
+    """
+
+    if isinstance(df, bool) or not isinstance(df, int) or df < 1:
+        raise ConfigurationError("df must be an integer >= 1")
+    value = float(t)
+    if math.isnan(value):
+        raise ConfigurationError("t must not be NaN")
+    if math.isinf(value):
+        return 0.0 if value > 0 else 1.0
+    tail = 0.5 * _regularized_incomplete_beta(df / 2.0, 0.5, df / (df + value * value))
+    return tail if value > 0.0 else 1.0 - tail
+
+
+def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int]:
+    data = _require_numeric_sequence("values", values)
+    if any(not math.isfinite(item) for item in data):
+        raise ConfigurationError("values must be finite.")
+    n = len(data)
+    if n < 2:
+        raise ConfigurationError("a one-sample t procedure needs at least 2 values.")
+    mean = math.fsum(data) / n
+    variance = math.fsum((item - mean) ** 2 for item in data) / (n - 1)
+    return data, mean, math.sqrt(variance), n - 1
+
+
+def _check_alpha(alpha: float) -> float:
+    value = float(alpha)
+    if not math.isfinite(value) or not 0.0 < value < 0.5:
+        raise ConfigurationError("alpha must lie in (0, 0.5).")
+    return value
+
+
+def one_sample_t_interval(values: Sequence[float], confidence: float) -> tuple[float, float]:
+    """Two-sided Student t interval for the mean at ``confidence``."""
+
+    level = float(confidence)
+    if not math.isfinite(level) or not 0.0 < level < 1.0:
+        raise ConfigurationError("confidence must lie in (0, 1).")
+    data, mean, sd, df = _mean_sd_df(values)
+    half = student_t_quantile(df, 0.5 + level / 2.0) * sd / math.sqrt(len(data))
+    return (mean - half, mean + half)
+
+
+@dataclass(frozen=True, slots=True)
+class OneSampleTOSTResult:
+    """Both one-sided tests of a one-sample TOST, with the matching interval."""
+
+    n: int
+    df: int
+    mean: float
+    sd: float
+    standard_error: float
+    lower_bound: float
+    upper_bound: float
+    alpha: float
+    t_lower: float
+    t_upper: float
+    p_lower: float
+    p_upper: float
+    ci_low: float
+    ci_high: float
+
+    @property
+    def p_value(self) -> float:
+        """TOST p-value: the larger of the two one-sided p-values."""
+
+        return max(self.p_lower, self.p_upper)
+
+    @property
+    def equivalent(self) -> bool:
+        return self.p_lower < self.alpha and self.p_upper < self.alpha
+
+    @property
+    def ci_level(self) -> float:
+        return 1.0 - 2.0 * self.alpha
+
+    def to_record(self) -> dict[str, JsonValue]:
+        return {
+            "test": "one_sample_tost",
+            "n": self.n,
+            "df": self.df,
+            "mean": self.mean,
+            "sd": self.sd,
+            "standard_error": self.standard_error,
+            "lower_bound": self.lower_bound,
+            "upper_bound": self.upper_bound,
+            "alpha": self.alpha,
+            "t_lower": self.t_lower,
+            "t_upper": self.t_upper,
+            "p_lower": self.p_lower,
+            "p_upper": self.p_upper,
+            "p_value": self.p_value,
+            "ci_level": self.ci_level,
+            "ci_low": self.ci_low,
+            "ci_high": self.ci_high,
+            "equivalent": self.equivalent,
+        }
+
+
+def one_sample_tost(
+    values: Sequence[float],
+    lower_bound: float,
+    upper_bound: float,
+    *,
+    alpha: float = 0.05,
+) -> OneSampleTOSTResult:
+    """Two one-sided t tests that the mean lies inside (lower_bound, upper_bound).
+
+    H0 lower: mean <= lower_bound, tested with t_lower = (mean - lower) / se.
+    H0 upper: mean >= upper_bound, tested with t_upper = (mean - upper) / se.
+    Equivalence is declared when both one-sided p-values are below ``alpha``.
+    With zero spread the t statistics are infinite and the decision reduces
+    to whether the common value lies strictly inside the bounds.
+    """
+
+    a = _check_alpha(alpha)
+    low = float(lower_bound)
+    high = float(upper_bound)
+    if not (math.isfinite(low) and math.isfinite(high)) or not low < high:
+        raise ConfigurationError("bounds must be finite with lower_bound < upper_bound.")
+    data, mean, sd, df = _mean_sd_df(values)
+    se = sd / math.sqrt(len(data))
+    if se > 0.0:
+        t_lower = (mean - low) / se
+        t_upper = (mean - high) / se
+        half = student_t_quantile(df, 1.0 - a) * se
+    else:
+        t_lower = math.copysign(math.inf, mean - low) if mean != low else 0.0
+        t_upper = math.copysign(math.inf, mean - high) if mean != high else 0.0
+        half = 0.0
+    p_lower = student_t_sf(t_lower, df)
+    p_upper = 1.0 - student_t_sf(t_upper, df)
+    return OneSampleTOSTResult(
+        n=len(data),
+        df=df,
+        mean=mean,
+        sd=sd,
+        standard_error=se,
+        lower_bound=low,
+        upper_bound=high,
+        alpha=a,
+        t_lower=t_lower,
+        t_upper=t_upper,
+        p_lower=p_lower,
+        p_upper=p_upper,
+        ci_low=mean - half,
+        ci_high=mean + half,
+    )

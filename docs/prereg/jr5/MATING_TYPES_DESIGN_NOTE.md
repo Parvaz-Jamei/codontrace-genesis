@@ -34,7 +34,7 @@ Yes, as the master switch. It cannot carry them alone. A bool cannot hold the se
 
 1. New fields on `SexualRecombinationConfig`: `mating_type_set` (default `()`), `sex_ratio` (default `0.5`) and `sex_assignment` (`"none"`, `"random_at_birth"` or `"inherited_locus"`). They are validated in `__post_init__` and serialized only when not default. Setting `mating_types_enabled=True` with an empty set is an error.
 2. A per-organism `mating_type` value is stored the way the life plugin stores `role_by_id`: an opaque map grown on birth, drawn from a dedicated `RNGManager.fork("mating_type/<slot>")` stream. Off-path RNG draws stay unchanged.
-3. Pairing: when the flag is on, `_mate_ok` also requires compatible mating types: male × female, or hermaphrodite × anything. Selfing is allowed only for hermaphrodites with the outcross locus off. The mating policy is still the existing outcross locus; it is not reimplemented.
+3. Pairing: when the flag is on, `_mate_ok` also requires compatible mating types: male × female, or hermaphrodite × anything. With the flag on, phase 2a refuses selfing for every mating type, hermaphrodites included. Hermaphrodite selfing is a possible later extension and is not part of 2a. The mating policy is still the existing outcross locus; it is not reimplemented.
 4. Acceptance:
    - Every existing digest test passes unchanged.
    - Every sealed lock replay (arm01 mating, persistence, selfing-hold, RQ-earn, structural RQ, RQ-v2 phases 2-6) is byte-identical with the flag off.

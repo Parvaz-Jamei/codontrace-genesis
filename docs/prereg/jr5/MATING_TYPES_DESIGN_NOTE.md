@@ -28,7 +28,7 @@ Yes, as the master switch. It cannot carry them alone. A bool cannot hold the se
 
 ## Digest constraint
 
-`to_dict` already writes `"mating_types_enabled": false` into every sexual config payload. Old digests therefore contain that key, and its value must stay `false` for old locks. Any new field must follow the `diploid_meiosis` pattern (`birth.py:226-227`): written only when it differs from the default. Old payloads and their digests then stay byte-identical.
+`to_dict` already writes `"mating_types_enabled": false` into every sexual config payload. Old digests therefore contain that key, and its value must stay `false` for old locks. Any new field must follow the `diploid_meiosis` pattern (`birth.py:227-228`): written only when it differs from the default. Old payloads and their digests then stay byte-identical.
 
 ## Phase 2a (trait and policy, no cost)
 

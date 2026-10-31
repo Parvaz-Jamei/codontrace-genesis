@@ -404,3 +404,45 @@ def test_mating_seed_and_type_round_trip_and_are_absent_when_sexes_off() -> None
     off = json.dumps(_step(20005, _configs()).population.to_dict())
     assert "mating_seed" not in off and "mating_type" not in off
 
+
+# (9) no delayed selfing.
+
+
+def test_unmated_outcrossing_hermaphrodite_is_refused_a_selfed_child() -> None:
+    """Self mode on. A lone hermaphrodite whose locus reads outcross enters the
+    chamber, finds no mate, and its wait expires. Selfing is decided only by
+    the locus at reproduction, not as a fallback after a failed search, so the
+    expected births are 0 (and no child is marked selfed)."""
+
+    life = ClosedLoopHPLifeConfig(outcross_enabled=True)
+    herm = {**_SEXES, "mating_type_set": ("hermaphrodite",)}
+    configs = replace(_configs(max_birth_wait_ticks=0, hermaphrodite_selfing=True, **herm), closed_loop_hp_life=life)
+    bits = LIFE_LOOP_EATER_GENOME + "100000" + OUTCROSS_OUT_BITS
+    assert resolve_copy_self_mode(bits, life) == "chamber"
+    org = GenesisOrganism.from_bits("h0", bits, initial_runtime_atp=40.0, position=(1, 1))
+    state, births = _run(20005, configs, (org,), 4)
+    assert births == 0
+    assert not any(o.selfed for o in state.organisms)
+    # Control: the same organism on the selfing locus does self.
+    self_bits = LIFE_LOOP_EATER_GENOME + "100000" + OUTCROSS_SELFING_BITS
+    selfer = GenesisOrganism.from_bits("h0", self_bits, initial_runtime_atp=40.0, position=(1, 1))
+    _, self_births = _run(20005, configs, (selfer,), 4)
+    assert self_births >= 1
+
+
+@pytest.mark.parametrize("mating_set", [("hermaphrodite",), ("hermaphrodite", "male")])
+def test_outcross_locus_hermaphrodite_never_selfs_in_self_mode(mating_set: tuple[str, ...]) -> None:
+    """The self and outcross arms run the identical engine config and differ
+    only in the locus (000 vs 001), so the mating system is the single
+    manipulated factor. For that to hold, hermaphrodite_selfing=True must not
+    by itself make a locus-001 hermaphrodite self. Expected: over 6 ticks no
+    organism is marked selfed and every birth has two parents."""
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS, mating_type_set=mating_set)
+    founders = {o.id for o in session.runner.population.organisms}
+    summary = session.run_ticks(6)
+    population = session.runner.population
+    assert summary["births"] >= 1
+    assert not any(o.selfed for o in population.organisms)
+    born = [rec for rec in population.lineage if rec.organism_id not in founders]
+    assert born and all(rec.second_parent_id is not None for rec in born)

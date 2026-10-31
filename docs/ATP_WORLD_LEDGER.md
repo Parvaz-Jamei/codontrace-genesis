@@ -136,6 +136,11 @@ inflow is 48.0 per lost seat.
   `ATPConservationError` when the book has open accounts, the population is not
   empty and none of its members has an id in the book. Copying the book alone
   also copies every live individual it still tracks, so it is not cheap.
+  The check cannot catch a partial overlap (some individuals copied with
+  the book, others copied separately): members without an id are booked as
+  births and the missing ones as deaths, which balances but loses lineage.
+  `settle([])` after copying the book alone passes the check (the population
+  is empty) and closes every open account as a death.
 
 ## Digests
 

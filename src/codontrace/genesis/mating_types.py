@@ -18,10 +18,9 @@ designated asexual founder lineage (``GenesisOrganism.asexual_lineage``) may
 reproduce uniparentally; the population engine refuses every other
 uniparental copy, including the chamber timeout fallback.
 
-This differs from item 3 of docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md,
-which says hermaphrodites with the outcross locus off may self. That note is
-covered by the sealed prereg record, so the difference is recorded here
-instead. By default no mating type selfs, hermaphrodites included.
+By default no mating type selfs, hermaphrodites included. The Phase 2a
+pairing item of docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md (selfing only
+for hermaphrodites with the outcross locus off) is the opt-in mode below.
 
 ``SexualRecombinationConfig.hermaphrodite_selfing`` is the opt-in selfing
 mode. With it on, a hermaphrodite whose outcross locus reads selfing makes a

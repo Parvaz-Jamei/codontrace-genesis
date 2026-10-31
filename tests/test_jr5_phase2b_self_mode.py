@@ -251,7 +251,8 @@ def test_chamber_timeout_still_never_falls_back_in_self_mode() -> None:
 def test_outcross_and_self_arms_share_mode_and_ledger() -> None:
     """The arms differ only in the locus bits, so their sexual configs are
     identical. The outcross arm recombines and pays the mating fee; the self arm
-    pays no fee. Both write lineage into the same kind of ledger."""
+    pays no fee. Both record their births as lineage records with the same
+    fields."""
 
     self_session, self_cfg = _self_arm(OUTCROSS_SELFING_BITS)
     out_session, out_cfg = _self_arm(OUTCROSS_OUT_BITS)
@@ -264,6 +265,10 @@ def test_outcross_and_self_arms_share_mode_and_ledger() -> None:
     assert self_summary["recombination_births"] == 0
     assert self_summary["outcross_debit_events"] == 0
     assert not any(o.selfed for o in out_session.runner.population.organisms)
+    self_lineage = self_session.runner.population.lineage
+    out_lineage = out_session.runner.population.lineage
+    assert self_lineage and out_lineage
+    assert {type(rec) for rec in self_lineage} == {type(rec) for rec in out_lineage}
 
 
 # (6) serialization and validation.

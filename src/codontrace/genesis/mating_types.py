@@ -6,7 +6,10 @@ An organism's mating type is drawn once, from its own named RNG stream
 name depends only on the organism id, the draw never consumes from, or shifts,
 any other stream, and the type is the same whichever code path asks first. The
 map below records types as organisms are born or first seen; it can be rebuilt
-from the seed and ids alone, so replay needs no extra persisted state.
+from the seed and ids alone. The population engine keeps the run seed in
+``PopulationState.mating_seed`` (captured on the first sexes-on step) and
+stores each organism's type once set, so a sex is fixed for life even when a
+caller passes a different seed on every step.
 
 Whether an organism enters the chamber at all (outcross vs selfing) is still
 decided by the existing heritable outcross locus in the life plugin. This

@@ -22,10 +22,12 @@ from codontrace.genesis.host_parasite_life_plugin import (
     OUTCROSS_OUT_BITS,
     OUTCROSS_SELFING_BITS,
     ClosedLoopHPLifeConfig,
+    resolve_copy_self_mode,
 )
 from codontrace.genesis.mating_types import MatingTypeMap, can_self
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.population import PopulationState, mating_type_census, mating_type_of
+from codontrace.genesis.runtime_profiles import LIFE_LOOP_EATER_GENOME
 from tests.test_jr5_phase2a_mating_types import (
     _BITS,
     _MAIN_ERA_CONFIG_JSON,
@@ -37,8 +39,24 @@ from tests.test_jr5_phase2a_mating_types import (
     _run,
     _sexes_for,
     _step,
+    _without_mating_fields,
 )
 
+# Re-pinned when sex became fixed for life (sexes-on runs store each type and
+# the run seed). One step uses the run seed for every draw, so the step pins
+# with the stored fields removed still equal ``_BASE_ERA``. The two-tick
+# session with the outcross locus changed in dynamics too: at 7db2227a the
+# second tick redrew every sex from that tick's seed, which was the bug.
+_FIXED_SEX_ERA = {
+    "fm20005": "acea93875ee9a3c9dfc707c79e8404b3abbc0f6c0df6616fa67a741c8ad2f12c",
+    "hm20005": "2d42e01d9459155cf37e68ba92fa66bb2ff11ff089586713e0220133535d01ad",
+    "fm20008": "0c31c0f76a62810be2fc737b36072e49d9e1341b615605695e2b13c6f9958578",
+    "hm20008": "351fa482d2b0c92d4e8918394d2ddfb1adcf7814a56b35774d2174acc30f80fa",
+    "fm20013": "211e7024dd499bad7450c668daf26575d351690afe16d80c9ea443524ffc7746",
+    "hm20013": "8d7ee0376f24ad5647a38a2dd08f01b993f361a38e94c4105f80d2a4cee789bf",
+    "p5" + OUTCROSS_OUT_BITS: "69a818e96003b6bf2425eaca64e67793f47fa9b92fbf8db6447bdac112f9e8eb",
+    "p5" + OUTCROSS_SELFING_BITS: "a6bf00e0399acec8c5e447eabd3653c18d2431aaac704409f7e22f264db2e112",
+}
 _BASE_ERA = {
     "fm20005": "69264a3faa40b848e74232c904e4e14a9b24a730cc6f9320ceb08a19264c0241",
     "hm20005": "ec1bade66aadfcbce2359251c50736ac292bfb9bf057c97a6fad6c7db821af2e",
@@ -70,21 +88,30 @@ def test_switch_off_config_payloads_still_match_main_era() -> None:
 
 @pytest.mark.parametrize("seed", [20005, 20008, 20013])
 def test_sexes_on_without_self_mode_matches_base(seed: int) -> None:
-    """Sexes on, self mode off: same digests as at 7db2227a (values pinned there)."""
+    """Sexes on, self mode off: one step has the same dynamics as at 7db2227a
+    (stored sex fields removed), and the full digest is the fixed-sex pin."""
 
-    assert _step(seed, _configs(**_SEXES)).population.digest() == _BASE_ERA[f"fm{seed}"]
-    andro = {**_SEXES, **_ANDRO}
-    assert _step(seed, _configs(**andro)).population.digest() == _BASE_ERA[f"hm{seed}"]
+    for key, extra in (("fm", {}), ("hm", _ANDRO)):
+        population = _step(seed, _configs(**{**_SEXES, **extra})).population
+        assert _without_mating_fields(population) == _BASE_ERA[f"{key}{seed}"]
+        assert population.digest() == _FIXED_SEX_ERA[f"{key}{seed}"]
 
 
 @pytest.mark.parametrize("bits", [OUTCROSS_OUT_BITS, OUTCROSS_SELFING_BITS])
 def test_locus_runs_without_self_mode_match_base(bits: str) -> None:
-    """Both locus states with sexes on and the mode off: digests pinned at 7db2227a."""
+    """Both locus states with sexes on and the mode off, two ticks. The selfing
+    locus never reaches the chamber, so its dynamics match 7db2227a; the
+    outcross locus changes because sexes are no longer redrawn on tick two."""
 
     probe = ClosedLoopP5Session.boot(seed=20011, outcross_bits=bits)
     session = _p5(bits, _sexes_for(probe, **_ANDRO))
     session.run_ticks(2)
-    assert session.runner.population.digest() == _BASE_ERA["p5" + bits]
+    population = session.runner.population
+    assert population.digest() == _FIXED_SEX_ERA["p5" + bits]
+    if bits == OUTCROSS_SELFING_BITS:
+        assert _without_mating_fields(population) == _BASE_ERA["p5" + bits]
+    else:
+        assert _without_mating_fields(population) != _BASE_ERA["p5" + bits]
 
 
 # (2) hermaphrodites self; selfers make no sons.
@@ -322,3 +349,58 @@ def test_self_mode_refuses_a_selfing_atp_bonus() -> None:
         replace(configs, closed_loop_hp_life=life, sexual_recombination=cfg)
     # Without self mode the endowment is still allowed (existing behaviour).
     replace(configs, closed_loop_hp_life=life, sexual_recombination=replace(cfg, hermaphrodite_selfing=False))
+
+
+# (8) sex is fixed for life.
+
+
+@pytest.mark.parametrize("bits", [OUTCROSS_OUT_BITS, OUTCROSS_SELFING_BITS])
+def test_no_organism_ever_changes_sex_over_many_ticks(bits: str) -> None:
+    """Sex is set once, at founding or birth, from the run seed and the
+    organism id. The session steps with seed + tick index, so any draw keyed to
+    the step seed would flip types between ticks. Expected: every organism
+    seen keeps one type for all 12 ticks, and the stored type agrees with
+    mating_type_of for any seed argument."""
+
+    session, cfg = _self_arm(bits)
+    seen: dict[str, str] = {}
+    for _ in range(12):
+        session.run_ticks(1)
+        population = session.runner.population
+        assert population.mating_seed == 20011
+        for organism in population.organisms:
+            assert organism.mating_type is not None
+            assert seen.setdefault(organism.id, organism.mating_type) == organism.mating_type
+            for probe_seed in (1, 20011 + session.tick_index):
+                assert mating_type_of(population, organism.id, seed=probe_seed, sexual=cfg) == organism.mating_type
+    assert len(seen) > 4
+
+
+def test_founder_male_never_selfs() -> None:
+    """Self mode on, every founder on the selfing locus. A male cannot self
+    (both gamete roles are needed in one body), and its sex can no longer be
+    redrawn as hermaphrodite on a later tick. Expected: no lineage record over
+    12 ticks has a founder male as its parent."""
+
+    session, _ = _self_arm(OUTCROSS_SELFING_BITS)
+    session.run_ticks(1)
+    males = {o.id for o in session.runner.population.organisms if o.mating_type == "male" and not o.selfed}
+    assert males
+    session.run_ticks(11)
+    parents = {rec.parent_id for rec in session.runner.population.lineage if rec.parent_id}
+    assert parents and not parents & males
+
+
+def test_mating_seed_and_type_round_trip_and_are_absent_when_sexes_off() -> None:
+    """The run seed and stored types are state, so they survive save and load;
+    with sexes off neither is written, keeping default digests unchanged."""
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    session.run_ticks(2)
+    population = session.runner.population
+    restored = PopulationState.from_dict(json.loads(json.dumps(population.to_dict())))
+    assert restored.mating_seed == 20011
+    assert [(o.id, o.mating_type) for o in restored.organisms] == [(o.id, o.mating_type) for o in population.organisms]
+    off = json.dumps(_step(20005, _configs()).population.to_dict())
+    assert "mating_seed" not in off and "mating_type" not in off
+

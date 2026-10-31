@@ -828,6 +828,10 @@ class PopulationState:
     environment: EnvironmentState | None = None
     deme: DemeState | None = None
     materials: MaterialsState | None = None
+    # Run seed for mating-type draws, captured at the first sexes-on step so
+    # each sex is keyed to the run seed and organism id, never to a per-step
+    # seed. Written only when set.
+    mating_seed: int | None = None
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -854,6 +858,9 @@ class PopulationState:
             payload["deme"] = self.deme.to_dict()
         if self.materials is not None:
             payload["materials"] = self.materials.to_dict()
+        if self.mating_seed is not None:
+            # A record field, not a stream: the stored run seed for mating types.
+            payload.update({"mating_seed": self.mating_seed})
         return payload
 
     @classmethod
@@ -886,6 +893,7 @@ class PopulationState:
             materials=MaterialsState.from_dict(mat_raw)
             if isinstance((mat_raw := data.get("materials")), Mapping)
             else None,
+            mating_seed=seed_raw if isinstance((seed_raw := data.get("mating_seed")), int) else None,
         )
 
     def digest(self) -> str:
@@ -2977,6 +2985,7 @@ def step_population(
         msg = "step_population currently expects a World2D instance."
         raise ConfigurationError(msg)
     stream = _resolve_rng(seed=seed, rng=rng, namespace="genesis/population")
+    mating_seed = population.mating_seed if population.mating_seed is not None else stream.seed
     working_world = world.clone()
     world_before_digest = world.digest()
     resources_before = dict(working_world.resources)
@@ -3036,6 +3045,7 @@ def step_population(
     chamber_rng = stream.fork("birth_chamber") if sexual_cfg.uses_birth_chamber else None
     if sexual_cfg.uses_birth_chamber and chamber_rng is not None:
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            mating_seed=mating_seed,
             waiting=waiting,
             configs=configs,
             sexual_cfg=sexual_cfg,
@@ -3577,7 +3587,7 @@ def step_population(
                     sexual_cfg.mating_types_enabled
                     and copy_mode == "asexual"
                     and not organism.asexual_lineage
-                    and can_self(_organism_mating_type(organism, stream.seed, sexual_cfg), sexual_cfg)
+                    and can_self(_organism_mating_type(organism, mating_seed, sexual_cfg), sexual_cfg)
                 )
                 if (
                     refusal is None
@@ -3623,6 +3633,7 @@ def step_population(
                         blocked_reproduction,
                         queued_event,
                     ) = _handle_chamber_copy_self(
+                        mating_seed=mating_seed,
                         organism=organism,
                         event=event,
                         configs=configs,
@@ -4041,6 +4052,7 @@ def step_population(
             placements=birth_placements,
         )
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            mating_seed=mating_seed,
             waiting=waiting,
             configs=configs,
             sexual_cfg=sexual_cfg,
@@ -4279,6 +4291,8 @@ def step_population(
         deme=working_deme_state if configs.phase_e.enabled and configs.phase_e.demes.enabled else None,
         materials=mat_state if mat_cfg.enabled else None,
     )
+    if sexual_cfg.mating_types_enabled:
+        next_population = _stamp_mating_types(next_population, mating_seed, sexual_cfg)
     working_world.agent_position = None
     world_after_digest = working_world.digest()
     causal_summary = _build_population_causal_summary(next_organisms, records)
@@ -4868,6 +4882,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         last_task_class=getattr(organism, "last_task_class", None),
         asexual_lineage=organism.asexual_lineage,
         selfed=organism.selfed,
+        mating_type=organism.mating_type,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
@@ -5046,6 +5061,8 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         payload["asexual_lineage"] = True
     if organism.selfed:
         payload["selfed"] = True
+    if organism.mating_type is not None:
+        payload["mating_type"] = organism.mating_type
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
@@ -5098,6 +5115,8 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     organism._step_index = _int(data, "step_index", 0)
     organism.asexual_lineage = data.get("asexual_lineage") is True
     organism.selfed = data.get("selfed") is True
+    stored_type = data.get("mating_type")
+    organism.mating_type = stored_type if isinstance(stored_type, str) else None
     phase_e_raw = data.get("phase_e_state")
     if isinstance(phase_e_raw, Mapping):
         from codontrace.genesis.phase_e import PhaseEOrganismState
@@ -5611,11 +5630,25 @@ def _commit_newborn(
 SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
 
 
+def _stamp_mating_types(
+    population: PopulationState, mating_seed: int | None, sexual: SexualRecombinationConfig
+) -> PopulationState:
+    """Fix each organism's sex once: founders on their first step, newborns at birth."""
+
+    for organism in population.organisms:
+        if organism.mating_type is None and not organism.asexual_lineage:
+            organism.mating_type = _organism_mating_type(organism, mating_seed, sexual)
+    return replace(population, mating_seed=mating_seed)
+
+
 def _organism_mating_type(
     organism: GenesisOrganism, seed: int | None, sexual: SexualRecombinationConfig
 ) -> str:
-    """A selfed organism is a hermaphrodite; any other type is drawn from its stream."""
+    """Stored type first (fixed for life); a selfed organism is a hermaphrodite;
+    otherwise the type is drawn from the run-seed stream for its id."""
 
+    if organism.mating_type is not None:
+        return organism.mating_type
     if organism.selfed:
         return MATING_TYPE_HERMAPHRODITE
     return draw_mating_type(seed, organism.id, sexual)
@@ -5640,7 +5673,8 @@ def mating_type_of(
         if organism.id == organism_id:
             if organism.asexual_lineage:
                 return ASEXUAL_LINEAGE_TYPE
-            return _organism_mating_type(organism, seed, sexual)
+            run_seed = population.mating_seed if population.mating_seed is not None else seed
+            return _organism_mating_type(organism, run_seed, sexual)
     raise ConfigurationError(f"organism {organism_id!r} is not in the population.")
 
 
@@ -5661,6 +5695,7 @@ def mating_type_census(
 
 def _drain_chamber_pairs(
     *,
+    mating_seed: int | None,
     waiting: list[IncipientOffspring],
     configs: PopulationConfigs,
     sexual_cfg: SexualRecombinationConfig,
@@ -5686,12 +5721,12 @@ def _drain_chamber_pairs(
     )
     mate_counts: dict[str, int] = {}
     mating_types: MatingTypeMap | None = (
-        MatingTypeMap(stream.seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
+        MatingTypeMap(mating_seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
     )
     if mating_types is not None:
         for known in (*survivors, *pending, *children):
-            if known.selfed:
-                mating_types.pin(known.id, MATING_TYPE_HERMAPHRODITE)
+            if known.mating_type is not None or known.selfed:
+                mating_types.pin(known.id, _organism_mating_type(known, mating_seed, sexual_cfg))
     while True:
         life = configs.closed_loop_hp_life
         radius = life.mate_search_radius
@@ -5957,6 +5992,7 @@ def _expire_chamber_waiters(
 
 def _handle_chamber_copy_self(
     *,
+    mating_seed: int | None,
     organism: GenesisOrganism,
     event: TraceEvent,
     configs: PopulationConfigs,
@@ -6172,6 +6208,7 @@ def _handle_chamber_copy_self(
     )
     waiting.append(slot)
     waiting, lineage, births, deaths, pair_result, placed_ids = _drain_chamber_pairs(
+        mating_seed=mating_seed,
         waiting=waiting,
         configs=configs,
         sexual_cfg=sexual_cfg,

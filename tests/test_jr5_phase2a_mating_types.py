@@ -87,13 +87,33 @@ _MAIN_ERA_LIFE_LOOP_SNAPSHOT = "ddb1be11949dc8585c95aeea1a4d7cce1055ef46590e4074
 _MAIN_ERA_RNG_DRAWS = [0.07288018841626231, 0.020732041539421653, 0.32331505896767]
 
 # sha256 of the sorted-key JSON of the census test population plus one asexual founder.
-_MIXED_DIGEST = "d60e113323d9a2d75156d362da5428630c4bf23d97b9abed9879c7677ceeecab"
+# Re-pinned when sex became fixed for life: the state now stores each
+# organism's mating type and the run seed for the draws (was d60e1133...).
+_MIXED_DIGEST = "a49a1f828e9112740c4f103f777dc770be3a5d2006438a3c7b48786bd2abcdc5"
+# Sexes-on {hermaphrodite} step digests, re-pinned for the same reason. With
+# the stored type fields removed they equal the switch-off digests above.
+_HERM_ONLY_STEP_DIGESTS = {
+    20005: "63e649d087ad9353f13e9b6f3bf6551e06b11de592f33f9d3a7e1627a3dbaa5e",
+    20008: "0dcc3c29bcfd9b5f49f8730cd2e1020c28861b00636386878633ffab5fdc0259",
+    20013: "fdeeb6a87a8b3fc025141b80fb6f1ddefd0c7875f6bfa3ffb20958123bf89735",
+}
 _BITS = ("111000000", "111111000", "101101101", "110011001")
 _SEXES = {
     "mating_types_enabled": True,
     "mating_type_set": ("female", "male"),
     "sex_assignment": "random_at_birth",
 }
+
+
+def _without_mating_fields(population: PopulationState) -> str:
+    """Digest with the stored sex fields removed, to compare dynamics with runs
+    that do not store them (sexes off, or before sex was fixed for life)."""
+
+    payload = population.to_dict()
+    payload.pop("mating_seed", None)
+    for item in payload["organisms"]:  # type: ignore[union-attr]
+        item.pop("mating_type", None)  # type: ignore[union-attr]
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def _compact(cfg: SexualRecombinationConfig) -> str:
@@ -189,8 +209,9 @@ def test_hermaphrodite_only_sexes_reproduce_the_switch_off_run(seed: int) -> Non
     herm = {**_SEXES, "mating_type_set": ("hermaphrodite",)}
     off = _step(seed, _configs())
     on = _step(seed, _configs(**herm))
-    assert on.population.digest() == off.population.digest()
-    assert on.population.digest() == _MAIN_ERA_STEP_DIGESTS[(seed, False)]
+    assert _without_mating_fields(on.population) == off.population.digest()
+    assert _without_mating_fields(on.population) == _MAIN_ERA_STEP_DIGESTS[(seed, False)]
+    assert on.population.digest() == _HERM_ONLY_STEP_DIGESTS[seed]
 
 
 # (3) reproducible per seed; matches the configured ratio.
@@ -485,7 +506,9 @@ def test_mating_type_of_and_census() -> None:
     assert mating_type_of(mixed, "a0", seed=20013, sexual=sexual) == "asexual"
     assert mating_type_census(mixed, seed=20013, sexual=sexual)["asexual"] == 1
     assert hashlib.sha256(json.dumps(mixed.to_dict(), sort_keys=True).encode()).hexdigest() == _MIXED_DIGEST
-    assert "mating_type" not in json.dumps(population.to_dict())
+    # Sex is stored once fixed; asexual founders carry no mating type.
+    assert all(o.mating_type in {"male", "female"} for o in population.organisms)
+    assert "mating_type" not in json.dumps(_step(20013, _configs()).population.to_dict())
     with pytest.raises(ConfigurationError):
         mating_type_of(population, "missing", seed=20013, sexual=sexual)
     with pytest.raises(ConfigurationError):

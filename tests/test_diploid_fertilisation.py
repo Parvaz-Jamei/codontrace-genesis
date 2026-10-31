@@ -231,3 +231,95 @@ def test_chamber_pair_from_one_parent_is_meiosis_and_fusion() -> None:
         assert record.parent_b_id == "p:self_gamete"
         total += _heterozygosity(record.child_genome_bits)
     assert abs(total / n - 0.5) < 4 * 0.5 / n**0.5
+
+
+def test_marked_homologs_at_full_recombination_prob() -> None:
+    """At recombination_prob = 1 a gamete joins the a and b end markers at 17/48.
+
+    Basis: homolog a carries marker ``101`` at paired locus 0 and homolog b
+    carries marker ``010`` at paired locus 3 (m = 4, other codons ``000`` and
+    ``111``). recombination_prob = 1 makes the chamber cross over in every
+    meiosis. A gamete holds both markers only when loci 0 and 3 come from
+    different homologs (probability 17/24, derived in the helper) and locus 0
+    comes from homolog a (one half by symmetry of the lead choice), so the
+    expected rate is 17/48. The own gamete is the even codons of the fused
+    child. Tolerance: 4 binomial standard errors over 4000 zygotes, seed 21.
+    With crossover off the rate is 0.
+    """
+
+    from codontrace.genesis.birth import IncipientOffspring
+    from codontrace.genesis.population import _fertilise
+
+    a = ["101", "000", "000", "000"]
+    b = ["111", "111", "111", "010"]
+    parent = "".join(x + y for x, y in zip(a, b, strict=True))
+
+    def slot(slot_id: str) -> IncipientOffspring:
+        return IncipientOffspring(
+            slot_id=slot_id,
+            parent_id=f"p{slot_id}",
+            genome_bits=parent,
+            genome_digest="d",
+            entered_tick=0,
+            parent_position=(0, 0),
+            offspring_runtime_atp=0.0,
+            parent_generation=0,
+            codon_width=WIDTH,
+            ledger_entry_ids=(),
+        )
+
+    own, mate = slot("s1"), slot("s2")
+    expected = _expected_end_to_end_recombinant_fraction(4) / 2
+    assert abs(expected - 17 / 48) < 1e-12
+    rng = RNGManager(21)
+    n = 4000
+
+    def rate(crossover: bool, tag: str, count: int) -> float:
+        hits = 0
+        for i in range(count):
+            record = _fertilise(own, mate, rng.fork(f"{tag}/{i}"), crossover=crossover)
+            assert record is not None
+            child = record.child_genome_bits
+            assert len(child) == len(parent)
+            gamete = [child[j * WIDTH : (j + 1) * WIDTH] for j in range(0, 8, 2)]
+            hits += gamete[0] == "101" and gamete[3] == "010"
+        return hits / count
+
+    se = (expected * (1 - expected) / n) ** 0.5
+    assert abs(rate(True, "x", n) - expected) < 4 * se
+    assert rate(False, "n", 300) == 0.0
+
+
+# sha256[:16] of the default-path digest table printed by
+# tests/_scripts/default_path_digests.py (newline included), with
+# diploid_meiosis off; matches the value recorded on main before the fix.
+DEFAULT_PATH_TABLE_DIGEST = "224e72bce17aa5a4"
+
+
+def test_default_path_digest_table_is_unchanged() -> None:
+    """The fix leaves every default-path digest unchanged.
+
+    Basis: diploid_meiosis is off by default, so the life-loop world (seeds 0
+    and 7, default and history configs) and the T01-T05 runners never reach
+    meiosis or fusion, and their digests must equal the pre-fix values. The
+    script runs in a fresh process because it sets CODONTRACE_SOURCE_ROOT
+    before importing the engine. Expected: the table hash equals
+    DEFAULT_PATH_TABLE_DIGEST exactly; tolerance zero.
+    """
+
+    import hashlib
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ, PYTHONPATH=str(root / "src"))
+    out = subprocess.run(
+        [sys.executable, str(root / "tests" / "_scripts" / "default_path_digests.py")],
+        check=True,
+        capture_output=True,
+        env=env,
+        timeout=900,
+    ).stdout
+    assert hashlib.sha256(out).hexdigest()[:16] == DEFAULT_PATH_TABLE_DIGEST

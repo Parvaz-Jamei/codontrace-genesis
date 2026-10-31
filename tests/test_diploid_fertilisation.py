@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from collections import Counter
 
+import pytest
+
 from codontrace.genesis.birth import (
     DIPLOID_FERTILISATION_MECHANISM,
     fuse_gametes,
@@ -303,11 +305,19 @@ DEFAULT_PATH_TABLE_DIGEST = "d34592e007faf959"
 # Python 3.12 changed sum() of floats to compensated (Neumaier) summation
 # (CPython issue gh-100425), so the T02 and T03 float metrics differ in the
 # last bits between 3.11 and 3.12+. Both values are given by main 73c3bff.
-DEFAULT_PATH_TABLE_REPR_DIGEST = {(3, 11): "82dd7aa7e9bd2ba4"}
-DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON = "224e72bce17aa5a4"
+DEFAULT_PATH_TABLE_REPR_DIGEST = {
+    (3, 11): "82dd7aa7e9bd2ba4",
+    (3, 12): "224e72bce17aa5a4",
+    (3, 13): "224e72bce17aa5a4",
+    (3, 14): "224e72bce17aa5a4",
+}
 # repr table with the T02 final altruism scaled by (1 + 1e-13).
-PERTURBED_REPR_DIGEST = {(3, 11): "efc219907731b94c"}
-PERTURBED_REPR_DIGEST_PY312_ON = "897139aaeb1760ca"
+PERTURBED_REPR_DIGEST = {
+    (3, 11): "efc219907731b94c",
+    (3, 12): "897139aaeb1760ca",
+    (3, 13): "897139aaeb1760ca",
+    (3, 14): "897139aaeb1760ca",
+}
 
 
 def _default_path_table_digest(*args: str) -> str:
@@ -329,12 +339,19 @@ def _default_path_table_digest(*args: str) -> str:
     return hashlib.sha256(out).hexdigest()[:16]
 
 
-def _expected_repr_digest(perturbed: bool = False) -> str:
+def _expected_repr_digest(perturbed: bool = False, version: tuple[int, int] | None = None) -> str:
     import sys
 
-    if perturbed:
-        return PERTURBED_REPR_DIGEST.get(sys.version_info[:2], PERTURBED_REPR_DIGEST_PY312_ON)
-    return DEFAULT_PATH_TABLE_REPR_DIGEST.get(sys.version_info[:2], DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON)
+    pins = PERTURBED_REPR_DIGEST if perturbed else DEFAULT_PATH_TABLE_REPR_DIGEST
+    key = version if version is not None else sys.version_info[:2]
+    if key not in pins:
+        pytest.fail(
+            f"no repr digest pinned for Python {key[0]}.{key[1]}; "
+            f"pinned versions: {', '.join(f'{a}.{b}' for a, b in sorted(pins))}. "
+            "Run tests/_scripts/default_path_digests.py --repr on main under that "
+            "version and add the value."
+        )
+    return pins[key]
 
 
 def test_default_path_digest_table_is_unchanged() -> None:
@@ -371,6 +388,20 @@ def test_default_path_repr_digest_catches_small_float_change() -> None:
     perturbed = _default_path_table_digest("--repr", "--perturb-t02-altruism")
     assert perturbed == _expected_repr_digest(perturbed=True)
     assert perturbed != _expected_repr_digest()
+
+
+@pytest.mark.parametrize("version", [(3, 10), (3, 15)])
+def test_expected_repr_digest_fails_for_an_unpinned_python(version: tuple[int, int]) -> None:
+    """An interpreter with no pin fails loudly instead of using another pin.
+
+    Basis: the repr digest depends on the float summation of the interpreter,
+    so a version outside 3.11 to 3.14 has no known value; reusing the 3.12+
+    value would hide a change. Expected: pytest.fail naming the version.
+    """
+
+    for perturbed in (False, True):
+        with pytest.raises(pytest.fail.Exception, match=rf"Python {version[0]}\.{version[1]}"):
+            _expected_repr_digest(perturbed=perturbed, version=version)
 
 
 # Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog

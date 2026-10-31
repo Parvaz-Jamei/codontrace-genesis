@@ -6,16 +6,24 @@ repr() of the summaries instead (exact float bits, interpreter dependent).
 before hashing, to check which form detects a change of that size.
 """
 
+import argparse
 import dataclasses
 import enum
 import hashlib
 import json
 import os
-import sys
 import tempfile
 
-REPR = "--repr" in sys.argv[1:]
-PERTURB = "--perturb-t02-altruism" in sys.argv[1:]
+_parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+_parser.add_argument("--repr", action="store_true", help="hash repr() of run summaries (exact float bits)")
+_parser.add_argument(
+    "--perturb-t02-altruism",
+    action="store_true",
+    help="scale the T02 final altruism by (1 + 1e-13) before hashing",
+)
+_args = _parser.parse_args()
+REPR = _args.repr
+PERTURB = _args.perturb_t02_altruism
 
 os.environ["CODONTRACE_SOURCE_ROOT"] = tempfile.mkdtemp()
 from codontrace.engine import GenesisEngine

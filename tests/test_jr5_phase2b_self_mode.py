@@ -821,3 +821,65 @@ def test_one_selfed_generation_halves_heterozygosity() -> None:
         loci = [(codons[k], codons[k + 1]) for k in range(0, 8, 2)]
         total += sum(a != b for a, b in loci) / len(loci)
     assert abs(total / n - 0.5) < 4 * 0.5 / n**0.5
+
+
+def test_prereg_m_counts_sons_of_outcrossed_births_only() -> None:
+    """The prereg m is sons over births of outcrossing parents. Row: 4
+    outcrossed births (1 son), 4 selfed births and 2 uniparental births.
+    Expected by hand: m = 1/4; sons over all births would give 1/10 and sons
+    over sexual births 1/8, so either mutant fails. A row with no outcrossed
+    births has m None."""
+
+    from codontrace.genesis.closed_loop_p5 import birth_modes_and_m
+
+    births = [
+        ("male", "a", "b"),
+        ("hermaphrodite", "a", "c"),
+        ("hermaphrodite", "b", "c"),
+        ("hermaphrodite", "c", "a"),
+        ("hermaphrodite", "s", "s"),
+        ("hermaphrodite", "s", "s"),
+        ("hermaphrodite", "t", "t"),
+        ("hermaphrodite", "t", "t"),
+        ("hermaphrodite", "u", None),
+        ("male", "u", None),
+    ]
+    modes, m = birth_modes_and_m(births)
+    assert modes == {"selfed": 4, "outcrossed": 4, "uniparental": 2}
+    outcross_sons = sum(1 for kind, p, q in births if q is not None and q != p and kind == "male")
+    assert m == outcross_sons / modes["outcrossed"] == 0.25
+    assert birth_modes_and_m([("hermaphrodite", "s", "s")])[1] is None
+
+
+def test_generation_zero_guard_rejects_edited_snapshots() -> None:
+    """The mating seed must come from the run's first sexes-on step. A
+    snapshot cannot dodge this: with no generation key it is rejected at
+    from_dict; edited back to generation 0 it still has its tick and lineage;
+    with a mating_seed injected into a sexes-off snapshot its organisms have
+    no stored type. Expected: ConfigurationError in all three cases, and a
+    real sexes-on snapshot round-trips and steps."""
+
+    from codontrace.genesis.population import step_population
+
+    session, _ = _self_arm(OUTCROSS_OUT_BITS)
+    on_runner = session.runner
+    off = ClosedLoopP5Session.boot(seed=20011, outcross_bits=OUTCROSS_OUT_BITS)
+    off.run_ticks(2)
+    off_data = dict(off.runner.population.to_dict())
+    assert "mating_seed" not in off_data
+
+    missing = {k: v for k, v in off_data.items() if k != "generation"}
+    with pytest.raises(ConfigurationError, match="no generation"):
+        PopulationState.from_dict(missing)
+
+    edited = PopulationState.from_dict({**off_data, "generation": 0})
+    with pytest.raises(ConfigurationError, match="generation 0"):
+        step_population(edited, on_runner.world, on_runner.configs, seed=5)
+
+    injected = PopulationState.from_dict({**off_data, "mating_seed": 20011})
+    with pytest.raises(ConfigurationError, match="stored mating"):
+        step_population(injected, on_runner.world, on_runner.configs, seed=5)
+
+    session.run_ticks(1)
+    real = PopulationState.from_dict(session.runner.population.to_dict())
+    step_population(real, on_runner.world, on_runner.configs, seed=5)

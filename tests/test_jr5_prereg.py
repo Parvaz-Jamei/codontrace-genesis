@@ -579,15 +579,15 @@ def test_n50_lower_bound_size_full_run() -> None:
 
 def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
     """Self and outcross arms run in one engine mode (sexes on, same ATP ledger),
-    so the only difference is biological: outcrossers make sons, selfers make
-    none by construction. Every arm that lists obligate selfing must therefore
+    so the differences are biological: outcrossers make sons and pay the
+    outcross mating fee, selfers make no sons by construction and pay no fee. Every arm that lists obligate selfing must therefore
     name the opt-in hermaphrodite self mode, and no outcross arm may use it.
 
     The self mode is also bound to a like-for-like rule: per reproduction a
     selfing hermaphrodite gets the same offspring count and the same ATP budget
     as an outcrossing mother, with no extra fitness term, and any inbreeding
     cost comes only from the existing genome model. Equal per-parent fecundity
-    with males as the only difference is what lets the outcross-minus-self
+    is what lets the outcross-minus-self
     contrast measure the cost of males; unequal egg counts by mating mode would
     fold a tuning choice into that contrast. The values are fixed in PREREG.md
     section 4 and the design note, so phase 2b cannot set them after seeing
@@ -622,6 +622,15 @@ def test_every_self_arm_names_the_sexes_on_self_mode() -> None:
         "inbreeding_cost_source": "existing_genome_model_only",
         "fixed_at": "prereg_not_phase_2b",
         "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
+        "outcross_mating_fee": {
+            "field": "closed_loop_hp_life.outcross_runtime_atp",
+            "atp_per_outcross_reproduction": 1.0,
+            "kept_as_real_cost_of_outcrossing": True,
+            "ledger_term": "separate_from_son_cost",
+            "paid_by_selfers": False,
+        },
+        "ledgered_arm_differences": ["son_cost", "outcross_mating_fee"],
+        "cost_of_males_estimate_uses": "son_cost_only",
     }
     claim = (PREREG_DIR / "RED_QUEEN_CLAIM_PATH.md").read_text(encoding="utf-8")
     for text in (_prereg_text(), note):
@@ -656,7 +665,9 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
     }
     assert cfg["closed_loop_hp_life"] == {"outcross_enabled": True, "selfing_birth_atp_endowment": 0.0}
     assert cfg["outcross_locus"] == {"obligate_self": "000", "obligate_outcross": "001"}
-    assert cfg["same_config_for_outcross_arms"] is True
+    assert cfg["identical_config_self_and_outcross"] is True
+    assert cfg["only_difference"] == "outcross_locus"
+    assert cfg["single_manipulated_factor"] == "mating_system"
     assert cfg["delayed_selfing"] is False
     assert cfg["unmated_outcrosser"] == "refused_no_selfing_at_timeout"
     assert cfg["sex_fixed_for_life"] == "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id"
@@ -668,3 +679,31 @@ def test_self_arm_engine_config_and_no_delayed_selfing() -> None:
         assert "`000`" in text and "`001`" in text
     assert "Sex is fixed for life" in note
     assert "from the run seed and the organism id" in note
+
+
+def test_outcross_mating_fee_is_ledgered_apart_from_son_cost() -> None:
+    """Outcrossing costs a mate search as well as sons. The existing engine
+    charges 1.0 ATP per outcross reproduction (outcross_runtime_atp, default in
+    the host-parasite life plugin), and that fee is kept as a real cost of
+    outcrossing. Because the two-fold cost of males is defined by the sons an
+    outcrossing mother makes, the fee must be a separate ledger term and must
+    stay out of the cost-of-males estimate, or E1 would be measuring the fee as
+    well. The prereg text must not describe the arms as differing in son cost
+    alone. Expected values are those written in PREREG.md section 4 and the
+    design note."""
+    lfl = _constants()["host_mating_arm_modes"]["like_for_like"]
+    fee = lfl["outcross_mating_fee"]
+    assert fee["atp_per_outcross_reproduction"] == 1.0
+    assert fee["ledger_term"] == "separate_from_son_cost"
+    assert fee["paid_by_selfers"] is False
+    assert lfl["ledgered_arm_differences"] == ["son_cost", "outcross_mating_fee"]
+    assert lfl["cost_of_males_estimate_uses"] == "son_cost_only"
+    note = (PREREG_DIR / "MATING_TYPES_DESIGN_NOTE.md").read_text(encoding="utf-8")
+    for text in (_prereg_text(), note):
+        assert "`outcross_runtime_atp = 1.0`" in text
+        assert "the cost-of-males estimate uses only the son term" in text.replace(
+            "The cost-of-males", "the cost-of-males"
+        )
+        assert "single manipulated factor" in text
+        assert "only in son cost" not in text
+        assert "males the only difference" not in text

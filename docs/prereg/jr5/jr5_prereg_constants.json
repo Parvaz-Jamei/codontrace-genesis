@@ -190,10 +190,12 @@
         "obligate_self": "000",
         "obligate_outcross": "001"
       },
-      "same_config_for_outcross_arms": true,
       "delayed_selfing": false,
       "unmated_outcrosser": "refused_no_selfing_at_timeout",
-      "sex_fixed_for_life": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id"
+      "sex_fixed_for_life": "assigned_once_at_birth_or_founding_from_run_seed_and_organism_id",
+      "identical_config_self_and_outcross": true,
+      "only_difference": "outcross_locus",
+      "single_manipulated_factor": "mating_system"
     },
     "obligate_outcross": {
       "sexes": "on",
@@ -226,9 +228,21 @@
       "extra_fitness_term": null,
       "inbreeding_cost_source": "existing_genome_model_only",
       "fixed_at": "prereg_not_phase_2b",
-      "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute"
+      "if_mode_not_delivered": "self_arms_not_run_condition_d_fails_red_queen_proved_false_no_flag_off_substitute",
+      "outcross_mating_fee": {
+        "field": "closed_loop_hp_life.outcross_runtime_atp",
+        "atp_per_outcross_reproduction": 1.0,
+        "kept_as_real_cost_of_outcrossing": true,
+        "ledger_term": "separate_from_son_cost",
+        "paid_by_selfers": false
+      },
+      "ledgered_arm_differences": [
+        "son_cost",
+        "outcross_mating_fee"
+      ],
+      "cost_of_males_estimate_uses": "son_cost_only"
     },
-    "fairness": "same_engine_mode_same_ledger_cost_of_sons_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
+    "fairness": "same_engine_config_same_ledger_son_cost_and_outcross_mating_fee_ledgered_separately_present_for_outcrossers_absent_for_selfers_by_biology_not_by_switching_cost_off"
   },
   "alternative_arms": {
     "mutation_load": {

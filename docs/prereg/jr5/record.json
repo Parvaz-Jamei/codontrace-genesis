@@ -1,15 +1,15 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "f3b5ebfb540be4e32ba484bae5e3621c5e64861876e68071c9e1317bcfcdc584",
+    "digest": "3247c5b61852f71179469d746cfe7fa7cb4461fdbe230d297de3bc0c9fa3508b",
     "files": [
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
-        "cb674f071481f27e9754daa01f2b13b6b658d4401e8864092b0118f419b5b8ba"
+        "1ad3ca8447ed40da2e2a7c5c663f782a523688a5ad3752e9b9675ddb6dde2e28"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "ad2c26efbcfce43e71ad4002a0c0447c9543c74eb6b069e272db83150a362ed9"
+        "3ae958d0db3070205f2c842fb8b7f762544a1b991951070efe6c0a8e5f258782"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
@@ -25,7 +25,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "aff0f2d6eba852fb9c8752853a659758f3f0bc3398d3a328bc08e0f3e186be07"
+        "64f363a27a63269867a829c6c8b7ddc09f785d03266f0a7bb82af181a33b296c"
       ],
       [
         "docs/prereg/jr5/scripts/e1_power_sim.py",

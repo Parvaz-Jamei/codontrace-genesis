@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -762,7 +764,8 @@ def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
     therefore a hard dependency, with an engine test that length is conserved
     over at least 3 generations; no JR5 arm, the pilot included, runs before
     it is merged. Sex fixed for life is pinned the same way to its phase 2b
-    test."""
+    test. The fix is now merged, so the text and JSON pin its merge commit and
+    the node id of its engine test in place of the branch-name-only pin."""
     c = _constants()
     deps = c["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]
     d = deps["diploid_fertilisation"]
@@ -777,7 +780,85 @@ def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
     assert "conserved over at least 3 generations" in text
     assert "Segregation load and E1" in text
     assert c["gate_e1"]["segregation_load"].startswith("enters_realised_w_either_direction")
-    assert "pinned by branch name for now" in text
+    assert "pinned by branch name for now" not in text
+    assert d["merge_commit"] == DIPLOID_FIX_MERGE_COMMIT
+    assert d["engine_test"] == DIPLOID_FIX_ENGINE_TEST
+
+
+# The merge of the diploid fertilisation fix into main (PR 134) and the engine
+# test it added. PREREG.md section 4 and the JSON both pin these.
+DIPLOID_FIX_MERGE_COMMIT = "4400e07b9a16a824437af3dd6afa0fb35de7837f"
+DIPLOID_FIX_ENGINE_TEST = "tests/test_diploid_fertilisation.py::test_genome_length_is_conserved_over_many_generations"
+
+
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        pytest.skip("git not available")
+
+
+def test_diploid_fix_pins_agree_with_prereg_text_and_json() -> None:
+    """PREREG.md names the merge commit and engine test that the JSON pins.
+
+    Basis: the text pins the commit by its short form 4400e07 and its full
+    40-character sha, and the engine test by its pytest node id; the JSON holds
+    the full sha and the same node id. Expected: each value appears verbatim in
+    the text, the short form is the first 7 characters of the full sha, and the
+    full sha is 40 hex characters.
+    """
+
+    d = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"]
+    sha, node = d["merge_commit"], d["engine_test"]
+    assert re.fullmatch(r"[0-9a-f]{40}", sha)
+    text = _prereg_text()
+    assert f"merge commit `{sha[:7]}` (`{sha}`)" in text
+    assert f"engine test `{node}`" in text
+
+
+def test_diploid_fix_merge_commit_is_an_ancestor_of_head() -> None:
+    """The pinned merge commit is in the history this checkout was built from.
+
+    Basis: git merge-base --is-ancestor A B exits 0 when A is an ancestor of B
+    and 1 when it is not; a commit counts as its own ancestor. The pin must be
+    a merge (two parents), since it records the merge of the fix into main.
+    Skipped when the object is absent (shallow clone or source archive), as in
+    the rq1 locked-commit test. Expected: exit code 0 and two parents.
+    """
+
+    sha = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"][
+        "merge_commit"
+    ]
+    if _git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
+        pytest.skip("history not available (shallow clone or source archive)")
+    assert _git("merge-base", "--is-ancestor", sha, "HEAD").returncode == 0
+    parents = _git("rev-list", "--parents", "-n", "1", sha).stdout.split()
+    assert len(parents) == 3
+
+
+def test_diploid_fix_engine_test_is_collected() -> None:
+    """The pinned node id names a test that pytest collects.
+
+    Basis: pytest --collect-only -q prints one node id per collected item, and
+    a node id that does not exist is a usage error with no items. The run is a
+    fresh process with the project addopts cleared, so a second -q from the
+    config does not shorten the listing to per-file counts. Expected:
+    the pinned node id is printed exactly once.
+    """
+
+    node = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"][
+        "engine_test"
+    ]
+    out = subprocess.run(
+        [sys.executable, "-m", "pytest", "-o", "addopts=", "--collect-only", "-q", "-p", "no:cacheprovider", node],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert out.stdout.splitlines().count(node) == 1
 
 
 def test_self_arm_founders_are_all_hermaphrodites() -> None:

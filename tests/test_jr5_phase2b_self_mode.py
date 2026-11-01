@@ -719,9 +719,13 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
     assert census == [row["census"] for row in session.census()]
 
 
-# Pinned values of the prereg E1 fit on this census. The fit is the
-# bias-reduced binomial logit in tests/_jr5_e1_fit.py (same as the prereg).
-_E1_MALE_OUTCROSS_DIPLOID = (0.79900229, -0.09470521)
+# Regression pin, not the prereg E1 estimand (that fits the asexual count
+# with 0.2 asexual founders): the bias-reduced binomial logit of
+# tests/_jr5_e1_fit.py on the male count of this run. Re-pinned after merging
+# the gamete-fusion fix from main: it was (0.79900229, -0.09470521) while
+# diploid meiosis halved the genome; with fusion the genome keeps its length
+# and the same run gives the value below.
+_E1_MALE_OUTCROSS_DIPLOID = (0.38787177, -0.00003415)
 
 
 def test_e1_fit_on_the_census_is_pinned() -> None:

@@ -2247,26 +2247,31 @@ def _blocked_reproduction_result(
     )
 
 
+def _meiosis_crossover_gate(prob: float, rng: RNGManager) -> bool:
+    """Crossover gate of one meiosis: True with probability ``prob``.
+
+    Every meiosis passes its own named stream, so gates of different meioses
+    are independent and fixed by the seed. No draw is made when ``prob`` is 0
+    or at least 1, so the default path (1.0) consumes no extra randomness.
+    """
+
+    if prob <= 0.0:
+        return False
+    if prob >= 1.0:
+        return True
+    return rng.random() < prob
+
+
 def _selfing_crossover_gates(
     sexual_cfg: SexualRecombinationConfig, rng: RNGManager
 ) -> tuple[bool, bool]:
-    """Crossover gate of each of the two meioses in a selfing parent.
-
-    The two meioses are separate events, so each draws its own gate from its
-    own named stream of ``rng`` (``meiosis/a/gate`` and ``meiosis/b/gate``):
-    the draws are independent and fixed by the seed. No draw is made when
-    ``recombination_prob`` is 0 or at least 1, so the default path (1.0)
-    consumes no extra randomness.
-    """
+    """Crossover gates of the two meioses in a selfing parent, each from its
+    own stream (``meiosis/a/gate`` and ``meiosis/b/gate``)."""
 
     prob = sexual_cfg.recombination_prob
-    if prob <= 0.0:
-        return False, False
-    if prob >= 1.0:
-        return True, True
     return (
-        rng.fork("meiosis/a/gate").random() < prob,
-        rng.fork("meiosis/b/gate").random() < prob,
+        _meiosis_crossover_gate(prob, rng.fork("meiosis/a/gate")),
+        _meiosis_crossover_gate(prob, rng.fork("meiosis/b/gate")),
     )
 
 
@@ -2333,15 +2338,16 @@ def _fertilise(
     mate: IncipientOffspring,
     stream: RNGManager,
     *,
-    crossover: bool,
+    recombination_prob: float,
 ) -> RecombinationRecord | None:
     """One zygote: a gamete from ``own`` (even homolog) fused with one from ``mate``.
 
     When both slots come from one parent the two gametes are still two
     independent meioses of that parent (selfing), so the child segregates;
-    the record then names the mate gamete ``<parent>:self_gamete``.
-    ``crossover`` comes from ``recombination_prob``; below 1 it departs from
-    obligate crossover.
+    the record then names the mate gamete ``<parent>:self_gamete``. Each
+    meiosis draws its own crossover gate from ``recombination_prob`` (see
+    :func:`_meiosis_crossover_gate`); below 1 it departs from obligate
+    crossover. Fusion always happens.
     """
 
     mate_id = mate.parent_id
@@ -2352,13 +2358,17 @@ def _fertilise(
         own.genome_bits,
         width,
         stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/own"),
-        crossover=crossover,
+        crossover=_meiosis_crossover_gate(
+            recombination_prob, stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/own/gate")
+        ),
     )
     mate_gamete = meiotic_gamete(
         mate.genome_bits,
         width,
         stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/mate"),
-        crossover=crossover,
+        crossover=_meiosis_crossover_gate(
+            recombination_prob, stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/mate/gate")
+        ),
     )
     return fertilisation_record(
         own_id=own.parent_id,
@@ -5981,16 +5991,18 @@ def _drain_chamber_pairs(
         do_recombine = True
         if sexual_cfg.recombination_prob <= 0.0:
             do_recombine = False
-        elif sexual_cfg.recombination_prob < 1.0:
+        elif sexual_cfg.recombination_prob < 1.0 and not sexual_cfg.diploid_meiosis:
             do_recombine = chamber_rng.random() < sexual_cfg.recombination_prob
         record_a: RecombinationRecord | None = None
         record_b: RecombinationRecord | None = None
         if sexual_cfg.diploid_meiosis:
             # Meiosis then fertilisation: each zygote fuses one fresh gamete
             # from each parent, so the diploid genome length is conserved.
-            # recombination_prob gates meiotic crossover; syngamy always occurs.
-            record_a = _fertilise(first, second, stream, crossover=do_recombine)
-            record_b = _fertilise(second, first, stream, crossover=do_recombine)
+            # recombination_prob gates each meiosis's crossover with its own
+            # draw; syngamy always occurs.
+            prob = sexual_cfg.recombination_prob
+            record_a = _fertilise(first, second, stream, recombination_prob=prob)
+            record_b = _fertilise(second, first, stream, recombination_prob=prob)
         elif do_recombine:
             try:
                 record_a, record_b = recombine_positional_segment_pair(

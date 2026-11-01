@@ -5790,15 +5790,26 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
     its stored type, since each sexes-on step stamps them; a seed injected
     into a sexes-off snapshot fails this.
 
-    Out of scope: a coordinated hand edit that resets generation, tick and
-    lineage together, or stamps plausible mating types alongside an injected
-    seed, or replaces the seed of a sexes-on snapshot, is not detected. The check guards against accidental mid-run
-    starts, not deliberate forgery; snapshots carry no signature.
+    A sexes-on snapshot cannot be restarted either: organisms that carry a
+    stored mating type with no mating seed show a reset snapshot, and a
+    stored type of a non-selfed organism that differs from the draw for its
+    id under the mating seed shows an edited seed. Both are refused.
+
+    Out of scope: a hand edit that also rewrites every stored type to match
+    a new seed is not detected. The check guards against accidental restarts
+    and simple edits, not deliberate forgery; snapshots carry no signature.
     """
 
     if not sexual.mating_types_enabled:
         return
     if population.mating_seed is None:
+        typed = [o.id for o in population.organisms if o.mating_type is not None]
+        if typed:
+            msg = (
+                f"organism {typed[0]!r} has a stored mating type but the population "
+                "has no mating_seed; a sexes-on snapshot cannot be reset."
+            )
+            raise ConfigurationError(msg)
         if population.generation > 0 or population.tick > 0 or population.lineage:
             msg = (
                 "mating types must be enabled from generation 0; enabling sexes "
@@ -5815,6 +5826,15 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
             f"type ({unstamped[0]!r}); the seed was not set by a sexes-on step."
         )
         raise ConfigurationError(msg)
+    for organism in population.organisms:
+        if organism.mating_type is None or organism.selfed or organism.asexual_lineage:
+            continue
+        if organism.mating_type != draw_mating_type(population.mating_seed, organism.id, sexual):
+            msg = (
+                f"stored mating type of {organism.id!r} does not match the mating_seed; "
+                "the seed of a sexes-on snapshot was edited."
+            )
+            raise ConfigurationError(msg)
 
 
 def _stamp_mating_types(

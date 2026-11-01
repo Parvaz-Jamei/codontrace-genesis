@@ -1068,3 +1068,44 @@ def test_generation_zero_guard_rejects_edited_snapshots() -> None:
     session.run_ticks(1)
     real = PopulationState.from_dict(session.runner.population.to_dict())
     step_population(real, on_runner.world, on_runner.configs, seed=5)
+
+
+def test_sexes_on_snapshot_cannot_be_reset_or_reseeded() -> None:
+    """Sex is fixed for life and keyed to the run's mating seed. A sexes-on
+    snapshot keeps both: each organism's stored type and the seed. Expected:
+    (a) a full reset (generation 0, tick 0, no lineage, no mating_seed) still
+    has stored types, so stepping it is refused; (b) a seed edited so that
+    the draw for some non-selfed organism's id differs from its stored type
+    is refused; (c) the real snapshot steps. Seeds 1..50 are tried for (b);
+    with two types at sex ratio 0.3 a draw differs from the stored type with
+    probability 0.42 per organism, so at least one such seed is found."""
+
+    from codontrace.genesis.mating_types import draw_mating_type
+    from codontrace.genesis.population import step_population
+
+    session, cfg = _self_arm(OUTCROSS_OUT_BITS)
+    session.run_ticks(1)
+    runner = session.runner
+    data = dict(runner.population.to_dict())
+    assert isinstance(data.get("mating_seed"), int)
+
+    reset = PopulationState.from_dict(
+        {**{k: v for k, v in data.items() if k != "mating_seed"}, "generation": 0, "tick": 0, "lineage": []}
+    )
+    with pytest.raises(ConfigurationError, match="cannot be reset"):
+        step_population(reset, runner.world, runner.configs, seed=5)
+
+    real = PopulationState.from_dict(data)
+    typed = [o for o in real.organisms if o.mating_type is not None and not o.selfed]
+    assert typed
+    edits = [
+        data["mating_seed"] + k
+        for k in range(1, 51)
+        if any(o.mating_type != draw_mating_type(data["mating_seed"] + k, o.id, cfg) for o in typed)
+    ]
+    assert edits
+    edited = PopulationState.from_dict({**data, "mating_seed": edits[0]})
+    with pytest.raises(ConfigurationError, match="was edited"):
+        step_population(edited, runner.world, runner.configs, seed=5)
+
+    step_population(real, runner.world, runner.configs, seed=5)

@@ -131,7 +131,7 @@ def test_loader_checks_the_constants_sha_against_the_record(tmp_path: Path) -> N
     shutil.copy(CONSTANTS, folder / "jr5_prereg_constants.json")
     assert load_e1_gate_spec(tmp_path) == spec
     (folder / "record.json").write_text(json.dumps({"manifest": {"files": []}}), encoding="utf-8")
-    with pytest.raises(ConfigurationError):
+    with pytest.raises(ConfigurationError, match="does not pin"):
         load_e1_gate_spec(tmp_path)
     with pytest.raises(ConfigurationError):
         load_e1_gate_spec(tmp_path / "missing")
@@ -317,9 +317,17 @@ def test_cells_must_hold_exactly_the_preregistered_seed_block() -> None:
     good = _cell(math.log(2.0), 0.076)
     shifted = [dataclasses.replace(good[0], seed=13141), *good[1:]]
     dup = [*good[:-1], dataclasses.replace(good[-1], seed=good[0].seed)]
+    repeated = [*good, good[0]]  # full block plus a repeat: same seed set, 41 rows
     for host_n in (200, 50):
         assert evaluate_e1_cell(spec, 0.5, host_n, good).n_total == 40
-        for bad in (good[:-1], shifted, dup, [*good, E1Population(13141, 0.7)], _cell(math.log(2.0), 0.076, 0.25)):
+        for bad in (
+            good[:-1],
+            shifted,
+            dup,
+            repeated,
+            [*good, E1Population(13141, 0.7)],
+            _cell(math.log(2.0), 0.076, 0.25),
+        ):
             with pytest.raises(ConfigurationError):
                 evaluate_e1_cell(spec, 0.5, host_n, bad)
 
@@ -376,4 +384,7 @@ def test_adapter_rows_carry_the_gated_cells_on_the_ratio_scale() -> None:
     assert [r["sex_ratio"] for r in rows] == [0.5, 0.25]
     assert set(rows[0]) == {"sex_ratio", "n_populations", "n_excluded", "ci90", "ci95"}
     assert rows[0]["ci90"] == pytest.approx([1.95940, 2.04141], abs=1e-4)
+    # 95%: half-width t(0.975, 39) * 0.076 / sqrt(39) = 2.022691 * 0.012170 = 0.024616,
+    # so [2 exp(-0.024616), 2 exp(0.024616)] = [1.95137, 2.04984].
+    assert rows[0]["ci95"] == pytest.approx([1.95137, 2.04984], abs=1e-4)
     assert rows[0]["n_populations"] == 40 and rows[0]["n_excluded"] == 0

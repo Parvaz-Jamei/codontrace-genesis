@@ -350,7 +350,7 @@ def evaluate_e1_cell(
     expected = spec.seeds_for(sex_ratio)
     pops = tuple(populations)
     seeds = [p.seed for p in pops]
-    if len(set(seeds)) != len(seeds) or set(seeds) != set(expected) or len(pops) != spec.populations_per_cell:
+    if len(set(seeds)) != len(seeds) or set(seeds) != set(expected):
         raise ConfigurationError(
             f"cell m={sex_ratio}, N={host_n} must hold exactly seeds {expected.start}-{expected.stop - 1}."
         )

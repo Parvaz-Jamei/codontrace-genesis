@@ -143,3 +143,63 @@ def test_p_equal_to_alpha_does_not_reject() -> None:
     assert edge.p_lower == edge.alpha
     assert edge.p_upper < edge.alpha
     assert not edge.equivalent
+
+
+def test_upper_side_p_has_no_cancellation_far_in_the_tail() -> None:
+    # Basis: P(T < t) = P(T > -t) by symmetry of Student's t. Taking the
+    # lower-side p as the upper tail at -t keeps full relative precision; the
+    # complement 1 - P(T > t) rounds to 0 once the tail drops below 1e-16.
+    # df = 1 (Cauchy): P(T < -1e9) = 1/2 - atan(1e9)/pi = atan(1e-9)/pi
+    # = 3.18310e-10, and at -1e20 it is 3.18310e-21, far below double epsilon.
+    for t in (-1e9, -1e20):
+        r = one_sample_tost([0.0, 2.0], 1.0 - 1e-6, 1.0 - t, alpha=0.25)
+        assert r.p_upper == pytest.approx(math.atan(-1.0 / t) / math.pi, rel=1e-9)
+        assert r.p_upper > 0.0
+
+
+def test_overflowing_values_raise_configuration_error() -> None:
+    # Basis: the t procedure needs a finite mean and variance; values whose
+    # squared deviations exceed the double range have neither, which is an
+    # input error, not an arithmetic crash.
+    with pytest.raises(ConfigurationError):
+        one_sample_tost([1e308, -1e308, 1e308], -1.0, 1.0)
+    with pytest.raises(ConfigurationError):
+        one_sample_t_interval([1e200, -1e200], 0.9)
+
+
+def test_student_t_sf_edges() -> None:
+    # Basis: P(T > 0) = 1/2 for every df by symmetry; P(T > +inf) = 0 and
+    # P(T > -inf) = 1; NaN t and df < 1 are outside the law's domain.
+    for df in (1, 2, 39, 10_000):
+        assert student_t_sf(0.0, df) == pytest.approx(0.5, abs=1e-15)
+        assert student_t_sf(math.inf, df) == 0.0 and student_t_sf(-math.inf, df) == 1.0
+        assert student_t_sf(1.3, df) + student_t_sf(-1.3, df) == pytest.approx(1.0, abs=1e-14)
+    for bad_t, bad_df in ((math.nan, 3), (1.0, 0), (1.0, True)):
+        with pytest.raises(ConfigurationError):
+            student_t_sf(bad_t, bad_df)  # type: ignore[arg-type]
+
+
+def test_tost_property_against_scipy_on_seeded_samples() -> None:
+    # Basis: each TOST side is an ordinary one-sided one-sample t test, so
+    # both p-values must equal the reference t test against each bound, and
+    # the decision must equal the (1 - 2 alpha) interval lying strictly inside
+    # the bounds (interval duality). Samples are drawn through RNGManager with
+    # a fixed seed, so the case list is reproducible.
+    stats = pytest.importorskip("scipy.stats")
+    from codontrace.rng import RNGManager
+
+    rng = RNGManager(seed=20261101).fork("tost-property")
+    for _ in range(60):
+        n = rng.randrange(2, 60)
+        centre = rng.random() * 2.0 - 1.0
+        spread = 10.0 ** (rng.random() * 4.0 - 3.0)
+        values = [centre + spread * (rng.random() - 0.5) for _ in range(n)]
+        low = -rng.random() * 0.5
+        high = rng.random() * 0.5 + 1e-3
+        alpha = (0.01, 0.05, 0.1, 0.2)[rng.randrange(4)]
+        r = one_sample_tost(values, low, high, alpha=alpha)
+        ref_lo = stats.ttest_1samp(values, low, alternative="greater").pvalue
+        ref_hi = stats.ttest_1samp(values, high, alternative="less").pvalue
+        assert r.p_lower == pytest.approx(ref_lo, rel=1e-7, abs=1e-300)
+        assert r.p_upper == pytest.approx(ref_hi, rel=1e-7, abs=1e-300)
+        assert r.equivalent is (low < r.ci_low and r.ci_high < high)

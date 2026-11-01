@@ -10,20 +10,30 @@ populations SE = d / sqrt(39). Bounds come from PREREG.md section 3:
 
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 import json
 import math
+import shutil
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from codontrace.campaigns import jr5_e1_gate
+from codontrace.campaigns.jr5_e1_gate import (
+    E1GateSpec,
+    E1Population,
+    evaluate_e1_cell,
+    evaluate_e1_gate,
+    load_e1_gate_spec,
+)
 from codontrace.errors import ConfigurationError
-from codontrace.genesis import jr5_e1_gate
-from codontrace.genesis.jr5_e1_gate import E1GateSpec, E1Population, evaluate_e1_cell, evaluate_e1_gate
 from codontrace.genesis.statistical_protocol import student_t_quantile
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSTANTS = ROOT / "docs" / "prereg" / "jr5" / "jr5_prereg_constants.json"
+RECORD = ROOT / "docs" / "prereg" / "jr5" / "record.json"
 T95_39 = student_t_quantile(39, 0.95)  # 1.684875, the 90% TOST critical value at n = 40
 
 
@@ -33,18 +43,21 @@ def _constants() -> dict[str, Any]:
 
 
 def _spec() -> E1GateSpec:
-    return E1GateSpec.from_prereg_constants(_constants())
+    return load_e1_gate_spec(ROOT)
 
 
-def _cell(centre: float, d: float, *, n: int = 40, seed0: int = 30000) -> list[E1Population]:
-    return [E1Population(seed=seed0 + i, log_w=centre + (d if i % 2 else -d)) for i in range(n)]
+def _cell(centre: float, d: float, m: float = 0.5) -> list[E1Population]:
+    # The preregistered seed block for ratio m (seed_split): 40 seeds.
+    seeds = _spec().seeds_for(m)
+    return [E1Population(seed=s, log_w=centre + (d if i % 2 else -d)) for i, s in enumerate(seeds)]
 
 
 def _passing_cells() -> dict[tuple[float, int], list[E1Population]]:
-    # d = 0.076 is the simulated SD of log w at N = 200, m = 0.5 (PREREG section 7).
+    # d is chosen near the simulated SD of log w at N = 200 (PREREG section 7);
+    # it is a planted spread, not a measured one.
     return {
         (0.5, 200): _cell(math.log(2.0), 0.076),
-        (0.25, 200): _cell(math.log(4.0 / 3.0), 0.051, seed0=31000),
+        (0.25, 200): _cell(math.log(4.0 / 3.0), 0.051, 0.25),
     }
 
 
@@ -64,14 +77,64 @@ def test_spec_reads_the_prereg_bounds() -> None:
 
 
 def test_spec_refuses_a_ci_level_that_is_not_one_minus_two_alpha() -> None:
-    block = dict(_constants()["gate_e1"])
-    block["ci_level"] = 0.95
+    # Basis: the TOST at alpha is the (1 - 2 alpha) interval inside the bounds,
+    # and the bounds are (1 -/+ margin) / (1 - m); a file stating other numbers
+    # is inconsistent with its own rules.
+    sha = _spec().constants_sha256
+    for key, value in (
+        ("ci_level", 0.95),
+        ("equivalence_bounds", {"0.5": [1.7, 2.2], "0.25": [1.2, 1.4666666666666666]}),
+        ("theoretical_cost", {"0.5": 2.1, "0.25": 1.3333333333333333}),
+        ("log_margin", {"low": -0.1, "high": 0.0953101798043249}),
+        ("populations_per_cell", 39),
+    ):
+        block = dict(_constants()["gate_e1"])
+        block[key] = value
+        with pytest.raises(ConfigurationError):
+            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+
+
+def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
+    # Basis: PREREG section 3 fixes bounds, theoretical cost and the seed block
+    # per sex ratio; a gate that silently falls back to a top-level block or
+    # skips a missing ratio key would test against unregistered settings.
+    sha = _spec().constants_sha256
     with pytest.raises(ConfigurationError):
-        E1GateSpec.from_prereg_constants({"gate_e1": block})
-    block = dict(_constants()["gate_e1"])
-    block["equivalence_bounds"] = {"0.5": [1.7, 2.2]}
+        E1GateSpec.from_prereg_constants(_constants()["gate_e1"], constants_sha256=sha)
+    for key in ("equivalence_bounds", "theoretical_cost", "seed_split"):
+        block = dict(_constants()["gate_e1"])
+        block[key] = {k: v for k, v in block[key].items() if k != "0.25"}
+        with pytest.raises(ConfigurationError):
+            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+    for key in ("log_margin", "populations_per_cell"):
+        block = {k: v for k, v in _constants()["gate_e1"].items() if k != key}
+        with pytest.raises(ConfigurationError):
+            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+
+
+def test_loader_checks_the_constants_sha_against_the_record(tmp_path: Path) -> None:
+    # Basis: the prereg is locked by the sha256 of each file in record.json;
+    # settings are only preregistered if their bytes hash to the pinned value.
+    pinned = dict(json.loads(RECORD.read_text(encoding="utf-8"))["manifest"]["files"])
+    sha = hashlib.sha256(CONSTANTS.read_bytes()).hexdigest()
+    assert pinned["docs/prereg/jr5/jr5_prereg_constants.json"] == sha
+    spec = _spec()
+    assert spec.constants_sha256 == sha
+    assert evaluate_e1_gate(spec, _passing_cells()).to_record()["constants_sha256"] == sha
+    folder = tmp_path / "docs" / "prereg" / "jr5"
+    folder.mkdir(parents=True)
+    shutil.copy(RECORD, folder / "record.json")
+    # One changed byte (a trailing newline) breaks the pin, even with equal content.
+    (folder / "jr5_prereg_constants.json").write_bytes(CONSTANTS.read_bytes() + b"\n")
     with pytest.raises(ConfigurationError):
-        E1GateSpec.from_prereg_constants({"gate_e1": block})
+        load_e1_gate_spec(tmp_path)
+    shutil.copy(CONSTANTS, folder / "jr5_prereg_constants.json")
+    assert load_e1_gate_spec(tmp_path) == spec
+    (folder / "record.json").write_text(json.dumps({"manifest": {"files": []}}), encoding="utf-8")
+    with pytest.raises(ConfigurationError):
+        load_e1_gate_spec(tmp_path)
+    with pytest.raises(ConfigurationError):
+        load_e1_gate_spec(tmp_path / "missing")
 
 
 def test_planted_theory_values_pass_with_hand_derived_t() -> None:
@@ -132,7 +195,7 @@ def test_interval_just_inside_passes_and_just_outside_fails() -> None:
 def test_failure_at_either_sex_ratio_fails_the_gate() -> None:
     # PREREG section 3: failure at either sex ratio stops JR5 at phase 3.
     cells = _passing_cells()
-    cells[(0.25, 200)] = _cell(math.log(1.6), 0.051, seed0=31000)
+    cells[(0.25, 200)] = _cell(math.log(1.6), 0.051, 0.25)
     result = evaluate_e1_gate(_spec(), cells)
     assert result.cells[0].passed and not result.cells[1].passed
     assert not result.passed
@@ -146,7 +209,7 @@ def test_null_exclusion_is_checked_separately() -> None:
     # log(2 / 1.97) = 0.01511 < 0.02462, so 1.97 is not. Equivalence holds in both.
     base = _spec()
     for target, expected in ((1.95, True), (1.97, False)):
-        spec = E1GateSpec(**{**{f: getattr(base, f) for f in base.__slots__}, "must_exclude": target})
+        spec = dataclasses.replace(base, must_exclude=target)
         cell = evaluate_e1_cell(spec, 0.5, 200, _cell(math.log(2.0), 0.076))
         assert cell.equivalent
         assert cell.excludes_null is expected
@@ -178,13 +241,13 @@ def test_n50_is_reported_but_does_not_gate() -> None:
     # PREREG: E1 at N = 50 is report-only. A failing N = 50 cell leaves the
     # gate as it is, and N = 50 alone cannot pass it.
     cells: dict[tuple[float, int], list[E1Population]] = dict(_passing_cells())
-    cells[(0.5, 50)] = _cell(math.log(1.5), 0.158, seed0=32000)
+    cells[(0.5, 50)] = _cell(math.log(1.5), 0.158)
     result = evaluate_e1_gate(_spec(), cells)
     n50 = [c for c in result.cells if c.host_n == 50][0]
     assert not n50.gated and not n50.passed
     assert result.passed
     with pytest.raises(ConfigurationError):
-        evaluate_e1_gate(_spec(), {(0.5, 50): _cell(math.log(2.0), 0.076), (0.25, 50): _cell(0.29, 0.05)})
+        evaluate_e1_gate(_spec(), {(0.5, 50): _cell(math.log(2.0), 0.076), (0.25, 50): _cell(0.29, 0.05, 0.25)})
 
 
 def test_missing_ratio_or_unregistered_ratio_raises() -> None:
@@ -194,6 +257,8 @@ def test_missing_ratio_or_unregistered_ratio_raises() -> None:
         evaluate_e1_gate(_spec(), cells)
     with pytest.raises(ConfigurationError):
         evaluate_e1_cell(_spec(), 0.4, 200, _cell(0.5, 0.05))
+    with pytest.raises(ConfigurationError):
+        evaluate_e1_cell(_spec(), 0.5, 100, _cell(0.5, 0.05))
 
 
 def test_gate_module_holds_no_outcome_literals_and_no_randomness() -> None:
@@ -205,6 +270,7 @@ def test_gate_module_holds_no_outcome_literals_and_no_randomness() -> None:
     for name in [*names, "red_queen_proved"]:
         assert f'"{name}"' not in source and f"'{name}'" not in source
     assert "import random" not in source and "RNGManager" not in source
+    assert "13101" not in source and "608ccdea" not in source
 
 
 def test_required_pair_prereg_pass_and_prereg_fail() -> None:
@@ -238,3 +304,76 @@ def test_required_pair_prereg_pass_and_prereg_fail() -> None:
     assert low.tost.p_lower > 0.98
     assert failing.cells[1].passed
     assert failing.to_record()["passed"] is False
+
+
+def test_cells_must_hold_exactly_the_preregistered_seed_block() -> None:
+    # Basis: PREREG fixes 40 populations per cell on seed_split blocks
+    # 13101-13140 (m = 0.5) and 13141-13180 (m = 0.25). Dropping, swapping or
+    # adding a seed is selective inclusion and must be refused, at N = 200
+    # and at the report-only N = 50 alike.
+    spec = _spec()
+    assert spec.seeds_for(0.5) == range(13101, 13141)
+    assert spec.seeds_for(0.25) == range(13141, 13181)
+    good = _cell(math.log(2.0), 0.076)
+    shifted = [dataclasses.replace(good[0], seed=13141), *good[1:]]
+    dup = [*good[:-1], dataclasses.replace(good[-1], seed=good[0].seed)]
+    for host_n in (200, 50):
+        assert evaluate_e1_cell(spec, 0.5, host_n, good).n_total == 40
+        for bad in (good[:-1], shifted, dup, [*good, E1Population(13141, 0.7)], _cell(math.log(2.0), 0.076, 0.25)):
+            with pytest.raises(ConfigurationError):
+                evaluate_e1_cell(spec, 0.5, host_n, bad)
+
+
+def test_excluded_population_may_lack_log_w_but_a_kept_one_may_not() -> None:
+    # Basis: a population that fixes before generation 3 has no usable
+    # frequency trajectory, so its fit may be undefined; it is excluded before
+    # fitting. A kept population without a finite log w cannot enter a t test.
+    spec = _spec()
+    pops = _cell(math.log(2.0), 0.076)
+    early = [
+        E1Population(pops[0].seed, None, fixed_generation=1),
+        E1Population(pops[1].seed, math.inf, fixed_generation=2),
+        *pops[2:],
+    ]
+    cell = evaluate_e1_cell(spec, 0.5, 200, early)
+    assert len(cell.excluded_seeds) == 2 and cell.tost is not None and cell.tost.n == 38
+    for bad_w in (None, math.nan):
+        kept = [E1Population(pops[0].seed, bad_w), *pops[1:]]
+        with pytest.raises(ConfigurationError):
+            evaluate_e1_cell(spec, 0.5, 200, kept)
+        late = [E1Population(pops[0].seed, bad_w, fixed_generation=3), *pops[1:]]
+        with pytest.raises(ConfigurationError):
+            evaluate_e1_cell(spec, 0.5, 200, late)
+
+
+def test_instrument_failure_both_ways() -> None:
+    # Basis: PREREG.md line 15 - failure of the cost gate, or more than 20% of
+    # an E1 cell excluded, is an instrument failure. A clean pass is not one; a
+    # failing gate is; a cap breach is one even in the report-only N = 50 cell
+    # and even while every gated cell passes.
+    clean = evaluate_e1_gate(_spec(), _passing_cells())
+    assert clean.passed and not clean.instrument_failure
+    assert clean.to_record()["instrument_failure"] is False
+    cells = _passing_cells()
+    cells[(0.5, 200)] = _cell(math.log(1.75), 0.076)
+    failed = evaluate_e1_gate(_spec(), cells)
+    assert not failed.passed and failed.instrument_failure
+    pops = _cell(math.log(2.0), 0.076)
+    breach = [E1Population(p.seed, p.log_w, fixed_generation=0) if i < 9 else p for i, p in enumerate(pops)]
+    with_n50 = {**_passing_cells(), (0.5, 50): breach}
+    result = evaluate_e1_gate(_spec(), with_n50)
+    assert result.passed and result.instrument_failure
+    eight = [E1Population(p.seed, p.log_w, fixed_generation=0) if i < 8 else p for i, p in enumerate(pops)]
+    assert not evaluate_e1_gate(_spec(), {**_passing_cells(), (0.5, 50): eight}).instrument_failure
+
+
+def test_adapter_rows_carry_the_gated_cells_on_the_ratio_scale() -> None:
+    # Basis: condition (a) of RED_QUEEN_CLAIM_PATH.md is stated on the ratio
+    # scale; the verdict adapter reads one row per sex ratio at N = 200 with
+    # the 90% and 95% intervals as exp of the log-scale t intervals.
+    result = evaluate_e1_gate(_spec(), {**_passing_cells(), (0.5, 50): _cell(math.log(2.0), 0.1)})
+    rows = result.adapter_e1()
+    assert [r["sex_ratio"] for r in rows] == [0.5, 0.25]
+    assert set(rows[0]) == {"sex_ratio", "n_populations", "n_excluded", "ci90", "ci95"}
+    assert rows[0]["ci90"] == pytest.approx([1.95940, 2.04141], abs=1e-4)
+    assert rows[0]["n_populations"] == 40 and rows[0]["n_excluded"] == 0

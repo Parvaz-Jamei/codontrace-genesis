@@ -721,7 +721,8 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 
 # Regression pins, not the prereg E1 estimand: the bias-reduced binomial
 # logit of tests/_jr5_e1_fit.py fitted to the male count of a 4-founder run
-# with no asexual lineage. The prereg E1 fit (asexual count, 0.2 asexual
+# with no asexual lineage. Both current pins use outcross fee 0.0
+# (outcross_runtime_atp=0.0, the prereg confirmatory setting). The prereg E1 fit (asexual count, 0.2 asexual
 # founders) is pinned separately as _E1_PREREG_ASEXUAL below.
 # Re-pin history, each step checked by rerunning the fit at the commits named:
 # - Outcross arm: (0.79900229, -0.09470521) on the 2b tip 8be79b12 with the
@@ -732,12 +733,14 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 #   to (-3.9159,-0.1605), because genome length went from 9 to 18 bits (before
 #   the fix a selfed child was the parent's even homolog alone, so the genome
 #   halved). The self arm has zero males, so its intercept sits at the
-#   bias-reduced lower bound.
+#   bias-reduced lower bound. Selfing pays no outcross fee, so the fee
+#   setting does not enter this arm.
 _E1_MALE_OUTCROSS_DIPLOID = (0.80725957, -0.32454182)
 _E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
 # The prereg E1 estimand: asexual count out of census against generation,
 # obligate-outcross host arm with an asexual founder fraction of 0.2 and no
-# parasite (this session has no host-parasite world clock). Computed with the
+# parasite (this session has no host-parasite world clock), outcross fee 0.0.
+# Computed with the
 # same estimator on this branch.
 _E1_PREREG_ASEXUAL = (-1.23889801, 0.05642555)
 

@@ -14,6 +14,7 @@ from typing import Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.causal_validation import _regularized_incomplete_beta, student_t_quantile
 from codontrace.rng import RNGManager
 
 
@@ -1062,12 +1063,6 @@ def holm_correction(p_values: Sequence[float]) -> tuple[float, ...]:
 # asymmetric, which is the case for ratio margins taken to the log scale.
 # Each one-sided test runs at alpha, not alpha / 2: the two nulls are
 # disjoint, so at most one of them can be true.
-from codontrace.genesis.causal_validation import (  # noqa: E402
-    _regularized_incomplete_beta,
-    student_t_quantile,
-)
-
-
 def student_t_sf(t: float, df: int) -> float:
     """Upper tail P(T > t) of Student's t with ``df`` degrees of freedom.
 
@@ -1093,8 +1088,13 @@ def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int
     n = len(data)
     if n < 2:
         raise ConfigurationError("a one-sample t procedure needs at least 2 values.")
-    mean = math.fsum(data) / n
-    variance = math.fsum((item - mean) ** 2 for item in data) / (n - 1)
+    try:
+        mean = math.fsum(data) / n
+        variance = math.fsum((item - mean) * (item - mean) for item in data) / (n - 1)
+    except OverflowError as exc:
+        raise ConfigurationError("values are too large for a finite mean and variance.") from exc
+    if not (math.isfinite(mean) and math.isfinite(variance)):
+        raise ConfigurationError("values are too large for a finite mean and variance.")
     return data, mean, math.sqrt(variance), n - 1
 
 
@@ -1204,7 +1204,8 @@ def one_sample_tost(
         t_upper = math.copysign(math.inf, mean - high) if mean != high else 0.0
         half = 0.0
     p_lower = student_t_sf(t_lower, df)
-    p_upper = 1.0 - student_t_sf(t_upper, df)
+    # P(T < t_upper) taken as the upper tail at -t_upper: no 1 - x cancellation.
+    p_upper = student_t_sf(-t_upper, df)
     return OneSampleTOSTResult(
         n=len(data),
         df=df,

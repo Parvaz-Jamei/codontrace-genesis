@@ -42,19 +42,24 @@ def _heterozygosity(bits: str) -> float:
     return sum(a != b for a, b in pairs) / len(pairs)
 
 
+# Generations in the length test; PREREG.md section 4 states the same number.
+GENOME_LENGTH_GENERATIONS = 50
+
+
 def test_genome_length_is_conserved_over_many_generations() -> None:
     """Fertilisation is the inverse of the homolog split, so length is invariant.
 
     Basis: a zygote holds one homolog from each gamete, and each gamete holds one
     copy of every locus, so the diploid length after syngamy equals the parent
-    length. Expected value: the founder length, exactly, after 50 generations,
-    for even and odd codon counts and a genome with trailing non-codon bits.
+    length. Expected value: the founder length, exactly, after
+    GENOME_LENGTH_GENERATIONS (50) generations, for even and odd codon counts
+    and a genome with trailing non-codon bits.
     """
 
     rng = RNGManager(20261031)
     for start in ("010110001111000101", "0101100011110001011", "01011000111100010111001"):
         own, mate = start, start[::-1]
-        for generation in range(50):
+        for generation in range(GENOME_LENGTH_GENERATIONS):
             gen_rng = rng.fork(f"{len(start)}/{generation}")
             child_a = fuse_gametes(
                 meiotic_gamete(own, WIDTH, gen_rng.fork("a")),

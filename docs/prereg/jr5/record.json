@@ -1,15 +1,19 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "aede93c859df80d313de7f7e1b3aedf73d59cef4de52f6c0c8fe43e75e109e3f",
+    "digest": "9cb976e49bce0add49268f30defee9a2667597e9a46276949b836052c3cfe9d1",
     "files": [
+      [
+        "docs/prereg/jr5/DEVIATIONS.md",
+        "a289fdc93a312e19e504f9b1b4bd7bc226bc27afa4a7320dcf507b7bfdea2ece"
+      ],
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
         "9047b8a353848958fb5f1002ba24d3ce17cd0a49b4380e3817db21878d4ed882"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "ea2fe039b770d595b7153d3cca5fd1df0931f8c3b9e515fa6dc25f89f044fb6c"
+        "d2dd0eaf18f41ed0312ac94931cd224a516fab5284799d22549a271a2401ef71"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",

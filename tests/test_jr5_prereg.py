@@ -55,6 +55,7 @@ def test_record_covers_constants_and_docs() -> None:
         "REFERENCES.md",
         "RED_QUEEN_CLAIM_PATH.md",
         "jr5_prereg_constants.json",
+        "DEVIATIONS.md",
         "scripts/e1_power_sim.py",
     ):
         assert f"docs/prereg/jr5/{name}" in paths
@@ -816,24 +817,116 @@ def test_diploid_fix_pins_agree_with_prereg_text_and_json() -> None:
     assert f"engine test `{node}`" in text
 
 
+def _diploid_pin() -> dict[str, str]:
+    pin: dict[str, str] = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"][
+        "diploid_fertilisation"
+    ]
+    return pin
+
+
+def _require_full_history() -> None:
+    """Skip only in a shallow clone; any other missing history is a failure."""
+
+    shallow = _git("rev-parse", "--is-shallow-repository")
+    assert shallow.returncode == 0, "not a git checkout: " + shallow.stderr
+    if shallow.stdout.strip() == "true":
+        pytest.skip("shallow clone: the pinned merge commit is not in local history")
+
+
+# Head of fix/diploid-fertilisation when PR 134 was merged (second parent of
+# 4400e07): the commit that pinned the per-version repr digests.
+DIPLOID_FIX_BRANCH_HEAD = "45269184147251b5cfe93c7f97baba1fcb48323c"
+
+
 def test_diploid_fix_merge_commit_is_an_ancestor_of_head() -> None:
-    """The pinned merge commit is in the history this checkout was built from.
+    """The pinned commit is the merge of the fix and is in this checkout's history.
 
     Basis: git merge-base --is-ancestor A B exits 0 when A is an ancestor of B
-    and 1 when it is not; a commit counts as its own ancestor. The pin must be
-    a merge (two parents), since it records the merge of the fix into main.
-    Skipped when the object is absent (shallow clone or source archive), as in
-    the rq1 locked-commit test. Expected: exit code 0 and two parents.
+    and 1 when it is not. The pin must be a merge (two parents) that contains
+    the head of the fix branch, 4526918, and HEAD must contain the pin. A
+    shallow clone is skipped; in a full clone a missing pin fails.
+    Expected: the pin exists, has two parents, contains 4526918, and is an
+    ancestor of HEAD.
     """
 
-    sha = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"][
-        "merge_commit"
-    ]
-    if _git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
-        pytest.skip("history not available (shallow clone or source archive)")
+    _require_full_history()
+    sha = _diploid_pin()["merge_commit"]
+    assert _git("cat-file", "-e", f"{sha}^{{commit}}").returncode == 0, f"pinned commit {sha} not found"
     assert _git("merge-base", "--is-ancestor", sha, "HEAD").returncode == 0
     parents = _git("rev-list", "--parents", "-n", "1", sha).stdout.split()
     assert len(parents) == 3
+    assert _git("merge-base", "--is-ancestor", DIPLOID_FIX_BRANCH_HEAD, sha).returncode == 0
+
+
+def test_diploid_fix_engine_test_arrives_with_the_pinned_merge() -> None:
+    """The pinned engine test exists at the merge commit and not at its first parent.
+
+    Basis: the first parent of the merge is main before the fix, so the test
+    the fix added must be absent there and present at the merge; git show
+    <sha>:<path> prints the file at that commit. A shallow clone is skipped.
+    Expected: "def <test name>(" in the file at the pin, and not in the file
+    at the pin's first parent (or the file does not exist there).
+    """
+
+    _require_full_history()
+    path, name = _diploid_pin()["engine_test"].split("::")
+    sha = _diploid_pin()["merge_commit"]
+    at_pin = _git("show", f"{sha}:{path}")
+    assert at_pin.returncode == 0, at_pin.stderr
+    assert f"def {name}(" in at_pin.stdout
+    at_parent = _git("show", f"{sha}^1:{path}")
+    assert at_parent.returncode != 0 or f"def {name}(" not in at_parent.stdout
+
+
+def test_prereg_generation_count_matches_the_engine_test() -> None:
+    """The generation count PREREG.md gives for the engine test is the test's own.
+
+    Basis: the test runs range(GENOME_LENGTH_GENERATIONS); the text says
+    "conserved over N generations (`GENOME_LENGTH_GENERATIONS` ...". The value
+    is read from the test file's source so the two cannot drift apart.
+    Expected: the same integer in both, and the loop uses the constant.
+    """
+
+    source = (ROOT / "tests" / "test_diploid_fertilisation.py").read_text(encoding="utf-8")
+    m = re.search(r"^GENOME_LENGTH_GENERATIONS = (\d+)$", source, re.M)
+    assert m is not None
+    assert "range(GENOME_LENGTH_GENERATIONS)" in source
+    t = re.search(r"conserved over (\d+) generations \(`GENOME_LENGTH_GENERATIONS`", _prereg_text())
+    assert t is not None
+    assert t.group(1) == m.group(1)
+
+
+_DIGEST_LINE = re.compile(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", re.M)
+
+
+def test_deviations_log_names_the_current_record_digest() -> None:
+    """The last DEVIATIONS.md entry names the record digest of the current plan files.
+
+    Basis: PREREG.md section 12 requires each post-lock change to be logged with
+    the new record digest. DEVIATIONS.md is in the manifest itself, so the
+    digest it names is hash_plan over every manifest file except DEVIATIONS.md
+    (a digest cannot include its own hash). Entries chain: each old digest is
+    the previous new one. Expected: the last entry's new digest equals that
+    recomputed digest, every entry has a digest line, and the chain holds.
+    """
+
+    rec = _record()
+    paths = [p for p, _ in rec.manifest.files]
+    log_path = "docs/prereg/jr5/DEVIATIONS.md"
+    assert log_path in paths
+    plan = hash_plan([p for p in paths if p != log_path], root=ROOT, title=rec.manifest.title)
+    text = (ROOT / log_path).read_text(encoding="utf-8")
+    entries = text.split("\n## ")[1:]
+    assert entries
+    pairs = []
+    for entry in entries:
+        found = _DIGEST_LINE.findall(entry)
+        assert len(found) == 1, entry.splitlines()[0]
+        pairs.append(found[0])
+    for (_, new), (old, _) in zip(pairs, pairs[1:], strict=False):
+        assert old == new
+    assert pairs[-1][1] == plan.digest
+    assert "no JR5 run has started" in entries[-1]
 
 
 def test_diploid_fix_engine_test_is_collected() -> None:

@@ -14,7 +14,7 @@ import json
 import os
 import tempfile
 
-_parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+_parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], allow_abbrev=False)
 _parser.add_argument("--repr", action="store_true", help="hash repr() of run summaries (exact float bits)")
 _parser.add_argument(
     "--perturb-t02-altruism",

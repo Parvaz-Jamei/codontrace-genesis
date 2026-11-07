@@ -17,7 +17,10 @@ establish provenance. These resources work in an installed wheel without a
 source checkout. Changes to the lock require a reviewed pin/resource update;
 the locked documents are never edited by this adapter.
 
-The finalized preregistration is merged; phase 3 integration remains pending.
+The finalized preregistration and phase 3 gate are merged. Live producer-to-adapter
+and auditor integration is covered by `tests/test_jr5_live_gate_adapter.py`.
+The Python spec attribute is `prereg_manifest_sha256`; the v3 JSON key stays
+`prereg_manifest_digest`. No fabricated gate record is consumed in these tests.
 Current manifest digest:
 `1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d`.
 Constants SHA-256:
@@ -86,7 +89,7 @@ Only numerical evaluation roundoff is tolerated (relative 1e-9, absolute
 N50 equivalence is report-only. An exclusion-cap breach in **any** cell is an
 instrument failure; a gated-cell cap breach also prevents `passed`. A
 supplied passing flag or a summary-only `adapter_e1()` result is insufficient.
-The interface is specified in `docs/jr5_phase3_gate_contract.md` on phase 3.
+The interface is specified in `docs/jr5_phase3_gate_contract.md`.
 
 ## Recomputed decisions
 

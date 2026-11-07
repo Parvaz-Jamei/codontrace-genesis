@@ -849,13 +849,72 @@ def test_diploid_fix_merge_commit_is_an_ancestor_of_head() -> None:
     ancestor of HEAD.
     """
 
+    _check_merge_pin(_diploid_pin()["merge_commit"])
+
+
+def _check_merge_pin(sha: str) -> None:
     _require_full_history()
-    sha = _diploid_pin()["merge_commit"]
     assert _git("cat-file", "-e", f"{sha}^{{commit}}").returncode == 0, f"pinned commit {sha} not found"
     assert _git("merge-base", "--is-ancestor", sha, "HEAD").returncode == 0
     parents = _git("rev-list", "--parents", "-n", "1", sha).stdout.split()
     assert len(parents) == 3
     assert _git("merge-base", "--is-ancestor", DIPLOID_FIX_BRANCH_HEAD, sha).returncode == 0
+
+
+def _fake_git(shallow: str, missing: str = "") -> Any:
+    """A stand-in for _git: answers is-shallow-repository with `shallow`; cat-file -e fails for `missing`."""
+
+    def run(*args: str) -> subprocess.CompletedProcess[str]:
+        if args == ("rev-parse", "--is-shallow-repository"):
+            return subprocess.CompletedProcess(args, 0, shallow + "\n", "")
+        if args[:2] == ("cat-file", "-e") and missing and args[2].startswith(missing):
+            return subprocess.CompletedProcess(args, 1, "", "fatal: Not a valid object name\n")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    return run
+
+
+def test_full_history_check_skips_in_a_shallow_clone_and_only_there(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The history guard skips when git reports a shallow clone and lets the test run otherwise.
+
+    Basis: git rev-parse --is-shallow-repository prints "true" in a shallow
+    clone and "false" in a full one; a shallow clone lacks the pinned merge,
+    so only that case may skip. pytest.skip raises pytest.skip.Exception, so
+    a skip in the full-clone case is caught here and turned into a failure
+    instead of being reported as a skip. git is replaced by a stand-in, so
+    the test means the same in a shallow and a full checkout.
+    Expected: skip for "true"; no skip and no error for "false".
+    """
+
+    module = sys.modules[__name__]
+    monkeypatch.setattr(module, "_git", _fake_git("true"))
+    with pytest.raises(pytest.skip.Exception, match="shallow clone"):
+        _require_full_history()
+    monkeypatch.setattr(module, "_git", _fake_git("false"))
+    try:
+        _require_full_history()
+    except pytest.skip.Exception:
+        pytest.fail("the guard skipped in a full clone")
+
+
+def test_missing_pin_fails_in_a_full_clone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """In a full clone a pin that git cannot find fails the check instead of skipping it.
+
+    Basis: git cat-file -e <sha>^{commit} exits non-zero when the object is
+    absent. In a full clone that means the pin names no commit of this
+    repository, which is an error in the prereg, not missing history. git is
+    replaced by a stand-in that reports a full clone and no such object, so
+    the genuine pin in the JSON does not hide the case.
+    Expected: AssertionError naming the missing commit; a skip is a failure.
+    """
+
+    bogus = "f" * 40
+    monkeypatch.setattr(sys.modules[__name__], "_git", _fake_git("false", missing=bogus))
+    try:
+        with pytest.raises(AssertionError, match=f"pinned commit {bogus} not found"):
+            _check_merge_pin(bogus)
+    except pytest.skip.Exception:
+        pytest.fail("a missing pin was skipped in a full clone")
 
 
 def test_diploid_fix_engine_test_arrives_with_the_pinned_merge() -> None:

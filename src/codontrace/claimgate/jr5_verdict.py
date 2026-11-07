@@ -316,6 +316,11 @@ class RunRecord:
         if not isinstance(exp, str):
             raise ConfigurationError("run.experiment must be a string.")
         cell_map = _mapping(d["cell"], "run.cell")
+        for level, value in cell_map.items():
+            if not isinstance(level, str) or isinstance(value, bool) or not isinstance(value, (str, int, float)):
+                raise ConfigurationError("run.cell levels must be strings or numbers, not booleans or containers.")
+            if isinstance(value, (int, float)):
+                _finite(value, f"run.cell.{level}")
         cell = tuple(
             sorted(
                 (str(f), float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v)

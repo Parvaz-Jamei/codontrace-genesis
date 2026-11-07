@@ -408,3 +408,13 @@ def test_gate_audit_seed_lists_are_sets_not_population_input_order() -> None:
     rehash(record)
     result = verdict.evaluate_jr5_verdict(ev)
     assert result.conditions["a"] is False and result.outcome == "instrument_fail"
+
+
+def test_boolean_cell_levels_cannot_alias_registered_numeric_zero() -> None:
+    """Although False==0.0 in mapping keys, a registered numeric mutation rate is not a JSON boolean."""
+    ev = positive()
+    run = next(r for r in ev["runs"] if r["experiment"] == "mutation_load" and r["cell"]["mutation"] == 0.0)
+    run["cell"]["mutation"] = False
+    raw.readdress(run)
+    with pytest.raises(ConfigurationError, match="cell"):
+        verdict.evaluate_jr5_verdict(ev)

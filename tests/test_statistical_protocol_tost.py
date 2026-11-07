@@ -203,3 +203,36 @@ def test_tost_property_against_scipy_on_seeded_samples() -> None:
         assert r.p_lower == pytest.approx(ref_lo, rel=1e-7, abs=1e-300)
         assert r.p_upper == pytest.approx(ref_hi, rel=1e-7, abs=1e-300)
         assert r.equivalent is (low < r.ci_low and r.ci_high < high)
+
+
+@pytest.mark.parametrize("confidence", [0.0, 1.0, math.nan, math.inf])
+def test_t_interval_refuses_invalid_confidence(confidence: float) -> None:
+    """A two-sided interval requires 0 < confidence < 1 so its quantile is
+    defined. Expected: invalid endpoints and non-finite confidence are input
+    errors rather than unbounded or silently altered intervals.
+    """
+    with pytest.raises(ConfigurationError):
+        one_sample_t_interval([0.0, 2.0], confidence)
+
+
+def test_t_interval_refuses_missing_spread_data_and_nonfinite_values() -> None:
+    """The sample variance uses n-1 degrees of freedom and finite deviations.
+    Expected: fewer than two observations, infinity, NaN and overflowing
+    squared deviations are refused by both one-sample t procedures.
+    """
+    for values in ([], [1.0], [1.0, math.inf], [1.0, math.nan], [1e300, -1e300]):
+        with pytest.raises(ConfigurationError):
+            one_sample_t_interval(values, 0.95)
+        with pytest.raises(ConfigurationError):
+            one_sample_tost(values, -1.0, 3.0)
+
+
+def test_zero_variance_on_upper_bound_does_not_show_equivalence() -> None:
+    """With every value on the upper bound, t_upper=0 and its one-sided
+    p-value is 1/2 by symmetry. Expected: no equivalence, even though the
+    degenerate interval has width zero and the lower side rejects.
+    """
+    result = one_sample_tost([2.0, 2.0], 1.0, 2.0)
+    assert result.t_upper == 0.0 and result.p_upper == 0.5
+    assert result.ci_low == result.ci_high == 2.0
+    assert not result.equivalent

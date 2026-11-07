@@ -58,6 +58,8 @@ def _passing_cells() -> dict[tuple[float, int], list[E1Population]]:
     return {
         (0.5, 200): _cell(math.log(2.0), 0.076),
         (0.25, 200): _cell(math.log(4.0 / 3.0), 0.051, 0.25),
+        (0.5, 50): _cell(math.log(2.0), 0.158),
+        (0.25, 50): _cell(math.log(4.0 / 3.0), 0.107, 0.25),
     }
 
 
@@ -91,7 +93,11 @@ def test_spec_refuses_a_ci_level_that_is_not_one_minus_two_alpha() -> None:
         block = dict(_constants()["gate_e1"])
         block[key] = value
         with pytest.raises(ConfigurationError):
-            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+            E1GateSpec._from_verified_mapping(
+                {**_constants(), "gate_e1": block},
+                constants_sha256=sha,
+                prereg_manifest_digest=_spec().prereg_manifest_digest,
+            )
 
 
 def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
@@ -100,16 +106,26 @@ def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
     # skips a missing ratio key would test against unregistered settings.
     sha = _spec().constants_sha256
     with pytest.raises(ConfigurationError):
-        E1GateSpec.from_prereg_constants(_constants()["gate_e1"], constants_sha256=sha)
+        E1GateSpec._from_verified_mapping(
+            _constants()["gate_e1"], constants_sha256=sha, prereg_manifest_digest=_spec().prereg_manifest_digest
+        )
     for key in ("equivalence_bounds", "theoretical_cost", "seed_split"):
         block = dict(_constants()["gate_e1"])
         block[key] = {k: v for k, v in block[key].items() if k != "0.25"}
         with pytest.raises(ConfigurationError):
-            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+            E1GateSpec._from_verified_mapping(
+                {**_constants(), "gate_e1": block},
+                constants_sha256=sha,
+                prereg_manifest_digest=_spec().prereg_manifest_digest,
+            )
     for key in ("log_margin", "populations_per_cell"):
         block = {k: v for k, v in _constants()["gate_e1"].items() if k != key}
         with pytest.raises(ConfigurationError):
-            E1GateSpec.from_prereg_constants({**_constants(), "gate_e1": block}, constants_sha256=sha)
+            E1GateSpec._from_verified_mapping(
+                {**_constants(), "gate_e1": block},
+                constants_sha256=sha,
+                prereg_manifest_digest=_spec().prereg_manifest_digest,
+            )
 
 
 def test_loader_checks_the_constants_sha_against_the_record(tmp_path: Path) -> None:
@@ -131,7 +147,7 @@ def test_loader_checks_the_constants_sha_against_the_record(tmp_path: Path) -> N
     shutil.copy(CONSTANTS, folder / "jr5_prereg_constants.json")
     assert load_e1_gate_spec(tmp_path) == spec
     (folder / "record.json").write_text(json.dumps({"manifest": {"files": []}}), encoding="utf-8")
-    with pytest.raises(ConfigurationError, match="does not pin"):
+    with pytest.raises(ConfigurationError, match="code-pinned"):
         load_e1_gate_spec(tmp_path)
     with pytest.raises(ConfigurationError):
         load_e1_gate_spec(tmp_path / "missing")
@@ -285,7 +301,7 @@ def test_required_pair_prereg_pass_and_prereg_fail() -> None:
     # verdict adapter reads as record["passed"]. The flag itself is set only
     # by that adapter, from (a) to (e) together.
     passing = evaluate_e1_gate(_spec(), _passing_cells())
-    ratio_ci = {c.sex_ratio: c.to_record()["ratio_ci"] for c in passing.cells}
+    ratio_ci = {c.sex_ratio: c.to_record()["ratio_ci"] for c in passing.cells if c.gated}
     assert ratio_ci[0.5] == pytest.approx([1.95940, 2.04141], abs=1e-4)
     assert ratio_ci[0.25] == pytest.approx([1.31511, 1.35180], abs=1e-4)
     assert passing.to_record()["passed"] is True
@@ -388,3 +404,157 @@ def test_adapter_rows_carry_the_gated_cells_on_the_ratio_scale() -> None:
     # so [2 exp(-0.024616), 2 exp(0.024616)] = [1.95137, 2.04984].
     assert rows[0]["ci95"] == pytest.approx([1.95137, 2.04984], abs=1e-4)
     assert rows[0]["n_populations"] == 40 and rows[0]["n_excluded"] == 0
+
+
+def _tuned_constants() -> dict[str, Any]:
+    constants = _constants()
+    gate = constants["gate_e1"]
+    gate["relative_margin"] = 0.3
+    gate["log_margin"] = {"low": math.log(0.7), "high": math.log(1.3)}
+    gate["equivalence_bounds"] = {str(m): [0.7 / (1 - m), 1.3 / (1 - m)] for m in gate["sex_ratios"]}
+    return constants
+
+
+def test_public_decoder_hashes_the_bytes_it_parses() -> None:
+    """A ±30% margin can be internally consistent but is not the locked ±10%.
+
+    A genuine digest paired with a modified mapping proves nothing about the
+    mapping. Expected: only the original byte payload can build the trusted
+    spec; mapping input, edited bytes and even an extra newline are refused.
+    """
+    raw, record_raw = CONSTANTS.read_bytes(), RECORD.read_bytes()
+    assert E1GateSpec.from_prereg_constants(raw, record_raw=record_raw) == _spec()
+    tuned = _tuned_constants()
+    with pytest.raises(ConfigurationError, match="raw bytes"):
+        E1GateSpec.from_prereg_constants(tuned, record_raw=record_raw)  # type: ignore[arg-type]
+    for edited in (json.dumps(tuned).encode(), raw + b"\n"):
+        with pytest.raises(ConfigurationError, match="sha256"):
+            E1GateSpec.from_prereg_constants(edited, record_raw=record_raw)
+
+
+@pytest.mark.parametrize("rehash", [False, True])
+def test_loader_refuses_a_forged_record_and_consistent_constants(tmp_path: Path, rehash: bool) -> None:
+    """A manifest copied with edited constants must not establish a new lock.
+
+    The counterfeit constants consistently widen both ratio margins to ±30%.
+    Their new hash replaces the constants entry. Expected: rejection whether
+    the manifest repeats the old claimed digest or recomputes a consistent new
+    one. Otherwise a post-hoc wider equivalence interval could pass the gate.
+    """
+    from codontrace.preregistration.manifest import PlanManifest
+
+    raw = json.dumps(_tuned_constants()).encode()
+    record = json.loads(RECORD.read_bytes())
+    manifest = record["manifest"]
+    manifest["files"] = [
+        [name, hashlib.sha256(raw).hexdigest() if name == jr5_e1_gate.CONSTANTS_RELPATH else digest]
+        for name, digest in manifest["files"]
+    ]
+    if rehash:
+        manifest.pop("digest")
+        record["manifest"] = PlanManifest.from_dict(manifest).to_dict()
+    folder = tmp_path / "docs" / "prereg" / "jr5"
+    folder.mkdir(parents=True)
+    (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
+    (folder / "jr5_prereg_constants.json").write_bytes(raw)
+    with pytest.raises(ConfigurationError, match="code-pinned"):
+        load_e1_gate_spec(tmp_path)
+
+
+@pytest.mark.parametrize("ratio,host_n", [(m, n) for m in (0.5, 0.25) for n in (200, 50)])
+def test_gate_requires_every_reported_cell(ratio: float, host_n: int) -> None:
+    """The prereg grid is 2 ratios × 2 sizes × 40 populations = 160.
+
+    The N=50 cells do not gate on equivalence, but either may exceed the
+    exclusion cap and cause instrument failure. Expected: omission of any
+    cell is refused, including either report-only cell and both together.
+    """
+    cells = _passing_cells()
+    del cells[(ratio, host_n)]
+    with pytest.raises(ConfigurationError, match="prereg grid"):
+        evaluate_e1_gate(_spec(), cells)
+    only_gated = {key: rows for key, rows in _passing_cells().items() if key[1] == 200}
+    with pytest.raises(ConfigurationError, match="prereg grid"):
+        evaluate_e1_gate(_spec(), only_gated)
+
+
+def test_modified_spec_cannot_stamp_a_gate_record_with_genuine_digests() -> None:
+    """Hash labels cannot authorize settings changed after decoding.
+
+    Keeping genuine digests while widening the margin would falsely stamp a
+    post-hoc gate as preregistered. Expected: the public gate rejects a replaced
+    spec while the unchanged complete 160-population positive still passes.
+    """
+    spec = _spec()
+    with pytest.raises(ConfigurationError, match="verified prereg"):
+        evaluate_e1_gate(dataclasses.replace(spec, relative_margin=0.3), _passing_cells())
+    result = evaluate_e1_gate(spec, _passing_cells())
+    assert result.passed and not result.instrument_failure
+    assert sum(c.n_total for c in result.cells) == 160
+
+
+def test_record_exposes_the_complete_verified_spec_and_actual_seeds() -> None:
+    """A claim consumer must compare all rules, not merely a digest label.
+
+    Expected: both manifest and constants digests, every numerical setting,
+    both reported sizes and each cell's exact seed block are recorded. The
+    complete positive remains a pass; each 40-seed block is present twice.
+    """
+    spec = _spec()
+    record = evaluate_e1_gate(spec, _passing_cells()).to_record()
+    assert record["schema"] == "jr5_e1_gate_v3"
+    assert record["constants_sha256"] == spec.constants_sha256
+    assert record["prereg_manifest_digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert record["spec"] == spec.to_record()
+    assert set(spec.to_record()) == {
+        "constants_sha256", "prereg_manifest_digest", "test", "alpha", "ci_level", "relative_margin",
+        "sex_ratios", "must_exclude", "must_exclude_ci_level", "early_fixation_generation",
+        "exclusion_cap_fraction", "host_n_gate", "host_n_reported", "populations_per_cell", "seed_split",
+    }
+    for cell in record["cells"]:  # type: ignore[union-attr]
+        assert cell["seeds"] == list(spec.seeds_for(cell["sex_ratio"]))
+        assert cell["n_total"] == len(cell["seeds"]) == spec.populations_per_cell
+    body = {k: v for k, v in record.items() if k != "digest"}
+    assert record["digest"] == jr5_e1_gate.canonical_digest(body)
+
+
+@pytest.mark.parametrize("ratio,host_n", [(m, n) for m in (0.5, 0.25) for n in (200, 50)])
+def test_each_cell_requires_every_seed_once(ratio: float, host_n: int) -> None:
+    """Each ratio has a fixed 40-seed block reused at both population sizes.
+    Expected: removing a seed or replacing it by a duplicate is refused in
+    all four cells; the complete, unedited block remains a valid input.
+    """
+    spec = _spec()
+    rows = _passing_cells()[(ratio, host_n)]
+    assert evaluate_e1_cell(spec, ratio, host_n, rows).n_total == 40
+    for bad in (rows[:-1], [*rows[:-1], rows[0]]):
+        with pytest.raises(ConfigurationError, match="exactly seeds"):
+            evaluate_e1_cell(spec, ratio, host_n, bad)
+
+
+@pytest.mark.parametrize("ratio,host_n", [(m, n) for m in (0.5, 0.25) for n in (200, 50)])
+def test_cap_breach_in_each_cell_is_an_instrument_failure(ratio: float, host_n: int) -> None:
+    """More than 20% of 40 excluded populations is a separate instrument
+    failure: 8 is allowed, 9 is not. Expected: a nine-population cap breach
+    counts at either ratio and either N, even when the N=200 gate passes.
+    """
+    cells = _passing_cells()
+    rows = cells[(ratio, host_n)]
+    cells[(ratio, host_n)] = [
+        E1Population(row.seed, fixed_generation=1) if i < 9 else row for i, row in enumerate(rows)
+    ]
+    result = evaluate_e1_gate(_spec(), cells)
+    assert result.instrument_failure
+    assert result.passed is (host_n != 200)
+
+
+def test_excluded_fit_can_be_omitted_entirely() -> None:
+    """Fixation before generation 3 excludes a population before fitting.
+    Expected: omitting log_w is permitted for that excluded row, leaving 39
+    finite fits, but not for the same seed when it remains in the analysis.
+    """
+    rows = _cell(math.log(2.0), 0.076)
+    early = [E1Population(rows[0].seed, fixed_generation=1), *rows[1:]]
+    assert evaluate_e1_cell(_spec(), 0.5, 200, early).tost.n == 39  # type: ignore[union-attr]
+    with pytest.raises(ConfigurationError, match="finite log_w"):
+        evaluate_e1_cell(_spec(), 0.5, 200, [E1Population(rows[0].seed), *rows[1:]])

@@ -7,8 +7,9 @@ draws no random numbers.
 
 Settings come only from the locked prereg constants file. ``load_e1_gate_spec``
 reads ``docs/prereg/jr5/jr5_prereg_constants.json`` and refuses it unless its
-sha256 equals the entry in ``record.json``. That sha travels in every gate
-record, so a reader can reject a record built from other settings.
+sha256 equals the entry in ``record.json``, whose canonical manifest digest
+must match the code-pinned lock. The same hashed bytes are parsed. Both
+digests and the complete settings travel in every gate record.
 
 Per (sex ratio, host N) cell:
 - the cell must hold exactly the preregistered seed block for that ratio
@@ -44,9 +45,11 @@ from codontrace.genesis.statistical_protocol import (
     one_sample_t_interval,
     one_sample_tost,
 )
+from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CONSTANTS_RELPATH",
+    "LOCKED_PREREG_MANIFEST_DIGEST",
     "E1CellResult",
     "E1GateResult",
     "E1GateSpec",
@@ -56,9 +59,11 @@ __all__ = [
     "load_e1_gate_spec",
 ]
 
-GATE_RECORD_SCHEMA = "jr5_e1_gate_v2"
+GATE_RECORD_SCHEMA = "jr5_e1_gate_v3"
 PREREG_RELDIR = "docs/prereg/jr5"
 CONSTANTS_RELPATH = f"{PREREG_RELDIR}/jr5_prereg_constants.json"
+# Current trusted lock; final amendment synchronization is still pending.
+LOCKED_PREREG_MANIFEST_DIGEST = "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"
 _TOL = 1e-9
 
 
@@ -106,10 +111,36 @@ class E1GateSpec:
     populations_per_cell: int
     seed_split: tuple[tuple[float, int, int], ...]
     constants_sha256: str
+    prereg_manifest_digest: str
 
     @classmethod
-    def from_prereg_constants(cls, constants: Mapping[str, object], *, constants_sha256: str) -> E1GateSpec:
-        """Build the spec from the full constants mapping (``gate_e1`` must be nested).
+    def from_prereg_constants(cls, raw: bytes, *, record_raw: bytes) -> E1GateSpec:
+        """Verify a locked manifest and hash the exact constants bytes parsed.
+
+        A mapping and a caller-supplied digest cannot establish provenance.
+        The only public decoder therefore takes bytes, checks the canonical
+        manifest against the code pin, then parses those same hashed bytes.
+        """
+        if not isinstance(raw, bytes) or not isinstance(record_raw, bytes):
+            raise ConfigurationError("constants and record must be raw bytes.")
+        manifest = _verified_manifest(record_raw)
+        entries = [digest for path, digest in manifest.files if path == CONSTANTS_RELPATH]
+        if len(entries) != 1:
+            raise ConfigurationError("record.json does not pin the JR5 constants file exactly once.")
+        actual = hashlib.sha256(raw).hexdigest()
+        if actual != entries[0]:
+            raise ConfigurationError("JR5 constants file does not match its record.json sha256.")
+        return cls._from_verified_mapping(
+            _json_mapping(raw, "constants"),
+            constants_sha256=actual,
+            prereg_manifest_digest=manifest.digest,
+        )
+
+    @classmethod
+    def _from_verified_mapping(
+        cls, constants: Mapping[str, object], *, constants_sha256: str, prereg_manifest_digest: str
+    ) -> E1GateSpec:
+        """Decode settings only after byte and manifest verification.
 
         Every derived number stated in the file is checked against the rule
         it comes from: bounds and theoretical cost per ratio, log margins and
@@ -190,7 +221,28 @@ class E1GateSpec:
             populations_per_cell=per_cell,
             seed_split=tuple(seed_split),
             constants_sha256=constants_sha256,
+            prereg_manifest_digest=prereg_manifest_digest,
         )
+
+    def to_record(self) -> dict[str, JsonValue]:
+        """Complete settings for comparison with the trusted loader's spec."""
+        return {
+            "constants_sha256": self.constants_sha256,
+            "prereg_manifest_digest": self.prereg_manifest_digest,
+            "test": "tost_equivalence",
+            "alpha": self.alpha,
+            "ci_level": 1.0 - 2.0 * self.alpha,
+            "relative_margin": self.relative_margin,
+            "sex_ratios": list(self.sex_ratios),
+            "must_exclude": self.must_exclude,
+            "must_exclude_ci_level": self.must_exclude_ci_level,
+            "early_fixation_generation": self.early_fixation_generation,
+            "exclusion_cap_fraction": self.exclusion_cap_fraction,
+            "host_n_gate": self.host_n_gate,
+            "host_n_reported": list(self.host_n_reported),
+            "populations_per_cell": self.populations_per_cell,
+            "seed_split": {str(m): [first, last] for m, first, last in self.seed_split},
+        }
 
     @staticmethod
     def theoretical_cost(sex_ratio: float) -> float:
@@ -223,30 +275,45 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def load_e1_gate_spec(root: str | Path | None = None) -> E1GateSpec:
-    """Load the gate spec from the locked constants file, checked against record.json."""
-
-    base = Path(root) if root is not None else _repo_root()
-    record_path = base / PREREG_RELDIR / "record.json"
-    constants_path = base / CONSTANTS_RELPATH
+def _json_mapping(raw: bytes, what: str) -> Mapping[str, object]:
     try:
-        record = json.loads(record_path.read_text(encoding="utf-8"))
-        raw = constants_path.read_bytes()
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, ValueError) as exc:
+        raise ConfigurationError(f"{what} must contain valid UTF-8 JSON.") from exc
+    return _mapping(value, what)
+
+
+def _verified_manifest(record_raw: bytes) -> PlanManifest:
+    record = _json_mapping(record_raw, "record")
+    manifest = _mapping(record.get("manifest"), "record.manifest")
+    if manifest.get("digest") != LOCKED_PREREG_MANIFEST_DIGEST:
+        raise ConfigurationError("record manifest does not match the code-pinned prereg lock.")
+    files = manifest.get("files")
+    if not isinstance(files, list) or not isinstance(manifest.get("title"), str):
+        raise ConfigurationError("record manifest must state a title and files.")
+    pairs: list[tuple[str, str]] = []
+    for entry in files:
+        if not isinstance(entry, list) or len(entry) != 2 or not all(isinstance(x, str) for x in entry):
+            raise ConfigurationError("record manifest files must be path/digest pairs.")
+        path, digest = entry
+        pairs.append((path, digest))
+    if len({path for path, _ in pairs}) != len(pairs):
+        raise ConfigurationError("record manifest must not repeat a path.")
+    verified = PlanManifest(tuple(pairs), str(manifest["title"]))
+    if verified.digest != LOCKED_PREREG_MANIFEST_DIGEST:
+        raise ConfigurationError("record manifest content does not match the code-pinned prereg lock.")
+    return verified
+
+
+def load_e1_gate_spec(root: str | Path | None = None) -> E1GateSpec:
+    """Read once, verify the code-pinned manifest, then hash and parse the same bytes."""
+    base = Path(root) if root is not None else _repo_root()
+    try:
+        record_raw = (base / PREREG_RELDIR / "record.json").read_bytes()
+        raw = (base / CONSTANTS_RELPATH).read_bytes()
     except OSError as exc:
         raise ConfigurationError(f"JR5 prereg files not readable under {base}.") from exc
-    files = _mapping(record.get("manifest") if isinstance(record, Mapping) else None, "record.manifest").get("files")
-    pinned = None
-    if isinstance(files, Sequence):
-        for entry in files:
-            if isinstance(entry, Sequence) and len(entry) == 2 and entry[0] == CONSTANTS_RELPATH:
-                pinned = entry[1]
-    if not isinstance(pinned, str):
-        raise ConfigurationError("record.json does not pin the JR5 constants file.")
-    actual = hashlib.sha256(raw).hexdigest()
-    if actual != pinned:
-        raise ConfigurationError("JR5 constants file does not match its record.json sha256.")
-    constants = json.loads(raw.decode("utf-8"))
-    return E1GateSpec.from_prereg_constants(_mapping(constants, "constants"), constants_sha256=actual)
+    return E1GateSpec.from_prereg_constants(raw, record_raw=record_raw)
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,7 +325,7 @@ class E1Population:
     """
 
     seed: int
-    log_w: float | None
+    log_w: float | None = None
     fixed_generation: int | None = None
     lost_generation: int | None = None
 
@@ -279,6 +346,7 @@ class E1CellResult:
     host_n: int
     gated: bool
     n_total: int
+    seeds: tuple[int, ...]
     excluded_seeds: tuple[int, ...]
     fixed_seeds: tuple[int, ...]
     lost_seeds: tuple[int, ...]
@@ -316,6 +384,7 @@ class E1CellResult:
             "host_n": self.host_n,
             "gated": self.gated,
             "n_total": self.n_total,
+            "seeds": list(self.seeds),
             "n_used": self.n_total - len(self.excluded_seeds),
             "excluded_seeds": list(self.excluded_seeds),
             "fixed_seeds": list(self.fixed_seeds),
@@ -376,6 +445,7 @@ def evaluate_e1_cell(
         host_n=host_n,
         gated=host_n == spec.host_n_gate,
         n_total=len(pops),
+        seeds=tuple(sorted(seeds)),
         excluded_seeds=excluded,
         fixed_seeds=tuple(p.seed for p in pops if p.fixed_generation is not None),
         lost_seeds=tuple(p.seed for p in pops if p.lost_generation is not None),
@@ -391,7 +461,11 @@ def evaluate_e1_cell(
 @dataclass(frozen=True, slots=True)
 class E1GateResult:
     cells: tuple[E1CellResult, ...]
-    constants_sha256: str
+    spec: E1GateSpec
+
+    @property
+    def constants_sha256(self) -> str:
+        return self.spec.constants_sha256
 
     @property
     def passed(self) -> bool:
@@ -431,6 +505,8 @@ class E1GateResult:
         body: dict[str, JsonValue] = {
             "schema": GATE_RECORD_SCHEMA,
             "constants_sha256": self.constants_sha256,
+            "prereg_manifest_digest": self.spec.prereg_manifest_digest,
+            "spec": self.spec.to_record(),
             "cells": [c.to_record() for c in self.cells],
             "passed": self.passed,
             "instrument_failure": self.instrument_failure,
@@ -445,16 +521,21 @@ def evaluate_e1_gate(
 ) -> E1GateResult:
     """Evaluate every cell keyed by (sex ratio, host N).
 
-    Every preregistered sex ratio must be present at the gated host N.
-    Cells at other preregistered host N are evaluated and reported; they do
+    Every sex ratio by reported host N cell must be present, even when it
+    does not gate. Cells at other preregistered host N are evaluated and reported; they do
     not gate, but their exclusion cap counts toward ``instrument_failure``.
     """
 
-    missing = [m for m in spec.sex_ratios if (m, spec.host_n_gate) not in cells]
-    if missing:
-        raise ConfigurationError(f"gated cells missing for sex ratios {missing}.")
+    if spec != load_e1_gate_spec():
+        raise ConfigurationError("gate spec does not match the verified prereg settings.")
+    expected = {(m, n) for m in spec.sex_ratios for n in spec.host_n_reported}
+    actual = set(cells)
+    if actual != expected:
+        raise ConfigurationError(
+            f"E1 cells must match the prereg grid; missing={sorted(expected - actual)}, extra={sorted(actual - expected)}."
+        )
     ordered = sorted(cells, key=lambda key: (key[1] != spec.host_n_gate, -key[0], -key[1]))
     return E1GateResult(
         cells=tuple(evaluate_e1_cell(spec, m, n, cells[(m, n)]) for m, n in ordered),
-        constants_sha256=spec.constants_sha256,
+        spec=spec,
     )

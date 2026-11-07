@@ -1,30 +1,44 @@
-"""JR5 phase 2c: the verdict adapter is the only path to ``red_queen_proved``.
+"""JR5 phase 2c: the verdict is recomputed from raw per-seed records.
 
-The inputs are planted summary statistics, not engine runs. Every planted
-number is chosen against a bound that the prereg fixes in
-``docs/prereg/jr5/jr5_prereg_constants.json`` and ``RED_QUEEN_CLAIM_PATH.md``,
-so each expected outcome follows from the preregistered rule and not from the
-adapter's own code:
+The evidence is the full prereg run grid (3,760 runs) built by
+``tests/_jr5_raw_evidence.py``. Each arm's values have an exact planted mean
+and SD (fixed normal scores, no random draw), so every expected outcome below
+follows from a preregistered bound and not from the verdict code:
 
-- E1 bounds: theory 1/(1 - m) is 2.0 at m = 0.5 and 4/3 at m = 0.25; the TOST
-  bounds are +-10% of that, [1.8, 2.2] and [1.2, 1.4667].
-- E2 Holm: four tests at family alpha 0.05, so step k uses 0.05 / (5 - k):
-  0.0125, 0.01667, 0.025, 0.05, with BCa levels 98.75 / 98.333 / 97.5 / 95%.
-- Condition (c): one-sided 0.025 and a two-sided 95% BCa interval.
-- Condition (d): equivalence margins +-0.10 (frequency) and +-log 1.1 = 0.0953
-  (log fitness ratio), or a 95% interval on the side opposite the effect.
-- Condition (e): replay digests equal, one-shot body equal to resumed body,
-  ATP ledger residual at most 1e-9.
+- E1 TOST: theory 1/(1 - m) is 2.0 at m = 0.5 and 4/3 at m = 0.25, bounds +-10%
+  ([1.8, 2.2], [1.2, 1.4667]); the 90% t interval of log w over 40 populations
+  must lie inside and the 95% interval must exclude log 1 = 0. At the
+  bias-reduced SD 0.076 the 90% half-width is about 1.685 * 0.076 / sqrt(40)
+  = 0.020, far inside log(2.2/2) = 0.095. Cap: at most 0.2 * 40 = 8 populations
+  fixed before generation 3, in every E1 cell.
+- E2 Holm over four tests at family alpha 0.05: step k at 0.05 / (5 - k)
+  (0.0125, 0.01667, 0.025, 0.05), BCa at 98.75 / 98.333 / 97.5 / 95%,
+  10,000 resamples, seed 12345. A planted difference of -0.25 with SD 0.10
+  over 60 seeds gives t of about -19, far past every step.
+- Condition (c): one-sided 0.025 plus the two-sided 95% BCa interval.
+- Condition (d): 90% interval strictly inside +-0.10 (frequency) or +-log 1.1
+  = 0.0953 (log fitness ratio), or a 95% interval opposite the effect. At SD
+  0.05 the 90% half-width is about 0.011.
+- Condition (e): every grid run replays (digests, bodies, residual <= 1e-9)
+  and every sealed lock of PREREG section 9 replays to its pinned digest.
 
-The planted RQ signal sits well inside every bound, so a single change pushes
-exactly one condition over its bound.
+Method basis: the TOST decision equals a 90% interval inside preregistered
+bounds and a non-significant result is never evidence of absence; Holm
+step-down stops at the first non-rejection and each step's interval is a
+step-level interval, not a simultaneous one; paired BCa coverage is close to
+nominal at 60 pairs (it falls short only near 10 pairs); the bias-reduced
+logit fit removes the first-order bias of the slope and stays finite under
+separation.
 """
 
 from __future__ import annotations
 
+import inspect
 import json
 import math
+import shutil
 from copy import deepcopy
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -32,519 +46,431 @@ import pytest
 
 from codontrace.claimgate import audit_bundle
 from codontrace.claimgate.adapters.host_parasite import assert_claim_allowed
-from codontrace.claimgate.adapters.jr5_verdict import (
+from codontrace.claimgate.jr5_verdict import (
+    E4_WINDOW_SIGNS,
+    PREREG_CONSTANTS_SHA256,
+    PREREG_RECORD_DIGEST,
+    SEALED_LOCK_DIGESTS,
+    Interval,
     Jr5Evidence,
+    _Paired,
     assert_jr5_red_queen_claim_allowed,
-    audit_bundle_with_jr5_verdict,
     evaluate_jr5_verdict,
+    jr5_run_grid,
     verify_jr5_verdict,
 )
 from codontrace.errors import ConfigurationError
+from tests import _jr5_raw_evidence as raw
 
 ROOT = Path(__file__).resolve().parents[1]
 PREREG_DIR = ROOT / "docs" / "prereg" / "jr5"
 FIXTURE = ROOT / "tests" / "fixtures" / "claimgate" / "level2_difference.json"
-
-# Holm step levels for the four E2 tests (family alpha 0.05).
-LEVELS = (0.9875, 0.9833333333333333, 0.975, 0.95)
+FAIL_GATE = {"passed": False, "instrument_failure": True}
 
 
-def _record_digest() -> str:
-    data: dict[str, Any] = json.loads((PREREG_DIR / "record.json").read_text(encoding="utf-8"))
-    return str(data["manifest"]["digest"])
+@cache
+def _positive() -> str:
+    return json.dumps(raw.build()[0])
 
 
-def _contrast(est: float, p: float, half90: float, half95: float, n: int = 60) -> dict[str, Any]:
-    """A paired contrast whose BCa intervals are centred like the t intervals.
-
-    The BCa half-width grows with the level (98.75% widest). With these
-    plants the BCa interval agrees with the t test, as the prereg requires
-    for a test to count.
-    """
-
-    bca = {repr(lv): [est - half95 * (1 + (lv - 0.95) * 10), est + half95 * (1 + (lv - 0.95) * 10)] for lv in LEVELS}
-    return {
-        "n_seeds": n,
-        "estimate": est,
-        "p_two_sided": p,
-        "ci90": [est - half90, est + half90],
-        "ci95": [est - half95, est + half95],
-        "bca": bca,
-    }
+def positive() -> dict[str, Any]:
+    return json.loads(_positive())
 
 
-def _replay(run_id: str) -> dict[str, Any]:
-    return {
-        "run_id": run_id,
-        "expected_digest": "d" * 64,
-        "replayed_digest": "d" * 64,
-        "one_shot_body_sha256": "b" * 64,
-        "resumed_body_sha256": "b" * 64,
-        "atp_ledger_residual": 0.0,
-    }
+def build(gate: dict[str, bool] | None = None, **plan: Any) -> dict[str, Any]:
+    ev, _ = raw.build(**plan)
+    if gate is not None:
+        ev["e1_gate_record"] = raw.gate_record(**gate)
+    return ev
 
 
-def planted_rq() -> dict[str, Any]:
-    """A full Red Queen signal: (a) to (e) hold with room to spare."""
-
-    return {
-        "prereg_record_digest": _record_digest(),
-        "e1": [
-            # Centred on 2.0 and 4/3, inside [1.8, 2.2] and [1.2, 1.4667];
-            # the 95% intervals are far above 1.
-            {"sex_ratio": 0.5, "n_populations": 40, "n_excluded": 0, "ci90": [1.92, 2.08], "ci95": [1.90, 2.10]},
-            {"sex_ratio": 0.25, "n_populations": 40, "n_excluded": 1, "ci90": [1.29, 1.38], "ci95": [1.28, 1.39]},
-        ],
-        "e2": {
-            # High virulence: copassaged 0.25 below fixed, p far below 0.0125.
-            "e2_N200_high": _contrast(-0.25, 1e-6, 0.05, 0.06),
-            "e2_N50_high": _contrast(-0.20, 1e-4, 0.06, 0.07),
-            # Low virulence: no effect, 95% interval spans 0.
-            "e2_N200_low": _contrast(-0.01, 0.60, 0.03, 0.04),
-            "e2_N50_low": _contrast(0.01, 0.70, 0.03, 0.04),
-        },
-        "copassaged_minus_fixed": _contrast(-0.25, 1e-6, 0.05, 0.06),
-        "copassaged_minus_frozen": _contrast(-0.22, 1e-5, 0.05, 0.06),
-        # Load: outcross-minus-self log ratio 0.00 +- 0.05, inside +-0.0953.
-        "load": {"at_mu_005": _contrast(0.0, 0.9, 0.05, 0.06), "spearman_rho": 0.0, "spearman_p_one_sided": 0.5},
-        # Diversity and tax: 0.00 +- 0.05, inside +-0.10.
-        "frozen_minus_fixed": _contrast(0.0, 0.9, 0.05, 0.06),
-        "tax_minus_fixed": _contrast(0.0, 0.9, 0.05, 0.06),
-        "time_shift_windows": [{"name": "host_past_vs_contemporary", "ci95": [-0.20, -0.05], "expected_sign": -1}],
-        "runs": [_replay("e2_N200_high_13001")],
-        "sealed_locks": [_replay("selfing_hold"), _replay("mating_ledger")],
-    }
+def failed(ev: dict[str, Any]) -> set[str]:
+    verdict = evaluate_jr5_verdict(ev)
+    return {k for k, v in verdict.conditions.items() if not v}
 
 
-def _verdict(ev: dict[str, Any]) -> Any:
-    return evaluate_jr5_verdict(ev, prereg_dir=PREREG_DIR)
+def bound_bundle(ev: dict[str, Any]) -> dict[str, Any]:
+    """The level-2 fixture bound to ``ev``: pinned prereg digest, evidence seeds, evidence digest artifact."""
 
-
-def test_planted_rq_signal_proves_the_claim() -> None:
-    v = _verdict(planted_rq())
-    assert v.outcome == "rq_consistent"
-    assert dict(v.conditions) == {"a": True, "b": True, "c": True, "d": True, "e": True}
-    assert v.red_queen_proved is True
-    assert v.prereg_record_digest == _record_digest()
-
-
-def _set(ev: dict[str, Any], path: tuple[Any, ...], value: Any) -> dict[str, Any]:
-    out = deepcopy(ev)
-    node = out
-    for key in path[:-1]:
-        node = node[key]
-    node[path[-1]] = value
-    return out
-
-
-# One failed condition each, the other four left as planted. The comment says
-# which bound is crossed.
-SINGLE_FAILURES = {
-    # (a) upper end 2.25 is above the TOST bound 2.2.
-    "a_tost_upper": ((("e1", 0, "ci90"), [1.95, 2.25]), "a"),
-    # (a) 95% interval at m = 0.25 reaches 1, so it does not exclude 1.
-    "a_excludes_one": ((("e1", 1, "ci95"), [0.99, 1.39]), "a"),
-    # (a) 9 of 40 excluded is above the 20% cap (8).
-    "a_cap": ((("e1", 0, "n_excluded"), 9), "a"),
-    # (b) N50 high p = 0.03 is above every Holm step it can reach (step 2: 0.01667).
-    "b_n50_holm": ((("e2", "e2_N50_high"), _contrast(-0.20, 0.03, 0.06, 0.20)), "b"),
-    # (c) copassaged-minus-frozen not below 0: p = 0.4, 95% BCa spans 0.
-    "c_frozen": ((("copassaged_minus_frozen",), _contrast(-0.02, 0.4, 0.05, 0.06)), "c"),
-    # (d) load: 90% interval [-0.05, 0.15] leaves +-0.0953 and 95% is not below 0.
-    "d_load": ((("load", "at_mu_005"), _contrast(0.05, 0.2, 0.10, 0.12)), "d"),
-    # (d) diversity: no window excludes 0 with the cycling sign.
-    "d_windows": ((("time_shift_windows",), [{"name": "w", "ci95": [-0.1, 0.1], "expected_sign": -1}]), "d"),
-    # (d) tax: 90% [-0.15, 0.05] leaves +-0.10; non-significance does not rule it out.
-    "d_tax": ((("tax_minus_fixed",), _contrast(-0.05, 0.2, 0.10, 0.12)), "d"),
-    # (e) one replay digest differs.
-    "e_digest": ((("runs", 0, "replayed_digest"), "e" * 64), "e"),
-    # (e) ledger residual 2e-9 is above 1e-9.
-    "e_ledger": ((("runs", 0, "atp_ledger_residual"), 2e-9), "e"),
-    # (e) resumed body differs from one-shot body.
-    "e_resume": ((("sealed_locks", 1, "resumed_body_sha256"), "c" * 64), "e"),
-}
-
-
-@pytest.mark.parametrize("name", sorted(SINGLE_FAILURES))
-def test_each_single_failed_condition_keeps_the_flag_false(name: str) -> None:
-    (path, value), cond = SINGLE_FAILURES[name]
-    ev = _set(planted_rq(), path, value)
-    v = _verdict(ev)
-    assert v.red_queen_proved is False
-    assert v.conditions[cond] is False
-    assert [k for k, ok in v.conditions.items() if not ok] == [cond]
-    record = v.to_dict()
-    with pytest.raises(ConfigurationError):
-        assert_jr5_red_queen_claim_allowed(record, ev, prereg_dir=PREREG_DIR)
-
-
-def test_cost_gate_or_replay_failure_is_instrument_fail() -> None:
-    # PREREG section 2: E1 failure or a section 8 validity failure is instrument_fail.
-    for key in ("a_tost_upper", "a_cap", "e_ledger"):
-        (path, value), _ = SINGLE_FAILURES[key]
-        assert _verdict(_set(planted_rq(), path, value)).outcome == "instrument_fail"
-
-
-def test_planted_load_alternative() -> None:
-    # No E2 effect (p = 0.5, intervals span 0); outcross beats self by log 0.2
-    # with 95% interval [0.14, 0.26] above 0 and a rising trend (rho 0.4, p 0.001).
-    ev = planted_rq()
-    for name in ("e2_N200_high", "e2_N50_high"):
-        ev["e2"][name] = _contrast(-0.01, 0.5, 0.04, 0.05)
-    ev["copassaged_minus_fixed"] = _contrast(-0.01, 0.5, 0.04, 0.05)
-    ev["copassaged_minus_frozen"] = _contrast(0.0, 0.9, 0.04, 0.05)
-    ev["load"] = {"at_mu_005": _contrast(0.2, 1e-6, 0.05, 0.06), "spearman_rho": 0.4, "spearman_p_one_sided": 0.001}
-    v = _verdict(ev)
-    assert (v.outcome, v.red_queen_proved) == ("load_consistent", False)
-
-
-def test_planted_diversity_without_cycles() -> None:
-    # E2 effect as planted, but frozen replay does as well as copassaged
-    # (copassaged-minus-frozen 0.00 +- 0.05 inside +-0.10) and no window excludes 0.
-    ev = planted_rq()
-    ev["copassaged_minus_frozen"] = _contrast(0.0, 0.9, 0.05, 0.06)
-    ev["time_shift_windows"] = [{"name": "w", "ci95": [-0.05, 0.05], "expected_sign": -1}]
-    v = _verdict(ev)
-    assert (v.outcome, v.red_queen_proved) == ("diversity_without_rqd", False)
-
-
-def test_planted_fitness_tax_reproduces_effect() -> None:
-    # The genotype-blind tax gives the same drop as copassaged (-0.25, 95% below 0),
-    # so the effect is not shown to need coevolution: no RQ outcome.
-    ev = planted_rq()
-    ev["tax_minus_fixed"] = _contrast(-0.25, 1e-6, 0.05, 0.06)
-    v = _verdict(ev)
-    assert (v.outcome, v.red_queen_proved) == ("none", False)
-    assert v.conditions["d"] is False
-
-
-def test_planted_null_gives_none() -> None:
-    # Nothing differs anywhere: E2 null and no load advantage.
-    ev = planted_rq()
-    for name in ("e2_N200_high", "e2_N50_high"):
-        ev["e2"][name] = _contrast(0.0, 0.9, 0.04, 0.05)
-    ev["copassaged_minus_fixed"] = _contrast(0.0, 0.9, 0.04, 0.05)
-    ev["copassaged_minus_frozen"] = _contrast(0.0, 0.9, 0.04, 0.05)
-    v = _verdict(ev)
-    assert (v.outcome, v.red_queen_proved) == ("none", False)
-
-
-def test_t_and_bca_disagreement_is_inconclusive() -> None:
-    # Agreement rule: N200 high t test p = 1e-6, but its BCa interval spans 0.
-    ev = planted_rq()
-    c = _contrast(-0.25, 1e-6, 0.05, 0.06)
-    c["bca"] = {repr(lv): [-0.3, 0.02] for lv in LEVELS}
-    ev["e2"]["e2_N200_high"] = c
-    v = _verdict(ev)
-    assert (v.outcome, v.red_queen_proved) == ("inconclusive", False)
-
-
-def test_holm_uses_the_step_level_not_the_raw_alpha() -> None:
-    # p = 0.02 for N50 high would pass a raw 0.05 test. Sorted second of four,
-    # Holm tests it at 0.05 / 3 = 0.01667, so it is retained and (b) fails.
-    ev = planted_rq()
-    ev["e2"]["e2_N50_high"] = _contrast(-0.20, 0.02, 0.06, 0.30)
-    v = _verdict(ev)
-    assert v.conditions["b"] is False
-    # Just under the step-2 level it passes: 0.0166 < 0.01667.
-    ev["e2"]["e2_N50_high"] = _contrast(-0.20, 0.0166, 0.06, 0.07)
-    assert _verdict(ev).conditions["b"] is True
-
-
-def test_effect_in_the_wrong_direction_is_not_rq() -> None:
-    # Copassaged higher than fixed (+0.25): significant but against the prediction.
-    ev = planted_rq()
-    for name in ("e2_N200_high", "e2_N50_high"):
-        ev["e2"][name] = _contrast(0.25, 1e-6, 0.05, 0.06)
-    v = _verdict(ev)
-    assert v.conditions["b"] is False
-    assert v.red_queen_proved is False
-
-
-def test_hand_set_flag_and_unknown_keys_are_refused() -> None:
-    ev = planted_rq()
-    ev["red_queen_proved"] = True
-    with pytest.raises(ConfigurationError, match="hand-set"):
-        _verdict(ev)
-    ev = planted_rq()
-    ev["e2"]["e2_N200_high"]["red_queen_proved"] = True
-    with pytest.raises(ConfigurationError, match="hand-set"):
-        _verdict(ev)
-    ev = planted_rq()
-    ev["outcome"] = "rq_consistent"
-    with pytest.raises(ConfigurationError, match="unknown keys"):
-        _verdict(ev)
-
-
-def test_forged_or_foreign_records_are_refused() -> None:
-    ev = planted_rq()
-    good = _verdict(ev).to_dict()
-    assert assert_jr5_red_queen_claim_allowed(good, ev, prereg_dir=PREREG_DIR) == "red_queen_proved"
-    # A failing evidence set with a copied passing record: recomputation differs.
-    bad_ev = _set(ev, ("runs", 0, "replayed_digest"), "e" * 64)
-    with pytest.raises(ConfigurationError, match="does not match"):
-        verify_jr5_verdict(good, bad_ev, prereg_dir=PREREG_DIR)
-    # A flag flipped by hand on a failing record.
-    forged = _verdict(bad_ev).to_dict()
-    forged["red_queen_proved"] = True
-    with pytest.raises(ConfigurationError):
-        assert_jr5_red_queen_claim_allowed(forged, bad_ev, prereg_dir=PREREG_DIR)
-    # Evidence produced under another prereg record digest.
-    with pytest.raises(ConfigurationError, match="different JR5 prereg"):
-        _verdict(_set(ev, ("prereg_record_digest",), "0" * 64))
-
-
-def test_design_counts_must_match_the_prereg() -> None:
-    # 40 populations per E1 cell and 60 paired seeds per contrast are preregistered.
-    with pytest.raises(ConfigurationError):
-        _verdict(_set(planted_rq(), ("e1", 0, "n_populations"), 39))
-    with pytest.raises(ConfigurationError):
-        _verdict(_set(planted_rq(), ("tax_minus_fixed", "n_seeds"), 40))
-
-
-def test_tampered_prereg_folder_is_refused(tmp_path: Path) -> None:
-    # Thresholds come only from the hashed prereg: an edited constants file
-    # no longer matches record.json and the adapter stops.
-    dst = tmp_path / "docs" / "prereg" / "jr5"
-    dst.mkdir(parents=True)
-    for p in PREREG_DIR.rglob("*"):
-        if p.is_file():
-            out = dst / p.relative_to(PREREG_DIR)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_bytes(p.read_bytes())
-    assert evaluate_jr5_verdict(planted_rq(), prereg_dir=dst).red_queen_proved is True
-    path = dst / "jr5_prereg_constants.json"
-    path.write_text(path.read_text(encoding="utf-8").replace('"family_alpha": 0.05', '"family_alpha": 0.5'))
-    with pytest.raises(ConfigurationError, match="do not match"):
-        evaluate_jr5_verdict(planted_rq(), prereg_dir=dst)
-
-
-def test_profile_gate_still_refuses_every_other_caller() -> None:
-    # assert_claim_allowed is unchanged: the JR5 path is a separate check.
-    with pytest.raises(ConfigurationError):
-        assert_claim_allowed("red_queen_proved")
-
-
-def test_auditor_ban_lifts_only_for_a_verified_jr5_verdict() -> None:
-    # The auditor ban holds for a plain audit_bundle call even with a passing
-    # record; only the JR5 adapter's audit path lifts it, and only for a
-    # record that recomputes from its evidence with (a) to (e) true.
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    baseline = audit_bundle(payload).achieved_level
-    ev = planted_rq()
-    marked = deepcopy(payload)
-    marked["red_queen_proved"] = True
-    assert audit_bundle(marked).achieved_level < baseline
-    marked["jr5_evidence"] = ev
-    marked["jr5_verdict"] = _verdict(ev).to_dict()
-    assert audit_bundle(marked).achieved_level < baseline
-    assert audit_bundle_with_jr5_verdict(marked, prereg_dir=PREREG_DIR).achieved_level == baseline
-    # A failing verdict, or a passing record over failing evidence, keeps the ban.
-    bad_ev = _set(ev, ("runs", 0, "atp_ledger_residual"), 1e-6)
-    for record, evidence in ((_verdict(bad_ev).to_dict(), bad_ev), (marked["jr5_verdict"], bad_ev)):
-        again = deepcopy(marked)
-        again["jr5_evidence"] = evidence
-        again["jr5_verdict"] = record
-        assert audit_bundle_with_jr5_verdict(again, prereg_dir=PREREG_DIR).achieved_level < baseline
-    # Without the JR5 fields the adapter path grades like the plain auditor.
-    plain = deepcopy(payload)
-    plain["red_queen_proved"] = True
-    assert audit_bundle_with_jr5_verdict(plain, prereg_dir=PREREG_DIR).achieved_level < baseline
+    parsed = Jr5Evidence.from_dict(ev)
+    payload["red_queen_proved"] = True
+    payload["jr5_evidence"] = ev
+    payload["jr5_verdict"] = evaluate_jr5_verdict(parsed).to_dict()
+    payload["preregistration_digest"] = PREREG_RECORD_DIGEST
+    payload["seeds"] = list(parsed.seeds())
+    payload["artifacts"] = [*payload["artifacts"], {"path": "jr5_evidence.json", "sha256": parsed.digest().split(":")[1]}]
+    return payload
 
 
-def test_planted_margins_match_the_prereg_constants() -> None:
-    # Ties the comments above to the JSON, so a prereg change shows up here.
-    c = json.loads((PREREG_DIR / "jr5_prereg_constants.json").read_text(encoding="utf-8"))
-    assert c["gate_e1"]["equivalence_bounds"]["0.5"] == [1.8, 2.2]
-    assert c["gate_e1"]["equivalence_bounds"]["0.25"] == pytest.approx([1.2, 1.1 * 4 / 3])
-    assert c["condition_d"]["margin_log_fitness_ratio"] == pytest.approx(math.log(1.1))
-    assert c["condition_d"]["margin_frequency"] == 0.1
-    assert c["e2"]["bootstrap"]["ci_level_by_holm_step"] == pytest.approx([1 - 0.05 / (4 - k) for k in range(4)])
-    assert c["validity"]["atp_ledger_max_residual"] == 1e-9
-    assert Jr5Evidence.from_dict(planted_rq()).digest().startswith("jr5-evidence:")
+def _baseline_level() -> int:
+    return int(audit_bundle(json.loads(FIXTURE.read_text(encoding="utf-8"))).achieved_level)
 
 
-def _wide(est: float, p: float) -> dict[str, Any]:
-    """A contrast whose BCa intervals all span 0 (half-width 0.3 at 95%)."""
-
-    return _contrast(est, p, 0.2, 0.3)
-
-
-def test_holm_stops_at_the_first_retained_step() -> None:
-    # Smallest p 0.013 fails step 1 (0.0125). Holm then retains every later
-    # test, including N50 high at p 0.014 that alone would pass step 2
-    # (0.01667). Both BCa intervals span 0, so t and BCa agree: (b) fails and
-    # the outcome is not inconclusive.
-    ev = planted_rq()
-    ev["e2"]["e2_N200_high"] = _wide(-0.10, 0.013)
-    ev["e2"]["e2_N50_high"] = _wide(-0.10, 0.014)
-    v = _verdict(ev)
-    assert v.conditions["b"] is False
-    assert v.outcome == "none"
-
-
-def test_holm_retained_test_with_a_significant_bca_is_inconclusive() -> None:
-    # N50 high p = 0.02 is above its step-2 level 0.01667, but its 98.333%
-    # BCa interval [-0.27, -0.13] excludes 0: one rejects, one does not, so
-    # the agreement rule gives inconclusive.
-    ev = planted_rq()
-    ev["e2"]["e2_N50_high"] = _contrast(-0.20, 0.02, 0.05, 0.06)
-    v = _verdict(ev)
-    assert (v.outcome, v.conditions["b"], v.red_queen_proved) == ("inconclusive", False, False)
-
-
-def test_condition_c_is_one_sided_at_0_025() -> None:
-    # Two-sided p 0.06 is one-sided 0.03, above 0.025; the 95% BCa spans 0,
-    # so both say not significant: (c) fails without disagreement. The other
-    # rq_consistent rules still hold, so the typed outcome stays rq_consistent
-    # while the flag is False.
-    ev = planted_rq()
-    ev["copassaged_minus_fixed"] = _wide(-0.10, 0.06)
-    v = _verdict(ev)
-    assert v.conditions["c"] is False
-    assert (v.outcome, v.red_queen_proved) == ("rq_consistent", False)
-
-
-def test_window_with_the_wrong_sign_does_not_count() -> None:
-    # The only window excludes 0 but on the side opposite to the sign that
-    # cycling predicts, so no registered window supports cycling.
-    ev = planted_rq()
-    ev["time_shift_windows"] = [{"name": "w", "ci95": [0.05, 0.20], "expected_sign": -1}]
-    v = _verdict(ev)
-    assert v.conditions["d"] is False
-    assert v.outcome == "diversity_without_rqd"
-
-
-def test_load_above_zero_is_not_ruled_out() -> None:
-    # Outcross beats self by log 0.2 with 95% interval [0.14, 0.26]: that is
-    # the load signature, not its absence. Only a 95% interval below 0 or
-    # equivalence inside +-0.0953 rules load out.
-    ev = planted_rq()
-    ev["load"]["at_mu_005"] = _contrast(0.2, 1e-6, 0.05, 0.06)
-    v = _verdict(ev)
-    assert v.conditions["d"] is False
-    assert v.red_queen_proved is False
-    # A 95% interval entirely below 0 does rule load out.
-    ev["load"]["at_mu_005"] = _contrast(-0.2, 1e-6, 0.05, 0.06)
-    assert _verdict(ev).conditions["d"] is True
-
-
-# ---------------------------------------------------------------- raw-data pair
-#
-# The pair below starts from synthetic per-seed values, not from intervals.
-# Intervals and p-values are computed the way the prereg says the analysis
-# computes them: a one-sample t interval on the log scale for E1, a paired t
-# test and a paired BCa bootstrap (10,000 resamples, seed 12345) for every
-# contrast. The adapter then decides from those numbers.
-#
-# Where the planted values come from (all N = 200):
-# - E1: per-population log w drawn around log 2 and log 4/3 with SD 0.077 and
-#   0.050, the first-pass SDs in PREREG section 7. With 40 populations the 90%
-#   half-width is about 1.685 * 0.077 / sqrt(40) = 0.021 on the log scale,
-#   well inside the margin -0.105 / +0.095.
-# - E2 high virulence: paired differences around -0.25 with SD 0.30, the
-#   pessimistic case of the E2 power section (20 seeds give 80% power). With
-#   60 seeds the t statistic is near -6.5, far past the first Holm step.
-# - Low virulence, load, diversity and tax: mean 0 with SD 0.25. With 60
-#   seeds the 90% half-width is about 1.671 * 0.25 / sqrt(60) = 0.054, inside
-#   +-0.10 and +-0.0953 (equivalence power 0.84 at SD 0.25 in PREREG).
-# - Time-shift window: effect -0.10 with SD 0.20 over 60 seeds, so the 95%
-#   interval sits near [-0.15, -0.05], below 0 as cycling predicts.
-# Each draw is rescaled to its exact sample mean and SD, so these figures are
-# exact for the data used, not expected values over draws.
-# The failing set is the same draw with the copassaged effect removed (mean
-# 0 instead of -0.25): the E2 tests are then null, so (b) fails and the flag
-# must be False. Nothing else changes.
-
-
-def _raw_evidence(copassaged_effect: float) -> dict[str, Any]:
-    np = pytest.importorskip("numpy")
-    stats = pytest.importorskip("scipy.stats")
-    rng = np.random.default_rng(20261101)
-
-    def draw(mean: float, sd: float, n: int) -> Any:
-        # Normal draws rescaled to the exact planted sample mean and SD, so the
-        # intervals below follow from the stated numbers and not from the draw.
-        z = rng.normal(0.0, 1.0, n)
-        z = (z - z.mean()) / z.std(ddof=1)
-        return mean + sd * z
-
-    def t_interval(x: Any, level: float) -> list[float]:
-        m, se = float(np.mean(x)), float(stats.sem(x))
-        h = float(stats.t.ppf(0.5 + level / 2, len(x) - 1)) * se
-        return [m - h, m + h]
-
-    def paired(d: Any) -> dict[str, Any]:
-        bca = {}
-        for lv in LEVELS:
-            res = stats.bootstrap(
-                (d,), np.mean, confidence_level=lv, n_resamples=10_000, method="BCa", random_state=12345
-            )
-            bca[repr(lv)] = [float(res.confidence_interval.low), float(res.confidence_interval.high)]
-        return {
-            "n_seeds": len(d),
-            "estimate": float(np.mean(d)),
-            "p_two_sided": float(stats.ttest_1samp(d, 0.0).pvalue),
-            "ci90": t_interval(d, 0.90),
-            "ci95": t_interval(d, 0.95),
-            "bca": bca,
-        }
-
-    e1 = []
-    for ratio, theory, sd in ((0.5, 2.0, 0.077), (0.25, 4 / 3, 0.050)):
-        logw = draw(math.log(theory), sd, 40)
-        e1.append(
-            {
-                "sex_ratio": ratio,
-                "n_populations": 40,
-                "n_excluded": 0,
-                "ci90": [math.exp(v) for v in t_interval(logw, 0.90)],
-                "ci95": [math.exp(v) for v in t_interval(logw, 0.95)],
-            }
-        )
-    high200 = draw(copassaged_effect, 0.30, 60)
-    window = draw(-0.10, 0.20, 60)
-    load = draw(0.0, 0.25, 60)
-    return {
-        "prereg_record_digest": _record_digest(),
-        "e1": e1,
-        "e2": {
-            "e2_N200_high": paired(high200),
-            "e2_N50_high": paired(draw(copassaged_effect, 0.30, 60)),
-            "e2_N200_low": paired(draw(0.0, 0.25, 60)),
-            "e2_N50_low": paired(draw(0.0, 0.25, 60)),
-        },
-        "copassaged_minus_fixed": paired(high200),
-        "copassaged_minus_frozen": paired(draw(copassaged_effect, 0.30, 60)),
-        "load": {
-            "at_mu_005": paired(load),
-            "spearman_rho": 0.0,
-            "spearman_p_one_sided": 0.5,
-        },
-        "frozen_minus_fixed": paired(draw(0.0, 0.25, 60)),
-        "tax_minus_fixed": paired(draw(0.0, 0.25, 60)),
-        "time_shift_windows": [
-            {"name": "host_past_vs_contemporary", "ci95": t_interval(window, 0.95), "expected_sign": -1}
-        ],
-        "runs": [_replay("e2_N200_high_13001")],
-        "sealed_locks": [_replay("selfing_hold"), _replay("mating_ledger")],
-    }
+# ---------------------------------------------------------------- required pair
 
 
 def test_raw_dataset_meeting_the_prereg_proves_the_claim() -> None:
-    ev = _raw_evidence(-0.25)
-    v = _verdict(ev)
-    assert dict(v.conditions) == {"a": True, "b": True, "c": True, "d": True, "e": True}
-    assert (v.outcome, v.red_queen_proved) == ("rq_consistent", True)
-    # The verified record also passes the claim check and the auditor ban.
-    assert assert_jr5_red_queen_claim_allowed(v.to_dict(), ev, prereg_dir=PREREG_DIR) == "red_queen_proved"
+    """Full grid at the planted defaults: every condition sits inside its prereg bound, so the flag is True.
+
+    E1 log w is centred on log(1/(1 - m)) with the bias-reduced SDs, E2 high is
+    -0.25 (t near -19), the alternatives are 0 with SD 0.05 (90% half-width
+    0.011 < 0.10 and < 0.0953), and the host time-shift effect is -0.05 with
+    SD 0.05 (95% interval below 0, the sign expected under cycling). The
+    claim path and the auditor both accept it end to end.
+    """
+
+    ev = positive()
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "rq_consistent"
+    assert verdict.red_queen_proved is True
+    assert assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev) == "red_queen_proved"
+    assert audit_bundle(bound_bundle(ev)).achieved_level == _baseline_level()
 
 
-def test_raw_dataset_failing_the_prereg_keeps_the_flag_false() -> None:
-    ev = _raw_evidence(0.0)
-    v = _verdict(ev)
-    assert v.red_queen_proved is False
-    assert v.conditions["a"] is True and v.conditions["e"] is True
-    assert v.conditions["b"] is False
+def test_raw_dataset_failing_the_prereg_does_not_prove_the_claim() -> None:
+    """E2 copassaged minus fixed planted at 0 at both N: (b) needs a Holm-significant drop, so the flag is False.
+
+    With mean exactly 0 the paired t is 0 (p = 1) and no Holm step rejects;
+    (c) fails with it. No alternative explains an absent effect, so the
+    outcome is ``none`` and the auditor keeps the ban.
+    """
+
+    ev = build(e2_effect={(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0})
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.red_queen_proved is False
+    assert {"b", "c"} <= failed(ev)
+    assert verdict.outcome == "none"
     with pytest.raises(ConfigurationError):
-        assert_jr5_red_queen_claim_allowed(v.to_dict(), ev, prereg_dir=PREREG_DIR)
+        assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev)
+    assert audit_bundle(bound_bundle(ev)).achieved_level < _baseline_level()
+
+
+# ---------------------------------------------------------------- single failures
+
+SINGLE_FAILURES = [
+    # (a) m = 0.5 log w shifted by +0.15: ratio 2 * e^0.15 = 2.32 > 2.2, so the 90% interval leaves the bounds.
+    ("a_tost", dict(gate=FAIL_GATE, e1_log_shift={0.5: 0.15, 0.25: 0.0}), {"a"}, "instrument_fail"),
+    # (a) 9 of 40 N = 50 populations fixed at generation 1: above the cap of 8 (report-only N still counts).
+    ("a_cap", dict(gate={"passed": True, "instrument_failure": True}, e1_early_fixed={(0.5, 50): 9}), {"a"}, "instrument_fail"),
+    # (b) N = 50 high planted at 0: p = 1, so the N = 50 high test is not rejected.
+    ("b_N50", dict(e2_effect={(200, "high"): -0.25, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0}), {"b"}, "none"),
+    # (b) N = 200 high planted at 0. Condition (c) uses the same N = 200 high contrast, so it fails with (b).
+    ("b_N200", dict(e2_effect={(200, "high"): 0.0, (50, "high"): -0.25, (200, "low"): 0.0, (50, "low"): 0.0}), {"b", "c"}, "none"),
+    # (c) frozen replay planted on copassaged (frozen minus fixed -0.25): copassaged minus frozen is about 0.
+    # The diversity alternative is then not ruled out either, so (d) fails with (c).
+    ("c_frozen", dict(frozen_minus_fixed=-0.25), {"c", "d"}, "diversity_without_rqd"),
+    # (d) load: outcross minus self +0.2 at mu 0.05: 90% interval outside +-0.0953 and not below 0.
+    ("d_load", dict(load_effect=0.2), {"d"}, "rq_consistent"),
+    # (d) diversity arm: frozen minus fixed -0.12 (90% interval about [-0.131, -0.109], outside +-0.10, same
+    # side as the effect) while copassaged minus frozen stays near -0.13 and significant.
+    ("d_diversity", dict(frozen_minus_fixed=-0.12), {"d"}, "rq_consistent"),
+    # (d) E4: host effect +0.05 (95% interval above 0, against the cycling sign) and parasite effect 0.
+    ("d_window_sign", dict(e4={"host_effect": 0.05, "parasite_effect": 0.0}), {"d"}, "none"),
+    # (d) tax: uniform tax minus fixed -0.2, same side as the effect and outside +-0.10.
+    ("d_tax", dict(tax_minus_fixed=-0.2), {"d"}, "none"),
+]
+
+
+@pytest.mark.parametrize(("name", "plan", "expect_failed", "outcome"), SINGLE_FAILURES, ids=[s[0] for s in SINGLE_FAILURES])
+def test_single_failed_condition_keeps_the_flag_false(name: str, plan: dict[str, Any], expect_failed: set[str], outcome: str) -> None:
+    """Each planted change crosses exactly the prereg bound named in its comment; the flag stays False."""
+
+    ev = build(**plan)
+    verdict = evaluate_jr5_verdict(ev)
+    assert failed(ev) == expect_failed
+    assert verdict.outcome == outcome
+    assert verdict.red_queen_proved is False
+
+
+def test_e_fails_on_one_bad_replay_and_on_a_wrong_lock() -> None:
+    """(e): one run whose replay digest differs, or a sealed lock that replays to another digest, gives instrument_fail."""
+
+    ev = positive()
+    run = ev["runs"][123]
+    run["replay"]["replayed_digest"] = "0" * 64
+    raw.readdress(run)
+    assert failed(ev) == {"e"}
+    assert evaluate_jr5_verdict(ev).outcome == "instrument_fail"
+
+    ev = positive()
+    ev["runs"][7]["replay"]["atp_ledger_residual"] = 2e-9  # above the 1e-9 validity bound
+    raw.readdress(ev["runs"][7])
+    assert failed(ev) == {"e"}
+
+    ev = positive()
+    ev["sealed_locks"]["rq_v2_phase6.summary_sha256"] = "f" * 64
+    assert failed(ev) == {"e"}
+
+
+def test_e_coverage_missing_run_missing_lock_duplicate_id_are_refused() -> None:
+    """(e) covers every run of (a) to (d) and every section 9 lock, so the run set must equal the grid."""
+
+    ev = positive()
+    ev["runs"].pop(5)
+    with pytest.raises(ConfigurationError, match="grid"):
+        evaluate_jr5_verdict(ev)
+
+    ev = positive()
+    del ev["sealed_locks"]["mating_ledger.design"]
+    with pytest.raises(ConfigurationError, match="missing"):
+        evaluate_jr5_verdict(ev)
+
+    ev = positive()
+    ev["runs"][1]["run_id"] = ev["runs"][0]["run_id"]
+    raw.readdress(ev["runs"][1])
+    with pytest.raises(ConfigurationError, match="unique"):
+        evaluate_jr5_verdict(ev)
+
+    ev = positive()
+    dup = deepcopy(ev["runs"][0])
+    dup["run_id"] = "copy"
+    ev["runs"].append(raw.readdress(dup))
+    with pytest.raises(ConfigurationError, match="more than one run"):
+        evaluate_jr5_verdict(ev)
+
+
+def test_holm_bca_level_follows_the_step() -> None:
+    """N = 200 high sits at Holm step 2: its t test rejects but its 98.333% BCa interval holds 0, so inconclusive.
+
+    The deltas are -0.022 + 0.0625 * z with z the standardised exponential
+    scores (right-skewed): p = 0.0084 < 0.05 / 3, the 98.333% BCa interval
+    reaches above 0 while the 95% one excludes it. N = 50 high (t near -19)
+    takes step 1. Reading every BCa at 95% would wrongly call it significant.
+    """
+
+    n = 60
+    w = [-math.log(1 - (i + 0.5) / n) for i in range(n)]
+    m = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - m) ** 2 for x in w) / (n - 1))
+    deltas = [-0.022 + 0.0625 * (x - m) / sd for x in w]
+    pair = _Paired(tuple(deltas), 12345, 10000)
+    assert pair.p_two_sided() < 0.05 / 3
+    assert pair.bca(0.9833333333333333).side() == 0
+    assert pair.bca(0.95).side() == -1
+    ev = build(e2_deltas={(200, "high"): deltas})
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "inconclusive"
+    assert verdict.red_queen_proved is False
+
+
+def test_holm_stops_at_the_first_non_rejection() -> None:
+    """When the smallest p fails step 1 (0.0125), no later test is rejected even if its p is below its own step.
+
+    Every E2 contrast is planted at -0.0384 with SD 0.10 (t about -2.97, p
+    about 0.0043 at 59 df) except N = 200 low, planted at -0.04 so it sorts
+    first; then N = 50 high is planted at 0. The step-1 test rejects, so
+    this is a control; the real check is the variant below where step 1 fails.
+    """
+
+    # Smallest p at step 1 is above 0.0125: t = -2.4 gives p about 0.0196.
+    eff = -2.4 * 0.10 / math.sqrt(60)
+    ev = build(e2_effect={(200, "high"): eff, (50, "high"): eff, (200, "low"): eff, (50, "low"): eff})
+    verdict = evaluate_jr5_verdict(ev)
+    # All four p are about 0.0196: step 1 (0.0125) fails, so none is rejected; with
+    # no step-down stop, step 4 would test 0.0196 < 0.05 and reject.
+    assert "b" in failed(ev)
+    assert verdict.red_queen_proved is False
+
+
+def test_interval_inside_is_strict() -> None:
+    """Inside means strictly inside: an interval touching a bound is not inside.
+
+    A one-sided test at level alpha rejects only when its statistic passes the
+    critical value, so a 90% bound equal to the margin is p = 0.05, not below.
+    """
+
+    assert Interval(1.8, 2.0).inside(1.8, 2.2) is False
+    assert Interval(1.9, 2.2).inside(1.8, 2.2) is False
+    assert Interval(1.8000001, 2.1999999).inside(1.8, 2.2) is True
+
+
+# ---------------------------------------------------------------- typed outcomes
+
+
+def test_load_outcome() -> None:
+    """No E2 effect, outcross beats self: +0.10 at every rate plus 4 per unit rate, so the 95% interval at mu 0.05
+    is above 0 and Spearman over the 3 x 60 values rises (one-sided p < 0.05)."""
+
+    zero = {(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0}
+    ev = build(e2_effect=zero, load_effect=0.10, load_slope=4.0)
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "load_consistent"
+    assert verdict.red_queen_proved is False
+
+
+def test_diversity_outcome_when_no_window_excludes_zero() -> None:
+    """E2 holds but both E4 effects are planted at 0: no window excludes 0, so diversity_without_rqd."""
+
+    ev = build(e4={"host_effect": 0.0, "parasite_effect": 0.0})
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "diversity_without_rqd"
+    assert verdict.red_queen_proved is False
+
+
+# ---------------------------------------------------------------- refusals
+
+
+def test_hand_set_flag_and_unknown_keys_are_refused() -> None:
+    """No decision is taken from the input: a hand-set flag or an extra key is refused."""
+
+    ev = positive()
+    ev["red_queen_proved"] = True
+    with pytest.raises(ConfigurationError, match="hand-set"):
+        evaluate_jr5_verdict(ev)
+    ev = positive()
+    ev["runs"][0]["data"]["red_queen_proved"] = True
+    raw.readdress(ev["runs"][0])
+    with pytest.raises(ConfigurationError):
+        assert_jr5_red_queen_claim_allowed(evaluate_jr5_verdict(positive()).to_dict(), ev)
+
+
+def test_edited_run_without_new_address_is_refused() -> None:
+    """Run records are content-addressed: changing a value without re-addressing the record is refused."""
+
+    ev = positive()
+    ev["runs"][10]["data"]["uniparental_counts"][2] += 1
+    with pytest.raises(ConfigurationError, match="sha256"):
+        evaluate_jr5_verdict(ev)
+
+
+def test_unregistered_e4_window_or_input_sign_is_refused() -> None:
+    """E4 windows and signs are pinned from the phase 6 lock; an extra window or an input sign is refused."""
+
+    for extra in ({"other_window": 0.1}, {"expected_sign": 1}):
+        ev = positive()
+        for run in ev["runs"]:
+            if "e4" in run["data"]:
+                run["data"]["e4"].update(extra)
+                raw.readdress(run)
+                break
+        with pytest.raises(ConfigurationError, match="unknown keys"):
+            evaluate_jr5_verdict(ev)
+
+
+def test_e4_signs_follow_the_phase6_lock_estimand() -> None:
+    """Host effect = I(H now, P past) - I(H past, P past) falls when hosts resist past parasites; parasite effect
+    = I(H now, P now) - I(H now, P past) rises when parasites track current hosts."""
+
+    lock = (ROOT / "runs" / "rq-mechanism-v2" / "PHASE6_CONFIRM_LOCK.md").read_text(encoding="utf-8")
+    assert "Host effect, parasites held at the past generation:" in lock
+    assert "`I(hosts at the horizon, parasites at horizon - lag) - I(hosts at horizon - lag, parasites at horizon - lag)`" in lock
+    assert "Parasite effect, hosts held at the horizon:" in lock
+    assert dict(E4_WINDOW_SIGNS) == {"host_effect": -1, "parasite_effect": 1}
+
+
+def test_sealed_lock_digests_match_prereg_section_9() -> None:
+    """Each pinned lock digest matches the prefix and suffix PREREG section 9 prints, or the full summary sha."""
+
+    text = (PREREG_DIR / "PREREG.md").read_text(encoding="utf-8")
+    for digest in SEALED_LOCK_DIGESTS.values():
+        assert digest[:8] in text
+    for name, tail in (("selfing_hold.design", "a6fd298"), ("selfing_hold.campaign", "aa94e6"), ("mating_ledger.design", "32d80dd"), ("mating_ledger.campaign", "0f5")):
+        assert SEALED_LOCK_DIGESTS[name].endswith(tail)
+    note = (PREREG_DIR / "SUMMARY_SHA256_NOTE.md").read_text(encoding="utf-8")
+    assert SEALED_LOCK_DIGESTS["rq_v2_phase6.summary_sha256"] in note
+
+
+def test_e1_gate_record_needs_the_pinned_constants_sha_and_must_agree() -> None:
+    """The phase 3 gate record must carry the pinned constants sha256 and match the fit recomputed here."""
+
+    for sha in (None, "0" * 64):
+        ev = positive()
+        ev["e1_gate_record"] = raw.gate_record(passed=True, instrument_failure=False, sha=sha)
+        with pytest.raises(ConfigurationError, match="constants_sha256"):
+            evaluate_jr5_verdict(ev)
+    ev = positive()
+    ev["e1_gate_record"] = raw.gate_record(passed=False, instrument_failure=True)
+    with pytest.raises(ConfigurationError, match="disagrees"):
+        evaluate_jr5_verdict(ev)
+    ev = positive()
+    ev["e1_gate_record"]["passed"] = False  # body edited, digest not recomputed
+    with pytest.raises(ConfigurationError, match="digest"):
+        evaluate_jr5_verdict(ev)
+
+
+def test_forged_verdict_record_is_refused() -> None:
+    """The record must equal the verdict recomputed from the evidence."""
+
+    ev = build(tax_minus_fixed=-0.2)
+    record = evaluate_jr5_verdict(ev).to_dict()
+    record["red_queen_proved"] = True
+    record["conditions"]["d"] = True
+    with pytest.raises(ConfigurationError, match="does not match"):
+        verify_jr5_verdict(record, ev)
+
+
+# ---------------------------------------------------------------- prereg pin
+
+
+def test_prereg_is_pinned_and_shipped_copy_is_the_hashed_file() -> None:
+    """The package copy of the constants is byte-identical to the locked file, whose sha the locked record lists."""
+
+    record = json.loads((PREREG_DIR / "record.json").read_text(encoding="utf-8"))
+    assert record["manifest"]["digest"] == PREREG_RECORD_DIGEST
+    files = dict(record["manifest"]["files"])
+    assert files["docs/prereg/jr5/jr5_prereg_constants.json"] == PREREG_CONSTANTS_SHA256
+    shipped = ROOT / "src" / "codontrace" / "claimgate" / "data" / "jr5_prereg_constants.json"
+    assert shipped.read_bytes() == (PREREG_DIR / "jr5_prereg_constants.json").read_bytes()
+    assert len(jr5_run_grid()) == 3760  # budget.runs_total
+
+
+def test_copied_edited_rehashed_prereg_is_refused(tmp_path: Path) -> None:
+    """A copied prereg with widened E1 bounds, re-hashed into a new record, cannot be used.
+
+    The claim path takes no prereg folder, and evidence that names the new
+    record digest is refused because only the pinned digest is accepted.
+    """
+
+    from codontrace.preregistration.manifest import hash_plan
+
+    root = tmp_path / "repo"
+    shutil.copytree(PREREG_DIR, root / "docs" / "prereg" / "jr5")
+    path = root / "docs" / "prereg" / "jr5" / "jr5_prereg_constants.json"
+    k = json.loads(path.read_text(encoding="utf-8"))
+    k["gate_e1"]["equivalence_bounds"] = {"0.5": [0.1, 100.0], "0.25": [0.1, 100.0]}
+    path.write_text(json.dumps(k), encoding="utf-8")
+    record = json.loads((PREREG_DIR / "record.json").read_text(encoding="utf-8"))
+    swapped = hash_plan([p for p, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    assert swapped.digest != PREREG_RECORD_DIGEST
+    for fn in (evaluate_jr5_verdict, verify_jr5_verdict, assert_jr5_red_queen_claim_allowed, audit_bundle):
+        assert "prereg_dir" not in inspect.signature(fn).parameters
+    ev = positive()
+    ev["prereg_record_digest"] = swapped.digest
+    with pytest.raises(ConfigurationError, match="pinned"):
+        evaluate_jr5_verdict(ev)
+
+
+# ---------------------------------------------------------------- auditor
+
+
+def test_auditor_ban_cannot_be_lifted_by_a_caller_callable() -> None:
+    """audit_bundle takes no exemption hook; a lambda that says yes cannot lift the ban."""
+
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload["red_queen_proved"] = True
+    assert audit_bundle(payload).achieved_level < _baseline_level()
+    with pytest.raises(TypeError):
+        audit_bundle(payload, red_queen_exemption=lambda e: True)  # type: ignore[call-arg]
+
+
+def test_valid_verdict_stapled_onto_an_unrelated_bundle_is_refused() -> None:
+    """A genuine positive lifts the ban only on the bundle it is bound to (prereg digest, seeds, evidence digest)."""
+
+    ev = positive()
+    good = bound_bundle(ev)
+    assert audit_bundle(good).achieved_level == _baseline_level()
+    stapled = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    stapled.update({"red_queen_proved": True, "jr5_evidence": good["jr5_evidence"], "jr5_verdict": good["jr5_verdict"]})
+    assert audit_bundle(stapled).achieved_level < _baseline_level()
+    for key, value in (("preregistration_digest", "0" * 64), ("seeds", [1, 2, 3]), ("artifacts", stapled["artifacts"])):
+        bad = deepcopy(good)
+        bad[key] = value
+        assert audit_bundle(bad).achieved_level < _baseline_level()
+
+
+def test_host_parasite_profile_gate_still_refuses() -> None:
+    """The host-parasite profile gate is unchanged and keeps refusing the flag."""
+
+    with pytest.raises(ConfigurationError):
+        assert_claim_allowed("red_queen_proved")

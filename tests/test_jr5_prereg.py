@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +55,7 @@ def test_record_covers_constants_and_docs() -> None:
         "REFERENCES.md",
         "RED_QUEEN_CLAIM_PATH.md",
         "jr5_prereg_constants.json",
+        "DEVIATIONS.md",
         "scripts/e1_power_sim.py",
     ):
         assert f"docs/prereg/jr5/{name}" in paths
@@ -762,7 +765,8 @@ def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
     therefore a hard dependency, with an engine test that length is conserved
     over at least 3 generations; no JR5 arm, the pilot included, runs before
     it is merged. Sex fixed for life is pinned the same way to its phase 2b
-    test."""
+    test. The fix is now merged, so the text and JSON pin its merge commit and
+    the node id of its engine test in place of the branch-name-only pin."""
     c = _constants()
     deps = c["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]
     d = deps["diploid_fertilisation"]
@@ -777,7 +781,246 @@ def test_diploid_fertilisation_fix_is_a_hard_dependency() -> None:
     assert "conserved over at least 3 generations" in text
     assert "Segregation load and E1" in text
     assert c["gate_e1"]["segregation_load"].startswith("enters_realised_w_either_direction")
-    assert "pinned by branch name for now" in text
+    assert "pinned by branch name for now" not in text
+    assert d["merge_commit"] == DIPLOID_FIX_MERGE_COMMIT
+    assert d["engine_test"] == DIPLOID_FIX_ENGINE_TEST
+
+
+# The merge of the diploid fertilisation fix into main (PR 134) and the engine
+# test it added. PREREG.md section 4 and the JSON both pin these.
+DIPLOID_FIX_MERGE_COMMIT = "4400e07b9a16a824437af3dd6afa0fb35de7837f"
+DIPLOID_FIX_ENGINE_TEST = "tests/test_diploid_fertilisation.py::test_genome_length_is_conserved_over_many_generations"
+
+
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        pytest.skip("git not available")
+
+
+def test_diploid_fix_pins_agree_with_prereg_text_and_json() -> None:
+    """PREREG.md names the merge commit and engine test that the JSON pins.
+
+    Basis: the text pins the commit by its short form 4400e07 and its full
+    40-character sha, and the engine test by its pytest node id; the JSON holds
+    the full sha and the same node id. Expected: each value appears verbatim in
+    the text, the short form is the first 7 characters of the full sha, and the
+    full sha is 40 hex characters.
+    """
+
+    d = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"]
+    sha, node = d["merge_commit"], d["engine_test"]
+    assert re.fullmatch(r"[0-9a-f]{40}", sha)
+    text = _prereg_text()
+    assert f"merge commit `{sha[:7]}` (`{sha}`)" in text
+    assert f"engine test `{node}`" in text
+
+
+def _diploid_pin() -> dict[str, str]:
+    pin: dict[str, str] = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"][
+        "diploid_fertilisation"
+    ]
+    return pin
+
+
+def _require_full_history() -> None:
+    """Skip only in a shallow clone; any other missing history is a failure."""
+
+    shallow = _git("rev-parse", "--is-shallow-repository")
+    assert shallow.returncode == 0, "not a git checkout: " + shallow.stderr
+    if shallow.stdout.strip() == "true":
+        pytest.skip("shallow clone: the pinned merge commit is not in local history")
+
+
+# Head of fix/diploid-fertilisation when PR 134 was merged (second parent of
+# 4400e07): the commit that pinned the per-version repr digests.
+DIPLOID_FIX_BRANCH_HEAD = "45269184147251b5cfe93c7f97baba1fcb48323c"
+
+
+def test_diploid_fix_merge_commit_is_an_ancestor_of_head() -> None:
+    """The pinned commit is the merge of the fix and is in this checkout's history.
+
+    Basis: git merge-base --is-ancestor A B exits 0 when A is an ancestor of B
+    and 1 when it is not. The pin must be a merge (two parents) that contains
+    the head of the fix branch, 4526918, and HEAD must contain the pin. A
+    shallow clone is skipped; in a full clone a missing pin fails.
+    Expected: the pin exists, has two parents, contains 4526918, and is an
+    ancestor of HEAD.
+    """
+
+    _require_full_history()
+    sha = _diploid_pin()["merge_commit"]
+    assert _git("cat-file", "-e", f"{sha}^{{commit}}").returncode == 0, f"pinned commit {sha} not found"
+    assert _git("merge-base", "--is-ancestor", sha, "HEAD").returncode == 0
+    parents = _git("rev-list", "--parents", "-n", "1", sha).stdout.split()
+    assert len(parents) == 3
+    assert _git("merge-base", "--is-ancestor", DIPLOID_FIX_BRANCH_HEAD, sha).returncode == 0
+
+
+def test_diploid_fix_engine_test_arrives_with_the_pinned_merge() -> None:
+    """The pinned engine test exists at the merge commit and not at its first parent.
+
+    Basis: the first parent of the merge is main before the fix, so the test
+    the fix added must be absent there and present at the merge; git show
+    <sha>:<path> prints the file at that commit. A shallow clone is skipped.
+    Expected: "def <test name>(" in the file at the pin, and not in the file
+    at the pin's first parent (or the file does not exist there).
+    """
+
+    _require_full_history()
+    path, name = _diploid_pin()["engine_test"].split("::")
+    sha = _diploid_pin()["merge_commit"]
+    at_pin = _git("show", f"{sha}:{path}")
+    assert at_pin.returncode == 0, at_pin.stderr
+    assert f"def {name}(" in at_pin.stdout
+    at_parent = _git("show", f"{sha}^1:{path}")
+    assert at_parent.returncode != 0 or f"def {name}(" not in at_parent.stdout
+
+
+def test_prereg_generation_count_matches_the_engine_test() -> None:
+    """The generation count PREREG.md gives for the engine test is the test's own.
+
+    Basis: the test runs range(GENOME_LENGTH_GENERATIONS); the text says
+    "conserved over N generations (`GENOME_LENGTH_GENERATIONS` ...". The value
+    is read from the test file's source so the two cannot drift apart.
+    Expected: the same integer in both, and the loop uses the constant.
+    """
+
+    source = (ROOT / "tests" / "test_diploid_fertilisation.py").read_text(encoding="utf-8")
+    m = re.search(r"^GENOME_LENGTH_GENERATIONS = (\d+)$", source, re.M)
+    assert m is not None
+    assert "range(GENOME_LENGTH_GENERATIONS)" in source
+    t = re.search(r"conserved over (\d+) generations \(`GENOME_LENGTH_GENERATIONS`", _prereg_text())
+    assert t is not None
+    assert t.group(1) == m.group(1)
+
+
+_DIGEST_LINE = re.compile(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", re.M)
+
+
+def test_deviations_log_names_the_current_record_digest() -> None:
+    """The last DEVIATIONS.md entry names the record digest of the current plan files.
+
+    Basis: PREREG.md section 12 requires each post-lock change to be logged with
+    the new record digest. DEVIATIONS.md is in the manifest itself, so the
+    digest it names is hash_plan over every manifest file except DEVIATIONS.md
+    (a digest cannot include its own hash). Entries chain: each old digest is
+    the previous new one. Expected: the last entry's new digest equals that
+    recomputed digest, every entry has a digest line, and the chain holds.
+    """
+
+    rec = _record()
+    paths = [p for p, _ in rec.manifest.files]
+    log_path = "docs/prereg/jr5/DEVIATIONS.md"
+    assert log_path in paths
+    plan = hash_plan([p for p in paths if p != log_path], root=ROOT, title=rec.manifest.title)
+    text = (ROOT / log_path).read_text(encoding="utf-8")
+    entries = text.split("\n## ")[1:]
+    assert entries
+    pairs = []
+    for entry in entries:
+        found = _DIGEST_LINE.findall(entry)
+        assert len(found) == 1, entry.splitlines()[0]
+        pairs.append(found[0])
+    for (_, new), (old, _) in zip(pairs, pairs[1:], strict=False):
+        assert old == new
+    assert pairs[-1][1] == plan.digest
+    assert "no JR5 run has started" in entries[-1]
+
+
+def test_deviations_log_starts_at_the_record_of_the_lock() -> None:
+    """The first logged digest is the record at the lock merge, the next one the record after PR 133.
+
+    Basis: PREREG.md section 12 names the merge that locked the plan, and the
+    first DEVIATIONS.md entry names the merge that brought the late-logged
+    changes. record.json at each of those commits holds manifest.digest, and
+    DEVIATIONS.md did not exist at either, so that digest is over the same
+    plan files the log uses. A shallow clone is skipped.
+    Expected: the first entry's old digest equals manifest.digest at the lock
+    merge, and its new digest equals manifest.digest at the named merge.
+    """
+
+    _require_full_history()
+    lock = re.search(r"merged to main as ([0-9a-f]{7,40}) on", _prereg_text())
+    assert lock is not None
+    text = (ROOT / "docs" / "prereg" / "jr5" / "DEVIATIONS.md").read_text(encoding="utf-8")
+    first = text.split("\n## ")[1]
+    merged = re.search(r"\(merge ([0-9a-f]{7,40}),", first)
+    assert merged is not None
+    found = _DIGEST_LINE.findall(first)
+    assert len(found) == 1
+
+    def digest_at(sha: str) -> str:
+        shown = _git("show", f"{sha}:docs/prereg/jr5/record.json")
+        assert shown.returncode == 0, shown.stderr
+        assert _git("cat-file", "-e", f"{sha}:docs/prereg/jr5/DEVIATIONS.md").returncode != 0
+        value: str = json.loads(shown.stdout)["manifest"]["digest"]
+        return value
+
+    assert found[0][0] == digest_at(lock.group(1))
+    assert found[0][1] == digest_at(merged.group(1))
+
+
+def test_no_jr5_run_output_is_committed() -> None:
+    """No committed run output belongs to JR5, which backs the "no JR5 run" line in DEVIATIONS.md.
+
+    Basis: run outputs in this repository live under runs/<name>/; a JR5 run
+    would add files there. The DEVIATIONS.md run line is a declaration; this
+    checks the part of it the repository can show.
+    Expected: no tracked path under runs/ contains "jr5" in any case.
+    """
+
+    listed = _git("ls-files", "runs")
+    assert listed.returncode == 0, listed.stderr
+    assert [p for p in listed.stdout.splitlines() if "jr5" in p.lower()] == []
+
+
+def test_ci_runs_the_pin_tests_with_full_history() -> None:
+    """One CI job checks out full history, and every full pytest run lists skip reasons.
+
+    Basis: actions/checkout fetches one commit unless fetch-depth is set, and
+    fetch-depth 0 fetches all history; the pin tests skip in a shallow clone,
+    so without one full-depth job CI never checks the pin. In a workflow
+    expression the string '0' is truthy (only '', 0, false and null are
+    falsy), so "a && '0' || '1'" gives '0' when a holds. pytest -rs prints the
+    reason of each skip in the summary.
+    Expected: the 3.13 job, which runs the full suite without coverage, gets
+    fetch-depth 0, and both full pytest commands pass -rs.
+    """
+
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "fetch-depth: ${{ matrix.python-version == '3.13' && '0' || '1' }}" in ci
+    assert '"3.13"' in ci
+    assert "if: matrix.python-version != '3.14'" in ci
+    runs = re.findall(r"python -m pytest tests [^\n]*(?:\n\s+-p[^\n]*)?", ci)
+    assert len(runs) == 2
+    assert all(" -rs" in run for run in runs)
+
+
+def test_diploid_fix_engine_test_is_collected() -> None:
+    """The pinned node id names a test that pytest collects.
+
+    Basis: pytest --collect-only -q prints one node id per collected item, and
+    a node id that does not exist is a usage error with no items. The run is a
+    fresh process with the project addopts cleared, so a second -q from the
+    config does not shorten the listing to per-file counts. Expected:
+    the pinned node id is printed exactly once.
+    """
+
+    node = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"][
+        "engine_test"
+    ]
+    out = subprocess.run(
+        [sys.executable, "-m", "pytest", "-o", "addopts=", "--collect-only", "-q", "-p", "no:cacheprovider", node],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert out.stdout.splitlines().count(node) == 1
 
 
 def test_self_arm_founders_are_all_hermaphrodites() -> None:

@@ -49,7 +49,6 @@ from typing import Any
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
-from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CLAIM",
@@ -191,7 +190,9 @@ def _verified_constants(raw: bytes, record_raw: bytes) -> dict[str, Any]:
         title = manifest.get("title")
         if not isinstance(title, str):
             raise ConfigurationError("prereg manifest title must be a string.")
-        if manifest.get("digest") != PREREG_RECORD_DIGEST or PlanManifest(tuple(pairs), title).digest != PREREG_RECORD_DIGEST:
+        actual_manifest = canonical_digest({"schema": "codontrace_prereg_manifest_v1", "title": title,
+                                            "files": [{"path": path, "sha256": sha} for path, sha in pairs]})
+        if manifest.get("digest") != PREREG_RECORD_DIGEST or actual_manifest != PREREG_RECORD_DIGEST:
             raise ConfigurationError("JR5 prereg manifest does not match the code-pinned digest.")
         actual = hashlib.sha256(raw).hexdigest()
         entries = [sha for path, sha in pairs if path == "docs/prereg/jr5/jr5_prereg_constants.json"]

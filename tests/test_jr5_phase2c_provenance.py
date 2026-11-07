@@ -418,3 +418,11 @@ def test_boolean_cell_levels_cannot_alias_registered_numeric_zero() -> None:
     raw.readdress(run)
     with pytest.raises(ConfigurationError, match="cell"):
         verdict.evaluate_jr5_verdict(ev)
+
+
+def test_a_near_null_cost_is_reported_as_an_instrument_failure() -> None:
+    """Removing log(1/(1-m)) centres fitted cost near1; its95% interval includes1 and its90% interval misses registered cost bounds."""
+    ev, _ = raw.build(e1_log_shift={0.5: -math.log(2.0), 0.25: -math.log(4 / 3)})
+    assert all(not c["excludes_null"] for c in ev["e1_gate_record"]["cells"] if c["gated"])
+    result = verdict.evaluate_jr5_verdict(ev)
+    assert not result.conditions["a"] and result.outcome == "instrument_fail"

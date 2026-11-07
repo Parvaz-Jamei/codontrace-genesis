@@ -1,15 +1,19 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa",
+    "digest": "1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d",
     "files": [
       [
+        "docs/prereg/jr5/DEVIATIONS.md",
+        "299be6371c979519e6475639cd8cacff129f8c2ac468795faf69e1cddd0264d9"
+      ],
+      [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
-        "9c8c3675de92988bcdc0c2414a3c614a5a54e93aa3c9e02e6b02f508bd0aab90"
+        "9047b8a353848958fb5f1002ba24d3ce17cd0a49b4380e3817db21878d4ed882"
       ],
       [
         "docs/prereg/jr5/PREREG.md",
-        "d7b86dcf6fe7943baae297b584f9e129f890ce6e5ed758f49464bbf1cfaa5ee9"
+        "d2dd0eaf18f41ed0312ac94931cd224a516fab5284799d22549a271a2401ef71"
       ],
       [
         "docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md",
@@ -25,7 +29,7 @@
       ],
       [
         "docs/prereg/jr5/jr5_prereg_constants.json",
-        "608ccdea9f8d1efa51ceecec756c8732b0fe1804828ed5c3910396c2e625a78c"
+        "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
       ],
       [
         "docs/prereg/jr5/scripts/e1_power_sim.py",

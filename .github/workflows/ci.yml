@@ -25,8 +25,14 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
+      # The 3.13 job fetches full history so the JR5 diploid-fix pin tests
+      # (tests/test_jr5_prereg.py) check the merge commit instead of skipping
+      # as they do in a shallow clone. '0' is quoted because a bare 0 is falsy
+      # in an expression and would fall through to 1.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ matrix.python-version == '3.13' && '0' || '1' }}
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -88,7 +94,7 @@ jobs:
       # https://coverage.readthedocs.io/en/latest/config.html#config-run-core
       - name: Run full test suite
         if: matrix.python-version != '3.14'
-        run: python -m pytest tests --disable-plugin-autoload -p xdist -n auto
+        run: python -m pytest tests --disable-plugin-autoload -p xdist -n auto -rs
 
       - name: Run full test suite with branch coverage
         if: matrix.python-version == '3.14'
@@ -96,7 +102,7 @@ jobs:
           COVERAGE_CORE: sysmon
         run: >
           python -m pytest tests --disable-plugin-autoload
-          -p xdist -p pytest_cov -n auto
+          -p xdist -p pytest_cov -n auto -rs
           --cov=codontrace --cov-branch
           --cov-report=term --cov-report=xml:coverage.xml
 

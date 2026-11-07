@@ -249,6 +249,7 @@ def test_holm_bca_level_follows_the_step() -> None:
     assert pair.bca(0.95).side() == -1
     ev = build(e2_deltas={(200, "high"): deltas})
     verdict = evaluate_jr5_verdict(ev)
+    assert verdict.conditions["b"] is False
     assert verdict.outcome == "inconclusive"
     assert verdict.red_queen_proved is False
 

@@ -373,3 +373,38 @@ def test_fixation_at_the_cutoff_is_kept_and_loss_is_reported_not_excluded() -> N
     for cell in ev["e1_gate_record"]["cells"]:
         assert cell["n_used"] == 40 and cell["excluded_seeds"] == []
     assert verdict.evaluate_jr5_verdict(ev).conditions["a"] is True
+
+
+@pytest.mark.parametrize("step", [1, 2])
+def test_resampling_interval_follows_the_actual_family_step(step: int) -> None:
+    """Right-skewed mean-.022, SD.0625 gives p=.0084:95% excludes0, but step1's98.75% and step2's98.333% include0."""
+    n = 60
+    w = [-math.log(1 - (i + 0.5) / n) for i in range(n)]
+    mean = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in w) / (n - 1))
+    deltas = tuple(-0.022 + 0.0625 * (x - mean) / sd for x in w)
+    target = verdict._Paired(deltas, 12345, 10000)
+    zero = verdict._Paired(tuple(raw.scores("retained")), 12345, 10000)
+    strong = verdict._Paired(tuple(-0.25 + 0.1 * z for z in raw.scores("rejected")), 12345, 10000)
+    k = verdict.jr5_constants()
+    family = {name: zero for name in k["multiplicity"]["primary_family"]}
+    family["e2_N200_high"] = target
+    if step == 2:
+        family["e2_N50_high"] = strong
+    level = k["e2"]["bootstrap"]["ci_level_by_holm_step"][step - 1]
+    assert target.p_two_sided() < 0.05 / (5 - step)
+    assert target.bca(level).side() == 0 and target.bca(0.95).side() == -1
+    call = verdict._holm_calls(family, k)["e2_N200_high"]
+    assert not call.significant and not call.agree
+
+
+def test_gate_audit_seed_lists_are_sets_not_population_input_order() -> None:
+    """The gate sorts its all-seed vector but may report excluded/fixed/lost lists in population input order; memberships must agree."""
+    ev, _ = raw.build(e1_early_fixed={(0.5, 50): 9})
+    record = ev["e1_gate_record"]
+    for cell in record["cells"]:
+        for name in ("excluded_seeds", "fixed_seeds", "lost_seeds"):
+            cell[name].reverse()
+    rehash(record)
+    result = verdict.evaluate_jr5_verdict(ev)
+    assert result.conditions["a"] is False and result.outcome == "instrument_fail"

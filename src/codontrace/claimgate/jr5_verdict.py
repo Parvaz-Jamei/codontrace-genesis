@@ -749,7 +749,10 @@ def _check_e1_gate_record(rec: Mapping[str, Any], gated_pass: bool, instrument_f
     actual_cells = _seq(rec["cells"], "E1 gate cells")
     keyed = {}
     for cell in actual_cells:
-        c = _mapping(cell, "E1 gate cell")
+        c = dict(_mapping(cell, "E1 gate cell"))
+        for name in ("excluded_seeds", "fixed_seeds", "lost_seeds"):
+            if name in c:
+                c[name] = sorted(_int(seed, f"E1 {name}") for seed in _seq(c[name], f"E1 {name}"))
         key = (_finite(c.get("sex_ratio"), "E1 sex ratio"), _int(c.get("host_n"), "E1 host N"))
         if key in keyed:
             raise ConfigurationError("E1 gate cells must be unique.")

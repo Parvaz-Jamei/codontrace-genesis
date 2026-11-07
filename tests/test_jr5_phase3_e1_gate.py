@@ -96,7 +96,7 @@ def test_spec_refuses_a_ci_level_that_is_not_one_minus_two_alpha() -> None:
             E1GateSpec._from_verified_mapping(
                 {**_constants(), "gate_e1": block},
                 constants_sha256=sha,
-                prereg_manifest_digest=_spec().prereg_manifest_digest,
+                prereg_manifest_sha256=_spec().prereg_manifest_sha256,
             )
 
 
@@ -107,7 +107,7 @@ def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
     sha = _spec().constants_sha256
     with pytest.raises(ConfigurationError):
         E1GateSpec._from_verified_mapping(
-            _constants()["gate_e1"], constants_sha256=sha, prereg_manifest_digest=_spec().prereg_manifest_digest
+            _constants()["gate_e1"], constants_sha256=sha, prereg_manifest_sha256=_spec().prereg_manifest_sha256
         )
     for key in ("equivalence_bounds", "theoretical_cost", "seed_split"):
         block = dict(_constants()["gate_e1"])
@@ -116,7 +116,7 @@ def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
             E1GateSpec._from_verified_mapping(
                 {**_constants(), "gate_e1": block},
                 constants_sha256=sha,
-                prereg_manifest_digest=_spec().prereg_manifest_digest,
+                prereg_manifest_sha256=_spec().prereg_manifest_sha256,
             )
     for key in ("log_margin", "populations_per_cell"):
         block = {k: v for k, v in _constants()["gate_e1"].items() if k != key}
@@ -124,7 +124,7 @@ def test_spec_requires_nested_block_and_every_per_ratio_key() -> None:
             E1GateSpec._from_verified_mapping(
                 {**_constants(), "gate_e1": block},
                 constants_sha256=sha,
-                prereg_manifest_digest=_spec().prereg_manifest_digest,
+                prereg_manifest_sha256=_spec().prereg_manifest_sha256,
             )
 
 
@@ -692,17 +692,16 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("prereg_manifest_digest", "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"),
-        ("prereg_manifest_digest", "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"),
+        ("prereg_manifest_sha256", "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"),
+        ("prereg_manifest_sha256", "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"),
         ("constants_sha256", "608ccdea9f8d1efa51ceecec756c8732b0fe1804828ed5c3910396c2e625a78c"),
     ],
 )
 def test_spec_cannot_be_built_with_another_digest(field: str, value: str) -> None:
     """A spec copied with another digest label is refused at construction.
 
-    Basis: the replay digest policy lists E1GateSpec as replay-critical, so a
-    caller-supplied digest must be checked when the object is built, not only
-    in the loader. The values are the earlier lock, the plan digest named in
+    Basis: a caller-supplied digest proves nothing unless it is checked when
+    the object is built, not only in the loader. The values are the earlier lock, the plan digest named in
     DEVIATIONS.md (a different quantity) and the earlier constants sha256.
     Expected: ConfigurationError naming the code pin.
     """

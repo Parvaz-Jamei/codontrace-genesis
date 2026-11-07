@@ -1920,17 +1920,6 @@ NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
     dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_CI_PUBLIC_DIGEST_FIELDS))
 )
 
-# JR5 E1 gate settings. The spec carries the prereg manifest digest it was
-# verified against; __post_init__ refuses any value other than the code pin.
-_JR5_GATE_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
-    "codontrace.campaigns.jr5_e1_gate.E1GateSpec": ("prereg_manifest_digest",),
-}
-for _path, _fields in _JR5_GATE_DIGEST_FIELDS.items():
-    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
-STRICT_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
-    dict.fromkeys((*STRICT_REPLAY_CRITICAL_DIGEST_CLASSES, *_JR5_GATE_DIGEST_FIELDS))
-)
-
 # Align registry entries with true inspected dataclass digest fields (R08)
 for _path in (*STRICT_REPLAY_CRITICAL_DIGEST_CLASSES, *NON_REPLAY_CRITICAL_DIGEST_CLASSES):
     try:

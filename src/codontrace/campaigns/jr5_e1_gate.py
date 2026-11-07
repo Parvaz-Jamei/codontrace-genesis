@@ -116,13 +116,16 @@ class E1GateSpec:
     populations_per_cell: int
     seed_split: tuple[tuple[float, int, int], ...]
     constants_sha256: str
-    prereg_manifest_digest: str
+    # sha256 of the canonical prereg manifest (record.json manifest.digest).
+    # Named like constants_sha256; the gate record keeps the key
+    # "prereg_manifest_digest". Checked against the code pin on construction.
+    prereg_manifest_sha256: str
 
     def __post_init__(self) -> None:
         # Every spec, however built, names the pinned lock: the factories
         # recompute both digests from bytes, and this refuses any other value.
-        if self.prereg_manifest_digest != LOCKED_PREREG_MANIFEST_DIGEST:
-            raise ConfigurationError("prereg_manifest_digest is not the code-pinned prereg lock.")
+        if self.prereg_manifest_sha256 != LOCKED_PREREG_MANIFEST_DIGEST:
+            raise ConfigurationError("prereg_manifest_sha256 is not the code-pinned prereg lock.")
         if self.constants_sha256 != LOCKED_PREREG_CONSTANTS_SHA256:
             raise ConfigurationError("constants_sha256 is not the code-pinned constants sha256.")
 
@@ -148,12 +151,12 @@ class E1GateSpec:
         return cls._from_verified_mapping(
             _json_mapping(raw, "constants"),
             constants_sha256=actual,
-            prereg_manifest_digest=manifest.digest,
+            prereg_manifest_sha256=manifest.digest,
         )
 
     @classmethod
     def _from_verified_mapping(
-        cls, constants: Mapping[str, object], *, constants_sha256: str, prereg_manifest_digest: str
+        cls, constants: Mapping[str, object], *, constants_sha256: str, prereg_manifest_sha256: str
     ) -> E1GateSpec:
         """Decode settings only after byte and manifest verification.
 
@@ -236,14 +239,14 @@ class E1GateSpec:
             populations_per_cell=per_cell,
             seed_split=tuple(seed_split),
             constants_sha256=constants_sha256,
-            prereg_manifest_digest=prereg_manifest_digest,
+            prereg_manifest_sha256=prereg_manifest_sha256,
         )
 
     def to_record(self) -> dict[str, JsonValue]:
         """Complete settings for comparison with the trusted loader's spec."""
         return {
             "constants_sha256": self.constants_sha256,
-            "prereg_manifest_digest": self.prereg_manifest_digest,
+            "prereg_manifest_digest": self.prereg_manifest_sha256,
             "test": "tost_equivalence",
             "alpha": self.alpha,
             "ci_level": 1.0 - 2.0 * self.alpha,
@@ -520,7 +523,7 @@ class E1GateResult:
         body: dict[str, JsonValue] = {
             "schema": GATE_RECORD_SCHEMA,
             "constants_sha256": self.constants_sha256,
-            "prereg_manifest_digest": self.spec.prereg_manifest_digest,
+            "prereg_manifest_digest": self.spec.prereg_manifest_sha256,
             "spec": self.spec.to_record(),
             "cells": [c.to_record() for c in self.cells],
             "passed": self.passed,

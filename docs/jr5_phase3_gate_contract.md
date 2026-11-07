@@ -2,12 +2,19 @@
 
 ## Lock status
 
-Final synchronization with the dated preregistration amendment is pending.
-The gate currently uses the existing trusted manifest pin in
-`LOCKED_PREREG_MANIFEST_DIGEST`; no new manifest or constants value is guessed.
-Once the amendment is finalized, merge it normally, update that code pin to
-its verified manifest digest, and rerun the complete package tests and CI.
-No locked preregistration document is changed by this follow-up.
+The gate pins the prereg as amended on 2026-11-01 (DEVIATIONS.md, second entry):
+
+- `LOCKED_PREREG_MANIFEST_DIGEST` = `1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d`,
+  the `manifest.digest` of `docs/prereg/jr5/record.json`, recomputed from its file list.
+- `LOCKED_PREREG_CONSTANTS_SHA256` = `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`,
+  the sha256 of `jr5_prereg_constants.json` and its entry in that manifest.
+
+The manifest digest covers DEVIATIONS.md. The digest named in DEVIATIONS.md
+(`577bd4ac…`) is the plan digest over every other file, so it is a different
+number by design and is not used as a pin here. The amendment adds the
+diploid-fix merge pin to the constants file; `gate_e1`, the seeds and the
+grid are unchanged, so gate behaviour is unchanged. A record at the earlier
+lock (`a4f76d60…`, constants `608ccdea…`) is refused.
 
 ## Loading and evaluation
 

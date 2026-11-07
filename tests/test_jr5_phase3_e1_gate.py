@@ -505,11 +505,24 @@ def test_record_exposes_the_complete_verified_spec_and_actual_seeds() -> None:
     assert record["schema"] == "jr5_e1_gate_v3"
     assert record["constants_sha256"] == spec.constants_sha256
     assert record["prereg_manifest_digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert record["constants_sha256"] == jr5_e1_gate.LOCKED_PREREG_CONSTANTS_SHA256
     assert record["spec"] == spec.to_record()
     assert set(spec.to_record()) == {
-        "constants_sha256", "prereg_manifest_digest", "test", "alpha", "ci_level", "relative_margin",
-        "sex_ratios", "must_exclude", "must_exclude_ci_level", "early_fixation_generation",
-        "exclusion_cap_fraction", "host_n_gate", "host_n_reported", "populations_per_cell", "seed_split",
+        "constants_sha256",
+        "prereg_manifest_digest",
+        "test",
+        "alpha",
+        "ci_level",
+        "relative_margin",
+        "sex_ratios",
+        "must_exclude",
+        "must_exclude_ci_level",
+        "early_fixation_generation",
+        "exclusion_cap_fraction",
+        "host_n_gate",
+        "host_n_reported",
+        "populations_per_cell",
+        "seed_split",
     }
     for cell in record["cells"]:  # type: ignore[union-attr]
         assert cell["seeds"] == list(spec.seeds_for(cell["sex_ratio"]))
@@ -558,3 +571,66 @@ def test_excluded_fit_can_be_omitted_entirely() -> None:
     assert evaluate_e1_cell(_spec(), 0.5, 200, early).tost.n == 39  # type: ignore[union-attr]
     with pytest.raises(ConfigurationError, match="finite log_w"):
         evaluate_e1_cell(_spec(), 0.5, 200, [E1Population(rows[0].seed), *rows[1:]])
+
+
+def test_code_pins_equal_the_digests_of_the_committed_prereg_bytes() -> None:
+    """The two code pins are the digests of the files in this checkout, recomputed.
+
+    Basis: manifest.digest is the canonical digest of the manifest file list
+    (PlanManifest), and each file entry is the sha256 of that file's bytes.
+    DEVIATIONS.md names the plan digest, computed over every manifest file
+    except itself, so it must differ from the manifest digest that the gate
+    pins. Expected: the recomputed manifest digest, the declared one and the
+    pin agree; sha256 of the constants bytes, the manifest entry and the pin
+    agree; the plan digest in the last DEVIATIONS.md entry equals hash_plan
+    without DEVIATIONS.md and differs from the manifest pin.
+    """
+    import re
+
+    from codontrace.preregistration.manifest import PlanManifest, hash_plan
+
+    record = json.loads(RECORD.read_bytes())["manifest"]
+    files = [(path, digest) for path, digest in record["files"]]
+    recomputed = PlanManifest(tuple(files), record["title"]).digest
+    assert recomputed == record["digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    constants_sha = hashlib.sha256(CONSTANTS.read_bytes()).hexdigest()
+    assert dict(files)[jr5_e1_gate.CONSTANTS_RELPATH] == constants_sha == jr5_e1_gate.LOCKED_PREREG_CONSTANTS_SHA256
+    for path, digest in files:
+        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest, path
+    log = "docs/prereg/jr5/DEVIATIONS.md"
+    named = re.findall(r"^- Record digest: `[0-9a-f]{64}` -> `([0-9a-f]{64})`$", (ROOT / log).read_text("utf-8"), re.M)
+    plan = hash_plan([p for p, _ in files if p != log], root=ROOT, title=record["title"]).digest
+    assert named[-1] == plan
+    assert plan != jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+
+
+def test_loader_refuses_the_superseded_lock(tmp_path: Path) -> None:
+    """The record and constants of the lock before the 2026-11-01 amendment are refused.
+
+    Basis: main at 4400e07 holds the earlier lock (manifest a4f76d60...,
+    constants 608ccdea...), genuine bytes that were trusted until the
+    amendment. A gate that still accepted them could be fed the earlier
+    record. The bytes are read with git show; a shallow clone without that
+    commit skips, any other missing object fails.
+    Expected: ConfigurationError naming the code-pinned lock.
+    """
+    import subprocess
+
+    shallow = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "--is-shallow-repository"], capture_output=True, check=True, text=True
+    )
+    folder = tmp_path / "docs" / "prereg" / "jr5"
+    folder.mkdir(parents=True)
+    for name in ("record.json", "jr5_prereg_constants.json"):
+        shown = subprocess.run(
+            ["git", "-C", str(ROOT), "show", f"4400e07:docs/prereg/jr5/{name}"], capture_output=True, check=False
+        )
+        if shown.returncode != 0 and shallow.stdout.strip() == "true":
+            pytest.skip("shallow clone: 4400e07 is not in local history")
+        assert shown.returncode == 0, shown.stderr
+        (folder / name).write_bytes(shown.stdout)
+    old = json.loads((folder / "record.json").read_bytes())["manifest"]
+    assert old["digest"].startswith("a4f76d60")
+    assert hashlib.sha256((folder / "jr5_prereg_constants.json").read_bytes()).hexdigest().startswith("608ccdea")
+    with pytest.raises(ConfigurationError, match="code-pinned"):
+        load_e1_gate_spec(tmp_path)

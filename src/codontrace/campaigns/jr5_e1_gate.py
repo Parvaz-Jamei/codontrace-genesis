@@ -49,6 +49,7 @@ from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CONSTANTS_RELPATH",
+    "LOCKED_PREREG_CONSTANTS_SHA256",
     "LOCKED_PREREG_MANIFEST_DIGEST",
     "E1CellResult",
     "E1GateResult",
@@ -62,8 +63,12 @@ __all__ = [
 GATE_RECORD_SCHEMA = "jr5_e1_gate_v3"
 PREREG_RELDIR = "docs/prereg/jr5"
 CONSTANTS_RELPATH = f"{PREREG_RELDIR}/jr5_prereg_constants.json"
-# Current trusted lock; final amendment synchronization is still pending.
-LOCKED_PREREG_MANIFEST_DIGEST = "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"
+# record.json manifest.digest after the 2026-11-01 amendment logged in
+# DEVIATIONS.md. It covers DEVIATIONS.md too, so it is not the plan digest
+# that the log names (577bd4ac..., every file except DEVIATIONS.md).
+LOCKED_PREREG_MANIFEST_DIGEST = "1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d"
+# sha256 of jr5_prereg_constants.json as listed in that manifest.
+LOCKED_PREREG_CONSTANTS_SHA256 = "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
 _TOL = 1e-9
 
 
@@ -127,6 +132,8 @@ class E1GateSpec:
         entries = [digest for path, digest in manifest.files if path == CONSTANTS_RELPATH]
         if len(entries) != 1:
             raise ConfigurationError("record.json does not pin the JR5 constants file exactly once.")
+        if entries[0] != LOCKED_PREREG_CONSTANTS_SHA256:
+            raise ConfigurationError("record.json constants entry does not match the code-pinned constants sha256.")
         actual = hashlib.sha256(raw).hexdigest()
         if actual != entries[0]:
             raise ConfigurationError("JR5 constants file does not match its record.json sha256.")

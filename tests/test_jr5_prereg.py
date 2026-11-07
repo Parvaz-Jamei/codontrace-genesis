@@ -55,6 +55,7 @@ def test_record_covers_constants_and_docs() -> None:
         "REFERENCES.md",
         "RED_QUEEN_CLAIM_PATH.md",
         "jr5_prereg_constants.json",
+        "DEVIATIONS.md",
         "scripts/e1_power_sim.py",
     ):
         assert f"docs/prereg/jr5/{name}" in paths
@@ -816,24 +817,244 @@ def test_diploid_fix_pins_agree_with_prereg_text_and_json() -> None:
     assert f"engine test `{node}`" in text
 
 
+def _diploid_pin() -> dict[str, str]:
+    pin: dict[str, str] = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"][
+        "diploid_fertilisation"
+    ]
+    return pin
+
+
+def _require_full_history() -> None:
+    """Skip only in a shallow clone; any other missing history is a failure."""
+
+    shallow = _git("rev-parse", "--is-shallow-repository")
+    assert shallow.returncode == 0, "not a git checkout: " + shallow.stderr
+    if shallow.stdout.strip() == "true":
+        pytest.skip("shallow clone: the pinned merge commit is not in local history")
+
+
+# Head of fix/diploid-fertilisation when PR 134 was merged (second parent of
+# 4400e07): the commit that pinned the per-version repr digests.
+DIPLOID_FIX_BRANCH_HEAD = "45269184147251b5cfe93c7f97baba1fcb48323c"
+
+
 def test_diploid_fix_merge_commit_is_an_ancestor_of_head() -> None:
-    """The pinned merge commit is in the history this checkout was built from.
+    """The pinned commit is the merge of the fix and is in this checkout's history.
 
     Basis: git merge-base --is-ancestor A B exits 0 when A is an ancestor of B
-    and 1 when it is not; a commit counts as its own ancestor. The pin must be
-    a merge (two parents), since it records the merge of the fix into main.
-    Skipped when the object is absent (shallow clone or source archive), as in
-    the rq1 locked-commit test. Expected: exit code 0 and two parents.
+    and 1 when it is not. The pin must be a merge (two parents) that contains
+    the head of the fix branch, 4526918, and HEAD must contain the pin. A
+    shallow clone is skipped; in a full clone a missing pin fails.
+    Expected: the pin exists, has two parents, contains 4526918, and is an
+    ancestor of HEAD.
     """
 
-    sha = _constants()["host_mating_arm_modes"]["engine_config"]["engine_dependencies"]["diploid_fertilisation"][
-        "merge_commit"
-    ]
-    if _git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
-        pytest.skip("history not available (shallow clone or source archive)")
+    _check_merge_pin(_diploid_pin()["merge_commit"])
+
+
+def _check_merge_pin(sha: str) -> None:
+    _require_full_history()
+    assert _git("cat-file", "-e", f"{sha}^{{commit}}").returncode == 0, f"pinned commit {sha} not found"
     assert _git("merge-base", "--is-ancestor", sha, "HEAD").returncode == 0
     parents = _git("rev-list", "--parents", "-n", "1", sha).stdout.split()
     assert len(parents) == 3
+    assert _git("merge-base", "--is-ancestor", DIPLOID_FIX_BRANCH_HEAD, sha).returncode == 0
+
+
+def _fake_git(shallow: str, missing: str = "") -> Any:
+    """A stand-in for _git: answers is-shallow-repository with `shallow`; cat-file -e fails for `missing`."""
+
+    def run(*args: str) -> subprocess.CompletedProcess[str]:
+        if args == ("rev-parse", "--is-shallow-repository"):
+            return subprocess.CompletedProcess(args, 0, shallow + "\n", "")
+        if args[:2] == ("cat-file", "-e") and missing and args[2].startswith(missing):
+            return subprocess.CompletedProcess(args, 1, "", "fatal: Not a valid object name\n")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    return run
+
+
+def test_full_history_check_skips_in_a_shallow_clone_and_only_there(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The history guard skips when git reports a shallow clone and lets the test run otherwise.
+
+    Basis: git rev-parse --is-shallow-repository prints "true" in a shallow
+    clone and "false" in a full one; a shallow clone lacks the pinned merge,
+    so only that case may skip. pytest.skip raises pytest.skip.Exception, so
+    a skip in the full-clone case is caught here and turned into a failure
+    instead of being reported as a skip. git is replaced by a stand-in, so
+    the test means the same in a shallow and a full checkout.
+    Expected: skip for "true"; no skip and no error for "false".
+    """
+
+    module = sys.modules[__name__]
+    monkeypatch.setattr(module, "_git", _fake_git("true"))
+    with pytest.raises(pytest.skip.Exception, match="shallow clone"):
+        _require_full_history()
+    monkeypatch.setattr(module, "_git", _fake_git("false"))
+    try:
+        _require_full_history()
+    except pytest.skip.Exception:
+        pytest.fail("the guard skipped in a full clone")
+
+
+def test_missing_pin_fails_in_a_full_clone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """In a full clone a pin that git cannot find fails the check instead of skipping it.
+
+    Basis: git cat-file -e <sha>^{commit} exits non-zero when the object is
+    absent. In a full clone that means the pin names no commit of this
+    repository, which is an error in the prereg, not missing history. git is
+    replaced by a stand-in that reports a full clone and no such object, so
+    the genuine pin in the JSON does not hide the case.
+    Expected: AssertionError naming the missing commit; a skip is a failure.
+    """
+
+    bogus = "f" * 40
+    monkeypatch.setattr(sys.modules[__name__], "_git", _fake_git("false", missing=bogus))
+    try:
+        with pytest.raises(AssertionError, match=f"pinned commit {bogus} not found"):
+            _check_merge_pin(bogus)
+    except pytest.skip.Exception:
+        pytest.fail("a missing pin was skipped in a full clone")
+
+
+def test_diploid_fix_engine_test_arrives_with_the_pinned_merge() -> None:
+    """The pinned engine test exists at the merge commit and not at its first parent.
+
+    Basis: the first parent of the merge is main before the fix, so the test
+    the fix added must be absent there and present at the merge; git show
+    <sha>:<path> prints the file at that commit. A shallow clone is skipped.
+    Expected: "def <test name>(" in the file at the pin, and not in the file
+    at the pin's first parent (or the file does not exist there).
+    """
+
+    _require_full_history()
+    path, name = _diploid_pin()["engine_test"].split("::")
+    sha = _diploid_pin()["merge_commit"]
+    at_pin = _git("show", f"{sha}:{path}")
+    assert at_pin.returncode == 0, at_pin.stderr
+    assert f"def {name}(" in at_pin.stdout
+    at_parent = _git("show", f"{sha}^1:{path}")
+    assert at_parent.returncode != 0 or f"def {name}(" not in at_parent.stdout
+
+
+def test_prereg_generation_count_matches_the_engine_test() -> None:
+    """The generation count PREREG.md gives for the engine test is the test's own.
+
+    Basis: the test runs range(GENOME_LENGTH_GENERATIONS); the text says
+    "conserved over N generations (`GENOME_LENGTH_GENERATIONS` ...". The value
+    is read from the test file's source so the two cannot drift apart.
+    Expected: the same integer in both, and the loop uses the constant.
+    """
+
+    source = (ROOT / "tests" / "test_diploid_fertilisation.py").read_text(encoding="utf-8")
+    m = re.search(r"^GENOME_LENGTH_GENERATIONS = (\d+)$", source, re.M)
+    assert m is not None
+    assert "range(GENOME_LENGTH_GENERATIONS)" in source
+    t = re.search(r"conserved over (\d+) generations \(`GENOME_LENGTH_GENERATIONS`", _prereg_text())
+    assert t is not None
+    assert t.group(1) == m.group(1)
+
+
+_DIGEST_LINE = re.compile(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", re.M)
+
+
+def test_deviations_log_names_the_current_record_digest() -> None:
+    """The last DEVIATIONS.md entry names the record digest of the current plan files.
+
+    Basis: PREREG.md section 12 requires each post-lock change to be logged with
+    the new record digest. DEVIATIONS.md is in the manifest itself, so the
+    digest it names is hash_plan over every manifest file except DEVIATIONS.md
+    (a digest cannot include its own hash). Entries chain: each old digest is
+    the previous new one. Expected: the last entry's new digest equals that
+    recomputed digest, every entry has a digest line, and the chain holds.
+    """
+
+    rec = _record()
+    paths = [p for p, _ in rec.manifest.files]
+    log_path = "docs/prereg/jr5/DEVIATIONS.md"
+    assert log_path in paths
+    plan = hash_plan([p for p in paths if p != log_path], root=ROOT, title=rec.manifest.title)
+    text = (ROOT / log_path).read_text(encoding="utf-8")
+    entries = text.split("\n## ")[1:]
+    assert entries
+    pairs = []
+    for entry in entries:
+        found = _DIGEST_LINE.findall(entry)
+        assert len(found) == 1, entry.splitlines()[0]
+        pairs.append(found[0])
+    for (_, new), (old, _) in zip(pairs, pairs[1:], strict=False):
+        assert old == new
+    assert pairs[-1][1] == plan.digest
+    assert "no JR5 run has started" in entries[-1]
+
+
+def test_deviations_log_starts_at_the_record_of_the_lock() -> None:
+    """The first logged digest is the record at the lock merge, the next one the record after PR 133.
+
+    Basis: PREREG.md section 12 names the merge that locked the plan, and the
+    first DEVIATIONS.md entry names the merge that brought the late-logged
+    changes. record.json at each of those commits holds manifest.digest, and
+    DEVIATIONS.md did not exist at either, so that digest is over the same
+    plan files the log uses. A shallow clone is skipped.
+    Expected: the first entry's old digest equals manifest.digest at the lock
+    merge, and its new digest equals manifest.digest at the named merge.
+    """
+
+    _require_full_history()
+    lock = re.search(r"merged to main as ([0-9a-f]{7,40}) on", _prereg_text())
+    assert lock is not None
+    text = (ROOT / "docs" / "prereg" / "jr5" / "DEVIATIONS.md").read_text(encoding="utf-8")
+    first = text.split("\n## ")[1]
+    merged = re.search(r"\(merge ([0-9a-f]{7,40}),", first)
+    assert merged is not None
+    found = _DIGEST_LINE.findall(first)
+    assert len(found) == 1
+
+    def digest_at(sha: str) -> str:
+        shown = _git("show", f"{sha}:docs/prereg/jr5/record.json")
+        assert shown.returncode == 0, shown.stderr
+        assert _git("cat-file", "-e", f"{sha}:docs/prereg/jr5/DEVIATIONS.md").returncode != 0
+        value: str = json.loads(shown.stdout)["manifest"]["digest"]
+        return value
+
+    assert found[0][0] == digest_at(lock.group(1))
+    assert found[0][1] == digest_at(merged.group(1))
+
+
+def test_no_jr5_run_output_is_committed() -> None:
+    """No committed run output belongs to JR5, which backs the "no JR5 run" line in DEVIATIONS.md.
+
+    Basis: run outputs in this repository live under runs/<name>/; a JR5 run
+    would add files there. The DEVIATIONS.md run line is a declaration; this
+    checks the part of it the repository can show.
+    Expected: no tracked path under runs/ contains "jr5" in any case.
+    """
+
+    listed = _git("ls-files", "runs")
+    assert listed.returncode == 0, listed.stderr
+    assert [p for p in listed.stdout.splitlines() if "jr5" in p.lower()] == []
+
+
+def test_ci_runs_the_pin_tests_with_full_history() -> None:
+    """One CI job checks out full history, and every full pytest run lists skip reasons.
+
+    Basis: actions/checkout fetches one commit unless fetch-depth is set, and
+    fetch-depth 0 fetches all history; the pin tests skip in a shallow clone,
+    so without one full-depth job CI never checks the pin. In a workflow
+    expression the string '0' is truthy (only '', 0, false and null are
+    falsy), so "a && '0' || '1'" gives '0' when a holds. pytest -rs prints the
+    reason of each skip in the summary.
+    Expected: the 3.13 job, which runs the full suite without coverage, gets
+    fetch-depth 0, and both full pytest commands pass -rs.
+    """
+
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "fetch-depth: ${{ matrix.python-version == '3.13' && '0' || '1' }}" in ci
+    assert '"3.13"' in ci
+    assert "if: matrix.python-version != '3.14'" in ci
+    runs = re.findall(r"python -m pytest tests [^\n]*(?:\n\s+-p[^\n]*)?", ci)
+    assert len(runs) == 2
+    assert all(" -rs" in run for run in runs)
 
 
 def test_diploid_fix_engine_test_is_collected() -> None:

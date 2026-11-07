@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from collections import Counter
 
+import pytest
+
 from codontrace.genesis.birth import (
     DIPLOID_FERTILISATION_MECHANISM,
     fuse_gametes,
@@ -40,19 +42,24 @@ def _heterozygosity(bits: str) -> float:
     return sum(a != b for a, b in pairs) / len(pairs)
 
 
+# Generations in the length test; PREREG.md section 4 states the same number.
+GENOME_LENGTH_GENERATIONS = 50
+
+
 def test_genome_length_is_conserved_over_many_generations() -> None:
     """Fertilisation is the inverse of the homolog split, so length is invariant.
 
     Basis: a zygote holds one homolog from each gamete, and each gamete holds one
     copy of every locus, so the diploid length after syngamy equals the parent
-    length. Expected value: the founder length, exactly, after 50 generations,
-    for even and odd codon counts and a genome with trailing non-codon bits.
+    length. Expected value: the founder length, exactly, after
+    GENOME_LENGTH_GENERATIONS (50) generations, for even and odd codon counts
+    and a genome with trailing non-codon bits.
     """
 
     rng = RNGManager(20261031)
     for start in ("010110001111000101", "0101100011110001011", "01011000111100010111001"):
         own, mate = start, start[::-1]
-        for generation in range(50):
+        for generation in range(GENOME_LENGTH_GENERATIONS):
             gen_rng = rng.fork(f"{len(start)}/{generation}")
             child_a = fuse_gametes(
                 meiotic_gamete(own, WIDTH, gen_rng.fork("a")),
@@ -303,11 +310,19 @@ DEFAULT_PATH_TABLE_DIGEST = "d34592e007faf959"
 # Python 3.12 changed sum() of floats to compensated (Neumaier) summation
 # (CPython issue gh-100425), so the T02 and T03 float metrics differ in the
 # last bits between 3.11 and 3.12+. Both values are given by main 73c3bff.
-DEFAULT_PATH_TABLE_REPR_DIGEST = {(3, 11): "82dd7aa7e9bd2ba4"}
-DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON = "224e72bce17aa5a4"
+DEFAULT_PATH_TABLE_REPR_DIGEST = {
+    (3, 11): "82dd7aa7e9bd2ba4",
+    (3, 12): "224e72bce17aa5a4",
+    (3, 13): "224e72bce17aa5a4",
+    (3, 14): "224e72bce17aa5a4",
+}
 # repr table with the T02 final altruism scaled by (1 + 1e-13).
-PERTURBED_REPR_DIGEST = {(3, 11): "efc219907731b94c"}
-PERTURBED_REPR_DIGEST_PY312_ON = "897139aaeb1760ca"
+PERTURBED_REPR_DIGEST = {
+    (3, 11): "efc219907731b94c",
+    (3, 12): "897139aaeb1760ca",
+    (3, 13): "897139aaeb1760ca",
+    (3, 14): "897139aaeb1760ca",
+}
 
 
 def _default_path_table_digest(*args: str) -> str:
@@ -329,12 +344,19 @@ def _default_path_table_digest(*args: str) -> str:
     return hashlib.sha256(out).hexdigest()[:16]
 
 
-def _expected_repr_digest(perturbed: bool = False) -> str:
+def _expected_repr_digest(perturbed: bool = False, version: tuple[int, int] | None = None) -> str:
     import sys
 
-    if perturbed:
-        return PERTURBED_REPR_DIGEST.get(sys.version_info[:2], PERTURBED_REPR_DIGEST_PY312_ON)
-    return DEFAULT_PATH_TABLE_REPR_DIGEST.get(sys.version_info[:2], DEFAULT_PATH_TABLE_REPR_DIGEST_PY312_ON)
+    pins = PERTURBED_REPR_DIGEST if perturbed else DEFAULT_PATH_TABLE_REPR_DIGEST
+    key = version if version is not None else sys.version_info[:2]
+    if key not in pins:
+        pytest.fail(
+            f"no repr digest pinned for Python {key[0]}.{key[1]}; "
+            f"pinned versions: {', '.join(f'{a}.{b}' for a, b in sorted(pins))}. "
+            "Run tests/_scripts/default_path_digests.py --repr on main under that "
+            "version and add the value."
+        )
+    return pins[key]
 
 
 def test_default_path_digest_table_is_unchanged() -> None:
@@ -371,6 +393,20 @@ def test_default_path_repr_digest_catches_small_float_change() -> None:
     perturbed = _default_path_table_digest("--repr", "--perturb-t02-altruism")
     assert perturbed == _expected_repr_digest(perturbed=True)
     assert perturbed != _expected_repr_digest()
+
+
+@pytest.mark.parametrize("version", [(3, 10), (3, 15)])
+def test_expected_repr_digest_fails_for_an_unpinned_python(version: tuple[int, int]) -> None:
+    """An interpreter with no pin fails loudly instead of using another pin.
+
+    Basis: the repr digest depends on the float summation of the interpreter,
+    so a version outside 3.11 to 3.14 has no known value; reusing the 3.12+
+    value would hide a change. Expected: pytest.fail naming the version.
+    """
+
+    for perturbed in (False, True):
+        with pytest.raises(pytest.fail.Exception, match=rf"Python {version[0]}\.{version[1]}"):
+            _expected_repr_digest(perturbed=perturbed, version=version)
 
 
 # Parent ``111 000 111 000``: even homolog ``111 111``, odd homolog
@@ -606,3 +642,24 @@ def test_each_meiosis_of_a_zygote_draws_its_own_crossover_gate(monkeypatch: obje
         assert len(gates) == 2
         unequal += gates[0] != gates[1]
     assert abs(unequal - n / 2) < 4 * (n / 4) ** 0.5
+
+
+def test_digest_script_refuses_an_abbreviated_option() -> None:
+    """The digest script accepts only the full option names.
+
+    Basis: argparse matches an unambiguous prefix of a long option unless the
+    parser is built with allow_abbrev=False, in which case the prefix is an
+    unrecognised argument and parse_args exits with status 2 (Python argparse
+    documentation, allow_abbrev). '--rep' is a prefix of '--repr' only.
+    Parsing happens before the engine is imported, so the call is fast.
+    Expected: exit status 2 and "unrecognized arguments: --rep" on stderr.
+    """
+
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parent / "_scripts" / "default_path_digests.py"
+    done = subprocess.run([sys.executable, str(script), "--rep"], capture_output=True, text=True, timeout=60)
+    assert done.returncode == 2
+    assert "unrecognized arguments: --rep" in done.stderr

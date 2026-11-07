@@ -428,7 +428,7 @@ def test_public_decoder_hashes_the_bytes_it_parses() -> None:
     with pytest.raises(ConfigurationError, match="raw bytes"):
         E1GateSpec.from_prereg_constants(tuned, record_raw=record_raw)  # type: ignore[arg-type]
     for edited in (json.dumps(tuned).encode(), raw + b"\n"):
-        with pytest.raises(ConfigurationError, match="sha256"):
+        with pytest.raises(ConfigurationError, match="does not match its record.json sha256"):
             E1GateSpec.from_prereg_constants(edited, record_raw=record_raw)
 
 
@@ -651,14 +651,15 @@ def test_loader_recomputes_the_manifest_digest_instead_of_trusting_the_declared_
     digest that matches the pin proves nothing unless it is recomputed. Here
     only the PREREG.md entry changes, the constants bytes and their entry are
     genuine, and the declared digest is left at the pin.
-    Expected: ConfigurationError naming the code-pinned lock.
+    Expected: ConfigurationError from the recomputed-digest check, which runs
+    before the spec's own pin check.
     """
     record = json.loads(RECORD.read_bytes())
     record["manifest"]["files"] = [
         [name, "0" * 64 if name.endswith("/PREREG.md") else digest] for name, digest in record["manifest"]["files"]
     ]
     assert record["manifest"]["digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
-    with pytest.raises(ConfigurationError, match="code-pinned"):
+    with pytest.raises(ConfigurationError, match="record manifest content does not match"):
         load_e1_gate_spec(_write_prereg(tmp_path, record, CONSTANTS.read_bytes()))
 
 
@@ -669,7 +670,8 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
     manifest digest, so a wrong manifest pin alone cannot admit other gate
     settings. The manifest pin is set to the digest of a manifest built for
     ±30% constants, which the manifest check then accepts.
-    Expected: ConfigurationError naming the code-pinned constants sha256.
+    Expected: ConfigurationError from the loader's constants-entry check,
+    before the spec's own pin check.
     """
     from codontrace.preregistration.manifest import PlanManifest
 
@@ -683,7 +685,7 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
     manifest.pop("digest")
     record["manifest"] = PlanManifest.from_dict(manifest).to_dict()
     monkeypatch.setattr(jr5_e1_gate, "LOCKED_PREREG_MANIFEST_DIGEST", record["manifest"]["digest"])
-    with pytest.raises(ConfigurationError, match="code-pinned constants sha256"):
+    with pytest.raises(ConfigurationError, match="record.json constants entry does not match"):
         load_e1_gate_spec(_write_prereg(tmp_path, record, raw))
 
 

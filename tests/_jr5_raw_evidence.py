@@ -25,8 +25,12 @@ from __future__ import annotations
 import hashlib
 import math
 from copy import deepcopy
+from functools import cache
 from statistics import NormalDist
 from typing import Any
+
+import numpy as np
+from scipy import stats
 
 from codontrace.claimgate.jr5_verdict import (
     PREREG_CONSTANTS_SHA256,
@@ -37,6 +41,7 @@ from codontrace.claimgate.jr5_verdict import (
     run_record_sha256,
 )
 from codontrace.genesis.canonical import canonical_digest
+from tests._jr5_e1_fit import fit_logit
 
 N_SEEDS = 60
 E1_SD = {(0.5, 200): 0.076, (0.25, 200): 0.051, (0.5, 50): 0.158, (0.25, 50): 0.123}
@@ -118,7 +123,7 @@ def build(**overrides: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         data: dict[str, Any] = {}
         if exp == "e1":
             m = cell["sex_ratio"]
-            seeds = sorted(e1_seeds[m])
+            seeds = sorted(set(e1_seeds[m]))
             i = seeds.index(seed)
             z = scores(f"e1:{m}:{n}", len(seeds))[i]
             log_w = math.log(float(g["theoretical_cost"][str(m)])) + plan["e1_log_shift"][m] + E1_SD[(m, n)] * z
@@ -151,6 +156,7 @@ def build(**overrides: Any) -> tuple[dict[str, Any], dict[str, Any]]:
                 x = base
             data = {"terminal_uniparental_frequency": min(1.0, max(0.0, x))}
             if arm == "copassaged_high" and n == 200:
+                data["e4_window"] = [67, 70]
                 data["e4"] = {w: mu + 0.05 * val(f"e4:{w}", seed) for w, mu in plan["e4"].items()}
         elif exp == "uniform_tax":
             v = cell["virulence"]
@@ -170,15 +176,81 @@ def build(**overrides: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         "prereg_record_digest": PREREG_RECORD_DIGEST,
         "runs": runs,
         "sealed_locks": dict(SEALED_LOCK_DIGESTS),
-        "e1_gate_record": gate_record(passed=True, instrument_failure=False),
+        "e1_gate_record": gate_record(runs),
     }
     return evidence, plan
 
 
-def gate_record(*, passed: bool, instrument_failure: bool, sha: str | None = PREREG_CONSTANTS_SHA256) -> dict[str, Any]:
-    """A phase 3 E1 gate record (schema of campaigns.jr5_e1_gate) with only the fields the verdict reads."""
+@cache
+def _slope(counts: tuple[int, ...], n: int) -> float:
+    """The modified score solves the registered penalised binomial fit on generations 0..T."""
+    return float(fit_logit(np.asarray(counts, dtype=float), np.full(len(counts), n, dtype=float),
+                           np.arange(len(counts), dtype=float), bias_reduced=True)[1])
 
-    body: dict[str, Any] = {"schema": "codontrace_jr5_e1_gate_v1", "cells": [], "passed": passed, "instrument_failure": instrument_failure}
+
+def gate_record(runs: list[dict[str, Any]] | None = None, *, passed: bool | None = None,
+                instrument_failure: bool | None = None, sha: str | None = PREREG_CONSTANTS_SHA256) -> dict[str, Any]:
+    """Build v3 independently: fitted slopes, mean +/- t*SD/sqrt(n), and both one-sided tails."""
+    if runs is None:
+        runs = build()[0]["runs"]
+    g = jr5_constants()["gate_e1"]
+    spec_keys = ("test", "alpha", "ci_level", "relative_margin", "must_exclude", "must_exclude_ci_level",
+                 "exclusion_cap_fraction", "early_fixation_generation", "host_n_gate", "populations_per_cell",
+                 "sex_ratios", "host_n_reported", "seed_split")
+    spec = {key: g[key] for key in spec_keys}
+    spec.update(constants_sha256=PREREG_CONSTANTS_SHA256, prereg_manifest_digest=PREREG_RECORD_DIGEST)
+    cells = []
+    for m in g["sex_ratios"]:
+        for n in g["host_n_reported"]:
+            rows = sorted((r for r in runs if r["experiment"] == "e1" and r["host_n"] == n and r["cell"]["sex_ratio"] == m), key=lambda r: r["seed"])
+            seeds, excluded, fixed, lost, slopes = [], [], [], [], []
+            for r in rows:
+                seed = r["seed"]
+                counts = r["data"]["uniparental_counts"]
+                seeds.append(seed)
+                fixed_generation = next((i for i, c in enumerate(counts) if c == n), None)
+                if fixed_generation is not None:
+                    fixed.append(seed)
+                if 0 in counts:
+                    lost.append(seed)
+                if fixed_generation is not None and fixed_generation < g["early_fixation_generation"]:
+                    excluded.append(seed)
+                else:
+                    slopes.append(_slope(tuple(counts), n))
+            bounds = list(g["equivalence_bounds"][str(m)])
+            lo, hi = map(math.log, bounds)
+            cap = len(excluded) > g["exclusion_cap_fraction"] * len(rows)
+            ci90 = ci95 = tost = None
+            if len(slopes) >= 2:
+                mean = math.fsum(slopes) / len(slopes)
+                sd = math.sqrt(math.fsum((v - mean) ** 2 for v in slopes) / (len(slopes) - 1))
+                se = sd / math.sqrt(len(slopes))
+                df = len(slopes) - 1
+                half90 = float(stats.t.ppf(1 - g["alpha"], df)) * se
+                half95 = float(stats.t.ppf((1 + g["must_exclude_ci_level"]) / 2, df)) * se
+                ci90, ci95 = [mean - half90, mean + half90], [mean - half95, mean + half95]
+                tl, tu = (mean - lo) / se, (mean - hi) / se
+                pl, pu = float(stats.t.sf(tl, df)), float(stats.t.cdf(tu, df))
+                tost = {"test": "one_sample_tost", "n": len(slopes), "df": df, "mean": mean, "sd": sd,
+                        "standard_error": se, "lower_bound": lo, "upper_bound": hi, "alpha": g["alpha"],
+                        "t_lower": tl, "t_upper": tu, "p_lower": pl, "p_upper": pu, "p_value": max(pl, pu),
+                        "ci_level": g["ci_level"], "ci_low": ci90[0], "ci_high": ci90[1],
+                        "equivalent": pl < g["alpha"] and pu < g["alpha"]}
+            equivalent = tost is not None and tost["equivalent"]
+            excludes = ci95 is not None and (ci95[0] > math.log(g["must_exclude"]) or ci95[1] < math.log(g["must_exclude"]))
+            cells.append({"sex_ratio": m, "host_n": n, "gated": n == g["host_n_gate"], "n_total": len(rows),
+                          "seeds": seeds, "n_used": len(slopes), "excluded_seeds": excluded,
+                          "fixed_seeds": fixed, "lost_seeds": lost, "exclusion_cap_exceeded": cap,
+                          "log_bounds": [lo, hi], "ratio_bounds": bounds, "tost": tost,
+                          "ratio_ci": None if ci90 is None else list(map(math.exp, ci90)),
+                          "ratio_ci95": None if ci95 is None else list(map(math.exp, ci95)),
+                          "exclusion_interval_log": ci95, "equivalent": equivalent, "excludes_null": excludes,
+                          "passed": equivalent and excludes and not cap})
+    gate_pass = all(c["passed"] for c in cells if c["gated"])
+    failure = not gate_pass or any(c["exclusion_cap_exceeded"] for c in cells)
+    body: dict[str, Any] = {"schema": "jr5_e1_gate_v3", "prereg_manifest_digest": PREREG_RECORD_DIGEST,
+                            "spec": spec, "cells": cells, "passed": gate_pass if passed is None else passed,
+                            "instrument_failure": failure if instrument_failure is None else instrument_failure}
     if sha is not None:
         body["constants_sha256"] = sha
     body["digest"] = canonical_digest(body)

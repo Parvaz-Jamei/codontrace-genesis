@@ -1,0 +1,303 @@
+"""Raw-address, complete gate provenance, and independent statistical checks."""
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+from copy import deepcopy
+from dataclasses import replace
+from pathlib import Path
+
+import numpy as np
+import pytest
+from scipy import stats
+
+from codontrace.claimgate import audit_bundle
+from codontrace.claimgate import jr5_verdict as verdict
+from codontrace.errors import ConfigurationError
+from codontrace.genesis.canonical import canonical_digest
+from codontrace.preregistration.manifest import PlanManifest
+from codontrace.rng import RNGManager
+from tests import _jr5_raw_evidence as raw
+from tests.test_jr5_phase2c_verdict_adapter import bound_bundle, positive
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def rehash(record: dict) -> None:
+    record["digest"] = canonical_digest({k: v for k, v in record.items() if k != "digest"})
+
+
+def test_same_verified_bytes_and_manifest_are_required() -> None:
+    """A pinned digest authenticates the original bytes, not a tuned mapping or rehashed replacement."""
+    constants = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
+    record = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes()
+    assert verdict._verified_constants(constants, record) == json.loads(constants)
+    tuned = json.loads(constants)
+    tuned["gate_e1"]["relative_margin"] = 0.9
+    modified = json.dumps(tuned).encode()
+    with pytest.raises(ConfigurationError, match="sha256"):
+        verdict._verified_constants(modified, record)
+    swap = json.loads(record)
+    manifest = swap["manifest"]
+    manifest["files"] = [[p, hashlib.sha256(modified).hexdigest() if p.endswith("jr5_prereg_constants.json") else s]
+                         for p, s in manifest["files"]]
+    with pytest.raises(ConfigurationError, match="manifest"):
+        verdict._verified_constants(modified, json.dumps(swap).encode())
+    manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
+    with pytest.raises(ConfigurationError, match="manifest"):
+        verdict._verified_constants(modified, json.dumps(swap).encode())
+
+
+def test_public_loader_reads_each_resource_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A second read could parse different bytes; each resource must instead be read exactly once."""
+    base = ROOT / "src/codontrace/claimgate"
+    reads: dict[str, int] = {}
+
+    class Entry:
+        def __init__(self, name: str):
+            self.name = name
+
+        def read_bytes(self) -> bytes:
+            reads[self.name] = reads.get(self.name, 0) + 1
+            assert reads[self.name] == 1
+            return (base / self.name).read_bytes()
+
+    class Package:
+        def joinpath(self, name: str) -> Entry:
+            return Entry(name)
+
+    monkeypatch.setattr(verdict.resources, "files", lambda _: Package())
+    assert verdict.jr5_constants()["budget"]["runs_total"] == 3760
+    assert len(reads) == 2
+
+
+@pytest.mark.parametrize("field", ["test", "alpha", "ci_level", "relative_margin", "must_exclude",
+    "must_exclude_ci_level", "exclusion_cap_fraction", "early_fixation_generation", "host_n_gate",
+    "populations_per_cell", "sex_ratios", "host_n_reported", "seed_split", "constants_sha256", "prereg_manifest_digest"])
+def test_gate_spec_cannot_be_retuned_with_genuine_top_hashes(field: str) -> None:
+    """Every setting comes from the pinned bytes; rehashing a changed setting cannot preserve provenance."""
+    ev = positive()
+    rec = ev["e1_gate_record"]
+    rec["spec"][field] = None
+    rehash(rec)
+    with pytest.raises(ConfigurationError, match="spec"):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+@pytest.mark.parametrize("attack", ["missing_seeds", "wrong_seed", "duplicate_seed", "missing_cell", "extra_ratio",
+                                     "duplicate_cell", "wrong_manifest", "mean", "ratio_interval", "n_total_bool"])
+def test_rehashed_gate_records_must_match_all_raw_cells(attack: str) -> None:
+    """All four registered cells, exact seed blocks, and recomputed fit summaries are required, not just pass flags."""
+    ev = positive()
+    rec = ev["e1_gate_record"]
+    cell = rec["cells"][0]
+    if attack == "missing_seeds":
+        del cell["seeds"]
+    elif attack == "wrong_seed":
+        cell["seeds"][0] += 1000
+    elif attack == "duplicate_seed":
+        cell["seeds"][0] = cell["seeds"][1]
+    elif attack == "missing_cell":
+        rec["cells"].pop()
+    elif attack == "extra_ratio":
+        cell["sex_ratio"] = 0.1
+    elif attack == "duplicate_cell":
+        rec["cells"].append(deepcopy(cell))
+    elif attack == "wrong_manifest":
+        rec["prereg_manifest_digest"] = "0" * 64
+    elif attack == "mean":
+        cell["tost"]["mean"] += 0.01
+    elif attack == "ratio_interval":
+        cell["ratio_ci"][0] += 0.01
+    else:
+        cell["n_total"] = True
+    rehash(rec)
+    with pytest.raises(ConfigurationError):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+def test_constructed_or_mutated_evidence_is_revalidated() -> None:
+    """Dataclass construction and mutable nested mappings cannot replace byte-address and complete-grid checks."""
+    ev = verdict.Jr5Evidence.from_dict(positive())
+    for invalid in (replace(ev, prereg_record_digest="0" * 64), replace(ev, runs=ev.runs[:-1])):
+        with pytest.raises(ConfigurationError):
+            verdict.evaluate_jr5_verdict(invalid)
+    ev.runs[0].raw["data"]["uniparental_counts"][0] += 1
+    with pytest.raises(ConfigurationError, match="address"):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+@pytest.mark.parametrize("host_n", [50, 200])
+def test_exclusion_cap_breach_uses_all_registered_cells(host_n: int) -> None:
+    """Nine exclusions exceed 0.2*40=8; N50 preserves the gated pass, N200 cannot, and both instrument-fail."""
+    ev, _ = raw.build(e1_early_fixed={(0.5, host_n): 9})
+    record = ev["e1_gate_record"]
+    assert record["passed"] is (host_n == 50)
+    assert record["instrument_failure"] is True
+    result = verdict.evaluate_jr5_verdict(ev)
+    assert not result.conditions["a"] and not result.red_queen_proved
+
+
+def test_registered_window_times_cannot_be_swapped() -> None:
+    """The lock fixes horizon 70 and primary lag 3, so the paired window is [67,70], not [66,70]."""
+    lock = (ROOT / "runs/rq-mechanism-v2/PHASE6_CONFIRM_LOCK.md").read_text()
+    assert "Primary lag: 3." in lock and "Horizon: 70 generations." in lock
+    assert verdict.E4_WINDOW_GENERATIONS == (70 - 3, 70)
+    ev = positive()
+    run = next(r for r in ev["runs"] if "e4" in r["data"])
+    run["data"]["e4_window"] = [66, 70]
+    raw.readdress(run)
+    with pytest.raises(ConfigurationError, match="window"):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+@pytest.mark.parametrize("part", ["arms", "outcomes", "comparisons", "config_digest", "replay", "artifacts"])
+def test_bundle_projection_cannot_carry_unrelated_results(part: str) -> None:
+    """A valid verdict binds exact arm addresses, vectors, contrasts and replay artifacts; replacing any one keeps the ban."""
+    ev = positive()
+    payload = bound_bundle(ev)
+    unrelated = json.loads((ROOT / "tests/fixtures/claimgate/level2_difference.json").read_text())
+    payload[part] = unrelated[part]
+    report = audit_bundle(payload)
+    assert report.achieved_level <= 1
+    assert any("red_queen_proved" in s for s in report.warnings)
+
+
+def test_bias_reduced_slopes_match_registered_score_solver() -> None:
+    """The registered modified-score solution, not a half-count regression approximation, determines each slope."""
+    ev = positive()
+    for run in ev["runs"]:
+        if run["experiment"] == "e1":
+            counts, n = run["data"]["uniparental_counts"], run["host_n"]
+            fitted = verdict._firth_logit_slope(counts, n, verdict.jr5_constants()["gate_e1"]["fit"])
+            assert fitted == pytest.approx(raw._slope(tuple(counts), n), abs=2e-10)
+
+
+def test_paired_tests_and_rank_trend_match_independent_distributions() -> None:
+    """With differences d, t=mean(d)/(SD(d)/sqrt(n)); average-rank correlation uses its n-2 t tail."""
+    rng = np.random.default_rng(20261107)
+    for _ in range(100):
+        a = rng.normal(size=60)
+        b = rng.normal(size=60)
+        paired = verdict._Paired(tuple(a - b), 12345, 10000)
+        assert paired.p_two_sided() == pytest.approx(float(stats.ttest_rel(a, b).pvalue), abs=2e-12)
+        expected = stats.t.interval(0.95, 59, loc=np.mean(a - b), scale=stats.sem(a - b))
+        actual = paired.ci(0.95)
+        assert [actual.lo, actual.hi] == pytest.approx(expected, abs=2e-12)
+        x = rng.integers(0, 4, size=180).tolist()
+        y = rng.normal(size=180).tolist()
+        rho, p = verdict._spearman_greater(x, y)
+        ref = stats.spearmanr(x, y, alternative="greater")
+        assert rho == pytest.approx(float(ref.statistic), abs=2e-14)
+        assert p == pytest.approx(float(ref.pvalue), abs=2e-12)
+    x = list(range(100))
+    y = x.copy()
+    y[0], y[1] = y[1], y[0]
+    _, tail = verdict._spearman_greater(x, y)
+    expected_tail = float(stats.spearmanr(x, y, alternative="greater").pvalue)
+    assert 0 < tail < 1e-100
+    assert tail == pytest.approx(expected_tail, rel=1e-8, abs=0)
+
+
+def test_registered_resample_stream_and_adjusted_quantiles() -> None:
+    """Use 10000 paired draws at seed12345; bias and jackknife acceleration adjust each two-sided tail before quantiles."""
+    values = np.random.default_rng(20261107).lognormal(size=60)
+    rng = RNGManager(seed=12345, namespace="bootstrap_paired")
+    draws = np.asarray([[values[rng.randrange(60)] for _ in range(60)] for _ in range(10000)])
+    means = draws.mean(axis=1)
+    theta = values.mean()
+    z0 = float(stats.norm.ppf(np.count_nonzero(means < theta) / 10000))
+    jack = np.asarray([np.delete(values, i).mean() for i in range(60)])
+    differences = jack.mean() - jack
+    acceleration = float(np.sum(differences ** 3) / (6 * np.sum(differences ** 2) ** 1.5))
+    paired = verdict._Paired(tuple(values), 12345, 10000)
+    for level in (0.9875, 1 - 0.05 / 3, 0.975, 0.95):
+        tails = np.asarray([(1 - level) / 2, (1 + level) / 2])
+        z = stats.norm.ppf(tails)
+        adjusted = stats.norm.cdf(z0 + (z0 + z) / (1 - acceleration * (z0 + z)))
+        expected = np.quantile(means, adjusted)
+        interval = paired.bca(level)
+        assert [interval.lo, interval.hi] == pytest.approx(expected, abs=2e-7)
+
+
+def test_digest_contracts_are_registered_from_the_consumer() -> None:
+    """Evidence and verdict expose reference digests, while raw body addresses are verified within run envelopes."""
+    from codontrace.genesis import replay_integrity
+    for cls in (verdict.Jr5Evidence, verdict.Jr5Verdict):
+        path = f"{cls.__module__}.{cls.__qualname__}"
+        assert path in replay_integrity.NON_REPLAY_CRITICAL_DIGEST_CLASSES
+        assert replay_integrity._DIGEST_FIELDS_BY_CLASS[path] == replay_integrity.public_dataclass_digest_fields(cls)
+    source = (ROOT / "src/codontrace/genesis/replay_integrity.py").read_text()
+    assert "jr5_verdict" not in source
+
+
+@pytest.mark.parametrize(("field", "value", "expected"), [
+    ("resumed_body_sha256", "0" * 64, False),
+    ("atp_ledger_residual", 1e-9, True),
+    ("atp_ledger_residual", -1e-9, True),
+    ("atp_ledger_residual", -2e-9, False),
+])
+def test_replay_body_equality_and_closed_residual_boundary(field: str, value: object, expected: bool) -> None:
+    """Replay bodies must match, while the absolute residual threshold is closed at +/-1e-9."""
+    ev = positive()
+    run = ev["runs"][123]
+    run["replay"][field] = value
+    raw.readdress(run)
+    result = verdict.evaluate_jr5_verdict(ev)
+    assert result.conditions["e"] is expected
+    assert result.red_queen_proved is expected
+
+
+def test_one_bit_raw_edit_changes_the_content_address() -> None:
+    """The exact JSON float is addressed: even a one-ulp edit without a fresh hash must be refused."""
+    ev = positive()
+    run = next(r for r in ev["runs"] if r["experiment"] == "e2")
+    before = run["sha256"]
+    value = run["data"]["terminal_uniparental_frequency"]
+    run["data"]["terminal_uniparental_frequency"] = math.nextafter(value, math.inf)
+    assert verdict.run_record_sha256(run) != before
+    with pytest.raises(ConfigurationError, match="address"):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+def test_a_low_virulence_e2_effect_prevents_a_load_only_outcome() -> None:
+    """'E2 not significant' means all four family members: one strong low-virulence effect prevents load-only attribution."""
+    effects = {(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): -0.25, (50, "low"): 0.0}
+    ev, _ = raw.build(e2_effect=effects, load_effect=0.10, load_slope=4.0)
+    result = verdict.evaluate_jr5_verdict(ev)
+    assert result.outcome == "none" and not result.red_queen_proved
+
+
+def test_non_significance_alone_never_rules_out_an_alternative() -> None:
+    """At mean zero and SD0.5, the 90% half-width is about0.108>0.10 and the 95% interval spans zero: not ruled out."""
+    values = tuple(0.5 * z for z in raw.scores("uncertain"))
+    contrast = verdict._Paired(values, 12345, 10000)
+    assert contrast.p_two_sided() > 0.9
+    assert not verdict._ruled_out(contrast, 0.10, -1, 0.90, 0.95)
+
+
+def test_a_genuine_constants_hash_does_not_authenticate_an_edited_manifest() -> None:
+    """Changing only the manifest title leaves constants genuine but breaks the code-pinned canonical manifest digest."""
+    constants = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
+    original = json.loads((ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes())
+    record = deepcopy(original)
+    record["manifest"]["title"] += " changed"
+    with pytest.raises(ConfigurationError, match="manifest"):
+        verdict._verified_constants(constants, json.dumps(record).encode())
+    manifest = record["manifest"]
+    manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
+    with pytest.raises(ConfigurationError, match="manifest"):
+        verdict._verified_constants(constants, json.dumps(record).encode())
+
+
+@pytest.mark.parametrize("fields", [("expected_digest", "replayed_digest"), ("one_shot_body_sha256", "resumed_body_sha256")])
+def test_matching_placeholder_replay_strings_are_not_digests(fields: tuple[str, str]) -> None:
+    """Equality of two placeholder strings is not replay evidence: both digest and body addresses require 64 hex characters."""
+    ev = positive()
+    run = ev["runs"][0]
+    for field in fields:
+        run["replay"][field] = "not-a-digest"
+    raw.readdress(run)
+    with pytest.raises(ConfigurationError, match="sha256"):
+        verdict.evaluate_jr5_verdict(ev)

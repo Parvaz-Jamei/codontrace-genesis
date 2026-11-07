@@ -14,6 +14,8 @@ from importlib import import_module
 from inspect import isclass
 from typing import Any
 
+from codontrace.errors import ConfigurationError
+
 
 @dataclass(frozen=True)
 class ReplayDigestClassPolicy:
@@ -1928,17 +1930,13 @@ for _path in (*STRICT_REPLAY_CRITICAL_DIGEST_CLASSES, *NON_REPLAY_CRITICAL_DIGES
     except Exception:
         pass
 
-# JR5 verdict records (codontrace.claimgate.jr5_verdict). Their digests name the
-# pinned prereg record and the evidence; the verdict is always recomputed from
-# the raw run records, so a digest here never grants red_queen_proved alone.
-# Listed after the R08 alignment so engine import does not load the module.
-_JR5_VERDICT_PUBLIC_DIGEST_FIELDS: dict[str, tuple[str, ...]] = {
-    "codontrace.claimgate.jr5_verdict.Jr5Evidence": ("prereg_record_digest",),
-    "codontrace.claimgate.jr5_verdict.Jr5Verdict": ("evidence_digest", "prereg_record_digest"),
-}
-for _path, _fields in _JR5_VERDICT_PUBLIC_DIGEST_FIELDS.items():
-    _DIGEST_FIELDS_BY_CLASS[_path] = _fields
-NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(
-    dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, *_JR5_VERDICT_PUBLIC_DIGEST_FIELDS))
-)
-
+def register_noncritical_digest_class(cls: type[Any]) -> None:
+    """Register inspected public digest fields from an optional consuming layer."""
+    global NON_REPLAY_CRITICAL_DIGEST_CLASSES
+    path = f"{cls.__module__}.{cls.__qualname__}"
+    fields = public_dataclass_digest_fields(cls, path)
+    existing = _DIGEST_FIELDS_BY_CLASS.get(path)
+    if existing is not None and existing != fields:
+        raise ConfigurationError(f"Conflicting digest contract for {path}.")
+    _DIGEST_FIELDS_BY_CLASS[path] = fields
+    NON_REPLAY_CRITICAL_DIGEST_CLASSES = tuple(dict.fromkeys((*NON_REPLAY_CRITICAL_DIGEST_CLASSES, path)))

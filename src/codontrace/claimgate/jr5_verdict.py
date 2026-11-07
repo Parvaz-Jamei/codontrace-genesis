@@ -49,10 +49,12 @@ from typing import Any
 
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
+from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CLAIM",
     "E4_WINDOW_SIGNS",
+    "E4_WINDOW_GENERATIONS",
     "PREREG_CONSTANTS_SHA256",
     "PREREG_RECORD_DIGEST",
     "SEALED_LOCK_DIGESTS",
@@ -63,6 +65,7 @@ __all__ = [
     "assert_jr5_red_queen_claim_allowed",
     "evaluate_jr5_verdict",
     "jr5_constants",
+    "jr5_bundle_fields",
     "jr5_run_grid",
     "red_queen_exemption_holds",
     "run_record_sha256",
@@ -94,6 +97,7 @@ SEALED_LOCK_DIGESTS: Mapping[str, str] = {
 # Under cycling hosts resist past parasites (infectivity falls: host effect
 # below 0) and parasites track current hosts (infectivity rises: parasite
 # effect above 0).
+E4_WINDOW_GENERATIONS = (67, 70)
 E4_WINDOW_SIGNS: Mapping[str, int] = {"host_effect": -1, "parasite_effect": 1}
 
 _CONDITION_KEYS = ("a", "b", "c", "d", "e")
@@ -165,10 +169,39 @@ def _hex64(value: Any, what: str) -> str:
 def jr5_constants() -> dict[str, Any]:
     """The pinned prereg constants, parsed from the bytes that were hashed."""
 
-    raw = resources.files("codontrace.claimgate").joinpath(_CONSTANTS_RESOURCE).read_bytes()
-    if hashlib.sha256(raw).hexdigest() != PREREG_CONSTANTS_SHA256:
-        raise ConfigurationError("JR5 prereg constants do not match the pinned sha256.")
-    constants = json.loads(raw.decode("utf-8"))
+    package = resources.files("codontrace.claimgate")
+    record_raw = package.joinpath("data/jr5_prereg_record.json").read_bytes()
+    raw = package.joinpath(_CONSTANTS_RESOURCE).read_bytes()
+    return _verified_constants(raw, record_raw)
+
+
+def _verified_constants(raw: bytes, record_raw: bytes) -> dict[str, Any]:
+    """Verify the manifest and parse only the byte sequence whose hash was checked."""
+    try:
+        record = _mapping(json.loads(record_raw), "prereg record")
+        manifest = _mapping(record.get("manifest"), "prereg manifest")
+        files = _seq(manifest.get("files"), "prereg manifest files")
+        pairs = []
+        for pair in files:
+            if not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(v, str) for v in pair):
+                raise ConfigurationError("prereg manifest files must be path/digest pairs.")
+            pairs.append((pair[0], pair[1]))
+        if len({path for path, _ in pairs}) != len(pairs):
+            raise ConfigurationError("prereg manifest repeats a path.")
+        title = manifest.get("title")
+        if not isinstance(title, str):
+            raise ConfigurationError("prereg manifest title must be a string.")
+        if manifest.get("digest") != PREREG_RECORD_DIGEST or PlanManifest(tuple(pairs), title).digest != PREREG_RECORD_DIGEST:
+            raise ConfigurationError("JR5 prereg manifest does not match the code-pinned digest.")
+        actual = hashlib.sha256(raw).hexdigest()
+        entries = [sha for path, sha in pairs if path == "docs/prereg/jr5/jr5_prereg_constants.json"]
+        if entries != [actual] or actual != PREREG_CONSTANTS_SHA256:
+            raise ConfigurationError("JR5 prereg constants do not match the pinned sha256.")
+        constants = _mapping(json.loads(raw), "prereg constants")
+    except ConfigurationError:
+        raise
+    except (ValueError, UnicodeError) as exc:
+        raise ConfigurationError("JR5 prereg resources must contain valid JSON.") from exc
     if CLAIM not in constants.get("gated_claim_flags", {}):
         raise ConfigurationError(f"JR5 prereg does not gate {CLAIM!r}.")
     return dict(constants)
@@ -291,14 +324,19 @@ class RunRecord:
         )
         replay = _check_keys(d["replay"], _REPLAY_KEYS, f"run {run_id} replay")
         for name in _REPLAY_KEYS - {"atp_ledger_residual"}:
-            if not isinstance(replay[name], str) or not replay[name]:
-                raise ConfigurationError(f"run {run_id} replay.{name} must be a non-empty string.")
+            _hex64(replay[name], f"run {run_id} replay.{name}")
         _finite(replay["atp_ledger_residual"], f"run {run_id} atp_ledger_residual")
         sha = _hex64(d["sha256"], f"run {run_id} sha256")
         if sha != run_record_sha256(d):
             raise ConfigurationError(f"run {run_id}: sha256 does not address its content.")
         key: RunKey = (exp, cell, _int(d["host_n"], "run.host_n"), _int(d["seed"], "run.seed"))
-        return cls(run_id, key, _mapping(d["data"], f"run {run_id} data"), replay, sha, d)
+        fields = {"e1": {"uniparental_counts"}, "e2": {"terminal_uniparental_frequency"},
+                  "uniform_tax": {"terminal_uniparental_frequency"}, "mutation_load": {"log_terminal_fitness"}}
+        allowed = set(fields.get(exp, set()))
+        if exp == "e2" and cell_map.get("parasite") == "copassaged_high" and key[2] == 200:
+            allowed.update({"e4", "e4_window"})
+        payload = _check_keys(d["data"], allowed, f"run {run_id} data")
+        return cls(run_id, key, payload, replay, sha, d)
 
     def passes_replay(self, max_residual: float) -> bool:
         r = self.replay
@@ -440,7 +478,7 @@ def _spearman_greater(x: Sequence[float], y: Sequence[float]) -> tuple[float, fl
     if rho <= -1.0:
         return -1.0, 1.0
     t = rho * math.sqrt(df / (1.0 - rho * rho))
-    return rho, 1.0 - t_cdf(t, df)
+    return rho, t_cdf(-t, df)
 
 
 def _firth_logit_slope(counts: Sequence[int], n: int, fit: Mapping[str, Any]) -> float:
@@ -455,7 +493,10 @@ def _firth_logit_slope(counts: Sequence[int], n: int, fit: Mapping[str, Any]) ->
     b0, b1 = (float(v) for v in fit["start"])
     xs = [float(t) for t in range(len(counts))]
     for _ in range(max_iter):
-        ps = [1.0 / (1.0 + math.exp(-(b0 + b1 * x))) for x in xs]
+        eta = [b0 + b1 * x for x in xs]
+        if not all(math.isfinite(v) for v in eta):
+            raise ConfigurationError("E1 fit: non-finite linear predictor.")
+        ps = [1.0 / (1.0 + math.exp(-v)) if v >= 0 else math.exp(v) / (1.0 + math.exp(v)) for v in eta]
         ws = [n * p * (1.0 - p) for p in ps]
         i00 = math.fsum(ws)
         i01 = math.fsum(w * x for w, x in zip(ws, xs, strict=True))
@@ -588,7 +629,7 @@ def _paired(a: Mapping[int, float], b: Mapping[int, float], boot: Mapping[str, A
     return _Paired(tuple(a[s] - b[s] for s in seeds), int(boot["seed"]), int(boot["resamples"]))
 
 
-def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool]:
+def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[str, Any]]]:
     """Return (every gated N = 200 cell passes the TOST and the null check, any E1 cell breaches the cap)."""
 
     g = k["gate_e1"]
@@ -597,13 +638,16 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool]:
     log_null = math.log(float(g["must_exclude"]))
     gated_pass = True
     breach = False
+    cells = []
     for ratio in g["sex_ratios"]:
         gens = int(g["generations"][str(ratio)])
         lo, hi = (math.log(float(x)) for x in g["equivalence_bounds"][str(ratio)])
         for n in g["host_n_reported"]:
             n = int(n)
             log_w: list[float] = []
-            excluded = 0
+            excluded_seeds = []
+            fixed_seeds = []
+            lost_seeds = []
             runs = values.runs("e1", n, sex_ratio=float(ratio))
             for seed in sorted(runs):
                 r = runs[seed]
@@ -614,40 +658,113 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool]:
                 if any(c < 0 or c > n for c in cs):
                     raise ConfigurationError(f"run {r.run_id}: counts must lie in [0, {n}].")
                 fixed = next((t for t, c in enumerate(cs) if c == n), None)
+                if fixed is not None:
+                    fixed_seeds.append(seed)
+                if 0 in cs:
+                    lost_seeds.append(seed)
+                if fixed is not None and 0 in cs:
+                    raise ConfigurationError(f"run {r.run_id}: a population cannot fix and be lost.")
                 if fixed is not None and fixed < early:
-                    excluded += 1
+                    excluded_seeds.append(seed)
                     continue
                 log_w.append(_firth_logit_slope(cs, n, g["fit"]))
-            if excluded > cap * len(runs):
-                breach = True
-            if n != int(g["host_n_gate"]):
-                continue
-            if len(log_w) < 2:
-                gated_pass = False
-                continue
-            ci90 = _t_interval(log_w, float(g["ci_level"]))
-            ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"]))
-            gated_pass = gated_pass and ci90.inside(lo, hi) and ci95.side(log_null) != 0
-    return gated_pass, breach
+            exceeded = len(excluded_seeds) > cap * len(runs)
+            breach = breach or exceeded
+            ci90 = _t_interval(log_w, float(g["ci_level"])) if len(log_w) >= 2 else None
+            ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"])) if len(log_w) >= 2 else None
+            equivalent = ci90 is not None and ci90.inside(lo, hi)
+            excludes = ci95 is not None and ci95.side(log_null) != 0
+            passed = equivalent and excludes and not exceeded
+            gated = n == int(g["host_n_gate"])
+            if gated:
+                gated_pass = gated_pass and passed
+            cells.append({
+                "sex_ratio": float(ratio), "host_n": n, "gated": gated,
+                "n_total": len(runs), "n_used": len(log_w), "seeds": sorted(runs),
+                "excluded_seeds": excluded_seeds, "fixed_seeds": fixed_seeds, "lost_seeds": lost_seeds,
+                "exclusion_cap_exceeded": exceeded, "log_bounds": [lo, hi],
+                "ratio_bounds": list(g["equivalence_bounds"][str(ratio)]),
+                "ratio_ci": None if ci90 is None else [math.exp(ci90.lo), math.exp(ci90.hi)],
+                "ratio_ci95": None if ci95 is None else [math.exp(ci95.lo), math.exp(ci95.hi)],
+                "exclusion_interval_log": None if ci95 is None else [ci95.lo, ci95.hi],
+                "equivalent": equivalent, "excludes_null": excludes, "passed": passed,
+                "tost": _tost_record(log_w, lo, hi, float(g["alpha"])) if ci90 is not None else None,
+            })
+    return gated_pass, breach, cells
 
 
-def _check_e1_gate_record(rec: Mapping[str, Any], gated_pass: bool, instrument_failure: bool) -> None:
-    """The phase 3 gate record must carry the pinned constants sha and agree with the raw records."""
+def _tost_record(values: Sequence[float], lo: float, hi: float, alpha: float) -> dict[str, Any]:
+    from codontrace.claimgate.power import t_cdf
 
-    sha = rec.get("constants_sha256")
-    if sha != PREREG_CONSTANTS_SHA256:
+    n = len(values)
+    mean, sd = _mean_sd(values)
+    se = sd / math.sqrt(n)
+    tl = (mean - lo) / se if se else math.copysign(math.inf, mean - lo) if mean != lo else 0.0
+    tu = (mean - hi) / se if se else math.copysign(math.inf, mean - hi) if mean != hi else 0.0
+    pl, pu = t_cdf(-tl, n - 1), t_cdf(tu, n - 1)
+    ci = _t_interval(values, 1.0 - 2.0 * alpha)
+    return {"test": "one_sample_tost", "n": n, "df": n - 1, "mean": mean, "sd": sd,
+            "standard_error": se, "lower_bound": lo, "upper_bound": hi, "alpha": alpha,
+            "t_lower": tl, "t_upper": tu, "p_lower": pl, "p_upper": pu, "p_value": max(pl, pu),
+            "ci_level": 1.0 - 2.0 * alpha, "ci_low": ci.lo, "ci_high": ci.hi,
+            "equivalent": pl < alpha and pu < alpha}
+
+
+def _same_analysis(actual: Any, expected: Any) -> bool:
+    """Exact provenance and decisions; tolerate only floating evaluation roundoff."""
+    if isinstance(expected, dict):
+        return isinstance(actual, Mapping) and set(actual) == set(expected) and all(
+            _same_analysis(actual[key], value) for key, value in expected.items())
+    if isinstance(expected, list):
+        return isinstance(actual, list) and len(actual) == len(expected) and all(
+            _same_analysis(a, e) for a, e in zip(actual, expected, strict=True))
+    if isinstance(expected, float):
+        return not isinstance(actual, bool) and isinstance(actual, (int, float)) and math.isclose(
+            actual, expected, rel_tol=1e-9, abs_tol=1e-11)
+    return type(actual) is type(expected) and actual == expected
+
+
+def _check_e1_gate_record(rec: Mapping[str, Any], gated_pass: bool, instrument_failure: bool,
+                          cells: list[dict[str, Any]], k: Mapping[str, Any]) -> None:
+    """Verify the complete v3 provenance and recomputed per-cell record."""
+    _check_keys(rec, {"schema", "constants_sha256", "prereg_manifest_digest", "spec", "cells",
+                      "passed", "instrument_failure", "digest"}, "E1 gate record")
+    if rec["schema"] != "jr5_e1_gate_v3":
+        raise ConfigurationError("E1 gate record must use schema jr5_e1_gate_v3.")
+    if rec["constants_sha256"] != PREREG_CONSTANTS_SHA256:
         raise ConfigurationError("E1 gate record has a missing or wrong constants_sha256.")
+    if rec["prereg_manifest_digest"] != PREREG_RECORD_DIGEST:
+        raise ConfigurationError("E1 gate record has the wrong prereg manifest digest.")
+    g = k["gate_e1"]
+    spec_keys = ("test", "alpha", "ci_level", "relative_margin", "must_exclude", "must_exclude_ci_level",
+                 "exclusion_cap_fraction", "early_fixation_generation", "host_n_gate", "populations_per_cell",
+                 "sex_ratios", "host_n_reported", "seed_split")
+    expected_spec = {key: g[key] for key in spec_keys}
+    expected_spec.update(constants_sha256=PREREG_CONSTANTS_SHA256, prereg_manifest_digest=PREREG_RECORD_DIGEST)
+    if not _same_analysis(rec["spec"], expected_spec) or dict(rec["spec"]) != expected_spec:
+        raise ConfigurationError("E1 gate spec does not match the trusted prereg settings.")
     body = {key: v for key, v in rec.items() if key != "digest"}
-    if rec.get("digest") != canonical_digest(body):
+    if rec["digest"] != canonical_digest(body):
         raise ConfigurationError("E1 gate record digest does not match its body.")
-    if rec.get("passed") is not gated_pass or rec.get("instrument_failure") is not instrument_failure:
+    actual_cells = _seq(rec["cells"], "E1 gate cells")
+    keyed = {}
+    for cell in actual_cells:
+        c = _mapping(cell, "E1 gate cell")
+        key = (_finite(c.get("sex_ratio"), "E1 sex ratio"), _int(c.get("host_n"), "E1 host N"))
+        if key in keyed:
+            raise ConfigurationError("E1 gate cells must be unique.")
+        keyed[key] = c
+    expected = {(c["sex_ratio"], c["host_n"]): c for c in cells}
+    if not _same_analysis(keyed, expected):
+        raise ConfigurationError("E1 gate cells disagree with the registered seeds or raw analysis.")
+    if rec["passed"] is not gated_pass or rec["instrument_failure"] is not instrument_failure:
         raise ConfigurationError("E1 gate record disagrees with the E1 fit recomputed from the raw records.")
 
 
 def evaluate_jr5_verdict(evidence: Jr5Evidence | Mapping[str, Any]) -> Jr5Verdict:
     """Decide the JR5 typed outcome and the ``red_queen_proved`` flag from raw records."""
 
-    ev = evidence if isinstance(evidence, Jr5Evidence) else Jr5Evidence.from_dict(evidence)
+    ev = Jr5Evidence.from_dict(evidence.to_dict() if isinstance(evidence, Jr5Evidence) else evidence)
     k = jr5_constants()
     names = dict(zip(("rq", "load", "div", "none", "inconclusive", "fail"), k["typed_outcomes"], strict=True))
     vals = _Values(ev)
@@ -655,9 +772,9 @@ def evaluate_jr5_verdict(evidence: Jr5Evidence | Mapping[str, Any]) -> Jr5Verdic
     big, small = (int(n) for n in k["e2"]["host_n"])
 
     # (a) cost gate from the raw E1 counts; the cap applies to every E1 cell.
-    gated_pass, breach = _e1(vals, k)
+    gated_pass, breach, cells = _e1(vals, k)
     cond_a = gated_pass and not breach
-    _check_e1_gate_record(ev.e1_gate_record, gated_pass, not cond_a)
+    _check_e1_gate_record(ev.e1_gate_record, gated_pass, not cond_a, cells, k)
 
     # (e) every grid run replays, and every sealed lock replays to its pinned digest.
     max_res = float(k["validity"]["atp_ledger_max_residual"])
@@ -714,6 +831,8 @@ def evaluate_jr5_verdict(evidence: Jr5Evidence | Mapping[str, Any]) -> Jr5Verdic
         per_seed = []
         for seed in sorted(co_runs):
             r = co_runs[seed]
+            if not _same_analysis(r.data.get("e4_window"), list(E4_WINDOW_GENERATIONS)):
+                raise ConfigurationError(f"run {r.run_id}: E4 must use the registered primary window.")
             e4 = _check_keys(r.data.get("e4"), set(E4_WINDOW_SIGNS), f"run {r.run_id} e4")
             per_seed.append(_finite(e4[name], f"run {r.run_id} e4.{name}"))
         iv = _t_interval(per_seed, opp_level)
@@ -785,15 +904,65 @@ def assert_jr5_red_queen_claim_allowed(record: Mapping[str, Any], evidence: Jr5E
     return CLAIM
 
 
-def red_queen_exemption_holds(bundle: Any) -> bool:
-    """Used by the claimgate auditor: does this bundle carry a verified JR5 positive bound to it?
+def jr5_bundle_fields(evidence: Jr5Evidence | Mapping[str, Any]) -> dict[str, Any]:
+    """Project the addressed run set into the only bundle body eligible for the exemption.
 
-    The bundle must carry ``jr5_verdict`` and ``jr5_evidence`` in ``extra``,
-    name the pinned prereg record as its ``preregistration_digest``, list
-    exactly the evidence seeds, and list the evidence digest among its
-    artifacts. Anything else, or any error, keeps the ban.
+    Arm names address their complete per-seed records; vectors and displayed
+    comparisons are reconstructed, not supplied summary statistics. Displayed
+    intervals are unadjusted 95% paired intervals; the verdict alone applies
+    the registered step-down and resampling decisions.
     """
+    ev = Jr5Evidence.from_dict(evidence.to_dict() if isinstance(evidence, Jr5Evidence) else evidence)
+    k = jr5_constants()
+    return _bundle_fields(ev, k)
 
+
+def _bundle_fields(ev: Jr5Evidence, k: Mapping[str, Any]) -> dict[str, Any]:
+    grouped: dict[tuple[str, Cell, int], list[RunRecord]] = {}
+    for run in ev.runs:
+        grouped.setdefault(run.key[:3], []).append(run)
+    arms = []
+    names = {}
+    vectors: dict[str, list[float]] = {}
+    for key in sorted(grouped, key=repr):
+        runs = sorted(grouped[key], key=lambda r: r.key[3])
+        name = "jr5-arm:" + canonical_digest([r.sha256 for r in runs])
+        names[key] = name
+        exp, cell, _n = key
+        levels = dict(cell)
+        role = "channel_off" if exp == "uniform_tax" else "negative_control" if str(levels.get("parasite", "")).startswith("fixed") else "treatment"
+        arms.append({"name": name, "role": role, "n": len(runs)})
+        if exp == "e2":
+            vectors[name] = [_finite(r.data["terminal_uniparental_frequency"], "bundle frequency") for r in runs]
+    values = _Values(ev)
+    boot = k["e2"]["bootstrap"]
+    comparisons = []
+    for n in k["e2"]["host_n"]:
+        for virulence in ("high", "low"):
+            a_cell = _cell(mating=_E2_MATING, parasite=f"copassaged_{virulence}")
+            b_cell = _cell(mating=_E2_MATING, parasite=f"fixed_{virulence}")
+            a = values.number("e2", n, "terminal_uniparental_frequency", mating=_E2_MATING, parasite=f"copassaged_{virulence}")
+            b = values.number("e2", n, "terminal_uniparental_frequency", mating=_E2_MATING, parasite=f"fixed_{virulence}")
+            paired = _paired(a, b, boot)
+            interval = paired.ci(0.95)
+            comparisons.append({"a": names[("e2", a_cell, n)], "b": names[("e2", b_cell, n)],
+                                "effect_size": paired.estimate, "ci_low": interval.lo, "ci_high": interval.hi,
+                                "p": paired.p_two_sided(), "test": "paired_t_two_sided", "correction": "none"})
+    ordered_runs = sorted(ev.runs, key=lambda r: r.run_id)
+    return {
+        "config_digest": canonical_digest({"prereg": PREREG_RECORD_DIGEST, "runs": [r.sha256 for r in ordered_runs]}),
+        "seeds": list(ev.seeds()), "preregistration_digest": PREREG_RECORD_DIGEST,
+        "arms": arms, "outcomes": [{"metric": "terminal_uniparental_frequency", "values_by_arm": vectors}],
+        "comparisons": comparisons,
+        "replay": {"verified": all(r.passes_replay(float(k["validity"]["atp_ledger_max_residual"])) for r in ev.runs),
+                   "digests": [r.replay["replayed_digest"] for r in ordered_runs]},
+        "artifacts": [{"path": "jr5_evidence.json", "sha256": ev.digest().split(":", 1)[1]}]
+                     + [{"path": f"jr5/runs/{r.run_id}.json", "sha256": r.sha256} for r in ordered_runs],
+    }
+
+
+def red_queen_exemption_holds(bundle: Any) -> bool:
+    """The auditor rechecks the verdict and the complete run-addressed bundle projection."""
     extra = getattr(bundle, "extra", None) or {}
     record, evidence = extra.get("jr5_verdict"), extra.get("jr5_evidence")
     if not isinstance(record, Mapping) or not isinstance(evidence, Mapping):
@@ -801,11 +970,21 @@ def red_queen_exemption_holds(bundle: Any) -> bool:
     try:
         ev = Jr5Evidence.from_dict(evidence)
         assert_jr5_red_queen_claim_allowed(record, ev)
-    except (ConfigurationError, KeyError, TypeError, ValueError, ZeroDivisionError):
+        expected = _bundle_fields(ev, jr5_constants())
+        actual = bundle.to_dict()
+        return all(actual.get(key) == value for key, value in expected.items())
+    except (ConfigurationError, KeyError, TypeError, ValueError, ZeroDivisionError, OverflowError):
         return False
-    digest_hex = ev.digest().split(":", 1)[1]
-    return (
-        getattr(bundle, "preregistration_digest", None) == PREREG_RECORD_DIGEST
-        and tuple(getattr(bundle, "seeds", ())) == ev.seeds()
-        and any(getattr(a, "sha256", None) == digest_hex for a in getattr(bundle, "artifacts", ()))
-    )
+
+
+# Register public digest fields from this layer, without an engine dependency
+# on any campaign-specific class name. Replay body hashes are checked within
+# each addressed run envelope rather than separate summary dataclasses.
+def _register_digest_contracts() -> None:
+    from codontrace.genesis.replay_integrity import register_noncritical_digest_class
+
+    for cls in (Jr5Evidence, Jr5Verdict):
+        register_noncritical_digest_class(cls)
+
+
+_register_digest_contracts()

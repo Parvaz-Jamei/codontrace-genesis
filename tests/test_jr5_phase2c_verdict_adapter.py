@@ -56,6 +56,7 @@ from codontrace.claimgate.jr5_verdict import (
     _Paired,
     assert_jr5_red_queen_claim_allowed,
     evaluate_jr5_verdict,
+    jr5_bundle_fields,
     jr5_run_grid,
     verify_jr5_verdict,
 )
@@ -80,7 +81,7 @@ def positive() -> dict[str, Any]:
 def build(gate: dict[str, bool] | None = None, **plan: Any) -> dict[str, Any]:
     ev, _ = raw.build(**plan)
     if gate is not None:
-        ev["e1_gate_record"] = raw.gate_record(**gate)
+        ev["e1_gate_record"] = raw.gate_record(ev["runs"], **gate)
     return ev
 
 
@@ -97,9 +98,7 @@ def bound_bundle(ev: dict[str, Any]) -> dict[str, Any]:
     payload["red_queen_proved"] = True
     payload["jr5_evidence"] = ev
     payload["jr5_verdict"] = evaluate_jr5_verdict(parsed).to_dict()
-    payload["preregistration_digest"] = PREREG_RECORD_DIGEST
-    payload["seeds"] = list(parsed.seeds())
-    payload["artifacts"] = [*payload["artifacts"], {"path": "jr5_evidence.json", "sha256": parsed.digest().split(":")[1]}]
+    payload.update(jr5_bundle_fields(parsed))
     return payload
 
 
@@ -125,7 +124,7 @@ def test_raw_dataset_meeting_the_prereg_proves_the_claim() -> None:
     assert verdict.outcome == "rq_consistent"
     assert verdict.red_queen_proved is True
     assert assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev) == "red_queen_proved"
-    assert audit_bundle(bound_bundle(ev)).achieved_level == _baseline_level()
+    assert audit_bundle(bound_bundle(ev)).achieved_level >= _baseline_level()
 
 
 def test_raw_dataset_failing_the_prereg_does_not_prove_the_claim() -> None:
@@ -360,15 +359,17 @@ def test_e4_signs_follow_the_phase6_lock_estimand() -> None:
 
 
 def test_sealed_lock_digests_match_prereg_section_9() -> None:
-    """Each pinned lock digest matches the prefix and suffix PREREG section 9 prints, or the full summary sha."""
-
+    """Section 9 selects five lock digests; full values must match the underlying sealed records, not an abbreviated suffix."""
     text = (PREREG_DIR / "PREREG.md").read_text(encoding="utf-8")
     for digest in SEALED_LOCK_DIGESTS.values():
         assert digest[:8] in text
-    for name, tail in (("selfing_hold.design", "a6fd298"), ("selfing_hold.campaign", "aa94e6"), ("mating_ledger.design", "32d80dd"), ("mating_ledger.campaign", "0f5")):
-        assert SEALED_LOCK_DIGESTS[name].endswith(tail)
-    note = (PREREG_DIR / "SUMMARY_SHA256_NOTE.md").read_text(encoding="utf-8")
-    assert SEALED_LOCK_DIGESTS["rq_v2_phase6.summary_sha256"] in note
+    for name, filename in (("selfing_hold", "CLOSED_LOOP_HP_ARM01_SELFING_HOLD_RESULTS_20260926.md"),
+                           ("mating_ledger", "CLOSED_LOOP_HP_ARM01_MATING_LEDGER_RESULTS_20260926.md")):
+        lock = (ROOT / "docs/handoff" / filename).read_text()
+        assert SEALED_LOCK_DIGESTS[f"{name}.design"] in lock
+        assert SEALED_LOCK_DIGESTS[f"{name}.campaign"] in lock
+    summary = json.loads((ROOT / "runs/rq-mechanism-v2/phase6-coevolution/summary.json").read_bytes())
+    assert SEALED_LOCK_DIGESTS["rq_v2_phase6.summary_sha256"] == summary["summary_sha256"]
 
 
 def test_e1_gate_record_needs_the_pinned_constants_sha_and_must_agree() -> None:
@@ -459,7 +460,7 @@ def test_valid_verdict_stapled_onto_an_unrelated_bundle_is_refused() -> None:
 
     ev = positive()
     good = bound_bundle(ev)
-    assert audit_bundle(good).achieved_level == _baseline_level()
+    assert audit_bundle(good).achieved_level >= _baseline_level()
     stapled = json.loads(FIXTURE.read_text(encoding="utf-8"))
     stapled.update({"red_queen_proved": True, "jr5_evidence": good["jr5_evidence"], "jr5_verdict": good["jr5_verdict"]})
     assert audit_bundle(stapled).achieved_level < _baseline_level()

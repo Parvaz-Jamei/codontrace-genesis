@@ -685,3 +685,24 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.setattr(jr5_e1_gate, "LOCKED_PREREG_MANIFEST_DIGEST", record["manifest"]["digest"])
     with pytest.raises(ConfigurationError, match="code-pinned constants sha256"):
         load_e1_gate_spec(_write_prereg(tmp_path, record, raw))
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("prereg_manifest_digest", "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"),
+        ("prereg_manifest_digest", "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"),
+        ("constants_sha256", "608ccdea9f8d1efa51ceecec756c8732b0fe1804828ed5c3910396c2e625a78c"),
+    ],
+)
+def test_spec_cannot_be_built_with_another_digest(field: str, value: str) -> None:
+    """A spec copied with another digest label is refused at construction.
+
+    Basis: the replay digest policy lists E1GateSpec as replay-critical, so a
+    caller-supplied digest must be checked when the object is built, not only
+    in the loader. The values are the earlier lock, the plan digest named in
+    DEVIATIONS.md (a different quantity) and the earlier constants sha256.
+    Expected: ConfigurationError naming the code pin.
+    """
+    with pytest.raises(ConfigurationError, match="code-pinned"):
+        dataclasses.replace(_spec(), **{field: value})

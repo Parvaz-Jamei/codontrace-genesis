@@ -118,6 +118,14 @@ class E1GateSpec:
     constants_sha256: str
     prereg_manifest_digest: str
 
+    def __post_init__(self) -> None:
+        # Every spec, however built, names the pinned lock: the factories
+        # recompute both digests from bytes, and this refuses any other value.
+        if self.prereg_manifest_digest != LOCKED_PREREG_MANIFEST_DIGEST:
+            raise ConfigurationError("prereg_manifest_digest is not the code-pinned prereg lock.")
+        if self.constants_sha256 != LOCKED_PREREG_CONSTANTS_SHA256:
+            raise ConfigurationError("constants_sha256 is not the code-pinned constants sha256.")
+
     @classmethod
     def from_prereg_constants(cls, raw: bytes, *, record_raw: bytes) -> E1GateSpec:
         """Verify a locked manifest and hash the exact constants bytes parsed.

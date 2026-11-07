@@ -634,3 +634,54 @@ def test_loader_refuses_the_superseded_lock(tmp_path: Path) -> None:
     assert hashlib.sha256((folder / "jr5_prereg_constants.json").read_bytes()).hexdigest().startswith("608ccdea")
     with pytest.raises(ConfigurationError, match="code-pinned"):
         load_e1_gate_spec(tmp_path)
+
+
+def _write_prereg(tmp_path: Path, record: dict[str, Any], constants_raw: bytes) -> Path:
+    folder = tmp_path / "docs" / "prereg" / "jr5"
+    folder.mkdir(parents=True)
+    (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
+    (folder / "jr5_prereg_constants.json").write_bytes(constants_raw)
+    return tmp_path
+
+
+def test_loader_recomputes_the_manifest_digest_instead_of_trusting_the_declared_one(tmp_path: Path) -> None:
+    """A record that keeps the pinned digest but lists a different file hash is refused.
+
+    Basis: manifest.digest is a function of the file list, so a declared
+    digest that matches the pin proves nothing unless it is recomputed. Here
+    only the PREREG.md entry changes, the constants bytes and their entry are
+    genuine, and the declared digest is left at the pin.
+    Expected: ConfigurationError naming the code-pinned lock.
+    """
+    record = json.loads(RECORD.read_bytes())
+    record["manifest"]["files"] = [
+        [name, "0" * 64 if name.endswith("/PREREG.md") else digest] for name, digest in record["manifest"]["files"]
+    ]
+    assert record["manifest"]["digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    with pytest.raises(ConfigurationError, match="code-pinned"):
+        load_e1_gate_spec(_write_prereg(tmp_path, record, CONSTANTS.read_bytes()))
+
+
+def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The constants pin refuses edited constants even if the manifest pin named their manifest.
+
+    Basis: the constants sha256 is pinned in code separately from the
+    manifest digest, so a wrong manifest pin alone cannot admit other gate
+    settings. The manifest pin is set to the digest of a manifest built for
+    ±30% constants, which the manifest check then accepts.
+    Expected: ConfigurationError naming the code-pinned constants sha256.
+    """
+    from codontrace.preregistration.manifest import PlanManifest
+
+    raw = json.dumps(_tuned_constants()).encode()
+    record = json.loads(RECORD.read_bytes())
+    manifest = record["manifest"]
+    manifest["files"] = [
+        [name, hashlib.sha256(raw).hexdigest() if name == jr5_e1_gate.CONSTANTS_RELPATH else digest]
+        for name, digest in manifest["files"]
+    ]
+    manifest.pop("digest")
+    record["manifest"] = PlanManifest.from_dict(manifest).to_dict()
+    monkeypatch.setattr(jr5_e1_gate, "LOCKED_PREREG_MANIFEST_DIGEST", record["manifest"]["digest"])
+    with pytest.raises(ConfigurationError, match="code-pinned constants sha256"):
+        load_e1_gate_spec(_write_prereg(tmp_path, record, raw))

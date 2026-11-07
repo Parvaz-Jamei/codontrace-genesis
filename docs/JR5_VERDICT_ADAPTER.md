@@ -78,6 +78,8 @@ are required, including excluded seeds and both reported population sizes.
 It independently refits the raw generation counts with the registered
 bias-reduced modified-score procedure, then checks all cell counts, fixation
 and loss lists, intervals, tests, and decisions against the gate record.
+Excluded/fixed/lost audit lists are compared by seed membership, independent
+of population input order; the complete seed vector remains sorted.
 Only numerical evaluation roundoff is tolerated (relative 1e-9, absolute
 1e-11); spec values, seeds, counts, types and decisions are not approximate.
 

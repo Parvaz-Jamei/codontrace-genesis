@@ -864,6 +864,8 @@ class PopulationState:
             payload["materials"] = self.materials.to_dict()
         if self.mating_seed is not None:
             payload["mating_seed"] = self.mating_seed
+        if self.mating_seed is not None or any(o.mating_type is not None for o in self.organisms):
+            payload["mating_snapshot_digest"] = _mating_snapshot_digest(payload)
         return payload
 
     @classmethod
@@ -872,6 +874,10 @@ class PopulationState:
         lineage_raw = _list(data, "lineage")
         fitness_raw = _list(data, "fitness")
         chamber_raw = data.get("birth_chamber")
+        stamped = any(isinstance(o, Mapping) and o.get("mating_type") is not None for o in organisms_raw)
+        if stamped or data.get("mating_seed") is not None or "mating_snapshot_digest" in data:
+            if data.get("mating_snapshot_digest") != _mating_snapshot_digest(data):
+                raise ConfigurationError("stored mating snapshot was edited or has no integrity digest; it cannot be reset.")
         if "generation" not in data:
             # A missing generation would default to 0 and pass the
             # generation-0 guard on mating types.
@@ -906,6 +912,20 @@ class PopulationState:
     def digest(self) -> str:
         payload = finite_json_dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _mating_snapshot_digest(data: Mapping[str, JsonValue]) -> str:
+    """Checksum serialized mating snapshots before restoring mutable fields.
+
+    This detects accidental edits, including a seed whose type draws happen
+    to agree with every stored type. It is not authentication: rewriting the
+    data and recomputing the checksum is outside the snapshot trust boundary.
+    Untyped, sexes-off snapshots keep their existing representation.
+    """
+
+    content = {key: value for key, value in data.items() if key != "mating_snapshot_digest"}
+    payload = finite_json_dumps(content, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def create_population_with_unique_ids(
@@ -5805,9 +5825,10 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
     stored type of a non-selfed organism that differs from the draw for its
     id under the mating seed shows an edited seed. Both are refused.
 
-    Out of scope: a hand edit that also rewrites every stored type to match
-    a new seed is not detected. The check guards against accidental restarts
-    and simple edits, not deliberate forgery; snapshots carry no signature.
+    Serialized sexes-on snapshots also carry an integrity checksum checked
+    by from_dict, including when an edited seed gives identical stored types.
+    A coordinated rewrite with a recomputed checksum is outside the trust
+    boundary: the checksum detects edits but does not authenticate a sender.
     """
 
     if not sexual.mating_types_enabled:

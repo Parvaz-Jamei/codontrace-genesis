@@ -42,20 +42,22 @@ from tests.test_jr5_phase2a_mating_types import (
     _without_mating_fields,
 )
 
+# The snapshot integrity fix adds a checksum; these pins include that field.
+# Removing only the checksum reproduces every previous fixed-sex pin exactly.
 # Re-pinned when sex became fixed for life (sexes-on runs store each type and
 # the run seed). One step uses the run seed for every draw, so the step pins
 # with the stored fields removed still equal ``_BASE_ERA``. The two-tick
 # session with the outcross locus changed in dynamics too: at 7db2227a the
 # second tick redrew every sex from that tick's seed, which was the bug.
 _FIXED_SEX_ERA = {
-    "fm20005": "acea93875ee9a3c9dfc707c79e8404b3abbc0f6c0df6616fa67a741c8ad2f12c",
-    "hm20005": "2d42e01d9459155cf37e68ba92fa66bb2ff11ff089586713e0220133535d01ad",
-    "fm20008": "0c31c0f76a62810be2fc737b36072e49d9e1341b615605695e2b13c6f9958578",
-    "hm20008": "351fa482d2b0c92d4e8918394d2ddfb1adcf7814a56b35774d2174acc30f80fa",
-    "fm20013": "211e7024dd499bad7450c668daf26575d351690afe16d80c9ea443524ffc7746",
-    "hm20013": "8d7ee0376f24ad5647a38a2dd08f01b993f361a38e94c4105f80d2a4cee789bf",
-    "p5" + OUTCROSS_OUT_BITS: "69a818e96003b6bf2425eaca64e67793f47fa9b92fbf8db6447bdac112f9e8eb",
-    "p5" + OUTCROSS_SELFING_BITS: "a6bf00e0399acec8c5e447eabd3653c18d2431aaac704409f7e22f264db2e112",
+    "fm20005": "2621b5833eea320c1a9ea61608ae1d38b5d493e40bd789bce7a83bb730ea4029",
+    "hm20005": "2b55c2cecce86b7e00a4bc4c6a5f57c5f6f405026710c6425bfbe8ae2eca20cb",
+    "fm20008": "f62576680e30db317c975b62d1e93ebfb5a205a2240eb9d59617ee59f28da91c",
+    "hm20008": "c03ac6291956b2a5b65d5768cf132eed0fe1629d6a72559d7bd350620a2f0706",
+    "fm20013": "e88e8c989f306a3dfbfd68c316d81ff02df1a8bf0c9b995e7c4d8882f3f699e1",
+    "hm20013": "0972fc8f45a6fb726932450dcb1dbadebcbff9a123c001e2044bc8f5521e93c4",
+    "p5" + OUTCROSS_OUT_BITS: "70cf1b0359c80247c251a26717217da6a1e0edbe78eb03afbe3f69f30dbbaacc",
+    "p5" + OUTCROSS_SELFING_BITS: "5c53a186ae56445a74f16270275a55650628e22ffa550dfbf89b7a6276a725bd",
 }
 _BASE_ERA = {
     "fm20005": "69264a3faa40b848e74232c904e4e14a9b24a730cc6f9320ceb08a19264c0241",
@@ -1133,8 +1135,8 @@ def test_generation_zero_guard_rejects_edited_snapshots() -> None:
     with pytest.raises(ConfigurationError, match="generation 0"):
         step_population(edited, on_runner.world, on_runner.configs, seed=5)
 
-    injected = PopulationState.from_dict({**off_data, "mating_seed": 20011})
     with pytest.raises(ConfigurationError, match="stored mating"):
+        injected = PopulationState.from_dict({**off_data, "mating_seed": 20011})
         step_population(injected, on_runner.world, on_runner.configs, seed=5)
 
     session.run_ticks(1)
@@ -1161,11 +1163,10 @@ def test_sexes_on_snapshot_cannot_be_reset_or_reseeded() -> None:
     data = dict(runner.population.to_dict())
     assert isinstance(data.get("mating_seed"), int)
 
-    reset = PopulationState.from_dict(
-        {**{k: v for k, v in data.items() if k != "mating_seed"}, "generation": 0, "tick": 0, "lineage": []}
-    )
     with pytest.raises(ConfigurationError, match="cannot be reset"):
-        step_population(reset, runner.world, runner.configs, seed=5)
+        PopulationState.from_dict(
+            {**{k: v for k, v in data.items() if k != "mating_seed"}, "generation": 0, "tick": 0, "lineage": []}
+        )
 
     real = PopulationState.from_dict(data)
     typed = [o for o in real.organisms if o.mating_type is not None and not o.selfed]
@@ -1176,8 +1177,40 @@ def test_sexes_on_snapshot_cannot_be_reset_or_reseeded() -> None:
         if any(o.mating_type != draw_mating_type(data["mating_seed"] + k, o.id, cfg) for o in typed)
     ]
     assert edits
-    edited = PopulationState.from_dict({**data, "mating_seed": edits[0]})
     with pytest.raises(ConfigurationError, match="was edited"):
-        step_population(edited, runner.world, runner.configs, seed=5)
+        PopulationState.from_dict({**data, "mating_seed": edits[0]})
 
     step_population(real, runner.world, runner.configs, seed=5)
+
+
+def test_snapshot_rejects_seed_edits_even_when_all_stored_types_match() -> None:
+    """Sex is fixed at birth, but equal type draws do not identify a seed.
+
+    With finitely many two-valued stored types, different seeds can produce
+    the same vector of types yet draw different types for future offspring.
+    Expected: changing only the seed is refused even for such a collision;
+    deleting the checksum is refused too. An unedited JSON round-trip resumes.
+    This is an edit check, not protection against a recomputed checksum.
+    """
+    from codontrace.genesis.mating_types import draw_mating_type
+    from codontrace.genesis.population import step_population
+
+    session, cfg = _self_arm(OUTCROSS_OUT_BITS)
+    session.run_ticks(1)
+    runner = session.runner
+    data = dict(runner.population.to_dict())
+    original = data["mating_seed"]
+    assert isinstance(original, int)
+    typed = [o for o in runner.population.organisms if o.mating_type is not None and not o.selfed and not o.asexual_lineage]
+    assert typed
+    collision = next(
+        seed for seed in range(original + 1, original + 10000)
+        if all(o.mating_type == draw_mating_type(seed, o.id, cfg) for o in typed)
+    )
+    with pytest.raises(ConfigurationError, match="was edited"):
+        PopulationState.from_dict({**data, "mating_seed": collision})
+    without_digest = {k: v for k, v in data.items() if k != "mating_snapshot_digest"}
+    with pytest.raises(ConfigurationError, match="integrity digest"):
+        PopulationState.from_dict(without_digest)
+    restored = PopulationState.from_dict(json.loads(json.dumps(data)))
+    step_population(restored, runner.world, runner.configs, seed=5)

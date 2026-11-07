@@ -87,15 +87,17 @@ _MAIN_ERA_LIFE_LOOP_SNAPSHOT = "ddb1be11949dc8585c95aeea1a4d7cce1055ef46590e4074
 _MAIN_ERA_RNG_DRAWS = [0.07288018841626231, 0.020732041539421653, 0.32331505896767]
 
 # sha256 of the sorted-key JSON of the census test population plus one asexual founder.
+# The mating-snapshot checksum changes serialization only: deleting it
+# reproduces each preceding fixed-sex pin exactly.
 # Re-pinned when sex became fixed for life: the state now stores each
 # organism's mating type and the run seed for the draws (was d60e1133...).
-_MIXED_DIGEST = "a49a1f828e9112740c4f103f777dc770be3a5d2006438a3c7b48786bd2abcdc5"
+_MIXED_DIGEST = "0108f3b1fc3c28530d349bf324349d23cf32396db02a84ab2f0bd9553a8d75a6"
 # Sexes-on {hermaphrodite} step digests, re-pinned for the same reason. With
 # the stored type fields removed they equal the switch-off digests above.
 _HERM_ONLY_STEP_DIGESTS = {
-    20005: "63e649d087ad9353f13e9b6f3bf6551e06b11de592f33f9d3a7e1627a3dbaa5e",
-    20008: "0dcc3c29bcfd9b5f49f8730cd2e1020c28861b00636386878633ffab5fdc0259",
-    20013: "fdeeb6a87a8b3fc025141b80fb6f1ddefd0c7875f6bfa3ffb20958123bf89735",
+    20005: "7fe845b78efe35e69cbb2a0f59b5519c67a17fcef8cc8a456d1d006072205099",
+    20008: "8bcd10ee247853ff926b7625d1fe60fd9729753d0e36956f03890c6a6456bc2e",
+    20013: "54cdf6b13dd7b45d41cafcede697eaed3846b69be19bddc62be00e8a9d2c6198",
 }
 _BITS = ("111000000", "111111000", "101101101", "110011001")
 _SEXES = {
@@ -111,6 +113,7 @@ def _without_mating_fields(population: PopulationState) -> str:
 
     payload = population.to_dict()
     payload.pop("mating_seed", None)
+    payload.pop("mating_snapshot_digest", None)
     for item in payload["organisms"]:  # type: ignore[union-attr]
         item.pop("mating_type", None)  # type: ignore[union-attr]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

@@ -71,13 +71,14 @@ ALLOWED_IN_FUNCTIONS = {
         {
             "MutationResult.digest",
             "PopulationState.digest",
+            "_mating_snapshot_digest",
             "GenerationResult.digest",
             "_reproduction_event_id",
         }
     ),
 }
 # Exempt call sites expected in each module; a new one must be reviewed.
-EXEMPT_SITE_COUNT = {("genesis/population.py", "payload"): 4}
+EXEMPT_SITE_COUNT = {("genesis/population.py", "payload"): 5}
 
 
 def _qualified_defs(tree: ast.AST) -> list[tuple[ast.AST, str]]:

@@ -976,6 +976,28 @@ def test_no_jr5_run_output_is_committed() -> None:
     assert [p for p in listed.stdout.splitlines() if "jr5" in p.lower()] == []
 
 
+def test_ci_runs_the_pin_tests_with_full_history() -> None:
+    """One CI job checks out full history, and every full pytest run lists skip reasons.
+
+    Basis: actions/checkout fetches one commit unless fetch-depth is set, and
+    fetch-depth 0 fetches all history; the pin tests skip in a shallow clone,
+    so without one full-depth job CI never checks the pin. In a workflow
+    expression the string '0' is truthy (only '', 0, false and null are
+    falsy), so "a && '0' || '1'" gives '0' when a holds. pytest -rs prints the
+    reason of each skip in the summary.
+    Expected: the 3.13 job, which runs the full suite without coverage, gets
+    fetch-depth 0, and both full pytest commands pass -rs.
+    """
+
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "fetch-depth: ${{ matrix.python-version == '3.13' && '0' || '1' }}" in ci
+    assert '"3.13"' in ci
+    assert "if: matrix.python-version != '3.14'" in ci
+    runs = re.findall(r"python -m pytest tests [^\n]*(?:\n\s+-p[^\n]*)?", ci)
+    assert len(runs) == 2
+    assert all(" -rs" in run for run in runs)
+
+
 def test_diploid_fix_engine_test_is_collected() -> None:
     """The pinned node id names a test that pytest collects.
 

@@ -12,7 +12,7 @@ Record digest: `manifest.digest` in `record.json` over every plan file except th
 - Commits: the 14 commits that `git log 7d7ab8a..73c3bff -- docs/prereg/jr5` lists, 8a9fac2 to d20a72b.
 - Files: PREREG.md, MATING_TYPES_DESIGN_NOTE.md, RED_QUEEN_CLAIM_PATH.md, REFERENCES.md, jr5_prereg_constants.json, scripts/e1_power_sim.py (new), record.json.
 - Record digest: `633aa9c84336e946fc7d8e3e2178acc658caeed791f5a484bbe7d0814264b757` -> `a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa`
-- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory.
+- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).
 
 ## 2026-11-01: diploid fertilisation fix pinned by merge commit and engine test
 
@@ -20,4 +20,4 @@ Record digest: `manifest.digest` in `record.json` over every plan file except th
 - Files: PREREG.md, MATING_TYPES_DESIGN_NOTE.md, jr5_prereg_constants.json, DEVIATIONS.md (new), record.json.
 - Record digest: `a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa` -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`
 - At e5cd2c0, before this file and the lock note in PREREG.md section 12 were added, the digest was `aede93c859df80d313de7f7e1b3aedf73d59cef4de52f6c0c8fe43e75e109e3f`.
-- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory.
+- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).

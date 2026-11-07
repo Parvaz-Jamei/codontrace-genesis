@@ -1,11 +1,11 @@
 {
   "evidence": [],
   "manifest": {
-    "digest": "9cb976e49bce0add49268f30defee9a2667597e9a46276949b836052c3cfe9d1",
+    "digest": "1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d",
     "files": [
       [
         "docs/prereg/jr5/DEVIATIONS.md",
-        "a289fdc93a312e19e504f9b1b4bd7bc226bc27afa4a7320dcf507b7bfdea2ece"
+        "299be6371c979519e6475639cd8cacff129f8c2ac468795faf69e1cddd0264d9"
       ],
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",

@@ -929,6 +929,53 @@ def test_deviations_log_names_the_current_record_digest() -> None:
     assert "no JR5 run has started" in entries[-1]
 
 
+def test_deviations_log_starts_at_the_record_of_the_lock() -> None:
+    """The first logged digest is the record at the lock merge, the next one the record after PR 133.
+
+    Basis: PREREG.md section 12 names the merge that locked the plan, and the
+    first DEVIATIONS.md entry names the merge that brought the late-logged
+    changes. record.json at each of those commits holds manifest.digest, and
+    DEVIATIONS.md did not exist at either, so that digest is over the same
+    plan files the log uses. A shallow clone is skipped.
+    Expected: the first entry's old digest equals manifest.digest at the lock
+    merge, and its new digest equals manifest.digest at the named merge.
+    """
+
+    _require_full_history()
+    lock = re.search(r"merged to main as ([0-9a-f]{7,40}) on", _prereg_text())
+    assert lock is not None
+    text = (ROOT / "docs" / "prereg" / "jr5" / "DEVIATIONS.md").read_text(encoding="utf-8")
+    first = text.split("\n## ")[1]
+    merged = re.search(r"\(merge ([0-9a-f]{7,40}),", first)
+    assert merged is not None
+    found = _DIGEST_LINE.findall(first)
+    assert len(found) == 1
+
+    def digest_at(sha: str) -> str:
+        shown = _git("show", f"{sha}:docs/prereg/jr5/record.json")
+        assert shown.returncode == 0, shown.stderr
+        assert _git("cat-file", "-e", f"{sha}:docs/prereg/jr5/DEVIATIONS.md").returncode != 0
+        value: str = json.loads(shown.stdout)["manifest"]["digest"]
+        return value
+
+    assert found[0][0] == digest_at(lock.group(1))
+    assert found[0][1] == digest_at(merged.group(1))
+
+
+def test_no_jr5_run_output_is_committed() -> None:
+    """No committed run output belongs to JR5, which backs the "no JR5 run" line in DEVIATIONS.md.
+
+    Basis: run outputs in this repository live under runs/<name>/; a JR5 run
+    would add files there. The DEVIATIONS.md run line is a declaration; this
+    checks the part of it the repository can show.
+    Expected: no tracked path under runs/ contains "jr5" in any case.
+    """
+
+    listed = _git("ls-files", "runs")
+    assert listed.returncode == 0, listed.stderr
+    assert [p for p in listed.stdout.splitlines() if "jr5" in p.lower()] == []
+
+
 def test_diploid_fix_engine_test_is_collected() -> None:
     """The pinned node id names a test that pytest collects.
 

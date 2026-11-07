@@ -601,3 +601,24 @@ def test_fused_child_drops_parent_spans() -> None:
     assert fused and all(spans == () and len(bits) == 12 for bits, spans in fused)
     swapped = children(False)
     assert swapped and all(spans == (span,) for _, spans in swapped)
+
+
+def test_digest_script_refuses_an_abbreviated_option() -> None:
+    """The digest script accepts only the full option names.
+
+    Basis: argparse matches an unambiguous prefix of a long option unless the
+    parser is built with allow_abbrev=False, in which case the prefix is an
+    unrecognised argument and parse_args exits with status 2 (Python argparse
+    documentation, allow_abbrev). '--rep' is a prefix of '--repr' only.
+    Parsing happens before the engine is imported, so the call is fast.
+    Expected: exit status 2 and "unrecognized arguments: --rep" on stderr.
+    """
+
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parent / "_scripts" / "default_path_digests.py"
+    done = subprocess.run([sys.executable, str(script), "--rep"], capture_output=True, text=True, timeout=60)
+    assert done.returncode == 2
+    assert "unrecognized arguments: --rep" in done.stderr

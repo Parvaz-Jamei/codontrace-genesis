@@ -77,8 +77,8 @@ CLAIM = "red_queen_proved"
 # Locked prereg (docs/prereg/jr5/record.json, manifest digest) and the sha256
 # of jr5_prereg_constants.json that the record lists. Bump both only together
 # with a DEVIATIONS entry in docs/prereg/jr5.
-PREREG_RECORD_DIGEST = "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"
-PREREG_CONSTANTS_SHA256 = "608ccdea9f8d1efa51ceecec756c8732b0fe1804828ed5c3910396c2e625a78c"
+PREREG_RECORD_DIGEST = "1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d"
+PREREG_CONSTANTS_SHA256 = "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
 _CONSTANTS_RESOURCE = "data/jr5_prereg_constants.json"
 
 # PREREG section 9: every sealed lock reused by JR5, by name, with its digest.

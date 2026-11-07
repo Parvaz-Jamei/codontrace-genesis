@@ -222,7 +222,9 @@
           "branch": "fix/diploid-fertilisation",
           "bug": "diploid_meiosis_halves_genome_length_each_generation",
           "required_engine_test": "genome_length_conserved_over_at_least_3_generations",
-          "must_be_merged_before": "any_jr5_arm_including_pilot"
+          "must_be_merged_before": "any_jr5_arm_including_pilot",
+          "merge_commit": "4400e07b9a16a824437af3dd6afa0fb35de7837f",
+          "engine_test": "tests/test_diploid_fertilisation.py::test_genome_length_is_conserved_over_many_generations"
         }
       }
     },

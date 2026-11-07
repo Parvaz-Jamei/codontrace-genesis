@@ -301,3 +301,75 @@ def test_matching_placeholder_replay_strings_are_not_digests(fields: tuple[str, 
     raw.readdress(run)
     with pytest.raises(ConfigurationError, match="sha256"):
         verdict.evaluate_jr5_verdict(ev)
+
+
+def test_gate_digest_is_checked_even_when_all_statistics_match() -> None:
+    """A valid raw fit fixes every field; a different declared record digest still breaks its canonical content address."""
+    ev = positive()
+    ev["e1_gate_record"]["digest"] = "0" * 64
+    with pytest.raises(ConfigurationError, match="digest"):
+        verdict.evaluate_jr5_verdict(ev)
+
+
+def test_auditor_fails_closed_on_a_forged_verdict() -> None:
+    """Positive raw arms do not authorize a forged verdict: a mismatched evidence digest must keep the global ban."""
+    payload = bound_bundle(positive())
+    payload["jr5_verdict"]["evidence_digest"] = "jr5-evidence:" + "0" * 64
+    report = audit_bundle(payload)
+    assert report.achieved_level <= 1
+    assert any("red_queen_proved" in warning for warning in report.warnings)
+
+
+def test_condition_c_keeps_its_registered_one_sided_level() -> None:
+    """Left-skewed differences have one-sided p=.034 and a negative 95% resampling interval: alpha.025 must not reject."""
+    n = 60
+    w = [math.log(1 - (i + 0.5) / n) for i in range(n)]
+    mean = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in w) / (n - 1))
+    deltas = [-0.015 + 0.0625 * (x - mean) / sd for x in w]
+    paired = verdict._Paired(tuple(deltas), 12345, 10000)
+    assert 0.025 < paired.p_two_sided() / 2 < 0.05
+    assert paired.bca(0.95).side() == -1
+    ev, _ = raw.build(e2_deltas={(200, "high"): deltas}, frozen_minus_fixed=0.10)
+    assert verdict.evaluate_jr5_verdict(ev).conditions["c"] is False
+
+
+def test_step_down_rejection_requires_both_family_level_and_stop() -> None:
+    """Four p=.02 values fail the first .05/4=.0125 threshold; later thresholds cannot restart rejection."""
+    class Contrast:
+        estimate = -0.1
+
+        def p_two_sided(self) -> float:
+            return 0.02
+
+        def bca(self, level: float) -> verdict.Interval:
+            return verdict.Interval(-0.2, -0.01)
+
+    k = verdict.jr5_constants()
+    family = {name: Contrast() for name in k["multiplicity"]["primary_family"]}
+    calls = verdict._holm_calls(family, k)
+    assert not any(call.significant for call in calls.values())
+
+
+def test_registered_resampling_settings_reach_paired_contrasts() -> None:
+    """Sorted shared seeds define paired differences; the registered stream uses exactly10000 resamples and seed12345."""
+    boot = verdict.jr5_constants()["e2"]["bootstrap"]
+    a, b = {3: 0.7, 1: 0.4, 2: 0.6}, {2: 0.3, 3: 0.2, 1: 0.1}
+    contrast = verdict._paired(a, b, boot)
+    assert contrast.deltas == pytest.approx((0.3, 0.3, 0.5))
+    assert contrast.resamples == 10000 and contrast.bootstrap_seed == 12345
+
+
+def test_fixation_at_the_cutoff_is_kept_and_loss_is_reported_not_excluded() -> None:
+    """The exclusion rule is fixed_generation<3, not <=3; loss is recorded separately and remains among the40 fitted seeds."""
+    ev = positive()
+    boundary = next(r for r in ev["runs"] if r["experiment"] == "e1" and r["host_n"] == 200 and r["cell"]["sex_ratio"] == 0.5)
+    boundary["data"]["uniparental_counts"] = [40, 70, 120, 200, 200, 200]
+    raw.readdress(boundary)
+    loss = next(r for r in ev["runs"] if r["experiment"] == "e1" and r["host_n"] == 50 and r["cell"]["sex_ratio"] == 0.5)
+    loss["data"]["uniparental_counts"] = [10, 1, 0, 0, 0, 0]
+    raw.readdress(loss)
+    ev["e1_gate_record"] = raw.gate_record(ev["runs"])
+    for cell in ev["e1_gate_record"]["cells"]:
+        assert cell["n_used"] == 40 and cell["excluded_seeds"] == []
+    assert verdict.evaluate_jr5_verdict(ev).conditions["a"] is True

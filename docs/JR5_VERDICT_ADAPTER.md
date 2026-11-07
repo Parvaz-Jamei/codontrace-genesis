@@ -17,7 +17,13 @@ establish provenance. These resources work in an installed wheel without a
 source checkout. Changes to the lock require a reviewed pin/resource update;
 the locked documents are never edited by this adapter.
 
-Final integration must use the finalized preregistration and phase 3 branch.
+The finalized preregistration is merged; phase 3 integration remains pending.
+Current manifest digest:
+`1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d`.
+Constants SHA-256:
+`e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`.
+The shipped record file SHA-256 is
+`2948e1e961afb0c451c437fea1719dc454fa1019ac9f93c2d3513bc9a72db88e`.
 The amended manifest, constants, and record-file SHA values are separate
 identifiers; a plan digest is not interchangeable with the manifest digest.
 No confirmatory run or final whole-package validation is represented by the

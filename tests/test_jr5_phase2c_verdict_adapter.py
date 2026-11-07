@@ -254,12 +254,9 @@ def test_holm_bca_level_follows_the_step() -> None:
 
 
 def test_holm_stops_at_the_first_non_rejection() -> None:
-    """When the smallest p fails step 1 (0.0125), no later test is rejected even if its p is below its own step.
+    """Every t=-2.4 has p about.0196>.0125, so step 1 fails and all subsequent tests must be retained.
 
-    Every E2 contrast is planted at -0.0384 with SD 0.10 (t about -2.97, p
-    about 0.0043 at 59 df) except N = 200 low, planted at -0.04 so it sorts
-    first; then N = 50 high is planted at 0. The step-1 test rejects, so
-    this is a control; the real check is the variant below where step 1 fails.
+    Without the stop, the last step would compare .0196<.05 and reject.
     """
 
     # Smallest p at step 1 is above 0.0125: t = -2.4 gives p about 0.0196.

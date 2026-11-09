@@ -122,7 +122,7 @@ def test_actual_producer_rejects_retuned_spec() -> None:
 def test_zero_spread_actual_gate_record_round_trips() -> None:
     """Exact theory log w on every E1 population: producer and adapter agree, record digests.
 
-    Basis: raw counts are built so the Firth slope equals log(1/(1-m)) with no
+    Basis: raw counts are built so the bias-reduced slope equals log(1/(1-m)) with no
     replicate spread once early-fixation exclusions are empty. The gate then
     sees SE = 0 and writes tagged infinite t statistics. The adapter
     recomputes the same record from the raw counts; disagreement would raise

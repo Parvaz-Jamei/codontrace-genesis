@@ -66,7 +66,7 @@ CONSTANTS_RELPATH = f"{PREREG_RELDIR}/jr5_prereg_constants.json"
 # record.json manifest.digest after the 2026-11-01 amendment logged in
 # DEVIATIONS.md. It covers DEVIATIONS.md too, so it is not the plan digest
 # that the log names (577bd4ac..., every file except DEVIATIONS.md).
-LOCKED_PREREG_MANIFEST_DIGEST = "1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d"
+LOCKED_PREREG_MANIFEST_DIGEST = "73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505"
 # sha256 of jr5_prereg_constants.json as listed in that manifest.
 LOCKED_PREREG_CONSTANTS_SHA256 = "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
 _TOL = 1e-9

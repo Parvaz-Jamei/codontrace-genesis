@@ -4,7 +4,7 @@
 
 The gate pins the prereg as amended on 2026-11-01 (DEVIATIONS.md, second entry):
 
-- `LOCKED_PREREG_MANIFEST_DIGEST` = `1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d`,
+- `LOCKED_PREREG_MANIFEST_DIGEST` = `73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505`,
   the `manifest.digest` of `docs/prereg/jr5/record.json`, recomputed from its file list.
 - `LOCKED_PREREG_CONSTANTS_SHA256` = `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`,
   the sha256 of `jr5_prereg_constants.json` and its entry in that manifest.

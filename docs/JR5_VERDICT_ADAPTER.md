@@ -26,10 +26,19 @@ Locked plan digest (`PREREG_RECORD_DIGEST`, excludes `DEVIATIONS.md`):
 Constants SHA-256:
 `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`.
 The shipped `record.json` file SHA-256 is
-`251973f8abf5cb1eddf8ffed650733c45d033209b99137b0ed6812d47dbb3e38`
-(its `manifest.digest` still covers `DEVIATIONS.md` and is checked for
-freshness, but is not the code pin). The packaged deviations log is verified
-separately so a logged deviation does not disable the adapter. Plan digest,
+`86a58aef1aab41b8854abb839ed47b88b9d2dd571b36e3acaed9e0da2c648873`
+(its `manifest.digest`, `6ee7a10093ac969f7604afd1942e4594af354d8f8e514641d43729aacc998572`,
+still covers `DEVIATIONS.md` and is checked for freshness, but is not the code
+pin). The packaged deviations log must match its `record.json` entry and is
+verified separately, so a logged deviation does not disable the adapter. The
+log is append-only in code, with the same rules as the phase 3 gate: the
+lock-start entry is pinned (old digest `633aa9c8…` and the sha256 of its
+text), the log must start with every pinned checkpoint (byte length and
+sha256 of the accepted text; the last is `9117` bytes, `cf202b48…`), text
+after it must be whole entries, and the entries must chain to the plan pin.
+All three data files ship in the wheel (`package-data`
+`data/*.json`, `data/*.md`); a missing one is a `ConfigurationError`, so the
+verdict and the auditor's exemption refuse rather than crash. Plan digest,
 constants sha, full manifest digest and record-file sha are separate
 identifiers.
 No confirmatory run or final whole-package validation is represented by the

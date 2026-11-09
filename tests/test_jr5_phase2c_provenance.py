@@ -18,6 +18,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
 from codontrace.preregistration.manifest import PlanManifest
 from codontrace.rng import RNGManager
+from tests import _jr5_deviation_attacks
 from tests import _jr5_raw_evidence as raw
 from tests.test_jr5_phase2c_verdict_adapter import bound_bundle, positive
 
@@ -236,6 +237,54 @@ def test_digest_contracts_are_registered_from_the_consumer() -> None:
     assert "jr5_verdict" not in source
 
 
+def test_registering_a_conflicting_digest_contract_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One class path can carry only one digest-field contract.
+
+    Basis: ``register_noncritical_digest_class`` stores the digest-like
+    public fields (``digest`` or a name containing ``_digest``) under the
+    class's module and qualified name. Registering the same class again is a
+    no-op, but a second class at the same path with other digest fields
+    would silently change which fields the replay checks read, so it must be
+    refused. The two probe classes share the path ``<this module>.Probe``:
+    the first has fields (digest, run_digest), the second (digest,
+    plan_digest). The registry is patched so the probes do not leak.
+    Expected: first registration stores ("digest", "run_digest"); the repeat
+    keeps it and lists the path once; the conflicting one raises
+    ConfigurationError naming the conflict and leaves the stored contract.
+    """
+    from dataclasses import dataclass
+
+    from codontrace.genesis import replay_integrity
+
+    monkeypatch.setattr(replay_integrity, "_DIGEST_FIELDS_BY_CLASS", dict(replay_integrity._DIGEST_FIELDS_BY_CLASS))
+    monkeypatch.setattr(
+        replay_integrity, "NON_REPLAY_CRITICAL_DIGEST_CLASSES", replay_integrity.NON_REPLAY_CRITICAL_DIGEST_CLASSES
+    )
+
+    @dataclass(frozen=True)
+    class Probe:
+        digest: str
+        run_digest: str
+        note: str
+
+    first = Probe
+    path = f"{first.__module__}.{first.__qualname__}"
+    replay_integrity.register_noncritical_digest_class(first)
+    replay_integrity.register_noncritical_digest_class(first)
+    assert replay_integrity._DIGEST_FIELDS_BY_CLASS[path] == ("digest", "run_digest")
+    assert replay_integrity.NON_REPLAY_CRITICAL_DIGEST_CLASSES.count(path) == 1
+
+    @dataclass(frozen=True)
+    class Probe:  # type: ignore[no-redef]  # same path, other digest fields
+        digest: str
+        plan_digest: str
+
+    assert f"{Probe.__module__}.{Probe.__qualname__}" == path
+    with pytest.raises(ConfigurationError, match="Conflicting digest contract"):
+        replay_integrity.register_noncritical_digest_class(Probe)
+    assert replay_integrity._DIGEST_FIELDS_BY_CLASS[path] == ("digest", "run_digest")
+
+
 @pytest.mark.parametrize(("field", "value", "expected"), [
     ("resumed_body_sha256", "0" * 64, False),
     ("atp_ledger_residual", 1e-9, True),
@@ -295,60 +344,121 @@ def test_a_genuine_constants_hash_does_not_authenticate_an_edited_manifest() -> 
         verdict._verified_constants(constants, json.dumps(record).encode(), deviations_text=_DEVIATIONS_TEXT)
 
 
+_CONSTANTS_RAW = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
+_RECORD_RAW = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes()
+
+
+def _record_listing(log_text: str) -> bytes:
+    """The packaged record re-hashed over ``log_text``, as an editor of the log would refresh it."""
+
+    record = json.loads(_RECORD_RAW)
+    manifest = record["manifest"]
+    sha = hashlib.sha256(log_text.encode("utf-8")).hexdigest()
+    manifest["files"] = [
+        [path, sha if path == "docs/prereg/jr5/DEVIATIONS.md" else digest] for path, digest in manifest["files"]
+    ]
+    manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
+    return json.dumps(record).encode()
+
+
 def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
-    """Claimgate keeps its own plan-digest and deviations-chain checks so genesis
+    """Claimgate keeps its own plan-digest and deviations-log checks so genesis
     cannot reach ``codontrace.preregistration`` through the known HP -> claimgate
     edges (import contracts). Both copies must therefore agree on the same inputs.
 
     Basis: ``plan_digest_from_files`` / ``verify_deviations_log`` (preregistration)
     and ``_verified_constants`` / ``_verify_deviations_log`` (claimgate, via
     ``canonical_digest`` over the locked file list) are two encodings of one
-    schema. On the packaged record both must accept and yield the code pin
-    ``PREREG_RECORD_DIGEST``. Both must refuse a broken chain and a last entry
-    that names the wrong digest.
+    schema with the same pins: lock digest 633aa9c8..., the sha256 of the
+    lock-start entry and the checkpoints of the accepted log. On the packaged
+    record both must accept and yield the code pin ``PREREG_RECORD_DIGEST``,
+    and both must accept one well-formed appended entry.
+    Expected: equal pins, equal plan digest, both accept.
     """
 
-    from codontrace.preregistration.jr5_locked_plan import (
-        plan_digest_from_files,
-        verify_deviations_log,
-    )
+    from codontrace.preregistration import jr5_locked_plan as plan
 
-    constants = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
-    record_raw = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes()
-    record = json.loads(record_raw)
+    assert verdict._LOCK_START_DIGEST == plan.LOCK_START_DIGEST
+    assert verdict._LOCK_START_ENTRY_SHA256 == plan.LOCK_START_ENTRY_SHA256
+    assert verdict._ACCEPTED_LOG_CHECKPOINTS == plan.ACCEPTED_LOG_CHECKPOINTS
+    assert verdict._DIGEST_LINE.pattern == plan.DIGEST_LINE.pattern
+    assert verdict._deviations_log_entries(_DEVIATIONS_TEXT) == plan.deviations_log_entries(_DEVIATIONS_TEXT)
+    record = json.loads(_RECORD_RAW)
     files = [(path, digest) for path, digest in record["manifest"]["files"]]
-    plan_pre = plan_digest_from_files(files, record["manifest"]["title"])
+    plan_pre = plan.plan_digest_from_files(files, record["manifest"]["title"])
     assert plan_pre == verdict.PREREG_RECORD_DIGEST
-    # Claimgate's real path: must accept the same packaged bytes.
-    assert verdict._verified_constants(constants, record_raw, deviations_text=_DEVIATIONS_TEXT) == json.loads(
-        constants
+    assert verdict._verified_constants(_CONSTANTS_RAW, _RECORD_RAW, deviations_text=_DEVIATIONS_TEXT) == json.loads(
+        _CONSTANTS_RAW
     )
-    verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
+    plan.verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
     verdict._verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
-    broken = _DEVIATIONS_TEXT.replace(
-        "- Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`"
-        " -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`",
-        "- Record digest: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`"
-        " -> `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`",
-        1,
-    )
-    assert broken != _DEVIATIONS_TEXT
-    for check in (verify_deviations_log, verdict._verify_deviations_log):
-        with pytest.raises(ConfigurationError, match="chain|locked plan digest"):
-            check(broken, expected_plan_digest=plan_pre)
-    with pytest.raises(ConfigurationError, match="chain|locked plan digest|plan digest"):
-        verdict._verified_constants(constants, record_raw, deviations_text=broken)
-    last_new = "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"
-    idx = _DEVIATIONS_TEXT.rfind(last_new)
-    assert idx > 0
-    wrong_last = _DEVIATIONS_TEXT[:idx] + ("0" * 64) + _DEVIATIONS_TEXT[idx + 64 :]
-    for check in (verify_deviations_log, verdict._verify_deviations_log):
-        with pytest.raises(ConfigurationError, match="locked plan digest"):
-            check(wrong_last, expected_plan_digest=plan_pre)
-    with pytest.raises(ConfigurationError, match="locked plan digest|plan digest"):
-        verdict._verified_constants(constants, record_raw, deviations_text=wrong_last)
+    appended = _jr5_deviation_attacks.valid_append(_DEVIATIONS_TEXT)
+    plan.verify_deviations_log(appended, expected_plan_digest=plan_pre)
+    verdict._verify_deviations_log(appended, expected_plan_digest=plan_pre)
+    assert verdict._verified_constants(
+        _CONSTANTS_RAW, _record_listing(appended), deviations_text=appended
+    ) == json.loads(_CONSTANTS_RAW)
 
 
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.ATTACKS))
+def test_claimgate_and_preregistration_log_checks_refuse_the_same_edits(case: str) -> None:
+    """Both log checks refuse every edit of the log other than a whole appended entry.
+
+    Basis: the log is append-only (pinned lock-start entry, pinned
+    checkpoints of the accepted log, whole appended entries, one digest line
+    at a line start per entry, chain, last entry at the plan pin). Each case
+    in ``tests/_jr5_deviation_attacks.py`` breaks one rule. The two copies
+    run the same rules in the same order, so they must refuse with the same
+    message; the claimgate loader is also fed a record re-hashed over the
+    edited log, so the packaged-record check cannot be what refuses it.
+    Expected: ConfigurationError with the message of the broken rule, from
+    the preregistration check, the claimgate check and the claimgate loader.
+    """
+
+    from codontrace.preregistration.jr5_locked_plan import verify_deviations_log
+
+    edit, message = _jr5_deviation_attacks.ATTACKS[case]
+    text = edit(_DEVIATIONS_TEXT)
+    for check in (verify_deviations_log, verdict._verify_deviations_log):
+        with pytest.raises(ConfigurationError, match=message):
+            check(text, expected_plan_digest=verdict.PREREG_RECORD_DIGEST)
+    with pytest.raises(ConfigurationError, match=message):
+        verdict._verified_constants(_CONSTANTS_RAW, _record_listing(text), deviations_text=text)
+
+
+def test_packaged_log_must_match_its_record_entry() -> None:
+    """A packaged log whose sha256 differs from the record's DEVIATIONS.md entry is refused.
+
+    Basis: the record lists sha256(DEVIATIONS.md); that entry is the only tie
+    between the shipped log and the shipped record. A valid appended entry
+    passes every log rule, so with the unchanged record the only rule it
+    breaks is this one (the record still lists the sha256 of the current log).
+    Expected: ConfigurationError naming the record entry; with the record
+    re-hashed over the new log it is accepted.
+    """
+
+    appended = _jr5_deviation_attacks.valid_append(_DEVIATIONS_TEXT)
+    with pytest.raises(ConfigurationError, match="packaged DEVIATIONS.md does not match the record.json entry"):
+        verdict._verified_constants(_CONSTANTS_RAW, _RECORD_RAW, deviations_text=appended)
+    verdict._verified_constants(_CONSTANTS_RAW, _record_listing(appended), deviations_text=appended)
+
+
+def test_record_declared_digest_must_be_the_digest_of_its_file_list() -> None:
+    """A record whose declared manifest digest is not the canonical digest of its files is refused.
+
+    Basis: ``manifest.digest`` is the canonical digest of the title and the
+    full file list (DEVIATIONS.md included); the plan pin is computed from
+    the files without it, so only this check ties the declared value to the
+    list. Here the files are genuine and only the declared digest changes,
+    to the plan pin itself (a plausible value that is not the full digest).
+    Expected: ConfigurationError naming the declared digest.
+    """
+
+    record = json.loads(_RECORD_RAW)
+    assert record["manifest"]["digest"] != verdict.PREREG_RECORD_DIGEST
+    record["manifest"]["digest"] = verdict.PREREG_RECORD_DIGEST
+    with pytest.raises(ConfigurationError, match="does not match its declared digest"):
+        verdict._verified_constants(_CONSTANTS_RAW, json.dumps(record).encode(), deviations_text=_DEVIATIONS_TEXT)
 
 
 @pytest.mark.parametrize("fields", [("expected_digest", "replayed_digest"), ("one_shot_body_sha256", "resumed_body_sha256")])

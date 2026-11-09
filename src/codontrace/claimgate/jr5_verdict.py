@@ -15,7 +15,8 @@ Rules, all fixed by ``docs/prereg/jr5``:
   gate-record key) and ``PREREG_CONSTANTS_SHA256`` the sha256 of the constants
   file. The constants and record are read from the copies shipped with this
   package; the deviations log is checked separately so a logged deviation does
-  not disable the verdict. Changing a locked plan file means a DEVIATIONS entry
+  not disable the verdict, and it is append-only in code (pinned lock-start
+  entry and checkpoints of the accepted log). Changing a locked plan file means a DEVIATIONS entry
   plus a reviewed bump of the plan pin and constants when those change; no
   caller can point the verdict at another prereg folder.
 - The run set must equal the prereg grid exactly: every experiment, cell, host
@@ -173,18 +174,40 @@ def _hex64(value: Any, what: str) -> str:
 
 _DEVIATIONS_RELPATH = "docs/prereg/jr5/DEVIATIONS.md"
 _DIGEST_LINE = re.compile(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", re.M)
+_ENTRY_HEADING = re.compile(r"^## ", re.M)
+_APPENDED_TAIL = re.compile(rb"\A\n*(?:## |\Z)")
+# Same pins as codontrace.preregistration.jr5_locked_plan (the agreement test
+# in tests/test_jr5_phase2c_provenance.py checks they are equal): the lock
+# digest and the sha256 of the lock-start entry's text, and checkpoints
+# (byte length, sha256) of the accepted log, oldest first.
+_LOCK_START_DIGEST = "633aa9c84336e946fc7d8e3e2178acc658caeed791f5a484bbe7d0814264b757"
+_LOCK_START_ENTRY_SHA256 = "be3db2e183e371f013ea52cd1581a72f508d4dc035d7213734372f8fe27f2f67"
+_ACCEPTED_LOG_CHECKPOINTS: tuple[tuple[int, str], ...] = (
+    (5452, "9b4f42ff11605453e3ccd8e546f1965a949f3fa46a42034bb286b4062820146a"),
+    (9117, "cf202b488e356206f6a19da7eeded08d43618b802c2f04adf815ff2b1abac98c"),
+)
+
+
+def _deviations_log_entries(text: str) -> list[str]:
+    starts = [match.start() for match in _ENTRY_HEADING.finditer(text)]
+    return [text[a:b] for a, b in zip(starts, [*starts[1:], len(text)], strict=True)]
 
 
 def _verify_deviations_log(text: str, *, expected_plan_digest: str) -> None:
-    """Refuse a broken chain or a last entry that does not name the plan digest.
+    """Refuse a log that is not the pinned accepted log plus well-formed appended entries.
 
-    Kept inside claimgate (not imported from preregistration) so genesis cannot
-    reach ``codontrace.preregistration`` through the known HP -> claimgate edges.
+    The same rules as ``codontrace.preregistration.jr5_locked_plan``, kept
+    inside claimgate (not imported) so genesis cannot reach
+    ``codontrace.preregistration`` through the known HP -> claimgate edges:
+    the first entry is the pinned lock-start entry, the log starts with every
+    pinned checkpoint, text after the last checkpoint is whole entries, each
+    entry has exactly one record-digest line at a line start, entries chain,
+    and the last names the plan digest.
     """
 
     if not isinstance(text, str) or not text:
         raise ConfigurationError("DEVIATIONS.md must be non-empty text.")
-    entries = text.split("\n## ")[1:]
+    entries = _deviations_log_entries(text)
     if not entries:
         raise ConfigurationError("DEVIATIONS.md must contain at least one dated entry.")
     pairs: list[tuple[str, str]] = []
@@ -193,6 +216,18 @@ def _verify_deviations_log(text: str, *, expected_plan_digest: str) -> None:
         if len(found) != 1:
             raise ConfigurationError("each DEVIATIONS.md entry must have exactly one record-digest line.")
         pairs.append(found[0])
+    if pairs[0][0] != _LOCK_START_DIGEST:
+        raise ConfigurationError("DEVIATIONS.md first entry does not start at the lock digest.")
+    if hashlib.sha256(entries[0].encode("utf-8")).hexdigest() != _LOCK_START_ENTRY_SHA256:
+        raise ConfigurationError("DEVIATIONS.md first entry is not the pinned lock-start entry.")
+    raw = text.encode("utf-8")
+    for size, digest in _ACCEPTED_LOG_CHECKPOINTS:
+        if len(raw) < size or hashlib.sha256(raw[:size]).hexdigest() != digest:
+            raise ConfigurationError(
+                "DEVIATIONS.md does not start with the accepted log; an accepted entry was edited or removed."
+            )
+    if _ACCEPTED_LOG_CHECKPOINTS and not _APPENDED_TAIL.match(raw[_ACCEPTED_LOG_CHECKPOINTS[-1][0] :]):
+        raise ConfigurationError("DEVIATIONS.md text after the accepted log must be whole appended entries.")
     for (_, new), (old, _) in zip(pairs, pairs[1:], strict=False):
         if old != new:
             raise ConfigurationError("DEVIATIONS.md digest lines do not chain.")
@@ -201,12 +236,21 @@ def _verify_deviations_log(text: str, *, expected_plan_digest: str) -> None:
 
 
 def jr5_constants() -> dict[str, Any]:
-    """The pinned prereg constants, parsed from the bytes that were hashed."""
+    """The pinned prereg constants, parsed from the bytes that were hashed.
+
+    The three files are read from the installed package. A missing or
+    unreadable resource is a ConfigurationError, so every caller (the
+    verdict, its verification and the auditor's exemption) refuses instead
+    of failing with an OS error.
+    """
 
     package = resources.files("codontrace.claimgate")
-    record_raw = package.joinpath(_RECORD_RESOURCE).read_bytes()
-    raw = package.joinpath(_CONSTANTS_RESOURCE).read_bytes()
-    deviations_text = package.joinpath(_DEVIATIONS_RESOURCE).read_text(encoding="utf-8")
+    try:
+        record_raw = package.joinpath(_RECORD_RESOURCE).read_bytes()
+        raw = package.joinpath(_CONSTANTS_RESOURCE).read_bytes()
+        deviations_text = package.joinpath(_DEVIATIONS_RESOURCE).read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ConfigurationError(f"JR5 prereg resources are not readable from the installed package: {exc}") from exc
     return _verified_constants(raw, record_raw, deviations_text=deviations_text)
 
 
@@ -1039,7 +1083,7 @@ def red_queen_exemption_holds(bundle: Any) -> bool:
         expected = _bundle_fields(ev, jr5_constants())
         actual = bundle.to_dict()
         return all(actual.get(key) == value for key, value in expected.items())
-    except (ConfigurationError, KeyError, TypeError, ValueError, ZeroDivisionError, OverflowError):
+    except (ConfigurationError, OSError, KeyError, TypeError, ValueError, ZeroDivisionError, OverflowError):
         return False
 
 

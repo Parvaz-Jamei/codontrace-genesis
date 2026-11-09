@@ -1088,6 +1088,13 @@ def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int
     n = len(data)
     if n < 2:
         raise ConfigurationError("a one-sample t procedure needs at least 2 values.")
+    first = data[0]
+    if all(item == first for item in data):
+        # An exactly constant sample has mean ``first`` and spread exactly 0.
+        # fsum(data) / n need not round back to ``first`` (n * first is
+        # rounded, then divided), which would leave a spurious one-ulp spread
+        # and a finite t of sqrt(n - 1) for a sample sitting on a bound.
+        return data, first, 0.0, n - 1
     try:
         mean = math.fsum(data) / n
         variance = math.fsum((item - mean) * (item - mean) for item in data) / (n - 1)
@@ -1121,9 +1128,10 @@ def encode_tost_statistic(value: float) -> JsonValue:
     """Canonical JSON form of a one-sample TOST t statistic.
 
     Finite values stay as JSON numbers. Zero sample spread makes
-    (mean - bound) / se infinite; that is a real TOST decision input
-    (both one-sided tests reduce to whether the common value lies
-    strictly inside the bounds), not a payload error. Infinity is
+    (mean - bound) / se infinite for a bound the common value is not on;
+    that is a real TOST decision input (both one-sided tests reduce to
+    whether the common value lies strictly inside the bounds), not a
+    payload error. Infinity is
     written as the tagged form ``{"$float": "inf"}`` or
     ``{"$float": "-inf"}`` so a gate record can be content-addressed
     without inventing a finite t.
@@ -1205,8 +1213,11 @@ def one_sample_tost(
     H0 lower: mean <= lower_bound, tested with t_lower = (mean - lower) / se.
     H0 upper: mean >= upper_bound, tested with t_upper = (mean - upper) / se.
     Equivalence is declared when both one-sided p-values are below ``alpha``.
-    With zero spread the t statistics are infinite and the decision reduces
-    to whether the common value lies strictly inside the bounds.
+    With zero spread (an exactly constant sample) the t statistic of a side
+    is infinite when the common value differs from that bound, and 0 when it
+    equals the bound (0/0 taken as t = 0 and p = 1/2, which does not reject;
+    scipy returns NaN there). The decision therefore reduces to whether the
+    common value lies strictly inside the bounds.
     """
 
     a = _check_alpha(alpha)

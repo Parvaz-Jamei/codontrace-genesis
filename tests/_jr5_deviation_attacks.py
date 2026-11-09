@@ -112,6 +112,12 @@ def _stray_text_after_checkpoint(text: str) -> str:
     return text + "- Note: added later to the last accepted entry.\n" + entry("2099-01-01: after", pin_line())
 
 
+def _no_entry_heading(text: str) -> str:
+    # Full replacement by text with no "## " heading at a line start: no
+    # entry at all, which must be a refusal and not an unpacking error.
+    return "# JR5 deviations\n\nNothing logged.\n"
+
+
 ATTACKS: dict[str, tuple[Callable[[str], str], str]] = {
     "deletion": (_delete_last_two, "does not start with the accepted log"),
     "lock_start_deletion": (_delete_lock_start, "does not start at the lock digest"),
@@ -124,4 +130,16 @@ ATTACKS: dict[str, tuple[Callable[[str], str], str]] = {
     "two_digest_lines": (_two_digest_lines, "exactly one record-digest line"),
     "indented_digest_line": (_indented_digest_line, "exactly one record-digest line"),
     "stray_text_after_checkpoint": (_stray_text_after_checkpoint, "must be whole appended entries"),
+    "no_entry_heading": (_no_entry_heading, "at least one dated entry"),
+}
+
+
+# Line-ending edits of the raw file bytes. With CRLF every digest line ends
+# in CR, so the end-of-line anchor finds no digest line in the first entry.
+# With lone CR there is no LF at all, so no heading starts a line and the log
+# has no entry. A reader in text mode would translate both back to LF and
+# accept the file.
+LINE_END_ATTACKS: dict[str, tuple[Callable[[bytes], bytes], str]] = {
+    "crlf_line_ends": (lambda raw: raw.replace(b"\n", b"\r\n"), "exactly one record-digest line"),
+    "lone_cr_line_ends": (lambda raw: raw.replace(b"\n", b"\r"), "at least one dated entry"),
 }

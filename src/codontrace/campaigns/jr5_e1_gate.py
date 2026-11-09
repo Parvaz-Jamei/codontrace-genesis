@@ -52,6 +52,7 @@ from codontrace.genesis.statistical_protocol import (
 )
 from codontrace.preregistration.jr5_locked_plan import (
     DEVIATIONS_RELPATH,
+    read_deviations_log,
     verify_jr5_record_at_root,
     verify_jr5_record_bytes,
 )
@@ -329,7 +330,7 @@ def load_e1_gate_spec(root: str | Path | None = None) -> E1GateSpec:
     try:
         record_raw = (base / PREREG_RELDIR / "record.json").read_bytes()
         raw = (base / CONSTANTS_RELPATH).read_bytes()
-        deviations_text = (base / DEVIATIONS_RELPATH).read_text(encoding="utf-8")
+        deviations_text = read_deviations_log(base / DEVIATIONS_RELPATH)
     except OSError as exc:
         raise ConfigurationError(f"JR5 prereg files not readable under {base}.") from exc
     return E1GateSpec.from_prereg_constants(raw, record_raw=record_raw, deviations_text=deviations_text)

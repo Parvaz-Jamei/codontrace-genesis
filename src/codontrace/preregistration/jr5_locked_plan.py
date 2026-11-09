@@ -5,9 +5,11 @@ manifest file except ``DEVIATIONS.md``. That digest is stable when a
 deviation is only logged. The log is verified on its own and is append-only
 in code, in the way a transparency log is checked against a trusted
 checkpoint (tree size and root hash, RFC 9162 section 2.1.4): the code pins
-checkpoints of the log, each the byte length and sha256 of the log text up to
-the end of an accepted entry. The current log must start with every pinned
-checkpoint, so an accepted entry cannot be edited, reordered or removed.
+checkpoints of the log, each the byte length and sha256 of the log file
+bytes up to the end of an accepted entry (the file is decoded without
+newline translation, so CRLF or CR bytes do not match an LF checkpoint).
+The current log must start with every pinned checkpoint, so an accepted
+entry cannot be edited, reordered or removed.
 Text after the last checkpoint must be whole appended entries. The first
 entry must be the lock-start entry (its old digest and its full text are
 pinned), every entry has exactly one record-digest line at the start of a
@@ -39,6 +41,7 @@ __all__ = [
     "LOCK_START_ENTRY_SHA256",
     "deviations_log_entries",
     "plan_digest_from_files",
+    "read_deviations_log",
     "verify_deviations_log",
     "verify_jr5_record_at_root",
     "verify_jr5_record_bytes",
@@ -82,10 +85,29 @@ def plan_digest_from_files(files: Sequence[tuple[str, str]], title: str) -> str:
     return PlanManifest(locked, title).digest
 
 
+def read_deviations_log(path: Path) -> str:
+    """The log file's bytes decoded as UTF-8, with no newline translation.
+
+    Text mode would turn CRLF and lone CR into LF before the checkpoints are
+    compared, so the check would see other bytes than the file (and than the
+    claimgate copy, which reads the packaged bytes). Decoding the raw bytes
+    keeps ``text.encode("utf-8")`` equal to the file. ``OSError`` is left to
+    the caller.
+    """
+
+    raw = path.read_bytes()
+    try:
+        return raw.decode("utf-8")
+    except UnicodeError as exc:
+        raise ConfigurationError("DEVIATIONS.md must be UTF-8 text.") from exc
+
+
 def deviations_log_entries(text: str) -> list[str]:
     """Each entry's text, from its ``## `` heading at a line start up to the next one."""
 
     starts = [match.start() for match in ENTRY_HEADING.finditer(text)]
+    if not starts:
+        return []
     return [text[a:b] for a, b in zip(starts, [*starts[1:], len(text)], strict=True)]
 
 
@@ -176,7 +198,7 @@ def verify_jr5_record_at_root(
     base = Path(root)
     try:
         record_raw = (base / "docs/prereg/jr5/record.json").read_bytes()
-        deviations_text = (base / DEVIATIONS_RELPATH).read_text(encoding="utf-8")
+        deviations_text = read_deviations_log(base / DEVIATIONS_RELPATH)
     except OSError as exc:
         raise ConfigurationError(f"JR5 prereg files not readable under {base}.") from exc
     manifest, plan = verify_jr5_record_bytes(

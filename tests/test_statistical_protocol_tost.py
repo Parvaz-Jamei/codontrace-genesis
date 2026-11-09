@@ -250,11 +250,12 @@ def test_zero_variance_on_lower_bound_does_not_show_equivalence() -> None:
     """With every value on the lower bound, t_lower = 0 and p_lower = 1/2.
 
     Basis: H0 lower is mean <= lower_bound. A zero-spread sample whose common
-    value equals the lower bound has mean - lower = 0 and se = 0; the 0/0
-    case is taken as t = 0 (the convention scipy uses for a constant sample
-    equal to the null value), and the Student t upper tail at 0 is 1/2 by
-    symmetry for any df. 1/2 is not below alpha = 0.05, so H0 lower is not
-    rejected. The upper side has mean - upper = -1 < 0 and se = 0, so
+    value equals the lower bound has mean - lower = 0 and se = 0. This module
+    takes that 0/0 as t = 0, its own convention: scipy 1.18.1
+    ``ttest_1samp([1.0] * 3, 1.0)`` returns statistic NaN and p-value NaN for
+    every alternative instead. Both fail to reject. The Student t upper tail
+    at 0 is 1/2 by symmetry for any df, and 1/2 is not below alpha = 0.05, so
+    H0 lower is not rejected. The upper side has mean - upper = -1 < 0 and se = 0, so
     t_upper = -inf and p_upper = sf(+inf) = 0. This mirrors the upper-bound
     case above; a value on either bound is never equivalent.
     Expected: t_lower 0.0, p_lower 0.5, t_upper -inf, p_upper 0.0, interval
@@ -289,3 +290,35 @@ def test_encode_tost_statistic_refuses_nan_and_tags_infinities() -> None:
     assert encode_tost_statistic(1.5) == 1.5
     encoded_zero = encode_tost_statistic(-0.0)
     assert isinstance(encoded_zero, float) and encoded_zero == 0.0
+
+
+def test_constant_sample_on_the_lower_bound_at_n7_is_not_equivalent() -> None:
+    """Seven copies of the m = 0.5 lower log bound are not equivalent.
+
+    Basis: v = 0.5877866649021191 is the registered m = 0.5 lower log bound,
+    log(0.9 * 2.0). For seven copies the correctly rounded sum 7 * v divided
+    by 7 does not round back to v (checked first, so the case is the one that
+    needs it). A mean taken as fsum / n is then one ulp above v, every
+    deviation is about one ulp, the sample SD comes out near 1.2e-16 instead
+    of 0, and t_lower = (mean - v) / se = sqrt(6) = 2.449 with p_lower =
+    0.025 < 0.05: a false equivalence. The sample is exactly constant, so its
+    mean is v and its SD is 0. Then mean - lower = 0 and se = 0, so t_lower =
+    0 (0/0 taken as 0) and p_lower = 1/2; mean - upper < 0 gives t_upper =
+    -inf and p_upper = 0. The 90% interval (1 - 2 alpha) is [v, v], whose lower
+    end is not strictly above the lower bound, so the interval rule also says
+    not equivalent.
+    Expected: mean v, sd 0, t_lower 0.0, p_lower 0.5, t_upper -inf, not
+    equivalent; one_sample_t_interval at 0.90 and the TOST interval are both
+    (v, v), and the decision equals strict inclusion of that interval.
+    """
+    v = 0.5877866649021191
+    upper = 0.7884573603642703
+    data = [v] * 7
+    assert math.fsum(data) / 7 != v
+    r = one_sample_tost(data, v, upper, alpha=0.05)
+    assert r.mean == v and r.sd == 0.0 and r.standard_error == 0.0
+    assert r.t_lower == 0.0 and r.p_lower == 0.5
+    assert r.t_upper == -math.inf and r.p_upper == 0.0
+    assert not r.equivalent
+    assert one_sample_t_interval(data, 0.90) == (v, v) == (r.ci_low, r.ci_high)
+    assert r.equivalent is (r.lower_bound < r.ci_low and r.ci_high < r.upper_bound)

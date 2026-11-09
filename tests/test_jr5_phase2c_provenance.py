@@ -300,12 +300,12 @@ def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
     cannot reach ``codontrace.preregistration`` through the known HP -> claimgate
     edges (import contracts). Both copies must therefore agree on the same inputs.
 
-    Basis: ``PlanManifest`` / ``plan_digest_from_files`` (preregistration) and
-    ``canonical_digest`` over the locked file list (claimgate) are two encodings
-    of one schema (``codontrace_prereg_manifest_v1``). On the packaged record they
-    must equal the code pin ``PREREG_RECORD_DIGEST``. ``verify_deviations_log`` and
-    ``_verify_deviations_log`` must both accept the packaged log and both refuse a
-    broken chain and a last entry that names the wrong digest.
+    Basis: ``plan_digest_from_files`` / ``verify_deviations_log`` (preregistration)
+    and ``_verified_constants`` / ``_verify_deviations_log`` (claimgate, via
+    ``canonical_digest`` over the locked file list) are two encodings of one
+    schema. On the packaged record both must accept and yield the code pin
+    ``PREREG_RECORD_DIGEST``. Both must refuse a broken chain and a last entry
+    that names the wrong digest.
     """
 
     from codontrace.preregistration.jr5_locked_plan import (
@@ -313,21 +313,18 @@ def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
         verify_deviations_log,
     )
 
-    record = json.loads((ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_text())
+    constants = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
+    record_raw = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes()
+    record = json.loads(record_raw)
     files = [(path, digest) for path, digest in record["manifest"]["files"]]
-    title = record["manifest"]["title"]
-    plan_pre = plan_digest_from_files(files, title)
-    locked = [(path, digest) for path, digest in files if path != "docs/prereg/jr5/DEVIATIONS.md"]
-    plan_cg = canonical_digest(
-        {
-            "schema": "codontrace_prereg_manifest_v1",
-            "title": title,
-            "files": [{"path": path, "sha256": digest} for path, digest in locked],
-        }
+    plan_pre = plan_digest_from_files(files, record["manifest"]["title"])
+    assert plan_pre == verdict.PREREG_RECORD_DIGEST
+    # Claimgate's real path: must accept the same packaged bytes.
+    assert verdict._verified_constants(constants, record_raw, deviations_text=_DEVIATIONS_TEXT) == json.loads(
+        constants
     )
-    assert plan_pre == plan_cg == verdict.PREREG_RECORD_DIGEST
     verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
-    verdict._verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_cg)
+    verdict._verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
     broken = _DEVIATIONS_TEXT.replace(
         "- Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`"
         " -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`",
@@ -339,7 +336,8 @@ def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
     for check in (verify_deviations_log, verdict._verify_deviations_log):
         with pytest.raises(ConfigurationError, match="chain|locked plan digest"):
             check(broken, expected_plan_digest=plan_pre)
-    # Replace only the final new-digest token of the last entry.
+    with pytest.raises(ConfigurationError, match="chain|locked plan digest|plan digest"):
+        verdict._verified_constants(constants, record_raw, deviations_text=broken)
     last_new = "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"
     idx = _DEVIATIONS_TEXT.rfind(last_new)
     assert idx > 0
@@ -347,6 +345,10 @@ def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
     for check in (verify_deviations_log, verdict._verify_deviations_log):
         with pytest.raises(ConfigurationError, match="locked plan digest"):
             check(wrong_last, expected_plan_digest=plan_pre)
+    with pytest.raises(ConfigurationError, match="locked plan digest|plan digest"):
+        verdict._verified_constants(constants, record_raw, deviations_text=wrong_last)
+
+
 
 
 @pytest.mark.parametrize("fields", [("expected_digest", "replayed_digest"), ("one_shot_body_sha256", "resumed_body_sha256")])

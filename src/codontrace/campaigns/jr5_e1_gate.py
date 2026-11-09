@@ -9,8 +9,10 @@ Settings come only from the locked prereg constants file. ``load_e1_gate_spec``
 reads ``docs/prereg/jr5/jr5_prereg_constants.json`` and refuses it unless its
 sha256 equals the entry in ``record.json``. The code pin is the plan digest
 (``hash_plan`` over every manifest file except ``DEVIATIONS.md``); the
-append-only deviations log is checked separately so logging a deviation does
-not disable the gate, while an edit to a locked file still refuses. The same
+deviations log is checked separately so logging a deviation does not disable
+the gate, while an edit to a locked file still refuses. The log is held
+append-only by pinned checkpoints (``jr5_locked_plan``): an accepted entry
+cannot be edited or removed, and new text must be whole entries. The same
 hashed constants bytes are parsed. Both digests and the complete settings
 travel in every gate record.
 

@@ -596,3 +596,139 @@ def test_a_near_null_cost_is_reported_as_an_instrument_failure() -> None:
     assert all(not c["excludes_null"] for c in ev["e1_gate_record"]["cells"] if c["gated"])
     result = verdict.evaluate_jr5_verdict(ev)
     assert not result.conditions["a"] and result.outcome == "instrument_fail"
+
+
+def _packaged_resources(monkeypatch: pytest.MonkeyPatch, log_raw: bytes) -> None:
+    """Serve the packaged constants, a record re-hashed over ``log_raw`` and ``log_raw`` as the log."""
+
+    record = json.loads(_RECORD_RAW)
+    manifest = record["manifest"]
+    sha = hashlib.sha256(log_raw).hexdigest()
+    manifest["files"] = [
+        [path, sha if path == "docs/prereg/jr5/DEVIATIONS.md" else digest] for path, digest in manifest["files"]
+    ]
+    manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
+    served = {
+        verdict._CONSTANTS_RESOURCE: _CONSTANTS_RAW,
+        verdict._RECORD_RESOURCE: json.dumps(record).encode(),
+        verdict._DEVIATIONS_RESOURCE: log_raw,
+    }
+
+    class Entry:
+        def __init__(self, name: str):
+            self.name = name
+
+        def read_bytes(self) -> bytes:
+            return served[self.name]
+
+        def read_text(self, encoding: str = "utf-8") -> str:
+            # What a text-mode read of the file would return: universal newlines.
+            return served[self.name].decode(encoding).replace("\r\n", "\n").replace("\r", "\n")
+
+    class Package:
+        def joinpath(self, name: str) -> Entry:
+            return Entry(name)
+
+    monkeypatch.setattr(verdict.resources, "files", lambda _: Package())
+
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.LINE_END_ATTACKS))
+def test_both_log_readers_refuse_crlf_and_cr_bytes_alike(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+) -> None:
+    """The two loaders give the same answer on a log whose line ends were rewritten.
+
+    Basis: the checkpoints and the lock-start pin are sha256 values of the
+    committed LF bytes. Both loaders decode the log bytes with no newline
+    translation (the preregistration copy through read_deviations_log, the
+    claimgate copy through the packaged resource bytes), so both see the CR
+    bytes and both log checks refuse them with the same message. Each loader
+    gets a record re-hashed over the edited bytes, so a record mismatch
+    cannot be what refuses it. Before R44 the preregistration copy read the
+    file in text mode, which turns CRLF and CR into LF, and accepted these
+    bytes while claimgate refused them.
+    Expected: ConfigurationError with the case's message from
+    verify_jr5_record_at_root and from jr5_constants.
+    """
+
+    from codontrace.preregistration.jr5_locked_plan import verify_jr5_record_at_root
+    from codontrace.preregistration.manifest import hash_plan
+    from tests.test_jr5_phase3_e1_gate import RECORD, _clone_prereg
+
+    edit, message = _jr5_deviation_attacks.LINE_END_ATTACKS[case]
+    log_raw = edit((ROOT / "docs/prereg/jr5/DEVIATIONS.md").read_bytes())
+    root = _clone_prereg(tmp_path)
+    (root / "docs/prereg/jr5/DEVIATIONS.md").write_bytes(log_raw)
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigurationError, match=message):
+        verify_jr5_record_at_root(root, locked_plan_digest=verdict.PREREG_RECORD_DIGEST)
+    _packaged_resources(monkeypatch, log_raw)
+    with pytest.raises(ConfigurationError, match=message):
+        verdict.jr5_constants()
+
+
+def test_both_log_readers_accept_the_committed_lf_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """On the committed LF log both loaders accept, and the pins are unchanged.
+
+    Basis: the committed log has no CR byte, so decoding its bytes with or
+    without newline translation gives the same text and the pinned
+    checkpoints (sha256 of byte prefixes) still hold. The packaged log is
+    byte-identical to docs/prereg/jr5/DEVIATIONS.md.
+    Expected: no CR byte, equal packaged and repository bytes, every
+    checkpoint equal to the sha256 of its prefix, verify_jr5_record_at_root
+    returns the plan pin and jr5_constants returns the packaged constants.
+    """
+
+    from codontrace.preregistration.jr5_locked_plan import verify_jr5_record_at_root
+
+    raw = (ROOT / "docs/prereg/jr5/DEVIATIONS.md").read_bytes()
+    assert b"\r" not in raw and raw == _DEVIATIONS_TEXT.encode("utf-8")
+    for size, digest in verdict._ACCEPTED_LOG_CHECKPOINTS:
+        assert hashlib.sha256(raw[:size]).hexdigest() == digest
+    _manifest, plan_digest = verify_jr5_record_at_root(ROOT, locked_plan_digest=verdict.PREREG_RECORD_DIGEST)
+    assert plan_digest == verdict.PREREG_RECORD_DIGEST
+    _packaged_resources(monkeypatch, raw)
+    assert verdict.jr5_constants() == json.loads(_CONSTANTS_RAW)
+
+
+def test_adapter_interval_on_a_constant_sample_at_a_registered_bound_is_degenerate() -> None:
+    """The adapter's E1 interval rule and the gate's TOST agree on constant samples.
+
+    Basis: the adapter rechecks E1 with its own t interval (_mean_sd and
+    _t_interval) and calls the cell equivalent when the 90% interval lies
+    strictly inside the bounds. For an exactly constant sample [v] * n the
+    mean is v and the SD is 0, so the interval is [v, v], which is not
+    strictly inside when v is a bound. A mean taken as fsum / n is one ulp
+    off for some (v, n), which leaves a spread near 1e-16; before R44 that
+    made the adapter's interval lie inside the bounds at 11 of the
+    (bound, n) cases below (for example the m = 0.5 lower bound at n = 14).
+    The gate's one_sample_tost must give the same decision. The paired
+    contrast uses the same _mean_sd, so a constant non-zero contrast must
+    take its zero-spread branch (two-sided p = 0).
+    Expected: for the four registered log bounds and n = 2 to 60, interval
+    (v, v), not inside, TOST not equivalent; seven copies of
+    0.5877866649021191 (whose fsum / 7 is not the value) give mean and SD
+    (value, 0.0), and as a paired contrast a two-sided p of 0.
+    """
+
+    from codontrace.campaigns.jr5_e1_gate import load_e1_gate_spec
+    from codontrace.genesis.statistical_protocol import one_sample_tost
+
+    spec = load_e1_gate_spec(ROOT)
+    level = 1.0 - 2.0 * spec.alpha
+    for m in (0.5, 0.25):
+        lower, upper = spec.log_bounds(m)
+        for v in (lower, upper):
+            for n in range(2, 61):
+                interval = verdict._t_interval([v] * n, level)
+                assert (interval.lo, interval.hi) == (v, v), (m, v, n)
+                assert not interval.inside(lower, upper), (m, v, n)
+                assert one_sample_tost([v] * n, lower, upper, alpha=spec.alpha).equivalent is False
+    value = 0.5877866649021191
+    assert math.fsum([value] * 7) / 7 != value
+    assert verdict._mean_sd([value] * 7) == (value, 0.0)
+    assert verdict._Paired((value,) * 7, 1, 10).p_two_sided() == 0.0

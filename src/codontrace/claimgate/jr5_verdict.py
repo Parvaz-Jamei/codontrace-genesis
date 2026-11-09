@@ -190,6 +190,8 @@ _ACCEPTED_LOG_CHECKPOINTS: tuple[tuple[int, str], ...] = (
 
 def _deviations_log_entries(text: str) -> list[str]:
     starts = [match.start() for match in _ENTRY_HEADING.finditer(text)]
+    if not starts:
+        return []
     return [text[a:b] for a, b in zip(starts, [*starts[1:], len(text)], strict=True)]
 
 
@@ -248,7 +250,9 @@ def jr5_constants() -> dict[str, Any]:
     try:
         record_raw = package.joinpath(_RECORD_RESOURCE).read_bytes()
         raw = package.joinpath(_CONSTANTS_RESOURCE).read_bytes()
-        deviations_text = package.joinpath(_DEVIATIONS_RESOURCE).read_text(encoding="utf-8")
+        # Bytes decoded with no newline translation, as the preregistration
+        # copy reads the repository log, so both checks see the same text.
+        deviations_text = package.joinpath(_DEVIATIONS_RESOURCE).read_bytes().decode("utf-8")
     except (OSError, UnicodeError) as exc:
         raise ConfigurationError(f"JR5 prereg resources are not readable from the installed package: {exc}") from exc
     return _verified_constants(raw, record_raw, deviations_text=deviations_text)
@@ -515,6 +519,11 @@ class Jr5Evidence:
 
 def _mean_sd(values: Sequence[float]) -> tuple[float, float]:
     n = len(values)
+    first = values[0]
+    if all(v == first for v in values):
+        # Exactly constant: mean ``first`` and spread 0, as in
+        # statistical_protocol._mean_sd_df; fsum / n can be one ulp off.
+        return first, 0.0
     mean = math.fsum(values) / n
     var = math.fsum((v - mean) ** 2 for v in values) / (n - 1)
     return mean, math.sqrt(var)

@@ -1108,3 +1108,121 @@ def test_gate_loader_reads_the_log_bytes_the_record_check_accepted(tmp_path: Pat
     )
     assert plan_digest == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
     assert load_e1_gate_spec(root) == load_e1_gate_spec(ROOT)
+
+
+def test_near_constant_samples_on_registered_bounds_follow_the_exact_reference() -> None:
+    """Samples one or two ulps wide on each registered bound get the exact-arithmetic decision.
+
+    Basis: for a sample whose spread is a few ulps the float mean fsum(x)/n
+    can round by as much as the spread, which moves t by O(1); [v] * 6 +
+    [v + u] on the m = 0.5 lower bound is the worked case (exact t = 1, the
+    float mean gives sqrt(7)). The reference here is exact rational
+    arithmetic: M = sum(x)/n and V = sum((x - M)^2)/(n - 1) as Fractions, and
+    the lower test rejects iff M - lower > 0 and (M - lower)^2 * n / V > q^2,
+    q = student_t_quantile(n - 1, 1 - alpha) (the same for the upper test with
+    the sign reversed). Equivalence needs both. The samples are, for each of
+    the four registered log bounds b and n = 2 to 60, b repeated with one
+    value moved by k = 1 or 2 ulps in either direction (last value, every
+    other value, and the second half). None is constant, so each must take
+    the t path with a positive SD and finite t, which is what a tolerance in
+    the constancy test would break.
+    Expected: for every sample, sd > 0, finite t on both sides, the TOST
+    decision equal to the exact reference, and equal to strict inclusion of
+    its own 90% interval in (lower, upper).
+    """
+    from fractions import Fraction
+
+    from codontrace.genesis.statistical_protocol import one_sample_tost
+
+    spec = _spec()
+    checked = 0
+    for m in spec.sex_ratios:
+        lower, upper = spec.log_bounds(m)
+        for b in (lower, upper):
+            for n in range(2, 61):
+                q2 = Fraction(student_t_quantile(n - 1, 1.0 - spec.alpha)) ** 2
+                for k in (1, 2):
+                    for direction in (math.inf, -math.inf):
+                        w = b
+                        for _ in range(k):
+                            w = math.nextafter(w, direction)
+                        for data in (
+                            [b] * (n - 1) + [w],
+                            [b if i % 2 else w for i in range(n)],
+                            [b] * (n // 2) + [w] * (n - n // 2),
+                        ):
+                            exact = [Fraction(x) for x in data]
+                            mean = sum(exact, Fraction(0)) / n
+                            var = sum(((x - mean) ** 2 for x in exact), Fraction(0)) / (n - 1)
+                            lo_d, hi_d = mean - Fraction(lower), Fraction(upper) - mean
+                            reference = lo_d > 0 and hi_d > 0 and lo_d**2 * n / var > q2 and hi_d**2 * n / var > q2
+                            r = one_sample_tost(data, lower, upper, alpha=spec.alpha)
+                            case = (m, b, n, k, direction, data.index(w))
+                            assert r.sd > 0.0 and math.isfinite(r.t_lower) and math.isfinite(r.t_upper), case
+                            assert r.equivalent is reference, case
+                            assert r.equivalent is (lower < r.ci_low and r.ci_high < upper), case
+                            checked += 1
+    assert checked == 4 * 59 * 2 * 2 * 3
+
+
+def test_gate_bounds_are_the_registered_constants() -> None:
+    """The gate's ratio bounds are the numbers in the constants file, bit for bit.
+
+    Basis: the constants file registers equivalence_bounds {"0.5": [1.8, 2.2],
+    "0.25": [1.2, 1.4666666666666666]}; the loader checks them against the
+    margin rule 1/(1 - m) * (1 -/+ 0.1) within 1e-9 and then uses them. In
+    floats that rule gives 4/3 * 1.1 = 1.4666666666666668 for m = 0.25, one ulp
+    above the registered 1.4666666666666666 (the double nearest 22/15), so a
+    gate that recomputed the bound would test against log(1.4666666666666668)
+    = 0.3829922522561059, 3 ulps above log(1.4666666666666666) =
+    0.3829922522561057. The verdict adapter takes log of the same file
+    numbers.
+    Expected: ratio_bounds equal to the file pairs, log_bounds equal to
+    math.log of them, the m = 0.25 upper log bound 0.3829922522561057, and
+    the recomputed rule value different from it.
+    """
+    spec = _spec()
+    registered = json.loads(CONSTANTS.read_bytes())["gate_e1"]["equivalence_bounds"]
+    for m in spec.sex_ratios:
+        low, high = registered[str(m)]
+        assert spec.ratio_bounds(m) == (low, high)
+        assert spec.log_bounds(m) == (math.log(low), math.log(high))
+    assert spec.log_bounds(0.25)[1] == 0.3829922522561057
+    assert math.log(spec.theoretical_cost(0.25) * (1.0 + spec.relative_margin)) == 0.3829922522561059
+    with pytest.raises(ConfigurationError, match="not preregistered"):
+        spec.ratio_bounds(0.3)
+
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS))
+def test_non_utf8_log_bytes_refuse_the_gate_with_a_configuration_error(tmp_path: Path, case: str) -> None:
+    """A log whose bytes are not UTF-8 is refused with ConfigurationError.
+
+    Basis: read_deviations_log decodes the file bytes as UTF-8 and turns the
+    decoder's UnicodeError into ConfigurationError, the error type every
+    caller of the gate handles. Both edits leave bytes that are not UTF-8
+    (a 0xFF byte, and 0xC3 followed by a space, which is not a continuation
+    byte). record.json is refreshed over the new bytes, so freshness is not
+    what refuses the file.
+    Expected: ConfigurationError mentioning UTF-8 from read_deviations_log,
+    from verify_jr5_record_at_root and from load_e1_gate_spec, and no
+    UnicodeDecodeError.
+    """
+    from codontrace.preregistration import jr5_locked_plan as plan
+    from codontrace.preregistration.manifest import hash_plan
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    log.write_bytes(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS[case](log.read_bytes()))
+    with pytest.raises(UnicodeDecodeError):
+        log.read_bytes().decode("utf-8")
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        plan.read_deviations_log(log)
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        plan.verify_jr5_record_at_root(root, locked_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST)
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        load_e1_gate_spec(root)

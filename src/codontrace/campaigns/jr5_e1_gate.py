@@ -129,6 +129,9 @@ class E1GateSpec:
     host_n_reported: tuple[int, ...]
     populations_per_cell: int
     seed_split: tuple[tuple[float, int, int], ...]
+    # Registered (m, lower, upper) ratio bounds, exactly as written in the
+    # constants file; checked against the margin rule on load.
+    equivalence_bounds: tuple[tuple[float, float, float], ...]
     constants_sha256: str
     # Locked plan digest (hash_plan excluding DEVIATIONS.md). Named like
     # constants_sha256; the gate record keeps the key "prereg_manifest_digest".
@@ -221,6 +224,7 @@ class E1GateSpec:
         if per_cell < 2:
             raise ConfigurationError("gate_e1.populations_per_cell must be at least 2.")
         seed_split: list[tuple[float, int, int]] = []
+        registered: list[tuple[float, float, float]] = []
         for m in ratios:
             key = str(m)
             if key not in bounds or key not in theory or key not in split:
@@ -235,6 +239,7 @@ class E1GateSpec:
             if last - first + 1 != per_cell:
                 raise ConfigurationError(f"seed_split for m={key} does not hold populations_per_cell seeds.")
             seed_split.append((m, first, last))
+            registered.append((m, lo, hi))
         reported = g.get("host_n_reported")
         if not isinstance(reported, Sequence) or isinstance(reported, str):
             raise ConfigurationError("gate_e1.host_n_reported must be a list.")
@@ -260,6 +265,7 @@ class E1GateSpec:
             host_n_reported=host_ns,
             populations_per_cell=per_cell,
             seed_split=tuple(seed_split),
+            equivalence_bounds=tuple(registered),
             constants_sha256=constants_sha256,
             prereg_manifest_sha256=prereg_manifest_sha256,
         )
@@ -291,8 +297,18 @@ class E1GateSpec:
         return 1.0 / (1.0 - sex_ratio)
 
     def ratio_bounds(self, sex_ratio: float) -> tuple[float, float]:
-        centre = self.theoretical_cost(sex_ratio)
-        return (centre * (1.0 - self.relative_margin), centre * (1.0 + self.relative_margin))
+        """The registered ratio bounds for ``sex_ratio``, as written in the constants file.
+
+        The file's numbers are the single source shared with the verdict
+        adapter. Recomputing centre * (1 +/- margin) in floats would not
+        reproduce them: for m = 0.25 the upper bound would be
+        1.4666666666666668, one ulp above the registered 1.4666666666666666.
+        """
+
+        for m, low, high in self.equivalence_bounds:
+            if m == sex_ratio:
+                return (low, high)
+        raise ConfigurationError(f"sex ratio {sex_ratio} is not preregistered.")
 
     def log_bounds(self, sex_ratio: float) -> tuple[float, float]:
         low, high = self.ratio_bounds(sex_ratio)

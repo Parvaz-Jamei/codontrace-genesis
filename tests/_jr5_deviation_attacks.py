@@ -145,6 +145,18 @@ LINE_END_ATTACKS: dict[str, tuple[Callable[[bytes], bytes], str]] = {
 }
 
 
+# Bytes that are not UTF-8. The log is text, so a reader must refuse it with
+# the project's error type, not let the decoder's exception through. Message
+# fragment: "UTF-8".
+INVALID_UTF8_ATTACKS: dict[str, Callable[[bytes], bytes]] = {
+    # A 0xFF byte, which never occurs in UTF-8, after the accepted log.
+    "invalid_byte_appended": lambda raw: raw + b"\xff\n",
+    # 0xC3 inserted before the first space of the log: a two-byte lead byte
+    # followed by an ASCII byte, inside the accepted region.
+    "truncated_sequence_inside_log": lambda raw: raw.replace(b" ", b"\xc3 ", 1),
+}
+
+
 def cr_inside_appended_entry(raw: bytes) -> bytes:
     """A valid appended entry whose last body line holds a lone CR before ``## ``: accepted.
 

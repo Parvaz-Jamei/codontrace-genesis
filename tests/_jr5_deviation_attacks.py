@@ -143,3 +143,17 @@ LINE_END_ATTACKS: dict[str, tuple[Callable[[bytes], bytes], str]] = {
     "crlf_line_ends": (lambda raw: raw.replace(b"\n", b"\r\n"), "exactly one record-digest line"),
     "lone_cr_line_ends": (lambda raw: raw.replace(b"\n", b"\r"), "at least one dated entry"),
 }
+
+
+def cr_inside_appended_entry(raw: bytes) -> bytes:
+    """A valid appended entry whose last body line holds a lone CR before ``## ``: accepted.
+
+    In the file bytes the ``## `` after the CR is not at a line start (only LF
+    starts a line for the ``re.M`` anchor), so the log still has whole entries,
+    each with one digest line, and the last one names the plan pin. A reader
+    in text mode would turn the CR into LF, which makes ``## `` a heading of a
+    new entry with no digest line, and refuse the same file.
+    """
+
+    text = valid_append(raw.decode("utf-8"))
+    return (text + "- Note: one line\r## 2099-01-02: not a heading in the file bytes\n").encode("utf-8")

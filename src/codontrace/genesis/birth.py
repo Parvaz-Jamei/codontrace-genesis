@@ -17,6 +17,7 @@ from typing import cast
 from codontrace._numeric import finite_float, finite_json_dumps
 from codontrace._types import JsonValue, Position
 from codontrace.dynvalues import same_float, same_int
+from codontrace.errors import ConfigurationError
 from codontrace.genome import SemanticGenome
 from codontrace.rng import RNGManager
 from codontrace.specs import GenomeSpec
@@ -161,6 +162,14 @@ _MATING_TYPE_SETS = {
 _SEX_ASSIGNMENT_POLICIES = {"none", "random_at_birth", "inherited_locus"}
 
 
+
+def _strict_bool(value: object, name: str) -> bool:
+    """Return a JSON boolean; refuse strings, numbers and other values."""
+
+    if not isinstance(value, bool):
+        raise ConfigurationError(f"{name} must be a JSON boolean, got {value!r}.")
+    return value
+
 @dataclass(frozen=True, slots=True)
 class SexualRecombinationConfig:
     """peer-compatible sexual recombination controls (opt-in).
@@ -187,6 +196,10 @@ class SexualRecombinationConfig:
     phase 2a carries no cost of sex (a chamber pair still places both
     products and males still bear offspring); phase 2b will charge it, and
     combining it with ``two_fold_cost_sex`` would then charge it twice.
+    ``hermaphrodite_selfing`` (opt-in, sexes on, set must hold
+    ``hermaphrodite``) lets a hermaphrodite whose outcross locus reads selfing
+    make a uniparental selfed child; males and females never self. A selfed
+    child is a hermaphrodite, so selfers make no sons. Written only when True.
     ``lekking`` is still a stub. ``diploid_meiosis`` is an opt-in two-homolog model: meiosis makes
     one gamete per parent (segregation plus a crossover) and fertilisation
     fuses two gametes into the child's two homologs, so genome length is
@@ -214,6 +227,7 @@ class SexualRecombinationConfig:
     mating_type_set: tuple[str, ...] = ()
     sex_ratio: float = 0.5
     sex_assignment: str = "none"
+    hermaphrodite_selfing: bool = False
 
     def __post_init__(self) -> None:
         finite_float("recombination_prob", self.recombination_prob, probability=True)
@@ -243,6 +257,13 @@ class SexualRecombinationConfig:
         finite_float("sex_ratio", self.sex_ratio, probability=True)
         if self.sex_assignment not in _SEX_ASSIGNMENT_POLICIES:
             raise ValueError(f"sex_assignment must be one of {sorted(_SEX_ASSIGNMENT_POLICIES)!r}.")
+        if self.hermaphrodite_selfing and not (
+            self.mating_types_enabled and MATING_TYPE_HERMAPHRODITE in self.mating_type_set
+        ):
+            raise ValueError(
+                "hermaphrodite_selfing requires mating_types_enabled=True and a mating_type_set "
+                "containing 'hermaphrodite'."
+            )
         if not self.mating_types_enabled:
             return
         if not self.enabled:
@@ -291,6 +312,8 @@ class SexualRecombinationConfig:
             payload["sex_ratio"] = self.sex_ratio
         if self.sex_assignment != "none":
             payload["sex_assignment"] = self.sex_assignment
+        if self.hermaphrodite_selfing:
+            payload["hermaphrodite_selfing"] = True
         return payload
 
     @classmethod
@@ -320,6 +343,7 @@ class SexualRecombinationConfig:
             mating_type_set=_mating_type_set_from(data.get("mating_type_set", [])),
             sex_ratio=same_float(data.get("sex_ratio", 0.5)),
             sex_assignment=str(data.get("sex_assignment", "none")),
+            hermaphrodite_selfing=_strict_bool(data.get("hermaphrodite_selfing", False), "hermaphrodite_selfing"),
         )
 
 

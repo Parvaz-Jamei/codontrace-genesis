@@ -21,3 +21,12 @@ Record digest: `manifest.digest` in `record.json` over every plan file except th
 - Record digest: `a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa` -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`
 - At e5cd2c0, before this file and the lock note in PREREG.md section 12 were added, the digest was `aede93c859df80d313de7f7e1b3aedf73d59cef4de52f6c0c8fe43e75e109e3f`.
 - Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).
+
+## 2026-11-09 (recorded late): E1 regression re-pin after the selfing length fix
+
+- Reason: commits adda4f3 and 203984b changed only `tests/test_jr5_phase2b_self_mode.py`. Before the selfing length fix a selfed child was the parent's even homolog alone, so genomes halved each selfed generation and the E1 regression fit was taken on shrinking genomes. Selfing is now two meioses of one parent plus fusion (length kept). The male-count regression pins were refit on the confirmatory setup (outcross fee 0.0, diploid_meiosis on). Locked PREREG.md, constants, and the other plan files were not edited.
+- Old pins: outcross arm `(0.79900229, -0.09470521)` only.
+- New pins: outcross arm `(0.80725957, -0.32454182)`; self arm `(-3.91594154, -0.16053908)` (zero males, intercept at the bias-reduced lower bound).
+- Files: DEVIATIONS.md (this entry), record.json.
+- Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382` -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`
+- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).

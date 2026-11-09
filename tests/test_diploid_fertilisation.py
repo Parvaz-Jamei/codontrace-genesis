@@ -234,7 +234,7 @@ def test_chamber_pair_from_one_parent_is_meiosis_and_fusion() -> None:
     n = 2000
     total = 0.0
     for i in range(n):
-        record = _fertilise(slot, other, RNGManager(i), crossover=True)
+        record = _fertilise(slot, other, RNGManager(i), recombination_prob=1.0)
         assert record is not None
         assert len(record.child_genome_bits) == len(parent)
         assert record.parent_b_id == "p:self_gamete"
@@ -287,7 +287,7 @@ def test_marked_homologs_at_full_recombination_prob() -> None:
     def rate(crossover: bool, tag: str, count: int) -> float:
         hits = 0
         for i in range(count):
-            record = _fertilise(own, mate, rng.fork(f"{tag}/{i}"), crossover=crossover)
+            record = _fertilise(own, mate, rng.fork(f"{tag}/{i}"), recombination_prob=1.0 if crossover else 0.0)
             assert record is not None
             child = record.child_genome_bits
             assert len(child) == len(parent)
@@ -601,6 +601,47 @@ def test_fused_child_drops_parent_spans() -> None:
     assert fused and all(spans == () and len(bits) == 12 for bits, spans in fused)
     swapped = children(False)
     assert swapped and all(spans == (span,) for _, spans in swapped)
+
+
+def test_each_meiosis_of_a_zygote_draws_its_own_crossover_gate(monkeypatch: object) -> None:
+    """The two meioses behind one zygote are separate events, so each draws
+    its own crossover gate from its own stream. Recorded gates per zygote at
+    recombination_prob p = 0.5: with independent draws the two gates differ
+    with probability 2 * p * (1 - p) = 1/2; one shared draw never differs.
+    Over N = 4000 zygotes the count of unequal pairs is Binomial(N, 1/2):
+    mean 2000, SD sqrt(N / 4) = 31.6, tolerance 4 SD."""
+
+    from codontrace.genesis import population as pop
+    from codontrace.genesis.birth import IncipientOffspring
+
+    gates: list[bool] = []
+    real = pop._meiosis_crossover_gate
+
+    def record(prob: float, rng: RNGManager) -> bool:
+        gates.append(real(prob, rng))
+        return gates[-1]
+
+    monkeypatch.setattr(pop, "_meiosis_crossover_gate", record)  # type: ignore[attr-defined]
+    slot = IncipientOffspring(
+        slot_id="s1",
+        parent_id="p",
+        genome_bits="000111" * 4,
+        genome_digest="d",
+        entered_tick=0,
+        parent_position=(0, 0),
+        offspring_runtime_atp=1.0,
+        parent_generation=0,
+        codon_width=WIDTH,
+    )
+    other = IncipientOffspring(**{**{f: getattr(slot, f) for f in slot.__slots__}, "slot_id": "s2", "parent_id": "q"})
+    n = 4000
+    unequal = 0
+    for i in range(n):
+        gates.clear()
+        pop._fertilise(slot, other, RNGManager(i), recombination_prob=0.5)
+        assert len(gates) == 2
+        unequal += gates[0] != gates[1]
+    assert abs(unequal - n / 2) < 4 * (n / 4) ** 0.5
 
 
 def test_digest_script_refuses_an_abbreviated_option() -> None:

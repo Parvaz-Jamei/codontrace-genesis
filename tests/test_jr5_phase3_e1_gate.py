@@ -1164,3 +1164,31 @@ def test_near_constant_samples_on_registered_bounds_follow_the_exact_reference()
                             checked += 1
     assert checked == 4 * 59 * 2 * 2 * 3
 
+
+def test_gate_bounds_are_the_registered_constants() -> None:
+    """The gate's ratio bounds are the numbers in the constants file, bit for bit.
+
+    Basis: the constants file registers equivalence_bounds {"0.5": [1.8, 2.2],
+    "0.25": [1.2, 1.4666666666666666]}; the loader checks them against the
+    margin rule 1/(1 - m) * (1 -/+ 0.1) within 1e-9 and then uses them. In
+    floats that rule gives 4/3 * 1.1 = 1.4666666666666668 for m = 0.25, one ulp
+    above the registered 1.4666666666666666 (the double nearest 22/15), so a
+    gate that recomputed the bound would test against log(1.4666666666666668)
+    = 0.3829922522561059, 3 ulps above log(1.4666666666666666) =
+    0.3829922522561057. The verdict adapter takes log of the same file
+    numbers.
+    Expected: ratio_bounds equal to the file pairs, log_bounds equal to
+    math.log of them, the m = 0.25 upper log bound 0.3829922522561057, and
+    the recomputed rule value different from it.
+    """
+    spec = _spec()
+    registered = json.loads(CONSTANTS.read_bytes())["gate_e1"]["equivalence_bounds"]
+    for m in spec.sex_ratios:
+        low, high = registered[str(m)]
+        assert spec.ratio_bounds(m) == (low, high)
+        assert spec.log_bounds(m) == (math.log(low), math.log(high))
+    assert spec.log_bounds(0.25)[1] == 0.3829922522561057
+    assert math.log(spec.theoretical_cost(0.25) * (1.0 + spec.relative_margin)) == 0.3829922522561059
+    with pytest.raises(ConfigurationError, match="not preregistered"):
+        spec.ratio_bounds(0.3)
+

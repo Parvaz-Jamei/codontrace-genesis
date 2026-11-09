@@ -1321,12 +1321,12 @@ def one_sample_tost(
     inside the bounds. For a sample only a few ulps wide the float mean is
     too coarse for the spread; the moments are then exact (see
     ``_mean_sd_df``) and each t is rounded once from the exact mean minus the
-    bound. scipy 1.18.1 ``ttest_1samp`` follows its float mean in both
-    cases: for a constant sample it returns NaN only when that mean rounds
-    back to the common value (``[1.0] * 3``) and a finite t otherwise
-    (``[v] * 7`` with v = 0.5877866649021191 gives t = sqrt(6), p = 0.0498);
-    for ``[v] * 6 + [nextafter(v, inf)]`` it gives t = sqrt(7), p = 0.0382,
-    where the exact t is 1.
+    bound. scipy 1.18.1 ``ttest_1samp(x, v)`` follows its float mean in both
+    cases: for a constant sample it returns a NaN statistic and p-value only
+    when that mean rounds back to the common value (``[1.0] * 3``) and a
+    finite t otherwise (``[v] * 7`` with v = 0.5877866649021191 gives
+    t = sqrt(6), two-sided p = 0.0498); for ``[v] * 6 + [nextafter(v, inf)]``
+    it gives t = sqrt(7), two-sided p = 0.0382, where the exact t is 1.
     """
 
     a = _check_alpha(alpha)

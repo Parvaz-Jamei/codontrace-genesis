@@ -324,6 +324,33 @@ def test_constant_sample_on_the_lower_bound_at_n7_is_not_equivalent() -> None:
     assert r.equivalent is (r.lower_bound < r.ci_low and r.ci_high < r.upper_bound)
 
 
+def test_constant_sample_too_large_to_sum_keeps_its_value() -> None:
+    """A constant sample is answered from its value, without forming a sum.
+
+    Basis: the mean of n copies of v is v and the spread is 0, exactly; the
+    moments need no arithmetic. For v = 1e308 and n = 3 the sum 3e308 exceeds
+    the largest double 1.7976931348623157e308, so a path through fsum(x)
+    (float or exact moments) overflows and is refused as "too large". With
+    bounds (0, 1.7976931348623157e308) the value lies strictly inside, so
+    both one-sided t are infinite (+inf below, -inf above), both p are 0,
+    and the 90% interval is [v, v], strictly inside.
+    Expected: fsum overflows (checked first); mean v, sd 0, t_lower +inf,
+    t_upper -inf, p_lower = p_upper = 0, equivalent, and the interval (v, v)
+    from both one_sample_tost and one_sample_t_interval.
+    """
+    v = 1e308
+    top = 1.7976931348623157e308
+    data = [v] * 3
+    with pytest.raises(OverflowError):
+        math.fsum(data)
+    r = one_sample_tost(data, 0.0, top, alpha=0.05)
+    assert r.mean == v and r.sd == 0.0 and r.standard_error == 0.0
+    assert r.t_lower == math.inf and r.t_upper == -math.inf
+    assert r.p_lower == 0.0 and r.p_upper == 0.0
+    assert r.equivalent
+    assert (r.ci_low, r.ci_high) == (v, v) == one_sample_t_interval(data, 0.90)
+
+
 def test_one_ulp_spread_on_the_lower_bound_at_n7_uses_the_exact_mean() -> None:
     """Six copies of the m = 0.5 lower log bound plus one value one ulp above it.
 

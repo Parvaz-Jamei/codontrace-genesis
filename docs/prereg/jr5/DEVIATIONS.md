@@ -30,3 +30,10 @@ Record digest: `manifest.digest` in `record.json` over every plan file except th
 - Files: DEVIATIONS.md (this entry), record.json.
 - Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382` -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`
 - Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).
+
+## 2026-11-09: correction — 2b entry point of the gamete-fusion fix and the self-pin causes
+
+- Reason: the previous entry named merge commit `4400e07` as the step that moved the outcross E1 pin to `(0.38787177, -0.00003415)` on the fee-1.0 setup. That is where the gamete-fusion fix landed on main (PR 134). On the phase 2b line the same fix first entered at `9aec9b2` (merge of `origin/fix/diploid-fertilisation` into `local/2b-self-diploid`); the intermediate and fee-0.0 outcross pins are otherwise unchanged. The previous entry also said the self arm pin moved only with the selfing length fix. The self pin likewise carries the fusion-fix effect: before fusion a selfed child was a single homolog (length halved), and after `9aec9b2` / the length fix the selfed child is two meioses plus fusion (length kept), so both the length repair and the fusion path shape that pin. Locked PREREG.md, constants, and the other plan files were not edited.
+- Files: DEVIATIONS.md (this entry), record.json.
+- Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382` -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`
+- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. This is the author's declaration. What the repository shows at this entry: no JR5 run script, campaign module or run output is committed (no path under `runs/` names JR5, and the only JR5 script is the E1 power simulation, which runs no engine arm).

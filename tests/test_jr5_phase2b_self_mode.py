@@ -930,13 +930,16 @@ def test_self_fertilisation_passes_an_independent_crossover_gate_to_each_meiosis
 
     `_self_fertilisation_record` with diploid_meiosis calls `meiotic_gamete`
     twice and must pass each call its own gate from `meiosis/a/gate` and
-    `meiosis/b/gate`. Recorded gates per birth at recombination_prob p = 0.5:
-    with independent draws the two gates differ with probability
-    2 * p * (1 - p) = 1/2; a call-site mutant that reuses one gate for both
-    meioses never differs. Over N = 4000 births the count of unequal pairs is
-    Binomial(N, 1/2): mean 2000, SD sqrt(N / 4) = 31.6, tolerance 4 SD.
-    Pattern matches the outcross zygote gate test: record the gate argument
-    passed into each `meiotic_gamete` call."""
+    `meiosis/b/gate`. This test records the `crossover=` argument of each
+    `meiotic_gamete` call (re-binding that name in `birth` and `population`).
+    The outcross zygote check
+    (`test_each_meiosis_of_a_zygote_draws_its_own_crossover_gate`) instead
+    hooks `_meiosis_crossover_gate` on the fertilise path; same binomial
+    arithmetic, different hook. At recombination_prob p = 0.5 independent
+    draws make the two gates differ with probability 2 * p * (1 - p) = 1/2;
+    a call-site mutant that reuses one gate for both meioses never differs.
+    Over N = 4000 births the count of unequal pairs is Binomial(N, 1/2):
+    mean 2000, SD sqrt(N / 4) = 31.6, tolerance 4 SD."""
 
     from codontrace.genesis import birth as birth_mod
     from codontrace.genesis.population import _self_fertilisation_record
@@ -1076,13 +1079,18 @@ def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_line
     mean-dependent bound can. Related births in one selected population
     would not justify that SE. Every child keeps length 48. Reusing one
     meiosis for both gametes forces H = 0 at t = 1, far outside the bound.
-    At recombination_prob >= 0.5 a mutant that replaces every block of 10
-    next-parents with one child yields exactly N/10 distinct genomes in the
-    pool passed to the next generation; independent meioses keep strictly
-    more than N/10 (8 loci, many genotype combinations), so
-    |set(genomes)| > N/10 after that hand-off. At recombination_prob = 0
-    only a few whole-homolog genotypes exist, so that uniqueness check is
-    not applied there."""
+    Uniqueness bound (principled): a collapse mutant that replaces every
+    contiguous block of K next-parents with one child yields exactly N/K
+    distinct genomes in the pool passed forward. At p >= 0.5 independent
+    meioses over 8 loci still collide: observed distinctness on this
+    fixture bottoms near ~320 by t = 4 at p = 0.5, so an N/2 or N/3
+    threshold false-fails. N/4 = 250 is the tightest integer-divisor bound
+    that stays below that natural floor with margin, and it rejects every
+    systematic collapse of family size K >= 4 (including a K = 10 block).
+    Families of size 2 or 3 are not guaranteed to be rejected at p = 0.5
+    because natural collisions already sit near those thresholds. At
+    recombination_prob = 0 only a few whole-homolog genotypes exist, so
+    that uniqueness check is not applied there."""
 
     n_lineages = 1000
     founder = "000111" * 8
@@ -1108,12 +1116,50 @@ def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_line
             bound = 4.0 * (expected * (1.0 - expected) / n_lineages) ** 0.5
             assert abs(observed - expected) < bound
             genomes = children
-            # After the hand-off to the next generation: a mutant that
-            # replaces every block of 10 next-parents with one child yields
-            # exactly N/10 distinct genomes here. Check genomes (not the
-            # just-born children) so that collapse is visible.
+            # After the hand-off: reject a systematic collapse of family
+            # size K >= 4 (exactly N/K distinct). Bound N/4 is derived above
+            # from the natural distinctness floor at p = 0.5; check the
+            # genomes passed forward so the collapse is visible.
             if recombination_prob >= 0.5:
-                assert len(set(genomes)) > n_lineages // 10
+                collapse_block = 4
+                assert len(set(genomes)) > n_lineages // collapse_block
+
+
+
+def test_heterozygosity_arm_seed_blocks_are_disjoint() -> None:
+    """The three p-arm seed blocks of the H-decay fixture must not overlap.
+
+    Seeds are `40_000 + arm * stride + lineage * 16 + t` with
+    `stride = N * 16 + 16`, N = 1000, arm in {0, 1, 2}, lineage in
+    `0..N-1`, t in `1..4`. Within one arm the max offset is
+    `(N - 1) * 16 + 4 = 15988 < stride`, so arms abut with a gap of
+    `stride - 15988 = 28` and never share a seed. A mutant that shrinks
+    the stride below that span (or that keys arms by a colliding function
+    of p) reuses seeds across arms and this set-equality fails.
+    """
+
+    n_lineages = 1000
+    arm_stride = n_lineages * 16 + 16
+    assert arm_stride >= 16_000
+    blocks: list[set[int]] = []
+    for arm in range(3):
+        seeds = {
+            40_000 + arm * arm_stride + lineage * 16 + t
+            for lineage in range(n_lineages)
+            for t in range(1, 5)
+        }
+        blocks.append(seeds)
+    assert len(blocks[0]) == n_lineages * 4
+    for i in range(3):
+        for j in range(i + 1, 3):
+            assert blocks[i].isdisjoint(blocks[j])
+    # Contiguous span check: arm a occupies [base, base + max_offset]
+    max_offset = (n_lineages - 1) * 16 + 4
+    assert max_offset < arm_stride
+    for arm in range(3):
+        base = 40_000 + arm * arm_stride
+        assert min(blocks[arm]) == base + 1  # lineage 0, t=1
+        assert max(blocks[arm]) == base + max_offset
 
 
 def test_one_selfed_generation_halves_heterozygosity() -> None:

@@ -969,3 +969,45 @@ def test_stale_record_json_refuses_the_gate(tmp_path: Path) -> None:
     log.write_text(log.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(ConfigurationError, match="record.json does not match the fresh hashes"):
         load_e1_gate_spec(root)
+
+
+def test_constant_samples_on_registered_bounds_follow_the_interval_rule() -> None:
+    """A constant sample on a registered bound is never equivalent, for n = 2 to 60.
+
+    Basis: for an exactly constant sample [v] * n the mean is v and se = 0, so
+    every t interval is [v, v]. The TOST decision must equal strict inclusion
+    of the (1 - 2 alpha) = 90% interval in (lower, upper), the duality that
+    test_tost_decision_equals_interval_inclusion checks for samples with
+    spread. With v on a bound that inclusion is false. The bounds are the four
+    registered log bounds of the spec (m = 0.5 and 0.25, lower and upper), and
+    n runs over 2 to 60. That range includes every n at which fsum([v] * n) / n
+    is not v (for v the m = 0.5 lower bound these are n = 7, 14, 28, 55, 56),
+    which is where a rounded mean would create a one-ulp spread and a finite t
+    of sqrt(n - 1). Both paths that consume the sample are checked: the TOST
+    (one_sample_tost) and the interval (one_sample_t_interval, at 90% and at
+    the gate's must_exclude_ci_level).
+    Expected: for every (m, bound, n): not equivalent, decision equal to
+    strict 90% inclusion, the bound side has t = 0 and p = 1/2, both
+    intervals are (v, v), and the non-round-tripping cases are present.
+    """
+    from codontrace.genesis.statistical_protocol import one_sample_t_interval, one_sample_tost
+
+    spec = _spec()
+    level = 1.0 - 2.0 * spec.alpha
+    rounded_cases = []
+    for m in (0.5, 0.25):
+        lower, upper = spec.log_bounds(m)
+        for v in (lower, upper):
+            for n in range(2, 61):
+                data = [v] * n
+                if math.fsum(data) / n != v:
+                    rounded_cases.append((m, v == lower, n))
+                r = one_sample_tost(data, lower, upper, alpha=spec.alpha)
+                interval = one_sample_t_interval(data, level)
+                assert interval == (v, v) == (r.ci_low, r.ci_high), (m, v, n)
+                assert one_sample_t_interval(data, spec.must_exclude_ci_level) == (v, v), (m, v, n)
+                inside = lower < interval[0] and interval[1] < upper
+                assert r.equivalent is inside is False, (m, v, n)
+                t_on_bound, p_on_bound = (r.t_lower, r.p_lower) if v == lower else (r.t_upper, r.p_upper)
+                assert t_on_bound == 0.0 and p_on_bound == 0.5, (m, v, n)
+    assert (0.5, True, 7) in rounded_cases and len(rounded_cases) >= 10

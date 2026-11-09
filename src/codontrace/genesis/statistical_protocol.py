@@ -1088,6 +1088,13 @@ def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int
     n = len(data)
     if n < 2:
         raise ConfigurationError("a one-sample t procedure needs at least 2 values.")
+    first = data[0]
+    if all(item == first for item in data):
+        # An exactly constant sample has mean ``first`` and spread exactly 0.
+        # fsum(data) / n need not round back to ``first`` (n * first is
+        # rounded, then divided), which would leave a spurious one-ulp spread
+        # and a finite t of sqrt(n - 1) for a sample sitting on a bound.
+        return data, first, 0.0, n - 1
     try:
         mean = math.fsum(data) / n
         variance = math.fsum((item - mean) * (item - mean) for item in data) / (n - 1)

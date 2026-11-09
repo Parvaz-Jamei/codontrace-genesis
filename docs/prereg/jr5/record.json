@@ -5,7 +5,7 @@
     "files": [
       [
         "docs/prereg/jr5/DEVIATIONS.md",
-        "920284379ad7027f2751a62211f37ee07adbd9594e3bcb5c766052da4eece504"
+        "cf202b488e356206f6a19da7eeded08d43618b802c2f04adf815ff2b1abac98c"
       ],
       [
         "docs/prereg/jr5/MATING_TYPES_DESIGN_NOTE.md",
@@ -36,6 +36,6 @@
         "e9b94a834b85d581f6cb22c23ea08c2e86ce4991ba18bb7f6c0c0e4a21a6b23c"
       ]
     ],
-    "digest": "3d1f08e93aa2fdd55dba78abb906f8bfb0396a52ed93242dee99545ad2c6c982"
+    "digest": "6ee7a10093ac969f7604afd1942e4594af354d8f8e514641d43729aacc998572"
   }
 }

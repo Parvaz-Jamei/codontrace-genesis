@@ -30,6 +30,7 @@ from codontrace.campaigns.jr5_e1_gate import (
 )
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.statistical_protocol import student_t_quantile
+from tests import _jr5_deviation_attacks
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSTANTS = ROOT / "docs" / "prereg" / "jr5" / "jr5_prereg_constants.json"
@@ -735,7 +736,7 @@ def _clone_prereg(tmp_path: Path) -> Path:
         dest = tmp_path / path
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dest)
-    # record.json itself is listed? No — only plan files. Copy it too.
+    # record.json is not in its own manifest, so it is copied separately.
     dest_rec = tmp_path / "docs/prereg/jr5/record.json"
     dest_rec.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(RECORD, dest_rec)
@@ -869,34 +870,90 @@ def test_editing_a_locked_plan_file_refuses_the_gate(tmp_path: Path) -> None:
         load_e1_gate_spec(root)
 
 
-def test_breaking_the_deviations_chain_refuses_the_gate(tmp_path: Path) -> None:
-    """A DEVIATIONS.md whose digest lines do not chain must refuse the loader.
+def _write_log_and_refresh_record(root: Path, text: str) -> None:
+    """Write a DEVIATIONS.md and refresh record.json over it, as an editor of the log would."""
 
-    Basis: each entry's old digest must equal the previous entry's new digest.
-    Flipping one hex digit in the second entry's old digest breaks the chain
-    while leaving locked plan file bytes alone. Expected: ConfigurationError
-    naming the chain.
-    """
-
-    root = _clone_prereg(tmp_path)
-    log = root / "docs/prereg/jr5/DEVIATIONS.md"
-    text = log.read_text(encoding="utf-8")
-    # Flip the first hex char of the first digest that appears after the first arrow pair's new side chain.
-    import re as _re
-    matches = list(_re.finditer(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", text, _re.M))
-    assert len(matches) >= 2
-    old = matches[1].group(1)
-    flipped = ("0" if old[0] != "0" else "1") + old[1:]
-    start, end = matches[1].span(1)
-    log.write_text(text[:start] + flipped + text[end:], encoding="utf-8")
-    # Refresh record hashes so the failure is the chain, not freshness.
     from codontrace.preregistration.manifest import hash_plan
 
+    (root / "docs/prereg/jr5/DEVIATIONS.md").write_text(text, encoding="utf-8")
     record = json.loads(RECORD.read_bytes())
     fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
-    (root / "docs/prereg/jr5/record.json").write_text(json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8")
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.ATTACKS))
+def test_edited_deviations_log_refuses_the_gate(tmp_path: Path, case: str) -> None:
+    """Every edit of the log other than a whole appended entry refuses the loader.
+
+    Basis: the log is append-only. The code pins the lock-start entry (old
+    digest 633aa9c8... and the sha256 of its text) and checkpoints of the
+    accepted log (byte length and sha256 of the text up to the end of an
+    accepted entry), the way a transparency log is checked against a trusted
+    tree size and root hash. Every entry has exactly one record-digest line at
+    a line start, the lines chain, and the last names the plan pin. Each case
+    in ``tests/_jr5_deviation_attacks.py`` breaks one of these rules, and
+    record.json is refreshed over the edited log, so freshness cannot be what
+    refuses it. The locked plan files are untouched, so the plan digest stays
+    577bd4ac... in every case.
+    Expected: ConfigurationError with the message of the broken rule.
+    """
+
+    edit, message = _jr5_deviation_attacks.ATTACKS[case]
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    _write_log_and_refresh_record(root, edit(log.read_text(encoding="utf-8")))
+    with pytest.raises(ConfigurationError, match=message):
+        load_e1_gate_spec(root)
+
+
+def test_breaking_the_deviations_chain_refuses_the_gate(tmp_path: Path) -> None:
+    """An appended entry whose old digest is not the previous new digest is refused.
+
+    Basis: each entry's old digest must equal the previous entry's new digest.
+    The accepted entries are pinned by checkpoints, so the chain rule is the
+    one that guards appended entries: here the appended entry's old digest is
+    bbbb... while the previous entry's new digest is 577bd4ac....
+    Expected: ConfigurationError naming the chain.
+    """
+
+    edit, _ = _jr5_deviation_attacks.ATTACKS["chain_break_in_append"]
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    _write_log_and_refresh_record(root, edit(log.read_text(encoding="utf-8")))
     with pytest.raises(ConfigurationError, match="do not chain"):
         load_e1_gate_spec(root)
+
+
+def test_log_pins_are_the_digests_of_the_committed_log() -> None:
+    """The lock-start pin and every checkpoint are recomputed from the committed log.
+
+    Basis: LOCK_START_ENTRY_SHA256 is the sha256 of the first entry's text
+    (from its heading to the next heading) and LOCK_START_DIGEST its old
+    digest. Each checkpoint is the byte length and sha256 of a prefix of the
+    committed log that ends where the next entry's blank line starts, so a
+    log can append after it. Checkpoints are oldest first and the main one
+    (a01c950, three entries) is shorter than the last.
+    Expected: each value equals the one computed here from the file bytes.
+    """
+
+    from codontrace.preregistration import jr5_locked_plan as plan
+
+    raw = (ROOT / "docs/prereg/jr5/DEVIATIONS.md").read_bytes()
+    text = raw.decode("utf-8")
+    entries = plan.deviations_log_entries(text)
+    assert hashlib.sha256(entries[0].encode()).hexdigest() == plan.LOCK_START_ENTRY_SHA256
+    assert plan.DIGEST_LINE.findall(entries[0]) == [
+        (plan.LOCK_START_DIGEST, "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa")
+    ]
+    sizes = [size for size, _ in plan.ACCEPTED_LOG_CHECKPOINTS]
+    assert sizes == sorted(sizes) and len(set(sizes)) == len(sizes)
+    for size, digest in plan.ACCEPTED_LOG_CHECKPOINTS:
+        assert hashlib.sha256(raw[:size]).hexdigest() == digest
+        assert raw[size - 1 : size] == b"\n"
+        assert raw[size:] == b"" or raw[size:].startswith(b"\n## ")
+    assert sum(1 for e in entries if text.index(e) < sizes[0]) == 3
 
 
 def test_stale_record_json_refuses_the_gate(tmp_path: Path) -> None:

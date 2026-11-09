@@ -244,3 +244,48 @@ def test_zero_variance_on_upper_bound_does_not_show_equivalence() -> None:
     assert result.t_upper == 0.0 and result.p_upper == 0.5
     assert result.ci_low == result.ci_high == 2.0
     assert not result.equivalent
+
+
+def test_zero_variance_on_lower_bound_does_not_show_equivalence() -> None:
+    """With every value on the lower bound, t_lower = 0 and p_lower = 1/2.
+
+    Basis: H0 lower is mean <= lower_bound. A zero-spread sample whose common
+    value equals the lower bound has mean - lower = 0 and se = 0; the 0/0
+    case is taken as t = 0 (the convention scipy uses for a constant sample
+    equal to the null value), and the Student t upper tail at 0 is 1/2 by
+    symmetry for any df. 1/2 is not below alpha = 0.05, so H0 lower is not
+    rejected. The upper side has mean - upper = -1 < 0 and se = 0, so
+    t_upper = -inf and p_upper = sf(+inf) = 0. This mirrors the upper-bound
+    case above; a value on either bound is never equivalent.
+    Expected: t_lower 0.0, p_lower 0.5, t_upper -inf, p_upper 0.0, interval
+    [1, 1], not equivalent; the record writes t_upper as the tagged -inf.
+    """
+    result = one_sample_tost([1.0, 1.0, 1.0], 1.0, 2.0)
+    assert result.t_lower == 0.0 and result.p_lower == 0.5
+    assert result.t_upper == -math.inf and result.p_upper == 0.0
+    assert result.ci_low == result.ci_high == 1.0
+    assert not result.equivalent
+    record = result.to_record()
+    assert record["t_lower"] == 0.0 and record["t_upper"] == {"$float": "-inf"}
+
+
+def test_encode_tost_statistic_refuses_nan_and_tags_infinities() -> None:
+    """NaN is refused; +/-inf become tagged strings; finite values stay numbers.
+
+    Basis: a NaN t statistic carries no decision (it compares false with every
+    bound), so writing it, or a stand-in number, would let a record claim a
+    test that was not computed. Only the two signed infinities of a
+    zero-spread sample have a TOST meaning, and JSON has no literal for them,
+    so they are written as {"$float": "inf"} and {"$float": "-inf"}.
+    Expected: ConfigurationError naming NaN for float('nan'); the tagged forms
+    for +/-inf; 1.5 and -0.0 unchanged.
+    """
+    from codontrace.genesis.statistical_protocol import encode_tost_statistic
+
+    with pytest.raises(ConfigurationError, match="NaN"):
+        encode_tost_statistic(math.nan)
+    assert encode_tost_statistic(math.inf) == {"$float": "inf"}
+    assert encode_tost_statistic(-math.inf) == {"$float": "-inf"}
+    assert encode_tost_statistic(1.5) == 1.5
+    encoded_zero = encode_tost_statistic(-0.0)
+    assert isinstance(encoded_zero, float) and encoded_zero == 0.0

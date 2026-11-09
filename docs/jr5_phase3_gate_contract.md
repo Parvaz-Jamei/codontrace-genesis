@@ -14,8 +14,16 @@ The gate pins the locked plan digest (every `record.json` file except
 
 `record.json` `manifest.digest` still covers `DEVIATIONS.md` and is checked
 for freshness (declared digest matches the file list; every listed file's
-bytes match). The append-only deviations log is verified separately: entries
-chain, and the last entry's new digest equals the plan pin. Logging a new
+bytes match). The deviations log is verified separately and is append-only
+in code. `jr5_locked_plan` pins the lock-start entry (old digest `633aa9c8…`
+and the sha256 of its text) and checkpoints of the accepted log (byte length
+and sha256 of the text up to the end of an accepted entry; the last one is
+`9117` bytes, `cf202b48…`). The log must start with every checkpoint, text
+after the last one must be whole entries, each entry has exactly one
+record-digest line at a line start, entries chain, and the last entry's new
+digest equals the plan pin. Editing, reordering or deleting an accepted entry,
+or replacing the log, refuses the gate even when `record.json` is refreshed
+to match. Logging a new
 deviation therefore does not disable the gate; editing a locked plan file
 still refuses. A record at the earlier lock (`a4f76d60…`, constants
 `608ccdea…`) is refused.

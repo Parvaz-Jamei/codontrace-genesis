@@ -1126,6 +1126,24 @@ def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_line
 
 
 
+
+def test_uniqueness_bound_rejects_family_size_five() -> None:
+    """The N/4 uniqueness bound rejects a K=5 collapse; N/10 would not.
+
+    A pool of N = 1000 genomes with exactly N/5 distinct values models a
+    mutant that replaces every contiguous block of 5 next-parents with one
+    child. That pool fails `|set| > N/4` and would pass the older
+    H3-tied `|set| > N/10`, so the tighter bound is what catches family
+    sizes between 5 and 9 inclusive.
+    """
+
+    n = 1000
+    genomes = [f"g{i // 5}" for i in range(n)]
+    assert len(set(genomes)) == n // 5
+    assert not (len(set(genomes)) > n // 4)
+    assert len(set(genomes)) > n // 10
+
+
 def test_heterozygosity_arm_seed_blocks_are_disjoint() -> None:
     """The three p-arm seed blocks of the H-decay fixture must not overlap.
 

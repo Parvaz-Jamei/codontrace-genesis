@@ -250,11 +250,12 @@ def test_zero_variance_on_lower_bound_does_not_show_equivalence() -> None:
     """With every value on the lower bound, t_lower = 0 and p_lower = 1/2.
 
     Basis: H0 lower is mean <= lower_bound. A zero-spread sample whose common
-    value equals the lower bound has mean - lower = 0 and se = 0; the 0/0
-    case is taken as t = 0 (the convention scipy uses for a constant sample
-    equal to the null value), and the Student t upper tail at 0 is 1/2 by
-    symmetry for any df. 1/2 is not below alpha = 0.05, so H0 lower is not
-    rejected. The upper side has mean - upper = -1 < 0 and se = 0, so
+    value equals the lower bound has mean - lower = 0 and se = 0. This module
+    takes that 0/0 as t = 0, its own convention: scipy 1.18.1
+    ``ttest_1samp([1.0] * 3, 1.0)`` returns statistic NaN and p-value NaN for
+    every alternative instead. Both fail to reject. The Student t upper tail
+    at 0 is 1/2 by symmetry for any df, and 1/2 is not below alpha = 0.05, so
+    H0 lower is not rejected. The upper side has mean - upper = -1 < 0 and se = 0, so
     t_upper = -inf and p_upper = sf(+inf) = 0. This mirrors the upper-bound
     case above; a value on either bound is never equivalent.
     Expected: t_lower 0.0, p_lower 0.5, t_upper -inf, p_upper 0.0, interval

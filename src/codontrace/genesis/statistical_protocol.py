@@ -1128,9 +1128,10 @@ def encode_tost_statistic(value: float) -> JsonValue:
     """Canonical JSON form of a one-sample TOST t statistic.
 
     Finite values stay as JSON numbers. Zero sample spread makes
-    (mean - bound) / se infinite; that is a real TOST decision input
-    (both one-sided tests reduce to whether the common value lies
-    strictly inside the bounds), not a payload error. Infinity is
+    (mean - bound) / se infinite for a bound the common value is not on;
+    that is a real TOST decision input (both one-sided tests reduce to
+    whether the common value lies strictly inside the bounds), not a
+    payload error. Infinity is
     written as the tagged form ``{"$float": "inf"}`` or
     ``{"$float": "-inf"}`` so a gate record can be content-addressed
     without inventing a finite t.
@@ -1212,8 +1213,11 @@ def one_sample_tost(
     H0 lower: mean <= lower_bound, tested with t_lower = (mean - lower) / se.
     H0 upper: mean >= upper_bound, tested with t_upper = (mean - upper) / se.
     Equivalence is declared when both one-sided p-values are below ``alpha``.
-    With zero spread the t statistics are infinite and the decision reduces
-    to whether the common value lies strictly inside the bounds.
+    With zero spread (an exactly constant sample) the t statistic of a side
+    is infinite when the common value differs from that bound, and 0 when it
+    equals the bound (0/0 taken as t = 0 and p = 1/2, which does not reject;
+    scipy returns NaN there). The decision therefore reduces to whether the
+    common value lies strictly inside the bounds.
     """
 
     a = _check_alpha(alpha)

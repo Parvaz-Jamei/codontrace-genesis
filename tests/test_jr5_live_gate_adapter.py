@@ -24,9 +24,10 @@ from tests import _jr5_raw_evidence as raw
 from tests.test_jr5_phase2c_verdict_adapter import bound_bundle
 
 
-def actual_evidence(**plan: Any) -> tuple[dict[str, Any], E1GateResult]:
+def actual_evidence(evidence: dict[str, Any] | None = None, **plan: Any) -> tuple[dict[str, Any], E1GateResult]:
     """Fit each raw count trajectory; the actual gate alone serializes the consumer record."""
-    evidence, _ = raw.build(**plan)
+    if evidence is None:
+        evidence, _ = raw.build(**plan)
     del evidence["e1_gate_record"]
     spec = load_e1_gate_spec()
     cells: dict[tuple[float, int], list[E1Population]] = {}
@@ -119,42 +120,58 @@ def test_actual_producer_rejects_retuned_spec() -> None:
         evaluate_e1_gate(forged, {})
 
 
-def test_zero_spread_actual_gate_record_round_trips() -> None:
-    """Exact theory log w on every E1 population: producer and adapter agree, record digests.
+def _zero_spread_e1_evidence() -> dict[str, Any]:
+    """Raw evidence whose E1 populations in each cell all carry the first population's counts."""
 
-    Basis: raw counts are built so the bias-reduced slope equals log(1/(1-m)) with no
-    replicate spread once early-fixation exclusions are empty. The gate then
-    sees SE = 0 and writes tagged infinite t statistics. The adapter
-    recomputes the same record from the raw counts; disagreement would raise
-    in ``_check_e1_gate_record``.
+    evidence, _ = raw.build()
+    first: dict[tuple[float, int], list[int]] = {}
+    for run in evidence["runs"]:
+        if run["experiment"] != "e1":
+            continue
+        key = (float(run["cell"]["sex_ratio"]), int(run["host_n"]))
+        counts = first.setdefault(key, list(run["data"]["uniparental_counts"]))
+        run["data"]["uniparental_counts"] = list(counts)
+        raw.readdress(run)
+    return evidence
+
+
+def test_zero_spread_actual_gate_record_round_trips() -> None:
+    """Zero E1 spread from raw counts: the producer writes tagged infinite t and the adapter agrees.
+
+    Basis: every E1 population of a cell is given the same raw count
+    trajectory (that of the cell's first seed, which is not excluded), so the
+    bias-reduced slope fit returns the same log w for each of them. In the
+    two gated cells (N = 200, m = 0.5 and 0.25) the sample SD is then exactly
+    0 (``math.fsum`` of 40 equal values divided by 40 returns that value for
+    these two floats; checked below). With SE = 0 the one-sided statistics
+    are +inf (mean above the lower bound) and -inf (mean below the upper
+    bound) when the common log w lies strictly inside the TOST margin, which
+    holds here: the first seeds give log w 0.6954 inside (0.5878, 0.7885)
+    for m = 0.5 and 0.3493 inside (0.1823, 0.3830) for m = 0.25. The
+    report-only N = 50 cells are compared by the adapter as well. The producer
+    (``evaluate_e1_gate``) writes {"$float": "inf"} and {"$float": "-inf"}.
+    The adapter (``evaluate_jr5_verdict``) refits the raw counts, rebuilds
+    each cell's TOST record with ``_tost_record`` and compares it to the
+    producer record field by field; a finite stand-in for an infinite t on
+    either side would not match and would raise ConfigurationError.
+    Expected: gate passed; both gated cells have SD 0, t_lower +inf and
+    t_upper -inf in the record; the verdict accepts the record and proves the claim, as
+    for the planted positive.
     """
 
-    evidence, result = actual_evidence()
-    # Force zero-spread by replacing fitted log_w with exact theory for a fresh gate.
-    # The default planted cells already have small spread; build a synthetic zero cell set.
-    import math
-
-    from codontrace.campaigns.jr5_e1_gate import E1Population, evaluate_e1_gate, load_e1_gate_spec
-
-    spec = load_e1_gate_spec()
-    cells = {
-        (m, n): [E1Population(seed=s, log_w=math.log(1.0 / (1.0 - m))) for s in spec.seeds_for(m)]
-        for m in spec.sex_ratios
-        for n in spec.host_n_reported
-    }
-    zero = evaluate_e1_gate(spec, cells)
-    record = zero.to_record()
-    assert record["passed"] is True
-    assert all(
-        cell["tost"]["t_lower"] == {"$float": "inf"} and cell["tost"]["t_upper"] == {"$float": "-inf"}
-        for cell in record["cells"]
-        if cell["tost"] is not None
-    )
-    # Adapter consumer path: attach the zero-spread record to otherwise qualifying raw evidence.
-    evidence["e1_gate_record"] = record
-    # Raw E1 counts still have spread, so the adapter recomputation will disagree unless we
-    # only assert the producer serializes. Producer serialization is the F2 contract here.
-    assert zero.passed is True
+    evidence, result = actual_evidence(_zero_spread_e1_evidence())
+    record = result.to_record()
+    assert result.passed is True and result.instrument_failure is False
+    gated = [cell for cell in record["cells"] if cell["gated"]]
+    assert sorted((cell["sex_ratio"], cell["host_n"]) for cell in gated) == [(0.25, 200), (0.5, 200)]
+    for cell in gated:
+        tost = cell["tost"]
+        assert tost["sd"] == 0.0
+        assert tost["t_lower"] == {"$float": "inf"} and tost["t_upper"] == {"$float": "-inf"}
+        assert tost["equivalent"] is True
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.conditions["a"] is True
+    assert verdict.outcome == "rq_consistent" and verdict.red_queen_proved is True
 
 
 @pytest.mark.parametrize("n_low", [200, 50], ids=["live_N200_low", "live_N50_low"])

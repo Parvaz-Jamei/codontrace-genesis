@@ -11,6 +11,7 @@ ranges.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import replace
 
 import pytest
@@ -1047,6 +1048,58 @@ def test_heterozygosity_halves_per_selfed_generation_through_step_population() -
         assert abs(chain - 0.5**t) < bound
 
 
+_H_DECAY_LINEAGES = 1000
+_H_DECAY_ARMS = (0.0, 0.5, 1.0)
+_H_DECAY_GENERATIONS = (1, 2, 3, 4)
+_H_DECAY_FOUNDER = "000111" * 8
+# Seed stride per p arm: N * 16 + 16 = 16016 >= 16000, so lineage * 16 + t
+# (at most 15988) never reaches the next arm's block.
+_H_DECAY_ARM_STRIDE = _H_DECAY_LINEAGES * 16 + 16
+# Smallest family size the uniqueness check must reject (N / 4 distinct).
+_H_DECAY_FAMILY_BOUND = 4
+
+
+def _h_decay_seed(arm: int, lineage: int, t: int) -> int:
+    return 40_000 + arm * _H_DECAY_ARM_STRIDE + lineage * 16 + t
+
+
+def _h_decay_failures(
+    child: Callable[[str, int, float], str] | None = None,
+    arms: tuple[int, ...] = (0, 1, 2),
+) -> list[tuple[str, float, int]]:
+    """Run the H-decay fixture and return every (rule, p, t) it breaks.
+
+    ``child(bits, seed, recombination_prob)`` makes one selfed child; the
+    default is the engine path ``_selfed_child_bits``. Rules: ``length``
+    (a child is not 48 bits), ``mean`` (mean H outside
+    4 * sqrt(mu (1 - mu) / N) of mu = 2**-t) and ``uniqueness`` (at p >= 0.5
+    the pool passed forward has at most N / _H_DECAY_FAMILY_BOUND distinct
+    genomes).
+    """
+
+    make = child or (lambda bits, seed, p: _selfed_child_bits(bits, seed=seed, recombination_prob=p))
+    n = _H_DECAY_LINEAGES
+    failures: list[tuple[str, float, int]] = []
+    for arm in arms:
+        recombination_prob = _H_DECAY_ARMS[arm]
+        genomes = [_H_DECAY_FOUNDER] * n
+        for t in _H_DECAY_GENERATIONS:
+            genomes = [
+                make(bits, _h_decay_seed(arm, lineage, t), recombination_prob)
+                for lineage, bits in enumerate(genomes)
+            ]
+            if {len(g) for g in genomes} != {48}:
+                failures.append(("length", recombination_prob, t))
+                continue
+            observed = sum(_heterozygous_loci(g) / (len(g) // 6) for g in genomes) / n
+            expected = 0.5**t
+            if not abs(observed - expected) < 4.0 * (expected * (1.0 - expected) / n) ** 0.5:
+                failures.append(("mean", recombination_prob, t))
+            if recombination_prob >= 0.5 and not len(set(genomes)) > n // _H_DECAY_FAMILY_BOUND:
+                failures.append(("uniqueness", recombination_prob, t))
+    return failures
+
+
 def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_lineages() -> None:
     """Independent neutral selfing lineages: H_t = H_0 / 2**t for t = 1..4.
 
@@ -1079,105 +1132,86 @@ def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_line
     mean-dependent bound can. Related births in one selected population
     would not justify that SE. Every child keeps length 48. Reusing one
     meiosis for both gametes forces H = 0 at t = 1, far outside the bound.
-    Uniqueness bound (principled): a collapse mutant that replaces every
-    contiguous block of K next-parents with one child yields exactly N/K
-    distinct genomes in the pool passed forward. At p >= 0.5 independent
-    meioses over 8 loci still collide: observed distinctness on this
-    fixture bottoms near ~320 by t = 4 at p = 0.5, so an N/2 or N/3
-    threshold false-fails. N/4 = 250 is the tightest integer-divisor bound
-    that stays below that natural floor with margin, and it rejects every
-    systematic collapse of family size K >= 4 (including a K = 10 block).
-    Families of size 2 or 3 are not guaranteed to be rejected at p = 0.5
-    because natural collisions already sit near those thresholds. At
-    recombination_prob = 0 only a few whole-homolog genotypes exist, so
-    that uniqueness check is not applied there."""
+    Uniqueness bound: a collapse mutant that replaces every contiguous
+    block of K next-parents with one child yields exactly N/K distinct
+    genomes in the pool passed forward. At p >= 0.5 independent meioses over
+    8 loci still collide: observed distinctness on this fixture bottoms near
+    320 by t = 4 at p = 0.5, so an N/2 or N/3 threshold false-fails. N/4 =
+    250 is the tightest integer-divisor bound that stays below that natural
+    floor with margin, and it rejects every systematic collapse of family
+    size K >= 4 (including a K = 10 block). Families of size 2 or 3 are not
+    guaranteed to be rejected at p = 0.5 because natural collisions already
+    sit near those thresholds. At recombination_prob = 0 only a few
+    whole-homolog genotypes exist, so that uniqueness check is not applied
+    there. The seed function, the bound and the run itself are the
+    module-level helpers ``_h_decay_seed``, ``_H_DECAY_FAMILY_BOUND`` and
+    ``_h_decay_failures``, which the two tests below also call."""
 
-    n_lineages = 1000
-    founder = "000111" * 8
-    assert _heterozygous_loci(founder) / (len(founder) // 6) == 1.0
-    arm_stride = n_lineages * 16 + 16
-    assert arm_stride >= 16_000
-    for arm, recombination_prob in enumerate((0.0, 0.5, 1.0)):
-        genomes = [founder] * n_lineages
-        for t in range(1, 5):
-            children = [
-                _selfed_child_bits(
-                    bits,
-                    seed=40_000 + arm * arm_stride + lineage * 16 + t,
-                    recombination_prob=recombination_prob,
-                )
-                for lineage, bits in enumerate(genomes)
-            ]
-            assert {len(child) for child in children} == {48}
-            observed = sum(
-                _heterozygous_loci(child) / (len(child) // 6) for child in children
-            ) / n_lineages
-            expected = 0.5**t
-            bound = 4.0 * (expected * (1.0 - expected) / n_lineages) ** 0.5
-            assert abs(observed - expected) < bound
-            genomes = children
-            # After the hand-off: reject a systematic collapse of family
-            # size K >= 4 (exactly N/K distinct). Bound N/4 is derived above
-            # from the natural distinctness floor at p = 0.5; check the
-            # genomes passed forward so the collapse is visible.
-            if recombination_prob >= 0.5:
-                collapse_block = 4
-                assert len(set(genomes)) > n_lineages // collapse_block
-
-
+    assert _heterozygous_loci(_H_DECAY_FOUNDER) / (len(_H_DECAY_FOUNDER) // 6) == 1.0
+    assert _H_DECAY_ARM_STRIDE >= 16_000
+    assert _h_decay_failures() == []
 
 
 def test_uniqueness_bound_rejects_family_size_five() -> None:
-    """The N/4 uniqueness bound rejects a K=5 collapse; N/10 would not.
+    """The H-decay run itself flags a mutant that collapses families of 5.
 
-    A pool of N = 1000 genomes with exactly N/5 distinct values models a
-    mutant that replaces every contiguous block of 5 next-parents with one
-    child. That pool fails `|set| > N/4` and would pass the older
-    H3-tied `|set| > N/10`, so the tighter bound is what catches family
-    sizes between 5 and 9 inclusive.
+    Basis: the mutant child function gives every contiguous block of 5
+    lineages the selfed child of the block's first lineage, so each
+    generation hands forward exactly N/5 = 200 distinct genomes. The
+    uniqueness rule of ``_h_decay_failures`` is |set| > N /
+    _H_DECAY_FAMILY_BOUND = 250, and 200 <= 250. The bound the H3 mutant
+    was tuned to (N/10 = 100) would let it through (200 > 100), so this
+    test fails if the bound is moved back. Only the p = 0.5 arm is run, the
+    arm with the lowest natural distinctness.
+    Expected: a ``uniqueness`` failure at p = 0.5 for every t = 1..4.
     """
 
-    n = 1000
-    genomes = [f"g{i // 5}" for i in range(n)]
-    assert len(set(genomes)) == n // 5
-    assert not (len(set(genomes)) > n // 4)
-    assert len(set(genomes)) > n // 10
+    cache: dict[tuple[int, int], str] = {}
+
+    def collapsed(bits: str, seed: int, p: float) -> str:
+        lineage = (seed - 40_000 - _H_DECAY_ARM_STRIDE) // 16
+        t = (seed - 40_000 - _H_DECAY_ARM_STRIDE) % 16
+        key = (lineage // 5, t)
+        if key not in cache:
+            head = _h_decay_seed(1, lineage - lineage % 5, t)
+            cache[key] = _selfed_child_bits(bits, seed=head, recombination_prob=p)
+        return cache[key]
+
+    failures = _h_decay_failures(collapsed, arms=(1,))
+    assert [(rule, t) for rule, _, t in failures if rule == "uniqueness"] == [
+        ("uniqueness", t) for t in _H_DECAY_GENERATIONS
+    ]
 
 
 def test_heterozygosity_arm_seed_blocks_are_disjoint() -> None:
-    """The three p-arm seed blocks of the H-decay fixture must not overlap.
+    """The seeds the H-decay run passes to its child function never repeat.
 
-    Seeds are `40_000 + arm * stride + lineage * 16 + t` with
-    `stride = N * 16 + 16`, N = 1000, arm in {0, 1, 2}, lineage in
-    `0..N-1`, t in `1..4`. Within one arm the max offset is
-    `(N - 1) * 16 + 4 = 15988 < stride`, so arms abut with a gap of
-    `stride - 15988 = 28` and never share a seed. A mutant that shrinks
-    the stride below that span (or that keys arms by a colliding function
-    of p) reuses seeds across arms and this set-equality fails.
+    Basis: the run draws seed ``_h_decay_seed(arm, lineage, t)`` =
+    40_000 + arm * stride + lineage * 16 + t with stride = N * 16 + 16 =
+    16016, N = 1000, arm in {0, 1, 2}, t in 1..4. Within one arm the
+    largest offset is (N - 1) * 16 + 4 = 15988 < stride, so the arms do not
+    share a seed and no seed is used twice. The seeds are recorded from the
+    run itself (the child function returns its parent, so the engine is not
+    called), so a change of the seed formula inside the run is seen here.
+    Expected: 3 * 4 * N = 12000 seeds, all distinct, arm a in
+    [40_000 + a * 16016 + 1, 40_000 + a * 16016 + 15988].
     """
 
-    n_lineages = 1000
-    arm_stride = n_lineages * 16 + 16
-    assert arm_stride >= 16_000
-    blocks: list[set[int]] = []
+    seen: list[int] = []
+
+    def record(bits: str, seed: int, p: float) -> str:
+        seen.append(seed)
+        return bits
+
+    _h_decay_failures(record)
+    n = _H_DECAY_LINEAGES
+    assert len(seen) == 3 * len(_H_DECAY_GENERATIONS) * n == 12_000
+    assert len(set(seen)) == len(seen)
     for arm in range(3):
-        seeds = {
-            40_000 + arm * arm_stride + lineage * 16 + t
-            for lineage in range(n_lineages)
-            for t in range(1, 5)
-        }
-        blocks.append(seeds)
-    assert len(blocks[0]) == n_lineages * 4
-    for i in range(3):
-        for j in range(i + 1, 3):
-            assert blocks[i].isdisjoint(blocks[j])
-    # Contiguous span check: arm a occupies [base, base + max_offset]
-    max_offset = (n_lineages - 1) * 16 + 4
-    assert max_offset < arm_stride
-    for arm in range(3):
-        base = 40_000 + arm * arm_stride
-        assert min(blocks[arm]) == base + 1  # lineage 0, t=1
-        assert max(blocks[arm]) == base + max_offset
+        block = seen[arm * 4 * n : (arm + 1) * 4 * n]
+        base = 40_000 + arm * 16_016
+        assert min(block) == base + 1
+        assert max(block) == base + (n - 1) * 16 + 4
 
 
 def test_one_selfed_generation_halves_heterozygosity() -> None:

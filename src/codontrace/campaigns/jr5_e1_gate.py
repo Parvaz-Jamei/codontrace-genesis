@@ -53,7 +53,6 @@ from codontrace.preregistration.jr5_locked_plan import (
     verify_jr5_record_at_root,
     verify_jr5_record_bytes,
 )
-from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CONSTANTS_RELPATH",

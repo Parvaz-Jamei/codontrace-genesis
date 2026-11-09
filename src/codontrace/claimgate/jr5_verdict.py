@@ -43,9 +43,9 @@ In-process code changes (monkeypatching this module) are out of scope.
 from __future__ import annotations
 
 import hashlib
-import re
 import json
 import math
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib import resources

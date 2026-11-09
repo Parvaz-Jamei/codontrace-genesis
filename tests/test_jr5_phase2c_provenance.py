@@ -295,6 +295,60 @@ def test_a_genuine_constants_hash_does_not_authenticate_an_edited_manifest() -> 
         verdict._verified_constants(constants, json.dumps(record).encode(), deviations_text=_DEVIATIONS_TEXT)
 
 
+def test_claimgate_and_preregistration_plan_digest_checks_agree() -> None:
+    """Claimgate keeps its own plan-digest and deviations-chain checks so genesis
+    cannot reach ``codontrace.preregistration`` through the known HP -> claimgate
+    edges (import contracts). Both copies must therefore agree on the same inputs.
+
+    Basis: ``PlanManifest`` / ``plan_digest_from_files`` (preregistration) and
+    ``canonical_digest`` over the locked file list (claimgate) are two encodings
+    of one schema (``codontrace_prereg_manifest_v1``). On the packaged record they
+    must equal the code pin ``PREREG_RECORD_DIGEST``. ``verify_deviations_log`` and
+    ``_verify_deviations_log`` must both accept the packaged log and both refuse a
+    broken chain and a last entry that names the wrong digest.
+    """
+
+    from codontrace.preregistration.jr5_locked_plan import (
+        plan_digest_from_files,
+        verify_deviations_log,
+    )
+
+    record = json.loads((ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_text())
+    files = [(path, digest) for path, digest in record["manifest"]["files"]]
+    title = record["manifest"]["title"]
+    plan_pre = plan_digest_from_files(files, title)
+    locked = [(path, digest) for path, digest in files if path != "docs/prereg/jr5/DEVIATIONS.md"]
+    plan_cg = canonical_digest(
+        {
+            "schema": "codontrace_prereg_manifest_v1",
+            "title": title,
+            "files": [{"path": path, "sha256": digest} for path, digest in locked],
+        }
+    )
+    assert plan_pre == plan_cg == verdict.PREREG_RECORD_DIGEST
+    verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_pre)
+    verdict._verify_deviations_log(_DEVIATIONS_TEXT, expected_plan_digest=plan_cg)
+    broken = _DEVIATIONS_TEXT.replace(
+        "- Record digest: `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`"
+        " -> `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`",
+        "- Record digest: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`"
+        " -> `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`",
+        1,
+    )
+    assert broken != _DEVIATIONS_TEXT
+    for check in (verify_deviations_log, verdict._verify_deviations_log):
+        with pytest.raises(ConfigurationError, match="chain|locked plan digest"):
+            check(broken, expected_plan_digest=plan_pre)
+    # Replace only the final new-digest token of the last entry.
+    last_new = "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"
+    idx = _DEVIATIONS_TEXT.rfind(last_new)
+    assert idx > 0
+    wrong_last = _DEVIATIONS_TEXT[:idx] + ("0" * 64) + _DEVIATIONS_TEXT[idx + 64 :]
+    for check in (verify_deviations_log, verdict._verify_deviations_log):
+        with pytest.raises(ConfigurationError, match="locked plan digest"):
+            check(wrong_last, expected_plan_digest=plan_pre)
+
+
 @pytest.mark.parametrize("fields", [("expected_digest", "replayed_digest"), ("one_shot_body_sha256", "resumed_body_sha256")])
 def test_matching_placeholder_replay_strings_are_not_digests(fields: tuple[str, str]) -> None:
     """Equality of two placeholder strings is not replay evidence: both digest and body addresses require 64 hex characters."""

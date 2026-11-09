@@ -132,8 +132,9 @@ def test_zero_spread_actual_gate_record_round_trips() -> None:
     evidence, result = actual_evidence()
     # Force zero-spread by replacing fitted log_w with exact theory for a fresh gate.
     # The default planted cells already have small spread; build a synthetic zero cell set.
-    from codontrace.campaigns.jr5_e1_gate import E1Population, evaluate_e1_gate, load_e1_gate_spec
     import math
+
+    from codontrace.campaigns.jr5_e1_gate import E1Population, evaluate_e1_gate, load_e1_gate_spec
 
     spec = load_e1_gate_spec()
     cells = {

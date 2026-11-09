@@ -11,7 +11,6 @@ No network call happens unless the caller passes ``allow_network=True``
 (or sets ``CODONTRACE_ALLOW_NETWORK=1``); tests replay recorded responses.
 """
 
-from .manifest import PlanManifest, hash_plan
 from .jr5_locked_plan import (
     DEVIATIONS_RELPATH,
     plan_digest_from_files,
@@ -19,6 +18,7 @@ from .jr5_locked_plan import (
     verify_jr5_record_at_root,
     verify_jr5_record_bytes,
 )
+from .manifest import PlanManifest, hash_plan
 from .record import PreregistrationRecord, TimestampEvidence, verify_before_run
 from .rfc3161 import TimeStampToken, build_request, parse_response, request_timestamp
 

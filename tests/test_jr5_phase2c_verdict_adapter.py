@@ -481,14 +481,27 @@ def test_forged_verdict_record_is_refused() -> None:
 
 
 def test_prereg_is_pinned_and_shipped_copy_is_the_hashed_file() -> None:
-    """The package copy of the constants is byte-identical to the locked file, whose sha the locked record lists."""
+    """The package copies match the locked files; the pin is the plan digest.
+
+    Basis: PREREG_RECORD_DIGEST is hash_plan over every record.json file except
+    DEVIATIONS.md (577bd4ac...). record.json manifest.digest still covers the
+    log and therefore differs. Packaged constants, record and deviations bytes
+    match docs/prereg/jr5.
+    """
+
+    from codontrace.preregistration.jr5_locked_plan import plan_digest_from_files
 
     record = json.loads((PREREG_DIR / "record.json").read_text(encoding="utf-8"))
-    assert record["manifest"]["digest"] == PREREG_RECORD_DIGEST
-    files = dict(record["manifest"]["files"])
-    assert files["docs/prereg/jr5/jr5_prereg_constants.json"] == PREREG_CONSTANTS_SHA256
-    shipped = ROOT / "src" / "codontrace" / "claimgate" / "data" / "jr5_prereg_constants.json"
-    assert shipped.read_bytes() == (PREREG_DIR / "jr5_prereg_constants.json").read_bytes()
+    files = [(path, digest) for path, digest in record["manifest"]["files"]]
+    plan = plan_digest_from_files(files, record["manifest"]["title"])
+    assert plan == PREREG_RECORD_DIGEST
+    assert record["manifest"]["digest"] != PREREG_RECORD_DIGEST
+    file_map = dict(files)
+    assert file_map["docs/prereg/jr5/jr5_prereg_constants.json"] == PREREG_CONSTANTS_SHA256
+    data = ROOT / "src" / "codontrace" / "claimgate" / "data"
+    assert (data / "jr5_prereg_constants.json").read_bytes() == (PREREG_DIR / "jr5_prereg_constants.json").read_bytes()
+    assert (data / "jr5_prereg_record.json").read_bytes() == (PREREG_DIR / "record.json").read_bytes()
+    assert (data / "jr5_deviations.md").read_bytes() == (PREREG_DIR / "DEVIATIONS.md").read_bytes()
     assert len(jr5_run_grid()) == 3760  # budget.runs_total
 
 

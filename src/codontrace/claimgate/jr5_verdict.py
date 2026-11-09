@@ -9,12 +9,15 @@ time-shift intervals) and returns one typed outcome plus the flag.
 
 Rules, all fixed by ``docs/prereg/jr5``:
 
-- The prereg is pinned in code. ``PREREG_RECORD_DIGEST`` is the locked record
-  digest and ``PREREG_CONSTANTS_SHA256`` the sha256 of the constants file. The
-  constants are read from the copy shipped with this package, checked against
-  the pinned sha256 and parsed from the same bytes that were hashed. Changing
-  the prereg therefore means a DEVIATIONS entry plus a reviewed bump of both
-  constants; no caller can point the verdict at another prereg folder.
+- The prereg is pinned in code. ``PREREG_RECORD_DIGEST`` is the locked plan
+  digest (``hash_plan`` over every ``record.json`` file except
+  ``DEVIATIONS.md``; the constant name is kept as a shim for the stable
+  gate-record key) and ``PREREG_CONSTANTS_SHA256`` the sha256 of the constants
+  file. The constants and record are read from the copies shipped with this
+  package; the deviations log is checked separately so a logged deviation does
+  not disable the verdict. Changing a locked plan file means a DEVIATIONS entry
+  plus a reviewed bump of the plan pin and constants when those change; no
+  caller can point the verdict at another prereg folder.
 - The run set must equal the prereg grid exactly: every experiment, cell, host
   N and seed once, with unique run ids. Each run record is content-addressed
   (its ``sha256`` is the canonical digest of the rest of the record).
@@ -73,12 +76,14 @@ __all__ = [
 
 CLAIM = "red_queen_proved"
 
-# Locked prereg (docs/prereg/jr5/record.json, manifest digest) and the sha256
-# of jr5_prereg_constants.json that the record lists. Bump both only together
-# with a DEVIATIONS entry in docs/prereg/jr5.
-PREREG_RECORD_DIGEST = "73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505"
+# Locked plan digest (hash_plan excluding DEVIATIONS.md). The name
+# PREREG_RECORD_DIGEST is kept so evidence/verdict JSON keys stay stable; it is
+# not record.json manifest.digest (that digest covers DEVIATIONS.md).
+PREREG_RECORD_DIGEST = "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"
 PREREG_CONSTANTS_SHA256 = "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
 _CONSTANTS_RESOURCE = "data/jr5_prereg_constants.json"
+_RECORD_RESOURCE = "data/jr5_prereg_record.json"
+_DEVIATIONS_RESOURCE = "data/jr5_deviations.md"
 
 # PREREG section 9: every sealed lock reused by JR5, by name, with its digest.
 SEALED_LOCK_DIGESTS: Mapping[str, str] = {
@@ -169,33 +174,28 @@ def jr5_constants() -> dict[str, Any]:
     """The pinned prereg constants, parsed from the bytes that were hashed."""
 
     package = resources.files("codontrace.claimgate")
-    record_raw = package.joinpath("data/jr5_prereg_record.json").read_bytes()
+    record_raw = package.joinpath(_RECORD_RESOURCE).read_bytes()
     raw = package.joinpath(_CONSTANTS_RESOURCE).read_bytes()
-    return _verified_constants(raw, record_raw)
+    deviations_text = package.joinpath(_DEVIATIONS_RESOURCE).read_text(encoding="utf-8")
+    return _verified_constants(raw, record_raw, deviations_text=deviations_text)
 
 
-def _verified_constants(raw: bytes, record_raw: bytes) -> dict[str, Any]:
-    """Verify the manifest and parse only the byte sequence whose hash was checked."""
+def _verified_constants(raw: bytes, record_raw: bytes, *, deviations_text: str) -> dict[str, Any]:
+    """Verify the locked plan digest and parse only the constants bytes that were hashed."""
+    from codontrace.preregistration.jr5_locked_plan import DEVIATIONS_RELPATH, verify_jr5_record_bytes
+
     try:
-        record = _mapping(json.loads(record_raw), "prereg record")
-        manifest = _mapping(record.get("manifest"), "prereg manifest")
-        files = _seq(manifest.get("files"), "prereg manifest files")
-        pairs = []
-        for pair in files:
-            if not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(v, str) for v in pair):
-                raise ConfigurationError("prereg manifest files must be path/digest pairs.")
-            pairs.append((pair[0], pair[1]))
-        if len({path for path, _ in pairs}) != len(pairs):
-            raise ConfigurationError("prereg manifest repeats a path.")
-        title = manifest.get("title")
-        if not isinstance(title, str):
-            raise ConfigurationError("prereg manifest title must be a string.")
-        actual_manifest = canonical_digest({"schema": "codontrace_prereg_manifest_v1", "title": title,
-                                            "files": [{"path": path, "sha256": sha} for path, sha in pairs]})
-        if manifest.get("digest") != PREREG_RECORD_DIGEST or actual_manifest != PREREG_RECORD_DIGEST:
-            raise ConfigurationError("JR5 prereg manifest does not match the code-pinned digest.")
+        manifest, plan = verify_jr5_record_bytes(
+            record_raw,
+            locked_plan_digest=PREREG_RECORD_DIGEST,
+            deviations_text=deviations_text,
+        )
+        # Packaged DEVIATIONS.md must match the hash listed in the packaged record.
+        listed = [sha for path, sha in manifest.files if path == DEVIATIONS_RELPATH]
+        if listed != [hashlib.sha256(deviations_text.encode("utf-8")).hexdigest()]:
+            raise ConfigurationError("packaged DEVIATIONS.md does not match the record.json entry.")
         actual = hashlib.sha256(raw).hexdigest()
-        entries = [sha for path, sha in pairs if path == "docs/prereg/jr5/jr5_prereg_constants.json"]
+        entries = [sha for path, sha in manifest.files if path == "docs/prereg/jr5/jr5_prereg_constants.json"]
         if entries != [actual] or actual != PREREG_CONSTANTS_SHA256:
             raise ConfigurationError("JR5 prereg constants do not match the pinned sha256.")
         constants = _mapping(json.loads(raw), "prereg constants")
@@ -203,6 +203,8 @@ def _verified_constants(raw: bytes, record_raw: bytes) -> dict[str, Any]:
         raise
     except (ValueError, UnicodeError) as exc:
         raise ConfigurationError("JR5 prereg resources must contain valid JSON.") from exc
+    if plan != PREREG_RECORD_DIGEST:
+        raise ConfigurationError("JR5 prereg plan digest does not match the code-pinned digest.")
     if CLAIM not in constants.get("gated_claim_flags", {}):
         raise ConfigurationError(f"JR5 prereg does not gate {CLAIM!r}.")
     return dict(constants)

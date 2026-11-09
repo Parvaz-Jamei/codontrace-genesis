@@ -21,14 +21,17 @@ The finalized preregistration and phase 3 gate are merged. Live producer-to-adap
 and auditor integration is covered by `tests/test_jr5_live_gate_adapter.py`.
 The Python spec attribute is `prereg_manifest_sha256`; the v3 JSON key stays
 `prereg_manifest_digest`. No fabricated gate record is consumed in these tests.
-Current manifest digest:
-`73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505`.
+Locked plan digest (`PREREG_RECORD_DIGEST`, excludes `DEVIATIONS.md`):
+`577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`.
 Constants SHA-256:
 `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`.
-The shipped record file SHA-256 is
-`251973f8abf5cb1eddf8ffed650733c45d033209b99137b0ed6812d47dbb3e38`.
-The amended manifest, constants, and record-file SHA values are separate
-identifiers; a plan digest is not interchangeable with the manifest digest.
+The shipped `record.json` file SHA-256 is
+`251973f8abf5cb1eddf8ffed650733c45d033209b99137b0ed6812d47dbb3e38`
+(its `manifest.digest` still covers `DEVIATIONS.md` and is checked for
+freshness, but is not the code pin). The packaged deviations log is verified
+separately so a logged deviation does not disable the adapter. Plan digest,
+constants sha, full manifest digest and record-file sha are separate
+identifiers.
 No confirmatory run or final whole-package validation is represented by the
 planted fixtures used here.
 
@@ -36,7 +39,7 @@ planted fixtures used here.
 
 `Jr5Evidence.from_dict()` accepts exactly:
 
-- `prereg_record_digest`: the pinned manifest digest, a string.
+- `prereg_record_digest`: the pinned plan digest (excludes DEVIATIONS.md), a string.
 - `runs`: a list of exactly 3,760 addressed raw records, covering the complete
   registered experiment/cell/host-size/seed grid once. Run IDs are unique.
 - `sealed_locks`: the five section 9 names mapped to full digest strings.

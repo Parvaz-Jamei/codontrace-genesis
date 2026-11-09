@@ -137,18 +137,17 @@ def test_loader_checks_the_constants_sha_against_the_record(tmp_path: Path) -> N
     spec = _spec()
     assert spec.constants_sha256 == sha
     assert evaluate_e1_gate(spec, _passing_cells()).to_record()["constants_sha256"] == sha
-    folder = tmp_path / "docs" / "prereg" / "jr5"
-    folder.mkdir(parents=True)
-    shutil.copy(RECORD, folder / "record.json")
+    root = _clone_prereg(tmp_path)
+    folder = root / "docs" / "prereg" / "jr5"
     # One changed byte (a trailing newline) breaks the pin, even with equal content.
     (folder / "jr5_prereg_constants.json").write_bytes(CONSTANTS.read_bytes() + b"\n")
     with pytest.raises(ConfigurationError):
-        load_e1_gate_spec(tmp_path)
+        load_e1_gate_spec(root)
     shutil.copy(CONSTANTS, folder / "jr5_prereg_constants.json")
-    assert load_e1_gate_spec(tmp_path) == spec
+    assert load_e1_gate_spec(root) == spec
     (folder / "record.json").write_text(json.dumps({"manifest": {"files": []}}), encoding="utf-8")
-    with pytest.raises(ConfigurationError, match="code-pinned"):
-        load_e1_gate_spec(tmp_path)
+    with pytest.raises(ConfigurationError):
+        load_e1_gate_spec(root)
     with pytest.raises(ConfigurationError):
         load_e1_gate_spec(tmp_path / "missing")
 
@@ -536,12 +535,11 @@ def test_loader_refuses_a_forged_record_and_consistent_constants(tmp_path: Path,
     if rehash:
         manifest.pop("digest")
         record["manifest"] = PlanManifest.from_dict(manifest).to_dict()
-    folder = tmp_path / "docs" / "prereg" / "jr5"
-    folder.mkdir(parents=True)
-    (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
-    (folder / "jr5_prereg_constants.json").write_bytes(raw)
-    with pytest.raises(ConfigurationError, match="code-pinned"):
-        load_e1_gate_spec(tmp_path)
+    root = _clone_prereg(tmp_path)
+    (root / "docs/prereg/jr5/record.json").write_text(json.dumps(record), encoding="utf-8")
+    (root / "docs/prereg/jr5/jr5_prereg_constants.json").write_bytes(raw)
+    with pytest.raises(ConfigurationError):
+        load_e1_gate_spec(root)
 
 
 @pytest.mark.parametrize("ratio,host_n", [(m, n) for m in (0.5, 0.25) for n in (200, 50)])
@@ -659,14 +657,12 @@ def test_excluded_fit_can_be_omitted_entirely() -> None:
 def test_code_pins_equal_the_digests_of_the_committed_prereg_bytes() -> None:
     """The two code pins are the digests of the files in this checkout, recomputed.
 
-    Basis: manifest.digest is the canonical digest of the manifest file list
-    (PlanManifest), and each file entry is the sha256 of that file's bytes.
-    DEVIATIONS.md names the plan digest, computed over every manifest file
-    except itself, so it must differ from the manifest digest that the gate
-    pins. Expected: the recomputed manifest digest, the declared one and the
-    pin agree; sha256 of the constants bytes, the manifest entry and the pin
-    agree; the plan digest in the last DEVIATIONS.md entry equals hash_plan
-    without DEVIATIONS.md and differs from the manifest pin.
+    Basis: the gate pins the plan digest (hash_plan over every manifest file
+    except DEVIATIONS.md). record.json manifest.digest still covers
+    DEVIATIONS.md and must recompute from its file list; each file entry is
+    the sha256 of that file's bytes. DEVIATIONS.md names the same plan digest.
+    Expected: pin == plan == last log entry; full manifest digest differs from
+    the pin; constants sha matches the manifest entry and the constants pin.
     """
     import re
 
@@ -675,7 +671,8 @@ def test_code_pins_equal_the_digests_of_the_committed_prereg_bytes() -> None:
     record = json.loads(RECORD.read_bytes())["manifest"]
     files = [(path, digest) for path, digest in record["files"]]
     recomputed = PlanManifest(tuple(files), record["title"]).digest
-    assert recomputed == record["digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert recomputed == record["digest"]
+    assert recomputed != jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
     constants_sha = hashlib.sha256(CONSTANTS.read_bytes()).hexdigest()
     assert dict(files)[jr5_e1_gate.CONSTANTS_RELPATH] == constants_sha == jr5_e1_gate.LOCKED_PREREG_CONSTANTS_SHA256
     for path, digest in files:
@@ -683,8 +680,7 @@ def test_code_pins_equal_the_digests_of_the_committed_prereg_bytes() -> None:
     log = "docs/prereg/jr5/DEVIATIONS.md"
     named = re.findall(r"^- Record digest: `[0-9a-f]{64}` -> `([0-9a-f]{64})`$", (ROOT / log).read_text("utf-8"), re.M)
     plan = hash_plan([p for p, _ in files if p != log], root=ROOT, title=record["title"]).digest
-    assert named[-1] == plan
-    assert plan != jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert named[-1] == plan == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST == jr5_e1_gate.LOCKED_PREREG_PLAN_DIGEST
 
 
 def test_loader_refuses_the_superseded_lock(tmp_path: Path) -> None:
@@ -715,8 +711,11 @@ def test_loader_refuses_the_superseded_lock(tmp_path: Path) -> None:
     old = json.loads((folder / "record.json").read_bytes())["manifest"]
     assert old["digest"].startswith("a4f76d60")
     assert hashlib.sha256((folder / "jr5_prereg_constants.json").read_bytes()).hexdigest().startswith("608ccdea")
-    with pytest.raises(ConfigurationError, match="code-pinned"):
-        load_e1_gate_spec(tmp_path)
+    with pytest.raises(ConfigurationError):
+        E1GateSpec.from_prereg_constants(
+            (folder / "jr5_prereg_constants.json").read_bytes(),
+            record_raw=(folder / "record.json").read_bytes(),
+        )
 
 
 def _write_prereg(tmp_path: Path, record: dict[str, Any], constants_raw: bytes) -> Path:
@@ -724,6 +723,22 @@ def _write_prereg(tmp_path: Path, record: dict[str, Any], constants_raw: bytes) 
     folder.mkdir(parents=True)
     (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
     (folder / "jr5_prereg_constants.json").write_bytes(constants_raw)
+    return tmp_path
+
+
+def _clone_prereg(tmp_path: Path) -> Path:
+    """Copy every file listed in record.json so load_e1_gate_spec can re-hash them."""
+
+    record = json.loads(RECORD.read_bytes())
+    for path, _digest in record["manifest"]["files"]:
+        src = ROOT / path
+        dest = tmp_path / path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dest)
+    # record.json itself is listed? No — only plan files. Copy it too.
+    dest_rec = tmp_path / "docs/prereg/jr5/record.json"
+    dest_rec.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(RECORD, dest_rec)
     return tmp_path
 
 
@@ -741,9 +756,9 @@ def test_loader_recomputes_the_manifest_digest_instead_of_trusting_the_declared_
     record["manifest"]["files"] = [
         [name, "0" * 64 if name.endswith("/PREREG.md") else digest] for name, digest in record["manifest"]["files"]
     ]
-    assert record["manifest"]["digest"] == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert record["manifest"]["digest"] == json.loads(RECORD.read_bytes())["manifest"]["digest"]
     with pytest.raises(ConfigurationError, match="record manifest content does not match"):
-        load_e1_gate_spec(_write_prereg(tmp_path, record, CONSTANTS.read_bytes()))
+        E1GateSpec.from_prereg_constants(CONSTANTS.read_bytes(), record_raw=json.dumps(record).encode())
 
 
 def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -756,6 +771,7 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
     Expected: ConfigurationError from the loader's constants-entry check,
     before the spec's own pin check.
     """
+    from codontrace.preregistration.jr5_locked_plan import plan_digest_from_files
     from codontrace.preregistration.manifest import PlanManifest
 
     raw = json.dumps(_tuned_constants()).encode()
@@ -767,16 +783,19 @@ def test_constants_pin_holds_on_its_own(tmp_path: Path, monkeypatch: pytest.Monk
     ]
     manifest.pop("digest")
     record["manifest"] = PlanManifest.from_dict(manifest).to_dict()
-    monkeypatch.setattr(jr5_e1_gate, "LOCKED_PREREG_MANIFEST_DIGEST", record["manifest"]["digest"])
+    forged_plan = plan_digest_from_files(
+        [(p, h) for p, h in record["manifest"]["files"]], record["manifest"]["title"]
+    )
+    monkeypatch.setattr(jr5_e1_gate, "LOCKED_PREREG_MANIFEST_DIGEST", forged_plan)
     with pytest.raises(ConfigurationError, match="record.json constants entry does not match"):
-        load_e1_gate_spec(_write_prereg(tmp_path, record, raw))
+        E1GateSpec.from_prereg_constants(raw, record_raw=json.dumps(record).encode())
 
 
 @pytest.mark.parametrize(
     "field,value",
     [
         ("prereg_manifest_sha256", "a4f76d603a21a02d523fbdba86966dfe7df9faf41ba0d01813ae53f29be44daa"),
-        ("prereg_manifest_sha256", "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"),
+        ("prereg_manifest_sha256", "73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505"),
         ("constants_sha256", "608ccdea9f8d1efa51ceecec756c8732b0fe1804828ed5c3910396c2e625a78c"),
     ],
 )
@@ -784,9 +803,112 @@ def test_spec_cannot_be_built_with_another_digest(field: str, value: str) -> Non
     """A spec copied with another digest label is refused at construction.
 
     Basis: a caller-supplied digest proves nothing unless it is checked when
-    the object is built, not only in the loader. The values are the earlier lock, the plan digest named in
-    DEVIATIONS.md (a different quantity) and the earlier constants sha256.
+    the object is built, not only in the loader. The values are the earlier
+    lock, the full record.json manifest digest (covers DEVIATIONS.md; not the
+    plan pin) and the earlier constants sha256.
     Expected: ConfigurationError naming the code pin.
     """
     with pytest.raises(ConfigurationError, match="code-pinned"):
         dataclasses.replace(_spec(), **{field: value})
+
+def test_appending_a_valid_deviation_entry_keeps_the_gate_loading(tmp_path: Path) -> None:
+    """A new DEVIATIONS.md entry that keeps the plan digest must not disable the gate.
+
+    Basis: the pin is hash_plan over every manifest file except DEVIATIONS.md
+    (577bd4ac...). Appending an entry whose digest line is
+    577bd4ac... -> 577bd4ac..., then refreshing record.json with
+    ``hash_plan`` over all listed paths (including the new log bytes), changes
+    only the full manifest digest. Expected: load_e1_gate_spec succeeds and
+    prereg_manifest_sha256 stays the plan pin.
+    """
+
+    from codontrace.preregistration.manifest import PlanManifest, hash_plan
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    pin = jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    log.write_text(
+        log.read_text(encoding="utf-8")
+        + "\n## 2099-01-01: synthetic log-only entry for the plan-pin test\n\n"
+        + "- Reason: test-only append; locked plan files unchanged.\n"
+        + f"- Record digest: `{pin}` -> `{pin}`\n"
+        + "- Runs: no JR5 run has started, the pilot included, so no endpoint moves to exploratory. "
+        + "This is the author's declaration. What the repository shows at this entry: no JR5 run "
+        + "script, campaign module or run output is committed (no path under `runs/` names JR5, "
+        + "and the only JR5 script is the E1 power simulation, which runs no engine arm).\n",
+        encoding="utf-8",
+    )
+    record = json.loads(RECORD.read_bytes())
+    paths = [path for path, _ in record["manifest"]["files"]]
+    fresh = hash_plan(paths, root=root, title=record["manifest"]["title"])
+    assert fresh.digest != record["manifest"]["digest"]
+    assert PlanManifest(
+        tuple((p, h) for p, h in fresh.files if p != "docs/prereg/jr5/DEVIATIONS.md"),
+        fresh.title,
+    ).digest == pin
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    spec = load_e1_gate_spec(root)
+    assert spec.prereg_manifest_sha256 == pin
+
+
+def test_editing_a_locked_plan_file_refuses_the_gate(tmp_path: Path) -> None:
+    """Changing PREREG.md bytes moves the plan digest and must refuse the loader.
+
+    Basis: PREREG.md is in the locked plan. Appending one byte changes its
+    sha256, so hash_plan without DEVIATIONS.md differs from 577bd4ac....
+    Expected: ConfigurationError from the plan-pin check (fresh hashes or pin).
+    """
+
+    root = _clone_prereg(tmp_path)
+    target = root / "docs/prereg/jr5/PREREG.md"
+    target.write_bytes(target.read_bytes() + b"\n")
+    with pytest.raises(ConfigurationError, match="record.json does not match the fresh hashes|plan digest"):
+        load_e1_gate_spec(root)
+
+
+def test_breaking_the_deviations_chain_refuses_the_gate(tmp_path: Path) -> None:
+    """A DEVIATIONS.md whose digest lines do not chain must refuse the loader.
+
+    Basis: each entry's old digest must equal the previous entry's new digest.
+    Flipping one hex digit in the second entry's old digest breaks the chain
+    while leaving locked plan file bytes alone. Expected: ConfigurationError
+    naming the chain.
+    """
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    text = log.read_text(encoding="utf-8")
+    # Flip the first hex char of the first digest that appears after the first arrow pair's new side chain.
+    import re as _re
+    matches = list(_re.finditer(r"^- Record digest: `([0-9a-f]{64})` -> `([0-9a-f]{64})`$", text, _re.M))
+    assert len(matches) >= 2
+    old = matches[1].group(1)
+    flipped = ("0" if old[0] != "0" else "1") + old[1:]
+    start, end = matches[1].span(1)
+    log.write_text(text[:start] + flipped + text[end:], encoding="utf-8")
+    # Refresh record hashes so the failure is the chain, not freshness.
+    from codontrace.preregistration.manifest import hash_plan
+
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="do not chain"):
+        load_e1_gate_spec(root)
+
+
+def test_stale_record_json_refuses_the_gate(tmp_path: Path) -> None:
+    """A record.json whose listed DEVIATIONS hash does not match the file is refused.
+
+    Basis: after copying the tree, only DEVIATIONS.md bytes change; record.json
+    still names the old sha256. Expected: ConfigurationError that record.json
+    does not match the fresh hashes.
+    """
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    log.write_text(log.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="record.json does not match the fresh hashes"):
+        load_e1_gate_spec(root)

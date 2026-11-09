@@ -12,6 +12,13 @@ No network call happens unless the caller passes ``allow_network=True``
 """
 
 from .manifest import PlanManifest, hash_plan
+from .jr5_locked_plan import (
+    DEVIATIONS_RELPATH,
+    plan_digest_from_files,
+    verify_deviations_log,
+    verify_jr5_record_at_root,
+    verify_jr5_record_bytes,
+)
 from .record import PreregistrationRecord, TimestampEvidence, verify_before_run
 from .rfc3161 import TimeStampToken, build_request, parse_response, request_timestamp
 
@@ -21,7 +28,12 @@ __all__ = [
     "TimeStampToken",
     "TimestampEvidence",
     "build_request",
+    "DEVIATIONS_RELPATH",
     "hash_plan",
+    "plan_digest_from_files",
+    "verify_deviations_log",
+    "verify_jr5_record_at_root",
+    "verify_jr5_record_bytes",
     "parse_response",
     "request_timestamp",
     "verify_before_run",

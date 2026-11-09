@@ -22,6 +22,7 @@ from tests import _jr5_raw_evidence as raw
 from tests.test_jr5_phase2c_verdict_adapter import bound_bundle, positive
 
 ROOT = Path(__file__).resolve().parents[1]
+_DEVIATIONS_TEXT = (ROOT / "src/codontrace/claimgate/data/jr5_deviations.md").read_text(encoding="utf-8")
 
 
 def rehash(record: dict) -> None:
@@ -32,21 +33,21 @@ def test_same_verified_bytes_and_manifest_are_required() -> None:
     """A pinned digest authenticates the original bytes, not a tuned mapping or rehashed replacement."""
     constants = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_constants.json").read_bytes()
     record = (ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes()
-    assert verdict._verified_constants(constants, record) == json.loads(constants)
+    assert verdict._verified_constants(constants, record, deviations_text=_DEVIATIONS_TEXT) == json.loads(constants)
     tuned = json.loads(constants)
     tuned["gate_e1"]["relative_margin"] = 0.9
     modified = json.dumps(tuned).encode()
     with pytest.raises(ConfigurationError, match="sha256"):
-        verdict._verified_constants(modified, record)
+        verdict._verified_constants(modified, record, deviations_text=_DEVIATIONS_TEXT)
     swap = json.loads(record)
     manifest = swap["manifest"]
     manifest["files"] = [[p, hashlib.sha256(modified).hexdigest() if p.endswith("jr5_prereg_constants.json") else s]
                          for p, s in manifest["files"]]
-    with pytest.raises(ConfigurationError, match="manifest"):
-        verdict._verified_constants(modified, json.dumps(swap).encode())
+    with pytest.raises(ConfigurationError, match="manifest|plan digest|sha256"):
+        verdict._verified_constants(modified, json.dumps(swap).encode(), deviations_text=_DEVIATIONS_TEXT)
     manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
-    with pytest.raises(ConfigurationError, match="manifest"):
-        verdict._verified_constants(modified, json.dumps(swap).encode())
+    with pytest.raises(ConfigurationError, match="manifest|plan digest|sha256"):
+        verdict._verified_constants(modified, json.dumps(swap).encode(), deviations_text=_DEVIATIONS_TEXT)
 
 
 def test_public_loader_reads_each_resource_once(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -63,13 +64,16 @@ def test_public_loader_reads_each_resource_once(monkeypatch: pytest.MonkeyPatch)
             assert reads[self.name] == 1
             return (base / self.name).read_bytes()
 
+        def read_text(self, encoding: str = "utf-8") -> str:
+            return self.read_bytes().decode(encoding)
+
     class Package:
         def joinpath(self, name: str) -> Entry:
             return Entry(name)
 
     monkeypatch.setattr(verdict.resources, "files", lambda _: Package())
     assert verdict.jr5_constants()["budget"]["runs_total"] == 3760
-    assert len(reads) == 2
+    assert len(reads) == 3
 
 
 @pytest.mark.parametrize("field", ["test", "alpha", "ci_level", "relative_margin", "must_exclude",
@@ -283,12 +287,12 @@ def test_a_genuine_constants_hash_does_not_authenticate_an_edited_manifest() -> 
     original = json.loads((ROOT / "src/codontrace/claimgate/data/jr5_prereg_record.json").read_bytes())
     record = deepcopy(original)
     record["manifest"]["title"] += " changed"
-    with pytest.raises(ConfigurationError, match="manifest"):
-        verdict._verified_constants(constants, json.dumps(record).encode())
+    with pytest.raises(ConfigurationError, match="manifest|plan digest"):
+        verdict._verified_constants(constants, json.dumps(record).encode(), deviations_text=_DEVIATIONS_TEXT)
     manifest = record["manifest"]
     manifest["digest"] = PlanManifest(tuple(map(tuple, manifest["files"])), manifest["title"]).digest
-    with pytest.raises(ConfigurationError, match="manifest"):
-        verdict._verified_constants(constants, json.dumps(record).encode())
+    with pytest.raises(ConfigurationError, match="manifest|plan digest"):
+        verdict._verified_constants(constants, json.dumps(record).encode(), deviations_text=_DEVIATIONS_TEXT)
 
 
 @pytest.mark.parametrize("fields", [("expected_digest", "replayed_digest"), ("one_shot_body_sha256", "resumed_body_sha256")])

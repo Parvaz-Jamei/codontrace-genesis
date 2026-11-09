@@ -243,6 +243,9 @@ def test_pause_ack_resume_stop_preserve_partial(env, tmp_path):
     thread.join(5)
     assert not thread.is_alive()
     assert results[0].status == "STOPPED"
+    # The details file reaches STOPPED after the thread ends (STOPPING first),
+    # so wait for the terminal state instead of reading it once.
+    _wait_for_status(run_id, "STOPPED")
     assert get_run_details(run_id)["status"] == "STOPPED"
     assert not (orchestrator.last_run_dir / "COMPLETE").exists()
 

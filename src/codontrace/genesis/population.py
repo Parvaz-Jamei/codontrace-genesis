@@ -23,6 +23,7 @@ from codontrace.genesis.atp import GenesisATPState
 from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
 from codontrace.genesis.birth import (
     DIPLOID_FERTILISATION_MECHANISM,
+    MATING_TYPE_HERMAPHRODITE,
     ADFInheritanceMode,
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
@@ -122,7 +123,12 @@ from codontrace.genesis.materials import (
     inherit_materials_organism_state,
     step_materials,
 )
-from codontrace.genesis.mating_types import ASEXUAL_LINEAGE_TYPE, MatingTypeMap, draw_mating_type
+from codontrace.genesis.mating_types import (
+    ASEXUAL_LINEAGE_TYPE,
+    MatingTypeMap,
+    can_self,
+    draw_mating_type,
+)
 from codontrace.genesis.memory import EpisodicMemory, EpisodicMemoryConfig
 from codontrace.genesis.organism import GenesisOrganism
 from codontrace.genesis.phase_e import (
@@ -824,6 +830,12 @@ class PopulationState:
     environment: EnvironmentState | None = None
     deme: DemeState | None = None
     materials: MaterialsState | None = None
+    # Seed for mating-type draws: the seed of the first sexes-on step, captured
+    # then and reused, so each sex is keyed to that seed and the organism id
+    # and later step seeds never change it. Sexes must be on from generation 0
+    # (step_population refuses to enable them later), so this is the seed of
+    # the run's generation-0 step. Written only when set.
+    mating_seed: int | None = None
 
     def __post_init__(self) -> None:
         if self.generation < 0 or self.tick < 0:
@@ -850,6 +862,10 @@ class PopulationState:
             payload["deme"] = self.deme.to_dict()
         if self.materials is not None:
             payload["materials"] = self.materials.to_dict()
+        if self.mating_seed is not None:
+            payload["mating_seed"] = self.mating_seed
+        if self.mating_seed is not None or any(o.mating_type is not None for o in self.organisms):
+            payload["mating_snapshot_digest"] = _mating_snapshot_digest(payload)
         return payload
 
     @classmethod
@@ -858,6 +874,14 @@ class PopulationState:
         lineage_raw = _list(data, "lineage")
         fitness_raw = _list(data, "fitness")
         chamber_raw = data.get("birth_chamber")
+        stamped = any(isinstance(o, Mapping) and o.get("mating_type") is not None for o in organisms_raw)
+        if stamped or data.get("mating_seed") is not None or "mating_snapshot_digest" in data:
+            if data.get("mating_snapshot_digest") != _mating_snapshot_digest(data):
+                raise ConfigurationError("stored mating snapshot was edited or has no integrity digest; it cannot be reset.")
+        if "generation" not in data:
+            # A missing generation would default to 0 and pass the
+            # generation-0 guard on mating types.
+            raise ConfigurationError("population snapshot has no generation.")
         return cls(
             generation=_int(data, "generation", 0),
             tick=_int(data, "tick", 0),
@@ -882,11 +906,26 @@ class PopulationState:
             materials=MaterialsState.from_dict(mat_raw)
             if isinstance((mat_raw := data.get("materials")), Mapping)
             else None,
+            mating_seed=seed_raw if isinstance((seed_raw := data.get("mating_seed")), int) else None,
         )
 
     def digest(self) -> str:
         payload = finite_json_dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _mating_snapshot_digest(data: Mapping[str, JsonValue]) -> str:
+    """Checksum serialized mating snapshots before restoring mutable fields.
+
+    This detects accidental edits, including a seed whose type draws happen
+    to agree with every stored type. It is not authentication: rewriting the
+    data and recomputing the checksum is outside the snapshot trust boundary.
+    Untyped, sexes-off snapshots keep their existing representation.
+    """
+
+    content = {key: value for key, value in data.items() if key != "mating_snapshot_digest"}
+    payload = finite_json_dumps(content, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def create_population_with_unique_ids(
@@ -1680,6 +1719,15 @@ class PopulationConfigs:
         if self.newborn_protection_policy not in {"none", "protect_until_first_evaluation"}:
             msg = "newborn_protection_policy must be none or protect_until_first_evaluation."
             raise ConfigurationError(msg)
+        if (
+            self.sexual_recombination.hermaphrodite_selfing
+            and float(getattr(self.closed_loop_hp_life, "selfing_birth_atp_endowment", 0.0)) != 0.0
+        ):
+            # Like-for-like arms: a selfed child gets the same endowment rule as
+            # an outcrossed one (parent residual x offspring_atp_fraction), with
+            # no extra ATP term for selfing.
+            msg = "hermaphrodite_selfing requires closed_loop_hp_life.selfing_birth_atp_endowment == 0."
+            raise ConfigurationError(msg)
         legacy_overrides: dict[str, object] = {}
         if self.fatal_alive_reasons != ("negative_runtime_atp",):
             legacy_overrides["fatal_alive_reasons"] = self.fatal_alive_reasons
@@ -2219,20 +2267,107 @@ def _blocked_reproduction_result(
     )
 
 
+def _meiosis_crossover_gate(prob: float, rng: RNGManager) -> bool:
+    """Crossover gate of one meiosis: True with probability ``prob``.
+
+    Every meiosis passes its own named stream, so gates of different meioses
+    are independent and fixed by the seed. No draw is made when ``prob`` is 0
+    or at least 1, so the default path (1.0) consumes no extra randomness.
+    """
+
+    if prob <= 0.0:
+        return False
+    if prob >= 1.0:
+        return True
+    return rng.random() < prob
+
+
+def _selfing_crossover_gates(
+    sexual_cfg: SexualRecombinationConfig, rng: RNGManager
+) -> tuple[bool, bool]:
+    """Crossover gates of the two meioses in a selfing parent, each from its
+    own stream (``meiosis/a/gate`` and ``meiosis/b/gate``)."""
+
+    prob = sexual_cfg.recombination_prob
+    return (
+        _meiosis_crossover_gate(prob, rng.fork("meiosis/a/gate")),
+        _meiosis_crossover_gate(prob, rng.fork("meiosis/b/gate")),
+    )
+
+
+def _self_fertilisation_record(
+    organism: GenesisOrganism,
+    sexual_cfg: SexualRecombinationConfig,
+    rng: RNGManager,
+) -> RecombinationRecord | None:
+    """Fuse two gametes of one hermaphrodite.
+
+    With ``diploid_meiosis`` this is meiosis twice in the same parent, then
+    fertilisation: two independent gametes (segregation plus a crossover, each
+    meiosis with its own ``recombination_prob`` gate) become the child's two homologs, so the child
+    has the parent's length and is homozygous at a parental heterozygous locus
+    with probability one half. Without it the genome is haploid, both gametes
+    equal the parent genome and the positional fusion leaves the bits
+    unchanged; ``None`` is returned when that crossover is skipped or has no
+    overlapping codon. The record names the two gametes; the lineage of the
+    selfed child names the parent as both parents.
+    """
+
+    bits = organism.genome.to_compact()
+    width = organism.genome.spec.codon_width
+    digest = organism.genome.digest()
+    if sexual_cfg.diploid_meiosis:
+        gate_a, gate_b = _selfing_crossover_gates(sexual_cfg, rng)
+        egg = meiotic_gamete(bits, width, rng.fork("meiosis/a"), crossover=gate_a)
+        pollen = meiotic_gamete(bits, width, rng.fork("meiosis/b"), crossover=gate_b)
+        return fertilisation_record(
+            own_id=f"{organism.id}:gamete_a",
+            mate_id=f"{organism.id}:gamete_b",
+            own_gamete=egg,
+            mate_gamete=pollen,
+            own_digest=digest,
+            mate_digest=digest,
+            codon_width=width,
+            parent_codon_count=len(bits) // max(1, width),
+            rng=rng.fork("fertilisation"),
+        )
+    crossover = sexual_cfg.recombination_prob > 0.0 and (
+        sexual_cfg.recombination_prob >= 1.0
+        or rng.fork("birth_chamber").random() < sexual_cfg.recombination_prob
+    )
+    if not crossover:
+        return None
+    try:
+        record_a, _ = recombine_positional_segment_pair(
+            parent_a_id=f"{organism.id}:gamete_a",
+            parent_b_id=f"{organism.id}:gamete_b",
+            parent_a_bits=bits,
+            parent_b_bits=bits,
+            parent_a_genome_digest=SemanticGenome.from_compact(bits).digest(),
+            parent_b_genome_digest=SemanticGenome.from_compact(bits).digest(),
+            rng=rng.fork("recombination"),
+            codon_width=width,
+        )
+    except ValueError:
+        return None
+    return record_a
+
+
 def _fertilise(
     own: IncipientOffspring,
     mate: IncipientOffspring,
     stream: RNGManager,
     *,
-    crossover: bool,
+    recombination_prob: float,
 ) -> RecombinationRecord | None:
     """One zygote: a gamete from ``own`` (even homolog) fused with one from ``mate``.
 
     When both slots come from one parent the two gametes are still two
     independent meioses of that parent (selfing), so the child segregates;
-    the record then names the mate gamete ``<parent>:self_gamete``.
-    ``crossover`` comes from ``recombination_prob``; below 1 it departs from
-    obligate crossover.
+    the record then names the mate gamete ``<parent>:self_gamete``. Each
+    meiosis draws its own crossover gate from ``recombination_prob`` (see
+    :func:`_meiosis_crossover_gate`); below 1 it departs from obligate
+    crossover. Fusion always happens.
     """
 
     mate_id = mate.parent_id
@@ -2243,13 +2378,17 @@ def _fertilise(
         own.genome_bits,
         width,
         stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/own"),
-        crossover=crossover,
+        crossover=_meiosis_crossover_gate(
+            recombination_prob, stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/own/gate")
+        ),
     )
     mate_gamete = meiotic_gamete(
         mate.genome_bits,
         width,
         stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/mate"),
-        crossover=crossover,
+        crossover=_meiosis_crossover_gate(
+            recombination_prob, stream.fork(f"meiosis/{own.slot_id}/{mate.slot_id}/mate/gate")
+        ),
     )
     return fertilisation_record(
         own_id=own.parent_id,
@@ -3011,6 +3150,8 @@ def step_population(
         msg = "step_population currently expects a World2D instance."
         raise ConfigurationError(msg)
     stream = _resolve_rng(seed=seed, rng=rng, namespace="genesis/population")
+    _check_mating_seed_start(population, configs.effective_sexual_config)
+    mating_seed = population.mating_seed if population.mating_seed is not None else stream.seed
     working_world = world.clone()
     world_before_digest = world.digest()
     resources_before = dict(working_world.resources)
@@ -3070,6 +3211,7 @@ def step_population(
     chamber_rng = stream.fork("birth_chamber") if sexual_cfg.uses_birth_chamber else None
     if sexual_cfg.uses_birth_chamber and chamber_rng is not None:
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            mating_seed=mating_seed,
             waiting=waiting,
             configs=configs,
             sexual_cfg=sexual_cfg,
@@ -3607,11 +3749,18 @@ def step_population(
                     life,
                     chamber_available=sexual_cfg.uses_birth_chamber,
                 )
+                hermaphrodite_selfs = (
+                    sexual_cfg.mating_types_enabled
+                    and copy_mode == "asexual"
+                    and not organism.asexual_lineage
+                    and can_self(_organism_mating_type(organism, mating_seed, sexual_cfg), sexual_cfg)
+                )
                 if (
                     refusal is None
                     and sexual_cfg.mating_types_enabled
                     and copy_mode == "asexual"
                     and not organism.asexual_lineage
+                    and not hermaphrodite_selfs
                 ):
                     refusal = SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL
                 if refusal is not None:
@@ -3650,6 +3799,7 @@ def step_population(
                         blocked_reproduction,
                         queued_event,
                     ) = _handle_chamber_copy_self(
+                        mating_seed=mating_seed,
                         organism=organism,
                         event=event,
                         configs=configs,
@@ -3754,7 +3904,16 @@ def step_population(
                     structural_mutation_config=configs.structural_mutation,
                     world=working_world,
                     live_positions=live_positions,
-                    mate=mate,
+                    mate=organism if hermaphrodite_selfs else mate,
+                    recombination_record=(
+                        _self_fertilisation_record(
+                            organism,
+                            sexual_cfg,
+                            stream.fork(f"selfing/{organism.id}/{current_tick}"),
+                        )
+                        if hermaphrodite_selfs
+                        else None
+                    ),
                 )
                 if reproduction_result.succeeded and reproduction_result.child is not None:
                     births += 1
@@ -3817,6 +3976,8 @@ def step_population(
                     if placed_child is None:
                         raise RuntimeError("finalized reproduction unexpectedly lost child")
                     child = placed_child
+                    if hermaphrodite_selfs:
+                        child.selfed = True
                     children.append(child)
                     life = configs.closed_loop_hp_life
                     plugin = _life_plugin()
@@ -3828,7 +3989,10 @@ def step_population(
                         )
                     live_positions[child.id] = child.position
                     if reproduction_result.lineage is not None:
-                        lineage += (reproduction_result.lineage,)
+                        record = reproduction_result.lineage
+                        if hermaphrodite_selfs and record.second_parent_id is not None:
+                            record = replace(record, second_parent_id=organism.id)
+                        lineage += (record,)
                     _replace_last_event(
                         trace,
                         _with_reproduction_delta(
@@ -4066,6 +4230,7 @@ def step_population(
             placements=birth_placements,
         )
         waiting, lineage, births, deaths, _, _ = _drain_chamber_pairs(
+            mating_seed=mating_seed,
             waiting=waiting,
             configs=configs,
             sexual_cfg=sexual_cfg,
@@ -4304,6 +4469,8 @@ def step_population(
         deme=working_deme_state if configs.phase_e.enabled and configs.phase_e.demes.enabled else None,
         materials=mat_state if mat_cfg.enabled else None,
     )
+    if sexual_cfg.mating_types_enabled:
+        next_population = _stamp_mating_types(next_population, mating_seed, sexual_cfg)
     working_world.agent_position = None
     world_after_digest = working_world.digest()
     causal_summary = _build_population_causal_summary(next_organisms, records)
@@ -4892,6 +5059,8 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         capsule_nav_target=organism.capsule_nav_target,
         last_task_class=getattr(organism, "last_task_class", None),
         asexual_lineage=organism.asexual_lineage,
+        selfed=organism.selfed,
+        mating_type=organism.mating_type,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
@@ -5068,6 +5237,10 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         payload["genome_spans"] = [span.to_dict() for span in organism.genome.spans]
     if organism.asexual_lineage:
         payload["asexual_lineage"] = True
+    if organism.selfed:
+        payload["selfed"] = True
+    if organism.mating_type is not None:
+        payload["mating_type"] = organism.mating_type
     phase_e_state = getattr(organism, "phase_e_state", None)
     if phase_e_state is not None and hasattr(phase_e_state, "to_dict"):
         payload["phase_e_state"] = phase_e_state.to_dict()
@@ -5119,6 +5292,12 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     organism._cursor = _int(data, "cursor", 0)
     organism._step_index = _int(data, "step_index", 0)
     organism.asexual_lineage = data.get("asexual_lineage") is True
+    selfed = data.get("selfed", False)
+    if not isinstance(selfed, bool):
+        raise ConfigurationError(f"selfed must be a JSON boolean, got {selfed!r}.")
+    organism.selfed = selfed
+    stored_type = data.get("mating_type")
+    organism.mating_type = stored_type if isinstance(stored_type, str) else None
     phase_e_raw = data.get("phase_e_state")
     if isinstance(phase_e_raw, Mapping):
         from codontrace.genesis.phase_e import PhaseEOrganismState
@@ -5632,6 +5811,87 @@ def _commit_newborn(
 SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
 
 
+def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombinationConfig) -> None:
+    """Refuse a mating-type start that is not the run's first step.
+
+    Without a mating seed the population must be fresh: generation 0, tick 0
+    and no lineage (a snapshot edited back to generation 0 still has its tick
+    and lineage). With a mating seed every sexual organism must already carry
+    its stored type, since each sexes-on step stamps them; a seed injected
+    into a sexes-off snapshot fails this.
+
+    A sexes-on snapshot cannot be restarted either: organisms that carry a
+    stored mating type with no mating seed show a reset snapshot, and a
+    stored type of a non-selfed organism that differs from the draw for its
+    id under the mating seed shows an edited seed. Both are refused.
+
+    Serialized sexes-on snapshots also carry an integrity checksum checked
+    by from_dict, including when an edited seed gives identical stored types.
+    A coordinated rewrite with a recomputed checksum is outside the trust
+    boundary: the checksum detects edits but does not authenticate a sender.
+    """
+
+    if not sexual.mating_types_enabled:
+        return
+    if population.mating_seed is None:
+        typed = [o.id for o in population.organisms if o.mating_type is not None]
+        if typed:
+            msg = (
+                f"organism {typed[0]!r} has a stored mating type but the population "
+                "has no mating_seed; a sexes-on snapshot cannot be reset."
+            )
+            raise ConfigurationError(msg)
+        if population.generation > 0 or population.tick > 0 or population.lineage:
+            msg = (
+                "mating types must be enabled from generation 0; enabling sexes "
+                "mid-run is not supported."
+            )
+            raise ConfigurationError(msg)
+        return
+    unstamped = [
+        o.id for o in population.organisms if o.mating_type is None and not o.asexual_lineage
+    ]
+    if unstamped:
+        msg = (
+            "population has a mating_seed but organisms without a stored mating "
+            f"type ({unstamped[0]!r}); the seed was not set by a sexes-on step."
+        )
+        raise ConfigurationError(msg)
+    for organism in population.organisms:
+        if organism.mating_type is None or organism.selfed or organism.asexual_lineage:
+            continue
+        if organism.mating_type != draw_mating_type(population.mating_seed, organism.id, sexual):
+            msg = (
+                f"stored mating type of {organism.id!r} does not match the mating_seed; "
+                "the seed of a sexes-on snapshot was edited."
+            )
+            raise ConfigurationError(msg)
+
+
+def _stamp_mating_types(
+    population: PopulationState, mating_seed: int | None, sexual: SexualRecombinationConfig
+) -> PopulationState:
+    """Fix each organism's sex once: founders on their first step, newborns at birth."""
+
+    for organism in population.organisms:
+        if organism.mating_type is None and not organism.asexual_lineage:
+            organism.mating_type = _organism_mating_type(organism, mating_seed, sexual)
+    return replace(population, mating_seed=mating_seed)
+
+
+def _organism_mating_type(
+    organism: GenesisOrganism, seed: int | None, sexual: SexualRecombinationConfig
+) -> str:
+    """Stored type first (fixed for life); a selfed organism is a hermaphrodite;
+    otherwise the type is drawn from the run-seed stream for its id."""
+
+    if organism.mating_type is not None:
+        return organism.mating_type
+    if organism.selfed:
+        return MATING_TYPE_HERMAPHRODITE
+    return draw_mating_type(seed, organism.id, sexual)
+
+
 def mating_type_of(
     population: PopulationState,
     organism_id: str,
@@ -5641,8 +5901,11 @@ def mating_type_of(
 ) -> str:
     """Read-only mating type of a live organism for the run ``seed``.
 
-    Returns ``"asexual"`` for the designated asexual founder lineage. The value
-    is recomputed from the seed and id; nothing is stored in the population.
+    Returns ``"asexual"`` for the designated asexual founder lineage. Otherwise
+    the type stored on the organism at birth is returned, so sex is fixed for
+    life; a selfed organism is a hermaphrodite; only an organism with no stored
+    type falls back to a draw from the run-seed stream for its id. This call
+    never writes to the population.
     """
 
     if not sexual.mating_types_enabled:
@@ -5651,7 +5914,8 @@ def mating_type_of(
         if organism.id == organism_id:
             if organism.asexual_lineage:
                 return ASEXUAL_LINEAGE_TYPE
-            return draw_mating_type(seed, organism_id, sexual)
+            run_seed = population.mating_seed if population.mating_seed is not None else seed
+            return _organism_mating_type(organism, run_seed, sexual)
     raise ConfigurationError(f"organism {organism_id!r} is not in the population.")
 
 
@@ -5672,6 +5936,7 @@ def mating_type_census(
 
 def _drain_chamber_pairs(
     *,
+    mating_seed: int | None,
     waiting: list[IncipientOffspring],
     configs: PopulationConfigs,
     sexual_cfg: SexualRecombinationConfig,
@@ -5697,8 +5962,12 @@ def _drain_chamber_pairs(
     )
     mate_counts: dict[str, int] = {}
     mating_types: MatingTypeMap | None = (
-        MatingTypeMap(stream.seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
+        MatingTypeMap(mating_seed, sexual_cfg) if sexual_cfg.mating_types_enabled else None
     )
+    if mating_types is not None:
+        for known in (*survivors, *pending, *children):
+            if known.mating_type is not None or known.selfed:
+                mating_types.pin(known.id, _organism_mating_type(known, mating_seed, sexual_cfg))
     while True:
         life = configs.closed_loop_hp_life
         radius = life.mate_search_radius
@@ -5743,16 +6012,18 @@ def _drain_chamber_pairs(
         do_recombine = True
         if sexual_cfg.recombination_prob <= 0.0:
             do_recombine = False
-        elif sexual_cfg.recombination_prob < 1.0:
+        elif sexual_cfg.recombination_prob < 1.0 and not sexual_cfg.diploid_meiosis:
             do_recombine = chamber_rng.random() < sexual_cfg.recombination_prob
         record_a: RecombinationRecord | None = None
         record_b: RecombinationRecord | None = None
         if sexual_cfg.diploid_meiosis:
             # Meiosis then fertilisation: each zygote fuses one fresh gamete
             # from each parent, so the diploid genome length is conserved.
-            # recombination_prob gates meiotic crossover; syngamy always occurs.
-            record_a = _fertilise(first, second, stream, crossover=do_recombine)
-            record_b = _fertilise(second, first, stream, crossover=do_recombine)
+            # recombination_prob gates each meiosis's crossover with its own
+            # draw; syngamy always occurs.
+            prob = sexual_cfg.recombination_prob
+            record_a = _fertilise(first, second, stream, recombination_prob=prob)
+            record_b = _fertilise(second, first, stream, recombination_prob=prob)
         elif do_recombine:
             try:
                 record_a, record_b = recombine_positional_segment_pair(
@@ -5963,6 +6234,7 @@ def _expire_chamber_waiters(
 
 def _handle_chamber_copy_self(
     *,
+    mating_seed: int | None,
     organism: GenesisOrganism,
     event: TraceEvent,
     configs: PopulationConfigs,
@@ -6178,6 +6450,7 @@ def _handle_chamber_copy_self(
     )
     waiting.append(slot)
     waiting, lineage, births, deaths, pair_result, placed_ids = _drain_chamber_pairs(
+        mating_seed=mating_seed,
         waiting=waiting,
         configs=configs,
         sexual_cfg=sexual_cfg,

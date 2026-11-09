@@ -60,6 +60,75 @@ ALLOWED = {
     # File-integrity hashes of a snapshot file whose name contains a seed.
     ("genesis/rq_bidirectional_timeshift.py", "sample_path"),
 }
+# Allowed only inside the named functions of a module, by qualified name
+# (Class.method or module-level function). PopulationState.to_dict stores the
+# run seed used for mating types as a record field (mating_seed), so the record
+# digests in population.py hash a payload that carries it. These are state
+# digests and event ids, never random values; a seeded ``payload`` hash in any
+# other function, including a same-named function elsewhere, is an offender.
+ALLOWED_IN_FUNCTIONS = {
+    ("genesis/population.py", "payload"): frozenset(
+        {
+            "MutationResult.digest",
+            "PopulationState.digest",
+            "_mating_snapshot_digest",
+            "GenerationResult.digest",
+            "_reproduction_event_id",
+        }
+    ),
+}
+# Exempt call sites expected in each module; a new one must be reviewed.
+EXEMPT_SITE_COUNT = {("genesis/population.py", "payload"): 5}
+
+
+def _qualified_defs(tree: ast.AST) -> list[tuple[ast.AST, str]]:
+    out: list[tuple[ast.AST, str]] = []
+
+    def walk(node: ast.AST, prefix: list[str]) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                qual = [*prefix, child.name]
+                if not isinstance(child, ast.ClassDef):
+                    out.append((child, ".".join(qual)))
+                walk(child, qual)
+            else:
+                walk(child, prefix)
+
+    walk(tree, [])
+    return out
+
+
+def _enclosing_function(tree: ast.AST, line: int) -> str | None:
+    """Qualified name of the innermost function containing ``line``."""
+    best: tuple[int, str] | None = None
+    for node, qual in _qualified_defs(tree):
+        start = getattr(node, "lineno", 0)
+        end = getattr(node, "end_lineno", None) or start
+        if start <= line <= end and (best is None or start > best[0]):
+            best = (start, qual)
+    return best[1] if best else None
+
+
+def exempt_sites(rel: str, tree: ast.AST) -> list[str]:
+    allowed = {name: quals for (path, name), quals in ALLOWED_IN_FUNCTIONS.items() if path == rel}
+    return [
+        f"{rel}:{line} ({name})"
+        for line, name in seeded_hash_calls(tree)
+        if _enclosing_function(tree, line) in allowed.get(name, frozenset())
+    ]
+
+
+def offenders_in(rel: str, tree: ast.AST) -> list[str]:
+    """Seeded hash calls in module ``rel`` that no allow-list entry covers."""
+
+    found = []
+    for line, name in seeded_hash_calls(tree):
+        if (rel, name) in ALLOWED:
+            continue
+        if _enclosing_function(tree, line) in ALLOWED_IN_FUNCTIONS.get((rel, name), frozenset()):
+            continue
+        found.append(f"{rel}:{line} ({name})")
+    return found
 
 
 def _is_seed_name(name: str) -> bool:
@@ -338,10 +407,54 @@ def test_no_module_outside_rng_hashes_its_own_random_stream() -> None:
         rel = path.relative_to(SRC).as_posix()
         if rel == "rng.py":
             continue
-        for line, name in seeded_hash_calls(ast.parse(path.read_text(encoding="utf-8"))):
-            if (rel, name) not in ALLOWED:
-                offenders.append(f"{rel}:{line} ({name})")
+        offenders.extend(offenders_in(rel, ast.parse(path.read_text(encoding="utf-8"))))
     assert offenders == [], offenders
+
+
+def test_seeded_payload_hash_elsewhere_in_population_is_caught() -> None:
+    """The population.py allow-list covers only its digest functions.
+
+    A random draw made by hashing a seeded ``payload`` in any other function of
+    the same module must still be reported.
+    """
+    rel = "genesis/population.py"
+    text = (SRC / rel).read_text(encoding="utf-8")
+    assert offenders_in(rel, ast.parse(text)) == []
+    mutant = text + (
+        "\n\ndef _planted_draw(seed):\n"
+        "    payload = f'{seed}|mate'\n"
+        "    return hashlib.sha256(payload.encode('utf-8')).digest()[0]\n"
+    )
+    hits = offenders_in(rel, ast.parse(mutant))
+    assert len(hits) == 1 and hits[0].endswith("(payload)"), hits
+
+
+def test_population_exempt_site_count_is_exact() -> None:
+    """Exactly the reviewed digest call sites are exempt; adding one needs review."""
+    rel = "genesis/population.py"
+    tree = ast.parse((SRC / rel).read_text(encoding="utf-8"))
+    assert len(exempt_sites(rel, tree)) == EXEMPT_SITE_COUNT[(rel, "payload")]
+
+
+@pytest.mark.parametrize(
+    "planted",
+    [
+        "\n\ndef digest(seed):\n    payload = f'{seed}|mate'\n"
+        "    return hashlib.sha256(payload.encode('utf-8')).digest()[0]\n",
+        "\n\nclass Planted:\n    def _reproduction_event_id(self, seed):\n"
+        "        payload = f'{seed}|mate'\n"
+        "        return hashlib.sha256(payload.encode('utf-8')).digest()[0]\n",
+    ],
+    ids=["module-level-digest", "event-id-on-new-class"],
+)
+def test_same_named_function_elsewhere_is_not_exempt(planted: str) -> None:
+    """A bare-name match is not enough: the exemption is keyed on the
+    qualified name, so a seeded payload hash in a module-level ``digest`` or in
+    a ``_reproduction_event_id`` method of a new class is reported."""
+    rel = "genesis/population.py"
+    text = (SRC / rel).read_text(encoding="utf-8")
+    hits = offenders_in(rel, ast.parse(text + planted))
+    assert len(hits) == 1 and hits[0].endswith("(payload)"), hits
 
 
 @pytest.mark.parametrize(

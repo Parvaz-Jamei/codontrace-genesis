@@ -10,6 +10,13 @@
   gametes as the child's homologs, so length is conserved. A pair from one
   parent (selfing) also goes through meiosis and fusion. With the flag off
   every digest is unchanged; no earlier results used it.
+- Bug fix, hermaphrodite selfing with `diploid_meiosis`: a selfed child was
+  the parent's even homolog alone, so the genome halved each selfed
+  generation. Selfing is now two meioses of the parent and a fusion of the
+  two gametes, so length is kept and heterozygosity halves per selfed
+  generation. Each of the two meioses draws its own crossover gate from its
+  own RNG stream when `recombination_prob` is between 0 and 1. Default-path
+  digests are unchanged.
 
 ## [0.3.0b30] — 2026-10-11
 

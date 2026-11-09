@@ -13,10 +13,11 @@ set ``red_queen_proved``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from codontrace.dynvalues import same_int
+from codontrace.dynvalues import same_float, same_int
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.canonical import canonical_digest
@@ -47,6 +48,7 @@ from codontrace.genesis.population import (
     PopulationConfigs,
     PopulationState,
     ReproductionConfig,
+    mating_type_of,
 )
 from codontrace.genesis.population_runner import PopulationRunner
 from codontrace.genesis.runtime_profiles import LIFE_LOOP_EATER_GENOME
@@ -82,6 +84,33 @@ def _ledger_reasons(organism: GenesisOrganism) -> list[str]:
     return reasons
 
 
+def birth_modes_and_m(
+    births: Sequence[tuple[str, str | None, str | None]],
+) -> tuple[dict[str, int], float | None]:
+    """Split births into selfed, outcrossed and uniparental; return the prereg m.
+
+    Each birth is (child mating type, parent id, second parent id). A selfed
+    birth names the parent twice; uniparental has no second parent. m is sons
+    over births of outcrossing parents (None with none); selfed and
+    uniparental births are left out. Used as 1/(1-m) for the cost of males,
+    this assumes all sexual output is outcrossed; the selfed share is reported
+    separately.
+    """
+
+    modes = {"selfed": 0, "outcrossed": 0, "uniparental": 0}
+    outcross_sons = 0
+    for kind, parent_id, second_parent_id in births:
+        if second_parent_id is None:
+            modes["uniparental"] += 1
+        elif second_parent_id == parent_id:
+            modes["selfed"] += 1
+        else:
+            modes["outcrossed"] += 1
+            outcross_sons += kind == "male"
+    m = outcross_sons / modes["outcrossed"] if modes["outcrossed"] else None
+    return modes, m
+
+
 @dataclass
 class ClosedLoopP5Session:
     """Outcross locus under step_generation. No host-parasite world clock."""
@@ -99,6 +128,9 @@ class ClosedLoopP5Session:
     outcross_ablate: bool = False
     outcross_bits: str = OUTCROSS_OUT_BITS
     _seen_outcross_debits: set[tuple[str, int]] = field(default_factory=set)
+    _outcross_fee_amounts: dict[tuple[str, int], float] = field(default_factory=dict)
+    _offspring_endowments: dict[str, tuple[str, float]] = field(default_factory=dict)
+    _census_rows: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def boot(
@@ -218,7 +250,9 @@ class ClosedLoopP5Session:
             for entry in ledger:
                 if not isinstance(entry, dict) or entry.get("reason") != "outcross_runtime_cost":
                     continue
-                self._seen_outcross_debits.add((org.id, same_int(entry["entry_id"])))
+                key = (org.id, same_int(entry["entry_id"]))
+                self._seen_outcross_debits.add(key)
+                self._outcross_fee_amounts[key] = same_float(entry["amount"])
         self.outcross_debit_events = len(self._seen_outcross_debits)
 
     def _record_births(self, result: GenerationResult) -> None:
@@ -230,6 +264,10 @@ class ClosedLoopP5Session:
                 continue
             rec = lineage_by_id.get(org.id)
             self.total_births += 1
+            self._offspring_endowments[org.id] = (
+                org.mating_type or "none",
+                same_float(org.atp_state.runtime.to_dict()["initial_atp"]),
+            )
             if rec is not None and rec.second_parent_id and rec.recombination_window_differed:
                 self.recombination_births += 1
             else:
@@ -253,10 +291,14 @@ class ClosedLoopP5Session:
     def run_ticks(self, ticks: int) -> dict[str, Any]:
         if ticks < 0:
             raise ConfigurationError("ticks must be non-negative")
+        if not self._census_rows and self.tick_index == 0:
+            self._record_census(None, len(self._offspring_endowments))
         for _ in range(ticks):
             result = self.runner.step_generation(seed=self.seed + self.tick_index)
             self.tick_index += 1
+            births_before = len(self._offspring_endowments)
             self._record_births(result)
+            self._record_census(result, births_before)
             self._scan_debits()
             assert_single_atp_owner(
                 self.runner.population.organisms,
@@ -305,6 +347,114 @@ class ClosedLoopP5Session:
             ],
         }
         return canonical_digest(payload, prefix="clp5snap")
+
+    def mating_fee_ledger(self) -> dict[str, Any]:
+        """The outcross mating fee as its own ledger term.
+
+        Each outcross copy pays ``outcross_runtime_atp`` (1.0 by default) from
+        the runtime account, written as an ``outcross_runtime_cost`` row. This
+        term is booked apart from any cost of sons, so the two costs of the
+        outcross arm can be read separately. Not part of the snapshot digest.
+        """
+
+        return {
+            "term": "outcross_mating_fee",
+            "ledger_reason": "outcross_runtime_cost",
+            "events": len(self._seen_outcross_debits),
+            "atp": round(sum(self._outcross_fee_amounts.values()), 10),
+        }
+
+    def _record_census(self, result: GenerationResult | None, births_before: int) -> None:
+        population = result.population if result is not None else self.runner.population
+        counts: dict[str, int] = {}
+        sexual = self.runner.configs.effective_sexual_config
+        for org in population.organisms:
+            if org.asexual_lineage:
+                kind = "asexual"
+            elif org.mating_type is None and sexual.mating_types_enabled:
+                # Founders before their first step: the type the first step
+                # stores (drawn from the run seed, which is this session seed).
+                kind = mating_type_of(population, org.id, seed=self.seed, sexual=sexual)
+            else:
+                kind = org.mating_type or "none"
+            counts[kind] = counts.get(kind, 0) + 1
+        lineage_by_id = {rec.organism_id: rec for rec in population.lineage}
+        new = list(self._offspring_endowments.items())[births_before:]
+        births_seen: list[tuple[str, str | None, str | None]] = []
+        for child_id, (child_kind, _atp) in new:
+            rec = lineage_by_id.get(child_id)
+            births_seen.append(
+                (
+                    child_kind,
+                    rec.parent_id if rec is not None else None,
+                    rec.second_parent_id if rec is not None else None,
+                )
+            )
+        modes, m_value = birth_modes_and_m(births_seen)
+        sons = sum(1 for _, (kind, _atp) in new if kind == "male")
+        breeders = sum(n for kind, n in counts.items() if kind != "male")
+        self._census_rows.append(
+            {
+                "generation": self.tick_index,
+                "census": len(population.organisms),
+                "counts": dict(sorted(counts.items())),
+                "male_share_population": counts.get("male", 0) / len(population.organisms)
+                if population.organisms
+                else 0.0,
+                "breeders": breeders,
+                "births": len(new),
+                "sons_born": sons,
+                "m": m_value,
+                "son_atp": round(float(sum(atp for _, (kind, atp) in new if kind == "male")), 10),
+                **modes,
+            }
+        )
+
+    def census(self) -> list[dict[str, Any]]:
+        """Per-generation census, the founders as generation 0, then one row
+        after each step: counts by mating type
+        (``asexual`` for the asexual founder lineage), ``male_share_population``
+        (males over census), breeders
+        (non-males), births split into selfed, outcrossed and uniparental, and
+        sons born with their ATP, and ``m`` (sons over outcrossed births, the
+        prereg m; None with no outcrossed births). Not part of the snapshot digest."""
+
+        return [dict(row) for row in self._census_rows]
+
+    def e1_counts(self, kind: str = "asexual") -> tuple[list[int], list[int], list[int]]:
+        """Generation, count of ``kind`` and census per generation, the input
+        of the prereg E1 slope fit (count out of census against generation)."""
+
+        rows = self._census_rows
+        return (
+            [int(row["generation"]) for row in rows],
+            [int(row["counts"].get(kind, 0)) for row in rows],
+            [int(row["census"]) for row in rows],
+        )
+
+    def son_cost_ledger(self) -> dict[str, Any]:
+        """The cost of sons as its own ledger term, apart from the mating fee.
+
+        A son cannot bear offspring, so the runtime ATP a parent gives a male
+        newborn is the allocation the cost of males refers to. Each newborn's
+        endowment is its initial runtime ATP; the term sums it over sons and
+        reports the son share of offspring and of offspring ATP. A selfing or
+        hermaphrodite-only arm makes no sons, so its term is zero. Not part
+        of the snapshot digest.
+        """
+
+        sons = [atp for kind, atp in self._offspring_endowments.values() if kind == "male"]
+        offspring_atp = sum(atp for _, atp in self._offspring_endowments.values())
+        count = len(self._offspring_endowments)
+        return {
+            "term": "son_allocation",
+            "sons": len(sons),
+            "offspring": count,
+            "atp": round(sum(sons), 10),
+            "offspring_atp": round(offspring_atp, 10),
+            "son_fraction": len(sons) / count if count else 0.0,
+            "son_atp_fraction": round(sum(sons) / offspring_atp, 10) if offspring_atp else 0.0,
+        }
 
     def summary(self) -> dict[str, Any]:
         return {

@@ -165,7 +165,8 @@ SINGLE_FAILURES = [
     # side as the effect) while copassaged minus frozen stays near -0.13 and significant.
     ("d_diversity", dict(frozen_minus_fixed=-0.12), {"d"}, "rq_consistent"),
     # (d) E4: host effect +0.05 (95% interval above 0, against the cycling sign) and parasite effect 0.
-    ("d_window_sign", dict(e4={"host_effect": 0.05, "parasite_effect": 0.0}), {"d"}, "none"),
+    # Typed rq_consistent only needs any excluding window (PREREG section 2); expected sign is (d) alone.
+    ("d_window_sign", dict(e4={"host_effect": 0.05, "parasite_effect": 0.0}), {"d"}, "rq_consistent"),
     # (d) tax: uniform tax minus fixed -0.2, same side as the effect and outside +-0.10.
     ("d_tax", dict(tax_minus_fixed=-0.2), {"d"}, "none"),
 ]
@@ -251,6 +252,83 @@ def test_holm_bca_level_follows_the_step() -> None:
     verdict = evaluate_jr5_verdict(ev)
     assert verdict.conditions["b"] is False
     assert verdict.outcome == "inconclusive"
+    assert verdict.red_queen_proved is False
+
+
+
+
+@pytest.mark.parametrize("n_low", [200, 50], ids=["N200_low", "N50_low"])
+def test_low_virulence_disagreement_on_positive_path_is_inconclusive(n_low: int) -> None:
+    """All four E2 family members must agree; a disagreeing low contrast blocks the claim.
+
+    Derived from the same right-skewed lattice used in the Holm BCa step test:
+    deltas = -0.022 + 0.0625 * z with z the standardised exponential scores of
+    length 60. The paired t two-sided p-value is 0.008413206354653575, which is
+    below the Holm step-3 alpha 0.025, while the matching 97.5% BCa interval
+    [-0.03685881297959533, 0.000316852861967653] includes 0, so the call is
+    agree=False. On an otherwise qualifying positive (high contrasts still at
+    -0.25), PREREG section 3 and section 2 require ``inconclusive`` and the
+    flag must stay False; omitting the low family members would wrongly yield
+    ``rq_consistent`` with ``red_queen_proved=True``.
+    """
+
+    n = 60
+    w = [-math.log(1.0 - (i + 0.5) / n) for i in range(n)]
+    mean = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in w) / (n - 1))
+    deltas = [-0.022 + 0.0625 * (x - mean) / sd for x in w]
+    pair = _Paired(tuple(deltas), 12345, 10000)
+    assert pair.p_two_sided() == pytest.approx(0.008413206354653575, rel=1e-12)
+    bca = pair.bca(0.975)
+    assert bca.lo == pytest.approx(-0.03685881297959533, rel=1e-12)
+    assert bca.hi == pytest.approx(0.000316852861967653, rel=1e-12)
+    assert bca.side(0.0) == 0
+    ev = build(e2_deltas={(n_low, "low"): deltas})
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "inconclusive"
+    assert verdict.red_queen_proved is False
+    assert verdict.conditions["b"] is True  # high contrasts still pass Holm
+    with pytest.raises(ConfigurationError):
+        assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev)
+
+
+@pytest.mark.parametrize("n_low", [200, 50], ids=["N200_low_load", "N50_low_load"])
+def test_low_virulence_disagreement_on_load_path_is_inconclusive(n_low: int) -> None:
+    """Load attribution also depends on every E2 family member agreeing.
+
+    High-virulence E2 effects are planted at 0 (no invasion signal) and the
+    mutation-load arm is set to the load_consistent signature (+0.10 at every
+    rate plus slope 4). The same disagreeing low-virulence deltas as the
+    positive-path case (p = 0.008413, 97.5% BCa holding 0) make that family
+    member inconclusive. PREREG section 2 therefore returns ``inconclusive``
+    rather than ``load_consistent``.
+    """
+
+    n = 60
+    w = [-math.log(1.0 - (i + 0.5) / n) for i in range(n)]
+    mean = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in w) / (n - 1))
+    deltas = [-0.022 + 0.0625 * (x - mean) / sd for x in w]
+    zero = {(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0}
+    ev = build(e2_effect=zero, e2_deltas={(n_low, "low"): deltas}, load_effect=0.10, load_slope=4.0)
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "inconclusive"
+    assert verdict.red_queen_proved is False
+
+
+def test_wrong_sign_excluding_window_is_typed_rq_consistent() -> None:
+    """PREREG section 2 line 20: typed rq_consistent needs any CI excluding 0, not the cycling sign.
+
+    Host effect +0.05 with SD 0.05 gives a 95% interval above 0 (side +1), so
+    the expected-cycling sign check fails and condition (d) is False, but the
+    interval still excludes 0. The typed outcome is therefore ``rq_consistent``
+    while ``red_queen_proved`` stays False.
+    """
+
+    ev = build(e4={"host_effect": 0.05, "parasite_effect": 0.0})
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.outcome == "rq_consistent"
+    assert verdict.conditions["d"] is False
     assert verdict.red_queen_proved is False
 
 

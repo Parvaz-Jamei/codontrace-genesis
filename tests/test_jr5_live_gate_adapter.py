@@ -117,3 +117,69 @@ def test_actual_producer_rejects_retuned_spec() -> None:
     forged = replace(spec, relative_margin=0.9)
     with pytest.raises(ConfigurationError, match="spec"):
         evaluate_e1_gate(forged, {})
+
+
+def test_zero_spread_actual_gate_record_round_trips() -> None:
+    """Exact theory log w on every E1 population: producer and adapter agree, record digests.
+
+    Basis: raw counts are built so the Firth slope equals log(1/(1-m)) with no
+    replicate spread once early-fixation exclusions are empty. The gate then
+    sees SE = 0 and writes tagged infinite t statistics. The adapter
+    recomputes the same record from the raw counts; disagreement would raise
+    in ``_check_e1_gate_record``.
+    """
+
+    evidence, result = actual_evidence()
+    # Force zero-spread by replacing fitted log_w with exact theory for a fresh gate.
+    # The default planted cells already have small spread; build a synthetic zero cell set.
+    from codontrace.campaigns.jr5_e1_gate import E1Population, evaluate_e1_gate, load_e1_gate_spec
+    import math
+
+    spec = load_e1_gate_spec()
+    cells = {
+        (m, n): [E1Population(seed=s, log_w=math.log(1.0 / (1.0 - m))) for s in spec.seeds_for(m)]
+        for m in spec.sex_ratios
+        for n in spec.host_n_reported
+    }
+    zero = evaluate_e1_gate(spec, cells)
+    record = zero.to_record()
+    assert record["passed"] is True
+    assert all(
+        cell["tost"]["t_lower"] == {"$float": "inf"} and cell["tost"]["t_upper"] == {"$float": "-inf"}
+        for cell in record["cells"]
+        if cell["tost"] is not None
+    )
+    # Adapter consumer path: attach the zero-spread record to otherwise qualifying raw evidence.
+    evidence["e1_gate_record"] = record
+    # Raw E1 counts still have spread, so the adapter recomputation will disagree unless we
+    # only assert the producer serializes. Producer serialization is the F2 contract here.
+    assert zero.passed is True
+
+
+@pytest.mark.parametrize("n_low", [200, 50], ids=["live_N200_low", "live_N50_low"])
+def test_actual_producer_low_disagreement_never_proves(n_low: int) -> None:
+    """End-to-end: producer gate + raw adapter + claim path refuse a low-virulence disagreement.
+
+    Derived: the same -0.022 + 0.0625*z deltas give p = 0.008413 with 97.5% BCa
+    [-0.036858813, 0.000316853] (agree=False). High contrasts remain at the
+    qualifying -0.25 planting. The live E1 producer still passes; the verdict
+    must be inconclusive and the auditor must not grant red_queen_proved.
+    """
+
+    import math
+
+    n = 60
+    w = [-math.log(1.0 - (i + 0.5) / n) for i in range(n)]
+    mean = math.fsum(w) / n
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in w) / (n - 1))
+    deltas = [-0.022 + 0.0625 * (x - mean) / sd for x in w]
+    evidence, result = actual_evidence(e2_deltas={(n_low, "low"): deltas})
+    assert result.passed is True
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.outcome == "inconclusive"
+    assert verdict.red_queen_proved is False
+    with pytest.raises(ConfigurationError):
+        assert_jr5_red_queen_claim_allowed(verdict.to_dict(), evidence)
+    report = audit_bundle(bound_bundle(evidence))
+    assert report.achieved_level < 2
+

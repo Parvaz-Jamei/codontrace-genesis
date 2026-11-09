@@ -700,20 +700,11 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
 
 
 def _tost_record(values: Sequence[float], lo: float, hi: float, alpha: float) -> dict[str, Any]:
-    from codontrace.claimgate.power import t_cdf
+    """Same record as ``OneSampleTOSTResult.to_record``, including zero-spread t encoding."""
 
-    n = len(values)
-    mean, sd = _mean_sd(values)
-    se = sd / math.sqrt(n)
-    tl = (mean - lo) / se if se else math.copysign(math.inf, mean - lo) if mean != lo else 0.0
-    tu = (mean - hi) / se if se else math.copysign(math.inf, mean - hi) if mean != hi else 0.0
-    pl, pu = t_cdf(-tl, n - 1), t_cdf(tu, n - 1)
-    ci = _t_interval(values, 1.0 - 2.0 * alpha)
-    return {"test": "one_sample_tost", "n": n, "df": n - 1, "mean": mean, "sd": sd,
-            "standard_error": se, "lower_bound": lo, "upper_bound": hi, "alpha": alpha,
-            "t_lower": tl, "t_upper": tu, "p_lower": pl, "p_upper": pu, "p_value": max(pl, pu),
-            "ci_level": 1.0 - 2.0 * alpha, "ci_low": ci.lo, "ci_high": ci.hi,
-            "equivalent": pl < alpha and pu < alpha}
+    from codontrace.genesis.statistical_protocol import one_sample_tost
+
+    return one_sample_tost(values, lo, hi, alpha=alpha).to_record()
 
 
 def _same_analysis(actual: Any, expected: Any) -> bool:
@@ -858,9 +849,9 @@ def evaluate_jr5_verdict(evidence: Jr5Evidence | Mapping[str, Any]) -> Jr5Verdic
     # Typed outcome, in the prereg order (PREREG section 2).
     if not cond_a or not cond_e:
         outcome = names["fail"]
-    elif not all(c.agree for c in (*high, c_fixed, c_frozen)):
+    elif not all(c.agree for c in (*(calls[n] for n in _E2_TESTS), c_fixed, c_frozen)):
         outcome = names["inconclusive"]
-    elif cond_b and tax_out and c_frozen.significant and c_frozen.direction < 0 and windows_ok:
+    elif cond_b and tax_out and c_frozen.significant and c_frozen.direction < 0 and windows_any_excl:
         outcome = names["rq"]
     elif cond_b and (co_frozen.ci(eq_level).inside(-freq_margin, freq_margin) or not windows_any_excl):
         outcome = names["div"]

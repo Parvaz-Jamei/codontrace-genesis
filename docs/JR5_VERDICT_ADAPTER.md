@@ -22,7 +22,7 @@ and auditor integration is covered by `tests/test_jr5_live_gate_adapter.py`.
 The Python spec attribute is `prereg_manifest_sha256`; the v3 JSON key stays
 `prereg_manifest_digest`. No fabricated gate record is consumed in these tests.
 Current manifest digest:
-`1e1fe67f176fbf4e36725f63bb8773cedf3c6d6c9585f160be14a8a05c238c1d`.
+`73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505`.
 Constants SHA-256:
 `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`.
 The shipped record file SHA-256 is

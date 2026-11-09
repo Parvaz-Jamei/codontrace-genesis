@@ -7,9 +7,12 @@ draws no random numbers.
 
 Settings come only from the locked prereg constants file. ``load_e1_gate_spec``
 reads ``docs/prereg/jr5/jr5_prereg_constants.json`` and refuses it unless its
-sha256 equals the entry in ``record.json``, whose canonical manifest digest
-must match the code-pinned lock. The same hashed bytes are parsed. Both
-digests and the complete settings travel in every gate record.
+sha256 equals the entry in ``record.json``. The code pin is the plan digest
+(``hash_plan`` over every manifest file except ``DEVIATIONS.md``); the
+append-only deviations log is checked separately so logging a deviation does
+not disable the gate, while an edit to a locked file still refuses. The same
+hashed constants bytes are parsed. Both digests and the complete settings
+travel in every gate record.
 
 Per (sex ratio, host N) cell:
 - the cell must hold exactly the preregistered seed block for that ratio
@@ -45,12 +48,18 @@ from codontrace.genesis.statistical_protocol import (
     one_sample_t_interval,
     one_sample_tost,
 )
+from codontrace.preregistration.jr5_locked_plan import (
+    DEVIATIONS_RELPATH,
+    verify_jr5_record_at_root,
+    verify_jr5_record_bytes,
+)
 from codontrace.preregistration.manifest import PlanManifest
 
 __all__ = [
     "CONSTANTS_RELPATH",
     "LOCKED_PREREG_CONSTANTS_SHA256",
     "LOCKED_PREREG_MANIFEST_DIGEST",
+    "LOCKED_PREREG_PLAN_DIGEST",
     "E1CellResult",
     "E1GateResult",
     "E1GateSpec",
@@ -63,10 +72,13 @@ __all__ = [
 GATE_RECORD_SCHEMA = "jr5_e1_gate_v3"
 PREREG_RELDIR = "docs/prereg/jr5"
 CONSTANTS_RELPATH = f"{PREREG_RELDIR}/jr5_prereg_constants.json"
-# record.json manifest.digest after the 2026-11-01 amendment logged in
-# DEVIATIONS.md. It covers DEVIATIONS.md too, so it is not the plan digest
-# that the log names (577bd4ac..., every file except DEVIATIONS.md).
-LOCKED_PREREG_MANIFEST_DIGEST = "73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505"
+# Plan digest: hash_plan over every record.json file except DEVIATIONS.md.
+# The gate-record key stays prereg_manifest_digest; the constant name
+# LOCKED_PREREG_MANIFEST_DIGEST is kept as a shim for that key. The full
+# record.json manifest.digest (which includes DEVIATIONS.md) is verified for
+# freshness but is not the pin, so a logged deviation does not disable the gate.
+LOCKED_PREREG_MANIFEST_DIGEST = "577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382"
+LOCKED_PREREG_PLAN_DIGEST = LOCKED_PREREG_MANIFEST_DIGEST
 # sha256 of jr5_prereg_constants.json as listed in that manifest.
 LOCKED_PREREG_CONSTANTS_SHA256 = "e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026"
 _TOL = 1e-9
@@ -116,9 +128,9 @@ class E1GateSpec:
     populations_per_cell: int
     seed_split: tuple[tuple[float, int, int], ...]
     constants_sha256: str
-    # sha256 of the canonical prereg manifest (record.json manifest.digest).
-    # Named like constants_sha256; the gate record keeps the key
-    # "prereg_manifest_digest". Checked against the code pin on construction.
+    # Locked plan digest (hash_plan excluding DEVIATIONS.md). Named like
+    # constants_sha256; the gate record keeps the key "prereg_manifest_digest".
+    # Checked against the code pin on construction.
     prereg_manifest_sha256: str
 
     def __post_init__(self) -> None:
@@ -130,16 +142,24 @@ class E1GateSpec:
             raise ConfigurationError("constants_sha256 is not the code-pinned constants sha256.")
 
     @classmethod
-    def from_prereg_constants(cls, raw: bytes, *, record_raw: bytes) -> E1GateSpec:
-        """Verify a locked manifest and hash the exact constants bytes parsed.
+    def from_prereg_constants(
+        cls, raw: bytes, *, record_raw: bytes, deviations_text: str | None = None
+    ) -> E1GateSpec:
+        """Verify the locked plan digest and hash the exact constants bytes parsed.
 
         A mapping and a caller-supplied digest cannot establish provenance.
-        The only public decoder therefore takes bytes, checks the canonical
-        manifest against the code pin, then parses those same hashed bytes.
+        The only public decoder therefore takes bytes, checks the plan digest
+        (and, when given, the deviations log) against the code pin, then parses
+        those same hashed constants bytes. Prefer ``load_e1_gate_spec`` so the
+        record is also re-hashed against the files on disk.
         """
         if not isinstance(raw, bytes) or not isinstance(record_raw, bytes):
             raise ConfigurationError("constants and record must be raw bytes.")
-        manifest = _verified_manifest(record_raw)
+        manifest, plan = verify_jr5_record_bytes(
+            record_raw,
+            locked_plan_digest=LOCKED_PREREG_MANIFEST_DIGEST,
+            deviations_text=deviations_text,
+        )
         entries = [digest for path, digest in manifest.files if path == CONSTANTS_RELPATH]
         if len(entries) != 1:
             raise ConfigurationError("record.json does not pin the JR5 constants file exactly once.")
@@ -151,7 +171,7 @@ class E1GateSpec:
         return cls._from_verified_mapping(
             _json_mapping(raw, "constants"),
             constants_sha256=actual,
-            prereg_manifest_sha256=manifest.digest,
+            prereg_manifest_sha256=plan,
         )
 
     @classmethod
@@ -301,37 +321,17 @@ def _json_mapping(raw: bytes, what: str) -> Mapping[str, object]:
     return _mapping(value, what)
 
 
-def _verified_manifest(record_raw: bytes) -> PlanManifest:
-    record = _json_mapping(record_raw, "record")
-    manifest = _mapping(record.get("manifest"), "record.manifest")
-    if manifest.get("digest") != LOCKED_PREREG_MANIFEST_DIGEST:
-        raise ConfigurationError("record manifest does not match the code-pinned prereg lock.")
-    files = manifest.get("files")
-    if not isinstance(files, list) or not isinstance(manifest.get("title"), str):
-        raise ConfigurationError("record manifest must state a title and files.")
-    pairs: list[tuple[str, str]] = []
-    for entry in files:
-        if not isinstance(entry, list) or len(entry) != 2 or not all(isinstance(x, str) for x in entry):
-            raise ConfigurationError("record manifest files must be path/digest pairs.")
-        path, digest = entry
-        pairs.append((path, digest))
-    if len({path for path, _ in pairs}) != len(pairs):
-        raise ConfigurationError("record manifest must not repeat a path.")
-    verified = PlanManifest(tuple(pairs), str(manifest["title"]))
-    if verified.digest != LOCKED_PREREG_MANIFEST_DIGEST:
-        raise ConfigurationError("record manifest content does not match the code-pinned prereg lock.")
-    return verified
-
-
 def load_e1_gate_spec(root: str | Path | None = None) -> E1GateSpec:
-    """Read once, verify the code-pinned manifest, then hash and parse the same bytes."""
+    """Read once, re-hash the plan files, pin the plan digest, then parse constants."""
     base = Path(root) if root is not None else _repo_root()
+    verify_jr5_record_at_root(base, locked_plan_digest=LOCKED_PREREG_MANIFEST_DIGEST)
     try:
         record_raw = (base / PREREG_RELDIR / "record.json").read_bytes()
         raw = (base / CONSTANTS_RELPATH).read_bytes()
+        deviations_text = (base / DEVIATIONS_RELPATH).read_text(encoding="utf-8")
     except OSError as exc:
         raise ConfigurationError(f"JR5 prereg files not readable under {base}.") from exc
-    return E1GateSpec.from_prereg_constants(raw, record_raw=record_raw)
+    return E1GateSpec.from_prereg_constants(raw, record_raw=record_raw, deviations_text=deviations_text)
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,28 +2,34 @@
 
 ## Lock status
 
-The gate pins the prereg as amended on 2026-11-01 (DEVIATIONS.md, second entry):
+The gate pins the locked plan digest (every `record.json` file except
+`DEVIATIONS.md`), as named in the deviations log:
 
-- `LOCKED_PREREG_MANIFEST_DIGEST` = `73bc5a83bbee6dfacee7f9a4f7eea2e27562434275ded2d8cc695c81e5ed4505`,
-  the `manifest.digest` of `docs/prereg/jr5/record.json`, recomputed from its file list.
-- `LOCKED_PREREG_CONSTANTS_SHA256` = `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`,
+- `LOCKED_PREREG_MANIFEST_DIGEST` / `LOCKED_PREREG_PLAN_DIGEST` =
+  `577bd4ac643c02da6ab53976afbdbc216cacce95b5c68ba2a348c24cd226c382`.
+  The gate-record key stays `prereg_manifest_digest`.
+- `LOCKED_PREREG_CONSTANTS_SHA256` =
+  `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`,
   the sha256 of `jr5_prereg_constants.json` and its entry in that manifest.
 
-The manifest digest covers DEVIATIONS.md. The digest named in DEVIATIONS.md
-(`577bd4ac…`) is the plan digest over every other file, so it is a different
-number by design and is not used as a pin here. The amendment adds the
-diploid-fix merge pin to the constants file; `gate_e1`, the seeds and the
-grid are unchanged, so gate behaviour is unchanged. A record at the earlier
-lock (`a4f76d60…`, constants `608ccdea…`) is refused.
+`record.json` `manifest.digest` still covers `DEVIATIONS.md` and is checked
+for freshness (declared digest matches the file list; every listed file's
+bytes match). The append-only deviations log is verified separately: entries
+chain, and the last entry's new digest equals the plan pin. Logging a new
+deviation therefore does not disable the gate; editing a locked plan file
+still refuses. A record at the earlier lock (`a4f76d60…`, constants
+`608ccdea…`) is refused.
 
 ## Loading and evaluation
 
-`load_e1_gate_spec(root=None)` reads the record and constants once each.
-`E1GateSpec.from_prereg_constants(raw: bytes, *, record_raw: bytes)` checks both
-the declared and recomputed canonical manifest digest against the code pin,
-then checks the constants SHA-256 against the unique manifest entry. It parses
-the exact byte sequence that was hashed, not a mapping paired with a supplied
-hash. The mapping decoder is private and does not establish provenance.
+`load_e1_gate_spec(root=None)` re-hashes every plan file under `root`, checks
+the plan digest and the deviations log, then reads the constants once.
+`E1GateSpec.from_prereg_constants(raw: bytes, *, record_raw: bytes,
+deviations_text=None)` checks the plan digest (and the log when text is
+supplied) against the code pin, then checks the constants SHA-256 against the
+unique manifest entry. It parses the exact byte sequence that was hashed, not
+a mapping paired with a supplied hash. The mapping decoder is private and does
+not establish provenance.
 
 `evaluate_e1_gate` compares its spec to the trusted loader's complete spec.
 It requires the exact Cartesian product of registered sex ratios and reported
@@ -41,7 +47,7 @@ are unchanged.
 | --- | --- |
 | schema | string |
 | constants_sha256 | string, computed SHA-256 of constants bytes |
-| prereg_manifest_digest | string, verified canonical manifest digest |
+| prereg_manifest_digest | string, verified locked plan digest (excludes DEVIATIONS.md) |
 | spec | object with the complete settings below |
 | cells | array of cell objects, all reported sizes included |
 | passed | boolean, equivalence/null checks pass at gated N only |

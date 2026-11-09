@@ -795,15 +795,18 @@ def test_e1_fit_on_the_census_is_pinned() -> None:
 
 
 def test_prereg_e1_fit_on_the_asexual_count_is_pinned() -> None:
-    """The prereg E1 fit itself: the asexual count out of the census against
-    generation, bias-reduced logit, generations 0 to 6. Setup as in the
-    prereg: no parasite, obligate outcross (outcross locus, set
-    (hermaphrodite, male), outcross fee 0.0, diploid_meiosis on) plus an
-    asexual founder fraction of 0.2: 10 founders, 2 marked asexual lineage,
-    seed 20011. Expected: generation 0 has 2 asexual out of 10 (0.2); the
-    asexual line persists; the fit equals the pin computed with this
-    estimator on this branch; and it differs from the male-count regression
-    pin, a different estimand."""
+    """Toy regression of the prereg E1 estimator, not registered-instrument
+    calibration. Same response and Firth (bias-reduced) fit as prereg E1
+    (asexual count out of census against generation), but on a small toy
+    session: N = 10 founders, male fraction m = 0.3, T = 6 generations,
+    seed 20011. Registered E1 instead uses N = 200 / 50, m = 0.5 / 0.25,
+    and T = 5 / 11. Setup otherwise mirrors the gate: no parasite, obligate
+    outcross (outcross locus, set (hermaphrodite, male), outcross fee 0.0,
+    diploid_meiosis on) plus an asexual founder fraction of 0.2 (2 of 10
+    founders marked asexual lineage). Expected: generation 0 has 2 asexual
+    out of 10 (0.2); the asexual line persists; the fit equals the pin
+    computed with this estimator on this toy; and it differs from the
+    male-count regression pin, a different estimand."""
 
     np = pytest.importorskip("numpy")
     from tests._jr5_e1_fit import fit_logit
@@ -993,73 +996,52 @@ def test_heterozygosity_halves_per_selfed_generation_through_step_population() -
         assert abs(chain - 0.5**t) < bound
 
 
-def test_heterozygosity_follows_h0_over_two_to_the_t_for_three_selfed_generations() -> None:
-    """Unconditional check of H_t = H_0 / 2**t for t = 1, 2, 3, run with
-    PopulationRunner.step_generation (which calls step_population). Male-free
-    self arm, set (hermaphrodite,), selfing locus, diploid_meiosis on, no
-    mutation, 10 founders, initial_atp 200 (so lineages reach depth 3),
-    seeds 0-9, 30 steps each.
+def test_heterozygosity_follows_h0_over_two_to_the_t_on_independent_neutral_lineages() -> None:
+    """Independent neutral selfing lineages: H_t = H_0 / 2**t for t = 1..4.
 
-    H of a genome is its fraction of heterozygous loci (the even and odd
-    homologs differ at that codon). Derivation: each selfed generation keeps
-    a heterozygous locus heterozygous with probability 1/2 (each of the two
-    independent gametes carries either homolog with probability 1/2) and
-    keeps a homozygous one homozygous, so a depth-t descendant of a founder
-    with H_0 has expected H = H_0 / 2**t. The expected value is averaged
-    over the founders of the N depth-t births.
+    Each lineage is one diploid genome selfed by `_self_fertilisation_record`
+    (two meioses then fusion) with no selection, no shared parents across
+    lineages, and randomness only from RNGManager. Founder: even homolog all
+    000, odd all 111, 16 codons / 8 loci, so H_0 = 1 and length 48. N = 1000
+    lineages at each of recombination_prob in {0, 0.5, 1}.
 
-    Tolerance: H per genome lies in [0, 1], so its SD is at most 0.5 and the
-    SD of a mean of N genomes is at most 0.5 / sqrt(N); the bound is 4 of
-    those, 4 * 0.5 / sqrt(N). Every birth keeps the parent's length (18
-    bits). Reusing one meiosis for both gametes makes every child fully
-    homozygous (H = 0), far outside the bound at t = 1."""
+    Derivation (Mendelian transmission under complete selfing): at a locus
+    heterozygous in the parent each of the two independent gametes carries
+    either homolog with probability 1/2, so the child is heterozygous there
+    with probability 1/2; a homozygous locus stays homozygous. Hence
+    E[H_child | parent] = H_parent / 2, and after t selfed generations
+    E[H_t] = H_0 / 2**t. With H_0 = 1 that is 2**(-t). Allele frequency is
+    unchanged; only genotype frequencies move. The law is for a single
+    selfing line; averaging N independent lines estimates that expectation.
 
-    def h_fraction(bits: str) -> float:
-        return _heterozygous_loci(bits) / (len(bits) // 6)
+    Tolerance: lineages are independent, so the sample-mean SD is at most
+    0.5 / sqrt(N) (H in [0, 1]); the bound is 4 of those. Related births in
+    one selected population would not justify that SE. Every child keeps
+    length 48. Reusing one meiosis for both gametes forces H = 0 at t = 1,
+    far outside the bound."""
 
-    sums: dict[int, list[float]] = {}
-    for seed in range(10):
-        session = ClosedLoopP5Session.boot(
-            seed=seed,
-            outcross_bits=OUTCROSS_SELFING_BITS,
-            outcross_runtime_atp=0.0,
-            n_primary=5,
-            n_secondary=5,
-            max_population=400,
-            world_size=24,
-            initial_atp=200.0,
-        )
-        cfg = _sexes_for(
-            session,
-            mating_type_set=("hermaphrodite",),
-            hermaphrodite_selfing=True,
-            diploid_meiosis=True,
-        )
-        runner = session.runner
-        runner.configs = replace(runner.configs, sexual_recombination=cfg)
-        genome = {o.id: o.genome.to_compact() for o in runner.population.organisms}
-        depth = dict.fromkeys(genome, 0)
-        h0 = {oid: h_fraction(bits) for oid, bits in genome.items()}
-        for step in range(30):
-            runner.step_generation(seed=seed * 1000 + step)
-            live = {o.id: o.genome.to_compact() for o in runner.population.organisms}
-            for rec in runner.population.lineage:
-                child, parent = rec.organism_id, rec.parent_id
-                if child in genome or child not in live or parent not in genome:
-                    continue
-                genome[child] = live[child]
-                assert len(genome[child]) == len(genome[parent])
-                depth[child] = depth[parent] + 1
-                h0[child] = h0[parent]
-                row = sums.setdefault(depth[child], [0.0, 0.0, 0.0])
-                row[0] += h_fraction(genome[child])
-                row[1] += h0[child] * 0.5 ** depth[child]
-                row[2] += 1
-
-    for t in (1, 2, 3):
-        observed, expected, n = sums[t]
-        assert n >= 50
-        assert abs(observed / n - expected / n) < 4 * 0.5 / n**0.5
+    n_lineages = 1000
+    founder = "000111" * 8
+    assert _heterozygous_loci(founder) / (len(founder) // 6) == 1.0
+    bound = 4 * 0.5 / n_lineages**0.5
+    for recombination_prob in (0.0, 0.5, 1.0):
+        genomes = [founder] * n_lineages
+        for t in range(1, 5):
+            children = [
+                _selfed_child_bits(
+                    bits,
+                    seed=40_000 + int(recombination_prob * 10_000) + lineage * 16 + t,
+                    recombination_prob=recombination_prob,
+                )
+                for lineage, bits in enumerate(genomes)
+            ]
+            assert {len(child) for child in children} == {48}
+            observed = sum(
+                _heterozygous_loci(child) / (len(child) // 6) for child in children
+            ) / n_lineages
+            expected = 0.5**t
+            assert abs(observed - expected) < bound
+            genomes = children
 
 
 def test_one_selfed_generation_halves_heterozygosity() -> None:

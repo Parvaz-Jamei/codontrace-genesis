@@ -49,6 +49,7 @@ import math
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 from importlib import resources
 from typing import Any
 
@@ -517,24 +518,96 @@ class Jr5Evidence:
 # ---------------------------------------------------------------- statistics
 
 
-def _mean_sd(values: Sequence[float]) -> tuple[float, float]:
+_SQRT_BITS = 2 * 53 + 3
+
+
+def _sqrt_of_fraction(value: Fraction) -> float:
+    """Correctly rounded float square root of a non-negative Fraction.
+
+    Same construction as statistical_protocol._sqrt_of_fraction: the integer
+    root of the scaled value, rounded to odd with more than twice the float
+    precision, then one correctly rounded int / int division.
+    """
+
+    num, den = value.numerator, value.denominator
+    if num == 0:
+        return 0.0
+    q = (num.bit_length() - den.bit_length() - _SQRT_BITS) // 2
+    if q >= 0:
+        root = math.isqrt(num // (den << 2 * q))
+        root |= root * root * (den << 2 * q) != num
+        return float(root << q)
+    root = math.isqrt((num << -2 * q) // den)
+    root |= root * root * den != num << -2 * q
+    return root / (1 << -q)
+
+
+def _moments(values: Sequence[float]) -> tuple[float, float, Fraction | None, Fraction | None]:
+    """(mean, sd, exact mean, exact variance); the exact pair is None when the float moments hold.
+
+    Same rule as statistical_protocol._mean_sd_df. An exactly constant
+    sample has mean ``values[0]`` and spread 0. Otherwise the two-pass float
+    moments are kept when (sum(x) - n * mean)^2 / n, the excess of the sum of
+    squares about the float mean over the one about the exact mean, is below
+    the rounding of the float sum of squares; when it is not (a sample a few
+    ulps wide), the mean and variance are exact Fractions of the float values.
+    """
+
     n = len(values)
+    if n < 2:
+        raise ConfigurationError("a t procedure needs at least 2 values.")
     first = values[0]
     if all(v == first for v in values):
         # Exactly constant: mean ``first`` and spread 0, as in
         # statistical_protocol._mean_sd_df; fsum / n can be one ulp off.
-        return first, 0.0
+        return first, 0.0, None, None
     mean = math.fsum(values) / n
-    var = math.fsum((v - mean) ** 2 for v in values) / (n - 1)
-    return mean, math.sqrt(var)
+    squares = math.fsum((v - mean) ** 2 for v in values)
+    exact = [Fraction(v) for v in values]
+    total = sum(exact, Fraction(0))
+    residual = total - n * Fraction(mean)
+    if squares > 0.0 and float(Fraction(squares) - residual * residual / n) == squares:
+        return mean, math.sqrt(squares / (n - 1)), None, None
+    exact_mean = total / n
+    exact_var = sum(((v - exact_mean) ** 2 for v in exact), Fraction(0)) / (n - 1)
+    return float(exact_mean), _sqrt_of_fraction(exact_var), exact_mean, exact_var
 
 
-def _t_interval(values: Sequence[float], level: float) -> Interval:
+def _mean_sd(values: Sequence[float]) -> tuple[float, float]:
+    mean, sd, _exact_mean, _exact_var = _moments(values)
+    return mean, sd
+
+
+def _end(mean: float, exact_mean: Fraction | None, offset: float, bounds: Sequence[float]) -> float:
+    """Interval end mean + offset, as statistical_protocol._shifted.
+
+    With exact moments the exact end is rounded toward the mean, so a strict
+    comparison with any float bound equals the comparison with the exact
+    end (the two ends cross when the exact interval holds no float). With
+    float moments the nearest float is kept unless it lands on one of
+    ``bounds`` while the unrounded end lies inside; then it is the adjacent
+    float on the inside.
+    """
+
+    end = (Fraction(mean) if exact_mean is None else exact_mean) + Fraction(offset)
+    rounded = mean + offset if exact_mean is None else float(end)
+    if exact_mean is None and rounded not in bounds:
+        return rounded
+    if offset < 0.0 and Fraction(rounded) < end:
+        return math.nextafter(rounded, math.inf)
+    if offset > 0.0 and Fraction(rounded) > end:
+        return math.nextafter(rounded, -math.inf)
+    return rounded
+
+
+def _t_interval(values: Sequence[float], level: float, bounds: Sequence[float] = ()) -> Interval:
+    """Student t interval; ``bounds`` are the points its ends are compared with strictly."""
+
     from codontrace.claimgate.power import t_ppf
 
-    mean, sd = _mean_sd(values)
+    mean, sd, exact_mean, _exact_var = _moments(values)
     half = t_ppf(0.5 + level / 2.0, len(values) - 1) * sd / math.sqrt(len(values))
-    return Interval(mean - half, mean + half)
+    return Interval(_end(mean, exact_mean, -half, bounds), _end(mean, exact_mean, half, bounds))
 
 
 @dataclass(frozen=True)
@@ -547,16 +620,23 @@ class _Paired:
 
     @property
     def estimate(self) -> float:
-        return math.fsum(self.deltas) / len(self.deltas)
+        # The centre of ci(): equal to fsum / n unless the sample is constant
+        # or only a few ulps wide.
+        return _mean_sd(self.deltas)[0]
 
     def p_two_sided(self) -> float:
         from codontrace.claimgate.power import t_cdf
 
-        mean, sd = _mean_sd(self.deltas)
-        if sd == 0.0:
+        n = len(self.deltas)
+        mean, sd, exact_mean, exact_var = _moments(self.deltas)
+        if exact_mean is not None and exact_var is not None:
+            # t rounded once from the exact mean and exact var / n.
+            t = math.copysign(_sqrt_of_fraction(exact_mean * exact_mean * n / exact_var), exact_mean)
+        elif sd == 0.0:
             return 1.0 if mean == 0.0 else 0.0
-        t = mean / (sd / math.sqrt(len(self.deltas)))
-        return min(1.0, 2.0 * t_cdf(-abs(t), len(self.deltas) - 1))
+        else:
+            t = mean / (sd / math.sqrt(n))
+        return min(1.0, 2.0 * t_cdf(-abs(t), n - 1))
 
     def ci(self, level: float) -> Interval:
         return _t_interval(self.deltas, level)
@@ -754,6 +834,17 @@ def _paired(a: Mapping[int, float], b: Mapping[int, float], boot: Mapping[str, A
     return _Paired(tuple(a[s] - b[s] for s in seeds), int(boot["seed"]), int(boot["resamples"]))
 
 
+def _log_bounds(g: Mapping[str, Any], ratio: Any) -> tuple[float, float]:
+    """Log of the registered ratio bounds for ``ratio``, as written in the constants file.
+
+    The gate (jr5_e1_gate.E1GateSpec.ratio_bounds) takes log of the same file
+    numbers, so both copies test against identical floats.
+    """
+
+    lo, hi = (math.log(float(x)) for x in g["equivalence_bounds"][str(ratio)])
+    return lo, hi
+
+
 def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[str, Any]]]:
     """Return (every gated N = 200 cell passes the TOST and the null check, any E1 cell breaches the cap)."""
 
@@ -766,7 +857,7 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
     cells = []
     for ratio in g["sex_ratios"]:
         gens = int(g["generations"][str(ratio)])
-        lo, hi = (math.log(float(x)) for x in g["equivalence_bounds"][str(ratio)])
+        lo, hi = _log_bounds(g, ratio)
         for n in g["host_n_reported"]:
             n = int(n)
             log_w: list[float] = []
@@ -795,8 +886,8 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
                 log_w.append(_firth_logit_slope(cs, n, g["fit"]))
             exceeded = len(excluded_seeds) > cap * len(runs)
             breach = breach or exceeded
-            ci90 = _t_interval(log_w, float(g["ci_level"])) if len(log_w) >= 2 else None
-            ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"])) if len(log_w) >= 2 else None
+            ci90 = _t_interval(log_w, float(g["ci_level"]), (lo, hi)) if len(log_w) >= 2 else None
+            ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"]), (log_null,)) if len(log_w) >= 2 else None
             equivalent = ci90 is not None and ci90.inside(lo, hi)
             excludes = ci95 is not None and ci95.side(log_null) != 0
             passed = equivalent and excludes and not exceeded

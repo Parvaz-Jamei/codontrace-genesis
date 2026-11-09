@@ -772,3 +772,218 @@ def test_adapter_interval_on_a_constant_sample_at_a_registered_bound_is_degenera
     assert math.fsum([value] * 7) / 7 != value
     assert verdict._mean_sd([value] * 7) == (value, 0.0)
     assert verdict._Paired((value,) * 7, 1, 10).p_two_sided() == 0.0
+
+
+def _near_constant_samples(lower: float, upper: float) -> list[list[float]]:
+    """Each registered bound repeated n = 2..60 times with one value moved 1 or 2 ulps either way."""
+
+    samples = []
+    for b in (lower, upper):
+        for n in range(2, 61):
+            for k in (1, 2):
+                for direction in (math.inf, -math.inf):
+                    w = b
+                    for _ in range(k):
+                        w = math.nextafter(w, direction)
+                    samples.append([b] * (n - 1) + [w])
+                    samples.append([b if i % 2 else w for i in range(n)])
+                    samples.append([b] * (n // 2) + [w] * (n - n // 2))
+    return samples
+
+
+def _exact_interval_rule(data: list[float], lower: float, upper: float, quantile: float) -> bool:
+    """Strict inclusion of mean -/+ quantile * sd / sqrt(n) in (lower, upper), in exact arithmetic."""
+
+    from fractions import Fraction
+
+    n = len(data)
+    exact = [Fraction(x) for x in data]
+    mean = sum(exact, Fraction(0)) / n
+    var = sum(((x - mean) ** 2 for x in exact), Fraction(0)) / (n - 1)
+    lo_d, hi_d = mean - Fraction(lower), Fraction(upper) - mean
+    q2 = Fraction(quantile) ** 2 * var / n
+    return lo_d > 0 and hi_d > 0 and lo_d**2 > q2 and hi_d**2 > q2
+
+
+def test_adapter_interval_rule_on_near_constant_samples_matches_exact_arithmetic() -> None:
+    """The adapter's E1 interval rule is exact on samples a few ulps wide, and agrees with the gate.
+
+    Basis: the adapter calls an E1 cell equivalent when its 90% t interval
+    mean -/+ t_{0.95, n-1} sd / sqrt(n) lies strictly inside the registered
+    log bounds. For a sample only a few ulps wide the float mean fsum / n
+    can be off by as much as the spread; [v] * 6 + [v + u] at the m = 0.5
+    lower bound v = 0.5877866649021191 has exact mean v + u/7 and SD u/sqrt(7),
+    while fsum / 7 = v + u. The reference is the same rule in exact rational
+    arithmetic (mean and variance as Fractions, the comparison squared), with
+    the adapter's own quantile t_ppf. The samples are the four adapter bounds
+    (log of the file's numbers) repeated n = 2 to 60 times with one value, every
+    other value or the second half moved by 1 or 2 ulps. None is constant, so
+    the SD must be positive (a tolerance in the constancy test would make it
+    0), and the adapter's moments must equal the gate's (one_sample_tost
+    mean and sd), the copies being twins.
+    Expected: for every sample, sd > 0, adapter (mean, sd) equal to the
+    gate's, the adapter rule equal to the exact rule and to the gate's TOST
+    decision; for the n = 7 case mean v, SD within half an ulp of u/sqrt(7),
+    and the interval not inside (its lower end is v).
+    """
+    from fractions import Fraction
+
+    from codontrace.claimgate.power import t_ppf
+    from codontrace.genesis.statistical_protocol import one_sample_tost
+
+    g = verdict.jr5_constants()["gate_e1"]
+    level = float(g["ci_level"])
+    alpha = float(g["alpha"])
+    checked = 0
+    for ratio in g["sex_ratios"]:
+        lower, upper = verdict._log_bounds(g, ratio)
+        for data in _near_constant_samples(lower, upper):
+            n = len(data)
+            mean, sd = verdict._mean_sd(data)
+            gate = one_sample_tost(data, lower, upper, alpha=alpha)
+            assert sd > 0.0 and (mean, sd) == (gate.mean, gate.sd), (ratio, data)
+            interval = verdict._t_interval(data, level, (lower, upper))
+            reference = _exact_interval_rule(data, lower, upper, t_ppf(0.5 + level / 2.0, n - 1))
+            assert interval.inside(lower, upper) is reference is gate.equivalent, (ratio, data)
+            checked += 1
+    assert checked == 2 * 2 * 59 * 2 * 2 * 3
+    v = 0.5877866649021191
+    u = math.ulp(v)
+    data = [v] * 6 + [v + u]
+    assert math.fsum(data) / 7 == v + u
+    mean, sd = verdict._mean_sd(data)
+    half_ulp = Fraction(math.ulp(sd)) / 2
+    assert mean == v and (Fraction(sd) - half_ulp) ** 2 <= Fraction(u) ** 2 / 7 <= (Fraction(sd) + half_ulp) ** 2
+    lower, upper = verdict._log_bounds(g, 0.5)
+    assert lower == v
+    interval = verdict._t_interval(data, level, (lower, upper))
+    assert interval.lo == v and not interval.inside(lower, upper)
+
+
+def test_adapter_and_gate_log_bounds_are_the_same_floats() -> None:
+    """The adapter's and the gate's E1 log bounds are bit-identical.
+
+    Basis: both take math.log of the registered ratio bounds in the constants
+    file (the adapter reads the packaged copy, which the record pins to the
+    same sha256 as docs/prereg/jr5/jr5_prereg_constants.json). Before R45 the
+    gate recomputed 4/3 * 1.1 = 1.4666666666666668 for the m = 0.25 upper
+    bound, whose log 0.3829922522561059 is 3 ulps above the adapter's
+    log(1.4666666666666666) = 0.3829922522561057.
+    Expected: equal pairs for m = 0.5 and 0.25, and 0.3829922522561057 for
+    the m = 0.25 upper bound in both.
+    """
+    from codontrace.campaigns.jr5_e1_gate import load_e1_gate_spec
+
+    spec = load_e1_gate_spec(ROOT)
+    g = verdict.jr5_constants()["gate_e1"]
+    for ratio in g["sex_ratios"]:
+        assert verdict._log_bounds(g, ratio) == spec.log_bounds(float(ratio))
+    assert verdict._log_bounds(g, 0.25)[1] == spec.log_bounds(0.25)[1] == 0.3829922522561057
+
+
+def test_adapter_moments_refuse_fewer_than_two_values() -> None:
+    """A t procedure on zero or one value is refused with ConfigurationError.
+
+    Basis: the sample SD has n - 1 degrees of freedom, so it does not exist
+    for n < 2, and statistical_protocol._mean_sd_df refuses such input. The
+    adapter copy must do the same before it looks at the values: with one
+    value the constancy branch would otherwise return SD 0 and a paired
+    two-sided p of 0, and an empty input would raise IndexError, which the
+    auditor's exemption does not catch.
+    Expected: ConfigurationError from _mean_sd, _t_interval and
+    _Paired.p_two_sided for [] and [0.3].
+    """
+    for values in ([], [0.3]):
+        with pytest.raises(ConfigurationError, match="at least 2"):
+            verdict._mean_sd(values)
+        with pytest.raises(ConfigurationError, match="at least 2"):
+            verdict._t_interval(values, 0.9)
+        with pytest.raises(ConfigurationError, match="at least 2"):
+            verdict._Paired(tuple(values), 1, 10).p_two_sided()
+
+
+def test_adapter_paired_contrast_a_few_ulps_wide_uses_the_exact_mean() -> None:
+    """The paired two-sided p of a contrast one ulp wide comes from the exact t.
+
+    Basis: deltas [d] * 6 + [d + u] with d = 0.25 and u = ulp(0.25) = 2^-54
+    have exact mean d + u/7 and variance u^2/7, so se = u/7 and t = (d + u/7) /
+    (u/7) = 7d/u + 1 = 7 * 2^52 + 1, finite and positive; its correctly
+    rounded float is float(7 * 2**52 + 1). The two-sided p is 2 P(T < -t) for
+    df = 6, about 7e-98. The estimate is the centre the interval uses, the
+    correctly rounded exact mean d.
+    Expected: estimate 0.25, p_two_sided equal to 2 * t_cdf(-t, 6) with that
+    t (and between 0 and 1e-90), and a well-conditioned
+    contrast [0.1, 0.2, 0.4] keeps the float computation: estimate equal to
+    fsum / 3 and p equal to 2 * t_cdf(-|t|, 2) with t = mean / (sd / sqrt(3)).
+    """
+    from codontrace.claimgate.power import t_cdf
+
+    d = 0.25
+    paired = verdict._Paired((d,) * 6 + (d + math.ulp(d),), 1, 10)
+    assert paired.estimate == d
+    expected = min(1.0, 2.0 * t_cdf(-float(7 * 2**52 + 1), 6))
+    assert paired.p_two_sided() == expected and 0.0 < expected < 1e-90
+    plain = (0.1, 0.2, 0.4)
+    mean = math.fsum(plain) / 3
+    sd = math.sqrt(math.fsum((x - mean) ** 2 for x in plain) / 2)
+    ordinary = verdict._Paired(plain, 1, 10)
+    assert ordinary.estimate == mean
+    assert ordinary.p_two_sided() == min(1.0, 2.0 * t_cdf(-abs(mean / (sd / math.sqrt(3))), 2))
+
+
+def test_adapter_square_root_agrees_with_the_gate_square_root() -> None:
+    """The adapter and gate copies of the exact square root give the same float.
+
+    Basis: both copies implement the same round-to-odd integer root; each
+    must equal math.sqrt on float inputs (IEEE 754 square root is correctly
+    rounded) and the other copy on rational inputs. Inputs are seeded
+    (RNGManager) over a wide exponent range.
+    Expected: equality for every input.
+    """
+    from fractions import Fraction
+
+    from codontrace.genesis.statistical_protocol import _sqrt_of_fraction
+
+    rng = RNGManager(seed=4504).fork("sqrt-twins")
+    for _ in range(2000):
+        value = Fraction(rng.randrange(1, 2**80), rng.randrange(1, 2**70)) * Fraction(2) ** rng.randrange(-900, 900)
+        assert verdict._sqrt_of_fraction(value) == _sqrt_of_fraction(value), value
+        y = math.ldexp(rng.random() + 0.5, rng.randrange(-1070, 1020))
+        assert verdict._sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
+
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS))
+def test_both_log_readers_refuse_non_utf8_bytes_with_a_configuration_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+) -> None:
+    """Both loaders refuse a log that is not UTF-8, with ConfigurationError.
+
+    Basis: each copy decodes the log bytes as UTF-8 and turns the decoder's
+    UnicodeError into ConfigurationError (the preregistration copy in
+    read_deviations_log, the claimgate copy in jr5_constants), so callers
+    that handle ConfigurationError fail closed. Each loader gets a record
+    re-hashed over the edited bytes, so a record mismatch is not what
+    refuses them.
+    Expected: ConfigurationError mentioning UTF-8 from
+    verify_jr5_record_at_root, and the claimgate "not readable" refusal from
+    jr5_constants; neither raises UnicodeDecodeError.
+    """
+    from codontrace.preregistration.jr5_locked_plan import verify_jr5_record_at_root
+    from codontrace.preregistration.manifest import hash_plan
+    from tests.test_jr5_phase3_e1_gate import RECORD, _clone_prereg
+
+    log_raw = _jr5_deviation_attacks.INVALID_UTF8_ATTACKS[case]((ROOT / "docs/prereg/jr5/DEVIATIONS.md").read_bytes())
+    with pytest.raises(UnicodeDecodeError):
+        log_raw.decode("utf-8")
+    root = _clone_prereg(tmp_path)
+    (root / "docs/prereg/jr5/DEVIATIONS.md").write_bytes(log_raw)
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        verify_jr5_record_at_root(root, locked_plan_digest=verdict.PREREG_RECORD_DIGEST)
+    _packaged_resources(monkeypatch, log_raw)
+    with pytest.raises(ConfigurationError, match="not readable"):
+        verdict.jr5_constants()

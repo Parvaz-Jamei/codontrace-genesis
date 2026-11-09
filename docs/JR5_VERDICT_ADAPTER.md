@@ -26,7 +26,7 @@ Current manifest digest:
 Constants SHA-256:
 `e27d3d9eae739097b6fa712ba6ae4f12f568c3479197c67db27bef7439fab026`.
 The shipped record file SHA-256 is
-`2948e1e961afb0c451c437fea1719dc454fa1019ac9f93c2d3513bc9a72db88e`.
+`251973f8abf5cb1eddf8ffed650733c45d033209b99137b0ed6812d47dbb3e38`.
 The amended manifest, constants, and record-file SHA values are separate
 identifiers; a plan digest is not interchangeable with the manifest digest.
 No confirmatory run or final whole-package validation is represented by the

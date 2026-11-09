@@ -796,7 +796,7 @@ def test_e1_fit_on_the_census_is_pinned() -> None:
 
 def test_prereg_e1_fit_on_the_asexual_count_is_pinned() -> None:
     """Toy regression of the prereg E1 estimator, not registered-instrument
-    calibration. Same response and Firth (bias-reduced) fit as prereg E1
+    calibration. Same response and bias-reduced fit as prereg E1
     (asexual count out of census against generation), but on a small toy
     session: N = 10 founders, male fraction m = 0.3, T = 6 generations,
     seed 20011. Registered E1 instead uses N = 200 / 50, m = 0.5 / 0.25,

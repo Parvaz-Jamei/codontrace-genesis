@@ -98,9 +98,17 @@ def test_tost_asymmetric_bounds_use_each_side() -> None:
 
 def test_tost_zero_spread() -> None:
     # No spread: infinite t, the decision is whether the value is inside.
-    assert one_sample_tost([2.0, 2.0], 1.0, 3.0).equivalent
+    # Basis: SE = 0, mean 2 lies in (1, 3) so both one-sided p-values are 0
+    # (student_t_sf(+inf) = 0); mean 3.5 lies above 3 so p_upper = 1.
+    inside = one_sample_tost([2.0, 2.0], 1.0, 3.0)
+    assert inside.equivalent
+    assert inside.t_lower == math.inf and inside.t_upper == -math.inf
+    record = inside.to_record()
+    assert record["t_lower"] == {"$float": "inf"}
+    assert record["t_upper"] == {"$float": "-inf"}
     outside = one_sample_tost([3.5, 3.5], 1.0, 3.0)
     assert not outside.equivalent and outside.p_upper == 1.0
+    assert outside.to_record()["t_upper"] == {"$float": "inf"}
 
 
 def test_tost_rejects_bad_input() -> None:

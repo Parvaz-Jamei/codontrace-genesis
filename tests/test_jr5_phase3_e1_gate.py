@@ -172,6 +172,89 @@ def test_planted_theory_values_pass_with_hand_derived_t() -> None:
     assert record == evaluate_e1_gate(_spec(), _passing_cells()).to_record()
 
 
+
+
+def test_zero_spread_equivalent_gate_record_serializes() -> None:
+    """Zero sample spread with mean at theory: infinite t, equivalent, content-addressable.
+
+    Basis: every population has the same log w = log(1/(1-m)). Then SD = 0,
+    SE = 0, and the one-sample TOST t statistics are +inf against the lower
+    bound and -inf against the upper bound (Lakens 2017 TOST / Schuirmann
+    two one-sided tests). With the common value strictly inside the
+    preregistered log bounds the one-sided p-values are both 0, so the cell
+    is equivalent and, with the 95% interval degenerating to the point, also
+    excludes log 1. The infinite t values are written as the tagged
+    ``{"$float": "±inf"}`` form so ``to_record`` and its digest succeed
+    without inventing a finite test statistic.
+    """
+
+    from codontrace.genesis.canonical import canonical_digest
+
+    cells = {
+        (0.5, 200): _cell(math.log(2.0), 0.0),
+        (0.25, 200): _cell(math.log(4.0 / 3.0), 0.0, 0.25),
+        (0.5, 50): _cell(math.log(2.0), 0.0),
+        (0.25, 50): _cell(math.log(4.0 / 3.0), 0.0, 0.25),
+    }
+    result = evaluate_e1_gate(_spec(), cells)
+    assert result.passed is True
+    assert result.instrument_failure is False
+    for cell in result.cells:
+        assert cell.tost is not None
+        assert cell.tost.standard_error == 0.0
+        assert cell.tost.t_lower == math.inf
+        assert cell.tost.t_upper == -math.inf
+        assert cell.tost.p_lower == 0.0 and cell.tost.p_upper == 0.0
+        assert cell.equivalent and cell.excludes_null and cell.passed
+    record = result.to_record()
+    gated = [c for c in record["cells"] if c["gated"]]
+    assert gated
+    for cell in gated:
+        tost = cell["tost"]
+        assert tost is not None
+        assert tost["t_lower"] == {"$float": "inf"}
+        assert tost["t_upper"] == {"$float": "-inf"}
+        assert tost["equivalent"] is True
+        assert tost["standard_error"] == 0.0
+    body = {key: value for key, value in record.items() if key != "digest"}
+    assert record["digest"] == canonical_digest(body)
+
+
+def test_zero_spread_outside_bounds_fails_and_serializes() -> None:
+    """Zero sample spread with mean above the upper bound: not equivalent, still serializable.
+
+    Basis: every population has log w = log 3.0. Theory at m = 0.5 is log 2.0
+    with upper bound log 2.2, so mean - upper > 0 and SE = 0 give t_upper =
+    +inf and p_upper = 1. Equivalence fails (one-sided upper test does not
+    reject). The tagged infinite t encoding still lets the gate record
+    digest; the gated cell must report passed=False.
+    """
+
+    from codontrace.genesis.canonical import canonical_digest
+
+    cells = {
+        (0.5, 200): _cell(math.log(3.0), 0.0),
+        (0.25, 200): _cell(math.log(4.0 / 3.0), 0.0, 0.25),
+        (0.5, 50): _cell(math.log(2.0), 0.0),
+        (0.25, 50): _cell(math.log(4.0 / 3.0), 0.0, 0.25),
+    }
+    result = evaluate_e1_gate(_spec(), cells)
+    cell = next(c for c in result.cells if c.sex_ratio == 0.5 and c.host_n == 200)
+    assert cell.tost is not None
+    assert cell.tost.t_upper == math.inf
+    assert cell.tost.p_upper == 1.0
+    assert cell.equivalent is False
+    assert cell.passed is False
+    assert result.passed is False
+    record = result.to_record()
+    row = next(c for c in record["cells"] if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    assert row["tost"]["t_upper"] == {"$float": "inf"}
+    assert row["tost"]["equivalent"] is False
+    assert row["passed"] is False
+    body = {key: value for key, value in record.items() if key != "digest"}
+    assert record["digest"] == canonical_digest(body)
+
+
 def test_true_value_on_the_lower_bound_fails() -> None:
     # Mean exactly log 1.8: t_lower = 0, p_lower = 0.5. Equivalence cannot be shown.
     cells = _passing_cells()

@@ -1116,6 +1116,27 @@ def one_sample_t_interval(values: Sequence[float], confidence: float) -> tuple[f
     return (mean - half, mean + half)
 
 
+
+def encode_tost_statistic(value: float) -> JsonValue:
+    """Canonical JSON form of a one-sample TOST t statistic.
+
+    Finite values stay as JSON numbers. Zero sample spread makes
+    (mean - bound) / se infinite; that is a real TOST decision input
+    (both one-sided tests reduce to whether the common value lies
+    strictly inside the bounds), not a payload error. Infinity is
+    written as the tagged form ``{"$float": "inf"}`` or
+    ``{"$float": "-inf"}`` so a gate record can be content-addressed
+    without inventing a finite t.
+    """
+
+    number = float(value)
+    if math.isfinite(number):
+        return number
+    if math.isinf(number):
+        return {"$float": "inf" if number > 0.0 else "-inf"}
+    raise ConfigurationError("TOST t statistic must not be NaN.")
+
+
 @dataclass(frozen=True, slots=True)
 class OneSampleTOSTResult:
     """Both one-sided tests of a one-sample TOST, with the matching interval."""
@@ -1160,8 +1181,8 @@ class OneSampleTOSTResult:
             "lower_bound": self.lower_bound,
             "upper_bound": self.upper_bound,
             "alpha": self.alpha,
-            "t_lower": self.t_lower,
-            "t_upper": self.t_upper,
+            "t_lower": encode_tost_statistic(self.t_lower),
+            "t_upper": encode_tost_statistic(self.t_upper),
             "p_lower": self.p_lower,
             "p_upper": self.p_upper,
             "p_value": self.p_value,

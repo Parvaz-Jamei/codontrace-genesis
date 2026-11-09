@@ -179,8 +179,8 @@ def test_zero_spread_equivalent_gate_record_serializes() -> None:
 
     Basis: every population has the same log w = log(1/(1-m)). Then SD = 0,
     SE = 0, and the one-sample TOST t statistics are +inf against the lower
-    bound and -inf against the upper bound (Lakens 2017 TOST / Schuirmann
-    two one-sided tests). With the common value strictly inside the
+    bound and -inf against the upper bound under the two one-sided
+    equivalence tests. With the common value strictly inside the
     preregistered log bounds the one-sided p-values are both 0, so the cell
     is equivalent and, with the 95% interval degenerating to the point, also
     excludes log 1. The infinite t values are written as the tagged

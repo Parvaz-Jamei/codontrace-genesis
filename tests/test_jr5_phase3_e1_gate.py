@@ -1011,3 +1011,61 @@ def test_constant_samples_on_registered_bounds_follow_the_interval_rule() -> Non
                 t_on_bound, p_on_bound = (r.t_lower, r.p_lower) if v == lower else (r.t_upper, r.p_upper)
                 assert t_on_bound == 0.0 and p_on_bound == 0.5, (m, v, n)
     assert (0.5, True, 7) in rounded_cases and len(rounded_cases) >= 10
+
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.LINE_END_ATTACKS))
+def test_crlf_or_cr_log_bytes_refuse_the_gate(tmp_path: Path, case: str) -> None:
+    """A log whose line ends were rewritten to CRLF or lone CR is refused.
+
+    Basis: the checkpoints and the lock-start pin are sha256 values of the
+    committed LF bytes. The loader decodes the file bytes without newline
+    translation, so CRLF or CR bytes reach the check. With CRLF each digest
+    line ends in CR and the end-of-line anchor finds none; with lone CR no
+    heading starts a line, so there is no entry. record.json is refreshed
+    over the new bytes, so freshness cannot be what refuses it. A text-mode
+    read would translate the line ends to LF and accept the file.
+    Expected: ConfigurationError (no digest line for CRLF, no entry for CR)
+    from verify_jr5_record_at_root and from load_e1_gate_spec.
+    """
+    from codontrace.preregistration.jr5_locked_plan import verify_jr5_record_at_root
+    from codontrace.preregistration.manifest import hash_plan
+
+    edit, message = _jr5_deviation_attacks.LINE_END_ATTACKS[case]
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    log.write_bytes(edit(log.read_bytes()))
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigurationError, match=message):
+        verify_jr5_record_at_root(root, locked_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST)
+    with pytest.raises(ConfigurationError, match=message):
+        load_e1_gate_spec(root)
+
+
+def test_committed_log_is_read_as_its_lf_bytes() -> None:
+    """Reading the committed log keeps its bytes, and the pins still match them.
+
+    Basis: read_deviations_log decodes the file bytes with no newline
+    translation, so encoding the text again gives the file bytes. The
+    committed log has no CR byte (.gitattributes sets eol=lf), so the change
+    from a text-mode read leaves the checked text, and therefore every
+    pinned value, as before: each checkpoint is the sha256 of a prefix of
+    these bytes and the lock-start pin is the sha256 of the first entry.
+    Expected: no CR byte, text.encode() equal to the bytes, every checkpoint
+    and the lock-start pin equal to the values computed here, and the log
+    check accepts the text at the plan pin.
+    """
+    from codontrace.preregistration import jr5_locked_plan as plan
+
+    path = ROOT / "docs/prereg/jr5/DEVIATIONS.md"
+    raw = path.read_bytes()
+    text = plan.read_deviations_log(path)
+    assert b"\r" not in raw and text.encode("utf-8") == raw
+    for size, digest in plan.ACCEPTED_LOG_CHECKPOINTS:
+        assert hashlib.sha256(raw[:size]).hexdigest() == digest
+    entries = plan.deviations_log_entries(text)
+    assert hashlib.sha256(entries[0].encode("utf-8")).hexdigest() == plan.LOCK_START_ENTRY_SHA256
+    plan.verify_deviations_log(text, expected_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST)

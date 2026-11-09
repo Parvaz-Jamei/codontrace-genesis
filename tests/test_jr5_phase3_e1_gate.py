@@ -1069,3 +1069,42 @@ def test_committed_log_is_read_as_its_lf_bytes() -> None:
     entries = plan.deviations_log_entries(text)
     assert hashlib.sha256(entries[0].encode("utf-8")).hexdigest() == plan.LOCK_START_ENTRY_SHA256
     plan.verify_deviations_log(text, expected_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST)
+
+
+def test_gate_loader_reads_the_log_bytes_the_record_check_accepted(tmp_path: Path) -> None:
+    """The gate loader gives the same answer as the record check on a CR inside an entry.
+
+    Basis: load_e1_gate_spec checks the root with verify_jr5_record_at_root
+    and then reads the log again for the spec decoder. Both reads must see
+    the file bytes. The log here is the committed log plus one valid entry
+    whose last body line holds a lone CR before ``## ``
+    (_jr5_deviation_attacks.cr_inside_appended_entry). In the bytes that
+    ``## `` is not at a line start, so the log has 6 entries (the 5
+    committed ones plus the new one), each with one digest line, chained and
+    ending at the plan pin: accepted. record.json is refreshed over the new
+    bytes. A text-mode second read would turn the CR into LF, see a 7th
+    entry with no digest line and refuse what the first check accepted.
+    Expected: the file holds one CR byte, the record check returns the plan
+    pin, and load_e1_gate_spec returns a spec equal to the one loaded from
+    the committed repository.
+    """
+    from codontrace.preregistration import jr5_locked_plan as plan
+    from codontrace.preregistration.manifest import hash_plan
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    committed_entries = len(plan.deviations_log_entries(log.read_bytes().decode("utf-8")))
+    log.write_bytes(_jr5_deviation_attacks.cr_inside_appended_entry(log.read_bytes()))
+    raw = log.read_bytes()
+    assert raw.count(b"\r") == 1
+    assert len(plan.deviations_log_entries(plan.read_deviations_log(log))) == committed_entries + 1 == 6
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    _manifest, plan_digest = plan.verify_jr5_record_at_root(
+        root, locked_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    )
+    assert plan_digest == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
+    assert load_e1_gate_spec(root) == load_e1_gate_spec(ROOT)

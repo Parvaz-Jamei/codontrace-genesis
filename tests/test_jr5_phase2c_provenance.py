@@ -695,6 +695,46 @@ def test_both_log_readers_accept_the_committed_lf_bytes(monkeypatch: pytest.Monk
     assert verdict.jr5_constants() == json.loads(_CONSTANTS_RAW)
 
 
+def test_both_log_readers_accept_a_cr_inside_an_appended_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Both loaders accept the same log when a lone CR sits inside an appended entry.
+
+    Basis: the log is the committed log plus one valid entry whose last body
+    line holds a lone CR before ``## ``
+    (_jr5_deviation_attacks.cr_inside_appended_entry). Both loaders decode
+    the bytes with no newline translation, and the ``re.M`` line-start anchor
+    starts a line only after LF, so that ``## `` is no heading: the log has
+    whole entries, each with one digest line, chained to the plan pin. Each
+    loader gets a record re-hashed over these bytes. A text-mode read in
+    either copy would turn the CR into LF, add an entry with no digest line
+    and refuse the file, so the copies would disagree.
+    Expected: one CR byte; verify_jr5_record_at_root and load_e1_gate_spec
+    return the plan pin and the committed spec, and jr5_constants returns
+    the packaged constants.
+    """
+
+    from codontrace.campaigns.jr5_e1_gate import load_e1_gate_spec
+    from codontrace.preregistration.jr5_locked_plan import verify_jr5_record_at_root
+    from codontrace.preregistration.manifest import hash_plan
+    from tests.test_jr5_phase3_e1_gate import RECORD, _clone_prereg
+
+    log_raw = _jr5_deviation_attacks.cr_inside_appended_entry((ROOT / "docs/prereg/jr5/DEVIATIONS.md").read_bytes())
+    assert log_raw.count(b"\r") == 1
+    root = _clone_prereg(tmp_path)
+    (root / "docs/prereg/jr5/DEVIATIONS.md").write_bytes(log_raw)
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    _manifest, plan_digest = verify_jr5_record_at_root(root, locked_plan_digest=verdict.PREREG_RECORD_DIGEST)
+    assert plan_digest == verdict.PREREG_RECORD_DIGEST
+    assert load_e1_gate_spec(root) == load_e1_gate_spec(ROOT)
+    _packaged_resources(monkeypatch, log_raw)
+    assert verdict.jr5_constants() == json.loads(_CONSTANTS_RAW)
+
+
 def test_adapter_interval_on_a_constant_sample_at_a_registered_bound_is_degenerate() -> None:
     """The adapter's E1 interval rule and the gate's TOST agree on constant samples.
 

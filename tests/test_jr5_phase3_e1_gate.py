@@ -1192,3 +1192,37 @@ def test_gate_bounds_are_the_registered_constants() -> None:
     with pytest.raises(ConfigurationError, match="not preregistered"):
         spec.ratio_bounds(0.3)
 
+
+@pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS))
+def test_non_utf8_log_bytes_refuse_the_gate_with_a_configuration_error(tmp_path: Path, case: str) -> None:
+    """A log whose bytes are not UTF-8 is refused with ConfigurationError.
+
+    Basis: read_deviations_log decodes the file bytes as UTF-8 and turns the
+    decoder's UnicodeError into ConfigurationError, the error type every
+    caller of the gate handles. Both edits leave bytes that are not UTF-8
+    (a 0xFF byte, and 0xC3 followed by a space, which is not a continuation
+    byte). record.json is refreshed over the new bytes, so freshness is not
+    what refuses the file.
+    Expected: ConfigurationError mentioning UTF-8 from read_deviations_log,
+    from verify_jr5_record_at_root and from load_e1_gate_spec, and no
+    UnicodeDecodeError.
+    """
+    from codontrace.preregistration import jr5_locked_plan as plan
+    from codontrace.preregistration.manifest import hash_plan
+
+    root = _clone_prereg(tmp_path)
+    log = root / "docs/prereg/jr5/DEVIATIONS.md"
+    log.write_bytes(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS[case](log.read_bytes()))
+    with pytest.raises(UnicodeDecodeError):
+        log.read_bytes().decode("utf-8")
+    record = json.loads(RECORD.read_bytes())
+    fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
+    (root / "docs/prereg/jr5/record.json").write_text(
+        json.dumps({"manifest": fresh.to_dict()}, indent=2) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        plan.read_deviations_log(log)
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        plan.verify_jr5_record_at_root(root, locked_plan_digest=jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST)
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        load_e1_gate_spec(root)

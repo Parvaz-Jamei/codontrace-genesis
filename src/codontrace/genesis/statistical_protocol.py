@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Literal, cast
 
 from codontrace._types import JsonValue
@@ -1081,7 +1082,66 @@ def student_t_sf(t: float, df: int) -> float:
     return tail if value > 0.0 else 1.0 - tail
 
 
-def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int]:
+def _sqrt_of_fraction(value: Fraction) -> float:
+    """Correctly rounded float square root of a non-negative Fraction.
+
+    The integer square root of the scaled value is rounded to odd (its last
+    bit records whether the root was inexact), with more than twice the float
+    precision, so the final int / int division rounds once and correctly.
+    This is the construction the standard library statistics module uses
+    for its float sqrt of a fraction.
+    """
+
+    num, den = value.numerator, value.denominator
+    if num == 0:
+        return 0.0
+    q = (num.bit_length() - den.bit_length() - _SQRT_BITS) // 2
+    if q >= 0:
+        root = math.isqrt(num // (den << 2 * q))
+        root |= root * root * (den << 2 * q) != num
+        return float(root << q)
+    root = math.isqrt((num << -2 * q) // den)
+    root |= root * root * den != num << -2 * q
+    return root / (1 << -q)
+
+
+_SQRT_BITS = 2 * 53 + 3
+
+
+def _signed_sqrt_ratio(numerator: Fraction, variance_of_mean: Fraction) -> float:
+    """numerator / sqrt(variance_of_mean) from exact inputs, rounded once at the square root.
+
+    Zero spread follows the module's zero-spread rule: 0 when the numerator
+    is 0, else an infinity of the numerator's sign.
+    """
+
+    if numerator == 0:
+        return 0.0
+    if variance_of_mean == 0:
+        return math.copysign(math.inf, numerator)
+    return math.copysign(_sqrt_of_fraction(numerator * numerator / variance_of_mean), numerator)
+
+
+@dataclass(frozen=True, slots=True)
+class _Moments:
+    """Sample mean and SD, plus the exact moments when the float ones are not accurate.
+
+    ``exact_mean`` and ``exact_variance`` are None when the two-pass float
+    moments hold to working precision; then ``mean`` and ``sd`` are those
+    float values. Otherwise they are the exact rational mean and sample
+    variance of the float values, and ``mean`` and ``sd`` are their correctly
+    rounded floats.
+    """
+
+    data: list[float]
+    mean: float
+    sd: float
+    df: int
+    exact_mean: Fraction | None = None
+    exact_variance: Fraction | None = None
+
+
+def _mean_sd_df(values: Sequence[float]) -> _Moments:
     data = _require_numeric_sequence("values", values)
     if any(not math.isfinite(item) for item in data):
         raise ConfigurationError("values must be finite.")
@@ -1094,15 +1154,56 @@ def _mean_sd_df(values: Sequence[float]) -> tuple[list[float], float, float, int
         # fsum(data) / n need not round back to ``first`` (n * first is
         # rounded, then divided), which would leave a spurious one-ulp spread
         # and a finite t of sqrt(n - 1) for a sample sitting on a bound.
-        return data, first, 0.0, n - 1
+        return _Moments(data, first, 0.0, n - 1)
     try:
         mean = math.fsum(data) / n
-        variance = math.fsum((item - mean) * (item - mean) for item in data) / (n - 1)
+        squares = math.fsum((item - mean) * (item - mean) for item in data)
     except OverflowError as exc:
         raise ConfigurationError("values are too large for a finite mean and variance.") from exc
+    variance = squares / (n - 1)
     if not (math.isfinite(mean) and math.isfinite(variance)):
         raise ConfigurationError("values are too large for a finite mean and variance.")
-    return data, mean, math.sqrt(variance), n - 1
+    # Two-pass check: the exact sum of squares about the float mean exceeds
+    # the one about the exact mean by (sum(x) - n * mean)^2 / n. When that
+    # term is below the rounding of the float sum of squares, the float mean
+    # and SD are kept unchanged. Otherwise the float mean is too coarse for
+    # the spread (a sample a few ulps wide), and the moments are taken
+    # exactly: t and the interval then use the exact mean, not its rounding.
+    exact = [Fraction(item) for item in data]
+    total = sum(exact, Fraction(0))
+    residual = total - n * Fraction(mean)
+    if squares > 0.0 and float(Fraction(squares) - residual * residual / n) == squares:
+        return _Moments(data, mean, math.sqrt(variance), n - 1)
+    exact_mean = total / n
+    exact_variance = sum(((item - exact_mean) ** 2 for item in exact), Fraction(0)) / (n - 1)
+    return _Moments(data, float(exact_mean), _sqrt_of_fraction(exact_variance), n - 1, exact_mean, exact_variance)
+
+
+def _shifted(moments: _Moments, offset: float, bound: float | None = None) -> float:
+    """Interval end mean + offset.
+
+    The end is mean + offset rounded to the nearest float, except when that
+    rounding would move it across or onto a bound a strict comparison is made
+    against. With exact moments the end is computed exactly and rounded
+    toward the mean, which keeps every strict comparison with a float bound
+    equal to the comparison with the exact end. When the exact interval holds
+    no float, the two rounded ends cross (low end above high end); each still
+    compares with any float bound exactly as its exact value. With float
+    moments the nearest float is kept unless it lands on ``bound`` while the
+    unrounded end lies strictly inside; then the end is the adjacent float on
+    the inside, so the strict interval rule at ``bound`` is exact.
+    """
+
+    centre = moments.mean if moments.exact_mean is None else moments.exact_mean
+    end = Fraction(centre) + Fraction(offset)
+    rounded = moments.mean + offset if moments.exact_mean is None else float(end)
+    if moments.exact_mean is None and rounded != bound:
+        return rounded
+    if offset < 0.0 and Fraction(rounded) < end:
+        return math.nextafter(rounded, math.inf)
+    if offset > 0.0 and Fraction(rounded) > end:
+        return math.nextafter(rounded, -math.inf)
+    return rounded
 
 
 def _check_alpha(alpha: float) -> float:
@@ -1118,9 +1219,9 @@ def one_sample_t_interval(values: Sequence[float], confidence: float) -> tuple[f
     level = float(confidence)
     if not math.isfinite(level) or not 0.0 < level < 1.0:
         raise ConfigurationError("confidence must lie in (0, 1).")
-    data, mean, sd, df = _mean_sd_df(values)
-    half = student_t_quantile(df, 0.5 + level / 2.0) * sd / math.sqrt(len(data))
-    return (mean - half, mean + half)
+    moments = _mean_sd_df(values)
+    half = student_t_quantile(moments.df, 0.5 + level / 2.0) * moments.sd / math.sqrt(len(moments.data))
+    return (_shifted(moments, -half), _shifted(moments, half))
 
 
 
@@ -1215,9 +1316,17 @@ def one_sample_tost(
     Equivalence is declared when both one-sided p-values are below ``alpha``.
     With zero spread (an exactly constant sample) the t statistic of a side
     is infinite when the common value differs from that bound, and 0 when it
-    equals the bound (0/0 taken as t = 0 and p = 1/2, which does not reject;
-    scipy returns NaN there). The decision therefore reduces to whether the
-    common value lies strictly inside the bounds.
+    equals the bound (0/0 taken as t = 0 and p = 1/2, which does not reject).
+    The decision therefore reduces to whether the common value lies strictly
+    inside the bounds. For a sample only a few ulps wide the float mean is
+    too coarse for the spread; the moments are then exact (see
+    ``_mean_sd_df``) and each t is rounded once from the exact mean minus the
+    bound. scipy 1.18.1 ``ttest_1samp`` follows its float mean in both
+    cases: for a constant sample it returns NaN only when that mean rounds
+    back to the common value (``[1.0] * 3``) and a finite t otherwise
+    (``[v] * 7`` with v = 0.5877866649021191 gives t = sqrt(6), p = 0.0498);
+    for ``[v] * 6 + [nextafter(v, inf)]`` it gives t = sqrt(7), p = 0.0382,
+    where the exact t is 1.
     """
 
     a = _check_alpha(alpha)
@@ -1225,16 +1334,26 @@ def one_sample_tost(
     high = float(upper_bound)
     if not (math.isfinite(low) and math.isfinite(high)) or not low < high:
         raise ConfigurationError("bounds must be finite with lower_bound < upper_bound.")
-    data, mean, sd, df = _mean_sd_df(values)
-    se = sd / math.sqrt(len(data))
-    if se > 0.0:
-        t_lower = (mean - low) / se
-        t_upper = (mean - high) / se
+    moments = _mean_sd_df(values)
+    data, mean, sd, df = moments.data, moments.mean, moments.sd, moments.df
+    if moments.exact_mean is not None and moments.exact_variance is not None:
+        # Exact moments: each t is rounded once from exact (mean - bound) and
+        # exact var / n, so a spread of a few ulps keeps its true t.
+        variance_of_mean = moments.exact_variance / len(data)
+        se = _sqrt_of_fraction(variance_of_mean)
+        t_lower = _signed_sqrt_ratio(moments.exact_mean - Fraction(low), variance_of_mean)
+        t_upper = _signed_sqrt_ratio(moments.exact_mean - Fraction(high), variance_of_mean)
         half = student_t_quantile(df, 1.0 - a) * se
     else:
-        t_lower = math.copysign(math.inf, mean - low) if mean != low else 0.0
-        t_upper = math.copysign(math.inf, mean - high) if mean != high else 0.0
-        half = 0.0
+        se = sd / math.sqrt(len(data))
+        if se > 0.0:
+            t_lower = (mean - low) / se
+            t_upper = (mean - high) / se
+            half = student_t_quantile(df, 1.0 - a) * se
+        else:
+            t_lower = math.copysign(math.inf, mean - low) if mean != low else 0.0
+            t_upper = math.copysign(math.inf, mean - high) if mean != high else 0.0
+            half = 0.0
     p_lower = student_t_sf(t_lower, df)
     # P(T < t_upper) taken as the upper tail at -t_upper: no 1 - x cancellation.
     p_upper = student_t_sf(-t_upper, df)
@@ -1251,6 +1370,6 @@ def one_sample_tost(
         t_upper=t_upper,
         p_lower=p_lower,
         p_upper=p_upper,
-        ci_low=mean - half,
-        ci_high=mean + half,
+        ci_low=_shifted(moments, -half, low),
+        ci_high=_shifted(moments, half, high),
     )

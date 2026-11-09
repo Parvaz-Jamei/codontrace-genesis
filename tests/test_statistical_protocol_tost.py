@@ -322,3 +322,134 @@ def test_constant_sample_on_the_lower_bound_at_n7_is_not_equivalent() -> None:
     assert not r.equivalent
     assert one_sample_t_interval(data, 0.90) == (v, v) == (r.ci_low, r.ci_high)
     assert r.equivalent is (r.lower_bound < r.ci_low and r.ci_high < r.upper_bound)
+
+
+def test_one_ulp_spread_on_the_lower_bound_at_n7_uses_the_exact_mean() -> None:
+    """Six copies of the m = 0.5 lower log bound plus one value one ulp above it.
+
+    Basis: v = 0.5877866649021191 is the registered m = 0.5 lower log bound and
+    u = ulp(v) = 2^-53. For x = [v] * 6 + [v + u] the exact mean is v + u/7, the
+    deviations are -u/7 (six times) and 6u/7, so the exact sum of squares is
+    6u^2/49 + 36u^2/49 = 6u^2/7, the variance is u^2/7, sd = u/sqrt(7) and
+    se = sd/sqrt(7) = u/7. Then t_lower = (u/7)/(u/7) = 1 exactly. For df = 6
+    the closed form for even df gives P(T > 1) = 1/2 - (1/(2 sqrt(7))) *
+    (1 + 3/7 + 27/98) = 1/2 - 167/(196 sqrt(7)) = 0.17796 > 0.05: not
+    equivalent. A float mean fsum(x)/7 rounds to v + u (the sample maximum),
+    which gives sd = 1.1e-16 and t_lower = sqrt(7) = 2.65, p = 0.019: a false
+    equivalence. The exact mean rounds to v, so the reported mean is v while
+    t uses the exact v + u/7. The 90% lower end is v + u/7 - 1.943 u/7 < v,
+    rounded toward the mean to v, so the strict interval rule also says not
+    equivalent.
+    Expected: fsum / 7 is v + u (the case needs the exact path), mean v, sd
+    and se equal to u/sqrt(7) and u/7 correctly rounded, t_lower 1.0, p_lower
+    equal to the closed form, sd > 0 and t finite (the sample is not treated
+    as constant), not equivalent, and ci_low == v so the interval rule agrees.
+    """
+    from fractions import Fraction
+
+    v = 0.5877866649021191
+    u = math.ulp(v)
+    upper = 0.7884573603642703
+    data = [v] * 6 + [math.nextafter(v, math.inf)]
+    assert math.fsum(data) / 7 == v + u
+    r = one_sample_tost(data, v, upper, alpha=0.05)
+    assert r.mean == v
+    half_ulp = Fraction(math.ulp(r.sd)) / 2
+    assert (Fraction(r.sd) - half_ulp) ** 2 <= Fraction(u) ** 2 / 7 <= (Fraction(r.sd) + half_ulp) ** 2
+    assert r.standard_error == u / 7.0
+    assert r.sd > 0.0 and math.isfinite(r.t_lower)
+    assert r.t_lower == 1.0
+    assert r.p_lower == pytest.approx(0.5 - 167.0 / (196.0 * math.sqrt(7.0)), abs=1e-12)
+    assert not r.equivalent
+    assert r.ci_low == v and not (r.lower_bound < r.ci_low)
+    assert one_sample_t_interval(data, 0.90)[0] == v
+
+
+def test_interval_end_that_rounds_onto_a_bound_stays_inside_when_its_exact_value_is() -> None:
+    """Three values a few ulps above a bound, with an exactly representable mean.
+
+    Basis: with b = log(1.8), c = b + u and w = b + 4u (u = ulp(b)), the sample
+    [w, c, w] has exact mean b + 3u (a float, so the two-pass float moments are
+    exact), deviations u, -2u, u, variance 3u^2, sd sqrt(3) u and se = u. So
+    t_lower = 3. For df = 2, P(T > 3) = (1 - 3/sqrt(11))/2 = 0.0477 < 0.05 and
+    the 95% quantile is 0.9/sqrt(2 * 0.95 * 0.05) = 2.919986, so the lower end
+    b + 3u - 2.919986u = b + 0.08u lies strictly above b and the strict 90%
+    interval rule agrees with the TOST. The nearest float to b + 0.08u is b
+    itself, which would read as "not inside"; the end is therefore the next
+    float above b.
+    Expected: mean b + 3u, t_lower 3.0, p_lower equal to the closed form, the
+    sample equivalent, ci_low the float after b, and the strict rule equal to
+    the decision.
+    """
+    b = math.log(1.8)
+    u = math.ulp(b)
+    c = math.nextafter(b, math.inf)
+    w = b + 4 * u
+    r = one_sample_tost([w, c, w], b, math.log(2.2), alpha=0.05)
+    assert r.mean == b + 3 * u and r.t_lower == 3.0
+    assert r.p_lower == pytest.approx((1.0 - 3.0 / math.sqrt(11.0)) / 2.0, abs=1e-12)
+    assert r.equivalent
+    assert r.ci_low == math.nextafter(b, math.inf)
+    assert r.equivalent is (r.lower_bound < r.ci_low and r.ci_high < r.upper_bound)
+
+
+def test_well_conditioned_samples_keep_the_float_two_pass_moments() -> None:
+    """For ordinary spreads the result is the plain float computation, bit for bit.
+
+    Basis: the exact moments are used only when the term (sum(x) - n *
+    mean)^2 / n, by which the sum of squares about the float mean exceeds the
+    one about the exact mean, is visible at double precision. For a sample
+    whose spread is far above the ulp of its mean that term is below the
+    rounding of the sum of squares, so mean = fsum(x)/n, sd = sqrt(fsum((x -
+    mean)^2)/(n - 1)), se = sd/sqrt(n), t = (mean - bound)/se and the ends
+    mean -/+ t_{0.95} se are returned unchanged. The samples are seeded
+    (RNGManager) with n = 5 to 60 and spreads from 1e-6 to 1 around a centre
+    in (-1, 1).
+    Expected: every field equal (==) to the float formula.
+    """
+    from codontrace.genesis.causal_validation import student_t_quantile
+    from codontrace.rng import RNGManager
+
+    rng = RNGManager(seed=4502).fork("well-conditioned-moments")
+    for _ in range(200):
+        n = rng.randrange(5, 61)
+        centre = rng.random() * 2.0 - 1.0
+        spread = 10.0 ** (rng.random() * 6.0 - 6.0)
+        x = [centre + spread * (rng.random() - 0.5) for _ in range(n)]
+        mean = math.fsum(x) / n
+        sd = math.sqrt(math.fsum((a - mean) * (a - mean) for a in x) / (n - 1))
+        se = sd / math.sqrt(n)
+        low, high = centre - 0.01, centre + 0.02
+        half = student_t_quantile(n - 1, 0.95) * se
+        r = one_sample_tost(x, low, high, alpha=0.05)
+        assert (r.mean, r.sd, r.standard_error) == (mean, sd, se)
+        assert (r.t_lower, r.t_upper) == ((mean - low) / se, (mean - high) / se)
+        assert (r.ci_low, r.ci_high) == (mean - half, mean + half)
+        half95 = student_t_quantile(n - 1, 0.975) * sd / math.sqrt(n)
+        assert one_sample_t_interval(x, 0.95) == (mean - half95, mean + half95)
+
+
+def test_exact_square_root_is_correctly_rounded() -> None:
+    """The square root used with exact moments rounds once, to nearest.
+
+    Basis: IEEE 754 requires math.sqrt to be correctly rounded, so for a float
+    y the correctly rounded root of the rational value of y is math.sqrt(y).
+    Squares of floats have exact roots. The inputs span normal, subnormal and
+    large magnitudes (seeded, RNGManager).
+    Expected: equality with math.sqrt for every float input, exact roots for
+    exact squares, and 0.0 for 0.
+    """
+    from fractions import Fraction
+
+    from codontrace.genesis.statistical_protocol import _sqrt_of_fraction
+    from codontrace.rng import RNGManager
+
+    rng = RNGManager(seed=4503).fork("exact-sqrt")
+    assert _sqrt_of_fraction(Fraction(0)) == 0.0
+    for y in (2.0, 3.0, 0.5, 5e-324, 2.2250738585072014e-308, 1.7976931348623157e308, 1.0 / 7.0):
+        assert _sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
+    for _ in range(2000):
+        y = math.ldexp(rng.random() + 0.5, rng.randrange(-1070, 1020))
+        assert _sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
+        root = math.ldexp(rng.random() + 0.5, rng.randrange(-500, 500))
+        assert _sqrt_of_fraction(Fraction(root) ** 2) == root, root

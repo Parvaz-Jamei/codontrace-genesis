@@ -1108,3 +1108,59 @@ def test_gate_loader_reads_the_log_bytes_the_record_check_accepted(tmp_path: Pat
     )
     assert plan_digest == jr5_e1_gate.LOCKED_PREREG_MANIFEST_DIGEST
     assert load_e1_gate_spec(root) == load_e1_gate_spec(ROOT)
+
+
+def test_near_constant_samples_on_registered_bounds_follow_the_exact_reference() -> None:
+    """Samples one or two ulps wide on each registered bound get the exact-arithmetic decision.
+
+    Basis: for a sample whose spread is a few ulps the float mean fsum(x)/n
+    can round by as much as the spread, which moves t by O(1); [v] * 6 +
+    [v + u] on the m = 0.5 lower bound is the worked case (exact t = 1, the
+    float mean gives sqrt(7)). The reference here is exact rational
+    arithmetic: M = sum(x)/n and V = sum((x - M)^2)/(n - 1) as Fractions, and
+    the lower test rejects iff M - lower > 0 and (M - lower)^2 * n / V > q^2,
+    q = student_t_quantile(n - 1, 1 - alpha) (the same for the upper test with
+    the sign reversed). Equivalence needs both. The samples are, for each of
+    the four registered log bounds b and n = 2 to 60, b repeated with one
+    value moved by k = 1 or 2 ulps in either direction (last value, every
+    other value, and the second half). None is constant, so each must take
+    the t path with a positive SD and finite t, which is what a tolerance in
+    the constancy test would break.
+    Expected: for every sample, sd > 0, finite t on both sides, the TOST
+    decision equal to the exact reference, and equal to strict inclusion of
+    its own 90% interval in (lower, upper).
+    """
+    from fractions import Fraction
+
+    from codontrace.genesis.statistical_protocol import one_sample_tost
+
+    spec = _spec()
+    checked = 0
+    for m in spec.sex_ratios:
+        lower, upper = spec.log_bounds(m)
+        for b in (lower, upper):
+            for n in range(2, 61):
+                q2 = Fraction(student_t_quantile(n - 1, 1.0 - spec.alpha)) ** 2
+                for k in (1, 2):
+                    for direction in (math.inf, -math.inf):
+                        w = b
+                        for _ in range(k):
+                            w = math.nextafter(w, direction)
+                        for data in (
+                            [b] * (n - 1) + [w],
+                            [b if i % 2 else w for i in range(n)],
+                            [b] * (n // 2) + [w] * (n - n // 2),
+                        ):
+                            exact = [Fraction(x) for x in data]
+                            mean = sum(exact, Fraction(0)) / n
+                            var = sum(((x - mean) ** 2 for x in exact), Fraction(0)) / (n - 1)
+                            lo_d, hi_d = mean - Fraction(lower), Fraction(upper) - mean
+                            reference = lo_d > 0 and hi_d > 0 and lo_d**2 * n / var > q2 and hi_d**2 * n / var > q2
+                            r = one_sample_tost(data, lower, upper, alpha=spec.alpha)
+                            case = (m, b, n, k, direction, data.index(w))
+                            assert r.sd > 0.0 and math.isfinite(r.t_lower) and math.isfinite(r.t_upper), case
+                            assert r.equivalent is reference, case
+                            assert r.equivalent is (lower < r.ci_low and r.ci_high < upper), case
+                            checked += 1
+    assert checked == 4 * 59 * 2 * 2 * 3
+

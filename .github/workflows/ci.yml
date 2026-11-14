@@ -187,6 +187,52 @@ jobs:
       - name: Import contracts (import-linter)
         run: lint-imports --no-cache
 
+  installed-wheel:
+    name: JR5 verdict from the installed wheel (required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[dev]"
+
+      # Every other job imports codontrace from src/, where package data is
+      # present even when the wheel omits it. Here pip installs the built
+      # wheel into a fresh venv and the prereg data is read from there.
+      - name: Build the wheel and read the JR5 data from a pip install
+        run: |
+          python -m build --wheel --outdir dist
+          python -m venv /tmp/wheel-venv
+          /tmp/wheel-venv/bin/python -m pip install --no-deps dist/codontrace-*.whl
+          cd /tmp
+          /tmp/wheel-venv/bin/python -I - <<'PY'
+          from importlib import resources
+
+          import codontrace
+          from codontrace.claimgate import jr5_verdict as v
+
+          assert codontrace.__file__.startswith("/tmp/wheel-venv/"), codontrace.__file__
+          data = resources.files("codontrace.claimgate")
+          for name in (v._CONSTANTS_RESOURCE, v._RECORD_RESOURCE, v._DEVIATIONS_RESOURCE):
+              assert data.joinpath(name).is_file(), name
+          print(len(v.jr5_constants()), "constants keys read from", codontrace.__file__)
+          PY
+
+      - name: Installed-wheel tests (no skips)
+        env:
+          CODONTRACE_REQUIRE_WHEEL_TEST: "1"
+        run: python -m pytest tests/test_jr5_installed_wheel.py --disable-plugin-autoload -rs
+
   verdict-ledger:
     name: Standing verdict ledger (required; not optional)
     runs-on: ubuntu-latest

@@ -17,6 +17,32 @@
   generation. Each of the two meioses draws its own crossover gate from its
   own RNG stream when `recombination_prob` is between 0 and 1. Default-path
   digests are unchanged.
+- JR5 phase 2b, selfing (PR #136): opt-in hermaphrodite selfing with sexes
+  on, decided by the locus alone and made through the gamete path; each
+  organism's sex is fixed for life; a per-generation sex and mating census
+  reports the registered m (outcrossed births only); the cost of sons and
+  the outcross mating fee are booked as separate terms; mating types can
+  only be enabled at generation 0, and reset, reseeded or edited sexes-on
+  snapshots are refused. The E1 regression fit was re-pinned after gamete
+  fusion, with the reason in the JR5 deviations log. Default-path digests
+  are unchanged.
+- JR5 phase 3, E1 equivalence gate (PR #137): the registered TOST gate for
+  E1 (`one_sample_tost`, `one_sample_t_interval`). An exactly constant
+  sample has zero spread; a sample only a few ulps wide uses exact mean and
+  variance, so its t is not an artefact of rounding; the gate takes its
+  ratio bounds from the registered constants file and reads the deviations
+  log as its bytes, append-only. The accuracy of the p-rule near alpha is
+  documented in `student_t_sf`.
+- JR5 phase 2c, verdict adapter (pending merge): `evaluate_jr5_verdict`
+  recomputes the JR5 verdict from raw per-seed records under the pinned
+  preregistration, and ClaimGate allows `red_queen_proved` only for a
+  verified JR5 verdict. The E1 decision and its reported 90% and 95%
+  intervals are the gate's own (TOST record and `one_sample_t_interval`),
+  and a gate record cell whose `equivalent` or `passed` does not follow its
+  own TOST is refused. Exact square roots past the float range give inf
+  (IEEE 754 overflow) instead of raising. A non-finite or overflowing
+  sample in the adapter's moments is refused with ConfigurationError, as
+  in the gate.
 
 ## [0.3.0b30] — 2026-10-11
 

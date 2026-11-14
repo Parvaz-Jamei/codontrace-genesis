@@ -302,6 +302,14 @@ def _forbidden_hits(bundle: ClaimgateBundle) -> tuple[str, ...]:
     requested = extra.get("requested_claim")
     if isinstance(requested, str) and normalize_claim_label(requested) in forbidden:
         hits.add(normalize_claim_label(requested))
+    # The one exemption from the Red Queen ban: the auditor itself recomputes
+    # the JR5 verdict from the raw records the bundle carries, and checks that
+    # the verdict is bound to this bundle. No caller can supply the check.
+    if "red_queen_proved" in hits and "jr5_verdict" in extra and "jr5_evidence" in extra:
+        from codontrace.claimgate.jr5_verdict import red_queen_exemption_holds
+
+        if red_queen_exemption_holds(bundle):
+            hits.discard("red_queen_proved")
     return tuple(sorted(hits))
 
 

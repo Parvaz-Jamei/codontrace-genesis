@@ -1069,6 +1069,27 @@ def student_t_sf(t: float, df: int) -> float:
 
     Uses P(|T| > |t|) = I_x(df/2, 1/2) with x = df / (df + t^2), the same
     incomplete-beta identity behind ``student_t_quantile``.
+
+    Accuracy: the result is not correctly rounded. Against a 60-digit
+    incomplete-beta reference, the smallest float t with
+    ``student_t_sf(t, df) < 0.05`` lies 102.3 ulp below (df 38) to 73.4 ulp
+    above (df 39) the exact 0.95 quantile at df 31 to 39, the E1 gate's dfs
+    (df 37: 22.9 below, df 35: 29.6 below). ``one_sample_tost`` decides with
+    this rule, so in a band |dt| * se wide around a bound (at most about
+    2.3e-14 * se; 2 to 3 ulp of a mean near log 1.8 at se 0.012) its
+    decision can differ from the exact one, in either direction depending
+    on df. That band is the registered rule's accuracy limit; the verdict
+    adapter takes the same decision, so the two copies never split there.
+    Over df 1 to 59 the largest departure is 237.9 ulp. In a scan that puts
+    samples on the band on purpose (n = 32 to 40, the centre stepped one
+    float at a time across the m = 0.5 lower bound, 400 samples per df),
+    25 of 3,600 decisions differ from the exact TOST: 20 equivalent by this
+    rule only (df 31 to 38) and 5 not equivalent by this rule only (df 39),
+    the direction following the sign of the threshold error. For data not
+    placed there the band is about 1e-13 of the mean. A correctly rounded
+    comparison of the tail with alpha near the threshold would close it,
+    but would change gate outputs inside the band, so it is not part of
+    the registered rule.
     """
 
     if isinstance(df, bool) or not isinstance(df, int) or df < 1:
@@ -1089,7 +1110,7 @@ def _sqrt_of_fraction(value: Fraction) -> float:
     bit records whether the root was inexact), with more than twice the float
     precision, so the final int / int division rounds once and correctly.
     This is the construction the standard library statistics module uses
-    for its float sqrt of a fraction.
+    for its float sqrt of a fraction. A root beyond the float range is inf.
     """
 
     num, den = value.numerator, value.denominator
@@ -1099,7 +1120,13 @@ def _sqrt_of_fraction(value: Fraction) -> float:
     if q >= 0:
         root = math.isqrt(num // (den << 2 * q))
         root |= root * root * (den << 2 * q) != num
-        return float(root << q)
+        try:
+            return float(root << q)
+        except OverflowError:
+            # Beyond the float range (a t from a subnormal spread): the IEEE
+            # result of the rounding is inf, which encode_tost_statistic and
+            # student_t_sf already handle.
+            return math.inf
     root = math.isqrt((num << -2 * q) // den)
     root |= root * root * den != num << -2 * q
     return root / (1 << -q)

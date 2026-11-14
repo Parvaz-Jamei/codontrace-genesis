@@ -480,3 +480,59 @@ def test_exact_square_root_is_correctly_rounded() -> None:
         assert _sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
         root = math.ldexp(rng.random() + 0.5, rng.randrange(-500, 500))
         assert _sqrt_of_fraction(Fraction(root) ** 2) == root, root
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [0.0] * 6 + [5e-324],
+        [5e-324] * 6 + [1e-323],
+        [-5e-324] * 39 + [-0.0],
+        [1e-300] * 6 + [math.nextafter(1e-300, 1.0)],
+    ],
+    ids=["zeros-and-one-subnormal", "two-subnormals", "negative-subnormal-n40", "two-adjacent-tiny"],
+)
+def test_tost_with_a_subnormal_spread_gives_an_infinite_t_not_an_overflow(values: list[float]) -> None:
+    """A spread of a few subnormal ulps gives t = -inf at bounds near 1, not OverflowError.
+
+    Basis: these samples take the exact-moment path. With m = 0.5 bounds
+    (log 1.8, log 2.2) the exact t = (mean - bound) / se has |t| near
+    0.6 / 1e-324, beyond the float range (largest float 1.8e308). IEEE 754
+    rounding to nearest delivers an overflowing result as an infinity of
+    its sign, and the module already encodes t = +-inf (zero-spread rule,
+    encode_tost_statistic). Before R47 the exact square root raised
+    OverflowError from int-to-float conversion.
+    Expected: t_lower = t_upper = -inf, p_lower 1, p_upper 0, not
+    equivalent, and a record whose t_lower is the encoded -inf.
+    """
+    from codontrace.genesis.statistical_protocol import _mean_sd_df
+
+    lower, upper = 0.5877866649021191, 0.7884573603642703
+    assert _mean_sd_df(values).exact_mean is not None
+    result = one_sample_tost(values, lower, upper, alpha=0.05)
+    assert result.t_lower == result.t_upper == -math.inf
+    assert (result.p_lower, result.p_upper, result.equivalent) == (1.0, 0.0, False)
+    assert result.to_record()["t_lower"] == {"$float": "-inf"}
+
+
+def test_exact_sqrt_beyond_the_float_range_is_inf() -> None:
+    """The exact square root rounds to inf exactly where IEEE 754 rounding overflows.
+
+    Basis: M = sys.float_info.max. The midpoint between M and 2**1024 is
+    M + 2**970 (½ ulp of that binade). sqrt((M + ½ulp)**2) is that
+    midpoint, and ties-to-even rounds it up to 2**1024, which overflows
+    to inf. One unit below that square, and M**2 + 1, both lie below the
+    midpoint, so they round back to M. 2**2048 has root 2**1024, also inf.
+    Expected: inf, M, M, and inf.
+    """
+    import sys
+    from fractions import Fraction
+
+    from codontrace.genesis.statistical_protocol import _sqrt_of_fraction
+
+    big = Fraction(sys.float_info.max)
+    overflow_sq = (big + 2**970) ** 2
+    assert _sqrt_of_fraction(overflow_sq) == math.inf
+    assert _sqrt_of_fraction(overflow_sq - 1) == sys.float_info.max
+    assert _sqrt_of_fraction(big * big + 1) == sys.float_info.max
+    assert _sqrt_of_fraction(Fraction(2) ** 2048) == math.inf

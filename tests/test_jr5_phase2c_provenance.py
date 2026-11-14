@@ -1106,3 +1106,34 @@ def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeyp
         # exp maps hi and the float below it to the same ratio, so the log end is checked directly.
         assert c["tost"]["ci_high"] == math.nextafter(upper, -math.inf)
         assert c["ratio_ci"][1] == math.exp(c["tost"]["ci_high"])
+
+
+def test_adapter_moments_equal_the_gate_moments_bit_for_bit() -> None:
+    """The adapter's _moments and the gate's _mean_sd_df give the same mean and SD floats.
+
+    Basis: both compute the float two-pass moments with squares as
+    (v - mean) * (v - mean), a correctly rounded product. Float ``** 2``
+    goes through the C library pow, which can differ from the product in
+    the last bit (about 160 in 200,000 floats on CPython 3.12 with glibc),
+    so an SD with ``** 2`` can be one ulp off the gate's. The two R47
+    samples (40 values, sd near 0.1) are cases where it is: their gate SDs
+    are 0.10322300343785618 and 0.09261897077467172, and the pow SDs are one
+    ulp above and below. A seeded sweep (RNGManager) of 3,000 samples of 40
+    uniform values on (-0.175, 0.175), sd near 0.1, adds cases at random.
+    Expected: equal mean, SD and exact-moment flags for every sample; the two
+    R47 samples have the gate SDs above, and the pow SD differs from each.
+    """
+    from codontrace.genesis.statistical_protocol import _mean_sd_df
+    from tests.test_jr5_live_gate_adapter import _R47_EXCLUSION_SPLIT_1, _R47_EXCLUSION_SPLIT_2
+
+    rng = RNGManager(seed=4705).fork("moment-twins")
+    samples = [list(_R47_EXCLUSION_SPLIT_1), list(_R47_EXCLUSION_SPLIT_2)]
+    samples += [[(rng.random() - 0.5) * 0.35 for _ in range(40)] for _ in range(3000)]
+    for data in samples:
+        gate = _mean_sd_df(data)
+        mean, sd, exact_mean, _exact_var = verdict._moments(data)
+        assert (mean, sd, exact_mean) == (gate.mean, gate.sd, gate.exact_mean), data[:3]
+    for data, gate_sd in zip(samples[:2], (0.10322300343785618, 0.09261897077467172), strict=True):
+        mean = math.fsum(data) / len(data)
+        pow_sd = math.sqrt(math.fsum((v - mean) ** 2 for v in data) / (len(data) - 1))
+        assert verdict._mean_sd(data)[1] == gate_sd != pow_sd

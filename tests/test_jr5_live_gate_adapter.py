@@ -402,6 +402,7 @@ def test_df39_record_copied_from_an_interval_rule_is_refused(monkeypatch: pytest
         "equivalent_without_tost_rejection",
         "passed_without_equivalence",
         "passed_over_the_cap",
+        "passed_without_null_exclusion",
         "equivalent_without_tost",
     ],
 )
@@ -417,7 +418,8 @@ def test_record_check_refuses_a_cell_inconsistent_with_its_own_tost(edit: str) -
     cell of the valid positive dataset (tost.equivalent True, excludes_null
     True, cap not exceeded): tost.equivalent set False with equivalent left
     True; equivalent False with passed left True; exclusion_cap_exceeded
-    True with passed left True; tost removed with equivalent left True.
+    True with passed left True; excludes_null False with passed left True;
+    tost removed with equivalent left True.
     Expected: ConfigurationError for every edit, naming the cell's
     equivalent or passed field.
     """
@@ -434,6 +436,8 @@ def test_record_check_refuses_a_cell_inconsistent_with_its_own_tost(edit: str) -
         cell["equivalent"] = False
     elif edit == "passed_over_the_cap":
         cell["exclusion_cap_exceeded"] = True
+    elif edit == "passed_without_null_exclusion":
+        cell["excludes_null"] = False
     else:
         cell["tost"] = None
     record = deepcopy(evidence["e1_gate_record"])

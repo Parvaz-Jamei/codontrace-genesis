@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.3.0b31] — 2026-11-15
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b30`.
+
 - Bug fix, `diploid_meiosis`: the chamber crossed two haploid gametes instead
   of fusing them, so a child had half its parent's length (18 to 9 bits) and
   P5 arms died out; meiosis also always led with the even homolog, so a
@@ -33,7 +37,7 @@
   ratio bounds from the registered constants file and reads the deviations
   log as its bytes, append-only. The accuracy of the p-rule near alpha is
   documented in `student_t_sf`.
-- JR5 phase 2c, verdict adapter (pending merge): `evaluate_jr5_verdict`
+- JR5 phase 2c, verdict adapter (PR #138): `evaluate_jr5_verdict`
   recomputes the JR5 verdict from raw per-seed records under the pinned
   preregistration, and ClaimGate allows `red_queen_proved` only for a
   verified JR5 verdict. The E1 decision and its reported 90% and 95%

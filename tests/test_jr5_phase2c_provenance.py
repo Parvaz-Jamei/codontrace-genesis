@@ -1054,12 +1054,13 @@ def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeyp
     is the gate's p-rule; here the exact interval is inside, and so is the
     gate's decision.
     Expected: mean + half == hi with the exact sum below hi; both m = 0.5
-    cells equivalent, equal to their own TOST decision, with the interval's
-    upper ratio end exp(nextafter(hi, -inf)) == exp(tost ci_high); the exact
-    rule agrees.
+    cells equivalent, equal to their own TOST decision; the 90% interval _e1
+    builds for them ends at nextafter(hi, -inf), as the gate's tost ci_high,
+    and its ratio end is exp of that; the exact rule agrees.
     """
     import itertools
     from fractions import Fraction
+    from typing import Any
 
     from codontrace.genesis.causal_validation import student_t_quantile
 
@@ -1080,9 +1081,22 @@ def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeyp
     vals = verdict._Values(verdict.Jr5Evidence.from_dict(positive()))
     slopes = itertools.cycle(data)
     monkeypatch.setattr(verdict, "_firth_logit_slope", lambda counts, host_n, fit: next(slopes))
+    real_interval = verdict._t_interval
+    ends: list[float] = []
+
+    def recording(*args: Any, **kwargs: Any) -> verdict.Interval:
+        interval = real_interval(*args, **kwargs)
+        if args[1:3] == (level, (lower, upper)):
+            ends.append(interval.hi)
+        return interval
+
+    monkeypatch.setattr(verdict, "_t_interval", recording)
     _gated, _breach, cells = verdict._e1(vals, k)
     half_cells = [c for c in cells if c["sex_ratio"] == 0.5]
     assert len(half_cells) == 2 and all(c["n_used"] == n for c in cells)
+    # exp maps hi and the float below it to the same ratio, so the log end is checked directly.
+    assert ends == [math.nextafter(upper, -math.inf)] * 2
     for c in half_cells:
         assert c["equivalent"] is True and c["tost"]["equivalent"] is True
-        assert c["ratio_ci"][1] == math.exp(math.nextafter(upper, -math.inf)) == math.exp(c["tost"]["ci_high"])
+        assert c["tost"]["ci_high"] == math.nextafter(upper, -math.inf)
+        assert c["ratio_ci"][1] == math.exp(c["tost"]["ci_high"])

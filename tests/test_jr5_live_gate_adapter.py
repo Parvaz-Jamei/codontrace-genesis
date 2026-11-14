@@ -215,6 +215,7 @@ def test_actual_producer_low_disagreement_never_proves(n_low: int) -> None:
 _DF37_EXACT_AND_GATE_EQUIVALENT = 0.6364498853178189  # n = 38: t_lower 13.1 ulp past exact q; t_ppf +1366
 _DF39_EXACT_EQUIVALENT_GATE_NOT = 0.6376164490249974  # n = 40: t_lower +4.4 ulp; sf threshold +73.4
 _DF39_NEITHER_EQUIVALENT = 0.6376164490249973  # n = 40: t_lower -12.6 ulp; t_ppf -494 (old rule: inside)
+_DF35_QUANTILE_INTERVAL_INSIDE_GATE_NOT = 0.635255332650197  # n = 36: t_lower -30.6 ulp; quantile -37.6
 
 
 def _r46_slopes(c: float, n: int) -> list[float]:
@@ -353,6 +354,47 @@ def test_df39_sample_at_the_gate_accuracy_limit_is_not_equivalent_in_both_copies
     )
     mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
     assert mine["equivalent"] is False and mine["tost"]["equivalent"] is False
+
+
+def test_df35_sample_inside_by_the_quantile_interval_follows_the_p_rule(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The adapter follows the gate's p-rule even where an interval with the gate's own quantile says inside.
+
+    Basis: 36 slopes c + (i - 17.5) * 0.016, c = 0.635255332650197, m = 0.5,
+    df 35. t_lower = 1.689572457780259 is 30.6 ulp below the exact 0.95
+    quantile (29 ulp below scipy's 1.6895724577802655, which is 1.6 ulp from
+    exact), so the exact TOST does not reject the lower null. The gate's
+    p-rule threshold at df 35 is 29.6 ulp below exact, so p_lower =
+    0.05000000000000015 and the gate says not equivalent. student_t_quantile
+    (35, 0.95) = 1.6895724577802576 is 37.6 ulp below exact, so the 90%
+    interval built with it, the gate's own reporting interval, has its lower
+    end 0.5877866649021192, one ulp above log 1.8: an interval rule, even
+    with the gate's quantile, would call the cell equivalent against both
+    the gate and the exact answer. Only the p-rule decides; the interval is
+    report-only.
+    Expected: gate not equivalent with its reported 90% lower end above log
+    1.8; adapter cell not equivalent and equal to its TOST; the honest record
+    is accepted (no refusal) and the verdict is instrument_fail with
+    red_queen_proved False.
+    """
+    from scipy import stats
+
+    from codontrace.claimgate import jr5_verdict
+
+    slopes = _r46_slopes(_DF35_QUANTILE_INTERVAL_INSIDE_GATE_NOT, 36)
+    evidence, result = _r46_evidence(monkeypatch, slopes)
+    cell = _gated_half(result.to_record())
+    lo, hi = cell["log_bounds"]
+    assert cell["tost"]["df"] == 35 and cell["tost"]["t_lower"] < float(stats.t.ppf(0.95, 35))
+    assert cell["tost"]["p_lower"] >= 0.05 and cell["equivalent"] is False
+    assert cell["tost"]["ci_low"] > lo
+    assert jr5_verdict._t_interval(slopes, 0.9, (lo, hi), gate_quantile=True).inside(lo, hi)
+    _gp, _br, cells = jr5_verdict._e1(
+        jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants()
+    )
+    mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    assert mine["equivalent"] is False and mine["tost"]["equivalent"] is False
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False
 
 
 def test_df39_record_copied_from_an_interval_rule_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:

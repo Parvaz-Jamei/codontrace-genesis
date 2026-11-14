@@ -518,11 +518,12 @@ def test_tost_with_a_subnormal_spread_gives_an_infinite_t_not_an_overflow(values
 def test_exact_sqrt_beyond_the_float_range_is_inf() -> None:
     """The exact square root rounds to inf exactly where IEEE 754 rounding overflows.
 
-    Basis: M = sys.float_info.max. sqrt((M + 2**969)**2) = M + 2**969 lies
-    below the midpoint between M and 2**1024, so it rounds to M. For
-    M + 2**970, the midpoint itself, ties-to-even rounds up to 2**1024,
-    which overflows to inf; 2**2048 has root 2**1024, also inf.
-    Expected: M, inf and inf.
+    Basis: M = sys.float_info.max. The midpoint between M and 2**1024 is
+    M + 2**970 (½ ulp of that binade). sqrt((M + ½ulp)**2) is that
+    midpoint, and ties-to-even rounds it up to 2**1024, which overflows
+    to inf. One unit below that square, and M**2 + 1, both lie below the
+    midpoint, so they round back to M. 2**2048 has root 2**1024, also inf.
+    Expected: inf, M, M, and inf.
     """
     import sys
     from fractions import Fraction
@@ -530,6 +531,8 @@ def test_exact_sqrt_beyond_the_float_range_is_inf() -> None:
     from codontrace.genesis.statistical_protocol import _sqrt_of_fraction
 
     big = Fraction(sys.float_info.max)
-    assert _sqrt_of_fraction((big + 2**969) ** 2) == sys.float_info.max
-    assert _sqrt_of_fraction((big + 2**970) ** 2) == math.inf
+    overflow_sq = (big + 2**970) ** 2
+    assert _sqrt_of_fraction(overflow_sq) == math.inf
+    assert _sqrt_of_fraction(overflow_sq - 1) == sys.float_info.max
+    assert _sqrt_of_fraction(big * big + 1) == sys.float_info.max
     assert _sqrt_of_fraction(Fraction(2) ** 2048) == math.inf

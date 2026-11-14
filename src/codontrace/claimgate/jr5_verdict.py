@@ -553,24 +553,33 @@ def _moments(values: Sequence[float]) -> tuple[float, float, Fraction | None, Fr
     Same rule as statistical_protocol._mean_sd_df, expression for expression
     (squares as (v - mean) * (v - mean): float ``** 2`` goes through the C
     library pow, which can differ from the correctly rounded product in the
-    last bit). An exactly constant
-    sample has mean ``values[0]`` and spread 0. Otherwise the two-pass float
-    moments are kept when (sum(x) - n * mean)^2 / n, the excess of the sum of
-    squares about the float mean over the one about the exact mean, is below
-    the rounding of the float sum of squares; when it is not (a sample a few
-    ulps wide), the mean and variance are exact Fractions of the float values.
+    last bit). A non-finite value, or a sample whose mean or variance is
+    not a finite float, is refused with ConfigurationError, as in that
+    function. An exactly constant sample has mean ``values[0]`` and spread
+    0. Otherwise the two-pass float moments are kept when (sum(x) - n *
+    mean)^2 / n, the excess of the sum of squares about the float mean
+    over the one about the exact mean, is below the rounding of the float
+    sum of squares; when it is not (a sample a few ulps wide), the mean
+    and variance are exact Fractions of the float values.
     """
 
     n = len(values)
     if n < 2:
         raise ConfigurationError("a t procedure needs at least 2 values.")
+    if any(not math.isfinite(v) for v in values):
+        raise ConfigurationError("values must be finite.")
     first = values[0]
     if all(v == first for v in values):
         # Exactly constant: mean ``first`` and spread 0, as in
         # statistical_protocol._mean_sd_df; fsum / n can be one ulp off.
         return first, 0.0, None, None
-    mean = math.fsum(values) / n
-    squares = math.fsum((v - mean) * (v - mean) for v in values)
+    try:
+        mean = math.fsum(values) / n
+        squares = math.fsum((v - mean) * (v - mean) for v in values)
+    except OverflowError as exc:
+        raise ConfigurationError("values are too large for a finite mean and variance.") from exc
+    if not (math.isfinite(mean) and math.isfinite(squares / (n - 1))):
+        raise ConfigurationError("values are too large for a finite mean and variance.")
     exact = [Fraction(v) for v in values]
     total = sum(exact, Fraction(0))
     residual = total - n * Fraction(mean)

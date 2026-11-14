@@ -40,7 +40,9 @@
   intervals are the gate's own (TOST record and `one_sample_t_interval`),
   and a gate record cell whose `equivalent` or `passed` does not follow its
   own TOST is refused. Exact square roots past the float range give inf
-  (IEEE 754 overflow) instead of raising.
+  (IEEE 754 overflow) instead of raising. A non-finite or overflowing
+  sample in the adapter's moments is refused with ConfigurationError, as
+  in the gate.
 
 ## [0.3.0b30] — 2026-10-11
 

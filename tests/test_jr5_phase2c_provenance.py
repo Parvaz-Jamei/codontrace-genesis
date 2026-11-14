@@ -903,6 +903,45 @@ def test_adapter_moments_refuse_fewer_than_two_values() -> None:
             verdict._Paired(tuple(values), 1, 10).p_two_sided()
 
 
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        ([1.0, math.inf], "must be finite"),
+        ([math.inf, math.inf], "must be finite"),
+        ([1.0, math.nan], "must be finite"),
+        ([1e300, -1e300], "too large for a finite mean and variance"),
+        ([sys.float_info.max, -sys.float_info.max], "too large for a finite mean and variance"),
+        ([1e154, 1e200], "too large for a finite mean and variance"),
+    ],
+    ids=["inf", "inf-pair", "nan", "cancelled-1e300", "cancelled-max", "large-squares"],
+)
+def test_adapter_moments_refuse_nonfinite_or_overflowing_values(values: list[float], message: str) -> None:
+    """A non-finite or overflowing sample is refused with ConfigurationError.
+
+    Basis: statistical_protocol._mean_sd_df refuses a non-finite input
+    ("values must be finite") and a sample whose mean or variance is not
+    a finite float ("too large for a finite mean and variance"). Without
+    those guards the adapter copy reaches Fraction: Fraction(inf) raises
+    OverflowError and Fraction(nan) raises ValueError, which the
+    auditor's exemption does not catch. inf == inf is True, so [inf, inf]
+    would otherwise take the constant-sample branch and return mean inf.
+    After squares are (v - mean) * (v - mean), [1e300, -1e300],
+    [max, -max] and [1e154, 1e200] overflow to inf rather than raising,
+    so the mean/variance guard is also required.
+    Expected: ConfigurationError with the input-guard message for inf and
+    NaN, and the overflow-guard message for the three finite overflowing
+    samples, from _moments, _mean_sd, _t_interval and _Paired.p_two_sided.
+    """
+    for call in (
+        lambda: verdict._moments(values),
+        lambda: verdict._mean_sd(values),
+        lambda: verdict._t_interval(values, 0.9),
+        lambda: verdict._Paired(tuple(values), 1, 10).p_two_sided(),
+    ):
+        with pytest.raises(ConfigurationError, match=message):
+            call()
+
+
 def test_adapter_paired_contrast_a_few_ulps_wide_uses_the_exact_mean() -> None:
     """The paired two-sided p of a contrast one ulp wide comes from the exact t.
 
@@ -939,9 +978,11 @@ def test_adapter_square_root_agrees_with_the_gate_square_root() -> None:
     must equal math.sqrt on float inputs (IEEE 754 square root is correctly
     rounded) and the other copy on rational inputs. Inputs are seeded
     (RNGManager) over a wide exponent range. Past the float range IEEE 754
-    rounding overflows to inf: (M + 2**970)**2, M the largest float, has
-    root at the M / 2**1024 midpoint, which ties-to-even sends to inf.
-    Expected: equality for every input, inf for that root in both copies.
+    rounding overflows to inf. With M the largest float and ½ ulp = 2**970
+    the midpoint between M and 2**1024, (M + ½ulp)**2 ties-to-even to inf;
+    that square minus 1, and M**2 + 1, both round back to M.
+    Expected: equality for every input; in both copies, inf, M and M for
+    those three roots.
     """
     from fractions import Fraction
 
@@ -954,11 +995,16 @@ def test_adapter_square_root_agrees_with_the_gate_square_root() -> None:
         y = math.ldexp(rng.random() + 0.5, rng.randrange(-1070, 1020))
         assert verdict._sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
 
-    # Beyond the float range both copies give the IEEE overflow result, inf.
+    # The three rounding boundaries at the float max; both copies agree.
     big = Fraction(sys.float_info.max)
-    for value in ((big + 2**969) ** 2, (big + 2**970) ** 2, Fraction(2) ** 2048):
-        assert verdict._sqrt_of_fraction(value) == _sqrt_of_fraction(value), value
-    assert verdict._sqrt_of_fraction((big + 2**970) ** 2) == math.inf
+    overflow_sq = (big + 2**970) ** 2
+    for value, expected in (
+        (overflow_sq, math.inf),
+        (overflow_sq - 1, sys.float_info.max),
+        (big * big + 1, sys.float_info.max),
+    ):
+        assert verdict._sqrt_of_fraction(value) == expected
+        assert _sqrt_of_fraction(value) == expected
 
 
 @pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS))

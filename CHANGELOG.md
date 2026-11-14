@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.3.0b31] — 2026-11-15
+
+Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b30`.
+
 - Bug fix, `diploid_meiosis`: the chamber crossed two haploid gametes instead
   of fusing them, so a child had half its parent's length (18 to 9 bits) and
   P5 arms died out; meiosis also always led with the even homolog, so a
@@ -33,7 +37,7 @@
   ratio bounds from the registered constants file and reads the deviations
   log as its bytes, append-only. The accuracy of the p-rule near alpha is
   documented in `student_t_sf`.
-- JR5 phase 2c, verdict adapter (pending merge): `evaluate_jr5_verdict`
+- JR5 phase 2c, verdict adapter (PR #138): `evaluate_jr5_verdict`
   recomputes the JR5 verdict from raw per-seed records under the pinned
   preregistration, and ClaimGate allows `red_queen_proved` only for a
   verified JR5 verdict. The E1 decision and its reported 90% and 95%
@@ -43,6 +47,19 @@
   (IEEE 754 overflow) instead of raising. A non-finite or overflowing
   sample in the adapter's moments is refused with ConfigurationError, as
   in the gate.
+- Engine integration P0–P5 (PR #115): wire validators live in `codontrace.contracts.wire_validation` (old names re-exported); read-only engine accessors `tick_results`, `latest_snapshot` and `world_digest()`; a `GenerationInputProvider` seam with `RecordedInputProvider` replay of recorded exogenous inputs; channel descriptors in `codontrace.contracts.channels` and FDC sampling in `swarm.adapters.fdc`; the hash-chained journal moves to `codontrace.genesis.journal`. Characterization goldens pin the swarm journal bytes, policy archive, recorder frames and engine digests. Engine digests are unchanged.
+- Engine integration P6–P11 (PR #116): swarm coordination (coordinator, membership, commands, readings, trust, fusion, active sampling, diagnosis) moves into `genesis.swarm`; parameter-space QD search and minimax coevolution in `genesis`; decision support in engine sections with a stable `apply_disturbance` signature; shared run roots, module run references and journal anchors; the STR record in `genesis.transferability` and ESP32 device code in `swarm.devices.esp32`; architecture ports, the replay contract and provisional public API rows. Those rows are labelled `0.3.0b30-engine-integration` but first ship in this cut. The old `STRDisparityResult` registry key stays as an alias. Engine outputs are unchanged.
+- Console and swarm authorization (PR #117): **only a loopback caller counts as this machine.** A private-network address is another machine and needs `CODONTRACE_API_TOKEN`, unless its network is listed in `CODONTRACE_CONSOLE_TRUSTED_NETWORKS` (fail-closed; no broader than IPv4 /16 or IPv6 /48). This replaces the private-address check pushed to main on 2026-10-13, which never shipped in a release. JSON nesting on network inputs is bounded (`MAX_JSON_DEPTH` = 64). CI runs the full test suite on Python 3.11–3.14. Engine digests are unchanged.
+- Swarm MQTT follow-ups (PRs #118, #119): acknowledgement counting, journal conflict resolution, typed transaction timeouts for ingest and anchor pruning. Malformed or non-finite values in swarm messages are rejected instead of coerced. Digests are unchanged.
+- Ledger and verdict checks (PR #120): the pruned head hash and swarm id are anchored, reads of pruned records raise, verdict files whose header does not match are refused, and a missing index is handled.
+- Causal identification (PR #121): `codontrace.causal_inference` gains ID/IDC identification with d-separation and backdoor and frontdoor adjustment, an identification oracle job in CI, power analysis used by the claim auditor, and preregistration evidence (hash before run, RFC 3161 timestamps, OSF).
+- Console run status (PR #122): status.json writes go through one lock so progress and revision stay monotonic; the pause handshake commits progress before acknowledging; busy Windows file replaces are retried.
+- JR4 exact ATP ledger (PRs #123, #128, #131): `ScalarATPBook` with per-account balance checks against the energy field and closed-loop conservation tests. A book copied or loaded without its population refuses its first settle instead of rebooking every individual as a death and a birth, and the check stays armed until a settle succeeds. Engine digests are unchanged.
+- JR3 core and plugin separation (PRs #124, #125): the engine core is separated from plugins, randomness has a single source in `rng.py`, and import-linter contracts enforce the layering. Engine digests are unchanged.
+- JR5 preregistration (PRs #130, #133, #135): preregistration documents and tests for the cost-of-sex and Red Queen analysis; follow-ups for a like-for-like fecundity and ATP rule in self mode, male-free self arms, the mating fee and its ledger term, and a realised-w pilot on its own seed block with one logged rerun rule; the dependency on the diploid fertilisation fix is pinned to merge commit 4400e07, and post-lock changes are logged in DEVIATIONS.md. Docs and tests only; engine outputs are unchanged.
+- JR5 phase 2a (PR #132): separate mating types behind `mating_types_enabled`, off by default. Each organism's mating type comes from its own RNG stream, so existing streams are not shifted. With the switch off, engine outputs are unchanged.
+- Test-only fixes (PRs #126, #127, #129): deadline-based waits in the run pipeline tests, clean skips when networkx is missing, and a paused-restore teardown that works under pytest 9.2.
+- Direct changes on main on 2026-10-13: strict mypy and import cleanup across the console, experiments and swarm (a provider-settings request without a provider name is now refused). A set of engine challenges and a paper draft added the same day were removed again, with no net change.
 
 ## [0.3.0b30] — 2026-10-11
 

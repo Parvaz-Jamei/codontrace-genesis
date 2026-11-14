@@ -1,8 +1,9 @@
 """The committed causal_validation/result.json must be what run_validation.py produces.
 
 The run takes about 40 s, so the test is marked slow (still collected by the
-default suite). ``commit`` and ``python`` are provenance, not results: they
-are copied from the committed file before the byte comparison.
+default suite). ``commit``, ``python`` and ``codontrace_version`` are
+provenance, not results: they are copied from the committed file before the
+byte comparison, so a version bump does not invalidate the recorded run.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ def test_committed_result_json_matches_a_fresh_run() -> None:
     script = _load_script()
     fresh = script.build(commit=committed["commit"])
     fresh["python"] = committed["python"]
+    fresh["codontrace_version"] = committed["codontrace_version"]
     fresh_bytes = script.render(fresh).encode("utf-8")
     assert hashlib.sha256(fresh_bytes).hexdigest() == hashlib.sha256(committed_bytes).hexdigest()
     assert fresh_bytes == committed_bytes

@@ -10,10 +10,12 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Literal, cast
 
 from codontrace._types import JsonValue
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.causal_validation import _regularized_incomplete_beta, student_t_quantile
 from codontrace.rng import RNGManager
 
 
@@ -1051,3 +1053,323 @@ def holm_correction(p_values: Sequence[float]) -> tuple[float, ...]:
         adjusted[index] = running
     return tuple(adjusted)
 
+
+
+# --- Equivalence testing: two one-sided t tests (TOST) ---
+# Equivalence is the alternative hypothesis here. The null is that the mean
+# lies at or beyond a preregistered bound; it is rejected only when both
+# one-sided tests reject at alpha. The p-value of the procedure is the larger
+# of the two one-sided p-values, and the decision is identical to the
+# (1 - 2 alpha) t interval lying strictly inside the bounds. Bounds may be
+# asymmetric, which is the case for ratio margins taken to the log scale.
+# Each one-sided test runs at alpha, not alpha / 2: the two nulls are
+# disjoint, so at most one of them can be true.
+def student_t_sf(t: float, df: int) -> float:
+    """Upper tail P(T > t) of Student's t with ``df`` degrees of freedom.
+
+    Uses P(|T| > |t|) = I_x(df/2, 1/2) with x = df / (df + t^2), the same
+    incomplete-beta identity behind ``student_t_quantile``.
+    """
+
+    if isinstance(df, bool) or not isinstance(df, int) or df < 1:
+        raise ConfigurationError("df must be an integer >= 1")
+    value = float(t)
+    if math.isnan(value):
+        raise ConfigurationError("t must not be NaN")
+    if math.isinf(value):
+        return 0.0 if value > 0 else 1.0
+    tail = 0.5 * _regularized_incomplete_beta(df / 2.0, 0.5, df / (df + value * value))
+    return tail if value > 0.0 else 1.0 - tail
+
+
+def _sqrt_of_fraction(value: Fraction) -> float:
+    """Correctly rounded float square root of a non-negative Fraction.
+
+    The integer square root of the scaled value is rounded to odd (its last
+    bit records whether the root was inexact), with more than twice the float
+    precision, so the final int / int division rounds once and correctly.
+    This is the construction the standard library statistics module uses
+    for its float sqrt of a fraction.
+    """
+
+    num, den = value.numerator, value.denominator
+    if num == 0:
+        return 0.0
+    q = (num.bit_length() - den.bit_length() - _SQRT_BITS) // 2
+    if q >= 0:
+        root = math.isqrt(num // (den << 2 * q))
+        root |= root * root * (den << 2 * q) != num
+        return float(root << q)
+    root = math.isqrt((num << -2 * q) // den)
+    root |= root * root * den != num << -2 * q
+    return root / (1 << -q)
+
+
+_SQRT_BITS = 2 * 53 + 3
+
+
+def _signed_sqrt_ratio(numerator: Fraction, variance_of_mean: Fraction) -> float:
+    """numerator / sqrt(variance_of_mean) from exact inputs, rounded once at the square root.
+
+    Zero spread follows the module's zero-spread rule: 0 when the numerator
+    is 0, else an infinity of the numerator's sign.
+    """
+
+    if numerator == 0:
+        return 0.0
+    if variance_of_mean == 0:
+        return math.copysign(math.inf, numerator)
+    return math.copysign(_sqrt_of_fraction(numerator * numerator / variance_of_mean), numerator)
+
+
+@dataclass(frozen=True, slots=True)
+class _Moments:
+    """Sample mean and SD, plus the exact moments when the float ones are not accurate.
+
+    ``exact_mean`` and ``exact_variance`` are None when the two-pass float
+    moments hold to working precision; then ``mean`` and ``sd`` are those
+    float values. Otherwise they are the exact rational mean and sample
+    variance of the float values, and ``mean`` and ``sd`` are their correctly
+    rounded floats.
+    """
+
+    data: list[float]
+    mean: float
+    sd: float
+    df: int
+    exact_mean: Fraction | None = None
+    exact_variance: Fraction | None = None
+
+
+def _mean_sd_df(values: Sequence[float]) -> _Moments:
+    data = _require_numeric_sequence("values", values)
+    if any(not math.isfinite(item) for item in data):
+        raise ConfigurationError("values must be finite.")
+    n = len(data)
+    if n < 2:
+        raise ConfigurationError("a one-sample t procedure needs at least 2 values.")
+    first = data[0]
+    if all(item == first for item in data):
+        # An exactly constant sample has mean ``first`` and spread exactly 0.
+        # fsum(data) / n need not round back to ``first`` (n * first is
+        # rounded, then divided), which would leave a spurious one-ulp spread
+        # and a finite t of sqrt(n - 1) for a sample sitting on a bound.
+        return _Moments(data, first, 0.0, n - 1)
+    try:
+        mean = math.fsum(data) / n
+        squares = math.fsum((item - mean) * (item - mean) for item in data)
+    except OverflowError as exc:
+        raise ConfigurationError("values are too large for a finite mean and variance.") from exc
+    variance = squares / (n - 1)
+    if not (math.isfinite(mean) and math.isfinite(variance)):
+        raise ConfigurationError("values are too large for a finite mean and variance.")
+    # Two-pass check: the exact sum of squares about the float mean exceeds
+    # the one about the exact mean by (sum(x) - n * mean)^2 / n. When that
+    # term is below the rounding of the float sum of squares, the float mean
+    # and SD are kept unchanged. Otherwise the float mean is too coarse for
+    # the spread (a sample a few ulps wide), and the moments are taken
+    # exactly: t and the interval then use the exact mean, not its rounding.
+    exact = [Fraction(item) for item in data]
+    total = sum(exact, Fraction(0))
+    residual = total - n * Fraction(mean)
+    if squares > 0.0 and float(Fraction(squares) - residual * residual / n) == squares:
+        return _Moments(data, mean, math.sqrt(variance), n - 1)
+    exact_mean = total / n
+    exact_variance = sum(((item - exact_mean) ** 2 for item in exact), Fraction(0)) / (n - 1)
+    return _Moments(data, float(exact_mean), _sqrt_of_fraction(exact_variance), n - 1, exact_mean, exact_variance)
+
+
+def _shifted(moments: _Moments, offset: float, bound: float | None = None) -> float:
+    """Interval end mean + offset.
+
+    The end is mean + offset rounded to the nearest float, except when that
+    rounding would move it across or onto a bound a strict comparison is made
+    against. With exact moments the end is computed exactly and rounded
+    toward the mean, which keeps every strict comparison with a float bound
+    equal to the comparison with the exact end. When the exact interval holds
+    no float, the two rounded ends cross (low end above high end); each still
+    compares with any float bound exactly as its exact value. With float
+    moments the nearest float is kept unless it lands on ``bound`` while the
+    unrounded end lies strictly inside; then the end is the adjacent float on
+    the inside, so the strict interval rule at ``bound`` is exact.
+    """
+
+    centre = moments.mean if moments.exact_mean is None else moments.exact_mean
+    end = Fraction(centre) + Fraction(offset)
+    rounded = moments.mean + offset if moments.exact_mean is None else float(end)
+    if moments.exact_mean is None and rounded != bound:
+        return rounded
+    if offset < 0.0 and Fraction(rounded) < end:
+        return math.nextafter(rounded, math.inf)
+    if offset > 0.0 and Fraction(rounded) > end:
+        return math.nextafter(rounded, -math.inf)
+    return rounded
+
+
+def _check_alpha(alpha: float) -> float:
+    value = float(alpha)
+    if not math.isfinite(value) or not 0.0 < value < 0.5:
+        raise ConfigurationError("alpha must lie in (0, 0.5).")
+    return value
+
+
+def one_sample_t_interval(values: Sequence[float], confidence: float) -> tuple[float, float]:
+    """Two-sided Student t interval for the mean at ``confidence``."""
+
+    level = float(confidence)
+    if not math.isfinite(level) or not 0.0 < level < 1.0:
+        raise ConfigurationError("confidence must lie in (0, 1).")
+    moments = _mean_sd_df(values)
+    half = student_t_quantile(moments.df, 0.5 + level / 2.0) * moments.sd / math.sqrt(len(moments.data))
+    return (_shifted(moments, -half), _shifted(moments, half))
+
+
+
+def encode_tost_statistic(value: float) -> JsonValue:
+    """Canonical JSON form of a one-sample TOST t statistic.
+
+    Finite values stay as JSON numbers. Zero sample spread makes
+    (mean - bound) / se infinite for a bound the common value is not on;
+    that is a real TOST decision input (both one-sided tests reduce to
+    whether the common value lies strictly inside the bounds), not a
+    payload error. Infinity is
+    written as the tagged form ``{"$float": "inf"}`` or
+    ``{"$float": "-inf"}`` so a gate record can be content-addressed
+    without inventing a finite t.
+    """
+
+    number = float(value)
+    if math.isfinite(number):
+        return number
+    if math.isinf(number):
+        return {"$float": "inf" if number > 0.0 else "-inf"}
+    raise ConfigurationError("TOST t statistic must not be NaN.")
+
+
+@dataclass(frozen=True, slots=True)
+class OneSampleTOSTResult:
+    """Both one-sided tests of a one-sample TOST, with the matching interval."""
+
+    n: int
+    df: int
+    mean: float
+    sd: float
+    standard_error: float
+    lower_bound: float
+    upper_bound: float
+    alpha: float
+    t_lower: float
+    t_upper: float
+    p_lower: float
+    p_upper: float
+    ci_low: float
+    ci_high: float
+
+    @property
+    def p_value(self) -> float:
+        """TOST p-value: the larger of the two one-sided p-values."""
+
+        return max(self.p_lower, self.p_upper)
+
+    @property
+    def equivalent(self) -> bool:
+        return self.p_lower < self.alpha and self.p_upper < self.alpha
+
+    @property
+    def ci_level(self) -> float:
+        return 1.0 - 2.0 * self.alpha
+
+    def to_record(self) -> dict[str, JsonValue]:
+        return {
+            "test": "one_sample_tost",
+            "n": self.n,
+            "df": self.df,
+            "mean": self.mean,
+            "sd": self.sd,
+            "standard_error": self.standard_error,
+            "lower_bound": self.lower_bound,
+            "upper_bound": self.upper_bound,
+            "alpha": self.alpha,
+            "t_lower": encode_tost_statistic(self.t_lower),
+            "t_upper": encode_tost_statistic(self.t_upper),
+            "p_lower": self.p_lower,
+            "p_upper": self.p_upper,
+            "p_value": self.p_value,
+            "ci_level": self.ci_level,
+            "ci_low": self.ci_low,
+            "ci_high": self.ci_high,
+            "equivalent": self.equivalent,
+        }
+
+
+def one_sample_tost(
+    values: Sequence[float],
+    lower_bound: float,
+    upper_bound: float,
+    *,
+    alpha: float = 0.05,
+) -> OneSampleTOSTResult:
+    """Two one-sided t tests that the mean lies inside (lower_bound, upper_bound).
+
+    H0 lower: mean <= lower_bound, tested with t_lower = (mean - lower) / se.
+    H0 upper: mean >= upper_bound, tested with t_upper = (mean - upper) / se.
+    Equivalence is declared when both one-sided p-values are below ``alpha``.
+    With zero spread (an exactly constant sample) the t statistic of a side
+    is infinite when the common value differs from that bound, and 0 when it
+    equals the bound (0/0 taken as t = 0 and p = 1/2, which does not reject).
+    The decision therefore reduces to whether the common value lies strictly
+    inside the bounds. For a sample only a few ulps wide the float mean is
+    too coarse for the spread; the moments are then exact (see
+    ``_mean_sd_df``) and each t is rounded once from the exact mean minus the
+    bound. scipy 1.18.1 ``ttest_1samp(x, v)`` follows its float mean in both
+    cases: for a constant sample it returns a NaN statistic and p-value only
+    when that mean rounds back to the common value (``[1.0] * 3``) and a
+    finite t otherwise (``[v] * 7`` with v = 0.5877866649021191 gives
+    t = sqrt(6), two-sided p = 0.0498); for ``[v] * 6 + [nextafter(v, inf)]``
+    it gives t = sqrt(7), two-sided p = 0.0382, where the exact t is 1.
+    """
+
+    a = _check_alpha(alpha)
+    low = float(lower_bound)
+    high = float(upper_bound)
+    if not (math.isfinite(low) and math.isfinite(high)) or not low < high:
+        raise ConfigurationError("bounds must be finite with lower_bound < upper_bound.")
+    moments = _mean_sd_df(values)
+    data, mean, sd, df = moments.data, moments.mean, moments.sd, moments.df
+    if moments.exact_mean is not None and moments.exact_variance is not None:
+        # Exact moments: each t is rounded once from exact (mean - bound) and
+        # exact var / n, so a spread of a few ulps keeps its true t.
+        variance_of_mean = moments.exact_variance / len(data)
+        se = _sqrt_of_fraction(variance_of_mean)
+        t_lower = _signed_sqrt_ratio(moments.exact_mean - Fraction(low), variance_of_mean)
+        t_upper = _signed_sqrt_ratio(moments.exact_mean - Fraction(high), variance_of_mean)
+        half = student_t_quantile(df, 1.0 - a) * se
+    else:
+        se = sd / math.sqrt(len(data))
+        if se > 0.0:
+            t_lower = (mean - low) / se
+            t_upper = (mean - high) / se
+            half = student_t_quantile(df, 1.0 - a) * se
+        else:
+            t_lower = math.copysign(math.inf, mean - low) if mean != low else 0.0
+            t_upper = math.copysign(math.inf, mean - high) if mean != high else 0.0
+            half = 0.0
+    p_lower = student_t_sf(t_lower, df)
+    # P(T < t_upper) taken as the upper tail at -t_upper: no 1 - x cancellation.
+    p_upper = student_t_sf(-t_upper, df)
+    return OneSampleTOSTResult(
+        n=len(data),
+        df=df,
+        mean=mean,
+        sd=sd,
+        standard_error=se,
+        lower_bound=low,
+        upper_bound=high,
+        alpha=a,
+        t_lower=t_lower,
+        t_upper=t_upper,
+        p_lower=p_lower,
+        p_upper=p_upper,
+        ci_low=_shifted(moments, -half, low),
+        ci_high=_shifted(moments, half, high),
+    )

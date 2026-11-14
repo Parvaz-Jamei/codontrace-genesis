@@ -1080,6 +1080,16 @@ def student_t_sf(t: float, df: int) -> float:
     decision can differ from the exact one, in either direction depending
     on df. That band is the registered rule's accuracy limit; the verdict
     adapter takes the same decision, so the two copies never split there.
+    Over df 1 to 59 the largest departure is 237.9 ulp. In a scan that puts
+    samples on the band on purpose (n = 32 to 40, the centre stepped one
+    float at a time across the m = 0.5 lower bound, 400 samples per df),
+    25 of 3,600 decisions differ from the exact TOST: 20 equivalent by this
+    rule only (df 31 to 38) and 5 not equivalent by this rule only (df 39),
+    the direction following the sign of the threshold error. For data not
+    placed there the band is about 1e-13 of the mean. A correctly rounded
+    comparison of the tail with alpha near the threshold would close it,
+    but would change gate outputs inside the band, so it is not part of
+    the registered rule.
     """
 
     if isinstance(df, bool) or not isinstance(df, int) or df < 1:

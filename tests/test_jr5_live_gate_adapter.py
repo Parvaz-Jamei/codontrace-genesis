@@ -208,8 +208,9 @@ def test_actual_producer_low_disagreement_never_proves(n_low: int) -> None:
 # float at a time across the m = 0.5 lower bound) found samples where the
 # adapter's old interval rule (power.t_ppf, 1443 ulp below to 1366 ulp above
 # the exact 0.95 quantile at the E1 dfs) and the gate's rule (student_t_sf,
-# 102 ulp below to 73 ulp above) split. scipy's t.ppf, within 2.6 ulp of the
-# exact quantile at these dfs (60-digit reference), is the cross-check for
+# 102 ulp below to 73 ulp above) split. scipy's t.ppf is within 3.2 ulp of
+# the exact quantile over df 31 to 39 (60-digit reference; 1.6, 1.9 and 2.6
+# ulp at the dfs used below, 35, 37 and 39) and is the cross-check for
 # "exactly equivalent" below; every t used is at least 7 ulp from it.
 
 _DF37_EXACT_AND_GATE_EQUIVALENT = 0.6364498853178189  # n = 38: t_lower 13.1 ulp past exact q; t_ppf +1366

@@ -600,13 +600,29 @@ def _end(mean: float, exact_mean: Fraction | None, offset: float, bounds: Sequen
     return rounded
 
 
-def _t_interval(values: Sequence[float], level: float, bounds: Sequence[float] = ()) -> Interval:
-    """Student t interval; ``bounds`` are the points its ends are compared with strictly."""
+def _t_interval(
+    values: Sequence[float], level: float, bounds: Sequence[float] = (), *, gate_quantile: bool = False
+) -> Interval:
+    """Student t interval; ``bounds`` are the points its ends are compared with strictly.
 
-    from codontrace.claimgate.power import t_ppf
+    ``gate_quantile`` takes the t quantile from
+    causal_validation.student_t_quantile, the one the E1 gate's intervals use
+    (statistical_protocol.one_sample_tost and one_sample_t_interval), so an E1
+    interval here has the gate's floats. Otherwise it is power.t_ppf, the
+    quantile paired with power.t_cdf in the E2 to E4 calls; t_ppf bisects to
+    about 1e-12 and differs from student_t_quantile by up to about 3e-13.
+    """
 
     mean, sd, exact_mean, _exact_var = _moments(values)
-    half = t_ppf(0.5 + level / 2.0, len(values) - 1) * sd / math.sqrt(len(values))
+    if gate_quantile:
+        from codontrace.genesis.causal_validation import student_t_quantile
+
+        q = student_t_quantile(len(values) - 1, 0.5 + level / 2.0)
+    else:
+        from codontrace.claimgate.power import t_ppf
+
+        q = t_ppf(0.5 + level / 2.0, len(values) - 1)
+    half = q * sd / math.sqrt(len(values))
     return Interval(_end(mean, exact_mean, -half, bounds), _end(mean, exact_mean, half, bounds))
 
 
@@ -886,9 +902,20 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
                 log_w.append(_firth_logit_slope(cs, n, g["fit"]))
             exceeded = len(excluded_seeds) > cap * len(runs)
             breach = breach or exceeded
-            ci90 = _t_interval(log_w, float(g["ci_level"]), (lo, hi)) if len(log_w) >= 2 else None
-            ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"]), (log_null,)) if len(log_w) >= 2 else None
-            equivalent = ci90 is not None and ci90.inside(lo, hi)
+            ci90 = ci95 = tost = None
+            if len(log_w) >= 2:
+                ci90 = _t_interval(log_w, float(g["ci_level"]), (lo, hi), gate_quantile=True)
+                ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"]), (log_null,), gate_quantile=True)
+                tost = _tost_record(log_w, lo, hi, float(g["alpha"]))
+            # The E1 decision is the gate's: both one-sided p-values below
+            # alpha (statistical_protocol.one_sample_tost, the student_t_sf
+            # rule), not this interval inside the bounds. The two rules agree
+            # mathematically but not in floats: a quantile and a tail
+            # threshold each sit tens to hundreds of ulps from the exact t
+            # (see _check_e1_tost_consistency), so a separate interval rule
+            # could refuse a record the gate wrote correctly or follow a
+            # different decision. ci90 is report-only (ratio_ci).
+            equivalent = tost is not None and tost["equivalent"] is True
             excludes = ci95 is not None and ci95.side(log_null) != 0
             passed = equivalent and excludes and not exceeded
             gated = n == int(g["host_n_gate"])
@@ -904,7 +931,7 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
                 "ratio_ci95": None if ci95 is None else [math.exp(ci95.lo), math.exp(ci95.hi)],
                 "exclusion_interval_log": None if ci95 is None else [ci95.lo, ci95.hi],
                 "equivalent": equivalent, "excludes_null": excludes, "passed": passed,
-                "tost": _tost_record(log_w, lo, hi, float(g["alpha"])) if ci90 is not None else None,
+                "tost": tost,
             })
     return gated_pass, breach, cells
 
@@ -929,6 +956,38 @@ def _same_analysis(actual: Any, expected: Any) -> bool:
         return not isinstance(actual, bool) and isinstance(actual, (int, float)) and math.isclose(
             actual, expected, rel_tol=1e-9, abs_tol=1e-11)
     return type(actual) is type(expected) and actual == expected
+
+
+def _check_e1_tost_consistency(cell: Mapping[str, Any], what: str) -> None:
+    """Refuse a cell whose decisions do not follow from its own TOST record.
+
+    The gate (campaigns.jr5_e1_gate.E1CellResult) defines ``equivalent`` as
+    "a TOST was run and it rejected both one-sided nulls" and ``passed`` as
+    ``equivalent and excludes_null and not exclusion_cap_exceeded``. A cell
+    that says otherwise was not written by the gate, whatever its digest, so
+    it is refused before it is compared with the recomputation.
+
+    The gate's p-rule is the registered rule, not an exact one: the smallest
+    float t with student_t_sf(t, df) < 0.05 is 102 ulp below (df 38) to 73
+    ulp above (df 39) the exact 0.95 quantile at the E1 dfs 31 to 39
+    (60-digit reference). That leaves a band |dt| * se wide in the mean,
+    about 2 to 3 ulp of a mean near log 1.8 at se 0.012, where the gate's
+    decision differs from the exact one. Both copies take the gate's
+    decision there, so they never disagree with each other; the band is an
+    accuracy limit of student_t_sf, documented in statistical_protocol.
+    """
+
+    tost = cell.get("tost")
+    equivalent = isinstance(tost, Mapping) and tost.get("equivalent") is True
+    if tost is not None and not (isinstance(tost, Mapping) and isinstance(tost.get("equivalent"), bool)):
+        raise ConfigurationError(f"{what} has a TOST record without a boolean decision.")
+    if cell.get("equivalent") is not equivalent:
+        raise ConfigurationError(f"{what}: equivalent does not follow its TOST record.")
+    excludes, capped = cell.get("excludes_null"), cell.get("exclusion_cap_exceeded")
+    if not (isinstance(excludes, bool) and isinstance(capped, bool)):
+        raise ConfigurationError(f"{what} needs boolean excludes_null and exclusion_cap_exceeded.")
+    if cell.get("passed") is not (equivalent and excludes and not capped):
+        raise ConfigurationError(f"{what}: passed does not follow equivalent, excludes_null and the cap.")
 
 
 def _check_e1_gate_record(rec: Mapping[str, Any], gated_pass: bool, instrument_failure: bool,
@@ -961,6 +1020,7 @@ def _check_e1_gate_record(rec: Mapping[str, Any], gated_pass: bool, instrument_f
             if name in c:
                 c[name] = sorted(_int(seed, f"E1 {name}") for seed in _seq(c[name], f"E1 {name}"))
         key = (_finite(c.get("sex_ratio"), "E1 sex ratio"), _int(c.get("host_n"), "E1 host N"))
+        _check_e1_tost_consistency(c, f"E1 gate cell m={key[0]}, N={key[1]}")
         if key in keyed:
             raise ConfigurationError("E1 gate cells must be unique.")
         keyed[key] = c

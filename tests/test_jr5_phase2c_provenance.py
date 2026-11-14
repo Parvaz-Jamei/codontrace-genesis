@@ -1037,34 +1037,39 @@ def test_adapter_paired_p_of_a_contrast_below_float_resolution_uses_the_exact_t(
 def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeypatch: pytest.MonkeyPatch) -> None:
     """In _e1 the 90% interval end that rounds onto the bound is kept on the inside.
 
-    Basis: the E1 rule is strict inclusion of mean -/+ half in the log
-    bounds. When the float sum mean + half rounds to the upper bound while
-    its exact value Fraction(mean) + Fraction(half) is below it, the strict
-    rule holds, and _t_interval moves that end to the adjacent float below
-    the bound, provided _e1 passes the cell's bounds. The sample is 40
-    log slopes c + (i - 19.5) * 0.016, i = 0..39, with c = hi - half of the
+    Basis: the reported 90% interval is mean -/+ half with the gate's
+    quantile (student_t_quantile, as one_sample_tost). When the float sum
+    mean + half rounds to the upper bound while its exact value
+    Fraction(mean) + Fraction(half) is below it, the strict interval rule
+    holds, and _t_interval moves that end to the adjacent float below the
+    bound, provided _e1 passes the cell's bounds; the gate's _shifted does
+    the same, so the two reported ends are equal. The sample is 40 log
+    slopes c + (i - 19.5) * 0.012, i = 0..39, with c = hi - half of the
     spread alone, at the m = 0.5 upper bound hi = 0.7884573603642703; the
     adapter's float moments hold for it (no exact moments), mean + half
     rounds to hi and the exact sum lies 0.4375 ulp below hi. The fitted
     slopes of the valid positive dataset are replaced by these 40 values in
     every E1 cell (each cell uses 40 runs). The reference is the same rule
-    with exact rational moments and the adapter's quantile.
+    with exact rational moments and the same quantile. The decision itself
+    is the gate's p-rule; here the exact interval is inside, and so is the
+    gate's decision.
     Expected: mean + half == hi with the exact sum below hi; both m = 0.5
-    cells equivalent, with the interval's upper ratio end
-    exp(nextafter(hi, -inf)); the exact rule agrees.
+    cells equivalent, equal to their own TOST decision, with the interval's
+    upper ratio end exp(nextafter(hi, -inf)) == exp(tost ci_high); the exact
+    rule agrees.
     """
     import itertools
     from fractions import Fraction
 
-    from codontrace.claimgate.power import t_ppf
+    from codontrace.genesis.causal_validation import student_t_quantile
 
     k = verdict.jr5_constants()
     g = k["gate_e1"]
     level = float(g["ci_level"])
     lower, upper = verdict._log_bounds(g, 0.5)
     n = 40
-    q = t_ppf(0.5 + level / 2.0, n - 1)
-    spread = [(i - 19.5) * 0.016 for i in range(n)]
+    q = student_t_quantile(n - 1, 0.5 + level / 2.0)
+    spread = [(i - 19.5) * 0.012 for i in range(n)]
     data = [upper - q * verdict._mean_sd(spread)[1] / math.sqrt(n) + s for s in spread]
     mean, sd, exact_mean, _exact_var = verdict._moments(data)
     half = q * sd / math.sqrt(n)
@@ -1079,5 +1084,5 @@ def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeyp
     half_cells = [c for c in cells if c["sex_ratio"] == 0.5]
     assert len(half_cells) == 2 and all(c["n_used"] == n for c in cells)
     for c in half_cells:
-        assert c["equivalent"] is True
-        assert c["ratio_ci"][1] == math.exp(math.nextafter(upper, -math.inf))
+        assert c["equivalent"] is True and c["tost"]["equivalent"] is True
+        assert c["ratio_ci"][1] == math.exp(math.nextafter(upper, -math.inf)) == math.exp(c["tost"]["ci_high"])

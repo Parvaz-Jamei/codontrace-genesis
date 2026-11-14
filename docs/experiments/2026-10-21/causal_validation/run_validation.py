@@ -3,9 +3,11 @@
     python docs/experiments/2026-10-21/causal_validation/run_validation.py
 
 Every random draw comes from fixed seeds, so two runs give byte-identical
-files except for ``commit`` (the HEAD the run started from).
-tests/causal_inference/test_causal_validation_result.py reruns ``build`` and
-compares it with the committed file.
+files except for the provenance fields ``commit`` (the HEAD the run started
+from), ``python`` and ``codontrace_version``.
+tests/causal_inference/test_causal_validation_result.py reruns ``build``,
+copies those three fields from the committed file and compares the rest
+byte for byte.
 """
 
 from __future__ import annotations

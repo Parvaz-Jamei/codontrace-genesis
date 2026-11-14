@@ -493,6 +493,62 @@ def test_record_check_refuses_a_cell_inconsistent_with_its_own_tost(edit: str) -
         jr5_verdict._check_e1_gate_record(record, gated_pass, instrument_failure, cells, k)
 
 
+@pytest.mark.parametrize(
+    ("edit", "message"),
+    [
+        ("tost_equivalent_is_int", "has a TOST record without a boolean decision"),
+        ("tost_is_not_a_mapping", "has a TOST record without a boolean decision"),
+        ("excludes_null_is_int", "needs boolean excludes_null and exclusion_cap_exceeded"),
+        ("cap_is_int", "needs boolean excludes_null and exclusion_cap_exceeded"),
+    ],
+)
+def test_record_check_refuses_non_boolean_cell_decisions_by_name(edit: str, message: str) -> None:
+    """A cell whose TOST decision, excludes_null or cap flag is not a JSON boolean is refused by its type guard.
+
+    Basis: the gate writes tost.equivalent, excludes_null and
+    exclusion_cap_exceeded as booleans (E1CellResult.to_record), and
+    canonical JSON keeps 1 and true apart. _check_e1_tost_consistency
+    refuses a non-boolean value before deriving equivalent and passed from
+    it, so the refusal names the malformed field rather than a downstream
+    rule. Without the guards these records are either refused for another
+    reason (tost.equivalent = 1 reads as "not equivalent", so equivalent
+    True does not follow) or accepted: excludes_null = 1 is truthy, so
+    passed = equivalent and 1 and not cap still holds. As in the test
+    above, the expected cells carry the same edit, so only the per-cell
+    rule can refuse. Edits on the gated m = 0.5 cell of the valid positive
+    dataset: tost.equivalent 1; tost the string "equivalent"; excludes_null
+    1; exclusion_cap_exceeded 0.
+    Expected: ConfigurationError with the guard's own message for each
+    edit, from _check_e1_gate_record and from evaluate_jr5_verdict on the
+    rehashed record.
+    """
+    from codontrace.claimgate import jr5_verdict
+
+    evidence, _ = raw.build()
+    k = jr5_verdict.jr5_constants()
+    gated_pass, breach, cells = jr5_verdict._e1(jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), k)
+    cell = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    assert cell["tost"]["equivalent"] is cell["excludes_null"] is True and cell["exclusion_cap_exceeded"] is False
+    if edit == "tost_equivalent_is_int":
+        cell["tost"] = dict(cell["tost"], equivalent=1)
+    elif edit == "tost_is_not_a_mapping":
+        cell["tost"] = "equivalent"
+    elif edit == "excludes_null_is_int":
+        cell["excludes_null"] = 1
+    else:
+        cell["exclusion_cap_exceeded"] = 0
+    record = deepcopy(evidence["e1_gate_record"])
+    del record["digest"]
+    record["cells"] = deepcopy(cells)
+    record["digest"] = canonical_digest(record)
+    instrument_failure = not gated_pass or breach
+    with pytest.raises(ConfigurationError, match=message):
+        jr5_verdict._check_e1_gate_record(record, gated_pass, instrument_failure, cells, k)
+    evidence["e1_gate_record"] = record
+    with pytest.raises(ConfigurationError, match=message):
+        evaluate_jr5_verdict(evidence)
+
+
 # R47: every float of an E1 cell comes from the gate's own functions.
 # Two 40-value samples (sd near 0.1, shifted so the 95% lower end sits at 0)
 # where the gate's SD, with squares as (v - mean) * (v - mean), and an SD

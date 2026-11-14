@@ -743,3 +743,35 @@ def test_e1_reported_intervals_are_the_gate_floats_where_the_half_width_order_ma
     assert mine["passed"] is True and cell["passed"] is True
     verdict = evaluate_jr5_verdict(evidence)
     assert verdict.outcome == "rq_consistent" and verdict.red_queen_proved is True
+
+
+def test_e1_interval_entirely_below_the_null_excludes_it_in_both_copies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 95% interval wholly below log 1 = 0 excludes the null through its upper end, as in the gate.
+
+    Basis: the gate's rule is excludes_null = low > log 1 or high < log 1
+    (E1CellResult.excludes_null), two-sided. 40 slopes -0.3 + (i - 19.5) *
+    0.016 in the gated m = 0.5 cell: mean -0.3, sd 0.18704723111200194
+    (float moments), one_sample_t_interval at 0.95 = (-0.35982060663960125,
+    -0.24017939336039873), so only the upper-end clause holds. The cell is
+    far below log 1.8 (not equivalent), so the outcome is a negative one;
+    the honest gate record must be accepted with excludes_null True in both
+    copies. A one-sided copy of the rule (lower end only) would say False
+    and refuse the record.
+    Expected: gate and adapter interval and excludes_null equal, True; the
+    verdict is instrument_fail with red_queen_proved False.
+    """
+    from codontrace.claimgate import jr5_verdict
+
+    data = [-0.3 + (i - 19.5) * 0.016 for i in range(40)]
+    evidence, result = _r46_evidence(monkeypatch, data)
+    cell = _gated_half(result.to_record())
+    assert cell["exclusion_interval_log"] == [-0.35982060663960125, -0.24017939336039873]
+    assert cell["excludes_null"] is True and cell["equivalent"] is False
+    _gp, _br, cells = jr5_verdict._e1(
+        jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants()
+    )
+    mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    assert mine["excludes_null"] is True
+    assert mine["exclusion_interval_log"] == cell["exclusion_interval_log"]
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False

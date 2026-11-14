@@ -1069,6 +1069,17 @@ def student_t_sf(t: float, df: int) -> float:
 
     Uses P(|T| > |t|) = I_x(df/2, 1/2) with x = df / (df + t^2), the same
     incomplete-beta identity behind ``student_t_quantile``.
+
+    Accuracy: the result is not correctly rounded. Against a 60-digit
+    incomplete-beta reference, the smallest float t with
+    ``student_t_sf(t, df) < 0.05`` lies 102.3 ulp below (df 38) to 73.4 ulp
+    above (df 39) the exact 0.95 quantile at df 31 to 39, the E1 gate's dfs
+    (df 37: 22.9 below, df 35: 29.6 below). ``one_sample_tost`` decides with
+    this rule, so in a band |dt| * se wide around a bound (at most about
+    2.3e-14 * se; 2 to 3 ulp of a mean near log 1.8 at se 0.012) its
+    decision can differ from the exact one, in either direction depending
+    on df. That band is the registered rule's accuracy limit; the verdict
+    adapter takes the same decision, so the two copies never split there.
     """
 
     if isinstance(df, bool) or not isinstance(df, int) or df < 1:

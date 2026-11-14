@@ -1100,7 +1100,7 @@ def _sqrt_of_fraction(value: Fraction) -> float:
     bit records whether the root was inexact), with more than twice the float
     precision, so the final int / int division rounds once and correctly.
     This is the construction the standard library statistics module uses
-    for its float sqrt of a fraction.
+    for its float sqrt of a fraction. A root beyond the float range is inf.
     """
 
     num, den = value.numerator, value.denominator
@@ -1110,7 +1110,13 @@ def _sqrt_of_fraction(value: Fraction) -> float:
     if q >= 0:
         root = math.isqrt(num // (den << 2 * q))
         root |= root * root * (den << 2 * q) != num
-        return float(root << q)
+        try:
+            return float(root << q)
+        except OverflowError:
+            # Beyond the float range (a t from a subnormal spread): the IEEE
+            # result of the rounding is inf, which encode_tost_statistic and
+            # student_t_sf already handle.
+            return math.inf
     root = math.isqrt((num << -2 * q) // den)
     root |= root * root * den != num << -2 * q
     return root / (1 << -q)

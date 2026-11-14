@@ -526,7 +526,8 @@ def _sqrt_of_fraction(value: Fraction) -> float:
 
     Same construction as statistical_protocol._sqrt_of_fraction: the integer
     root of the scaled value, rounded to odd with more than twice the float
-    precision, then one correctly rounded int / int division.
+    precision, then one correctly rounded int / int division. A root beyond
+    the float range is inf, as in statistical_protocol.
     """
 
     num, den = value.numerator, value.denominator
@@ -536,7 +537,11 @@ def _sqrt_of_fraction(value: Fraction) -> float:
     if q >= 0:
         root = math.isqrt(num // (den << 2 * q))
         root |= root * root * (den << 2 * q) != num
-        return float(root << q)
+        try:
+            return float(root << q)
+        except OverflowError:
+            # Beyond the float range: the IEEE result of the rounding is inf.
+            return math.inf
     root = math.isqrt((num << -2 * q) // den)
     root |= root * root * den != num << -2 * q
     return root / (1 << -q)

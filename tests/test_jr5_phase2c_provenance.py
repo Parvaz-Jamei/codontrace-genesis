@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import sys
 from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
@@ -937,8 +938,10 @@ def test_adapter_square_root_agrees_with_the_gate_square_root() -> None:
     Basis: both copies implement the same round-to-odd integer root; each
     must equal math.sqrt on float inputs (IEEE 754 square root is correctly
     rounded) and the other copy on rational inputs. Inputs are seeded
-    (RNGManager) over a wide exponent range.
-    Expected: equality for every input.
+    (RNGManager) over a wide exponent range. Past the float range IEEE 754
+    rounding overflows to inf: (M + 2**970)**2, M the largest float, has
+    root at the M / 2**1024 midpoint, which ties-to-even sends to inf.
+    Expected: equality for every input, inf for that root in both copies.
     """
     from fractions import Fraction
 
@@ -950,6 +953,12 @@ def test_adapter_square_root_agrees_with_the_gate_square_root() -> None:
         assert verdict._sqrt_of_fraction(value) == _sqrt_of_fraction(value), value
         y = math.ldexp(rng.random() + 0.5, rng.randrange(-1070, 1020))
         assert verdict._sqrt_of_fraction(Fraction(y)) == math.sqrt(y), y
+
+    # Beyond the float range both copies give the IEEE overflow result, inf.
+    big = Fraction(sys.float_info.max)
+    for value in ((big + 2**969) ** 2, (big + 2**970) ** 2, Fraction(2) ** 2048):
+        assert verdict._sqrt_of_fraction(value) == _sqrt_of_fraction(value), value
+    assert verdict._sqrt_of_fraction((big + 2**970) ** 2) == math.inf
 
 
 @pytest.mark.parametrize("case", sorted(_jr5_deviation_attacks.INVALID_UTF8_ATTACKS))

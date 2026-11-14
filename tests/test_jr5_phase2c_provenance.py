@@ -987,3 +987,97 @@ def test_both_log_readers_refuse_non_utf8_bytes_with_a_configuration_error(
     _packaged_resources(monkeypatch, log_raw)
     with pytest.raises(ConfigurationError, match="not readable"):
         verdict.jr5_constants()
+
+
+def test_adapter_paired_estimate_of_a_constant_contrast_is_its_value() -> None:
+    """The paired estimate of a constant contrast is the common value, inside its own interval.
+
+    Basis: the mean of n copies of d is d exactly. For d = 0.5877866649021191
+    and n = 7 the float fsum([d] * 7) / 7 is 0.5877866649021192, one ulp
+    above d, so an estimate taken as fsum / n would sit outside the
+    zero-width interval [d, d] that ci() reports for the same deltas.
+    Expected: fsum / 7 differs from d; estimate d; ci(0.95) equal to (d, d),
+    so ci.lo <= estimate <= ci.hi.
+    """
+    d = 0.5877866649021191
+    assert math.fsum([d] * 7) / 7 == 0.5877866649021192
+    paired = verdict._Paired((d,) * 7, 1, 10)
+    interval = paired.ci(0.95)
+    assert paired.estimate == d
+    assert (interval.lo, interval.hi) == (d, d)
+    assert interval.lo <= paired.estimate <= interval.hi
+
+
+def test_adapter_paired_p_of_a_contrast_below_float_resolution_uses_the_exact_t() -> None:
+    """A paired contrast whose float mean and SD both round to 0 keeps its exact t.
+
+    Basis: deltas [0] * 6 + [u] with u = 5e-324 (the smallest subnormal) have
+    exact mean u/7 and sample variance (6 (u/7)^2 + (6u/7)^2) / 6 = u^2/7,
+    so se^2 = u^2/49 and t = (u/7) / (u/7) = 1 exactly, df = 6. As floats the
+    mean u/7 and the SD u/sqrt(7) are both below half of u and round to 0.0,
+    so a t built from them would be 0/0 and the zero-spread branch would
+    return p = 1. For df = 6 the two-sided Student t p at t = 1 has the
+    closed form 1 - (t / sqrt(6 + t^2)) (1 + c/2 + 3c^2/8) with c = 6/7,
+    that is 1 - (1/sqrt(7)) (1 + 3/7 + 27/98) = 0.355917683749582...
+    Expected: float mean and SD 0.0; p_two_sided equal to 2 * t_cdf(-1, 6)
+    and within 1e-12 of the closed form.
+    """
+    from codontrace.claimgate.power import t_cdf
+
+    u = 5e-324
+    deltas = (0.0,) * 6 + (u,)
+    assert verdict._mean_sd(deltas) == (0.0, 0.0)
+    c = 6.0 / 7.0
+    closed_form = 1.0 - (1.0 / math.sqrt(7.0)) * (1.0 + c / 2.0 + 3.0 * c * c / 8.0)
+    p = verdict._Paired(deltas, 1, 10).p_two_sided()
+    assert p == 2.0 * t_cdf(-1.0, 6)
+    assert abs(p - closed_form) < 1e-12
+
+
+def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeypatch: pytest.MonkeyPatch) -> None:
+    """In _e1 the 90% interval end that rounds onto the bound is kept on the inside.
+
+    Basis: the E1 rule is strict inclusion of mean -/+ half in the log
+    bounds. When the float sum mean + half rounds to the upper bound while
+    its exact value Fraction(mean) + Fraction(half) is below it, the strict
+    rule holds, and _t_interval moves that end to the adjacent float below
+    the bound, provided _e1 passes the cell's bounds. The sample is 40
+    log slopes c + (i - 19.5) * 0.016, i = 0..39, with c = hi - half of the
+    spread alone, at the m = 0.5 upper bound hi = 0.7884573603642703; the
+    adapter's float moments hold for it (no exact moments), mean + half
+    rounds to hi and the exact sum lies 0.4375 ulp below hi. The fitted
+    slopes of the valid positive dataset are replaced by these 40 values in
+    every E1 cell (each cell uses 40 runs). The reference is the same rule
+    with exact rational moments and the adapter's quantile.
+    Expected: mean + half == hi with the exact sum below hi; both m = 0.5
+    cells equivalent, with the interval's upper ratio end
+    exp(nextafter(hi, -inf)); the exact rule agrees.
+    """
+    import itertools
+    from fractions import Fraction
+
+    from codontrace.claimgate.power import t_ppf
+
+    k = verdict.jr5_constants()
+    g = k["gate_e1"]
+    level = float(g["ci_level"])
+    lower, upper = verdict._log_bounds(g, 0.5)
+    n = 40
+    q = t_ppf(0.5 + level / 2.0, n - 1)
+    spread = [(i - 19.5) * 0.016 for i in range(n)]
+    data = [upper - q * verdict._mean_sd(spread)[1] / math.sqrt(n) + s for s in spread]
+    mean, sd, exact_mean, _exact_var = verdict._moments(data)
+    half = q * sd / math.sqrt(n)
+    assert exact_mean is None
+    assert mean + half == upper
+    assert Fraction(upper) - (Fraction(mean) + Fraction(half)) == Fraction(7, 16) * Fraction(math.ulp(upper))
+    assert _exact_interval_rule(data, lower, upper, q)
+    vals = verdict._Values(verdict.Jr5Evidence.from_dict(positive()))
+    slopes = itertools.cycle(data)
+    monkeypatch.setattr(verdict, "_firth_logit_slope", lambda counts, host_n, fit: next(slopes))
+    _gated, _breach, cells = verdict._e1(vals, k)
+    half_cells = [c for c in cells if c["sex_ratio"] == 0.5]
+    assert len(half_cells) == 2 and all(c["n_used"] == n for c in cells)
+    for c in half_cells:
+        assert c["equivalent"] is True
+        assert c["ratio_ci"][1] == math.exp(math.nextafter(upper, -math.inf))

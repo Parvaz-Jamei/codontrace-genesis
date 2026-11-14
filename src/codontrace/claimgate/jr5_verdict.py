@@ -545,7 +545,10 @@ def _sqrt_of_fraction(value: Fraction) -> float:
 def _moments(values: Sequence[float]) -> tuple[float, float, Fraction | None, Fraction | None]:
     """(mean, sd, exact mean, exact variance); the exact pair is None when the float moments hold.
 
-    Same rule as statistical_protocol._mean_sd_df. An exactly constant
+    Same rule as statistical_protocol._mean_sd_df, expression for expression
+    (squares as (v - mean) * (v - mean): float ``** 2`` goes through the C
+    library pow, which can differ from the correctly rounded product in the
+    last bit). An exactly constant
     sample has mean ``values[0]`` and spread 0. Otherwise the two-pass float
     moments are kept when (sum(x) - n * mean)^2 / n, the excess of the sum of
     squares about the float mean over the one about the exact mean, is below
@@ -562,14 +565,14 @@ def _moments(values: Sequence[float]) -> tuple[float, float, Fraction | None, Fr
         # statistical_protocol._mean_sd_df; fsum / n can be one ulp off.
         return first, 0.0, None, None
     mean = math.fsum(values) / n
-    squares = math.fsum((v - mean) ** 2 for v in values)
+    squares = math.fsum((v - mean) * (v - mean) for v in values)
     exact = [Fraction(v) for v in values]
     total = sum(exact, Fraction(0))
     residual = total - n * Fraction(mean)
     if squares > 0.0 and float(Fraction(squares) - residual * residual / n) == squares:
         return mean, math.sqrt(squares / (n - 1)), None, None
     exact_mean = total / n
-    exact_var = sum(((v - exact_mean) ** 2 for v in exact), Fraction(0)) / (n - 1)
+    exact_var = sum(((v - exact_mean) * (v - exact_mean) for v in exact), Fraction(0)) / (n - 1)
     return float(exact_mean), _sqrt_of_fraction(exact_var), exact_mean, exact_var
 
 
@@ -600,28 +603,18 @@ def _end(mean: float, exact_mean: Fraction | None, offset: float, bounds: Sequen
     return rounded
 
 
-def _t_interval(
-    values: Sequence[float], level: float, bounds: Sequence[float] = (), *, gate_quantile: bool = False
-) -> Interval:
-    """Student t interval; ``bounds`` are the points its ends are compared with strictly.
+def _t_interval(values: Sequence[float], level: float, bounds: Sequence[float] = ()) -> Interval:
+    """Student t interval for the E2 to E4 calls; ``bounds`` are the points its ends are compared with strictly.
 
-    ``gate_quantile`` takes the t quantile from
-    causal_validation.student_t_quantile, the one the E1 gate's intervals use
-    (statistical_protocol.one_sample_tost and one_sample_t_interval), so an E1
-    interval here has the gate's floats. Otherwise it is power.t_ppf, the
-    quantile paired with power.t_cdf in the E2 to E4 calls; t_ppf bisects to
-    about 1e-12 and differs from student_t_quantile by up to about 3e-13.
+    The quantile is power.t_ppf, the one paired with power.t_cdf in those
+    calls. E1 does not use this function: its intervals are the gate's own
+    (one_sample_tost's ci_low / ci_high and one_sample_t_interval), see _e1.
     """
 
+    from codontrace.claimgate.power import t_ppf
+
     mean, sd, exact_mean, _exact_var = _moments(values)
-    if gate_quantile:
-        from codontrace.genesis.causal_validation import student_t_quantile
-
-        q = student_t_quantile(len(values) - 1, 0.5 + level / 2.0)
-    else:
-        from codontrace.claimgate.power import t_ppf
-
-        q = t_ppf(0.5 + level / 2.0, len(values) - 1)
+    q = t_ppf(0.5 + level / 2.0, len(values) - 1)
     half = q * sd / math.sqrt(len(values))
     return Interval(_end(mean, exact_mean, -half, bounds), _end(mean, exact_mean, half, bounds))
 
@@ -688,8 +681,8 @@ def _spearman_greater(x: Sequence[float], y: Sequence[float]) -> tuple[float, fl
     rx, ry = _ranks(x), _ranks(y)
     mx, my = math.fsum(rx) / len(rx), math.fsum(ry) / len(ry)
     sxy = math.fsum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True))
-    sxx = math.fsum((a - mx) ** 2 for a in rx)
-    syy = math.fsum((b - my) ** 2 for b in ry)
+    sxx = math.fsum((a - mx) * (a - mx) for a in rx)
+    syy = math.fsum((b - my) * (b - my) for b in ry)
     if sxx == 0.0 or syy == 0.0:
         return 0.0, 1.0
     rho = sxy / math.sqrt(sxx * syy)
@@ -904,9 +897,16 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
             breach = breach or exceeded
             ci90 = ci95 = tost = None
             if len(log_w) >= 2:
-                ci90 = _t_interval(log_w, float(g["ci_level"]), (lo, hi), gate_quantile=True)
-                ci95 = _t_interval(log_w, float(g["must_exclude_ci_level"]), (log_null,), gate_quantile=True)
+                # Both intervals come from the gate's functions, so every
+                # float in the cell is the gate's: ci90 is the TOST record's
+                # (1 - 2 alpha) interval (half-width q * se, se = sd /
+                # sqrt(n)), ci95 is one_sample_t_interval at the exclusion
+                # level. Recomputing them here (q * sd / sqrt(n), or a
+                # different square) can differ by an ulp and flip the sign
+                # of an end that sits at the null.
                 tost = _tost_record(log_w, lo, hi, float(g["alpha"]))
+                ci90 = Interval(float(tost["ci_low"]), float(tost["ci_high"]))
+                ci95 = _gate_t_interval(log_w, float(g["must_exclude_ci_level"]))
             # The E1 decision is the gate's: both one-sided p-values below
             # alpha (statistical_protocol.one_sample_tost, the student_t_sf
             # rule), not this interval inside the bounds. The two rules agree
@@ -916,7 +916,8 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
             # could refuse a record the gate wrote correctly or follow a
             # different decision. ci90 is report-only (ratio_ci).
             equivalent = tost is not None and tost["equivalent"] is True
-            excludes = ci95 is not None and ci95.side(log_null) != 0
+            # campaigns.jr5_e1_gate.E1CellResult.excludes_null, verbatim.
+            excludes = ci95 is not None and (ci95.lo > log_null or ci95.hi < log_null)
             passed = equivalent and excludes and not exceeded
             gated = n == int(g["host_n_gate"])
             if gated:
@@ -934,6 +935,15 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
                 "tost": tost,
             })
     return gated_pass, breach, cells
+
+
+def _gate_t_interval(values: Sequence[float], level: float) -> Interval:
+    """The gate's exclusion interval: statistical_protocol.one_sample_t_interval."""
+
+    from codontrace.genesis.statistical_protocol import one_sample_t_interval
+
+    low, high = one_sample_t_interval(values, level)
+    return Interval(low, high)
 
 
 def _tost_record(values: Sequence[float], lo: float, hi: float, alpha: float) -> dict[str, Any]:

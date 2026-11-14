@@ -1035,28 +1035,28 @@ def test_adapter_paired_p_of_a_contrast_below_float_resolution_uses_the_exact_t(
 
 
 def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeypatch: pytest.MonkeyPatch) -> None:
-    """In _e1 the 90% interval end that rounds onto the bound is kept on the inside.
+    """In _e1 the 90% interval end that rounds onto the bound is the gate's inside end.
 
-    Basis: the reported 90% interval is mean -/+ half with the gate's
-    quantile (student_t_quantile, as one_sample_tost). When the float sum
+    Basis: the reported 90% interval is the gate's TOST interval, mean -/+
+    half with half = student_t_quantile(39, 0.95) * se. When the float sum
     mean + half rounds to the upper bound while its exact value
     Fraction(mean) + Fraction(half) is below it, the strict interval rule
-    holds, and _t_interval moves that end to the adjacent float below the
-    bound, provided _e1 passes the cell's bounds; the gate's _shifted does
-    the same, so the two reported ends are equal. The sample is 40 log
-    slopes c + (i - 19.5) * 0.012, i = 0..39, with c = hi - half of the
-    spread alone, at the m = 0.5 upper bound hi = 0.7884573603642703; the
-    adapter's float moments hold for it (no exact moments), mean + half
-    rounds to hi and the exact sum lies 0.4375 ulp below hi. The fitted
-    slopes of the valid positive dataset are replaced by these 40 values in
-    every E1 cell (each cell uses 40 runs). The reference is the same rule
-    with exact rational moments and the same quantile. The decision itself
-    is the gate's p-rule; here the exact interval is inside, and so is the
-    gate's decision.
+    holds, and the gate's _shifted moves that end to the adjacent float
+    below the bound. _e1 takes ci90 from that TOST record and does not
+    recompute it (no call to _t_interval), so the reported end is the
+    gate's. The sample is 40 log slopes c + (i - 19.5) * 0.012, i = 0..39,
+    with c = hi - half of the spread alone, at the m = 0.5 upper bound
+    hi = 0.7884573603642703; the float moments hold for it (no exact
+    moments), mean + half rounds to hi and the exact sum lies 0.4375 ulp
+    below hi. The fitted slopes of the valid positive dataset are replaced
+    by these 40 values in every E1 cell (each cell uses 40 runs). The
+    reference is the same rule with exact rational moments and the same
+    quantile; here the exact interval is inside, and so is the gate's
+    decision.
     Expected: mean + half == hi with the exact sum below hi; both m = 0.5
-    cells equivalent, equal to their own TOST decision; the 90% interval _e1
-    builds for them ends at nextafter(hi, -inf), as the gate's tost ci_high,
-    and its ratio end is exp of that; the exact rule agrees.
+    cells equivalent, equal to their own TOST decision; tost ci_high is
+    nextafter(hi, -inf) and the ratio end is exp of it; _t_interval is not
+    called for E1; the exact rule agrees.
     """
     import itertools
     from fractions import Fraction
@@ -1081,22 +1081,19 @@ def test_adapter_e1_cell_interval_end_rounding_onto_a_bound_stays_inside(monkeyp
     vals = verdict._Values(verdict.Jr5Evidence.from_dict(positive()))
     slopes = itertools.cycle(data)
     monkeypatch.setattr(verdict, "_firth_logit_slope", lambda counts, host_n, fit: next(slopes))
-    real_interval = verdict._t_interval
-    ends: list[float] = []
+    calls: list[Any] = []
 
     def recording(*args: Any, **kwargs: Any) -> verdict.Interval:
-        interval = real_interval(*args, **kwargs)
-        if args[1:3] == (level, (lower, upper)):
-            ends.append(interval.hi)
-        return interval
+        calls.append(args)
+        raise AssertionError("E1 must not recompute its intervals")
 
     monkeypatch.setattr(verdict, "_t_interval", recording)
     _gated, _breach, cells = verdict._e1(vals, k)
     half_cells = [c for c in cells if c["sex_ratio"] == 0.5]
     assert len(half_cells) == 2 and all(c["n_used"] == n for c in cells)
-    # exp maps hi and the float below it to the same ratio, so the log end is checked directly.
-    assert ends == [math.nextafter(upper, -math.inf)] * 2
+    assert calls == []
     for c in half_cells:
         assert c["equivalent"] is True and c["tost"]["equivalent"] is True
+        # exp maps hi and the float below it to the same ratio, so the log end is checked directly.
         assert c["tost"]["ci_high"] == math.nextafter(upper, -math.inf)
         assert c["ratio_ci"][1] == math.exp(c["tost"]["ci_high"])

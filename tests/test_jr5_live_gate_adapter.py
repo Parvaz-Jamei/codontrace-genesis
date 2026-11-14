@@ -284,9 +284,9 @@ def test_df37_sample_the_gate_calls_equivalent_proves_the_claim(monkeypatch: pyt
     exact), put the lower end below log 1.8, called the cell not
     equivalent, and so refused the honest gate record and blocked a valid
     positive. With equivalent = tost.equivalent both copies say equivalent.
-    The reported 90% interval uses the gate's quantile, so its ends equal
-    the gate's tost ci_low / ci_high and the 95% interval equals the gate's
-    exclusion interval, float for float.
+    The reported intervals are the gate's own floats for every sample, not
+    only this one: ratio_ci is exp of the TOST record's ci_low / ci_high and
+    the 95% interval is one_sample_t_interval's (see the R47 tests below).
     Expected: gate passed; the t_ppf interval rule says not inside; the
     verdict is rq_consistent with red_queen_proved True; adapter cell equal
     to the gate's cell in equivalent, passed, ratio_ci and the 95% interval.
@@ -387,12 +387,13 @@ def test_df35_sample_inside_by_the_quantile_interval_follows_the_p_rule(monkeypa
     assert cell["tost"]["df"] == 35 and cell["tost"]["t_lower"] < float(stats.t.ppf(0.95, 35))
     assert cell["tost"]["p_lower"] >= 0.05 and cell["equivalent"] is False
     assert cell["tost"]["ci_low"] > lo
-    assert jr5_verdict._t_interval(slopes, 0.9, (lo, hi), gate_quantile=True).inside(lo, hi)
+    assert lo < cell["tost"]["ci_low"] and cell["tost"]["ci_high"] < hi
     _gp, _br, cells = jr5_verdict._e1(
         jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants()
     )
     mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
     assert mine["equivalent"] is False and mine["tost"]["equivalent"] is False
+    assert mine["ratio_ci"] == cell["ratio_ci"]
     verdict = evaluate_jr5_verdict(evidence)
     assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False
 
@@ -489,3 +490,199 @@ def test_record_check_refuses_a_cell_inconsistent_with_its_own_tost(edit: str) -
     instrument_failure = not gated_pass or breach
     with pytest.raises(ConfigurationError, match="(equivalent|passed) does not follow"):
         jr5_verdict._check_e1_gate_record(record, gated_pass, instrument_failure, cells, k)
+
+
+# R47: every float of an E1 cell comes from the gate's own functions.
+# Two 40-value samples (sd near 0.1, shifted so the 95% lower end sits at 0)
+# where the gate's SD, with squares as (v - mean) * (v - mean), and an SD
+# with (v - mean) ** 2 (C library pow) differ by one ulp, and that ulp moves
+# the 95% lower end across 0: the sign of excludes_null splits.
+_R47_EXCLUSION_SPLIT_1 = (
+    0.08489626350585044,
+    -0.08485318938678153,
+    0.08031609081421706,
+    -0.02778727784438683,
+    -0.07772735758671519,
+    -0.003894336022916071,
+    -0.013303814107040244,
+    0.05065822914990339,
+    0.16127900123730843,
+    0.03790448986204636,
+    0.15985325084306873,
+    0.13845934758707523,
+    -0.11564203707511327,
+    0.03591460784567696,
+    0.05601687207577083,
+    -0.10403792849507408,
+    0.12616468241051287,
+    0.260611446758887,
+    0.08603391258292312,
+    -0.015268887717307717,
+    0.18671679421708043,
+    -0.07750898604754718,
+    -0.024845291785419645,
+    -0.12002422542953699,
+    0.17367360398402748,
+    0.08328281030475983,
+    0.1088912674123547,
+    0.17895968257159806,
+    0.16571047820326334,
+    -0.13366407531203156,
+    0.14361725382274804,
+    0.014399287832348754,
+    -0.007572601276445473,
+    -0.09969093684145165,
+    0.041804201572335505,
+    -0.036765128956301775,
+    -0.12132348368214808,
+    0.026592546689883784,
+    0.039964373488378245,
+    -0.05731821499773843,
+)
+
+_R47_EXCLUSION_SPLIT_2 = (
+    0.27358484479200573,
+    -0.03350291290362219,
+    0.045936459003232566,
+    0.15514474186998364,
+    0.06953153123370114,
+    0.01703405826815127,
+    0.13420375245681507,
+    0.020248610415498927,
+    0.05240027503392991,
+    0.047170034785591855,
+    -0.18135203228597854,
+    0.1351453621308261,
+    0.057530003375554875,
+    -0.0942606777285192,
+    0.17539794370928172,
+    0.032961031580243105,
+    -0.19537646470207534,
+    0.051098186791549934,
+    -0.03784945687403447,
+    0.07151712139179305,
+    0.014625991826960508,
+    0.02944796170483559,
+    0.012611378908599698,
+    -0.012560621417686553,
+    0.04730906039841615,
+    0.1314442337738459,
+    0.13769694478730501,
+    -0.06361145226077324,
+    0.05599795349313055,
+    0.04346190784625614,
+    -0.07151934035432568,
+    0.0024932774410458135,
+    0.0694804872711982,
+    -0.034722809647712585,
+    0.014138883253626864,
+    -0.13622479186289063,
+    0.09332180961749152,
+    0.02658065076863358,
+    0.0765216603533525,
+    -0.04821624293636376,
+)
+
+
+@pytest.mark.parametrize(
+    ("slopes", "gate_low95", "pow_low95"),
+    [
+        (_R47_EXCLUSION_SPLIT_1, 6.938893903907228e-18, 0.0),
+        (_R47_EXCLUSION_SPLIT_2, 0.0, 6.938893903907228e-18),
+    ],
+    ids=["gate-excludes", "gate-does-not-exclude"],
+)
+def test_e1_null_exclusion_is_the_gate_floats_so_an_honest_record_is_accepted(
+    monkeypatch: pytest.MonkeyPatch, slopes: tuple[float, ...], gate_low95: float, pow_low95: float
+) -> None:
+    """A cell whose 95% lower end sits at log 1 = 0 gets the gate's excludes_null, not a recomputed one.
+
+    Basis: the gated m = 0.5 cell uses these 40 slopes (df 39). The gate's
+    exclusion interval is one_sample_t_interval(slopes, 0.95): mean -/+
+    student_t_quantile(39, 0.975) * sd / sqrt(40), q = 2.0226909200367538,
+    with sd from squares (v - mean) * (v - mean). Sample 1: mean
+    0.03301231805520157, sd 0.10322300343785618, half 0.033012318055201564,
+    low end 6.938893903907228e-18 > 0, so the gate excludes the null; with
+    (v - mean) ** 2 the sd is one ulp larger (…619), the half equals the
+    mean and the low end is 0.0, which does not exclude. Sample 2 is the
+    reverse (sd …172 vs …171; low end 0.0 vs 6.9e-18). The cells are far
+    below the m = 0.5 bounds (mean near 0.03, log 1.8 = 0.588), so they are
+    not equivalent and passed is False either way; the honest record of
+    the real gate must still be accepted and give the gate's negative
+    outcome. Before R47 the adapter rebuilt the interval with its own
+    moments and refused the record ("E1 gate cells disagree").
+    Expected: the gate's low end as above and the pow-based end on the other
+    side of 0; the adapter cell's exclusion_interval_log, ratio_ci95,
+    excludes_null and ratio_ci equal the gate's, bit for bit; the verdict is
+    instrument_fail with red_queen_proved False, no ConfigurationError.
+    """
+    import math
+
+    from codontrace.claimgate import jr5_verdict
+    from codontrace.genesis.causal_validation import student_t_quantile
+
+    data = list(slopes)
+    n = len(data)
+    mean = math.fsum(data) / n
+    pow_sd = math.sqrt(math.fsum((v - mean) ** 2 for v in data) / (n - 1))
+    assert mean - student_t_quantile(n - 1, 0.975) * pow_sd / math.sqrt(n) == pow_low95
+    evidence, result = _r46_evidence(monkeypatch, data)
+    cell = _gated_half(result.to_record())
+    assert cell["exclusion_interval_log"][0] == gate_low95
+    assert cell["excludes_null"] is (gate_low95 > 0.0) and cell["equivalent"] is False
+    _gp, _br, cells = jr5_verdict._e1(
+        jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants()
+    )
+    mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    for key in ("exclusion_interval_log", "ratio_ci95", "excludes_null", "ratio_ci", "equivalent", "passed"):
+        assert mine[key] == cell[key], key
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False
+
+
+def test_e1_reported_intervals_are_the_gate_floats_where_the_half_width_order_matters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reported 90% interval is the TOST record's, also where q * se and q * sd / sqrt(n) round apart.
+
+    Basis: 40 slopes 0.69 + (i - 19.5) * 0.012004, m = 0.5, df 39. Float
+    moments hold: mean 0.69, sd 0.14033218514177948, se = sd / sqrt(40) =
+    0.022188466703823108, q = student_t_quantile(39, 0.95) =
+    1.6848751217112417. one_sample_tost takes half = q * se =
+    0.03738479553818979, so its interval is (0.6526152044618102,
+    0.7273847955381897); q * sd / sqrt(40) = 0.0373847955381898 is one ulp
+    larger and gives (0.6526152044618101, 0.7273847955381898), different at
+    both ends, and exp keeps the difference. The cell is inside the bounds
+    (p_lower 2.1e-05, p_upper 3.6e-05), so this is a valid positive. The
+    95% interval is one_sample_t_interval(slopes, 0.95) = (0.6451195898686392,
+    0.7348804101313607).
+    Expected: both half-widths and both interval pairs as above; the adapter
+    cell's ratio_ci, ratio_ci95 and exclusion_interval_log equal the gate
+    record's bit for bit; rq_consistent with red_queen_proved True.
+    """
+    import math
+
+    from codontrace.claimgate import jr5_verdict
+    from codontrace.genesis.causal_validation import student_t_quantile
+
+    data = [0.69 + (i - 19.5) * 0.012004 for i in range(40)]
+    q = student_t_quantile(39, 0.95)
+    mean, sd = jr5_verdict._mean_sd(data)
+    assert (mean, sd) == (0.69, 0.14033218514177948)
+    assert q * (sd / math.sqrt(40)) == 0.03738479553818979 != q * sd / math.sqrt(40)
+    evidence, result = _r46_evidence(monkeypatch, data)
+    cell = _gated_half(result.to_record())
+    assert (cell["tost"]["ci_low"], cell["tost"]["ci_high"]) == (0.6526152044618102, 0.7273847955381897)
+    recomputed = (mean - q * sd / math.sqrt(40), mean + q * sd / math.sqrt(40))
+    assert recomputed == (0.6526152044618101, 0.7273847955381898)
+    assert [math.exp(x) for x in recomputed] != cell["ratio_ci"]
+    assert cell["exclusion_interval_log"] == [0.6451195898686392, 0.7348804101313607]
+    _gp, _br, cells = jr5_verdict._e1(
+        jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants()
+    )
+    mine = next(c for c in cells if c["sex_ratio"] == 0.5 and c["host_n"] == 200)
+    for key in ("ratio_ci", "ratio_ci95", "exclusion_interval_log"):
+        assert mine[key] == cell[key], key
+    assert mine["passed"] is True and cell["passed"] is True
+    verdict = evaluate_jr5_verdict(evidence)
+    assert verdict.outcome == "rq_consistent" and verdict.red_queen_proved is True

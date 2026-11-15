@@ -239,6 +239,13 @@ def test_output_guard_refuses_the_prereg_and_packaged_constants(rel: str) -> Non
         P.check_output_dir(ROOT / rel, ROOT)
 
 
+def test_output_guard_names_the_repository_root(tmp_path: Path) -> None:
+    """Basis: the root is refused with its own message before the protected-folder check."""
+
+    with pytest.raises(ConfigurationError, match="repository root"):
+        P.check_output_dir(ROOT, ROOT)
+
+
 def test_output_guard_accepts_a_scratch_directory_and_refuses_a_file(tmp_path: Path) -> None:
     """Basis: tmp_path is outside the repo; an existing regular file is not a directory."""
 
@@ -496,6 +503,27 @@ def test_population_carries_the_section4_config_and_the_founder_share(spec: P.Re
     orgs = arm.runner.population.organisms
     assert len(orgs) == 20
     assert [i for i, o in enumerate(orgs) if o.asexual_lineage] == [0, 5, 10, 15]
+
+
+class _BrokenLedger:
+    @staticmethod
+    def check() -> None:
+        raise RuntimeError("residual 1e-3")
+
+
+@pytest.mark.parametrize(
+    ("ledger", "message"), [(None, "no world ATP ledger"), (_BrokenLedger(), "ledger check failed")]
+)
+def test_census_refuses_a_missing_or_failing_world_ledger(
+    spec: P.RealisedWPilotSpec, ledger: Any, message: str
+) -> None:
+    """Basis: the ledger residual invariant needs the world ATP ledger; without one, or when
+    its own check fails, the census row is refused rather than reported as residual 0."""
+
+    arm = P.build_population(spec, smoke_design(), SMOKE_SEED, SMOKE_N)
+    arm.runner.atp_ledger = ledger
+    with pytest.raises(P.PilotInvariantError, match=message):
+        P.census_row(arm, 0, set(), 24, SMOKE_SEED)
 
 
 def test_founders_at_soft_k_give_no_births_and_the_runner_stops(spec: P.RealisedWPilotSpec, tmp_path: Path) -> None:

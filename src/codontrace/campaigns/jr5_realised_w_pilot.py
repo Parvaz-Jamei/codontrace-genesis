@@ -1035,7 +1035,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return _main(args)
     except ConfigurationError as exc:
-        print(f"refused: {exc}", file=sys.stderr)
+        sys.stderr.write(f"refused: {exc}\n")
         return 2
 
 
@@ -1053,7 +1053,7 @@ def _main(args: argparse.Namespace) -> int:
             chosen = check_smoke_seeds(spec, seeds or [])
             shown = design
         _module, fit_sha = load_fit(spec, base)
-        print(
+        sys.stdout.write(
             json.dumps(
                 {
                     "mode": args.mode,
@@ -1068,6 +1068,7 @@ def _main(args: argparse.Namespace) -> int:
                 indent=1,
                 sort_keys=True,
             )
+            + "\n"
         )
         return 0
     summary = run_pilot(
@@ -1080,7 +1081,7 @@ def _main(args: argparse.Namespace) -> int:
         root=args.root,
         spec=spec,
     )
-    print(json.dumps(summary, sort_keys=True))
+    sys.stdout.write(json.dumps(summary, sort_keys=True) + "\n")
     return 0
 
 

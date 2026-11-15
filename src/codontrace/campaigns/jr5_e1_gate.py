@@ -49,6 +49,7 @@ from codontrace.genesis.statistical_protocol import (
     OneSampleTOSTResult,
     one_sample_t_interval,
     one_sample_tost,
+    ratio_scale_end,
 )
 from codontrace.preregistration.jr5_locked_plan import (
     DEVIATIONS_RELPATH,
@@ -409,10 +410,10 @@ class E1CellResult:
         return (not self.exclusion_cap_exceeded) and self.equivalent and self.excludes_null
 
     def ratio_ci90(self) -> list[JsonValue] | None:
-        return None if self.tost is None else [math.exp(self.tost.ci_low), math.exp(self.tost.ci_high)]
+        return None if self.tost is None else [ratio_scale_end(self.tost.ci_low), ratio_scale_end(self.tost.ci_high)]
 
     def ratio_ci95(self) -> list[JsonValue] | None:
-        return None if self.exclusion_interval is None else [math.exp(x) for x in self.exclusion_interval]
+        return None if self.exclusion_interval is None else [ratio_scale_end(x) for x in self.exclusion_interval]
 
     def to_record(self) -> dict[str, JsonValue]:
         return {

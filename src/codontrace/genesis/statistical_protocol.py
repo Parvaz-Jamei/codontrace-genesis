@@ -1085,8 +1085,9 @@ def student_t_sf(t: float, df: int) -> float:
     float at a time across the m = 0.5 lower bound, 400 samples per df),
     25 of 3,600 decisions differ from the exact TOST: 20 equivalent by this
     rule only (df 31 to 38) and 5 not equivalent by this rule only (df 39),
-    the direction following the sign of the threshold error. For data not
-    placed there the band is about 1e-13 of the mean. A correctly rounded
+    the direction following the sign of the threshold error. The band is
+    set by se, not by the mean: at most about 2.3e-14 * se at the E1 dfs
+    and about 5.3e-14 * se over df 1 to 59 (df 52). A correctly rounded
     comparison of the tail with alpha near the threshold would close it,
     but would change gate outputs inside the band, so it is not part of
     the registered rule.
@@ -1240,6 +1241,23 @@ def _check_alpha(alpha: float) -> float:
     return value
 
 
+def ratio_scale_end(log_value: float) -> float:
+    """exp of a log-scale interval end, for the ratio-scale report columns.
+
+    ``math.exp`` raises OverflowError above about 709.78. Such an end has
+    no float on the ratio scale, so it is refused with ConfigurationError
+    (fail-closed, the repo's refusal contract) rather than reported as inf,
+    which canonical JSON records cannot hold. The E1 gate and the verdict
+    adapter both call this function, so they refuse the same samples with
+    the same message.
+    """
+
+    try:
+        return math.exp(float(log_value))
+    except OverflowError as exc:
+        raise ConfigurationError("log interval end is too large for the ratio scale.") from exc
+
+
 def one_sample_t_interval(values: Sequence[float], confidence: float) -> tuple[float, float]:
     """Two-sided Student t interval for the mean at ``confidence``."""
 
@@ -1354,6 +1372,15 @@ def one_sample_tost(
     finite t otherwise (``[v] * 7`` with v = 0.5877866649021191 gives
     t = sqrt(6), two-sided p = 0.0498); for ``[v] * 6 + [nextafter(v, inf)]``
     it gives t = sqrt(7), two-sided p = 0.0382, where the exact t is 1.
+
+    Reporting limit: on the exact path the half-width is the rounded
+    standard error times the quantile. When var / n is below the smallest
+    subnormal the standard error rounds to 0.0 and the reported 90%
+    interval collapses to the rounded mean (``[0.0, 5e-324]`` gives
+    ``ci_low == ci_high == 0.0`` while the 95% interval of
+    ``one_sample_t_interval`` is ``(-4e-323, 4.4e-323)``). The decision is
+    unaffected: it is taken from t, which is rounded once from the exact
+    moments. No log-ratio sample reaches this range.
     """
 
     a = _check_alpha(alpha)

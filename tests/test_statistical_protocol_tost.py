@@ -16,6 +16,7 @@ from codontrace.errors import ConfigurationError
 from codontrace.genesis.statistical_protocol import (
     one_sample_t_interval,
     one_sample_tost,
+    ratio_scale_end,
     student_t_sf,
 )
 
@@ -536,3 +537,88 @@ def test_exact_sqrt_beyond_the_float_range_is_inf() -> None:
     assert _sqrt_of_fraction(overflow_sq - 1) == sys.float_info.max
     assert _sqrt_of_fraction(big * big + 1) == sys.float_info.max
     assert _sqrt_of_fraction(Fraction(2) ** 2048) == math.inf
+
+
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        ([math.inf, math.inf], "must be finite"),
+        ([-math.inf, -math.inf], "must be finite"),
+        ([math.inf, -math.inf], "must be finite"),
+        ([1.0, math.nan], "must be finite"),
+        ([1.5e308, 1.6e308], "too large for a finite mean and variance"),
+        ([-1.5e308, -1.6e308], "too large for a finite mean and variance"),
+    ],
+    ids=["inf-pair", "neg-inf-pair", "inf-minus-inf", "nan", "sum-overflow", "sum-overflow-neg"],
+)
+def test_gate_moments_refuse_nonfinite_or_overflowing_values_by_message(values: list[float], message: str) -> None:
+    """The gate's input guard and sum-overflow guard each refuse with their own message.
+
+    Basis: _mean_sd_df checks math.isfinite on every value first. Without
+    that guard [inf, inf] and [-inf, -inf] pass the constant-sample test
+    (inf == inf) and reach Fraction(inf), which raises OverflowError, and
+    [inf, -inf] reaches math.fsum, which raises ValueError ("-inf + inf");
+    a later mean/variance check would not name the cause. [1.5e308,
+    1.6e308] is finite but its sum 3.1e308 is above the float max (about
+    1.798e308), so math.fsum raises OverflowError on the intermediate sum,
+    which the guard turns into the "too large" refusal; the negative pair
+    is the same by symmetry. The verdict adapter's _moments refuses the
+    same samples with the same messages
+    (tests/test_jr5_phase2c_provenance.py).
+    Expected: ConfigurationError matching the message, from both
+    one_sample_tost and one_sample_t_interval.
+    """
+
+    with pytest.raises(ConfigurationError, match=message):
+        one_sample_tost(values, -1.0, 1.0)
+    with pytest.raises(ConfigurationError, match=message):
+        one_sample_t_interval(values, 0.95)
+
+
+def test_ratio_scale_end_refuses_a_log_end_beyond_the_float_range() -> None:
+    """A log-scale end whose exp overflows is refused, not leaked as OverflowError.
+
+    Basis: math.exp raises OverflowError when the result overflows; the
+    largest float is about 1.798e308 = exp(709.78...), so exp(709.0) =
+    8.218407461554972e307 is finite and exp(710.0) is not. Smaller ends map
+    exactly as math.exp does (exp(0) = 1, exp(-1000) underflows to 0.0
+    without an error). The E1 gate and the verdict adapter both report
+    ratio columns through this function.
+    Expected: ratio_scale_end(0.0) == 1.0, ratio_scale_end(709.0) ==
+    math.exp(709.0), ratio_scale_end(-1000.0) == 0.0, and
+    ConfigurationError "too large for the ratio scale" at 710.0 and 1000.0.
+    """
+
+    assert ratio_scale_end(0.0) == 1.0
+    assert ratio_scale_end(709.0) == math.exp(709.0) == 8.218407461554972e307
+    assert ratio_scale_end(-1000.0) == 0.0
+    for value in (710.0, 1000.0):
+        with pytest.raises(ConfigurationError, match="too large for the ratio scale"):
+            ratio_scale_end(value)
+
+
+def test_subnormal_spread_reports_a_point_ci90_but_decides_from_t() -> None:
+    """Reporting limit: the 90% interval collapses when var / n underflows; the decision does not.
+
+    Basis: [0.0, 5e-324] (5e-324 is the smallest subnormal) has exact mean
+    2.5e-324 and exact var / n = (5e-324)^2 / 4, far below the smallest
+    subnormal, so the rounded standard error is 0.0 and the exact-path
+    half-width q * se is 0.0: both 90% ends are the rounded mean, 0.0.
+    one_sample_t_interval rounds each end from the exact moments and gives
+    (-4e-323, 4.4e-323). t is rounded once from the exact mean minus the
+    bound over the exact standard error: with bounds (-1, 1) both sides are
+    infinitely far, t_lower = +inf and t_upper = -inf, so the sample is
+    equivalent; with the m = 0.5 log bounds (log 1.8, log 2.2) the mean lies
+    below the lower bound, t_lower = -inf, and it is not equivalent.
+    Expected: ci_low == ci_high == 0.0 in both cases, the 95% interval
+    above, equivalent True for (-1, 1) and False for the log bounds.
+    """
+
+    values = [0.0, 5e-324]
+    inside = one_sample_tost(values, -1.0, 1.0)
+    assert (inside.ci_low, inside.ci_high, inside.standard_error) == (0.0, 0.0, 0.0)
+    assert inside.t_lower == math.inf and inside.t_upper == -math.inf and inside.equivalent is True
+    below = one_sample_tost(values, math.log(1.8), math.log(2.2))
+    assert (below.ci_low, below.ci_high) == (0.0, 0.0)
+    assert below.t_lower == -math.inf and below.equivalent is False
+    assert one_sample_t_interval(values, 0.95) == (-4e-323, 4.4e-323)

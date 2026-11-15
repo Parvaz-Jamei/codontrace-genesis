@@ -912,8 +912,10 @@ def test_adapter_moments_refuse_fewer_than_two_values() -> None:
         ([1e300, -1e300], "too large for a finite mean and variance"),
         ([sys.float_info.max, -sys.float_info.max], "too large for a finite mean and variance"),
         ([1e154, 1e200], "too large for a finite mean and variance"),
+        ([1.5e308, 1.6e308], "too large for a finite mean and variance"),
+        ([-1.5e308, -1.6e308], "too large for a finite mean and variance"),
     ],
-    ids=["inf", "inf-pair", "nan", "cancelled-1e300", "cancelled-max", "large-squares"],
+    ids=["inf", "inf-pair", "nan", "cancelled-1e300", "cancelled-max", "large-squares", "sum-overflow", "sum-overflow-neg"],
 )
 def test_adapter_moments_refuse_nonfinite_or_overflowing_values(values: list[float], message: str) -> None:
     """A non-finite or overflowing sample is refused with ConfigurationError.
@@ -927,7 +929,11 @@ def test_adapter_moments_refuse_nonfinite_or_overflowing_values(values: list[flo
     would otherwise take the constant-sample branch and return mean inf.
     After squares are (v - mean) * (v - mean), [1e300, -1e300],
     [max, -max] and [1e154, 1e200] overflow to inf rather than raising,
-    so the mean/variance guard is also required.
+    so the mean/variance guard is also required. [1.5e308, 1.6e308] and its
+    negative are same-sign pairs whose sum 3.1e308 exceeds the float max
+    (about 1.798e308): math.fsum raises OverflowError on that intermediate
+    overflow, before any square is formed, so only the OverflowError wrap
+    turns it into the refusal.
     Expected: ConfigurationError with the input-guard message for inf and
     NaN, and the overflow-guard message for the three finite overflowing
     samples, from _moments, _mean_sd, _t_interval and _Paired.p_two_sided.
@@ -1168,6 +1174,11 @@ def test_adapter_moments_equal_the_gate_moments_bit_for_bit() -> None:
     uniform values on (-0.175, 0.175), sd near 0.1, adds cases at random.
     Expected: equal mean, SD and exact-moment flags for every sample; the two
     R47 samples have the gate SDs above, and the pow SD differs from each.
+    The pow-side check is a property of the C library, not of the code: a
+    libm with a correctly rounded pow gives x ** 2 == x * x, so that check
+    runs only where the two squares differ for the sample, and the test is
+    reported as skipped after the gate-side checks when they differ for
+    neither sample.
     """
     from codontrace.genesis.statistical_protocol import _mean_sd_df
     from tests.test_jr5_live_gate_adapter import _R47_EXCLUSION_SPLIT_1, _R47_EXCLUSION_SPLIT_2
@@ -1179,7 +1190,14 @@ def test_adapter_moments_equal_the_gate_moments_bit_for_bit() -> None:
         gate = _mean_sd_df(data)
         mean, sd, exact_mean, _exact_var = verdict._moments(data)
         assert (mean, sd, exact_mean) == (gate.mean, gate.sd, gate.exact_mean), data[:3]
+    pow_checked = 0
     for data, gate_sd in zip(samples[:2], (0.10322300343785618, 0.09261897077467172), strict=True):
+        assert verdict._mean_sd(data)[1] == gate_sd
         mean = math.fsum(data) / len(data)
+        if all((v - mean) ** 2 == (v - mean) * (v - mean) for v in data):
+            continue
         pow_sd = math.sqrt(math.fsum((v - mean) ** 2 for v in data) / (len(data) - 1))
-        assert verdict._mean_sd(data)[1] == gate_sd != pow_sd
+        assert gate_sd != pow_sd
+        pow_checked += 1
+    if pow_checked == 0:
+        pytest.skip("this libm's pow squares these samples exactly; the pow-side check does not apply")

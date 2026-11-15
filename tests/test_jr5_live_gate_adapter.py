@@ -672,6 +672,10 @@ def test_e1_null_exclusion_is_the_gate_floats_so_an_honest_record_is_accepted(
     side of 0; the adapter cell's exclusion_interval_log, ratio_ci95,
     excludes_null and ratio_ci equal the gate's, bit for bit; the verdict is
     instrument_fail with red_queen_proved False, no ConfigurationError.
+    The pow-based end is a property of the C library: with a correctly
+    rounded pow, x ** 2 == x * x and it equals the gate's end. That check
+    runs last and only where the two squares differ; otherwise the test is
+    reported as skipped after every gate-side check has passed.
     """
     import math
 
@@ -681,8 +685,6 @@ def test_e1_null_exclusion_is_the_gate_floats_so_an_honest_record_is_accepted(
     data = list(slopes)
     n = len(data)
     mean = math.fsum(data) / n
-    pow_sd = math.sqrt(math.fsum((v - mean) ** 2 for v in data) / (n - 1))
-    assert mean - student_t_quantile(n - 1, 0.975) * pow_sd / math.sqrt(n) == pow_low95
     evidence, result = _r46_evidence(monkeypatch, data)
     cell = _gated_half(result.to_record())
     assert cell["exclusion_interval_log"][0] == gate_low95
@@ -695,6 +697,10 @@ def test_e1_null_exclusion_is_the_gate_floats_so_an_honest_record_is_accepted(
         assert mine[key] == cell[key], key
     verdict = evaluate_jr5_verdict(evidence)
     assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False
+    if all((v - mean) ** 2 == (v - mean) * (v - mean) for v in data):
+        pytest.skip("this libm's pow squares this sample exactly; the pow-side check does not apply")
+    pow_sd = math.sqrt(math.fsum((v - mean) ** 2 for v in data) / (n - 1))
+    assert mean - student_t_quantile(n - 1, 0.975) * pow_sd / math.sqrt(n) == pow_low95
 
 
 def test_e1_reported_intervals_are_the_gate_floats_where_the_half_width_order_matters(
@@ -775,3 +781,38 @@ def test_e1_interval_entirely_below_the_null_excludes_it_in_both_copies(monkeypa
     assert mine["exclusion_interval_log"] == cell["exclusion_interval_log"]
     verdict = evaluate_jr5_verdict(evidence)
     assert verdict.outcome == "instrument_fail" and verdict.red_queen_proved is False
+
+
+def test_e1_ratio_columns_beyond_the_float_range_are_refused_alike(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Gate and adapter refuse a log interval end whose exp overflows, with the same message.
+
+    Basis: 40 slopes 1000 + 0.025 i (i = 0..39) have mean 1000.4875 and a
+    90% interval near 1000.4 to 1000.6 on the log scale. That is far above
+    the m = 0.5 bounds, so the TOST runs and says not equivalent; but the
+    ratio columns need exp(1000.4), and math.exp overflows above about
+    709.78. Before the fix both copies raised a raw OverflowError there
+    (identical, fail-closed, but not the refusal type the auditor's
+    exemption catches). Both now report ratio columns through
+    statistical_protocol.ratio_scale_end.
+    Expected: ConfigurationError "too large for the ratio scale" from the
+    gate record (E1GateResult.to_record) and from the adapter's _e1 on the
+    same slopes; no OverflowError from either.
+    """
+    import itertools
+
+    from codontrace.claimgate import jr5_verdict
+    from codontrace.errors import ConfigurationError
+
+    slopes = [1000.0 + 0.025 * i for i in range(40)]
+    with pytest.raises(ConfigurationError, match="too large for the ratio scale"):
+        _r46_evidence(monkeypatch, slopes)
+    evidence, _ = raw.build()
+    real = jr5_verdict._firth_logit_slope
+    crafted = itertools.cycle(slopes)
+    monkeypatch.setattr(
+        jr5_verdict,
+        "_firth_logit_slope",
+        lambda counts, host_n, fit: next(crafted) if host_n == 200 and len(counts) == 6 else real(counts, host_n, fit),
+    )
+    with pytest.raises(ConfigurationError, match="too large for the ratio scale"):
+        jr5_verdict._e1(jr5_verdict._Values(jr5_verdict.Jr5Evidence.from_dict(evidence)), jr5_verdict.jr5_constants())

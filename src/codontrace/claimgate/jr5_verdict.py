@@ -560,7 +560,10 @@ def _moments(values: Sequence[float]) -> tuple[float, float, Fraction | None, Fr
     mean)^2 / n, the excess of the sum of squares about the float mean
     over the one about the exact mean, is below the rounding of the float
     sum of squares; when it is not (a sample a few ulps wide), the mean
-    and variance are exact Fractions of the float values.
+    and variance are exact Fractions of the float values. The one step of
+    that function not repeated here is its ``_require_numeric_sequence``
+    type check; the adapter's inputs are already floats taken from the
+    record, so it has no effect on any value.
     """
 
     n = len(values)
@@ -942,13 +945,25 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
                 "excluded_seeds": excluded_seeds, "fixed_seeds": fixed_seeds, "lost_seeds": lost_seeds,
                 "exclusion_cap_exceeded": exceeded, "log_bounds": [lo, hi],
                 "ratio_bounds": list(g["equivalence_bounds"][str(ratio)]),
-                "ratio_ci": None if ci90 is None else [math.exp(ci90.lo), math.exp(ci90.hi)],
-                "ratio_ci95": None if ci95 is None else [math.exp(ci95.lo), math.exp(ci95.hi)],
+                "ratio_ci": None if ci90 is None else [_ratio_end(ci90.lo), _ratio_end(ci90.hi)],
+                "ratio_ci95": None if ci95 is None else [_ratio_end(ci95.lo), _ratio_end(ci95.hi)],
                 "exclusion_interval_log": None if ci95 is None else [ci95.lo, ci95.hi],
                 "equivalent": equivalent, "excludes_null": excludes, "passed": passed,
                 "tost": tost,
             })
     return gated_pass, breach, cells
+
+
+def _ratio_end(log_value: float) -> float:
+    """A ratio-scale report end: statistical_protocol.ratio_scale_end, as in the gate.
+
+    An end above about 709.78 on the log scale is refused with
+    ConfigurationError in both copies, with the same message.
+    """
+
+    from codontrace.genesis.statistical_protocol import ratio_scale_end
+
+    return ratio_scale_end(log_value)
 
 
 def _gate_t_interval(values: Sequence[float], level: float) -> Interval:

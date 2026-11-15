@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- JR5 realised-w pilot runner (`codontrace.campaigns.jr5_realised_w_pilot`,
+  PREREG section 7): reads every pilot setting from the locked constants and
+  refuses any that disagrees with E1; seed guards (pilot block only in pilot
+  mode; smoke seeds outside every registered and sealed block) and an output
+  guard (never under `docs/prereg` or the packaged constants); per-generation
+  invariants with a stop at the first broken one or a non-finite number;
+  append-only JSON-lines progress log with ETA and traceback; raw per-seed
+  rows, a manifest of sha256 digests and resume that keeps killed runs. The
+  E1 fit file is loaded by path and pinned by sha256. The decision is the E1
+  cell rule on the pilot block (`evaluate_e1_pilot_cell`, which refuses any
+  overlap with an E1 block). Pilot mode refuses to run until the population
+  design (`PILOT_POPULATION_DESIGN`) is decided. No pilot seed has been run.
+- Ratio-scale report ends of the E1 gate and the live adapter go through
+  `statistical_protocol.ratio_scale_end`: a log end whose exp overflows is
+  refused with `ConfigurationError` in both instead of a raw `OverflowError`.
+  Decisions are unchanged.
+
 ## [0.3.0b31] — 2026-11-15
 
 Research-beta cut. Does not recut `0.3.0b4` through `0.3.0b30`.

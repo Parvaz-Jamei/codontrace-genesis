@@ -939,18 +939,29 @@ def _e1(values: _Values, k: Mapping[str, Any]) -> tuple[bool, bool, list[dict[st
             gated = n == int(g["host_n_gate"])
             if gated:
                 gated_pass = gated_pass and passed
-            cells.append({
-                "sex_ratio": float(ratio), "host_n": n, "gated": gated,
-                "n_total": len(runs), "n_used": len(log_w), "seeds": sorted(runs),
-                "excluded_seeds": excluded_seeds, "fixed_seeds": fixed_seeds, "lost_seeds": lost_seeds,
-                "exclusion_cap_exceeded": exceeded, "log_bounds": [lo, hi],
-                "ratio_bounds": list(g["equivalence_bounds"][str(ratio)]),
-                "ratio_ci": None if ci90 is None else [_ratio_end(ci90.lo), _ratio_end(ci90.hi)],
-                "ratio_ci95": None if ci95 is None else [_ratio_end(ci95.lo), _ratio_end(ci95.hi)],
-                "exclusion_interval_log": None if ci95 is None else [ci95.lo, ci95.hi],
-                "equivalent": equivalent, "excludes_null": excludes, "passed": passed,
-                "tost": tost,
-            })
+            cells.append(
+                {
+                    "sex_ratio": float(ratio),
+                    "host_n": n,
+                    "gated": gated,
+                    "n_total": len(runs),
+                    "n_used": len(log_w),
+                    "seeds": sorted(runs),
+                    "excluded_seeds": excluded_seeds,
+                    "fixed_seeds": fixed_seeds,
+                    "lost_seeds": lost_seeds,
+                    "exclusion_cap_exceeded": exceeded,
+                    "log_bounds": [lo, hi],
+                    "ratio_bounds": list(g["equivalence_bounds"][str(ratio)]),
+                    "ratio_ci": None if ci90 is None else [_ratio_end(ci90.lo), _ratio_end(ci90.hi)],
+                    "ratio_ci95": None if ci95 is None else [_ratio_end(ci95.lo), _ratio_end(ci95.hi)],
+                    "exclusion_interval_log": None if ci95 is None else [ci95.lo, ci95.hi],
+                    "equivalent": equivalent,
+                    "excludes_null": excludes,
+                    "passed": passed,
+                    "tost": tost,
+                }
+            )
     return gated_pass, breach, cells
 
 

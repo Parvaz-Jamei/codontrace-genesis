@@ -915,7 +915,16 @@ def test_adapter_moments_refuse_fewer_than_two_values() -> None:
         ([1.5e308, 1.6e308], "too large for a finite mean and variance"),
         ([-1.5e308, -1.6e308], "too large for a finite mean and variance"),
     ],
-    ids=["inf", "inf-pair", "nan", "cancelled-1e300", "cancelled-max", "large-squares", "sum-overflow", "sum-overflow-neg"],
+    ids=[
+        "inf",
+        "inf-pair",
+        "nan",
+        "cancelled-1e300",
+        "cancelled-max",
+        "large-squares",
+        "sum-overflow",
+        "sum-overflow-neg",
+    ],
 )
 def test_adapter_moments_refuse_nonfinite_or_overflowing_values(values: list[float], message: str) -> None:
     """A non-finite or overflowing sample is refused with ConfigurationError.

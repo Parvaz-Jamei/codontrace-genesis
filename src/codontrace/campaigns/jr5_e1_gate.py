@@ -69,6 +69,7 @@ __all__ = [
     "E1Population",
     "evaluate_e1_cell",
     "evaluate_e1_gate",
+    "evaluate_e1_pilot_cell",
     "load_e1_gate_spec",
 ]
 
@@ -453,7 +454,44 @@ def evaluate_e1_cell(
 
     if host_n not in spec.host_n_reported:
         raise ConfigurationError(f"host N {host_n} is not preregistered for E1.")
-    expected = spec.seeds_for(sex_ratio)
+    return _evaluate_cell(spec, sex_ratio, host_n, populations, spec.seeds_for(sex_ratio))
+
+
+def evaluate_e1_pilot_cell(
+    spec: E1GateSpec,
+    sex_ratio: float,
+    host_n: int,
+    populations: Sequence[E1Population],
+    seed_block: tuple[int, int],
+) -> E1CellResult:
+    """The realised-w pilot cell: the E1 cell rule unchanged, on the pilot's own seed block.
+
+    PREREG section 7: the pilot uses the E1 estimator, exclusion rule, cap
+    and 90% TOST exactly as E1. This is the same code path as
+    ``evaluate_e1_cell``; only the expected seed block differs. A block that
+    shares any seed with an E1 calibration block is refused, so this entry
+    cannot stand in for an E1 cell.
+    """
+
+    first, last = (_int_item(x, "pilot seed_block") for x in _pair_raw(seed_block, "pilot seed_block"))
+    if last < first:
+        raise ConfigurationError("pilot seed_block must be (first, last) with first <= last.")
+    for _m, e1_first, e1_last in spec.seed_split:
+        if first <= e1_last and e1_first <= last:
+            raise ConfigurationError("pilot seed_block overlaps an E1 calibration block.")
+    return _evaluate_cell(spec, sex_ratio, host_n, populations, range(first, last + 1))
+
+
+def _evaluate_cell(
+    spec: E1GateSpec,
+    sex_ratio: float,
+    host_n: int,
+    populations: Sequence[E1Population],
+    expected: range,
+) -> E1CellResult:
+    if host_n not in spec.host_n_reported:
+        raise ConfigurationError(f"host N {host_n} is not preregistered for E1.")
+    spec.ratio_bounds(sex_ratio)
     pops = tuple(populations)
     seeds = [p.seed for p in pops]
     if len(set(seeds)) != len(seeds) or set(seeds) != set(expected):

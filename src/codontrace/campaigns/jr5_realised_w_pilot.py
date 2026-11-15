@@ -7,7 +7,10 @@ seeds 13201-13240, the full section-4 engine config. Every setting comes
 from the locked prereg constants (``realised_w_pilot``, ``gate_e1``,
 ``seeds``, ``validity`` and ``host_mating_arm_modes.engine_config``), read
 through ``load_e1_gate_spec`` so the plan digest and the constants sha256
-are verified first. Nothing here is a free parameter of the pilot.
+are verified first. The one exception is the population design (below):
+the prereg does not fix it, and each of its fields can move realised w. It
+is therefore pinned by its digest in a pre-pilot ``DEVIATIONS.md`` entry,
+and the pilot mode refuses any design whose digest that entry does not name.
 
 Per population: the founders are N organisms on the outcross locus, of which
 the registered founder share (0.2N) are marked as the asexual lineage. Each
@@ -23,12 +26,16 @@ inside the registered bounds with the exclusion cap respected; inside those
 bounds the 95% interval always excludes 1).
 
 The demography that turns an engine step into a generation at census N is
-not fixed by the prereg. It is a ``PopulationDesign``, recorded with its
-digest in every output. ``PILOT_POPULATION_DESIGN`` is None until that
-design is decided, and the pilot mode refuses to run while it is None. The
-smoke mode (development and tests) runs any design on seeds outside every
-registered and sealed block, at a host N below the pilot's, and never
-produces a pilot decision.
+not fixed by the prereg. It is a ``PopulationDesign`` (generation model and
+the harness settings), recorded with its digest in every output.
+``PILOT_POPULATION_DESIGN`` is None until that design is decided, and the
+pilot mode refuses to run while it is None, and unless the latest design
+line of the verified deviations log names its digest in an entry that
+declares no pilot seed ran before it. The smoke mode (development and
+tests) runs any design on seeds outside every registered and sealed block,
+at a host N below the pilot's, and never produces a pilot decision. Smoke
+mode is blind: the fit is run (its convergence is checked) but no smoke
+output holds a realised-w estimate, so a design cannot be tuned on w.
 
 Outputs, all under one output directory that may not lie in the prereg
 folder or the packaged constants: ``run.json`` (configuration, fixed at
@@ -36,10 +43,13 @@ the first start, checked on every resume), ``progress.log`` (append-only
 JSON lines: per-seed start and end, rows written, invariant results, ETA,
 any traceback), ``seeds/seed-<s>.jsonl`` (one row per generation and a
 final fit row), ``populations.csv``, ``result.json`` (pilot mode, all seeds
-done) and ``manifest.json`` (sha256 and size of every file). The scientific
+done) and ``manifest.json`` (sha256 and size of every file). Files are
+written to a temporary name, synced and renamed into place. The scientific
 files hold no timestamps, so a one-shot and a resumed run write the same
-bytes. A seed whose file has no fit row (a killed run) is re-run on the same
-seed and the incomplete file is kept beside it, never replaced.
+bytes. A seed whose final file exists is kept only after its rows pass the
+invariants again, its fit is recomputed to the stored fit row, and its
+sha256 matches the previous manifest. A seed whose run was killed is re-run
+on the same seed and the incomplete file is kept beside it, never replaced.
 
 The run stops at the first broken invariant or non-finite number. This
 module draws no random numbers; the engine draws from the run seed through
@@ -55,7 +65,9 @@ import importlib.util
 import io
 import json
 import math
+import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -69,6 +81,7 @@ from typing import Any
 from codontrace._types import JsonValue
 from codontrace.campaigns.jr5_e1_gate import (
     CONSTANTS_RELPATH,
+    LOCKED_PREREG_MANIFEST_DIGEST,
     PREREG_RELDIR,
     E1CellResult,
     E1GateSpec,
@@ -78,9 +91,19 @@ from codontrace.campaigns.jr5_e1_gate import (
 )
 from codontrace.errors import ConfigurationError
 from codontrace.genesis.canonical import canonical_digest
+from codontrace.preregistration.jr5_locked_plan import (
+    DEVIATIONS_RELPATH,
+    deviations_log_entries,
+    read_deviations_log,
+    verify_deviations_log,
+    verify_jr5_record_at_root,
+)
 
 __all__ = [
+    "DESIGN_DIGEST_LINE",
     "FIT_IMPLEMENTATION_SHA256",
+    "GENERATION_MODELS",
+    "PRE_PILOT_LINE",
     "PILOT_POPULATION_DESIGN",
     "PilotInvariantError",
     "PopulationDesign",
@@ -96,6 +119,7 @@ __all__ = [
     "pilot_decision",
     "run_pilot",
     "spec_from_constants",
+    "verified_pilot_design_digest",
 ]
 
 RUN_SCHEMA = "jr5_realised_w_pilot_run_v1"
@@ -106,8 +130,24 @@ MODE_SMOKE = "smoke"
 # (gate_e1.fit.implementation). A changed file is refused: the pilot rule
 # says the estimator is never changed.
 FIT_IMPLEMENTATION_SHA256 = "1fecda121b2dae21e680f95d2ae0fc6671fd82452773b1ad399f92a4b86b2118"
+# Generation models a design may name. Only the engine's own overlapping
+# generations (one run_generations(1) step, parents stay) are wired; the
+# others are refused until their code is reviewed.
+GENERATION_MODELS = (
+    "engine_overlapping",
+    "parent_removal_each_generation",
+    "resample_to_census",
+    "founders_below_census",
+)
+_WIRED_GENERATION_MODELS = frozenset({"engine_overlapping"})
+# The pre-pilot DEVIATIONS entry names the design with this line, and states
+# that no pilot seed ran before it with the second.
+DESIGN_DIGEST_LINE = re.compile(
+    r"^- Realised-w pilot population design: `(jr5_e1_population_design:[0-9a-f]{64})`$", re.M
+)
+PRE_PILOT_LINE = "- Pilot seeds run before this entry: none."
 # Paths under the repo root the runner never writes into.
-_PROTECTED_RELDIRS = (PREREG_RELDIR, "src/codontrace/claimgate/data")
+_PROTECTED_RELDIRS = (PREREG_RELDIR, "src", "tests")
 
 
 class PilotInvariantError(ConfigurationError):
@@ -141,6 +181,12 @@ def _number(value: object, what: str) -> float:
 def _integer(value: object, what: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ConfigurationError(f"{what} must be an integer.")
+    return value
+
+
+def _text(value: object, what: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ConfigurationError(f"{what} must be a non-empty string.")
     return value
 
 
@@ -306,7 +352,7 @@ def spec_from_constants(gate: E1GateSpec, constants: Mapping[str, Any]) -> Reali
         founder_share=share,
         ci_level=ci,
         bounds=(low, high),
-        on_fail=str(pilot.get("on_fail")),
+        on_fail=_text(pilot.get("on_fail"), "realised_w_pilot.on_fail"),
         max_reruns_after_fix=_integer(pilot.get("max_reruns_after_fix"), "realised_w_pilot.max_reruns_after_fix"),
         fit_tol=_number(fit.get("tol"), "gate_e1.fit.tol"),
         fit_max_iter=_integer(fit.get("max_iter"), "gate_e1.fit.max_iter"),
@@ -357,10 +403,11 @@ def check_smoke_seeds(spec: RealisedWPilotSpec, seeds: Sequence[int]) -> tuple[i
 
 
 def check_output_dir(out_dir: str | Path, root: str | Path | None = None) -> Path:
-    """Refuse an output directory inside the prereg folder, the packaged constants or the repo root.
+    """Refuse an output directory inside the prereg folder, the source or test tree, or the repo root.
 
-    The directory may not be, or lie inside, ``docs/prereg`` or
-    ``src/codontrace/claimgate/data``, may not be the repo root itself, and
+    The directory may not be, lie inside, or contain ``docs/prereg/jr5``,
+    ``src`` (the packaged constants included) or ``tests``, may not be the
+    repo root itself, and
     may not contain any file listed in the prereg ``record.json`` manifest.
     """
 
@@ -399,6 +446,7 @@ class PopulationDesign:
     """
 
     label: str
+    generation_model: str
     soft_k_multiple: float
     world_size: int
     birth_atp: float
@@ -419,6 +467,8 @@ class PopulationDesign:
             raise ConfigurationError("population design needs a label, founder windows and a world size.")
         if not math.isfinite(self.soft_k_multiple) or self.soft_k_multiple < 1.0:
             raise ConfigurationError("soft_k_multiple must be a finite number >= 1.")
+        if self.generation_model not in GENERATION_MODELS:
+            raise ConfigurationError(f"generation_model must be one of {GENERATION_MODELS}.")
 
     def soft_k(self, host_n: int) -> int:
         k = self.soft_k_multiple * host_n
@@ -427,6 +477,8 @@ class PopulationDesign:
         return int(k)
 
     def to_record(self) -> dict[str, JsonValue]:
+        """Every field, so the digest covers the whole design."""
+
         payload: dict[str, Any] = asdict(self)
         payload["food_patches"] = [list(p) for p in self.food_patches]
         payload["founder_windows"] = list(self.founder_windows)
@@ -441,12 +493,61 @@ class PopulationDesign:
 PILOT_POPULATION_DESIGN: PopulationDesign | None = None
 
 
+def verified_pilot_design_digest(root: str | Path | None = None) -> tuple[str, str]:
+    """(design digest, entry heading) from the latest design line of the verified deviations log.
+
+    The log is verified through the locked-plan check (record.json fresh
+    hashes, accepted checkpoints, chain, last entry = the plan digest); the
+    bytes parsed here must be the bytes record.json lists. The latest entry
+    with a design line wins; it must name exactly one design and state that
+    no pilot seed ran before it. Refused when no entry names a design.
+    """
+
+    base = Path(root) if root is not None else Path(__file__).resolve().parents[3]
+    manifest, plan = verify_jr5_record_at_root(base, locked_plan_digest=LOCKED_PREREG_MANIFEST_DIGEST)
+    try:
+        text = read_deviations_log(base / DEVIATIONS_RELPATH)
+    except OSError as exc:
+        raise ConfigurationError("DEVIATIONS.md is not readable.") from exc
+    listed = dict(manifest.files).get(DEVIATIONS_RELPATH)
+    if listed != _sha256_bytes(text.encode("utf-8")):
+        raise ConfigurationError("DEVIATIONS.md changed after record.json was verified.")
+    verify_deviations_log(text, expected_plan_digest=plan)
+    named: list[tuple[str, str]] = []
+    for entry in deviations_log_entries(text):
+        found = DESIGN_DIGEST_LINE.findall(entry)
+        if len(found) > 1:
+            raise ConfigurationError("a DEVIATIONS.md entry names more than one pilot population design.")
+        if found:
+            if PRE_PILOT_LINE not in entry.splitlines():
+                raise ConfigurationError(
+                    "the DEVIATIONS.md design entry does not state that no pilot seed ran before it."
+                )
+            named.append((found[0], entry.splitlines()[0]))
+    if not named:
+        raise ConfigurationError("no DEVIATIONS.md entry names a pilot population design.")
+    return named[-1]
+
+
+def _guard_boot(spec: RealisedWPilotSpec, mode: str, seed: int) -> None:
+    """Second barrier, immediately before an engine boot: the seed must pass its mode's guard again."""
+
+    if mode == MODE_SMOKE:
+        check_smoke_seeds(spec, [seed])
+    elif mode == MODE_PILOT:
+        check_pilot_seeds(spec, [seed])
+    else:
+        raise ConfigurationError(f"mode must be {MODE_PILOT!r} or {MODE_SMOKE!r}.")
+
+
 def build_population(spec: RealisedWPilotSpec, design: PopulationDesign, seed: int, host_n: int) -> Any:
     """One E1 population: founders, asexual share, section-4 engine config, no parasite."""
 
     from codontrace.genesis.closed_loop_hp_arm01 import ARM_AVIRULENT, LifeLoopEcologyArm
     from codontrace.genesis.host_parasite_life_plugin import OUTCROSS_OUT_BITS, hp_life_config
 
+    if design.generation_model not in _WIRED_GENERATION_MODELS:
+        raise ConfigurationError(f"generation model {design.generation_model!r} is not wired in this runner.")
     engine = spec.engine_config
     sexual = _mapping(engine.get("sexual_recombination"), "engine_config.sexual_recombination")
     life = _mapping(engine.get("closed_loop_hp_life"), "engine_config.closed_loop_hp_life")
@@ -728,7 +829,9 @@ def _run_seed(
     horizon: int,
     fit_module: ModuleType,
     on_row: Callable[[dict[str, Any], list[str]], None],
+    mode: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    _guard_boot(spec, mode, seed)
     arm = build_population(spec, design, seed, host_n)
     soft_k = design.soft_k(host_n)
     founders = arm.runner.population.organisms
@@ -747,11 +850,21 @@ def _run_seed(
         rows.append(row)
         on_row(row, checked)
         previous = row
+    return rows, _fit_row(fit_module, spec, rows, seed, mode)
+
+
+def _fit_row(
+    fit_module: ModuleType, spec: RealisedWPilotSpec, rows: Sequence[Mapping[str, Any]], seed: int, mode: str
+) -> dict[str, Any]:
+    """The fit row; in smoke mode the estimate is withheld (log_w null, blinded true)."""
+
     log_w, fixed, lost, converged = fit_population(fit_module, spec, rows)
-    fit_row = {
+    blinded = mode != MODE_PILOT
+    return {
         "kind": "fit",
         "seed": seed,
-        "log_w": log_w,
+        "log_w": None if blinded else log_w,
+        "blinded": blinded,
         "fixed_generation": fixed,
         "lost_generation": lost,
         "converged": converged,
@@ -759,17 +872,69 @@ def _run_seed(
         "asexual": [r["asexual"] for r in rows],
         "census": [r["census"] for r in rows],
     }
-    return rows, fit_row
 
 
-def _read_seed_file(path: Path, seed: int) -> dict[str, Any] | None:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    if not lines:
-        return None
-    last = json.loads(lines[-1])
-    if last.get("kind") != "fit" or last.get("seed") != seed:
-        return None
-    return dict(last)
+def _read_json(path: Path, what: str) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ConfigurationError(f"{what} is not readable JSON; it is never rewritten.") from exc
+
+
+def _verify_kept_seed(
+    path: Path,
+    seed: int,
+    spec: RealisedWPilotSpec,
+    soft_k: int,
+    horizon: int,
+    fit_module: ModuleType,
+    mode: str,
+    listed_sha256: str | None,
+) -> dict[str, Any]:
+    """A kept seed file is used only if it would be written again as it is."""
+
+    raw = path.read_bytes()
+    if listed_sha256 is not None and _sha256_bytes(raw) != listed_sha256:
+        raise ConfigurationError(f"{path.name} differs from the previous manifest; it is never rewritten.")
+    try:
+        records = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
+    except (UnicodeError, ValueError) as exc:
+        raise ConfigurationError(f"{path.name} is not JSON lines; it is never rewritten.") from exc
+    if not records or not isinstance(records[-1], dict) or records[-1].get("kind") != "fit":
+        raise ConfigurationError(f"{path.name} exists without its fit row; it is never rewritten.")
+    stored = records[-1]
+    if stored.get("seed") != seed:
+        raise ConfigurationError(f"{path.name} holds the fit row of another seed.")
+    rows = records[:-1]
+    if [r.get("generation") for r in rows] != list(range(horizon + 1)):
+        raise ConfigurationError(f"{path.name} does not hold generations 0 to {horizon}.")
+    previous: dict[str, Any] | None = None
+    for row in rows:
+        check_row(row, previous, spec, soft_k)
+        previous = row
+    if _fit_row(fit_module, spec, rows, seed, mode) != stored:
+        raise ConfigurationError(f"{path.name} fit row does not match its rows; it is never rewritten.")
+    return dict(stored)
+
+
+def _fsync_dir(directory: Path) -> None:
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    """Write to a temporary name, sync, rename into place and sync the directory."""
+
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("wb") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+    _fsync_dir(path.parent)
 
 
 def _manifest(out: Path, run_info: Mapping[str, Any]) -> dict[str, Any]:
@@ -787,6 +952,39 @@ def _manifest(out: Path, run_info: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _previous_manifest_shas(out: Path) -> dict[str, str]:
+    path = out / "manifest.json"
+    if not path.exists():
+        return {}
+    stored = _read_json(path, "manifest.json")
+    files = stored.get("files") if isinstance(stored, dict) else None
+    if not isinstance(files, list):
+        raise ConfigurationError("manifest.json has no file list; it is never rewritten.")
+    shas: dict[str, str] = {}
+    for entry in files:
+        if (
+            not isinstance(entry, dict)
+            or not isinstance(entry.get("path"), str)
+            or not isinstance(entry.get("sha256"), str)
+        ):
+            raise ConfigurationError("manifest.json file entries must name a path and a sha256.")
+        shas[entry["path"]] = entry["sha256"]
+    return shas
+
+
+def _populations_csv(run_seeds: Sequence[int], fits: Mapping[int, Mapping[str, Any]], mode: str) -> bytes:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    blinded = mode != MODE_PILOT
+    header = ["seed", "fixed_generation", "lost_generation", "converged"]
+    writer.writerow(header if blinded else ["seed", "log_w", *header[1:]])
+    for seed in run_seeds:
+        f = fits[seed]
+        tail = [f["fixed_generation"], f["lost_generation"], f["converged"]]
+        writer.writerow([seed, *tail] if blinded else [seed, repr(f["log_w"]), *tail])
+    return buffer.getvalue().encode("utf-8")
+
+
 def run_pilot(
     out_dir: str | Path,
     *,
@@ -802,10 +1000,12 @@ def run_pilot(
 
     Pilot mode: ``seeds`` default to the whole registered block,
     ``host_n``/``horizon`` must be left at the registered values and the
-    design is ``PILOT_POPULATION_DESIGN`` (refused while None). The decision
-    is written only when every seed of the block is complete. Smoke mode:
-    an explicit design, seeds outside every registered and sealed block and
-    a host N below the pilot's; no decision.
+    design is ``PILOT_POPULATION_DESIGN`` (refused while None, and unless the
+    verified deviations log names its digest in a pre-pilot entry). The
+    decision is written only when every seed of the block is complete. Smoke
+    mode: an explicit design, seeds outside every registered and sealed
+    block and a host N below the pilot's; blind (no w estimate is written);
+    no decision.
     """
 
     pilot_spec = spec if spec is not None else load_realised_w_pilot_spec(root)
@@ -819,6 +1019,9 @@ def run_pilot(
                 "the pilot population design is not decided (PILOT_POPULATION_DESIGN is None); no pilot seed runs."
             )
         run_design = PILOT_POPULATION_DESIGN
+        pinned, _heading = verified_pilot_design_digest(base)
+        if pinned != run_design.digest():
+            raise ConfigurationError("the pilot population design is not the one the DEVIATIONS.md entry pins.")
         run_seeds = check_pilot_seeds(pilot_spec, list(pilot_spec.seeds) if seeds is None else seeds)
         run_n, run_t = pilot_spec.host_n, pilot_spec.horizon
     elif mode == MODE_SMOKE:
@@ -840,6 +1043,7 @@ def run_pilot(
     run_info: dict[str, Any] = {
         "schema": RUN_SCHEMA,
         "mode": mode,
+        "blinded": mode != MODE_PILOT,
         "seeds": list(run_seeds),
         "host_n": run_n,
         "horizon": run_t,
@@ -855,15 +1059,18 @@ def run_pilot(
     (out / "seeds").mkdir(exist_ok=True)
     run_path = out / "run.json"
     progress = _Progress(out / "progress.log")
+    soft_k = run_design.soft_k(run_n)
     if run_path.exists():
-        stored = json.loads(run_path.read_text(encoding="utf-8"))
+        stored = _read_json(run_path, "run.json")
+        if not isinstance(stored, dict):
+            raise ConfigurationError("run.json must hold an object.")
         same = {k: v for k, v in stored.items() if k not in ("git_head", "python", "numpy")}
         mine = {k: v for k, v in json.loads(json.dumps(run_info)).items() if k not in ("git_head", "python", "numpy")}
         if same != mine:
             raise ConfigurationError("run.json in the output directory belongs to a different configuration.")
         progress.write("resume", run_digest=canonical_digest(mine, prefix="jr5_rwp_run"), git_head=run_info["git_head"])
     else:
-        run_path.write_bytes(_json_bytes(run_info))
+        _atomic_write(run_path, _json_bytes(run_info))
         progress.write(
             "start",
             run_digest=canonical_digest(json.loads(json.dumps(run_info)), prefix="jr5_rwp_run"),
@@ -873,16 +1080,16 @@ def run_pilot(
             horizon=run_t,
             design_digest=run_design.digest(),
         )
+    listed = _previous_manifest_shas(out)
     fits: dict[int, dict[str, Any]] = {}
     durations: list[float] = []
     try:
         for index, seed in enumerate(run_seeds):
             final = out / "seeds" / f"seed-{seed}.jsonl"
             if final.exists():
-                kept = _read_seed_file(final, seed)
-                if kept is None:
-                    raise ConfigurationError(f"{final.name} exists without its fit row; it is never rewritten.")
-                fits[seed] = kept
+                fits[seed] = _verify_kept_seed(
+                    final, seed, pilot_spec, soft_k, run_t, fit_module, mode, listed.get(f"seeds/{final.name}")
+                )
                 progress.write("seed_kept", seed=seed, sha256=_sha256_file(final))
                 continue
             partial = final.with_name(final.name + ".partial")
@@ -912,25 +1119,30 @@ def run_pilot(
                         invariants_ok=checked,
                     )
 
-                _rows, fit_row = _run_seed(pilot_spec, run_design, seed, run_n, run_t, fit_module, on_row)
+                _rows, fit_row = _run_seed(pilot_spec, run_design, seed, run_n, run_t, fit_module, on_row, mode)
                 fh.write(json.dumps(fit_row, sort_keys=True, allow_nan=False) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
                 rows_written += 1
-            partial.rename(final)
+            os.replace(partial, final)
+            _fsync_dir(final.parent)
             fits[seed] = fit_row
             elapsed = time.monotonic() - started
             durations.append(elapsed)
             remaining = sum(1 for s in run_seeds[index + 1 :] if not (out / "seeds" / f"seed-{s}.jsonl").exists())
-            progress.write(
-                "seed_end",
-                seed=seed,
-                rows_written=rows_written,
-                seconds=round(elapsed, 3),
-                log_w=fit_row["log_w"],
-                fixed_generation=fit_row["fixed_generation"],
-                lost_generation=fit_row["lost_generation"],
-                eta_seconds=round(remaining * (sum(durations) / len(durations)), 1),
-                sha256=_sha256_file(final),
-            )
+            end_fields: dict[str, Any] = {
+                "seed": seed,
+                "rows_written": rows_written,
+                "seconds": round(elapsed, 3),
+                "fixed_generation": fit_row["fixed_generation"],
+                "lost_generation": fit_row["lost_generation"],
+                "converged": fit_row["converged"],
+                "eta_seconds": round(remaining * (sum(durations) / len(durations)), 1),
+                "sha256": _sha256_file(final),
+            }
+            if mode == MODE_PILOT:
+                end_fields["log_w"] = fit_row["log_w"]
+            progress.write("seed_end", **end_fields)
     except Exception as exc:
         progress.write("failed", error=f"{type(exc).__name__}: {exc}", traceback=traceback.format_exc())
         for partial in sorted((out / "seeds").glob("*.partial")):
@@ -939,14 +1151,9 @@ def run_pilot(
             while partial.with_name(f"{stem}.failed-{failed}").exists():
                 failed += 1
             partial.rename(partial.with_name(f"{stem}.failed-{failed}"))
-        (out / "manifest.json").write_bytes(_json_bytes(_manifest(out, run_info)))
+        _atomic_write(out / "manifest.json", _json_bytes(_manifest(out, run_info)))
         raise
-    with (out / "populations.csv").open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.writer(fh, lineterminator="\n")
-        writer.writerow(["seed", "log_w", "fixed_generation", "lost_generation", "converged"])
-        for seed in run_seeds:
-            f = fits[seed]
-            writer.writerow([seed, repr(f["log_w"]), f["fixed_generation"], f["lost_generation"], f["converged"]])
+    _atomic_write(out / "populations.csv", _populations_csv(run_seeds, fits, mode))
     summary: dict[str, Any] = {"mode": mode, "seeds_done": len(fits), "decision_written": False}
     if mode == MODE_PILOT and set(fits) == set(pilot_spec.seeds):
         populations = [
@@ -973,7 +1180,7 @@ def run_pilot(
             "enters_claims": False,
         }
         result["digest"] = canonical_digest(result, prefix="jr5_realised_w_pilot_result")
-        (out / "result.json").write_bytes(_json_bytes(result))
+        _atomic_write(out / "result.json", _json_bytes(result))
         summary.update(decision_written=True, pilot_passed=passed, ratio_ci90=cell.ratio_ci90())
         progress.write(
             "decision",
@@ -988,7 +1195,7 @@ def run_pilot(
     manifest = _manifest(out, run_info)
     if manifest["body_digest"] != body_digest:
         raise PilotInvariantError("output files changed while the manifest was written.")
-    (out / "manifest.json").write_bytes(_json_bytes(manifest))
+    _atomic_write(out / "manifest.json", _json_bytes(manifest))
     summary["body_digest"] = manifest["body_digest"]
     return summary
 
@@ -1053,6 +1260,10 @@ def _main(args: argparse.Namespace) -> int:
             chosen = check_smoke_seeds(spec, seeds or [])
             shown = design
         _module, fit_sha = load_fit(spec, base)
+        try:
+            pin: str = verified_pilot_design_digest(base)[0]
+        except ConfigurationError as exc:
+            pin = f"refused: {exc}"
         sys.stdout.write(
             json.dumps(
                 {
@@ -1063,7 +1274,8 @@ def _main(args: argparse.Namespace) -> int:
                     "design": None if shown is None else shown.to_record(),
                     "design_digest": None if shown is None else shown.digest(),
                     "fit_sha256": fit_sha,
-                    "runnable": shown is not None,
+                    "design_pin": pin,
+                    "runnable": shown is not None and (args.mode == MODE_SMOKE or pin == shown.digest()),
                 },
                 indent=1,
                 sort_keys=True,

@@ -13,7 +13,11 @@
   E1 fit file is loaded by path and pinned by sha256. The decision is the E1
   cell rule on the pilot block (`evaluate_e1_pilot_cell`, which refuses any
   overlap with an E1 block). Pilot mode refuses to run until the population
-  design (`PILOT_POPULATION_DESIGN`) is decided. No pilot seed has been run.
+  design (`PILOT_POPULATION_DESIGN`, generation model included) is decided
+  and its digest is named in a verified pre-pilot `DEVIATIONS.md` entry.
+  Smoke mode is blind: no smoke output holds a realised-w estimate. Kept
+  seed files are re-verified on resume, outputs are replaced atomically,
+  and each engine boot re-checks its seed. No pilot seed has been run.
 - Ratio-scale report ends of the E1 gate and the live adapter go through
   `statistical_protocol.ratio_scale_end`: a log end whose exp overflows is
   refused with `ConfigurationError` in both instead of a raw `OverflowError`.

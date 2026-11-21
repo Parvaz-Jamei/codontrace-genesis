@@ -24,6 +24,7 @@ from codontrace.genesis.behavior import BehaviorDescriptor, describe_behavior
 from codontrace.genesis.birth import (
     DIPLOID_FERTILISATION_MECHANISM,
     MATING_TYPE_HERMAPHRODITE,
+    MATING_TYPE_MALE,
     ADFInheritanceMode,
     ADFInheritanceRecord,
     AIBirthInterventionRecord,
@@ -5638,7 +5639,15 @@ def _apply_parent_reproduction_costs(
     config: ReproductionConfig,
     birth_tick: int,
     extra_debits: tuple[tuple[float, str, str], ...] = (),
+    endow_offspring: bool = True,
 ) -> tuple[list[int], float, str | None]:
+    """Debit the parent cost and, for a mother, the offspring endowment.
+
+    ``endow_offspring=False`` is a sire: it pays the parent cost (and any
+    extra debit) but bears no offspring, so it transfers no endowment and
+    the returned offspring ATP is 0.0.
+    """
+
     ledger_ids: list[int] = []
     available_before_cost = organism.atp_state.runtime_available
     if config.parent_atp_cost > 0 and available_before_cost < config.parent_atp_cost:
@@ -5659,16 +5668,19 @@ def _apply_parent_reproduction_costs(
         return [], 0.0, "parent_atp_cost_not_payable"
     if debit_id is not None:
         ledger_ids.append(debit_id)
-    transfer_id = organism.atp_state.debit_runtime(
-        offspring_atp,
-        tick=birth_tick,
-        organism_id=organism.id,
-        codon="111",
-        action="COPY_SELF",
-        reason="offspring_runtime_atp_transfer",
-    )
-    if transfer_id is not None:
-        ledger_ids.append(transfer_id)
+    if not endow_offspring:
+        offspring_atp = 0.0
+    else:
+        transfer_id = organism.atp_state.debit_runtime(
+            offspring_atp,
+            tick=birth_tick,
+            organism_id=organism.id,
+            codon="111",
+            action="COPY_SELF",
+            reason="offspring_runtime_atp_transfer",
+        )
+        if transfer_id is not None:
+            ledger_ids.append(transfer_id)
     for amount, codon, reason in extra_debits:
         if amount <= 0.0:
             continue
@@ -5868,6 +5880,18 @@ def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombin
             raise ConfigurationError(msg)
 
 
+def _is_male(
+    organism: GenesisOrganism,
+    mating_seed: int | None,
+    sexual: SexualRecombinationConfig,
+) -> bool:
+    """True for a male in a sexes-on run; such an organism never mothers."""
+
+    if not sexual.mating_types_enabled or organism.asexual_lineage:
+        return False
+    return _organism_mating_type(organism, mating_seed, sexual) == MATING_TYPE_MALE
+
+
 def _stamp_mating_types(
     population: PopulationState, mating_seed: int | None, sexual: SexualRecombinationConfig
 ) -> PopulationState:
@@ -5999,11 +6023,17 @@ def _drain_chamber_pairs(
         )
         if pair is None:
             break
-        needed = 1 if sexual_cfg.two_fold_cost_sex else 2
-        if len(live_positions) + needed > configs.reproduction.max_population:
-            break
         first = waiting[pair[0]]
         second = waiting[pair[1]]
+        # Only mothers place a product: a male slot is a sire and bears none.
+        mothers = [
+            slot
+            for slot in (first, second)
+            if mating_types is None or mating_types.assign(slot.parent_id) != MATING_TYPE_MALE
+        ]
+        needed = 1 if sexual_cfg.two_fold_cost_sex else len(mothers)
+        if len(live_positions) + needed > configs.reproduction.max_population:
+            break
         for index in sorted(pair, reverse=True):
             del waiting[index]
         if cap is not None:
@@ -6047,6 +6077,7 @@ def _drain_chamber_pairs(
             products = products[:1]
         else:
             deferred_second = None
+            products = [(slot, record) for slot, record in products if slot in mothers]
         placed_this_pair = 0
         for slot, record in products:
             parent = _lookup_step_organism(
@@ -6400,11 +6431,16 @@ def _handle_chamber_copy_self(
                 ),
             )
     fee_debit = _life_plugin().outcross_fee_debit(organism.genome.to_compact(), life) if fee > 0.0 else None
+    # A male enters the chamber only as a sire: it pays the parent cost but
+    # no offspring endowment, and its slot never becomes a birth (see
+    # _drain_chamber_pairs). Design note phase 2b: a male never mothers.
+    sire_only = _is_male(organism, mating_seed, sexual_cfg)
     ledger_ids, offspring_atp, cost_reason = _apply_parent_reproduction_costs(
         organism,
         configs.reproduction,
         birth_tick,
         extra_debits=(fee_debit,) if fee_debit is not None else (),
+        endow_offspring=not sire_only,
     )
     if cost_reason is not None:
         blocked_reproduction += 1

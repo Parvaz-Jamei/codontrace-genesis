@@ -89,10 +89,12 @@ _MAIN_ERA_RNG_DRAWS = [0.07288018841626231, 0.020732041539421653, 0.323315058967
 # sha256 of the sorted-key JSON of the census test population plus one asexual founder.
 # The mating-snapshot checksum changes serialization only: deleting it
 # reproduces each preceding fixed-sex pin exactly.
-# Re-pinned when sex became fixed for life: the state now stores each
+# Moved again with the male-never-mother fix, where a male x female pair
+# places only the female's child (was 0108f3b1...). Before that, re-pinned
+# when sex became fixed for life: the state now stores each
 # organism's mating type and the run seed for the draws (was d60e1133...).
-_MIXED_DIGEST = "0108f3b1fc3c28530d349bf324349d23cf32396db02a84ab2f0bd9553a8d75a6"
-# Sexes-on {hermaphrodite} step digests, re-pinned for the same reason. With
+_MIXED_DIGEST = "71050a99c6b0f994ca5ee538ad6288525a0d28e214a5014d7e680793fb093eb3"
+# Sexes-on {hermaphrodite} step digests, re-pinned when sex became fixed for life. With
 # the stored type fields removed they equal the switch-off digests above.
 _HERM_ONLY_STEP_DIGESTS = {
     20005: "7fe845b78efe35e69cbb2a0f59b5519c67a17fcef8cc8a456d1d006072205099",

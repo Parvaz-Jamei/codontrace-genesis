@@ -192,10 +192,13 @@ class SexualRecombinationConfig:
     pairing only joins compatible types (male x female, or hermaphrodite x
     any type). The three fields are written by ``to_dict`` only when they differ
     from their defaults, so payloads with the switch off are byte-identical to
-    earlier releases. Sexes and ``two_fold_cost_sex`` are mutually exclusive:
-    phase 2a carries no cost of sex (a chamber pair still places both
-    products and males still bear offspring); phase 2b will charge it, and
-    combining it with ``two_fold_cost_sex`` would then charge it twice.
+    earlier releases. Sexes and ``two_fold_cost_sex`` are mutually exclusive.
+    With sexes on the cost of males is charged in births: a male enters the
+    chamber only as a sire, pays no offspring endowment and never places a
+    child, so a pair places one child per mother (one for hermaphrodite x
+    male or female x male, two for hermaphrodite x hermaphrodite) and sons
+    are still born at ``sex_ratio``. Combining that with
+    ``two_fold_cost_sex`` would charge the cost twice.
     ``hermaphrodite_selfing`` (opt-in, sexes on, set must hold
     ``hermaphrodite``) lets a hermaphrodite whose outcross locus reads selfing
     make a uniparental selfed child; males and females never self. A selfed
@@ -281,7 +284,7 @@ class SexualRecombinationConfig:
         if self.two_fold_cost_sex:
             raise ValueError(
                 "two_fold_cost_sex must be False when mating_types_enabled is True; "
-                "the cost of sex under separate sexes is left to phase 2b."
+                "with sexes on the cost of males is charged in births (males never mother)."
             )
 
     @property

@@ -50,14 +50,18 @@ from tests.test_jr5_phase2a_mating_types import (
 # with the stored fields removed still equal ``_BASE_ERA``. The two-tick
 # session with the outcross locus changed in dynamics too: at 7db2227a the
 # second tick redrew every sex from that tick's seed, which was the bug.
+# Re-pinned again with the male-never-mother fix: every fm/hm step and the
+# outcross-locus session pair a male in the chamber, and a male's slot is now
+# sire-only (one child per mother), so those digests moved. The selfing-locus
+# session never reaches the chamber and is unchanged.
 _FIXED_SEX_ERA = {
-    "fm20005": "2621b5833eea320c1a9ea61608ae1d38b5d493e40bd789bce7a83bb730ea4029",
-    "hm20005": "2b55c2cecce86b7e00a4bc4c6a5f57c5f6f405026710c6425bfbe8ae2eca20cb",
-    "fm20008": "f62576680e30db317c975b62d1e93ebfb5a205a2240eb9d59617ee59f28da91c",
-    "hm20008": "c03ac6291956b2a5b65d5768cf132eed0fe1629d6a72559d7bd350620a2f0706",
-    "fm20013": "e88e8c989f306a3dfbfd68c316d81ff02df1a8bf0c9b995e7c4d8882f3f699e1",
-    "hm20013": "0972fc8f45a6fb726932450dcb1dbadebcbff9a123c001e2044bc8f5521e93c4",
-    "p5" + OUTCROSS_OUT_BITS: "70cf1b0359c80247c251a26717217da6a1e0edbe78eb03afbe3f69f30dbbaacc",
+    "fm20005": "11417f79a91cfd5f1267999372b311d8e31b8db39bddedd75faaf7c623027481",
+    "hm20005": "bd58e80a44917d4237acdd7ced235c26fc37cb3066ed90874a8eb83f84138269",
+    "fm20008": "a3f5ae8dac653f5fec8777ea0a50e31f0dd8c648c27dbff4bbe8d66115c43bda",
+    "hm20008": "cf87e369034e56bcf6cd4df4bcf54c0a45d3f42fa9504e4f7fc63090a8825e28",
+    "fm20013": "58437a209ba20dc07cb484425fd8017694a3fb7b12bd042b5c7f2f9faf12bd7c",
+    "hm20013": "fc17bd5833809b27fb9a24dc2ad6945a1af1dcd4364c9fba5ed1bc5cbc40b1d0",
+    "p5" + OUTCROSS_OUT_BITS: "7c54a22fdc83c86ca79d65f063860713a54780a31cba66971a18d18694fda9f9",
     "p5" + OUTCROSS_SELFING_BITS: "5c53a186ae56445a74f16270275a55650628e22ffa550dfbf89b7a6276a725bd",
 }
 _BASE_ERA = {
@@ -69,6 +73,17 @@ _BASE_ERA = {
     "hm20013": "9b3acd0530a3f2d0a16ebc3920b251632f2d58f3d29cddd0b62e37cc671c6bc6",
     "p5" + OUTCROSS_OUT_BITS: "fbc5bfaad9768c9ef5b539309bd92180ecd31b829906ec3c27cabfba8bf99c3b",
     "p5" + OUTCROSS_SELFING_BITS: "033485164bbee357115684e0ecb1bfbb8508d21a7d91a069629b7b831dcbedcf",
+}
+# Stored sex fields removed, after the male-never-mother fix. These differ
+# from _BASE_ERA (7db2227a, before the fix), where a male's slot was also
+# placed as a child of the male.
+_MALE_SIRE_ERA = {
+    "fm20005": "74f61c3571cd5caee30d71a639738f8553a07a1cb829964abaa9e6e1eee8ac63",
+    "hm20005": "a0e625f13953d890b923c0ca3f78624f67032429e70507a0c9e9911f35aa1f59",
+    "fm20008": "a67181a4b0e0f319610bdf37482ab327503c6c85826524976a1a6ff87542fd39",
+    "hm20008": "a67181a4b0e0f319610bdf37482ab327503c6c85826524976a1a6ff87542fd39",
+    "fm20013": "a76c753e862f280b92296ed8d913f660f70d4759f5fece2c45f5956ddfc06c76",
+    "hm20013": "a76c753e862f280b92296ed8d913f660f70d4759f5fece2c45f5956ddfc06c76",
 }
 _ANDRO = {"mating_type_set": ("hermaphrodite", "male"), "sex_ratio": 0.3}
 
@@ -91,12 +106,16 @@ def test_switch_off_config_payloads_still_match_main_era() -> None:
 
 @pytest.mark.parametrize("seed", [20005, 20008, 20013])
 def test_sexes_on_without_self_mode_matches_base(seed: int) -> None:
-    """Sexes on, self mode off: one step has the same dynamics as at 7db2227a
-    (stored sex fields removed), and the full digest is the fixed-sex pin."""
+    """Sexes on, self mode off: one step has the dynamics of the male-sire
+    pins (stored sex fields removed), and the full digest is the fixed-sex
+    pin. Each of these steps pairs a male, so since the male-never-mother fix
+    the dynamics differ from 7db2227a: a male's slot is sire-only and the pair
+    places one child, the mother's, instead of two."""
 
     for key, extra in (("fm", {}), ("hm", _ANDRO)):
         population = _step(seed, _configs(**{**_SEXES, **extra})).population
-        assert _without_mating_fields(population) == _BASE_ERA[f"{key}{seed}"]
+        assert _without_mating_fields(population) == _MALE_SIRE_ERA[f"{key}{seed}"]
+        assert _without_mating_fields(population) != _BASE_ERA[f"{key}{seed}"]
         assert population.digest() == _FIXED_SEX_ERA[f"{key}{seed}"]
 
 
@@ -491,18 +510,24 @@ def test_selfed_hermaphrodite_pairs_with_a_male_before_its_type_is_stored() -> N
     read it as one even before its type is stored at the end of the step. With
     sex_ratio 1.0 every drawn type is male, so if the chamber drew the selfed
     organism's type (the pin removed) it would read male and male x male is
-    refused. Expected: the first step pairs the two and places both products
-    (2 births); later steps add none in this small setup (the males are
-    short of ATP and their copies pair with nobody in time). Value measured on this branch; the review saw 4 births
-    before sex was fixed (sexes were redrawn each step) and the mutant
-    without the pin gives 0."""
+    refused (0 births).
+
+    Expected 1 birth. Basis: only mothers bear offspring (design note phase
+    2b: a male never enters the chamber as a mother), so the hermaphrodite x
+    male pair in the first step places one child, the hermaphrodite's, with
+    the male as second parent; the child is a son (sex_ratio 1.0). The
+    hermaphrodite's next COPY_SELF token, in step 4 of its 3-codon cycle,
+    leaves it 8.05 - 8.0 = 0.05 ATP, below min_runtime_atp 1.0, so no later
+    birth. The value was 2 before the male-never-mother fix, when the male's
+    own chamber slot was also placed as a child of the male."""
 
     configs = _configs(**{**_SEXES, "mating_type_set": ("hermaphrodite", "male"), "sex_ratio": 1.0})
     selfed = GenesisOrganism.from_bits("o0", _BITS[0], initial_runtime_atp=20.0, position=(1, 0))
     selfed.selfed = True
     male = GenesisOrganism.from_bits("o1", _BITS[1], initial_runtime_atp=20.0, position=(1, 1))
-    _, births = _run(20005, configs, (selfed, male), 4)
-    assert births == 2
+    state, births = _run(20005, configs, (selfed, male), 4)
+    assert births == 1
+    assert [(r.parent_id, r.second_parent_id) for r in state.lineage if r.parent_id] == [("o0", "o1")]
 
 
 def test_selfed_flag_survives_a_full_population_round_trip() -> None:
@@ -732,13 +757,15 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 #   old setup (outcross fee 1.0). Merging the gamete-fusion fix moved it to
 #   (0.38787177, -0.00003415) on that setup; the setup change to outcross fee
 #   0.0 then gave (0.80725957, -0.32454182). The selfing fix did not move it.
+#   The male-never-mother fix moved it to (0.66971430, 0.03195584): males no
+#   longer place a child of their own, so male counts per generation change.
 # - Self arm: only this pin moved with the selfing fix, from (-3.8506,-0.1356)
 #   to (-3.9159,-0.1605), because genome length went from 9 to 18 bits (before
 #   the fix a selfed child was the parent's even homolog alone, so the genome
 #   halved). The self arm has zero males, so its intercept sits at the
 #   bias-reduced lower bound. Selfing pays no outcross fee, so the fee
 #   setting does not enter this arm.
-_E1_MALE_OUTCROSS_DIPLOID = (0.80725957, -0.32454182)
+_E1_MALE_OUTCROSS_DIPLOID = (0.66971430, 0.03195584)
 _E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
 # The prereg E1 estimand: asexual count out of census against generation,
 # obligate-outcross host arm with an asexual founder fraction of 0.2 and no

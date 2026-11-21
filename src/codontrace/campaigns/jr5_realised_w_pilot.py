@@ -169,6 +169,7 @@ CHAMBER_TIMEOUT_FOR_UNMATED_OUTCROSSER = {"refused_no_selfing_at_timeout": "fail
 DESIGN_DIGEST_LINE = re.compile(
     r"^- Realised-w pilot population design: `(jr5_e1_population_design:[0-9a-f]{64})`$", re.M
 )
+DESIGN_LINE_PREFIX = "- Realised-w pilot population design:"
 PRE_PILOT_LINE = "- Pilot seeds run before this entry: none."
 # Paths under the repo root the runner never writes into.
 _PROTECTED_RELDIRS = (PREREG_RELDIR, "src", "tests")
@@ -563,6 +564,11 @@ def verified_pilot_design_digest(root: str | Path | None = None) -> tuple[str, s
     named: list[tuple[str, str]] = []
     for entry in deviations_log_entries(text):
         found = DESIGN_DIGEST_LINE.findall(entry)
+        claimed = [line for line in entry.splitlines() if line.startswith(DESIGN_LINE_PREFIX)]
+        if len(claimed) != len(found):
+            # A design line that is not exactly one 64-hex digest is refused, so
+            # a malformed later entry cannot leave an earlier design in force.
+            raise ConfigurationError("a DEVIATIONS.md design line is malformed (it needs one 64-hex digest).")
         if len(found) > 1:
             raise ConfigurationError("a DEVIATIONS.md entry names more than one pilot population design.")
         if found:

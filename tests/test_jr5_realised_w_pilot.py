@@ -1693,3 +1693,35 @@ def test_build_population_guards_the_seed_itself(spec: P.RealisedWPilotSpec, mod
         P.build_population(spec, smoke_design(), seed, SMOKE_N, mode=mode)
     with pytest.raises(ConfigurationError):
         P.build_population(spec, smoke_design(), 13201, SMOKE_N)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["a" * 63, "a" * 65, "A" * 64, "g" * 64],
+    ids=["63-hex", "65-hex", "upper-case", "not-hex"],
+)
+def test_design_pin_refuses_a_malformed_design_line_after_a_valid_one(tmp_path: Path, bad: str) -> None:
+    """Basis (R51 D08): a design digest is exactly 64 lower-case hex characters. A later entry
+    whose design line is malformed must be refused, not skipped: skipping it would leave the
+    earlier entry's design in force although the log's last word on the design is unreadable."""
+
+    good = smoke_design().digest()
+    later = _entry(None, extra=f"- Realised-w pilot population design: `jr5_e1_population_design:{bad}`")
+    later = later.replace("(test fixture)", "(test fixture, later)")
+    root = make_root(tmp_path, _entry(good) + later)
+    with pytest.raises(ConfigurationError, match="design line is malformed"):
+        P.verified_pilot_design_digest(root)
+
+
+def test_design_pin_refuses_a_changed_locked_file_other_than_the_log(tmp_path: Path) -> None:
+    """Basis (R51 L3): record.json lists every plan file's sha256, not only DEVIATIONS.md. With a
+    valid pinned entry and the record refreshed, one byte appended to REFERENCES.md (listed, and
+    not the log) makes its fresh hash differ from the listing, so the pin is refused before the
+    log is read."""
+
+    root = make_root(tmp_path, _entry(smoke_design().digest()))
+    assert P.verified_pilot_design_digest(root)[0] == smoke_design().digest()
+    with (root / "docs/prereg/jr5/REFERENCES.md").open("ab") as fh:
+        fh.write(b"\n")
+    with pytest.raises(ConfigurationError, match="does not match the fresh hashes of its plan files"):
+        P.verified_pilot_design_digest(root)

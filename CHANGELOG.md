@@ -30,7 +30,9 @@
   input), any birth refused at the soft carrying capacity stops the run,
   world side >= ceil(sqrt(3N)), and the chamber timeout policy derived from
   the registered unmated-outcrosser rule (`fail`). The pilot design is not
-  set (`PILOT_POPULATION_DESIGN` is None). No pilot seed has been run.
+  set (`PILOT_POPULATION_DESIGN` is None). A malformed design line in the
+  deviations log (not exactly one 64-hex digest) is refused rather than
+  skipped. No pilot seed has been run.
 - Tests: `test_r10_panel_execution_form_mismatch_with_actual_command` starts
   the launched engine run in its own session and kills that process group
   on teardown, so no detached `rq_full_engine_parallel.py` outlives the

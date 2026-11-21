@@ -808,9 +808,7 @@ def thin_to_census(organisms: Sequence[Any], host_n: int, seed: int, generation:
     return tuple(o for o in organisms if o.id in keep)
 
 
-def apply_census(
-    arm: Any, host_n: int, seed: int, generation: int, *, endowment_atp: float | None = None
-) -> int:
+def apply_census(arm: Any, host_n: int, seed: int, generation: int, *, endowment_atp: float | None = None) -> int:
     """Thin the population to ``host_n`` (see thin_to_census) and book the removed ATP; return the number removed.
 
     With ``endowment_atp`` (census re-endowment) every kept recruit then
@@ -1218,9 +1216,10 @@ def _run_seed(
         step: dict[str, int] | None = None
         if generation > 0:
             if design.discrete:
-                step = _discrete_step(
-                    arm, generation, host_n, seed, endowment_atp=design.birth_atp if design.census_reendowment else None
-                )
+                if design.census_reendowment:
+                    step = _discrete_step(arm, generation, host_n, seed, endowment_atp=design.birth_atp)
+                else:
+                    step = _discrete_step(arm, generation, host_n, seed)
             else:
                 arm.run_generations(1)
         if step is not None and not arm.runner.population.organisms:

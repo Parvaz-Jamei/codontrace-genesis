@@ -46,6 +46,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 
 from codontrace.errors import ConfigurationError
+from codontrace.genesis.atp import organism_atp_accounts
 from codontrace.genesis.birth import ReproductionMode, SexualRecombinationConfig
 from codontrace.genesis.closed_loop_p6 import run_match_arm
 from codontrace.genesis.closed_loop_pearl_spc import (
@@ -628,7 +629,8 @@ class LifeLoopEcologyArm:
     # pay nothing: the kill replaces the steal debit, so no virulence
     # threshold decides lethality.
     kill_probability: float | None = None
-    kills_by_generation: list[int] = field(default_factory=list)
+    # Per generation: (host id, killed, runtime ATP after the draw) for every matched host.
+    kill_outcomes_by_generation: list[tuple[tuple[str, bool, float], ...]] = field(default_factory=list)
 
     @classmethod
     def boot(
@@ -888,6 +890,7 @@ class LifeLoopEcologyArm:
         matched_windows: list[str] = []
         debit_count = 0
         killed: set[str] = set()
+        outcomes: list[tuple[str, bool, float]] = []
         # Pair parasites round-robin onto hosts; inject succeeds only on allele overlap.
         for p_index, p_window in enumerate(self.parasite_windows):
             if not hosts:
@@ -903,7 +906,7 @@ class LifeLoopEcologyArm:
             if not attempt.injected:
                 continue
             if self.kill_probability is not None:
-                if host.id in killed:
+                if any(row[0] == host.id for row in outcomes):
                     continue
                 matched_windows.append(_window(host))
                 if self._kill_draw(host.id) < self.kill_probability:
@@ -921,6 +924,7 @@ class LifeLoopEcologyArm:
                         raise RuntimeError(f"killed host {host.id} kept ATP after the jr5_kill debit.")
                     killed.add(host.id)
                     debit_count += 1
+                outcomes.append((host.id, host.id in killed, float(host.atp_state.runtime_available)))
                 continue
             retained = self.hp_env.host_retained_cpu(host.id)
             # Antagonistic steal magnitude → ATP debit scaled by virulence.
@@ -939,6 +943,14 @@ class LifeLoopEcologyArm:
                     )
                     debit_count += 1
                     matched_windows.append(_window(host))
+        if killed and self.runner.atp_ledger is not None:
+            # Book the kill debits while the killed hosts are still present, so
+            # their ATP reaches sink:jr5_kill (a later sync would close the
+            # unbooked remainder to the death sink instead).
+            self.runner.atp_ledger.sync_accounts(
+                organism_atp_accounts(self.runner.population.organisms),
+                tick=int(self.runner.population.generation),
+            )
         # Drop hosts that exhausted ATP after contact.
         survivors = [
             org
@@ -950,7 +962,7 @@ class LifeLoopEcologyArm:
             self.runner.population, organisms=tuple(survivors)
         )
         if self.kill_probability is not None:
-            self.kills_by_generation.append(len(killed))
+            self.kill_outcomes_by_generation.append(tuple(outcomes))
         return debit_count, matched_windows
 
     def _kill_draw(self, host_id: str) -> float:
@@ -959,7 +971,9 @@ class LifeLoopEcologyArm:
         if "/" in str(host_id):
             raise ConfigurationError("host ids may not contain '/' (they name an RNG fork).")
         generation = int(self.runner.population.generation)
-        return float(RNGManager(seed=self.seed, namespace=JR5_KILL_NAMESPACE).fork(f"g{generation}/h{host_id}").random())
+        return float(
+            RNGManager(seed=self.seed, namespace=JR5_KILL_NAMESPACE).fork(f"g{generation}/h{host_id}").random()
+        )
 
     def _passage_update(self, matched_windows: Sequence[str], rng: RNGManager) -> None:
         if self.passage == PASSAGE_ABSENT:

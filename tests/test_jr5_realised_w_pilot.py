@@ -1024,11 +1024,14 @@ def _unchecked(design: P.PopulationDesign, name: str, value: Any) -> P.Populatio
 
 def test_design_digest_covers_every_field() -> None:
     """Basis: the digest is a canonical sha256 over every PopulationDesign field (label, generation
-    model, the two max-age fields and the 14 harness fields); changing any one field changes it."""
+    model, the two max-age fields and the 14 harness fields); changing any one field changes it.
+    The three opt-in discrete-census fields (brood size, lifetime event cap, census re-endowment)
+    are left out at their defaults, so earlier designs keep their digests, and change it when set."""
 
     base = discrete_design()
     record = base.to_record()
-    assert set(record) == {f.name for f in dataclasses.fields(P.PopulationDesign)} and len(record) == 18
+    opt_in = {"brood_size", "max_reproduction_events_per_lifetime", "census_reendowment"}
+    assert set(record) == {f.name for f in dataclasses.fields(P.PopulationDesign)} - opt_in and len(record) == 18
     assert (record["enable_max_age_death"], record["max_age_ticks"]) == (True, 2)
     changes: dict[str, Any] = {
         "label": "other",
@@ -1051,6 +1054,7 @@ def test_design_digest_covers_every_field() -> None:
         "founder_windows": ("x",),
     }
     assert set(changes) == set(record)
+    changes.update({"brood_size": 2, "max_reproduction_events_per_lifetime": 1, "census_reendowment": True})
     for name, value in changes.items():
         assert _unchecked(base, name, value).digest() != base.digest(), name
 

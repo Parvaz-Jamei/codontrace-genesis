@@ -178,6 +178,10 @@ class GenesisOrganism:
     # Mating type, fixed for life once set (at founding or birth) when sexes
     # are on. None when sexes are off. Written to state only when set.
     mating_type: str | None = None
+    # Reproduction events so far, counted only under a lifetime cap
+    # (ReproductionConfig.max_reproduction_events_per_lifetime). Written to
+    # state only when non-zero.
+    reproduction_events: int = 0
     _cursor: int = field(default=0, init=False, repr=False)
     _step_index: int = field(default=0, init=False, repr=False)
     _low_energy_ticks: int = field(default=0, init=False, repr=False)

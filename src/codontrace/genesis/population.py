@@ -219,9 +219,23 @@ class ReproductionConfig:
     enable_ai_birth_intervention: bool = False
     offspring_placement: OffspringPlacementPolicy = OffspringPlacementPolicy.SAME_CELL
     reproduction_mode: ReproductionMode = ReproductionMode.ASEXUAL
+    # Children per reproduction event (fixed, equal brood). 1 is the classic
+    # one-offspring COPY_SELF. With b > 1 every mother product (outcrossed,
+    # selfed or asexual alike) becomes b children, each from its own meiosis
+    # or copy and its own sex draw, sharing the one endowment E as E/b.
+    brood_size: int = 1
+    # Reproduction events an organism may have in its life (None = no cap).
+    # 1 makes reproduction semelparous: a second COPY_SELF is refused with
+    # SEMELPAROUS_EVENT_CAP. Mothers and sires both count an event.
+    max_reproduction_events_per_lifetime: int | None = None
 
     def __post_init__(self) -> None:
         _validate_probability(self.offspring_atp_fraction, "offspring_atp_fraction")
+        if isinstance(self.brood_size, bool) or not isinstance(self.brood_size, int) or self.brood_size < 1:
+            raise ConfigurationError("brood_size must be an integer >= 1.")
+        cap = self.max_reproduction_events_per_lifetime
+        if cap is not None and (isinstance(cap, bool) or not isinstance(cap, int) or cap < 1):
+            raise ConfigurationError("max_reproduction_events_per_lifetime must be a positive integer or None.")
         if self.max_population <= 0:
             msg = "max_population must be > 0."
             raise ConfigurationError(msg)
@@ -263,6 +277,11 @@ class ReproductionConfig:
         }
         if self.reproduction_mode is not ReproductionMode.ASEXUAL:
             payload["reproduction_mode"] = self.reproduction_mode.value
+        # Written only when set, so default policy digests are unchanged.
+        if self.brood_size != 1:
+            payload["brood_size"] = self.brood_size
+        if self.max_reproduction_events_per_lifetime is not None:
+            payload["max_reproduction_events_per_lifetime"] = self.max_reproduction_events_per_lifetime
         return payload
 
     @property
@@ -294,6 +313,8 @@ class ReproductionConfig:
             enable_ai_birth_intervention=_bool(data, "enable_ai_birth_intervention", False),
             offspring_placement=_placement_policy(data.get("offspring_placement")),
             reproduction_mode=_reproduction_mode(data.get("reproduction_mode")),
+            brood_size=_int(data, "brood_size", 1),
+            max_reproduction_events_per_lifetime=_optional_int(data, "max_reproduction_events_per_lifetime"),
         )
 
 
@@ -1729,6 +1750,14 @@ class PopulationConfigs:
             # no extra ATP term for selfing.
             msg = "hermaphrodite_selfing requires closed_loop_hp_life.selfing_birth_atp_endowment == 0."
             raise ConfigurationError(msg)
+        if self.reproduction.brood_size > 1:
+            # A brood is placed whole: same-cell placement cannot fail, and each
+            # chamber child needs its own meiosis (diploid) and its own product.
+            if self.reproduction.offspring_placement is not OffspringPlacementPolicy.SAME_CELL:
+                raise ConfigurationError("brood_size > 1 requires same_cell offspring placement.")
+            chamber = self.sexual_recombination
+            if chamber.uses_birth_chamber and (chamber.two_fold_cost_sex or not chamber.diploid_meiosis):
+                raise ConfigurationError("brood_size > 1 in the birth chamber requires diploid_meiosis and no two_fold_cost_sex.")
         legacy_overrides: dict[str, object] = {}
         if self.fatal_alive_reasons != ("negative_runtime_atp",):
             legacy_overrides["fatal_alive_reasons"] = self.fatal_alive_reasons
@@ -2152,6 +2181,9 @@ def can_reproduce(
         reasons.append("parent_atp_cost_not_payable")
     if organism.vitae_store < config.min_vitae_store:
         reasons.append("min_vitae_store_not_met")
+    cap = config.max_reproduction_events_per_lifetime
+    if cap is not None and organism.reproduction_events >= cap:
+        reasons.append(SEMELPAROUS_EVENT_CAP)
     # Block zero-endowment live births (Iy<=0): fraction→0 or residual×fraction rounds to 0.
     if organism.atp_state.runtime_available >= config.parent_atp_cost:
         remaining_after_cost = organism.atp_state.runtime_available - config.parent_atp_cost
@@ -2443,6 +2475,7 @@ def reproduce(
     skip_parent_costs: bool = False,
     recombination_record: RecombinationRecord | None = None,
     offspring_runtime_atp_override: float | None = None,
+    child_id_suffix: str = "",
 ) -> ReproductionResult:
     """Create a controlled offspring with ATP debit, mutation, and lineage metadata.
 
@@ -2877,7 +2910,7 @@ def reproduce(
         repair_applied=any(item.startswith("repair") for item in mutation.operations),
     )
     resolved_child_id = child_id or (
-        f"{parent.id}-g{generation + 1}-{mutation.mutated_genome.digest()[:10]}"
+        f"{parent.id}-g{generation + 1}-{mutation.mutated_genome.digest()[:10]}{child_id_suffix}"
     )
     translation = parent.ribosome.translate(
         mutation.mutated_genome.executable_bits()
@@ -3894,6 +3927,42 @@ def step_population(
                         ),
                     )
                     continue
+                if repro.brood_size > 1:
+                    organism, reproduction_result, lineage, born = _reproduce_brood_direct(
+                        organism=organism,
+                        repro=repro,
+                        configs=configs,
+                        sexual_cfg=sexual_cfg,
+                        alive_result=alive_result,
+                        generation=population.generation,
+                        current_tick=current_tick,
+                        stream=stream,
+                        working_world=working_world,
+                        live_positions=live_positions,
+                        mate=organism if hermaphrodite_selfs else mate,
+                        selfs=hermaphrodite_selfs,
+                        copy_mode=copy_mode,
+                        children=children,
+                        lineage=lineage,
+                    )
+                    births += born
+                    if born == 0:
+                        blocked_reproduction += 1
+                    reasons = reproduction_result.decision.reasons
+                    _replace_last_event(
+                        trace,
+                        _with_reproduction_delta(
+                            event,
+                            parent_after=organism,
+                            reproduction_result=reproduction_result,
+                            succeeded=born > 0,
+                            reason="reproduction_succeeded" if born > 0 else (";".join(reasons) or "reproduction_blocked"),
+                            parent_id=organism.id,
+                            child_id=reproduction_result.child.id if born > 0 and reproduction_result.child else None,
+                            event_id=reproduction_result.event_id,
+                        ),
+                    )
+                    continue
                 reproduction_result = reproduce(
                     organism,
                     repro,
@@ -3919,6 +3988,7 @@ def step_population(
                 if reproduction_result.succeeded and reproduction_result.child is not None:
                     births += 1
                     organism = reproduction_result.parent_after
+                    _count_reproduction_event(organism, configs.reproduction)
                     live_positions[organism.id] = organism.position
                     child = reproduction_result.child
                     placement = _resolve_offspring_position(
@@ -5062,6 +5132,7 @@ def _clone_organism(organism: GenesisOrganism) -> GenesisOrganism:
         asexual_lineage=organism.asexual_lineage,
         selfed=organism.selfed,
         mating_type=organism.mating_type,
+        reproduction_events=organism.reproduction_events,
         materials_state=copy_materials_organism_state(
             getattr(organism, "materials_state", None)
             if isinstance(getattr(organism, "materials_state", None), MaterialsOrganismState)
@@ -5240,6 +5311,8 @@ def _organism_summary(organism: GenesisOrganism) -> dict[str, JsonValue]:
         payload["asexual_lineage"] = True
     if organism.selfed:
         payload["selfed"] = True
+    if organism.reproduction_events:
+        payload["reproduction_events"] = organism.reproduction_events
     if organism.mating_type is not None:
         payload["mating_type"] = organism.mating_type
     phase_e_state = getattr(organism, "phase_e_state", None)
@@ -5297,6 +5370,10 @@ def _organism_from_summary(data: Mapping[str, JsonValue]) -> GenesisOrganism:
     if not isinstance(selfed, bool):
         raise ConfigurationError(f"selfed must be a JSON boolean, got {selfed!r}.")
     organism.selfed = selfed
+    events = data.get("reproduction_events", 0)
+    if isinstance(events, bool) or not isinstance(events, int) or events < 0:
+        raise ConfigurationError(f"reproduction_events must be a non-negative integer, got {events!r}.")
+    organism.reproduction_events = events
     stored_type = data.get("mating_type")
     organism.mating_type = stored_type if isinstance(stored_type, str) else None
     phase_e_raw = data.get("phase_e_state")
@@ -5821,6 +5898,218 @@ def _commit_newborn(
 
 
 SEXUAL_LINEAGE_UNIPARENTAL_REFUSAL = "sexual_lineage_uniparental_barred"
+# Refusal of a reproduction event beyond max_reproduction_events_per_lifetime.
+SEMELPAROUS_EVENT_CAP = "semelparous_event_cap"
+
+
+def brood_shares(endowment: float, brood_size: int) -> tuple[float, ...]:
+    """Split one endowment E over b children: b - 1 shares of round(E / b, 10), the rest to the last.
+
+    The last share takes the remainder, so the shares sum to E (to float
+    rounding of one subtraction) and no ATP is made or lost by the split.
+    """
+
+    if brood_size == 1:
+        return (endowment,)
+    share = round(endowment / brood_size, 10)
+    return (*([share] * (brood_size - 1)), endowment - share * (brood_size - 1))
+
+
+def _count_reproduction_event(organism: GenesisOrganism, config: ReproductionConfig) -> None:
+    """Record one reproduction event; only tracked when a lifetime cap is set (state unchanged otherwise)."""
+
+    if config.max_reproduction_events_per_lifetime is not None:
+        organism.reproduction_events += 1
+
+
+def _refund_unborn_share(parent: GenesisOrganism, share: float, tick: int) -> None:
+    """A brood child that was not born returns its share to the mother, so no ATP is lost."""
+
+    if share > 0.0:
+        parent.atp_state.credit_runtime(
+            share,
+            tick=tick,
+            organism_id=parent.id,
+            codon="111",
+            action="COPY_SELF",
+            reason="brood_child_not_born_refund",
+        )
+
+
+def _place_chamber_brood(
+    *,
+    slot: IncipientOffspring,
+    other: IncipientOffspring,
+    parent: GenesisOrganism,
+    mate_org: GenesisOrganism | None,
+    birth_config: ReproductionConfig,
+    gate_alive: AliveGateResult,
+    configs: PopulationConfigs,
+    sexual_cfg: SexualRecombinationConfig,
+    stream: RNGManager,
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    survivors: list[GenesisOrganism],
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+    deaths: int,
+    current_tick: int,
+    placements: list[BirthPlacementRecord],
+) -> tuple[tuple[LineageRecord, ...], int, list[ReproductionResult]]:
+    """One mother product of a chamber pair as a brood of b children.
+
+    Child k fuses its own pair of gametes (meiosis of each parent on the
+    stream fork ``brood/<k>``), has its own reproduce stream
+    (``reproduce/<mother>/<tick>/<slot>/brood/<k>``) and id suffix ``-b<k>``,
+    so its sex draw is its own; it gets share k of the slot's endowment.
+    """
+
+    born: list[ReproductionResult] = []
+    shares = brood_shares(float(slot.offspring_runtime_atp), configs.reproduction.brood_size)
+    for k, share in enumerate(shares):
+        record = _fertilise(slot, other, stream.fork(f"brood/{k}"), recombination_prob=sexual_cfg.recombination_prob)
+        result = reproduce(
+            parent,
+            birth_config,
+            configs.mutation,
+            alive_result=gate_alive,
+            generation=slot.parent_generation,
+            birth_tick=current_tick,
+            rng=stream.fork(f"reproduce/{slot.parent_id}/{current_tick}/{slot.slot_id}/brood/{k}"),
+            structural_mutation_config=configs.structural_mutation,
+            world=working_world,
+            live_positions=live_positions,
+            mate=mate_org,
+            sexual=sexual_cfg,
+            skip_parent_costs=True,
+            recombination_record=record,
+            offspring_runtime_atp_override=share,
+            child_id_suffix=f"-b{k}",
+        )
+        admitted, result, lineage, deaths = _commit_newborn(
+            result,
+            parent=parent,
+            configs=configs,
+            working_world=working_world,
+            live_positions=live_positions,
+            survivors=survivors,
+            children=children,
+            lineage=lineage,
+            deaths=deaths,
+            current_tick=current_tick,
+            placements=placements,
+        )
+        if admitted and result.child is not None:
+            born.append(result)
+        else:
+            _refund_unborn_share(parent, share, current_tick)
+    return lineage, deaths, born
+
+
+def _reproduce_brood_direct(
+    *,
+    organism: GenesisOrganism,
+    repro: ReproductionConfig,
+    configs: PopulationConfigs,
+    sexual_cfg: SexualRecombinationConfig,
+    alive_result: AliveGateResult,
+    generation: int,
+    current_tick: int,
+    stream: RNGManager,
+    working_world: World2D,
+    live_positions: dict[str, tuple[int, int]],
+    mate: GenesisOrganism | None,
+    selfs: bool,
+    copy_mode: str,
+    children: list[GenesisOrganism],
+    lineage: tuple[LineageRecord, ...],
+) -> tuple[GenesisOrganism, ReproductionResult, tuple[LineageRecord, ...], int]:
+    """An asexual or selfing reproduction event as a brood of b children (same-cell placement).
+
+    The mother pays the parent cost and one endowment E = fraction x (A - cost)
+    once, as a single-child event would; child k gets share k of E (see
+    brood_shares), its own reproduce stream ``reproduce/<id>/<tick>/brood/<k>``,
+    its own selfing meioses ``selfing/<id>/<tick>/brood/<k>`` and id suffix
+    ``-b<k>``. The whole brood must fit under max_population or none is born.
+    Returns (mother after, last result, lineage, children born).
+    """
+
+    b = repro.brood_size
+
+    def blocked(reason: str, capacity: bool) -> tuple[GenesisOrganism, ReproductionResult, tuple[LineageRecord, ...], int]:
+        result = _blocked_reproduction_result(
+            parent=organism,
+            config=repro,
+            alive_result=alive_result,
+            birth_tick=current_tick,
+            generation=generation,
+            reason=reason,
+            capacity_available=capacity,
+        )
+        return organism, result, lineage, 0
+
+    decision = can_reproduce(organism, alive_result, repro)
+    if not decision.allowed:
+        return blocked(decision.reasons[0] if decision.reasons else "reproduction_blocked", True)
+    if len(live_positions) + b > repro.max_population:
+        return blocked("max_population_reached", False)
+    parent = _clone_organism(organism)
+    _ledger_ids, endowment, cost_reason = _apply_parent_reproduction_costs(parent, repro, current_tick)
+    if cost_reason is not None:
+        return blocked(cost_reason, True)
+    _count_reproduction_event(parent, repro)
+    life = configs.closed_loop_hp_life
+    plugin = _life_plugin()
+    last: ReproductionResult | None = None
+    born = 0
+    for k, share in enumerate(brood_shares(endowment, b)):
+        result = reproduce(
+            parent,
+            repro,
+            configs.mutation,
+            alive_result=alive_result,
+            generation=generation,
+            birth_tick=current_tick,
+            rng=stream.fork(f"reproduce/{parent.id}/{current_tick}/brood/{k}"),
+            structural_mutation_config=configs.structural_mutation,
+            world=working_world,
+            live_positions=live_positions,
+            mate=mate,
+            skip_parent_costs=True,
+            recombination_record=(
+                _self_fertilisation_record(parent, sexual_cfg, stream.fork(f"selfing/{parent.id}/{current_tick}/brood/{k}"))
+                if selfs
+                else None
+            ),
+            offspring_runtime_atp_override=share,
+            child_id_suffix=f"-b{k}",
+        )
+        if not result.succeeded or result.child is None:
+            _refund_unborn_share(parent, share, current_tick)
+            last = last or result
+            continue
+        result = _finalize_reproduction_placement(result, placement=parent.position, policy=repro.offspring_placement)
+        child = result.child
+        if child is None:
+            raise RuntimeError("finalized reproduction unexpectedly lost child")
+        if selfs:
+            child.selfed = True
+        children.append(child)
+        plugin.silence_locus(child, life)
+        plugin.apply_mating_locus_lock(child, parent=parent, config=life)
+        if copy_mode == "asexual":
+            plugin.apply_selfing_birth_endowment(child, config=life, tick=current_tick)
+        live_positions[child.id] = child.position
+        if result.lineage is not None:
+            record = result.lineage
+            if selfs and record.second_parent_id is not None:
+                record = replace(record, second_parent_id=parent.id)
+            lineage += (record,)
+        born += 1
+        last = result
+    if last is None:
+        raise RuntimeError("a brood of size >= 2 produced no reproduction result")
+    return parent, last, lineage, born
 
 
 def _check_mating_seed_start(population: PopulationState, sexual: SexualRecombinationConfig) -> None:
@@ -6031,7 +6320,7 @@ def _drain_chamber_pairs(
             for slot in (first, second)
             if mating_types is None or mating_types.assign(slot.parent_id) != MATING_TYPE_MALE
         ]
-        needed = 1 if sexual_cfg.two_fold_cost_sex else len(mothers)
+        needed = (1 if sexual_cfg.two_fold_cost_sex else len(mothers)) * configs.reproduction.brood_size
         if len(live_positions) + needed > configs.reproduction.max_population:
             break
         for index in sorted(pair, reverse=True):
@@ -6118,6 +6407,35 @@ def _drain_chamber_pairs(
                 pending=pending,
                 children=children,
             )
+            if configs.reproduction.brood_size > 1:
+                lineage, deaths, born = _place_chamber_brood(
+                    slot=slot,
+                    other=other,
+                    parent=parent,
+                    mate_org=mate_org,
+                    birth_config=birth_config,
+                    gate_alive=gate_alive,
+                    configs=configs,
+                    sexual_cfg=sexual_cfg,
+                    stream=stream,
+                    working_world=working_world,
+                    live_positions=live_positions,
+                    survivors=survivors,
+                    children=children,
+                    lineage=lineage,
+                    deaths=deaths,
+                    current_tick=current_tick,
+                    placements=placements,
+                )
+                for result in born:
+                    if result.child is not None:
+                        placed_ids.append(result.child.id)
+                        if mating_types is not None:
+                            mating_types.assign(result.child.id)
+                    last_result = result
+                births += len(born)
+                placed_this_pair += 1
+                continue
             result = reproduce(
                 parent,
                 birth_config,
@@ -6472,6 +6790,7 @@ def _handle_chamber_copy_self(
                 event_id=reproduction_result.event_id,
             ),
         )
+    _count_reproduction_event(organism, configs.reproduction)
     slot = IncipientOffspring(
         slot_id=f"chamber-{birth_tick}-{organism.id}-{len(waiting)}",
         parent_id=organism.id,

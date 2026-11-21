@@ -1,7 +1,14 @@
 """Phase 1 fixtures for R06 and R10 by Tester 1."""
 
 import json
+import os
+import signal
+import subprocess
+import sys
+import time
 from pathlib import Path
+
+import pytest
 
 from codontrace.console import runs
 from codontrace.genesis.organism import GenesisOrganism
@@ -75,7 +82,72 @@ def test_r06_lineage_id_collision_connects_correct_history():
     assert lin_dict["orgA#1"].parent_ids == ("parentY",)
 
 
-def test_r10_panel_execution_form_mismatch_with_actual_command(tmp_path: Path, monkeypatch):
+def _group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+@pytest.fixture
+def reap_launched_runs(monkeypatch):
+    """Launched runs are real engine processes (here 4 workers, up to 3600 s). Start each in its
+    own session so the whole tree (the script and its worker pool) is one process group, and on
+    teardown terminate that group and check that nothing in it survives."""
+
+    real_popen = subprocess.Popen
+    launched: list[subprocess.Popen] = []
+
+    def popen(*args, **kwargs):
+        if sys.platform != "win32":
+            kwargs.setdefault("start_new_session", True)
+        proc = real_popen(*args, **kwargs)
+        launched.append(proc)
+        return proc
+
+    monkeypatch.setattr(runs.subprocess, "Popen", popen)
+    yield launched
+    monkeypatch.setattr(runs.subprocess, "Popen", real_popen)
+    for proc in launched:
+        if sys.platform == "win32":
+            proc.kill()
+            proc.wait(timeout=30)
+            continue
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            if not _group_alive(proc.pid):
+                break
+            os.killpg(proc.pid, sig)
+            deadline = time.monotonic() + 10
+            while _group_alive(proc.pid) and time.monotonic() < deadline:
+                try:
+                    proc.wait(timeout=0.2)
+                except subprocess.TimeoutExpired:
+                    pass
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+        assert proc.poll() is not None, "launched run still alive after teardown"
+        assert not _group_alive(proc.pid), "a process of the launched run survived teardown"
+
+
+def test_reap_fixture_terminates_the_whole_process_group(reap_launched_runs):
+    """Basis: the launcher's child may start workers of its own; killing only the child would
+    orphan them. A child that forks a sleeping grandchild is started through the patched Popen;
+    the fixture's group kill must leave neither alive (checked here by its own teardown and below)."""
+
+    if sys.platform == "win32":
+        pytest.skip("process groups are POSIX")
+    code = "import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(600)']); time.sleep(600)"
+    proc = runs.subprocess.Popen([sys.executable, "-c", code])
+    assert os.getpgid(proc.pid) == proc.pid
+    assert reap_launched_runs == [proc]
+
+
+def test_r10_panel_execution_form_mismatch_with_actual_command(tmp_path: Path, monkeypatch, reap_launched_runs):
     """R10: The execution parameters requested by the panel are not faithfully applied to the command.
     
     The UI form allows selecting `cores` to pin CPU affinity and `track`, but `launch_simulation_run` 

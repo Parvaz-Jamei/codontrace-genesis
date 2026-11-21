@@ -16,6 +16,7 @@ import dataclasses
 import hashlib
 import json
 import math
+import re
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
@@ -83,6 +84,8 @@ def smoke_design(soft_k_multiple: float = 4.0, generation_model: str = "engine_o
         generation_model=generation_model,
         soft_k_multiple=soft_k_multiple,
         world_size=12,
+        enable_max_age_death=False,
+        max_age_ticks=None,
         birth_atp=hold.HOLD_BIRTH_ATP,
         basal_runtime_atp_cost=hold.HOLD_BASAL_ATP_COST,
         passage_refill_mode=hold.HOLD_PASSAGE_REFILL_MODE,
@@ -96,6 +99,22 @@ def smoke_design(soft_k_multiple: float = 4.0, generation_model: str = "engine_o
         chamber_timeout_policy="fail",
         founder_windows=tuple(w for _, w in _INVASION_FOUNDERS),
     )
+
+
+def discrete_design(**change: Any) -> P.PopulationDesign:
+    """The discrete census model with the locked mate settings (global search, no cap, chamber wait
+    2, timeout fail), soft K 3N, max-age death after 2 ticks, on a world of 12 (144 >= 3 * 20)."""
+
+    base = dataclasses.replace(
+        smoke_design(3.0),
+        label="smoke-discrete",
+        generation_model=P.DISCRETE_UNIFORM_CENSUS,
+        enable_max_age_death=True,
+        max_age_ticks=2,
+        mate_search_radius=None,
+        outcross_mates_per_generation_cap=None,
+    )
+    return dataclasses.replace(base, **change)
 
 
 def run_smoke(out: Path, spec: P.RealisedWPilotSpec, **kw: Any) -> dict[str, Any]:
@@ -612,7 +631,7 @@ def test_smoke_run_logs_progress_and_writes_a_manifest_with_digests(spec: P.Real
     assert end["rows_written"] == 5 and end["eta_seconds"] == 0.0 and "log_w" not in end
     lines = (out / "seeds" / f"seed-{SMOKE_SEED}.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 5 and json.loads(lines[-1])["kind"] == "fit"
-    assert gens[0]["asexual"] == 4 and gens[0]["census"] == 20
+    assert set(gens[0]) == {"ts", "event", "seed", "generation", "births", "invariants_ok"}
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     for entry in manifest["files"]:
         assert hashlib.sha256((out / entry["path"]).read_bytes()).hexdigest() == entry["sha256"]
@@ -624,7 +643,9 @@ def test_smoke_run_logs_progress_and_writes_a_manifest_with_digests(spec: P.Real
 def test_rerun_and_resume_write_the_same_bytes(spec: P.RealisedWPilotSpec, tmp_path: Path) -> None:
     """Basis: RNGManager draws only from the run seed, so two fresh runs write identical seed
     files; resuming a complete run keeps the seed file (seed_kept) and the body digest; a
-    killed run's partial file is kept as killed-1 and the seed re-run gives the same bytes."""
+    killed run's partial file is kept as killed-1 and the seed re-run gives the same bytes; the
+    killed copy is kept and listed but is not part of the body, so the killed-then-resumed run has
+    the one-shot run's body digest (PREREG section 8, R50-L4b)."""
 
     a, b = tmp_path / "a", tmp_path / "b"
     first = run_smoke(a, spec)
@@ -637,10 +658,11 @@ def test_rerun_and_resume_write_the_same_bytes(spec: P.RealisedWPilotSpec, tmp_p
     c = tmp_path / "c"
     shutil.copytree(a, c)
     (c / name).rename(c / (name + ".partial"))
-    run_smoke(c, spec)
+    resumed = run_smoke(c, spec)
     assert (c / name).read_bytes() == (a / name).read_bytes()
     assert (c / (name + ".killed-1")).read_bytes() == (a / name).read_bytes()
     assert "seed_rerun_same_seed" in [e["event"] for e in events(c)]
+    assert resumed["body_digest"] == first["body_digest"]
 
 
 def test_resume_refuses_a_different_configuration(spec: P.RealisedWPilotSpec, tmp_path: Path) -> None:
@@ -660,8 +682,8 @@ def test_nan_in_a_census_row_stops_the_run(
 
     real = P.census_row
 
-    def poisoned(arm: Any, generation: int, *a: Any) -> dict[str, Any]:
-        row = real(arm, generation, *a)
+    def poisoned(arm: Any, generation: int, *a: Any, **kw: Any) -> dict[str, Any]:
+        row = real(arm, generation, *a, **kw)
         if generation == 2:
             row["ledger_residual"] = float("nan")
         return row
@@ -733,53 +755,130 @@ def test_cli_smoke_run_with_a_design_file(tmp_path: Path, capsys: pytest.Capture
 # ------------------------------------------------------------ blinding (M1a)
 
 
-def _numeric_log_w(value: Any, where: str) -> list[str]:
-    """Paths (never values) of every numeric log_w key inside a JSON value."""
+# Keys that would carry the asexual or census series (or counts by type) in smoke outputs.
+_SERIES_KEYS = frozenset(
+    {"asexual", "census", "counts", "fixed_generation", "lost_generation", "generations", "thinned"}
+)
+_TYPE_KEYS = frozenset({"male", "female", "hermaphrodite"})
+# A count named next to a number in free text, or a printed dict of counts.
+_COUNT_TEXT = re.compile(r"(asexual|census|counts|male|female|hermaphrodite|offspring|of)\W{0,4}[0-9]|\{'")
+
+
+def _series_leaks(value: Any, where: str) -> list[str]:
+    """Paths (never values) of every series or count key, and every numeric log_w, inside a JSON value."""
 
     found: list[str] = []
     if isinstance(value, dict):
         for key, item in value.items():
+            if key in _SERIES_KEYS or key in _TYPE_KEYS:
+                found.append(f"{where}.{key}")
             if key == "log_w" and isinstance(item, (int, float)) and not isinstance(item, bool):
                 found.append(f"{where}.{key}")
-            found.extend(_numeric_log_w(item, f"{where}.{key}"))
+            found.extend(_series_leaks(item, f"{where}.{key}"))
     elif isinstance(value, list):
         for i, item in enumerate(value):
-            found.extend(_numeric_log_w(item, f"{where}[{i}]"))
+            found.extend(_series_leaks(item, f"{where}[{i}]"))
     return found
 
 
+def _text_leaks(text: str, where: str) -> list[str]:
+    """Lines of error text naming a count next to a number. Traceback source lines (indented 4)
+    are the module's fixed code, not run values, and are skipped."""
+
+    return [
+        f"{where}:{n + 1}"
+        for n, line in enumerate(text.splitlines())
+        if not line.startswith("    ") and _COUNT_TEXT.search(line)
+    ]
+
+
 def _leaks(out: Path) -> list[str]:
+    """Every file under a smoke output directory: JSON keys, CSV header, and free text (errors,
+    tracebacks) of the progress log. Reports paths only."""
+
     leaks: list[str] = []
     for path in sorted(p for p in out.rglob("*") if p.is_file()):
         rel = path.relative_to(out).as_posix()
         text = path.read_text(encoding="utf-8")
         if path.suffix == ".csv":
-            if "log_w" in text.splitlines()[0].split(","):
-                leaks.append(f"{rel}: log_w column")
+            header = set(text.splitlines()[0].split(","))
+            leaks.extend(f"{rel}: column {c}" for c in sorted(header & (_SERIES_KEYS | {"log_w"})))
             continue
         if path.suffix == ".json":
-            leaks.extend(_numeric_log_w(json.loads(text), rel))
+            leaks.extend(_series_leaks(json.loads(text), rel))
             continue
         for n, line in enumerate(text.splitlines()):
-            leaks.extend(_numeric_log_w(json.loads(line), f"{rel}:{n + 1}"))
+            record = json.loads(line)
+            leaks.extend(_series_leaks(record, f"{rel}:{n + 1}"))
+            for key in ("error", "traceback"):
+                if isinstance(record.get(key), str):
+                    leaks.extend(_text_leaks(record[key], f"{rel}:{n + 1}.{key}"))
     return leaks
 
 
-def test_smoke_outputs_hold_no_numeric_log_w(spec: P.RealisedWPilotSpec, tmp_path: Path) -> None:
-    """Basis: smoke mode is blind (R50-M1a): the fit runs (converged is recorded) but the fit
-    row stores log_w null with blinded true, seed_end has no log_w and populations.csv has no
-    log_w column; run.json, manifest.json and every seed and progress line are scanned, and no
-    result.json is written. Failures list paths only."""
+@pytest.mark.parametrize("design", ["overlapping", "discrete"])
+def test_smoke_outputs_hold_no_series_or_estimate(
+    spec: P.RealisedWPilotSpec, tmp_path: Path, capsys: pytest.CaptureFixture[str], design: str
+) -> None:
+    """Basis: smoke mode is blind (R50-M1a, R51-M1a): w can be fitted from the per-generation
+    asexual count out of the census, so no smoke file may hold that series. Seed rows keep only
+    pooled checks (births, genome lengths, ledger, fee, discrete-step checks); the fit row has
+    log_w null and no arrays, fixation or loss generation; progress lines, populations.csv,
+    run.json, manifest.json and the CLI's stdout carry none either. Failures list paths only."""
 
+    chosen = smoke_design() if design == "overlapping" else discrete_design()
     out = tmp_path / "blind"
-    run_smoke(out, spec, seeds=[20011, 20012])
+    run_smoke(out, spec, seeds=[20011, 20012], design=chosen, horizon=2)
     assert _leaks(out) == []
-    fit = json.loads((out / "seeds/seed-20011.jsonl").read_text(encoding="utf-8").splitlines()[-1])
-    assert fit["log_w"] is None and fit["blinded"] is True and fit["converged"] in (True, False)
+    rows = [json.loads(x) for x in (out / "seeds/seed-20011.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert all(r["blinded"] is True for r in rows)
+    assert set(rows[0]) <= set(P.SMOKE_ROW_KEYS) | {"blinded"}
+    assert set(rows[-1]) == {"kind", "seed", "log_w", "blinded", "converged", "population_lost_generation"}
+    assert rows[-1]["log_w"] is None
     header = (out / "populations.csv").read_text(encoding="utf-8").splitlines()[0]
-    assert header == "seed,fixed_generation,lost_generation,converged"
+    assert header == "seed,converged,population_lost_generation"
     assert json.loads((out / "run.json").read_text(encoding="utf-8"))["blinded"] is True
     assert not (out / "result.json").exists()
+    design_path = tmp_path / "design.json"
+    design_path.write_text(json.dumps(chosen.to_record()), encoding="utf-8")
+    argv = ["--out", str(tmp_path / "cli"), "--root", str(ROOT), "--mode", "smoke", "--seeds", "20013"]
+    assert P.main([*argv, "--host-n", "20", "--horizon", "2", "--design-json", str(design_path)]) == 0
+    captured = capsys.readouterr()
+    assert _series_leaks(json.loads(captured.out), "stdout") == [] and captured.err == ""
+    assert _leaks(tmp_path / "cli") == []
+
+
+def test_a_failing_smoke_run_names_the_invariant_but_no_count(
+    spec: P.RealisedWPilotSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Basis: the failure path is blind too (R51-M1a channel 4). With the asexual count set above
+    the census at generation 1 the run stops at asexual_within_census; the exception, the
+    progress log's failed event (error and traceback), the kept failed-1 rows and the CLI's
+    stderr name the invariant and the generation but no count, census or counts dict."""
+
+    real = P.census_row
+
+    def poisoned(arm: Any, generation: int, *a: Any, **kw: Any) -> dict[str, Any]:
+        row = real(arm, generation, *a, **kw)
+        if generation == 1:
+            row["asexual"] = row["census"] + 1
+        return row
+
+    monkeypatch.setattr(P, "census_row", poisoned)
+    out = tmp_path / "fail"
+    with pytest.raises(P.PilotInvariantError) as info:
+        run_smoke(out, spec)
+    assert str(info.value) == "invariant asexual_within_census broke at generation 1 (details withheld: blind run)"
+    assert events(out)[-1]["event"] == "failed"
+    assert (out / "seeds" / f"seed-{SMOKE_SEED}.jsonl.failed-1").is_file()
+    assert _leaks(out) == []
+    design_path = tmp_path / "design.json"
+    design_path.write_text(json.dumps(smoke_design().to_record()), encoding="utf-8")
+    argv = ["--out", str(tmp_path / "cli"), "--root", str(ROOT), "--mode", "smoke", "--seeds", str(SMOKE_SEED)]
+    assert P.main([*argv, "--host-n", "20", "--horizon", "2", "--design-json", str(design_path)]) == 2
+    err = capsys.readouterr().err
+    assert "asexual_within_census" in err and _text_leaks(err, "stderr") == []
+    assert _leaks(tmp_path / "cli") == []
 
 
 # ------------------------------------------------- design pin (M1b) fixture
@@ -911,18 +1010,29 @@ def test_design_pin_runs_the_log_verification_on_the_parsed_bytes(
         P.verified_pilot_design_digest(root)
 
 
+def _unchecked(design: P.PopulationDesign, name: str, value: Any) -> P.PopulationDesign:
+    """A copy with one field set, bypassing validation (the digest must cover even refused values)."""
+
+    other = copy.copy(design)
+    object.__setattr__(other, name, value)
+    return other
+
+
 def test_design_digest_covers_every_field() -> None:
     """Basis: the digest is a canonical sha256 over every PopulationDesign field (label, generation
-    model and the 14 harness fields); changing any one field changes it."""
+    model, the two max-age fields and the 14 harness fields); changing any one field changes it."""
 
-    base = smoke_design()
+    base = discrete_design()
     record = base.to_record()
-    assert set(record) == {f.name for f in dataclasses.fields(P.PopulationDesign)} and len(record) == 16
+    assert set(record) == {f.name for f in dataclasses.fields(P.PopulationDesign)} and len(record) == 18
+    assert (record["enable_max_age_death"], record["max_age_ticks"]) == (True, 2)
     changes: dict[str, Any] = {
         "label": "other",
         "generation_model": "resample_to_census",
         "soft_k_multiple": 5.0,
         "world_size": 13,
+        "enable_max_age_death": False,
+        "max_age_ticks": 3,
         "birth_atp": base.birth_atp + 1.0,
         "basal_runtime_atp_cost": base.basal_runtime_atp_cost + 0.5,
         "passage_refill_mode": base.passage_refill_mode + "-x",
@@ -938,16 +1048,18 @@ def test_design_digest_covers_every_field() -> None:
     }
     assert set(changes) == set(record)
     for name, value in changes.items():
-        assert dataclasses.replace(base, **{name: value}).digest() != base.digest(), name
+        assert _unchecked(base, name, value).digest() != base.digest(), name
 
 
 def test_design_refuses_an_unknown_or_unwired_generation_model(spec: P.RealisedWPilotSpec) -> None:
-    """Basis: generation_model must be one of the four named models; only engine_overlapping is
-    wired, so a design naming another is refused before any engine boot."""
+    """Basis: generation_model must be one of the five named models; engine_overlapping and
+    discrete_uniform_census are wired, the other three are refused before any engine boot."""
 
     with pytest.raises(ConfigurationError, match="generation_model must be one of"):
         smoke_design(generation_model="wright_fisher")
-    for model in P.GENERATION_MODELS[1:]:
+    unwired = [m for m in P.GENERATION_MODELS if m not in ("engine_overlapping", P.DISCRETE_UNIFORM_CENSUS)]
+    assert len(unwired) == 3 and len(P.GENERATION_MODELS) == 5
+    for model in unwired:
         with pytest.raises(ConfigurationError, match="is not wired"):
             P.build_population(spec, smoke_design(generation_model=model), SMOKE_SEED, SMOKE_N)
 
@@ -1088,7 +1200,7 @@ def _rewrite_seed_file(out: Path, edit: Any, *, drop_manifest: bool = True) -> N
     ("edit", "error", "message"),
     [
         (lambda r: r[:-1], ConfigurationError, "without its fit row"),
-        (lambda r: [*r[:-1], {**r[-1], "seed": 20012}], ConfigurationError, "fit row of another seed"),
+        (lambda r: [*r[:-1], {**r[-1], "seed": 30002}], ConfigurationError, "fit row of another seed"),
         (lambda r: [*r[:-1], {**r[-1], "converged": not r[-1]["converged"]}], ConfigurationError, "does not match"),
         (lambda r: [*r[:-1], {**r[-1], "census": [0, 0, 0, 0]}], ConfigurationError, "does not match"),
         (lambda r: [r[0], {**r[1], "ledger_residual": 5.0}, *r[2:]], P.PilotInvariantError, "ledger_residual"),
@@ -1096,18 +1208,44 @@ def _rewrite_seed_file(out: Path, edit: Any, *, drop_manifest: bool = True) -> N
     ],
     ids=["no-fit-row", "other-seed", "edited-fit", "edited-census", "bad-row", "reordered"],
 )
-def test_resume_refuses_a_kept_seed_file_that_would_not_be_written_again(
-    spec: P.RealisedWPilotSpec, tmp_path: Path, edit: Any, error: type[Exception], message: str
+def test_resume_refuses_a_kept_pilot_seed_file_that_would_not_be_written_again(
+    pilot_env: tuple[Path, P.RealisedWPilotSpec], tmp_path: Path, edit: Any, error: type[Exception], message: str
 ) -> None:
-    """Basis: a kept file is re-verified on resume (R50-L4): it needs a fit row for this seed,
-    generations 0..3 in order, rows that pass the invariants again (ledger residual 5.0 > 1e-9)
-    and a fit row equal to the one recomputed from its rows. The manifest is removed first so
-    the content checks, not the sha check, refuse."""
+    """Basis: a kept pilot file is re-verified on resume (R50-L4): it needs a fit row for this
+    seed, generations 0..3 in order, rows that pass the invariants again (ledger residual 5.0 >
+    1e-9) and a fit row equal to the one recomputed from its rows. Synthetic block 30001-30003,
+    fit stubbed; the manifest is removed first so the content checks, not the sha check, refuse."""
+
+    root, pspec = pilot_env
+    out = tmp_path / "pilot"
+    P.run_pilot(out, root=root, spec=pspec, seeds=[30001])
+    path = out / "seeds" / "seed-30001.jsonl"
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in edit(records)), encoding="utf-8")
+    (out / "manifest.json").unlink()
+    with pytest.raises(error, match=message):
+        P.run_pilot(out, root=root, spec=pspec, seeds=[30001])
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [lambda r: r[:-1], lambda r: [r[0], {**r[1], "births": r[1]["births"] + 1}, *r[2:]], lambda r: [*r, r[-1]]],
+    ids=["no-fit-row", "edited-births", "extra-row"],
+)
+def test_resume_reruns_a_kept_smoke_seed_and_refuses_other_bytes(
+    spec: P.RealisedWPilotSpec, tmp_path: Path, edit: Any
+) -> None:
+    """Basis: a smoke file holds no census series to re-check, so a kept smoke seed is run again in
+    memory (same seed, same draws) and must give the same bytes; an unedited file is kept
+    (seed_kept), and any edit is refused without the manifest's help."""
 
     out = tmp_path / "run"
     run_smoke(out, spec)
+    (out / "manifest.json").unlink()
+    run_smoke(out, spec)
+    assert "seed_kept" in [e["event"] for e in events(out)]
     _rewrite_seed_file(out, edit)
-    with pytest.raises(error, match=message):
+    with pytest.raises(ConfigurationError, match="differs from a re-run of its seed"):
         run_smoke(out, spec)
 
 
@@ -1256,3 +1394,302 @@ def test_cli_dry_run_reports_a_pinned_design_as_runnable(
     assert P.main(["--out", str(out), "--root", str(root), "--dry-run"]) == 0
     assert json.loads(capsys.readouterr().out)["runnable"] is False
     assert not out.exists()
+
+
+# ------------------------------------------------ discrete census model (package 2)
+
+
+def _ids(arm: Any) -> set[str]:
+    return {o.id for o in arm.runner.population.organisms}
+
+
+def test_discrete_step_removes_exactly_the_parents_and_keeps_every_newborn(spec: P.RealisedWPilotSpec) -> None:
+    """Basis: discrete generations (section 7 power model, Wright-Fisher at census N) need every
+    organism alive at the start of a step to die during it and every offspring of the step to
+    survive it. With max-age death on (2 ticks, set after boot) no founder id is alive after one
+    step and every id born in the step is alive; with the same harness and max-age off the
+    founders all survive, so the deaths are the max-age rule's. Ids and census only."""
+
+    arm = P.build_population(spec, discrete_design(), SMOKE_SEED, SMOKE_N)
+    monitoring = arm.runner.configs.death_monitoring
+    assert (monitoring.enable_max_age_death, monitoring.max_age_ticks) == (True, 2)
+    founders = _ids(arm)
+    step = P._discrete_step(arm, 1, SMOKE_N, SMOKE_SEED)
+    alive = _ids(arm)
+    born = {r.organism_id for r in arm.runner.population.lineage} - founders
+    assert alive and not (alive & founders) and alive == born
+    assert step == {
+        "births": len(born),
+        "parents_survived": 0,
+        "newborns_removed": 0,
+        "capacity_refusals": 0,
+        "thinned": max(0, len(born) - SMOKE_N),
+    }
+    overlapping = P.build_population(spec, smoke_design(3.0), SMOKE_SEED, SMOKE_N)
+    assert overlapping.runner.configs.death_monitoring.enable_max_age_death is False
+    start = _ids(overlapping)
+    overlapping.run_generations(1)
+    assert start <= _ids(overlapping)
+
+
+class _Org:
+    def __init__(self, ident: str) -> None:
+        self.id = ident
+
+
+def test_thinning_keeps_n_uniformly_without_replacement() -> None:
+    """Basis: the census draws N of M offspring without replacement, each with probability N/M:
+    10 offspring, N 4, generations 1..2000 give each id kept 800 times in expectation (sd 21.9);
+    every count lies within 5 sd. Each draw is 4 distinct ids of the 10, in the engine's order, and
+    is the RNGManager fork jr5/e1/census/<g> shuffle of the sorted ids (same seed and generation,
+    same draw)."""
+
+    from codontrace.rng import RNGManager
+
+    orgs = [_Org(f"o{i}") for i in (3, 1, 4, 0, 5, 9, 2, 6, 8, 7)]
+    kept_count = dict.fromkeys((o.id for o in orgs), 0)
+    for generation in range(1, 2001):
+        kept = P.thin_to_census(orgs, 4, SMOKE_SEED, generation)
+        ids = [o.id for o in kept]
+        assert len(ids) == len(set(ids)) == 4
+        assert ids == [o.id for o in orgs if o.id in set(ids)]
+        for i in ids:
+            kept_count[i] += 1
+    assert all(abs(n - 800) <= 5 * 21.9 for n in kept_count.values())
+    order = sorted(o.id for o in orgs)
+    RNGManager(seed=SMOKE_SEED).fork("jr5/e1/census/7").shuffle(order)
+    assert {o.id for o in P.thin_to_census(orgs, 4, SMOKE_SEED, 7)} == set(order[:4])
+    assert P.thin_to_census(orgs, 4, SMOKE_SEED, 7) == P.thin_to_census(orgs, 4, SMOKE_SEED, 7)
+
+
+def test_short_census_keeps_every_offspring_and_none_is_empty() -> None:
+    """Basis: with N or fewer offspring all are kept (a short census is recorded, never filled by
+    copies); with no offspring nothing is kept."""
+
+    orgs = [_Org("b"), _Org("a"), _Org("c")]
+    assert P.thin_to_census(orgs, 3, SMOKE_SEED, 1) == tuple(orgs)
+    assert P.thin_to_census(orgs, 4, SMOKE_SEED, 1) == tuple(orgs)
+    assert P.thin_to_census([], 4, SMOKE_SEED, 1) == ()
+
+
+def test_census_thinning_on_the_engine_keeps_the_atp_ledger_exact(spec: P.RealisedWPilotSpec) -> None:
+    """Basis: thinning to N 8 removes births - 8 organisms; their accounts are closed at once (the
+    ledger's open agents, by organism id, are exactly the kept ids) with their ATP (newborn endowments, > 0) in the
+    census sink, so the world ledger check passes and its residual is 0; the census row's own check
+    census = min(births, N) and thinned = births - census holds."""
+
+    arm = P.build_population(spec, discrete_design(), SMOKE_SEED, SMOKE_N)
+    step = P._discrete_step(arm, 1, 8, SMOKE_SEED)
+    census = len(arm.runner.population.organisms)
+    assert step["births"] > 8 and census == 8 and step["thinned"] == step["births"] - 8
+    assert P._ledger_residual(arm) == 0.0
+    ledger = arm.runner.atp_ledger
+    assert {a.split("/")[0] for a in ledger.open_agents} == _ids(arm)
+    assert ledger.balance(P.CENSUS_THINNING_SINK) > 0
+
+
+def test_a_capacity_refusal_stops_the_run(spec: P.RealisedWPilotSpec, tmp_path: Path) -> None:
+    """Basis: a birth refused at the soft carrying capacity means the cap, not the census draw,
+    chose which offspring exist (an id-order bias). With soft K = N (multiple 1.0) the founders
+    fill the cap and a birth is refused in generation 1, so the run stops at no_capacity_refusal,
+    with no count in the message (smoke)."""
+
+    with pytest.raises(P.PilotInvariantError, match=r"no_capacity_refusal broke at generation 1 \(details withheld"):
+        run_smoke(tmp_path / "k1", spec, design=discrete_design(soft_k_multiple=1.0))
+
+
+def test_capacity_refusals_counts_only_capacity_reasons() -> None:
+    """Basis: only max_population_reached and population_capacity_reached are capacity refusals; a
+    missing mate is not."""
+
+    class _Event:
+        def __init__(self, reason: str | None) -> None:
+            self.world_delta = {"reproduction_blocked_reason": reason}
+
+    class _Trace:
+        events = (_Event("max_population_reached"), _Event("no_viable_mate"), _Event(None))
+
+    class _Trace2:
+        events = (_Event("population_capacity_reached"),)
+
+    class _Result:
+        traces = (_Trace(), _Trace2())
+
+    assert P.capacity_refusals(_Result()) == 2
+
+
+def _lost_at_two(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make generation 2 of the discrete model end with no offspring (every organism gone, no
+    births), as a population that fails to reproduce would."""
+
+    real = P._discrete_step
+
+    def step(arm: Any, generation: int, host_n: int, seed: int) -> dict[str, int]:
+        if generation < 2:
+            return real(arm, generation, host_n, seed)
+        arm.runner.population = dataclasses.replace(arm.runner.population, organisms=())
+        return {"births": 0, "parents_survived": 0, "newborns_removed": 0, "capacity_refusals": 0, "thinned": 0}
+
+    monkeypatch.setattr(P, "_discrete_step", step)
+
+
+def test_a_population_with_no_offspring_is_lost_and_not_fitted(
+    spec: P.RealisedWPilotSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Basis: zero offspring ends the population; it is not a fit input and is never refilled by
+    copies. The seed file holds rows 0..1, a population_lost record at 2 and a fit row with no
+    estimate and population_lost_generation 2; the summary counts one lost population; a resume
+    re-runs the seed and keeps it."""
+
+    _lost_at_two(monkeypatch)
+    out = tmp_path / "lost"
+    summary = run_smoke(out, spec, design=discrete_design())
+    records = [json.loads(x) for x in _seed_file(out).read_text(encoding="utf-8").splitlines()]
+    assert [r["kind"] for r in records] == ["generation", "generation", "population_lost", "fit"]
+    assert records[-1]["population_lost_generation"] == 2 and records[-1]["converged"] is False
+    assert summary["populations_lost"] == 1
+    assert "population_lost" in [e["event"] for e in events(out)]
+    run_smoke(out, spec, design=discrete_design())
+    assert "seed_kept" in [e["event"] for e in events(out)]
+
+
+@pytest.fixture
+def discrete_pilot_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, P.RealisedWPilotSpec]:
+    """The discrete design pinned in a test root's log and set as PILOT_POPULATION_DESIGN for the
+    synthetic block 30001-30003 (N 20, T 3), with the fit stubbed to log 2."""
+
+    design = discrete_design()
+    root = make_root(tmp_path, _entry(design.digest()))
+    monkeypatch.setattr(P, "PILOT_POPULATION_DESIGN", design)
+    monkeypatch.setattr(P, "fit_population", lambda module, spec, rows: (math.log(2.0), None, None, True))
+    return root, _synthetic_pilot_spec(root)
+
+
+def test_pilot_path_runs_the_discrete_model_and_keeps_the_rows_on_resume(
+    discrete_pilot_env: tuple[Path, P.RealisedWPilotSpec], tmp_path: Path
+) -> None:
+    """Basis: in pilot mode (synthetic block, stubbed fit) each discrete row carries the step
+    checks (no parent survived, no newborn removed, no capacity refusal, census = min(births, N));
+    the decision is written after the last seed; a resume without the manifest re-checks the kept
+    rows and keeps them."""
+
+    root, pspec = discrete_pilot_env
+    out = tmp_path / "pilot"
+    summary = P.run_pilot(out, root=root, spec=pspec)
+    assert summary["decision_written"] is True
+    rows = [json.loads(x) for x in (out / "seeds/seed-30001.jsonl").read_text(encoding="utf-8").splitlines()]
+    for row in rows[1:-1]:
+        assert (row["parents_survived"], row["newborns_removed"], row["capacity_refusals"]) == (0, 0, 0)
+        assert row["census"] == min(row["births"], 20)
+    (out / "manifest.json").unlink()
+    P.run_pilot(out, root=root, spec=pspec)
+    assert [e["event"] for e in events(out)].count("seed_kept") == 3
+
+
+def test_pilot_path_writes_no_decision_when_a_population_is_lost(
+    discrete_pilot_env: tuple[Path, P.RealisedWPilotSpec], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Basis: a lost population is not a fit input and the E1 cell rule needs every seed of the
+    block, so no decision is written (no_decision event); a resume re-checks the kept file with
+    its population_lost record and keeps it."""
+
+    _lost_at_two(monkeypatch)
+    root, pspec = discrete_pilot_env
+    out = tmp_path / "pilot"
+    summary = P.run_pilot(out, root=root, spec=pspec)
+    assert summary["decision_written"] is False and summary["populations_lost"] == 3
+    assert not (out / "result.json").exists() and "no_decision" in [e["event"] for e in events(out)]
+    (out / "manifest.json").unlink()
+    P.run_pilot(out, root=root, spec=pspec)
+    assert [e["event"] for e in events(out)].count("seed_kept") == 3
+
+
+def _discrete_row(**kw: Any) -> dict[str, Any]:
+    row = _row(census=20, births=26, parents_survived=0, newborns_removed=0, capacity_refusals=0, thinned=6)
+    row["counts"] = {"asexual": 8, "hermaphrodite": 6, "male": 6}
+    row.update(kw)
+    return row
+
+
+@pytest.mark.parametrize(
+    ("change", "name"),
+    [
+        ({"parents_survived": 1}, "parents_removed"),
+        ({"newborns_removed": 1}, "newborns_kept"),
+        ({"capacity_refusals": 1}, "no_capacity_refusal"),
+        ({"thinned": 5}, "census_is_thinned_offspring"),
+        ({"births": 19}, "census_is_thinned_offspring"),
+    ],
+)
+def test_check_row_discrete_step_invariants(spec: P.RealisedWPilotSpec, change: dict[str, Any], name: str) -> None:
+    """Basis: a discrete row of N 20 with 26 births keeps 20 and thins 6, with no parent left, no
+    newborn removed and no refusal; each change breaks the named check. Blinded, the message
+    names the check and generation only."""
+
+    assert P.check_row(_discrete_row(), _PREV, spec, 60, host_n=20)[-1] == "loss_absorbing"
+    with pytest.raises(P.PilotInvariantError, match=name):
+        P.check_row(_discrete_row(**change), _PREV, spec, 60, host_n=20)
+    with pytest.raises(P.PilotInvariantError) as info:
+        P.check_row(_discrete_row(**change), _PREV, spec, 60, host_n=20, blinded=True)
+    assert str(info.value) == f"invariant {name} broke at generation 1 (details withheld: blind run)"
+    with pytest.raises(ConfigurationError, match="host N"):
+        P.check_row(_discrete_row(), _PREV, spec, 60)
+
+
+def test_chamber_timeout_policy_is_derived_from_the_registered_rule(
+    spec: P.RealisedWPilotSpec, constants: dict[str, Any]
+) -> None:
+    """Basis: the registered unmated_outcrosser rule is refused_no_selfing_at_timeout, so an unmated
+    outcrosser's chamber slot fails; asexual_fallback would turn it into a copy and remove the cost
+    of males. The discrete design refuses any other policy, every design is refused at build, and
+    an unknown registered rule is refused."""
+
+    assert spec.engine_config["unmated_outcrosser"] == "refused_no_selfing_at_timeout"
+    assert P.required_chamber_timeout_policy(spec) == "fail"
+    with pytest.raises(ConfigurationError, match="chamber_timeout_policy 'fail'"):
+        discrete_design(chamber_timeout_policy="asexual_fallback")
+    other = dataclasses.replace(smoke_design(), chamber_timeout_policy="asexual_fallback")
+    with pytest.raises(ConfigurationError, match="unmated_outcrosser rule requires"):
+        P.build_population(spec, other, SMOKE_SEED, SMOKE_N)
+    engine = {**spec.engine_config, "unmated_outcrosser": "asexual_copy_at_timeout"}
+    with pytest.raises(ConfigurationError, match="has no chamber timeout policy"):
+        P.required_chamber_timeout_policy(dataclasses.replace(spec, engine_config=engine))
+
+
+def test_discrete_world_must_hold_three_n(spec: P.RealisedWPilotSpec) -> None:
+    """Basis: soft K is 3N transient room, so the world needs side >= ceil(sqrt(3N)): at N 20 that
+    is 8 (64 >= 60); 7 (49 cells) is refused. The pilot's 29 meets ceil(sqrt(600)) = 25."""
+
+    with pytest.raises(ConfigurationError, match="ceil"):
+        P.build_population(spec, discrete_design(world_size=7), SMOKE_SEED, SMOKE_N)
+    assert P.build_population(spec, discrete_design(world_size=8), SMOKE_SEED, SMOKE_N) is not None
+    assert 29**2 >= 3 * 200 > 24**2
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"enable_max_age_death": False}, "needs enable_max_age_death"),
+        ({"max_age_ticks": None}, "needs max_age_ticks"),
+        ({"max_age_ticks": 0}, "positive integer"),
+        ({"generation_model": "engine_overlapping"}, "part of discrete_uniform_census only"),
+    ],
+)
+def test_max_age_fields_are_validated(change: dict[str, Any], message: str) -> None:
+    """Basis: the discrete model removes parents by max-age death, so it needs the rule on with a
+    positive age; another model may not switch it on."""
+
+    with pytest.raises(ConfigurationError, match=message):
+        discrete_design(**change)
+
+
+@pytest.mark.parametrize(("mode", "seed"), [(P.MODE_SMOKE, 13201), (P.MODE_SMOKE, 12240), (P.MODE_PILOT, 20011)])
+def test_build_population_guards_the_seed_itself(spec: P.RealisedWPilotSpec, mode: str, seed: int) -> None:
+    """Basis (R50-L6): the public build_population checks the seed for its mode (smoke by default)
+    before booting, so a direct caller cannot boot a registered or sealed seed; the refusal is a
+    ConfigurationError, not the test safety net's RuntimeError."""
+
+    with pytest.raises(ConfigurationError):
+        P.build_population(spec, smoke_design(), seed, SMOKE_N, mode=mode)
+    with pytest.raises(ConfigurationError):
+        P.build_population(spec, smoke_design(), 13201, SMOKE_N)

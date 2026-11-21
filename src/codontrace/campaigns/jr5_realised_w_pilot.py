@@ -27,15 +27,23 @@ bounds the 95% interval always excludes 1).
 
 The demography that turns an engine step into a generation at census N is
 not fixed by the prereg. It is a ``PopulationDesign`` (generation model and
-the harness settings), recorded with its digest in every output.
-``PILOT_POPULATION_DESIGN`` is None until that design is decided, and the
-pilot mode refuses to run while it is None, and unless the latest design
-line of the verified deviations log names its digest in an entry that
-declares no pilot seed ran before it. The smoke mode (development and
-tests) runs any design on seeds outside every registered and sealed block,
-at a host N below the pilot's, and never produces a pilot decision. Smoke
-mode is blind: the fit is run (its convergence is checked) but no smoke
-output holds a realised-w estimate, so a design cannot be tuned on w.
+the harness settings), recorded with its digest in every output. Under the
+``discrete_uniform_census`` model one generation is one
+``run_generations(1)`` step during which the engine's max-age death removes
+every organism alive at its start; the step's offspring are then thinned to
+N uniformly without replacement (RNGManager fork ``jr5/e1/census/<g>``), all
+kept when there are N or fewer; a step with no offspring ends the population,
+which is then not a fit input. Any birth refused at the soft carrying
+capacity stops the run. ``PILOT_POPULATION_DESIGN`` is None until that
+design is decided, and the pilot mode refuses to run while it is None, and
+unless the latest design line of the verified deviations log names its
+digest in an entry that declares no pilot seed ran before it. The smoke mode
+(development and tests) runs any design on seeds outside every registered
+and sealed block, at a host N below the pilot's, and never produces a pilot
+decision. Smoke mode is blind: invariants and the fit are run in memory, but
+no smoke file, log line or error text holds a census, asexual or per-type
+count, a fixation or loss generation, or a realised-w estimate, so a design
+cannot be tuned on w.
 
 Outputs, all under one output directory that may not lie in the prereg
 folder or the packaged constants: ``run.json`` (configuration, fixed at
@@ -46,20 +54,22 @@ final fit row), ``populations.csv``, ``result.json`` (pilot mode, all seeds
 done) and ``manifest.json`` (sha256 and size of every file). Files are
 written to a temporary name, synced and renamed into place. The scientific
 files hold no timestamps, so a one-shot and a resumed run write the same
-bytes. A seed whose final file exists is kept only after its rows pass the
-invariants again, its fit is recomputed to the stored fit row, and its
-sha256 matches the previous manifest. A seed whose run was killed is re-run
+bytes. A seed whose final file exists is kept only if its sha256 matches the
+previous manifest and, in pilot mode, its rows pass the invariants again
+and its fit is recomputed to the stored fit row; a smoke seed is run again
+in memory and must give the same bytes. A seed whose run was killed is re-run
 on the same seed and the incomplete file is kept beside it, never replaced.
 
-The run stops at the first broken invariant or non-finite number. This
-module draws no random numbers; the engine draws from the run seed through
-RNGManager.
+The run stops at the first broken invariant or non-finite number. The only
+random draw outside the engine is the census thinning, through RNGManager
+from the run seed; the engine draws from the run seed through RNGManager.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import functools
 import hashlib
 import importlib.util
 import io
@@ -130,16 +140,30 @@ MODE_SMOKE = "smoke"
 # (gate_e1.fit.implementation). A changed file is refused: the pilot rule
 # says the estimator is never changed.
 FIT_IMPLEMENTATION_SHA256 = "1fecda121b2dae21e680f95d2ae0fc6671fd82452773b1ad399f92a4b86b2118"
-# Generation models a design may name. Only the engine's own overlapping
-# generations (one run_generations(1) step, parents stay) are wired; the
-# others are refused until their code is reviewed.
+# Generation models a design may name. Wired: the engine's own overlapping
+# generations (one run_generations(1) step, parents stay) and discrete
+# generations at census N (DISCRETE_UNIFORM_CENSUS, below). The others are
+# refused until their code is reviewed.
+DISCRETE_UNIFORM_CENSUS = "discrete_uniform_census"
 GENERATION_MODELS = (
     "engine_overlapping",
     "parent_removal_each_generation",
     "resample_to_census",
     "founders_below_census",
+    DISCRETE_UNIFORM_CENSUS,
 )
-_WIRED_GENERATION_MODELS = frozenset({"engine_overlapping"})
+_WIRED_GENERATION_MODELS = frozenset({"engine_overlapping", DISCRETE_UNIFORM_CENSUS})
+# RNGManager fork that thins one generation's offspring to the census N.
+CENSUS_FORK = "jr5/e1/census/{generation}"
+# Sink the world ATP ledger closes a thinned organism's remainder to.
+CENSUS_THINNING_SINK = "sink:jr5_census_thinning"
+# Engine refusals that mean the soft carrying capacity was binding.
+CAPACITY_REFUSAL_REASONS = frozenset({"max_population_reached", "population_capacity_reached"})
+# The chamber timeout policy each registered unmated-outcrosser rule
+# (host_mating_arm_modes.engine_config.unmated_outcrosser) requires. An
+# unmated outcrosser may not fall back to an asexual copy: that would remove
+# the cost of males the pilot measures.
+CHAMBER_TIMEOUT_FOR_UNMATED_OUTCROSSER = {"refused_no_selfing_at_timeout": "fail"}
 # The pre-pilot DEVIATIONS entry names the design with this line, and states
 # that no pilot seed ran before it with the second.
 DESIGN_DIGEST_LINE = re.compile(
@@ -148,6 +172,7 @@ DESIGN_DIGEST_LINE = re.compile(
 PRE_PILOT_LINE = "- Pilot seeds run before this entry: none."
 # Paths under the repo root the runner never writes into.
 _PROTECTED_RELDIRS = (PREREG_RELDIR, "src", "tests")
+_ATTEMPT_COPY = re.compile(r"\.(killed|failed)-[0-9]+$")
 
 
 class PilotInvariantError(ConfigurationError):
@@ -449,6 +474,8 @@ class PopulationDesign:
     generation_model: str
     soft_k_multiple: float
     world_size: int
+    enable_max_age_death: bool
+    max_age_ticks: int | None
     birth_atp: float
     basal_runtime_atp_cost: float
     passage_refill_mode: str
@@ -469,12 +496,32 @@ class PopulationDesign:
             raise ConfigurationError("soft_k_multiple must be a finite number >= 1.")
         if self.generation_model not in GENERATION_MODELS:
             raise ConfigurationError(f"generation_model must be one of {GENERATION_MODELS}.")
+        if not isinstance(self.enable_max_age_death, bool):
+            raise ConfigurationError("enable_max_age_death must be true or false.")
+        age = self.max_age_ticks
+        if age is not None and (isinstance(age, bool) or not isinstance(age, int) or age < 1):
+            raise ConfigurationError("max_age_ticks must be a positive integer or None.")
+        if self.enable_max_age_death and age is None:
+            raise ConfigurationError("enable_max_age_death needs max_age_ticks.")
+        if self.generation_model == DISCRETE_UNIFORM_CENSUS:
+            # Discrete generations: every parent is removed by the engine's
+            # max-age death during the step that makes its offspring.
+            if not self.enable_max_age_death:
+                raise ConfigurationError(f"{DISCRETE_UNIFORM_CENSUS} needs enable_max_age_death.")
+            if self.chamber_timeout_policy != "fail":
+                raise ConfigurationError(f"{DISCRETE_UNIFORM_CENSUS} needs chamber_timeout_policy 'fail'.")
+        elif self.enable_max_age_death:
+            raise ConfigurationError(f"max-age death is part of {DISCRETE_UNIFORM_CENSUS} only.")
 
     def soft_k(self, host_n: int) -> int:
         k = self.soft_k_multiple * host_n
         if k != int(k):
             raise ConfigurationError("soft_k_multiple * host_n must be an integer.")
         return int(k)
+
+    @property
+    def discrete(self) -> bool:
+        return self.generation_model == DISCRETE_UNIFORM_CENSUS
 
     def to_record(self) -> dict[str, JsonValue]:
         """Every field, so the digest covers the whole design."""
@@ -540,9 +587,16 @@ def _guard_boot(spec: RealisedWPilotSpec, mode: str, seed: int) -> None:
         raise ConfigurationError(f"mode must be {MODE_PILOT!r} or {MODE_SMOKE!r}.")
 
 
-def build_population(spec: RealisedWPilotSpec, design: PopulationDesign, seed: int, host_n: int) -> Any:
-    """One E1 population: founders, asexual share, section-4 engine config, no parasite."""
+def build_population(
+    spec: RealisedWPilotSpec, design: PopulationDesign, seed: int, host_n: int, *, mode: str = MODE_SMOKE
+) -> Any:
+    """One E1 population: founders, asexual share, section-4 engine config, no parasite.
 
+    The seed passes its mode's guard here too (smoke by default), so a direct
+    caller cannot boot the engine on a registered or sealed seed.
+    """
+
+    _guard_boot(spec, mode, seed)
     from codontrace.genesis.closed_loop_hp_arm01 import ARM_AVIRULENT, LifeLoopEcologyArm
     from codontrace.genesis.host_parasite_life_plugin import OUTCROSS_OUT_BITS, hp_life_config
 
@@ -557,6 +611,15 @@ def build_population(spec: RealisedWPilotSpec, design: PopulationDesign, seed: i
         raise ConfigurationError("the engine's outcross allele differs from the registered obligate_outcross locus.")
     if engine.get("delayed_selfing") is not False:
         raise ConfigurationError("engine_config.delayed_selfing must be false.")
+    policy = required_chamber_timeout_policy(spec)
+    if design.chamber_timeout_policy != policy:
+        raise ConfigurationError(
+            f"chamber_timeout_policy must be {policy!r}, as the registered unmated_outcrosser rule requires."
+        )
+    if design.discrete and design.world_size**2 < 3 * host_n:
+        raise ConfigurationError(
+            f"{DISCRETE_UNIFORM_CENSUS} needs world_size >= ceil(sqrt(3 * host_n)) so 3N offspring have room."
+        )
     asexual_n = spec.founder_share * host_n
     if asexual_n != int(asexual_n) or int(asexual_n) < 1:
         raise ConfigurationError("founder share times host N must be a positive integer.")
@@ -604,12 +667,109 @@ def build_population(spec: RealisedWPilotSpec, design: PopulationDesign, seed: i
         outcross_runtime_atp=_number(life.get("outcross_runtime_atp"), "outcross_runtime_atp"),
     )
     arm.runner.configs = replace(configs, sexual_recombination=sexual_cfg, closed_loop_hp_life=life_cfg)
+    if design.discrete:
+        # Set after boot (the harness has no boot argument for it); replace()
+        # re-runs PopulationConfigs.__post_init__, which carries both fields
+        # into death_monitoring, where the engine applies them.
+        arm.runner.configs = replace(arm.runner.configs, enable_max_age_death=True, max_age_ticks=design.max_age_ticks)
+        runner = arm.runner
+        arm.runner = _refusal_counting_runner_class()(
+            population=runner.population,
+            world=runner.world,
+            configs=runner.configs,
+            nexus_layer=runner.nexus_layer,
+            atp_ledger=runner.atp_ledger,
+        )
     step = int(stride)
     organisms = tuple(
         replace(org, asexual_lineage=(index % step == 0)) for index, org in enumerate(arm.runner.population.organisms)
     )
     arm.runner.population = replace(arm.runner.population, organisms=organisms)
     return arm
+
+
+def required_chamber_timeout_policy(spec: RealisedWPilotSpec) -> str:
+    """The chamber timeout policy the registered unmated_outcrosser rule requires; refuse an unknown rule."""
+
+    rule = spec.engine_config.get("unmated_outcrosser")
+    policy = CHAMBER_TIMEOUT_FOR_UNMATED_OUTCROSSER.get(rule) if isinstance(rule, str) else None
+    if policy is None:
+        raise ConfigurationError(f"engine_config.unmated_outcrosser {rule!r} has no chamber timeout policy here.")
+    return policy
+
+
+def capacity_refusals(result: Any) -> int:
+    """Births one engine step refused because the population was at its soft carrying capacity."""
+
+    count = 0
+    for trace in result.traces:
+        for event in trace.events:
+            if event.world_delta.get("reproduction_blocked_reason") in CAPACITY_REFUSAL_REASONS:
+                count += 1
+    return count
+
+
+@functools.cache
+def _refusal_counting_runner_class() -> type:
+    """A PopulationRunner that records, per step, the births refused at capacity.
+
+    ``run_generations`` discards each step's result; the discrete census
+    model needs it, because any capacity refusal means the soft carrying
+    capacity chose which offspring were born.
+    """
+
+    from codontrace.genesis.population_runner import PopulationRunner
+
+    @dataclass(slots=True)
+    class RefusalCountingRunner(PopulationRunner):
+        capacity_refusals: list[int] = field(default_factory=list)
+
+        def step_generation(self, *, seed: int | None = None, rng: Any = None) -> Any:
+            result = PopulationRunner.step_generation(self, seed=seed, rng=rng)
+            self.capacity_refusals.append(capacity_refusals(result))
+            return result
+
+    return RefusalCountingRunner
+
+
+def thin_to_census(organisms: Sequence[Any], host_n: int, seed: int, generation: int) -> tuple[Any, ...]:
+    """Keep ``host_n`` of the offspring, uniformly without replacement; all of them if there are no more.
+
+    The draw is a Fisher-Yates shuffle of the sorted ids by the RNGManager fork
+    ``jr5/e1/census/<generation>`` of the run seed, so it depends only on the
+    seed, the generation and the set of ids. Kept organisms stay in the
+    engine's order. No organism is copied.
+    """
+
+    from codontrace.rng import RNGManager
+
+    if len(organisms) <= host_n:
+        return tuple(organisms)
+    ids = sorted(o.id for o in organisms)
+    if len(set(ids)) != len(ids):
+        raise PilotInvariantError("offspring ids are not unique.")
+    RNGManager(seed=seed).fork(CENSUS_FORK.format(generation=generation)).shuffle(ids)
+    keep = set(ids[:host_n])
+    return tuple(o for o in organisms if o.id in keep)
+
+
+def apply_census(arm: Any, host_n: int, seed: int, generation: int) -> int:
+    """Thin the population to ``host_n`` (see thin_to_census) and book the removed ATP; return the number removed."""
+
+    from codontrace.genesis.atp import organism_atp_accounts
+
+    runner = arm.runner
+    organisms = runner.population.organisms
+    kept = thin_to_census(organisms, host_n, seed, generation)
+    if len(kept) == len(organisms):
+        return 0
+    runner.population = replace(runner.population, organisms=kept)
+    ledger = runner.atp_ledger
+    mirrors = ledger.sync_accounts(
+        organism_atp_accounts(kept), tick=int(runner.population.generation), close_to=CENSUS_THINNING_SINK
+    )
+    ledger.check(mirrors)
+    return len(organisms) - len(kept)
 
 
 # ------------------------------------------------------------------ census
@@ -639,15 +799,21 @@ def _fee_atp(arm: Any) -> float:
     return total
 
 
-def census_row(arm: Any, generation: int, seen: set[str], genome_length: int, seed: int) -> dict[str, Any]:
-    """Census of one generation: counts by type, asexual count, census, births, ledger and fee."""
+def census_row(
+    arm: Any, generation: int, seen: set[str], genome_length: int, seed: int, *, births: int | None = None
+) -> dict[str, Any]:
+    """Census of one generation: counts by type, asexual count, census, births, ledger and fee.
+
+    ``births`` defaults to the ids not seen at an earlier census; the
+    discrete census model passes the step's offspring count before thinning.
+    """
 
     from codontrace.genesis.population import mating_type_census
 
     population = arm.runner.population
     sexual = arm.runner.configs.effective_sexual_config
     ids = [o.id for o in population.organisms]
-    births = sum(1 for i in ids if i not in seen)
+    new = sum(1 for i in ids if i not in seen)
     seen.update(ids)
     lengths = sorted({len(o.genome.to_compact()) for o in population.organisms})
     counts = mating_type_census(population, seed=seed + 1, sexual=sexual)
@@ -657,7 +823,7 @@ def census_row(arm: Any, generation: int, seen: set[str], genome_length: int, se
         "census": len(ids),
         "asexual": sum(1 for o in population.organisms if o.asexual_lineage),
         "counts": counts,
-        "births": births if generation > 0 else 0,
+        "births": (new if births is None else births) if generation > 0 else 0,
         "genome_lengths": lengths,
         "genome_length_founders": genome_length,
         "ledger_residual": _ledger_residual(arm),
@@ -665,16 +831,53 @@ def census_row(arm: Any, generation: int, seen: set[str], genome_length: int, se
     }
 
 
+# Keys a smoke (blind) generation row keeps on disk: pooled checks only, no
+# census, asexual or per-type count, so no series w could be fitted from.
+SMOKE_ROW_KEYS = (
+    "kind",
+    "generation",
+    "births",
+    "genome_lengths",
+    "genome_length_founders",
+    "ledger_residual",
+    "outcross_fee_atp",
+    "parents_survived",
+    "newborns_removed",
+    "capacity_refusals",
+)
+
+
+def disk_row(row: Mapping[str, Any], mode: str) -> dict[str, Any]:
+    """The row as written: whole in pilot mode; in smoke mode only SMOKE_ROW_KEYS, marked blinded."""
+
+    if mode == MODE_PILOT:
+        return dict(row)
+    kept = {k: row[k] for k in SMOKE_ROW_KEYS if k in row}
+    kept["blinded"] = True
+    return kept
+
+
 def check_row(
-    row: Mapping[str, Any], previous: Mapping[str, Any] | None, spec: RealisedWPilotSpec, soft_k: int
+    row: Mapping[str, Any],
+    previous: Mapping[str, Any] | None,
+    spec: RealisedWPilotSpec,
+    soft_k: int,
+    *,
+    host_n: int | None = None,
+    blinded: bool = False,
 ) -> list[str]:
-    """Invariant names that hold for ``row``; raise PilotInvariantError at the first that does not."""
+    """Invariant names that hold for ``row``; raise PilotInvariantError at the first that does not.
+
+    Blinded (smoke) runs check the same invariants on the full row in memory,
+    but the error names only the invariant and the generation, never a count.
+    """
 
     checked: list[str] = []
 
     def need(name: str, ok: bool, detail: str) -> None:
         if not ok:
-            raise PilotInvariantError(f"invariant {name} broke at generation {row.get('generation')}: {detail}")
+            where = f"invariant {name} broke at generation {row.get('generation')}"
+            raise PilotInvariantError(f"{where} (details withheld: blind run)" if blinded else f"{where}: {detail}")
         checked.append(name)
 
     numbers = [row["census"], row["asexual"], row["births"], row["ledger_residual"], row["outcross_fee_atp"]]
@@ -693,6 +896,19 @@ def check_row(
     )
     need("ledger_residual", abs(float(row["ledger_residual"])) <= spec.max_ledger_residual, f"{row['ledger_residual']}")
     need("outcross_fee_zero", float(row["outcross_fee_atp"]) == 0.0, f"{row['outcross_fee_atp']}")
+    if "parents_survived" in row:
+        # Discrete census model (generation >= 1).
+        need("parents_removed", row["parents_survived"] == 0, f"{row['parents_survived']} parents survived")
+        need("newborns_kept", row["newborns_removed"] == 0, f"{row['newborns_removed']} newborns removed")
+        need("no_capacity_refusal", row["capacity_refusals"] == 0, f"{row['capacity_refusals']} births refused")
+        if host_n is None:
+            raise ConfigurationError("a discrete census row is checked against the host N.")
+        births = int(row["births"])
+        need(
+            "census_is_thinned_offspring",
+            census == min(births, host_n) and row["thinned"] == births - census,
+            f"census {census}, offspring {births}, thinned {row['thinned']}, N {host_n}",
+        )
     if previous is None:
         need("founder_share", asexual == round(spec.founder_share * census) and census >= 1, f"{asexual} of {census}")
     else:
@@ -821,6 +1037,32 @@ def _git_head(root: Path) -> str | None:
         return None
 
 
+def _discrete_step(arm: Any, generation: int, host_n: int, seed: int) -> dict[str, int]:
+    """One discrete generation: one engine step, then the census of its offspring at N.
+
+    During the step the engine's max-age death removes every organism alive
+    at its start; the step's offspring are then thinned to N (thin_to_census).
+    Returns the pooled step record checked by check_row.
+    """
+
+    runner = arm.runner
+    start = {o.id for o in runner.population.organisms}
+    known = start | {r.organism_id for r in runner.population.lineage}
+    arm.run_generations(1)
+    runner = arm.runner
+    alive = {o.id for o in runner.population.organisms}
+    born = {r.organism_id for r in runner.population.lineage} - known
+    refusals = runner.capacity_refusals[-1] if runner.capacity_refusals else 0
+    step = {
+        "births": len(born),
+        "parents_survived": len(start & alive),
+        "newborns_removed": len(born - alive),
+        "capacity_refusals": int(refusals),
+    }
+    step["thinned"] = apply_census(arm, host_n, seed, generation) if alive else 0
+    return step
+
+
 def _run_seed(
     spec: RealisedWPilotSpec,
     design: PopulationDesign,
@@ -831,9 +1073,17 @@ def _run_seed(
     on_row: Callable[[dict[str, Any], list[str]], None],
     mode: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Run one population; ``on_row`` gets each full row (the caller writes disk_row of it).
+
+    Under the discrete census model a generation with no offspring ends the
+    population: a ``population_lost`` record is passed instead of a row, and
+    the population is not a fit input.
+    """
+
     _guard_boot(spec, mode, seed)
-    arm = build_population(spec, design, seed, host_n)
+    arm = build_population(spec, design, seed, host_n, mode=mode)
     soft_k = design.soft_k(host_n)
+    blinded = mode != MODE_PILOT
     founders = arm.runner.population.organisms
     lengths = {len(o.genome.to_compact()) for o in founders}
     if len(lengths) != 1:
@@ -842,32 +1092,72 @@ def _run_seed(
     seen: set[str] = set()
     rows: list[dict[str, Any]] = []
     previous: dict[str, Any] | None = None
+    lost_at: int | None = None
     for generation in range(horizon + 1):
+        step: dict[str, int] | None = None
         if generation > 0:
-            arm.run_generations(1)
-        row = census_row(arm, generation, seen, genome_length, seed)
-        checked = check_row(row, previous, spec, soft_k)
+            if design.discrete:
+                step = _discrete_step(arm, generation, host_n, seed)
+            else:
+                arm.run_generations(1)
+        if step is not None and not arm.runner.population.organisms:
+            marker = {"kind": "population_lost", "generation": generation, **step}
+            checked = check_lost(marker, blinded=blinded)
+            on_row(marker, checked)
+            lost_at = generation
+            break
+        row = census_row(arm, generation, seen, genome_length, seed, births=None if step is None else step["births"])
+        if step is not None:
+            row.update(step)
+        checked = check_row(row, previous, spec, soft_k, host_n=host_n, blinded=blinded)
         rows.append(row)
         on_row(row, checked)
         previous = row
-    return rows, _fit_row(fit_module, spec, rows, seed, mode)
+    return rows, _fit_row(fit_module, spec, rows, seed, mode, lost_at)
+
+
+def check_lost(marker: Mapping[str, Any], *, blinded: bool = False) -> list[str]:
+    """A lost population (no offspring) must still have lost every parent to the max-age death."""
+
+    if marker.get("births") != 0 or marker.get("parents_survived") != 0 or marker.get("newborns_removed") != 0:
+        where = f"invariant parents_removed broke at generation {marker.get('generation')}"
+        raise PilotInvariantError(f"{where} (details withheld: blind run)" if blinded else f"{where}: {dict(marker)}")
+    return ["parents_removed"]
 
 
 def _fit_row(
-    fit_module: ModuleType, spec: RealisedWPilotSpec, rows: Sequence[Mapping[str, Any]], seed: int, mode: str
+    fit_module: ModuleType,
+    spec: RealisedWPilotSpec,
+    rows: Sequence[Mapping[str, Any]],
+    seed: int,
+    mode: str,
+    lost_at: int | None = None,
 ) -> dict[str, Any]:
-    """The fit row; in smoke mode the estimate is withheld (log_w null, blinded true)."""
+    """The fit row. A lost population is not fitted. Smoke mode is blind: the fit runs, but the
+    row holds no estimate, no fixation or loss generation and no series."""
 
-    log_w, fixed, lost, converged = fit_population(fit_module, spec, rows)
-    blinded = mode != MODE_PILOT
+    if lost_at is None:
+        log_w, fixed, lost, converged = fit_population(fit_module, spec, rows)
+    else:
+        log_w, fixed, lost, converged = None, None, None, False
+    if mode != MODE_PILOT:
+        return {
+            "kind": "fit",
+            "seed": seed,
+            "log_w": None,
+            "blinded": True,
+            "converged": converged,
+            "population_lost_generation": lost_at,
+        }
     return {
         "kind": "fit",
         "seed": seed,
-        "log_w": None if blinded else log_w,
-        "blinded": blinded,
+        "log_w": log_w,
+        "blinded": False,
         "fixed_generation": fixed,
         "lost_generation": lost,
         "converged": converged,
+        "population_lost_generation": lost_at,
         "generations": [r["generation"] for r in rows],
         "asexual": [r["asexual"] for r in rows],
         "census": [r["census"] for r in rows],
@@ -881,6 +1171,29 @@ def _read_json(path: Path, what: str) -> Any:
         raise ConfigurationError(f"{what} is not readable JSON; it is never rewritten.") from exc
 
 
+def _line(record: Mapping[str, Any]) -> str:
+    return json.dumps(record, sort_keys=True, allow_nan=False) + "\n"
+
+
+def _seed_bytes(
+    spec: RealisedWPilotSpec,
+    design: PopulationDesign,
+    seed: int,
+    host_n: int,
+    horizon: int,
+    fit_module: ModuleType,
+    mode: str,
+) -> tuple[bytes, dict[str, Any]]:
+    """Run the seed again in memory: (the bytes its file would hold, its fit row)."""
+
+    lines: list[str] = []
+    _rows, fit_row = _run_seed(
+        spec, design, seed, host_n, horizon, fit_module, lambda row, _c: lines.append(_line(disk_row(row, mode))), mode
+    )
+    lines.append(_line(fit_row))
+    return "".join(lines).encode("utf-8"), fit_row
+
+
 def _verify_kept_seed(
     path: Path,
     seed: int,
@@ -890,12 +1203,27 @@ def _verify_kept_seed(
     fit_module: ModuleType,
     mode: str,
     listed_sha256: str | None,
+    *,
+    host_n: int | None = None,
+    design: PopulationDesign | None = None,
 ) -> dict[str, Any]:
-    """A kept seed file is used only if it would be written again as it is."""
+    """A kept seed file is used only if it would be written again as it is.
+
+    Pilot mode re-checks the stored rows and recomputes the fit row from them.
+    A smoke file holds no census series to re-check, so the seed is run
+    again in memory and must give the same bytes.
+    """
 
     raw = path.read_bytes()
     if listed_sha256 is not None and _sha256_bytes(raw) != listed_sha256:
         raise ConfigurationError(f"{path.name} differs from the previous manifest; it is never rewritten.")
+    if mode != MODE_PILOT:
+        if design is None or host_n is None:
+            raise ConfigurationError("a kept smoke seed is re-verified by running it again.")
+        again, fit_row = _seed_bytes(spec, design, seed, host_n, horizon, fit_module, mode)
+        if again != raw:
+            raise ConfigurationError(f"{path.name} differs from a re-run of its seed; it is never rewritten.")
+        return fit_row
     try:
         records = [json.loads(line) for line in raw.decode("utf-8").splitlines()]
     except (UnicodeError, ValueError) as exc:
@@ -905,14 +1233,23 @@ def _verify_kept_seed(
     stored = records[-1]
     if stored.get("seed") != seed:
         raise ConfigurationError(f"{path.name} holds the fit row of another seed.")
-    rows = records[:-1]
-    if [r.get("generation") for r in rows] != list(range(horizon + 1)):
-        raise ConfigurationError(f"{path.name} does not hold generations 0 to {horizon}.")
+    body = records[:-1]
+    lost_at: int | None = None
+    if body and isinstance(body[-1], dict) and body[-1].get("kind") == "population_lost":
+        marker = body.pop()
+        lost_at = marker.get("generation")
+        if lost_at != len(body) or lost_at < 1:
+            raise ConfigurationError(f"{path.name} marks a population loss at the wrong generation.")
+        check_lost(marker)
+    rows = body
+    expected = list(range(horizon + 1)) if lost_at is None else list(range(lost_at))
+    if [r.get("generation") for r in rows] != expected:
+        raise ConfigurationError(f"{path.name} does not hold generations 0 to {expected[-1] if expected else 0}.")
     previous: dict[str, Any] | None = None
     for row in rows:
-        check_row(row, previous, spec, soft_k)
+        check_row(row, previous, spec, soft_k, host_n=host_n)
         previous = row
-    if _fit_row(fit_module, spec, rows, seed, mode) != stored:
+    if _fit_row(fit_module, spec, rows, seed, mode, lost_at) != stored:
         raise ConfigurationError(f"{path.name} fit row does not match its rows; it is never rewritten.")
     return dict(stored)
 
@@ -938,12 +1275,15 @@ def _atomic_write(path: Path, data: bytes) -> None:
 
 
 def _manifest(out: Path, run_info: Mapping[str, Any]) -> dict[str, Any]:
-    files = []
+    files: list[dict[str, Any]] = []
     for path in sorted(p for p in out.rglob("*") if p.is_file() and p.name != "manifest.json"):
         files.append(
             {"path": path.relative_to(out).as_posix(), "sha256": _sha256_file(path), "bytes": path.stat().st_size}
         )
-    body = [f for f in files if f["path"] != "progress.log"]
+    # The body is the scientific files: not the log, and not the kept copies of
+    # killed or failed attempts, so a resumed run has the same body digest as
+    # a one-shot run.
+    body = [f for f in files if f["path"] != "progress.log" and not _ATTEMPT_COPY.search(str(f["path"]))]
     return {
         "schema": RUN_SCHEMA,
         "run": dict(run_info),
@@ -975,13 +1315,16 @@ def _previous_manifest_shas(out: Path) -> dict[str, str]:
 def _populations_csv(run_seeds: Sequence[int], fits: Mapping[int, Mapping[str, Any]], mode: str) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
-    blinded = mode != MODE_PILOT
-    header = ["seed", "fixed_generation", "lost_generation", "converged"]
-    writer.writerow(header if blinded else ["seed", "log_w", *header[1:]])
+    if mode != MODE_PILOT:
+        writer.writerow(["seed", "converged", "population_lost_generation"])
+        for seed in run_seeds:
+            writer.writerow([seed, fits[seed]["converged"], fits[seed]["population_lost_generation"]])
+        return buffer.getvalue().encode("utf-8")
+    header = ["seed", "log_w", "fixed_generation", "lost_generation", "converged", "population_lost_generation"]
+    writer.writerow(header)
     for seed in run_seeds:
         f = fits[seed]
-        tail = [f["fixed_generation"], f["lost_generation"], f["converged"]]
-        writer.writerow([seed, *tail] if blinded else [seed, repr(f["log_w"]), *tail])
+        writer.writerow([seed, repr(f["log_w"]), *(f[k] for k in header[2:])])
     return buffer.getvalue().encode("utf-8")
 
 
@@ -1088,7 +1431,16 @@ def run_pilot(
             final = out / "seeds" / f"seed-{seed}.jsonl"
             if final.exists():
                 fits[seed] = _verify_kept_seed(
-                    final, seed, pilot_spec, soft_k, run_t, fit_module, mode, listed.get(f"seeds/{final.name}")
+                    final,
+                    seed,
+                    pilot_spec,
+                    soft_k,
+                    run_t,
+                    fit_module,
+                    mode,
+                    listed.get(f"seeds/{final.name}"),
+                    host_n=run_n,
+                    design=run_design,
                 )
                 progress.write("seed_kept", seed=seed, sha256=_sha256_file(final))
                 continue
@@ -1106,21 +1458,17 @@ def run_pilot(
 
                 def on_row(row: dict[str, Any], checked: list[str], _fh: io.TextIOBase = fh) -> None:
                     nonlocal rows_written
-                    _fh.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
+                    _fh.write(_line(disk_row(row, mode)))
                     _fh.flush()
                     rows_written += 1
-                    progress.write(
-                        "generation",
-                        seed=seed,
-                        generation=row["generation"],
-                        census=row["census"],
-                        asexual=row["asexual"],
-                        births=row["births"],
-                        invariants_ok=checked,
-                    )
+                    shown: dict[str, Any] = {"seed": seed, "generation": row["generation"], "births": row["births"]}
+                    if mode == MODE_PILOT and row["kind"] == "generation":
+                        shown.update(census=row["census"], asexual=row["asexual"])
+                    event = "generation" if row["kind"] == "generation" else "population_lost"
+                    progress.write(event, invariants_ok=checked, **shown)
 
                 _rows, fit_row = _run_seed(pilot_spec, run_design, seed, run_n, run_t, fit_module, on_row, mode)
-                fh.write(json.dumps(fit_row, sort_keys=True, allow_nan=False) + "\n")
+                fh.write(_line(fit_row))
                 fh.flush()
                 os.fsync(fh.fileno())
                 rows_written += 1
@@ -1134,14 +1482,17 @@ def run_pilot(
                 "seed": seed,
                 "rows_written": rows_written,
                 "seconds": round(elapsed, 3),
-                "fixed_generation": fit_row["fixed_generation"],
-                "lost_generation": fit_row["lost_generation"],
                 "converged": fit_row["converged"],
+                "population_lost_generation": fit_row["population_lost_generation"],
                 "eta_seconds": round(remaining * (sum(durations) / len(durations)), 1),
                 "sha256": _sha256_file(final),
             }
             if mode == MODE_PILOT:
-                end_fields["log_w"] = fit_row["log_w"]
+                end_fields.update(
+                    log_w=fit_row["log_w"],
+                    fixed_generation=fit_row["fixed_generation"],
+                    lost_generation=fit_row["lost_generation"],
+                )
             progress.write("seed_end", **end_fields)
     except Exception as exc:
         progress.write("failed", error=f"{type(exc).__name__}: {exc}", traceback=traceback.format_exc())
@@ -1155,7 +1506,14 @@ def run_pilot(
         raise
     _atomic_write(out / "populations.csv", _populations_csv(run_seeds, fits, mode))
     summary: dict[str, Any] = {"mode": mode, "seeds_done": len(fits), "decision_written": False}
-    if mode == MODE_PILOT and set(fits) == set(pilot_spec.seeds):
+    lost_populations = sorted(s for s, f in fits.items() if f["population_lost_generation"] is not None)
+    if lost_populations:
+        summary["populations_lost"] = len(lost_populations)
+    if mode == MODE_PILOT and set(fits) == set(pilot_spec.seeds) and lost_populations:
+        # A lost population is not a fit input, and the E1 cell rule needs
+        # every seed of the block; the prereg names no rule for this case.
+        progress.write("no_decision", reason="populations lost before the horizon", seeds=lost_populations)
+    elif mode == MODE_PILOT and set(fits) == set(pilot_spec.seeds):
         populations = [
             E1Population(
                 seed=s,

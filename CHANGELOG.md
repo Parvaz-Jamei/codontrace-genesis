@@ -15,9 +15,26 @@
   overlap with an E1 block). Pilot mode refuses to run until the population
   design (`PILOT_POPULATION_DESIGN`, generation model included) is decided
   and its digest is named in a verified pre-pilot `DEVIATIONS.md` entry.
-  Smoke mode is blind: no smoke output holds a realised-w estimate. Kept
-  seed files are re-verified on resume, outputs are replaced atomically,
-  and each engine boot re-checks its seed. No pilot seed has been run.
+  Smoke mode is blind: invariants and the fit run in memory, but no smoke
+  file, log line or error text holds a census, asexual or per-type count,
+  a fixation or loss generation, or a realised-w estimate. Kept pilot seed
+  files are re-verified on resume (a kept smoke seed is run again and must
+  give the same bytes); killed or failed attempt copies are kept but are
+  not part of the body digest; outputs are replaced atomically, and
+  `build_population` and each engine boot re-check the seed. New generation
+  model `discrete_uniform_census`: one `run_generations(1)` step with the
+  engine's max-age death removing every parent (`enable_max_age_death`,
+  `max_age_ticks`, now design fields), offspring thinned to N uniformly
+  without replacement by the RNGManager fork `jr5/e1/census/<g>` (all kept
+  when N or fewer; no offspring ends the population, which is not a fit
+  input), any birth refused at the soft carrying capacity stops the run,
+  world side >= ceil(sqrt(3N)), and the chamber timeout policy derived from
+  the registered unmated-outcrosser rule (`fail`). The pilot design is not
+  set (`PILOT_POPULATION_DESIGN` is None). No pilot seed has been run.
+- Tests: `test_r10_panel_execution_form_mismatch_with_actual_command` starts
+  the launched engine run in its own session and kills that process group
+  on teardown, so no detached `rq_full_engine_parallel.py` outlives the
+  suite.
 - Ratio-scale report ends of the E1 gate and the live adapter go through
   `statistical_protocol.ratio_scale_end`: a log end whose exp overflows is
   refused with `ConfigurationError` in both instead of a raw `OverflowError`.

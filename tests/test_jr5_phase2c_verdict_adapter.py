@@ -211,7 +211,20 @@ def test_jr5_verdict_path_has_no_standing_red_queen_ban() -> None:
         imported = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module}
         imported |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
         assert not imported & set(_NON_CLAIM_MODULES), rel
-        literals = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+        # Docstrings describe refusals of hand-set input flags; only code literals can be a guard.
+        docs = {
+            id(n.body[0].value)
+            for n in ast.walk(tree)
+            if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and n.body
+            and isinstance(n.body[0], ast.Expr)
+            and isinstance(n.body[0].value, ast.Constant)
+        }
+        literals = [
+            n.value
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+        ]
         assert not [t for t in literals if _STANDING_BAN.search(t)], rel
 
 

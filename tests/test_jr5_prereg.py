@@ -173,7 +173,15 @@ def _doc_seed_blocks(path: Path) -> list[tuple[int, int]]:
     return out
 
 
-def test_gate_still_blocks_red_queen_proved_today() -> None:
+def test_public_profile_blocks_red_queen_proved_without_jr5_verdict() -> None:
+    """The host_parasite profile gate refuses the flag when no verified JR5 verdict is given.
+
+    Basis: RED_QUEEN_CLAIM_PATH.md, gate 1. blocked_claims keeps the flag and
+    assert_claim_allowed takes no verdict, so a caller without one always
+    raises. This is the fail-closed default, not a permanent ban: the claim
+    path is assert_jr5_red_queen_claim_allowed with a verdict where (a) to (e)
+    hold (tests/test_jr5_phase2c_verdict_adapter.py).
+    """
     assert "red_queen_proved" in HOST_PARASITE.blocked_claims
     with pytest.raises(ConfigurationError):
         assert_claim_allowed("red_queen_proved")

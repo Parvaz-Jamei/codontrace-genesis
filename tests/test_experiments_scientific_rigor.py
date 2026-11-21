@@ -7,8 +7,11 @@ Zero external dependency (pure Python + codontrace.experiments).
 
 from __future__ import annotations
 
+import dataclasses
+import inspect
 import math
 
+from codontrace.experiments import models
 from codontrace.experiments.math_utils import (
     compute_exact_price_equation,
     compute_functional_information,
@@ -90,7 +93,32 @@ def test_t09_functional_info() -> None:
 
 
 def test_invariants() -> None:
-    """Check non-violability of scientific invariants."""
-    assert not RED_QUEEN_PROVED
+    """Check non-violability of the mandatory epistemic invariants.
+
+    Basis: the two invariants have no registered evidence path. Red Queen is
+    not one of them: docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md replaces the
+    permanent ban with the JR5 verdict, so this test does not pin it.
+    """
     assert not MAJOR_TRANSITION_PROVED
     assert not OPEN_ENDED_INTELLIGENCE_PROVED
+
+
+def test_red_queen_flag_is_a_default_not_an_invariant() -> None:
+    """RED_QUEEN_PROVED is the default False of T01-T12 records, outside the invariants group.
+
+    Basis: RED_QUEEN_CLAIM_PATH.md, "This replaces the permanent ban"; the
+    flag is decided only by the JR5 verdict under (a) to (e). Expected: the
+    "Mandatory epistemic invariants" block lists exactly the two constants
+    pinned by test_invariants, and the manifest and completion-summary
+    defaults read RED_QUEEN_PROVED (False until a JR5 verdict says otherwise;
+    these runners never produce one).
+    """
+    source = inspect.getsource(models)
+    block = source.split("# Mandatory epistemic invariants\n", 1)[1].split("\n\n", 1)[0]
+    names = {line.split(":", 1)[0].strip() for line in block.splitlines() if line.strip()}
+    assert names == {"MAJOR_TRANSITION_PROVED", "OPEN_ENDED_INTELLIGENCE_PROVED"}
+    assert RED_QUEEN_PROVED is False
+    summary_default = {f.name: f.default for f in dataclasses.fields(models.CompletionSummary)}
+    assert summary_default["red_queen_proved"] is RED_QUEEN_PROVED
+    manifest = models.ExperimentManifest("x", models.ExecutionTrack.REFERENCE, "b", "s", 0, 1, 1, None, {})
+    assert manifest.epistemic_invariants["red_queen_proved"] is RED_QUEEN_PROVED

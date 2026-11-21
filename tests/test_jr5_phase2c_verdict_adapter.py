@@ -33,9 +33,11 @@ separation.
 
 from __future__ import annotations
 
+import ast
 import inspect
 import json
 import math
+import re
 import shutil
 from copy import deepcopy
 from functools import cache
@@ -58,8 +60,10 @@ from codontrace.claimgate.jr5_verdict import (
     evaluate_jr5_verdict,
     jr5_bundle_fields,
     jr5_run_grid,
+    red_queen_exemption_holds,
     verify_jr5_verdict,
 )
+from codontrace.claimgate.schema import parse_claimgate_bundle
 from codontrace.errors import ConfigurationError
 from tests import _jr5_raw_evidence as raw
 
@@ -132,7 +136,7 @@ def test_raw_dataset_failing_the_prereg_does_not_prove_the_claim() -> None:
 
     With mean exactly 0 the paired t is 0 (p = 1) and no Holm step rejects;
     (c) fails with it. No alternative explains an absent effect, so the
-    outcome is ``none`` and the auditor keeps the ban.
+    outcome is ``none`` and the auditor keeps its default refusal.
     """
 
     ev = build(e2_effect={(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0})
@@ -143,6 +147,72 @@ def test_raw_dataset_failing_the_prereg_does_not_prove_the_claim() -> None:
     with pytest.raises(ConfigurationError):
         assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev)
     assert audit_bundle(bound_bundle(ev)).achieved_level < _baseline_level()
+
+
+# Modules on the JR5 claim path: verdict core, its re-export, the E1 gate
+# producer, the locked-plan pin and the auditor that holds the exemption.
+_JR5_PATH_MODULES = (
+    "src/codontrace/claimgate/jr5_verdict.py",
+    "src/codontrace/claimgate/adapters/jr5_verdict.py",
+    "src/codontrace/campaigns/jr5_e1_gate.py",
+    "src/codontrace/preregistration/jr5_locked_plan.py",
+    "src/codontrace/claimgate/auditor.py",
+)
+# Non-claim records and fail-closed non-JR5 gates; none may feed the JR5 path.
+_NON_CLAIM_MODULES = (
+    "codontrace.experiments.models",
+    "codontrace.genesis.host_parasite_metrics",
+    "codontrace.genesis.host_parasite_analytics",
+    "codontrace.genesis.host_parasite_calibration",
+    "codontrace.claimgate.adapters.host_parasite",
+)
+_STANDING_BAN = re.compile(
+    r"red_queen_proved\W.*(must (remain|stay|be) false|refuse)|red queen flags must stay false|"
+    r"(never|not) (be )?(true|allowed)\W.*red_queen_proved",
+    re.IGNORECASE,
+)
+
+
+def test_jr5_verdict_path_has_no_standing_red_queen_ban() -> None:
+    """On the JR5 path the flag is the (a)-(e) decision, with no standing "must remain False" guard.
+
+    Basis: RED_QUEEN_CLAIM_PATH.md, "This replaces the permanent ban": the
+    flag is True exactly when (a) to (e) all hold and the typed outcome is
+    ``rq_consistent``. Expected value derived from that rule, not from the
+    verdict code: for the planted positive grid every condition is inside its
+    prereg bound (module docstring), so expected = all(conditions) and
+    outcome == rq_consistent = True; the claim path returns the claim, the
+    auditor's own recheck holds on the bound bundle, and the audit carries no
+    forbidden-alias warning. For the planted null (E2 at 0) expected = False.
+    Statically, no JR5 path module imports a non-claim record or a fail-closed
+    non-JR5 gate, and none carries a refusal literal for the flag.
+    """
+
+    for ev in (
+        positive(),
+        build(e2_effect={(200, "high"): 0.0, (50, "high"): 0.0, (200, "low"): 0.0, (50, "low"): 0.0}),
+    ):
+        verdict = evaluate_jr5_verdict(ev)
+        expected = all(verdict.conditions.values()) and verdict.outcome == "rq_consistent"
+        assert verdict.red_queen_proved is expected
+        assert verdict.to_dict()["red_queen_proved"] is expected
+    ev = positive()
+    verdict = evaluate_jr5_verdict(ev)
+    assert verdict.red_queen_proved is True and set(verdict.conditions) == set("abcde")
+    assert assert_jr5_red_queen_claim_allowed(verdict.to_dict(), ev) == "red_queen_proved"
+    bundle = bound_bundle(ev)
+    assert red_queen_exemption_holds(parse_claimgate_bundle(bundle)) is True
+    report = audit_bundle(bundle)
+    assert report.achieved_level >= _baseline_level()
+    assert not any("red_queen_proved" in warning for warning in report.warnings)
+
+    for rel in _JR5_PATH_MODULES:
+        tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+        imported = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module}
+        imported |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+        assert not imported & set(_NON_CLAIM_MODULES), rel
+        literals = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+        assert not [t for t in literals if _STANDING_BAN.search(t)], rel
 
 
 # ---------------------------------------------------------------- single failures
@@ -534,8 +604,8 @@ def test_copied_edited_rehashed_prereg_is_refused(tmp_path: Path) -> None:
 # ---------------------------------------------------------------- auditor
 
 
-def test_auditor_ban_cannot_be_lifted_by_a_caller_callable() -> None:
-    """audit_bundle takes no exemption hook; a lambda that says yes cannot lift the ban."""
+def test_auditor_default_refusal_cannot_be_lifted_by_a_caller_callable() -> None:
+    """audit_bundle takes no exemption hook; a lambda that says yes cannot lift the default refusal."""
 
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
     payload["red_queen_proved"] = True
@@ -545,7 +615,7 @@ def test_auditor_ban_cannot_be_lifted_by_a_caller_callable() -> None:
 
 
 def test_valid_verdict_stapled_onto_an_unrelated_bundle_is_refused() -> None:
-    """A genuine positive lifts the ban only on the bundle it is bound to (prereg digest, seeds, evidence digest)."""
+    """A genuine positive lifts the default refusal only on the bundle it is bound to (prereg digest, seeds, evidence digest)."""
 
     ev = positive()
     good = bound_bundle(ev)
@@ -560,7 +630,7 @@ def test_valid_verdict_stapled_onto_an_unrelated_bundle_is_refused() -> None:
 
 
 def test_host_parasite_profile_gate_still_refuses() -> None:
-    """The host-parasite profile gate is unchanged and keeps refusing the flag."""
+    """The host-parasite profile gate takes no JR5 verdict, so it refuses the flag; the claim path is the JR5 verdict."""
 
     with pytest.raises(ConfigurationError):
         assert_claim_allowed("red_queen_proved")

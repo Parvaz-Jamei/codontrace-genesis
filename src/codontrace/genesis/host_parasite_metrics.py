@@ -274,7 +274,10 @@ class HostParasiteMetricSummary:
         if role not in {"primary", "exploratory", "smoke"}:
             raise ConfigurationError("claim_role must be primary, exploratory, or smoke.")
         if self.red_queen_proved:
-            raise ConfigurationError("MetricSummary refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "MetricSummary is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.raises_claim_ladder:
             raise ConfigurationError("MetricSummary refuses raises_claim_ladder=True.")
         metrics: dict[str, float] = {}
@@ -308,6 +311,7 @@ class HostParasiteMetricSummary:
             object.__setattr__(
                 self, "prereg_digest", _as_str(self.prereg_digest, "prereg_digest")
             )
+        # Not a claim record: the field is recorded as False in every summary.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "raises_claim_ladder", False)
         computed = canonical_digest(self._body(), prefix="hp_metric_sum")

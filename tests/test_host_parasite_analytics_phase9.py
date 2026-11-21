@@ -131,7 +131,7 @@ def test_continuum_honesty_and_physics_source() -> None:
     assert 0.0 <= cell.emergent_interaction_proxy <= 1.0
     assert "intervention_supported" in result.refuse_list
     assert "red_queen_proved" in result.refuse_list
-    with pytest.raises(ConfigurationError, match="red_queen_proved"):
+    with pytest.raises(ConfigurationError, match="ContinuumFactorialResult is not a claim record; red_queen_proved"):
         ContinuumFactorialResult(
             factorial_id="bad",
             seeds=(0,),
@@ -262,7 +262,9 @@ def test_reciprocal_observational_contrast_refuse_safe() -> None:
     assert len(digests) == 3
     again = ReciprocalObservationalContrast.from_dict(result.to_dict())
     assert again.digest == result.digest
-    with pytest.raises(ConfigurationError, match="red_queen_proved"):
+    with pytest.raises(
+        ConfigurationError, match="ReciprocalObservationalContrast is not a claim record; red_queen_proved"
+    ):
         ReciprocalObservationalContrast(
             contrast_id="bad_recip",
             seed=0,

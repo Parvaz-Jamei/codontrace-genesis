@@ -183,8 +183,14 @@ def test_primary_summary_allows_dual_null_profile() -> None:
 
 
 def test_metric_summary_refuses_proved_flags() -> None:
+    """A metric summary is not a claim record, so it refuses red_queen_proved=True.
+
+    Basis: RED_QUEEN_CLAIM_PATH.md lists this object as a non-evidence path;
+    the flag is decided only by the JR5 verdict. Expected: the refusal names
+    the flag and says the object is not a claim record.
+    """
     snap = HookMeter(meter_id="meter_e").snapshot()
-    with pytest.raises(ConfigurationError, match="red_queen_proved"):
+    with pytest.raises(ConfigurationError, match=r"not a claim record; red_queen_proved is decided only by the JR5"):
         HostParasiteMetricSummary(
             summary_id="s",
             claim_role="exploratory",

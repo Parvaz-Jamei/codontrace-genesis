@@ -430,7 +430,10 @@ class ContinuumFactorialResult:
         object.__setattr__(self, "smoke_only", _as_bool(self.smoke_only, "smoke_only"))
         object.__setattr__(self, "refuse_list", _merge_refuses(self.refuse_list))
         if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "ContinuumFactorialResult is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.intervention_supported:
             raise ConfigurationError("refuses intervention_supported=True.")
         if self.raises_claim_ladder:
@@ -439,6 +442,7 @@ class ContinuumFactorialResult:
             raise ConfigurationError("refuses mutualism_equals_success=True.")
         if self.continuum_physics_source != CONTINUUM_PHYSICS_SOURCE:
             raise ConfigurationError("continuum_physics_source must be world_meters.")
+        # Not a claim record: red_queen_proved is recorded as False.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "intervention_supported", False)
         object.__setattr__(self, "raises_claim_ladder", False)
@@ -747,10 +751,14 @@ class InterventionContrastResult:
         if self.intervention_supported:
             raise ConfigurationError("refuses intervention_supported=True.")
         if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "InterventionContrastResult is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.raises_claim_ladder:
             raise ConfigurationError("refuses raises_claim_ladder=True.")
         object.__setattr__(self, "intervention_supported", False)
+        # Not a claim record: red_queen_proved is recorded as False.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "raises_claim_ladder", False)
         computed = canonical_digest(self._body(), prefix="hp_int_ctr")
@@ -975,11 +983,15 @@ class ReciprocalObservationalContrast:
         object.__setattr__(self, "smoke_only", _as_bool(self.smoke_only, "smoke_only"))
         object.__setattr__(self, "refuse_list", _merge_refuses(self.refuse_list))
         if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "ReciprocalObservationalContrast is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.intervention_supported:
             raise ConfigurationError("refuses intervention_supported=True.")
         if self.raises_claim_ladder:
             raise ConfigurationError("refuses raises_claim_ladder=True.")
+        # Not a claim record: red_queen_proved is recorded as False.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "intervention_supported", False)
         object.__setattr__(self, "raises_claim_ladder", False)
@@ -1251,12 +1263,16 @@ class DidInterventionContrast:
         if self.intervention_supported:
             raise ConfigurationError("refuses intervention_supported=True.")
         if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "DidInterventionContrast is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.price_as_causality:
             raise ConfigurationError("refuses price_as_causality=True.")
         if self.raises_claim_ladder:
             raise ConfigurationError("refuses raises_claim_ladder=True.")
         object.__setattr__(self, "intervention_supported", False)
+        # Not a claim record: red_queen_proved is recorded as False.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "price_as_causality", False)
         object.__setattr__(self, "raises_claim_ladder", False)
@@ -1535,11 +1551,15 @@ class FrontDoorMediationContrast:
         if self.front_door_identified:
             raise ConfigurationError("refuses front_door_identified=True.")
         if self.red_queen_proved:
-            raise ConfigurationError("refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "FrontDoorMediationContrast is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.raises_claim_ladder:
             raise ConfigurationError("refuses raises_claim_ladder=True.")
         object.__setattr__(self, "intervention_supported", False)
         object.__setattr__(self, "front_door_identified", False)
+        # Not a claim record: red_queen_proved is recorded as False.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "raises_claim_ladder", False)
         computed = canonical_digest(self._body(), prefix="hp_fd_ctr")

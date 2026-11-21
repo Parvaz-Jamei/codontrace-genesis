@@ -2,7 +2,7 @@
 
 The core is `codontrace.claimgate.jr5_verdict`; the previous
 `codontrace.claimgate.adapters.jr5_verdict` import remains a re-export.
-Only a recomputed, positive JR5 verdict can lift the auditor's Red Queen ban.
+Only a recomputed, positive JR5 verdict can lift the auditor's default refusal of `red_queen_proved`.
 The host-parasite profile's general claim block is unchanged.
 
 ## Trust and synchronization
@@ -137,7 +137,7 @@ recomputes that projection too. Arm names address each complete per-cell
 run-address list. Outcome vectors follow sorted seeds and the displayed
 paired comparisons are recomputed. Artifacts cover every raw run plus the
 evidence object. Merely appending a valid verdict, matching seed list, or
-evidence artifact to unrelated arms/outcomes cannot lift the ban.
+evidence artifact to unrelated arms/outcomes cannot lift the default refusal.
 Displayed comparison intervals are unadjusted 95% intervals; only the verdict
 applies the registered multiplicity and resampling decision rules.
 

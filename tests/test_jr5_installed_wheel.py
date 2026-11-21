@@ -77,7 +77,7 @@ def test_a_missing_packaged_resource_refuses_and_the_auditor_does_not_crash(monk
     Basis: this is the state of a wheel built without the log (the R43-1
     defect). ``jr5_constants`` must turn the OS error into a
     ConfigurationError, and the exemption check must read that as "not
-    proved", so ``audit_bundle`` keeps the global ban on red_queen_proved
+    proved", so ``audit_bundle`` keeps its default refusal of red_queen_proved
     instead of raising. The resource name is pointed at a file that does not
     exist in the package.
     Expected: ConfigurationError from jr5_constants and from the verdict;

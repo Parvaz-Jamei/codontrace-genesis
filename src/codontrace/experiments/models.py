@@ -24,9 +24,14 @@ class AssessmentStatus(str, enum.Enum):
 
 
 # Mandatory epistemic invariants
-RED_QUEEN_PROVED: bool = False
 MAJOR_TRANSITION_PROVED: bool = False
 OPEN_ENDED_INTELLIGENCE_PROVED: bool = False
+
+# Default claim flag, not an invariant. These T01-T12 runners never decide a
+# Red Queen claim, so their records carry the default False. The flag is decided
+# only by the JR5 verdict (codontrace.claimgate.jr5_verdict) under conditions
+# (a) to (e) of docs/prereg/jr5/RED_QUEEN_CLAIM_PATH.md.
+RED_QUEEN_PROVED: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +46,8 @@ class ExperimentManifest:
     population_size: int
     worker_affinity: int | None
     platform_info: dict[str, Any]
+    # The key name is kept for manifest compatibility; red_queen_proved in it is
+    # the default flag above, not an invariant.
     epistemic_invariants: dict[str, bool] = field(
         default_factory=lambda: {
             "red_queen_proved": RED_QUEEN_PROVED,

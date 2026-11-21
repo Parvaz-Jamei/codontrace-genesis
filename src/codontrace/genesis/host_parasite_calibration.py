@@ -229,7 +229,10 @@ class CalibrationReport:
     def __post_init__(self) -> None:
         rid = _refuse_banned_fragment(_as_str(self.report_id, "report_id"), "report_id")
         if self.red_queen_proved:
-            raise ConfigurationError("CalibrationReport refuses red_queen_proved=True.")
+            raise ConfigurationError(
+                "CalibrationReport is not a claim record; red_queen_proved is decided only "
+                "by the JR5 verdict (claimgate.jr5_verdict)."
+            )
         if self.raises_claim_ladder:
             raise ConfigurationError("CalibrationReport refuses raises_claim_ladder=True.")
         if self.calibration_miss_opens_refuses:
@@ -244,6 +247,7 @@ class CalibrationReport:
         object.__setattr__(self, "report_id", rid)
         object.__setattr__(self, "outcomes", tuple(self.outcomes))
         object.__setattr__(self, "science_grade", science)
+        # Not a claim record: the field is recorded as False in every report.
         object.__setattr__(self, "red_queen_proved", False)
         object.__setattr__(self, "raises_claim_ladder", False)
         object.__setattr__(self, "calibration_miss_opens_refuses", False)

@@ -83,5 +83,20 @@ def test_calibration_refuses_honesty_true_and_banned_id() -> None:
 
 
 @pytest.mark.campaign
+def test_calibration_report_is_not_a_claim_record() -> None:
+    """A calibration report refuses red_queen_proved=True because it is not a claim record.
+
+    Basis: RED_QUEEN_CLAIM_PATH.md lists CalibrationReport as a non-evidence
+    path; the flag is decided only by the JR5 verdict. Expected: refusal with
+    the not-a-claim-record wording, and a default report records False.
+    """
+    report = run_calibration_suite(report_id="calib_ok")
+    assert report.red_queen_proved is False
+    assert report.to_dict()["red_queen_proved"] is False
+    with pytest.raises(ConfigurationError, match="CalibrationReport is not a claim record; red_queen_proved"):
+        CalibrationReport(report_id="calib_bad", outcomes=report.outcomes, red_queen_proved=True)
+
+
+@pytest.mark.campaign
 def test_default_targets_catalog_nonempty() -> None:
     assert len(default_smoke_targets()) >= 4

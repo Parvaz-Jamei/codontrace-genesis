@@ -1,0 +1,148 @@
+{
+ "E_max_fed_g0": 14.525000000000002,
+ "E_unfed_g0": 9.525000000000002,
+ "copy_first_threshold": 9.05,
+ "eat_first_unfed_threshold": 9.9,
+ "census_recurrence": [
+  14.525,
+  6.1562,
+  4.0641,
+  3.541,
+  3.4103,
+  3.3776,
+  3.3694
+ ],
+ "fixed_point": 3.3667,
+ "steady_births_cap_food": 8,
+ "energy_births_cap_divisible": 16.16,
+ "g0_births_expected_N20_m0.5": 12.0,
+ "g0_births_expected_N20_m0.25": 16.0,
+ "g0_births_expected_N200_m0.5": 120.0,
+ "g0_births_expected_N200_m0.25": 160.0,
+ "sim": {
+  "m0.5_current_b1_tokens_only_N50": {
+   "mean_log_w_gen1": 0.688,
+   "theory_log_w": 0.693,
+   "median_census_g20": 10.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.5_current_b1_tokens_only_N200": {
+   "mean_log_w_gen1": 0.697,
+   "theory_log_w": 0.693,
+   "median_census_g20": 40.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.5_current_b1_plus_foodcap8_N50": {
+   "mean_log_w_gen1": 0.597,
+   "theory_log_w": 0.693,
+   "median_census_g20": 3.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.5_current_b1_plus_foodcap8_N200": {
+   "mean_log_w_gen1": 0.605,
+   "theory_log_w": 0.693,
+   "median_census_g20": 3.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.5_proposed_b6_N50": {
+   "mean_log_w_gen1": 0.692,
+   "theory_log_w": 0.693,
+   "median_census_g20": 50.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.5_proposed_b6_N200": {
+   "mean_log_w_gen1": 0.703,
+   "theory_log_w": 0.693,
+   "median_census_g20": 200.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_current_b1_tokens_only_N50": {
+   "mean_log_w_gen1": 0.304,
+   "theory_log_w": 0.288,
+   "median_census_g20": 10.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_current_b1_tokens_only_N200": {
+   "mean_log_w_gen1": 0.284,
+   "theory_log_w": 0.288,
+   "median_census_g20": 40.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_current_b1_plus_foodcap8_N50": {
+   "mean_log_w_gen1": 0.284,
+   "theory_log_w": 0.288,
+   "median_census_g20": 2.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_current_b1_plus_foodcap8_N200": {
+   "mean_log_w_gen1": 0.334,
+   "theory_log_w": 0.288,
+   "median_census_g20": 2.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_proposed_b6_N50": {
+   "mean_log_w_gen1": 0.296,
+   "theory_log_w": 0.288,
+   "median_census_g20": 50.0,
+   "median_sexual_g20": 0.0
+  },
+  "m0.25_proposed_b6_N200": {
+   "mean_log_w_gen1": 0.286,
+   "theory_log_w": 0.288,
+   "median_census_g20": 200.0,
+   "median_sexual_g20": 0.0
+  },
+  "outcross_m0.5_b1": {
+   "F_adult": 0.5,
+   "persists_full_match_high": false,
+   "window": [
+    0.693,
+    -0.693
+   ]
+  },
+  "outcross_m0.5_b2": {
+   "F_adult": 1.0,
+   "persists_full_match_high": false,
+   "window": [
+    0.693,
+    0.0
+   ]
+  },
+  "outcross_m0.5_b6": {
+   "F_adult": 3.0,
+   "persists_full_match_high": true,
+   "window": [
+    0.693,
+    1.099
+   ]
+  },
+  "outcross_m0.25_b1": {
+   "F_adult": 0.75,
+   "persists_full_match_high": false,
+   "window": [
+    0.288,
+    -0.288
+   ]
+  },
+  "outcross_m0.25_b2": {
+   "F_adult": 1.5,
+   "persists_full_match_high": false,
+   "window": [
+    0.288,
+    0.405
+   ]
+  },
+  "outcross_m0.25_b6": {
+   "F_adult": 4.5,
+   "persists_full_match_high": true,
+   "window": [
+    0.288,
+    1.504
+   ]
+  }
+ },
+ "b_min_for_c1": {
+  "0.5": 5.437,
+  "0.25": 3.624
+ }
+}

@@ -157,6 +157,10 @@ _WIRED_GENERATION_MODELS = frozenset({"engine_overlapping", DISCRETE_UNIFORM_CEN
 CENSUS_FORK = "jr5/e1/census/{generation}"
 # Sink the world ATP ledger closes a thinned organism's remainder to.
 CENSUS_THINNING_SINK = "sink:jr5_census_thinning"
+# Census re-endowment: the recruit's endowment comes from this source; its
+# remaining runtime ATP goes to CENSUS_THINNING_SINK with this reason.
+CENSUS_ENDOWMENT_SOURCE = "source:jr5_census_endowment"
+CENSUS_REENDOWMENT_DEBIT_REASON = "jr5_census_reendowment_remainder"
 # Engine refusals that mean the soft carrying capacity was binding.
 CAPACITY_REFUSAL_REASONS = frozenset({"max_population_reached", "population_capacity_reached"})
 # The chamber timeout policy each registered unmated-outcrosser rule
@@ -489,6 +493,16 @@ class PopulationDesign:
     chamber_max_birth_wait_ticks: int | None
     chamber_timeout_policy: str
     founder_windows: tuple[str, ...]
+    # Discrete-census fecundity and endowment (opt-in; the defaults are the
+    # earlier designs and are left out of to_record, so their digests hold).
+    # brood_size b: children per reproduction event, each with its own
+    # meiosis and sex draw, sharing the endowment E as E/b. The cap limits
+    # each organism to that many events in its life (1 = semelparous).
+    # census_reendowment: every recruit kept by the census starts the next
+    # generation with birth_atp, booked from source:jr5_census_endowment.
+    brood_size: int = 1
+    max_reproduction_events_per_lifetime: int | None = None
+    census_reendowment: bool = False
 
     def __post_init__(self) -> None:
         if not self.label or not self.founder_windows or self.world_size < 1:
@@ -513,6 +527,22 @@ class PopulationDesign:
                 raise ConfigurationError(f"{DISCRETE_UNIFORM_CENSUS} needs chamber_timeout_policy 'fail'.")
         elif self.enable_max_age_death:
             raise ConfigurationError(f"max-age death is part of {DISCRETE_UNIFORM_CENSUS} only.")
+        b = self.brood_size
+        if isinstance(b, bool) or not isinstance(b, int) or b < 1:
+            raise ConfigurationError("brood_size must be a positive integer.")
+        cap = self.max_reproduction_events_per_lifetime
+        if cap is not None and (isinstance(cap, bool) or not isinstance(cap, int) or cap < 1):
+            raise ConfigurationError("max_reproduction_events_per_lifetime must be a positive integer or None.")
+        if not isinstance(self.census_reendowment, bool):
+            raise ConfigurationError("census_reendowment must be true or false.")
+        if (b != 1 or cap is not None or self.census_reendowment) and not self.discrete:
+            raise ConfigurationError(
+                f"brood_size, the lifetime event cap and census re-endowment are part of {DISCRETE_UNIFORM_CENSUS} only."
+            )
+        if b > 1 and self.soft_k_multiple < 1 + b:
+            # (1 + b) N: N parents plus b offspring each, so the soft carrying
+            # capacity never decides which offspring are born.
+            raise ConfigurationError("soft_k_multiple must be at least 1 + brood_size.")
 
     def soft_k(self, host_n: int) -> int:
         k = self.soft_k_multiple * host_n
@@ -528,6 +558,9 @@ class PopulationDesign:
         """Every field, so the digest covers the whole design."""
 
         payload: dict[str, Any] = asdict(self)
+        for name, default in _DESIGN_OPT_IN_DEFAULTS.items():
+            if payload[name] == default and type(payload[name]) is type(default):
+                del payload[name]
         payload["food_patches"] = [list(p) for p in self.food_patches]
         payload["founder_windows"] = list(self.founder_windows)
         record: dict[str, JsonValue] = json.loads(json.dumps(payload))
@@ -536,6 +569,12 @@ class PopulationDesign:
     def digest(self) -> str:
         return canonical_digest(self.to_record(), prefix="jr5_e1_population_design")
 
+
+_DESIGN_OPT_IN_DEFAULTS: dict[str, Any] = {
+    "brood_size": 1,
+    "max_reproduction_events_per_lifetime": None,
+    "census_reendowment": False,
+}
 
 # Not decided: see the module docstring. The pilot mode refuses while None.
 PILOT_POPULATION_DESIGN: PopulationDesign | None = None
@@ -603,7 +642,7 @@ def build_population(
     """
 
     _guard_boot(spec, mode, seed)
-    from codontrace.genesis.closed_loop_hp_arm01 import ARM_AVIRULENT, LifeLoopEcologyArm
+    from codontrace.genesis.closed_loop_hp_arm01 import ARM_AVIRULENT, FOUNDER_PROGRAM, LifeLoopEcologyArm
     from codontrace.genesis.host_parasite_life_plugin import OUTCROSS_OUT_BITS, hp_life_config
 
     if design.generation_model not in _WIRED_GENERATION_MODELS:
@@ -678,6 +717,15 @@ def build_population(
         # re-runs PopulationConfigs.__post_init__, which carries both fields
         # into death_monitoring, where the engine applies them.
         arm.runner.configs = replace(arm.runner.configs, enable_max_age_death=True, max_age_ticks=design.max_age_ticks)
+        if design.brood_size != 1 or design.max_reproduction_events_per_lifetime is not None:
+            # max_population is the soft carrying capacity (1 + b) N or more
+            # (PopulationDesign), so a capacity refusal still stops the run.
+            reproduction = replace(
+                arm.runner.configs.reproduction,
+                brood_size=design.brood_size,
+                max_reproduction_events_per_lifetime=design.max_reproduction_events_per_lifetime,
+            )
+            arm.runner.configs = replace(arm.runner.configs, reproduction=reproduction)
         runner = arm.runner
         arm.runner = _refusal_counting_runner_class()(
             population=runner.population,
@@ -691,6 +739,7 @@ def build_population(
         replace(org, asexual_lineage=(index % step == 0)) for index, org in enumerate(arm.runner.population.organisms)
     )
     arm.runner.population = replace(arm.runner.population, organisms=organisms)
+    check_founder_coding_prefixes(organisms, len(FOUNDER_PROGRAM))
     return arm
 
 
@@ -759,16 +808,27 @@ def thin_to_census(organisms: Sequence[Any], host_n: int, seed: int, generation:
     return tuple(o for o in organisms if o.id in keep)
 
 
-def apply_census(arm: Any, host_n: int, seed: int, generation: int) -> int:
-    """Thin the population to ``host_n`` (see thin_to_census) and book the removed ATP; return the number removed."""
+def apply_census(
+    arm: Any, host_n: int, seed: int, generation: int, *, endowment_atp: float | None = None
+) -> int:
+    """Thin the population to ``host_n`` (see thin_to_census) and book the removed ATP; return the number removed.
+
+    With ``endowment_atp`` (census re-endowment) every kept recruit then
+    starts the next generation with exactly that runtime ATP: its remaining
+    runtime ATP is debited to ``sink:jr5_census_thinning`` and the endowment
+    is credited from ``source:jr5_census_endowment``, and the world ledger
+    must still close.
+    """
 
     from codontrace.genesis.atp import organism_atp_accounts
 
     runner = arm.runner
     organisms = runner.population.organisms
     kept = thin_to_census(organisms, host_n, seed, generation)
-    if len(kept) == len(organisms):
+    if len(kept) == len(organisms) and endowment_atp is None:
         return 0
+    if endowment_atp is not None:
+        _reendow_recruits(kept, float(endowment_atp), tick=int(runner.population.generation))
     runner.population = replace(runner.population, organisms=kept)
     ledger = runner.atp_ledger
     mirrors = ledger.sync_accounts(
@@ -776,6 +836,59 @@ def apply_census(arm: Any, host_n: int, seed: int, generation: int) -> int:
     )
     ledger.check(mirrors)
     return len(organisms) - len(kept)
+
+
+def _reendow_recruits(kept: Sequence[Any], endowment: float, *, tick: int) -> None:
+    """Set every kept recruit's runtime ATP to ``endowment`` with two booked entries (see apply_census)."""
+
+    if not math.isfinite(endowment) or endowment <= 0.0:
+        raise ConfigurationError("the census endowment must be a finite positive ATP amount.")
+    for org in kept:
+        account = org.atp_state
+        remaining = account.runtime_available
+        if remaining > 0.0:
+            account.debit_runtime(
+                remaining,
+                tick=tick,
+                organism_id=org.id,
+                codon="000",
+                action=CENSUS_THINNING_SINK.split(":", 1)[1],
+                reason=CENSUS_REENDOWMENT_DEBIT_REASON,
+            )
+        account.credit_runtime(
+            endowment,
+            tick=tick,
+            organism_id=org.id,
+            codon="000",
+            action=CENSUS_ENDOWMENT_SOURCE.split(":", 1)[1],
+            reason=CENSUS_ENDOWMENT_SOURCE.split(":", 1)[1],
+        )
+        if account.runtime_available != endowment:
+            raise PilotInvariantError(f"recruit {org.id} holds {account.runtime_available} ATP after re-endowment.")
+
+
+def check_founder_coding_prefixes(founders: Sequence[Any], prefix_bits: int, codon_width: int = 3) -> None:
+    """Boot check: every founder carries the same coding prefix on each homolog.
+
+    The homologs are the even and odd codons of the genome (split_diploid_homologs);
+    the coding prefix is the first ``prefix_bits`` bits (the shared program,
+    before the mating locus and the recognition window). Identical prefixes
+    across founders mean recombination between founders cannot make a new
+    coding prefix; within a founder the two homologs may still differ.
+    """
+
+    from codontrace.genesis.birth import split_diploid_homologs
+
+    if prefix_bits < 1 or prefix_bits % codon_width:
+        raise ConfigurationError("the coding prefix must be a positive whole number of codons.")
+    prefixes = set()
+    for org in founders:
+        bits = org.genome.to_compact()
+        if len(bits) < prefix_bits:
+            raise PilotInvariantError(f"founder {org.id} is shorter than the coding prefix.")
+        prefixes.add(split_diploid_homologs(bits[:prefix_bits], codon_width))
+    if len(prefixes) != 1:
+        raise PilotInvariantError("founder homologs differ in their coding prefix.")
 
 
 # ------------------------------------------------------------------ census
@@ -1043,7 +1156,9 @@ def _git_head(root: Path) -> str | None:
         return None
 
 
-def _discrete_step(arm: Any, generation: int, host_n: int, seed: int) -> dict[str, int]:
+def _discrete_step(
+    arm: Any, generation: int, host_n: int, seed: int, *, endowment_atp: float | None = None
+) -> dict[str, int]:
     """One discrete generation: one engine step, then the census of its offspring at N.
 
     During the step the engine's max-age death removes every organism alive
@@ -1065,7 +1180,7 @@ def _discrete_step(arm: Any, generation: int, host_n: int, seed: int) -> dict[st
         "newborns_removed": len(born - alive),
         "capacity_refusals": int(refusals),
     }
-    step["thinned"] = apply_census(arm, host_n, seed, generation) if alive else 0
+    step["thinned"] = apply_census(arm, host_n, seed, generation, endowment_atp=endowment_atp) if alive else 0
     return step
 
 
@@ -1103,7 +1218,9 @@ def _run_seed(
         step: dict[str, int] | None = None
         if generation > 0:
             if design.discrete:
-                step = _discrete_step(arm, generation, host_n, seed)
+                step = _discrete_step(
+                    arm, generation, host_n, seed, endowment_atp=design.birth_atp if design.census_reendowment else None
+                )
             else:
                 arm.run_generations(1)
         if step is not None and not arm.runner.population.organisms:

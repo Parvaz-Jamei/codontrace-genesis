@@ -126,7 +126,12 @@ INVASION_CLOCKS = (CLOCK_SELFING_RATE, CLOCK_ALLELE_FREQ)
 
 HP_ENV_MATCH_REASON = "hp_arm01_env_match_cost"
 _KAPPA_QUIET = "100000"
+# Explicit lethal contact (LifeLoopEcologyArm.kill_probability).
+JR5_KILL_REASON = "jr5_kill"
+JR5_KILL_NAMESPACE = "jr5-kill"
 _PROGRAM = f"{LIFE_LOOP_EATER_GENOME}{_KAPPA_QUIET}"
+# The coding prefix every founder carries before its mating locus and window.
+FOUNDER_PROGRAM = _PROGRAM
 _DEFAULT_BIRTH_ATP = 40.0
 _DEFAULT_PARASITE_N = 8
 _DEFAULT_HANDLING_TIME = 0.0
@@ -614,6 +619,16 @@ class LifeLoopEcologyArm:
     selfing_birth_atp_endowment: float = 0.0
     mate_search_radius: int | None = None
     outcross_mates_per_generation_cap: int | None = None
+    # Explicit lethal contact (opt-in; None keeps the steal debit). A matched
+    # host is killed with probability ``kill_probability`` (s = 1 for high
+    # virulence, s = q for low) by one uniform draw u from
+    # RNGManager(seed, "jr5-kill").fork("g<generation>/h<host id>"); killed iff
+    # u < s. A kill debits all remaining runtime ATP (reason jr5_kill) and the
+    # host leaves the population at once. Matched hosts that survive the draw
+    # pay nothing: the kill replaces the steal debit, so no virulence
+    # threshold decides lethality.
+    kill_probability: float | None = None
+    kills_by_generation: list[int] = field(default_factory=list)
 
     @classmethod
     def boot(
@@ -642,8 +657,15 @@ class LifeLoopEcologyArm:
         outcross_mates_per_generation_cap: int | None = None,
         chamber_max_birth_wait_ticks: int | None = None,
         chamber_timeout_policy: str = "asexual_fallback",
+        kill_probability: float | None = None,
     ) -> LifeLoopEcologyArm:
         passage = ecology_arm_to_passage(arm)
+        if kill_probability is not None and (
+            isinstance(kill_probability, bool)
+            or not isinstance(kill_probability, (int, float))
+            or not 0.0 <= float(kill_probability) <= 1.0
+        ):
+            raise ConfigurationError("kill_probability must be a number in [0, 1] or None.")
         founder_rows = tuple(founders) if founders is not None else _INVASION_FOUNDERS
         if not founder_rows:
             raise ConfigurationError("invasion founders require at least one host")
@@ -803,6 +825,7 @@ class LifeLoopEcologyArm:
             selfing_birth_atp_endowment=float(selfing_birth_atp_endowment),
             mate_search_radius=mate_search_radius,
             outcross_mates_per_generation_cap=outcross_mates_per_generation_cap,
+            kill_probability=None if kill_probability is None else float(kill_probability),
         )
 
     def _hosts(self) -> list[GenesisOrganism]:
@@ -864,6 +887,7 @@ class LifeLoopEcologyArm:
 
         matched_windows: list[str] = []
         debit_count = 0
+        killed: set[str] = set()
         # Pair parasites round-robin onto hosts; inject succeeds only on allele overlap.
         for p_index, p_window in enumerate(self.parasite_windows):
             if not hosts:
@@ -877,6 +901,26 @@ class LifeLoopEcologyArm:
                 payload=(1,),
             )
             if not attempt.injected:
+                continue
+            if self.kill_probability is not None:
+                if host.id in killed:
+                    continue
+                matched_windows.append(_window(host))
+                if self._kill_draw(host.id) < self.kill_probability:
+                    remaining = host.atp_state.runtime_available
+                    if remaining > 0.0:
+                        host.atp_state.debit_runtime(
+                            remaining,
+                            tick=self.tick_index,
+                            organism_id=host.id,
+                            codon="000",
+                            action=JR5_KILL_REASON,
+                            reason=JR5_KILL_REASON,
+                        )
+                    if host.atp_state.runtime_available != 0.0:
+                        raise RuntimeError(f"killed host {host.id} kept ATP after the jr5_kill debit.")
+                    killed.add(host.id)
+                    debit_count += 1
                 continue
             retained = self.hp_env.host_retained_cpu(host.id)
             # Antagonistic steal magnitude → ATP debit scaled by virulence.
@@ -899,13 +943,23 @@ class LifeLoopEcologyArm:
         survivors = [
             org
             for org in self.runner.population.organisms
-            if org.atp_state.runtime_available > 0.0
-            or self.roles.get(org.id) != ROLE_PRIMARY
+            if (org.atp_state.runtime_available > 0.0 or self.roles.get(org.id) != ROLE_PRIMARY)
+            and org.id not in killed
         ]
         self.runner.population = replace(
             self.runner.population, organisms=tuple(survivors)
         )
+        if self.kill_probability is not None:
+            self.kills_by_generation.append(len(killed))
         return debit_count, matched_windows
+
+    def _kill_draw(self, host_id: str) -> float:
+        """The kill draw u of one host in the current generation (explicit lethal contact)."""
+
+        if "/" in str(host_id):
+            raise ConfigurationError("host ids may not contain '/' (they name an RNG fork).")
+        generation = int(self.runner.population.generation)
+        return float(RNGManager(seed=self.seed, namespace=JR5_KILL_NAMESPACE).fork(f"g{generation}/h{host_id}").random())
 
     def _passage_update(self, matched_windows: Sequence[str], rng: RNGManager) -> None:
         if self.passage == PASSAGE_ABSENT:

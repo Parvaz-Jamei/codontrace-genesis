@@ -1079,10 +1079,10 @@ def test_gate_loader_reads_the_log_bytes_the_record_check_accepted(tmp_path: Pat
     the file bytes. The log here is the committed log plus one valid entry
     whose last body line holds a lone CR before ``## ``
     (_jr5_deviation_attacks.cr_inside_appended_entry). In the bytes that
-    ``## `` is not at a line start, so the log has 6 entries (the 5
+    ``## `` is not at a line start, so the log has 8 entries (the 7
     committed ones plus the new one), each with one digest line, chained and
     ending at the plan pin: accepted. record.json is refreshed over the new
-    bytes. A text-mode second read would turn the CR into LF, see a 7th
+    bytes. A text-mode second read would turn the CR into LF, see a 9th
     entry with no digest line and refuse what the first check accepted.
     Expected: the file holds one CR byte, the record check returns the plan
     pin, and load_e1_gate_spec returns a spec equal to the one loaded from
@@ -1097,7 +1097,7 @@ def test_gate_loader_reads_the_log_bytes_the_record_check_accepted(tmp_path: Pat
     log.write_bytes(_jr5_deviation_attacks.cr_inside_appended_entry(log.read_bytes()))
     raw = log.read_bytes()
     assert raw.count(b"\r") == 1
-    assert len(plan.deviations_log_entries(plan.read_deviations_log(log))) == committed_entries + 1 == 6
+    assert len(plan.deviations_log_entries(plan.read_deviations_log(log))) == committed_entries + 1 == 8
     record = json.loads(RECORD.read_bytes())
     fresh = hash_plan([path for path, _ in record["manifest"]["files"]], root=root, title=record["manifest"]["title"])
     (root / "docs/prereg/jr5/record.json").write_text(

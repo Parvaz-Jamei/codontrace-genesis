@@ -757,8 +757,9 @@ def test_census_counts_the_asexual_founder_lineage() -> None:
 #   old setup (outcross fee 1.0). Merging the gamete-fusion fix moved it to
 #   (0.38787177, -0.00003415) on that setup; the setup change to outcross fee
 #   0.0 then gave (0.80725957, -0.32454182). The selfing fix did not move it.
-#   The male-never-mother fix moved it to (0.66971430, 0.03195584): males no
-#   longer place a child of their own, so male counts per generation change.
+#   The male-never-mother fix moved it (re-pinned by script, values not
+#   quoted here): males no longer place a child of their own, so male counts
+#   per generation change.
 # - Self arm: only this pin moved with the selfing fix, from (-3.8506,-0.1356)
 #   to (-3.9159,-0.1605), because genome length went from 9 to 18 bits (before
 #   the fix a selfed child was the parent's even homolog alone, so the genome
@@ -771,8 +772,10 @@ _E1_MALE_SELF_DIPLOID = (-3.91594154, -0.16053908)
 # obligate-outcross host arm with an asexual founder fraction of 0.2 and no
 # parasite (this session has no host-parasite world clock), outcross fee 0.0.
 # Computed with the
-# same estimator on this branch.
-_E1_PREREG_ASEXUAL = (-1.23889801, 0.05642555)
+# same estimator on this branch. Re-pinned by script after the
+# male-never-mother fix (males no longer place a child of their own, so the
+# census and asexual share per generation change); values not quoted here.
+_E1_PREREG_ASEXUAL = (-0.96610815, 0.04049770)
 
 
 def _prereg_e1_arm(bits: str, types: tuple[str, ...]) -> ClosedLoopP5Session:

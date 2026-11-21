@@ -65,6 +65,8 @@ ACCEPTED_LOG_CHECKPOINTS: tuple[tuple[int, str], ...] = (
     (5452, "9b4f42ff11605453e3ccd8e546f1965a949f3fa46a42034bb286b4062820146a"),
     # Through the 2026-11-09 entry on the commit that made selfing two meioses plus fusion.
     (9117, "cf202b488e356206f6a19da7eeded08d43618b802c2f04adf815ff2b1abac98c"),
+    # Through the 2026-11-21 male-never-mother entry (with the pilot-runner exposure entry before it).
+    (14456, "400623c80a5858c7c71de56bef46d164822d1b614be15492fd3e3da9e3f6e4e9"),
 )
 
 

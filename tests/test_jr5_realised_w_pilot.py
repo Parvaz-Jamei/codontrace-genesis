@@ -927,9 +927,13 @@ def make_root(tmp_path: Path, appended: str | None) -> Path:
 
 
 def test_the_real_log_names_no_pilot_design() -> None:
-    """Basis: DEVIATIONS.md at this commit has five entries and no design line, so the pin
-    check refuses and no pilot can run."""
+    """Basis: DEVIATIONS.md at this commit has seven entries and no design line (the
+    2026-11-21 pilot-runner entry records exposures but fixes no design), so the pin check
+    refuses and no pilot can run."""
 
+    text = (ROOT / P.DEVIATIONS_RELPATH).read_text(encoding="utf-8")
+    assert len(P.deviations_log_entries(text)) == 7
+    assert not P.DESIGN_DIGEST_LINE.findall(text)
     with pytest.raises(ConfigurationError, match="no DEVIATIONS.md entry names a pilot population design"):
         P.verified_pilot_design_digest(ROOT)
 

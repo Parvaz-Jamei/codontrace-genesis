@@ -41,6 +41,25 @@
   `statistical_protocol.ratio_scale_end`: a log end whose exp overflows is
   refused with `ConfigurationError` in both instead of a raw `OverflowError`.
   Decisions are unchanged.
+- Bug fix, sexes on (`mating_types_enabled`): a male entered the birth
+  chamber as a mother. Each chamber entrant enqueued a slot with an offspring
+  endowment, and a compatible pair placed both slots as children, so a
+  hermaphrodite x male or female x male pair made two births, one with the
+  male as parent. The phase 2b rule of the mating-types design note is now
+  enforced: a male's slot is sire-only. It pays the parent cost but no
+  offspring endowment, and a pair places one child per mother (one for
+  hermaphrodite x male or female x male, with the male as second parent; two
+  for hermaphrodite x hermaphrodite). Sex is still drawn at birth, so sons are
+  placed and their endowment is paid by the mother (the `son_allocation`
+  term). `two_fold_cost_sex` is unchanged and still refused with sexes on.
+  With sexes off every digest is unchanged; sexes-on outputs change.
+- JR5 deviations log: two entries appended, one recording that the pilot
+  runner is committed without a population design together with the
+  realised-w exposures so far, one for the male-never-mother fix. Both
+  `record.json` copies are refreshed; the plan digest and constants are
+  unchanged. The preregistration and claimgate log checks pin a checkpoint
+  through the new entries, and the sexes-on toy E1 regression pins that pair
+  a male were re-pinned by script without quoting the new values.
 
 ## [0.3.0b31] — 2026-11-15
 
